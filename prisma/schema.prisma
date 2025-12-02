@@ -34,6 +34,7 @@ model User {
   integrations  Integration[] // External App Connections (Whoop, Intervals)
   workouts      Workout[]
   dailyMetrics  DailyMetric[]
+  wellness      Wellness[]
   reports       Report[]
 }
 
@@ -130,18 +131,51 @@ model Workout {
   averageWatts    Int?
   maxWatts        Int?
   normalizedPower Int?
+  weightedAvgWatts Int?
   averageHr       Int?
   maxHr           Int?
+  averageCadence  Int?
+  maxCadence      Int?
+  averageSpeed    Float?
   
-  // Training Load
+  // Training Load & Intensity
   tss             Float?   // Training Stress Score
-  if              Float?   // Intensity Factor
+  trainingLoad    Float?   // icu_training_load
+  intensity       Float?   // Intensity Factor (0-1+ scale)
   kilojoules      Int?
+  trimp           Int?
   
-  // Raw Data storage (optional, for re-analysis)
-  rawJson         Json?    // Store the original full payload if needed
+  // Performance Metrics
+  ftp             Int?     // FTP at time of activity
+  variabilityIndex Float?  // Power variability (NP/AP)
+  powerHrRatio    Float?   // Power/HR efficiency
+  efficiencyFactor Float?  // Power/HR at aerobic intensities
+  decoupling      Float?   // Aerobic efficiency metric
+  polarizationIndex Float? // Training distribution metric
+  
+  // Training Status (from Intervals.icu)
+  ctl             Float?   // Chronic Training Load (Fitness)
+  atl             Float?   // Acute Training Load (Fatigue)
+  
+  // Subjective Metrics
+  rpe             Int?     // Rate of Perceived Exertion
+  sessionRpe      Int?     // Session RPE
+  feel            Int?     // How the workout felt (1-10)
+  
+  // Environmental & Equipment
+  avgTemp         Float?   // Average temperature
+  trainer         Boolean? // Indoor trainer workout
+  
+  // L/R Balance
+  lrBalance       Float?   // Left/Right power balance
+  
+  // Raw Data storage (for re-analysis and accessing original data)
+  rawJson         Json?    // Store the original full payload
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([userId, date])
   @@unique([userId, source, externalId]) // Prevent duplicates
@@ -171,6 +205,60 @@ model DailyMetric {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+}
+
+// Wellness data from Intervals.icu (synced from various sources like Whoop, Garmin, etc.)
+model Wellness {
+  id                String   @id @default(uuid())
+  userId            String
+  date              DateTime @db.Date // YYYY-MM-DD
+  
+  // Heart Rate Variability
+  hrv               Float?   // Heart Rate Variability (ms)
+  hrvSdnn           Float?   // HRV SDNN - autonomic nervous system balance
+  
+  // Heart Rate
+  restingHr         Int?     // Resting heart rate
+  avgSleepingHr     Int?     // Average sleeping heart rate
+  
+  // Sleep Metrics
+  sleepSecs         Int?     // Total sleep in seconds
+  sleepHours        Float?   // Computed: sleepSecs / 3600
+  sleepScore        Int?     // Sleep quality score (0-100)
+  sleepQuality      Int?     // Sleep quality rating (1-10)
+  
+  // Recovery & Readiness
+  readiness         Int?     // Readiness to train (1-10)
+  recoveryScore     Int?     // Recovery score (0-100)
+  
+  // Subjective Wellness Metrics
+  soreness          Int?     // Muscle soreness (1-10)
+  fatigue           Int?     // Fatigue level (1-10)
+  stress            Int?     // Stress level (1-10)
+  mood              Int?     // Mood rating (1-10)
+  motivation        Int?     // Motivation level (1-10)
+  
+  // Physical Metrics
+  weight            Float?   // Weight in kg
+  spO2              Float?   // Blood oxygen saturation (%)
+  
+  // Training Load (from Intervals.icu)
+  ctl               Float?   // Chronic Training Load (Fitness)
+  atl               Float?   // Acute Training Load (Fatigue)
+  
+  // Notes
+  comments          String?  @db.Text
+  
+  // Raw data for accessing original response
+  rawJson           Json?
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
 }
 
 // --------------------------------------

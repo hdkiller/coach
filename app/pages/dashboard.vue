@@ -15,36 +15,50 @@
           <p class="mt-2 text-muted">Your AI-powered cycling coach is ready to help you optimize your training.</p>
         </div>
       
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <UCard>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <UCard v-if="!intervalsConnected">
             <template #header>
               <h3 class="font-semibold">Getting Started</h3>
             </template>
             <p class="text-sm text-muted">
-              Connect your Intervals.icu and Whoop accounts to start analyzing your training data.
+              Connect your Intervals.icu account to start analyzing your training data.
             </p>
             <template #footer>
               <UButton to="/settings" block>
-                Connect Apps
+                Connect Intervals.icu
+              </UButton>
+            </template>
+          </UCard>
+          
+          <UCard v-else>
+            <template #header>
+              <h3 class="font-semibold">Connection Status</h3>
+            </template>
+            <div class="space-y-3">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-success" />
+                <span class="text-sm">Intervals.icu connected</span>
+              </div>
+              <p class="text-sm text-muted">
+                Your training data is being synced automatically.
+              </p>
+            </div>
+            <template #footer>
+              <UButton to="/reports" block variant="outline">
+                View Reports
               </UButton>
             </template>
           </UCard>
           
           <UCard>
             <template #header>
-              <h3 class="font-semibold">Today's Readiness</h3>
-            </template>
-            <p class="text-sm text-muted text-center py-4">
-              No data available yet. Connect your Whoop account to see your recovery metrics.
-            </p>
-          </UCard>
-          
-          <UCard>
-            <template #header>
               <h3 class="font-semibold">Recent Activity</h3>
             </template>
-            <p class="text-sm text-muted text-center py-4">
+            <p v-if="!intervalsConnected" class="text-sm text-muted text-center py-4">
               No workouts found. Connect your Intervals.icu account to sync your training data.
+            </p>
+            <p v-else class="text-sm text-muted text-center py-4">
+              Your workouts are syncing. Check back soon or view the Reports page.
             </p>
           </UCard>
         </div>
@@ -59,11 +73,17 @@
               Account created successfully
             </li>
             <li class="flex items-center gap-2">
-              <UIcon name="i-heroicons-arrow-path" class="w-5 h-5" />
-              Connect your fitness apps
+              <UIcon
+                :name="intervalsConnected ? 'i-heroicons-check-circle' : 'i-heroicons-arrow-path'"
+                :class="intervalsConnected ? 'w-5 h-5 text-success' : 'w-5 h-5'"
+              />
+              Connect Intervals.icu
             </li>
             <li class="flex items-center gap-2">
-              <UIcon name="i-heroicons-arrow-path" class="w-5 h-5" />
+              <UIcon
+                :name="intervalsConnected ? 'i-heroicons-check-circle' : 'i-heroicons-arrow-path'"
+                :class="intervalsConnected ? 'w-5 h-5 text-success' : 'w-5 h-5'"
+              />
               Sync your training data
             </li>
             <li class="flex items-center gap-2">
@@ -81,4 +101,14 @@
 definePageMeta({
   middleware: 'auth'
 })
+
+// Integration status - use lazy to avoid SSR issues
+const { data: integrationStatus } = useFetch('/api/integrations/status', {
+  lazy: true,
+  server: false
+})
+
+const intervalsConnected = computed(() =>
+  integrationStatus.value?.integrations?.some((i: any) => i.provider === 'intervals') ?? false
+)
 </script>

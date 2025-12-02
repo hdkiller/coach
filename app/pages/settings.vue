@@ -65,24 +65,15 @@
                   <p class="text-sm text-muted">Power data and training calendar</p>
                 </div>
               </div>
-              <UButton color="neutral" variant="outline">
+              <UButton
+                v-if="!intervalsConnected"
+                color="neutral"
+                variant="outline"
+                @click="goToConnectIntervals"
+              >
                 Connect
               </UButton>
-            </div>
-            
-            <div class="flex items-center justify-between p-4 border rounded-lg">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <UIcon name="i-heroicons-heart" class="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 class="font-semibold">Whoop</h3>
-                  <p class="text-sm text-muted">Recovery, HRV, and sleep tracking</p>
-                </div>
-              </div>
-              <UButton color="neutral" variant="outline">
-                Connect
-              </UButton>
+              <UBadge v-else color="success">Connected</UBadge>
             </div>
           </div>
         </UCard>
@@ -103,14 +94,30 @@
         </UCard>
       </div>
     </template>
+
   </UDashboardPanel>
 </template>
 
 <script setup lang="ts">
 const { data } = useAuth()
 const user = computed(() => data.value?.user)
+const toast = useToast()
 
 definePageMeta({
   middleware: 'auth'
 })
+
+// Integration status - use lazy to avoid SSR issues
+const { data: integrationStatus, refresh: refreshIntegrations } = useFetch('/api/integrations/status', {
+  lazy: true,
+  server: false
+})
+
+const intervalsConnected = computed(() =>
+  integrationStatus.value?.integrations?.some((i: any) => i.provider === 'intervals') ?? false
+)
+
+const goToConnectIntervals = () => {
+  navigateTo('/connect-intervals')
+}
 </script>

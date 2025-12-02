@@ -14,6 +14,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Data',
+  icon: 'i-lucide-database',
+  to: '/data',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Reports',
   icon: 'i-lucide-file-text',
   to: '/reports',
