@@ -2,8 +2,10 @@ import { logger, task } from "@trigger.dev/sdk/v3";
 import {
   fetchIntervalsWorkouts,
   fetchIntervalsWellness,
+  fetchIntervalsPlannedWorkouts,
   normalizeIntervalsWorkout,
-  normalizeIntervalsWellness
+  normalizeIntervalsWellness,
+  normalizeIntervalsPlannedWorkout
 } from "../server/utils/intervals";
 import { prisma } from "../server/utils/db";
 
@@ -52,6 +54,11 @@ export const ingestIntervalsTask = task({
       const wellnessData = await fetchIntervalsWellness(integration, start, end);
       logger.log(`Fetched ${wellnessData.length} wellness entries from Intervals.icu`);
       
+      // Fetch planned workouts (import all categories)
+      logger.log("Fetching planned workouts...");
+      const plannedWorkouts = await fetchIntervalsPlannedWorkouts(integration, start, end);
+      logger.log(`Fetched ${plannedWorkouts.length} events from Intervals.icu`);
+      
       // Upsert workouts
       let workoutsUpserted = 0;
       for (const activity of activities) {
@@ -94,6 +101,26 @@ export const ingestIntervalsTask = task({
       
       logger.log(`Upserted ${wellnessUpserted} wellness entries`);
       
+      // Upsert planned workouts
+      let plannedWorkoutsUpserted = 0;
+      for (const planned of plannedWorkouts) {
+        const normalizedPlanned = normalizeIntervalsPlannedWorkout(planned, userId);
+        
+        await prisma.plannedWorkout.upsert({
+          where: {
+            userId_externalId: {
+              userId,
+              externalId: normalizedPlanned.externalId
+            }
+          },
+          update: normalizedPlanned,
+          create: normalizedPlanned
+        });
+        plannedWorkoutsUpserted++;
+      }
+      
+      logger.log(`Upserted ${plannedWorkoutsUpserted} planned workouts`);
+      
       // Update sync status
       await prisma.integration.update({
         where: { id: integration.id },
@@ -108,6 +135,7 @@ export const ingestIntervalsTask = task({
         success: true,
         workouts: workoutsUpserted,
         wellness: wellnessUpserted,
+        plannedWorkouts: plannedWorkoutsUpserted,
         userId,
         startDate,
         endDate
