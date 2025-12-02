@@ -10,8 +10,24 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@auth/core": "^0.34.3",
+    "@google/generative-ai": "^0.24.1",
+    "@next-auth/prisma-adapter": "^1.0.7",
+    "@nuxt/ui": "^4.2.1",
+    "@nuxtjs/mdc": "^0.19.1",
+    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/client": "^7.0.1",
+    "@sidebase/nuxt-auth": "^1.1.1",
+    "@trigger.dev/sdk": "^4.1.2",
+    "next-auth": "4.21.1",
     "nuxt": "^4.2.1",
+    "pg": "^8.16.3",
     "vue": "^3.5.25",
     "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "dotenv": "^17.2.3",
+    "prisma": "^7.0.1"
   }
 }
