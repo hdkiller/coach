@@ -179,6 +179,7 @@ definePageMeta({
   middleware: 'auth'
 })
 
+const toast = useToast()
 const syncing = ref<string | null>(null)
 const loading = ref(true)
 const intervalsStatus = ref<any>(null)
@@ -235,22 +236,59 @@ async function fetchRecentWorkouts() {
 async function syncIntegration(provider: string) {
   syncing.value = provider
   try {
-    const response = await $fetch('/api/integrations/sync', {
+    const response: any = await $fetch('/api/integrations/sync', {
       method: 'POST',
       body: { provider }
     })
     
-    // Show success message
-    alert(`${provider} sync started successfully!`)
+    // Show success message with job details
+    toast.add({
+      title: 'Sync Started Successfully',
+      description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data sync is now running. Job ID: ${response.jobId?.slice(0, 8)}...`,
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
     
-    // Refresh status after a delay
+    // Update status immediately to show SYNCING state
+    await fetchStatus()
+    
+    // Refresh data after a delay to show results
     setTimeout(async () => {
       await fetchStatus()
       await fetchDataSummary()
       await fetchRecentWorkouts()
-    }, 2000)
+      
+      // Show completion notification if successful
+      if (provider === 'intervals' && intervalsStatus.value?.syncStatus === 'SUCCESS') {
+        toast.add({
+          title: 'Sync Completed',
+          description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
+          color: 'success',
+          icon: 'i-heroicons-check-badge'
+        })
+      } else if (provider === 'whoop' && whoopStatus.value?.syncStatus === 'SUCCESS') {
+        toast.add({
+          title: 'Sync Completed',
+          description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
+          color: 'success',
+          icon: 'i-heroicons-check-badge'
+        })
+      }
+    }, 5000)
   } catch (error: any) {
-    alert(`Error syncing ${provider}: ${error.data?.message || error.message}`)
+    const errorMessage = error.data?.message || error.message
+    const isTriggerError = errorMessage.includes('Trigger.dev')
+    
+    toast.add({
+      title: 'Sync Failed',
+      description: isTriggerError
+        ? `${errorMessage}`
+        : `Error syncing ${provider}: ${errorMessage}`,
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+    
+    console.error(`Sync error for ${provider}:`, error)
   } finally {
     syncing.value = null
   }
