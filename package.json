@@ -28,6 +28,7 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "dotenv": "^17.2.3",
-    "prisma": "^7.0.1"
+    "prisma": "^7.0.1",
+    "tailwindcss": "^4.0.0"
   }
 }

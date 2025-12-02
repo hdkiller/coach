@@ -25,3 +25,4 @@ logs
 1
 
 /app/generated/prisma
+examples/dashboard

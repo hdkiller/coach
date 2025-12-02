@@ -9,6 +9,8 @@ export default defineNuxtConfig({
     '@nuxtjs/mdc'
   ],
 
+  css: ['~/assets/css/main.css'],
+
   auth: {
     baseURL: process.env.NUXT_AUTH_ORIGIN || 'http://localhost:3099/api/auth',
     provider: {

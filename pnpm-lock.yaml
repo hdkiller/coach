@@ -60,6 +60,9 @@ importers:
       prisma:
         specifier: ^7.0.1
         version: 7.0.1(@types/react@19.2.7)(magicast@0.5.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      tailwindcss:
+        specifier: ^4.0.0
+        version: 4.0.0
 
 packages:
 
@@ -4553,6 +4556,9 @@ packages:
     peerDependenciesMeta:
       tailwind-merge:
         optional: true
+
+  tailwindcss@4.0.0:
+    resolution: {integrity: sha512-ULRPI3A+e39T7pSaf1xoi58AqqJxVCLg8F/uM5A3FadUbnyDTgltVnXJvdkTjwCOGA6NazqHVcwPJC5h2vRYVQ==}
 
   tailwindcss@4.1.17:
     resolution: {integrity: sha512-j9Ee2YjuQqYT9bbRTfTZht9W/ytp5H+jJpZKiYdP/bpnXARAuELt9ofP0lPnmHjbga7SNQIxdTAXCmtKVYjN+Q==}
@@ -10535,6 +10541,8 @@ snapshots:
       tailwindcss: 4.1.17
     optionalDependencies:
       tailwind-merge: 3.4.0
+
+  tailwindcss@4.0.0: {}
 
   tailwindcss@4.1.17: {}
 
