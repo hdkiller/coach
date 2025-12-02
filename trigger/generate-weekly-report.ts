@@ -147,8 +147,8 @@ export const generateWeeklyReportTask = task({
         throw new Error('No workout data available for analysis');
       }
       
-      // Build prompt
-      const prompt = `You are an expert cycling coach analyzing training data.
+      // Build prompt for structured analysis
+      const prompt = `You are an expert cycling coach analyzing 30 days of training data.
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
@@ -163,39 +163,35 @@ DAILY METRICS (Recovery & Sleep):
 ${metrics.length > 0 ? buildMetricsSummary(metrics) : 'No recovery data available'}
 
 ANALYSIS INSTRUCTIONS:
-1. Calculate training load distribution (easy, moderate, hard days)
-2. Identify trends in HRV vs training intensity
-3. Look for signs of overreaching or undertraining
-4. Analyze power progression and fatigue accumulation
-5. Evaluate recovery patterns and sleep quality
-6. Provide specific, actionable recommendations
+Create a comprehensive weekly training analysis with these sections:
 
-OUTPUT FORMAT: 
-Write a professional markdown report with the following sections:
-- **Executive Summary** (2-3 sentences highlighting key findings)
-- **Training Load Analysis** (weekly TSS, intensity distribution, trends)
-- **Recovery Trends** (HRV patterns, sleep quality, readiness)
-- **Power Progression** (improvements or regressions in key metrics)
-- **Fatigue & Form** (current training stress balance)
-- **Recommendations** (3-5 specific actionable items)
+1. **Training Load Analysis**: Analyze TSS distribution, intensity balance (easy/moderate/hard), and training load trends
+2. **Recovery Trends**: Evaluate HRV patterns, sleep quality, and recovery adequacy relative to training stress
+3. **Power Progression**: Assess improvements or regressions in power metrics and performance indicators
+4. **Fatigue & Form**: Analyze training stress balance (CTL/ATL), freshness, and readiness
 
-Write in a supportive, coaching tone. Be specific with numbers and metrics.`;
+For each section:
+- Provide a status assessment (excellent/good/moderate/needs_improvement/poor)
+- List 3-5 specific, data-driven analysis points (each as a separate bullet, 1-2 sentences max)
+- Reference actual numbers and metrics from the data
 
-      logger.log("Generating report with Gemini Pro");
+Then provide 3-5 prioritized recommendations with specific actions.
+
+Be supportive and specific. Use actual data points and metrics.`;
+
+      logger.log("Generating structured report with Gemini");
       
-      // Generate with Gemini Pro
-      const markdown = await generateCoachAnalysis(prompt, 'pro');
+      // Generate structured analysis
+      const analysisJson = await generateStructuredAnalysis(prompt, analysisSchema);
       
-      logger.log("Report generated successfully", { 
-        markdownLength: markdown.length 
-      });
+      logger.log("Structured report generated successfully");
       
-      // Save report
+      // Save report with JSON structure
       await prisma.report.update({
         where: { id: reportId },
         data: {
           status: 'COMPLETED',
-          markdown,
+          analysisJson: analysisJson as any,
           modelVersion: 'gemini-2.0-flash-thinking-exp-1219',
           dateRangeStart: startDate,
           dateRangeEnd: endDate
@@ -207,8 +203,7 @@ Write in a supportive, coaching tone. Be specific with numbers and metrics.`;
       return {
         success: true,
         reportId,
-        userId,
-        markdownLength: markdown.length
+        userId
       };
     } catch (error) {
       logger.error("Error generating report", { error });
