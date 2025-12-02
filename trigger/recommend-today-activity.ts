@@ -67,8 +67,8 @@ export const recommendTodayActivityTask = task({
         orderBy: { createdAt: 'desc' }
       }),
       
-      // Today's recovery metrics
-      prisma.dailyMetric.findUnique({
+      // Today's recovery metrics from Wellness table (WHOOP, Intervals.icu, etc.)
+      prisma.wellness.findUnique({
         where: { userId_date: { userId, date: today } }
       }),
       
@@ -117,7 +117,8 @@ ${todayMetric ? `
 - Recovery Score: ${todayMetric.recoveryScore}%
 - HRV: ${todayMetric.hrv} ms
 - Resting HR: ${todayMetric.restingHr} bpm
-- Sleep: ${todayMetric.hoursSlept?.toFixed(1)} hours (Score: ${todayMetric.sleepScore}%)
+- Sleep: ${todayMetric.sleepHours?.toFixed(1)} hours (Score: ${todayMetric.sleepScore}%)
+${todayMetric.spO2 ? `- SpO2: ${todayMetric.spO2}%` : ''}
 ` : 'No recovery data available'}
 
 RECENT TRAINING (Last 7 days):

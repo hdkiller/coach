@@ -126,7 +126,7 @@ export const generateWeeklyReportTask = task({
           },
           orderBy: { date: 'asc' }
         }),
-        prisma.dailyMetric.findMany({
+        prisma.wellness.findMany({
           where: {
             userId,
             date: { gte: startDate, lte: endDate }

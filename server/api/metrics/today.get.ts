@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const today = new Date()
   const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   
-  const metric = await prisma.dailyMetric.findUnique({
+  const metric = await prisma.wellness.findUnique({
     where: {
       userId_date: {
         userId: (session.user as any).id,

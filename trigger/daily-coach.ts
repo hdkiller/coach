@@ -47,7 +47,7 @@ export const dailyCoachTask = task({
         },
         orderBy: { date: 'desc' }
       }),
-      prisma.dailyMetric.findUnique({
+      prisma.wellness.findUnique({
         where: {
           userId_date: {
             userId,
@@ -78,11 +78,12 @@ ${yesterdayWorkout
   : 'Rest day or no data'}
 
 TODAY'S RECOVERY:
-${todayMetric 
+${todayMetric
   ? `- Recovery Score: ${todayMetric.recoveryScore}%
 - HRV: ${todayMetric.hrv} ms
 - Resting HR: ${todayMetric.restingHr} bpm
-- Sleep: ${todayMetric.hoursSlept?.toFixed(1)} hours (Score: ${todayMetric.sleepScore}%)`
+- Sleep: ${todayMetric.sleepHours?.toFixed(1)} hours (Score: ${todayMetric.sleepScore}%)
+${todayMetric.spO2 ? `- SpO2: ${todayMetric.spO2}%` : ''}`
   : 'No recovery data available'}
 
 DECISION LOGIC:
