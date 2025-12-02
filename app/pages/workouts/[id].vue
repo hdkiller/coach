@@ -70,10 +70,10 @@
           </div>
 
           <!-- Tabs for different data sections -->
-          <UTabs :items="tabs" v-model="selectedTab">
-            <!-- Overview Tab -->
-            <template #overview>
-              <div class="space-y-6 py-4">
+          <UTabs :items="tabs" v-model="selectedTab" />
+          
+          <!-- Tab Content -->
+          <div v-show="selectedTab === 0" class="space-y-6 py-4">
                 <!-- Key Metrics Grid -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div v-if="workout.trainingLoad" class="rounded-lg p-4 shadow bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -239,13 +239,11 @@
                       <span class="text-sm font-medium text-gray-900 dark:text-white">{{ workout.trainer ? 'Yes' : 'No' }}</span>
                     </div>
                   </div>
-                </div>
-              </div>
-            </template>
+               </div>
+         </div>
 
-            <!-- JSON Data Tab -->
-            <template #json>
-              <div class="py-4">
+         <!-- JSON Data Tab Content -->
+          <div v-show="selectedTab === 1" class="py-4">
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                   <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Complete Workout Data (JSON)</h3>
@@ -279,11 +277,9 @@
                     <pre class="text-sm text-gray-800 dark:text-gray-200 overflow-x-auto bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">{{ formattedRawJson }}</pre>
                   </div>
                 </div>
-              </div>
-            </template>
-          </UTabs>
-        </div>
-      </div>
+         </div>
+       </div>
+     </div>
     </template>
   </UDashboardPanel>
 </template>
@@ -299,14 +295,12 @@ const toast = useToast()
 const workout = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
-const selectedTab = ref(0)
-
 const tabs = [
   { label: 'Overview', slot: 'overview' },
-  { label: 'Advanced Metrics', slot: 'advanced' },
-  { label: 'Subjective & Environment', slot: 'subjective' },
   { label: 'JSON Data', slot: 'json' }
 ]
+
+const selectedTab = ref(0)
 
 // Fetch workout data
 async function fetchWorkout() {
@@ -315,6 +309,9 @@ async function fetchWorkout() {
   try {
     const id = route.params.id
     workout.value = await $fetch(`/api/workouts/${id}`)
+    // Ensure overview tab is selected after data loads
+    await nextTick()
+    selectedTab.value = 0
   } catch (e: any) {
     error.value = e.data?.message || e.message || 'Failed to load workout'
     console.error('Error fetching workout:', e)
