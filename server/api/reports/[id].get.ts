@@ -23,6 +23,29 @@ export default defineEventHandler(async (event) => {
     where: {
       id,
       userId: (session.user as any).id
+    },
+    include: {
+      workouts: {
+        include: {
+          workout: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              date: true,
+              durationSec: true,
+              averageWatts: true,
+              tss: true,
+              distanceMeters: true
+            }
+          }
+        },
+        orderBy: {
+          workout: {
+            date: 'desc'
+          }
+        }
+      }
     }
   })
   
