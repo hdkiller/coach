@@ -1,5 +1,5 @@
 import { logger, task } from "@trigger.dev/sdk/v3";
-import { fetchWhoopRecovery, normalizeWhoopRecovery } from "../server/utils/whoop";
+import { fetchWhoopRecovery, fetchWhoopSleep, normalizeWhoopRecovery } from "../server/utils/whoop";
 import { prisma } from "../server/utils/db";
 
 export const ingestWhoopTask = task({
@@ -43,25 +43,37 @@ export const ingestWhoopTask = task({
       
       logger.log(`Fetched ${recoveryData.length} recovery records from Whoop`);
       
-      // Upsert metrics
+      // Upsert wellness data
       let upsertedCount = 0;
       for (const recovery of recoveryData) {
-        const metric = normalizeWhoopRecovery(recovery, userId);
+        // Fetch corresponding sleep data if available
+        let sleepData = null;
+        if (recovery.sleep_id) {
+          logger.log(`Fetching sleep data for sleep_id: ${recovery.sleep_id}`);
+          sleepData = await fetchWhoopSleep(integration, recovery.sleep_id);
+        }
         
-        await prisma.dailyMetric.upsert({
+        const wellness = normalizeWhoopRecovery(recovery, userId, sleepData);
+        
+        // Skip if recovery wasn't scored yet
+        if (!wellness) {
+          continue;
+        }
+        
+        await prisma.wellness.upsert({
           where: {
             userId_date: {
               userId,
-              date: metric.date
+              date: wellness.date
             }
           },
-          update: metric,
-          create: metric
+          update: wellness,
+          create: wellness
         });
         upsertedCount++;
       }
       
-      logger.log(`Upserted ${upsertedCount} daily metrics`);
+      logger.log(`Upserted ${upsertedCount} wellness entries from WHOOP`);
       
       // Update sync status
       await prisma.integration.update({
