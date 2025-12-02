@@ -170,6 +170,11 @@ model Workout {
   // L/R Balance
   lrBalance       Float?   // Left/Right power balance
   
+  // AI Analysis
+  aiAnalysis      String?  @db.Text // AI-generated workout analysis
+  aiAnalysisStatus String? @default("NOT_STARTED") // NOT_STARTED, PENDING, PROCESSING, COMPLETED, FAILED
+  aiAnalyzedAt    DateTime? // When the analysis was generated
+  
   // Raw Data storage (for re-analysis and accessing original data)
   rawJson         Json?    // Store the original full payload
 
