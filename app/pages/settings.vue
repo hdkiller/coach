@@ -65,15 +65,58 @@
                   <p class="text-sm text-muted">Power data and training calendar</p>
                 </div>
               </div>
-              <UButton
-                v-if="!intervalsConnected"
-                color="neutral"
-                variant="outline"
-                @click="goToConnectIntervals"
-              >
-                Connect
-              </UButton>
-              <UBadge v-else color="success">Connected</UBadge>
+              <div v-if="!intervalsConnected">
+                <UButton
+                  color="neutral"
+                  variant="outline"
+                  @click="goToConnectIntervals"
+                >
+                  Connect
+                </UButton>
+              </div>
+              <div v-else class="flex items-center gap-2">
+                <UBadge color="success">Connected</UBadge>
+                <UButton
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  @click="disconnectIntegration('intervals')"
+                >
+                  Disconnect
+                </UButton>
+              </div>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 border rounded-lg">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <UIcon name="i-heroicons-heart" class="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 class="font-semibold">WHOOP</h3>
+                  <p class="text-sm text-muted">Recovery, sleep, and strain data</p>
+                </div>
+              </div>
+              <div v-if="!whoopConnected">
+                <UButton
+                  color="neutral"
+                  variant="outline"
+                  @click="goToConnectWhoop"
+                >
+                  Connect
+                </UButton>
+              </div>
+              <div v-else class="flex items-center gap-2">
+                <UBadge color="success">Connected</UBadge>
+                <UButton
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  @click="disconnectIntegration('whoop')"
+                >
+                  Disconnect
+                </UButton>
+              </div>
             </div>
           </div>
         </UCard>
@@ -102,6 +145,7 @@
 const { data } = useAuth()
 const user = computed(() => data.value?.user)
 const toast = useToast()
+const router = useRouter()
 
 definePageMeta({
   middleware: 'auth'
@@ -117,7 +161,64 @@ const intervalsConnected = computed(() =>
   integrationStatus.value?.integrations?.some((i: any) => i.provider === 'intervals') ?? false
 )
 
+const whoopConnected = computed(() =>
+  integrationStatus.value?.integrations?.some((i: any) => i.provider === 'whoop') ?? false
+)
+
 const goToConnectIntervals = () => {
   navigateTo('/connect-intervals')
 }
+
+const goToConnectWhoop = () => {
+  navigateTo('/connect-whoop')
+}
+
+const disconnectIntegration = async (provider: string) => {
+  try {
+    await $fetch(`/api/integrations/${provider}/disconnect`, {
+      method: 'DELETE'
+    })
+    
+    toast.add({
+      title: 'Disconnected',
+      description: `Successfully disconnected from ${provider === 'intervals' ? 'Intervals.icu' : 'WHOOP'}`,
+      color: 'success'
+    })
+    
+    // Refresh integration status
+    refreshIntegrations()
+  } catch (error: any) {
+    toast.add({
+      title: 'Disconnect Failed',
+      description: error.data?.message || `Failed to disconnect from ${provider}`,
+      color: 'error'
+    })
+  }
+}
+
+// Handle OAuth callback messages
+onMounted(() => {
+  const route = useRoute()
+  
+  if (route.query.whoop_success) {
+    toast.add({
+      title: 'Connected!',
+      description: 'Successfully connected to WHOOP',
+      color: 'success'
+    })
+    // Clean up URL
+    router.replace({ query: {} })
+  } else if (route.query.whoop_error) {
+    const errorMsg = route.query.whoop_error as string
+    toast.add({
+      title: 'Connection Failed',
+      description: errorMsg === 'no_code'
+        ? 'Authorization was cancelled or no code was received'
+        : `Failed to connect to WHOOP: ${errorMsg}`,
+      color: 'error'
+    })
+    // Clean up URL
+    router.replace({ query: {} })
+  }
+})
 </script>
