@@ -38,9 +38,13 @@ export default defineEventHandler(async (event) => {
     })
   }
   
-  // Calculate date range (last 90 days)
-  const endDate = new Date()
+  // Calculate date range
+  // For Intervals: last 90 days + next 30 days (to capture future planned workouts)
+  // For Whoop: last 90 days only
   const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+  const endDate = provider === 'intervals'
+    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)  // +30 days for planned workouts
+    : new Date()  // Today for Whoop
   
   // Trigger the appropriate job
   const taskId = provider === 'intervals' ? 'ingest-intervals' : 'ingest-whoop'

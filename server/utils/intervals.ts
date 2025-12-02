@@ -94,6 +94,47 @@ interface IntervalsAthlete {
   name: string
 }
 
+interface IntervalsPlannedWorkout {
+  id: string
+  start_date_local: string
+  name: string
+  description?: string
+  type?: string
+  category?: string
+  duration?: number
+  distance?: number
+  tss?: number
+  work?: number
+  workout_doc?: any
+  [key: string]: any
+}
+
+export async function fetchIntervalsPlannedWorkouts(
+  integration: Integration,
+  startDate: Date,
+  endDate: Date
+): Promise<IntervalsPlannedWorkout[]> {
+  const athleteId = integration.externalUserId || 'i0'
+  
+  const url = new URL(`https://intervals.icu/api/v1/athlete/${athleteId}/events`)
+  url.searchParams.set('oldest', startDate.toISOString().split('T')[0])
+  url.searchParams.set('newest', endDate.toISOString().split('T')[0])
+  
+  const auth = Buffer.from(`API_KEY:${integration.accessToken}`).toString('base64')
+    
+  const response = await fetch(url.toString(), {
+    headers: {
+      'Authorization': `Basic ${auth}`
+    }
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Intervals API error: ${response.status} ${response.statusText}`)
+  }
+  
+  return await response.json()
+}
+
 export async function fetchIntervalsWorkouts(
   integration: Integration,
   startDate: Date,
@@ -253,6 +294,25 @@ export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: s
     
     // Store raw data
     rawJson: activity
+  }
+}
+
+export function normalizeIntervalsPlannedWorkout(event: IntervalsPlannedWorkout, userId: string) {
+  return {
+    userId,
+    externalId: String(event.id), // Convert to string
+    date: new Date(event.start_date_local),
+    title: event.name || 'Unnamed Event',
+    description: event.description || null,
+    type: event.type || null,
+    category: event.category || 'WORKOUT',
+    durationSec: event.duration || null,
+    distanceMeters: event.distance || null,
+    tss: event.tss || null,
+    workIntensity: event.work || null,
+    completed: false,
+    workoutId: null,
+    rawJson: event
   }
 }
 
