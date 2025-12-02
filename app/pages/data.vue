@@ -17,7 +17,7 @@
         </div>
 
         <!-- Integration Status Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- Intervals.icu Card -->
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-4">
@@ -85,13 +85,47 @@
               <span v-else>Sync Now</span>
             </button>
           </div>
+
+          <!-- Yazio Card -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Yazio</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Nutrition tracking</p>
+              </div>
+              <div v-if="yazioStatus" :class="getStatusClass(yazioStatus.syncStatus)">
+                {{ yazioStatus.syncStatus || 'Not Connected' }}
+              </div>
+            </div>
+            
+            <div v-if="yazioStatus" class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Last Sync:</span>
+                <span class="text-gray-900 dark:text-white">
+                  {{ yazioStatus.lastSyncAt ? formatDate(yazioStatus.lastSyncAt) : 'Never' }}
+                </span>
+              </div>
+              <div v-if="yazioStatus.errorMessage" class="text-red-600 text-xs mt-2">
+                {{ yazioStatus.errorMessage }}
+              </div>
+            </div>
+
+            <button
+              @click="syncIntegration('yazio')"
+              :disabled="syncing === 'yazio'"
+              class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            >
+              <span v-if="syncing === 'yazio'">Syncing...</span>
+              <span v-else>Sync Now</span>
+            </button>
+          </div>
         </div>
 
         <!-- Data Summary -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Summary</h2>
       
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 {{ dataSummary.workouts }}
@@ -111,6 +145,13 @@
                 {{ dataSummary.plannedWorkouts }}
               </div>
               <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Planned Workouts</div>
+            </div>
+
+            <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div class="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                {{ dataSummary.nutrition }}
+              </div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Nutrition Entries</div>
             </div>
           </div>
         </div>
@@ -336,6 +377,77 @@
             </table>
           </div>
         </div>
+
+        <!-- Nutrition Data Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Nutrition Data</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Daily calorie and macro tracking from Yazio</p>
+          </div>
+          
+          <div v-if="loading" class="p-8 text-center text-gray-600 dark:text-gray-400">
+            Loading...
+          </div>
+          
+          <div v-else-if="nutritionData.length === 0" class="p-8 text-center text-gray-600 dark:text-gray-400">
+            No nutrition data found. Connect Yazio and sync data to get started.
+          </div>
+          
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Calories
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Protein
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Carbs
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Fat
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Water
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-for="nutrition in nutritionData" :key="nutrition.id">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {{ formatDate(nutrition.date) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    <span v-if="nutrition.calories">
+                      {{ nutrition.calories }}
+                      <span v-if="nutrition.caloriesGoal" class="text-xs text-gray-500">
+                        / {{ nutrition.caloriesGoal }} kcal
+                      </span>
+                    </span>
+                    <span v-else class="text-gray-400">-</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {{ nutrition.protein ? Math.round(nutrition.protein) + 'g' : '-' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {{ nutrition.carbs ? Math.round(nutrition.carbs) + 'g' : '-' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {{ nutrition.fat ? Math.round(nutrition.fat) + 'g' : '-' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {{ nutrition.waterMl ? (nutrition.waterMl / 1000).toFixed(1) + 'L' : '-' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </template>
   </UDashboardPanel>
@@ -351,15 +463,18 @@ const syncing = ref<string | null>(null)
 const loading = ref(true)
 const intervalsStatus = ref<any>(null)
 const whoopStatus = ref<any>(null)
+const yazioStatus = ref<any>(null)
 const dataSummary = ref({
   workouts: 0,
   wellness: 0,
   dailyMetrics: 0,
-  plannedWorkouts: 0
+  plannedWorkouts: 0,
+  nutrition: 0
 })
 const recentWorkouts = ref<any[]>([])
 const plannedWorkouts = ref<any[]>([])
 const fitnessData = ref<any[]>([])
+const nutritionData = ref<any[]>([])
 
 // Fetch integration status
 async function fetchStatus() {
@@ -369,6 +484,7 @@ async function fetchStatus() {
     
     intervalsStatus.value = integrations.find((i: any) => i.provider === 'intervals')
     whoopStatus.value = integrations.find((i: any) => i.provider === 'whoop')
+    yazioStatus.value = integrations.find((i: any) => i.provider === 'yazio')
   } catch (error) {
     console.error('Error fetching integration status:', error)
   }
@@ -377,15 +493,17 @@ async function fetchStatus() {
 // Fetch data summary
 async function fetchDataSummary() {
   try {
-    const [workouts, wellness, planned] = await Promise.all([
-      $fetch('/api/workouts'),
-      $fetch('/api/wellness'),
-      $fetch('/api/planned-workouts')
+    const [workouts, wellness, planned, nutrition] = await Promise.all([
+      $fetch('/api/workouts').catch(e => { console.error('Workouts error:', e); return [] }),
+      $fetch('/api/wellness').catch(e => { console.error('Wellness error:', e); return [] }),
+      $fetch('/api/planned-workouts').catch(e => { console.error('Planned workouts error:', e); return [] }),
+      $fetch('/api/nutrition').catch(e => { console.error('Nutrition error:', e); return { count: 0, nutrition: [] } })
     ])
     
     dataSummary.value.workouts = Array.isArray(workouts) ? workouts.length : 0
     dataSummary.value.wellness = Array.isArray(wellness) ? wellness.length : 0
     dataSummary.value.plannedWorkouts = Array.isArray(planned) ? planned.length : 0
+    dataSummary.value.nutrition = (nutrition as any)?.count || 0
   } catch (error) {
     console.error('Error fetching data summary:', error)
   }
@@ -440,6 +558,22 @@ async function fetchFitnessData() {
   }
 }
 
+// Fetch nutrition data
+async function fetchNutritionData() {
+  try {
+    console.log('Fetching nutrition data...')
+    const response: any = await $fetch('/api/nutrition', {
+      query: { limit: 14 }
+    })
+    console.log('Nutrition API response:', response)
+    nutritionData.value = response.nutrition || []
+    console.log(`Loaded ${nutritionData.value.length} nutrition entries`)
+  } catch (error) {
+    console.error('Error fetching nutrition data:', error)
+    nutritionData.value = []
+  }
+}
+
 // Sync integration
 async function syncIntegration(provider: string) {
   syncing.value = provider
@@ -467,6 +601,7 @@ async function syncIntegration(provider: string) {
       await fetchRecentWorkouts()
       await fetchFitnessData()
       await fetchPlannedWorkouts()
+      await fetchNutritionData()
       
       // Show completion notification if successful
       if (provider === 'intervals' && intervalsStatus.value?.syncStatus === 'SUCCESS') {
@@ -477,6 +612,13 @@ async function syncIntegration(provider: string) {
           icon: 'i-heroicons-check-badge'
         })
       } else if (provider === 'whoop' && whoopStatus.value?.syncStatus === 'SUCCESS') {
+        toast.add({
+          title: 'Sync Completed',
+          description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
+          color: 'success',
+          icon: 'i-heroicons-check-badge'
+        })
+      } else if (provider === 'yazio' && yazioStatus.value?.syncStatus === 'SUCCESS') {
         toast.add({
           title: 'Sync Completed',
           description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
@@ -580,5 +722,6 @@ onMounted(async () => {
   await fetchRecentWorkouts()
   await fetchFitnessData()
   await fetchPlannedWorkouts()
+  await fetchNutritionData()
 })
 </script>
