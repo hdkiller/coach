@@ -37,6 +37,7 @@ model User {
   dailyMetrics    DailyMetric[]
   wellness        Wellness[]
   reports         Report[]
+  activityRecommendations ActivityRecommendation[]
 }
 
 model Account {
@@ -216,6 +217,7 @@ model PlannedWorkout {
   rawJson         Json?    // Store the original full payload
   
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendations ActivityRecommendation[]
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -349,4 +351,42 @@ model ReportWorkout {
   @@unique([reportId, workoutId])
   @@index([reportId])
   @@index([workoutId])
+}
+
+// --------------------------------------
+// Activity Recommendations
+// --------------------------------------
+
+model ActivityRecommendation {
+  id          String   @id @default(uuid())
+  userId      String
+  date        DateTime @db.Date
+  
+  // Analysis results
+  recommendation String   // proceed, modify, reduce_intensity, rest
+  confidence     Float    // 0.0 to 1.0
+  reasoning      String   @db.Text
+  
+  // Structured JSON with full analysis
+  analysisJson   Json?
+  
+  // Linked planned workout (if exists)
+  plannedWorkoutId String?
+  plannedWorkout   PlannedWorkout? @relation(fields: [plannedWorkoutId], references: [id])
+  
+  // Status tracking
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  modelVersion String?
+  
+  // User actions
+  userAccepted Boolean? // Did user accept the recommendation?
+  userModified Boolean? // Did user modify before accepting?
+  appliedToIntervals Boolean? @default(false) // Synced to Intervals.icu?
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId, date])
 }
