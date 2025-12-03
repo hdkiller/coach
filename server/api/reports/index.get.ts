@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const limit = query.limit ? parseInt(query.limit as string) : 10
   const type = query.type as string | undefined
+  const beforeDate = query.beforeDate as string | undefined
   
   const where: any = {
     userId: (session.user as any).id
@@ -20,6 +21,13 @@ export default defineEventHandler(async (event) => {
   
   if (type) {
     where.type = type
+  }
+  
+  // If beforeDate is provided, find profiles created on or before that date
+  if (beforeDate) {
+    where.createdAt = {
+      lte: new Date(beforeDate)
+    }
   }
   
   const reports = await prisma.report.findMany({
