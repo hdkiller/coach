@@ -1,6 +1,6 @@
-# Intervals.icu Rider Profile Data
+# Intervals.icu Athlete Profile Data
 
-This document describes the rider profile data available from Intervals.icu API and how to collect it.
+This document describes the athlete profile data available from Intervals.icu API and how to collect it.
 
 ## Test Script
 
@@ -101,12 +101,12 @@ Since FTP is stored per activity type in `icu_type_settings`:
 
 ## Dashboard Display Recommendations
 
-### Rider Profile Card
+### Athlete Profile Card
 Display on `/dashboard` when Intervals.icu is connected:
 
 ```
 ┌─────────────────────────────────────┐
-│ 👤 Rider Profile                    │
+│ 👤 Athlete Profile                    │
 ├─────────────────────────────────────┤
 │ Name: hdkiller                      │
 │ Age: 40 • Sex: M • Weight: 99 kg   │
@@ -142,7 +142,7 @@ Display on `/dashboard` when Intervals.icu is connected:
    - Track profile changes over time
 
 4. **Dashboard Component**: Update `/dashboard`
-   - Add RiderProfile component
+   - Add AthleteProfile component
    - Fetch profile data on mount
    - Handle loading/error states
    - Refresh on data sync

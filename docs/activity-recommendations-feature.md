@@ -417,7 +417,7 @@ export default defineEventHandler(async (event) => {
 #### 5. Dashboard UI Addition
 **File:** `app/pages/dashboard.vue`
 
-Add new card after Rider Profile:
+Add new card after Athlete Profile:
 
 ```vue
 <!-- Today's Recommendation Card -->
