@@ -39,6 +39,8 @@ model User {
   nutrition       Nutrition[]
   reports         Report[]
   activityRecommendations ActivityRecommendation[]
+  trainingAvailability TrainingAvailability[]
+  weeklyTrainingPlans WeeklyTrainingPlan[]
 }
 
 model Account {
@@ -455,4 +457,82 @@ model ActivityRecommendation {
   updatedAt   DateTime @updatedAt
   
   @@index([userId, date])
+}
+
+// --------------------------------------
+// Training Plan Management
+// --------------------------------------
+
+// User's training availability preferences
+model TrainingAvailability {
+  id          String   @id @default(uuid())
+  userId      String
+  
+  // Day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  dayOfWeek   Int      // 0-6
+  
+  // Time slots available (morning, afternoon, evening)
+  morning     Boolean  @default(false) // 5am-12pm
+  afternoon   Boolean  @default(false) // 12pm-6pm
+  evening     Boolean  @default(false) // 6pm-11pm
+  
+  // Preferred workout types for this slot
+  preferredTypes Json? // Array of workout types: ["Ride", "Run", "Gym", "Swim"]
+  
+  // Location/equipment constraints
+  indoorOnly  Boolean  @default(false)
+  outdoorOnly Boolean  @default(false)
+  gymAccess   Boolean  @default(false)
+  
+  // Notes
+  notes       String?  @db.Text
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
+}
+
+// AI-Generated weekly training plans
+model WeeklyTrainingPlan {
+  id                String   @id @default(uuid())
+  userId            String
+  
+  // Plan period
+  weekStartDate     DateTime @db.Date  // Monday of the week
+  weekEndDate       DateTime @db.Date  // Sunday of the week
+  daysPlanned       Int      @default(7) // Number of days planned (default 7)
+  
+  // Plan metadata
+  status            String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED, ARCHIVED
+  generatedBy       String   @default("AI")    // AI, USER, COACH
+  modelVersion      String?  // e.g., "gemini-2.0-flash-exp"
+  
+  // Plan details (JSON structure with daily workouts)
+  planJson          Json     // Full plan structure with daily recommendations
+  
+  // Summary stats
+  totalTSS          Float?   // Total planned TSS for the week
+  totalDuration     Int?     // Total planned duration in seconds
+  workoutCount      Int?     // Number of planned workouts
+  
+  // User feedback
+  userAccepted      Boolean? // Did user accept the plan?
+  userModified      Boolean? // Did user modify the plan?
+  appliedToIntervals Boolean? @default(false) // Synced to Intervals.icu?
+  
+  // Notes and adjustments
+  notes             String?  @db.Text
+  adjustmentReason  String?  @db.Text // Why plan was modified
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId, weekStartDate])
+  @@index([userId, status])
 }
