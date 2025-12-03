@@ -14,16 +14,30 @@ const links = [[{
     open.value = false
   }
 }, {
-  label: 'Data',
-  icon: 'i-lucide-database',
-  to: '/data',
+  label: 'Performance',
+  icon: 'i-lucide-trending-up',
+  to: '/performance',
   onSelect: () => {
     open.value = false
   }
 }, {
-  label: 'Plan',
+  label: 'Training Plan',
   icon: 'i-lucide-calendar',
   to: '/plan',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
+  label: 'Workouts',
+  icon: 'i-lucide-activity',
+  to: '/workouts',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
+  label: 'Nutrition',
+  icon: 'i-lucide-utensils',
+  to: '/nutrition',
   onSelect: () => {
     open.value = false
   }
@@ -35,9 +49,9 @@ const links = [[{
     open.value = false
   }
 }, {
-  label: 'Performance',
-  icon: 'i-lucide-trending-up',
-  to: '/performance',
+  label: 'Data',
+  icon: 'i-lucide-database',
+  to: '/data',
   onSelect: () => {
     open.value = false
   }
