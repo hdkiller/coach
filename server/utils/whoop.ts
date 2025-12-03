@@ -18,12 +18,15 @@ export async function refreshWhoopToken(integration: Integration): Promise<Integ
 
   const clientId = process.env.WHOOP_CLIENT_ID
   const clientSecret = process.env.WHOOP_CLIENT_SECRET
+  const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'http://localhost:3099'
 
   if (!clientId || !clientSecret) {
     throw new Error('WHOOP credentials not configured')
   }
 
   console.log('Refreshing Whoop token for integration:', integration.id)
+
+  const redirectUri = `${siteUrl}/api/integrations/whoop/callback`
 
   const response = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
     method: 'POST',
@@ -35,7 +38,7 @@ export async function refreshWhoopToken(integration: Integration): Promise<Integ
       refresh_token: integration.refreshToken,
       client_id: clientId,
       client_secret: clientSecret,
-      scope: 'offline read:recovery read:cycles read:sleep read:workout read:profile read:body_measurement'
+      redirect_uri: redirectUri,
     }).toString(),
   })
 
