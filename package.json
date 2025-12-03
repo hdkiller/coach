@@ -9,7 +9,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "prisma:generate": "prisma generate",
-    "dev:trigger": "pnpm prisma:generate && npx trigger.dev@latest dev"
+    "dev:trigger": "pnpm prisma:generate && npx trigger.dev@latest dev",
+    "backfill-scores": "tsx scripts/backfill-scores.ts"
   },
   "dependencies": {
     "@auth/core": "^0.34.3",
