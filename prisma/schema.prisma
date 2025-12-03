@@ -27,6 +27,19 @@ model User {
   maxHr         Int?      // Max Heart Rate
   weight        Float?    // Weight in kg (for W/kg calcs)
   dob           DateTime? // Date of birth for age-based metrics
+  
+  // Athlete Profile Scores (1-10 scale, updated periodically from profile generation)
+  currentFitnessScore       Int?      // Current overall fitness level
+  recoveryCapacityScore     Int?      // Ability to recover from training
+  nutritionComplianceScore  Int?      // Nutrition adherence and quality
+  trainingConsistencyScore  Int?      // Training consistency and adherence
+  profileLastUpdated        DateTime? // When profile scores were last updated
+  
+  // Score Explanations (AI-generated insights and improvement guidance)
+  currentFitnessExplanation       String?   // Why this fitness score, how to improve
+  recoveryCapacityExplanation     String?   // Recovery factors and improvement steps
+  nutritionComplianceExplanation  String?   // Nutrition quality analysis and guidance
+  trainingConsistencyExplanation  String?   // Consistency patterns and recommendations
 
   // Relations
   accounts      Account[]
@@ -179,6 +192,20 @@ model Workout {
   aiAnalysisJson  Json?    // Structured analysis data for rich UI display
   aiAnalysisStatus String? @default("NOT_STARTED") // NOT_STARTED, PENDING, PROCESSING, COMPLETED, FAILED
   aiAnalyzedAt    DateTime? // When the analysis was generated
+  
+  // Performance Scores (1-10 scale for tracking over time)
+  overallScore    Int?     // Overall workout quality score
+  technicalScore  Int?     // Technical execution (form, technique, efficiency)
+  effortScore     Int?     // Effort appropriateness relative to plan
+  pacingScore     Int?     // Pacing strategy and execution
+  executionScore  Int?     // How well the workout plan was executed
+  
+  // Score Explanations (AI-generated insights and improvement guidance)
+  overallQualityExplanation      String?  @db.Text // Why this overall score, key factors
+  technicalExecutionExplanation  String?  @db.Text // Technical analysis and form guidance
+  effortManagementExplanation    String?  @db.Text // Effort appropriateness and pacing advice
+  pacingStrategyExplanation      String?  @db.Text // Pacing analysis and recommendations
+  executionConsistencyExplanation String? @db.Text // Execution quality and consistency notes
   
   // Raw Data storage (for re-analysis and accessing original data)
   rawJson         Json?    // Store the original full payload
@@ -344,6 +371,20 @@ model Nutrition {
   aiAnalysisStatus  String?  @default("NOT_STARTED") // NOT_STARTED, PENDING, PROCESSING, COMPLETED, FAILED
   aiAnalyzedAt      DateTime? // When the analysis was generated
   
+  // Nutrition Quality Scores (1-10 scale for tracking over time)
+  overallScore      Int?     // Overall nutrition quality score
+  macroBalanceScore Int?     // Macro distribution appropriateness
+  qualityScore      Int?     // Food quality and nutrient density
+  adherenceScore    Int?     // Adherence to goals and targets
+  hydrationScore    Int?     // Hydration adequacy
+  
+  // Score Explanations (AI-generated insights and improvement guidance)
+  nutritionalBalanceExplanation  String?  @db.Text // Overall nutrition quality analysis
+  calorieAdherenceExplanation    String?  @db.Text // Calorie target adherence and guidance
+  macroDistributionExplanation   String?  @db.Text // Macro balance analysis and recommendations
+  hydrationStatusExplanation     String?  @db.Text // Hydration adequacy and improvement tips
+  timingOptimizationExplanation  String?  @db.Text // Meal timing and optimization guidance
+  
   // Raw data for re-analysis
   rawJson           Json?
   
@@ -404,6 +445,20 @@ model Report {
   analysisJson   Json?              // Structured analysis data for rich UI display
   latex          String?  @db.Text  // If we generated a formal document
   pdfUrl         String?  // URL to stored PDF in S3/Blob storage
+  
+  // Performance Scores (1-10 scale for tracking progress)
+  overallScore       Int?     // Overall period assessment score
+  trainingLoadScore  Int?     // Training load management quality
+  recoveryScore      Int?     // Recovery adequacy score
+  progressScore      Int?     // Progress and adaptation score
+  consistencyScore   Int?     // Training consistency score
+  
+  // Score Explanations (AI-generated insights and improvement guidance)
+  trainingLoadExplanation       String?  @db.Text // Training load analysis and management guidance
+  recoveryBalanceExplanation    String?  @db.Text // Recovery adequacy and optimization tips
+  progressTrendExplanation      String?  @db.Text // Progress analysis and adaptation insights
+  adaptationReadinessExplanation String? @db.Text // Readiness for increased training load
+  injuryRiskExplanation         String?  @db.Text // Injury risk assessment and prevention
   
   // Structured Suggestions (for the "Coach" agent)
   suggestions    Json?    // e.g., { "action": "rest", "reason": "HRV low" }
