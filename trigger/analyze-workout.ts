@@ -21,6 +21,13 @@ interface StructuredAnalysis {
   }>;
   strengths?: string[];
   weaknesses?: string[];
+  scores?: {
+    overall: number;
+    technical: number;
+    effort: number;
+    pacing: number;
+    execution: number;
+  };
   metrics_summary?: {
     avg_power?: number;
     ftp?: number;
@@ -118,6 +125,63 @@ const analysisSchema = {
         type: "string"
       }
     },
+    scores: {
+      type: "object",
+      description: "Performance scores on 1-10 scale for tracking over time, with detailed explanations",
+      properties: {
+        overall: {
+          type: "number",
+          description: "Overall workout quality (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        overall_explanation: {
+          type: "string",
+          description: "Detailed explanation of overall quality: key factors contributing to score, what went well, what could improve, and 2-3 specific actionable improvements"
+        },
+        technical: {
+          type: "number",
+          description: "Technical execution score - form, technique, efficiency (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        technical_explanation: {
+          type: "string",
+          description: "Technical analysis: power application smoothness, cadence consistency, form observations, and specific technique improvements needed"
+        },
+        effort: {
+          type: "number",
+          description: "Effort appropriateness relative to plan and goals (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        effort_explanation: {
+          type: "string",
+          description: "Effort management analysis: whether intensity matched goals, HR/power relationship, and recommendations for effort control"
+        },
+        pacing: {
+          type: "number",
+          description: "Pacing strategy and execution quality (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        pacing_explanation: {
+          type: "string",
+          description: "Pacing strategy analysis: consistency throughout workout, whether pacing was appropriate, and specific pacing improvements"
+        },
+        execution: {
+          type: "number",
+          description: "How well the workout plan was executed (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        execution_explanation: {
+          type: "string",
+          description: "Execution quality analysis: adherence to workout structure, target achievement, and recommendations for better execution"
+        }
+      },
+      required: ["overall", "overall_explanation", "technical", "technical_explanation", "effort", "effort_explanation", "pacing", "pacing_explanation", "execution", "execution_explanation"]
+    },
     metrics_summary: {
       type: "object",
       description: "Key metrics at a glance",
@@ -130,7 +194,7 @@ const analysisSchema = {
       }
     }
   },
-  required: ["type", "title", "executive_summary", "sections"]
+  required: ["type", "title", "executive_summary", "sections", "scores"]
 }
 
 export const analyzeWorkoutTask = task({
@@ -182,17 +246,30 @@ export const analyzeWorkoutTask = task({
       
       logger.log("Analysis generated successfully", {
         sections: structuredAnalysis.sections?.length || 0,
-        recommendations: structuredAnalysis.recommendations?.length || 0
+        recommendations: structuredAnalysis.recommendations?.length || 0,
+        scores: structuredAnalysis.scores
       });
       
-      // Save both formats to the database
+      // Save both formats to the database, including scores and explanations
       await prisma.workout.update({
         where: { id: workoutId },
         data: {
           aiAnalysis: markdownAnalysis,
           aiAnalysisJson: structuredAnalysis as any,
           aiAnalysisStatus: 'COMPLETED',
-          aiAnalyzedAt: new Date()
+          aiAnalyzedAt: new Date(),
+          // Store scores for easy querying and tracking
+          overallScore: structuredAnalysis.scores?.overall,
+          technicalScore: structuredAnalysis.scores?.technical,
+          effortScore: structuredAnalysis.scores?.effort,
+          pacingScore: structuredAnalysis.scores?.pacing,
+          executionScore: structuredAnalysis.scores?.execution,
+          // Store explanations for user guidance
+          overallQualityExplanation: structuredAnalysis.scores?.overall_explanation,
+          technicalExecutionExplanation: structuredAnalysis.scores?.technical_explanation,
+          effortManagementExplanation: structuredAnalysis.scores?.effort_explanation,
+          pacingStrategyExplanation: structuredAnalysis.scores?.pacing_explanation,
+          executionConsistencyExplanation: structuredAnalysis.scores?.execution_explanation
         }
       });
       
@@ -575,12 +652,27 @@ ${getAnalysisSectionsGuidance(workoutType, isCardio, isStrength)}
    - List 2-4 key strengths (short phrases or single sentences)
    - List 2-4 areas for improvement (short phrases or single sentences, framed positively)
 
+8. **Performance Scores** (1-10 scale for tracking progress over time):
+   - **Overall**: Holistic assessment of workout quality (consider all factors)
+   - **Technical**: Form, technique, efficiency (e.g., cadence, power smoothness, L/R balance)
+   - **Effort**: Was the effort level appropriate for the workout goals? (RPE vs planned intensity)
+   - **Pacing**: How well was pacing managed? (variability, surge control, discipline)
+   - **Execution**: How well was the workout plan/structure executed? (interval targets, rest periods)
+   
+   Scoring Guidelines:
+   - 9-10: Exceptional, elite-level performance
+   - 7-8: Strong, solid execution with minor areas to improve
+   - 5-6: Adequate, met basic requirements but room for improvement
+   - 3-4: Needs work, several areas requiring attention
+   - 1-2: Poor execution, significant issues to address
+
 IMPORTANT:
 - Each analysis_point must be a separate, concise item in the array
 - Use a friendly, supportive coaching tone throughout
 - Be specific with numbers but keep language conversational
 - Focus on encouragement and actionable advice
-- Tailor your analysis to the workout type (${workoutType}) - ignore metrics that don't apply`
+- Tailor your analysis to the workout type (${workoutType}) - ignore metrics that don't apply
+- Scores should be realistic and track progress over time - don't inflate scores`
 
   return prompt
 }

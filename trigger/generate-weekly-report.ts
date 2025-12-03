@@ -80,6 +80,63 @@ const analysisSchema = {
         required: ["title", "priority", "description"]
       }
     },
+    scores: {
+      type: "object",
+      description: "Period performance scores on 1-10 scale for tracking over time, with detailed explanations",
+      properties: {
+        overall: {
+          type: "number",
+          description: "Overall period assessment (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        overall_explanation: {
+          type: "string",
+          description: "Detailed explanation of overall assessment: key highlights from the period, major achievements or concerns, and 2-3 specific actions for next period"
+        },
+        training_load: {
+          type: "number",
+          description: "Training load management quality (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        training_load_explanation: {
+          type: "string",
+          description: "Training load analysis: TSS trends, load appropriateness, fatigue vs fitness balance, and specific recommendations for load management"
+        },
+        recovery: {
+          type: "number",
+          description: "Recovery adequacy score (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        recovery_explanation: {
+          type: "string",
+          description: "Recovery analysis: HRV trends, sleep quality observations, recovery adequacy relative to training load, and specific recovery optimization strategies"
+        },
+        progress: {
+          type: "number",
+          description: "Progress and adaptation score (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        progress_explanation: {
+          type: "string",
+          description: "Progress assessment: performance trends, adaptation signals, whether training is effective, and recommendations for continued progress"
+        },
+        consistency: {
+          type: "number",
+          description: "Training consistency score (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        consistency_explanation: {
+          type: "string",
+          description: "Consistency analysis: adherence patterns, missed sessions analysis, consistency relative to plan, and strategies to improve adherence"
+        }
+      },
+      required: ["overall", "overall_explanation", "training_load", "training_load_explanation", "recovery", "recovery_explanation", "progress", "progress_explanation", "consistency", "consistency_explanation"]
+    },
     metrics_summary: {
       type: "object",
       description: "Key metrics across the period",
@@ -92,7 +149,7 @@ const analysisSchema = {
       }
     }
   },
-  required: ["type", "title", "executive_summary", "sections"]
+  required: ["type", "title", "executive_summary", "sections", "scores"]
 }
 
 export const generateWeeklyReportTask = task({
@@ -178,7 +235,21 @@ For each section:
 
 Then provide 3-5 prioritized recommendations with specific actions.
 
-Be supportive and specific. Use actual data points and metrics.`;
+Finally, provide **Performance Scores** (1-10 scale for tracking progress over time):
+- **Overall**: Holistic assessment of the training period quality
+- **Training Load**: How well was training load managed and distributed?
+- **Recovery**: Were recovery and adaptation adequate for the training stress?
+- **Progress**: Evidence of improvement and positive adaptation
+- **Consistency**: Training consistency and adherence to plan
+
+Scoring Guidelines:
+- 9-10: Exceptional period, elite-level execution
+- 7-8: Strong period with minor areas to improve
+- 5-6: Adequate but room for improvement
+- 3-4: Needs work, several issues to address
+- 1-2: Poor period, significant problems
+
+Be supportive and specific. Use actual data points and metrics. Scores should realistically reflect the period's quality.`;
 
       logger.log("Generating structured report with Gemini");
       
@@ -187,9 +258,9 @@ Be supportive and specific. Use actual data points and metrics.`;
       
       logger.log("Structured report generated successfully");
       
-      // Save report with JSON structure and link workouts
+      // Save report with JSON structure, scores, and link workouts
       await prisma.$transaction(async (tx) => {
-        // Update the report
+        // Update the report with scores and explanations
         await tx.report.update({
           where: { id: reportId },
           data: {
@@ -197,7 +268,19 @@ Be supportive and specific. Use actual data points and metrics.`;
             analysisJson: analysisJson as any,
             modelVersion: 'gemini-2.0-flash-thinking-exp-1219',
             dateRangeStart: startDate,
-            dateRangeEnd: endDate
+            dateRangeEnd: endDate,
+            // Store scores for easy querying and tracking
+            overallScore: analysisJson.scores?.overall,
+            trainingLoadScore: analysisJson.scores?.training_load,
+            recoveryScore: analysisJson.scores?.recovery,
+            progressScore: analysisJson.scores?.progress,
+            consistencyScore: analysisJson.scores?.consistency,
+            // Store explanations for user guidance
+            trainingLoadExplanation: analysisJson.scores?.training_load_explanation,
+            recoveryBalanceExplanation: analysisJson.scores?.recovery_explanation,
+            progressTrendExplanation: analysisJson.scores?.progress_explanation,
+            adaptationReadinessExplanation: analysisJson.scores?.consistency_explanation,
+            injuryRiskExplanation: analysisJson.scores?.overall_explanation
           }
         });
         

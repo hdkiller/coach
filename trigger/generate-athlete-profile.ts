@@ -185,9 +185,56 @@ const athleteProfileSchema = {
         }
       },
       required: ["current_focus"]
+    },
+    athlete_scores: {
+      type: "object",
+      description: "Overall athlete profile scores on 1-10 scale for tracking development, with detailed explanations",
+      properties: {
+        current_fitness: {
+          type: "number",
+          description: "Current overall fitness level (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        current_fitness_explanation: {
+          type: "string",
+          description: "Detailed explanation of current fitness level: key factors affecting the score, specific strengths and weaknesses, and 2-3 concrete action steps to improve (e.g., 'Increase weekly volume by 10%', 'Add interval sessions')"
+        },
+        recovery_capacity: {
+          type: "number",
+          description: "Ability to recover from training stress (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        recovery_capacity_explanation: {
+          type: "string",
+          description: "Detailed explanation of recovery capacity: sleep quality, HRV trends, fatigue indicators, and specific recommendations for improvement (e.g., 'Prioritize 8+ hours sleep', 'Add recovery week every 3 weeks')"
+        },
+        nutrition_compliance: {
+          type: "number",
+          description: "Nutrition adherence and quality (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        nutrition_compliance_explanation: {
+          type: "string",
+          description: "Detailed explanation of nutrition quality: calorie adherence patterns, macro balance, meal timing, and specific improvements needed (e.g., 'Increase protein to 2g/kg', 'Improve pre-workout carb intake')"
+        },
+        training_consistency: {
+          type: "number",
+          description: "Training consistency and adherence (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        training_consistency_explanation: {
+          type: "string",
+          description: "Detailed explanation of training consistency: weekly adherence patterns, missed sessions analysis, and strategies for improvement (e.g., 'Set specific training times', 'Prepare gear night before')"
+        }
+      },
+      required: ["current_fitness", "current_fitness_explanation", "recovery_capacity", "recovery_capacity_explanation", "nutrition_compliance", "nutrition_compliance_explanation", "training_consistency", "training_consistency_explanation"]
     }
   },
-  required: ["type", "title", "generated_date", "executive_summary", "current_fitness", "training_characteristics", "recent_performance", "planning_context"]
+  required: ["type", "title", "generated_date", "executive_summary", "current_fitness", "training_characteristics", "recent_performance", "planning_context", "athlete_scores"]
 };
 
 export const generateAthleteProfileTask = task({
@@ -390,29 +437,63 @@ Focus on:
 - Key themes from recent recommendations
 - What should be considered when planning future workouts
 
-Be specific, data-driven, and actionable. Reference actual metrics and patterns observed.`;
+Finally, provide **Athlete Profile Scores** (1-10 scale for tracking long-term development):
+- **Current Fitness**: Overall fitness level based on recent training, FTP, and performance
+- **Recovery Capacity**: How well they recover from training stress (HRV, sleep, subjective metrics)
+- **Nutrition Compliance**: Overall nutrition quality and adherence (if nutrition data available)
+- **Training Consistency**: Adherence to training plans and consistency over time
+
+Scoring Guidelines:
+- 9-10: Elite level in this aspect
+- 7-8: Strong, well-developed
+- 5-6: Average, developing
+- 3-4: Needs attention and improvement
+- 1-2: Significant weakness requiring focus
+
+Be specific, data-driven, and actionable. Reference actual metrics and patterns observed. Scores should reflect realistic assessment for long-term tracking.`;
 
       logger.log("Generating athlete profile with Gemini");
       
       // Generate structured profile
       const profileJson = await generateStructuredAnalysis(prompt, athleteProfileSchema, 'flash');
       
-      logger.log("Athlete profile generated successfully");
-      
-      // Save profile as a report
-      await prisma.report.update({
-        where: { id: reportId },
-        data: {
-          status: 'COMPLETED',
-          type: 'ATHLETE_PROFILE',
-          analysisJson: profileJson as any,
-          modelVersion: 'gemini-2.0-flash-exp',
-          dateRangeStart: thirtyDaysAgo,
-          dateRangeEnd: now
-        }
+      logger.log("Athlete profile generated successfully", {
+        scores: profileJson.athlete_scores
       });
       
-      logger.log("Athlete profile saved to database");
+      // Save profile as a report and update user scores
+      await prisma.$transaction(async (tx) => {
+        // Update the report with profile data
+        await tx.report.update({
+          where: { id: reportId },
+          data: {
+            status: 'COMPLETED',
+            type: 'ATHLETE_PROFILE',
+            analysisJson: profileJson as any,
+            modelVersion: 'gemini-2.0-flash-exp',
+            dateRangeStart: thirtyDaysAgo,
+            dateRangeEnd: now
+          }
+        });
+        
+        // Update user profile scores and explanations for easy access
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            currentFitnessScore: profileJson.athlete_scores?.current_fitness,
+            recoveryCapacityScore: profileJson.athlete_scores?.recovery_capacity,
+            nutritionComplianceScore: profileJson.athlete_scores?.nutrition_compliance,
+            trainingConsistencyScore: profileJson.athlete_scores?.training_consistency,
+            currentFitnessExplanation: profileJson.athlete_scores?.current_fitness_explanation,
+            recoveryCapacityExplanation: profileJson.athlete_scores?.recovery_capacity_explanation,
+            nutritionComplianceExplanation: profileJson.athlete_scores?.nutrition_compliance_explanation,
+            trainingConsistencyExplanation: profileJson.athlete_scores?.training_consistency_explanation,
+            profileLastUpdated: now
+          }
+        });
+      });
+      
+      logger.log("Athlete profile and user scores saved to database");
       
       return {
         success: true,

@@ -115,6 +115,63 @@ const nutritionAnalysisSchema = {
         type: "string"
       }
     },
+    scores: {
+      type: "object",
+      description: "Nutrition quality scores on 1-10 scale for tracking over time, with detailed explanations",
+      properties: {
+        overall: {
+          type: "number",
+          description: "Overall nutrition quality (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        overall_explanation: {
+          type: "string",
+          description: "Detailed explanation of overall nutrition quality: key factors affecting score, what's working well, and 2-3 specific actionable improvements (e.g., 'Add more vegetables', 'Increase protein at breakfast')"
+        },
+        macro_balance: {
+          type: "number",
+          description: "Macronutrient distribution appropriateness (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        macro_balance_explanation: {
+          type: "string",
+          description: "Macro distribution analysis: current ratios vs optimal for training, which macros need adjustment, and specific recommendations (e.g., 'Increase carbs to 5g/kg on training days')"
+        },
+        quality: {
+          type: "number",
+          description: "Food quality and nutrient density (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        quality_explanation: {
+          type: "string",
+          description: "Food quality assessment: processed vs whole foods ratio, nutrient density observations, and suggestions for higher quality choices"
+        },
+        adherence: {
+          type: "number",
+          description: "Adherence to goals and targets (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        adherence_explanation: {
+          type: "string",
+          description: "Goal adherence analysis: how well targets are being met, patterns in over/under eating, and strategies to improve consistency"
+        },
+        hydration: {
+          type: "number",
+          description: "Hydration adequacy (1-10)",
+          minimum: 1,
+          maximum: 10
+        },
+        hydration_explanation: {
+          type: "string",
+          description: "Hydration status analysis: daily water intake vs needs, timing of hydration, and specific recommendations to optimize (e.g., 'Drink 500ml upon waking', 'Increase water during training')"
+        }
+      },
+      required: ["overall", "overall_explanation", "macro_balance", "macro_balance_explanation", "quality", "quality_explanation", "adherence", "adherence_explanation", "hydration", "hydration_explanation"]
+    },
     metrics_summary: {
       type: "object",
       description: "Key metrics at a glance",
@@ -128,7 +185,7 @@ const nutritionAnalysisSchema = {
       }
     }
   },
-  required: ["type", "title", "executive_summary", "data_completeness", "sections"]
+  required: ["type", "title", "executive_summary", "data_completeness", "sections", "scores"]
 }
 
 export const analyzeNutritionTask = task({
@@ -181,17 +238,30 @@ export const analyzeNutritionTask = task({
       logger.log("Analysis generated successfully", {
         sections: structuredAnalysis.sections?.length || 0,
         recommendations: structuredAnalysis.recommendations?.length || 0,
-        completeness: structuredAnalysis.data_completeness?.status
+        completeness: structuredAnalysis.data_completeness?.status,
+        scores: structuredAnalysis.scores
       });
       
-      // Save both formats to the database
+      // Save both formats to the database, including scores and explanations
       await prisma.nutrition.update({
         where: { id: nutritionId },
         data: {
           aiAnalysis: markdownAnalysis,
           aiAnalysisJson: structuredAnalysis as any,
           aiAnalysisStatus: 'COMPLETED',
-          aiAnalyzedAt: new Date()
+          aiAnalyzedAt: new Date(),
+          // Store scores for easy querying and tracking
+          overallScore: structuredAnalysis.scores?.overall,
+          macroBalanceScore: structuredAnalysis.scores?.macro_balance,
+          qualityScore: structuredAnalysis.scores?.quality,
+          adherenceScore: structuredAnalysis.scores?.adherence,
+          hydrationScore: structuredAnalysis.scores?.hydration,
+          // Store explanations for user guidance
+          nutritionalBalanceExplanation: structuredAnalysis.scores?.overall_explanation,
+          calorieAdherenceExplanation: structuredAnalysis.scores?.adherence_explanation,
+          macroDistributionExplanation: structuredAnalysis.scores?.macro_balance_explanation,
+          hydrationStatusExplanation: structuredAnalysis.scores?.hydration_explanation,
+          timingOptimizationExplanation: structuredAnalysis.scores?.quality_explanation
         }
       });
       
@@ -375,6 +445,25 @@ Provide structured analysis with these sections:
 8. **Strengths & Areas for Improvement**:
    - List 2-4 key strengths (short phrases or single sentences)
    - List 2-4 areas for improvement (short phrases, framed positively)
+
+9. **Nutrition Quality Scores** (1-10 scale for tracking progress over time):
+   - **Overall**: Holistic assessment of nutrition quality (consider all factors and data completeness)
+   - **Macro Balance**: Appropriateness of protein/carbs/fat ratios for an athlete
+   - **Quality**: Food quality, variety, and nutrient density
+   - **Adherence**: How well did they stick to their goals and targets?
+   - **Hydration**: Adequacy of water intake (if tracked)
+   
+   Scoring Guidelines:
+   - 9-10: Exceptional nutrition practices, elite-level adherence
+   - 7-8: Strong nutrition, well-balanced with minor areas to improve
+   - 5-6: Adequate nutrition but room for improvement
+   - 3-4: Needs work, several nutritional gaps or issues
+   - 1-2: Poor nutrition quality, significant issues to address
+   
+   IMPORTANT for scoring:
+   - If data is incomplete, adjust scores accordingly and note this in the analysis
+   - Consider training demands when evaluating adequacy
+   - Be realistic - scores should track actual quality over time
 
 IMPORTANT:
 - Each analysis_point must be a separate, concise item in the array
