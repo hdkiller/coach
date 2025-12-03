@@ -149,8 +149,8 @@ async function testAthleteProfile() {
     console.log(JSON.stringify(settings, null, 2))
   }
   
-  // 4. Compile rider profile summary
-  console.log('\n\n4. RIDER PROFILE SUMMARY')
+  // 4. Compile athlete profile summary
+  console.log('\n\n4. ATHLETE PROFILE SUMMARY')
   console.log('========================')
   
   if (athlete) {
@@ -213,7 +213,7 @@ async function testAthleteProfile() {
       measurementPreference: athlete.measurement_preference
     }
     
-    console.log('\n📋 Complete Rider Profile:')
+    console.log('\n📋 Complete Athlete Profile:')
     console.log(JSON.stringify(profile, null, 2))
   }
   
