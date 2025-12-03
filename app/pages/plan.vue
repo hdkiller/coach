@@ -144,18 +144,11 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Number of Days to Plan
               </label>
-              <select
+              <USelect
                 v-model="planDays"
-                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              >
-                <option :value="1">1 day (tomorrow)</option>
-                <option :value="2">2 days</option>
-                <option :value="3">3 days</option>
-                <option :value="4">4 days</option>
-                <option :value="5">5 days</option>
-                <option :value="6">6 days</option>
-                <option :value="7">7 days (1 week)</option>
-              </select>
+                :items="planDaysOptions"
+                class="w-full"
+              />
             </div>
           </div>
         </div>
@@ -403,6 +396,17 @@ const scheduledWorkouts = ref<any[]>([])
 const availabilitySlideoverRef = ref<any>(null)
 const schedulingWorkout = ref<number | null>(null)
 const removingWorkout = ref<string | null>(null)
+
+// Plan days options
+const planDaysOptions = [
+  { label: '1 day (tomorrow)', value: 1 },
+  { label: '2 days', value: 2 },
+  { label: '3 days', value: 3 },
+  { label: '4 days', value: 4 },
+  { label: '5 days', value: 5 },
+  { label: '6 days', value: 6 },
+  { label: '7 days (1 week)', value: 7 }
+]
 
 const weekDays = [
   { label: 'Monday', value: 1 },
