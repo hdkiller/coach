@@ -27,7 +27,11 @@ export default defineEventHandler(async (event) => {
       currentFitnessExplanation: true,
       recoveryCapacityExplanation: true,
       nutritionComplianceExplanation: true,
-      trainingConsistencyExplanation: true
+      trainingConsistencyExplanation: true,
+      currentFitnessExplanationJson: true,
+      recoveryCapacityExplanationJson: true,
+      nutritionComplianceExplanationJson: true,
+      trainingConsistencyExplanationJson: true
     }
   }) as any
   
@@ -50,12 +54,16 @@ export default defineEventHandler(async (event) => {
     scores: {
       currentFitness: user.currentFitnessScore,
       currentFitnessExplanation: user.currentFitnessExplanation,
+      currentFitnessExplanationJson: user.currentFitnessExplanationJson,
       recoveryCapacity: user.recoveryCapacityScore,
       recoveryCapacityExplanation: user.recoveryCapacityExplanation,
+      recoveryCapacityExplanationJson: user.recoveryCapacityExplanationJson,
       nutritionCompliance: user.nutritionComplianceScore,
       nutritionComplianceExplanation: user.nutritionComplianceExplanation,
+      nutritionComplianceExplanationJson: user.nutritionComplianceExplanationJson,
       trainingConsistency: user.trainingConsistencyScore,
       trainingConsistencyExplanation: user.trainingConsistencyExplanation,
+      trainingConsistencyExplanationJson: user.trainingConsistencyExplanationJson,
       lastUpdated: user.profileLastUpdated
     }
   }
