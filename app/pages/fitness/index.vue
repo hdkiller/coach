@@ -10,6 +10,14 @@
 
     <template #body>
       <div class="p-6 space-y-6">
+        <!-- Page Header -->
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Fitness & Wellness</h1>
+          <p class="text-sm text-muted mt-1">
+            Track your recovery, sleep quality, and overall wellness metrics
+          </p>
+        </div>
+
         <!-- Summary Stats -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

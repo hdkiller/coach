@@ -10,8 +10,10 @@
 
     <template #body>
       <div class="p-6 space-y-6">
+        <!-- Page Header -->
         <div>
-          <p class="text-sm text-muted">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Data Management</h1>
+          <p class="text-sm text-muted mt-1">
             View and sync your training data from connected integrations
           </p>
         </div>

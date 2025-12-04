@@ -6,16 +6,33 @@
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <USelect
-            v-model="selectedPeriod"
-            :items="periodOptions"
-          />
+          <div class="flex gap-2">
+            <button
+              @click="generateExplanations"
+              :disabled="generatingExplanations"
+              class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+            >
+              <span v-if="generatingExplanations">Generating...</span>
+              <span v-else>Generate Insights</span>
+            </button>
+            <USelect
+              v-model="selectedPeriod"
+              :items="periodOptions"
+            />
+          </div>
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
       <div class="p-6 space-y-6">
+        <!-- Page Header -->
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Performance Scores</h1>
+          <p class="text-sm text-muted mt-1">
+            Track your fitness metrics and performance trends across all training dimensions
+          </p>
+        </div>
 
     <!-- Athlete Profile Scores -->
     <UCard>
@@ -278,6 +295,7 @@ const { data: nutritionData, pending: nutritionLoading } = await useFetch('/api/
 // Modal state
 const showModal = ref(false)
 const loadingExplanation = ref(false)
+const generatingExplanations = ref(false)
 const modalData = ref<{
   title: string
   score: number | null
@@ -295,6 +313,9 @@ const modalData = ref<{
 // Cache for explanations to avoid refetching
 const workoutExplanations = ref<Record<string, any>>({})
 const nutritionExplanations = ref<Record<string, any>>({})
+
+// Toast for notifications
+const toast = useToast()
 
 // Handle score card click (for cards with plain text explanation)
 const openModal = (data: {
@@ -333,7 +354,19 @@ const openModalWithStructured = (
   showModal.value = true
 }
 
-// Handle workout aggregate score click - fetch AI explanation
+// Map display titles to metric names
+const getWorkoutMetricName = (title: string): string => {
+  const mapping: Record<string, string> = {
+    'Overall Workout Performance': 'overall',
+    'Technical Execution': 'technical',
+    'Effort Management': 'effort',
+    'Pacing Strategy': 'pacing',
+    'Workout Execution': 'execution'
+  }
+  return mapping[title] || 'overall'
+}
+
+// Handle workout aggregate score click - fetch from database or trigger generation
 const openWorkoutModal = async (title: string, score: number | null, color?: string) => {
   if (!score || !workoutData.value) return
   
@@ -347,9 +380,10 @@ const openWorkoutModal = async (title: string, score: number | null, color?: str
   showModal.value = true
   loadingExplanation.value = true
   
-  const cacheKey = `${selectedPeriod.value}-${title}`
+  const metric = getWorkoutMetricName(title)
+  const cacheKey = `${selectedPeriod.value}-${metric}`
   
-  // Check cache first
+  // Check memory cache first
   if (workoutExplanations.value[cacheKey]) {
     modalData.value.analysisData = workoutExplanations.value[cacheKey]
     modalData.value.explanation = null
@@ -358,26 +392,65 @@ const openWorkoutModal = async (title: string, score: number | null, color?: str
   }
   
   try {
-    const response = await $fetch('/api/scores/workout-trends-explanation', {
-      method: 'POST',
-      body: {
-        days: selectedPeriod.value,
-        summary: workoutData.value.summary
+    // Fetch from database (or trigger generation if not available)
+    const response: any = await $fetch('/api/scores/explanation', {
+      query: {
+        type: 'workout',
+        period: selectedPeriod.value,
+        metric
       }
     })
     
-    workoutExplanations.value[cacheKey] = response.analysis
-    modalData.value.analysisData = response.analysis
-    modalData.value.explanation = null
+    if (response.cached && response.analysis) {
+      // Explanation was found in database
+      workoutExplanations.value[cacheKey] = response.analysis
+      modalData.value.analysisData = response.analysis
+      modalData.value.explanation = null
+    } else if (response.generating) {
+      // Explanation is being generated - show message
+      modalData.value.explanation = 'Generating insights for the first time. Please try again in a moment.'
+      
+      // Auto-retry after 3 seconds
+      setTimeout(async () => {
+        try {
+          const retryResponse: any = await $fetch('/api/scores/explanation', {
+            query: { type: 'workout', period: selectedPeriod.value, metric }
+          })
+          
+          if (retryResponse.cached && retryResponse.analysis) {
+            workoutExplanations.value[cacheKey] = retryResponse.analysis
+            modalData.value.analysisData = retryResponse.analysis
+            modalData.value.explanation = null
+            loadingExplanation.value = false
+          }
+        } catch (retryError) {
+          console.error('Retry failed:', retryError)
+        }
+      }, 3000)
+    }
   } catch (error) {
     console.error('Error fetching workout explanation:', error)
     modalData.value.explanation = 'Failed to load explanation. Please try again.'
   } finally {
-    loadingExplanation.value = false
+    if (!modalData.value.explanation?.includes('Generating')) {
+      loadingExplanation.value = false
+    }
   }
 }
 
-// Handle nutrition aggregate score click - fetch AI explanation
+// Map display titles to metric names
+const getNutritionMetricName = (title: string): string => {
+  const mapping: Record<string, string> = {
+    'Overall Nutrition Quality': 'overall',
+    'Macronutrient Balance': 'macroBalance',
+    'Food Quality': 'quality',
+    'Goal Adherence': 'adherence',
+    'Hydration Status': 'hydration'
+  }
+  return mapping[title] || 'overall'
+}
+
+// Handle nutrition aggregate score click - fetch from database or trigger generation
 const openNutritionModal = async (title: string, score: number | null, color?: string) => {
   if (!score || !nutritionData.value) return
   
@@ -391,9 +464,10 @@ const openNutritionModal = async (title: string, score: number | null, color?: s
   showModal.value = true
   loadingExplanation.value = true
   
-  const cacheKey = `${selectedPeriod.value}-${title}`
+  const metric = getNutritionMetricName(title)
+  const cacheKey = `${selectedPeriod.value}-${metric}`
   
-  // Check cache first
+  // Check memory cache first
   if (nutritionExplanations.value[cacheKey]) {
     modalData.value.analysisData = nutritionExplanations.value[cacheKey]
     modalData.value.explanation = null
@@ -402,22 +476,79 @@ const openNutritionModal = async (title: string, score: number | null, color?: s
   }
   
   try {
-    const response = await $fetch('/api/scores/nutrition-trends-explanation', {
-      method: 'POST',
-      body: {
-        days: selectedPeriod.value,
-        summary: nutritionData.value.summary
+    // Fetch from database (or trigger generation if not available)
+    const response: any = await $fetch('/api/scores/explanation', {
+      query: {
+        type: 'nutrition',
+        period: selectedPeriod.value,
+        metric
       }
     })
     
-    nutritionExplanations.value[cacheKey] = response.analysis
-    modalData.value.analysisData = response.analysis
-    modalData.value.explanation = null
+    if (response.cached && response.analysis) {
+      // Explanation was found in database
+      nutritionExplanations.value[cacheKey] = response.analysis
+      modalData.value.analysisData = response.analysis
+      modalData.value.explanation = null
+    } else if (response.generating) {
+      // Explanation is being generated - show message
+      modalData.value.explanation = 'Generating insights for the first time. Please try again in a moment.'
+      
+      // Auto-retry after 3 seconds
+      setTimeout(async () => {
+        try {
+          const retryResponse: any = await $fetch('/api/scores/explanation', {
+            query: { type: 'nutrition', period: selectedPeriod.value, metric }
+          })
+          
+          if (retryResponse.cached && retryResponse.analysis) {
+            nutritionExplanations.value[cacheKey] = retryResponse.analysis
+            modalData.value.analysisData = retryResponse.analysis
+            modalData.value.explanation = null
+            loadingExplanation.value = false
+          }
+        } catch (retryError) {
+          console.error('Retry failed:', retryError)
+        }
+      }, 3000)
+    }
   } catch (error) {
     console.error('Error fetching nutrition explanation:', error)
     modalData.value.explanation = 'Failed to load explanation. Please try again.'
   } finally {
-    loadingExplanation.value = false
+    if (!modalData.value.explanation?.includes('Generating')) {
+      loadingExplanation.value = false
+    }
+  }
+}
+
+// Generate explanations function
+const generateExplanations = async () => {
+  generatingExplanations.value = true
+  try {
+    const response: any = await $fetch('/api/scores/generate-explanations', {
+      method: 'POST'
+    })
+    
+    toast.add({
+      title: 'Insights Generation Started',
+      description: 'AI is generating insights for all metrics. This may take a few minutes.',
+      color: 'success',
+      icon: 'i-heroicons-sparkles'
+    })
+    
+    // Clear the caches so fresh explanations will be fetched
+    workoutExplanations.value = {}
+    nutritionExplanations.value = {}
+  } catch (error: any) {
+    toast.add({
+      title: 'Generation Failed',
+      description: error.data?.message || error.message || 'Failed to start generation',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  } finally {
+    generatingExplanations.value = false
   }
 }
 

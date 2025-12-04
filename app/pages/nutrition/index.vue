@@ -6,20 +6,38 @@
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <button
-            @click="analyzeAllNutrition"
-            :disabled="analyzingNutrition"
-            class="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-          >
-            <span v-if="analyzingNutrition">Analyzing...</span>
-            <span v-else>Analyze All</span>
-          </button>
+          <div class="flex gap-2">
+            <button
+              @click="generateExplanations"
+              :disabled="generatingExplanations"
+              class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+            >
+              <span v-if="generatingExplanations">Generating...</span>
+              <span v-else>Generate Insights</span>
+            </button>
+            <button
+              @click="analyzeAllNutrition"
+              :disabled="analyzingNutrition"
+              class="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+            >
+              <span v-if="analyzingNutrition">Analyzing...</span>
+              <span v-else>Analyze All</span>
+            </button>
+          </div>
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
       <div class="p-6 space-y-6">
+        <!-- Page Header -->
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Nutrition</h1>
+          <p class="text-sm text-muted mt-1">
+            Monitor your daily nutrition intake and quality scores
+          </p>
+        </div>
+
         <!-- Summary Stats -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -59,6 +77,106 @@
           </div>
         </div>
 
+        <!-- Nutrition Quality Scores -->
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Nutrition Quality</h2>
+            <USelect
+              v-model="selectedPeriod"
+              :items="periodOptions"
+            />
+          </div>
+          
+          <div v-if="nutritionScoresLoading" class="flex justify-center py-12">
+            <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+          </div>
+          
+          <div v-else-if="nutritionTrendsData" class="space-y-6">
+            <!-- Score Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <ScoreCard
+                title="Overall"
+                :score="nutritionTrendsData.summary?.avgOverall"
+                icon="i-heroicons-star"
+                color="yellow"
+                compact
+                explanation="Click for AI-generated insights"
+                @click="() => nutritionTrendsData && openNutritionModal('Overall Nutrition Quality', nutritionTrendsData.summary?.avgOverall, 'yellow')"
+              />
+              <ScoreCard
+                title="Macro Balance"
+                :score="nutritionTrendsData.summary?.avgMacroBalance"
+                icon="i-heroicons-scale"
+                color="blue"
+                compact
+                explanation="Click for AI-generated insights"
+                @click="() => nutritionTrendsData && openNutritionModal('Macronutrient Balance', nutritionTrendsData.summary?.avgMacroBalance, 'blue')"
+              />
+              <ScoreCard
+                title="Quality"
+                :score="nutritionTrendsData.summary?.avgQuality"
+                icon="i-heroicons-sparkles"
+                color="green"
+                compact
+                explanation="Click for AI-generated insights"
+                @click="() => nutritionTrendsData && openNutritionModal('Food Quality', nutritionTrendsData.summary?.avgQuality, 'green')"
+              />
+              <ScoreCard
+                title="Adherence"
+                :score="nutritionTrendsData.summary?.avgAdherence"
+                icon="i-heroicons-check-badge"
+                color="purple"
+                compact
+                explanation="Click for AI-generated insights"
+                @click="() => nutritionTrendsData && openNutritionModal('Goal Adherence', nutritionTrendsData.summary?.avgAdherence, 'purple')"
+              />
+              <ScoreCard
+                title="Hydration"
+                :score="nutritionTrendsData.summary?.avgHydration"
+                icon="i-heroicons-beaker"
+                color="cyan"
+                compact
+                explanation="Click for AI-generated insights"
+                @click="() => nutritionTrendsData && openNutritionModal('Hydration Status', nutritionTrendsData.summary?.avgHydration, 'cyan')"
+              />
+            </div>
+
+            <!-- Trend Chart and Radar Chart Side by Side -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Score Trends (2/3 width) -->
+              <div class="lg:col-span-2">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Score Trends</h3>
+                <TrendChart :data="nutritionTrendsData.nutrition" type="nutrition" />
+              </div>
+
+              <!-- Current Balance (1/3 width) -->
+              <div class="lg:col-span-1">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Balance</h3>
+                <RadarChart
+                  :scores="{
+                    overall: nutritionTrendsData.summary?.avgOverall,
+                    macroBalance: nutritionTrendsData.summary?.avgMacroBalance,
+                    quality: nutritionTrendsData.summary?.avgQuality,
+                    adherence: nutritionTrendsData.summary?.avgAdherence,
+                    hydration: nutritionTrendsData.summary?.avgHydration
+                  }"
+                  type="nutrition"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score Detail Modal -->
+        <ScoreDetailModal
+          v-model="showModal"
+          :title="modalData.title"
+          :score="modalData.score"
+          :explanation="modalData.explanation"
+          :analysis-data="modalData.analysisData"
+          :color="modalData.color"
+        />
+
         <!-- Charts Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Calorie Tracking Chart -->
@@ -81,7 +199,7 @@
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Nutrition Scores</h3>
             <ClientOnly>
-              <Line :data="nutritionScoresData" :options="lineChartOptions" />
+              <Line :data="nutritionScoresChartData" :options="lineChartOptions" />
             </ClientOnly>
           </div>
           
@@ -250,6 +368,63 @@
             </div>
           </div>
         </div>
+
+        <!-- AI Recommendations Section -->
+        <div v-if="!loading && allRecommendations.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            🎯 AI-Generated Nutrition Recommendations
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Based on your last {{ selectedPeriod }} days of nutrition data
+          </p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div
+              v-for="(rec, index) in allRecommendations"
+              :key="index"
+              class="border rounded-lg p-4"
+              :class="{
+                'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20': rec.priority === 'high',
+                'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20': rec.priority === 'medium',
+                'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20': rec.priority === 'low'
+              }"
+            >
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0">
+                  <span
+                    class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+                    :class="{
+                      'bg-red-500 text-white': rec.priority === 'high',
+                      'bg-yellow-500 text-white': rec.priority === 'medium',
+                      'bg-blue-500 text-white': rec.priority === 'low'
+                    }"
+                  >
+                    {{ rec.priority === 'high' ? 'H' : rec.priority === 'medium' ? 'M' : 'L' }}
+                  </span>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-semibold text-sm mb-2" :class="{
+                    'text-red-900 dark:text-red-100': rec.priority === 'high',
+                    'text-yellow-900 dark:text-yellow-100': rec.priority === 'medium',
+                    'text-blue-900 dark:text-blue-100': rec.priority === 'low'
+                  }">
+                    {{ rec.title }}
+                  </h4>
+                  <p class="text-sm" :class="{
+                    'text-red-700 dark:text-red-300': rec.priority === 'high',
+                    'text-yellow-700 dark:text-yellow-300': rec.priority === 'medium',
+                    'text-blue-700 dark:text-blue-300': rec.priority === 'low'
+                  }">
+                    {{ rec.description }}
+                  </p>
+                  <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    From: {{ rec.metric }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
   </UDashboardPanel>
@@ -293,9 +468,44 @@ const colorMode = useColorMode()
 const toast = useToast()
 const loading = ref(true)
 const analyzingNutrition = ref(false)
+const generatingExplanations = ref(false)
 const allNutrition = ref<any[]>([])
 const currentPage = ref(1)
 const itemsPerPage = 20
+
+// Period selection for nutrition scores
+const selectedPeriod = ref(30)
+const periodOptions = [
+  { label: '7 Days', value: 7 },
+  { label: '14 Days', value: 14 },
+  { label: '30 Days', value: 30 },
+  { label: '90 Days', value: 90 }
+]
+
+// Fetch nutrition score trends (renamed to avoid conflict with chart data)
+const { data: nutritionTrendsData, pending: nutritionScoresLoading } = await useFetch('/api/scores/nutrition-trends', {
+  query: { days: selectedPeriod }
+})
+
+// Modal state
+const showModal = ref(false)
+const loadingExplanation = ref(false)
+const modalData = ref<{
+  title: string
+  score: number | null
+  explanation: string | null
+  analysisData?: any
+  color?: 'gray' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'cyan'
+}>({
+  title: '',
+  score: null,
+  explanation: null,
+  analysisData: undefined,
+  color: undefined
+})
+
+// Cache for explanations to avoid refetching
+const nutritionExplanations = ref<Record<string, any>>({})
 
 // Filters
 const filterAnalysis = ref<string | undefined>(undefined)
@@ -440,6 +650,34 @@ function changePage(page: number) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+async function generateExplanations() {
+  generatingExplanations.value = true
+  try {
+    const response: any = await $fetch('/api/scores/generate-explanations', {
+      method: 'POST'
+    })
+    
+    toast.add({
+      title: 'Insights Generation Started',
+      description: 'AI is generating insights for all metrics. This may take a few minutes.',
+      color: 'success',
+      icon: 'i-heroicons-sparkles'
+    })
+    
+    // Clear the cache so fresh explanations will be fetched
+    nutritionExplanations.value = {}
+  } catch (error: any) {
+    toast.add({
+      title: 'Generation Failed',
+      description: error.data?.message || error.message || 'Failed to start generation',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  } finally {
+    generatingExplanations.value = false
+  }
+}
+
 async function analyzeAllNutrition() {
   analyzingNutrition.value = true
   try {
@@ -467,6 +705,90 @@ async function analyzeAllNutrition() {
     })
   } finally {
     analyzingNutrition.value = false
+  }
+}
+
+// Map display titles to metric names
+function getMetricName(title: string): string {
+  const mapping: Record<string, string> = {
+    'Overall Nutrition Quality': 'overall',
+    'Macronutrient Balance': 'macroBalance',
+    'Food Quality': 'quality',
+    'Goal Adherence': 'adherence',
+    'Hydration Status': 'hydration'
+  }
+  return mapping[title] || 'overall'
+}
+
+// Handle nutrition aggregate score click - fetch from database or trigger generation
+async function openNutritionModal(title: string, score: number | null, color?: string) {
+  if (!score || !nutritionTrendsData.value) return
+  
+  modalData.value = {
+    title,
+    score,
+    explanation: 'Loading insights...',
+    analysisData: undefined,
+    color: color as any
+  }
+  showModal.value = true
+  loadingExplanation.value = true
+  
+  const metric = getMetricName(title)
+  const cacheKey = `${selectedPeriod.value}-${metric}`
+  
+  // Check memory cache first
+  if (nutritionExplanations.value[cacheKey]) {
+    modalData.value.analysisData = nutritionExplanations.value[cacheKey]
+    modalData.value.explanation = null
+    loadingExplanation.value = false
+    return
+  }
+  
+  try {
+    // Fetch from database (or trigger generation if not available)
+    const response: any = await $fetch('/api/scores/explanation', {
+      query: {
+        type: 'nutrition',
+        period: selectedPeriod.value,
+        metric
+      }
+    })
+    
+    if (response.cached && response.analysis) {
+      // Explanation was found in database
+      nutritionExplanations.value[cacheKey] = response.analysis
+      modalData.value.analysisData = response.analysis
+      modalData.value.explanation = null
+    } else if (response.generating) {
+      // Explanation is being generated - show message
+      modalData.value.explanation = 'Generating insights for the first time. Please try again in a moment.'
+      
+      // Auto-retry after 3 seconds
+      setTimeout(async () => {
+        try {
+          const retryResponse: any = await $fetch('/api/scores/explanation', {
+            query: { type: 'nutrition', period: selectedPeriod.value, metric }
+          })
+          
+          if (retryResponse.cached && retryResponse.analysis) {
+            nutritionExplanations.value[cacheKey] = retryResponse.analysis
+            modalData.value.analysisData = retryResponse.analysis
+            modalData.value.explanation = null
+            loadingExplanation.value = false
+          }
+        } catch (retryError) {
+          console.error('Retry failed:', retryError)
+        }
+      }, 3000)
+    }
+  } catch (error) {
+    console.error('Error fetching nutrition explanation:', error)
+    modalData.value.explanation = 'Failed to load explanation. Please try again.'
+  } finally {
+    if (!modalData.value.explanation?.includes('Generating')) {
+      loadingExplanation.value = false
+    }
   }
 }
 
@@ -536,7 +858,7 @@ const macroDistributionData = computed(() => {
   }
 })
 
-const nutritionScoresData = computed(() => {
+const nutritionScoresChartData = computed(() => {
   const withScores = allNutrition.value
     .filter(n => (n as any).overallScore)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -686,6 +1008,11 @@ const barChartOptions = computed(() => ({
 // Watch filters and reset to page 1
 watch([filterAnalysis, filterCalories], () => {
   currentPage.value = 1
+})
+
+// Watch for period changes and refetch nutrition trends
+watch(selectedPeriod, async () => {
+  await refreshNuxtData('nutrition-trends')
 })
 
 // Load data on mount
