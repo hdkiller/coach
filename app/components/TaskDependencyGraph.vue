@@ -9,18 +9,23 @@
           </p>
         </div>
         
-        <button
-          @click="startFullSync"
-          :disabled="isRunning"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-        >
-          <svg v-if="isRunning" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span v-if="isRunning">Running... {{ overallProgress }}%</span>
-          <span v-else>🔄 Update All Data</span>
-        </button>
+        <div class="flex items-center gap-3">
+          <p class="text-xs text-gray-600 dark:text-gray-400">
+            💡 Click category or individual task badges to run
+          </p>
+          <button
+            @click="syncAllCategories"
+            :disabled="isRunning"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+          >
+            <svg v-if="isRunning" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span v-if="isRunning">Running...</span>
+            <span v-else>🔄 Run All Categories</span>
+          </button>
+        </div>
       </div>
 
       <!-- Overall Progress Bar -->
@@ -68,7 +73,16 @@
               <span class="text-xs text-gray-500 dark:text-gray-400">
                 {{ getCategoryProgress(category.id) }}
               </span>
-              <div :class="getCategoryStatusClass(category.id)">
+              <button
+                v-if="getCategoryStatus(category.id) !== 'Complete'"
+                @click="runCategoryTasks(category.id)"
+                :disabled="isRunning"
+                :class="[getCategoryStatusClass(category.id), 'cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed']"
+                :title="'Click to run all ' + category.name + ' tasks'"
+              >
+                {{ getCategoryStatus(category.id) }}
+              </button>
+              <div v-else :class="getCategoryStatusClass(category.id)">
                 {{ getCategoryStatus(category.id) }}
               </div>
             </div>
@@ -412,12 +426,14 @@ async function triggerSingleTask(taskId: string) {
       progress: 0
     }
     
-    toast.add({
-      title: 'Starting Task',
-      description: `Running: ${task.name}`,
-      color: 'info',
-      icon: 'i-heroicons-play'
-    })
+    if (showToast) {
+      toast.add({
+        title: 'Starting Task',
+        description: `Running: ${task.name}`,
+        color: 'info',
+        icon: 'i-heroicons-play'
+      })
+    }
     
     let result
     
@@ -453,12 +469,14 @@ async function triggerSingleTask(taskId: string) {
       result
     }
     
-    toast.add({
-      title: 'Task Completed',
-      description: `${task.name} finished successfully`,
-      color: 'success',
-      icon: 'i-heroicons-check-badge'
-    })
+    if (showToast) {
+      toast.add({
+        title: 'Task Completed',
+        description: `${task.name} finished successfully`,
+        color: 'success',
+        icon: 'i-heroicons-check-badge'
+      })
+    }
     
     // Refresh metadata to show updated counts
     await fetchTaskMetadata()
@@ -474,12 +492,14 @@ async function triggerSingleTask(taskId: string) {
       error: error.data?.message || error.message || 'Task execution failed'
     }
     
-    toast.add({
-      title: 'Task Failed',
-      description: error.data?.message || error.message || `${TASK_DEPENDENCIES[taskId]?.name} failed`,
-      color: 'error',
-      icon: 'i-heroicons-exclamation-circle'
-    })
+    if (showToast) {
+      toast.add({
+        title: 'Task Failed',
+        description: error.data?.message || error.message || `${TASK_DEPENDENCIES[taskId]?.name} failed`,
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
+      })
+    }
   }
 }
 
