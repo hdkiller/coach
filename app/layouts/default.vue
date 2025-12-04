@@ -42,6 +42,13 @@ const links = [[{
     open.value = false
   }
 }, {
+  label: 'Fitness',
+  icon: 'i-lucide-heart-pulse',
+  to: '/fitness',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Reports',
   icon: 'i-lucide-file-text',
   to: '/reports',

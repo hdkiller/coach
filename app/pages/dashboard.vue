@@ -5,6 +5,18 @@
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
+        <template #right>
+          <UButton
+            v-if="intervalsConnected"
+            @click="syncAllData"
+            :loading="syncingData"
+            :disabled="syncingData"
+            size="sm"
+          >
+            <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-2" />
+            {{ syncingData ? 'Syncing...' : 'Sync Data' }}
+          </UButton>
+        </template>
       </UDashboardNavbar>
     </template>
 
@@ -307,8 +319,8 @@
             </UTimeline>
           </UCard>
           
-          <!-- Next Steps Card -->
-          <UCard>
+          <!-- Next Steps Card - hidden when reports exist -->
+          <UCard v-if="!hasReports">
             <template #header>
               <h3 class="font-semibold">Next Steps</h3>
             </template>
@@ -341,20 +353,70 @@
           <!-- Connection Status Card - shown when connected -->
           <UCard v-if="intervalsConnected">
             <template #header>
-              <h3 class="font-semibold">Connection Status</h3>
-            </template>
-            <div class="space-y-3">
-              <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-success" />
-                <span class="text-sm">Intervals.icu connected</span>
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Data Sync</h3>
+                <UBadge color="success" variant="subtle">
+                  <UIcon name="i-heroicons-check-circle" class="w-3 h-3" />
+                  Connected
+                </UBadge>
               </div>
-              <p class="text-sm text-muted">
-                Your training data is being synced automatically.
-              </p>
+            </template>
+            
+            <div class="space-y-3">
+              <!-- Workouts -->
+              <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-bolt" class="w-4 h-4 text-primary" />
+                  <span class="text-sm font-medium">Workouts</span>
+                </div>
+                <UBadge
+                  :color="dataSyncStatus.workouts ? 'success' : 'neutral'"
+                  variant="subtle"
+                  size="sm"
+                >
+                  {{ dataSyncStatus.workoutCount || 0 }} synced
+                </UBadge>
+              </div>
+              
+              <!-- Nutrition -->
+              <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-cake" class="w-4 h-4 text-primary" />
+                  <span class="text-sm font-medium">Nutrition</span>
+                </div>
+                <UBadge
+                  :color="dataSyncStatus.nutrition ? 'success' : 'neutral'"
+                  variant="subtle"
+                  size="sm"
+                >
+                  {{ dataSyncStatus.nutritionCount || 0 }} days
+                </UBadge>
+              </div>
+              
+              <!-- Wellness -->
+              <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-heart" class="w-4 h-4 text-primary" />
+                  <span class="text-sm font-medium">Wellness</span>
+                </div>
+                <UBadge
+                  :color="dataSyncStatus.wellness ? 'success' : 'neutral'"
+                  variant="subtle"
+                  size="sm"
+                >
+                  {{ dataSyncStatus.wellnessCount || 0 }} days
+                </UBadge>
+              </div>
+              
+              <!-- Last Sync Info -->
+              <div v-if="lastSyncTime" class="text-xs text-muted text-center pt-2 border-t">
+                Last synced {{ lastSyncTime }}
+              </div>
             </div>
+            
             <template #footer>
-              <UButton to="/reports" block variant="outline">
-                View Reports
+              <UButton to="/settings" block variant="outline" size="sm">
+                Manage Connections
               </UButton>
             </template>
           </UCard>
@@ -450,6 +512,9 @@ const intervalsConnected = computed(() =>
   integrationStatus.value?.integrations?.some((i: any) => i.provider === 'intervals') ?? false
 )
 
+// Sync state
+const syncingData = ref(false)
+
 // Fetch athlete profile when connected (using fast cached endpoint)
 const { data: profileData } = useFetch('/api/profile/dashboard', {
   lazy: true,
@@ -467,6 +532,37 @@ const generatingProfile = ref(false)
 const currentRecommendationId = ref<string | null>(null) // Track the recommendation being generated
 
 const profile = computed(() => profileData.value?.profile as any || null)
+const hasReports = computed(() => profileData.value?.hasReports ?? false)
+const dataSyncStatus = computed(() => profileData.value?.dataSyncStatus ?? {
+  workouts: false,
+  nutrition: false,
+  wellness: false,
+  workoutCount: 0,
+  nutritionCount: 0,
+  wellnessCount: 0
+})
+
+// Calculate last sync time display
+const lastSyncTime = computed(() => {
+  if (!integrationStatus.value?.integrations) return null
+  
+  const intervalsIntegration = integrationStatus.value.integrations.find((i: any) => i.provider === 'intervals')
+  if (!intervalsIntegration?.lastSyncAt) return null
+  
+  const lastSync = new Date(intervalsIntegration.lastSyncAt)
+  const now = new Date()
+  const diffMs = now.getTime() - lastSync.getTime()
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins} min ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  return lastSync.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+})
 
 // Fetch athlete profile scores
 const { data: scoresData, pending: loadingScores } = useFetch('/api/scores/athlete-profile', {
@@ -718,6 +814,55 @@ function formatScoreDate(date: string | Date): string {
     return `${diffDays} days ago`
   } else {
     return scoreDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+}
+
+// Sync all data from integrations
+async function syncAllData() {
+  if (syncingData.value) return
+  
+  syncingData.value = true
+  
+  try {
+    console.log('Triggering batch sync...')
+    const result: any = await $fetch('/api/integrations/sync', {
+      method: 'POST',
+      body: { provider: 'all' }
+    })
+    
+    console.log('Batch sync triggered:', result)
+    
+    toast.add({
+      title: 'Data Sync Started',
+      description: 'Syncing data from all connected integrations. This may take a minute...',
+      color: 'success',
+      icon: 'i-heroicons-arrow-path'
+    })
+    
+    // Poll for completion and refresh data
+    setTimeout(async () => {
+      await fetchTodayRecommendation()
+      await fetchRecentActivity()
+      
+      toast.add({
+        title: 'Sync Complete',
+        description: 'Your data has been updated successfully!',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+    }, 10000)
+    
+  } catch (error: any) {
+    console.error('Error syncing data:', error)
+    
+    toast.add({
+      title: 'Sync Failed',
+      description: error.data?.message || 'Failed to sync data. Please try again.',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-circle'
+    })
+  } finally {
+    syncingData.value = false
   }
 }
 
