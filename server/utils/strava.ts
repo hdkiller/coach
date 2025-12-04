@@ -1,4 +1,5 @@
 import type { Integration } from '@prisma/client'
+import { prisma } from './db'
 
 interface StravaTokenResponse {
   token_type: string
