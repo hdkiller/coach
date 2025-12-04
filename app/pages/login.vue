@@ -1,53 +1,113 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50">
-    <UCard class="w-full max-w-md">
-      <template #header>
-        <div class="text-center">
-          <h1 class="text-3xl font-bold text-gray-900">Coach Watts</h1>
-          <p class="mt-2 text-gray-600">Your AI-Powered Cycling Coach</p>
-        </div>
-      </template>
-      
-      <div class="space-y-4">
-        <p class="text-center text-gray-600">
+  <div class="min-h-screen flex items-center justify-center">
+    <UAuthForm
+      :fields="fields"
+      :providers="providers"
+      align="top"
+      title="Welcome Back!"
+      description="Sign in to your Coach Watts account."
+      icon="i-lucide-zap"
+      :ui="{
+        base: 'w-full max-w-md',
+        footer: 'text-sm text-gray-500 dark:text-gray-400',
+        header: {
+          description: 'mt-2 text-gray-600 dark:text-gray-300',
+          icon: 'w-10 h-10 text-primary mb-4',
+          title: 'text-3xl font-bold',
+        },
+      }"
+      :loading="loading"
+      @submit="onSubmit"
+    >
+      <template #description>
+        <p class="text-center text-gray-600 dark:text-gray-300">
           Sign in to start analyzing your training data and get personalized coaching insights.
         </p>
-        
-        <UButton
-          block
-          size="lg"
-          color="black"
-          @click="signIn('google', { callbackUrl: '/dashboard' })"
-        >
-          <template #leading>
-            <svg class="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-          </template>
-          Sign in with Google
-        </UButton>
-      </div>
-      
+      </template>
+
       <template #footer>
-        <p class="text-center text-sm text-gray-500">
-          By signing in, you agree to our Terms of Service and Privacy Policy
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+          By signing in, you agree to our
+          <NuxtLink to="#" class="text-primary hover:underline">Terms of Service</NuxtLink>
+          and
+          <NuxtLink to="#" class="text-primary hover:underline">Privacy Policy</NuxtLink>.
         </p>
       </template>
-    </UCard>
+
+      <template #bottom>
+        <div class="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+          Don't have an account? <NuxtLink to="#" class="text-primary hover:underline">Sign up here</NuxtLink>.
+        </div>
+      </template>
+    </UAuthForm>
   </div>
 </template>
 
 <script setup lang="ts">
+import { z } from 'zod'
+
 const { signIn } = useAuth()
+const toast = useToast()
 
 definePageMeta({
-  layout: false,
-  auth: {
-    unauthenticatedOnly: true,
-    navigateAuthenticatedTo: '/dashboard'
-  }
+  layout: 'home',
+  middleware: ['guest'],
+  auth: false // Explicitly disable auth middleware for this page
 })
+
+const loading = ref(false)
+
+// Dummy fields for email/password for UAuthForm. 
+// Real implementation would use credentials provider.
+const fields = [{
+  name: 'email',
+  type: 'text',
+  label: 'Email',
+  placeholder: 'Enter your email'
+}, {
+  name: 'password',
+  type: 'password',
+  label: 'Password',
+  placeholder: 'Enter your password'
+}]
+
+const providers = [{
+  label: 'Continue with Google',
+  icon: 'i-lucide-chrome' as const,
+  color: 'gray' as const,
+  variant: 'outline' as const,
+  click: () => {
+    loading.value = true
+    signIn('google', { callbackUrl: '/dashboard' })
+  }
+}]
+
+const schema = z.object({
+  email: z.string().email('Invalid email'),
+  password: z.string().min(8, 'Must be at least 8 characters')
+})
+
+type Schema = z.output<typeof schema>
+
+async function onSubmit(data: any) {
+  loading.value = true
+  try {
+    // This part would typically call signIn('credentials', data)
+    // For now, it's a placeholder to demonstrate form submission.
+    console.log('Form submitted with:', data)
+    toast.add({
+      title: 'Login Attempt',
+      description: 'Email/password login is not yet configured.',
+      color: 'info'
+    })
+  } catch (error: any) {
+    toast.add({
+      title: 'Login Failed',
+      description: error.data?.message || 'An unexpected error occurred.',
+      color: 'error'
+    })
+  } finally {
+    loading.value = false
+  }
+}
 </script>
