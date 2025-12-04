@@ -3,8 +3,9 @@
 
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
 
-export type TaskCategory = 
+export type TaskCategory =
   | 'ingestion'      // Data sync from integrations
+  | 'cleanup'        // Data cleanup and deduplication
   | 'analysis'       // AI analysis of individual items
   | 'profile'        // Athlete profile generation
   | 'reports'        // Report generation
@@ -110,6 +111,21 @@ export const TASK_DEPENDENCIES: Record<string, TaskDefinition> = {
   },
   
   // ========================================
+  // LEVEL 1.5: DATA CLEANUP
+  // ========================================
+  'deduplicate-workouts': {
+    id: 'deduplicate-workouts',
+    name: 'Deduplicate Workouts',
+    description: 'Identify and mark duplicate workouts, keeping the most complete version',
+    category: 'cleanup',
+    dependsOn: ['ingest-intervals', 'ingest-strava'],
+    estimatedDuration: 30,
+    required: true,
+    endpoint: '/api/workouts/deduplicate',
+    triggerId: 'deduplicate-workouts'
+  },
+  
+  // ========================================
   // LEVEL 2: AI ANALYSIS
   // ========================================
   'analyze-workouts': {
@@ -117,7 +133,7 @@ export const TASK_DEPENDENCIES: Record<string, TaskDefinition> = {
     name: 'Analyze Workouts',
     description: 'AI analysis of recent workouts for insights and recommendations',
     category: 'analysis',
-    dependsOn: ['ingest-intervals', 'ingest-strava'],
+    dependsOn: ['deduplicate-workouts'],
     estimatedDuration: 60,
     required: true,
     endpoint: '/api/workouts/analyze-all',

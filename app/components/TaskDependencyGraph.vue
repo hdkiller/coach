@@ -151,8 +151,18 @@
                 <!-- Additional Task Info -->
                 <div v-if="Object.keys(taskMetadata).length > 0" class="mt-2 flex flex-wrap gap-2">
                   <template v-if="getTaskMetadata(task.id)">
-                    <span v-if="getTaskMetadata(task.id)!.pendingCount !== undefined && getTaskMetadata(task.id)!.pendingCount! > 0" class="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-2 py-0.5 rounded">
-                      {{ getTaskMetadata(task.id)!.pendingCount }} pending analysis
+                    <!-- For deduplication task, show duplicate count -->
+                    <span v-if="task.id === 'deduplicate-workouts' && getTaskMetadata(task.id)!.duplicateCount !== undefined" class="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 px-2 py-0.5 rounded">
+                      {{ getTaskMetadata(task.id)!.duplicateCount }} duplicates found
+                    </span>
+                    <!-- For analysis tasks, always show pending count (highlight when > 0) -->
+                    <span v-else-if="getTaskMetadata(task.id)!.pendingCount !== undefined" :class="[
+                      getTaskMetadata(task.id)!.pendingCount! > 0
+                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
+                        : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
+                      'text-xs px-2 py-0.5 rounded'
+                    ]">
+                      {{ getTaskMetadata(task.id)!.pendingCount }} pending
                     </span>
                     <span v-if="getTaskMetadata(task.id)!.lastSync" class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded">
                       Last: {{ formatRelativeTime(getTaskMetadata(task.id)!.lastSync!) }}
@@ -224,7 +234,7 @@ const overallProgress = ref(0)
 const currentPhase = ref('')
 const errorMessage = ref('')
 const eventSource = ref<EventSource | null>(null)
-const taskMetadata = ref<Record<string, { pendingCount?: number; totalCount?: number; lastSync?: Date }>>({})
+const taskMetadata = ref<Record<string, { pendingCount?: number; totalCount?: number; lastSync?: Date; duplicateCount?: number }>>({})
 
 // Categories configuration
 const categories = [
@@ -233,6 +243,12 @@ const categories = [
     name: 'Data Ingestion',
     icon: '📥',
     description: 'Sync data from connected integrations'
+  },
+  {
+    id: 'cleanup',
+    name: 'Data Cleanup',
+    icon: '🧹',
+    description: 'Remove duplicate workouts and clean data'
   },
   {
     id: 'analysis',
@@ -410,7 +426,6 @@ async function fetchTaskMetadata() {
   }
 }
 
-// Trigger a single task
 // Run all tasks in a category
 async function runCategoryTasks(categoryId: string) {
   if (isRunning.value) return
@@ -481,8 +496,7 @@ async function syncAllCategories() {
 
 // Trigger a single task
 async function triggerSingleTask(taskId: string, showToast = true) {
-async function triggerSingleTask(taskId: string) {
-  if (isRunning.value) return
+  if (isRunning.value && showToast) return
   
   const task = TASK_DEPENDENCIES[taskId]
   if (!task) return
