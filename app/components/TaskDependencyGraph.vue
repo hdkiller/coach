@@ -411,6 +411,76 @@ async function fetchTaskMetadata() {
 }
 
 // Trigger a single task
+// Run all tasks in a category
+async function runCategoryTasks(categoryId: string) {
+  if (isRunning.value) return
+  
+  const tasks = getTasksByCategory(categoryId)
+  const pendingTasks = tasks.filter(t => !getTaskState(t.id) || getTaskState(t.id)?.status === 'pending')
+  
+  if (pendingTasks.length === 0) {
+    toast.add({
+      title: 'No Tasks to Run',
+      description: 'All tasks in this category are already completed or running',
+      color: 'info',
+      icon: 'i-heroicons-information-circle'
+    })
+    return
+  }
+  
+  isRunning.value = true
+  
+  toast.add({
+    title: 'Running Category',
+    description: `Starting ${pendingTasks.length} tasks in parallel`,
+    color: 'info',
+    icon: 'i-heroicons-play'
+  })
+  
+  // Run all pending tasks in parallel
+  const promises = pendingTasks.map(task => triggerSingleTask(task.id, false))
+  await Promise.allSettled(promises)
+  
+  isRunning.value = false
+  
+  toast.add({
+    title: 'Category Complete',
+    description: `Finished running ${pendingTasks.length} tasks`,
+    color: 'success',
+    icon: 'i-heroicons-check-badge'
+  })
+}
+
+// Run all categories sequentially
+async function syncAllCategories() {
+  if (isRunning.value) return
+  
+  isRunning.value = true
+  
+  toast.add({
+    title: 'Starting Full Sync',
+    description: 'Running all categories in sequence',
+    color: 'info',
+    icon: 'i-heroicons-play'
+  })
+  
+  // Run categories in order
+  for (const category of categories) {
+    await runCategoryTasks(category.id)
+  }
+  
+  isRunning.value = false
+  
+  toast.add({
+    title: 'Full Sync Complete',
+    description: 'All categories have been processed',
+    color: 'success',
+    icon: 'i-heroicons-check-badge'
+  })
+}
+
+// Trigger a single task
+async function triggerSingleTask(taskId: string, showToast = true) {
 async function triggerSingleTask(taskId: string) {
   if (isRunning.value) return
   
