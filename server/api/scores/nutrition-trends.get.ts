@@ -41,7 +41,12 @@ export default defineEventHandler(async (event) => {
       calories: true,
       protein: true,
       carbs: true,
-      fat: true
+      fat: true,
+      overallScore: true,
+      macroBalanceScore: true,
+      qualityScore: true,
+      adherenceScore: true,
+      hydrationScore: true
     },
     orderBy: {
       date: 'asc'
