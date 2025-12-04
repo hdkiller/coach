@@ -43,6 +43,15 @@ export const ingestWhoopTask = task({
       
       logger.log(`Fetched ${recoveryData.length} recovery records from Whoop`);
       
+      // Re-fetch integration to get any updated tokens from the recovery fetch
+      const updatedIntegration = await prisma.integration.findUnique({
+        where: { id: integration.id }
+      });
+      
+      if (!updatedIntegration) {
+        throw new Error('Integration not found after recovery fetch');
+      }
+      
       // Upsert wellness data
       let upsertedCount = 0;
       for (const recovery of recoveryData) {
@@ -50,7 +59,7 @@ export const ingestWhoopTask = task({
         let sleepData = null;
         if (recovery.sleep_id) {
           logger.log(`Fetching sleep data for sleep_id: ${recovery.sleep_id}`);
-          sleepData = await fetchWhoopSleep(integration, recovery.sleep_id);
+          sleepData = await fetchWhoopSleep(updatedIntegration, recovery.sleep_id);
         }
         
         const wellness = normalizeWhoopRecovery(recovery, userId, sleepData);

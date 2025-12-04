@@ -43,6 +43,15 @@ export const ingestStravaTask = task({
       const activities = await fetchStravaActivities(integration, start, end);
       logger.log(`Fetched ${activities.length} activity summaries from Strava`);
       
+      // Re-fetch integration to get any updated tokens from the activities fetch
+      const updatedIntegration = await prisma.integration.findUnique({
+        where: { id: integration.id }
+      });
+      
+      if (!updatedIntegration) {
+        throw new Error('Integration not found after activities fetch');
+      }
+      
       let workoutsUpserted = 0;
       let workoutsSkipped = 0;
       let detailsFetched = 0;
@@ -96,7 +105,7 @@ export const ingestStravaTask = task({
         
         // Only fetch detailed activity data for new or updated activities
         logger.log(`Fetching details for activity ${activity.id}...`);
-        const detailedActivity = await fetchStravaActivityDetails(integration, activity.id);
+        const detailedActivity = await fetchStravaActivityDetails(updatedIntegration, activity.id);
         detailsFetched++;
         
         const workout = normalizeStravaActivity(detailedActivity, userId);

@@ -3,6 +3,7 @@ import {
   fetchIntervalsWorkouts,
   fetchIntervalsWellness,
   fetchIntervalsPlannedWorkouts,
+  fetchIntervalsAthleteProfile,
   normalizeIntervalsWorkout,
   normalizeIntervalsWellness,
   normalizeIntervalsPlannedWorkout
@@ -43,6 +44,33 @@ export const ingestIntervalsTask = task({
     try {
       const start = new Date(startDate);
       const end = new Date(endDate);
+      
+      // Fetch and update athlete profile data first
+      logger.log("Fetching athlete profile data...");
+      try {
+        const profileData = await fetchIntervalsAthleteProfile(integration);
+        
+        // Update User table with profile data
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            ftp: profileData.ftp,
+            weight: profileData.weight,
+            maxHr: profileData.maxHR,
+            dob: profileData.dateOfBirth ? new Date(profileData.dateOfBirth) : null
+          }
+        });
+        
+        logger.log("Updated athlete profile data", {
+          ftp: profileData.ftp,
+          weight: profileData.weight,
+          maxHr: profileData.maxHR,
+          dob: profileData.dateOfBirth
+        });
+      } catch (error) {
+        logger.error("Error updating athlete profile, continuing with data ingestion", { error });
+        // Don't fail the entire ingestion if profile update fails
+      }
       
       // Fetch activities
       logger.log("Fetching activities...");
