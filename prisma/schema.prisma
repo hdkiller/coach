@@ -226,6 +226,7 @@ model Workout {
   reports         ReportWorkout[]
   duplicates      Workout[] @relation("WorkoutDuplicates") // Workouts that are duplicates of this one
   canonicalWorkout Workout? @relation("WorkoutDuplicates", fields: [duplicateOf], references: [id], onDelete: SetNull)
+  streams         WorkoutStream? // Time-series pacing data
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -233,6 +234,39 @@ model Workout {
   @@index([userId, date])
   @@index([userId, isDuplicate]) // Optimize queries filtering duplicates
   @@unique([userId, source, externalId]) // Prevent duplicates
+}
+
+// Time-series data streams for detailed pacing analysis
+model WorkoutStream {
+  id              String   @id @default(uuid())
+  workoutId       String   @unique
+  
+  // Raw stream data (stored as JSON arrays)
+  time            Json?    // Array of elapsed time in seconds
+  distance        Json?    // Array of cumulative distance in meters
+  velocity        Json?    // Array of velocity in m/s (pace data!)
+  heartrate       Json?    // Array of heart rate values in bpm
+  cadence         Json?    // Array of cadence values (rpm/spm)
+  watts           Json?    // Array of power values in watts
+  altitude        Json?    // Array of altitude values in meters
+  latlng          Json?    // Array of [lat, lng] GPS coordinates
+  grade           Json?    // Array of grade percentages
+  moving          Json?    // Array of boolean moving indicators
+  
+  // Computed pacing metrics
+  avgPacePerKm    Float?   // Average pace in min/km
+  paceVariability Float?   // Standard deviation of pace (consistency)
+  lapSplits       Json?    // Array of lap/mile/km splits
+  paceZones       Json?    // Time in each pace zone
+  pacingStrategy  Json?    // Even/positive/negative split analysis
+  surges          Json?    // Detected pace surges
+  
+  workout         Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([workoutId])
 }
 
 // Planned workouts from Intervals.icu
