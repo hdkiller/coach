@@ -572,3 +572,80 @@ export function normalizeIntervalsWellness(wellness: IntervalsWellness, userId: 
     rawJson: wellness
   }
 }
+
+interface IntervalsStream {
+  type: string
+  data: number[] | [number, number][] | boolean[]
+}
+
+/**
+ * Fetch time-series stream data for an Intervals.icu activity
+ * Returns data arrays for various metrics like HR, power, cadence, altitude, etc.
+ */
+export async function fetchIntervalsActivityStreams(
+  integration: Integration,
+  activityId: string
+): Promise<Record<string, IntervalsStream>> {
+  const athleteId = integration.externalUserId || 'i0'
+  const auth = Buffer.from(`API_KEY:${integration.accessToken}`).toString('base64')
+  
+  const url = `https://intervals.icu/api/v1/activity/${activityId}/streams`
+  
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Basic ${auth}`
+    }
+  })
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      // Activity doesn't have stream data
+      return {}
+    }
+    throw new Error(`Intervals API error: ${response.status} ${response.statusText}`)
+  }
+  
+  const rawStreams = await response.json()
+  
+  // Transform Intervals.icu stream format to match our expected format
+  // Intervals returns: { watts: [values], heartrate: [values], time: [values], etc }
+  const streams: Record<string, IntervalsStream> = {}
+  
+  if (rawStreams.time) {
+    streams.time = { type: 'time', data: rawStreams.time }
+  }
+  if (rawStreams.distance) {
+    streams.distance = { type: 'distance', data: rawStreams.distance }
+  }
+  if (rawStreams.velocity) {
+    streams.velocity = { type: 'velocity', data: rawStreams.velocity }
+  }
+  if (rawStreams.heartrate || rawStreams.hr) {
+    streams.heartrate = { type: 'heartrate', data: rawStreams.heartrate || rawStreams.hr }
+  }
+  if (rawStreams.cadence || rawStreams.cad) {
+    streams.cadence = { type: 'cadence', data: rawStreams.cadence || rawStreams.cad }
+  }
+  if (rawStreams.watts) {
+    streams.watts = { type: 'watts', data: rawStreams.watts }
+  }
+  if (rawStreams.altitude || rawStreams.alt) {
+    streams.altitude = { type: 'altitude', data: rawStreams.altitude || rawStreams.alt }
+  }
+  if (rawStreams.lat && rawStreams.lon) {
+    // Combine lat/lon into latlng pairs
+    const latlng: [number, number][] = []
+    for (let i = 0; i < rawStreams.lat.length; i++) {
+      latlng.push([rawStreams.lat[i], rawStreams.lon[i]])
+    }
+    streams.latlng = { type: 'latlng', data: latlng }
+  }
+  if (rawStreams.grade) {
+    streams.grade = { type: 'grade', data: rawStreams.grade }
+  }
+  if (rawStreams.moving) {
+    streams.moving = { type: 'moving', data: rawStreams.moving }
+  }
+  
+  return streams
+}

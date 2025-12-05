@@ -164,6 +164,14 @@ interface StravaAthlete {
   follower?: any
 }
 
+interface StravaStream {
+  type: string
+  data: number[] | [number, number][] // Most are number[], latlng is [lat, lng][]
+  series_type: string // 'time' or 'distance'
+  original_size: number
+  resolution: string // 'low', 'medium', 'high'
+}
+
 /**
  * Fetch Strava activities for a date range
  */
@@ -392,4 +400,35 @@ export function normalizeStravaActivity(activity: StravaActivity, userId: string
     // Store raw data with all fields
     rawJson: activity
   }
+}
+
+/**
+ * Fetch activity streams (time-series data including pacing)
+ * @see https://developers.strava.com/docs/reference/#api-Streams-getActivityStreams
+ */
+export async function fetchStravaActivityStreams(
+  integration: Integration,
+  activityId: number,
+  streamTypes: string[] = ['time', 'distance', 'velocity_smooth', 'heartrate', 'cadence', 'watts', 'altitude']
+): Promise<Record<string, StravaStream>> {
+  const validIntegration = await ensureValidToken(integration)
+  
+  const url = `https://www.strava.com/api/v3/activities/${activityId}/streams`
+  const params = new URLSearchParams({
+    keys: streamTypes.join(','),
+    key_by_type: 'true'
+  })
+  
+  const response = await fetch(`${url}?${params}`, {
+    headers: {
+      'Authorization': `Bearer ${validIntegration.accessToken}`
+    }
+  })
+  
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Strava Streams API error: ${response.status} ${errorText}`)
+  }
+  
+  return await response.json()
 }
