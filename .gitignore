@@ -29,3 +29,4 @@ examples/dashboard
 .trigger
 examples/cycling
 examples/chat
+examples/vue-advanced-chat

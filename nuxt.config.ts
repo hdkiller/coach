@@ -26,5 +26,18 @@ export default defineNuxtConfig({
 
   devServer: {
     port: 3099
+  },
+
+  vite: {
+    optimizeDeps: {
+      include: ['prosemirror-state']
+    },
+    vue: {
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => ['vue-advanced-chat', 'emoji-picker'].includes(tag)
+        }
+      }
+    }
   }
 })
