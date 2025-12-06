@@ -151,6 +151,13 @@ export async function fetchWhoopRecovery(
   url.searchParams.set('end', endDate.toISOString())
   url.searchParams.set('limit', '25')
   
+  console.log('[Whoop] Fetching recovery data:', {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    startDateLocal: startDate.toLocaleString('en-US', { timeZone: 'America/New_York' }),
+    endDateLocal: endDate.toLocaleString('en-US', { timeZone: 'America/New_York' })
+  })
+  
   const allRecords: WhoopRecovery[] = []
   let nextToken: string | undefined
 
@@ -167,22 +174,31 @@ export async function fetchWhoopRecovery(
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('WHOOP API Error Response:', errorText)
-      console.error('Request URL:', url.toString())
-      throw new Error(`Whoop API error: ${response.status} ${response.statusText} - ${errorText}`)
+      console.error('[Whoop] API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      })
+      throw new Error(`Whoop API error: ${response.status} ${response.statusText}`)
     }
     
     const data: WhoopRecoveryResponse = await response.json()
-    console.log('WHOOP Recovery API Response:', JSON.stringify(data, null, 2))
-    console.log(`Fetched ${data.records?.length || 0} recovery records`)
-    
-    if (data.records && data.records.length > 0) {
-      console.log('First recovery record sample:', JSON.stringify(data.records[0], null, 2))
-    }
+    console.log(`[Whoop] Fetched ${data.records?.length || 0} recovery records`)
     
     allRecords.push(...(data.records || []))
     nextToken = data.next_token
   } while (nextToken)
+  
+  // Log date range of fetched records
+  if (allRecords.length > 0) {
+    const dates = allRecords.map(r => r.created_at).sort()
+    console.log('[Whoop] Recovery records date range:', {
+      count: allRecords.length,
+      earliest: dates[0],
+      latest: dates[dates.length - 1],
+      scoredCount: allRecords.filter(r => r.score_state === 'SCORED').length
+    })
+  }
   
   return allRecords
 }
@@ -238,9 +254,10 @@ export async function fetchWhoopUser(tokenOrIntegration: string | Integration): 
 }
 
 export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string, sleep?: WhoopSleep | null) {
-  console.log('Normalizing WHOOP recovery:', JSON.stringify(recovery, null, 2))
-  if (sleep) {
-    console.log('With sleep data:', JSON.stringify(sleep, null, 2))
+  // Only process if recovery has a score (state is SCORED)
+  if (!recovery.score || recovery.score_state !== 'SCORED') {
+    console.log(`[Whoop] Skipping unscored recovery - state: ${recovery.score_state}, created_at: ${recovery.created_at}`)
+    return null
   }
   
   // Parse the date - use created_at for the recovery date
@@ -248,18 +265,13 @@ export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string, 
   // Create date-only (removing time component) in UTC
   const dateOnly = new Date(Date.UTC(recoveryDate.getUTCFullYear(), recoveryDate.getUTCMonth(), recoveryDate.getUTCDate()))
   
-  console.log('Date parsing:', {
+  console.log('[Whoop] Processing recovery:', {
     created_at: recovery.created_at,
-    parsed_date: recoveryDate.toISOString(),
-    date_only: dateOnly.toISOString(),
-    date_only_formatted: dateOnly.toLocaleDateString()
+    date_stored: dateOnly.toISOString().split('T')[0],
+    recovery_score: Math.round(recovery.score.recovery_score),
+    hrv: recovery.score.hrv_rmssd_milli,
+    has_sleep: !!sleep
   })
-  
-  // Only process if recovery has a score (state is SCORED)
-  if (!recovery.score || recovery.score_state !== 'SCORED') {
-    console.log(`Skipping recovery - state: ${recovery.score_state}, has score: ${!!recovery.score}`)
-    return null
-  }
   
   // Extract sleep data if available
   let sleepSecs = null
@@ -275,16 +287,7 @@ export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string, 
     sleepSecs = Math.round(totalSleepMilli / 1000)
     sleepHours = Math.round((sleepSecs / 3600) * 10) / 10
     sleepScore = sleep.score.sleep_performance_percentage ? Math.round(sleep.score.sleep_performance_percentage) : null
-    
-    console.log('Sleep data extracted:', { sleepSecs, sleepHours, sleepScore })
   }
-  
-  console.log('Recovery score data:', {
-    recovery_score: recovery.score.recovery_score,
-    hrv: recovery.score.hrv_rmssd_milli,
-    resting_hr: recovery.score.resting_heart_rate,
-    spo2: recovery.score.spo2_percentage
-  })
   
   const result = {
     userId,
@@ -311,8 +314,6 @@ export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string, 
     comments: null,
     rawJson: { recovery, sleep }
   }
-  
-  console.log('Final wellness record:', JSON.stringify(result, null, 2))
   
   return result
 }

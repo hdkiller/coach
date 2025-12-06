@@ -1,43 +1,370 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { prisma } from './db'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export type GeminiModel = 'flash' | 'pro'
 
 const MODEL_NAMES = {
-  flash: 'gemini-2.0-flash-exp',
+  flash: 'gemini-flash-latest',
   pro: 'gemini-3-pro-preview'  // Using Gemini 3.0 Pro for advanced reasoning
 } as const
 
+// Gemini API pricing (as of Dec 2024, per 1M tokens)
+// Source: https://ai.google.dev/pricing
+const PRICING = {
+  'gemini-flash-latest': {
+    input: 0.075,   // $0.075 per 1M input tokens
+    output: 0.30    // $0.30 per 1M output tokens
+  },
+  'gemini-3-pro-preview': {
+    input: 1.25,    // $1.25 per 1M input tokens
+    output: 5.00    // $5.00 per 1M output tokens
+  }
+} as const
+
+/**
+ * Calculate cost in USD for a Gemini API call
+ */
+function calculateCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number
+): number {
+  const pricing = PRICING[model as keyof typeof PRICING]
+  if (!pricing) {
+    console.warn(`[Gemini] Unknown model for pricing: ${model}`)
+    return 0
+  }
+  
+  const inputCost = (inputTokens / 1_000_000) * pricing.input
+  const outputCost = (outputTokens / 1_000_000) * pricing.output
+  return inputCost + outputCost
+}
+
+/**
+ * Log LLM usage to database for cost tracking and analysis
+ */
+async function logLlmUsage(params: {
+  userId?: string
+  model: string
+  modelType: GeminiModel
+  operation: string
+  entityType?: string
+  entityId?: string
+  promptTokens?: number
+  completionTokens?: number
+  totalTokens?: number
+  estimatedCost?: number
+  durationMs: number
+  retryCount: number
+  success: boolean
+  errorType?: string
+  errorMessage?: string
+  promptPreview?: string
+  responsePreview?: string
+}): Promise<void> {
+  try {
+    await prisma.llmUsage.create({
+      data: {
+        userId: params.userId,
+        provider: 'gemini',
+        model: params.model,
+        modelType: params.modelType,
+        operation: params.operation,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        promptTokens: params.promptTokens,
+        completionTokens: params.completionTokens,
+        totalTokens: params.totalTokens,
+        estimatedCost: params.estimatedCost,
+        durationMs: params.durationMs,
+        retryCount: params.retryCount,
+        success: params.success,
+        errorType: params.errorType,
+        errorMessage: params.errorMessage,
+        promptPreview: params.promptPreview,
+        responsePreview: params.responsePreview
+      }
+    })
+  } catch (error) {
+    // Don't let logging errors break the main flow
+    console.error('[Gemini] Failed to log LLM usage:', error)
+  }
+}
+
+/**
+ * Extract preview text (first 500 chars) for debugging
+ */
+function getPreview(text: string, maxLength: number = 500): string {
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
+}
+
+// Retry configuration
+const MAX_RETRIES = 3
+const BASE_DELAY_MS = 1000 // 1 second base delay
+const MAX_DELAY_MS = 60000 // 60 seconds max delay
+
+/**
+ * Sleep for a given duration
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Parse retry delay from Google API error response
+ */
+function parseRetryDelay(error: any): number | null {
+  try {
+    // Check if error message contains RetryInfo
+    const errorString = error.message || JSON.stringify(error)
+    const retryInfoMatch = errorString.match(/"retryDelay":"(\d+)s"/)
+    if (retryInfoMatch && retryInfoMatch[1]) {
+      return parseInt(retryInfoMatch[1], 10) * 1000 // Convert seconds to milliseconds
+    }
+  } catch (e) {
+    // If parsing fails, return null
+  }
+  return null
+}
+
+/**
+ * Check if error is a rate limit error (429)
+ */
+function isRateLimitError(error: any): boolean {
+  const errorString = error.message || JSON.stringify(error)
+  return errorString.includes('[429') || errorString.includes('quota') || errorString.includes('rate limit')
+}
+
+/**
+ * Wrapper function that retries API calls with exponential backoff and tracks usage
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  context: string = 'API call',
+  trackingParams?: {
+    userId?: string
+    model: string
+    modelType: GeminiModel
+    operation: string
+    entityType?: string
+    entityId?: string
+    prompt: string
+  }
+): Promise<T> {
+  let lastError: any
+  const startTime = Date.now()
+  let retryCount = 0
+  let result: T | undefined
+  
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      result = await fn()
+      
+      // Log successful usage if tracking is enabled
+      if (trackingParams && result) {
+        const durationMs = Date.now() - startTime
+        
+        // Extract token usage from response if available
+        let promptTokens: number | undefined
+        let completionTokens: number | undefined
+        let totalTokens: number | undefined
+        let responseText: string = ''
+        
+        // Try to extract usage metadata from the result
+        if (typeof result === 'object' && result !== null) {
+          const anyResult = result as any
+          
+          // For generateContent responses
+          if (anyResult.usageMetadata) {
+            promptTokens = anyResult.usageMetadata.promptTokenCount
+            completionTokens = anyResult.usageMetadata.candidatesTokenCount
+            totalTokens = anyResult.usageMetadata.totalTokenCount
+          }
+          
+          // Try to get response text for preview
+          if (typeof anyResult === 'string') {
+            responseText = anyResult
+          } else if (anyResult.text && typeof anyResult.text === 'function') {
+            try {
+              responseText = anyResult.text()
+            } catch (e) {
+              // Ignore errors getting text
+            }
+          } else if (typeof anyResult === 'object') {
+            responseText = JSON.stringify(anyResult)
+          }
+        } else if (typeof result === 'string') {
+          responseText = result
+        }
+        
+        // Calculate estimated cost
+        const estimatedCost = promptTokens && completionTokens
+          ? calculateCost(trackingParams.model, promptTokens, completionTokens)
+          : undefined
+        
+        await logLlmUsage({
+          userId: trackingParams.userId,
+          model: trackingParams.model,
+          modelType: trackingParams.modelType,
+          operation: trackingParams.operation,
+          entityType: trackingParams.entityType,
+          entityId: trackingParams.entityId,
+          promptTokens,
+          completionTokens,
+          totalTokens,
+          estimatedCost,
+          durationMs,
+          retryCount,
+          success: true,
+          promptPreview: getPreview(trackingParams.prompt),
+          responsePreview: getPreview(responseText)
+        })
+      }
+      
+      return result
+    } catch (error: any) {
+      lastError = error
+      retryCount++
+      
+      // If it's not a rate limit error, throw immediately (after logging)
+      if (!isRateLimitError(error)) {
+        // Log failed usage if tracking is enabled
+        if (trackingParams) {
+          const durationMs = Date.now() - startTime
+          await logLlmUsage({
+            userId: trackingParams.userId,
+            model: trackingParams.model,
+            modelType: trackingParams.modelType,
+            operation: trackingParams.operation,
+            entityType: trackingParams.entityType,
+            entityId: trackingParams.entityId,
+            durationMs,
+            retryCount: retryCount - 1,
+            success: false,
+            errorType: 'api_error',
+            errorMessage: error.message || String(error),
+            promptPreview: getPreview(trackingParams.prompt)
+          })
+        }
+        throw error
+      }
+      
+      // If we've exhausted retries, throw (after logging)
+      if (attempt === MAX_RETRIES) {
+        console.error(`[Gemini] ${context} failed after ${MAX_RETRIES} retries`)
+        
+        // Log rate limit failure if tracking is enabled
+        if (trackingParams) {
+          const durationMs = Date.now() - startTime
+          await logLlmUsage({
+            userId: trackingParams.userId,
+            model: trackingParams.model,
+            modelType: trackingParams.modelType,
+            operation: trackingParams.operation,
+            entityType: trackingParams.entityType,
+            entityId: trackingParams.entityId,
+            durationMs,
+            retryCount,
+            success: false,
+            errorType: 'rate_limit',
+            errorMessage: error.message || String(error),
+            promptPreview: getPreview(trackingParams.prompt)
+          })
+        }
+        throw error
+      }
+      
+      // Calculate delay
+      let delayMs: number
+      
+      // Try to parse the retry delay from the error
+      const suggestedDelay = parseRetryDelay(error)
+      if (suggestedDelay !== null) {
+        delayMs = Math.min(suggestedDelay, MAX_DELAY_MS)
+        console.log(`[Gemini] Rate limited. Using suggested delay of ${delayMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`)
+      } else {
+        // Use exponential backoff: baseDelay * 2^attempt with jitter
+        const exponentialDelay = BASE_DELAY_MS * Math.pow(2, attempt)
+        const jitter = Math.random() * 1000 // Add up to 1 second of jitter
+        delayMs = Math.min(exponentialDelay + jitter, MAX_DELAY_MS)
+        console.log(`[Gemini] Rate limited. Retrying after ${Math.round(delayMs)}ms (attempt ${attempt + 1}/${MAX_RETRIES})`)
+      }
+      
+      await sleep(delayMs)
+    }
+  }
+  
+  // This should never be reached, but TypeScript needs it
+  throw lastError
+}
+
+export interface LlmTrackingContext {
+  userId?: string
+  operation: string
+  entityType?: string
+  entityId?: string
+}
+
 export async function generateCoachAnalysis(
   prompt: string,
-  modelType: GeminiModel = 'flash'
+  modelType: GeminiModel = 'flash',
+  trackingContext?: LlmTrackingContext
 ): Promise<string> {
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAMES[modelType]
-  })
+  const modelName = MODEL_NAMES[modelType]
   
-  const result = await model.generateContent(prompt)
-  const response = result.response
-  return response.text()
+  return retryWithBackoff(
+    async () => {
+      const model = genAI.getGenerativeModel({
+        model: modelName
+      })
+      
+      const result = await model.generateContent(prompt)
+      const response = result.response
+      return response.text()
+    },
+    `generateCoachAnalysis(${modelType})`,
+    trackingContext ? {
+      ...trackingContext,
+      model: modelName,
+      modelType,
+      prompt
+    } : undefined
+  )
 }
 
 export async function generateStructuredAnalysis<T>(
   prompt: string,
   schema: any,
-  modelType: GeminiModel = 'flash'
+  modelType: GeminiModel = 'flash',
+  trackingContext?: LlmTrackingContext
 ): Promise<T> {
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAMES[modelType],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: schema
-    }
-  })
+  const modelName = MODEL_NAMES[modelType]
   
-  const result = await model.generateContent(prompt)
-  const response = result.response
-  return JSON.parse(response.text())
+  return retryWithBackoff(
+    async () => {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: schema
+        }
+      })
+      
+      const result = await model.generateContent(prompt)
+      const response = result.response
+      return JSON.parse(response.text())
+    },
+    `generateStructuredAnalysis(${modelType})`,
+    trackingContext ? {
+      ...trackingContext,
+      model: modelName,
+      modelType,
+      prompt
+    } : undefined
+  )
 }
 
 export function buildWorkoutSummary(workouts: any[]): string {
