@@ -104,26 +104,48 @@ This context is embedded into the system prompt so that Coach Watts is aware of 
 
 ### Function Calling / Tool Use
 
-Coach Watts can dynamically fetch data from the database using these tools:
+Coach Watts can dynamically fetch data from the database using 6 specialized tools. All tools provide comprehensive data including raw JSON from source platforms.
 
 #### 1. `get_recent_workouts`
-Fetches recent workout summaries.
-- **Parameters**: `limit` (number), `type` (workout type), `days` (time window)
+Fetches recent workout summaries with key metrics.
+- **Parameters**: `limit` (number, max 20), `type` (workout type), `days` (time window)
+- **Returns**: ID, date, title, type, duration, distance, power, HR, cadence, TSS, intensity, training load, kilojoules, elevation, speed, RPE, feel, description
 - **Use Case**: "How did my last 3 rides go?"
 
 #### 2. `get_workout_details`
 Gets comprehensive details for a specific workout. Can search by ID OR by natural language description.
-- **Parameters**:
-  - `workout_id` - Exact ID if known
-  - `title_search` - Search by workout title (e.g., "Morning Elliptical")
-  - `type` - Filter by workout type (Ride, Run, Walk, etc.)
-  - `date` - Specific date (YYYY-MM-DD)
-  - `relative_position` - "latest", "longest", "hardest", "fastest"
-- **Use Cases**:
-  - "Tell me about the morning elliptical" → Searches by title
-  - "Show me my latest ride" → Finds most recent Ride
-  - "What about yesterday's longest walk?" → Finds longest Walk from yesterday
-  - "My hardest workout this week" → Finds workout with highest TSS
+
+**Search Parameters**:
+- `workout_id` - Exact ID if known
+- `title_search` - Search by workout title (e.g., "Morning Elliptical")
+- `type` - Filter by workout type (Ride, Run, Walk, etc.)
+- `date` - Specific date (YYYY-MM-DD)
+- `relative_position` - "latest", "longest", "hardest", "fastest"
+
+**Returns ALL Available Data** (58+ fields):
+- **Basic Info**: ID, date, title, description, type, source, duration, distance
+- **Power Metrics**: Average, normalized, max, weighted average watts
+- **Heart Rate**: Average and max HR
+- **Cadence & Speed**: Average/max cadence, average speed
+- **Training Load**: TSS, training load, intensity factor, kilojoules, TRIMP
+- **Performance Analysis**: FTP at time, variability index, power/HR ratio, efficiency factor, decoupling, polarization index
+- **Fitness Tracking**: CTL (fitness), ATL (fatigue)
+- **Scores** (1-10 scale): Overall, technical, effort, pacing, execution
+- **Score Explanations**: AI-generated detailed insights for each score
+- **Subjective**: RPE, session RPE, feel rating
+- **Environmental**: Temperature, indoor trainer flag
+- **Balance**: Left/Right power balance
+- **Duplicate Info**: Is duplicate, duplicate of ID, completeness score
+- **Metadata**: External platform ID, timestamps, AI analysis status
+- **AI Analysis**: Text version AND structured JSON
+- **Raw Data**: Complete original JSON from source platform (Strava, Intervals.icu, etc.)
+
+**Use Cases**:
+- "Tell me about the morning elliptical" → Searches by title
+- "Show me my latest ride" → Finds most recent Ride
+- "What about yesterday's longest walk?" → Finds longest Walk from yesterday
+- "My hardest workout this week" → Finds workout with highest TSS
+- "Give me all the details on that 2-hour ride" → Returns complete data including raw JSON
 
 #### 3. `get_nutrition_log`
 Retrieves nutrition data for date ranges.
