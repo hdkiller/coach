@@ -101,20 +101,55 @@ export function normalizeYazioData(
     snacks: []
   }
   
-  // Process regular products
+  // Process regular products (manual entries with product_nutrients)
   for (const item of items.products) {
     const mealTime = item.daytime.toLowerCase()
+    
+    // For regular products, nutrients are in product_nutrients and need to be multiplied by amount
+    // product_nutrients contain values per gram/serving, amount is the quantity consumed
+    const productNutrients = (item as any).product_nutrients || {}
+    const amount = item.amount || 0
+    
+    // Calculate actual consumed nutrients by multiplying by amount
+    const calories = (productNutrients['energy.energy'] || 0) * amount
+    const protein = (productNutrients['nutrient.protein'] || 0) * amount
+    const carbs = (productNutrients['nutrient.carb'] || 0) * amount
+    const fat = (productNutrients['nutrient.fat'] || 0) * amount
+    const fiber = (productNutrients['nutrient.fiber'] || productNutrients['nutrient.dietaryfiber'] || 0) * amount
+    const sugar = (productNutrients['nutrient.sugar'] || 0) * amount
+    
+    // Add calculated nutrients to the item
+    const enrichedItem = {
+      ...item,
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fat: fat,
+      fiber: fiber,
+      sugar: sugar
+    }
+    
     if (mealGroups[mealTime]) {
-      mealGroups[mealTime].push(item)
+      mealGroups[mealTime].push(enrichedItem)
     } else {
-      mealGroups.snacks.push(item)
+      mealGroups.snacks.push(enrichedItem)
     }
   }
   
   // Process simple products (AI-generated items with names already included)
   for (const item of items.simple_products || []) {
     const mealTime = item.daytime.toLowerCase()
-    // Transform simple_product to match the expected structure
+    
+    // Extract nutrients from the nested structure
+    const nutrients = item.nutrients || {}
+    const calories = nutrients['energy.energy'] || 0
+    const protein = nutrients['nutrient.protein'] || 0
+    const carbs = nutrients['nutrient.carb'] || 0
+    const fat = nutrients['nutrient.fat'] || 0
+    const fiber = nutrients['nutrient.fiber'] || nutrients['nutrient.dietaryfiber'] || 0
+    const sugar = nutrients['nutrient.sugar'] || 0
+    
+    // Transform simple_product to match the expected structure with top-level nutrient fields
     const transformedItem = {
       id: item.id,
       date: item.date,
@@ -123,8 +158,16 @@ export function normalizeYazioData(
       product_name: item.name, // Already has the name!
       product_brand: null,
       is_ai_generated: item.is_ai_generated,
-      nutrients: item.nutrients
+      nutrients: item.nutrients, // Keep original for reference
+      // Add top-level fields for easy access in analysis
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fat: fat,
+      fiber: fiber,
+      sugar: sugar
     }
+    
     if (mealGroups[mealTime]) {
       mealGroups[mealTime].push(transformedItem)
     } else {
