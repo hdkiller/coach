@@ -124,17 +124,15 @@ export const ingestStravaTask = task({
         });
         workoutsUpserted++;
         
-        // Trigger stream ingestion for activities with heart rate data
-        // This includes HR, power, cadence, altitude, and other time-series data
-        if (detailedActivity.has_heartrate || detailedActivity.device_watts) {
-          logger.log(`Triggering stream ingestion for ${upsertedWorkout.type} workout with HR/power data: ${upsertedWorkout.id}`);
-          await tasks.trigger('ingest-strava-streams', {
-            userId,
-            workoutId: upsertedWorkout.id,
-            activityId: activity.id
-          });
-          triggeredWorkoutIds.add(upsertedWorkout.id);
-        }
+        // Trigger stream ingestion for ALL activities to capture time-series data
+        // This includes HR, power, GPS, altitude, speed, cadence - whatever Strava has
+        logger.log(`Triggering stream ingestion for ${upsertedWorkout.type} workout: ${upsertedWorkout.id}`);
+        await tasks.trigger('ingest-strava-streams', {
+          userId,
+          workoutId: upsertedWorkout.id,
+          activityId: activity.id
+        });
+        triggeredWorkoutIds.add(upsertedWorkout.id);
         
         // Add a small delay to avoid rate limiting (Strava allows 100 requests per 15 minutes)
         // With 7-day sync window, we expect ~7-14 activities max, well under rate limits
@@ -154,12 +152,7 @@ export const ingestStravaTask = task({
           userId,
           source: 'strava',
           streams: null,
-          id: { notIn: Array.from(triggeredWorkoutIds) },
-          // Only backfill workouts that have HR or power data in the summary
-          OR: [
-            { averageHr: { not: null } },
-            { averageWatts: { not: null } }
-          ]
+          id: { notIn: Array.from(triggeredWorkoutIds) }
         },
         orderBy: {
           date: 'desc'

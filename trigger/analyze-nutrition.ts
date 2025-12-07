@@ -328,9 +328,26 @@ function buildNutritionAnalysisPrompt(nutritionData: any): string {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
   }
   
+  // Format date properly to avoid timezone issues
+  const formatDate = (date: Date | string): string => {
+    if (typeof date === 'string' && date.includes('-')) {
+      const [year, month, day] = date.split('T')[0].split('-').map(Number)
+      return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    }
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+  
   let prompt = `You are an expert nutrition coach analyzing a day's food intake. Provide a comprehensive, supportive analysis.
 
-## Nutrition Summary for ${new Date(nutritionData.date).toLocaleDateString()}
+## Nutrition Summary for ${formatDate(nutritionData.date)}
 
 ### Daily Totals
 - **Calories**: ${nutritionData.calories || 'Not tracked'}${nutritionData.calories_goal ? ` / ${nutritionData.calories_goal} kcal goal` : ''}

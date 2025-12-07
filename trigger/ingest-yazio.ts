@@ -240,6 +240,7 @@ export const ingestYazioTask = task({
           logger.log(`[${date}]    Fat: ${nutrition.fat?.toFixed(1)}g`)
           
           // Upsert to database
+          // When updating, clear AI analysis since the underlying data has changed
           const result = await prisma.nutrition.upsert({
             where: {
               userId_date: {
@@ -247,7 +248,26 @@ export const ingestYazioTask = task({
                 date: nutrition.date
               }
             },
-            update: nutrition,
+            update: {
+              ...nutrition,
+              // Clear AI analysis fields since nutrition data has changed
+              aiAnalysis: null,
+              aiAnalysisJson: null,
+              aiAnalysisStatus: 'NOT_STARTED',
+              aiAnalyzedAt: null,
+              // Clear scores
+              overallScore: null,
+              macroBalanceScore: null,
+              qualityScore: null,
+              adherenceScore: null,
+              hydrationScore: null,
+              // Clear score explanations
+              nutritionalBalanceExplanation: null,
+              calorieAdherenceExplanation: null,
+              macroDistributionExplanation: null,
+              hydrationStatusExplanation: null,
+              timingOptimizationExplanation: null
+            },
             create: nutrition
           })
           
