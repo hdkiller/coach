@@ -16,3 +16,219 @@
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
 }
+
+/* Chat Typography Improvements */
+.vac-room-container {
+  font-family: var(--font-sans);
+}
+
+/* Message Content Typography */
+.vac-text-message-content {
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Enhanced Message Paragraphs */
+.vac-text-message-content p {
+  margin-bottom: 0.75em;
+  line-height: 1.65;
+}
+
+.vac-text-message-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Section Headers (Training:, Nutrition:, etc.) */
+.vac-text-message-content strong {
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  color: inherit;
+  display: block;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  opacity: 0.95;
+}
+
+/* First strong element in message (no top margin) */
+.vac-text-message-content > :first-child strong:first-child,
+.vac-text-message-content p:first-child strong:first-child {
+  margin-top: 0;
+}
+
+/* Add subtle emphasis to section headers */
+.dark .vac-message-box-author .vac-text-message-content strong {
+  color: rgba(255, 255, 255, 0.98);
+  font-weight: 650;
+}
+
+/* Enhanced Bullet Points */
+.vac-text-message-content ul {
+  margin: 0.85em 0 1em 0;
+  padding-left: 1.5em;
+  list-style: none;
+}
+
+.vac-text-message-content li {
+  position: relative;
+  margin-bottom: 1.15em;
+  line-height: 1.7;
+  padding-left: 0.5em;
+}
+
+.vac-text-message-content li:last-child {
+  margin-bottom: 0;
+}
+
+.vac-text-message-content li::before {
+  content: "•";
+  position: absolute;
+  left: -1.15em;
+  font-weight: 700;
+  opacity: 0.65;
+  font-size: 1.1em;
+}
+
+/* Nested content within bullets */
+.vac-text-message-content li strong {
+  margin-top: 0;
+  margin-bottom: 0.15em;
+  display: block;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+/* Sub-content in bullets (after strong tags) */
+.vac-text-message-content li strong + * {
+  margin-top: 0.25em;
+}
+
+/* AI Message Bubble Styling */
+.vac-message-box-me .vac-message-card {
+  padding: 16px 20px !important;
+  border-radius: 18px !important;
+  border-bottom-right-radius: 4px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* User Message Bubble Styling */
+.vac-message-box-author .vac-message-card {
+  padding: 14px 18px !important;
+  border-radius: 18px !important;
+  border-bottom-left-radius: 4px !important;
+  background: linear-gradient(135deg, #00DC82 0%, #00C16A 100%) !important;
+  box-shadow: 0 1px 3px rgba(0, 220, 130, 0.15) !important;
+}
+
+.vac-message-box-author .vac-text-message-content {
+  color: white !important;
+}
+
+/* Dark mode AI message bubble */
+.dark .vac-message-box-me .vac-message-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Message Spacing */
+.vac-message-wrapper {
+  margin-bottom: 16px !important;
+}
+
+.vac-messages-container .vac-card-window {
+  padding: 20px 16px !important;
+}
+
+/* Improve spacing between consecutive AI messages */
+.vac-message-box-me + .vac-message-box-me {
+  margin-top: 8px !important;
+}
+
+/* Timestamp Styling */
+.vac-text-timestamp {
+  font-size: 12px !important;
+  opacity: 0.6 !important;
+  font-weight: 400 !important;
+  margin-top: 6px !important;
+}
+
+/* Date Divider */
+.vac-text-date {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  opacity: 0.5 !important;
+  font-style: italic;
+}
+
+/* Room List Typography */
+.vac-rooms-container .vac-room-name {
+  font-weight: 500 !important;
+  font-size: 15px !important;
+}
+
+.vac-rooms-container .vac-text-last {
+  font-size: 13.5px !important;
+  line-height: 1.4 !important;
+  opacity: 0.75 !important;
+}
+
+.vac-rooms-container .vac-text-date {
+  font-size: 12px !important;
+}
+
+/* Input Field Typography */
+.vac-textarea {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Emoji and Special Characters */
+.vac-text-message-content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Dark Mode Adjustments */
+.dark .vac-message-box-author .vac-message-card {
+  background: linear-gradient(135deg, #00C16A 0%, #00A155 100%) !important;
+}
+
+.dark .vac-text-message-content strong {
+  opacity: 0.95;
+}
+
+/* Improved Readability for Long Messages */
+.vac-text-message-content {
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .vac-text-message-content {
+    font-size: 15.5px !important;
+  }
+  
+  .vac-message-box-me .vac-message-card {
+    padding: 18px 24px !important;
+    max-width: 85%;
+  }
+  
+  .vac-message-box-author .vac-message-card {
+    padding: 16px 20px !important;
+  }
+}
+
+/* Improve readability of inline strong text within bullets */
+.vac-text-message-content li strong {
+  background: rgba(0, 220, 130, 0.08);
+  padding: 0.05em 0.25em;
+  border-radius: 3px;
+}
+
+.dark .vac-text-message-content li strong {
+  background: rgba(0, 220, 130, 0.12);
+}
+
+.vac-message-box-author .vac-text-message-content li strong {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.98);
+}
