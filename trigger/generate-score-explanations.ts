@@ -135,7 +135,17 @@ Focus on "${getMetricDisplayName('nutrition', metric)}" and provide structured a
     required: ["executive_summary", "sections", "recommendations"]
   };
 
-  return await generateStructuredAnalysis<TrendAnalysis>(prompt, schema, 'flash');
+  return await generateStructuredAnalysis<TrendAnalysis>(
+    prompt,
+    schema,
+    'flash',
+    {
+      userId,
+      operation: 'nutrition_score_explanation',
+      entityType: 'ScoreTrendExplanation',
+      entityId: undefined
+    }
+  );
 }
 
 async function generateWorkoutExplanation(

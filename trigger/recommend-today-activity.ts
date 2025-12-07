@@ -191,7 +191,13 @@ Provide specific, actionable recommendations with clear reasoning.`;
     const analysis = await generateStructuredAnalysis(
       prompt,
       recommendationSchema,
-      'flash' // Use flash model for faster recommendations
+      'flash', // Use flash model for faster recommendations
+      {
+        userId,
+        operation: 'activity_recommendation',
+        entityType: 'ActivityRecommendation',
+        entityId: undefined
+      }
     );
     
     logger.log("Analysis generated", { recommendation: analysis.recommendation });

@@ -278,7 +278,13 @@ Create a structured, progressive plan for the next ${daysToPlann} days.`;
     const plan = await generateStructuredAnalysis(
       prompt,
       weeklyPlanSchema,
-      'flash'
+      'flash',
+      {
+        userId,
+        operation: 'weekly_plan_generation',
+        entityType: 'WeeklyTrainingPlan',
+        entityId: undefined
+      }
     );
     
     logger.log("Plan generated", { 

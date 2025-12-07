@@ -257,7 +257,17 @@ Be supportive and specific. Use actual data points and metrics. Scores should re
       logger.log("Generating structured report with Gemini");
       
       // Generate structured analysis
-      const analysisJson = await generateStructuredAnalysis<any>(prompt, analysisSchema);
+      const analysisJson = await generateStructuredAnalysis<any>(
+        prompt,
+        analysisSchema,
+        'flash',
+        {
+          userId,
+          operation: 'weekly_report_generation',
+          entityType: 'Report',
+          entityId: reportId
+        }
+      );
       
       logger.log("Structured report generated successfully");
       

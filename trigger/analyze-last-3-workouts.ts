@@ -221,7 +221,17 @@ export const analyzeLast3WorkoutsTask = task({
       logger.log("Generating structured analysis with Gemini Flash");
       
       // Generate structured JSON analysis
-      const structuredAnalysis = await generateStructuredAnalysis(prompt, analysisSchema, 'flash');
+      const structuredAnalysis = await generateStructuredAnalysis(
+        prompt,
+        analysisSchema,
+        'flash',
+        {
+          userId,
+          operation: 'last_3_workouts_analysis',
+          entityType: 'Workout',
+          entityId: undefined
+        }
+      );
       
       // Also generate markdown for fallback/export
       const markdownAnalysis = convertStructuredToMarkdown(structuredAnalysis);

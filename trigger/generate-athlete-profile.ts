@@ -517,7 +517,17 @@ Be specific, data-driven, and actionable. Reference actual metrics and patterns 
       logger.log("Generating athlete profile with Gemini");
       
       // Generate structured profile
-      const profileJson = await generateStructuredAnalysis(prompt, athleteProfileSchema, 'flash');
+      const profileJson = await generateStructuredAnalysis(
+        prompt,
+        athleteProfileSchema,
+        'flash',
+        {
+          userId,
+          operation: 'athlete_profile_generation',
+          entityType: 'Report',
+          entityId: reportId
+        }
+      );
       
       logger.log("Athlete profile generated successfully", {
         scores: profileJson.athlete_scores

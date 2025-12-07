@@ -141,7 +141,13 @@ Provide a structured recommendation for today's training.`;
     const suggestion = await generateStructuredAnalysis(
       prompt,
       suggestionSchema,
-      'flash'
+      'flash',
+      {
+        userId,
+        operation: 'daily_coach_suggestion',
+        entityType: 'Report',
+        entityId: undefined
+      }
     );
     
     logger.log("Suggestion generated", { suggestion });
