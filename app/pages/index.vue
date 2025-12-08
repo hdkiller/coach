@@ -2,6 +2,7 @@
   <div class="bg-gray-900 min-h-screen">
     <LandingHero />
     <LandingHowItWorks />
+    <LandingDeepDiveArchitecture />
     <LandingFeatureBento />
     <LandingCommunity />
     <LandingPricing />

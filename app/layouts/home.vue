@@ -41,6 +41,7 @@
             <h3 class="font-semibold mb-4">Product</h3>
             <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
               <li><NuxtLink to="/#features" class="hover:text-primary">Features</NuxtLink></li>
+              <li><NuxtLink to="/#architecture" class="hover:text-primary">Architecture</NuxtLink></li>
               <li><NuxtLink to="/#pricing" class="hover:text-primary">Pricing</NuxtLink></li>
               <li><NuxtLink to="/login" class="hover:text-primary">Login</NuxtLink></li>
             </ul>

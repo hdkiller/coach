@@ -3,13 +3,13 @@
     <div class="mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex lg:px-8 lg:py-40">
       <div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-xl lg:flex-shrink-0 lg:pt-8">
         <div class="mt-24 sm:mt-32 lg:mt-16">
-          <a href="https://github.com/coach-wattz/coach-wattz" target="_blank" class="inline-flex space-x-6">
+          <NuxtLink to="#architecture" class="inline-flex space-x-6">
             <span class="rounded-full bg-primary-500/10 px-3 py-1 text-sm font-semibold leading-6 text-primary-400 ring-1 ring-inset ring-primary-500/20">Accessible</span>
             <span class="inline-flex items-center space-x-2 text-sm font-medium leading-6 text-gray-300">
               <span>View the Architecture</span>
               <UIcon name="i-heroicons-chevron-right" class="h-5 w-5 text-gray-500" />
             </span>
-          </a>
+          </NuxtLink>
         </div>
         <h1 class="mt-10 text-4xl font-bold tracking-tight text-white sm:text-6xl font-mono">
           Elite Coaching. <br />
