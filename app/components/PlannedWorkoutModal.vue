@@ -1,0 +1,519 @@
+<template>
+  <UModal 
+    v-model:open="isOpen" 
+    :dismissible="!loading"
+    title="Planned Workout"
+    :close="loading ? false : undefined"
+  >
+    <!-- Hidden trigger - modal is controlled programmatically -->
+    <span class="hidden"></span>
+
+    <template #body>
+      <div v-if="plannedWorkout" class="space-y-4">
+        <!-- Workout Details -->
+        <div>
+          <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400 mb-2">Details</h4>
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Title:</span>
+              <span class="text-sm font-medium">{{ plannedWorkout.title }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Type:</span>
+              <span class="text-sm font-medium">{{ plannedWorkout.type || 'N/A' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Date:</span>
+              <span class="text-sm font-medium">{{ formatDate(plannedWorkout.date) }}</span>
+            </div>
+            <div v-if="plannedWorkout.durationSec" class="flex justify-between">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Duration:</span>
+              <span class="text-sm font-medium">{{ formatDuration(plannedWorkout.durationSec) }}</span>
+            </div>
+            <div v-if="plannedWorkout.distanceMeters" class="flex justify-between">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Distance:</span>
+              <span class="text-sm font-medium">{{ (plannedWorkout.distanceMeters / 1000).toFixed(2) }} km</span>
+            </div>
+            <div v-if="plannedWorkout.tss" class="flex justify-between">
+              <span class="text-sm text-gray-600 dark:text-gray-400">TSS:</span>
+              <span class="text-sm font-medium">{{ Math.round(plannedWorkout.tss) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div v-if="plannedWorkout.description">
+          <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400 mb-2">Description</h4>
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ plannedWorkout.description }}</p>
+          </div>
+        </div>
+
+        <!-- Status Badge -->
+        <div v-if="plannedWorkout.completed" class="flex items-center gap-2">
+          <UBadge color="success" variant="subtle">
+            <UIcon name="i-heroicons-check-circle" class="w-4 h-4" />
+            <span class="ml-1">Completed</span>
+          </UBadge>
+        </div>
+
+        <!-- Mark Complete Section -->
+        <div v-if="!plannedWorkout.completed && !showWorkoutSelector">
+          <UButton
+            color="success"
+            block
+            @click="showWorkoutSelector = true"
+            :loading="loading"
+          >
+            <UIcon name="i-heroicons-check-circle" class="w-4 h-4" />
+            Mark Complete
+          </UButton>
+        </div>
+
+        <!-- Workout Selector -->
+        <div v-if="showWorkoutSelector && !plannedWorkout.completed" class="space-y-3">
+          <div>
+            <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400 mb-2">
+              Select Completed Workout
+            </h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Choose which workout on {{ formatDate(plannedWorkout.date) }} completed this plan
+            </p>
+          </div>
+
+          <!-- Loading State -->
+          <div v-if="loadingWorkouts" class="flex items-center justify-center py-4">
+            <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 animate-spin" />
+            <span class="ml-2 text-sm text-gray-500">Loading workouts...</span>
+          </div>
+
+          <!-- No Workouts -->
+          <div v-else-if="availableWorkouts.length === 0" class="text-center py-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+              No workouts found for this date.
+            </p>
+            <div class="flex gap-2 justify-center">
+              <UButton
+                color="primary"
+                size="sm"
+                @click="showManualEntry = true"
+              >
+                Create Manual Entry
+              </UButton>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                @click="showWorkoutSelector = false"
+              >
+                Cancel
+              </UButton>
+            </div>
+          </div>
+
+          <!-- Workout List -->
+          <div v-else class="space-y-2 max-h-64 overflow-y-auto">
+            <button
+              v-for="workout in availableWorkouts"
+              :key="workout.id"
+              @click="selectWorkout(workout.id)"
+              :disabled="loading"
+              class="w-full text-left p-3 rounded-lg border-2 transition-colors"
+              :class="[
+                selectedWorkoutId === workout.id
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
+                loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              ]"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <UIcon :name="getActivityIcon(workout.type)" class="w-4 h-4 flex-shrink-0" />
+                    <span class="text-sm font-medium truncate">{{ workout.title }}</span>
+                    <UBadge
+                      v-if="workout.plannedWorkoutId"
+                      color="primary"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      Already linked
+                    </UBadge>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                    <span v-if="workout.durationSec">{{ formatDuration(workout.durationSec) }}</span>
+                    <span v-if="workout.distanceMeters">{{ (workout.distanceMeters / 1000).toFixed(1) }} km</span>
+                    <span v-if="workout.tss">{{ Math.round(workout.tss) }} TSS</span>
+                  </div>
+                </div>
+                <div v-if="selectedWorkoutId === workout.id" class="ml-2">
+                  <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div v-if="availableWorkouts.length > 0" class="flex gap-2 pt-2">
+            <UButton
+              color="success"
+              :disabled="!selectedWorkoutId"
+              :loading="loading"
+              @click="markComplete"
+              class="flex-1"
+            >
+              Confirm Complete
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :disabled="loading"
+              @click="showWorkoutSelector = false"
+            >
+              Cancel
+            </UButton>
+          </div>
+
+          <!-- Or Create Manual Entry -->
+          <div v-if="availableWorkouts.length > 0" class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
+            </div>
+            <div class="relative flex justify-center text-xs">
+              <span class="bg-white dark:bg-gray-900 px-2 text-gray-500">or</span>
+            </div>
+          </div>
+
+          <UButton
+            v-if="availableWorkouts.length > 0"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            block
+            @click="showManualEntry = true"
+            :disabled="loading"
+          >
+            Create Manual Entry Instead
+          </UButton>
+        </div>
+
+        <!-- Manual Workout Entry Form -->
+        <div v-if="showManualEntry" class="space-y-3">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400">
+              Create Manual Workout
+            </h4>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              @click="showManualEntry = false"
+            >
+              Back
+            </UButton>
+          </div>
+
+          <UFormGroup label="Title" required>
+            <UInput
+              v-model="manualWorkout.title"
+              placeholder="e.g., Morning Run"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Duration (minutes)" required>
+            <UInput
+              v-model="manualWorkout.durationMinutes"
+              type="number"
+              placeholder="60"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Distance (km)">
+            <UInput
+              v-model="manualWorkout.distanceKm"
+              type="number"
+              step="0.1"
+              placeholder="10.5"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="TSS / Load">
+            <UInput
+              v-model="manualWorkout.tss"
+              type="number"
+              placeholder="85"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="RPE (1-10)">
+            <UInput
+              v-model="manualWorkout.rpe"
+              type="number"
+              min="1"
+              max="10"
+              placeholder="7"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Notes">
+            <UTextarea
+              v-model="manualWorkout.description"
+              placeholder="How did it feel?"
+              :rows="3"
+            />
+          </UFormGroup>
+
+          <div class="flex gap-2 pt-2">
+            <UButton
+              color="success"
+              :disabled="!isManualWorkoutValid"
+              :loading="loading"
+              @click="createManualWorkout"
+              class="flex-1"
+            >
+              Create & Mark Complete
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              :disabled="loading"
+              @click="cancelManualEntry"
+            >
+              Cancel
+            </UButton>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex justify-between gap-2">
+        <UButton
+          v-if="!plannedWorkout?.completed"
+          color="error"
+          variant="ghost"
+          @click="confirmDelete"
+          :loading="loading"
+        >
+          <UIcon name="i-heroicons-trash" class="w-4 h-4" />
+          Delete
+        </UButton>
+        <div class="flex-1"></div>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="closeModal"
+          :disabled="loading"
+        >
+          Close
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+</template>
+
+<script setup lang="ts">
+import { format } from 'date-fns'
+
+const props = defineProps<{
+  plannedWorkout: any | null
+  modelValue: boolean
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
+  'completed': []
+  'deleted': []
+}>()
+
+const isOpen = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value)
+})
+
+const loading = ref(false)
+const showWorkoutSelector = ref(false)
+const selectedWorkoutId = ref<string | null>(null)
+const availableWorkouts = ref<any[]>([])
+const loadingWorkouts = ref(false)
+const showManualEntry = ref(false)
+const manualWorkout = ref({
+  title: '',
+  durationMinutes: '',
+  distanceKm: '',
+  tss: '',
+  rpe: '',
+  description: ''
+})
+
+const isManualWorkoutValid = computed(() => {
+  return manualWorkout.value.title.trim() !== '' &&
+         manualWorkout.value.durationMinutes !== '' &&
+         parseInt(manualWorkout.value.durationMinutes) > 0
+})
+
+// Watch for workout selector opening
+watch(showWorkoutSelector, async (show) => {
+  if (show && props.plannedWorkout) {
+    await fetchAvailableWorkouts()
+  }
+})
+
+// Reset state when modal closes
+watch(isOpen, (open) => {
+  if (!open) {
+    showWorkoutSelector.value = false
+    selectedWorkoutId.value = null
+    availableWorkouts.value = []
+    showManualEntry.value = false
+    resetManualWorkout()
+  }
+})
+
+function resetManualWorkout() {
+  manualWorkout.value = {
+    title: '',
+    durationMinutes: '',
+    distanceKm: '',
+    tss: '',
+    rpe: '',
+    description: ''
+  }
+}
+
+function cancelManualEntry() {
+  showManualEntry.value = false
+  showWorkoutSelector.value = true
+  resetManualWorkout()
+}
+
+async function fetchAvailableWorkouts() {
+  if (!props.plannedWorkout) return
+  
+  loadingWorkouts.value = true
+  try {
+    const date = new Date(props.plannedWorkout.date).toISOString().split('T')[0]
+    const response = await $fetch(`/api/workouts/by-date?date=${date}`)
+    availableWorkouts.value = response as any[]
+  } catch (error) {
+    console.error('Error fetching workouts:', error)
+  } finally {
+    loadingWorkouts.value = false
+  }
+}
+
+function selectWorkout(workoutId: string) {
+  selectedWorkoutId.value = workoutId
+}
+
+async function markComplete() {
+  if (!selectedWorkoutId.value || !props.plannedWorkout) return
+  
+  loading.value = true
+  try {
+    await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}/complete`, {
+      method: 'POST',
+      body: {
+        workoutId: selectedWorkoutId.value
+      }
+    })
+    
+    emit('completed')
+    closeModal()
+  } catch (error: any) {
+    console.error('Error marking complete:', error)
+    alert(error?.data?.message || 'Failed to mark workout complete')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function createManualWorkout() {
+  if (!isManualWorkoutValid.value || !props.plannedWorkout) return
+  
+  loading.value = true
+  try {
+    const durationSec = parseInt(manualWorkout.value.durationMinutes) * 60
+    const distanceMeters = manualWorkout.value.distanceKm
+      ? parseFloat(manualWorkout.value.distanceKm) * 1000
+      : null
+    
+    await $fetch('/api/workouts/manual', {
+      method: 'POST',
+      body: {
+        title: manualWorkout.value.title,
+        type: props.plannedWorkout.type || 'Activity',
+        date: props.plannedWorkout.date,
+        durationSec,
+        distanceMeters,
+        tss: manualWorkout.value.tss ? parseFloat(manualWorkout.value.tss) : null,
+        rpe: manualWorkout.value.rpe ? parseInt(manualWorkout.value.rpe) : null,
+        description: manualWorkout.value.description || null,
+        plannedWorkoutId: props.plannedWorkout.id
+      }
+    })
+    
+    emit('completed')
+    closeModal()
+  } catch (error: any) {
+    console.error('Error creating manual workout:', error)
+    alert(error?.data?.message || 'Failed to create manual workout')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function confirmDelete() {
+  if (!props.plannedWorkout) return
+  
+  if (!confirm('Are you sure you want to delete this planned workout?')) {
+    return
+  }
+  
+  loading.value = true
+  try {
+    await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}`, {
+      method: 'DELETE'
+    })
+    
+    emit('deleted')
+    closeModal()
+  } catch (error: any) {
+    console.error('Error deleting planned workout:', error)
+    alert(error?.data?.message || 'Failed to delete planned workout')
+  } finally {
+    loading.value = false
+  }
+}
+
+function closeModal() {
+  isOpen.value = false
+}
+
+function formatDate(dateStr: string) {
+  try {
+    return format(new Date(dateStr), 'EEEE, MMMM d, yyyy')
+  } catch {
+    return dateStr
+  }
+}
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  
+  if (h > 0) {
+    return `${h}h ${m}m`
+  }
+  return `${m}m`
+}
+
+function getActivityIcon(type: string) {
+  const t = (type || '').toLowerCase()
+  if (t.includes('ride') || t.includes('cycle')) return 'i-heroicons-bolt'
+  if (t.includes('run')) return 'i-heroicons-fire'
+  if (t.includes('swim')) return 'i-heroicons-beaker'
+  if (t.includes('weight') || t.includes('strength')) return 'i-heroicons-trophy'
+  return 'i-heroicons-check-circle'
+}
+</script>
