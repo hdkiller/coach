@@ -34,30 +34,55 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // 2. Fetch User Profile for Context
-  const userProfile = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      name: true,
-      ftp: true,
-      maxHr: true,
-      weight: true,
-      dob: true,
-      currentFitnessScore: true,
-      recoveryCapacityScore: true,
-      nutritionComplianceScore: true,
-      trainingConsistencyScore: true,
-      currentFitnessExplanation: true,
-      recoveryCapacityExplanation: true,
-      nutritionComplianceExplanation: true,
-      trainingConsistencyExplanation: true,
-      currentFitnessExplanationJson: true,
-      recoveryCapacityExplanationJson: true,
-      nutritionComplianceExplanationJson: true,
-      trainingConsistencyExplanationJson: true,
-      profileLastUpdated: true
-    }
-  })
+  // 2. Fetch User Profile and Goals for Context
+  const [userProfile, activeGoals] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        ftp: true,
+        maxHr: true,
+        weight: true,
+        dob: true,
+        currentFitnessScore: true,
+        recoveryCapacityScore: true,
+        nutritionComplianceScore: true,
+        trainingConsistencyScore: true,
+        currentFitnessExplanation: true,
+        recoveryCapacityExplanation: true,
+        nutritionComplianceExplanation: true,
+        trainingConsistencyExplanation: true,
+        currentFitnessExplanationJson: true,
+        recoveryCapacityExplanationJson: true,
+        nutritionComplianceExplanationJson: true,
+        trainingConsistencyExplanationJson: true,
+        profileLastUpdated: true
+      }
+    }),
+    prisma.goal.findMany({
+      where: {
+        userId,
+        status: 'ACTIVE'
+      },
+      orderBy: { priority: 'desc' },
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        description: true,
+        metric: true,
+        currentValue: true,
+        targetValue: true,
+        startValue: true,
+        targetDate: true,
+        eventDate: true,
+        eventType: true,
+        priority: true,
+        aiContext: true,
+        createdAt: true
+      }
+    })
+  ])
 
   // 3. Fetch Chat History (last 50 messages)
   const history = await prisma.chatMessage.findMany({
@@ -256,6 +281,42 @@ export default defineEventHandler(async (event) => {
     if (userProfile.profileLastUpdated) {
       athleteContext += `\n*Profile last updated: ${new Date(userProfile.profileLastUpdated).toLocaleDateString()}*\n`
     }
+  }
+  
+  // Add Current Goals
+  if (activeGoals.length > 0) {
+    athleteContext += '\n\n## Current Goals\n'
+    for (const goal of activeGoals) {
+      const daysToTarget = goal.targetDate ? Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
+      const daysToEvent = goal.eventDate ? Math.ceil((new Date(goal.eventDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
+      
+      athleteContext += `\n### [${goal.priority}] ${goal.title} (${goal.type})\n`
+      if (goal.description) athleteContext += `${goal.description}\n`
+      
+      if (goal.metric && goal.targetValue) {
+        athleteContext += `- **Target**: ${goal.metric} = ${goal.targetValue}`
+        if (goal.currentValue) athleteContext += ` (Current: ${goal.currentValue}, Start: ${goal.startValue || 'N/A'})`
+        athleteContext += '\n'
+      }
+      
+      if (daysToTarget) {
+        athleteContext += `- **Timeline**: ${daysToTarget} days remaining`
+        if (goal.targetDate) athleteContext += ` (Target: ${new Date(goal.targetDate).toLocaleDateString()})`
+        athleteContext += '\n'
+      }
+      
+      if (goal.eventDate) {
+        athleteContext += `- **Event**: ${goal.eventType || 'race'} on ${new Date(goal.eventDate).toLocaleDateString()} (${daysToEvent} days away)\n`
+      }
+      
+      if (goal.aiContext) {
+        athleteContext += `- **Context**: ${goal.aiContext}\n`
+      }
+      
+      athleteContext += `- **Created**: ${new Date(goal.createdAt).toLocaleDateString()}\n`
+    }
+  } else {
+    athleteContext += '\n\n## Current Goals\nNo active goals set. Consider creating goals to help focus training efforts.\n'
   }
 
   // Add Recent Activity Summary (Last 7 Days)
