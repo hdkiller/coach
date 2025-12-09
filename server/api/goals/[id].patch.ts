@@ -1,107 +1,72 @@
 import { getServerSession } from '#auth'
-import { z } from 'zod'
-
-const goalUpdateSchema = z.object({
-  type: z.enum(['BODY_COMPOSITION', 'EVENT', 'PERFORMANCE', 'CONSISTENCY']).optional(),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  targetDate: z.string().optional(),
-  eventDate: z.string().optional(),
-  eventType: z.string().optional(),
-  metric: z.string().optional(),
-  targetValue: z.number().optional(),
-  startValue: z.number().optional(),
-  currentValue: z.number().optional(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-  status: z.enum(['ACTIVE', 'COMPLETED', 'ARCHIVED']).optional()
-})
+import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   
-  if (!session?.user?.email) {
-    throw createError({
+  if (!session?.user) {
+    throw createError({ 
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      message: 'Unauthorized' 
     })
   }
   
+  const userId = (session.user as any).id
   const id = event.context.params?.id
   
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Goal ID required'
+      message: 'Goal ID is required'
+    })
+  }
+  
+  // Verify the goal belongs to this user
+  const existingGoal = await prisma.goal.findUnique({
+    where: { id },
+    select: { userId: true }
+  })
+  
+  if (!existingGoal) {
+    throw createError({
+      statusCode: 404,
+      message: 'Goal not found'
+    })
+  }
+  
+  if (existingGoal.userId !== userId) {
+    throw createError({
+      statusCode: 403,
+      message: 'Not authorized to edit this goal'
     })
   }
   
   const body = await readBody(event)
-  const result = goalUpdateSchema.safeParse(body)
   
-  if (!result.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Invalid input',
-      data: result.error.issues
-    })
+  // Convert date strings to Date objects for Prisma
+  const data: any = { ...body }
+  if (data.targetDate && typeof data.targetDate === 'string') {
+    data.targetDate = new Date(data.targetDate)
   }
-  
-  const data = result.data
+  if (data.eventDate && typeof data.eventDate === 'string') {
+    data.eventDate = new Date(data.eventDate)
+  }
+  data.updatedAt = new Date()
   
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-    
-    if (!user) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'User not found'
-      })
-    }
-    
-    // Check if goal belongs to user
-    const existingGoal = await prisma.goal.findUnique({
-      where: { id }
-    })
-    
-    if (!existingGoal || existingGoal.userId !== user.id) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Goal not found'
-      })
-    }
-    
-    // Prepare update data
-    const updateData: any = {
-      ...data,
-      updatedAt: new Date()
-    }
-    
-    // Convert date strings to Date objects
-    if (data.targetDate) {
-      updateData.targetDate = new Date(data.targetDate)
-    }
-    if (data.eventDate) {
-      updateData.eventDate = new Date(data.eventDate)
-    }
-    
-    // Update the goal
     const goal = await prisma.goal.update({
       where: { id },
-      data: updateData
+      data
     })
     
     return {
       success: true,
       goal
     }
-  } catch (error: any) {
-    console.error('Error updating goal:', error)
+  } catch (error) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update goal',
-      message: error.message
+      message: `Failed to update goal: ${error instanceof Error ? error.message : 'Unknown error'}`
     })
   }
 })
