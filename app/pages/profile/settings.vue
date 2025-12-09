@@ -52,10 +52,6 @@
               @update:power-zones="z => updateZones('power', z)"
             />
             
-            <ProfileGoalsSettings 
-              v-if="activeTab === 'goals'" 
-            />
-            
           </div>
         </div>
       </div>
@@ -66,7 +62,6 @@
 <script setup lang="ts">
 import ProfileBasicSettings from '~/components/profile/BasicSettings.vue'
 import ProfileCustomZones from '~/components/profile/CustomZones.vue'
-import ProfileGoalsSettings from '~/components/profile/GoalsSettings.vue'
 
 const { data } = useAuth()
 const user = computed(() => data.value?.user)
@@ -78,8 +73,7 @@ definePageMeta({
 
 const tabs = [
   { id: 'basic', label: 'Basic Settings', icon: 'i-heroicons-user-circle' },
-  { id: 'zones', label: 'Custom Zones', icon: 'i-heroicons-chart-bar' },
-  { id: 'goals', label: 'Goals', icon: 'i-heroicons-trophy' }
+  { id: 'zones', label: 'Custom Zones', icon: 'i-heroicons-chart-bar' }
 ]
 
 const activeTab = ref('basic')
