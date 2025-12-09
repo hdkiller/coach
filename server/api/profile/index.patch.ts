@@ -20,7 +20,9 @@ const profileSchema = z.object({
   city: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
   country: z.string().nullable().optional(),
-  timezone: z.string().nullable().optional()
+  timezone: z.string().nullable().optional(),
+  hrZones: z.any().nullable().optional(),
+  powerZones: z.any().nullable().optional()
 })
 
 export default defineEventHandler(async (event) => {

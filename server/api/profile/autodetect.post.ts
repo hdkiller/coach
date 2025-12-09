@@ -47,6 +47,8 @@ export default defineEventHandler(async (event) => {
     if (intervalsProfile.maxHR) updateData.maxHr = intervalsProfile.maxHR
     if (intervalsProfile.restingHR) updateData.restingHr = intervalsProfile.restingHR
     if (intervalsProfile.weight) updateData.weight = intervalsProfile.weight
+    if (intervalsProfile.hrZones) updateData.hrZones = intervalsProfile.hrZones
+    if (intervalsProfile.powerZones) updateData.powerZones = intervalsProfile.powerZones
     
     // If we found any data, update the user
     if (Object.keys(updateData).length > 0) {

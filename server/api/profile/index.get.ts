@@ -35,7 +35,9 @@ export default defineEventHandler(async (event) => {
         city: true,
         state: true,
         country: true,
-        timezone: true
+        timezone: true,
+        hrZones: true,
+        powerZones: true
       }
     })
     
@@ -75,7 +77,9 @@ export default defineEventHandler(async (event) => {
         city: user.city,
         state: user.state,
         country: user.country,
-        timezone: user.timezone
+        timezone: user.timezone,
+        hrZones: user.hrZones,
+        powerZones: user.powerZones
       }
     }
   } catch (error) {
