@@ -24,7 +24,12 @@
             <UButton icon="i-heroicons-x-mark" variant="ghost" size="sm" @click="showWizard = false" />
           </div>
         </template>
-        <GoalWizard @close="showWizard = false" @created="refreshGoals" />
+        <GoalWizard
+          :goal="editingGoal"
+          @close="closeWizard"
+          @created="refreshGoals"
+          @updated="refreshGoals"
+        />
       </UCard>
     </div>
     
@@ -42,13 +47,36 @@
     </div>
     
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <GoalCard 
-        v-for="goal in goals" 
-        :key="goal.id" 
-        :goal="goal" 
+      <GoalCard
+        v-for="goal in goals"
+        :key="goal.id"
+        :goal="goal"
+        @edit="handleEdit"
         @delete="deleteGoal"
       />
     </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <UModal
+      v-model:open="showDeleteModal"
+      title="Delete Goal?"
+      description="Are you sure you want to delete this goal? This action cannot be undone."
+      :ui="{ footer: 'justify-end' }"
+    >
+      <template #footer="{ close }">
+        <UButton
+          label="Cancel"
+          variant="outline"
+          color="neutral"
+          @click="close"
+        />
+        <UButton
+          label="Delete Goal"
+          color="error"
+          @click="confirmDelete"
+        />
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -57,21 +85,39 @@ import GoalWizard from '~/components/goals/GoalWizard.vue'
 import GoalCard from '~/components/goals/GoalCard.vue'
 
 const showWizard = ref(false)
+const editingGoal = ref<any>(null)
+const showDeleteModal = ref(false)
+const goalToDelete = ref<string | null>(null)
 const toast = useToast()
 
 const { data, pending: loading, refresh } = await useFetch('/api/goals')
 
 const goals = computed(() => data.value?.goals || [])
 
+function handleEdit(goal: any) {
+  editingGoal.value = goal
+  showWizard.value = true
+}
+
+function closeWizard() {
+  showWizard.value = false
+  editingGoal.value = null
+}
+
 async function refreshGoals() {
   await refresh()
 }
 
-async function deleteGoal(id: string) {
-  if (!confirm('Are you sure you want to delete this goal?')) return
+function deleteGoal(id: string) {
+  goalToDelete.value = id
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
+  if (!goalToDelete.value) return
   
   try {
-    await $fetch(`/api/goals/${id}`, {
+    await $fetch(`/api/goals/${goalToDelete.value}`, {
       method: 'DELETE'
     })
     refreshGoals()
@@ -85,6 +131,9 @@ async function deleteGoal(id: string) {
       description: 'Failed to delete goal',
       color: 'error'
     })
+  } finally {
+    showDeleteModal.value = false
+    goalToDelete.value = null
   }
 }
 </script>
