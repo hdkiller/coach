@@ -34,8 +34,7 @@
                 Garmin, and more to create a single source of truth.</p>
 
               <!-- Visual Hint -->
-              <div
-                class="mt-6 flex -space-x-2 overflow-hidden opacity-50 grayscale group-hover:grayscale-0 transition-all duration-500">
+              <div class="mt-6 flex -space-x-2 overflow-hidden">
                 <div class="inline-block h-6 w-6 rounded-full bg-orange-500 ring-2 ring-gray-900"></div>
                 <!-- Strava color -->
                 <div class="inline-block h-6 w-6 rounded-full bg-black ring-2 ring-gray-900 border border-white/20">
@@ -128,8 +127,10 @@
               <p class="flex-auto">Receive actionable, daily advice. "Your recovery is low (33%). Let's swap today's
                 intervals for Zone 2."</p>
 
-              <div class="mt-4 p-3 bg-gray-800 rounded-lg border-l-2 border-primary-500 text-xs text-gray-300 italic">
-                "Swap intervals for 60min Z2 today."
+              <div
+                class="mt-4 p-3 bg-gray-800 rounded-lg border-l-2 border-primary-500 text-xs text-gray-300 italic flex gap-3 items-center">
+                <UIcon name="i-heroicons-cpu-chip" class="w-5 h-5 text-primary-500 shrink-0" />
+                <span>"Swap intervals for 60min Z2 today."</span>
               </div>
             </dd>
           </div>
