@@ -205,6 +205,14 @@
             <span v-else class="text-gray-400">-</span>
           </template>
 
+          <template #averageHr-cell="{ row }">
+            <span v-if="row.original.averageHr" class="flex items-center gap-1 text-red-500 dark:text-red-400">
+              <UIcon name="i-heroicons-heart" class="w-3.5 h-3.5" />
+              <span class="font-medium">{{ Math.round(row.original.averageHr) }}</span>
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
           <template #intensity-cell="{ row }">
             <span v-if="row.original.intensity != null">
               {{ (row.original.intensity * 100).toFixed(0) }}%
@@ -417,6 +425,7 @@ const listColumns = [
   { accessorKey: 'title', header: 'Name', id: 'title' },
   { accessorKey: 'duration', header: 'Duration', id: 'duration' },
   { accessorKey: 'distance', header: 'Distance', id: 'distance' },
+  { accessorKey: 'averageHr', header: 'Avg HR', id: 'averageHr' },
   { accessorKey: 'intensity', header: 'Intensity', id: 'intensity' },
   { accessorKey: 'tss', header: 'Load', id: 'tss' },
   { accessorKey: 'rpe', header: 'RPE', id: 'rpe' },
