@@ -11,9 +11,32 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    // Get user by email
+    // Get user by email with all profile fields
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        ftp: true,
+        maxHr: true,
+        weight: true,
+        dob: true,
+        language: true,
+        weightUnits: true,
+        height: true,
+        heightUnits: true,
+        distanceUnits: true,
+        temperatureUnits: true,
+        restingHr: true,
+        form: true,
+        visibility: true,
+        sex: true,
+        city: true,
+        state: true,
+        country: true,
+        timezone: true
+      }
     })
     
     if (!user) {
@@ -23,33 +46,43 @@ export default defineEventHandler(async (event) => {
       })
     }
     
-    // Get the user's Intervals.icu integration
-    const integration = await prisma.integration.findFirst({
-      where: {
-        userId: user.id,
-        provider: 'intervals'
-      }
-    })
-    
-    if (!integration) {
-      return {
-        connected: false,
-        profile: null
-      }
+    // Helper to format date as YYYY-MM-DD
+    const formatDate = (date: Date | null) => {
+      if (!date) return null
+      return date.toISOString().split('T')[0]
     }
-    
-    // Fetch profile data from Intervals.icu
-    const profile = await fetchIntervalsAthleteProfile(integration)
-    
+
+    // Transform to match frontend expectation
     return {
-      connected: true,
-      profile
+      connected: true, // Assuming if we have user data we are "connected" to the app
+      profile: {
+        name: user.name,
+        email: user.email,
+        language: user.language || 'English',
+        weight: user.weight,
+        weightUnits: user.weightUnits || 'Kilograms',
+        height: user.height,
+        heightUnits: user.heightUnits || 'cm',
+        distanceUnits: user.distanceUnits || 'Kilometers',
+        temperatureUnits: user.temperatureUnits || 'Celsius',
+        restingHr: user.restingHr,
+        maxHr: user.maxHr,
+        ftp: user.ftp,
+        form: user.form || 'Absolute value',
+        visibility: user.visibility || 'Private',
+        sex: user.sex,
+        dob: formatDate(user.dob),
+        city: user.city,
+        state: user.state,
+        country: user.country,
+        timezone: user.timezone
+      }
     }
   } catch (error) {
-    console.error('Error fetching athlete profile:', error)
+    console.error('Error fetching profile:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to fetch athlete profile'
+      statusMessage: 'Failed to fetch profile'
     })
   }
 })
