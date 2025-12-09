@@ -57,6 +57,13 @@ const links = computed<NavigationMenuItem[][]>(() => [[{
     open.value = false
   }
 }, {
+  label: 'Goals',
+  icon: 'i-lucide-trophy',
+  to: '/profile/goals',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
   label: 'Reports',
   icon: 'i-lucide-file-text',
   to: '/reports',
