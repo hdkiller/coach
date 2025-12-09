@@ -146,6 +146,7 @@
             :activities="day.activities"
             :is-other-month="day.isOtherMonth"
             @activity-click="openActivity"
+            @wellness-click="openWellnessModal"
           />
         </template>
         </div>
@@ -269,6 +270,12 @@
       v-model="showWorkoutModal"
       :workout="selectedWorkout"
     />
+
+    <!-- Wellness Modal -->
+    <WellnessModal
+      v-model="showWellnessModal"
+      :date="selectedWellnessDate"
+    />
   </div>
 </template>
 
@@ -281,6 +288,8 @@ const showPlannedWorkoutModal = ref(false)
 const selectedPlannedWorkout = ref<any>(null)
 const showWorkoutModal = ref(false)
 const selectedWorkout = ref<any>(null)
+const showWellnessModal = ref(false)
+const selectedWellnessDate = ref<Date | null>(null)
 
 const currentDate = ref(new Date())
 const viewMode = ref<'calendar' | 'list'>('calendar')
@@ -411,6 +420,11 @@ function handlePlannedWorkoutDeleted() {
   showPlannedWorkoutModal.value = false
   selectedPlannedWorkout.value = null
   refresh() // Refresh the activities list
+}
+
+function openWellnessModal(date: Date) {
+  selectedWellnessDate.value = date
+  showWellnessModal.value = true
 }
 
 // List View Helpers
