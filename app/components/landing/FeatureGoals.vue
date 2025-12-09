@@ -5,7 +5,7 @@
                 <h2 class="text-base font-semibold leading-7 text-primary-600 dark:text-primary-400 font-mono">GOALS
                 </h2>
                 <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">Set Goals.
-                    Crush Them.</p>
+                    Crush Them. Don't Just Train. Train with Purpose.</p>
                 <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
                     Whether it's a podium finish, a power target, or weight loss, Coach Watts keeps you on track with
                     personalized adaptive coaching.
