@@ -42,6 +42,15 @@
             AI Analysis
           </UButton>
           <UButton
+            v-if="shouldShowPowerCurve(workout)"
+            variant="ghost"
+            color="neutral"
+            @click="scrollToSection('power-curve')"
+          >
+            <UIcon name="i-lucide-zap" class="w-4 h-4 mr-2" />
+            Power Curve
+          </UButton>
+          <UButton
             v-if="shouldShowPacing(workout)"
             variant="ghost"
             color="neutral"
@@ -67,6 +76,15 @@
           >
             <UIcon name="i-lucide-layers" class="w-4 h-4 mr-2" />
             Zones
+          </UButton>
+          <UButton
+            v-if="hasEfficiencyMetrics(workout)"
+            variant="ghost"
+            color="neutral"
+            @click="scrollToSection('efficiency')"
+          >
+            <UIcon name="i-lucide-gauge" class="w-4 h-4 mr-2" />
+            Efficiency
           </UButton>
           <UButton
             variant="ghost"
@@ -328,6 +346,13 @@
             </div>
           </div>
 
+          <!-- Power Curve Section (for activities with power data) -->
+          <div id="power-curve" class="scroll-mt-20"></div>
+          <div v-if="shouldShowPowerCurve(workout)" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Power Duration Curve</h2>
+            <PowerCurveChart :workout-id="workout.id" />
+          </div>
+
           <!-- Pacing Analysis Section (for Run/Ride/Walk/Hike activities) -->
           <div id="pacing" class="scroll-mt-20"></div>
           <div v-if="shouldShowPacing(workout)" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -348,6 +373,20 @@
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Training Zones</h2>
             <ZoneChart :workout-id="workout.id" />
           </div>
+
+          <!-- Efficiency Metrics Section -->
+          <div id="efficiency" class="scroll-mt-20"></div>
+          <EfficiencyMetricsCard
+            v-if="hasEfficiencyMetrics(workout)"
+            :metrics="{
+              variabilityIndex: workout.variabilityIndex,
+              efficiencyFactor: workout.efficiencyFactor,
+              decoupling: workout.decoupling,
+              powerHrRatio: workout.powerHrRatio,
+              polarizationIndex: workout.polarizationIndex,
+              lrBalance: workout.lrBalance
+            }"
+          />
 
           <!-- Personal Notes Section -->
           <NotesEditor
@@ -639,12 +678,29 @@ function getScoreCircleClass(score: number) {
   return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
 }
 
+function shouldShowPowerCurve(workout: any) {
+  if (!workout) return false
+  // Show power curve if workout has power data (watts stream)
+  const supportedSources = ['strava', 'intervals']
+  return supportedSources.includes(workout.source) && workout.streams && (workout.averageWatts || workout.maxWatts)
+}
+
 function shouldShowPacing(workout: any) {
   if (!workout) return false
   // Show timeline if workout has stream data (time-series HR, power, velocity, etc.)
   // This includes any activity type with streams, not just runs/rides
   const supportedSources = ['strava', 'intervals']
   return supportedSources.includes(workout.source) && workout.streams
+}
+
+function hasEfficiencyMetrics(workout: any) {
+  if (!workout) return false
+  return workout.variabilityIndex !== null ||
+         workout.efficiencyFactor !== null ||
+         workout.decoupling !== null ||
+         workout.powerHrRatio !== null ||
+         workout.polarizationIndex !== null ||
+         workout.lrBalance !== null
 }
 
 // Scroll to section

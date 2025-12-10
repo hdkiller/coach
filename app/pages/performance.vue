@@ -89,6 +89,32 @@
       :color="modalData.color"
     />
 
+        <!-- PMC Chart (Performance Management Chart) -->
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Training Load & Form</h2>
+            <USelect
+              v-model="pmcPeriod"
+              :items="pmcPeriodOptions"
+            />
+          </div>
+          
+          <PMCChart :days="pmcPeriod" />
+        </div>
+
+        <!-- FTP Evolution Chart -->
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">FTP Evolution</h2>
+            <USelect
+              v-model="ftpPeriod"
+              :items="ftpPeriodOptions"
+            />
+          </div>
+          
+          <FTPEvolutionChart :months="ftpPeriod" />
+        </div>
+
         <!-- Workout Scores -->
         <div class="space-y-6">
           <div class="flex items-center justify-between">
@@ -279,6 +305,22 @@ const periodOptions = [
   { label: '14 Days', value: 14 },
   { label: '30 Days', value: 30 },
   { label: '90 Days', value: 90 }
+]
+
+const pmcPeriod = ref(90)
+const pmcPeriodOptions = [
+  { label: '30 Days', value: 30 },
+  { label: '60 Days', value: 60 },
+  { label: '90 Days', value: 90 },
+  { label: '180 Days', value: 180 }
+]
+
+const ftpPeriod = ref(12)
+const ftpPeriodOptions = [
+  { label: '3 Months', value: 3 },
+  { label: '6 Months', value: 6 },
+  { label: '12 Months', value: 12 },
+  { label: '24 Months', value: 24 }
 ]
 
 // Fetch athlete profile data
