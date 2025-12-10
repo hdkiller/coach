@@ -213,39 +213,54 @@
             </UButton>
           </div>
 
-          <UFormGroup label="Title" required>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Title <span class="text-red-500">*</span>
+            </label>
             <UInput
               v-model="manualWorkout.title"
               placeholder="e.g., Morning Run"
             />
-          </UFormGroup>
+          </div>
 
-          <UFormGroup label="Duration (minutes)" required>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Duration (minutes) <span class="text-red-500">*</span>
+            </label>
             <UInput
               v-model="manualWorkout.durationMinutes"
               type="number"
               placeholder="60"
             />
-          </UFormGroup>
+          </div>
 
-          <UFormGroup label="Distance (km)">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Distance (km)
+            </label>
             <UInput
               v-model="manualWorkout.distanceKm"
               type="number"
               step="0.1"
               placeholder="10.5"
             />
-          </UFormGroup>
+          </div>
 
-          <UFormGroup label="TSS / Load">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              TSS / Load
+            </label>
             <UInput
               v-model="manualWorkout.tss"
               type="number"
               placeholder="85"
             />
-          </UFormGroup>
+          </div>
 
-          <UFormGroup label="RPE (1-10)">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              RPE (1-10)
+            </label>
             <UInput
               v-model="manualWorkout.rpe"
               type="number"
@@ -253,15 +268,18 @@
               max="10"
               placeholder="7"
             />
-          </UFormGroup>
+          </div>
 
-          <UFormGroup label="Notes">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Notes
+            </label>
             <UTextarea
               v-model="manualWorkout.description"
               placeholder="How did it feel?"
               :rows="3"
             />
-          </UFormGroup>
+          </div>
 
           <div class="flex gap-2 pt-2">
             <UButton
