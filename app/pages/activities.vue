@@ -86,12 +86,30 @@
           class="w-48"
         />
 
-        <ColumnPicker
+        <UDropdownMenu
           v-if="viewMode === 'list'"
-          :columns="availableColumns"
-          v-model="selectedColumnIds"
-          :default-columns="defaultColumnIds"
-        />
+          :items="table?.tableApi?.getAllColumns().filter(column => column.getCanHide()).map(column => ({
+            label: column.id.charAt(0).toUpperCase() + column.id.slice(1),
+            type: 'checkbox' as const,
+            checked: column.getIsVisible(),
+            onUpdateChecked(checked: boolean) {
+              table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
+            },
+            onSelect(e: Event) {
+              e.preventDefault()
+            }
+          }))"
+          :content="{ align: 'end' }"
+        >
+          <UButton
+            label="Columns"
+            color="neutral"
+            variant="outline"
+            trailing-icon="i-heroicons-chevron-down"
+            size="sm"
+            aria-label="Toggle columns"
+          />
+        </UDropdownMenu>
 
         <UButton
           icon="i-heroicons-arrow-path"
@@ -212,8 +230,10 @@
         
         <UTable
           v-else
+          ref="table"
           :data="sortedActivities"
-          :columns="tableColumns"
+          :columns="availableColumns"
+          v-model:column-visibility="columnVisibility"
           :loading="status === 'pending'"
           class="flex-1 w-full"
           @select="openActivity"
@@ -283,6 +303,62 @@
           <template #rpe-cell="{ row }">
             <span v-if="row.original.rpe">
               {{ row.original.rpe }}/10
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #trainingLoad-cell="{ row }">
+            <span v-if="row.original.trainingLoad">
+              {{ Math.round(row.original.trainingLoad) }}
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #trimp-cell="{ row }">
+            <span v-if="row.original.trimp">
+              {{ Math.round(row.original.trimp) }}
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #sessionRpe-cell="{ row }">
+            <span v-if="row.original.sessionRpe">
+              {{ row.original.sessionRpe }}
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #feel-cell="{ row }">
+            <span v-if="row.original.feel">
+              {{ row.original.feel }}/10
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #averageWatts-cell="{ row }">
+            <span v-if="row.original.averageWatts" class="font-medium">
+              {{ Math.round(row.original.averageWatts) }}W
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #normalizedPower-cell="{ row }">
+            <span v-if="row.original.normalizedPower" class="font-medium">
+              {{ Math.round(row.original.normalizedPower) }}W
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #weightedAvgWatts-cell="{ row }">
+            <span v-if="row.original.weightedAvgWatts" class="font-medium">
+              {{ Math.round(row.original.weightedAvgWatts) }}W
+            </span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+
+          <template #kilojoules-cell="{ row }">
+            <span v-if="row.original.kilojoules">
+              {{ Math.round(row.original.kilojoules) }} kJ
             </span>
             <span v-else class="text-gray-400">-</span>
           </template>
@@ -557,6 +633,8 @@ const sortedActivities = computed(() => {
   return result
 })
 
+const table = useTemplateRef('table')
+
 const availableColumns = [
   { accessorKey: 'type', header: 'Type', id: 'type' },
   { accessorKey: 'date', header: 'Date', id: 'date' },
@@ -566,20 +644,29 @@ const availableColumns = [
   { accessorKey: 'averageHr', header: 'Avg HR', id: 'averageHr' },
   { accessorKey: 'intensity', header: 'Intensity', id: 'intensity' },
   { accessorKey: 'tss', header: 'TSS', id: 'tss' },
+  { accessorKey: 'trainingLoad', header: 'Training Load', id: 'trainingLoad' },
+  { accessorKey: 'trimp', header: 'TRIMP', id: 'trimp' },
   { accessorKey: 'rpe', header: 'RPE', id: 'rpe' },
+  { accessorKey: 'sessionRpe', header: 'Session RPE', id: 'sessionRpe' },
+  { accessorKey: 'feel', header: 'Feel', id: 'feel' },
+  { accessorKey: 'averageWatts', header: 'Avg Power', id: 'averageWatts' },
+  { accessorKey: 'normalizedPower', header: 'NP', id: 'normalizedPower' },
+  { accessorKey: 'weightedAvgWatts', header: 'Weighted Power', id: 'weightedAvgWatts' },
+  { accessorKey: 'kilojoules', header: 'kJ', id: 'kilojoules' },
   { accessorKey: 'source', header: 'Source', id: 'source' },
   { accessorKey: 'status', header: 'Status', id: 'status' }
 ]
 
-const defaultColumnIds = availableColumns.map(c => c.id)
-
-const selectedColumnIds = useStorage<string[]>('activities-list-columns', defaultColumnIds)
-
-const tableColumns = computed(() => {
-  // Map selected IDs to column objects, maintaining order of selected IDs
-  return selectedColumnIds.value
-    .map(id => availableColumns.find(c => c.id === id))
-    .filter(Boolean) as typeof availableColumns
+// Use column visibility state that persists in localStorage
+// Default: hide some of the more advanced columns
+const columnVisibility = useStorage('activities-list-columns-visibility', {
+  trainingLoad: false,
+  trimp: false,
+  sessionRpe: false,
+  feel: false,
+  normalizedPower: false,
+  weightedAvgWatts: false,
+  kilojoules: false
 })
 
 function formatDateForList(dateStr: string) {
