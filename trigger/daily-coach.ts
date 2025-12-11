@@ -139,14 +139,16 @@ ${activeGoals.map(g => {
 `;
     }
     
-    // Build prompt
+    // Build prompt with comprehensive context
     const prompt = `You are a cycling coach providing daily workout guidance.
 
 ${athleteContext}
 
+${formattedContext}
+
 YESTERDAY'S TRAINING:
-${yesterdayWorkout 
-  ? `${yesterdayWorkout.title} - TSS: ${yesterdayWorkout.tss || 'N/A'}, Duration: ${Math.round(yesterdayWorkout.durationSec / 60)} min, Avg Power: ${yesterdayWorkout.averageWatts || 'N/A'}W` 
+${yesterdayWorkout
+  ? `${yesterdayWorkout.title} - TSS: ${yesterdayWorkout.tss || 'N/A'}, Duration: ${Math.round(yesterdayWorkout.durationSec / 60)} min, Avg Power: ${yesterdayWorkout.averageWatts || 'N/A'}W`
   : 'Rest day or no data'}
 
 TODAY'S RECOVERY:
@@ -159,20 +161,29 @@ ${todayMetric.spO2 ? `- SpO2: ${todayMetric.spO2}%` : ''}`
   : 'No recovery data available'}
 
 DECISION LOGIC:
-- Recovery < 33%: Recommend rest or very easy activity
+Use Training Stress Balance (TSB/Form) as primary indicator:
+- TSB > 25: Detraining risk - need more training stimulus
+- TSB 5 to 25: Peak form - good for race/event day
+- TSB -10 to 5: Maintenance - steady training
+- TSB -25 to -10: Building fitness - optimal training zone
+- TSB -40 to -25: High fatigue - reduce intensity
+- TSB < -40: Overreaching - rest required
+
+Also consider:
+- Recovery Score < 33%: Recommend rest or very easy activity
 - Recovery 33-50%: Reduce intensity significantly
 - Recovery 50-67%: Proceed with caution, modify as needed
 - Recovery 67-80%: Proceed as planned
 - Recovery > 80%: Good day for high intensity
-
-CONTEXT:
 - Yesterday's TSS was ${yesterdayWorkout?.tss || 0}
 - Multiple high-load days increase fatigue risk
 - Low HRV combined with high HR indicates stress
 - Poor sleep (<7h) reduces training capacity
 ${activeGoals.length > 0 ? `- Consider how today's recommendation impacts progress toward active goals` : ''}
 
-Provide a structured recommendation for today's training${activeGoals.length > 0 ? ', considering the athlete\'s current goals' : ''}.`;
+CRITICAL: Base your recommendation on the comprehensive training load data above, especially TSB (Form), not just today's recovery metrics.
+
+Provide a structured recommendation for today's training${activeGoals.length > 0 ? ', considering the athlete\'s current goals and training load' : ''}.`;
 
     logger.log("Generating suggestion with Gemini Flash");
     

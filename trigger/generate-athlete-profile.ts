@@ -2,6 +2,7 @@ import { logger, task } from "@trigger.dev/sdk/v3";
 import { generateStructuredAnalysis } from "../server/utils/gemini";
 import { prisma } from "../server/utils/db";
 import { userReportsQueue } from "./queues";
+import { generateTrainingContext, formatTrainingContextForPrompt } from "../server/utils/training-metrics";
 
 // Athlete Profile schema for structured JSON output
 const athleteProfileSchema = {
@@ -501,6 +502,22 @@ Recent sleep: ${recentWellness.slice(0, 7).map(w => `${w.sleepHours?.toFixed(1) 
         ? recentWorkouts.reduce((sum, w) => sum + w.durationSec, 0) / recentWorkouts.length / 60
         : 0;
       
+      // Generate comprehensive training context with advanced metrics
+      logger.log("Generating comprehensive training context");
+      const trainingContext = await generateTrainingContext(userId, thirtyDaysAgo, now, {
+        includeZones: true,
+        period: 'Last 30 Days'
+      });
+      const formattedContext = formatTrainingContextForPrompt(trainingContext);
+      
+      logger.log("Training context generated", {
+        workoutCount: trainingContext.summary.totalWorkouts,
+        totalTSS: trainingContext.summary.totalTSS,
+        currentCTL: trainingContext.loadTrend.currentCTL,
+        currentTSB: trainingContext.loadTrend.currentTSB,
+        hasZoneData: !!trainingContext.zoneDistribution
+      });
+      
       // Build comprehensive prompt
       const prompt = `You are creating a comprehensive Athlete Profile for training planning purposes. Analyze all available data to create a complete picture of this athlete.
 
@@ -510,11 +527,7 @@ USER PROFILE:
 - W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 
-RECENT TRAINING (Last 30 days):
-- Total workouts with AI analysis: ${recentWorkouts.length}
-- Total TSS: ${totalTSS.toFixed(0)}
-- Average workout duration: ${avgWorkoutDuration.toFixed(0)} minutes
-- Workout types: ${[...new Set(recentWorkouts.map(w => w.type))].join(', ')}
+${formattedContext}
 
 WORKOUT INSIGHTS (from AI analysis):
 ${workoutInsights || 'No detailed workout analysis available'}

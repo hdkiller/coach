@@ -304,7 +304,12 @@ CRITICAL EQUIPMENT CONSTRAINTS:
 INSTRUCTIONS:
 1. **STRICTLY RESPECT EQUIPMENT AVAILABILITY** - This is the #1 priority
 2. Create a progressive training plan that respects user's availability and equipment
-3. Balance intensity across the week (easy days, hard days, rest days)
+3. **Balance intensity and load progression safely**:
+   - Use current TSB (Form) to determine if athlete can handle more load
+   - TSB > 5: Can increase intensity/volume
+   - TSB -10 to 5: Maintain current load
+   - TSB < -10: Reduce load or add recovery
+   - Weekly TSS should not increase by more than 5-10% from current average (${Math.round(trainingContext.loadTrend.weeklyTSSAvg)})
 4. Consider recent training load and recovery status
 5. For days with multiple time slots, choose the best one based on workout type
 6. If no availability is set for a day, suggest rest or light stretching/mobility work
@@ -312,10 +317,11 @@ INSTRUCTIONS:
    - With bike: endurance rides, intervals, recovery rides
    - With gym: strength training, core work, leg/upper body splits
    - Without equipment: mobility, stretching, walking, yoga
-8. Ensure adequate recovery between hard efforts
-9. Target weekly TSS should be appropriate for fitness level (aim for 200-600 based on recent load)
+8. Ensure adequate recovery between hard efforts based on intensity distribution
+9. Target weekly TSS should progress safely from current load (Current: ${currentWeeklyTSS}, Target: ${targetMinTSS}-${targetMaxTSS})
 10. Each workout should have clear objectives and be actionable
 11. Consider location constraints (indoor vs outdoor vs gym)
+12. **Reference the activity type breakdown** to maintain balanced training across disciplines
 
 WORKOUT TYPES AND EQUIPMENT REQUIREMENTS:
 - Ride: Requires bike/trainer available - DO NOT use if not available

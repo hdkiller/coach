@@ -733,6 +733,21 @@ function buildWorkoutAnalysisPrompt(workoutData: any): string {
   if (workoutData.description) {
     prompt += `\n## Workout Description\n${workoutData.description}\n`
   }
+  
+  // Add zone distribution if available
+  if (workoutData.zone_distribution) {
+    const zoneType = workoutData.zone_distribution.type === 'hr' ? 'Heart Rate' : 'Power'
+    prompt += `\n## ${zoneType} Zone Distribution\n`
+    prompt += `Time spent in each training zone:\n\n`
+    
+    for (const zone of workoutData.zone_distribution.zones) {
+      if (zone.time_seconds > 0) {
+        prompt += `**${zone.name}**: ${zone.time_minutes} minutes (${zone.percentage}% of workout)\n`
+      }
+    }
+    
+    prompt += `\nUse this distribution to assess training stimulus and whether the athlete worked in the intended zones for this workout type.\n`
+  }
 
   prompt += `
 
