@@ -63,6 +63,8 @@ async function logLlmUsage(params: {
   errorMessage?: string
   promptPreview?: string
   responsePreview?: string
+  promptFull?: string
+  responseFull?: string
 }): Promise<void> {
   try {
     await prisma.llmUsage.create({
@@ -84,7 +86,9 @@ async function logLlmUsage(params: {
         errorType: params.errorType,
         errorMessage: params.errorMessage,
         promptPreview: params.promptPreview,
-        responsePreview: params.responsePreview
+        responsePreview: params.responsePreview,
+        promptFull: params.promptFull,
+        responseFull: params.responseFull
       }
     })
   } catch (error) {
@@ -232,7 +236,9 @@ async function retryWithBackoff<T>(
           retryCount,
           success: true,
           promptPreview: getPreview(trackingParams.prompt),
-          responsePreview: getPreview(responseText)
+          responsePreview: getPreview(responseText),
+          promptFull: trackingParams.prompt,
+          responseFull: responseText
         })
       }
       
@@ -258,7 +264,8 @@ async function retryWithBackoff<T>(
             success: false,
             errorType: 'api_error',
             errorMessage: error.message || String(error),
-            promptPreview: getPreview(trackingParams.prompt)
+            promptPreview: getPreview(trackingParams.prompt),
+            promptFull: trackingParams.prompt
           })
         }
         throw error
@@ -282,6 +289,7 @@ async function retryWithBackoff<T>(
             retryCount,
             success: false,
             errorType: 'rate_limit',
+            promptFull: trackingParams.prompt,
             errorMessage: error.message || String(error),
             promptPreview: getPreview(trackingParams.prompt)
           })

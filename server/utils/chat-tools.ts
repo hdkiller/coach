@@ -957,17 +957,45 @@ async function getPerformanceMetrics(userId: string, args: any): Promise<any> {
   if (args.include_intensity_analysis !== false) {
     const workoutsWithIntensity = workouts.filter((w) => w.intensity !== null)
     if (workoutsWithIntensity.length > 0) {
-      const avgIntensity =
-        workoutsWithIntensity.reduce((sum, w) => sum + (w.intensity || 0), 0) /
-        workoutsWithIntensity.length
+      // Normalize intensity values
+      const normalizeIntensity = (intensity: number | null) => {
+        if (!intensity) return 0
+        // Valid IF range: 0.5-2.0 (rarely >2.0)
+        if (intensity > 2.0) {
+          if (intensity <= 200) {
+            // Stored as percentage (need to divide by 100)
+            return intensity / 100
+          }
+          // Invalid data (>200), treat as 0
+          return 0
+        }
+        return intensity
+      }
+      
+      const validWorkouts = workoutsWithIntensity.filter((w) => {
+        const normalized = normalizeIntensity(w.intensity)
+        return normalized > 0 && normalized <= 2.0
+      })
+      
+      if (validWorkouts.length > 0) {
+        const avgIntensity =
+          validWorkouts.reduce((sum, w) => sum + normalizeIntensity(w.intensity), 0) /
+          validWorkouts.length
 
-      response.intensity_analysis = {
-        avg_intensity_factor: avgIntensity.toFixed(2),
-        high_intensity_workouts: workouts.filter((w) => (w.intensity || 0) > 0.85).length,
-        moderate_intensity_workouts: workouts.filter(
-          (w) => (w.intensity || 0) >= 0.65 && (w.intensity || 0) <= 0.85
-        ).length,
-        low_intensity_workouts: workouts.filter((w) => (w.intensity || 0) < 0.65).length,
+        response.intensity_analysis = {
+          avg_intensity_factor: avgIntensity.toFixed(2),
+          high_intensity_workouts: workouts.filter((w) => normalizeIntensity(w.intensity) > 0.85).length,
+          moderate_intensity_workouts: workouts.filter(
+            (w) => {
+              const normalized = normalizeIntensity(w.intensity)
+              return normalized >= 0.65 && normalized <= 0.85
+            }
+          ).length,
+          low_intensity_workouts: workouts.filter((w) => {
+            const normalized = normalizeIntensity(w.intensity)
+            return normalized > 0 && normalized < 0.65
+          }).length,
+        }
       }
     }
   }

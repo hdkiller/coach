@@ -365,9 +365,9 @@ export function normalizeStravaActivity(activity: StravaActivity, userId: string
     // Training load - Use calories if available for better training load estimation
     tss: null, // Strava doesn't provide TSS directly
     trainingLoad: activity.calories || activity.kilojoules || null,
-    intensity: activity.average_watts && activity.kilojoules
-      ? Math.round((activity.average_watts / (activity.kilojoules / activity.moving_time)) * 100) / 100
-      : null,
+    // Strava doesn't provide Normalized Power or FTP, so we can't calculate proper Intensity Factor
+    // If the user has FTP set, we could estimate IF as average_watts / FTP, but that's not accurate
+    intensity: null,
     kilojoules: activity.kilojoules ? Math.round(activity.kilojoules) : null,
     trimp: activity.suffer_score || null,
     

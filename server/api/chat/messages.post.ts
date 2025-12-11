@@ -56,7 +56,8 @@ export default defineEventHandler(async (event) => {
         recoveryCapacityExplanationJson: true,
         nutritionComplianceExplanationJson: true,
         trainingConsistencyExplanationJson: true,
-        profileLastUpdated: true
+        profileLastUpdated: true,
+        aiModelPreference: true
       }
     }),
     prisma.goal.findMany({
@@ -319,12 +320,25 @@ export default defineEventHandler(async (event) => {
     athleteContext += '\n\n## Current Goals\nNo active goals set. Consider creating goals to help focus training efforts.\n'
   }
 
-  // Add Recent Activity Summary (Last 7 Days)
-  athleteContext += '\n\n## Recent Activity (Last 7 Days)\n'
+  // Generate comprehensive training context for last 14 days
+  const fourteenDaysAgo = new Date()
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
+  
+  const trainingContext = await generateTrainingContext(userId, fourteenDaysAgo, new Date(), {
+    includeZones: false, // Skip expensive zone calculation for chat context
+    period: 'Last 14 Days'
+  })
+  
+  const formattedTrainingContext = formatTrainingContextForPrompt(trainingContext)
+  
+  athleteContext += '\n\n' + formattedTrainingContext
+  
+  // Add Recent Activity Detail (Last 7 Days) - keeping for granular day-by-day view
+  athleteContext += '\n\n## Recent Activity Detail (Last 7 Days)\n'
   
   // Recent Workouts Summary
   if (recentWorkouts.length > 0) {
-    athleteContext += `\n### Workouts (${recentWorkouts.length} activities)\n`
+    athleteContext += `\n### Recent Workouts (${recentWorkouts.length} activities)\n`
     for (const workout of recentWorkouts) {
       athleteContext += `- **${workout.date.toLocaleDateString()}**: ${workout.title || workout.type}\n`
       athleteContext += `  - Duration: ${Math.round(workout.durationSec / 60)} min`
@@ -335,11 +349,12 @@ export default defineEventHandler(async (event) => {
       athleteContext += '\n'
       
       if (workout.aiAnalysisJson) {
-        athleteContext += `  - AI Analysis: ${JSON.stringify(workout.aiAnalysisJson)}\n`
+        const analysis = workout.aiAnalysisJson as any
+        athleteContext += `  - Key Insight: ${analysis.executive_summary || analysis.quick_take || 'Analysis available'}\n`
       }
     }
   } else {
-    athleteContext += '\n### Workouts\nNo workouts in the last 7 days\n'
+    athleteContext += '\n### Recent Workouts\nNo workouts in the last 7 days\n'
   }
   
   // Recent Nutrition Summary
@@ -363,16 +378,27 @@ export default defineEventHandler(async (event) => {
   
   // Recent Wellness Summary
   if (recentWellness.length > 0) {
-    athleteContext += `\n### Wellness & Recovery (${recentWellness.length} days)\n`
+    const entriesWithData = []
+    
     for (const wellness of recentWellness) {
-      athleteContext += `- **${wellness.date.toLocaleDateString()}**: `
       const metrics: string[] = []
       if (wellness.recoveryScore) metrics.push(`Recovery: ${wellness.recoveryScore}%`)
       if (wellness.hrv) metrics.push(`HRV: ${wellness.hrv}ms`)
       if (wellness.sleepHours) metrics.push(`Sleep: ${wellness.sleepHours}h`)
       if (wellness.sleepScore) metrics.push(`Sleep Score: ${wellness.sleepScore}%`)
       if (wellness.readiness) metrics.push(`Readiness: ${wellness.readiness}%`)
-      athleteContext += metrics.join(' | ') + '\n'
+      
+      // Only include dates that have actual data
+      if (metrics.length > 0) {
+        entriesWithData.push(`- **${wellness.date.toLocaleDateString()}**: ${metrics.join(' | ')}`)
+      }
+    }
+    
+    if (entriesWithData.length > 0) {
+      athleteContext += `\n### Wellness & Recovery (${entriesWithData.length} days)\n`
+      athleteContext += entriesWithData.join('\n') + '\n'
+    } else {
+      athleteContext += '\n### Wellness & Recovery\nNo wellness data with metrics in the last 7 days\n'
     }
   } else {
     athleteContext += '\n### Wellness & Recovery\nNo wellness data in the last 7 days\n'
@@ -682,8 +708,12 @@ OR
   }
 
   // 7. Initialize Model with Tools (without JSON mode during tool calling)
+  // Use user's preferred model or default to flash
+  const modelPreference = userProfile?.aiModelPreference || 'flash'
+  const modelName = modelPreference === 'pro' ? 'gemini-3-pro-preview' : 'gemini-flash-latest'
+  
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: modelName,
     systemInstruction,
     tools: [{ functionDeclarations: chatToolDeclarations }],
   })
@@ -759,6 +789,63 @@ OR
   }
 
   const aiResponseText = response.text()
+
+  // Track LLM usage for debugging and cost monitoring
+  try {
+    const usageMetadata = response.usageMetadata
+    const promptTokens = usageMetadata?.promptTokenCount
+    const completionTokens = usageMetadata?.candidatesTokenCount
+    const totalTokens = usageMetadata?.totalTokenCount
+    
+    // Calculate cost (Gemini 2.0 Flash pricing)
+    const PRICING = {
+      input: 0.075,   // $0.075 per 1M input tokens
+      output: 0.30    // $0.30 per 1M output tokens
+    }
+    const estimatedCost = promptTokens && completionTokens
+      ? ((promptTokens / 1_000_000) * PRICING.input) + ((completionTokens / 1_000_000) * PRICING.output)
+      : undefined
+    
+    // Build full prompt context for logging
+    const fullPrompt = [
+      '=== SYSTEM INSTRUCTION ===',
+      systemInstruction,
+      '',
+      '=== CHAT HISTORY ===',
+      ...historyForModel.map((msg: any) =>
+        `${msg.role}: ${typeof msg.parts[0] === 'string' ? msg.parts[0] : JSON.stringify(msg.parts[0])}`
+      ),
+      '',
+      '=== USER MESSAGE ===',
+      content
+    ].join('\n')
+    
+    await prisma.llmUsage.create({
+      data: {
+        userId,
+        provider: 'gemini',
+        model: modelName,
+        modelType: modelPreference,
+        operation: 'chat',
+        entityType: 'ChatMessage',
+        entityId: userMessage.id,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        estimatedCost,
+        durationMs: 0, // Not tracking duration for chat
+        retryCount: 0,
+        success: true,
+        promptPreview: fullPrompt.substring(0, 500),
+        responsePreview: aiResponseText.substring(0, 500),
+        promptFull: fullPrompt,
+        responseFull: aiResponseText
+      }
+    })
+  } catch (error) {
+    console.error('[Chat] Failed to log LLM usage:', error)
+    // Don't fail the chat if logging fails
+  }
 
   // 10. Save AI Response
   const aiMessage = await prisma.chatMessage.create({
