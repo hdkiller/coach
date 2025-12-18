@@ -107,6 +107,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Connect Intervals.icu',
+  meta: [
+    { name: 'description', content: 'Connect your Intervals.icu account to import activities and training data.' }
+  ]
+})
+
 const athleteId = ref('')
 const apiKey = ref('')
 const connecting = ref(false)

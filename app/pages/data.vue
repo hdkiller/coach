@@ -794,6 +794,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Data Management',
+  meta: [
+    { name: 'description', content: 'Manage your connected integrations, sync data, and view training summaries.' }
+  ]
+})
+
 const toast = useToast()
 const syncing = ref<string | null>(null)
 const loading = ref(true)

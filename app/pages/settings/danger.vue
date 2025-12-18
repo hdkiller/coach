@@ -6,4 +6,11 @@
 definePageMeta({
   middleware: 'auth'
 })
+
+useHead({
+  title: 'Danger Zone',
+  meta: [
+    { name: 'description', content: 'Manage sensitive account settings and data deletion.' }
+  ]
+})
 </script>

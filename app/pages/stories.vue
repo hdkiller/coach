@@ -96,6 +96,13 @@ definePageMeta({
   auth: false
 })
 
+useHead({
+  title: 'Athlete Stories',
+  meta: [
+    { name: 'description', content: 'See how athletes are using Coach Watts to train smarter, recover better, and reach their goals.' }
+  ]
+})
+
 const stories = [
   {
     name: "Mike Chen",

@@ -20,6 +20,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Connected Apps',
+  meta: [
+    { name: 'description', content: 'Manage your connected apps and integrations (Intervals.icu, WHOOP, Strava, Yazio).' }
+  ]
+})
+
 // Integration status
 const { data: integrationStatus, refresh: refreshIntegrations } = useFetch('/api/integrations/status', {
   lazy: true,

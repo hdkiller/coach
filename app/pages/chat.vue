@@ -5,6 +5,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'AI Chat Coach',
+  meta: [
+    { name: 'description', content: 'Chat with your AI endurance coach to analyze your training, ask questions, and get personalized advice.' }
+  ]
+})
+
 interface ToolCall {
   name: string
   args: Record<string, any>

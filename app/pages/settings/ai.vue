@@ -31,6 +31,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'AI Coach Settings',
+  meta: [
+    { name: 'description', content: 'Configure your AI coach preferences, personality, and data access.' }
+  ]
+})
+
 // Fetch AI settings
 const { data: aiSettings, refresh: refreshSettings } = await useFetch('/api/settings/ai', {
   lazy: true,

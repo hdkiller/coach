@@ -40,4 +40,11 @@ definePageMeta({
   layout: 'home',
   auth: false
 })
+
+useHead({
+  title: 'Terms of Service',
+  meta: [
+    { name: 'description', content: 'Coach Watts Terms of Service. Read about our user agreement, data usage, and disclaimers.' }
+  ]
+})
 </script>

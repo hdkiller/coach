@@ -301,6 +301,13 @@ definePageMeta({
   layout: 'default'
 })
 
+useHead({
+  title: 'Fitness & Wellness',
+  meta: [
+    { name: 'description', content: 'Track your recovery, sleep quality, and overall wellness metrics with WHOOP integration.' }
+  ]
+})
+
 const toast = useToast()
 const colorMode = useColorMode()
 const loading = ref(true)

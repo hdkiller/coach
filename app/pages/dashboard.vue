@@ -595,6 +595,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Dashboard',
+  meta: [
+    { name: 'description', content: 'Your daily athlete dashboard. Monitor your recovery, check today\'s training recommendation, and review your performance trends.' }
+  ]
+})
+
 const { formatRelativeTime } = useFormat()
 const { getScoreColor: getScoreBadgeColor } = useScoreColor()
 

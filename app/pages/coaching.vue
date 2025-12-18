@@ -123,6 +123,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Coach Dashboard',
+  meta: [
+    { name: 'description', content: 'Manage your athletes, monitor their progress, and send messages.' }
+  ]
+})
+
 const athletes = ref([])
 const loading = ref(true)
 const error = ref(null)

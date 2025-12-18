@@ -490,6 +490,13 @@ definePageMeta({
   layout: 'default'
 })
 
+useHead({
+  title: 'Workouts',
+  meta: [
+    { name: 'description', content: 'View and analyze your training sessions with AI-powered insights for every workout.' }
+  ]
+})
+
 const toast = useToast()
 const colorMode = useColorMode()
 const loading = ref(true)

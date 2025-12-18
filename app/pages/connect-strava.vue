@@ -86,6 +86,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Connect Strava',
+  meta: [
+    { name: 'description', content: 'Connect your Strava account to import activities and sync training data.' }
+  ]
+})
+
 const connecting = ref(false)
 
 const goBack = () => {

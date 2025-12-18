@@ -116,6 +116,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Connect WHOOP',
+  meta: [
+    { name: 'description', content: 'Connect your WHOOP account to sync recovery, sleep, and strain data.' }
+  ]
+})
+
 const connecting = ref(false)
 
 const goBack = () => {

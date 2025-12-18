@@ -464,6 +464,13 @@ definePageMeta({
   layout: 'default'
 })
 
+useHead({
+  title: 'Nutrition',
+  meta: [
+    { name: 'description', content: 'Monitor your nutrition intake, calorie goals, and macro distribution with Yazio integration.' }
+  ]
+})
+
 const colorMode = useColorMode()
 const toast = useToast()
 const loading = ref(true)

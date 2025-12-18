@@ -299,6 +299,13 @@ definePageMeta({
   layout: 'default'
 })
 
+useHead({
+  title: 'Performance Scores',
+  meta: [
+    { name: 'description', content: 'Detailed analysis of your athletic performance, including FTP evolution, training load, nutrition quality, and workout execution.' }
+  ]
+})
+
 const selectedPeriod = ref(30)
 const periodOptions = [
   { label: '7 Days', value: 7 },

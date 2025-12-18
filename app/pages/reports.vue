@@ -202,6 +202,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Reports',
+  meta: [
+    { name: 'description', content: 'Generate and view AI-powered coaching reports, including weekly analysis, workout insights, and nutrition reviews.' }
+  ]
+})
+
 // Fetch reports data on mount
 onMounted(() => {
     reportStore.fetchReports()

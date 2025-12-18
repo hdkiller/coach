@@ -105,6 +105,13 @@ definePageMeta({
   auth: false
 })
 
+useHead({
+  title: 'Login',
+  meta: [
+    { name: 'description', content: 'Login to your Coach Watts account to access your personalized training dashboard.' }
+  ]
+})
+
 const loading = ref(false)
 
 async function handleGoogleLogin() {

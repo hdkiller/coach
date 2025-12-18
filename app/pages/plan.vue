@@ -384,6 +384,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Training Plan',
+  meta: [
+    { name: 'description', content: 'Generate and manage your personalized AI training plan.' }
+  ]
+})
+
 const toast = useToast()
 const loading = ref(false)
 const loadingScheduled = ref(false)

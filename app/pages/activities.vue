@@ -1,5 +1,10 @@
 <template>
   <div class="h-full flex flex-col">
+    <Head>
+      <Title>Activities</Title>
+      <Meta name="description" content="View your training calendar, analyze completed workouts, and plan future sessions." />
+    </Head>
+
     <!-- Header / Controls -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 p-4 border-b dark:border-gray-800">
       <div class="flex items-center gap-4 flex-wrap">

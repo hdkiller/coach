@@ -48,6 +48,13 @@ definePageMeta({
   auth: false
 })
 
+useHead({
+  title: 'Coach Watts - AI Endurance Coaching',
+  meta: [
+    { name: 'description', content: 'Coach Watts is your AI-powered endurance coach. Optimize your training, recovery, and nutrition with personalized insights.' }
+  ]
+})
+
 // Only redirect if authenticated, otherwise stay on landing page
 watchEffect(() => {
   if (status.value === 'authenticated') {

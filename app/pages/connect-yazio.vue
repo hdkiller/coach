@@ -84,6 +84,13 @@
 </template>
 
 <script setup lang="ts">
+useHead({
+  title: 'Connect Yazio',
+  meta: [
+    { name: 'description', content: 'Connect your Yazio account to track nutrition, calories, and macros.' }
+  ]
+})
+
 const username = ref('')
 const password = ref('')
 const loading = ref(false)

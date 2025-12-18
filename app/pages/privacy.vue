@@ -49,4 +49,11 @@ definePageMeta({
   layout: 'home',
   auth: false
 })
+
+useHead({
+  title: 'Privacy Policy',
+  meta: [
+    { name: 'description', content: 'Coach Watts Privacy Policy. How we collect, use, and protect your personal training data.' }
+  ]
+})
 </script>

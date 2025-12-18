@@ -149,6 +149,13 @@ definePageMeta({
     auth: false
 })
 
+useHead({
+  title: 'Join Coach Watts',
+  meta: [
+    { name: 'description', content: 'Create your Coach Watts account and start training smarter with your AI digital twin.' }
+  ]
+})
+
 const loading = ref(false)
 
 async function handleGoogleLogin() {

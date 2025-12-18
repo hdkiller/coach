@@ -83,6 +83,13 @@
 </template>
 
 <script setup>
+useHead({
+  title: 'Coaching Settings',
+  meta: [
+    { name: 'description', content: 'Manage your connected coaches and invite codes.' }
+  ]
+})
+
 const coaches = ref([])
 const activeInvite = ref(null)
 const generating = ref(false)

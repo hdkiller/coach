@@ -60,6 +60,13 @@ definePageMeta({
   middleware: 'auth'
 })
 
+useHead({
+  title: 'Settings',
+  meta: [
+    { name: 'description', content: 'Manage your Coach Watts account, connected apps, and AI preferences.' }
+  ]
+})
+
 function isActive(path: string): boolean {
   return route.path === path
 }

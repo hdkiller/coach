@@ -169,6 +169,13 @@
 <script setup lang="ts">
 definePageMeta({
   layout: 'home',
-  auth: false 
+  auth: false
+})
+
+useHead({
+  title: 'Intelligence Architecture',
+  meta: [
+    { name: 'description', content: 'Explore the multi-layered AI pipeline that powers Coach Watts, from data ingestion to holistic coaching insights.' }
+  ]
 })
 </script>
