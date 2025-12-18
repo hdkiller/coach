@@ -36,3 +36,29 @@ When using the `UModal` component (v3/v4), always follow these guidelines for pr
 <script setup>
 const isOpen = ref(false)
 </script>
+
+## UDashboardPanel
+
+When using `UDashboardPanel` within the dashboard layout, ensure correct slot usage for layout consistency.
+
+### Structure
+- Use the `#header` slot for the navbar or top controls (e.g., `UDashboardNavbar`).
+- Use the `#body` slot for the main content area.
+- Do NOT use the `#default` slot for the main content, as it may break the layout structure (e.g. scrolling behavior).
+
+### Example
+
+```vue
+<template>
+  <UDashboardPanel>
+    <template #header>
+      <UDashboardNavbar title="Page Title" />
+    </template>
+
+    <template #body>
+      <!-- Main content goes here -->
+      <div>Content</div>
+    </template>
+  </UDashboardPanel>
+</template>
+```
