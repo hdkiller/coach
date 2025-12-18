@@ -81,3 +81,4 @@ export const useFormat = () => {
 - **Script Setup**: Use `<script setup>` in all Vue components.
 - **Auto-Imports**: Leverage Nuxt's auto-imports (e.g., `ref`, `computed`, `watch`, `$fetch`) instead of manually importing them from `vue` or `nuxt/app`.
 - **Type Safety**: Ensure strict typing for props, emits, and store state.
+- **Head Management**: Use `useHead()` for managing page meta tags (title, description, etc.) instead of `definePageMeta`'s layout or middleware options, as `useHead` provides more flexibility and better Nuxt compatibility for SEO.
