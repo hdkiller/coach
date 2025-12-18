@@ -120,102 +120,177 @@
 
       <!-- Calendar View -->
       <div v-if="viewMode === 'calendar'" class="overflow-x-auto overflow-y-auto h-full">
-        <div class="grid grid-cols-[80px_repeat(7,minmax(130px,1fr))] gap-px bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden min-w-[1000px]">
+        <!-- Desktop Grid View (hidden on mobile) -->
+        <div class="hidden lg:grid grid-cols-[80px_repeat(7,minmax(130px,1fr))] gap-px bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden min-w-[1000px]">
         
-        <!-- Header Row -->
-        <div class="p-2 text-xs font-semibold text-center text-gray-500 bg-gray-50 dark:bg-gray-800">
-          Summary
-        </div>
-        <div
-          v-for="day in weekDays"
-          :key="day"
-          class="p-2 text-xs font-semibold text-center text-gray-500 bg-gray-50 dark:bg-gray-800"
-        >
-          {{ day }}
-        </div>
-
-        <!-- Weeks -->
-        <template v-for="(week, wIndex) in calendarWeeks" :key="wIndex">
-          <!-- Weekly Summary Column -->
-          <div class="bg-gray-50 dark:bg-gray-800/50 p-2 flex flex-col justify-center gap-1 text-xs min-h-[120px]">
-            <div class="font-bold text-gray-900 dark:text-gray-100">
-                Week {{ week[0] ? getWeekNumber(week[0].date) : '' }}
-            </div>
-            
-            <div class="mt-2 space-y-1 text-gray-500">
-              <UTooltip text="Total training duration for the week">
-                <div class="flex justify-between">
-                  <span>Dur</span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">
-                    {{ formatDuration(getWeekSummary(week).duration) }}
-                  </span>
-                </div>
-              </UTooltip>
-              <UTooltip text="Total distance covered this week">
-                <div class="flex justify-between">
-                  <span>Dist</span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">
-                    {{ formatDistance(getWeekSummary(week).distance) }}
-                  </span>
-                </div>
-              </UTooltip>
-              <UTooltip text="Training Stress Score - Weekly total training load">
-                <div class="flex justify-between">
-                  <span>TSS</span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">
-                    {{ Math.round(getWeekSummary(week).tss) }}
-                  </span>
-                </div>
-              </UTooltip>
-              <UTooltip text="Chronic Training Load - Your 42-day fitness level">
-                <div v-if="getWeekSummary(week).ctl !== null" class="flex justify-between">
-                  <span>CTL</span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">
-                    {{ getWeekSummary(week).ctl?.toFixed(1) }}
-                  </span>
-                </div>
-              </UTooltip>
-              <UTooltip text="Training Stress Balance - Your current form (CTL - ATL)">
-                <div v-if="getWeekSummary(week).tsb !== null" class="flex justify-between">
-                  <span>TSB</span>
-                  <span class="font-semibold" :class="getTSBColor(getWeekSummary(week).tsb)">
-                    {{ getWeekSummary(week).tsb > 0 ? '+' : '' }}{{ getWeekSummary(week).tsb?.toFixed(0) }}
-                  </span>
-                </div>
-              </UTooltip>
-              <UTooltip :text="getFormStatusTooltip(getWeekSummary(week).tsb)">
-                <div v-if="getWeekSummary(week).tsb !== null" class="mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
-                  <div class="text-[10px] font-medium" :class="getTSBColor(getWeekSummary(week).tsb)">
-                    {{ getFormStatusText(getWeekSummary(week).tsb) }}
-                  </div>
-                </div>
-              </UTooltip>
-            </div>
-            
-            <!-- Weekly Zone Summary -->
-            <WeeklyZoneSummary
-              :workout-ids="getWeekWorkoutIds(week)"
-              :auto-load="true"
-              :user-zones="userZones"
-              :streams="getWeekStreams(week)"
-              @click="openWeekZoneDetail(week)"
-            />
+          <!-- Header Row -->
+          <div class="p-2 text-xs font-semibold text-center text-gray-500 bg-gray-50 dark:bg-gray-800">
+            Summary
+          </div>
+          <div
+            v-for="day in weekDays"
+            :key="day"
+            class="p-2 text-xs font-semibold text-center text-gray-500 bg-gray-50 dark:bg-gray-800"
+          >
+            {{ day }}
           </div>
 
-          <!-- Day Cells -->
-          <CalendarDayCell
-            v-for="(day, dIndex) in week"
-            :key="dIndex"
-            :date="day.date"
-            :activities="day.activities"
-            :is-other-month="day.isOtherMonth"
-            :streams="streamsMap"
-            :user-zones="userZones"
-            @activity-click="openActivity"
-            @wellness-click="openWellnessModal"
-            @merge-activity="onMergeActivity"
-          />
-        </template>
+          <!-- Weeks -->
+          <template v-for="(week, wIndex) in calendarWeeks" :key="wIndex">
+            <!-- Weekly Summary Column -->
+            <div class="bg-gray-50 dark:bg-gray-800/50 p-2 flex flex-col justify-center gap-1 text-xs min-h-[120px]">
+              <div class="font-bold text-gray-900 dark:text-gray-100">
+                  Week {{ week[0] ? getWeekNumber(week[0].date) : '' }}
+              </div>
+              
+              <div class="mt-2 space-y-1 text-gray-500">
+                <UTooltip text="Total training duration for the week">
+                  <div class="flex justify-between">
+                    <span>Dur</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      {{ formatDuration(getWeekSummary(week).duration) }}
+                    </span>
+                  </div>
+                </UTooltip>
+                <UTooltip text="Total distance covered this week">
+                  <div class="flex justify-between">
+                    <span>Dist</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      {{ formatDistance(getWeekSummary(week).distance) }}
+                    </span>
+                  </div>
+                </UTooltip>
+                <UTooltip text="Training Stress Score - Weekly total training load">
+                  <div class="flex justify-between">
+                    <span>TSS</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      {{ Math.round(getWeekSummary(week).tss) }}
+                    </span>
+                  </div>
+                </UTooltip>
+                <UTooltip text="Chronic Training Load - Your 42-day fitness level">
+                  <div v-if="getWeekSummary(week).ctl !== null" class="flex justify-between">
+                    <span>CTL</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                      {{ getWeekSummary(week).ctl?.toFixed(1) }}
+                    </span>
+                  </div>
+                </UTooltip>
+                <UTooltip text="Training Stress Balance - Your current form (CTL - ATL)">
+                  <div v-if="getWeekSummary(week).tsb !== null" class="flex justify-between">
+                    <span>TSB</span>
+                    <span class="font-semibold" :class="getTSBColor(getWeekSummary(week).tsb)">
+                      {{ getWeekSummary(week).tsb > 0 ? '+' : '' }}{{ getWeekSummary(week).tsb?.toFixed(0) }}
+                    </span>
+                  </div>
+                </UTooltip>
+                <UTooltip :text="getFormStatusTooltip(getWeekSummary(week).tsb)">
+                  <div v-if="getWeekSummary(week).tsb !== null" class="mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
+                    <div class="text-[10px] font-medium" :class="getTSBColor(getWeekSummary(week).tsb)">
+                      {{ getFormStatusText(getWeekSummary(week).tsb) }}
+                    </div>
+                  </div>
+                </UTooltip>
+              </div>
+              
+              <!-- Weekly Zone Summary -->
+              <WeeklyZoneSummary
+                :workout-ids="getWeekWorkoutIds(week)"
+                :auto-load="true"
+                :user-zones="userZones"
+                :streams="getWeekStreams(week)"
+                @click="openWeekZoneDetail(week)"
+              />
+            </div>
+
+            <!-- Day Cells -->
+            <CalendarDayCell
+              v-for="(day, dIndex) in week"
+              :key="dIndex"
+              :date="day.date"
+              :activities="day.activities"
+              :is-other-month="day.isOtherMonth"
+              :streams="streamsMap"
+              :user-zones="userZones"
+              @activity-click="openActivity"
+              @wellness-click="openWellnessModal"
+              @merge-activity="onMergeActivity"
+            />
+          </template>
+        </div>
+
+        <!-- Mobile List-like Calendar View (visible on mobile only) -->
+        <div class="lg:hidden space-y-6">
+          <div v-for="(week, wIndex) in calendarWeeks" :key="`mobile-week-${wIndex}`" class="space-y-4">
+            <!-- Weekly Summary Header -->
+            <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-xl flex items-center justify-between">
+              <div>
+                <div class="text-sm font-bold">Week {{ week[0] ? getWeekNumber(week[0].date) : '' }} Summary</div>
+                <div class="flex gap-4 mt-1">
+                  <span class="text-xs text-muted">TSS: {{ Math.round(getWeekSummary(week).tss) }}</span>
+                  <span class="text-xs text-muted">Dur: {{ formatDuration(getWeekSummary(week).duration) }}</span>
+                  <span v-if="getWeekSummary(week).ctl" class="text-xs text-muted">CTL: {{ getWeekSummary(week).ctl?.toFixed(0) }}</span>
+                </div>
+              </div>
+              <UButton
+                variant="ghost"
+                size="xs"
+                icon="i-heroicons-chart-pie"
+                @click="openWeekZoneDetail(week)"
+              />
+            </div>
+
+            <!-- Day Rows -->
+            <div v-for="(day, dIndex) in week.filter(d => !d.isOtherMonth || d.activities.length > 0)" :key="`mobile-day-${dIndex}`"
+                 class="border-b dark:border-gray-800 last:border-0 pb-2">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold" :class="{'text-primary': isTodayDate(day.date)}">
+                    {{ format(day.date, 'EEEE, MMM d') }}
+                  </span>
+                  <UButton
+                    v-if="day.activities.some(a => a.wellness)"
+                    icon="i-heroicons-heart"
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    @click="openWellnessModal(day.date)"
+                  />
+                </div>
+              </div>
+
+              <div v-if="day.activities.length === 0" class="text-xs text-muted italic ml-2">
+                No activities
+              </div>
+              <div v-else class="space-y-2 ml-2">
+                <button
+                  v-for="activity in day.activities"
+                  :key="activity.id"
+                  class="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-left"
+                  @click="openActivity(activity)"
+                >
+                  <div
+                    class="w-2 h-10 rounded-full shrink-0"
+                    :class="{
+                      'bg-green-500': activity.source === 'completed' && !activity.plannedWorkoutId,
+                      'bg-blue-500': activity.source === 'completed' && activity.plannedWorkoutId,
+                      'bg-amber-500': activity.source === 'planned' && activity.status === 'planned',
+                      'bg-red-500': activity.status === 'missed'
+                    }"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold truncate">{{ activity.title }}</div>
+                    <div class="flex gap-3 mt-0.5 text-[11px] text-muted">
+                      <span v-if="activity.duration || activity.plannedDuration">{{ formatDurationCompact(activity.duration || activity.plannedDuration || 0) }}</span>
+                      <span v-if="activity.distance || activity.plannedDistance">{{ formatDistance(activity.distance || activity.plannedDistance || 0) }}</span>
+                      <span v-if="activity.tss || activity.plannedTss">TSS: {{ Math.round(activity.tss || activity.plannedTss || 0) }}</span>
+                    </div>
+                  </div>
+                  <UIcon name="i-heroicons-chevron-right" class="w-4 h-4 text-muted" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -482,7 +557,7 @@
 </template>
 
 <script setup lang="ts">
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, addMonths, subMonths, isSameMonth, getISOWeek } from 'date-fns'
+import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, addMonths, subMonths, isSameMonth, getISOWeek, isToday as isTodayDate } from 'date-fns'
 import { useStorage } from '@vueuse/core'
 import type { CalendarActivity } from '~/types/calendar'
 

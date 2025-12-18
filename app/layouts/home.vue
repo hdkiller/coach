@@ -8,16 +8,32 @@
           Coach Watts
         </NuxtLink>
 
-        <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
+        <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
           <NuxtLink to="/#how-it-works" class="hover:text-primary transition-colors">How it Works</NuxtLink>
           <NuxtLink to="/#pricing" class="hover:text-primary transition-colors">Pricing</NuxtLink>
           <NuxtLink to="/stories" class="hover:text-primary transition-colors">Stories</NuxtLink>
         </nav>
 
         <div class="flex items-center gap-2">
-          <UButton to="/login" variant="ghost" color="gray">Sign In</UButton>
-          <UButton to="/join" color="primary">Get Started</UButton>
+          <div class="hidden sm:flex items-center gap-2">
+            <UButton to="/login" variant="ghost" color="gray">Sign In</UButton>
+            <UButton to="/join" color="primary">Get Started</UButton>
+          </div>
           <ColorModeButton />
+          
+          <UPopover class="lg:hidden">
+            <UButton icon="i-lucide-menu" color="gray" variant="ghost" />
+            <template #content>
+              <div class="p-4 w-48 flex flex-col gap-4">
+                <NuxtLink to="/#how-it-works" class="text-sm font-medium hover:text-primary transition-colors">How it Works</NuxtLink>
+                <NuxtLink to="/#pricing" class="text-sm font-medium hover:text-primary transition-colors">Pricing</NuxtLink>
+                <NuxtLink to="/stories" class="text-sm font-medium hover:text-primary transition-colors">Stories</NuxtLink>
+                <hr class="border-gray-200 dark:border-gray-800" />
+                <UButton to="/login" variant="ghost" color="gray" block>Sign In</UButton>
+                <UButton to="/join" color="primary" block>Get Started</UButton>
+              </div>
+            </template>
+          </UPopover>
         </div>
       </UContainer>
     </header>

@@ -22,7 +22,7 @@
 
     <template #body>
       <ClientOnly>
-        <div class="p-6 space-y-6">
+        <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
           <div>
             <h2 class="text-2xl font-bold">Welcome to Coach Watts!</h2>
             <p class="mt-2 text-muted">Your AI-powered endurance coach is ready to help you optimize your training.</p>
