@@ -54,7 +54,6 @@ export async function refreshStravaToken(integration: Integration): Promise<Inte
   const tokenData: StravaTokenResponse = await response.json()
   const expiresAt = new Date(tokenData.expires_at * 1000) // Strava returns unix timestamp in seconds
 
-  console.log('Strava token refreshed successfully, expires at:', expiresAt)
 
   // Update the integration in the database
   const updatedIntegration = await prisma.integration.update({

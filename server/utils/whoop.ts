@@ -49,7 +49,6 @@ export async function refreshWhoopToken(integration: Integration): Promise<Integ
   const tokenData: WhoopTokenResponse = await response.json()
   const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
 
-  console.log('Whoop token refreshed successfully, expires at:', expiresAt)
 
   // Update the integration in the database
   const updatedIntegration = await prisma.integration.update({
@@ -186,12 +185,6 @@ export async function fetchWhoopRecovery(
   url.searchParams.set('end', endDate.toISOString())
   url.searchParams.set('limit', '25')
   
-  console.log('[Whoop] Fetching recovery data:', {
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    startDateLocal: startDate.toLocaleString('en-US', { timeZone: 'America/New_York' }),
-    endDateLocal: endDate.toLocaleString('en-US', { timeZone: 'America/New_York' })
-  })
   
   const allRecords: WhoopRecovery[] = []
   let nextToken: string | undefined
@@ -218,22 +211,11 @@ export async function fetchWhoopRecovery(
     }
     
     const data: WhoopRecoveryResponse = await response.json()
-    console.log(`[Whoop] Fetched ${data.records?.length || 0} recovery records`)
     
     allRecords.push(...(data.records || []))
     nextToken = data.next_token
   } while (nextToken)
   
-  // Log date range of fetched records
-  if (allRecords.length > 0) {
-    const dates = allRecords.map(r => r.created_at).sort()
-    console.log('[Whoop] Recovery records date range:', {
-      count: allRecords.length,
-      earliest: dates[0],
-      latest: dates[dates.length - 1],
-      scoredCount: allRecords.filter(r => r.score_state === 'SCORED').length
-    })
-  }
   
   return allRecords
 }
