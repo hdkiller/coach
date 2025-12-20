@@ -34,8 +34,20 @@
       
       <!-- Lap Splits Table -->
       <div v-if="streams.lapSplits && streams.lapSplits.length > 0">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Lap Splits</h3>
-        <div class="overflow-x-auto">
+        <div
+          class="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded transition-colors"
+          @click="showSplits = !showSplits"
+        >
+          <div class="flex items-center gap-2">
+            <UIcon
+              :name="showSplits ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
+              class="w-5 h-5 text-gray-500"
+            />
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Lap Splits</h3>
+          </div>
+        </div>
+        
+        <div v-if="showSplits" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -181,6 +193,7 @@ const error = computed(() => {
 })
 
 const showAllSurges = ref(false)
+const showSplits = ref(false)
 
 // Calculate surge position as percentage of total workout time
 function getSurgePosition(surgeTime: number): number {

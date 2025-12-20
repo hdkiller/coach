@@ -75,6 +75,15 @@
             v-if="shouldShowPacing(workout)"
             variant="ghost"
             color="neutral"
+            @click="scrollToSection('intervals')"
+          >
+            <UIcon name="i-lucide-timer" class="w-4 h-4 mr-2" />
+            Intervals
+          </UButton>
+          <UButton
+            v-if="shouldShowPacing(workout)"
+            variant="ghost"
+            color="neutral"
             @click="scrollToSection('pacing')"
           >
             <UIcon name="i-lucide-activity" class="w-4 h-4 mr-2" />
@@ -485,6 +494,13 @@
           <div v-if="shouldShowPowerCurve(workout)" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Power Duration Curve</h2>
             <PowerCurveChart :workout-id="workout.id" />
+          </div>
+
+          <!-- Interval Analysis Section -->
+          <div id="intervals" class="scroll-mt-20"></div>
+          <div v-if="shouldShowPacing(workout)" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Intervals & Peak Efforts</h2>
+            <IntervalsAnalysis :workout-id="workout.id" />
           </div>
 
           <!-- Pacing Analysis Section (for Run/Ride/Walk/Hike activities) -->
