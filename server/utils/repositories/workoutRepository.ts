@@ -17,7 +17,7 @@ export const workoutRepository = {
       orderBy?: Prisma.WorkoutOrderByWithRelationInput
       include?: Prisma.WorkoutInclude
       select?: Prisma.WorkoutSelect
-    } = {}
+      } = {}
   ) {
     const where: Prisma.WorkoutWhereInput = {
       userId,
