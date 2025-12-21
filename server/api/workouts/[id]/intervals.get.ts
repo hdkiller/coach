@@ -1,7 +1,19 @@
 import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { getServerSession } from '#auth'
 import { prisma } from '../../../utils/db'
-import { detectIntervals, findPeakEfforts, calculateHeartRateRecovery } from '../../../utils/interval-detection'
+import {
+  detectIntervals,
+  findPeakEfforts,
+  calculateHeartRateRecovery,
+  calculateAerobicDecoupling,
+  calculateCoastingStats,
+  detectSurgesAndFades
+} from '../../../utils/interval-detection'
+import {
+  calculateWPrimeBalance,
+  calculateEfficiencyFactorDecay,
+  calculateQuadrantAnalysis
+} from '../../../utils/performance-metrics'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -111,6 +123,33 @@ export default defineEventHandler(async (event) => {
   // 3. Heart Rate Recovery
   const hrRecovery = streams.heartrate ? calculateHeartRateRecovery(time, streams.heartrate as number[]) : null
 
+  // 4. Advanced Metrics (Drift, Coasting, Surges)
+  const decoupling = (streams.watts && streams.heartrate)
+    ? calculateAerobicDecoupling(time, streams.watts as number[], streams.heartrate as number[])
+    : null
+
+  const coasting = streams.watts
+    ? calculateCoastingStats(time, streams.watts as number[], (streams.cadence as number[]) || [], streams.velocity as number[])
+    : null
+
+  const ftp = workout.ftp || user.ftp
+  const surges = (streams.watts && ftp)
+    ? detectSurgesAndFades(time, streams.watts as number[], ftp)
+    : []
+
+  // 5. New Advanced Analytics (W' Bal, EF Decay, Quadrants)
+  const wPrime = (streams.watts && ftp)
+    ? calculateWPrimeBalance(streams.watts as number[], time, ftp, 20000) // Default 20kJ if unknown
+    : null
+
+  const efDecay = (streams.watts && streams.heartrate)
+    ? calculateEfficiencyFactorDecay(streams.watts as number[], streams.heartrate as number[], time)
+    : null
+
+  const quadrants = (streams.watts && streams.cadence && ftp)
+    ? calculateQuadrantAnalysis(streams.watts as number[], streams.cadence as number[], ftp)
+    : null
+
   // Enrich intervals with stats from other streams
   const enrichedIntervals = detectedIntervals.map(interval => {
     const startIdx = interval.start_index
@@ -155,7 +194,9 @@ export default defineEventHandler(async (event) => {
     time: sample(time),
     power: streams.watts ? sample(streams.watts as number[]) : [],
     heartrate: streams.heartrate ? sample(streams.heartrate as number[]) : [],
-    pace: streams.velocity ? sample(streams.velocity as number[]) : []
+    pace: streams.velocity ? sample(streams.velocity as number[]) : [],
+    wPrime: wPrime ? sample(wPrime.wPrimeBalance) : [],
+    ef: efDecay ? sample(efDecay.efStream) : []
   }
 
   return {
@@ -168,6 +209,14 @@ export default defineEventHandler(async (event) => {
       pace: peakPace
     },
     recovery: hrRecovery,
+    advanced: {
+      decoupling,
+      coasting,
+      surges,
+      wPrime,
+      efDecay,
+      quadrants
+    },
     chartData
   }
 })
