@@ -16,7 +16,7 @@ async function debugActivity() {
   console.log(`Starting debug for Strava activity: ${EXTERNAL_ID}`)
 
   // 1. Check existing workout in DB
-  const workout = await prisma.workout.findFirst({
+?  const workout = await prisma.workout.findFirst({
     where: {
       externalId: EXTERNAL_ID,
       source: 'strava'
