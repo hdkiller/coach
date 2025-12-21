@@ -34,6 +34,97 @@ interface QuadrantAnalysisResult {
   }
 }
 
+interface FatigueSensitivityResult {
+  firstPartAvg: number
+  lastPartAvg: number
+  decay: number
+  isSignificant: boolean
+}
+
+interface StabilityMetrics {
+  overallCoV: number // Coefficient of Variation
+  intervalStability: Array<{
+    index: number
+    cov: number
+    label: string
+  }>
+}
+
+/**
+ * Calculate Fatigue Sensitivity (Late-Workout Fade)
+ * Compares Efficiency Factor (Power/HR) in the first 20% vs last 20%
+ */
+export function calculateFatigueSensitivity(
+  powerStream: number[],
+  hrStream: number[],
+  timeStream: number[]
+): FatigueSensitivityResult | null {
+  if (powerStream.length !== hrStream.length || powerStream.length < 600) return null
+
+  const efValues: number[] = []
+  for (let i = 0; i < powerStream.length; i++) {
+    if (hrStream[i] > 40 && powerStream[i] > 10) {
+      efValues.push(powerStream[i] / hrStream[i])
+    }
+  }
+
+  if (efValues.length < 100) return null
+
+  const chunk = Math.floor(efValues.length * 0.2)
+  const firstPart = efValues.slice(0, chunk)
+  const lastPart = efValues.slice(-chunk)
+
+  const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length
+  const firstPartAvg = avg(firstPart)
+  const lastPartAvg = avg(lastPart)
+
+  const decay = firstPartAvg > 0 ? ((firstPartAvg - lastPartAvg) / firstPartAvg) * 100 : 0
+
+  return {
+    firstPartAvg,
+    lastPartAvg,
+    decay,
+    isSignificant: Math.abs(decay) > 5
+  }
+}
+
+/**
+ * Calculate Stability Metrics (Consistency)
+ * Uses Coefficient of Variation (StdDev / Mean)
+ */
+export function calculateStabilityMetrics(
+  stream: number[],
+  intervals: any[] = []
+): StabilityMetrics | null {
+  if (!stream || stream.length === 0) return null
+
+  const getCoV = (data: number[]) => {
+    if (data.length < 2) return 0
+    const mean = data.reduce((a, b) => a + b, 0) / data.length
+    if (mean === 0) return 0
+    const variance = data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / data.length
+    return (Math.sqrt(variance) / mean) * 100
+  }
+
+  const overallCoV = getCoV(stream.filter(v => v > 10))
+  
+  const intervalStability = intervals
+    .filter(interval => interval.type === 'WORK')
+    .map((interval, idx) => {
+      const segment = stream.slice(interval.start_index, interval.end_index + 1)
+      return {
+        index: idx,
+        cov: getCoV(segment),
+        label: `Interval ${idx + 1}`
+      }
+    })
+
+  return {
+    overallCoV,
+    intervalStability
+  }
+}
+
 /**
  * Calculate W' Balance (Anaerobic Battery)
  * 

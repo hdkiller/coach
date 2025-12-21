@@ -506,3 +506,61 @@ export function detectSurgesAndFades(
 
   return surges
 }
+
+interface RecoveryRate {
+  intervalIndex: number
+  startTime: number
+  peakHr: number
+  hr30s: number | null
+  hr60s: number | null
+  hr90s: number | null
+  drop30s: number | null
+  drop60s: number | null
+  drop90s: number | null
+}
+
+/**
+ * Calculate Recovery Rate Trend across all work intervals
+ */
+export function calculateRecoveryRateTrend(
+  times: number[],
+  hrStream: number[],
+  intervals: Interval[]
+): RecoveryRate[] {
+  if (!hrStream || hrStream.length === 0 || !intervals) return []
+
+  const workIntervals = intervals.filter(i => i.type === 'WORK')
+  const results: RecoveryRate[] = []
+
+  workIntervals.forEach((interval, idx) => {
+    const endIdx = interval.end_index
+    const peakHr = hrStream[endIdx]
+    const endTime = times[endIdx]
+
+    const getHrAtOffset = (offset: number) => {
+      const targetTime = endTime + offset
+      for (let i = endIdx; i < times.length; i++) {
+        if (times[i] >= targetTime) return hrStream[i]
+      }
+      return null
+    }
+
+    const hr30s = getHrAtOffset(30)
+    const hr60s = getHrAtOffset(60)
+    const hr90s = getHrAtOffset(90)
+
+    results.push({
+      intervalIndex: idx,
+      startTime: endTime,
+      peakHr,
+      hr30s,
+      hr60s,
+      hr90s,
+      drop30s: hr30s ? peakHr - hr30s : null,
+      drop60s: hr60s ? peakHr - hr60s : null,
+      drop90s: hr90s ? peakHr - hr90s : null
+    })
+  })
+
+  return results
+}
