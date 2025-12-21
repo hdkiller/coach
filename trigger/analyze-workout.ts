@@ -347,6 +347,12 @@ function buildWorkoutAnalysisData(workout: any) {
   if (workout.decoupling) data.decoupling = workout.decoupling
   if (workout.polarizationIndex) data.polarization_index = workout.polarizationIndex
   
+  // Extended Advanced Metrics (Pass through for AI)
+  if (workout.fatigueSensitivity) data.fatigue_sensitivity = workout.fatigueSensitivity
+  if (workout.powerStability) data.power_stability = workout.powerStability
+  if (workout.paceStability) data.pace_stability = workout.paceStability
+  if (workout.recoveryTrend) data.recovery_trend = workout.recoveryTrend
+
   // Training status
   if (workout.ctl) data.ctl = workout.ctl
   if (workout.atl) data.atl = workout.atl
@@ -525,6 +531,11 @@ function getAnalysisSectionsGuidance(workoutType: string, isCardio: boolean, isS
 5. **Workout Execution**: Evaluate target achievement and interval quality
    - Assign status: excellent/good/moderate/needs_improvement/poor
    - Provide 3-5 separate, concise bullet points (each as a separate array item)
+   - Each point should be 1-2 sentences maximum
+
+6. **Efficiency & Fatigue**: Analyze endurance fade, power stability, and heart rate recovery trends.
+   - Assign status: excellent/good/moderate/needs_improvement/poor
+   - Provide 2-4 separate, concise bullet points (each as a separate array item)
    - Each point should be 1-2 sentences maximum`
 }
 
@@ -641,6 +652,24 @@ function buildWorkoutAnalysisPrompt(workoutData: any): string {
     if (workoutData.lr_balance) {
       prompt += `- L/R Balance: ${formatMetric(workoutData.lr_balance, 1)}%\n`
       prompt += `  - 48-52% = Acceptable, 50/50 = Ideal, >53% = Significant imbalance\n`
+    }
+    
+    if (workoutData.fatigue_sensitivity) {
+      prompt += `- Fatigue Sensitivity (Endurance Fade): ${formatMetric(workoutData.fatigue_sensitivity.decay, 1)}%\n`
+      prompt += `  - <5% = Excellent endurance, 5-10% = Good, >10% = Significant late-stage fatigue\n`
+    }
+    
+    if (workoutData.power_stability) {
+      prompt += `- Power Stability (CoV): ${formatMetric(workoutData.power_stability.overallCoV, 1)}%\n`
+      prompt += `  - Lower is better. <5% = Highly stable delivery, >10% = Erratic power application\n`
+    } else if (workoutData.pace_stability) {
+      prompt += `- Pace Stability (CoV): ${formatMetric(workoutData.pace_stability.overallCoV, 1)}%\n`
+      prompt += `  - Lower is better. <5% = Consistent pacing, >10% = Variable speed delivery\n`
+    }
+
+    if (workoutData.recovery_trend && workoutData.recovery_trend.length > 0) {
+      const avgDrop = workoutData.recovery_trend.reduce((sum: number, r: any) => sum + (r.drop60s || 0), 0) / workoutData.recovery_trend.length
+      prompt += `- Average HR Recovery (60s): ${formatMetric(avgDrop, 0)} bpm\n`
     }
   }
 
