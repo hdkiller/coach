@@ -14,15 +14,29 @@
         </template>
 
         <template #right>
-          <UButton
-            icon="i-heroicons-chat-bubble-left-right"
-            color="primary"
-            variant="solid"
-            size="sm"
-            @click="chatAboutWorkout"
-          >
-            Chat about this workout
-          </UButton>
+          <div class="flex gap-2">
+            <UButton
+              icon="i-heroicons-share"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="font-bold"
+              :loading="sharing"
+              @click="handleShare"
+            >
+              Share
+            </UButton>
+            <UButton
+              icon="i-heroicons-chat-bubble-left-right"
+              color="primary"
+              variant="solid"
+              size="sm"
+              class="font-bold"
+              @click="chatAboutWorkout"
+            >
+              Chat about this workout
+            </UButton>
+          </div>
         </template>
       </UDashboardNavbar>
 
@@ -665,11 +679,13 @@ definePageMeta({
 
 const route = useRoute()
 const toast = useToast()
+const config = useRuntimeConfig()
 
 const workout = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const analyzingWorkout = ref(false)
+const sharing = ref(false)
 
 // Set page title and description
 useHead(() => {
@@ -1013,6 +1029,48 @@ function chatAboutWorkout() {
   navigateTo({
     path: '/chat',
     query: { workoutId: workout.value.id }
+  })
+}
+
+// Share workout
+async function handleShare() {
+  if (!workout.value) return
+  
+  // If we already have a public link locally (optimistic), copy it
+  if (workout.value.shareToken) {
+    copyShareLink(workout.value.shareToken)
+    return
+  }
+
+  sharing.value = true
+  try {
+    const response = await $fetch<{ token: string }>(`/api/workouts/${workout.value.id}/share`, {
+      method: 'POST',
+      body: { action: 'generate' }
+    })
+    
+    workout.value.shareToken = response.token
+    copyShareLink(response.token)
+  } catch (e: any) {
+    toast.add({
+      title: 'Share Failed',
+      description: e.message || 'Could not generate share link',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle'
+    })
+  } finally {
+    sharing.value = false
+  }
+}
+
+function copyShareLink(token: string) {
+  const url = `${window.location.origin}/share/workouts/${token}`
+  navigator.clipboard.writeText(url)
+  toast.add({
+    title: 'Link Copied',
+    description: 'Public link copied to clipboard',
+    color: 'success',
+    icon: 'i-heroicons-check-circle'
   })
 }
 
