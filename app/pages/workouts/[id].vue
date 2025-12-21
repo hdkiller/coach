@@ -84,6 +84,15 @@
             v-if="shouldShowPacing(workout)"
             variant="ghost"
             color="neutral"
+            @click="scrollToSection('advanced')"
+          >
+            <UIcon name="i-lucide-microscope" class="w-4 h-4 mr-2" />
+            Advanced
+          </UButton>
+          <UButton
+            v-if="shouldShowPacing(workout)"
+            variant="ghost"
+            color="neutral"
             @click="scrollToSection('pacing')"
           >
             <UIcon name="i-lucide-activity" class="w-4 h-4 mr-2" />
@@ -501,6 +510,13 @@
           <div v-if="shouldShowPacing(workout)" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Intervals & Peak Efforts</h2>
             <IntervalsAnalysis :workout-id="workout.id" />
+          </div>
+
+          <!-- Advanced Analytics Section -->
+          <div id="advanced" class="scroll-mt-20"></div>
+          <div v-if="shouldShowPacing(workout)" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Advanced Analytics</h2>
+            <AdvancedWorkoutMetrics :workout-id="workout.id" />
           </div>
 
           <!-- Pacing Analysis Section (for Run/Ride/Walk/Hike activities) -->
