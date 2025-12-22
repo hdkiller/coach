@@ -1,6 +1,57 @@
 import { getServerSession } from '#auth'
 import { prisma } from '../../utils/db'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Calendar'],
+    summary: 'Get calendar activities',
+    description: 'Returns a combined list of completed and planned workouts, along with nutrition and wellness data.',
+    parameters: [
+      {
+        name: 'startDate',
+        in: 'query',
+        required: true,
+        schema: { type: 'string', format: 'date-time' }
+      },
+      {
+        name: 'endDate',
+        in: 'query',
+        required: true,
+        schema: { type: 'string', format: 'date-time' }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' },
+                  date: { type: 'string', format: 'date-time' },
+                  type: { type: 'string' },
+                  source: { type: 'string' },
+                  status: { type: 'string' },
+                  duration: { type: 'integer' },
+                  tss: { type: 'number', nullable: true },
+                  nutrition: { type: 'object', nullable: true },
+                  wellness: { type: 'object', nullable: true }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { description: 'Invalid date parameters' },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   
