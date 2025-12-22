@@ -2,6 +2,43 @@ import { defineEventHandler, getRouterParam, createError } from 'h3'
 import { getServerSession } from '#auth'
 import { prisma } from '../../../utils/db'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Analytics'],
+    summary: 'Get LLM usage detail',
+    description: 'Returns detailed information for a specific LLM call.',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                operation: { type: 'string' },
+                model: { type: 'string' },
+                promptFull: { type: 'string', nullable: true },
+                responseFull: { type: 'string', nullable: true }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' },
+      404: { description: 'Usage record not found' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user?.email) {

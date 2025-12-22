@@ -2,6 +2,51 @@ import { defineEventHandler, getQuery, createError } from 'h3'
 import { getServerSession } from '#auth'
 import { prisma } from '../../../utils/db'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Analytics'],
+    summary: 'Get LLM usage history',
+    description: 'Returns a paginated history of AI model calls.',
+    parameters: [
+      {
+        name: 'page',
+        in: 'query',
+        schema: { type: 'integer', default: 1 }
+      },
+      {
+        name: 'pageSize',
+        in: 'query',
+        schema: { type: 'integer', default: 20 }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                items: { type: 'array' },
+                pagination: {
+                  type: 'object',
+                  properties: {
+                    page: { type: 'integer' },
+                    pageSize: { type: 'integer' },
+                    total: { type: 'integer' },
+                    totalPages: { type: 'integer' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user?.email) {

@@ -4,6 +4,55 @@ import { userRepository } from '../../utils/repositories/userRepository'
 import { calculatePowerZones, calculateHrZones } from '../../utils/zones'
 import { getServerSession } from '#auth'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Analytics'],
+    summary: 'Get weekly zone distribution',
+    description: 'Returns time spent in power and heart rate zones aggregated weekly.',
+    parameters: [
+      {
+        name: 'weeks',
+        in: 'query',
+        schema: { type: 'integer', default: 12 }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                weeks: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      weekStart: { type: 'string' },
+                      powerZones: { type: 'array', items: { type: 'number' } },
+                      hrZones: { type: 'array', items: { type: 'number' } },
+                      totalDuration: { type: 'number' }
+                    }
+                  }
+                },
+                zoneLabels: {
+                  type: 'object',
+                  properties: {
+                    power: { type: 'array', items: { type: 'string' } },
+                    hr: { type: 'array', items: { type: 'string' } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user?.id) {

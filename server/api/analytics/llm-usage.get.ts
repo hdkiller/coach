@@ -2,6 +2,54 @@ import { defineEventHandler, getQuery, createError } from 'h3'
 import { getServerSession } from '#auth'
 import { prisma } from '../../utils/db'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Analytics'],
+    summary: 'Get LLM usage stats',
+    description: 'Returns usage statistics for AI model calls.',
+    parameters: [
+      {
+        name: 'days',
+        in: 'query',
+        schema: { type: 'integer', default: 30 }
+      },
+      {
+        name: 'groupBy',
+        in: 'query',
+        schema: { type: 'string', enum: ['operation', 'date', 'model'], default: 'operation' }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                summary: {
+                  type: 'object',
+                  properties: {
+                    totalCalls: { type: 'integer' },
+                    successfulCalls: { type: 'integer' },
+                    failedCalls: { type: 'integer' },
+                    totalCost: { type: 'number' },
+                    totalTokens: { type: 'integer' }
+                  }
+                },
+                groupedData: { type: 'array' },
+                recentUsage: { type: 'array' },
+                dateRange: { type: 'object' }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user?.email) {
