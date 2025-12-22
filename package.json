@@ -54,7 +54,7 @@
   "private": true,
   "scripts": {
     "backfill-scores": "tsx scripts/backfill-scores.ts",
-    "build": "nuxt build",
+    "build": "prisma generate && nuxt build",
     "dev": "nuxt dev",
     "dev:trigger": "pnpm prisma:generate && npx trigger.dev@latest dev",
     "generate": "nuxt generate",
