@@ -109,6 +109,13 @@
         </UDropdownMenu>
 
         <UButton
+          to="/workouts/upload"
+          icon="i-heroicons-cloud-arrow-up"
+          variant="ghost"
+          aria-label="Upload workout"
+        />
+
+        <UButton
           icon="i-heroicons-arrow-path"
           variant="ghost"
           :loading="status === 'pending'"

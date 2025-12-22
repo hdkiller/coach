@@ -6,19 +6,31 @@
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UButton
-            v-if="integrationStore?.intervalsConnected"
-            @click="integrationStore.syncAllData"
-            :loading="integrationStore.syncingData"
-            :disabled="integrationStore.syncingData"
-            color="neutral"
-            variant="outline"
-            icon="i-heroicons-arrow-path"
-            size="sm"
-            class="font-bold"
-          >
-            Sync Data
-          </UButton>
+          <div class="flex items-center gap-2">
+            <UButton
+              to="/workouts/upload"
+              icon="i-heroicons-cloud-arrow-up"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="font-bold"
+            >
+              Upload
+            </UButton>
+            <UButton
+              v-if="integrationStore?.intervalsConnected"
+              @click="integrationStore.syncAllData"
+              :loading="integrationStore.syncingData"
+              :disabled="integrationStore.syncingData"
+              color="neutral"
+              variant="outline"
+              icon="i-heroicons-arrow-path"
+              size="sm"
+              class="font-bold"
+            >
+              Sync Data
+            </UButton>
+          </div>
         </template>
       </UDashboardNavbar>
     </template>
