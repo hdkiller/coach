@@ -2,6 +2,40 @@ import { getServerSession } from '#auth'
 import { prisma } from '../../utils/db'
 import { deleteIntervalsPlannedWorkout } from '../../utils/intervals'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Planned Workouts'],
+    summary: 'Delete planned workout',
+    description: 'Deletes a specific planned workout and removes it from Intervals.icu.',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                message: { type: 'string' }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' },
+      404: { description: 'Workout not found' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

@@ -1,6 +1,45 @@
 import { getServerSession } from '#auth'
 import { prisma } from '../../utils/db'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Planned Workouts'],
+    summary: 'Get planned workout',
+    description: 'Returns details for a specific planned workout.',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                title: { type: 'string' },
+                date: { type: 'string', format: 'date-time' },
+                type: { type: 'string' },
+                description: { type: 'string', nullable: true },
+                durationSec: { type: 'integer', nullable: true },
+                tss: { type: 'number', nullable: true }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' },
+      404: { description: 'Workout not found' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

@@ -1,6 +1,55 @@
 import { getServerSession } from '#auth'
 import { prisma } from '../../../utils/db'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Planned Workouts'],
+    summary: 'Complete planned workout',
+    description: 'Marks a planned workout as completed by linking it to an actual workout.',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' }
+      }
+    ],
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['workoutId'],
+            properties: {
+              workoutId: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                plannedWorkout: { type: 'object' },
+                workout: { type: 'object' }
+              }
+            }
+          }
+        }
+      },
+      400: { description: 'Invalid input' },
+      401: { description: 'Unauthorized' },
+      404: { description: 'Workout not found' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

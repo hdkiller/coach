@@ -2,6 +2,59 @@ import { getServerSession } from '#auth'
 import { prisma } from '../../utils/db'
 import { syncPlannedWorkoutToIntervals } from '../../utils/intervals-sync'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Planned Workouts'],
+    summary: 'Update planned workout',
+    description: 'Updates a specific planned workout and syncs changes to Intervals.icu.',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' }
+      }
+    ],
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              date: { type: 'string', format: 'date-time' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+              type: { type: 'string' },
+              durationSec: { type: 'integer' },
+              tss: { type: 'number' }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                workout: { type: 'object' },
+                syncStatus: { type: 'string' },
+                message: { type: 'string' }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' },
+      404: { description: 'Workout not found' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   
