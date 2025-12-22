@@ -21,6 +21,7 @@
     "@types/uuid": "^11.0.0",
     "@vueuse/core": "^11.3.0",
     "chart.js": "^4.5.1",
+    "chartjs-adapter-date-fns": "^3.0.0",
     "chartjs-plugin-annotation": "^3.1.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
