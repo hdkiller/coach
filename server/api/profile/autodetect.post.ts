@@ -1,4 +1,7 @@
 import { getServerSession } from '#auth'
+import { prisma } from '../../utils/db'
+import { athleteMetricsService } from '../../utils/athleteMetricsService'
+import { fetchIntervalsAthleteProfile } from '../../utils/intervals'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -40,35 +43,59 @@ export default defineEventHandler(async (event) => {
     // Fetch profile from Intervals.icu
     const intervalsProfile = await fetchIntervalsAthleteProfile(integration)
     
-    // Prepare update data
-    const updateData: any = {}
+    // Detect if key metrics changed to trigger recalculation
+    let metricsChanged = false
+    const metricsUpdate: any = {}
+
+    if (intervalsProfile.ftp && intervalsProfile.ftp !== user.ftp) {
+      metricsUpdate.ftp = intervalsProfile.ftp
+      metricsChanged = true
+    }
+    if (intervalsProfile.maxHR && intervalsProfile.maxHR !== user.maxHr) {
+      metricsUpdate.maxHr = intervalsProfile.maxHR
+      metricsChanged = true
+    }
+    if (intervalsProfile.weight && intervalsProfile.weight !== user.weight) {
+      metricsUpdate.weight = intervalsProfile.weight
+      metricsChanged = true
+    }
+
+    let updatedUser;
+
+    // Use service if metrics changed
+    if (metricsChanged) {
+      updatedUser = await athleteMetricsService.updateMetrics(user.id, metricsUpdate)
+    }
+
+    // Handle other fields separately (restingHR, etc.) if they weren't part of the metrics update
+    const otherUpdates: any = {}
+    if (intervalsProfile.restingHR) otherUpdates.restingHr = intervalsProfile.restingHR
     
-    if (intervalsProfile.ftp) updateData.ftp = intervalsProfile.ftp
-    if (intervalsProfile.maxHR) updateData.maxHr = intervalsProfile.maxHR
-    if (intervalsProfile.restingHR) updateData.restingHr = intervalsProfile.restingHR
-    if (intervalsProfile.weight) updateData.weight = intervalsProfile.weight
-    if (intervalsProfile.hrZones) updateData.hrZones = intervalsProfile.hrZones
-    if (intervalsProfile.powerZones) updateData.powerZones = intervalsProfile.powerZones
-    
-    // If we found any data, update the user
-    if (Object.keys(updateData).length > 0) {
-      const updatedUser = await prisma.user.update({
+    // If we have other updates, apply them
+    if (Object.keys(otherUpdates).length > 0) {
+      updatedUser = await prisma.user.update({
         where: { id: user.id },
-        data: updateData
+        data: otherUpdates
       })
-      
-      return {
-        success: true,
-        message: 'Profile updated from Intervals.icu',
-        updates: updateData,
-        profile: updatedUser
-      }
-    } else {
+    }
+    
+    // If nothing happened
+    if (!metricsChanged && Object.keys(otherUpdates).length === 0) {
       return {
         success: true,
         message: 'No new data found from Intervals.icu',
         updates: {}
       }
+    }
+
+    // Combine updates for response
+    const allUpdates = { ...metricsUpdate, ...otherUpdates }
+
+    return {
+      success: true,
+      message: 'Profile updated from Intervals.icu',
+      updates: allUpdates,
+      profile: updatedUser
     }
     
   } catch (error: any) {

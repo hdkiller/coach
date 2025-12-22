@@ -1,5 +1,7 @@
 import { getServerSession } from '#auth'
 import { z } from 'zod'
+import { prisma } from '../../utils/db'
+import { athleteMetricsService } from '../../utils/athleteMetricsService'
 
 const profileSchema = z.object({
   name: z.string().nullable().optional(),
@@ -42,7 +44,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid input',
-      data: result.error.errors
+      data: result.error.issues
     })
   }
 
@@ -79,6 +81,22 @@ export default defineEventHandler(async (event) => {
       updateData.dob = dobDate
     }
 
+    // Use AthleteMetricsService if critical metrics are changing
+    // This triggers auto-recalculation of zones if FTP or MaxHR changes
+    if (data.ftp !== undefined || data.maxHr !== undefined || data.weight !== undefined) {
+      await athleteMetricsService.updateMetrics(user.id, {
+        ftp: data.ftp,
+        maxHr: data.maxHr,
+        weight: data.weight
+      })
+      
+      // Remove these from generic update to avoid double-write
+      if (data.ftp !== undefined) delete updateData.ftp
+      if (data.maxHr !== undefined) delete updateData.maxHr
+      if (data.weight !== undefined) delete updateData.weight
+    }
+
+    // Perform standard update for remaining fields
     const updatedUser = await prisma.user.update({
       where: { email: session.user.email },
       data: updateData
