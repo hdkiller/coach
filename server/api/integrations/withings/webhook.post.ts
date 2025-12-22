@@ -1,6 +1,44 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 // prisma is auto-imported in server routes
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Withings webhook',
+    description: 'Handles incoming webhook notifications from Withings.',
+    requestBody: {
+      content: {
+        'application/x-www-form-urlencoded': {
+          schema: {
+            type: 'object',
+            properties: {
+              userid: { type: 'string' },
+              appli: { type: 'string' },
+              startdate: { type: 'string' },
+              enddate: { type: 'string' }
+            }
+          }
+        },
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              userid: { type: 'string' },
+              appli: { type: 'string' },
+              startdate: { type: 'string' },
+              enddate: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: { description: 'OK' },
+      400: { description: 'Missing userid' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   // 1. Verify Request
   // Withings usually sends a HEAD request to verify the endpoint

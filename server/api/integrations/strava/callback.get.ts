@@ -1,5 +1,22 @@
 import { getServerSession } from '#auth'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Strava callback',
+    description: 'Handles the OAuth callback from Strava.',
+    parameters: [
+      { name: 'code', in: 'query', schema: { type: 'string' } },
+      { name: 'state', in: 'query', schema: { type: 'string' } },
+      { name: 'error', in: 'query', schema: { type: 'string' } }
+    ],
+    responses: {
+      302: { description: 'Redirect to settings' },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

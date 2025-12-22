@@ -1,5 +1,45 @@
 import { getServerSession } from '#auth'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Connect Yazio',
+    description: 'Connects the Yazio integration using username and password.',
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['username', 'password'],
+            properties: {
+              username: { type: 'string' },
+              password: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                integrationId: { type: 'string' }
+              }
+            }
+          }
+        }
+      },
+      400: { description: 'Missing credentials' },
+      401: { description: 'Unauthorized or invalid credentials' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

@@ -1,5 +1,17 @@
 import { getServerSession } from '#auth'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Authorize Whoop',
+    description: 'Initiates the OAuth flow for Whoop integration. Redirects to Whoop.',
+    responses: {
+      302: { description: 'Redirect to Whoop' },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

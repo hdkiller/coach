@@ -1,5 +1,41 @@
 import { getServerSession } from '#auth'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Get integration status',
+    description: 'Returns the status of all connected integrations for the user.',
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                integrations: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      provider: { type: 'string' },
+                      lastSyncAt: { type: 'string', format: 'date-time', nullable: true },
+                      syncStatus: { type: 'string', nullable: true },
+                      externalUserId: { type: 'string', nullable: true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

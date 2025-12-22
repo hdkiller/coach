@@ -1,5 +1,17 @@
 import { getServerSession } from '#auth'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Authorize Withings',
+    description: 'Initiates the OAuth flow for Withings integration. Redirects to Withings.',
+    responses: {
+      302: { description: 'Redirect to Withings' },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

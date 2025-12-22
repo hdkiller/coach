@@ -1,6 +1,58 @@
 import { getServerSession } from '#auth'
 import { tasks } from "@trigger.dev/sdk/v3";
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Trigger sync',
+    description: 'Triggers a background job to sync data from an integration provider.',
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['provider'],
+            properties: {
+              provider: {
+                type: 'string',
+                enum: ['intervals', 'whoop', 'withings', 'yazio', 'strava', 'all']
+              }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                jobId: { type: 'string' },
+                provider: { type: 'string' },
+                message: { type: 'string' },
+                dateRange: {
+                  type: 'object',
+                  properties: {
+                    start: { type: 'string', format: 'date-time' },
+                    end: { type: 'string', format: 'date-time' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { description: 'Invalid provider' },
+      401: { description: 'Unauthorized' },
+      404: { description: 'Integration not found' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   

@@ -1,6 +1,53 @@
 import { getServerSession } from '#auth'
 import { fetchIntervalsAthlete } from '../../utils/intervals'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Integrations'],
+    summary: 'Connect Intervals.icu',
+    description: 'Connects the Intervals.icu integration using an API key and Athlete ID.',
+    requestBody: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['apiKey', 'athleteId'],
+            properties: {
+              apiKey: { type: 'string' },
+              athleteId: { type: 'string' }
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                athlete: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    name: { type: 'string' },
+                    email: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      400: { description: 'Invalid API key or athlete ID' },
+      401: { description: 'Unauthorized' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   
