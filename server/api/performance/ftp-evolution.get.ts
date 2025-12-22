@@ -1,6 +1,7 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
 import { getServerSession } from '#auth'
 import { prisma } from '../../utils/db'
+import { userRepository } from '../../utils/repositories/userRepository'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -32,6 +33,7 @@ export default defineEventHandler(async (event) => {
   startDate.setMonth(startDate.getMonth() - months)
 
   // Get workouts with FTP data, ordered by date
+  // This gives us "snapshots" of FTP changes over time
   const workouts = await prisma.workout.findMany({
     where: {
       userId: user.id,
@@ -56,9 +58,12 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // Group by month and get the last FTP value for each month
+  // Reconstruct history
+  // We combine current FTP (most authoritative for "now") with historical snapshots
+  
   const ftpByMonth = new Map<string, { date: Date; ftp: number; title: string }>()
   
+  // 1. Process historical data points
   workouts.forEach(workout => {
     if (!workout.ftp) return
     
@@ -75,6 +80,23 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // 2. Add "Current" state if not covered by recent workout
+  // This handles the case where user manually updated FTP in settings but hasn't done a workout yet with it
+  if (user.ftp) {
+    const currentMonthKey = new Date().toISOString().slice(0, 7)
+    const existing = ftpByMonth.get(currentMonthKey)
+    
+    // If the latest workout FTP is different from User Profile FTP, it means the profile was likely updated manually
+    // So we treat the User Profile FTP as the latest data point
+    if (!existing || existing.ftp !== user.ftp) {
+        ftpByMonth.set(currentMonthKey, {
+            date: new Date(),
+            ftp: user.ftp,
+            title: 'Current Setting'
+        })
+    }
+  }
+
   // Convert to array and sort by date
   const ftpData = Array.from(ftpByMonth.values())
     .sort((a, b) => a.date.getTime() - b.date.getTime())
@@ -86,9 +108,15 @@ export default defineEventHandler(async (event) => {
     }))
 
   // Calculate statistics
+  // Current FTP is always the profile FTP (source of truth for "Now")
   const currentFTP = user.ftp || (ftpData.length > 0 ? ftpData[ftpData.length - 1].ftp : null)
+  
+  // Starting FTP is the first data point in the period
   const startingFTP = ftpData.length > 0 ? ftpData[0].ftp : null
+  
+  // Peak is max over the period
   const peakFTP = ftpData.length > 0 ? Math.max(...ftpData.map(d => d.ftp)) : null
+  
   const improvement = startingFTP && currentFTP ? ((currentFTP - startingFTP) / startingFTP * 100) : null
 
   return {
