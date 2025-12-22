@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { calculateTSB } from './training-stress'
 
 /**
  * Training Metrics Utility
