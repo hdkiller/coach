@@ -1,5 +1,43 @@
 import { getServerSession } from '#auth'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['Nutrition'],
+    summary: 'Get nutrition entry',
+    description: 'Returns a specific nutrition log by ID.',
+    parameters: [
+      {
+        name: 'id',
+        in: 'path',
+        required: true,
+        schema: { type: 'string' }
+      }
+    ],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                date: { type: 'string', format: 'date' },
+                calories: { type: 'integer', nullable: true },
+                protein: { type: 'number', nullable: true },
+                carbs: { type: 'number', nullable: true },
+                fat: { type: 'number', nullable: true }
+              }
+            }
+          }
+        }
+      },
+      401: { description: 'Unauthorized' },
+      404: { description: 'Nutrition entry not found' }
+    }
+  }
+})
+
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   
