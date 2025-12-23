@@ -29,6 +29,8 @@ jobs:
         run: pnpm install
 
       - name: Build application
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
         run: pnpm build
 
       - name: Build successful
