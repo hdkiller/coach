@@ -25,6 +25,8 @@
 
     <main class="flex-1">
       <slot />
+      
+      <SharePageCTA />
     </main>
 
     <!-- Footer -->
