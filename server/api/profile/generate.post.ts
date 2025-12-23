@@ -1,4 +1,4 @@
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
 

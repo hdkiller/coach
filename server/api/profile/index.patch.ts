@@ -1,9 +1,9 @@
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { z } from 'zod'
 import { prisma } from '../../utils/db'
 import { athleteMetricsService } from '../../utils/athleteMetricsService'
 
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { z } from 'zod'
 import { prisma } from '../../utils/db'
 import { athleteMetricsService } from '../../utils/athleteMetricsService'
