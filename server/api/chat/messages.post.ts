@@ -1,4 +1,4 @@
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { chatToolDeclarations, executeToolCall } from '../../utils/chat-tools'
 import { generateCoachAnalysis } from '../../utils/gemini'
