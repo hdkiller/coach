@@ -24,7 +24,8 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@sidebase/nuxt-auth',
     '@nuxtjs/mdc',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    'nuxt-gtag'
   ],
 
   nitro: {
@@ -74,7 +75,10 @@ export default defineNuxtConfig({
       version: pkg.version,
       authBypassEnabled: !!process.env.AUTH_BYPASS_USER,
       authBypassUser: process.env.AUTH_BYPASS_USER || '',
-      authBypassName: process.env.AUTH_BYPASS_NAME || ''
+      authBypassName: process.env.AUTH_BYPASS_NAME || '',
+      gtag: {
+        id: 'GTM-WJK5K3HK'
+      }
     }
   },
 
@@ -89,7 +93,7 @@ export default defineNuxtConfig({
     vue: {
       template: {
         compilerOptions: {
-          isCustomElement: (tag) => ['vue-advanced-chat', 'emoji-picker'].includes(tag)
+          isCustomElement: (tag) => ['rapi-doc'].includes(tag)
         }
       }
     }
