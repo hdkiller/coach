@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../../utils/session'
 
 defineRouteMeta({
   openAPI: {

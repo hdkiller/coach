@@ -1,5 +1,5 @@
 import { defineEventHandler, readMultipartFormData, createError } from 'h3'
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import crypto from 'crypto'
 import { tasks } from '@trigger.dev/sdk/v3'

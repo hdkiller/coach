@@ -1,5 +1,5 @@
 import { defineEventHandler } from 'h3'
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 
 defineRouteMeta({
