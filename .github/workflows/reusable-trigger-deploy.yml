@@ -4,9 +4,13 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: Environment to deploy to (e.g., staging, production)
+        description: GitHub environment for secrets (e.g., preview, production)
         type: string
         required: true
+      trigger-env:
+        description: Trigger.dev environment to deploy to (e.g., staging, production)
+        type: string
+        required: false
       trigger-version:
         description: Trigger.dev CLI version to use
         type: string
@@ -126,7 +130,13 @@ jobs:
           if [ -n "${API_URL}" ]; then echo "  TRIGGER_API_URL: ${API_URL}"; else echo "  TRIGGER_API_URL: not set (defaults to Trigger.dev Cloud)"; fi
           if [ -n "${PROJECT_REF}" ]; then echo "  TRIGGER_PROJECT_REF: ${PROJECT_REF}"; else echo "  TRIGGER_PROJECT_REF: not set (will rely on config)"; fi
 
-          echo "🚀 Deploying Trigger.dev tasks to ${{ inputs.environment }}..."
+          # Determine which Trigger.dev environment to use
+          TRIGGER_ENV="${{ inputs.trigger-env }}"
+          if [ -z "${TRIGGER_ENV}" ]; then
+            TRIGGER_ENV="${{ inputs.environment }}"
+          fi
+
+          echo "🚀 Deploying Trigger.dev tasks to ${TRIGGER_ENV}..."
 
           # Build deployment command based on configuration
           DEPLOY_CMD="pnpm dlx trigger.dev@${{ inputs.trigger-version }} deploy"
@@ -145,7 +155,7 @@ jobs:
             fi
           else
             # Add environment flag for regular deployment
-            DEPLOY_CMD="$DEPLOY_CMD --env ${{ inputs.environment }}"
+            DEPLOY_CMD="$DEPLOY_CMD --env ${TRIGGER_ENV}"
           fi
 
           # Append API URL and Project Ref flags if provided
@@ -166,9 +176,16 @@ jobs:
           TRIGGER_PROJECT_REF: ${{ secrets.TRIGGER_PROJECT_REF }}
           TRIGGER_API_URL: ${{ secrets.TRIGGER_API_URL }}
         run: |
+          # Determine which Trigger.dev environment was used
+          TRIGGER_ENV="${{ inputs.trigger-env }}"
+          if [ -z "${TRIGGER_ENV}" ]; then
+            TRIGGER_ENV="${{ inputs.environment }}"
+          fi
+
           echo "✅ Skipping CLI verification (no deployments list cmd in v4)."
           echo "Deployment context:"
-          echo "  Environment: ${{ inputs.environment }}"
+          echo "  GitHub Environment: ${{ inputs.environment }}"
+          echo "  Trigger.dev Environment: ${TRIGGER_ENV}"
           echo "  Preview branch: ${{ inputs.preview-branch }} ${{ inputs.branch-name }}"
           echo "  Trigger version: ${{ inputs.trigger-version }}"
           echo "  API URL set: $([[ -n \"${TRIGGER_API_URL}\" ]] && echo yes || echo no)"

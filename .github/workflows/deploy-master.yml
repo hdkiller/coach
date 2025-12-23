@@ -37,11 +37,12 @@ jobs:
         run: echo "✅ Application built successfully!"
 
   deploy:
-    name: Deploy Trigger.dev to Preview
+    name: Deploy Trigger.dev to Staging
     needs: build
     uses: ./.github/workflows/reusable-trigger-deploy.yml
     with:
       environment: preview
+      trigger-env: staging
       trigger-version: "4.3.1"
       node-version: "22"
       preview-branch: false
