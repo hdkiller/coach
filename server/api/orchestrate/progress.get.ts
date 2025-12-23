@@ -1,5 +1,5 @@
 import { defineEventHandler, setHeader } from 'h3'
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { activeSyncs } from './full-sync.post'
 
 defineRouteMeta({

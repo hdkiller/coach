@@ -1,9 +1,9 @@
 import { defineEventHandler, readBody, createError } from 'h3'
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { TASK_DEPENDENCIES, getTasksByLevel, canExecuteTask, type TaskExecutionState } from '../../../types/task-dependencies'
 
 import { defineEventHandler, readBody, createError } from 'h3'
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import { TASK_DEPENDENCIES, getTasksByLevel, canExecuteTask, type TaskExecutionState } from '../../../types/task-dependencies'
 
 defineRouteMeta({

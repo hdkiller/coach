@@ -1,4 +1,4 @@
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../utils/session'
 import type { PMCMetrics } from '../../utils/training-stress'
 import {
   calculatePMCForDateRange,
