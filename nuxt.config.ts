@@ -12,7 +12,13 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'AI-powered endurance coaching platform that adapts to your training.' }
+        { name: 'description', content: 'AI-powered endurance coaching platform that adapts to your training.' },
+        { name: 'apple-mobile-web-app-title', content: 'Coach Watts' },
+        { name: 'application-name', content: 'Coach Watts' },
+        { property: 'og:site_name', content: 'Coach Watts' },
+        { property: 'og:type', content: 'website' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:site', content: '@coachwatts' }
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
