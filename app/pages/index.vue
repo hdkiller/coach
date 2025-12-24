@@ -51,7 +51,13 @@ definePageMeta({
 useHead({
   title: 'Coach Watts - AI Endurance Coaching',
   meta: [
-    { name: 'description', content: 'Coach Watts is your AI-powered endurance coach. Optimize your training, recovery, and nutrition with personalized insights.' }
+    { name: 'description', content: 'Coach Watts is your AI-powered endurance coach. Optimize your training, recovery, and nutrition with personalized insights.' },
+    { property: 'og:title', content: 'Coach Watts - AI Endurance Coaching' },
+    { property: 'og:description', content: 'Coach Watts is your AI-powered endurance coach. Optimize your training, recovery, and nutrition with personalized insights.' },
+    { property: 'og:image', content: '/images/screenshots/todays_training.png' },
+    { name: 'twitter:title', content: 'Coach Watts - AI Endurance Coaching' },
+    { name: 'twitter:description', content: 'Coach Watts is your AI-powered endurance coach. Optimize your training, recovery, and nutrition with personalized insights.' },
+    { name: 'twitter:image', content: '/images/screenshots/todays_training.png' }
   ]
 })
 

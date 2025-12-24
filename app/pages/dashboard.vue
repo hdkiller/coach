@@ -202,4 +202,13 @@ function openScoreModal(data: any) {
   scoreModalData.value = data
   showScoreModal.value = true
 }
+
+useHead({
+  title: 'Dashboard',
+  meta: [
+    { name: 'description', content: 'Your training overview, recovery status, and personalized AI coaching recommendations.' },
+    { property: 'og:title', content: 'Dashboard | Coach Watts' },
+    { property: 'og:description', content: 'Your training overview, recovery status, and personalized AI coaching recommendations.' }
+  ]
+})
 </script>

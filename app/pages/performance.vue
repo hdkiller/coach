@@ -375,7 +375,9 @@ definePageMeta({
 useHead({
   title: 'Performance Scores',
   meta: [
-    { name: 'description', content: 'Detailed analysis of your athletic performance, including FTP evolution, training load, nutrition quality, and workout execution.' }
+    { name: 'description', content: 'Detailed analysis of your athletic performance, including FTP evolution, training load, nutrition quality, and workout execution.' },
+    { property: 'og:title', content: 'Performance Scores | Coach Watts' },
+    { property: 'og:description', content: 'Detailed analysis of your athletic performance, including FTP evolution, training load, nutrition quality, and workout execution.' }
   ]
 })
 
