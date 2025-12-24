@@ -71,6 +71,7 @@
     "postinstall": "prisma generate && nuxt prepare",
     "preview": "nuxt preview",
     "prisma:generate": "prisma generate",
+    "release": "release-it",
     "cli": "tsx ./cli/index.ts"
   },
   "type": "module",
