@@ -92,6 +92,10 @@ export default defineNuxtConfig({
     port: 3099
   },
 
+  build: {
+    transpile: ['@vue-leaflet/vue-leaflet']
+  },
+
   vite: {
     optimizeDeps: {
       include: ['prosemirror-state']
