@@ -284,7 +284,7 @@ const token = route.params.token as string
 
 const { formatDate, formatShortDate } = useFormat()
 
-const { data: sharedData, pending, error } = await useFetch(`/api/share/${token}`)
+const { data: sharedData, pending, error } = await useFetch<any>(`/api/share/${token}`)
 
 const profile = computed(() => {
   if (sharedData.value?.resourceType === 'REPORT' || sharedData.value?.resourceType === 'ATHLETE_PROFILE') {
@@ -293,12 +293,38 @@ const profile = computed(() => {
   return null
 })
 
+const pageTitle = computed(() => profile.value ? `${sharedData.value?.user?.name || 'Athlete'}'s Profile | Coach Wattz` : 'Shared Athlete Profile | Coach Wattz')
+const pageDescription = computed(() => {
+  if (profile.value?.analysisJson?.executive_summary) {
+    return profile.value.analysisJson.executive_summary.substring(0, 160)
+  }
+  return 'View personalized AI endurance coaching analysis and athlete profile on Coach Wattz.'
+})
+
 useHead({
-  title: computed(() => profile.value ? `${sharedData.value?.user?.name || 'Athlete'}'s Profile | Coach Wattz` : 'Shared Athlete Profile | Coach Wattz'),
+  title: pageTitle,
   meta: [
-    { name: 'description', content: 'View shared athlete profile report on Coach Wattz.' },
-    { property: 'og:title', content: 'Shared Athlete Profile | Coach Wattz' },
-    { property: 'og:description', content: 'Personalized AI endurance coaching analysis.' }
+    { name: 'description', content: pageDescription },
+    { property: 'og:title', content: pageTitle },
+    { property: 'og:description', content: pageDescription },
+    { property: 'og:type', content: 'profile' },
+    { name: 'twitter:title', content: pageTitle },
+    { name: 'twitter:description', content: pageDescription }
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      children: computed(() => JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        'mainEntity': {
+          '@type': 'Person',
+          'name': sharedData.value?.user?.name || 'Athlete',
+          'image': sharedData.value?.user?.image,
+          'description': pageDescription.value
+        }
+      }))
+    }
   ]
 })
 

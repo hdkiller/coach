@@ -315,12 +315,18 @@ definePageMeta({
 const route = useRoute()
 const token = route.params.token as string
 
-const workout = ref<any>(null)
-const loading = ref(true)
-const error = ref<string | null>(null)
+const { data: workout, pending: loading, error: fetchError } = await useFetch<any>(`/api/share/workouts/${token}`)
+
+const error = computed(() => {
+  if (fetchError.value) {
+    return fetchError.value.data?.message || 'Failed to load workout. The link may be invalid or expired.'
+  }
+  return null
+})
 
 // Formatters
 function formatDate(date: string | Date) {
+  if (!date) return ''
   return new Date(date).toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -328,6 +334,45 @@ function formatDate(date: string | Date) {
     day: 'numeric'
   })
 }
+
+const pageTitle = computed(() => workout.value ? `${workout.value.title} - Shared Workout | Coach Wattz` : 'Shared Workout | Coach Wattz')
+const pageDescription = computed(() => {
+  if (workout.value) {
+    const dateStr = formatDate(workout.value.date)
+    const summary = workout.value.aiAnalysisJson?.executive_summary || ''
+    return `Check out this ${workout.value.type || ''} workout on Coach Wattz: ${workout.value.title} (${dateStr}). ${summary}`.substring(0, 160)
+  }
+  return 'View shared workout analysis and performance metrics on Coach Wattz.'
+})
+
+useHead({
+  title: pageTitle,
+  meta: [
+    { name: 'description', content: pageDescription },
+    { property: 'og:title', content: pageTitle },
+    { property: 'og:description', content: pageDescription },
+    { property: 'og:type', content: 'article' },
+    { property: 'article:published_time', content: computed(() => workout.value?.date) },
+    { name: 'twitter:title', content: pageTitle },
+    { name: 'twitter:description', content: pageDescription }
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      children: computed(() => JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Report',
+        'name': workout.value?.title,
+        'description': pageDescription.value,
+        'datePublished': workout.value?.date,
+        'author': {
+          '@type': 'Person',
+          'name': workout.value?.user?.name || 'Coach Wattz User'
+        }
+      }))
+    }
+  ]
+})
 
 function formatDuration(seconds: number) {
   const hours = Math.floor(seconds / 3600)
@@ -443,34 +488,5 @@ const availableMetrics = computed(() => {
   if (w.trainer !== null && w.trainer !== undefined) metrics.push({ key: 'trainer', label: 'Indoor Trainer', value: w.trainer ? 'Yes' : 'No' })
   
   return metrics
-})
-
-// Fetch Data
-async function fetchSharedWorkout() {
-  loading.value = true
-  error.value = null
-  try {
-    const data = await $fetch(`/api/share/workouts/${token}`)
-    workout.value = data
-    
-    // Set meta tags for social sharing
-    useHead({
-      title: `${data.title} - Shared Workout | Coach Wattz`,
-      meta: [
-        { name: 'description', content: `Check out my workout on Coach Wattz: ${data.title} - ${formatDate(data.date)}` },
-        { property: 'og:title', content: `${data.title} | Coach Wattz` },
-        { property: 'og:description', content: `Check out my workout analysis on Coach Wattz` },
-        { property: 'og:type', content: 'article' },
-      ]
-    })
-  } catch (e: any) {
-    error.value = e.data?.message || 'Failed to load workout. The link may be invalid or expired.'
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(() => {
-  fetchSharedWorkout()
 })
 </script>
