@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.3.1](https://github.com/newpush/coach/compare/v0.3.0...v0.3.1) (2025-12-24)
+
 # [0.2.0](https://github.com/newpush/coach/compare/v0.1.0...v0.2.0) (2025-12-22)
 
 
