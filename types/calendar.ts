@@ -15,6 +15,7 @@ export interface CalendarActivity {
   // Completed specific
   rpe?: number
   feel?: number
+  plannedWorkoutId?: string
   
   // Planned specific
   plannedDuration?: number
