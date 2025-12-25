@@ -204,6 +204,35 @@ export const generateWeeklyPlanTask = task({
       includeZones: false,
       includeBreakdown: true
     });
+
+    // Determine current training phase if a goal exists
+    let phaseInstruction = "";
+    const primaryGoal = activeGoals.find(g => g.type === 'EVENT' && g.priority === 'HIGH') || activeGoals[0];
+    
+    if (primaryGoal) {
+      const today = new Date();
+      const goalDate = primaryGoal.eventDate || primaryGoal.targetDate;
+      
+      if (goalDate) {
+        const weeksToGoal = Math.ceil((new Date(goalDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 7));
+        
+        // Extract phase preference from aiContext if available
+        let preferredPhase = "";
+        if (primaryGoal.aiContext?.includes("Phase Preference:")) {
+          preferredPhase = primaryGoal.aiContext.split("Phase Preference:")[1].split(".")[0].trim();
+        }
+
+        if (preferredPhase) {
+          phaseInstruction = `\nUSER SPECIFIED PHASE: ${preferredPhase}. Focus the training plan strictly on this phase's objectives.`;
+        } else if (weeksToGoal > 12) {
+          phaseInstruction = `\nRECOMMENDED PHASE: BASE. Focus on building aerobic foundation and muscular endurance.`;
+        } else if (weeksToGoal > 4) {
+          phaseInstruction = `\nRECOMMENDED PHASE: BUILD. Focus on specificity, threshold, and race-intensity workouts.`;
+        } else if (weeksToGoal > 0) {
+          phaseInstruction = `\nRECOMMENDED PHASE: SPECIALTY/PEAK. Focus on maximum specificity, race simulation, and tapering.`;
+        }
+      }
+    }
     
     // Calculate current and target TSS values
     const currentWeeklyTSS = trainingContext.loadTrend.weeklyTSSAvg;
@@ -283,6 +312,7 @@ No active goals set. Plan for general fitness maintenance and improvement.
     
     // Build prompt
     const prompt = `You are an expert cycling coach creating a personalized ${daysToPlann}-day training plan.
+${phaseInstruction}
 
 ${athleteContext}
 
