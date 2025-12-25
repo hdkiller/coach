@@ -149,18 +149,22 @@
                 <td class="px-4 py-3">{{ Math.round(workout.durationSec / 60) }}m</td>
                 <td class="px-4 py-3">{{ Math.round(workout.tss) }}</td>
                 <td class="px-4 py-3 text-center">
-                  <UIcon
-                    v-if="workout.structuredWorkout"
-                    name="i-heroicons-check-circle"
-                    class="w-4 h-4 text-green-500 inline"
-                    title="Has structured workout data"
-                  />
-                  <UIcon
-                    v-else
-                    name="i-heroicons-minus-circle"
-                    class="w-4 h-4 text-gray-400 inline"
-                    title="No structured workout data"
-                  />
+                  <div class="flex justify-center">
+                    <MiniWorkoutChart
+                      v-if="workout.structuredWorkout"
+                      :workout="workout.structuredWorkout"
+                    />
+                    <UButton
+                      v-else
+                      size="xs"
+                      color="gray"
+                      variant="ghost"
+                      icon="i-heroicons-sparkles"
+                      :loading="generatingStructureForWorkoutId === workout.id"
+                      @click.stop="generateStructureForWorkout(workout.id)"
+                      title="Generate Structured Workout"
+                    />
+                  </div>
                 </td>
                 <td class="px-4 py-3 text-right">
                   <UBadge :color="workout.completed ? 'green' : 'gray'" size="xs">
@@ -193,6 +197,8 @@
 </template>
 
 <script setup lang="ts">
+import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
+
 const props = defineProps<{
   plan: any
 }>()
@@ -203,6 +209,7 @@ const selectedBlockId = ref<string | null>(null)
 const selectedWeekId = ref<string | null>(null)
 const showAdaptModal = ref(false)
 const generatingWorkouts = ref(false)
+const generatingStructureForWorkoutId = ref<string | null>(null)
 const adapting = ref<string | null>(null)
 const toast = useToast()
 
@@ -263,6 +270,36 @@ async function generateWorkoutsForBlock() {
     })
       } finally {
       generatingWorkouts.value = false
+    }
+  }
+
+  async function generateStructureForWorkout(workoutId: string) {
+    generatingStructureForWorkoutId.value = workoutId
+    try {
+      await $fetch(`/api/workouts/planned/${workoutId}/generate-structure`, {
+        method: 'POST'
+      })
+      
+      toast.add({
+        title: 'Generating...',
+        description: 'AI is designing your workout structure. This takes a moment.',
+        color: 'info'
+      })
+      
+      // Poll for update or refresh
+      // For simplicity, we trigger a full plan refresh after a delay
+      setTimeout(() => {
+        emit('refresh')
+        generatingStructureForWorkoutId.value = null
+      }, 5000)
+      
+    } catch (error: any) {
+      toast.add({
+        title: 'Generation Failed',
+        description: error.data?.message || 'Failed to generate structure',
+        color: 'error'
+      })
+      generatingStructureForWorkoutId.value = null
     }
   }
   
