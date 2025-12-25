@@ -106,6 +106,11 @@
               <div class="text-sm font-medium truncate">{{ step.name }}</div>
               <div class="text-xs text-muted">{{ step.type }}</div>
             </div>
+            <div class="flex-shrink-0 text-center w-12">
+              <span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-medium">
+                {{ getZone((step.power?.value || 0)) }}
+              </span>
+            </div>
             <div v-if="step.cadence" class="flex-shrink-0 text-xs text-blue-500 font-medium">
               {{ step.cadence }} RPM
             </div>
@@ -116,6 +121,38 @@
             <div v-if="userFtp" class="flex-shrink-0 text-xs text-muted w-16 text-right">
               {{ Math.round((step.power?.value || 0) * userFtp) }}W
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zone Distribution -->
+      <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h4 class="text-sm font-semibold text-muted mb-3">Time in Zone</h4>
+        
+        <!-- Stacked Horizontal Bar -->
+        <div class="h-6 w-full rounded-md overflow-hidden flex relative bg-gray-100 dark:bg-gray-700 mb-3">
+          <div 
+            v-for="(zone, index) in zoneDistribution" 
+            :key="index"
+            class="h-full relative group first:rounded-l-md last:rounded-r-md transition-all hover:opacity-90"
+            :style="{ 
+              width: `${(zone.duration / totalDuration) * 100}%`,
+              backgroundColor: zone.color
+            }"
+            :title="`${zone.name}: ${formatDuration(zone.duration)}`"
+          >
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs">
+          <div v-for="zone in zoneDistribution" :key="zone.name" class="flex flex-col p-1.5 bg-gray-50 dark:bg-gray-900 rounded border border-gray-100 dark:border-gray-800">
+            <div class="flex items-center gap-1.5 mb-1">
+              <div class="w-2 h-2 rounded-full flex-shrink-0" :style="{ backgroundColor: zone.color }"></div>
+              <span class="font-medium text-gray-500">{{ zone.name }}</span>
+            </div>
+            <span class="font-bold pl-3.5">{{ formatDuration(zone.duration) }}</span>
+            <span class="text-[10px] text-muted pl-3.5">{{ Math.round((zone.duration / totalDuration) * 100) }}%</span>
           </div>
         </div>
       </div>
@@ -195,6 +232,30 @@ const cadencePath = computed(() => {
   return path
 })
 
+const zoneDistribution = computed(() => {
+  const distribution = [
+    { name: 'Z1', min: 0, max: 0.55, duration: 0, color: '#9ca3af' }, // gray-400
+    { name: 'Z2', min: 0.55, max: 0.75, duration: 0, color: '#3b82f6' }, // blue-500
+    { name: 'Z3', min: 0.75, max: 0.90, duration: 0, color: '#22c55e' }, // green-500
+    { name: 'Z4', min: 0.90, max: 1.05, duration: 0, color: '#eab308' }, // yellow-500
+    { name: 'Z5', min: 1.05, max: 1.20, duration: 0, color: '#f97316' }, // orange-500
+    { name: 'Z6', min: 1.20, max: 9.99, duration: 0, color: '#ef4444' }, // red-500
+  ]
+
+  if (!props.workout?.steps) return distribution
+
+  props.workout.steps.forEach((step: any) => {
+    const power = step.power?.value || 0
+    const duration = step.durationSeconds || 0
+    
+    // Find zone
+    const zone = distribution.find(z => power <= z.max) || distribution[distribution.length - 1]
+    zone.duration += duration
+  })
+
+  return distribution
+})
+
 // Functions
 function getStepStyle(step: any) {
   const powerPercent = (step.power?.value || 0) * 100
@@ -208,6 +269,15 @@ function getStepStyle(step: any) {
     backgroundColor: color,
     minWidth: '2px'
   }
+}
+
+function getZone(power: number): string {
+  if (power <= 0.55) return 'Z1'
+  if (power <= 0.75) return 'Z2'
+  if (power <= 0.90) return 'Z3'
+  if (power <= 1.05) return 'Z4'
+  if (power <= 1.20) return 'Z5'
+  return 'Z6'
 }
 
 function getStepColor(type: string): string {
