@@ -56,7 +56,7 @@
                   <div class="text-[10px] opacity-80 mt-1">
                     {{ formatDuration(step.durationSeconds) }} @ 
                     <span v-if="step.power?.range">
-                      {{ Math.round(step.power.range.min * 100) }}-{{ Math.round(step.power.range.max * 100) }}% FTP
+                      {{ Math.round(step.power.range.start * 100) }}-{{ Math.round(step.power.range.end * 100) }}% FTP
                     </span>
                     <span v-else>
                       {{ Math.round((step.power?.value || 0) * 100) }}% FTP
@@ -64,7 +64,7 @@
                   </div>
                   <div v-if="userFtp" class="text-[10px] opacity-80">
                     <span v-if="step.power?.range">
-                      {{ Math.round(step.power.range.min * userFtp) }}-{{ Math.round(step.power.range.max * userFtp) }}W
+                      {{ Math.round(step.power.range.start * userFtp) }}-{{ Math.round(step.power.range.end * userFtp) }}W
                     </span>
                     <span v-else>
                       {{ Math.round((step.power?.value || 0) * userFtp) }}W
@@ -110,26 +110,24 @@
           <div
             v-for="(step, index) in workout.steps"
             :key="index"
-            class="grid grid-cols-[12px_1fr_48px_80px_110px_80px] items-center gap-4 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-          >
-            <div class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: getStepColor(step.type) }"></div>
+            class="grid items-start gap-4 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            :class="userFtp ? 'grid-cols-[12px_1fr_48px_80px_110px_70px]' : 'grid-cols-[12px_1fr_48px_80px_110px]'">
+            <div class="w-3 h-3 rounded-full flex-shrink-0 mt-1" :style="{ backgroundColor: getStepColor(step.type) }"></div>
             <div class="min-w-0">
               <div class="text-sm font-medium truncate">{{ step.name }}</div>
               <div class="text-xs text-muted">{{ step.type }}</div>
             </div>
-            <div class="text-center">
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold">
-                {{ getZone((step.power?.value || (step.power?.range ? (step.power.range.min + step.power.range.max)/2 : 0))) }}
-              </span>
+            <div class="text-center text-sm font-bold text-gray-500 dark:text-gray-400">
+              {{ getZone((step.power?.value || (step.power?.range ? (step.power.range.start + step.power.range.end)/2 : 0))) }}
             </div>
-            <div class="text-xs text-blue-500 font-semibold text-center whitespace-nowrap">
+            <div class="text-sm text-blue-500 font-semibold text-center whitespace-nowrap">
               <span v-if="step.cadence">{{ step.cadence }} RPM</span>
               <span v-else class="text-gray-300 dark:text-gray-700">-</span>
             </div>
             <div class="text-right">
               <div class="text-sm font-bold whitespace-nowrap">
                 <span v-if="step.power?.range">
-                  {{ Math.round(step.power.range.min * 100) }}-{{ Math.round(step.power.range.max * 100) }}%
+                  {{ Math.round(step.power.range.start * 100) }}-{{ Math.round(step.power.range.end * 100) }}%
                 </span>
                 <span v-else>
                   {{ Math.round((step.power?.value || 0) * 100) }}%
@@ -137,13 +135,13 @@
               </div>
               <div class="text-[10px] text-muted">{{ formatDuration(step.durationSeconds) }}</div>
             </div>
-            <div v-if="userFtp" class="text-xs text-muted text-right whitespace-nowrap">
-              <span v-if="step.power?.range">
-                {{ Math.round(step.power.range.min * userFtp) }}-{{ Math.round(step.power.range.max * userFtp) }}W
-              </span>
-              <span v-else>
-                {{ Math.round((step.power?.value || 0) * userFtp) }}W
-              </span>
+            
+            <!-- Average Watts -->
+            <div v-if="userFtp" class="text-right">
+              <div class="text-sm font-bold text-primary">
+                {{ getAvgWatts(step, userFtp) }}<span class="text-[10px] ml-0.5">W</span>
+              </div>
+              <div class="text-[9px] text-muted uppercase">Avg</div>
             </div>
           </div>
         </div>
@@ -289,8 +287,8 @@ function getStepStyle(step: any) {
   
   if (step.power?.range) {
     // Ramp logic
-    const startH = Math.min(step.power.range.min / maxScale, 1) * 100
-    const endH = Math.min(step.power.range.max / maxScale, 1) * 100
+    const startH = Math.min(step.power.range.start / maxScale, 1) * 100
+    const endH = Math.min(step.power.range.end / maxScale, 1) * 100
     
     return {
       width: `${width}%`,
@@ -320,6 +318,13 @@ function getZone(power: number): string {
   if (power <= 1.05) return 'Z4'
   if (power <= 1.20) return 'Z5'
   return 'Z6'
+}
+
+function getAvgWatts(step: any, ftp: number): number {
+  if (step.power?.range) {
+    return Math.round(((step.power.range.start + step.power.range.end) / 2) * ftp)
+  }
+  return Math.round((step.power?.value || 0) * ftp)
 }
 
 function getStepColor(type: string): string {
