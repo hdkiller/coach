@@ -117,6 +117,15 @@
                   size="sm" 
                   color="gray" 
                   variant="ghost" 
+                  icon="i-heroicons-chat-bubble-left-right" 
+                  @click="openMessageModal"
+                >
+                  Add Messages
+                </UButton>
+                <UButton 
+                  size="sm" 
+                  color="gray" 
+                  variant="ghost" 
                   icon="i-heroicons-adjustments-horizontal" 
                   @click="openAdjustModal"
                 >
@@ -230,6 +239,12 @@
               </div>
             </div>
           </div>
+
+          <!-- Coaching Messages Timeline -->
+          <WorkoutMessagesTimeline 
+            v-if="workout.structuredWorkout?.messages?.length" 
+            :workout="workout.structuredWorkout" 
+          />
         </div>
 
         <!-- Error State -->
@@ -281,11 +296,46 @@
         </div>
       </template>
     </UModal>
+    <UModal 
+      v-if="showMessageModal" 
+      v-model:open="showMessageModal" 
+      title="Add Coaching Messages"
+      description="Generate engaging text messages to display during your workout."
+    >
+      <template #body>
+        <div class="p-6 flex flex-col gap-5">
+          <div class="w-full">
+            <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200">Coach Tone</label>
+            <USelect 
+              v-model="messageForm.tone" 
+              :items="['Motivational', 'Drill Sergeant', 'Technical', 'Funny', 'Supportive', 'Stoic']" 
+              class="w-full"
+            />
+          </div>
+          
+          <div class="w-full">
+            <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200">Additional Context</label>
+            <UTextarea 
+              v-model="messageForm.context" 
+              placeholder="e.g. 'Emphasize high cadence', 'Remind me to drink', 'This is prep for a climbing race'" 
+              :rows="3"
+              class="w-full"
+            />
+          </div>
+          
+          <div class="flex justify-end pt-2 gap-2">
+            <UButton variant="ghost" @click="showMessageModal = false">Cancel</UButton>
+            <UButton color="primary" :loading="generatingMessages" @click="submitMessages">Generate Messages</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </UDashboardPanel>
 </template>
 
 <script setup lang="ts">
 import WorkoutChart from '~/components/workouts/WorkoutChart.vue'
+import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
 
 definePageMeta({
   middleware: 'auth'
@@ -298,11 +348,17 @@ const toast = useToast()
 const loading = ref(true)
 const generating = ref(false)
 const adjusting = ref(false)
+const generatingMessages = ref(false)
 const showAdjustModal = ref(false)
+const showMessageModal = ref(false)
 const adjustForm = reactive({
   durationMinutes: 60,
   intensity: 'moderate',
   feedback: ''
+})
+const messageForm = reactive({
+  tone: 'Motivational',
+  context: ''
 })
 const polling = ref(false)
 const workout = ref<any>(null)
@@ -338,6 +394,39 @@ function openAdjustModal() {
      adjustForm.intensity = i > 0.9 ? 'very_hard' : i > 0.8 ? 'hard' : i > 0.6 ? 'moderate' : i > 0.4 ? 'easy' : 'recovery'
   }
   showAdjustModal.value = true
+}
+
+function openMessageModal() {
+  messageForm.context = ''
+  showMessageModal.value = true
+}
+
+async function submitMessages() {
+  generatingMessages.value = true
+  try {
+    await $fetch(`/api/workouts/planned/${route.params.id}/messages`, {
+      method: 'POST',
+      body: messageForm
+    })
+    
+    toast.add({
+      title: 'Writing Messages...',
+      description: 'Coach is generating your cues. This may take a moment.',
+      color: 'success'
+    })
+    
+    showMessageModal.value = false
+    const currentUpdated = workout.value?.updatedAt ? new Date(workout.value.updatedAt) : new Date()
+    startPolling(currentUpdated)
+  } catch (error: any) {
+    toast.add({
+      title: 'Generation Failed',
+      description: error.data?.message || 'Failed to generate messages',
+      color: 'error'
+    })
+  } finally {
+    generatingMessages.value = false
+  }
 }
 
 async function submitAdjustment() {

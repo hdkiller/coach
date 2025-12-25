@@ -80,6 +80,11 @@
           <WorkoutChart :workout="plannedWorkout.structuredWorkout" />
         </div>
 
+        <!-- Coaching Messages Timeline -->
+        <div v-if="plannedWorkout.structuredWorkout?.messages?.length" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <WorkoutMessagesTimeline :workout="plannedWorkout.structuredWorkout" />
+        </div>
+
         <!-- Status Badge -->
         <div v-if="plannedWorkout.completed" class="flex items-center gap-2">
           <UBadge color="success" variant="subtle">
@@ -364,6 +369,7 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import WorkoutChart from '~/components/workouts/WorkoutChart.vue'
+import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
 
 const props = defineProps<{
   plannedWorkout: any | null
