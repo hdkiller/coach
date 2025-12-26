@@ -58,7 +58,9 @@ export const generateTrainingBlockTask = task({
       include: {
         plan: {
           include: {
-            goal: true
+            goal: {
+              include: { events: true }
+            }
           }
         }
       }
@@ -89,6 +91,10 @@ export const generateTrainingBlockTask = task({
     }).join("\n");
     
     // 3. Build Prompt
+    const eventsList = block.plan.goal.events && block.plan.goal.events.length > 0 
+      ? block.plan.goal.events.map((e: any) => `- ${e.title}: ${new Date(e.date).toDateString()} (${e.type || 'Race'})`).join('\n')
+      : `- Primary Event Date: ${new Date(block.plan.goal.eventDate || block.plan.targetDate).toDateString()}`;
+
     const prompt = `You are an expert cycling coach designing a specific mesocycle (training block) for an athlete.
 
 ATHLETE PROFILE:
@@ -97,8 +103,9 @@ ATHLETE PROFILE:
 - Coach Persona: ${user?.aiPersona || 'Supportive'}
 
 TRAINING GOAL:
-- Goal: ${block.plan.goal.title}
-- Event Date: ${new Date(block.plan.goal.eventDate || block.plan.targetDate).toDateString()}
+- Goal Title: ${block.plan.goal.title}
+- Events:
+${eventsList}
 - Strategy: ${block.plan.strategy}
 
 BLOCK CONTEXT:
