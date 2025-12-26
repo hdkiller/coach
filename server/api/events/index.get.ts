@@ -52,7 +52,8 @@ export default defineEventHandler(async (event) => {
   try {
     const events = await prisma.event.findMany({
       where: { userId },
-      orderBy: { date: 'asc' }
+      orderBy: { date: 'asc' },
+      include: { goals: true }
     })
     
     return events
