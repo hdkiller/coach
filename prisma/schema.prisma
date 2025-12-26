@@ -968,18 +968,30 @@ model TrainingPlan {
   id          String   @id @default(uuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  goalId      String
-  goal        Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
   
-  startDate   DateTime
-  targetDate  DateTime
+  // Optional for templates
+  goalId      String?
+  goal        Goal?    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  
+  startDate   DateTime?
+  targetDate  DateTime?
+  
+  // Template Fields
+  name        String?   // Template name
+  description String?   @db.Text
+  isTemplate  Boolean   @default(false)
+  
+  // Lineage
+  fromTemplateId String?
+  template       TrainingPlan?  @relation("PlanTemplate", fields: [fromTemplateId], references: [id])
+  derivedPlans   TrainingPlan[] @relation("PlanTemplate")
   
   // The plan is composed of blocks (Mesocycles)
   blocks      TrainingBlock[]
   
   // Metadata for the overall strategy
   strategy    String   @default("LINEAR") // LINEAR, UNDULATING, BLOCK, POLARIZED
-  status      String   @default("ACTIVE") // DRAFT, ACTIVE, COMPLETED, ARCHIVED
+  status      String   @default("ACTIVE") // DRAFT, ACTIVE, COMPLETED, ARCHIVED, ABANDONED
   
   currentBlockId String? // Shortcut to current block for quick UI access
   
@@ -987,6 +999,7 @@ model TrainingPlan {
   updatedAt   DateTime @updatedAt
   
   @@index([userId, status])
+  @@index([isTemplate])
 }
 
 // Mesocycle: A distinct phase of training (e.g., "Base 1")
