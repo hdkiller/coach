@@ -98,16 +98,19 @@
             <div v-if="workout.trainingWeek" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div class="text-xs text-muted mb-2">Training Context</div>
               <div class="flex flex-wrap gap-2 text-sm">
-                <UBadge color="gray" variant="soft">
+                <UBadge v-if="workout.trainingWeek.block.plan.goal" color="neutral" variant="soft">
                   Goal: {{ workout.trainingWeek.block.plan.goal.title }}
                 </UBadge>
-                <UBadge color="gray" variant="soft">
+                <UBadge v-else-if="workout.trainingWeek.block.plan.name" color="neutral" variant="soft">
+                  Plan: {{ workout.trainingWeek.block.plan.name }}
+                </UBadge>
+                <UBadge color="neutral" variant="soft">
                   {{ workout.trainingWeek.block.name }}
                 </UBadge>
-                <UBadge color="gray" variant="soft">
+                <UBadge color="neutral" variant="soft">
                   Week {{ workout.trainingWeek.weekNumber }}
                 </UBadge>
-                <UBadge color="gray" variant="soft">
+                <UBadge color="neutral" variant="soft">
                   Focus: {{ workout.trainingWeek.focus || workout.trainingWeek.block.primaryFocus }}
                 </UBadge>
               </div>

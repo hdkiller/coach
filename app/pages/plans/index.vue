@@ -20,7 +20,7 @@
               <template #header>
                 <div class="flex justify-between items-start">
                   <div class="font-bold truncate pr-4">{{ plan.name || 'Untitled Template' }}</div>
-                  <UBadge color="gray" variant="soft" size="xs">{{ plan.strategy }}</UBadge>
+                  <UBadge color="neutral" variant="soft" size="xs">{{ plan.strategy }}</UBadge>
                 </div>
               </template>
               
@@ -30,8 +30,22 @@
               
               <template #footer>
                 <div class="flex justify-end gap-2">
-                  <!-- Reuse logic would go here -->
-                  <UButton size="xs" color="primary" variant="ghost" icon="i-heroicons-play" disabled title="Coming Soon: Start Plan">
+                  <UButton
+                    size="xs"
+                    color="error"
+                    variant="ghost"
+                    icon="i-heroicons-trash"
+                    :loading="deletingId === plan.id"
+                    @click="deleteTemplate(plan.id)"
+                  />
+                  <UButton
+                    size="xs"
+                    color="primary"
+                    variant="ghost"
+                    icon="i-heroicons-play"
+                    :loading="loadingId === plan.id"
+                    @click="useTemplate(plan)"
+                  >
                     Use
                   </UButton>
                 </div>
@@ -52,8 +66,8 @@
             No plan history found.
           </div>
           <div v-else class="space-y-3">
-            <UCard v-for="plan in history" :key="plan.id" :ui="{ body: { padding: 'p-3 sm:p-4' } }">
-              <div class="flex items-center justify-between">
+            <UCard v-for="plan in history" :key="plan.id">
+              <div class="flex items-center justify-between p-3 sm:p-4">
                 <div>
                   <div class="font-semibold">{{ plan.goal?.title || 'Unnamed Plan' }}</div>
                   <div class="text-xs text-muted mt-1">
@@ -69,6 +83,19 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <UModal v-model:open="isModalOpen" title="Use Template" description="When do you want to start this training plan?">
+    <template #body>
+      <UFormField label="Start Date">
+        <UInput v-model="startDate" type="date" />
+      </UFormField>
+    </template>
+
+    <template #footer>
+      <UButton label="Cancel" color="neutral" variant="ghost" @click="isModalOpen = false" />
+      <UButton label="Start Plan" color="primary" :loading="activating" @click="confirmUse" />
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -76,10 +103,84 @@ definePageMeta({
   middleware: 'auth'
 })
 
-const { data: plans } = await useFetch<any[]>('/api/plans')
+const { data: plans, refresh } = await useFetch<any[]>('/api/plans')
+const toast = useToast()
 
 const templates = computed(() => plans.value?.filter(p => p.isTemplate) || [])
 const history = computed(() => plans.value?.filter(p => !p.isTemplate) || [])
+
+const loadingId = ref<string | null>(null)
+const deletingId = ref<string | null>(null)
+const isModalOpen = ref(false)
+const selectedTemplate = ref<any>(null)
+const startDate = ref(new Date().toISOString().split('T')[0])
+const activating = ref(false)
+
+function useTemplate(plan: any) {
+  selectedTemplate.value = plan
+  isModalOpen.value = true
+}
+
+async function deleteTemplate(id: string) {
+  if (!confirm('Are you sure you want to permanently delete this template?')) return
+  
+  deletingId.value = id
+  try {
+    await $fetch(`/api/plans/${id}`, {
+      method: 'DELETE'
+    })
+    
+    toast.add({
+      title: 'Success',
+      description: 'Template deleted successfully.',
+      color: 'success'
+    })
+    
+    await refresh()
+  } catch (error: any) {
+    toast.add({
+      title: 'Error',
+      description: error.data?.message || error.message || 'Failed to delete template',
+      color: 'error'
+    })
+  } finally {
+    deletingId.value = null
+  }
+}
+
+async function confirmUse() {
+  if (!selectedTemplate.value) return
+  
+  activating.value = true
+  try {
+    const response = await $fetch<{ planId?: string }>(`/api/plans/${selectedTemplate.value.id}/activate`, {
+      method: 'POST',
+      body: {
+        startDate: startDate.value
+      }
+    })
+    
+    toast.add({
+      title: 'Success',
+      description: 'Training plan activated successfully.',
+      color: 'success'
+    })
+    
+    isModalOpen.value = false
+    await refresh()
+    
+    // Redirect to the active plan page
+    navigateTo('/plan')
+  } catch (error: any) {
+    toast.add({
+      title: 'Error',
+      description: error.data?.message || error.message || 'Failed to start plan',
+      color: 'error'
+    })
+  } finally {
+    activating.value = false
+  }
+}
 
 function getStatusColor(status: string) {
   switch (status) {

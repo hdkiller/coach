@@ -70,6 +70,60 @@
             <!-- Recent Activity Card -->
             <DashboardRecentActivityCard />
             
+            <!-- Upcoming Workouts Card -->
+            <UCard class="flex flex-col">
+              <template #header>
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <UIcon name="i-heroicons-calendar-days" class="w-4 h-4" />
+                    Upcoming Workouts
+                  </h3>
+                  <UButton to="/plan" variant="ghost" color="neutral" size="xs" icon="i-heroicons-arrow-right" trailing />
+                </div>
+              </template>
+
+              <div class="flex-1 space-y-4">
+                <div v-if="loadingUpcoming" class="space-y-3">
+                  <div v-for="i in 3" :key="i" class="flex items-center gap-3 animate-pulse">
+                    <div class="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg"></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-3 bg-gray-100 dark:bg-gray-800 rounded w-3/4"></div>
+                      <div class="h-2 bg-gray-100 dark:bg-gray-800 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else-if="upcomingWorkouts.length === 0" class="text-center py-8">
+                  <UIcon name="i-heroicons-calendar" class="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <p class="text-sm text-gray-500">No upcoming workouts scheduled.</p>
+                  <UButton to="/plans" variant="link" color="primary" size="xs" class="mt-2">View Plans</UButton>
+                </div>
+
+                <div v-else class="divide-y divide-gray-100 dark:divide-gray-800 -mx-4 px-4">
+                  <div 
+                    v-for="workout in upcomingWorkouts" 
+                    :key="workout.id" 
+                    class="py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer -mx-4 px-4 rounded-lg transition-colors"
+                    @click="navigateTo(`/workouts/planned/${workout.id}`)"
+                  >
+                    <div class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary shrink-0">
+                      <span class="text-[10px] font-bold uppercase leading-none">{{ formatDayShort(workout.date) }}</span>
+                      <span class="text-sm font-bold">{{ formatDateDay(workout.date) }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ workout.title }}</div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                        <span>{{ workout.type }}</span>
+                        <span v-if="workout.durationSec">• {{ Math.round(workout.durationSec / 60) }}m</span>
+                        <span v-if="workout.tss">• {{ Math.round(workout.tss) }} TSS</span>
+                      </div>
+                    </div>
+                    <UIcon name="i-heroicons-chevron-right" class="w-4 h-4 text-gray-300" />
+                  </div>
+                </div>
+              </div>
+            </UCard>
+            
             <!-- Connection Status Card - only shown if syncing is in progress or issues -->
             <DashboardDataSyncStatusCard v-if="integrationStore.syncingData" />
           </div>
@@ -135,7 +189,42 @@ const userStore = useUserStore()
 const recommendationStore = useRecommendationStore()
 const activityStore = useActivityStore()
 
+const upcomingWorkouts = ref<any[]>([])
+const loadingUpcoming = ref(false)
+
 const missingFields = computed(() => userStore.profile?.missingFields || [])
+
+async function fetchUpcomingWorkouts() {
+  loadingUpcoming.value = true
+  try {
+    const { plan } = await $fetch<{ plan: any }>('/api/plans/active')
+    if (plan) {
+      const now = new Date().getTime()
+      // Flatten all workouts from all blocks and weeks
+      const allWorkouts = plan.blocks.flatMap((b: any) => 
+        b.weeks.flatMap((w: any) => w.workouts)
+      )
+      
+      // Filter for future workouts, sort by date, and take the next 5
+      upcomingWorkouts.value = allWorkouts
+        .filter((w: any) => new Date(w.date).getTime() >= now && !w.completed)
+        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 5)
+    }
+  } catch (error) {
+    console.error('Failed to fetch upcoming workouts:', error)
+  } finally {
+    loadingUpcoming.value = false
+  }
+}
+
+function formatDayShort(d: string) {
+  return new Date(d).toLocaleDateString('en-US', { weekday: 'short' })
+}
+
+function formatDateDay(d: string) {
+  return new Date(d).getDate()
+}
 
 // Initial data fetch
 onMounted(async () => {
@@ -144,7 +233,8 @@ onMounted(async () => {
         await Promise.all([
             userStore.fetchProfile(),
             recommendationStore.fetchTodayRecommendation(),
-            activityStore.fetchRecentActivity()
+            activityStore.fetchRecentActivity(),
+            fetchUpcomingWorkouts()
         ])
     }
 })
@@ -155,7 +245,8 @@ watch(() => integrationStore.intervalsConnected, async (connected) => {
         await Promise.all([
             userStore.fetchProfile(),
             recommendationStore.fetchTodayRecommendation(),
-            activityStore.fetchRecentActivity()
+            activityStore.fetchRecentActivity(),
+            fetchUpcomingWorkouts()
         ])
     }
 })
