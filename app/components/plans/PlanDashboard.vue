@@ -113,6 +113,7 @@
     <PlanAIModal 
       v-model="showAIPlanModal" 
       :loading="generatingWorkouts"
+      :week-label="selectedWeek ? `Week ${selectedWeek.weekNumber}: ${formatDate(selectedWeek.startDate)} - ${formatDate(selectedWeek.endDate)}` : undefined"
       @generate="generatePlanWithAI" 
     />
 
@@ -379,7 +380,7 @@ function getWorkoutIcon(type: string) {
     'Ride': 'i-heroicons-bolt',
     'VirtualRide': 'i-heroicons-bolt',
     'Run': 'i-heroicons-fire',
-    'Swim': 'i-heroicons-drop',
+    'Swim': 'i-heroicons-lifebuoy',
     'Gym': 'i-heroicons-trophy',
     'WeightTraining': 'i-heroicons-trophy',
     'Rest': 'i-heroicons-moon',
@@ -730,7 +731,18 @@ async function generateWorkoutsForBlock() {
   
   // Watchers to auto-select defaults
   watch(() => props.plan, (newPlan) => {
+    // Only auto-select if we don't have a selection already, OR if the plan ID actually changed (loaded a new plan)
+    // This prevents resetting the selection on every 'refresh' poll which updates the same plan object
     if (newPlan && newPlan.blocks.length > 0) {
+      // Check if we are already viewing a valid block/week for this plan
+      const isSamePlan = selectedBlockId.value && newPlan.blocks.some((b: any) => b.id === selectedBlockId.value);
+      
+      if (isSamePlan) {
+          // We are already looking at a block in this plan.
+          // Just update the reactive data, don't change selection.
+          return;
+      }
+
       // 1. Determine Active Block
       const now = new Date().getTime()
       const activeBlock = newPlan.blocks.find((b: any) => {
