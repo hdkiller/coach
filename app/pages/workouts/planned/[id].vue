@@ -131,42 +131,16 @@
           </div>
 
           <!-- Workout Visualization -->
-          <div v-if="workout.structuredWorkout" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg font-semibold">Power Profile</h3>
-              <div class="flex gap-2">
-                <UButton 
-                  size="sm" 
-                  color="gray" 
-                  variant="ghost" 
-                  icon="i-heroicons-chat-bubble-left-right" 
-                  @click="openMessageModal"
-                >
-                  Add Messages
-                </UButton>
-                <UButton 
-                  size="sm" 
-                  color="gray" 
-                  variant="ghost" 
-                  icon="i-heroicons-adjustments-horizontal" 
-                  @click="openAdjustModal"
-                >
-                  Adjust
-                </UButton>
-                <UButton 
-                  size="sm" 
-                  color="gray" 
-                  variant="ghost" 
-                  icon="i-heroicons-arrow-path" 
-                  :loading="generating" 
-                  @click="generateStructure"
-                >
-                  Regenerate
-                </UButton>
-              </div>
-            </div>
-            <WorkoutChart :workout="workout.structuredWorkout" :user-ftp="userFtp" />
-          </div>
+          <component 
+            v-if="workout.structuredWorkout"
+            :is="getWorkoutComponent(workout.type)"
+            :workout="workout" 
+            :user-ftp="userFtp"
+            :generating="generating"
+            @add-messages="openMessageModal"
+            @adjust="openAdjustModal"
+            @regenerate="generateStructure"
+          />
 
           <!-- No Structured Data -->
           <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -463,6 +437,10 @@
 <script setup lang="ts">
 import WorkoutChart from '~/components/workouts/WorkoutChart.vue'
 import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
+import RideView from '~/components/workouts/planned/RideView.vue'
+import RunView from '~/components/workouts/planned/RunView.vue'
+import SwimView from '~/components/workouts/planned/SwimView.vue'
+import StrengthView from '~/components/workouts/planned/StrengthView.vue'
 
 definePageMeta({
   middleware: 'auth'
@@ -759,6 +737,23 @@ function formatDuration(seconds: number) {
     return `${hours}h ${mins}m`
   }
   return `${mins}m`
+}
+
+function getWorkoutComponent(type: string) {
+  switch (type) {
+    case 'Ride':
+    case 'VirtualRide':
+      return RideView
+    case 'Run':
+      return RunView
+    case 'Swim':
+      return SwimView
+    case 'Gym':
+    case 'WeightTraining':
+      return StrengthView
+    default:
+      return RideView
+  }
 }
 
 useHead(() => ({
