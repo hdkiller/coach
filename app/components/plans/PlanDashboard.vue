@@ -20,12 +20,36 @@
           <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-bookmark" @click="showSaveTemplateModal = true">
             Save Template
           </UButton>
-          <UButton size="xs" color="error" variant="ghost" icon="i-heroicons-trash" @click="abandonPlan">
+          <UButton size="xs" color="error" variant="ghost" icon="i-heroicons-trash" @click="showAbandonModal = true">
             Abandon
           </UButton>
         </div>
       </div>
     </div>
+
+    <!-- Abandon Plan Modal -->
+    <UModal 
+      v-model:open="showAbandonModal" 
+      title="Abandon Training Plan"
+      description="Are you sure you want to abandon this plan?"
+    >
+      <template #body>
+        <div class="p-6 space-y-4">
+          <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg text-sm text-red-800 dark:text-red-200 flex gap-3">
+             <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 flex-shrink-0" />
+             <div>
+               <p class="font-bold">This action cannot be undone.</p>
+               <p class="mt-1">All future planned workouts will be removed. Past completed workouts will remain in your history.</p>
+             </div>
+          </div>
+          
+          <div class="flex justify-end gap-2 mt-4">
+            <UButton color="neutral" variant="ghost" @click="showAbandonModal = false">Cancel</UButton>
+            <UButton color="error" :loading="abandoning" @click="confirmAbandon">Abandon Plan</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
 
     <!-- Save Template Modal -->
     <UModal v-model:open="showSaveTemplateModal" title="Save as Template">
@@ -234,18 +258,25 @@
                 </td>
               </tr>
               <tr v-if="selectedWeek.workouts.length === 0">
-                <td :colspan="userFtp ? 7 : 6" class="px-4 py-8 text-center text-muted">
-                  No workouts generated for this week yet.
-                  <div class="mt-2">
-                    <UButton 
-                      size="xs" 
-                      color="primary" 
-                      variant="soft" 
-                      :loading="generatingWorkouts"
-                      @click="generateWorkoutsForBlock"
-                    >
-                      Generate Workouts
-                    </UButton>
+                <td :colspan="userFtp ? 8 : 7" class="px-4 py-8 text-center text-muted">
+                  <div v-if="isGenerating" class="flex flex-col items-center justify-center space-y-2 text-yellow-600">
+                    <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin" />
+                    <span class="font-medium animate-pulse">Generating Workouts...</span>
+                    <span class="text-xs text-muted">This may take a minute as AI designs your optimal week.</span>
+                  </div>
+                  <div v-else>
+                    No workouts generated for this week yet.
+                    <div class="mt-2">
+                      <UButton 
+                        size="xs" 
+                        color="primary" 
+                        variant="soft" 
+                        :loading="generatingWorkouts"
+                        @click="generateWorkoutsForBlock"
+                      >
+                        Generate Workouts
+                      </UButton>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -272,6 +303,7 @@ import WeeklyZoneSummary from '~/components/ui/WeeklyZoneSummary.vue'
 const props = defineProps<{
   plan: any
   userFtp?: number
+  isGenerating?: boolean
 }>()
 
 const emit = defineEmits(['refresh'])
@@ -280,9 +312,11 @@ const selectedBlockId = ref<string | null>(null)
 const selectedWeekId = ref<string | null>(null)
 const showAdaptModal = ref(false)
 const showSaveTemplateModal = ref(false)
+const showAbandonModal = ref(false)
 const templateName = ref('')
 const templateDescription = ref('')
 const savingTemplate = ref(false)
+const abandoning = ref(false)
 const generatingWorkouts = ref(false)
 const generatingStructureForWorkoutId = ref<string | null>(null)
 const generatingAllStructures = ref(false)
@@ -382,9 +416,30 @@ async function generateWorkoutsForBlock() {
     })
     
     // Auto refresh after a delay
-    setTimeout(() => {
+    // We poll until we see workouts, then trigger auto-structure if needed
+    const pollInterval = setInterval(() => {
       emit('refresh')
-    }, 10000)
+      
+      // Check if we have workouts now
+      if (selectedWeek.value?.workouts?.length > 0) {
+        clearInterval(pollInterval)
+        generatingWorkouts.value = false
+        toast.add({ title: 'Workouts Generated', color: 'success' })
+        
+        // Auto-trigger structure generation
+        generateAllStructureForWeek()
+      }
+    }, 3000)
+
+    // Safety timeout to stop polling
+    setTimeout(() => {
+      if (generatingWorkouts.value) {
+        clearInterval(pollInterval)
+        generatingWorkouts.value = false
+        // Let user retry if needed
+      }
+    }, 60000)
+
   } catch (error: any) {
     toast.add({
       title: 'Generation Failed',
@@ -575,6 +630,14 @@ async function generateWorkoutsForBlock() {
           return new Date(w.startDate).getTime() <= now && new Date(w.endDate).getTime() >= now
         })
         selectedWeekId.value = currentWeek ? currentWeek.id : activeBlock.weeks[0].id
+      }
+
+      // 3. Auto-trigger structure generation if requested
+      if (newPlan.shouldAutoGenerateStructure) {
+        // Wait a tick for computed properties to update
+        nextTick(() => {
+          generateAllStructureForWeek()
+        })
       }
     }
   }, { immediate: true })

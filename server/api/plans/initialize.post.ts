@@ -5,6 +5,7 @@ import { tasks } from "@trigger.dev/sdk/v3"
 const initializePlanSchema = z.object({
   goalId: z.string(),
   startDate: z.string().datetime(), // ISO string
+  endDate: z.string().datetime().optional(), // ISO string
   volumePreference: z.enum(['LOW', 'MID', 'HIGH']).default('MID'),
   strategy: z.enum(['LINEAR', 'UNDULATING', 'BLOCK', 'POLARIZED']).default('LINEAR')
 })
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: validation.error.message })
   }
 
-  const { goalId, startDate, volumePreference, strategy } = validation.data
+  const { goalId, startDate, endDate, volumePreference, strategy } = validation.data
   const userId = session.user.id
   
   // 1. Fetch Goal to get target date
@@ -35,8 +36,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Goal not found' })
   }
 
-  let targetDate = goal.targetDate || goal.eventDate
-  if (!targetDate && goal.events.length > 0) {
+  let targetDate = endDate ? new Date(endDate) : (goal.targetDate || goal.eventDate)
+  if (!targetDate && goal.events.length > 0 && !endDate) {
     targetDate = goal.events[0].date
   }
 

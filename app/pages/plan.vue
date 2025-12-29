@@ -23,13 +23,18 @@
     <template #body>
       <div class="p-6 space-y-6">
         <!-- Loading State -->
-        <div v-if="loading" class="flex justify-center py-20">
+        <div v-if="loading && !activePlan" class="flex justify-center py-20">
           <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 animate-spin text-primary" />
         </div>
 
         <!-- Active Plan View -->
         <div v-else-if="activePlan">
-           <PlanDashboard :plan="activePlan" :user-ftp="userFtp" @refresh="fetchActivePlan" />
+           <PlanDashboard 
+             :plan="activePlan" 
+             :user-ftp="userFtp" 
+             :is-generating="isPolling"
+             @refresh="fetchActivePlan" 
+           />
         </div>
 
         <!-- No Plan State / Onboarding -->
@@ -81,6 +86,7 @@ useHead({
 })
 
 const showWizard = ref(false)
+const isPolling = ref(false)
 const toast = useToast()
 
 const { data, status, refresh } = await useFetch<any>('/api/plans/active')
@@ -120,6 +126,9 @@ function onPlanCreated(plan: any) {
 }
 
 function startPolling() {
+  if (isPolling.value) return
+  isPolling.value = true
+  
   let attempts = 0
   const maxAttempts = 20 // 1 minute
   
@@ -132,12 +141,16 @@ function startPolling() {
     
     if (hasWorkouts || attempts >= maxAttempts) {
       clearInterval(interval)
+      isPolling.value = false
       if (hasWorkouts) {
         toast.add({
           title: 'Workouts Ready',
           description: 'Your training plan has been populated.',
           color: 'success'
         })
+        
+        // Pass a signal to PlanDashboard to auto-generate structure
+        activePlan.value.shouldAutoGenerateStructure = true
       }
     }
   }, 3000)

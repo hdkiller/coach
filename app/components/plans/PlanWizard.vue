@@ -86,9 +86,16 @@
             </div>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium mb-2">Start Date</label>
-            <UInput v-model="startDate" type="date" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-2">Start Date</label>
+              <UInput v-model="startDate" type="date" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-2">End Date</label>
+              <UInput v-model="endDate" type="date" />
+            </div>
           </div>
         </div>
       </div>
@@ -103,6 +110,14 @@
           <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-sm text-blue-800 dark:text-blue-200">
             We've designed a <strong>{{ generatedPlan.strategy }}</strong> plan focusing on your goal <strong>{{ selectedGoal.title }}</strong>.
             It consists of {{ generatedPlan.blocks.length }} training blocks over {{ totalWeeks }} weeks.
+          </div>
+
+          <!-- Add a note about background generation -->
+          <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg text-sm text-yellow-800 dark:text-yellow-200 flex items-start gap-2">
+            <UIcon name="i-heroicons-information-circle" class="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <strong>Note:</strong> Once you click "Start Training", the AI will begin generating detailed workouts for your first block in the background. This may take a minute.
+            </div>
           </div>
 
           <!-- Block Timeline Visualization -->
@@ -179,7 +194,8 @@
         <UButton 
           size="xl" 
           color="success" 
-          @click="confirmPlan" 
+          @click="confirmPlan"
+          :loading="activating" 
           icon="i-heroicons-check-circle"
         >
           Start Training
@@ -206,10 +222,12 @@ const selectedGoal = ref<any>(null)
 const volumePreference = ref('MID')
 const strategy = ref('LINEAR')
 const startDate = ref(new Date().toISOString().split('T')[0])
+const endDate = ref('')
 const initializing = ref(false)
 
 // Step 3 State
 const generatedPlan = ref<any>(null)
+const activating = ref(false)
 
 // Options
 const volumeOptions = [
@@ -245,6 +263,14 @@ async function fetchGoals() {
 
 function selectGoal(goal: any) {
   selectedGoal.value = goal
+  if (goal.eventDate) {
+    endDate.value = new Date(goal.eventDate).toISOString().split('T')[0]
+  } else {
+    // Default to 12 weeks if no event date
+    const d = new Date()
+    d.setDate(d.getDate() + 84) 
+    endDate.value = d.toISOString().split('T')[0]
+  }
 }
 
 function onGoalCreated() {
@@ -286,6 +312,7 @@ async function initializePlan() {
       body: {
         goalId: selectedGoal.value.id,
         startDate: new Date(startDate.value).toISOString(),
+        endDate: endDate.value ? new Date(endDate.value).toISOString() : undefined,
         volumePreference: volumePreference.value,
         strategy: strategy.value
       }
@@ -305,6 +332,8 @@ async function initializePlan() {
 }
 
 async function confirmPlan() {
+  if (activating.value) return
+  activating.value = true
   try {
     // Activate the plan (archives others, triggers generation)
     await $fetch(`/api/plans/${generatedPlan.value.id}/activate`, { method: 'POST' })
@@ -317,6 +346,8 @@ async function confirmPlan() {
       description: 'Could not activate the plan.',
       color: 'error'
     })
+  } finally {
+    activating.value = false
   }
 }
 
