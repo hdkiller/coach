@@ -1,11 +1,11 @@
 <template>
   <ClientOnly>
     <UButton
-      :icon="isDark ? 'i-heroicons-moon' : 'i-heroicons-sun'"
+      icon="i-heroicons-moon"
       color="gray"
       variant="ghost"
       aria-label="Theme"
-      @click="isDark = !isDark"
+      class="opacity-50 cursor-not-allowed"
     />
     <template #fallback>
       <div class="w-8 h-8" />
