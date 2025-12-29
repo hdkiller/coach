@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header / Overview -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold">{{ plan.goal?.title || plan.name || 'Untitled Plan' }}</h2>
         <div class="flex items-center gap-2 text-muted mt-1">
@@ -10,19 +10,31 @@
           <span class="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">{{ plan.strategy }}</span>
         </div>
       </div>
-      <div class="text-right">
-        <div class="text-sm text-muted">Current Phase</div>
-        <div class="font-bold text-lg text-primary">{{ currentBlock?.name || 'Prep' }}</div>
-        <div class="flex gap-2 justify-end mt-1">
-          <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-adjustments-horizontal" @click="showAdaptModal = true">
-            Adapt Plan
+      <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-end w-full sm:w-auto border-t sm:border-t-0 border-gray-100 dark:border-gray-800 pt-3 sm:pt-0">
+        <div class="flex flex-col items-start sm:items-end">
+            <div class="text-sm text-muted">Current Phase</div>
+            <div class="font-bold text-lg text-primary">{{ currentBlock?.name || 'Prep' }}</div>
+        </div>
+        <div class="flex gap-2 justify-end mt-0 sm:mt-1">
+          <UButton 
+            size="xs" 
+            color="neutral" 
+            variant="ghost" 
+            icon="i-heroicons-adjustments-horizontal" 
+            @click="showAdaptModal = true"
+          >
+            <span class="hidden sm:inline">Adapt</span>
           </UButton>
-          <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-bookmark" @click="showSaveTemplateModal = true">
-            Save Template
+          <UButton 
+            size="xs" 
+            color="neutral" 
+            variant="ghost" 
+            icon="i-heroicons-bookmark" 
+            @click="showSaveTemplateModal = true"
+          >
+            <span class="hidden sm:inline">Save</span>
           </UButton>
-          <UButton size="xs" color="error" variant="ghost" icon="i-heroicons-trash" @click="showAbandonModal = true">
-            Abandon
-          </UButton>
+          <UButton size="xs" color="error" variant="ghost" icon="i-heroicons-trash" @click="showAbandonModal = true" />
         </div>
       </div>
     </div>
@@ -118,50 +130,56 @@
     />
 
     <!-- Block Timeline -->
-    <div class="relative pt-6 pb-2">
-      <div class="h-2 bg-gray-200 dark:bg-gray-800 rounded-full w-full absolute top-9 z-0"></div>
-      <div class="relative z-10 flex justify-between">
-        <div 
-          v-for="block in plan.blocks" 
-          :key="block.id"
-          class="flex flex-col items-center cursor-pointer group"
-          @click="selectedBlockId = block.id"
-        >
-          <div 
-            class="w-4 h-4 rounded-full border-2 transition-all mb-2"
-            :class="getBlockStatusColor(block)"
-          ></div>
-          <div class="text-xs font-semibold" :class="selectedBlockId === block.id ? 'text-primary' : 'text-muted'">
-            {{ block.name }}
-          </div>
-          <div class="text-[10px] text-muted hidden group-hover:block">{{ block.durationWeeks }}w</div>
+    <div class="relative pt-6 pb-2 overflow-x-auto w-full">
+      <div class="min-w-[600px] relative px-2">
+        <div class="h-2 bg-gray-200 dark:bg-gray-800 rounded-full w-full absolute top-9 z-0"></div>
+        <div class="relative z-10 flex justify-between">
+            <div 
+            v-for="block in plan.blocks" 
+            :key="block.id"
+            class="flex flex-col items-center cursor-pointer group flex-1"
+            @click="selectedBlockId = block.id"
+            >
+            <div 
+                class="w-4 h-4 rounded-full border-2 transition-all mb-2 bg-white dark:bg-gray-900 z-10"
+                :class="getBlockStatusColor(block)"
+            ></div>
+            <div class="text-xs font-semibold text-center px-1" :class="selectedBlockId === block.id ? 'text-primary' : 'text-muted'">
+                {{ block.name }}
+            </div>
+            <div class="text-[10px] text-muted hidden group-hover:block">{{ block.durationWeeks }}w</div>
+            </div>
         </div>
       </div>
     </div>
 
     <!-- Active Week View -->
     <div v-if="selectedBlock" class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-      <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 class="font-semibold text-lg">{{ selectedBlock.name }} - Overview</h3>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
            <UButton
              size="xs"
              color="primary"
              variant="soft"
              icon="i-heroicons-sparkles"
              @click="showAIPlanModal = true"
+             class="flex-1 sm:flex-none justify-center"
            >
              Plan with AI
            </UButton>
-           <UButton 
-             v-for="week in selectedBlock.weeks" 
-             :key="week.id"
-             size="xs"
-             :variant="selectedWeekId === week.id ? 'solid' : 'ghost'"
-             @click="selectedWeekId = week.id"
-           >
-             Week {{ week.weekNumber }}
-           </UButton>
+           <div class="flex overflow-x-auto pb-1 sm:pb-0 gap-1 flex-1 sm:flex-none">
+                <UButton 
+                    v-for="week in selectedBlock.weeks" 
+                    :key="week.id"
+                    size="xs"
+                    :variant="selectedWeekId === week.id ? 'solid' : 'ghost'"
+                    @click="selectedWeekId = week.id"
+                    class="whitespace-nowrap"
+                >
+                    Week {{ week.weekNumber }}
+                </UButton>
+           </div>
         </div>
       </div>
 
@@ -194,117 +212,167 @@
             <span>Tip: Drag and drop rows to reorder workouts within the week.</span>
           </div>
 
-          <!-- Workouts Table -->
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-900 text-muted">
-              <tr>
-                <th class="w-8"></th>
-                <th class="px-4 py-2 text-left w-10"></th>
-                <th class="px-4 py-2 text-left">Day</th>
-                <th class="px-4 py-2 text-left">Workout</th>
-                <th class="px-4 py-2 text-left">Duration / Metric / Target</th>
-                <th class="px-4 py-2 text-center">
-                  <div class="flex items-center justify-center gap-1">
-                    <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 inline" title="Structured Workout" />
-                    <UButton
-                      v-if="selectedWeek?.workouts.some((w: any) => !w.structuredWorkout)"
-                      size="xs"
-                      color="primary"
-                      variant="ghost"
-                      icon="i-heroicons-sparkles"
-                      title="Generate structure for all workouts in this week"
-                      :loading="generatingAllStructures"
-                      @click="generateAllStructureForWeek"
-                    />
-                  </div>
-                </th>
-                <th class="px-4 py-2 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-              <tr
-                v-for="workout in selectedWeek.workouts"
+          <!-- Workouts Table (Desktop) -->
+          <div class="hidden sm:block overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-900 text-muted">
+                <tr>
+                    <th class="w-8"></th>
+                    <th class="px-4 py-2 text-left w-10"></th>
+                    <th class="px-4 py-2 text-left">Day</th>
+                    <th class="px-4 py-2 text-left">Workout</th>
+                    <th class="px-4 py-2 text-left">Duration / Metric / Target</th>
+                    <th class="px-4 py-2 text-center">
+                    <div class="flex items-center justify-center gap-1">
+                        <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 inline" title="Structured Workout" />
+                        <UButton
+                        v-if="selectedWeek?.workouts.some((w: any) => !w.structuredWorkout)"
+                        size="xs"
+                        color="primary"
+                        variant="ghost"
+                        icon="i-heroicons-sparkles"
+                        title="Generate structure for all workouts in this week"
+                        :loading="generatingAllStructures"
+                        @click="generateAllStructureForWeek"
+                        />
+                    </div>
+                    </th>
+                    <th class="px-4 py-2 text-right">Status</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                <tr
+                    v-for="workout in selectedWeek.workouts"
+                    :key="workout.id"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors group"
+                    draggable="true"
+                    @dragstart="onDragStart($event, workout)"
+                    @dragover.prevent
+                    @drop="onDrop($event, workout)"
+                    @click="navigateToWorkout(workout.id)"
+                    :class="{ 'opacity-50': draggingId === workout.id }"
+                >
+                    <td class="pl-2 text-center cursor-move text-gray-300 group-hover:text-gray-500">
+                    <UIcon name="i-heroicons-bars-2" class="w-4 h-4" />
+                    </td>
+                    <td class="px-4 py-3 text-center border-l-4" :class="getSportColorClass(workout.type)">
+                    <UIcon :name="getWorkoutIcon(workout.type)" class="w-5 h-5" :class="getIconColorClass(workout.type)" />
+                    </td>
+                    <td class="px-4 py-3 font-medium hidden sm:table-cell">{{ formatDay(workout.date) }}</td>
+                    <td class="px-4 py-3">
+                    <div class="font-semibold">{{ workout.title }}</div>
+                    <div class="text-xs text-muted">{{ workout.type }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div v-if="workout.type === 'Ride' || workout.type === 'VirtualRide'">{{ Math.round(workout.durationSec / 60) }}m</div>
+                        <div v-else-if="workout.type === 'Run'">
+                            {{ Math.round(workout.durationSec / 60) }}m <span v-if="workout.distanceMeters">/ {{ Math.round(workout.distanceMeters / 1000 * 10) / 10 }} km</span>
+                        </div>
+                        <div v-else-if="workout.type === 'Swim'">{{ Math.round(workout.distanceMeters || 0) }}m</div>
+                        <div v-else-if="workout.type === 'Gym' || workout.type === 'WeightTraining'">
+                        {{ Math.round(workout.durationSec / 60) }}m
+                        <div v-if="workout.targetArea" class="text-xs text-muted mt-0.5">Focus: {{ workout.targetArea }}</div>
+                        </div>
+                        <div v-else>-</div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                    <div class="flex justify-center">
+                        <MiniWorkoutChart
+                        v-if="workout.structuredWorkout"
+                        :workout="workout.structuredWorkout"
+                        />
+                        <UButton
+                        v-else
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        icon="i-heroicons-sparkles"
+                        :loading="generatingStructureForWorkoutId === workout.id"
+                        @click.stop="generateStructureForWorkout(workout.id)"
+                        title="Generate Structured Workout"
+                        />
+                    </div>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                    <UBadge :color="workout.completed ? 'success' : 'neutral'" size="xs">
+                        {{ workout.completed ? 'Done' : 'Planned' }}
+                    </UBadge>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+          </div>
+
+          <!-- Workouts List (Mobile) -->
+          <div class="block sm:hidden space-y-3">
+             <div 
+                v-for="workout in selectedWeek.workouts" 
                 :key="workout.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors group"
-                draggable="true"
-                @dragstart="onDragStart($event, workout)"
-                @dragover.prevent
-                @drop="onDrop($event, workout)"
+                class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex items-center gap-3 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 w-full"
                 @click="navigateToWorkout(workout.id)"
-                :class="{ 'opacity-50': draggingId === workout.id }"
-              >
-                <td class="pl-2 text-center cursor-move text-gray-300 group-hover:text-gray-500">
-                  <UIcon name="i-heroicons-bars-2" class="w-4 h-4" />
-                </td>
-                <td class="px-4 py-3 text-center border-l-4" :class="getSportColorClass(workout.type)">
-                   <UIcon :name="getWorkoutIcon(workout.type)" class="w-5 h-5" :class="getIconColorClass(workout.type)" />
-                </td>
-                <td class="px-4 py-3 font-medium hidden sm:table-cell">{{ formatDay(workout.date) }}</td>
-                <td class="px-4 py-3">
-                  <div class="font-semibold">{{ workout.title }}</div>
-                  <div class="text-xs text-muted">{{ workout.type }}</div>
-                </td>
-                <td class="px-4 py-3">
-                    <div v-if="workout.type === 'Ride' || workout.type === 'VirtualRide'">{{ Math.round(workout.durationSec / 60) }}m</div>
-                    <div v-else-if="workout.type === 'Run'">
-                        {{ Math.round(workout.durationSec / 60) }}m <span v-if="workout.distanceMeters">/ {{ Math.round(workout.distanceMeters / 1000 * 10) / 10 }} km</span>
+             >
+                <div class="p-2 rounded-full bg-gray-50 dark:bg-gray-900 border flex-shrink-0" :class="getSportColorClass(workout.type)">
+                    <UIcon :name="getWorkoutIcon(workout.type)" class="w-5 h-5" :class="getIconColorClass(workout.type)" />
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-semibold text-gray-500">{{ formatDay(workout.date) }}</span>
+                        <UBadge :color="workout.completed ? 'success' : 'neutral'" size="xs" variant="subtle">
+                            {{ workout.completed ? 'Done' : 'Planned' }}
+                        </UBadge>
                     </div>
-                    <div v-else-if="workout.type === 'Swim'">{{ Math.round(workout.distanceMeters || 0) }}m</div>
-                    <div v-else-if="workout.type === 'Gym' || workout.type === 'WeightTraining'">
-                      {{ Math.round(workout.durationSec / 60) }}m
-                      <div v-if="workout.targetArea" class="text-xs text-muted mt-0.5">Focus: {{ workout.targetArea }}</div>
+                    <div class="font-bold truncate text-sm">{{ workout.title }}</div>
+                    <div class="text-xs text-muted mt-0.5 truncate">
+                         <span v-if="workout.type === 'Ride' || workout.type === 'VirtualRide'">{{ Math.round(workout.durationSec / 60) }}m</span>
+                         <span v-else-if="workout.type === 'Run'">{{ Math.round(workout.durationSec / 60) }}m <span v-if="workout.distanceMeters">/ {{ Math.round(workout.distanceMeters / 1000 * 10) / 10 }} km</span></span>
+                         <span v-else>{{ Math.round(workout.durationSec / 60) }}m</span>
+                         <span class="mx-1">•</span>
+                         <span>{{ workout.type }}</span>
                     </div>
-                    <div v-else>-</div>
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <div class="flex justify-center">
-                    <MiniWorkoutChart
-                      v-if="workout.structuredWorkout"
-                      :workout="workout.structuredWorkout"
-                    />
-                    <UButton
-                      v-else
-                      size="xs"
-                      color="neutral"
-                      variant="ghost"
-                      icon="i-heroicons-sparkles"
-                      :loading="generatingStructureForWorkoutId === workout.id"
-                      @click.stop="generateStructureForWorkout(workout.id)"
-                      title="Generate Structured Workout"
-                    />
-                  </div>
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <UBadge :color="workout.completed ? 'success' : 'neutral'" size="xs">
-                    {{ workout.completed ? 'Done' : 'Planned' }}
-                  </UBadge>
-                </td>
-              </tr>
-              <tr v-if="selectedWeek.workouts.length === 0">
-                <td :colspan="userFtp ? 8 : 7" class="px-4 py-8 text-center text-muted">
-                  <div v-if="isGenerating" class="flex flex-col items-center justify-center space-y-2 text-yellow-600 py-8">
-                    <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin" />
-                    <span class="font-medium animate-pulse">Generating Workouts...</span>
-                    <span class="text-xs text-muted">This may take a minute as AI designs your optimal week.</span>
-                  </div>
-                  <div v-else>
-                    No workouts generated for this week yet.
-                    <div class="mt-2 flex justify-center">
-                      <UButton 
-                        size="xs" 
-                        color="primary" 
-                        variant="soft" 
-                        :loading="generatingWorkouts"
-                        @click="generateWorkoutsForBlock"
-                      >
-                        Generate Workouts
-                      </UButton>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+
+                <div class="flex-shrink-0" @click.stop>
+                     <MiniWorkoutChart
+                        v-if="workout.structuredWorkout"
+                        :workout="workout.structuredWorkout"
+                        class="w-12 h-8"
+                     />
+                     <UButton
+                        v-else
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        icon="i-heroicons-sparkles"
+                        :loading="generatingStructureForWorkoutId === workout.id"
+                        @click.stop="generateStructureForWorkout(workout.id)"
+                     />
+                </div>
+             </div>
+          </div>
+
+          <!-- Empty State (Shared) -->
+          <div v-if="selectedWeek.workouts.length === 0" class="px-4 py-8 text-center text-muted border-t sm:border-t-0 border-gray-100 dark:border-gray-800">
+            <div v-if="isGenerating" class="flex flex-col items-center justify-center space-y-2 text-yellow-600 py-8">
+            <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin" />
+            <span class="font-medium animate-pulse">Generating Workouts...</span>
+            <span class="text-xs text-muted">This may take a minute as AI designs your optimal week.</span>
+            </div>
+            <div v-else>
+            No workouts generated for this week yet.
+            <div class="mt-2 flex justify-center">
+                <UButton 
+                size="xs" 
+                color="primary" 
+                variant="soft" 
+                :loading="generatingWorkouts"
+                @click="generateWorkoutsForBlock"
+                >
+                Generate Workouts
+                </UButton>
+            </div>
+            </div>
+          </div>
         </div>
       </div>
 

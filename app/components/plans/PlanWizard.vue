@@ -229,17 +229,17 @@
             <div 
               v-for="block in generatedPlan.blocks" 
               :key="block.order"
-              class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex gap-4 items-center"
+              class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center"
             >
-              <div class="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-center min-w-[60px]">
+              <div class="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-center min-w-[60px] w-full sm:w-auto flex sm:block justify-between sm:justify-center items-center">
                 <div class="text-xs text-muted">WEEKS</div>
                 <div class="font-bold text-lg">{{ block.durationWeeks }}</div>
               </div>
               
-              <div class="flex-1">
-                <div class="flex justify-between items-center mb-1">
+              <div class="flex-1 w-full">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-1 gap-1">
                   <h4 class="font-bold">{{ block.name.split('[')[0].trim() }}</h4>
-                  <span class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">{{ formatDate(block.startDate) }}</span>
+                  <span class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 w-fit">{{ formatDate(block.startDate) }}</span>
                 </div>
                 <div class="text-sm text-muted mb-2">{{ getBlockDescription(block.type) }}</div>
                 <div class="flex flex-wrap gap-2">
