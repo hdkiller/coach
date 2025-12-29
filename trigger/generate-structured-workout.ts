@@ -29,8 +29,21 @@ const workoutStructureSchema = {
               }
             }
           },
+          heartRate: {
+            type: "object",
+            properties: {
+              value: { type: "number", description: "Target % of LTHR (e.g. 0.85)" },
+              range: { 
+                type: "object", 
+                properties: { start: { type: "number" }, end: { type: "number" } },
+                description: "For ramps: start and end % of LTHR"
+              }
+            }
+          },
           cadence: { type: "integer" },
-          name: { type: "string", description: "e.g. '5min @ 95%'" }
+          name: { type: "string", description: "e.g. '5min @ 95%'" },
+          stroke: { type: "string", description: "For swimming: Free, Back, Breast, Fly, IM, Choice, Kick, Pull" },
+          equipment: { type: "array", items: { type: "string" }, description: "For swimming: Fins, Paddles, Snorkel, Pull Buoy" }
         },
         required: ["type", "name"]
       }
@@ -46,6 +59,7 @@ const workoutStructureSchema = {
           reps: { type: "string", description: "e.g. '8-12' or 'AMRAP'" },
           weight: { type: "string", description: "e.g. '70% 1RM' or 'Bodyweight'" },
           duration: { type: "integer", description: "Duration in seconds if time-based" },
+          rest: { type: "string", description: "Rest between sets e.g. '90s'" },
           notes: { type: "string", description: "Form cues or tempo" }
         },
         required: ["name"]
@@ -115,15 +129,21 @@ export const generateStructuredWorkoutTask = task({
     - Include target "cadence" (RPM) for each step (e.g. 85-95 for intervals, 60-80 for rest).
 
     FOR RUNNING (Run):
-    - Steps should have 'type', 'durationSeconds', 'name', and 'targetPower' (optional, use if power based) or 'description' for pace (e.g. "5:00 min/km").
+    - Steps should have 'type', 'durationSeconds', 'name'.
+    - ALWAYS include 'distance' (meters) for each step. If duration-based, ESTIMATE the distance based on the intensity/pace.
+    - Use 'power' object if it's a power-based run (e.g. Stryd).
+    - CRITICAL: If heart rate based (most common), use a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85).
+    - If pace based, put pace in 'description' AND try to estimate equivalent HR intensity in 'heartRate.value' if possible (e.g. 5k pace ~ 1.05 intensity).
     
     FOR SWIMMING (Swim):
     - Steps should ideally have 'distance' (meters) instead of or in addition to duration. If using duration, estimate distance.
+    - Use 'stroke' to specify: Free, Back, Breast, Fly, IM, Choice, Kick, Pull.
+    - Use 'equipment' array for gear: Fins, Paddles, Snorkel, Pull Buoy.
     - Include 'stroke' type in description if applicable.
 
     FOR STRENGTH (Gym/WeightTraining):
     - Instead of 'steps', provide a list of 'exercises'.
-    - Each exercise should have 'name', 'sets', 'reps', 'weight' (optional description like "Heavy" or %1RM), and 'notes'.
+    - Each exercise should have 'name', 'sets', 'reps', 'weight' (optional description like "Heavy" or %1RM), 'rest' (e.g. "90s"), and 'notes'.
     - Structure it as Warmup -> Main Lifts -> Accessories -> Cooldown if possible.
     
     OUTPUT JSON format matching the schema.`;
@@ -140,11 +160,23 @@ export const generateStructuredWorkoutTask = task({
       }
     );
     
+    // Calculate total distance if available
+    let totalDistance = 0;
+    if (structure.steps && Array.isArray(structure.steps)) {
+      totalDistance = structure.steps.reduce((sum: number, step: any) => sum + (step.distance || 0), 0);
+    }
+
+    const updateData: any = {
+      structuredWorkout: structure as any
+    };
+
+    if (totalDistance > 0) {
+      updateData.distanceMeters = totalDistance;
+    }
+
     await (prisma as any).plannedWorkout.update({
       where: { id: plannedWorkoutId },
-      data: {
-        structuredWorkout: structure as any
-      }
+      data: updateData
     });
     
     return { success: true, plannedWorkoutId };
