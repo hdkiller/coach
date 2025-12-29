@@ -34,6 +34,11 @@ export default defineNuxtConfig({
     'nuxt-gtag'
   ],
 
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark'
+  },
+
   nitro: {
     experimental: {
       openAPI: true
