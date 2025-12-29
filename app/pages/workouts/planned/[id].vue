@@ -117,6 +117,73 @@
             </div>
           </div>
 
+          <!-- Extended Stats Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <UIcon name="i-heroicons-clock" class="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <div class="text-xs text-muted">Planned Duration</div>
+                  <div class="text-2xl font-bold">{{ formatDuration(workout.durationSec) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                  <UIcon name="i-heroicons-bolt" class="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <div class="text-xs text-muted">Training Stress</div>
+                  <div class="text-2xl font-bold">{{ Math.round(workout.tss) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                  <UIcon name="i-heroicons-fire" class="w-5 h-5 text-green-500" />
+                </div>
+                <div>
+                  <div class="text-xs text-muted">Intensity</div>
+                  <div class="text-2xl font-bold">{{ Math.round((workout.workIntensity || 0) * 100) }}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Run/Swim Details -->
+          <div v-if="workout.type === 'Run' || workout.type === 'Swim'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div v-if="workout.distanceMeters" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-map" class="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <div class="text-xs text-muted">Distance</div>
+                    <div class="text-2xl font-bold">{{ (workout.distanceMeters / 1000).toFixed(1) }} km</div>
+                  </div>
+                </div>
+             </div>
+             
+             <!-- Pace (Estimated) -->
+             <div v-if="workout.type === 'Run' && workout.distanceMeters && workout.durationSec" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                    <UIcon name="i-heroicons-forward" class="w-5 h-5 text-indigo-500" />
+                  </div>
+                  <div>
+                    <div class="text-xs text-muted">Est. Pace</div>
+                    <div class="text-2xl font-bold">{{ formatPace(workout.durationSec, workout.distanceMeters) }} /km</div>
+                  </div>
+                </div>
+             </div>
+          </div>
+
           <!-- Coach Instructions -->
           <div v-if="workout.structuredWorkout?.coachInstructions" class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-100 dark:border-blue-800">
             <div class="flex items-start gap-4">
@@ -737,6 +804,18 @@ function formatDuration(seconds: number) {
     return `${hours}h ${mins}m`
   }
   return `${mins}m`
+}
+
+function formatPace(seconds: number, meters: number) {
+  if (!seconds || !meters) return '-'
+  const minutes = seconds / 60
+  const km = meters / 1000
+  const paceDec = minutes / km
+  
+  const pMin = Math.floor(paceDec)
+  const pSec = Math.round((paceDec - pMin) * 60)
+  
+  return `${pMin}:${pSec.toString().padStart(2, '0')}`
 }
 
 function getWorkoutComponent(type: string) {
