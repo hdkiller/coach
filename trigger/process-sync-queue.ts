@@ -72,7 +72,7 @@ export const processSyncQueueTask = schedules.task({
               where: { id: item.id },
               data: {
                 status: "COMPLETED",
-                lastError: null,
+                error: null,
                 completedAt: new Date()
               }
             });
@@ -89,7 +89,7 @@ export const processSyncQueueTask = schedules.task({
               data: {
                 attempts: newAttempts,
                 status: maxAttemptsReached ? "FAILED" : "PENDING",
-                lastAttemptAt: new Date()
+                lastAttempt: new Date()
               }
             });
             
@@ -121,8 +121,8 @@ export const processSyncQueueTask = schedules.task({
             data: {
               attempts: newAttempts,
               status: maxAttemptsReached ? "FAILED" : "PENDING",
-              lastError: error instanceof Error ? error.message : String(error),
-              lastAttemptAt: new Date()
+              error: error instanceof Error ? error.message : String(error),
+              lastAttempt: new Date()
             }
           });
           

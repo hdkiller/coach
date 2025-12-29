@@ -192,58 +192,37 @@ Return valid JSON matching the schema provided.`;
         });
         
         // Create Workouts
-        for (const workout of weekData.workouts) {
-          // Calculate specific date based on dayOfWeek (0-6)
-          // weekStartDate is implied to be Monday in business logic, but let's be careful.
-          // Usually isoWeek starts on Monday (1). JS DategetDay() is Sun=0.
-          // Let's assume the AI follows the requested 0=Sun mapping.
-          
-          // Align weekStartDate to the correct Monday/Sunday start?
-          // Simplification: weekStartDate is the start of the block + offset.
-          // We need to find the specific date that matches the dayOfWeek within this week range.
-          
-          const targetDate = new Date(weekStartDate);
-          const startDay = targetDate.getDay(); // 0-6
-          const dayDiff = (workout.dayOfWeek - startDay + 7) % 7;
-          targetDate.setDate(targetDate.getDate() + dayDiff);
-          
-          // Ensure it falls within the week (sometimes logic above pushes to next week if start is late)
-          // Actually, standard is: Block starts on a Monday.
-          // If block.startDate is Monday, then:
-          // Mon=1, Tue=2... Sun=0.
-          // If workout.dayOfWeek is 1 (Mon), date is weekStartDate.
-          // If workout.dayOfWeek is 0 (Sun), date is weekStartDate + 6.
-          
-          // Correct logic assuming Block Start is ALWAYS aligned to start of week (e.g. Monday)
-          const daysToAdd = workout.dayOfWeek === 0 ? 6 : workout.dayOfWeek - 1; 
-          // Wait, standard JS getDay: Sun=0, Mon=1.
-          // If Start is Mon(1):
-          // Mon(1) -> +0 days
-          // Tue(2) -> +1 days
-          // ...
-          // Sun(0) -> +6 days
-          
+        const workoutsData = weekData.workouts.map((workout: any, index: number) => {
+          // Logic assuming Block Start is ALWAYS aligned to start of week (e.g. Monday)
+          // Mon=1 -> offset 0
+          // Sun=0 -> offset 6
           const offset = workout.dayOfWeek === 0 ? 6 : workout.dayOfWeek - 1;
           const workoutDate = new Date(weekStartDate);
           workoutDate.setDate(workoutDate.getDate() + offset);
 
-          await tx.plannedWorkout.create({
-            data: {
-              userId,
-              trainingWeekId: createdWeek.id,
-              date: workoutDate,
-              title: workout.title,
-              description: workout.description,
-              type: workout.type,
-              durationSec: (workout.durationMinutes || 0) * 60,
-              tss: workout.tssEstimate,
-              workIntensity: getIntensityScore(workout.intensity),
-              externalId: `ai-gen-${createdWeek.id}-${workout.dayOfWeek}-${Date.now()}`, // Temporary ID
-              category: 'WORKOUT'
-            }
+          return {
+            userId,
+            trainingWeekId: createdWeek.id,
+            date: workoutDate,
+            title: workout.title,
+            description: workout.description,
+            type: workout.type,
+            durationSec: (workout.durationMinutes || 0) * 60,
+            tss: workout.tssEstimate,
+            workIntensity: getIntensityScore(workout.intensity),
+            externalId: `ai-gen-${createdWeek.id}-${workout.dayOfWeek}-${index}-${Date.now()}`,
+            category: 'WORKOUT'
+          };
+        });
+
+        if (workoutsData.length > 0) {
+          await tx.plannedWorkout.createMany({
+            data: workoutsData
           });
         }
       }
+    }, {
+      timeout: 20000 // Increase timeout to 20s to handle larger blocks/slower db
     });
     
     return { success: true, blockId };
