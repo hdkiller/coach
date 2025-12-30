@@ -62,7 +62,7 @@ interface Room {
 const navigationItems = computed(() => {
   return rooms.value.map(room => ({
     label: room.roomName,
-    avatar: { src: room.avatar, size: '2xs' as const },
+    avatar: { src: room.avatar, size: 'md' as const },
     value: room.roomId,
     active: room.roomId === currentRoomId.value,
     description: room.lastMessage?.content
@@ -269,7 +269,7 @@ function formatTimestamp(timestamp: string | undefined) {
           <UButton
             color="neutral"
             variant="ghost"
-            icon="i-heroicons-bars-3"
+            icon="i-heroicons-clock"
             class="lg:hidden"
             @click="isRoomListOpen = true"
           />
@@ -318,14 +318,13 @@ function formatTimestamp(timestamp: string | undefined) {
               color="primary"
               :highlight="true"
               :items="navigationItems"
-              :ui="{
-                link: 'px-2 py-2',
-                linkLabel: 'text-sm',
-                linkLeadingAvatarSize: '2xs'
-              }"
-            >
+                            :ui="{
+                              link: 'px-2 py-2',
+                              linkLabel: 'text-sm truncate w-full text-left',
+                              linkLeadingAvatarSize: 'md'
+                            }"            >
               <template #item-label="{ item }">
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 text-left">
                   <div class="font-medium truncate">
                     {{ item.label }}
                   </div>
@@ -336,7 +335,7 @@ function formatTimestamp(timestamp: string | undefined) {
               </template>
             </UNavigationMenu>
             
-            <div v-else class="text-center py-8 text-sm text-gray-500">
+            <div v-else class="text-left py-8 text-sm text-gray-500 px-4">
               No chat history yet
             </div>
           </div>
@@ -357,14 +356,13 @@ function formatTimestamp(timestamp: string | undefined) {
                 color="primary"
                 :highlight="true"
                 :items="navigationItems"
-                :ui="{
-                  link: 'px-2 py-2',
-                  linkLabel: 'text-sm',
-                  linkLeadingAvatarSize: '2xs'
-                }"
-              >
+                              :ui="{
+                                link: 'px-2 py-2',
+                                linkLabel: 'text-sm truncate w-full text-left',
+                                linkLeadingAvatarSize: 'md'
+                              }"              >
                 <template #item-label="{ item }">
-                  <div class="flex-1 min-w-0">
+                  <div class="flex-1 min-w-0 text-left">
                     <div class="font-medium truncate">
                       {{ item.label }}
                     </div>
@@ -375,7 +373,7 @@ function formatTimestamp(timestamp: string | undefined) {
                 </template>
               </UNavigationMenu>
               
-              <div v-else class="text-center py-8 text-sm text-gray-500">
+              <div v-else class="text-left py-8 text-sm text-gray-500 px-4">
                 No chat history yet
               </div>
             </div>

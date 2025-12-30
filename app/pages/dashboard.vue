@@ -39,12 +39,12 @@
     <template #body>
       <ClientOnly>
         <!-- Onboarding View (New User) -->
-        <div v-if="!integrationStore?.intervalsConnected" class="p-6 max-w-6xl mx-auto">
+        <div v-if="!integrationStore?.intervalsConnected" class="p-4 sm:p-6 max-w-6xl mx-auto">
           <DashboardOnboardingView />
         </div>
 
         <!-- Dashboard Grid (Connected User) -->
-        <div v-else class="p-6 space-y-8">
+        <div v-else class="p-4 sm:p-6 space-y-6 sm:space-y-8">
           <DashboardMissingDataBanner v-if="missingFields.length > 0" :missing-fields="missingFields" />
 
           <div>
@@ -53,7 +53,7 @@
           </div>
         
           <!-- Row 1: Athlete Profile / Today's Training / Performance Overview -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
             <!-- Athlete Profile Card - shown when connected -->
             <DashboardAthleteProfileCard @open-wellness="openWellnessModal" />
             
@@ -66,7 +66,7 @@
           </div>
           
           <!-- Row 2: Recent Activity / Next Steps / Connection Status -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <!-- Recent Activity Card -->
             <DashboardRecentActivityCard />
             
