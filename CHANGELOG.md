@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.2](https://github.com/newpush/coach/compare/v0.5.1...v0.5.2) (2025-12-30)
+
+
+### Bug Fixes
+
+* **api:** cap pmc chart end date to prevent showing far future dates ([ec60895](https://github.com/newpush/coach/commit/ec60895894aa2323c04a3a53b60f2a899db43f12))
+* **trigger:** cap intervals data fetch to prevent far future date queries ([fc772eb](https://github.com/newpush/coach/commit/fc772eb77e3d8bafa8b331b38639557576497990))
+
+
+### Features
+
+* **api:** add lthr support to profile endpoints ([bc1fd57](https://github.com/newpush/coach/commit/bc1fd5717ebf21b6e1349fa3a227160a2a1c90f5))
+* **api:** add profile autodetect confirmation with diff detection ([1e76344](https://github.com/newpush/coach/commit/1e76344d99080cce064578142bab33f8cfd4678a))
+* **components:** add confirmation modal for profile autodetect updates ([af892b3](https://github.com/newpush/coach/commit/af892b36746c13a7b840bdc95cc8b94337e00b77))
+* **components:** add lthr field to profile settings ui ([1bf7e0a](https://github.com/newpush/coach/commit/1bf7e0a7ec10b7b72bf2c0b5b613911143c0fa48))
+* **database:** add lthr field to user schema ([0fbf6bf](https://github.com/newpush/coach/commit/0fbf6bf470134c93a3ac23ec46acf2a62f5cacc1))
+
 ## [0.5.1](https://github.com/newpush/coach/compare/v0.5.0...v0.5.1) (2025-12-30)
 
 
