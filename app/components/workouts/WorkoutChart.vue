@@ -268,10 +268,30 @@ const zoneDistribution = computed(() => {
   if (!props.workout?.steps) return distribution
 
   props.workout.steps.forEach((step: any) => {
-    const power = step.power?.value || 0
+    // If range (ramp), take average
+    const val = step.power?.range 
+      ? (step.power.range.start + step.power.range.end) / 2
+      : (step.power?.value || 0)
+      
+    // Use HR if no power?
+    // If val is 0, maybe check heartRate?
+    // For now assume power is primary if present or if structure is for cycling.
+    // If running, we might need a different chart or mapping.
+    
+    const power = val
     const duration = step.durationSeconds || 0
     
     // Find zone
+    // Use < for upper bound to align with standard Coggan zones where Z2 ends at 75% inclusive? 
+    // Actually Coggan is:
+    // Z1 < 55%
+    // Z2 56-75%
+    // Z3 76-90%
+    // Z4 91-105%
+    // Z5 106-120%
+    // Z6 121%+
+    // So <= 0.55 is Z1. >0.55 and <=0.75 is Z2.
+    
     const zone = distribution.find(z => power <= z.max) || distribution[distribution.length - 1]
     if (zone) zone.duration += duration
   })
