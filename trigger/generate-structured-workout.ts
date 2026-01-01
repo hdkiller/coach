@@ -132,8 +132,9 @@ export const generateStructuredWorkoutTask = task({
     - Steps should have 'type', 'durationSeconds', 'name'.
     - ALWAYS include 'distance' (meters) for each step. If duration-based, ESTIMATE the distance based on the intensity/pace.
     - Use 'power' object if it's a power-based run (e.g. Stryd).
-    - CRITICAL: If heart rate based (most common), use a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85).
-    - If pace based, put pace in 'description' AND try to estimate equivalent HR intensity in 'heartRate.value' if possible (e.g. 5k pace ~ 1.05 intensity).
+    - CRITICAL: You MUST include a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for EVERY step (except Rest where it's optional but recommended).
+    - DO NOT rely solely on description for intensity. Even for "Easy Jog", provide an estimated HR intensity (e.g. 0.70).
+    - If pace based, put pace in 'description' AND provide the equivalent HR intensity in 'heartRate.value' (e.g. 5k pace ~ 1.05 intensity).
     
     FOR SWIMMING (Swim):
     - Steps should ideally have 'distance' (meters) instead of or in addition to duration. If using duration, estimate distance.
