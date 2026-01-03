@@ -13,11 +13,11 @@
         </div>
         <div>
           <h3 class="text-sm font-bold text-amber-800 dark:text-amber-200 uppercase tracking-tight">
-            Critical Profile Information Missing
+            Complete your profile for personalized insights
           </h3>
           <p class="mt-1 text-sm text-amber-700 dark:text-amber-300 font-medium">
-            We're missing important data: <span class="font-bold underline decoration-amber-500/30">{{ missingFieldsList }}</span>. 
-            Providing this information is critical for accurate coaching guidance and analysis.
+            We're missing: <span class="font-bold underline decoration-amber-500/30">{{ missingFieldsList }}</span>. 
+            Providing this information is critical for accurate coaching guidance.
           </p>
         </div>
       </div>
@@ -55,16 +55,7 @@ const storageKey = 'profile-banner-dismissed'
 onMounted(() => {
   const dismissed = localStorage.getItem(storageKey)
   if (dismissed) {
-    // If it was dismissed more than 7 days ago, show it again
-    const dismissedDate = new Date(dismissed)
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    
-    if (dismissedDate < sevenDaysAgo) {
-      isVisible.value = true
-    } else {
-      isVisible.value = false
-    }
+    isVisible.value = false
   }
 })
 
@@ -80,6 +71,6 @@ const missingFieldsList = computed(() => {
 
 function dismiss() {
   isVisible.value = false
-  localStorage.setItem(storageKey, new Date().toISOString())
+  localStorage.setItem(storageKey, 'true')
 }
 </script>
