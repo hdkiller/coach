@@ -668,13 +668,29 @@
                       <div class="flex items-center justify-between">
                         <div>
                           <div class="font-medium text-gray-900 dark:text-white">{{ workout.canonicalWorkout.title }}</div>
-                          <div class="text-xs text-gray-500 mt-0.5">
-                            {{ formatDate(workout.canonicalWorkout.date) }} • {{ workout.canonicalWorkout.source }}
+                          <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                            {{ formatDate(workout.canonicalWorkout.date) }}
+                            <span :class="getSourceBadgeClass(workout.canonicalWorkout.source)" class="py-0 px-1.5 text-[10px]">
+                              {{ workout.canonicalWorkout.source }}
+                            </span>
                           </div>
                         </div>
                         <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
                       </div>
                     </NuxtLink>
+                  </div>
+
+                  <div class="mt-4 pt-4 border-t border-yellow-200 dark:border-yellow-800/50">
+                    <UButton
+                      size="xs"
+                      color="yellow"
+                      variant="soft"
+                      icon="i-heroicons-arrow-path-rounded-square"
+                      :loading="promoting"
+                      @click="promoteWorkout"
+                    >
+                      Make this the primary version
+                    </UButton>
                   </div>
                 </div>
               </div>
@@ -702,8 +718,11 @@
                   <div class="flex items-center justify-between">
                     <div>
                       <div class="font-medium text-gray-900 dark:text-white">{{ dup.title }}</div>
-                      <div class="text-xs text-gray-500 mt-0.5">
-                        {{ formatDate(dup.date) }} • {{ dup.source }}
+                      <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                        {{ formatDate(dup.date) }}
+                        <span :class="getSourceBadgeClass(dup.source)" class="py-0 px-1.5 text-[10px]">
+                          {{ dup.source }}
+                        </span>
                       </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -719,6 +738,46 @@
      </div>
     </template>
   </UDashboardPanel>
+
+  <!-- Promote Workout Confirmation Modal -->
+  <UModal
+    v-model:open="isPromoteModalOpen"
+    title="Promote Workout"
+    description="This will make the current workout the primary version."
+  >
+    <template #body>
+      <div class="space-y-4">
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+          <div class="flex items-start gap-3">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+            <div>
+              <h3 class="font-semibold text-yellow-900 dark:text-yellow-100">Are you sure?</h3>
+              <p class="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
+                This action will swap the primary status. The current primary workout will become a duplicate of this one.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="ghost"
+          @click="isPromoteModalOpen = false"
+        />
+        <UButton
+          label="Make Primary"
+          color="yellow"
+          variant="solid"
+          :loading="promoting"
+          @click="confirmPromoteWorkout"
+        />
+      </div>
+    </template>
+  </UModal>
 
   <!-- Share Modal -->
   <UModal
@@ -791,6 +850,8 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const analyzingWorkout = ref(false)
 const sharing = ref(false)
+const promoting = ref(false)
+const isPromoteModalOpen = ref(false)
 
 // Share functionality
 const isShareModalOpen = ref(false)
@@ -986,6 +1047,41 @@ async function analyzeWorkout() {
       color: 'error',
       icon: 'i-heroicons-exclamation-circle'
     })
+  }
+}
+
+async function promoteWorkout() {
+  if (!workout.value) return
+  isPromoteModalOpen.value = true
+}
+
+async function confirmPromoteWorkout() {
+  if (!workout.value) return
+  
+  promoting.value = true
+  try {
+    await $fetch(`/api/workouts/${workout.value.id}/promote`, {
+      method: 'POST'
+    })
+    
+    toast.add({
+      title: 'Success',
+      description: 'Workout promoted to primary version',
+      color: 'success'
+    })
+    
+    // Refresh to reflect changes
+    await fetchWorkout()
+    isPromoteModalOpen.value = false
+  } catch (e: any) {
+    console.error('Failed to promote workout:', e)
+    toast.add({
+      title: 'Error',
+      description: e.data?.message || 'Failed to promote workout',
+      color: 'error'
+    })
+  } finally {
+    promoting.value = false
   }
 }
 
