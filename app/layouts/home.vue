@@ -3,9 +3,8 @@
     <header
       class="sticky top-0 z-50 bg-white/75 dark:bg-gray-950/75 backdrop-blur border-b border-gray-200 dark:border-gray-800">
       <UContainer class="h-16 flex items-center justify-between">
-        <NuxtLink to="/" class="flex items-center gap-2 font-bold text-xl hover:text-primary transition-colors">
-          <UIcon name="i-lucide-zap" class="w-6 h-6 text-primary" />
-          Coach Watts
+        <NuxtLink to="/" class="flex items-center hover:opacity-90 transition-opacity">
+          <img src="/media/coach-watts.webp" alt="Coach Watts" class="h-12 w-auto object-contain" />
         </NuxtLink>
 
         <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -52,10 +51,9 @@
       <UContainer>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div class="md:col-span-2">
-            <div class="flex items-center gap-2 font-bold text-xl mb-4">
-              <UIcon name="i-lucide-zap" class="w-6 h-6 text-primary" />
-              Coach Watts
-            </div>
+            <NuxtLink to="/" class="flex items-center mb-4 hover:opacity-90 transition-opacity">
+              <img src="/media/coach-watts.webp" alt="Coach Watts" class="h-16 w-auto object-contain" />
+            </NuxtLink>
             <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
               AI-powered endurance coaching that adapts to your life, recovery, and goals.
             </p>

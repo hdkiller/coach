@@ -232,7 +232,11 @@ const groups = computed(() => [{
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
       <template #header="{ collapsed }">
-        <div class="flex items-center justify-center w-full overflow-hidden" :class="collapsed ? 'p-1' : 'p-4'">
+        <NuxtLink 
+          to="/dashboard" 
+          class="flex items-center justify-center w-full overflow-hidden shrink-0" 
+          :class="collapsed ? 'p-1' : 'p-4'"
+        >
           <img 
             v-if="!collapsed"
             src="/media/coach-watts.webp" 
@@ -245,7 +249,7 @@ const groups = computed(() => [{
             alt="Coach Watts" 
             class="size-12 object-contain"
           />
-        </div>
+        </NuxtLink>
       </template>
 
       <template #default="{ collapsed }">
