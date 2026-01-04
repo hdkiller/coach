@@ -149,9 +149,10 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate,
-    orderBy: { date: 'asc' }
-    // Note: Filtering for durationSec > 0 is not currently in getForUser options
-    // but duplicate filtering is enabled by default.
+    orderBy: { date: 'asc' },
+    include: {
+      plannedWorkout: true
+    }
   })
   
   // Fetch planned workouts
@@ -167,6 +168,7 @@ export default defineEventHandler(async (event) => {
   })
   
   // Create a set of plannedWorkoutIds that are already represented by completed workouts
+  // We'll use this to mark them as linked or hide them if we only want them nested
   const completedPlannedIds = new Set(workouts.map(w => w.plannedWorkoutId).filter(Boolean))
   
   // Group activities by date for nutrition injection
@@ -222,6 +224,13 @@ export default defineEventHandler(async (event) => {
       
       // Planned workout link
       plannedWorkoutId: w.plannedWorkoutId,
+      linkedPlannedWorkout: (w as any).plannedWorkout ? {
+        id: (w as any).plannedWorkout.id,
+        title: (w as any).plannedWorkout.title,
+        duration: (w as any).plannedWorkout.durationSec,
+        tss: (w as any).plannedWorkout.tss,
+        type: (w as any).plannedWorkout.type
+      } : null,
       
       // Original IDs for linking
       originalId: w.id,
@@ -237,6 +246,9 @@ export default defineEventHandler(async (event) => {
   // Process Planned Workouts
   for (const p of plannedWorkouts) {
     // Skip planned workouts that are already completed and linked to an actual workout
+    // The user said: "we should not hide the 'planned workout' but 'link' them together"
+    // However, if we show BOTH as top-level items, it might be cluttered.
+    // If we nest them, we should keep the skip here but ensure the nested data is used.
     if (completedPlannedIds.has(p.id)) continue
     
     // Determine status

@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
       streams: true,
       duplicates: true,
       canonicalWorkout: true,
+      plannedWorkout: true,
       exercises: {
         include: {
           exercise: true,
