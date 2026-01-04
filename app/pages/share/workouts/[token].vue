@@ -155,6 +155,16 @@
         </div>
       </div>
 
+      <!-- Plan Adherence (if linked) -->
+      <div v-if="workout.plannedWorkout" class="mb-6">
+        <PlanAdherence 
+          :adherence="workout.planAdherence" 
+          :regenerating="false"
+          :planned-workout="workout.plannedWorkout"
+          :read-only="true"
+        />
+      </div>
+
       <!-- AI Analysis Section -->
       <div v-if="workout.aiAnalysisJson" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center gap-2 mb-4">
@@ -307,6 +317,8 @@
 </template>
 
 <script setup lang="ts">
+import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
+
 // Public share page - accessible to everyone (authenticated or not)
 definePageMeta({
   layout: 'share'

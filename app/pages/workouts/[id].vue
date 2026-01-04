@@ -392,6 +392,17 @@
 
           <!-- AI Analysis Section -->
           <div id="analysis" class="scroll-mt-20"></div>
+          
+          <!-- Plan Adherence (if linked) -->
+          <div v-if="workout.plannedWorkout" class="mb-6">
+            <PlanAdherence 
+              :adherence="workout.planAdherence" 
+              :regenerating="analyzingAdherence"
+              :planned-workout="workout.plannedWorkout"
+              @regenerate="analyzeAdherence"
+            />
+          </div>
+
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-xl font-bold text-gray-900 dark:text-white">AI Workout Analysis</h2>
@@ -870,6 +881,7 @@
 
 <script setup lang="ts">
 import { marked } from 'marked'
+import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
 
 definePageMeta({
   middleware: 'auth'
@@ -883,6 +895,7 @@ const workout = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const analyzingWorkout = ref(false)
+const analyzingAdherence = ref(false)
 const sharing = ref(false)
 const promoting = ref(false)
 const isPromoteModalOpen = ref(false)
@@ -1119,6 +1132,36 @@ async function confirmPromoteWorkout() {
   }
 }
 
+// Analyze plan adherence
+async function analyzeAdherence() {
+  if (!workout.value) return
+  
+  analyzingAdherence.value = true
+  try {
+    await $fetch(`/api/workouts/${workout.value.id}/analyze-adherence`, {
+      method: 'POST'
+    })
+    
+    toast.add({
+      title: 'Analysis Started',
+      description: 'Analyzing plan adherence...',
+      color: 'info',
+      icon: 'i-heroicons-sparkles'
+    })
+    
+    // Start polling to update the UI when ready
+    startPolling()
+  } catch (e: any) {
+    console.error('Error triggering adherence analysis:', e)
+    analyzingAdherence.value = false
+    toast.add({
+      title: 'Analysis Failed',
+      description: e.data?.message || 'Failed to start adherence analysis',
+      color: 'error'
+    })
+  }
+}
+
 // Poll for analysis completion
 function startPolling() {
   // Clear any existing polling
@@ -1138,28 +1181,24 @@ function startPolling() {
       workout.value.aiAnalysisJson = updated.aiAnalysisJson
       workout.value.aiAnalysisStatus = updated.aiAnalysisStatus
       workout.value.aiAnalyzedAt = updated.aiAnalyzedAt
+      workout.value.planAdherence = updated.planAdherence
       
-      // If completed or failed, stop polling
-      if ((updated as any).aiAnalysisStatus === 'COMPLETED') {
-        stopPolling()
-        analyzingWorkout.value = false
-        
+      // Check adherence status
+      if (analyzingAdherence.value && updated.planAdherence?.analysisStatus === 'COMPLETED') {
+        analyzingAdherence.value = false
         toast.add({
-          title: 'Analysis Complete',
-          description: 'AI workout analysis has been generated successfully',
+          title: 'Adherence Analysis Complete',
           color: 'success',
           icon: 'i-heroicons-check-circle'
         })
-      } else if ((updated as any).aiAnalysisStatus === 'FAILED') {
+      }
+
+      // If completed or failed, stop polling
+      const workoutAnalysisDone = updated.aiAnalysisStatus === 'COMPLETED' || updated.aiAnalysisStatus === 'FAILED'
+      const adherenceAnalysisDone = !analyzingAdherence.value // simple check if we are waiting for it
+      
+      if (!analyzingWorkout.value && !analyzingAdherence.value) {
         stopPolling()
-        analyzingWorkout.value = false
-        
-        toast.add({
-          title: 'Analysis Failed',
-          description: 'Failed to generate workout analysis. Please try again.',
-          color: 'error',
-          icon: 'i-heroicons-exclamation-circle'
-        })
       }
     } catch (e) {
       console.error('Error polling workout status:', e)
