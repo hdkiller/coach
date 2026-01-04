@@ -46,7 +46,7 @@
         <div v-if="workout.plannedWorkout" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800 relative group">
           <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <UButton
-              color="gray"
+              color="neutral"
               variant="ghost"
               size="xs"
               icon="i-heroicons-link-slash"

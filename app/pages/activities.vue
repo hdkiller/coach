@@ -522,7 +522,7 @@
     v-model="showWorkoutModal"
     :workout="selectedWorkout"
     @deleted="handleWorkoutDeleted"
-    @updated="refresh"
+    @updated="() => refresh()"
   />
 
   <WellnessModal
