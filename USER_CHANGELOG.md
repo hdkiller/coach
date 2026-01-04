@@ -1,3 +1,37 @@
+👋 Hello Athletes and Coaches!
+
+We've just pushed **v0.5.4**, bringing some powerful new visualizations and important data accuracy improvements to your training analysis. Dive into the details below!
+
+---
+
+## What’s New in Coach Watts (v0.5.4) ✨
+
+### 1. New Visual Training Insights 📈
+
+Analyzing your efforts just got a whole lot easier!
+
+*   **Zone Visualization Charts:** We've added a fantastic new component that graphically displays your workout run. You can now clearly see how your effort was distributed across your customized training zones (Power, Heart Rate, etc.) throughout the session. Get instant, visual feedback on your pacing and execution!
+
+### 2. Smarter Data & Transparency 💡
+
+We believe in clear, accurate data you can trust.
+
+*   **Score Clarity:** No more guessing games! We now provide clear explanations accompanying your workout performance scores. You'll know exactly *why* you received that rating, making the feedback immediately more actionable.
+*   **Accurate Running Metrics:** We fixed an important conversion issue to ensure that your running cadence is calculated perfectly as Steps Per Minute (SPM). Runners, your data is now spot-on! 🏃‍♀️
+
+### 3. Stability & Reliability Improvements 🛠️
+
+We've been busy tidying up behind the scenes to keep Coach Watts running smoothly.
+
+*   **Smoother Workouts:** We fixed a bug that occasionally caused duplicate lines or errors during workout processing and conversion, ensuring your structured workouts load cleanly every time.
+*   **System Health:** We’ve implemented new internal monitoring tools to help us detect and address performance issues faster, keeping the entire platform reliable as we scale.
+
+---
+
+Happy Training!
+
+The Coach Watts Team 🚴‍♀️
+
 # 🎉 Coach Watts v0.5.3: Syncing, Stats, and Smarter Updates!
 
 Hey team! We've just rolled out a fantastic new update focused on integrating with your favorite tools and providing you with instant performance insights.

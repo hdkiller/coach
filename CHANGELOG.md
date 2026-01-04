@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.5.5](https://github.com/newpush/coach/compare/v0.5.4...v0.5.5) (2026-01-04)
+
+
+### Bug Fixes
+
+* **api:** refactor workout share endpoints to use share token table ([c281bc2](https://github.com/newpush/coach/commit/c281bc260b8951369dfeda191e70ebd71d903d91))
+* **calculations:** improve tss estimation formula and add force flag ([1e4a435](https://github.com/newpush/coach/commit/1e4a435b1316e0e70451bb96f11d1e29491f28cc))
+* **components:** fix typescript inference for badge color ([c26bb39](https://github.com/newpush/coach/commit/c26bb395dd07fc6c0a62ad3430705d2054df5ece))
+* **components:** resolve nuxt ui v3 type errors in workout quick view ([b2262af](https://github.com/newpush/coach/commit/b2262af0a2b3c95b6909a61ede8286220fc1860b))
+* **components:** resolve type errors in workout modal and activities page ([5ec933a](https://github.com/newpush/coach/commit/5ec933af83e16a807a5216c1da2c973f316af728))
+* **components:** update badge color in plan adherence component ([443b806](https://github.com/newpush/coach/commit/443b806b67b546fed48a86255b6d74e398c5ff24))
+* **pages:** use correct color prop for button in workout page ([5f880b2](https://github.com/newpush/coach/commit/5f880b22141734ae80f91babedb20357b4d646e3))
+
+
+### Features
+
+* **admin:** add llm usage statistics to user management dashboard ([f4e76b1](https://github.com/newpush/coach/commit/f4e76b13176357b87678bdf0f93e6224317f8464))
+* **api:** add endpoint to promote duplicate workout to primary ([5be3180](https://github.com/newpush/coach/commit/5be3180965b81e770a08ddb729a151c8fbe48974))
+* **api:** add heart rate and custom zones to missing fields tracking ([aa6e4e5](https://github.com/newpush/coach/commit/aa6e4e5d438206ec158a665efb24113bbb96704b))
+* **api:** add optional days parameter to integration sync endpoint ([108190b](https://github.com/newpush/coach/commit/108190b83f6d2dfe878c7d1ee68a0e18ea1925b7))
+* **api:** add plan adherence analysis endpoint and trigger job ([9e92b86](https://github.com/newpush/coach/commit/9e92b861fb696f907f34384a55323c9393e107c6))
+* **api:** add workout unlink endpoint and enhance calendar data with linked plans ([c91b0bd](https://github.com/newpush/coach/commit/c91b0bd98b63dbe785a5f3725181e30d420a9c60))
+* **components:** add plan adherence component and update modal ([a3008b5](https://github.com/newpush/coach/commit/a3008b52abecdf2c8f3fcb72a016944c57621589))
+* **components:** display linked planned workout details in calendar and quick view ([63e4856](https://github.com/newpush/coach/commit/63e485697d8030f65bf386a4df7c6ffa501badbf))
+* **components:** expand training zones to support up to z7/z8 ([4bb20cd](https://github.com/newpush/coach/commit/4bb20cd7d50e3f357fdcf6e8cb880b80119db100))
+* **composables:** add formatters composable ([3533a6f](https://github.com/newpush/coach/commit/3533a6fe00656c84c0deb555b27b25ef7541e199))
+* **core:** update types and structured workout generation for better linking support ([79aa7c6](https://github.com/newpush/coach/commit/79aa7c60c67ff0dcef28eefec64fd9244a2aac86))
+* **db:** add plan adherence model and migration ([84c8d22](https://github.com/newpush/coach/commit/84c8d22e8a054394b66ff5dca1e6c6f996462e23))
+* **pages:** add ability to promote duplicate workout to primary ([935f6d2](https://github.com/newpush/coach/commit/935f6d27fe0fec24b6b205398ed4c1e0cb330917))
+* **pages:** display plan adherence in workout details and share pages ([3589e2f](https://github.com/newpush/coach/commit/3589e2f8786808cbaf3c9c9ad57b2eea61931d34))
+* **pages:** enhance workout pages to show and manage linked planned workouts ([92dc739](https://github.com/newpush/coach/commit/92dc7396f7d9294a4f80c4776053729205da083e))
+* **pages:** implement drag-and-drop linking for planned and completed workouts ([f99661a](https://github.com/newpush/coach/commit/f99661ae21cb64019cb50503c21b427ce3f32ff9))
+* **scripts:** add dry-run mode and improve stress calculation logic ([e84e527](https://github.com/newpush/coach/commit/e84e527bc0f7da7ae8ae9b2e6faea7f7aeb00c64))
+* **settings:** add Nuxt UI MCP server configuration ([782e86c](https://github.com/newpush/coach/commit/782e86c431111210c6f48b56c7a5ba17ff10b95a))
+* **trigger:** add active goals to weekly report data fetching ([54b7b73](https://github.com/newpush/coach/commit/54b7b731208819652af59b1eb9569832b967a15a))
+* **ui:** improve impersonation banner and exit controls ([7c8dc1e](https://github.com/newpush/coach/commit/7c8dc1e6000059e9535a63b38b24380fefefce9f))
+
 ## [0.5.4](https://github.com/newpush/coach/compare/v0.5.3...v0.5.4) (2026-01-01)
 
 
