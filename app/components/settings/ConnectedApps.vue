@@ -28,7 +28,7 @@
                 Connect
               </UButton>
               <UButton
-                color="gray"
+                color="neutral"
                 variant="link"
                 size="xs"
                 :padded="false"
