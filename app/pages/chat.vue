@@ -423,7 +423,7 @@ function formatTimestamp(timestamp: string | undefined) {
                 :assistant="{
                   side: 'left',
                   variant: 'naked',
-                  avatar: { src: '/images/logo.svg' }
+                  avatar: { src: '/media/logo.webp' }
                 }"
               >
                 <!-- Custom content rendering for each message -->

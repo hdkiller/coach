@@ -246,7 +246,7 @@ export default defineEventHandler(async (event) => {
     content: aiMessage.content,
     senderId: aiMessage.senderId,
     username: 'Coach Watts',
-    avatar: '/images/logo.svg',
+    avatar: '/media/logo.webp',
     date: new Date(aiMessage.createdAt).toLocaleDateString(),
     timestamp: new Date(aiMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     system: false,

@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
     const aiRoom = await prisma.chatRoom.create({
       data: {
         name: 'Coach Watts',
-        avatar: '/images/logo.svg', // Assuming a logo exists
+        avatar: '/media/logo.webp', // Assuming a logo exists
         users: {
           create: [
             { userId: userId }
@@ -120,7 +120,7 @@ export default defineEventHandler(async (event) => {
         {
           _id: 'ai_agent',
           username: 'Coach Watts',
-          avatar: '/images/logo.svg',
+          avatar: '/media/logo.webp',
           status: {
             state: 'online',
             lastChanged: 'always'
