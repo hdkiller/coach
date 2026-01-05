@@ -43,3 +43,14 @@ export const userBackgroundQueue = queue({
   name: "user-background",
   concurrencyLimit: 2,
 });
+
+/**
+ * User Ingestion Queue
+ * 
+ * This queue handles data ingestion tasks from external sources.
+ * Each user gets their own queue instance with a limit of 2 concurrent jobs.
+ */
+export const userIngestionQueue = queue({
+  name: "user-ingestion",
+  concurrencyLimit: 2,
+});
