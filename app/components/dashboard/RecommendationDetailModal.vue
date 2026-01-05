@@ -63,6 +63,15 @@
         <UButton color="neutral" variant="outline" @click="isOpen = false">
           Close
         </UButton>
+        <UButton 
+          v-if="canAccept" 
+          color="primary" 
+          variant="solid" 
+          :loading="accepting"
+          @click="handleAccept"
+        >
+          Accept Changes
+        </UButton>
       </div>
     </template>
   </UModal>
@@ -74,12 +83,32 @@ const props = defineProps<{
   recommendation: any
 }>()
 
-const emit = defineEmits(['update:open'])
+const emit = defineEmits(['update:open', 'accepted'])
+const recommendationStore = useRecommendationStore()
+const accepting = ref(false)
 
 const isOpen = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value)
 })
+
+const canAccept = computed(() => {
+  return props.recommendation?.analysisJson?.suggested_modifications && 
+         !props.recommendation?.userAccepted
+})
+
+async function handleAccept() {
+  if (!props.recommendation?.id) return
+  
+  accepting.value = true
+  const success = await recommendationStore.acceptRecommendation(props.recommendation.id)
+  accepting.value = false
+  
+  if (success) {
+    emit('accepted')
+    isOpen.value = false
+  }
+}
 
 function getRecommendationColor(rec: string): 'success' | 'warning' | 'error' | 'neutral' {
   const colors: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
