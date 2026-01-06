@@ -157,15 +157,6 @@ const props = defineProps<{
   }
 }>()
 
-const metricTooltips: Record<string, string> = {
-  'Variability Index': 'VI: The ratio of Normalized Power to Average Power. A VI of 1.0 means steady pacing (like a time trial); higher values (e.g., 1.2+) indicate "spiky" or variable effort.',
-  'Efficiency Factor': 'EF: Normalized Power divided by Average Heart Rate. Measures your aerobic efficiency (power produced per heartbeat). Higher is generally better.',
-  'Aerobic Decoupling': 'Aerobic Decoupling (Pw:HR): Measures how much your heart rate drifts upward relative to power over the session. Less than 5% usually indicates good endurance.',
-  'Power/HR Ratio': 'The ratio of power output to heart rate. Similar to Efficiency Factor but often calculated on raw averages.',
-  'Polarization Index': 'A metric indicating how "polarized" your training intensity is (spending time in easy and hard zones, avoiding the middle "grey zone").',
-  'L/R Balance': 'Left/Right Power Balance: The percentage split of total power contributed by each leg.'
-}
-
 const hasMetrics = computed(() => {
   return props.metrics.variabilityIndex !== null ||
          props.metrics.efficiencyFactor !== null ||
