@@ -20,6 +20,16 @@ export const ingestStravaTask = task({
     const { userId, startDate, endDate } = payload;
     
     logger.log("Starting Strava ingestion", { userId, startDate, endDate });
+
+    // Block ingestion on hosted site until Strava app is approved
+    const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || '';
+    if (siteUrl.includes('coachwatts.com')) {
+      logger.log("Strava ingestion is temporarily disabled on coachwatts.com");
+      return {
+        success: false,
+        message: "Strava integration is temporarily disabled on coachwatts.com"
+      };
+    }
     
     const integration = await prisma.integration.findUnique({
       where: {

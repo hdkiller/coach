@@ -26,6 +26,16 @@ export const ingestStravaStreams = task({
       workoutId: payload.workoutId, 
       activityId: payload.activityId 
     })
+
+    // Block ingestion on hosted site until Strava app is approved
+    const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || '';
+    if (siteUrl.includes('coachwatts.com')) {
+      logger.log("Strava stream ingestion is temporarily disabled on coachwatts.com");
+      return {
+        success: false,
+        message: "Strava stream ingestion is temporarily disabled on coachwatts.com"
+      };
+    }
     
     // Get Strava integration
     const integration = await prisma.integration.findFirst({

@@ -23,6 +23,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig()
+
+  // Disable Strava on hosted version until app request is accepted
+  const isHosted = config.public.siteUrl?.includes('coachwatts.com')
+  if (isHosted) {
+    throw createError({
+      statusCode: 503,
+      message: 'Strava integration is temporarily unavailable on coachwatts.com'
+    })
+  }
+
   const clientId = process.env.STRAVA_CLIENT_ID
   const redirectUri = `${config.public.siteUrl || 'http://localhost:3099'}/api/integrations/strava/callback`
 
