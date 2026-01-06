@@ -1050,6 +1050,14 @@ const availableMetrics = computed(() => {
   if (workout.value.polarizationIndex) metrics.push({ key: 'pi', label: 'Polarization Index', value: workout.value.polarizationIndex.toFixed(2) })
   if (workout.value.lrBalance) metrics.push({ key: 'lr', label: 'L/R Balance', value: `${workout.value.lrBalance.toFixed(1)}%` })
   
+  // Advanced Physiology
+  if (workout.value.strainScore) metrics.push({ key: 'strain', label: 'Strain Score', value: workout.value.strainScore.toFixed(1) })
+  if (workout.value.hrLoad) metrics.push({ key: 'hrLoad', label: 'HR Load', value: workout.value.hrLoad.toFixed(0) })
+  if (workout.value.workAboveFtp) metrics.push({ key: 'workAboveFtp', label: 'Work > FTP', value: `${(workout.value.workAboveFtp / 1000).toFixed(1)} kJ` })
+  if (workout.value.wBalDepletion) metrics.push({ key: 'wBal', label: "W' Bal Depletion", value: `${(workout.value.wBalDepletion / 1000).toFixed(1)} kJ` })
+  if (workout.value.wPrime) metrics.push({ key: 'wPrime', label: "W'", value: `${(workout.value.wPrime / 1000).toFixed(1)} kJ` })
+  if (workout.value.carbsUsed) metrics.push({ key: 'carbs', label: 'Carbs Used', value: `${workout.value.carbsUsed} g` })
+  
   // Training status
   if (workout.value.ctl) metrics.push({ key: 'ctl', label: 'CTL (Fitness)', value: workout.value.ctl.toFixed(1) })
   if (workout.value.atl) metrics.push({ key: 'atl', label: 'ATL (Fatigue)', value: workout.value.atl.toFixed(1) })

@@ -1,16 +1,38 @@
-
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { prisma } from '../../server/utils/db';
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
 const backfillMetricsCommand = new Command('metrics')
   .description('Backfill advanced metrics (strain, work, etc.) from raw JSON')
   .option('-p, --provider <provider>', 'Filter by provider (e.g., intervals, strava)', 'intervals')
   .option('-d, --dry-run', 'Dry run mode (do not commit changes)', false)
+  .option('--prod', 'Use production database', false)
   .action(async (options) => {
     console.log(chalk.blue('=== Backfill Advanced Metrics ==='));
     console.log(`Provider: ${options.provider}`);
     console.log(`Dry Run: ${options.dryRun ? 'YES' : 'NO'}`);
+
+    // Database selection logic
+    const isProd = options.prod;
+    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL;
+    
+    if (isProd) {
+      if (!connectionString) {
+        console.error(chalk.red('DATABASE_URL_PROD is not defined.'));
+        process.exit(1);
+      }
+      console.log(chalk.yellow('Using PRODUCTION database.'));
+    } else {
+      console.log(chalk.blue('Using DEVELOPMENT database.'));
+    }
+
+    // Initialize Prisma Client dynamically
+    const pool = new pg.Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    const prisma = new PrismaClient({ adapter });
 
     try {
       const workouts = await prisma.workout.findMany({
@@ -98,6 +120,8 @@ const backfillMetricsCommand = new Command('metrics')
     } catch (error) {
       console.error(chalk.red('Error during backfill:'), error);
       process.exit(1);
+    } finally {
+        await prisma.$disconnect();
     }
   });
 

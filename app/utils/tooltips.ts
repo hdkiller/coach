@@ -31,5 +31,13 @@ export const metricTooltips: Record<string, string> = {
   'Max Cadence': 'The highest pedal cadence recorded.',
   'Avg Temperature': 'The average ambient temperature during the activity.',
   'Indoor Trainer': 'Indicates whether the activity was recorded on an indoor trainer.',
-  'Feel': 'How you felt during the workout (1-10).'
+  'Feel': 'How you felt during the workout (1-10).',
+  
+  // Advanced Physiology & Nutrition
+  'Strain Score': 'A cumulative score of physiological strain, often derived from heart rate or power intensity.',
+  'HR Load': 'Heart Rate Load: A training load metric based specifically on heart rate duration and intensity zones.',
+  'Work > FTP': 'The total amount of mechanical work (energy) expended at intensities above your FTP. A key indicator of anaerobic contribution.',
+  'W\' Bal Depletion': 'The maximum amount of anaerobic work capacity (W\') depleted during the hardest effort of the ride. Indicates how deep you dug.',
+  'W\'': 'Anaerobic Work Capacity: The total amount of energy available above Critical Power (FTP) before exhaustion.',
+  'Carbs Used': 'Estimated carbohydrates consumed by the body during the activity (grams).'
 }
