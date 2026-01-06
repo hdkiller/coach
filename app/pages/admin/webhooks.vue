@@ -19,24 +19,28 @@ const { data, pending, refresh } = await useFetch('/api/admin/webhooks', {
 
 const columns = [
   {
-    key: 'provider',
-    label: 'Provider'
+    accessorKey: 'provider',
+    header: 'Provider',
+    id: 'provider'
   },
   {
-    key: 'eventType',
-    label: 'Event Type'
+    accessorKey: 'eventType',
+    header: 'Event Type',
+    id: 'eventType'
   },
   {
-    key: 'status',
-    label: 'Status'
+    accessorKey: 'status',
+    header: 'Status',
+    id: 'status'
   },
   {
-    key: 'createdAt',
-    label: 'Created At'
+    accessorKey: 'createdAt',
+    header: 'Created At',
+    id: 'createdAt'
   },
   {
-    key: 'actions',
-    label: 'Actions'
+    id: 'actions',
+    header: 'Actions'
   }
 ]
 
@@ -74,27 +78,27 @@ const openDetails = (log: any) => {
 
     <UCard>
       <UTable
-        :rows="data?.data || []"
+        :data="data?.data || []"
         :columns="columns"
         :loading="pending"
       >
-        <template #status-data="{ row }">
-          <UBadge :color="getStatusColor(row.status)" variant="subtle" size="xs">
-            {{ row.status }}
+        <template #status-cell="{ row }">
+          <UBadge :color="getStatusColor(row.original.status)" variant="subtle" size="xs">
+            {{ row.original.status }}
           </UBadge>
         </template>
 
-        <template #createdAt-data="{ row }">
-          {{ format(new Date(row.createdAt), 'MMM d, yyyy HH:mm:ss') }}
+        <template #createdAt-cell="{ row }">
+          {{ format(new Date(row.original.createdAt), 'MMM d, yyyy HH:mm:ss') }}
         </template>
 
-        <template #actions-data="{ row }">
+        <template #actions-cell="{ row }">
           <UButton
             color="gray"
             variant="ghost"
             icon="i-heroicons-eye"
             size="xs"
-            @click="openDetails(row)"
+            @click="openDetails(row.original)"
           />
         </template>
       </UTable>
