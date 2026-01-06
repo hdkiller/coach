@@ -53,6 +53,7 @@ This file aggregates all critical development rules and guidelines for the Coach
 -   **Buttons**: Use `UButton`. Follow standard patterns for navbar actions (`size="sm"`, `class="font-bold"`, with icon).
 -   **Cards**: Use `UCard` for content containers.
 -   **Tables**: Use plain HTML tables wrapped in a card-like div. **Do NOT use UCard for tables.**
+-   **Tooltips**: Maintain consistent design, content, and behavior. Use `UPopover` (mode="hover") or `UTooltip` for explanations. Ensure visibility and verify content on hover.
 
 ### Layouts
 -   **Dashboard**: Use `UDashboardPanel`, `UDashboardNavbar`, `UDashboardSidebar`.
