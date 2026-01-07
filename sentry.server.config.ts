@@ -7,6 +7,10 @@ Sentry.init({
   // for finer control
   tracesSampleRate: 1.0,
 
+  integrations: [
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
