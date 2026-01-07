@@ -21,7 +21,7 @@
           <template #header>
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
-                <img src="/images/logos/yazio_square.webp" alt="Yazio Logo" class="w-8 h-8 object-contain" />
+                <img src="/images/logos/yazio_square.webp" alt="Yazio Logo" class="w-8 h-8 object-contain" >
               </div>
               <div>
                 <h2 class="text-xl font-semibold">Connect Yazio</h2>
@@ -51,7 +51,7 @@
               </ul>
             </div>
 
-            <form @submit.prevent="handleConnect" class="space-y-4">
+            <form class="space-y-4" @submit.prevent="handleConnect">
               <div>
                 <label class="block text-sm font-medium mb-2">
                   Yazio Username <span class="text-red-500">*</span>
@@ -94,10 +94,10 @@
                 Cancel
               </UButton>
               <UButton
-                @click="handleConnect"
                 :loading="loading"
                 :disabled="!username || !password"
                 color="success"
+                @click="handleConnect"
               >
                 Connect Yazio
               </UButton>
