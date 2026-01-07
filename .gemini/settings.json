@@ -9,6 +9,10 @@
     "nuxt-ui": {
       "url": "https://ui.nuxt.com/mcp",
       "trust": true
+    },
+    "sentry": {
+      "url": "https://mcp.sentry.dev/mcp/newpush-y4/coach-watts",
+      "trust": true
     }
   },
   "security": {
