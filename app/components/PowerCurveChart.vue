@@ -16,11 +16,11 @@
           <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Power Duration Curve</h3>
           <div class="flex gap-4 text-xs">
             <div class="flex items-center gap-1">
-              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500"/>
               <span class="text-gray-600 dark:text-gray-400">Current Period</span>
             </div>
             <div class="flex items-center gap-1">
-              <span class="w-3 h-3 rounded-full border border-gray-500 border-dashed"></span>
+              <span class="w-3 h-3 rounded-full border border-gray-500 border-dashed"/>
               <span class="text-gray-600 dark:text-gray-400">All Time Best</span>
             </div>
           </div>

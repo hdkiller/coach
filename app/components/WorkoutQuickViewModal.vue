@@ -10,13 +10,13 @@
         variant="ghost"
         icon="i-heroicons-trash"
         size="sm"
-        @click="showDeleteConfirm = true"
         aria-label="Delete workout"
+        @click="showDeleteConfirm = true"
       />
     </template>
 
     <!-- Hidden trigger - modal is controlled programmatically -->
-    <span class="hidden"></span>
+    <span class="hidden"/>
 
     <template #body>
       <div v-if="workout" class="space-y-6">
@@ -104,8 +104,8 @@
               size="xs"
               icon="i-heroicons-link-slash"
               :loading="isUnlinking"
-              @click="unlinkWorkout"
               title="Unlink from Plan"
+              @click="unlinkWorkout"
             />
           </div>
 

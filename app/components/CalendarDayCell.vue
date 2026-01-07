@@ -23,9 +23,9 @@
         <!-- Wellness Metrics -->
         <button
           v-if="dayWellness"
-          @click="$emit('wellness-click', date)"
           class="flex items-center gap-1.5 text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
           :title="'View wellness details'"
+          @click="$emit('wellness-click', date)"
         >
           <span v-if="dayWellness.hrv != null" class="flex items-center gap-0.5">
             <UIcon name="i-heroicons-heart" class="w-2.5 h-2.5" />
@@ -52,10 +52,6 @@
       <button
         v-for="activity in activities"
         :key="activity.id"
-        @click="$emit('activity-click', activity)"
-        @dragover.prevent="onDragOver"
-        @dragleave="onDragLeave"
-        @drop.stop="(e) => onDrop(e, activity)"
         class="w-full text-left px-2 py-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group relative cursor-pointer overflow-hidden"
         :class="{
           'bg-green-50 dark:bg-green-900/20': activity.source === 'completed' && !activity.plannedWorkoutId,
@@ -64,6 +60,10 @@
           'bg-red-50 dark:bg-red-900/20': activity.status === 'missed',
           'ring-2 ring-primary-500 ring-offset-1': isDragOver === activity.id
         }"
+        @click="$emit('activity-click', activity)"
+        @dragover.prevent="onDragOver"
+        @dragleave="onDragLeave"
+        @drop.stop="(e) => onDrop(e, activity)"
       >
         <!-- Drag Handle -->
         <div
@@ -86,7 +86,7 @@
               'bg-amber-500': activity.source === 'planned' && activity.status === 'planned',
               'bg-red-500': activity.status === 'missed'
             }"
-          ></div>
+          />
           
           <div class="flex-1 min-w-0">
             <!-- Title -->
@@ -114,12 +114,13 @@
               </span>
               <span class="inline-flex items-center gap-0.5">
                 <template v-if="(activity.tss || activity.trimp || activity.plannedTss)">
-                  <span class="w-3 h-0.5 rounded-full flex-shrink-0"
+                  <span
+class="w-3 h-0.5 rounded-full flex-shrink-0"
                     :class="{
                       'bg-green-500': activity.source === 'completed',
                       'bg-amber-500': activity.source === 'planned'
                     }"
-                  ></span>
+                  />
                   <span class="font-medium">{{ Math.round(activity.tss ?? activity.trimp ?? activity.plannedTss ?? 0) }}</span>
                 </template>
               </span>

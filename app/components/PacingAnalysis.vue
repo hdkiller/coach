@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
     <div v-if="loading" class="flex items-center gap-4 py-8 text-gray-600 dark:text-gray-400">
-      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"/>
       Loading pacing data...
     </div>
     
@@ -97,7 +97,7 @@
               class="h-full transition-all duration-300"
               :style="{ width: streams.pacingStrategy.evenness + '%' }"
               :class="getEvennessClass(streams.pacingStrategy.evenness)"
-            ></div>
+            />
           </div>
           <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ streams.pacingStrategy.evenness }}/100</span>
         </div>
@@ -113,7 +113,7 @@
         <!-- Visual Timeline -->
         <div class="relative h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 overflow-hidden">
           <!-- Background gradient -->
-          <div class="absolute inset-0 bg-gradient-to-r from-green-100 via-yellow-100 to-green-100 dark:from-green-900/30 dark:via-yellow-900/30 dark:to-green-900/30"></div>
+          <div class="absolute inset-0 bg-gradient-to-r from-green-100 via-yellow-100 to-green-100 dark:from-green-900/30 dark:via-yellow-900/30 dark:to-green-900/30"/>
           
           <!-- Surge markers -->
           <div
@@ -123,7 +123,7 @@
             :style="{ left: getSurgePosition(surge.time) + '%' }"
             :title="`${formatTime(surge.time)} - +${surge.increase.toFixed(2)} m/s`"
           >
-            <div class="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-yellow-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+            <div class="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-yellow-500 rounded-full border-2 border-white dark:border-gray-800"/>
           </div>
           
           <!-- Time labels -->
@@ -150,8 +150,8 @@
         <!-- Show more button if there are many surges -->
         <button
           v-if="streams.surges.length > 8 && !showAllSurges"
-          @click="showAllSurges = true"
           class="mt-3 text-sm text-primary-600 dark:text-primary-400 hover:underline"
+          @click="showAllSurges = true"
         >
           Show {{ streams.surges.length - 8 }} more surge{{ streams.surges.length - 8 > 1 ? 's' : '' }}
         </button>

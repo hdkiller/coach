@@ -14,13 +14,13 @@
             backgroundColor: segment.color
           }"
           class="transition-all duration-200 first:rounded-l last:rounded-r"
-        ></div>
+        />
       </div>
     </UTooltip>
   </div>
   <div v-else-if="loading" class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
     <div class="text-[10px] text-gray-500 dark:text-gray-400 mb-1">Training Zones</div>
-    <div class="w-full h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"></div>
+    <div class="w-full h-4 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
   </div>
 </template>
 
@@ -28,7 +28,7 @@
 interface Props {
   workoutIds: string[]
   autoLoad?: boolean
-  userZones: any
+  userZones?: any
   streams?: any[]
 }
 

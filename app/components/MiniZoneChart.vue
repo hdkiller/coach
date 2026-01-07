@@ -9,10 +9,10 @@
           backgroundColor: segment.color
         }"
         class="transition-all duration-200 hover:opacity-80 first:rounded-l last:rounded-r"
-      ></div>
+      />
     </div>
   </UTooltip>
-  <div v-else-if="loading" class="w-full h-6 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"></div>
+  <div v-else-if="loading" class="w-full h-6 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
   <div v-else-if="error" class="w-full h-6 flex items-center justify-center text-xs text-gray-400">
     <!-- Silent fail - no zone data -->
   </div>
@@ -50,8 +50,8 @@ function getZoneColor(index: number): string {
 
 const loading = ref(false)
 const error = ref(false)
-const streamData = ref<any>(null)
-const userZones = ref<any>(null)
+const dataStream = ref<any>(null)
+const zonesData = ref<any>(null)
 const zoneType = ref<'hr' | 'power'>('hr')
 
 const hasData = computed(() => {
@@ -59,10 +59,10 @@ const hasData = computed(() => {
 })
 
 const tooltipText = computed(() => {
-  if (!hasData.value || !userZones.value || zoneSegments.value.length === 0) return ''
+  if (!hasData.value || !zonesData.value || zoneSegments.value.length === 0) return ''
   
   const type = zoneType.value === 'hr' ? 'Heart Rate' : 'Power'
-  const zones = zoneType.value === 'hr' ? userZones.value.hrZones : userZones.value.powerZones
+  const zones = zoneType.value === 'hr' ? zonesData.value.hrZones : zonesData.value.powerZones
   
   if (!zones || zones.length === 0) return ''
   
@@ -81,19 +81,19 @@ const tooltipText = computed(() => {
 })
 
 const zoneSegments = computed(() => {
-  if (!streamData.value || !userZones.value) return []
+  if (!dataStream.value || !zonesData.value) return []
   
   // Check if we have the required data type
-  const hasHrData = 'heartrate' in streamData.value && Array.isArray(streamData.value.heartrate)
-  const hasPowerData = 'watts' in streamData.value && Array.isArray(streamData.value.watts)
-  const hasCachedHrZones = 'hrZoneTimes' in streamData.value && Array.isArray(streamData.value.hrZoneTimes) && streamData.value.hrZoneTimes.length > 0
-  const hasCachedPowerZones = 'powerZoneTimes' in streamData.value && Array.isArray(streamData.value.powerZoneTimes) && streamData.value.powerZoneTimes.length > 0
+  const hasHrData = 'heartrate' in dataStream.value && Array.isArray(dataStream.value.heartrate)
+  const hasPowerData = 'watts' in dataStream.value && Array.isArray(dataStream.value.watts)
+  const hasCachedHrZones = 'hrZoneTimes' in dataStream.value && Array.isArray(dataStream.value.hrZoneTimes) && dataStream.value.hrZoneTimes.length > 0
+  const hasCachedPowerZones = 'powerZoneTimes' in dataStream.value && Array.isArray(dataStream.value.powerZoneTimes) && dataStream.value.powerZoneTimes.length > 0
   
   if (!hasHrData && !hasPowerData && !hasCachedHrZones && !hasCachedPowerZones) return []
   
   // Use cached zone times if available
   if (zoneType.value === 'hr' && hasCachedHrZones) {
-    const cached = streamData.value.hrZoneTimes as number[]
+    const cached = dataStream.value.hrZoneTimes as number[]
     const total = cached.reduce((a, b) => a + b, 0)
     if (total === 0) return []
     return cached.map((time, index) => ({
@@ -104,7 +104,7 @@ const zoneSegments = computed(() => {
   }
 
   if (zoneType.value === 'power' && hasCachedPowerZones) {
-    const cached = streamData.value.powerZoneTimes as number[]
+    const cached = dataStream.value.powerZoneTimes as number[]
     const total = cached.reduce((a, b) => a + b, 0)
     if (total === 0) return []
     return cached.map((time, index) => ({
@@ -115,9 +115,9 @@ const zoneSegments = computed(() => {
   }
 
   const values = zoneType.value === 'hr'
-    ? (hasHrData ? streamData.value.heartrate : null)
-    : (hasPowerData ? streamData.value.watts : null)
-  const zones = zoneType.value === 'hr' ? userZones.value.hrZones : userZones.value.powerZones
+    ? (hasHrData ? dataStream.value.heartrate : null)
+    : (hasPowerData ? dataStream.value.watts : null)
+  const zones = zoneType.value === 'hr' ? zonesData.value.hrZones : zonesData.value.powerZones
   
   if (!values || !zones || values.length === 0) return []
   
@@ -161,8 +161,8 @@ const zoneSegments = computed(() => {
 async function fetchData() {
   // If props provided, use them
   if (props.streamData) {
-    streamData.value = props.streamData
-    userZones.value = props.userZones || { hrZones: getDefaultHrZones(), powerZones: getDefaultPowerZones() }
+    dataStream.value = props.streamData
+    zonesData.value = props.userZones || { hrZones: getDefaultHrZones(), powerZones: getDefaultPowerZones() }
     
     const hasWatts = props.streamData.watts && Array.isArray(props.streamData.watts) && props.streamData.watts.length > 0
     const hasHr = props.streamData.heartrate && Array.isArray(props.streamData.heartrate) && props.streamData.heartrate.length > 0
@@ -198,10 +198,10 @@ async function fetchData() {
       return
     }
     
-    streamData.value = streams
+    dataStream.value = streams
     
     // Set user zones or use defaults
-    userZones.value = {
+    zonesData.value = {
       hrZones: profile?.profile?.hrZones || getDefaultHrZones(),
       powerZones: profile?.profile?.powerZones || getDefaultPowerZones()
     }

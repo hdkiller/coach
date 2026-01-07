@@ -173,8 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { subDays } from 'date-fns'
-import { format as formatDateFns } from 'date-fns'
+import { subDays, format as formatDateFns  } from 'date-fns'
 
 const props = defineProps<{
   open: boolean

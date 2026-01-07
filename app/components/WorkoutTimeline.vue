@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-8">
       <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
         <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading timeline data...</p>
       </div>
     </div>
@@ -26,13 +26,13 @@
         <button
           v-for="metric in availableMetrics"
           :key="metric.key"
-          @click="toggleMetric(metric.key)"
           :class="[
             'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
             selectedMetrics.includes(metric.key)
               ? 'bg-primary-500 text-white'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           ]"
+          @click="toggleMetric(metric.key)"
         >
           {{ metric.label }}
         </button>

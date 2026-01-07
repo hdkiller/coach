@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-8">
       <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
         <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Calculating advanced metrics...</p>
       </div>
     </div>
@@ -21,7 +21,7 @@
               <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400 cursor-help" />
               <template #content>
                 <div class="p-3 text-xs max-w-xs">
-                  Measures the drift between Power and Heart Rate. < 5% is good aerobic fitness. > 5% indicates fatigue.
+                  Measures the drift between Power and Heart Rate. &lt; 5% is good aerobic fitness. &gt; 5% indicates fatigue.
                 </div>
               </template>
             </UPopover>
@@ -106,7 +106,7 @@
                  <span class="font-medium">{{ data.advanced.quadrants.distribution.q1.toFixed(1) }}%</span>
                </div>
                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                  <div class="bg-red-500 h-1.5 rounded-full" :style="{ width: `${data.advanced.quadrants.distribution.q1}%` }"></div>
+                  <div class="bg-red-500 h-1.5 rounded-full" :style="{ width: `${data.advanced.quadrants.distribution.q1}%` }"/>
                </div>
             </div>
             
@@ -117,7 +117,7 @@
                  <span class="font-medium">{{ data.advanced.quadrants.distribution.q2.toFixed(1) }}%</span>
                </div>
                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                  <div class="bg-orange-500 h-1.5 rounded-full" :style="{ width: `${data.advanced.quadrants.distribution.q2}%` }"></div>
+                  <div class="bg-orange-500 h-1.5 rounded-full" :style="{ width: `${data.advanced.quadrants.distribution.q2}%` }"/>
                </div>
             </div>
 
@@ -128,7 +128,7 @@
                  <span class="font-medium">{{ data.advanced.quadrants.distribution.q4.toFixed(1) }}%</span>
                </div>
                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                  <div class="bg-yellow-400 h-1.5 rounded-full" :style="{ width: `${data.advanced.quadrants.distribution.q4}%` }"></div>
+                  <div class="bg-yellow-400 h-1.5 rounded-full" :style="{ width: `${data.advanced.quadrants.distribution.q4}%` }"/>
                </div>
             </div>
              <!-- Q3: Recovery (Optional to show if dominant) -->
@@ -169,7 +169,7 @@
               <div
                 class="bg-blue-600 h-2.5 rounded-full"
                 :style="{ width: `${Math.min(100, data.advanced.coasting.percentTime)}%` }"
-              ></div>
+              />
             </div>
 
             <div class="text-xs text-gray-500 mt-2">
@@ -286,7 +286,7 @@
                 class="flex-1 h-8 rounded-sm"
                 :class="i.cov < 5 ? 'bg-green-500' : i.cov < 10 ? 'bg-amber-500' : 'bg-red-500'"
                 :title="`${i.label}: ${i.cov.toFixed(1)}% variation`"
-              ></div>
+              />
             </div>
             <div class="text-[10px] text-gray-400 mt-1">Stability per interval (Work segments)</div>
           </div>

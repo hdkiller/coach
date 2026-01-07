@@ -6,7 +6,7 @@
     :close="loading ? false : undefined"
   >
     <!-- Hidden trigger - modal is controlled programmatically -->
-    <span class="hidden"></span>
+    <span class="hidden"/>
 
     <template #body>
       <div v-if="plannedWorkout" class="space-y-4">
@@ -98,8 +98,8 @@
           <UButton
             color="success"
             block
-            @click="markCompleteWithoutActivity"
             :loading="loading"
+            @click="markCompleteWithoutActivity"
           >
             <UIcon name="i-heroicons-check" class="w-4 h-4" />
             Mark as Done (No Activity)
@@ -109,8 +109,8 @@
             color="primary"
             variant="outline"
             block
-            @click="showWorkoutSelector = true"
             :loading="loading"
+            @click="showWorkoutSelector = true"
           >
             <UIcon name="i-heroicons-link" class="w-4 h-4" />
             Link to Activity
@@ -163,7 +163,6 @@
             <button
               v-for="workout in availableWorkouts"
               :key="workout.id"
-              @click="selectWorkout(workout.id)"
               :disabled="loading"
               class="w-full text-left p-3 rounded-lg border-2 transition-colors"
               :class="[
@@ -172,6 +171,7 @@
                   : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
                 loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
               ]"
+              @click="selectWorkout(workout.id)"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
@@ -206,8 +206,8 @@
               color="success"
               :disabled="!selectedWorkoutId"
               :loading="loading"
-              @click="markComplete"
               class="flex-1"
+              @click="markComplete"
             >
               Confirm Complete
             </UButton>
@@ -224,7 +224,7 @@
           <!-- Or Create Manual Entry -->
           <div v-if="availableWorkouts.length > 0" class="relative">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
+              <div class="w-full border-t border-gray-200 dark:border-gray-700"/>
             </div>
             <div class="relative flex justify-center text-xs">
               <span class="bg-white dark:bg-gray-900 px-2 text-gray-500">or</span>
@@ -237,8 +237,8 @@
             variant="outline"
             size="sm"
             block
-            @click="showManualEntry = true"
             :disabled="loading"
+            @click="showManualEntry = true"
           >
             Create Manual Entry Instead
           </UButton>
@@ -333,8 +333,8 @@
               color="success"
               :disabled="!isManualWorkoutValid"
               :loading="loading"
-              @click="createManualWorkout"
               class="flex-1"
+              @click="createManualWorkout"
             >
               Create & Mark Complete
             </UButton>
@@ -357,13 +357,13 @@
           v-if="!plannedWorkout?.completed"
           color="error"
           variant="ghost"
-          @click="confirmDelete"
           :loading="loading"
+          @click="confirmDelete"
         >
           <UIcon name="i-heroicons-trash" class="w-4 h-4" />
           Delete
         </UButton>
-        <div class="flex-1"></div>
+        <div class="flex-1"/>
         <div class="flex gap-2">
           <UButton
             v-if="plannedWorkout"
@@ -375,8 +375,8 @@
           <UButton
             color="neutral"
             variant="ghost"
-            @click="closeModal"
             :disabled="loading"
+            @click="closeModal"
           >
             Close
           </UButton>

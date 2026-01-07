@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-8">
       <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
         <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Analyzing intervals...</p>
       </div>
     </div>
@@ -87,7 +87,7 @@
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Power</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg HR</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" v-if="hasPace">Avg Pace</th>
+                <th v-if="hasPace" scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Pace</th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -115,7 +115,7 @@
                    <span v-if="interval.avg_heartrate">{{ Math.round(interval.avg_heartrate) }} bpm</span>
                    <span v-else class="text-gray-400">-</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white" v-if="hasPace">
+                <td v-if="hasPace" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                    <span v-if="interval.avg_pace">{{ formatPace(interval.avg_pace) }}</span>
                    <span v-else class="text-gray-400">-</span>
                 </td>

@@ -39,7 +39,7 @@
     <!-- Empty State (not editing, no notes) -->
     <div v-if="!isEditing && !hasNotes" class="text-center py-8">
       <div class="text-gray-500 dark:text-gray-400">
-        <span class="i-heroicons-document-text w-12 h-12 mx-auto mb-4 opacity-50"></span>
+        <span class="i-heroicons-document-text w-12 h-12 mx-auto mb-4 opacity-50"/>
         <p class="text-sm">No notes yet. Click "Add Notes" to add your personal notes and observations.</p>
       </div>
     </div>
@@ -47,10 +47,11 @@
     <!-- Display Notes (not editing, has notes) - Rendered HTML -->
     <div v-if="!isEditing && hasNotes" class="space-y-3">
       <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-4">
-        <div class="prose prose-sm dark:prose-invert max-w-none" v-html="renderedNotes"></div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div class="prose prose-sm dark:prose-invert max-w-none" v-html="renderedNotes"/>
       </div>
       <div v-if="notesUpdatedAt" class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <span class="i-heroicons-clock w-3 h-3"></span>
+        <span class="i-heroicons-clock w-3 h-3"/>
         <span>Last updated: {{ formatDate(notesUpdatedAt) }}</span>
       </div>
     </div>
@@ -88,7 +89,7 @@
               @click="editor.chain().focus().toggleStrike().run()"
             />
             
-            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
             
             <!-- Heading 1 -->
             <UButton
@@ -118,7 +119,7 @@
               @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
             />
             
-            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
             
             <!-- Bullet List -->
             <UButton
@@ -139,7 +140,7 @@
               @click="editor.chain().focus().toggleOrderedList().run()"
             />
             
-            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
             
             <!-- Blockquote -->
             <UButton
@@ -160,7 +161,7 @@
               @click="editor.chain().focus().toggleCodeBlock().run()"
             />
             
-            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
             
             <!-- Horizontal Rule -->
             <UButton
@@ -171,7 +172,7 @@
               @click="editor.chain().focus().setHorizontalRule().run()"
             />
             
-            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
             
             <!-- Undo -->
             <UButton
@@ -197,7 +198,7 @@
         <EditorContent :editor="editor" class="px-4 py-3" />
       </div>
       <div class="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <span class="i-heroicons-information-circle w-4 h-4 mt-0.5 flex-shrink-0"></span>
+        <span class="i-heroicons-information-circle w-4 h-4 mt-0.5 flex-shrink-0"/>
         <div class="space-y-1">
           <p>Use the toolbar above for formatting, or keyboard shortcuts:</p>
           <ul class="list-disc list-inside space-y-0.5 ml-2">

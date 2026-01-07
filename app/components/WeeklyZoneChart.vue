@@ -36,7 +36,7 @@
       <!-- Legend -->
       <div class="flex flex-wrap gap-x-3 gap-y-1 justify-center pt-2 border-t border-gray-100 dark:border-gray-800">
         <div v-for="(label, i) in activeLabels" :key="label" class="flex items-center gap-1.5">
-          <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: zoneColors[i] }"></div>
+          <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: zoneColors[i] }"/>
           <span class="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase">{{ label.split(' ')[0] }}</span>
         </div>
       </div>

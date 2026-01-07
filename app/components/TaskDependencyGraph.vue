@@ -14,13 +14,13 @@
             💡 Click category or individual task badges to run
           </p>
           <button
-            @click="syncAllCategories"
             :disabled="isRunning"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+            @click="syncAllCategories"
           >
             <svg v-if="isRunning" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
             </svg>
             <span v-if="isRunning">Running...</span>
             <span v-else>🔄 Run All Categories</span>
@@ -38,7 +38,7 @@
           <div
             class="bg-blue-600 h-2 rounded-full transition-all duration-500"
             :style="{ width: overallProgress + '%' }"
-          ></div>
+          />
         </div>
       </div>
 
@@ -75,10 +75,10 @@
               </span>
               <button
                 v-if="getCategoryStatus(category.id) === 'Pending' || getCategoryStatus(category.id) === 'Outdated'"
-                @click="runCategoryTasks(category.id)"
                 :disabled="isRunning"
                 :class="[getCategoryStatusClass(category.id), 'cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed']"
                 :title="'Click to run all ' + category.name + ' tasks'"
+                @click="runCategoryTasks(category.id)"
               >
                 {{ getCategoryStatus(category.id) }}
               </button>
@@ -105,8 +105,8 @@
                 </div>
                 <div v-else-if="getTaskState(task.id)?.status === 'running'" class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                   <svg class="animate-spin w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                   </svg>
                 </div>
                 <div v-else-if="getTaskState(task.id)?.status === 'failed'" class="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
@@ -116,12 +116,12 @@
                 </div>
                 <button
                   v-else
-                  @click="triggerSingleTask(task.id)"
                   :disabled="isRunning"
                   class="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-blue-900 flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   :title="'Click to run ' + task.name"
+                  @click="triggerSingleTask(task.id)"
                 >
-                  <div class="w-3 h-3 rounded-full border-2 border-gray-400 dark:border-gray-500"></div>
+                  <div class="w-3 h-3 rounded-full border-2 border-gray-400 dark:border-gray-500"/>
                 </button>
               </div>
 
@@ -133,10 +133,10 @@
                   </h4>
                   <button
                     v-if="getTaskStatusLabel(task.id) === 'Pending' || getTaskStatusLabel(task.id) === 'Outdated'"
-                    @click="triggerSingleTask(task.id)"
                     :disabled="isRunning"
                     :class="[getTaskStatusBadgeClass(task.id), 'cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed']"
                     :title="'Click to run ' + task.name"
+                    @click="triggerSingleTask(task.id)"
                   >
                     {{ getTaskStatusLabel(task.id) }}
                   </button>
@@ -156,7 +156,8 @@
                       {{ getTaskMetadata(task.id)!.duplicateCount }} duplicates found
                     </span>
                     <!-- For analysis tasks, always show pending count (highlight when > 0) -->
-                    <span v-else-if="getTaskMetadata(task.id)!.pendingCount !== undefined" :class="[
+                    <span
+v-else-if="getTaskMetadata(task.id)!.pendingCount !== undefined" :class="[
                       getTaskMetadata(task.id)!.pendingCount! > 0
                         ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
                         : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
@@ -194,7 +195,7 @@
                     <div
                       class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
                       :style="{ width: (getTaskState(task.id)?.progress || 0) + '%' }"
-                    ></div>
+                    />
                   </div>
                 </div>
 

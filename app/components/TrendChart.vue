@@ -8,7 +8,7 @@
       <!-- Legend -->
       <div class="flex flex-wrap gap-4 justify-center text-sm">
         <div v-for="metric in visibleMetrics" :key="metric.key" class="flex items-center gap-2">
-          <div :class="['w-3 h-3 rounded-full', metric.color]"></div>
+          <div :class="['w-3 h-3 rounded-full', metric.color]"/>
           <span class="text-gray-700 dark:text-gray-300">{{ metric.label }}</span>
         </div>
       </div>

@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-8">
       <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
         <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading zone data...</p>
       </div>
     </div>
@@ -28,13 +28,13 @@
         <button
           v-for="type in (['hr', 'power'] as const)"
           :key="type"
-          @click="selectedZoneType = type as 'hr' | 'power'"
           :class="[
             'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
             selectedZoneType === type
               ? 'bg-primary-500 text-white'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           ]"
+          @click="selectedZoneType = type as 'hr' | 'power'"
         >
           {{ type === 'hr' ? 'Heart Rate Zones' : 'Power Zones' }}
         </button>
@@ -67,7 +67,7 @@
             <div
               class="w-4 h-4 rounded"
               :style="{ backgroundColor: getZoneColor(Number(index)) }"
-            ></div>
+            />
             <div class="text-xs">
               <div class="font-medium text-gray-700 dark:text-gray-300">{{ zone.name }}</div>
               <div class="text-gray-500 dark:text-gray-400">
@@ -121,7 +121,7 @@
                     width: (totalTime > 0 ? ((timeInZones[Number(index)] || 0) / totalTime * 100) : 0) + '%',
                     backgroundColor: getZoneColor(Number(index))
                   }"
-                ></div>
+                />
               </div>
             </div>
           </div>
@@ -313,25 +313,13 @@ const chartData = computed(() => {
 
   // Calculate which zone each point belongs to
   const zoneData = currentZones.value.map(() => new Array(sampledTime.length).fill(0))
-  const timeInZonesCalc = new Array(currentZones.value.length).fill(0)
   
   sampledValues.forEach((value: number, i: number) => {
     const zoneIndex = getZoneIndex(value)
     if (zoneIndex >= 0) {
       zoneData[zoneIndex][i] = 1 // Mark this zone as active at this time
-      // Calculate time in zone (approximate from sample rate)
-      if (i > 0) {
-        const timeDiff = sampledTime[i] - sampledTime[i - 1]
-        timeInZonesCalc[zoneIndex] += timeDiff
-      }
     }
   })
-
-  // Only update reactive refs if we have actual stream data (not cached)
-  if (values.length > 0) {
-      timeInZones.value = timeInZonesCalc
-      totalTime.value = sampledTime[sampledTime.length - 1] - sampledTime[0]
-  }
 
   return {
     labels: sampledTime.map((t: number) => formatTime(t)),
@@ -344,6 +332,41 @@ const chartData = computed(() => {
       maxBarThickness: 10
     }))
   }
+})
+
+// Calculate summary stats whenever chart data inputs change
+watch(() => [streamData.value, currentZones.value], () => {
+  if (!streamData.value || !currentZones.value) return
+
+  const time = streamData.value.time || []
+  const values = selectedZoneType.value === 'hr' ? streamData.value.heartrate : streamData.value.watts
+  
+  if (!values || values.length === 0) {
+    timeInZones.value = []
+    totalTime.value = 0
+    return
+  }
+
+  // Sample data for performance
+  const sampleRate = Math.max(1, Math.floor(values.length / 200))
+  const sampledTime = time.filter((_: any, i: number) => i % sampleRate === 0)
+  const sampledValues = values.filter((_: any, i: number) => i % sampleRate === 0)
+
+  const timeInZonesCalc = new Array(currentZones.value.length).fill(0)
+  
+  sampledValues.forEach((value: number, i: number) => {
+    const zoneIndex = getZoneIndex(value)
+    if (zoneIndex >= 0) {
+      // Calculate time in zone (approximate from sample rate)
+      if (i > 0) {
+        const timeDiff = sampledTime[i] - sampledTime[i - 1]
+        timeInZonesCalc[zoneIndex] += timeDiff
+      }
+    }
+  })
+
+  timeInZones.value = timeInZonesCalc
+  totalTime.value = sampledTime[sampledTime.length - 1] - sampledTime[0]
 })
 
 const chartOptions = computed<ChartOptions<'bar'>>(() => {
