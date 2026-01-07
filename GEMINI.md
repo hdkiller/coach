@@ -53,8 +53,9 @@ By following these guidelines, you can avoid common pitfalls and ensure that mod
 
 
 **Key Mandates:**
-1.  **NEVER** reset the dev database.
-2.  **ALWAYS** scaffold migrations via CLI.
+1.  **ALWAYS** communicate in English for all prompts and responses, regardless of the language used by the developer. Enforce English for all interactions.
+2.  **NEVER** reset the dev database.
+3.  **ALWAYS** scaffold migrations via CLI.
 3.  **NEVER** run the dev server (HMR handles updates).
 4.  **USE** the Repository Pattern for data access.
 5.  **FOLLOW** the specific UI/UX guidelines for Nuxt UI.
