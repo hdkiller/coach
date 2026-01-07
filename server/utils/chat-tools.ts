@@ -770,7 +770,7 @@ async function getRecentWorkouts(
       elevation_gain: w.elevationGain,
       avg_speed_kmh: w.averageSpeed ? (w.averageSpeed * 3.6).toFixed(1) : null,
       rpe: w.rpe,
-      feel: w.feel,
+      feel: w.feel ? w.feel * 2 : null, // Scale 1-5 to 1-10 for AI
       description: w.description,
     })),
   }
@@ -908,7 +908,7 @@ async function getWorkoutDetails(userId: string, timezone: string, args: any): P
     subjective: {
       rpe: workout.rpe,
       session_rpe: workout.sessionRpe,
-      feel: workout.feel,
+      feel: workout.feel ? workout.feel * 2 : null, // Scale 1-5 to 1-10 for AI
     },
     environmental: {
       avg_temp: workout.avgTemp,

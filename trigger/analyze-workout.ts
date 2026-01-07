@@ -735,7 +735,9 @@ function buildWorkoutAnalysisPrompt(workoutData: any, timezone: string): string 
   if (workoutData.rpe || workoutData.feel) {
     prompt += '\n## Subjective Metrics\n'
     if (workoutData.rpe) prompt += `- RPE: ${workoutData.rpe}/10\n`
-    if (workoutData.feel) prompt += `- Feel: ${workoutData.feel}/10\n`
+    // Feel is stored as 1-5, scale to 1-10 for AI
+    // 1 (Weak) -> 2/10, 5 (Strong) -> 10/10
+    if (workoutData.feel) prompt += `- Feel: ${workoutData.feel * 2}/10 (10=Strong, 2=Weak)\n`
   }
 
   if (workoutData.trainer !== undefined || workoutData.avg_temp !== undefined) {

@@ -758,7 +758,8 @@ export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: s
     // Subjective metrics
     rpe: activity.perceived_exertion || activity.icu_rpe || null,
     sessionRpe: activity.session_rpe || null,
-    feel: activity.feel || null,
+    // Intervals uses 1 (Strong) to 5 (Weak). We standardize to 1 (Weak) to 5 (Strong).
+    feel: activity.feel ? 6 - activity.feel : null,
     
     // Environmental
     avgTemp: activity.average_temp || null,

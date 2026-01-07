@@ -434,7 +434,9 @@ export function buildWorkoutSummary(workouts: any[]): string {
     // Subjective metrics
     if (w.rpe) lines.push(`- **RPE**: ${w.rpe}/10`);
     if (w.sessionRpe) lines.push(`- **Session RPE**: ${w.sessionRpe}`);
-    if (w.feel) lines.push(`- **Feel**: ${w.feel}/10`);
+    // Feel is stored as 1-5 (Intervals standard), but AI understands 1-10 better.
+    // 1 (Weak) -> 2/10, 5 (Strong) -> 10/10
+    if (w.feel) lines.push(`- **Feel**: ${w.feel * 2}/10 (10=Strong, 2=Weak)`);
     
     // Environmental
     if (w.avgTemp !== null && w.avgTemp !== undefined) lines.push(`- **Avg Temperature**: ${w.avgTemp.toFixed(1)}°C`);

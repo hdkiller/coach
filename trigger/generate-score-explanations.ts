@@ -187,7 +187,7 @@ SUMMARY (Last ${period} days):
 
 RECENT WORKOUTS:
 ${workouts.map(w => {
-  return `- ${formatUserDate(w.date, timezone)}: ${w.title} (${w.type}) - ${Math.round(w.durationSec / 60)}min, TSS: ${w.tss?.toFixed(0) || 'N/A'}, Power: ${w.averageWatts || 'N/A'}W, HR: ${w.averageHr || 'N/A'}bpm, RPE: ${w.rpe || 'N/A'}, Feel: ${w.feel || 'N/A'}`;
+  return `- ${formatUserDate(w.date, timezone)}: ${w.title} (${w.type}) - ${Math.round(w.durationSec / 60)}min, TSS: ${w.tss?.toFixed(0) || 'N/A'}, Power: ${w.averageWatts || 'N/A'}W, HR: ${w.averageHr || 'N/A'}bpm, RPE: ${w.rpe || 'N/A'}, Feel: ${w.feel ? (w.feel * 2) : 'N/A'}/10 (10=Strong, 2=Weak)`;
 }).join('\n')}
 
 Focus on "${getMetricDisplayName('workout', metric)}" and provide structured analysis with actionable training improvements.`;
