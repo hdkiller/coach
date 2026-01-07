@@ -65,7 +65,7 @@
                 <span class="i-heroicons-bolt w-6 h-6 text-blue-600 dark:text-blue-400"></span>
               </div>
               <div class="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                {{ wellness.readiness }}/10
+                {{ wellness.readiness }}{{ wellness.readiness > 10 ? '%' : '/10' }}
               </div>
               <div class="text-sm text-blue-700 dark:text-blue-300 mt-1">Readiness</div>
             </div>
@@ -183,9 +183,64 @@
                 <span class="text-sm text-gray-600 dark:text-gray-400">Weight</span>
                 <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.weight.toFixed(1) }} kg</span>
               </div>
+              <div v-if="wellness.bodyFat" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Body Fat</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.bodyFat.toFixed(1) }}%</span>
+              </div>
+              <div v-if="wellness.abdomen" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Abdominal Circumference</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.abdomen }} cm</span>
+              </div>
+              <div v-if="wellness.vo2max" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">VO2 Max</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.vo2max.toFixed(1) }} ml/kg/min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vitals & Health -->
+          <div v-if="wellness.spO2 || wellness.restingHr || wellness.bloodGlucose || wellness.hydration || wellness.respiration || wellness.systolic || wellness.lactate" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Vitals & Health</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div v-if="wellness.spO2" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Blood Oxygen (SpO2)</span>
                 <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.spO2.toFixed(1) }}%</span>
+              </div>
+              <div v-if="wellness.respiration" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Respiration Rate</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.respiration.toFixed(1) }} br/min</span>
+              </div>
+              <div v-if="wellness.bloodGlucose" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Blood Glucose</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.bloodGlucose }} mmol/L</span>
+              </div>
+              <div v-if="wellness.lactate" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Blood Lactate</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.lactate }} mmol/L</span>
+              </div>
+              <div v-if="wellness.systolic && wellness.diastolic" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Blood Pressure</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.systolic }}/{{ wellness.diastolic }} mmHg</span>
+              </div>
+              <div v-if="wellness.hydration" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Hydration Status</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.hydration }}</span>
+              </div>
+              <div v-if="wellness.hydrationVolume" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Water Intake</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.hydrationVolume }} L</span>
+              </div>
+              <div v-if="wellness.skinTemp" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Skin Temperature</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.skinTemp.toFixed(1) }}°C</span>
+              </div>
+              <div v-if="wellness.injury" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Injury Status</span>
+                <span class="text-sm font-medium text-red-600 dark:text-red-400">{{ wellness.injury }}</span>
+              </div>
+              <div v-if="wellness.menstrualPhase" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Cycle Phase</span>
+                <span class="text-sm font-medium text-purple-600 dark:text-purple-400">{{ wellness.menstrualPhase }}</span>
               </div>
             </div>
           </div>
@@ -200,18 +255,26 @@
 
           <!-- JSON Data -->
           <div v-if="wellness.rawJson" class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Raw Data (JSON)</h3>
-              <UButton
-                icon="i-heroicons-clipboard-document"
-                color="neutral"
-                variant="ghost"
-                @click="copyJsonToClipboard"
-              >
-                Copy JSON
-              </UButton>
-            </div>
-            <div class="p-6">
+            <button 
+              class="w-full px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              @click="showRawJson = !showRawJson"
+            >
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <span :class="showRawJson ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" class="w-5 h-5"></span>
+                Raw Data (JSON)
+              </h3>
+              <div class="flex items-center gap-2" @click.stop>
+                <UButton
+                  icon="i-heroicons-clipboard-document"
+                  color="neutral"
+                  variant="ghost"
+                  @click="copyJsonToClipboard"
+                >
+                  Copy JSON
+                </UButton>
+              </div>
+            </button>
+            <div v-if="showRawJson" class="p-6">
               <pre class="text-sm text-gray-800 dark:text-gray-200 overflow-x-auto bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">{{ formattedRawJson }}</pre>
             </div>
           </div>
@@ -231,6 +294,7 @@ const toast = useToast()
 const wellness = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const showRawJson = ref(false)
 
 // Fetch wellness data
 async function fetchWellness() {
