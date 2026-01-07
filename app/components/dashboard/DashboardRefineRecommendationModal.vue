@@ -27,8 +27,8 @@
           variant="solid" 
           class="font-bold px-6"
           :loading="loading" 
-          @click="submit"
           icon="i-heroicons-arrow-path"
+          @click="submit"
         >
           Regenerate Advice
         </UButton>

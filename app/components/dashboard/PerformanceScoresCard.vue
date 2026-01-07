@@ -10,8 +10,8 @@
     <!-- Loading skeleton -->
     <div v-if="loadingScores" class="space-y-4 animate-pulse flex-grow">
       <div v-for="i in 4" :key="i" class="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-800/40">
-        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
-        <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-12"></div>
+        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"/>
+        <div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-12"/>
       </div>
     </div>
     

@@ -25,7 +25,7 @@
           <div class="relative z-10">
             <div class="flex items-start gap-4 mb-6">
               <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-8 h-8 object-contain" />
+                <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-8 h-8 object-contain" >
               </div>
               <div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">Connect Intervals.icu</h3>
@@ -68,7 +68,7 @@
           >
             <div class="flex items-center gap-3 mb-3">
               <div class="w-8 h-8 bg-white rounded-md flex items-center justify-center overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
-                <img src="/images/logos/strava.svg" alt="Strava Logo" class="w-5 h-5 object-contain" />
+                <img src="/images/logos/strava.svg" alt="Strava Logo" class="w-5 h-5 object-contain" >
               </div>
               <h4 class="font-bold text-gray-900 dark:text-white">Strava</h4>
             </div>
@@ -97,7 +97,7 @@
           <UCard class="hover:ring-2 hover:ring-red-500/20 transition-all cursor-pointer" @click="navigateTo('/connect-whoop')">
             <div class="flex items-center gap-3 mb-3">
               <div class="w-8 h-8 bg-white rounded-md flex items-center justify-center overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
-                <img src="/images/logos/whoop_square.svg" alt="WHOOP Logo" class="w-5 h-5 object-contain" />
+                <img src="/images/logos/whoop_square.svg" alt="WHOOP Logo" class="w-5 h-5 object-contain" >
               </div>
               <h4 class="font-bold text-gray-900 dark:text-white">WHOOP</h4>
             </div>
@@ -120,7 +120,7 @@
           <UCard class="hover:ring-2 hover:ring-green-500/20 transition-all cursor-pointer" @click="navigateTo('/connect-yazio')">
             <div class="flex items-center gap-3 mb-3">
               <div class="w-8 h-8 bg-white rounded-md flex items-center justify-center overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700">
-                <img src="/images/logos/yazio_square.webp" alt="Yazio Logo" class="w-5 h-5 object-contain" />
+                <img src="/images/logos/yazio_square.webp" alt="Yazio Logo" class="w-5 h-5 object-contain" >
               </div>
               <h4 class="font-bold text-gray-900 dark:text-white">Yazio</h4>
             </div>

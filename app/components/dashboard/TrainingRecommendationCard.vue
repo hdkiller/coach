@@ -134,10 +134,10 @@
           :color="!recommendationStore.todayRecommendation ? 'primary' : 'neutral'"
           :variant="!recommendationStore.todayRecommendation ? 'solid' : 'ghost'"
           size="sm"
-          @click="handleAnalyzeClick"
           :loading="recommendationStore.generating || isSyncingForAnalysis"
           :disabled="recommendationStore.generating || recommendationStore.generatingAdHoc || isSyncingForAnalysis"
           :icon="!recommendationStore.todayRecommendation ? 'i-heroicons-sparkles' : 'i-heroicons-arrow-path'"
+          @click="handleAnalyzeClick"
         >
           {{ getButtonLabel() }}
         </UButton>

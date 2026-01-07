@@ -24,18 +24,18 @@ onMounted(() => {
     <!-- Gift Icon Notification -->
     <div v-if="hasNewRelease" class="relative">
       <UButton
-        @click="openReleaseModal"
         icon="i-heroicons-gift"
         color="neutral"
         variant="outline"
         size="sm"
         aria-label="New Release"
         class="font-bold"
+        @click="openReleaseModal"
       >
         <span class="hidden sm:inline">What's New</span>
       </UButton>
       <!-- Notification Badge -->
-      <span class="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-gray-900 bg-red-500 transform translate-x-1/4 -translate-y-1/4"></span>
+      <span class="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-gray-900 bg-red-500 transform translate-x-1/4 -translate-y-1/4"/>
     </div>
 
     <!-- Release Modal -->

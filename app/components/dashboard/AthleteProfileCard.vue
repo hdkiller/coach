@@ -20,21 +20,21 @@
     <!-- Loading skeleton -->
     <div v-if="userStore?.loading && !userStore?.profile" class="space-y-4 animate-pulse flex-grow">
       <div>
-        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
-        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+        <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"/>
+        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"/>
       </div>
       <div class="pt-2 border-t space-y-2">
         <div class="flex justify-between">
-          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
-          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"/>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"/>
         </div>
         <div class="flex justify-between">
-          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"/>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"/>
         </div>
         <div class="flex justify-between">
-          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
-          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"/>
+          <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"/>
         </div>
       </div>
     </div>
@@ -123,7 +123,7 @@
         </div>
         
         <div v-if="pmcLoading" class="grid grid-cols-3 gap-3 animate-pulse">
-          <div v-for="i in 3" :key="i" class="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+          <div v-for="i in 3" :key="i" class="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg"/>
         </div>
         
         <div v-else-if="pmcData?.summary" class="grid grid-cols-3 gap-3">
@@ -202,8 +202,8 @@
       <!-- Wellness Section - Clickable -->
       <button
         v-if="userStore.profile.recentHRV || userStore.profile.restingHr || userStore.profile.recentSleep || userStore.profile.recentRecoveryScore"
-        @click="$emit('open-wellness')"
         class="group w-full text-left p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500/50 transition-all duration-200"
+        @click="$emit('open-wellness')"
       >
         <div class="flex items-center justify-between mb-3">
           <p class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Latest Wellness</p>

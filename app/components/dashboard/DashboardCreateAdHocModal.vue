@@ -61,8 +61,8 @@
           variant="solid" 
           class="font-bold px-6"
           :loading="loading" 
-          @click="submit"
           icon="i-heroicons-sparkles"
+          @click="submit"
         >
           Generate Workout
         </UButton>

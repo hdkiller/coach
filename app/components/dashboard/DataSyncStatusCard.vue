@@ -10,7 +10,7 @@
       </div>
     </template>
     
-    <div class="space-y-3" v-if="integrationStore.dataSyncStatus">
+    <div v-if="integrationStore.dataSyncStatus" class="space-y-3">
       <!-- Workouts -->
       <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
         <div class="flex items-center justify-between">
