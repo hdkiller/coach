@@ -57,6 +57,32 @@ export const useFormat = () => {
     }
   }
 
+  /**
+   * Get the user's current local date as a Date object set to UTC midnight.
+   * Useful for comparing with DB dates stored at UTC midnight.
+   */
+  const getUserLocalDate = (): Date => {
+    try {
+      const dateStr = format(toZoned(new Date()), 'yyyy-MM-dd', { timeZone: timezone.value })
+      return new Date(`${dateStr}T00:00:00Z`)
+    } catch (e) {
+      const now = new Date()
+      return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+    }
+  }
+
+  /**
+   * Get the user's current local time as a string (HH:mm)
+   */
+  const getUserLocalTime = (): string => {
+    try {
+      return format(toZoned(new Date()), 'HH:mm', { timeZone: timezone.value })
+    } catch (e) {
+      const now = new Date()
+      return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    }
+  }
+
   return {
     formatDate,
     formatShortDate,
