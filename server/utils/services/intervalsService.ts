@@ -88,17 +88,14 @@ export class IntervalsService {
         console.error(`[IntervalsService] Failed to normalize TSS for workout ${upsertedWorkout.id}`, error);
       }
 
-      // Trigger stream ingestion if applicable
+      // Sync stream data if applicable
       if (upsertedWorkout.type && pacingActivityTypes.includes(upsertedWorkout.type)) {
-         // await tasks.trigger('ingest-intervals-streams', {
-         //    userId,
-         //    workoutId: upsertedWorkout.id,
-         //    activityId: activity.id
-         //  }, {
-         //    concurrencyKey: userId,
-         //    queue: userIngestionQueue.name
-         //  });
-         console.log(`[IntervalsService] Stream ingestion temporarily disabled for ${activity.id}`);
+         try {
+           console.log(`[IntervalsService] Syncing streams for activity ${activity.id}`);
+           await IntervalsService.syncActivityStream(userId, upsertedWorkout.id, activity.id);
+         } catch (error) {
+           console.error(`[IntervalsService] Failed to sync stream for workout ${upsertedWorkout.id}`, error);
+         }
       }
     }
 
@@ -132,6 +129,9 @@ export class IntervalsService {
       console.log(`[IntervalsService] No stream data available for activity ${activityId}`);
       return null;
     }
+    
+    const dataPoints = (streams.time.data as any[]).length;
+    console.log(`[IntervalsService] Found ${dataPoints} data points for activity ${activityId}`);
     
     // Extract data arrays
     const timeData = (streams.time?.data as number[]) || [];
@@ -218,6 +218,8 @@ export class IntervalsService {
         updatedAt: new Date()
       }
     });
+    
+    console.log(`[IntervalsService] Successfully synced ${dataPoints} data points for activity ${activityId}`);
     
     return workoutStream;
   }

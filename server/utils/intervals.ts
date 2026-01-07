@@ -855,46 +855,48 @@ export async function fetchIntervalsActivityStreams(
     throw new Error(`Intervals API error: ${response.status} ${response.statusText}`)
   }
   
-  const rawStreams = await response.json()
-  
-  // Transform Intervals.icu stream format to match our expected format
-  // Intervals returns: { watts: [values], heartrate: [values], time: [values], etc }
+  const data = await response.json()
   const streams: Record<string, IntervalsStream> = {}
-  
-  if (rawStreams.time) {
-    streams.time = { type: 'time', data: rawStreams.time }
-  }
-  if (rawStreams.distance) {
-    streams.distance = { type: 'distance', data: rawStreams.distance }
-  }
-  if (rawStreams.velocity) {
-    streams.velocity = { type: 'velocity', data: rawStreams.velocity }
-  }
-  if (rawStreams.heartrate || rawStreams.hr) {
-    streams.heartrate = { type: 'heartrate', data: rawStreams.heartrate || rawStreams.hr }
-  }
-  if (rawStreams.cadence || rawStreams.cad) {
-    streams.cadence = { type: 'cadence', data: rawStreams.cadence || rawStreams.cad }
-  }
-  if (rawStreams.watts) {
-    streams.watts = { type: 'watts', data: rawStreams.watts }
-  }
-  if (rawStreams.altitude || rawStreams.alt) {
-    streams.altitude = { type: 'altitude', data: rawStreams.altitude || rawStreams.alt }
-  }
-  if (rawStreams.lat && rawStreams.lon) {
-    // Combine lat/lon into latlng pairs
-    const latlng: [number, number][] = []
-    for (let i = 0; i < rawStreams.lat.length; i++) {
-      latlng.push([rawStreams.lat[i], rawStreams.lon[i]])
+
+  // Intervals.icu returns an array of objects: [{type: 'time', data: []}, {type: 'watts', data: []}, ...]
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      if (item.type && item.data) {
+        // Special handling for latlng which might be split into lat and lon in some versions,
+        // but here we map the common ones.
+        streams[item.type] = { type: item.type, data: item.data }
+      }
     }
-    streams.latlng = { type: 'latlng', data: latlng }
-  }
-  if (rawStreams.grade) {
-    streams.grade = { type: 'grade', data: rawStreams.grade }
-  }
-  if (rawStreams.moving) {
-    streams.moving = { type: 'moving', data: rawStreams.moving }
+    
+    // Check if we need to reconstruct latlng from lat and lon streams
+    if (!streams.latlng && streams.lat && streams.lon) {
+      const lat = streams.lat.data as number[]
+      const lon = streams.lon.data as number[]
+      const latlng: [number, number][] = []
+      for (let i = 0; i < lat.length; i++) {
+        latlng.push([lat[i], lon[i]])
+      }
+      streams.latlng = { type: 'latlng', data: latlng }
+    }
+  } 
+  // Fallback for object format if it ever exists
+  else if (typeof data === 'object' && data !== null) {
+    if (data.time) streams.time = { type: 'time', data: data.time }
+    if (data.distance) streams.distance = { type: 'distance', data: data.distance }
+    if (data.velocity) streams.velocity = { type: 'velocity', data: data.velocity }
+    if (data.heartrate || data.hr) streams.heartrate = { type: 'heartrate', data: data.heartrate || data.hr }
+    if (data.cadence || data.cad) streams.cadence = { type: 'cadence', data: data.cadence || data.cad }
+    if (data.watts) streams.watts = { type: 'watts', data: data.watts }
+    if (data.altitude || data.alt) streams.altitude = { type: 'altitude', data: data.altitude || data.alt }
+    if (data.lat && data.lon) {
+      const latlng: [number, number][] = []
+      for (let i = 0; i < data.lat.length; i++) {
+        latlng.push([data.lat[i], data.lon[i]])
+      }
+      streams.latlng = { type: 'latlng', data: latlng }
+    }
+    if (data.grade) streams.grade = { type: 'grade', data: data.grade }
+    if (data.moving) streams.moving = { type: 'moving', data: data.moving }
   }
   
   return streams
