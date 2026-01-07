@@ -64,6 +64,8 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "glob": "^13.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "magicast": "^0.3.5",
     "prettier": "^3.7.4",
     "react": "^18",
@@ -95,7 +97,8 @@
     "cli": "tsx ./cli/index.ts",
     "cw:cli": "tsx cli/index.ts",
     "db:dump": "scripts/dump-db.sh",
-    "db:dump:prod": "scripts/dump-db.sh DATABASE_URL_PROD"
+    "db:dump:prod": "scripts/dump-db.sh DATABASE_URL_PROD",
+    "prepare": "husky"
   },
   "type": "module",
   "version": "0.5.7",
@@ -103,5 +106,14 @@
     "overrides": {
       "@vercel/nft": "^0.27.4"
     }
+  },
+  "lint-staged": {
+    "*.{js,jsx,mjs,ts,tsx,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,html,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }
