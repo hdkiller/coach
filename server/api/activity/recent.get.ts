@@ -156,7 +156,8 @@ export default defineEventHandler(async (event) => {
           icon: 'i-heroicons-cake',
           color: 'green',
           title: `Nutrition (${entries.length} meals)`,
-          description: description.join(' • ')
+          description: description.join(' • '),
+          link: `/nutrition/${firstEntry.id}`
         })
       }
     })
@@ -186,7 +187,8 @@ export default defineEventHandler(async (event) => {
           icon: 'i-heroicons-heart',
           color: 'red',
           title: 'Wellness Check',
-          description: description.join(' • ')
+          description: description.join(' • '),
+          link: `/fitness/${entry.id}`
         })
       }
     })

@@ -27,26 +27,35 @@
     </div>
     
     <!-- Timeline -->
-    <UTimeline v-else :items="(activityStore.recentActivity.items as any[])" class="max-h-96 overflow-y-auto">
+    <UTimeline v-else :items="(activityStore.recentActivity.items as any[])" class="max-h-96 overflow-y-auto pr-2">
       <template #default="{ item }">
-        <div class="flex items-start justify-between gap-3 group">
+        <div 
+          class="flex items-start justify-between gap-3 group -mx-2 px-2 py-2 rounded-lg transition-all duration-200"
+          :class="item.link ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50' : ''"
+          @click="item.link ? navigateTo(item.link) : null"
+        >
           <div class="flex-1 min-w-0">
-            <NuxtLink
-              v-if="item.link"
-              :to="item.link"
-              class="font-bold text-sm text-gray-900 dark:text-white hover:text-primary-500 transition-colors"
+            <p 
+              class="font-bold text-sm text-gray-900 dark:text-white transition-colors"
+              :class="item.link ? 'group-hover:text-primary-500' : ''"
             >
               {{ item.title }}
-            </NuxtLink>
-            <p v-else class="font-bold text-sm text-gray-900 dark:text-white">{{ item.title }}</p>
+            </p>
             
             <p v-if="item.description" class="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
               {{ item.description }}
             </p>
           </div>
-          <time class="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap mt-1">
-            {{ formatActivityDate(item.date) }}
-          </time>
+          <div class="flex flex-col items-end gap-1">
+            <time class="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap mt-1">
+              {{ formatActivityDate(item.date) }}
+            </time>
+            <UIcon 
+              v-if="item.link" 
+              name="i-heroicons-chevron-right" 
+              class="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-primary-500 transform group-hover:translate-x-0.5 transition-all" 
+            />
+          </div>
         </div>
       </template>
     </UTimeline>
