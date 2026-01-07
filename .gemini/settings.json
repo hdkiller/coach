@@ -1,6 +1,6 @@
 {
   "general": {
-    "vimMode": false
+    "vimMode": true
   },
   "tools": {
     "autoAccept": true
