@@ -99,7 +99,7 @@ export default defineEventHandler(async (event) => {
   const userId = await getEffectiveUserId(event)
   
   const query = getQuery(event)
-  const limit = query.limit ? parseInt(query.limit as string) : undefined
+  const limit = query.limit ? parseInt(query.limit as string) : 50
   const startDate = query.startDate ? new Date(query.startDate as string) : undefined
   const endDate = query.endDate ? new Date(query.endDate as string) : undefined
   const includeDuplicates = query.includeDuplicates === 'true'

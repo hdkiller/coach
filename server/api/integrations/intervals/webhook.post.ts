@@ -186,14 +186,15 @@ export default defineEventHandler(async (event) => {
           continue
       }
 
-      await tasks.trigger('ingest-intervals', {
-        userId,
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
-      }, {
-        concurrencyKey: userId
-      })
-      console.log(`[Intervals Webhook] Triggered ingest-intervals for user ${userId} (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`)
+      // await tasks.trigger('ingest-intervals', {
+      //   userId,
+      //   startDate: startDate.toISOString().split('T')[0],
+      //   endDate: endDate.toISOString().split('T')[0]
+      // }, {
+      //   concurrencyKey: userId
+      // })
+      // console.log(`[Intervals Webhook] Triggered ingest-intervals for user ${userId} (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`)
+      console.log(`[Intervals Webhook] Skipped triggering ingest-intervals for user ${userId} (Disabled)`)
     }
     
     if (log) await updateWebhookStatus(log.id, 'PROCESSED')
