@@ -1,3 +1,41 @@
+## 🎉 Coach Watts v0.5.8 is Here! More Insights, Better Reliability.
+
+We're excited to announce v0.5.8, a major release focused on unlocking deeper wellness insights, improving data accuracy, and giving the entire app a big tune-up for speed and stability!
+
+Here’s what’s new in this update:
+
+---
+
+### 🌟 New Wellness & Analysis Features
+
+We've significantly expanded how you can track, analyze, and share your recovery and readiness.
+
+- **Advanced Wellness Analysis:** Dive into dedicated Wellness pages featuring new trend indicators and detailed charts. See how your sleep, stress, and mood are evolving over time.
+- **AI Wellness Insights (Beta):** The app now supports new endpoints for AI analysis of your wellness data, helping you understand the "why" behind your readiness scores.
+- **Public Wellness Sharing:** Easily share your recovery and readiness data with your coach or training partners using dedicated public share pages.
+- **Country Flag Visibility:** See your country flag displayed right next to your name on the dashboard and settings for better profile management.
+
+### 🚀 Major Improvements & Data Accuracy
+
+This update includes significant behind-the-scenes work to make the app more reliable, especially concerning time-sensitive data.
+
+- **Timezone-Aware Scheduling:** Say goodbye to workout recommendations or planned workouts that shift based on daylight saving or travel! The app now uses robust, timezone-aware logic to ensure all your dates and times reflect your local settings perfectly.
+- **Smarter Activity Cards:** Your recent activities on the dashboard are now much more informative! We've added clear activity icons (using the new Tabler Icon set), displayed the activity source, and improved clickability across the board.
+- **Universal User Experience:** We completed a massive internal refactor of nearly every page and component (dashboard, goals, profile, settings). This groundwork makes the entire application feel faster, smoother, and sets the stage for exciting future features.
+- **Structured Workout Reliability:** We've boosted the robustness of our data connection with Intervals.icu to ensure planned structured workouts are ingested reliably, even if external events were briefly deleted.
+
+### 🛠️ Key Fixes & Consistency
+
+We fixed several issues to make your data more consistent and accurate.
+
+- **Standardized "Feel" Metric:** We have standardized the workout "Feel" (or RPE/Effort) metric across the entire platform to a consistent **1-5 scale**. This ensures greater consistency between the workout entry screen and your analysis charts.
+- **Correct Daily Recommendations:** Fixed an issue where daily recommendations or planned workouts were calculated or displayed incorrectly due to timezone conflicts.
+- **Better Data Backfills:** We ran maintenance scripts to correct missing TSS (Training Stress Score) and other advanced metrics on older workouts, ensuring your fitness trending is more accurate.
+
+---
+
+Thank you for using Coach Watts! Happy cycling! 🚴‍♀️💨
+
 # 🚀 Coach Watts Update: v0.5.7 is Live!
 
 We've been hard at work behind the scenes to make your training analysis smarter, faster, and easier to understand. This release focuses heavily on improving the workout recommendation engine, enhancing data clarity, and strengthening overall platform stability.
