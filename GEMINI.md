@@ -13,19 +13,25 @@ Welcome to the Coach Watts documentation. This comprehensive guide covers the sy
 ## 📚 Documentation Overview
 
 ### [Development Rules & Guidelines](./RULES.md)
+
 **CRITICAL: Rules for AI Agents & Developers**
 
 **IMPORTANT:** All AI agents and developers must strictly adhere to the project's development rules.
--   **Read [RULES.md](./RULES.md)** for a consolidated summary of all rules.
--   **Reference [.roo/rules-code/](./.roo/rules-code/)** for the source of truth for specific guidelines:
-    -   [Database Guidelines](./.roo/rules-code/database-guidelines.md)
-    -   [Deployment Guidelines](./.roo/rules-code/deployment-guidelines.md)
-    -   [Design Guidelines](./.roo/rules-code/design-guidelines.md)
+
+- **Read [RULES.md](./RULES.md)** for a consolidated summary of all rules.
+- **Reference [.roo/rules-code/](./.roo/rules-code/)** for the source of truth for specific guidelines:
+  - [Database Guidelines](./.roo/rules-code/database-guidelines.md)
+  - [Deployment Guidelines](./.roo/rules-code/deployment-guidelines.md)
+  - [Design Guidelines](./.roo/rules-code/design-guidelines.md)
+
 ### [Frontend Patterns](./.roo/rules-code/frontend-patterns.md)
+
 #### Nuxt UI Modal Implementation Guide
+
 When implementing modals using Nuxt UI, it is critical to follow best practices to ensure they function correctly. Incorrect implementation can lead to modals that are always visible, empty, or improperly positioned.
 
 **Key Guidelines:**
+
 1.  **Visibility Control:** Always use the `v-model:open` directive to control the modal's visibility state.
     ```vue
     <UModal v-model:open="isModalOpen" title="Accessible Title">
@@ -44,23 +50,21 @@ When implementing modals using Nuxt UI, it is critical to follow best practices 
 4.  **Top-Level Placement:** Ensure the `<UModal>` component is a top-level element in your component's template. Do not nest it inside other components like `<UCard>`, as this can interfere with its positioning and visibility.
 5.  **Read the Documentation:** Before implementing a modal, use the `nuxt-ui-mcp` tool to read the official documentation for `UModal` and related components. This will provide the most up-to-date information on props, slots, and usage examples.
 
-By following these guidelines, you can avoid common pitfalls and ensure that modals are implemented correctly and consistently across the application.
-    -   [Nuxt Server Patterns](./.roo/rules-code/nuxt-server-patterns.md)
-    -   [Repository Pattern](./.roo/rules-code/repository-pattern.md)
-    -   [Server Management](./.roo/rules-code/server-management.md)
-    -   [TypeScript Guidelines](./.roo/rules-code/typescript-guidelines.md)
-
+By following these guidelines, you can avoid common pitfalls and ensure that modals are implemented correctly and consistently across the application. - [Nuxt Server Patterns](./.roo/rules-code/nuxt-server-patterns.md) - [Repository Pattern](./.roo/rules-code/repository-pattern.md) - [Server Management](./.roo/rules-code/server-management.md) - [TypeScript Guidelines](./.roo/rules-code/typescript-guidelines.md)
 
 **Key Mandates:**
+
 1.  **ALWAYS** communicate in English for all prompts and responses, regardless of the language used by the developer. Enforce English for all interactions.
 2.  **NEVER** reset the dev database.
 3.  **ALWAYS** scaffold migrations via CLI.
-3.  **NEVER** run the dev server (HMR handles updates).
-4.  **USE** the Repository Pattern for data access.
-5.  **FOLLOW** the specific UI/UX guidelines for Nuxt UI.
+4.  **NEVER** run the dev server (HMR handles updates).
+5.  **USE** the Repository Pattern for data access.
+6.  **FOLLOW** the specific UI/UX guidelines for Nuxt UI.
 
 ### Database Verification
+
 When the user mentions specific UUIDs, IDs, or asks to verify data integrity:
+
 1.  **Use the PostgreSQL MCP Tool:** Utilize `postgres__execute_sql` to directly query the database.
 2.  **Check Schema First:** Refer to `prisma/schema.prisma` to understand table names, column names, and relationships before querying.
 3.  **Query Specific Tables:** For example, query the `public.workouts` table filtering by `id` or `externalId` to verify workout existence and details.
@@ -70,16 +74,20 @@ When the user mentions specific UUIDs, IDs, or asks to verify data integrity:
 4.  **Verify Relationships:** Check related tables (e.g., `ShareToken`, `PlannedWorkout`) if the issue involves linked data.
 
 ### CLI & Tooling
+
 The project includes a robust CLI for debugging and maintenance tasks.
--   **Command**: `pnpm cw:cli`
--   **Troubleshooting**: Use `pnpm cw:cli debug workout [url]` to diagnose data ingestion issues.
--   **Documentation**: See `cli/README.md` for full usage and extension guides.
--   **Philosophy**: Extend the CLI rather than creating one-off scripts.
+
+- **Command**: `pnpm cw:cli`
+- **Troubleshooting**: Use `pnpm cw:cli debug workout [url]` to diagnose data ingestion issues.
+- **Documentation**: See `cli/README.md` for full usage and extension guides.
+- **Philosophy**: Extend the CLI rather than creating one-off scripts.
 
 ### [Issue Management](./docs/04-guides/issue-management.md)
+
 **Guidelines for creating and managing GitHub issues**
 
 Standardized procedures for bug reports, feature requests, and maintenance tasks:
+
 - **Templates**: Required formats for issue titles and bodies.
 - **Labels**: Standardized taxonomy for types, priorities, and functional areas.
 - **Process**: Best practices for reporting and updating issues.
@@ -87,9 +95,11 @@ Standardized procedures for bug reports, feature requests, and maintenance tasks
 **Reference this** before creating any new GitHub issue to ensure consistency.
 
 ### [Architecture](./architecture.md)
+
 **System design and technical decisions**
 
 Learn about the high-level system architecture, including:
+
 - Technology stack and component selection
 - Core functional modules (Data Ingestion, AI Agents)
 - Data flow and background job processing
@@ -100,9 +110,11 @@ Learn about the high-level system architecture, including:
 **Read this first** to understand the overall system design and how different components work together.
 
 ### [Database Schema](./database-schema.md)
+
 **Complete database structure and design**
 
 Detailed documentation of the PostgreSQL database schema:
+
 - All tables and relationships
 - Field descriptions and data types
 - Indexes and performance optimization
@@ -114,9 +126,11 @@ Detailed documentation of the PostgreSQL database schema:
 **Essential reading** for understanding data models and database interactions.
 
 ### [Project Structure](./project-structure.md)
+
 **File organization and code conventions**
 
 Complete guide to the project's file system organization:
+
 - Directory structure with explanations
 - Naming conventions
 - File locations for different components
@@ -128,9 +142,11 @@ Complete guide to the project's file system organization:
 **Reference this** when creating new files or organizing code.
 
 ### [Implementation Guide](./implementation-guide.md)
+
 **Step-by-step build instructions**
 
 Sequential implementation guide with detailed prompts:
+
 - Phase 1: Scaffold & Database
 - Phase 2: Authentication
 - Phase 3: Integration Logic
@@ -139,6 +155,7 @@ Sequential implementation guide with detailed prompts:
 - Phase 6: Polish
 
 Each phase includes:
+
 - Clear goals and objectives
 - Detailed code examples
 - Commands to execute
@@ -171,13 +188,13 @@ graph TB
         A[Nuxt 3 Pages] --> B[Vue Components]
         B --> C[API Client]
     end
-    
+
     subgraph Backend
         C --> D[Nuxt API Routes]
         D --> E[Prisma ORM]
         E --> F[(PostgreSQL)]
     end
-    
+
     subgraph Background
         G[Trigger.dev Jobs] --> H[Data Ingestion]
         G --> I[AI Processing]
@@ -185,13 +202,13 @@ graph TB
         I --> J[Google Gemini]
         I --> F
     end
-    
+
     subgraph External
         K[Intervals.icu] --> H
         L[Whoop] --> H
         M[Google OAuth] --> D
     end
-    
+
     style A fill:#e1f5ff
     style D fill:#ffe1e1
     style G fill:#e1ffe1
@@ -201,18 +218,21 @@ graph TB
 ## 🎯 Key Features
 
 ### Data Ingestion
+
 - **Intervals.icu Integration:** Workout data, power metrics, training calendar
 - **Whoop Integration:** Recovery scores, HRV, sleep tracking
 - **Automatic Sync:** Background jobs keep data fresh
 - **Normalized Storage:** Unified data format from multiple sources
 
 ### AI Coaching
+
 - **Retrospective Analysis:** Deep weekly/monthly reports using Gemini Pro
 - **Prescriptive Guidance:** Daily workout suggestions using Gemini Flash
 - **Chain-of-Thought Reasoning:** Comprehensive analysis of training trends
 - **Structured Recommendations:** JSON-formatted actionable advice
 
 ### User Experience
+
 - **Dashboard:** Real-time readiness and activity overview
 - **Reports:** Markdown-formatted analysis with PDF export
 - **Settings:** Profile management and integration connections
@@ -220,22 +240,23 @@ graph TB
 
 ## 🛠️ Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | Nuxt 3 | Full-stack framework |
-| **UI Library** | Nuxt UI | Component library |
-| **Database** | PostgreSQL | Data persistence |
-| **ORM** | Prisma | Type-safe database access |
-| **Auth** | NuxtAuth | Authentication & sessions |
-| **Jobs** | Trigger.dev | Background processing |
-| **AI** | Google Gemini 2.5 | Analysis & recommendations |
-| **Language** | TypeScript | Type safety throughout |
+| Layer          | Technology        | Purpose                    |
+| -------------- | ----------------- | -------------------------- |
+| **Frontend**   | Nuxt 3            | Full-stack framework       |
+| **UI Library** | Nuxt UI           | Component library          |
+| **Database**   | PostgreSQL        | Data persistence           |
+| **ORM**        | Prisma            | Type-safe database access  |
+| **Auth**       | NuxtAuth          | Authentication & sessions  |
+| **Jobs**       | Trigger.dev       | Background processing      |
+| **AI**         | Google Gemini 2.5 | Analysis & recommendations |
+| **Language**   | TypeScript        | Type safety throughout     |
 
 ## 📋 Prerequisites
 
 Before starting development, ensure you have:
 
 ### Required
+
 - Node.js 18+
 - pnpm, npm, or yarn
 - PostgreSQL database
@@ -243,6 +264,7 @@ Before starting development, ensure you have:
 - Google OAuth credentials
 
 ### Optional (for full functionality)
+
 - Intervals.icu account and API access
 - Whoop account and API access
 - Trigger.dev account
@@ -324,24 +346,28 @@ npx trigger.dev@latest deploy  # Deploy jobs to production
 ## 🎨 Code Style Guidelines
 
 ### TypeScript
+
 - Use explicit types for function parameters and return values
 - Leverage type inference where obvious
 - Prefer interfaces over type aliases for object shapes
 - Use enums for fixed sets of values
 
 ### Vue Components
+
 - Use `<script setup>` syntax
 - Co-locate related logic
 - Keep components focused and reusable
 - Use composables for shared logic
 
 ### API Design
+
 - Follow RESTful conventions
 - Return consistent response formats
 - Use proper HTTP status codes
 - Include error messages
 
 ### Naming Conventions
+
 - Components: `PascalCase.vue`
 - Files: `kebab-case.ts`
 - Functions: `camelCase`
@@ -349,24 +375,28 @@ npx trigger.dev@latest deploy  # Deploy jobs to production
 - Composables: `useCamelCase()`
 
 ### ESLint & Code Standards
--   **Enforcement**: ESLint is enabled. Run `pnpm lint` to check and `pnpm lint:fix` to auto-fix.
--   **Configuration**: See `eslint.config.mjs`. Some strict rules (`no-explicit-any`, `no-unused-vars`) are disabled for legacy compatibility.
--   **Type Suppression**: Use `@ts-expect-error` with a description instead of `@ts-ignore`.
--   **Services**: Implement services as constant objects (`export const Service = { ... }`) rather than classes with static methods.
+
+- **Enforcement**: ESLint is enabled. Run `pnpm lint` to check and `pnpm lint:fix` to auto-fix.
+- **Configuration**: See `eslint.config.mjs`. Some strict rules (`no-explicit-any`, `no-unused-vars`) are disabled for legacy compatibility.
+- **Type Suppression**: Use `@ts-expect-error` with a description instead of `@ts-ignore`.
+- **Services**: Implement services as constant objects (`export const Service = { ... }`) rather than classes with static methods.
 
 ## 🧪 Testing Strategy
 
 ### Unit Tests
+
 - Utilities and calculations
 - Pure functions
 - Data transformations
 
 ### Integration Tests
+
 - API endpoints
 - Database operations
 - External API clients
 
 ### E2E Tests
+
 - Critical user flows
 - Authentication
 - Report generation
@@ -374,18 +404,21 @@ npx trigger.dev@latest deploy  # Deploy jobs to production
 ## 📊 Performance Considerations
 
 ### Frontend
+
 - Lazy load components
 - Optimize images
 - Use pagination for lists
 - Cache API responses
 
 ### Backend
+
 - Database indexes on frequently queried fields
 - Connection pooling
 - API rate limiting
 - Query optimization
 
 ### Background Jobs
+
 - Batch processing where possible
 - Efficient data fetching
 - Proper error handling
@@ -394,18 +427,21 @@ npx trigger.dev@latest deploy  # Deploy jobs to production
 ## 🔒 Security Best Practices
 
 ### Authentication
+
 - Secure session management
 - HTTPS everywhere
 - CSRF protection
 - Rate limiting
 
 ### Data Protection
+
 - Encrypt sensitive tokens
 - Sanitize user input
 - Use parameterized queries
 - Regular security audits
 
 ### API Security
+
 - Authentication required for protected routes
 - Authorization checks
 - Input validation
@@ -414,12 +450,14 @@ npx trigger.dev@latest deploy  # Deploy jobs to production
 ## 📈 Monitoring and Observability
 
 ### Application Monitoring
+
 - Error tracking (Sentry)
 - Performance monitoring
 - User analytics
 - API metrics
 
 ### Background Jobs
+
 - Trigger.dev dashboard
 - Job execution logs
 - Failure alerts
@@ -428,11 +466,13 @@ npx trigger.dev@latest deploy  # Deploy jobs to production
 ## 🚢 Deployment
 
 ### Recommended Hosting
+
 - **Frontend/API:** Vercel, Netlify, or Railway
 - **Database:** Neon, Supabase, or managed PostgreSQL
 - **Background Jobs:** Trigger.dev cloud
 
 ### Deployment Checklist
+
 - [ ] Environment variables configured
 - [ ] Database migrations applied
 - [ ] SSL certificates configured
@@ -455,6 +495,7 @@ npx trigger.dev@latest deploy  # Deploy jobs to production
 ### Documentation Updates
 
 When updating documentation:
+
 - Keep examples current
 - Update diagrams if architecture changes
 - Maintain consistent formatting
@@ -465,6 +506,7 @@ When updating documentation:
 ### Common Issues
 
 **Database Connection Fails**
+
 ```bash
 # Check DATABASE_URL is correct
 echo $DATABASE_URL
@@ -474,11 +516,13 @@ npx prisma db pull
 ```
 
 **Prisma Client Out of Sync**
+
 ```bash
 npx prisma generate
 ```
 
 **Background Jobs Not Running**
+
 ```bash
 # Check Trigger.dev is running
 npx trigger.dev@latest dev
@@ -487,6 +531,7 @@ npx trigger.dev@latest dev
 ```
 
 **OAuth Callback Fails**
+
 - Verify redirect URIs match exactly
 - Check client ID and secret
 - Ensure proper scopes requested
@@ -494,12 +539,14 @@ npx trigger.dev@latest dev
 ## 📞 Support
 
 ### Resources
+
 - [Nuxt Documentation](https://nuxt.com/docs)
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Trigger.dev Documentation](https://trigger.dev/docs)
 - [Google Gemini API](https://ai.google.dev/docs)
 
 ### Community
+
 - GitHub Issues (for bug reports)
 - GitHub Discussions (for questions)
 - Discord Server (for real-time help)
@@ -507,6 +554,7 @@ npx trigger.dev@latest dev
 ## 🗺️ Roadmap
 
 ### Phase 1 (MVP)
+
 - [x] Architecture design
 - [x] Database schema
 - [x] Documentation
@@ -516,12 +564,14 @@ npx trigger.dev@latest dev
 - [ ] Dashboard UI
 
 ### Phase 2
+
 - [ ] Advanced analytics
 - [ ] Race preparation mode
 - [ ] Training plan builder
 - [ ] Mobile-responsive design
 
 ### Phase 3
+
 - [ ] Strava integration
 - [ ] Garmin integration
 - [ ] Community features
@@ -558,15 +608,15 @@ Coach Watts is an AI-powered cycling coach that analyzes training data from mult
 
 ## 1. High-Level Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Framework** | Nuxt 3 | Full Stack: SSR + API Routes |
-| **Database** | PostgreSQL | Primary data store (via Supabase or Neon) |
-| **ORM** | Prisma | Type-safe database access |
-| **Authentication** | NuxtAuth | Based on NextAuth with Google Provider |
-| **Background Jobs** | Trigger.dev (v3) | Async data ingestion and AI processing |
-| **AI Engine** | Google Gemini 2.5 | Flash for daily checks, Pro for deep analysis |
-| **UI Library** | Nuxt UI | Component library for consistent design |
+| Component           | Technology        | Purpose                                       |
+| ------------------- | ----------------- | --------------------------------------------- |
+| **Framework**       | Nuxt 3            | Full Stack: SSR + API Routes                  |
+| **Database**        | PostgreSQL        | Primary data store (via Supabase or Neon)     |
+| **ORM**             | Prisma            | Type-safe database access                     |
+| **Authentication**  | NuxtAuth          | Based on NextAuth with Google Provider        |
+| **Background Jobs** | Trigger.dev (v3)  | Async data ingestion and AI processing        |
+| **AI Engine**       | Google Gemini 2.5 | Flash for daily checks, Pro for deep analysis |
+| **UI Library**      | Nuxt UI           | Component library for consistent design       |
 
 ## 2. Core Functional Modules
 
@@ -577,10 +627,12 @@ The system normalizes data from different sources into a unified `Workout` and `
 #### Data Sources
 
 **Intervals.icu**
+
 - Excellent for raw power data, FTP, and fitness/fatigue charts (ATL/CTL)
 - Provides detailed workout metrics and training calendar
 
 **Whoop**
+
 - Gold standard for Recovery (HRV)
 - Sleep tracking and quality metrics
 - Strain calculation
@@ -599,6 +651,7 @@ graph LR
 ```
 
 **Process:**
+
 1. User connects account via OAuth
 2. Token stored encrypted in database
 3. Trigger.dev job runs nightly or on webhook event
@@ -613,28 +666,31 @@ The AI is split into two specialized agents to manage context window limits and 
 
 **Purpose:** Deep analysis of past performance
 
-| Property | Value |
-|----------|-------|
-| **Trigger** | Weekly or Monthly (User requested) |
-| **Model** | Gemini 2.5 Pro (High reasoning capability) |
-| **Input** | Last 4 weeks of workouts + daily metrics |
-| **Strategy** | Chain-of-Thought reasoning |
-| **Output** | Markdown report (convertible to PDF) |
+| Property     | Value                                      |
+| ------------ | ------------------------------------------ |
+| **Trigger**  | Weekly or Monthly (User requested)         |
+| **Model**    | Gemini 2.5 Pro (High reasoning capability) |
+| **Input**    | Last 4 weeks of workouts + daily metrics   |
+| **Strategy** | Chain-of-Thought reasoning                 |
+| **Output**   | Markdown report (convertible to PDF)       |
 
 **Data Analyzed:**
+
 - Power curve and zone distribution
 - Average HRV and sleep scores
 - Training Stress Balance (TSB)
 - Correlation between high strain and low recovery
 
 **Prompt Strategy:**
+
 ```
-"Look at the TSB (Training Stress Balance). 
+"Look at the TSB (Training Stress Balance).
 Identify trends where high strain correlated with low recovery.
 Analyze power progression and fatigue accumulation."
 ```
 
 **Output Formats:**
+
 - Markdown report for web viewing
 - PDF via headless browser (Puppeteer) or LaTeX compilation
 
@@ -642,14 +698,15 @@ Analyze power progression and fatigue accumulation."
 
 **Purpose:** Daily guidance and workout adjustments
 
-| Property | Value |
-|----------|-------|
-| **Trigger** | Daily Morning Briefing or Plan Change Request |
-| **Model** | Gemini 2.5 Flash (Low latency, cost-effective) |
-| **Input** | Yesterday's load + Today's recovery + Planned workout |
-| **Output** | Structured JSON suggestion + Explanation |
+| Property    | Value                                                 |
+| ----------- | ----------------------------------------------------- |
+| **Trigger** | Daily Morning Briefing or Plan Change Request         |
+| **Model**   | Gemini 2.5 Flash (Low latency, cost-effective)        |
+| **Input**   | Yesterday's load + Today's recovery + Planned workout |
+| **Output**  | Structured JSON suggestion + Explanation              |
 
 **Decision Logic:**
+
 ```
 IF Recovery < 33% AND Planned Workout = "VO2 Max Intervals"
 THEN Suggest: "Swap to Zone 2 Endurance or Rest Day."
@@ -659,6 +716,7 @@ THEN Suggest: "Consider adding high-intensity interval session"
 ```
 
 **Input Data:**
+
 - **Hard Data:** Yesterday's training load, Today's Whoop Recovery, Planned workout from Intervals.icu
 - **Soft Data:** User subjective feeling (via UI form)
 
@@ -680,6 +738,7 @@ graph TD
 ```
 
 **Steps:**
+
 1. Fetches data from Intervals/Whoop APIs
 2. Normalizes data format
 3. Upserts into Postgres (prevents duplicates)
@@ -704,6 +763,7 @@ graph TD
 ```
 
 **Steps:**
+
 1. Queries Prisma for requested date range
 2. Formats data into dense text summary (JSON/CSV string)
 3. Sends to Gemini 2.5 (Pro or Flash)
@@ -725,6 +785,7 @@ graph LR
 ```
 
 **Implementation:**
+
 - Google SSO is the entry point
 - User record created on first login
 - Session managed via NuxtAuth
@@ -732,11 +793,13 @@ graph LR
 ### Integration Authentication
 
 Separate table for `IntegrationTokens` because one user might have multiple integrations:
+
 - Whoop
 - Intervals.icu
 - Future: Strava, Garmin, etc.
 
 **Security Considerations:**
+
 - Access tokens for external APIs encrypted at rest
 - OAuth refresh tokens stored securely
 - Tokens refreshed automatically before expiration
@@ -748,12 +811,14 @@ Separate table for `IntegrationTokens` because one user might have multiple inte
 
 **Purpose:** Web viewing in dashboard
 
-**Technology:** 
+**Technology:**
+
 - `@nuxtjs/mdc` for rendering
 - Styled with Tailwind typography classes
 - Interactive elements possible (charts, graphs)
 
 **Advantages:**
+
 - Fast rendering
 - Interactive
 - Easy to style
@@ -764,6 +829,7 @@ Separate table for `IntegrationTokens` because one user might have multiple inte
 **Purpose:** Formal coaching reports for download
 
 **Pipeline:**
+
 ```mermaid
 graph LR
     A[Gemini Generates LaTeX] --> B[Save .tex File]
@@ -773,11 +839,13 @@ graph LR
 ```
 
 **Alternative (Simpler):**
+
 - Gemini generates Markdown
 - Generic PDF generator converts to PDF
 - Reduces infrastructure complexity
 
 **Storage:**
+
 - PDFs stored in blob storage (S3, Cloudflare R2)
 - URLs stored in database
 - Signed URLs for secure access
@@ -825,18 +893,21 @@ graph LR
 ## 7. Future Enhancements
 
 ### Phase 2 Features
+
 - Strava integration
 - Garmin Connect integration
 - Real-time workout adjustments
 - Community features (coach sharing)
 
 ### Phase 3 Features
+
 - Mobile app (React Native)
 - Wearable device integration
 - Video analysis (form checking)
 - Nutrition tracking integration
 
 ### AI Improvements
+
 - Fine-tuned models on cycling-specific data
 - Multi-modal analysis (power + video)
 - Predictive performance modeling
@@ -845,30 +916,35 @@ graph LR
 ## 8. Technology Decisions Rationale
 
 ### Why Nuxt 3?
+
 - Full-stack framework (API + Frontend)
 - Excellent TypeScript support
 - SSR for better SEO and initial load
 - Large ecosystem
 
 ### Why Prisma?
+
 - Type-safe database queries
 - Excellent migration management
 - Great developer experience
 - Good PostgreSQL support
 
 ### Why Trigger.dev?
+
 - Purpose-built for background jobs
 - Great observability
 - Handles retries and failures
 - Native TypeScript support
 
 ### Why Gemini 2.5?
+
 - Excellent reasoning capabilities
 - Cost-effective (especially Flash)
 - Large context window
 - Good structured output support
 
 ### Why PostgreSQL?
+
 - Robust and reliable
 - Great JSON support
 - Excellent indexing
@@ -981,7 +1057,7 @@ model Integration {
   id             String    @id @default(uuid())
   userId         String
   provider       String    // "intervals", "whoop", "strava", "garmin"
-  
+
   // Auth Data
   accessToken    String
   refreshToken   String?
@@ -1009,7 +1085,7 @@ model Workout {
   userId          String
   externalId      String   // ID from the source (e.g., Strava Activity ID)
   source          String   // "intervals", "strava"
-  
+
   // Core Data
   date            DateTime
   title           String
@@ -1020,19 +1096,19 @@ model Workout {
   durationSec     Int
   distanceMeters  Float?
   elevationGain   Int?
-  
+
   // Power & Heart Rate
   averageWatts    Int?
   maxWatts        Int?
   normalizedPower Int?
   averageHr       Int?
   maxHr           Int?
-  
+
   // Training Load
   tss             Float?   // Training Stress Score
   if              Float?   // Intensity Factor
   kilojoules      Int?
-  
+
   // Raw Data storage (optional, for re-analysis)
   rawJson         Json?    // Store the original full payload if needed
 
@@ -1052,15 +1128,15 @@ model DailyMetric {
   // Heart & Recovery
   hrv            Float?   // rMSSD (ms)
   restingHr      Int?
-  
+
   // Sleep
   sleepScore     Int?     // 0-100
   hoursSlept     Float?
-  
+
   // Proprietary Scores (Normalized)
   recoveryScore  Int?     // 0-100 (Whoop style)
   strainScore    Float?   // 0-21 (Whoop style) or similar
-  
+
   spO2           Float?
 
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1077,20 +1153,20 @@ model Report {
   userId         String
   type           String   // "WEEKLY_ANALYSIS", "RACE_PREP", "DAILY_SUGGESTION"
   status         String   // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
-  
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  
+
   // Metadata
   dateRangeStart DateTime
   dateRangeEnd   DateTime
   modelVersion   String?  // e.g., "gemini-2.5-pro"
-  
+
   // Content
   markdown       String?  @db.Text
   latex          String?  @db.Text // If we generated a formal document
   pdfUrl         String?  // URL to stored PDF in S3/Blob storage
-  
+
   // Structured Suggestions (for the "Coach" agent)
   suggestions    Json?    // e.g., { "action": "rest", "reason": "HRV low" }
 
@@ -1104,23 +1180,25 @@ model Report {
 
 **Purpose:** Central user profile and authentication anchor
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Primary key |
-| `email` | String | Unique email (required for auth) |
-| `name` | String? | Display name |
-| `image` | String? | Profile picture URL |
-| `emailVerified` | DateTime? | Email verification timestamp |
-| `ftp` | Int? | Functional Threshold Power in watts |
-| `maxHr` | Int? | Maximum heart rate |
-| `weight` | Float? | Weight in kg for power/weight calculations |
-| `dob` | DateTime? | Date of birth for age-graded metrics |
+| Field           | Type      | Description                                |
+| --------------- | --------- | ------------------------------------------ |
+| `id`            | UUID      | Primary key                                |
+| `email`         | String    | Unique email (required for auth)           |
+| `name`          | String?   | Display name                               |
+| `image`         | String?   | Profile picture URL                        |
+| `emailVerified` | DateTime? | Email verification timestamp               |
+| `ftp`           | Int?      | Functional Threshold Power in watts        |
+| `maxHr`         | Int?      | Maximum heart rate                         |
+| `weight`        | Float?    | Weight in kg for power/weight calculations |
+| `dob`           | DateTime? | Date of birth for age-graded metrics       |
 
 **Coaching Settings:**
+
 - FTP, maxHr, weight, dob are used for personalized training zones
 - These can be auto-updated from integration data or manually set
 
 **Relationships:**
+
 - Has many: Accounts (OAuth providers)
 - Has many: Sessions (active login sessions)
 - Has many: Integrations (Whoop, Intervals, etc.)
@@ -1132,13 +1210,13 @@ model Report {
 
 **Purpose:** NuxtAuth/NextAuth standard OAuth connections
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `provider` | String | OAuth provider (google, github, etc.) |
-| `providerAccountId` | String | User's ID in the provider system |
-| `access_token` | String? | OAuth access token |
-| `refresh_token` | String? | OAuth refresh token |
-| `expires_at` | Int? | Token expiration timestamp |
+| Field               | Type    | Description                           |
+| ------------------- | ------- | ------------------------------------- |
+| `provider`          | String  | OAuth provider (google, github, etc.) |
+| `providerAccountId` | String  | User's ID in the provider system      |
+| `access_token`      | String? | OAuth access token                    |
+| `refresh_token`     | String? | OAuth refresh token                   |
+| `expires_at`        | Int?    | Token expiration timestamp            |
 
 **Composite Primary Key:** `[provider, providerAccountId]`
 
@@ -1148,11 +1226,11 @@ model Report {
 
 **Purpose:** Active login sessions
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sessionToken` | String | Unique session identifier |
-| `userId` | String | Reference to User |
-| `expires` | DateTime | Session expiration |
+| Field          | Type     | Description               |
+| -------------- | -------- | ------------------------- |
+| `sessionToken` | String   | Unique session identifier |
+| `userId`       | String   | Reference to User         |
+| `expires`      | DateTime | Session expiration        |
 
 **Security:** Sessions expire and must be refreshed
 
@@ -1160,20 +1238,21 @@ model Report {
 
 **Purpose:** External fitness app OAuth connections and sync status
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `provider` | String | "intervals", "whoop", "strava", "garmin" |
-| `accessToken` | String | API access token (encrypted) |
-| `refreshToken` | String? | Token refresh capability |
-| `expiresAt` | DateTime? | Token expiration |
-| `externalUserId` | String? | User's ID in external system |
-| `lastSyncAt` | DateTime? | Last successful data sync |
-| `syncStatus` | String? | "SUCCESS", "FAILED", "SYNCING" |
-| `errorMessage` | String? | Details if sync failed |
+| Field            | Type      | Description                              |
+| ---------------- | --------- | ---------------------------------------- |
+| `provider`       | String    | "intervals", "whoop", "strava", "garmin" |
+| `accessToken`    | String    | API access token (encrypted)             |
+| `refreshToken`   | String?   | Token refresh capability                 |
+| `expiresAt`      | DateTime? | Token expiration                         |
+| `externalUserId` | String?   | User's ID in external system             |
+| `lastSyncAt`     | DateTime? | Last successful data sync                |
+| `syncStatus`     | String?   | "SUCCESS", "FAILED", "SYNCING"           |
+| `errorMessage`   | String?   | Details if sync failed                   |
 
 **Unique Constraint:** `[userId, provider]` - One connection per provider per user
 
 **Security Consideration:**
+
 - Access tokens should be encrypted at rest
 - Consider using a secrets manager for production
 - Implement token refresh logic before expiration
@@ -1182,26 +1261,27 @@ model Report {
 
 **Purpose:** Normalized training activity data from multiple sources
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `externalId` | String | Source system's activity ID |
-| `source` | String | "intervals", "strava", "garmin" |
-| `date` | DateTime | Activity start time |
-| `title` | String | Activity name |
-| `type` | String? | "Ride", "Run", "WeightTraining" |
-| `durationSec` | Int | Duration in seconds |
-| `distanceMeters` | Float? | Distance covered |
-| `averageWatts` | Int? | Average power output |
-| `normalizedPower` | Int? | NP (weighted average) |
-| `tss` | Float? | Training Stress Score |
-| `if` | Float? | Intensity Factor (NP/FTP) |
-| `kilojoules` | Int? | Original API response |
+| Field             | Type     | Description                     |
+| ----------------- | -------- | ------------------------------- |
+| `externalId`      | String   | Source system's activity ID     |
+| `source`          | String   | "intervals", "strava", "garmin" |
+| `date`            | DateTime | Activity start time             |
+| `title`           | String   | Activity name                   |
+| `type`            | String?  | "Ride", "Run", "WeightTraining" |
+| `durationSec`     | Int      | Duration in seconds             |
+| `distanceMeters`  | Float?   | Distance covered                |
+| `averageWatts`    | Int?     | Average power output            |
+| `normalizedPower` | Int?     | NP (weighted average)           |
+| `tss`             | Float?   | Training Stress Score           |
+| `if`              | Float?   | Intensity Factor (NP/FTP)       |
+| `kilojoules`      | Int?     | Original API response           |
 
 **Unique Constraint:** `[userId, source, externalId]` - Prevents duplicate imports
 
 **Index:** `[userId, date]` - Optimizes time-range queries
 
 **Key Metrics:**
+
 - **TSS (Training Stress Score):** Quantifies training load
 - **IF (Intensity Factor):** Measures workout intensity relative to FTP
 - **Normalized Power:** Better indicator than average power for variable efforts
@@ -1210,17 +1290,17 @@ model Report {
 
 **Purpose:** Daily health and recovery data
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `date` | Date | Calendar date (YYYY-MM-DD) |
-| `source` | String | "whoop", "garmin", "oura" |
-| `hrv` | Float? | Heart Rate Variability (rMSSD in ms) |
-| `restingHr` | Int? | Resting heart rate |
-| `sleepScore` | Int? | 0-100 sleep quality score |
-| `hoursSlept` | Float? | Total sleep duration |
-| `recoveryScore` | Int? | 0-100 recovery readiness |
-| `strainScore` | Float? | 0-21 daily strain |
-| `spO2` | Float? | Blood oxygen saturation |
+| Field           | Type   | Description                          |
+| --------------- | ------ | ------------------------------------ |
+| `date`          | Date   | Calendar date (YYYY-MM-DD)           |
+| `source`        | String | "whoop", "garmin", "oura"            |
+| `hrv`           | Float? | Heart Rate Variability (rMSSD in ms) |
+| `restingHr`     | Int?   | Resting heart rate                   |
+| `sleepScore`    | Int?   | 0-100 sleep quality score            |
+| `hoursSlept`    | Float? | Total sleep duration                 |
+| `recoveryScore` | Int?   | 0-100 recovery readiness             |
+| `strainScore`   | Float? | 0-21 daily strain                    |
+| `spO2`          | Float? | Blood oxygen saturation              |
 
 **Unique Constraint:** `[userId, date]` - One record per day per user
 
@@ -1230,25 +1310,27 @@ model Report {
 
 **Purpose:** AI-generated coaching insights and recommendations
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | String | Report category |
-| `status` | String | Processing state |
-| `dateRangeStart` | DateTime | Analysis period start |
-| `dateRangeEnd` | DateTime | Analysis period end |
-| `modelVersion` | String? | AI model used |
-| `markdown` | Text? | Report in Markdown format |
-| `latex` | Text? | Report in LaTeX format |
-| `pdfUrl` | String? | Link to stored PDF in S3/Blob storage |
-| `suggestions` | Json? | Structured recommendations |
+| Field            | Type     | Description                           |
+| ---------------- | -------- | ------------------------------------- |
+| `type`           | String   | Report category                       |
+| `status`         | String   | Processing state                      |
+| `dateRangeStart` | DateTime | Analysis period start                 |
+| `dateRangeEnd`   | DateTime | Analysis period end                   |
+| `modelVersion`   | String?  | AI model used                         |
+| `markdown`       | Text?    | Report in Markdown format             |
+| `latex`          | Text?    | Report in LaTeX format                |
+| `pdfUrl`         | String?  | Link to stored PDF in S3/Blob storage |
+| `suggestions`    | Json?    | Structured recommendations            |
 
 **Report Types:**
+
 - `WEEKLY_ANALYSIS`: Comprehensive weekly review
 - `RACE_PREP`: Pre-race taper analysis
 - `DAILY_SUGGESTION`: Morning coaching brief
 - `CUSTOM`: User-requested analysis
 
 **Status Flow:**
+
 ```
 PENDING → PROCESSING → COMPLETED
                     ↓
@@ -1256,6 +1338,7 @@ PENDING → PROCESSING → COMPLETED
 ```
 
 **Suggestions JSON Structure:**
+
 ```json
 {
   "action": "reduce_intensity",
@@ -1270,9 +1353,11 @@ PENDING → PROCESSING → COMPLETED
 ### Critical Indexes
 
 1. **Workout Queries:**
+
    ```prisma
    @@index([userId, date])
    ```
+
    - Optimizes time-range queries for analysis
    - Most common query pattern: "workouts in last 30 days"
 
@@ -1282,6 +1367,7 @@ PENDING → PROCESSING → COMPLETED
    @@unique([userId, date])
    @@unique([userId, provider])
    ```
+
    - Prevents data duplication
    - Ensures data integrity
 
@@ -1290,6 +1376,7 @@ PENDING → PROCESSING → COMPLETED
 **Common Queries:**
 
 1. Get recent workouts:
+
 ```typescript
 await prisma.workout.findMany({
   where: {
@@ -1303,6 +1390,7 @@ await prisma.workout.findMany({
 ```
 
 2. Get daily metrics for date range:
+
 ```typescript
 await prisma.dailyMetric.findMany({
   where: {
@@ -1317,6 +1405,7 @@ await prisma.dailyMetric.findMany({
 ```
 
 3. Get user with all integrations:
+
 ```typescript
 await prisma.user.findUnique({
   where: { id: userId },
@@ -1335,11 +1424,13 @@ await prisma.user.findUnique({
 ### Cascade Deletion
 
 All user-related data is deleted when user is deleted:
+
 ```prisma
 onDelete: Cascade
 ```
 
 **Affected Tables:**
+
 - Accounts
 - Sessions
 - Integrations
@@ -1350,6 +1441,7 @@ onDelete: Cascade
 ### Data Validation
 
 **Application Level:**
+
 - FTP must be > 0 and < 500 watts (realistic range)
 - Weight must be > 30 and < 200 kg
 - Recovery scores: 0-100
@@ -1357,6 +1449,7 @@ onDelete: Cascade
 - Dates: not in future (for historical data)
 
 **Database Level:**
+
 - NOT NULL constraints on critical fields
 - UNIQUE constraints prevent duplicates
 - Foreign key constraints ensure referential integrity
@@ -1379,16 +1472,19 @@ npx prisma generate
 ### Future Migrations
 
 **Adding a field:**
+
 ```bash
 npx prisma migrate dev --name add_vo2max_to_user
 ```
 
 **Changing a field:**
+
 ```bash
 npx prisma migrate dev --name make_ftp_required
 ```
 
 **Best Practices:**
+
 - Always test migrations in development first
 - Backup production database before applying
 - Use descriptive migration names
@@ -1399,11 +1495,13 @@ npx prisma migrate dev --name make_ftp_required
 ### Sensitive Data
 
 **Access Tokens:**
+
 - Should be encrypted at rest
 - Consider using Prisma field-level encryption
 - Alternative: Store in secrets manager (AWS Secrets Manager, Vault)
 
 **User Data:**
+
 - Implement Row-Level Security (RLS) in production
 - Never expose tokens in API responses
 - Use environment variables for database connection
@@ -1411,6 +1509,7 @@ npx prisma migrate dev --name make_ftp_required
 ### Access Control
 
 **Prisma Middleware:**
+
 ```typescript
 prisma.$use(async (params, next) => {
   if (params.model === 'Workout') {
@@ -1446,6 +1545,7 @@ prisma.$use(async (params, next) => {
 ### Planned Additions
 
 1. **Race/Event Tracking:**
+
 ```prisma
 model Race {
   id          String   @id @default(uuid())
@@ -1459,6 +1559,7 @@ model Race {
 ```
 
 2. **Training Plans:**
+
 ```prisma
 model TrainingPlan {
   id          String   @id @default(uuid())
@@ -1471,12 +1572,13 @@ model TrainingPlan {
 ```
 
 3. **Social Features:**
+
 ```prisma
 model Following {
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
-  
+
   @@id([followerId, followingId])
 }
 ```
@@ -1505,6 +1607,7 @@ This guide provides a sequential, step-by-step approach to building the Coach Wa
 ## Prerequisites
 
 Before starting, ensure you have:
+
 - Node.js 18+ installed
 - pnpm (recommended) or npm
 - PostgreSQL database (local or cloud)
@@ -1520,6 +1623,7 @@ Before starting, ensure you have:
 **Goal:** Create a new Nuxt 3 project with essential dependencies
 
 **Instructions:**
+
 1. Create a new Nuxt 3 project named `coach-watts`
 2. Initialize the project
 3. Install `@nuxt/ui` for the component library
@@ -1529,6 +1633,7 @@ Before starting, ensure you have:
 7. Ensure the project runs successfully on `localhost:3000`
 
 **Commands:**
+
 ```bash
 # Create project
 npx nuxi@latest init coach-watts
@@ -1550,11 +1655,13 @@ pnpm dev
 ```
 
 **Expected Output:**
+
 - Project running on `http://localhost:3000`
 - Prisma folder created with `schema.prisma`
 - `.env` file with database URL
 
 **Validation:**
+
 - [ ] Nuxt dev server starts without errors
 - [ ] `prisma/schema.prisma` file exists
 - [ ] `.env` file contains `DATABASE_URL`
@@ -1566,18 +1673,21 @@ pnpm dev
 **Goal:** Set up the complete database schema
 
 **Instructions:**
+
 1. Update the `prisma/schema.prisma` file
 2. Copy the complete schema from `docs/database-schema.md`
 3. Run a migration named `init_schema`
 4. Generate Prisma Client
 
 **Schema to Apply:**
+
 ```prisma
 // Copy the complete schema from docs/database-schema.md
 // Located in the "Complete Schema" section
 ```
 
 **Commands:**
+
 ```bash
 # After updating schema.prisma
 npx prisma migrate dev --name init_schema
@@ -1585,11 +1695,13 @@ npx prisma generate
 ```
 
 **Expected Output:**
+
 - Migration files created in `prisma/migrations/`
 - Database tables created
 - Prisma Client generated
 
 **Validation:**
+
 - [ ] Migration runs successfully
 - [ ] All tables visible in Prisma Studio (`npx prisma studio`)
 - [ ] No TypeScript errors in IDE
@@ -1603,6 +1715,7 @@ npx prisma generate
 **Goal:** Implement authentication using NuxtAuth with Google provider
 
 **Instructions:**
+
 1. Install `@sidebase/nuxt-auth` and `next-auth`
 2. Configure NuxtAuth module in `nuxt.config.ts` with PrismaAdapter
 3. Create auth handler at `server/api/auth/[...].ts`
@@ -1611,6 +1724,7 @@ npx prisma generate
 6. Protect `/dashboard` route for authenticated users only
 
 **Commands:**
+
 ```bash
 # Install dependencies
 pnpm add @sidebase/nuxt-auth @auth/core @auth/prisma-adapter
@@ -1620,10 +1734,11 @@ pnpm add next-auth
 **Configuration:**
 
 `nuxt.config.ts`:
+
 ```typescript
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@sidebase/nuxt-auth'],
-  
+
   auth: {
     baseURL: process.env.AUTH_ORIGIN || 'http://localhost:3000/api/auth',
     provider: {
@@ -1634,6 +1749,7 @@ export default defineNuxtConfig({
 ```
 
 `server/api/auth/[...].ts`:
+
 ```typescript
 import { NuxtAuthHandler } from '#auth'
 import GoogleProvider from 'next-auth/providers/google'
@@ -1653,6 +1769,7 @@ export default NuxtAuthHandler({
 ```
 
 `pages/login.vue`:
+
 ```vue
 <template>
   <div class="min-h-screen flex items-center justify-center">
@@ -1660,29 +1777,28 @@ export default NuxtAuthHandler({
       <template #header>
         <h1 class="text-2xl font-bold">Welcome to Coach Watts</h1>
       </template>
-      
-      <UButton @click="signIn('google')">
-        Sign in with Google
-      </UButton>
+
+      <UButton @click="signIn('google')"> Sign in with Google </UButton>
     </UCard>
   </div>
 </template>
 
 <script setup lang="ts">
-const { signIn } = useAuth()
+  const { signIn } = useAuth()
 
-definePageMeta({
-  layout: 'auth',
-  middleware: 'guest'
-})
+  definePageMeta({
+    layout: 'auth',
+    middleware: 'guest'
+  })
 </script>
 ```
 
 `middleware/auth.ts`:
+
 ```typescript
 export default defineNuxtRouteMiddleware((to, from) => {
   const { status } = useAuth()
-  
+
   if (status.value !== 'authenticated') {
     return navigateTo('/login')
   }
@@ -1690,6 +1806,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
 ```
 
 **Environment Variables:**
+
 ```env
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
@@ -1698,6 +1815,7 @@ AUTH_ORIGIN=http://localhost:3000/api/auth
 ```
 
 **Validation:**
+
 - [ ] Login page renders
 - [ ] Google OAuth flow works
 - [ ] User record created in database
@@ -1713,12 +1831,14 @@ AUTH_ORIGIN=http://localhost:3000/api/auth
 **Goal:** Set up background job infrastructure
 
 **Instructions:**
+
 1. Install Trigger.dev SDK (`@trigger.dev/sdk`)
 2. Initialize configuration in `trigger.config.ts`
 3. Create `trigger/` folder at project root
 4. Create a test job `trigger/test.ts` to verify setup
 
 **Commands:**
+
 ```bash
 # Install Trigger.dev
 pnpm add @trigger.dev/sdk
@@ -1730,6 +1850,7 @@ npx trigger.dev@latest init
 **Configuration:**
 
 `trigger.config.ts`:
+
 ```typescript
 import { defineConfig } from '@trigger.dev/sdk/v3'
 
@@ -1752,6 +1873,7 @@ export default defineConfig({
 ```
 
 `trigger/test.ts`:
+
 ```typescript
 import { task } from '@trigger.dev/sdk/v3'
 
@@ -1765,6 +1887,7 @@ export const testJob = task({
 ```
 
 **Commands to Test:**
+
 ```bash
 # Run Trigger.dev dev server
 npx trigger.dev@latest dev
@@ -1774,6 +1897,7 @@ npx trigger.dev@latest test --task-id test-job
 ```
 
 **Validation:**
+
 - [ ] Trigger.dev dashboard accessible
 - [ ] Test job appears in dashboard
 - [ ] Job executes successfully
@@ -1786,6 +1910,7 @@ npx trigger.dev@latest test --task-id test-job
 **Goal:** Fetch workout data from Intervals.icu
 
 **Instructions:**
+
 1. Create `server/utils/intervals.ts` service
 2. Implement `fetchIntervalsWorkouts()` function
 3. Use endpoint: `https://intervals.icu/api/v1/athlete/{athleteId}/activities`
@@ -1795,6 +1920,7 @@ npx trigger.dev@latest test --task-id test-job
 **Implementation:**
 
 `server/utils/intervals.ts`:
+
 ```typescript
 import type { Integration } from '@prisma/client'
 
@@ -1819,20 +1945,20 @@ export async function fetchIntervalsWorkouts(
   endDate: Date
 ): Promise<IntervalsActivity[]> {
   const athleteId = integration.externalUserId || '0' // 0 means authenticated user
-  
+
   const response = await fetch(
     `https://intervals.icu/api/v1/athlete/${athleteId}/activities?oldest=${startDate.toISOString()}&newest=${endDate.toISOString()}`,
     {
       headers: {
-        'Authorization': `Bearer ${integration.accessToken}`
+        Authorization: `Bearer ${integration.accessToken}`
       }
     }
   )
-  
+
   if (!response.ok) {
     throw new Error(`Intervals API error: ${response.statusText}`)
   }
-  
+
   return await response.json()
 }
 
@@ -1857,6 +1983,7 @@ export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: s
 ```
 
 `trigger/ingest-intervals.ts`:
+
 ```typescript
 import { task } from '@trigger.dev/sdk/v3'
 import { prisma } from '~/server/utils/db'
@@ -1866,7 +1993,7 @@ export const ingestIntervals = task({
   id: 'ingest-intervals',
   run: async (payload: { userId: string; startDate: string; endDate: string }) => {
     const { userId, startDate, endDate } = payload
-    
+
     // Fetch integration
     const integration = await prisma.integration.findUnique({
       where: {
@@ -1876,17 +2003,17 @@ export const ingestIntervals = task({
         }
       }
     })
-    
+
     if (!integration) {
       throw new Error('Intervals integration not found')
     }
-    
+
     // Update sync status
     await prisma.integration.update({
       where: { id: integration.id },
       data: { syncStatus: 'SYNCING' }
     })
-    
+
     try {
       // Fetch activities
       const activities = await fetchIntervalsWorkouts(
@@ -1894,11 +2021,11 @@ export const ingestIntervals = task({
         new Date(startDate),
         new Date(endDate)
       )
-      
+
       // Upsert workouts
       for (const activity of activities) {
         const workout = normalizeIntervalsWorkout(activity, userId)
-        
+
         await prisma.workout.upsert({
           where: {
             userId_source_externalId: {
@@ -1911,7 +2038,7 @@ export const ingestIntervals = task({
           create: workout
         })
       }
-      
+
       // Update sync status
       await prisma.integration.update({
         where: { id: integration.id },
@@ -1921,7 +2048,7 @@ export const ingestIntervals = task({
           errorMessage: null
         }
       })
-      
+
       return {
         success: true,
         count: activities.length
@@ -1935,7 +2062,7 @@ export const ingestIntervals = task({
           errorMessage: error.message
         }
       })
-      
+
       throw error
     }
   }
@@ -1945,22 +2072,23 @@ export const ingestIntervals = task({
 **API Endpoint to Trigger:**
 
 `server/api/integrations/sync.post.ts`:
+
 ```typescript
 export default defineEventHandler(async (event) => {
   const { provider } = await readBody(event)
   const session = await getServerSession(event)
-  
+
   if (!session?.user) {
     throw createError({ statusCode: 401 })
   }
-  
+
   // Trigger background job
   const handle = await tasks.trigger('ingest-intervals', {
     userId: session.user.id,
     startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // Last 90 days
     endDate: new Date().toISOString()
   })
-  
+
   return {
     jobId: handle.id
   }
@@ -1968,6 +2096,7 @@ export default defineEventHandler(async (event) => {
 ```
 
 **Validation:**
+
 - [ ] Job appears in Trigger.dev dashboard
 - [ ] Workouts fetched from Intervals.icu
 - [ ] Data normalized correctly
@@ -1981,6 +2110,7 @@ export default defineEventHandler(async (event) => {
 **Goal:** Fetch recovery data from Whoop
 
 **Instructions:**
+
 1. Create `server/utils/whoop.ts` service
 2. Implement `fetchWhoopRecovery()` function
 3. Use endpoint: `https://api.prod.whoop.com/developer/v1/recovery`
@@ -1990,6 +2120,7 @@ export default defineEventHandler(async (event) => {
 **Implementation:**
 
 `server/utils/whoop.ts`:
+
 ```typescript
 import type { Integration } from '@prisma/client'
 
@@ -2024,15 +2155,15 @@ export async function fetchWhoopRecovery(
     `https://api.prod.whoop.com/developer/v1/recovery?start=${startDate.toISOString()}&end=${endDate.toISOString()}`,
     {
       headers: {
-        'Authorization': `Bearer ${integration.accessToken}`
+        Authorization: `Bearer ${integration.accessToken}`
       }
     }
   )
-  
+
   if (!response.ok) {
     throw new Error(`Whoop API error: ${response.statusText}`)
   }
-  
+
   const data = await response.json()
   return data.records || []
 }
@@ -2053,6 +2184,7 @@ export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string) 
 ```
 
 `trigger/ingest-whoop.ts`:
+
 ```typescript
 import { task } from '@trigger.dev/sdk/v3'
 import { prisma } from '~/server/utils/db'
@@ -2062,7 +2194,7 @@ export const ingestWhoop = task({
   id: 'ingest-whoop',
   run: async (payload: { userId: string; startDate: string; endDate: string }) => {
     const { userId, startDate, endDate } = payload
-    
+
     const integration = await prisma.integration.findUnique({
       where: {
         userId_provider: {
@@ -2071,26 +2203,26 @@ export const ingestWhoop = task({
         }
       }
     })
-    
+
     if (!integration) {
       throw new Error('Whoop integration not found')
     }
-    
+
     await prisma.integration.update({
       where: { id: integration.id },
       data: { syncStatus: 'SYNCING' }
     })
-    
+
     try {
       const recoveryData = await fetchWhoopRecovery(
         integration,
         new Date(startDate),
         new Date(endDate)
       )
-      
+
       for (const recovery of recoveryData) {
         const metric = normalizeWhoopRecovery(recovery, userId)
-        
+
         await prisma.dailyMetric.upsert({
           where: {
             userId_date: {
@@ -2102,7 +2234,7 @@ export const ingestWhoop = task({
           create: metric
         })
       }
-      
+
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
@@ -2111,7 +2243,7 @@ export const ingestWhoop = task({
           errorMessage: null
         }
       })
-      
+
       return {
         success: true,
         count: recoveryData.length
@@ -2124,7 +2256,7 @@ export const ingestWhoop = task({
           errorMessage: error.message
         }
       })
-      
+
       throw error
     }
   }
@@ -2132,6 +2264,7 @@ export const ingestWhoop = task({
 ```
 
 **Validation:**
+
 - [ ] Whoop API authentication works
 - [ ] Recovery data fetched
 - [ ] Data normalized to DailyMetric format
@@ -2147,6 +2280,7 @@ export const ingestWhoop = task({
 **Goal:** Initialize Google Gemini AI client
 
 **Instructions:**
+
 1. Install Google Generative AI SDK (`@google/generative-ai`)
 2. Create `server/utils/gemini.ts`
 3. Export `generateCoachAnalysis()` function
@@ -2154,6 +2288,7 @@ export const ingestWhoop = task({
 5. Ensure API key from environment
 
 **Commands:**
+
 ```bash
 pnpm add @google/generative-ai
 ```
@@ -2161,6 +2296,7 @@ pnpm add @google/generative-ai
 **Implementation:**
 
 `server/utils/gemini.ts`:
+
 ```typescript
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
@@ -2180,7 +2316,7 @@ export async function generateCoachAnalysis(
   const model = genAI.getGenerativeModel({
     model: MODEL_NAMES[modelType]
   })
-  
+
   const result = await model.generateContent(prompt)
   const response = result.response
   return response.text()
@@ -2198,14 +2334,14 @@ export async function generateStructuredAnalysis<T>(
       responseSchema: schema
     }
   })
-  
+
   const result = await model.generateContent(prompt)
   const response = result.response
   return JSON.parse(response.text())
 }
 
 export function buildWorkoutSummary(workouts: any[]): string {
-  return workouts.map(w => 
+  return workouts.map(w =>
     `${w.date.toISOString()}: ${w.title} - ${w.durationSec}s, ${w.tss || 'N/A'} TSS, ${w.averageWatts || 'N/A'}W avg`
   ).join('
 ')
@@ -2220,11 +2356,13 @@ export function buildMetricsSummary(metrics: any[]): string {
 ```
 
 **Environment Variable:**
+
 ```env
 GEMINI_API_KEY=your-api-key-here
 ```
 
 **Validation:**
+
 - [ ] Gemini client initializes
 - [ ] API key loaded from environment
 - [ ] Test prompt returns response
@@ -2237,6 +2375,7 @@ GEMINI_API_KEY=your-api-key-here
 **Goal:** Generate comprehensive weekly analysis reports
 
 **Instructions:**
+
 1. Create `trigger/generate-weekly-report.ts` job
 2. Query last 30 days of workouts and metrics
 3. Format data for Gemini Pro
@@ -2246,31 +2385,32 @@ GEMINI_API_KEY=your-api-key-here
 **Implementation:**
 
 `trigger/generate-weekly-report.ts`:
+
 ```typescript
 import { task } from '@trigger.dev/sdk/v3'
 import { prisma } from '~/server/utils/db'
-import { 
-  generateCoachAnalysis, 
-  buildWorkoutSummary, 
-  buildMetricsSummary 
+import {
+  generateCoachAnalysis,
+  buildWorkoutSummary,
+  buildMetricsSummary
 } from '~/server/utils/gemini'
 
 export const generateWeeklyReport = task({
   id: 'generate-weekly-report',
   run: async (payload: { userId: string; reportId: string }) => {
     const { userId, reportId } = payload
-    
+
     // Update report status
     await prisma.report.update({
       where: { id: reportId },
       data: { status: 'PROCESSING' }
     })
-    
+
     try {
       // Calculate date range (last 30 days)
       const endDate = new Date()
       const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      
+
       // Fetch data
       const [workouts, metrics, user] = await Promise.all([
         prisma.workout.findMany({
@@ -2292,7 +2432,7 @@ export const generateWeeklyReport = task({
           select: { ftp: true, weight: true }
         })
       ])
-      
+
       // Build prompt
       const prompt = `You are an expert cycling coach analyzing training data.
 
@@ -2324,7 +2464,7 @@ Begin your analysis:`
 
       // Generate with Gemini Pro
       const markdown = await generateCoachAnalysis(prompt, 'pro')
-      
+
       // Save report
       await prisma.report.update({
         where: { id: reportId },
@@ -2336,7 +2476,7 @@ Begin your analysis:`
           dateRangeEnd: endDate
         }
       })
-      
+
       return {
         success: true,
         reportId
@@ -2349,7 +2489,7 @@ Begin your analysis:`
           errorMessage: error.message
         }
       })
-      
+
       throw error
     }
   }
@@ -2359,13 +2499,14 @@ Begin your analysis:`
 **API Endpoint:**
 
 `server/api/reports/generate.post.ts`:
+
 ```typescript
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user) {
     throw createError({ statusCode: 401 })
   }
-  
+
   // Create report record
   const report = await prisma.report.create({
     data: {
@@ -2376,13 +2517,13 @@ export default defineEventHandler(async (event) => {
       dateRangeEnd: new Date()
     }
   })
-  
+
   // Trigger background job
   const handle = await tasks.trigger('generate-weekly-report', {
     userId: session.user.id,
     reportId: report.id
   })
-  
+
   return {
     reportId: report.id,
     jobId: handle.id
@@ -2391,6 +2532,7 @@ export default defineEventHandler(async (event) => {
 ```
 
 **Validation:**
+
 - [ ] Report created with PENDING status
 - [ ] Job triggered successfully
 - [ ] Data fetched and formatted
@@ -2404,6 +2546,7 @@ export default defineEventHandler(async (event) => {
 **Goal:** Generate quick daily coaching suggestions
 
 **Instructions:**
+
 1. Create `trigger/daily-coach.ts` job
 2. Fetch yesterday's load and today's recovery
 3. Apply decision logic for workout adjustments
@@ -2413,6 +2556,7 @@ export default defineEventHandler(async (event) => {
 **Implementation:**
 
 `trigger/daily-coach.ts`:
+
 ```typescript
 import { task } from '@trigger.dev/sdk/v3'
 import { prisma } from '~/server/utils/db'
@@ -2436,10 +2580,10 @@ export const dailyCoach = task({
   id: 'daily-coach',
   run: async (payload: { userId: string }) => {
     const { userId } = payload
-    
+
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     const today = new Date()
-    
+
     // Fetch data
     const [yesterdayWorkout, todayMetric, plannedWorkout] = await Promise.all([
       prisma.workout.findFirst({
@@ -2467,7 +2611,7 @@ export const dailyCoach = task({
         orderBy: { date: 'asc' }
       })
     ])
-    
+
     // Build prompt
     const prompt = `You are a cycling coach providing daily workout guidance.
 
@@ -2489,12 +2633,8 @@ DECISION LOGIC:
 
 Provide a structured recommendation:`
 
-    const suggestion = await generateStructuredAnalysis(
-      prompt,
-      suggestionSchema,
-      'flash'
-    )
-    
+    const suggestion = await generateStructuredAnalysis(prompt, suggestionSchema, 'flash')
+
     // Save suggestion as report
     const report = await prisma.report.create({
       data: {
@@ -2507,7 +2647,7 @@ Provide a structured recommendation:`
         suggestions: suggestion
       }
     })
-    
+
     return {
       success: true,
       reportId: report.id,
@@ -2520,6 +2660,7 @@ Provide a structured recommendation:`
 **Scheduled Trigger:**
 
 `trigger/scheduled.ts`:
+
 ```typescript
 import { schedules } from '@trigger.dev/sdk/v3'
 
@@ -2538,7 +2679,7 @@ export const dailyCoachSchedule = schedules.task({
         }
       }
     })
-    
+
     // Trigger daily coach for each user
     for (const user of users) {
       await tasks.trigger('daily-coach', {
@@ -2550,6 +2691,7 @@ export const dailyCoachSchedule = schedules.task({
 ```
 
 **Validation:**
+
 - [ ] Job runs on schedule
 - [ ] Data fetched correctly
 - [ ] Decision logic applied
@@ -2565,6 +2707,7 @@ export const dailyCoachSchedule = schedules.task({
 **Goal:** Build main dashboard with readiness and activity views
 
 **Instructions:**
+
 1. Create `/dashboard` page
 2. Use Nuxt UI components (Cards, Grid)
 3. Display today's readiness (HRV, Sleep, Recovery)
@@ -2574,18 +2717,19 @@ export const dailyCoachSchedule = schedules.task({
 **Implementation:**
 
 `pages/dashboard.vue`:
+
 ```vue
 <template>
   <div class="container mx-auto p-6">
     <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
-    
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Today's Readiness -->
       <div class="lg:col-span-1">
         <ReadinessCard :metric="todayMetric" />
         <CoachSuggestion :suggestion="dailySuggestion" class="mt-4" />
       </div>
-      
+
       <!-- Recent Activity -->
       <div class="lg:col-span-2">
         <UCard>
@@ -2597,7 +2741,7 @@ export const dailyCoachSchedule = schedules.task({
               </UButton>
             </div>
           </template>
-          
+
           <ActivityFeed :workouts="recentWorkouts" />
         </UCard>
       </div>
@@ -2606,79 +2750,77 @@ export const dailyCoachSchedule = schedules.task({
 </template>
 
 <script setup lang="ts">
-definePageMeta({
-  middleware: 'auth'
-})
+  definePageMeta({
+    middleware: 'auth'
+  })
 
-const generating = ref(false)
+  const generating = ref(false)
 
-// Fetch data
-const { data: todayMetric } = await useFetch('/api/metrics/today')
-const { data: dailySuggestion } = await useFetch('/api/reports/daily-suggestion')
-const { data: recentWorkouts } = await useFetch('/api/workouts?limit=10')
+  // Fetch data
+  const { data: todayMetric } = await useFetch('/api/metrics/today')
+  const { data: dailySuggestion } = await useFetch('/api/reports/daily-suggestion')
+  const { data: recentWorkouts } = await useFetch('/api/workouts?limit=10')
 
-const generateReport = async () => {
-  generating.value = true
-  try {
-    const { reportId } = await $fetch('/api/reports/generate', {
-      method: 'POST'
-    })
-    await navigateTo(`/reports/${reportId}`)
-  } finally {
-    generating.value = false
+  const generateReport = async () => {
+    generating.value = true
+    try {
+      const { reportId } = await $fetch('/api/reports/generate', {
+        method: 'POST'
+      })
+      await navigateTo(`/reports/${reportId}`)
+    } finally {
+      generating.value = false
+    }
   }
-}
 </script>
 ```
 
 `components/dashboard/ReadinessCard.vue`:
+
 ```vue
 <template>
   <UCard>
     <template #header>
       <h2 class="text-xl font-semibold">Today's Readiness</h2>
     </template>
-    
+
     <div v-if="metric" class="space-y-4">
       <div class="flex items-center justify-between">
         <span class="text-gray-600">Recovery</span>
-        <span class="text-2xl font-bold" :class="recoveryColor">
-          {{ metric.recoveryScore }}%
-        </span>
+        <span class="text-2xl font-bold" :class="recoveryColor"> {{ metric.recoveryScore }}% </span>
       </div>
-      
+
       <div class="flex items-center justify-between">
         <span class="text-gray-600">HRV</span>
         <span class="text-lg">{{ metric.hrv }} ms</span>
       </div>
-      
+
       <div class="flex items-center justify-between">
         <span class="text-gray-600">Sleep</span>
         <span class="text-lg">{{ metric.hoursSlept?.toFixed(1) }}h</span>
       </div>
     </div>
-    
-    <div v-else class="text-gray-500 text-center py-8">
-      No data available
-    </div>
+
+    <div v-else class="text-gray-500 text-center py-8">No data available</div>
   </UCard>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  metric: any
-}>()
+  const props = defineProps<{
+    metric: any
+  }>()
 
-const recoveryColor = computed(() => {
-  const score = props.metric?.recoveryScore || 0
-  if (score < 33) return 'text-red-600'
-  if (score < 67) return 'text-yellow-600'
-  return 'text-green-600'
-})
+  const recoveryColor = computed(() => {
+    const score = props.metric?.recoveryScore || 0
+    if (score < 33) return 'text-red-600'
+    if (score < 67) return 'text-yellow-600'
+    return 'text-green-600'
+  })
 </script>
 ```
 
 `components/dashboard/CoachSuggestion.vue`:
+
 ```vue
 <template>
   <UCard v-if="suggestion">
@@ -2688,7 +2830,7 @@ const recoveryColor = computed(() => {
         <h3 class="font-semibold">Coach Suggestion</h3>
       </div>
     </template>
-    
+
     <div class="space-y-2">
       <p class="font-medium">{{ actionText }}</p>
       <p class="text-sm text-gray-600">{{ suggestion.reason }}</p>
@@ -2700,22 +2842,27 @@ const recoveryColor = computed(() => {
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  suggestion: any
-}>()
+  const props = defineProps<{
+    suggestion: any
+  }>()
 
-const actionText = computed(() => {
-  switch (props.suggestion?.action) {
-    case 'rest': return '🛌 Rest Day Recommended'
-    case 'reduce_intensity': return '📉 Reduce Intensity'
-    case 'modify': return '🔄 Modify Workout'
-    default: return '✅ Proceed as Planned'
-  }
-})
+  const actionText = computed(() => {
+    switch (props.suggestion?.action) {
+      case 'rest':
+        return '🛌 Rest Day Recommended'
+      case 'reduce_intensity':
+        return '📉 Reduce Intensity'
+      case 'modify':
+        return '🔄 Modify Workout'
+      default:
+        return '✅ Proceed as Planned'
+    }
+  })
 </script>
 ```
 
 **Validation:**
+
 - [ ] Dashboard renders with layout
 - [ ] Today's metrics display
 - [ ] Recent workouts list
@@ -2729,6 +2876,7 @@ const actionText = computed(() => {
 **Goal:** Create report viewing page with markdown rendering
 
 **Instructions:**
+
 1. Create `/reports/[id].vue` page
 2. Fetch report by ID
 3. Render markdown using `@nuxtjs/mdc`
@@ -2736,6 +2884,7 @@ const actionText = computed(() => {
 5. Add download PDF button (placeholder)
 
 **Commands:**
+
 ```bash
 pnpm add @nuxtjs/mdc
 ```
@@ -2743,6 +2892,7 @@ pnpm add @nuxtjs/mdc
 **Configuration:**
 
 `nuxt.config.ts`:
+
 ```typescript
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@sidebase/nuxt-auth', '@nuxtjs/mdc']
@@ -2752,25 +2902,24 @@ export default defineNuxtConfig({
 **Implementation:**
 
 `pages/reports/[id].vue`:
+
 ```vue
 <template>
   <div class="container mx-auto p-6 max-w-4xl">
     <div v-if="pending" class="flex justify-center py-20">
       <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin" />
     </div>
-    
+
     <div v-else-if="report">
       <!-- Header -->
       <div class="mb-6">
-        <NuxtLink to="/reports" class="text-blue-600 hover:underline">
-          ← Back to Reports
-        </NuxtLink>
+        <NuxtLink to="/reports" class="text-blue-600 hover:underline"> ← Back to Reports </NuxtLink>
         <h1 class="text-3xl font-bold mt-4">{{ reportTitle }}</h1>
         <p class="text-gray-600 mt-2">
           {{ formatDateRange(report.dateRangeStart, report.dateRangeEnd) }}
         </p>
       </div>
-      
+
       <!-- Status -->
       <UAlert
         v-if="report.status !== 'COMPLETED'"
@@ -2778,31 +2927,21 @@ export default defineNuxtConfig({
         :title="statusText"
         class="mb-6"
       />
-      
+
       <!-- Content -->
       <UCard v-if="report.status === 'COMPLETED'" class="prose prose-lg max-w-none">
         <MDC :value="report.markdown" />
       </UCard>
-      
+
       <!-- Actions -->
       <div class="mt-6 flex gap-4">
-        <UButton
-          color="gray"
-          @click="downloadPDF"
-          :disabled="!report.pdfUrl"
-        >
+        <UButton color="gray" @click="downloadPDF" :disabled="!report.pdfUrl">
           Download PDF
         </UButton>
-        <UButton
-          color="gray"
-          variant="outline"
-          @click="shareReport"
-        >
-          Share
-        </UButton>
+        <UButton color="gray" variant="outline" @click="shareReport"> Share </UButton>
       </div>
     </div>
-    
+
     <div v-else class="text-center py-20">
       <p class="text-gray-600">Report not found</p>
     </div>
@@ -2810,110 +2949,112 @@ export default defineNuxtConfig({
 </template>
 
 <script setup lang="ts">
-const route = useRoute()
-const reportId = route.params.id as string
+  const route = useRoute()
+  const reportId = route.params.id as string
 
-const { data: report, pending } = await useFetch(`/api/reports/${reportId}`)
+  const { data: report, pending } = await useFetch(`/api/reports/${reportId}`)
 
-const reportTitle = computed(() => {
-  if (!report.value) return ''
-  const types = {
-    'WEEKLY_ANALYSIS': 'Weekly Training Analysis',
-    'RACE_PREP': 'Race Preparation Report',
-    'DAILY_SUGGESTION': 'Daily Coaching Brief'
+  const reportTitle = computed(() => {
+    if (!report.value) return ''
+    const types = {
+      WEEKLY_ANALYSIS: 'Weekly Training Analysis',
+      RACE_PREP: 'Race Preparation Report',
+      DAILY_SUGGESTION: 'Daily Coaching Brief'
+    }
+    return types[report.value.type] || 'Report'
+  })
+
+  const statusColor = computed(() => {
+    const colors = {
+      PENDING: 'yellow',
+      PROCESSING: 'blue',
+      FAILED: 'red',
+      COMPLETED: 'green'
+    }
+    return colors[report.value?.status] || 'gray'
+  })
+
+  const statusText = computed(() => {
+    const texts = {
+      PENDING: 'Report generation queued...',
+      PROCESSING: 'Analyzing your training data...',
+      FAILED: 'Report generation failed. Please try again.',
+      COMPLETED: 'Report ready!'
+    }
+    return texts[report.value?.status] || ''
+  })
+
+  const formatDateRange = (start: string, end: string) => {
+    const startDate = new Date(start).toLocaleDateString()
+    const endDate = new Date(end).toLocaleDateString()
+    return `${startDate} - ${endDate}`
   }
-  return types[report.value.type] || 'Report'
-})
 
-const statusColor = computed(() => {
-  const colors = {
-    'PENDING': 'yellow',
-    'PROCESSING': 'blue',
-    'FAILED': 'red',
-    'COMPLETED': 'green'
+  const downloadPDF = () => {
+    if (report.value?.pdfUrl) {
+      window.open(report.value.pdfUrl, '_blank')
+    } else {
+      // Fallback: print to PDF
+      window.print()
+    }
   }
-  return colors[report.value?.status] || 'gray'
-})
 
-const statusText = computed(() => {
-  const texts = {
-    'PENDING': 'Report generation queued...',
-    'PROCESSING': 'Analyzing your training data...',
-    'FAILED': 'Report generation failed. Please try again.',
-    'COMPLETED': 'Report ready!'
+  const shareReport = () => {
+    // TODO: Implement sharing functionality
+    alert('Sharing functionality coming soon!')
   }
-  return texts[report.value?.status] || ''
-})
-
-const formatDateRange = (start: string, end: string) => {
-  const startDate = new Date(start).toLocaleDateString()
-  const endDate = new Date(end).toLocaleDateString()
-  return `${startDate} - ${endDate}`
-}
-
-const downloadPDF = () => {
-  if (report.value?.pdfUrl) {
-    window.open(report.value.pdfUrl, '_blank')
-  } else {
-    // Fallback: print to PDF
-    window.print()
-  }
-}
-
-const shareReport = () => {
-  // TODO: Implement sharing functionality
-  alert('Sharing functionality coming soon!')
-}
 </script>
 
 <style>
-/* Custom prose styles for markdown */
-.prose h2 {
-  @apply mt-8 mb-4 text-2xl font-bold;
-}
+  /* Custom prose styles for markdown */
+  .prose h2 {
+    @apply mt-8 mb-4 text-2xl font-bold;
+  }
 
-.prose h3 {
-  @apply mt-6 mb-3 text-xl font-semibold;
-}
+  .prose h3 {
+    @apply mt-6 mb-3 text-xl font-semibold;
+  }
 
-.prose p {
-  @apply my-4;
-}
+  .prose p {
+    @apply my-4;
+  }
 
-.prose ul {
-  @apply my-4 list-disc list-inside;
-}
+  .prose ul {
+    @apply my-4 list-disc list-inside;
+  }
 </style>
 ```
 
 **API Endpoint:**
 
 `server/api/reports/[id].get.ts`:
+
 ```typescript
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const session = await getServerSession(event)
-  
+
   if (!session?.user) {
     throw createError({ statusCode: 401 })
   }
-  
+
   const report = await prisma.report.findFirst({
     where: {
       id,
       userId: session.user.id
     }
   })
-  
+
   if (!report) {
     throw createError({ statusCode: 404, message: 'Report not found' })
   }
-  
+
   return report
 })
 ```
 
 **Validation:**
+
 - [ ] Report fetches by ID
 - [ ] Markdown renders correctly
 - [ ] Typography styling applied
@@ -2929,6 +3070,7 @@ export default defineEventHandler(async (event) => {
 **Goal:** Create settings page with integration management
 
 **Instructions:**
+
 1. Create `/settings` page
 2. Display user profile info
 3. Create "Connections" card
@@ -2938,51 +3080,50 @@ export default defineEventHandler(async (event) => {
 **Implementation:**
 
 `pages/settings.vue`:
+
 ```vue
 <template>
   <div class="container mx-auto p-6 max-w-4xl">
     <h1 class="text-3xl font-bold mb-6">Settings</h1>
-    
+
     <div class="space-y-6">
       <!-- Profile -->
       <UCard>
         <template #header>
           <h2 class="text-xl font-semibold">Profile</h2>
         </template>
-        
+
         <UForm :state="profile" @submit="saveProfile">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <UFormGroup label="FTP (Watts)">
               <UInput v-model.number="profile.ftp" type="number" />
             </UFormGroup>
-            
+
             <UFormGroup label="Max HR">
               <UInput v-model.number="profile.maxHr" type="number" />
             </UFormGroup>
-            
+
             <UFormGroup label="Weight (kg)">
               <UInput v-model.number="profile.weight" type="number" step="0.1" />
             </UFormGroup>
-            
+
             <UFormGroup label="Date of Birth">
               <UInput v-model="profile.dob" type="date" />
             </UFormGroup>
           </div>
-          
+
           <div class="mt-4">
-            <UButton type="submit" :loading="saving">
-              Save Profile
-            </UButton>
+            <UButton type="submit" :loading="saving"> Save Profile </UButton>
           </div>
         </UForm>
       </UCard>
-      
+
       <!-- Connections -->
       <UCard>
         <template #header>
           <h2 class="text-xl font-semibold">Connections</h2>
         </template>
-        
+
         <div class="space-y-4">
           <IntegrationCard
             provider="intervals"
@@ -2990,7 +3131,7 @@ export default defineEventHandler(async (event) => {
             @connect="connectIntegration('intervals')"
             @disconnect="disconnectIntegration('intervals')"
           />
-          
+
           <IntegrationCard
             provider="whoop"
             :integration="integrations?.whoop"
@@ -3004,60 +3145,57 @@ export default defineEventHandler(async (event) => {
 </template>
 
 <script setup lang="ts">
-definePageMeta({
-  middleware: 'auth'
-})
-
-const { data: user } = await useFetch('/api/user')
-const { data: integrations } = await useFetch('/api/integrations')
-
-const profile = ref({
-  ftp: user.value?.ftp,
-  maxHr: user.value?.maxHr,
-  weight: user.value?.weight,
-  dob: user.value?.dob?.split('T')[0]
-})
-
-const saving = ref(false)
-
-const saveProfile = async () => {
-  saving.value = true
-  try {
-    await $fetch('/api/user', {
-      method: 'PUT',
-      body: profile.value
-    })
-    // Show success message
-  } finally {
-    saving.value = false
-  }
-}
-
-const connectIntegration = (provider: string) => {
-  // Redirect to OAuth flow
-  window.location.href = `/api/integrations/connect?provider=${provider}`
-}
-
-const disconnectIntegration = async (provider: string) => {
-  await $fetch(`/api/integrations/${provider}`, {
-    method: 'DELETE'
+  definePageMeta({
+    middleware: 'auth'
   })
-  // Refresh integrations
-  await refreshNuxtData('integrations')
-}
+
+  const { data: user } = await useFetch('/api/user')
+  const { data: integrations } = await useFetch('/api/integrations')
+
+  const profile = ref({
+    ftp: user.value?.ftp,
+    maxHr: user.value?.maxHr,
+    weight: user.value?.weight,
+    dob: user.value?.dob?.split('T')[0]
+  })
+
+  const saving = ref(false)
+
+  const saveProfile = async () => {
+    saving.value = true
+    try {
+      await $fetch('/api/user', {
+        method: 'PUT',
+        body: profile.value
+      })
+      // Show success message
+    } finally {
+      saving.value = false
+    }
+  }
+
+  const connectIntegration = (provider: string) => {
+    // Redirect to OAuth flow
+    window.location.href = `/api/integrations/connect?provider=${provider}`
+  }
+
+  const disconnectIntegration = async (provider: string) => {
+    await $fetch(`/api/integrations/${provider}`, {
+      method: 'DELETE'
+    })
+    // Refresh integrations
+    await refreshNuxtData('integrations')
+  }
 </script>
 ```
 
 `components/integrations/IntegrationCard.vue`:
+
 ```vue
 <template>
   <div class="flex items-center justify-between p-4 border rounded-lg">
     <div class="flex items-center gap-4">
-      <img
-        :src="providerLogo"
-        :alt="providerName"
-        class="w-12 h-12 rounded"
-      />
+      <img :src="providerLogo" :alt="providerName" class="w-12 h-12 rounded" />
       <div>
         <h3 class="font-semibold">{{ providerName }}</h3>
         <p class="text-sm text-gray-600">{{ providerDescription }}</p>
@@ -3066,80 +3204,74 @@ const disconnectIntegration = async (provider: string) => {
         </p>
       </div>
     </div>
-    
-    <UButton
-      v-if="!integration"
-      @click="$emit('connect')"
-    >
-      Connect
-    </UButton>
-    
+
+    <UButton v-if="!integration" @click="$emit('connect')"> Connect </UButton>
+
     <div v-else class="flex gap-2">
       <UBadge :color="statusColor">{{ integration.syncStatus }}</UBadge>
-      <UButton
-        color="gray"
-        variant="outline"
-        @click="$emit('disconnect')"
-      >
-        Disconnect
-      </UButton>
+      <UButton color="gray" variant="outline" @click="$emit('disconnect')"> Disconnect </UButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  provider: string
-  integration: any
-}>()
+  const props = defineProps<{
+    provider: string
+    integration: any
+  }>()
 
-defineEmits(['connect', 'disconnect'])
+  defineEmits(['connect', 'disconnect'])
 
-const providerInfo = {
-  intervals: {
-    name: 'Intervals.icu',
-    description: 'Power data and training calendar',
-    logo: '/images/intervals-logo.png'
-  },
-  whoop: {
-    name: 'Whoop',
-    description: 'Recovery, HRV, and sleep tracking',
-    logo: '/images/logos/whoop_square.svg'
+  const providerInfo = {
+    intervals: {
+      name: 'Intervals.icu',
+      description: 'Power data and training calendar',
+      logo: '/images/intervals-logo.png'
+    },
+    whoop: {
+      name: 'Whoop',
+      description: 'Recovery, HRV, and sleep tracking',
+      logo: '/images/logos/whoop_square.svg'
+    }
   }
-}
 
-const providerName = providerInfo[props.provider]?.name
-const providerDescription = providerInfo[props.provider]?.description
-const providerLogo = providerInfo[props.provider]?.logo
+  const providerName = providerInfo[props.provider]?.name
+  const providerDescription = providerInfo[props.provider]?.description
+  const providerLogo = providerInfo[props.provider]?.logo
 
-const statusColor = computed(() => {
-  switch (props.integration?.syncStatus) {
-    case 'SUCCESS': return 'green'
-    case 'SYNCING': return 'blue'
-    case 'FAILED': return 'red'
-    default: return 'gray'
+  const statusColor = computed(() => {
+    switch (props.integration?.syncStatus) {
+      case 'SUCCESS':
+        return 'green'
+      case 'SYNCING':
+        return 'blue'
+      case 'FAILED':
+        return 'red'
+      default:
+        return 'gray'
+    }
+  })
+
+  const formatDate = (date: string) => {
+    return date ? new Date(date).toLocaleString() : 'Never'
   }
-})
-
-const formatDate = (date: string) => {
-  return date ? new Date(date).toLocaleString() : 'Never'
-}
 </script>
 ```
 
 **OAuth Endpoints:**
 
 `server/api/integrations/connect.get.ts`:
+
 ```typescript
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const provider = query.provider as string
   const session = await getServerSession(event)
-  
+
   if (!session?.user) {
     throw createError({ statusCode: 401 })
   }
-  
+
   // OAuth configuration
   const configs = {
     intervals: {
@@ -3155,12 +3287,12 @@ export default defineEventHandler(async (event) => {
       scope: 'read:recovery read:sleep'
     }
   }
-  
+
   const config = configs[provider]
   if (!config) {
     throw createError({ statusCode: 400, message: 'Invalid provider' })
   }
-  
+
   // Build OAuth URL
   const authUrl = new URL(config.authUrl)
   authUrl.searchParams.set('client_id', config.clientId!)
@@ -3168,30 +3300,32 @@ export default defineEventHandler(async (event) => {
   authUrl.searchParams.set('response_type', 'code')
   authUrl.searchParams.set('scope', config.scope)
   authUrl.searchParams.set('state', session.user.id) // CSRF protection
-  
+
   // Redirect to OAuth provider
   return sendRedirect(event, authUrl.toString())
 })
 ```
 
 `server/api/integrations/callback.get.ts`:
+
 ```typescript
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const provider = query.provider as string
   const code = query.code as string
   const state = query.state as string // userId
-  
+
   // Exchange code for token
   // Store in Integration table
   // Trigger initial sync
-  
+
   // Redirect back to settings
   return sendRedirect(event, '/settings?connected=true')
 })
 ```
 
 **Validation:**
+
 - [ ] Settings page renders
 - [ ] Profile form works
 - [ ] Integration cards display
@@ -3229,11 +3363,13 @@ After completing all phases:
 ### Common Issues
 
 1. **Prisma Client not generated:**
+
    ```bash
    npx prisma generate
    ```
 
 2. **Database migrations fail:**
+
    ```bash
    npx prisma migrate reset
    npx prisma migrate dev
@@ -3285,6 +3421,7 @@ NODE_ENV=development
 This implementation guide provides a complete roadmap for building Coach Watts. Follow each phase sequentially, validating work at each step before proceeding. The modular structure allows for parallel development of different components once the foundation is established.
 
 For questions or issues, refer to:
+
 - [Architecture Documentation](./architecture.md)
 - [Database Schema](./database-schema.md)
 - [Project Structure](./project-structure.md)
@@ -3300,6 +3437,7 @@ Last Updated: December 1, 2025
 ## ✅ Completed Implementation (85%)
 
 ### Phase 1: Database & Infrastructure ✅
+
 - [x] Installed dependencies (@nuxt/ui, @prisma/client, prisma, @types/node)
 - [x] Created complete database schema with 9 models
 - [x] Applied initial migration (`init_schema`)
@@ -3308,6 +3446,7 @@ Last Updated: December 1, 2025
 - [x] Database running on Docker (postgres:16-alpine on port 5439)
 
 ### Phase 2: Authentication ✅
+
 - [x] Installed and configured NuxtAuth with Google OAuth
 - [x] Created auth handler with PrismaAdapter
 - [x] Implemented authentication middleware
@@ -3318,6 +3457,7 @@ Last Updated: December 1, 2025
 - [x] Type definitions for extended session
 
 ### Phase 3: Background Jobs & Data Ingestion ✅
+
 - [x] Installed Trigger.dev SDK (@trigger.dev/sdk)
 - [x] Created Trigger.dev configuration with proper settings
 - [x] Created Intervals.icu API client (`server/utils/intervals.ts`)
@@ -3328,6 +3468,7 @@ Last Updated: December 1, 2025
 - [x] Created test job (`trigger/hello-world.ts`)
 
 ### Phase 4: AI Integration ✅
+
 - [x] Installed Google Generative AI SDK
 - [x] Created Gemini AI client (`server/utils/gemini.ts`)
 - [x] Implemented analysis functions
@@ -3337,6 +3478,7 @@ Last Updated: December 1, 2025
 - [x] Helper functions for data formatting
 
 ### Phase 5: API Endpoints ✅
+
 - [x] Report endpoints:
   - [x] `POST /api/reports/generate` - Trigger report generation
   - [x] `GET /api/reports/[id]` - Get single report
@@ -3348,6 +3490,7 @@ Last Updated: December 1, 2025
   - [x] `GET /api/metrics/today` - Get today's recovery metrics
 
 ### Phase 6: UI Components ✅
+
 - [x] Installed @nuxtjs/mdc for markdown rendering
 - [x] Created reports list page (`pages/reports/index.vue`)
 - [x] Created report detail page with MDC (`pages/reports/[id].vue`)
@@ -3453,6 +3596,7 @@ coach-watts/
    - Wire up "Connect" buttons in settings to OAuth flow
 
 **Required Environment Variables (Not Yet Added):**
+
 ```env
 INTERVALS_CLIENT_ID=
 INTERVALS_CLIENT_SECRET=
@@ -3565,6 +3709,7 @@ npx trigger.dev@latest test --task-id hello-world
 ## 🔑 Environment Variables Summary
 
 ### ✅ Configured
+
 - `DATABASE_URL` - PostgreSQL connection
 - `GOOGLE_CLIENT_ID` - Google OAuth
 - `GOOGLE_CLIENT_SECRET` - Google OAuth
@@ -3576,6 +3721,7 @@ npx trigger.dev@latest test --task-id hello-world
 - `TRIGGER_SECRET_KEY` - Trigger.dev secret
 
 ### ❌ Still Needed (For Integration OAuth)
+
 - `INTERVALS_CLIENT_ID`
 - `INTERVALS_CLIENT_SECRET`
 - `WHOOP_CLIENT_ID`
@@ -3585,7 +3731,9 @@ npx trigger.dev@latest test --task-id hello-world
 ## 🐛 Known Issues
 
 ### TypeScript Warnings (Expected, Non-Blocking)
+
 The following TypeScript errors appear in the IDE but don't affect runtime:
+
 - `Cannot find name 'useAuth'` - Nuxt auto-imports
 - `Cannot find name 'navigateTo'` - Nuxt auto-imports
 - `Cannot find name 'definePageMeta'` - Nuxt auto-imports
@@ -3594,12 +3742,14 @@ The following TypeScript errors appear in the IDE but don't affect runtime:
 These are IDE-only warnings and don't affect functionality.
 
 ### Peer Dependency Warnings
+
 - `magicast@^0.3.5` vs `0.5.1` - Safe to ignore
 - `next-auth@~4.21.1` vs `4.24.13` - Compatible
 
 ## 🚀 Next Steps for Complete Implementation
 
 ### Immediate (1-2 hours)
+
 1. **Get Integration OAuth Credentials**
    - Register app with Intervals.icu
    - Register app with Whoop
@@ -3612,6 +3762,7 @@ These are IDE-only warnings and don't affect functionality.
    - Test full OAuth flow
 
 ### Short Term (2-4 hours)
+
 3. **Test End-to-End Flows**
    - Connect Intervals account
    - Trigger sync job
@@ -3627,6 +3778,7 @@ These are IDE-only warnings and don't affect functionality.
    - Add data visualizations
 
 ### Medium Term (4-8 hours)
+
 5. **Polish & UX**
    - Add loading states everywhere
    - Implement notifications
@@ -3657,6 +3809,7 @@ These are IDE-only warnings and don't affect functionality.
 **Overall Progress:** 85% Complete
 
 **What Works:**
+
 - ✅ Full authentication system
 - ✅ Database schema and migrations
 - ✅ All API endpoints
@@ -3666,6 +3819,7 @@ These are IDE-only warnings and don't affect functionality.
 - ✅ Modern, responsive UI
 
 **What's Missing:**
+
 - ❌ Integration OAuth flows (15% of work)
 - ❌ Real data connections
 - ❌ Some polish and UX improvements
@@ -3848,24 +4002,25 @@ coach-watts/
 
 ### Root Level
 
-| File/Folder | Purpose |
-|-------------|---------|
-| `.env` | Environment variables (secrets, API keys) |
-| `nuxt.config.ts` | Nuxt framework configuration |
-| `tsconfig.json` | TypeScript compiler configuration |
-| `package.json` | Node.js dependencies and scripts |
+| File/Folder      | Purpose                                   |
+| ---------------- | ----------------------------------------- |
+| `.env`           | Environment variables (secrets, API keys) |
+| `nuxt.config.ts` | Nuxt framework configuration              |
+| `tsconfig.json`  | TypeScript compiler configuration         |
+| `package.json`   | Node.js dependencies and scripts          |
 
 ### `/prisma` - Database Layer
 
 **Purpose:** Database schema, migrations, and seeding
 
-| File | Purpose |
-|------|---------|
+| File            | Purpose                                       |
+| --------------- | --------------------------------------------- |
 | `schema.prisma` | Single source of truth for database structure |
-| `migrations/` | SQL migration history for version control |
-| `seed.ts` | Script to populate database with test data |
+| `migrations/`   | SQL migration history for version control     |
+| `seed.ts`       | Script to populate database with test data    |
 
 **Key Commands:**
+
 ```bash
 npx prisma migrate dev     # Create and apply migration
 npx prisma generate        # Generate Prisma Client
@@ -3882,11 +4037,13 @@ npx prisma db seed         # Run seed script
 **Convention:** File structure maps to URL routes
 
 Examples:
+
 - `api/workouts/index.ts` → `/api/workouts` (GET, POST)
 - `api/workouts/[id].ts` → `/api/workouts/:id` (GET, PUT, DELETE)
 - `api/auth/[...].ts` → `/api/auth/*` (Catch-all for NuxtAuth)
 
 **Route Handlers:**
+
 ```typescript
 // server/api/workouts/index.ts
 export default defineEventHandler(async (event) => {
@@ -3902,15 +4059,16 @@ export default defineEventHandler(async (event) => {
 
 **Purpose:** Reusable server-side functions
 
-| File | Purpose |
-|------|---------|
-| `db.ts` | Exports configured Prisma client instance |
-| `gemini.ts` | Wrapper for Google Gemini API calls |
-| `intervals.ts` | Intervals.icu API client with auth |
-| `whoop.ts` | Whoop API client with token refresh |
-| `auth.ts` | Helper functions for authentication |
+| File           | Purpose                                   |
+| -------------- | ----------------------------------------- |
+| `db.ts`        | Exports configured Prisma client instance |
+| `gemini.ts`    | Wrapper for Google Gemini API calls       |
+| `intervals.ts` | Intervals.icu API client with auth        |
+| `whoop.ts`     | Whoop API client with token refresh       |
+| `auth.ts`      | Helper functions for authentication       |
 
 **Example:**
+
 ```typescript
 // server/utils/db.ts
 import { PrismaClient } from '@prisma/client'
@@ -3932,10 +4090,10 @@ if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
 
 **Purpose:** Request interceptors and processors
 
-| File | Purpose |
-|------|---------|
-| `auth.ts` | Verify JWT tokens, attach user to context |
-| `ratelimit.ts` | Prevent API abuse with rate limiting |
+| File           | Purpose                                   |
+| -------------- | ----------------------------------------- |
+| `auth.ts`      | Verify JWT tokens, attach user to context |
+| `ratelimit.ts` | Prevent API abuse with rate limiting      |
 
 ### `/trigger` - Background Jobs
 
@@ -3953,6 +4111,7 @@ if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
    - `daily-coach.ts` - Quick suggestions (Gemini Flash)
 
 **Job Structure:**
+
 ```typescript
 // trigger/jobs/daily-coach.ts
 import { client } from '../client'
@@ -3972,18 +4131,19 @@ export const dailyCoach = client.defineJob({
 
 **Purpose:** File-based routing (each `.vue` file is a route)
 
-| Route | File | Purpose |
-|-------|------|---------|
-| `/` | `index.vue` | Landing page |
-| `/login` | `login.vue` | Authentication |
-| `/dashboard` | `dashboard.vue` | Main app view |
-| `/settings` | `settings.vue` | User preferences |
-| `/reports` | `reports/index.vue` | Report list |
-| `/reports/:id` | `reports/[id].vue` | Single report |
-| `/workouts` | `workouts/index.vue` | Workout calendar |
-| `/workouts/:id` | `workouts/[id].vue` | Workout details |
+| Route           | File                 | Purpose          |
+| --------------- | -------------------- | ---------------- |
+| `/`             | `index.vue`          | Landing page     |
+| `/login`        | `login.vue`          | Authentication   |
+| `/dashboard`    | `dashboard.vue`      | Main app view    |
+| `/settings`     | `settings.vue`       | User preferences |
+| `/reports`      | `reports/index.vue`  | Report list      |
+| `/reports/:id`  | `reports/[id].vue`   | Single report    |
+| `/workouts`     | `workouts/index.vue` | Workout calendar |
+| `/workouts/:id` | `workouts/[id].vue`  | Workout details  |
 
 **Dynamic Routes:**
+
 - `[id].vue` - Single parameter
 - `[...slug].vue` - Catch-all route
 
@@ -3992,11 +4152,13 @@ export const dailyCoach = client.defineJob({
 **Purpose:** Reusable UI building blocks
 
 **Organization Strategy:**
+
 - Group by feature/domain (not by component type)
 - Co-locate related components
 - Use descriptive names
 
 **Naming Convention:**
+
 ```
 ComponentName.vue (PascalCase)
 ```
@@ -4019,23 +4181,24 @@ ComponentName.vue (PascalCase)
 export const useWorkouts = () => {
   const workouts = ref([])
   const loading = ref(false)
-  
+
   const fetchWorkouts = async () => {
     loading.value = true
     const data = await $fetch('/api/workouts')
     workouts.value = data
     loading.value = false
   }
-  
+
   return { workouts, loading, fetchWorkouts }
 }
 ```
 
 **Usage in Components:**
+
 ```vue
 <script setup>
-const { workouts, loading, fetchWorkouts } = useWorkouts()
-onMounted(() => fetchWorkouts())
+  const { workouts, loading, fetchWorkouts } = useWorkouts()
+  onMounted(() => fetchWorkouts())
 </script>
 ```
 
@@ -4043,18 +4206,19 @@ onMounted(() => fetchWorkouts())
 
 **Purpose:** Wrapper templates for pages
 
-| Layout | Purpose |
-|--------|---------|
-| `default.vue` | Standard app layout (header, footer) |
-| `auth.vue` | Minimal layout for login/signup |
-| `dashboard.vue` | Dashboard with sidebar navigation |
+| Layout          | Purpose                              |
+| --------------- | ------------------------------------ |
+| `default.vue`   | Standard app layout (header, footer) |
+| `auth.vue`      | Minimal layout for login/signup      |
+| `dashboard.vue` | Dashboard with sidebar navigation    |
 
 **Usage in Pages:**
+
 ```vue
 <script setup>
-definePageMeta({
-  layout: 'dashboard'
-})
+  definePageMeta({
+    layout: 'dashboard'
+  })
 </script>
 ```
 
@@ -4062,17 +4226,18 @@ definePageMeta({
 
 **Purpose:** Code that runs before route navigation
 
-| Middleware | Purpose |
-|------------|---------|
-| `auth.ts` | Redirect to login if not authenticated |
+| Middleware | Purpose                                |
+| ---------- | -------------------------------------- |
+| `auth.ts`  | Redirect to login if not authenticated |
 | `guest.ts` | Redirect to dashboard if authenticated |
 
 **Usage:**
+
 ```vue
 <script setup>
-definePageMeta({
-  middleware: 'auth'
-})
+  definePageMeta({
+    middleware: 'auth'
+  })
 </script>
 ```
 
@@ -4081,11 +4246,13 @@ definePageMeta({
 **Purpose:** Shared type definitions
 
 **Organization:**
+
 - One file per domain
 - Export interfaces and types
 - Use for API contracts
 
 **Example:**
+
 ```typescript
 // types/workout.ts
 export interface Workout {
@@ -4108,13 +4275,14 @@ export interface WorkoutFilters {
 
 **Purpose:** Pure functions usable anywhere (client or server)
 
-| File | Purpose |
-|------|---------|
-| `formatters.ts` | Format dates, numbers, durations |
-| `calculations.ts` | Calculate TSS, IF, W/kg, etc. |
-| `validators.ts` | Validate user input |
+| File              | Purpose                          |
+| ----------------- | -------------------------------- |
+| `formatters.ts`   | Format dates, numbers, durations |
+| `calculations.ts` | Calculate TSS, IF, W/kg, etc.    |
+| `validators.ts`   | Validate user input              |
 
 **Example:**
+
 ```typescript
 // utils/calculations.ts
 export const calculateTSS = (
@@ -4131,13 +4299,13 @@ export const calculateTSS = (
 
 **Purpose:** Project documentation for reference
 
-| File | Purpose |
-|------|---------|
-| `README.md` | Documentation overview |
-| `architecture.md` | System design and decisions |
-| `database-schema.md` | Database structure details |
-| `project-structure.md` | This file |
-| `implementation-guide.md` | Step-by-step build guide |
+| File                      | Purpose                     |
+| ------------------------- | --------------------------- |
+| `README.md`               | Documentation overview      |
+| `architecture.md`         | System design and decisions |
+| `database-schema.md`      | Database structure details  |
+| `project-structure.md`    | This file                   |
+| `implementation-guide.md` | Step-by-step build guide    |
 
 ## File Naming Conventions
 
@@ -4184,6 +4352,7 @@ import { prisma } from '~/server/utils/db'
 ```
 
 **Available Aliases:**
+
 - `~` or `@` - Project root
 - `~~` or `@@` - Source directory
 - `#app` - Nuxt app directory
@@ -4213,6 +4382,7 @@ pnpm trigger:dev
 ### Adding New Features
 
 1. **Database Changes:**
+
    ```bash
    # Update prisma/schema.prisma
    npx prisma migrate dev --name add_feature
@@ -4263,6 +4433,7 @@ pnpm build
 ```
 
 Output:
+
 - `.output/` - Production build
   - `server/` - Server bundle
   - `public/` - Static assets
@@ -4270,11 +4441,13 @@ Output:
 ### Deployment
 
 **Server:**
+
 ```bash
 node .output/server/index.mjs
 ```
 
 **Environment:**
+
 - Set `DATABASE_URL`
 - Set `NUXT_AUTH_SECRET`
 - Set all API keys
@@ -4287,21 +4460,18 @@ Main configuration file:
 
 ```typescript
 export default defineNuxtConfig({
-  modules: [
-    '@nuxt/ui',
-    '@sidebase/nuxt-auth'
-  ],
-  
+  modules: ['@nuxt/ui', '@sidebase/nuxt-auth'],
+
   runtimeConfig: {
     // Server-only (private)
     geminiApiKey: process.env.GEMINI_API_KEY,
-    
+
     public: {
       // Client-accessible
       apiBase: process.env.NUXT_PUBLIC_API_BASE
     }
-  },
-  
+  }
+
   // Other config...
 })
 ```
@@ -4338,11 +4508,13 @@ TRIGGER_API_URL="..."
 ### 1. File Organization
 
 ✅ **Do:**
+
 - Group by feature/domain
 - Keep related files close
 - Use descriptive names
 
 ❌ **Don't:**
+
 - Create deep nesting (>3 levels)
 - Mix concerns in a single file
 - Use generic names like `utils.ts`
@@ -4350,15 +4522,16 @@ TRIGGER_API_URL="..."
 ### 2. Component Structure
 
 ✅ **Do:**
+
 ```vue
 <script setup lang="ts">
-// Imports
-// Composables
-// Props
-// State
-// Computed
-// Methods
-// Lifecycle hooks
+  // Imports
+  // Composables
+  // Props
+  // State
+  // Computed
+  // Methods
+  // Lifecycle hooks
 </script>
 
 <template>
@@ -4366,18 +4539,20 @@ TRIGGER_API_URL="..."
 </template>
 
 <style scoped>
-/* Scoped styles */
+  /* Scoped styles */
 </style>
 ```
 
 ### 3. API Design
 
 ✅ **Do:**
+
 - Use RESTful conventions
 - Return consistent response format
 - Handle errors gracefully
 
 ❌ **Don't:**
+
 - Mix HTTP methods in single file
 - Return different formats for same endpoint
 - Expose sensitive data
@@ -4422,6 +4597,7 @@ TRIGGER_API_URL="..."
 ## Conclusion
 
 This project structure is designed for:
+
 - **Scalability:** Easy to add new features
 - **Maintainability:** Clear separation of concerns
 - **Developer Experience:** Intuitive organization
@@ -4431,5 +4607,6 @@ This project structure is designed for:
 Follow these conventions to maintain consistency as the project grows.
 
 ## 🧠 Project-Specific Memories
+
 - Workout types, icons, and colors are centralized in `app/utils/activity-types.ts` (frontend) and `server/utils/activity-types.ts` (backend). Always refer to these files when adding new activity types or modifying icons/colors to maintain consistency across the dashboard and planning pages.
 - Activity icons have been switched to **Tabler Icons** (`i-tabler-...`) for a more consistent fitness look.

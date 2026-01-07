@@ -29,15 +29,15 @@ export async function refreshWhoopToken(integration: Integration): Promise<Integ
   const response = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/x-www-form-urlencoded'
     },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: integration.refreshToken,
       client_id: clientId,
       client_secret: clientSecret,
-      scope: 'offline',
-    }).toString(),
+      scope: 'offline'
+    }).toString()
   })
 
   if (!response.ok) {
@@ -49,14 +49,13 @@ export async function refreshWhoopToken(integration: Integration): Promise<Integ
   const tokenData: WhoopTokenResponse = await response.json()
   const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
 
-
   // Update the integration in the database
   const updatedIntegration = await prisma.integration.update({
     where: { id: integration.id },
     data: {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
-      expiresAt,
+      expiresAt
     }
   })
 
@@ -70,7 +69,7 @@ function isTokenExpired(integration: Integration): boolean {
   if (!integration.expiresAt) {
     return false // If no expiry is set, assume it's valid
   }
-  
+
   const now = new Date()
   const expiryWithBuffer = new Date(integration.expiresAt.getTime() - 5 * 60 * 1000) // 5 minutes buffer
   return now >= expiryWithBuffer
@@ -110,7 +109,7 @@ interface WhoopSleep {
 
 interface WhoopRecovery {
   cycle_id: number
-  sleep_id: string  // v2 uses UUID string
+  sleep_id: string // v2 uses UUID string
   user_id: number
   created_at: string
   updated_at: string
@@ -179,13 +178,12 @@ export async function fetchWhoopRecovery(
 ): Promise<WhoopRecovery[]> {
   // Ensure we have a valid token before making the request
   const validIntegration = await ensureValidToken(integration)
-  
+
   const url = new URL('https://api.prod.whoop.com/developer/v2/recovery')
   url.searchParams.set('start', startDate.toISOString())
   url.searchParams.set('end', endDate.toISOString())
   url.searchParams.set('limit', '25')
-  
-  
+
   const allRecords: WhoopRecovery[] = []
   let nextToken: string | undefined
 
@@ -196,10 +194,10 @@ export async function fetchWhoopRecovery(
 
     const response = await fetch(url.toString(), {
       headers: {
-        'Authorization': `Bearer ${validIntegration.accessToken}`
+        Authorization: `Bearer ${validIntegration.accessToken}`
       }
     })
-    
+
     if (!response.ok) {
       const errorText = await response.text()
       console.error('[Whoop] API Error:', {
@@ -209,14 +207,13 @@ export async function fetchWhoopRecovery(
       })
       throw new Error(`Whoop API error: ${response.status} ${response.statusText}`)
     }
-    
+
     const data: WhoopRecoveryResponse = await response.json()
-    
+
     allRecords.push(...(data.records || []))
     nextToken = data.next_token
   } while (nextToken)
-  
-  
+
   return allRecords
 }
 
@@ -227,18 +224,18 @@ export async function fetchWhoopWorkouts(
 ): Promise<WhoopWorkout[]> {
   // Ensure we have a valid token before making the request
   const validIntegration = await ensureValidToken(integration)
-  
+
   // Use V2 API for workouts
   const url = new URL('https://api.prod.whoop.com/developer/v2/activity/workout')
   url.searchParams.set('start', startDate.toISOString())
   url.searchParams.set('end', endDate.toISOString())
   url.searchParams.set('limit', '25')
-  
+
   console.log('[Whoop] Fetching workout data:', {
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString()
   })
-  
+
   const allWorkouts: WhoopWorkout[] = []
   let nextToken: string | undefined
 
@@ -249,10 +246,10 @@ export async function fetchWhoopWorkouts(
 
     const response = await fetch(url.toString(), {
       headers: {
-        'Authorization': `Bearer ${validIntegration.accessToken}`
+        Authorization: `Bearer ${validIntegration.accessToken}`
       }
     })
-    
+
     if (!response.ok) {
       const errorText = await response.text()
       console.error('[Whoop] Workout API Error:', {
@@ -263,33 +260,39 @@ export async function fetchWhoopWorkouts(
       // Don't throw here, just return what we have so far or empty array to avoid blocking recovery sync
       return allWorkouts
     }
-    
+
     const data: WhoopWorkoutResponse = await response.json()
     console.log(`[Whoop] Fetched ${data.records?.length || 0} workout records`)
-    
+
     allWorkouts.push(...(data.records || []))
     nextToken = data.next_token
   } while (nextToken)
-  
+
   return allWorkouts
 }
 
-export async function fetchWhoopSleep(integration: Integration, sleepId: string): Promise<WhoopSleep | null> {
+export async function fetchWhoopSleep(
+  integration: Integration,
+  sleepId: string
+): Promise<WhoopSleep | null> {
   try {
     // Ensure we have a valid token before making the request
     const validIntegration = await ensureValidToken(integration)
-    
-    const response = await fetch(`https://api.prod.whoop.com/developer/v2/activity/sleep/${sleepId}`, {
-      headers: {
-        'Authorization': `Bearer ${validIntegration.accessToken}`
+
+    const response = await fetch(
+      `https://api.prod.whoop.com/developer/v2/activity/sleep/${sleepId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${validIntegration.accessToken}`
+        }
       }
-    })
-    
+    )
+
     if (!response.ok) {
       console.error(`Failed to fetch sleep ${sleepId}:`, response.status)
       return null
     }
-    
+
     return await response.json()
   } catch (error) {
     console.error(`Error fetching sleep ${sleepId}:`, error)
@@ -299,7 +302,7 @@ export async function fetchWhoopSleep(integration: Integration, sleepId: string)
 
 export async function fetchWhoopUser(tokenOrIntegration: string | Integration): Promise<WhoopUser> {
   let accessToken: string
-  
+
   if (typeof tokenOrIntegration === 'string') {
     // Called with just an access token (e.g., during initial OAuth flow)
     accessToken = tokenOrIntegration
@@ -308,49 +311,58 @@ export async function fetchWhoopUser(tokenOrIntegration: string | Integration): 
     const validIntegration = await ensureValidToken(tokenOrIntegration)
     accessToken = validIntegration.accessToken
   }
-  
+
   const response = await fetch('https://api.prod.whoop.com/developer/v2/user/profile/basic', {
     headers: {
-      'Authorization': `Bearer ${accessToken}`
+      Authorization: `Bearer ${accessToken}`
     }
   })
-  
+
   if (!response.ok) {
     throw new Error(`Whoop API error: ${response.status} ${response.statusText}`)
   }
-  
+
   return await response.json()
 }
 
-export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string, sleep?: WhoopSleep | null) {
+export function normalizeWhoopRecovery(
+  recovery: WhoopRecovery,
+  userId: string,
+  sleep?: WhoopSleep | null
+) {
   // Only process if recovery has a score (state is SCORED)
   if (!recovery.score || recovery.score_state !== 'SCORED') {
-    console.log(`[Whoop] Skipping unscored recovery - state: ${recovery.score_state}, created_at: ${recovery.created_at}`)
+    console.log(
+      `[Whoop] Skipping unscored recovery - state: ${recovery.score_state}, created_at: ${recovery.created_at}`
+    )
     return null
   }
-  
+
   // Parse the date - use created_at for the recovery date
   const recoveryDate = new Date(recovery.created_at)
   // Create date-only (removing time component) in UTC
-  const dateOnly = new Date(Date.UTC(recoveryDate.getUTCFullYear(), recoveryDate.getUTCMonth(), recoveryDate.getUTCDate()))
-  
-  
+  const dateOnly = new Date(
+    Date.UTC(recoveryDate.getUTCFullYear(), recoveryDate.getUTCMonth(), recoveryDate.getUTCDate())
+  )
+
   // Extract sleep data if available
   let sleepSecs = null
   let sleepHours = null
   let sleepScore = null
-  
+
   if (sleep && sleep.score) {
     const totalSleepMilli =
       sleep.score.stage_summary.total_light_sleep_time_milli +
       sleep.score.stage_summary.total_slow_wave_sleep_time_milli +
       sleep.score.stage_summary.total_rem_sleep_time_milli
-    
+
     sleepSecs = Math.round(totalSleepMilli / 1000)
     sleepHours = Math.round((sleepSecs / 3600) * 10) / 10
-    sleepScore = sleep.score.sleep_performance_percentage ? Math.round(sleep.score.sleep_performance_percentage) : null
+    sleepScore = sleep.score.sleep_performance_percentage
+      ? Math.round(sleep.score.sleep_performance_percentage)
+      : null
   }
-  
+
   const result = {
     userId,
     date: dateOnly,
@@ -370,7 +382,9 @@ export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string, 
     mood: null,
     motivation: null,
     weight: null,
-    spO2: recovery.score.spo2_percentage ? Math.round(recovery.score.spo2_percentage * 10) / 10 : null,
+    spO2: recovery.score.spo2_percentage
+      ? Math.round(recovery.score.spo2_percentage * 10) / 10
+      : null,
     respiration: sleep?.score?.respiratory_rate || null,
     skinTemp: recovery.score.skin_temp_celsius || null,
     ctl: null,
@@ -378,7 +392,7 @@ export function normalizeWhoopRecovery(recovery: WhoopRecovery, userId: string, 
     comments: null,
     rawJson: { recovery, sleep }
   }
-  
+
   return result
 }
 
@@ -404,11 +418,11 @@ export function normalizeWhoopWorkout(workout: WhoopWorkout, userId: string) {
     57: 'Ride', // Mountain Biking
     63: 'Walk',
     71: 'Other',
-    91: 'Snowboard', // Mapped to Ski or Other? Let's use Ski for snow sports broadly or custom
+    91: 'Snowboard' // Mapped to Ski or Other? Let's use Ski for snow sports broadly or custom
   }
 
   const type = sportMap[workout.sport_id] || 'Other'
-  
+
   // Parse dates
   const startDate = new Date(workout.start)
   const endDate = new Date(workout.end)
@@ -425,19 +439,21 @@ export function normalizeWhoopWorkout(workout: WhoopWorkout, userId: string) {
     type,
     durationSec,
     distanceMeters: workout.score.distance_meter || null,
-    elevationGain: workout.score.altitude_gain_meter ? Math.round(workout.score.altitude_gain_meter) : null,
-    
+    elevationGain: workout.score.altitude_gain_meter
+      ? Math.round(workout.score.altitude_gain_meter)
+      : null,
+
     // HR Data
     averageHr: Math.round(workout.score.average_heart_rate),
     maxHr: Math.round(workout.score.max_heart_rate),
-    
+
     // Power/Energy
     kilojoules: workout.score.kilojoule ? Math.round(workout.score.kilojoule) : null,
-    
+
     // Whoop specific metrics mapped to generic fields where possible
     // Whoop Strain (0-21) -> Intensity Factor? Not direct map.
     // Maybe store in rawJson and use for custom score.
-    
+
     // Raw Data
     rawJson: workout
   }

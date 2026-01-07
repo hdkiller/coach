@@ -5,7 +5,8 @@ defineRouteMeta({
   openAPI: {
     tags: ['Integrations'],
     summary: 'Intervals.icu webhook',
-    description: 'Handles incoming webhook notifications from Intervals.icu for activities, calendar, and wellness updates.',
+    description:
+      'Handles incoming webhook notifications from Intervals.icu for activities, calendar, and wellness updates.',
     requestBody: {
       content: {
         'application/json': {
@@ -38,10 +39,10 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   const secret = process.env.INTERVALS_WEBHOOK_SECRET
-  
+
   const body = await readBody(event)
   const headers = getRequestHeaders(event)
-  
+
   // Log receipt
   const log = await logWebhookRequest({
     provider: 'intervals',
@@ -50,13 +51,13 @@ export default defineEventHandler(async (event) => {
     headers,
     status: 'PENDING'
   })
-  
+
   if (!body || body.secret !== secret) {
     console.warn('[Intervals Webhook] Unauthorized or missing secret')
     if (log) await updateWebhookStatus(log.id, 'FAILED', 'Unauthorized: Invalid secret')
     throw createError({
       statusCode: 401,
-      statusMessage: "Unauthorized: Invalid secret",
+      statusMessage: 'Unauthorized: Invalid secret'
     })
   }
 
@@ -66,7 +67,7 @@ export default defineEventHandler(async (event) => {
   try {
     for (const intervalEvent of events) {
       const { athlete_id, type } = intervalEvent
-      
+
       if (!athlete_id) continue
 
       // Find integration for this athlete
@@ -101,7 +102,8 @@ export default defineEventHandler(async (event) => {
           break
 
         case 'ACTIVITY_UPDATED': {
-          const activityDateStr = intervalEvent.activity?.start_date_local || intervalEvent.activity?.start_date
+          const activityDateStr =
+            intervalEvent.activity?.start_date_local || intervalEvent.activity?.start_date
           if (activityDateStr) {
             const actDate = new Date(activityDateStr)
             startDate = new Date(actDate)
@@ -147,7 +149,7 @@ export default defineEventHandler(async (event) => {
           await IntervalsService.syncActivities(userId, startDate, endDate)
           break
         }
-        
+
         case 'CALENDAR_UPDATED': {
           const deletedEvents = intervalEvent.deleted_events || []
           if (deletedEvents.length > 0) {
@@ -168,10 +170,10 @@ export default defineEventHandler(async (event) => {
           console.log(`[Intervals Webhook] Unhandled event type: ${type}`)
           continue
       }
-      
+
       console.log(`[Intervals Webhook] Processed ${type} for user ${userId} synchronously`)
     }
-    
+
     if (log) await updateWebhookStatus(log.id, 'PROCESSED')
   } catch (error: any) {
     console.error(`[Intervals Webhook] Failed to process webhook:`, error)

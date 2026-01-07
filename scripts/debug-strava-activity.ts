@@ -5,10 +5,11 @@ config()
 
 async function debugActivity() {
   console.log('Environment variables loaded.')
-  
+
   // Dynamically import modules to ensure env vars are available when they initialize
   const { prisma } = await import('../server/utils/db')
-  const { fetchStravaActivityDetails, fetchStravaActivityStreams, normalizeStravaActivity } = await import('../server/utils/strava')
+  const { fetchStravaActivityDetails, fetchStravaActivityStreams, normalizeStravaActivity } =
+    await import('../server/utils/strava')
 
   const EXTERNAL_ID = '16669578007'
   const USER_ID = '6cbccf6c-e5a3-4df2-8305-2584e317f1ea'
@@ -57,7 +58,7 @@ async function debugActivity() {
     // 3. Fetch Activity Details from Strava
     const activityId = parseInt(EXTERNAL_ID)
     const details = await fetchStravaActivityDetails(integration, activityId)
-    
+
     console.log('\n--- Strava API Activity Details ---')
     console.log(`- Name: ${details.name}`)
     console.log(`- Type: ${details.type}`)
@@ -65,7 +66,7 @@ async function debugActivity() {
     console.log(`- Has Heartrate: ${details.has_heartrate}`)
     console.log(`- Average Heartrate: ${details.average_heartrate}`)
     console.log(`- Max Heartrate: ${details.max_heartrate}`)
-    
+
     // Check normalization logic
     const normalized = normalizeStravaActivity(details, USER_ID)
     console.log('\n--- Normalized Data Preview ---')
@@ -75,17 +76,22 @@ async function debugActivity() {
     // 4. Fetch Streams from Strava
     console.log('\n--- Fetching Streams ---')
     const streams = await fetchStravaActivityStreams(integration, activityId, [
-      'heartrate', 'time', 'distance', 'velocity_smooth', 'watts', 'cadence', 'temp'
+      'heartrate',
+      'time',
+      'distance',
+      'velocity_smooth',
+      'watts',
+      'cadence',
+      'temp'
     ])
-    
+
     console.log('Stream Keys Found:', Object.keys(streams))
-    
+
     if (streams.heartrate) {
       console.log(`- Heartrate Stream: ${streams.heartrate.data.length} points`)
     } else {
       console.log('- No Heartrate Stream found')
     }
-
   } catch (error) {
     console.error('Error fetching from Strava:', error)
   } finally {
