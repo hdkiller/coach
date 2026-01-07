@@ -50,10 +50,21 @@
             </span>
           </div>
           
-          <div v-if="item.details && item.details.length > 0" class="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-            <div v-for="(detail, i) in item.details" :key="i" class="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
-              <UIcon :name="detail.icon" class="w-3.5 h-3.5" :class="detail.color" />
-              <span>{{ detail.value }}</span>
+          <div v-if="item.activityType || item.sourceName" class="flex items-center gap-1.5 text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-2">
+            <span v-if="item.activityType">{{ item.activityType }}</span>
+            <span v-if="item.activityType && item.sourceName" class="text-gray-300 dark:text-gray-600">•</span>
+            <span v-if="item.sourceName">{{ item.sourceName }}</span>
+          </div>
+          
+          <div v-if="item.details && item.details.length > 0" class="grid grid-cols-3 sm:grid-cols-5 gap-x-2 gap-y-3 mt-1">
+            <div v-for="(detail, i) in item.details" :key="i" class="space-y-1 min-w-0">
+              <div class="flex items-center gap-1 text-[10px] font-bold text-gray-500/80 dark:text-gray-400/80 uppercase tracking-tight">
+                <UIcon :name="detail.icon" class="w-3 h-3 flex-shrink-0" :class="getIconColorClass(item)" />
+                <span class="truncate">{{ detail.label }}</span>
+              </div>
+              <div class="text-xs font-bold text-gray-900 dark:text-gray-100 tabular-nums truncate">
+                {{ detail.value }}
+              </div>
             </div>
           </div>
           
@@ -83,32 +94,21 @@ function navigateActivity(item: any) {
 }
 
 function getIconBgClass(item: any) {
-  // Use color from API or default
-  const color = item.color || 'gray'
-  const map: Record<string, string> = {
-    primary: 'bg-primary-50 dark:bg-primary-900/20',
-    green: 'bg-green-50 dark:bg-green-900/20',
-    red: 'bg-red-50 dark:bg-red-900/20',
-    orange: 'bg-orange-50 dark:bg-orange-900/20',
-    blue: 'bg-blue-50 dark:bg-blue-900/20',
-    purple: 'bg-purple-50 dark:bg-purple-900/20',
-    gray: 'bg-gray-50 dark:bg-gray-800'
+  switch (item.type) {
+    case 'workout': return 'bg-amber-50 dark:bg-amber-900/20'
+    case 'wellness': return 'bg-blue-50 dark:bg-blue-900/20'
+    case 'nutrition': return 'bg-emerald-50 dark:bg-emerald-900/20'
+    default: return 'bg-gray-50 dark:bg-gray-800'
   }
-  return map[color] || map.gray
 }
 
 function getIconColorClass(item: any) {
-  const color = item.color || 'gray'
-  const map: Record<string, string> = {
-    primary: 'text-primary-500',
-    green: 'text-green-500',
-    red: 'text-red-500',
-    orange: 'text-orange-500',
-    blue: 'text-blue-500',
-    purple: 'text-purple-500',
-    gray: 'text-gray-500'
+  switch (item.type) {
+    case 'workout': return 'text-amber-500'
+    case 'wellness': return 'text-blue-500'
+    case 'nutrition': return 'text-emerald-500'
+    default: return 'text-gray-500'
   }
-  return map[color] || map.gray
 }
 
 // Format date for timeline display

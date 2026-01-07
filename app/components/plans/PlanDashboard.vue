@@ -416,6 +416,7 @@
 import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
 import WeeklyZoneSummary from '~/components/ui/WeeklyZoneSummary.vue'
 import PlanAIModal from '~/components/plans/PlanAIModal.vue'
+import { getWorkoutIcon, getWorkoutColorClass as getIconColorClass, getWorkoutBorderColorClass as getSportColorClass } from '~/app/utils/activity-types'
 
 const { formatDate, getUserLocalDate, timezone } = useFormat()
 
@@ -471,46 +472,6 @@ function getBlockStatusColor(block: any) {
   if (selectedBlockId.value === block.id) return 'bg-white border-primary scale-125'
   // Logic for past/future based on date could go here
   return 'bg-primary border-primary'
-}
-
-function getWorkoutIcon(type: string) {
-  const map: Record<string, string> = {
-    'Ride': 'i-heroicons-bolt',
-    'VirtualRide': 'i-heroicons-bolt',
-    'Run': 'i-heroicons-fire',
-    'Swim': 'i-heroicons-lifebuoy',
-    'Gym': 'i-heroicons-trophy',
-    'WeightTraining': 'i-heroicons-trophy',
-    'Rest': 'i-heroicons-moon',
-    'Active Recovery': 'i-heroicons-arrow-path-rounded-square'
-  }
-  return map[type] || 'i-heroicons-question-mark-circle'
-}
-
-function getIconColorClass(type: string) {
-    const map: Record<string, string> = {
-        'Ride': 'text-green-500',
-        'VirtualRide': 'text-green-500',
-        'Run': 'text-orange-500',
-        'Swim': 'text-cyan-500',
-        'Gym': 'text-purple-500',
-        'WeightTraining': 'text-purple-500',
-        'Rest': 'text-gray-400'
-    }
-    return map[type] || 'text-gray-400'
-}
-
-function getSportColorClass(type: string) {
-    const map: Record<string, string> = {
-        'Ride': 'border-green-500',
-        'VirtualRide': 'border-green-500',
-        'Run': 'border-orange-500',
-        'Swim': 'border-cyan-500',
-        'Gym': 'border-purple-500',
-        'WeightTraining': 'border-purple-500',
-        'Rest': 'border-gray-200 dark:border-gray-700'
-    }
-    return map[type] || 'border-gray-200'
 }
 
 function isLocalWorkout(workout: any) {

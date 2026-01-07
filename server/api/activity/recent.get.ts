@@ -1,4 +1,5 @@
 import { getServerSession } from '../../utils/session'
+import { getWorkoutIcon } from '../../utils/activity-types'
 
 defineRouteMeta({
   openAPI: {
@@ -114,8 +115,10 @@ export default defineEventHandler(async (event) => {
       timelineItems.push({
         id: `workout-${workout.id}`,
         type: 'workout',
+        activityType: workout.type,
+        sourceName: workout.source === 'intervals' ? 'Intervals.icu' : (workout.source === 'strava' ? 'Strava' : workout.source),
         date: workout.date,
-        icon: 'i-heroicons-bolt',
+        icon: getWorkoutIcon(workout.type || ''),
         color: 'primary',
         title: workout.title || 'Workout',
         description: description.join(' • '),
@@ -167,6 +170,8 @@ export default defineEventHandler(async (event) => {
         timelineItems.push({
           id: `nutrition-${dateKey}`,
           type: 'nutrition',
+          activityType: 'Nutrition',
+          sourceName: 'Yazio',
           date: firstEntry.date,
           icon: 'i-heroicons-cake',
           color: 'green',
@@ -209,6 +214,8 @@ export default defineEventHandler(async (event) => {
         timelineItems.push({
           id: `wellness-${entry.id}`,
           type: 'wellness',
+          activityType: 'Wellness',
+          sourceName: 'Health',
           date: entry.date,
           icon: 'i-heroicons-heart',
           color: 'red',
