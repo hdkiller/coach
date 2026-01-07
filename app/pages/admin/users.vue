@@ -60,7 +60,7 @@ useHead({
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Registered Users</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage and troubleshoot user accounts</p>
           </div>
-          <UButton icon="i-lucide-rotate-cw" color="neutral" variant="ghost" @click="() => refresh()" :loading="pending" />
+          <UButton icon="i-lucide-rotate-cw" color="neutral" variant="ghost" :loading="pending" @click="() => refresh()" />
         </div>
 
         <div v-if="pending" class="p-8 text-center text-gray-600 dark:text-gray-400">

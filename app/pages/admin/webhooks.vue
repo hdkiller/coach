@@ -164,7 +164,7 @@ useHead({
 
     <UModal v-model:open="isDetailsOpen" title="Webhook Details" :ui="{ content: 'sm:max-w-2xl' }">
       <template #body>
-        <div class="space-y-4" v-if="selectedLog">
+        <div v-if="selectedLog" class="space-y-4">
           <div>
             <span class="font-bold">ID:</span> {{ selectedLog.id }}
           </div>
