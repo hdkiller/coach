@@ -4423,3 +4423,7 @@ This project structure is designed for:
 - **Performance:** Optimized build and runtime
 
 Follow these conventions to maintain consistency as the project grows.
+
+## 🧠 Project-Specific Memories
+- Workout types, icons, and colors are centralized in `app/utils/activity-types.ts` (frontend) and `server/utils/activity-types.ts` (backend). Always refer to these files when adding new activity types or modifying icons/colors to maintain consistency across the dashboard and planning pages.
+- Activity icons have been switched to **Tabler Icons** (`i-tabler-...`) for a more consistent fitness look.
