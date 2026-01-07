@@ -416,7 +416,7 @@
 import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
 import WeeklyZoneSummary from '~/components/ui/WeeklyZoneSummary.vue'
 import PlanAIModal from '~/components/plans/PlanAIModal.vue'
-import { getWorkoutIcon, getWorkoutColorClass as getIconColorClass, getWorkoutBorderColorClass as getSportColorClass } from '~/app/utils/activity-types'
+import { getWorkoutIcon, getWorkoutColorClass as getIconColorClass, getWorkoutBorderColorClass as getSportColorClass } from '~/utils/activity-types'
 
 const { formatDate, getUserLocalDate, timezone } = useFormat()
 
