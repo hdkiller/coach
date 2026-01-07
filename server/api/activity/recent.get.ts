@@ -92,18 +92,23 @@ export default defineEventHandler(async (event) => {
     workouts.forEach(workout => {
       const durationMin = Math.round(workout.durationSec / 60)
       const description = []
+      const details = []
       
       if (durationMin > 0) {
         description.push(`${durationMin} min`)
+        details.push({ label: 'Duration', value: `${durationMin}m`, icon: 'i-heroicons-clock', color: 'text-gray-500 dark:text-gray-400' })
       }
       if (workout.tss && workout.tss > 0) {
         description.push(`${Math.round(workout.tss)} TSS`)
+        details.push({ label: 'TSS', value: `${Math.round(workout.tss)}`, icon: 'i-heroicons-bolt', color: 'text-yellow-500' })
       }
       if (workout.averageWatts && workout.averageWatts > 0) {
         description.push(`${Math.round(workout.averageWatts)}W avg`)
+        details.push({ label: 'Avg Power', value: `${Math.round(workout.averageWatts)}W`, icon: 'i-heroicons-bolt-solid', color: 'text-primary-500' })
       }
       if (workout.averageHr && workout.averageHr > 0) {
         description.push(`${Math.round(workout.averageHr)} bpm`)
+        details.push({ label: 'Avg HR', value: `${Math.round(workout.averageHr)} bpm`, icon: 'i-heroicons-heart', color: 'text-rose-500' })
       }
       
       timelineItems.push({
@@ -114,6 +119,7 @@ export default defineEventHandler(async (event) => {
         color: 'primary',
         title: workout.title || 'Workout',
         description: description.join(' • '),
+        details,
         link: `/workouts/${workout.id}`
       })
     })
@@ -134,16 +140,25 @@ export default defineEventHandler(async (event) => {
       const totalCalories = entries.reduce((sum, e) => sum + (e.calories || 0), 0)
       const totalProtein = entries.reduce((sum, e) => sum + (e.protein || 0), 0)
       const totalCarbs = entries.reduce((sum, e) => sum + (e.carbs || 0), 0)
+      const totalFat = entries.reduce((sum, e) => sum + (e.fat || 0), 0)
       
       const description = []
+      const details = []
+      
       if (totalCalories > 0) {
         description.push(`${Math.round(totalCalories)} kcal`)
+        details.push({ label: 'Calories', value: `${Math.round(totalCalories)}`, icon: 'i-heroicons-fire', color: 'text-orange-500' })
       }
       if (totalProtein > 0) {
         description.push(`${Math.round(totalProtein)}g protein`)
+        details.push({ label: 'Protein', value: `${Math.round(totalProtein)}g`, icon: 'i-heroicons-bolt', color: 'text-blue-500' })
       }
       if (totalCarbs > 0) {
         description.push(`${Math.round(totalCarbs)}g carbs`)
+        details.push({ label: 'Carbs', value: `${Math.round(totalCarbs)}g`, icon: 'i-heroicons-cube', color: 'text-yellow-500' })
+      }
+      if (totalFat > 0) {
+        details.push({ label: 'Fat', value: `${Math.round(totalFat)}g`, icon: 'i-heroicons-beaker', color: 'text-green-500' })
       }
       
       // Use the first entry's date for the timeline
@@ -157,6 +172,7 @@ export default defineEventHandler(async (event) => {
           color: 'green',
           title: `Nutrition (${entries.length} meals)`,
           description: description.join(' • '),
+          details,
           link: `/nutrition/${firstEntry.id}`
         })
       }
@@ -165,21 +181,31 @@ export default defineEventHandler(async (event) => {
     // Add wellness entries
     wellness.forEach(entry => {
       const description = []
+      const details = []
       
       if (entry.hrv && entry.hrv > 0) {
         description.push(`HRV ${Math.round(entry.hrv)} ms`)
+        details.push({ label: 'HRV', value: `${Math.round(entry.hrv)} ms`, icon: 'i-heroicons-heart', color: 'text-indigo-500' })
       }
       if (entry.restingHr && entry.restingHr > 0) {
         description.push(`RHR ${Math.round(entry.restingHr)} bpm`)
+        details.push({ label: 'RHR', value: `${Math.round(entry.restingHr)} bpm`, icon: 'i-heroicons-heart', color: 'text-rose-500' })
       }
       if (entry.sleepQuality) {
         description.push(`Sleep: ${entry.sleepQuality}/10`)
       }
+      if (entry.sleepHours) {
+        details.push({ label: 'Sleep', value: `${entry.sleepHours.toFixed(1)}h`, icon: 'i-heroicons-moon', color: 'text-purple-500' })
+      }
       if (entry.stress) {
         description.push(`Stress: ${entry.stress}/10`)
+        details.push({ label: 'Stress', value: `${entry.stress}/10`, icon: 'i-heroicons-scale', color: 'text-orange-500' })
+      }
+      if (entry.recoveryScore) {
+        details.push({ label: 'Recovery', value: `${entry.recoveryScore}%`, icon: 'i-heroicons-battery-50', color: 'text-green-500' })
       }
       
-      if (description.length > 0) {
+      if (description.length > 0 || details.length > 0) {
         timelineItems.push({
           id: `wellness-${entry.id}`,
           type: 'wellness',
@@ -188,6 +214,7 @@ export default defineEventHandler(async (event) => {
           color: 'red',
           title: 'Wellness Check',
           description: description.join(' • '),
+          details,
           link: `/fitness/${entry.id}`
         })
       }

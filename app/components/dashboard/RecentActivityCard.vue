@@ -50,7 +50,14 @@
             </span>
           </div>
           
-          <p v-if="item.description" class="text-xs font-medium text-gray-500 dark:text-gray-400 leading-relaxed truncate">
+          <div v-if="item.details && item.details.length > 0" class="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            <div v-for="(detail, i) in item.details" :key="i" class="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+              <UIcon :name="detail.icon" class="w-3.5 h-3.5" :class="detail.color" />
+              <span>{{ detail.value }}</span>
+            </div>
+          </div>
+          
+          <p v-else-if="item.description" class="text-xs font-medium text-gray-500 dark:text-gray-400 leading-relaxed truncate">
             {{ item.description }}
           </p>
         </div>
