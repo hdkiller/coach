@@ -9,9 +9,9 @@ const triggerSentryLogger = () => {
   // Note: Sentry.logger is an internal utility for Sentry's own debugging.
   // It only prints to the console if 'debug: true' is set in Sentry.init.
   // It does NOT send events to the Sentry Dashboard.
-  // @ts-ignore
+  // @ts-expect-error - Sentry.logger is internal
   if (Sentry.logger && typeof Sentry.logger.info === 'function') {
-    // @ts-ignore
+    // @ts-expect-error - Sentry.logger is internal
     Sentry.logger.info('User triggered test log (Console only)', { log_source: 'sentry_test' });
     alert('Sentry.logger.info called. Check browser console.');
   } else {
@@ -87,7 +87,7 @@ const triggerServerLog = async () => {
 
         <USeparator label="Server Side" />
 
-        <UButton color="neutral" @click="triggerServerLog" :loading="loadingServer">
+        <UButton color="neutral" :loading="loadingServer" @click="triggerServerLog">
           Trigger Server-Side Logs
         </UButton>
       </div>

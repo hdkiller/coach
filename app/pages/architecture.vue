@@ -85,7 +85,7 @@
                     <div class="px-3 py-1 bg-gray-900 border border-gray-600 rounded text-xs text-gray-400">Yazio</div>
                  </div>
                  
-                 <div class="h-8 flex justify-center"><div class="w-px bg-gray-600"></div></div>
+                 <div class="h-8 flex justify-center"><div class="w-px bg-gray-600"/></div>
 
                  <!-- Ingestion Engine -->
                  <div class="p-4 bg-gray-900 border border-primary-500/30 rounded-lg text-center">
@@ -93,7 +93,7 @@
                     <div class="text-xs text-gray-500">Normalization & Deduplication</div>
                  </div>
 
-                 <div class="h-8 flex justify-center"><div class="w-px bg-gray-600"></div></div>
+                 <div class="h-8 flex justify-center"><div class="w-px bg-gray-600"/></div>
 
                  <!-- Analysis Layer -->
                  <div class="grid grid-cols-2 gap-4">
@@ -109,7 +109,7 @@
 
                  <!-- The Digital Twin -->
                  <div class="p-6 bg-gradient-to-b from-gray-800 to-gray-900 border-2 border-primary-500 rounded-xl text-center relative overflow-hidden">
-                    <div class="absolute inset-0 bg-primary-500/5"></div>
+                    <div class="absolute inset-0 bg-primary-500/5"/>
                     <div class="relative z-10">
                        <UIcon name="i-heroicons-user" class="w-12 h-12 text-primary-500 mx-auto mb-2" />
                        <div class="text-white font-bold text-lg">DIGITAL ATHLETE TWIN</div>
@@ -121,7 +121,7 @@
                     </div>
                  </div>
 
-                 <div class="h-8 flex justify-center"><div class="w-px bg-gray-600"></div></div>
+                 <div class="h-8 flex justify-center"><div class="w-px bg-gray-600"/></div>
 
                  <!-- Output -->
                  <div class="p-4 bg-white/5 border border-white/10 rounded-lg">

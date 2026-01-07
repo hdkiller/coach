@@ -94,7 +94,7 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
-                  <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-6 h-6 object-contain" />
+                  <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-6 h-6 object-contain" >
                 </div>
                 <div>
                   <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Intervals.icu</h2>
@@ -129,9 +129,9 @@
             </UButton>
             <button
               v-else
-              @click="syncIntegration('intervals')"
               :disabled="syncing === 'intervals'"
               class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              @click="syncIntegration('intervals')"
             >
               <span v-if="syncing === 'intervals'">Syncing...</span>
               <span v-else>Sync Now</span>
@@ -143,7 +143,7 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
-                  <img src="/images/logos/whoop_square.svg" alt="WHOOP Logo" class="w-6 h-6 object-contain" />
+                  <img src="/images/logos/whoop_square.svg" alt="WHOOP Logo" class="w-6 h-6 object-contain" >
                 </div>
                 <div>
                   <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Whoop</h2>
@@ -178,9 +178,9 @@
             </UButton>
             <button
               v-else
-              @click="syncIntegration('whoop')"
               :disabled="syncing === 'whoop'"
               class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              @click="syncIntegration('whoop')"
             >
               <span v-if="syncing === 'whoop'">Syncing...</span>
               <span v-else>Sync Now</span>
@@ -192,7 +192,7 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
-                  <img src="/images/logos/yazio_square.webp" alt="Yazio Logo" class="w-6 h-6 object-contain" />
+                  <img src="/images/logos/yazio_square.webp" alt="Yazio Logo" class="w-6 h-6 object-contain" >
                 </div>
                 <div>
                   <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Yazio</h2>
@@ -227,9 +227,9 @@
             </UButton>
             <button
               v-else
-              @click="syncIntegration('yazio')"
               :disabled="syncing === 'yazio'"
               class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              @click="syncIntegration('yazio')"
             >
               <span v-if="syncing === 'yazio'">Syncing...</span>
               <span v-else>Sync Now</span>
@@ -241,7 +241,7 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
-                  <img src="/images/logos/strava.svg" alt="Strava Logo" class="w-6 h-6 object-contain" />
+                  <img src="/images/logos/strava.svg" alt="Strava Logo" class="w-6 h-6 object-contain" >
                 </div>
                 <div>
                   <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Strava</h2>
@@ -281,10 +281,10 @@
               class="w-full"
             >
               <button
-                @click="syncIntegration('strava')"
                 :disabled="syncing === 'strava' || isStravaDisabled"
                 class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
                 :class="{ 'opacity-50 cursor-not-allowed': isStravaDisabled }"
+                @click="syncIntegration('strava')"
               >
                 <span v-if="syncing === 'strava'">Syncing...</span>
                 <span v-else>Sync Now</span>
@@ -297,7 +297,7 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
-                  <img src="/images/logos/hevy-icon.png" alt="Hevy Logo" class="w-6 h-6 object-contain" />
+                  <img src="/images/logos/hevy-icon.png" alt="Hevy Logo" class="w-6 h-6 object-contain" >
                 </div>
                 <div>
                   <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Hevy</h2>
@@ -332,9 +332,9 @@
             </UButton>
             <button
               v-else
-              @click="syncIntegration('hevy')"
               :disabled="syncing === 'hevy'"
               class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              @click="syncIntegration('hevy')"
             >
               <span v-if="syncing === 'hevy'">Syncing...</span>
               <span v-else>Sync Now</span>
@@ -346,7 +346,7 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700">
-                  <img src="/images/logos/withings.png" alt="Withings Logo" class="w-6 h-6 object-contain" />
+                  <img src="/images/logos/withings.png" alt="Withings Logo" class="w-6 h-6 object-contain" >
                 </div>
                 <div>
                   <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Withings</h2>
@@ -381,9 +381,9 @@
             </UButton>
             <button
               v-else
-              @click="syncIntegration('withings')"
               :disabled="syncing === 'withings'"
               class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              @click="syncIntegration('withings')"
             >
               <span v-if="syncing === 'withings'">Syncing...</span>
               <span v-else>Sync Now</span>
@@ -393,7 +393,7 @@
         </div>
 
         <!-- Data Summary -->
-        <div id="summary" class="scroll-mt-20"></div>
+        <div id="summary" class="scroll-mt-20"/>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Data Summary</h2>
       
@@ -429,7 +429,7 @@
         </div>
         
         <!-- Fitness Data Table (WHOOP & Wellness) -->
-        <div id="fitness" class="scroll-mt-20"></div>
+        <div id="fitness" class="scroll-mt-20"/>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Fitness & Recovery Data</h2>
@@ -513,9 +513,9 @@
               </div>
               <div class="flex gap-2">
                 <button
-                  @click="changeFitnessPage(fitnessPage - 1)"
                   :disabled="fitnessPage === 1"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changeFitnessPage(fitnessPage - 1)"
                 >
                   Previous
                 </button>
@@ -523,21 +523,21 @@
                   <button
                     v-for="page in fitnessTotalPages"
                     :key="page"
-                    @click="changeFitnessPage(page)"
                     :class="[
                       'px-3 py-1 rounded text-sm',
                       page === fitnessPage
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
                     ]"
+                    @click="changeFitnessPage(page)"
                   >
                     {{ page }}
                   </button>
                 </div>
                 <button
-                  @click="changeFitnessPage(fitnessPage + 1)"
                   :disabled="fitnessPage === fitnessTotalPages"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changeFitnessPage(fitnessPage + 1)"
                 >
                   Next
                 </button>
@@ -547,7 +547,7 @@
         </div>
 
         <!-- Planned Workouts Section -->
-        <div id="planned" class="scroll-mt-20"></div>
+        <div id="planned" class="scroll-mt-20"/>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Upcoming Planned Workouts</h2>
@@ -620,9 +620,9 @@
               </div>
               <div class="flex gap-2">
                 <button
-                  @click="changePlannedWorkoutsPage(plannedWorkoutsPage - 1)"
                   :disabled="plannedWorkoutsPage === 1"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changePlannedWorkoutsPage(plannedWorkoutsPage - 1)"
                 >
                   Previous
                 </button>
@@ -630,21 +630,21 @@
                   <button
                     v-for="page in plannedWorkoutsTotalPages"
                     :key="page"
-                    @click="changePlannedWorkoutsPage(page)"
                     :class="[
                       'px-3 py-1 rounded text-sm',
                       page === plannedWorkoutsPage
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
                     ]"
+                    @click="changePlannedWorkoutsPage(page)"
                   >
                     {{ page }}
                   </button>
                 </div>
                 <button
-                  @click="changePlannedWorkoutsPage(plannedWorkoutsPage + 1)"
                   :disabled="plannedWorkoutsPage === plannedWorkoutsTotalPages"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changePlannedWorkoutsPage(plannedWorkoutsPage + 1)"
                 >
                   Next
                 </button>
@@ -654,7 +654,7 @@
         </div>
 
         <!-- Racing Events Section -->
-        <div id="events" class="scroll-mt-20"></div>
+        <div id="events" class="scroll-mt-20"/>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Racing Events</h2>
@@ -723,7 +723,7 @@
         </div>
 
         <!-- Recent Workouts Table -->
-        <div id="workouts" class="scroll-mt-20"></div>
+        <div id="workouts" class="scroll-mt-20"/>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Recent Workouts</h2>
@@ -738,9 +738,9 @@
                 Upload FIT
               </UButton>
               <button
-                @click="analyzeAllWorkouts"
                 :disabled="analyzingWorkouts"
                 class="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-medium py-2 px-3 rounded transition-colors text-sm"
+                @click="analyzeAllWorkouts"
               >
                 <span v-if="analyzingWorkouts">Analyzing...</span>
                 <span v-else>Analyze All</span>
@@ -796,8 +796,8 @@
                 <tr
                   v-for="workout in recentWorkouts"
                   :key="workout.id"
-                  @click="navigateToWorkout(workout.id)"
                   class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  @click="navigateToWorkout(workout.id)"
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {{ formatDate(workout.date) }}
@@ -856,9 +856,9 @@
               </div>
               <div class="flex gap-2">
                 <button
-                  @click="changeWorkoutsPage(workoutsPage - 1)"
                   :disabled="workoutsPage === 1"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changeWorkoutsPage(workoutsPage - 1)"
                 >
                   Previous
                 </button>
@@ -866,21 +866,21 @@
                   <button
                     v-for="page in workoutsTotalPages"
                     :key="page"
-                    @click="changeWorkoutsPage(page)"
                     :class="[
                       'px-3 py-1 rounded text-sm',
                       page === workoutsPage
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
                     ]"
+                    @click="changeWorkoutsPage(page)"
                   >
                     {{ page }}
                   </button>
                 </div>
                 <button
-                  @click="changeWorkoutsPage(workoutsPage + 1)"
                   :disabled="workoutsPage === workoutsTotalPages"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changeWorkoutsPage(workoutsPage + 1)"
                 >
                   Next
                 </button>
@@ -890,7 +890,7 @@
         </div>
 
         <!-- Nutrition Data Table -->
-        <div id="nutrition" class="scroll-mt-20"></div>
+        <div id="nutrition" class="scroll-mt-20"/>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-center">
@@ -899,9 +899,9 @@
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Daily calorie and macro tracking from Yazio</p>
               </div>
               <button
-                @click="analyzeAllNutrition"
                 :disabled="analyzingNutrition"
                 class="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-medium py-2 px-3 rounded transition-colors text-sm"
+                @click="analyzeAllNutrition"
               >
                 <span v-if="analyzingNutrition">Analyzing...</span>
                 <span v-else>Analyze All</span>
@@ -951,8 +951,8 @@
                 <tr
                   v-for="nutrition in nutritionData"
                   :key="nutrition.id"
-                  @click="navigateToNutrition(nutrition.id)"
                   class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  @click="navigateToNutrition(nutrition.id)"
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {{ formatDate(nutrition.date) }}
@@ -1002,9 +1002,9 @@
               </div>
               <div class="flex gap-2">
                 <button
-                  @click="changeNutritionPage(nutritionPage - 1)"
                   :disabled="nutritionPage === 1"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changeNutritionPage(nutritionPage - 1)"
                 >
                   Previous
                 </button>
@@ -1012,21 +1012,21 @@
                   <button
                     v-for="page in nutritionTotalPages"
                     :key="page"
-                    @click="changeNutritionPage(page)"
                     :class="[
                       'px-3 py-1 rounded text-sm',
                       page === nutritionPage
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
                     ]"
+                    @click="changeNutritionPage(page)"
                   >
                     {{ page }}
                   </button>
                 </div>
                 <button
-                  @click="changeNutritionPage(nutritionPage + 1)"
                   :disabled="nutritionPage === nutritionTotalPages"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changeNutritionPage(nutritionPage + 1)"
                 >
                   Next
                 </button>
@@ -1036,7 +1036,7 @@
         </div>
 
         <!-- Task Dependency Graph -->
-        <div id="pipeline" class="scroll-mt-20"></div>
+        <div id="pipeline" class="scroll-mt-20"/>
         <TaskDependencyGraph />
       </div>
     </template>

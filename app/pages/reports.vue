@@ -22,13 +22,13 @@
         <template #right>
           <div class="flex gap-2 sm:gap-3 items-center">
             <UButton
-              @click="showConfigModal = true"
               :loading="reportStore.generating"
               icon="i-heroicons-adjustments-horizontal"
               color="primary"
               variant="solid"
               size="sm"
               class="font-bold"
+              @click="showConfigModal = true"
             >
               <span class="hidden sm:inline">Custom Report</span>
               <span class="sm:hidden">Custom</span>
@@ -36,49 +36,49 @@
             <USeparator orientation="vertical" class="h-6 hidden sm:block" />
             <div class="hidden sm:flex gap-3">
               <UButton
-                @click="generateReport('LAST_3_WORKOUTS')"
                 :loading="reportStore.generating"
                 icon="i-heroicons-chart-bar"
                 color="neutral"
                 variant="outline"
                 size="sm"
                 class="font-bold"
+                @click="generateReport('LAST_3_WORKOUTS')"
               >
                 <span class="hidden lg:inline">Last 3 Workouts</span>
                 <span class="lg:hidden">Workouts</span>
               </UButton>
               <UButton
-                @click="generateReport('WEEKLY_ANALYSIS')"
                 :loading="reportStore.generating"
                 icon="i-heroicons-calendar"
                 color="neutral"
                 variant="outline"
                 size="sm"
                 class="font-bold"
+                @click="generateReport('WEEKLY_ANALYSIS')"
               >
                 <span class="hidden lg:inline">Weekly Analysis</span>
                 <span class="lg:hidden">Weekly</span>
               </UButton>
               <UButton
-                @click="generateReport('LAST_3_NUTRITION')"
                 :loading="reportStore.generating"
                 icon="i-heroicons-cake"
                 color="neutral"
                 variant="outline"
                 size="sm"
                 class="font-bold"
+                @click="generateReport('LAST_3_NUTRITION')"
               >
                 <span class="hidden lg:inline">Last 3 Days</span>
                 <span class="lg:hidden">Nutrition</span>
               </UButton>
               <UButton
-                @click="generateReport('LAST_7_NUTRITION')"
                 :loading="reportStore.generating"
                 icon="i-heroicons-cake"
                 color="neutral"
                 variant="outline"
                 size="sm"
                 class="font-bold"
+                @click="generateReport('LAST_7_NUTRITION')"
               >
                 <span class="hidden lg:inline">Weekly Nutrition</span>
                 <span class="lg:hidden">Trends</span>
@@ -153,26 +153,26 @@
             <p class="mb-4">No reports yet</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
               <UButton
-                @click="showConfigModal = true"
                 :loading="reportStore.generating"
                 size="lg"
+                @click="showConfigModal = true"
               >
                 <UIcon name="i-heroicons-adjustments-horizontal" class="w-5 h-5 mr-2" />
                 Create Custom Report
               </UButton>
               
               <UButton
-                @click="generateReport('LAST_3_WORKOUTS')"
                 :loading="reportStore.generating"
                 variant="outline"
+                @click="generateReport('LAST_3_WORKOUTS')"
               >
                 <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 mr-2" />
                 Last 3 Workouts
               </UButton>
               <UButton
-                @click="generateReport('WEEKLY_ANALYSIS')"
                 :loading="reportStore.generating"
                 variant="outline"
+                @click="generateReport('WEEKLY_ANALYSIS')"
               >
                 <UIcon name="i-heroicons-calendar" class="w-4 h-4 mr-2" />
                 Weekly Analysis

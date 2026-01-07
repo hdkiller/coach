@@ -52,7 +52,7 @@
       <div class="p-6">
         <div v-if="loading" class="flex items-center justify-center py-12">
           <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
             <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading event...</p>
           </div>
         </div>
@@ -78,15 +78,15 @@
                 </div>
                 <div class="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <div class="flex items-center gap-1">
-                    <span class="i-heroicons-calendar w-4 h-4"></span>
+                    <span class="i-heroicons-calendar w-4 h-4"/>
                     {{ formatDate(event.date) }}
                   </div>
                   <div v-if="event.startTime" class="flex items-center gap-1">
-                    <span class="i-heroicons-clock w-4 h-4"></span>
+                    <span class="i-heroicons-clock w-4 h-4"/>
                     {{ event.startTime }}
                   </div>
                   <div v-if="event.type" class="flex items-center gap-1">
-                    <span class="i-heroicons-tag w-4 h-4"></span>
+                    <span class="i-heroicons-tag w-4 h-4"/>
                     {{ event.type }}
                     <span v-if="event.subType">({{ event.subType }})</span>
                   </div>

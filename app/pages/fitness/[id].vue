@@ -46,7 +46,7 @@
       <div class="p-6">
         <div v-if="loading" class="flex items-center justify-center py-12">
           <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
             <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading wellness data...</p>
           </div>
         </div>
@@ -97,7 +97,7 @@
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div v-if="wellness.recoveryScore" class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
-                <span class="i-heroicons-heart w-6 h-6 text-green-600 dark:text-green-400"></span>
+                <span class="i-heroicons-heart w-6 h-6 text-green-600 dark:text-green-400"/>
                 <span v-if="getTrend('recoveryScore')" :class="getTrend('recoveryScore')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
                   <UIcon :name="getTrend('recoveryScore')!.icon" class="w-3 h-3 mr-1" />
                   {{ getTrend('recoveryScore')?.text }}
@@ -120,7 +120,7 @@
 
             <div v-if="wellness.readiness" class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
-                <span class="i-heroicons-bolt w-6 h-6 text-blue-600 dark:text-blue-400"></span>
+                <span class="i-heroicons-bolt w-6 h-6 text-blue-600 dark:text-blue-400"/>
                 <span v-if="getTrend('readiness')" :class="getTrend('readiness')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
                   <UIcon :name="getTrend('readiness')!.icon" class="w-3 h-3 mr-1" />
                   {{ getTrend('readiness')?.text }}
@@ -143,7 +143,7 @@
 
             <div v-if="wellness.sleepHours" class="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
-                <span class="i-heroicons-moon w-6 h-6 text-indigo-600 dark:text-indigo-400"></span>
+                <span class="i-heroicons-moon w-6 h-6 text-indigo-600 dark:text-indigo-400"/>
                 <span v-if="getTrend('sleepHours')" :class="getTrend('sleepHours')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
                   <UIcon :name="getTrend('sleepHours')!.icon" class="w-3 h-3 mr-1" />
                   {{ getTrend('sleepHours')?.text }}
@@ -166,7 +166,7 @@
 
             <div v-if="wellness.hrv" class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
-                <span class="i-heroicons-heart-pulse w-6 h-6 text-purple-600 dark:text-purple-400"></span>
+                <span class="i-heroicons-heart-pulse w-6 h-6 text-purple-600 dark:text-purple-400"/>
                 <span v-if="getTrend('hrv')" :class="getTrend('hrv')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
                   <UIcon :name="getTrend('hrv')!.icon" class="w-3 h-3 mr-1" />
                   {{ getTrend('hrv')?.text }}
@@ -226,7 +226,7 @@
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                 <div class="flex items-start justify-between mb-2">
                   <h3 class="text-base font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                    <span class="i-heroicons-light-bulb w-5 h-5"></span>
+                    <span class="i-heroicons-light-bulb w-5 h-5"/>
                     Quick Take
                   </h3>
                   <span v-if="wellness.aiAnalysisJson.status" :class="getStatusBadgeClass(wellness.aiAnalysisJson.status)">
@@ -240,7 +240,7 @@
               <div v-if="wellness.aiAnalysisJson.recommendations && wellness.aiAnalysisJson.recommendations.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <span class="i-heroicons-clipboard-document-list w-5 h-5"></span>
+                    <span class="i-heroicons-clipboard-document-list w-5 h-5"/>
                     Recommendations
                   </h3>
                 </div>
@@ -282,7 +282,7 @@
                         :key="pIndex"
                         class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
                       >
-                        <span class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500 flex-shrink-0"></span>
+                        <span class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500 flex-shrink-0"/>
                         <span>{{ point }}</span>
                       </li>
                     </ul>
@@ -298,13 +298,13 @@
             
             <div v-else-if="!analyzingWellness && wellness.aiAnalysisStatus !== 'PROCESSING'" class="text-center py-8">
               <div class="text-gray-500 dark:text-gray-400">
-                <span class="i-heroicons-light-bulb w-12 h-12 mx-auto mb-4 opacity-50"></span>
+                <span class="i-heroicons-light-bulb w-12 h-12 mx-auto mb-4 opacity-50"/>
                 <p class="text-sm">Click "Analyze" to get AI-powered insights on your recovery and readiness.</p>
               </div>
             </div>
 
             <div v-else class="text-center py-8">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"></div>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"/>
               <p class="text-sm text-gray-600 dark:text-gray-400">Generating analysis with AI...</p>
             </div>
           </div>
@@ -513,7 +513,7 @@
               @click="showRawJson = !showRawJson"
             >
               <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <span :class="showRawJson ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" class="w-5 h-5"></span>
+                <span :class="showRawJson ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" class="w-5 h-5"/>
                 Raw Data (JSON)
               </h3>
               <div class="flex items-center gap-2" @click.stop>
@@ -572,8 +572,8 @@
           <p class="text-gray-600 mb-4">Click below to generate a shareable link.</p>
           <UButton
             color="primary"
-            @click="generateShareLink"
             :loading="generatingShareLink"
+            @click="generateShareLink"
           >
             Generate Link
           </UButton>

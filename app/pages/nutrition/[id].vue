@@ -19,7 +19,7 @@
       <div class="p-6">
         <div v-if="loading" class="flex items-center justify-center py-12">
           <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
             <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading nutrition data...</p>
           </div>
         </div>
@@ -40,11 +40,11 @@
                 </h1>
                 <div class="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <div class="flex items-center gap-1">
-                    <span class="i-heroicons-calendar w-4 h-4"></span>
+                    <span class="i-heroicons-calendar w-4 h-4"/>
                     {{ formatDate(nutrition.date) }}
                   </div>
                   <div class="flex items-center gap-1">
-                    <span class="i-heroicons-fire w-4 h-4"></span>
+                    <span class="i-heroicons-fire w-4 h-4"/>
                     {{ nutrition.calories }} / {{ nutrition.caloriesGoal }} kcal
                   </div>
                 </div>
@@ -63,7 +63,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div class="flex items-center justify-between mb-2">
                 <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">Calories</h3>
-                <span class="i-heroicons-fire w-5 h-5 text-orange-500"></span>
+                <span class="i-heroicons-fire w-5 h-5 text-orange-500"/>
               </div>
               <div class="text-3xl font-bold text-gray-900 dark:text-white">
                 {{ nutrition.calories }}
@@ -75,7 +75,7 @@
                 <div
                   class="bg-orange-500 h-2 rounded-full transition-all"
                   :style="{ width: getPercentage(nutrition.calories, nutrition.caloriesGoal) + '%' }"
-                ></div>
+                />
               </div>
             </div>
 
@@ -83,7 +83,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div class="flex items-center justify-between mb-2">
                 <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">Protein</h3>
-                <span class="i-heroicons-bolt w-5 h-5 text-blue-500"></span>
+                <span class="i-heroicons-bolt w-5 h-5 text-blue-500"/>
               </div>
               <div class="text-3xl font-bold text-gray-900 dark:text-white">
                 {{ Math.round(nutrition.protein) }}g
@@ -95,7 +95,7 @@
                 <div
                   class="bg-blue-500 h-2 rounded-full transition-all"
                   :style="{ width: getPercentage(nutrition.protein, nutrition.proteinGoal) + '%' }"
-                ></div>
+                />
               </div>
             </div>
 
@@ -103,7 +103,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div class="flex items-center justify-between mb-2">
                 <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">Carbs</h3>
-                <span class="i-heroicons-cube w-5 h-5 text-yellow-500"></span>
+                <span class="i-heroicons-cube w-5 h-5 text-yellow-500"/>
               </div>
               <div class="text-3xl font-bold text-gray-900 dark:text-white">
                 {{ Math.round(nutrition.carbs) }}g
@@ -115,7 +115,7 @@
                 <div
                   class="bg-yellow-500 h-2 rounded-full transition-all"
                   :style="{ width: getPercentage(nutrition.carbs, nutrition.carbsGoal) + '%' }"
-                ></div>
+                />
               </div>
             </div>
 
@@ -123,7 +123,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div class="flex items-center justify-between mb-2">
                 <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">Fat</h3>
-                <span class="i-heroicons-beaker w-5 h-5 text-green-500"></span>
+                <span class="i-heroicons-beaker w-5 h-5 text-green-500"/>
               </div>
               <div class="text-3xl font-bold text-gray-900 dark:text-white">
                 {{ Math.round(nutrition.fat) }}g
@@ -135,7 +135,7 @@
                 <div
                   class="bg-green-500 h-2 rounded-full transition-all"
                   :style="{ width: getPercentage(nutrition.fat, nutrition.fatGoal) + '%' }"
-                ></div>
+                />
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@
           <!-- Water Intake -->
           <div v-if="nutrition.waterMl" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div class="flex items-center gap-2 mb-4">
-              <span class="i-heroicons-beaker w-6 h-6 text-blue-400"></span>
+              <span class="i-heroicons-beaker w-6 h-6 text-blue-400"/>
               <h2 class="text-xl font-bold text-gray-900 dark:text-white">Water Intake</h2>
             </div>
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
@@ -196,7 +196,7 @@
             v-model="nutrition.notes"
             :notes-updated-at="nutrition.notesUpdatedAt"
             :api-endpoint="`/api/nutrition/${nutrition.id}/notes`"
-            @update:notesUpdatedAt="nutrition.notesUpdatedAt = $event"
+            @update:notes-updated-at="nutrition.notesUpdatedAt = $event"
           />
 
           <!-- AI Analysis Section -->
@@ -236,7 +236,7 @@
               <!-- Data Completeness Assessment -->
               <div v-if="nutrition.aiAnalysisJson.data_completeness" class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800">
                 <h3 class="text-base font-semibold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
-                  <span class="i-heroicons-clipboard-document-check w-5 h-5"></span>
+                  <span class="i-heroicons-clipboard-document-check w-5 h-5"/>
                   Data Completeness: {{ nutrition.aiAnalysisJson.data_completeness.status }}
                 </h3>
                 <div class="mb-3">
@@ -246,7 +246,7 @@
                       <div
                         class="bg-purple-500 h-2 rounded-full transition-all"
                         :style="{ width: (nutrition.aiAnalysisJson.data_completeness.confidence * 100) + '%' }"
-                      ></div>
+                      />
                     </div>
                     <span class="text-sm font-semibold text-gray-900 dark:text-white">
                       {{ Math.round(nutrition.aiAnalysisJson.data_completeness.confidence * 100) }}%
@@ -267,7 +267,7 @@
               <!-- Executive Summary -->
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                 <h3 class="text-base font-semibold text-blue-900 dark:text-blue-100 mb-4 flex items-center gap-2">
-                  <span class="i-heroicons-light-bulb w-5 h-5"></span>
+                  <span class="i-heroicons-light-bulb w-5 h-5"/>
                   Quick Take
                 </h3>
                 <p class="text-base text-gray-800 dark:text-gray-200 leading-relaxed">{{ nutrition.aiAnalysisJson.executive_summary }}</p>
@@ -293,7 +293,7 @@
                         :key="pIndex"
                         class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
                       >
-                        <span class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500 flex-shrink-0"></span>
+                        <span class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500 flex-shrink-0"/>
                         <span>{{ point }}</span>
                       </li>
                     </ul>
@@ -305,7 +305,7 @@
               <div v-if="nutrition.aiAnalysisJson.recommendations && nutrition.aiAnalysisJson.recommendations.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <span class="i-heroicons-clipboard-document-list w-5 h-5"></span>
+                    <span class="i-heroicons-clipboard-document-list w-5 h-5"/>
                     Recommendations
                   </h3>
                 </div>
@@ -332,7 +332,7 @@
                 <!-- Strengths -->
                 <div v-if="nutrition.aiAnalysisJson.strengths && nutrition.aiAnalysisJson.strengths.length > 0" class="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800">
                   <h3 class="text-lg font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
-                    <span class="i-heroicons-check-circle w-5 h-5"></span>
+                    <span class="i-heroicons-check-circle w-5 h-5"/>
                     Strengths
                   </h3>
                   <ul class="space-y-2">
@@ -341,7 +341,7 @@
                       :key="index"
                       class="flex items-start gap-2 text-sm text-green-800 dark:text-green-200"
                     >
-                      <span class="i-heroicons-plus-circle w-4 h-4 mt-0.5 flex-shrink-0"></span>
+                      <span class="i-heroicons-plus-circle w-4 h-4 mt-0.5 flex-shrink-0"/>
                       <span>{{ strength }}</span>
                     </li>
                   </ul>
@@ -350,7 +350,7 @@
                 <!-- Areas for Improvement -->
                 <div v-if="nutrition.aiAnalysisJson.areas_for_improvement && nutrition.aiAnalysisJson.areas_for_improvement.length > 0" class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-6 border border-orange-200 dark:border-orange-800">
                   <h3 class="text-lg font-semibold text-orange-900 dark:text-orange-100 mb-3 flex items-center gap-2">
-                    <span class="i-heroicons-exclamation-triangle w-5 h-5"></span>
+                    <span class="i-heroicons-exclamation-triangle w-5 h-5"/>
                     Areas for Improvement
                   </h3>
                   <ul class="space-y-2">
@@ -359,7 +359,7 @@
                       :key="index"
                       class="flex items-start gap-2 text-sm text-orange-800 dark:text-orange-200"
                     >
-                      <span class="i-heroicons-arrow-trending-up w-4 h-4 mt-0.5 flex-shrink-0"></span>
+                      <span class="i-heroicons-arrow-trending-up w-4 h-4 mt-0.5 flex-shrink-0"/>
                       <span>{{ area }}</span>
                     </li>
                   </ul>
@@ -374,13 +374,13 @@
             
             <div v-else-if="!analyzingNutrition" class="text-center py-8">
               <div class="text-gray-500 dark:text-gray-400">
-                <span class="i-heroicons-light-bulb w-12 h-12 mx-auto mb-4 opacity-50"></span>
+                <span class="i-heroicons-light-bulb w-12 h-12 mx-auto mb-4 opacity-50"/>
                 <p class="text-sm">Click "Analyze Nutrition" to get AI-powered insights on your daily intake, macro balance, and nutrition quality.</p>
               </div>
             </div>
 
             <div v-else class="text-center py-8">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"></div>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"/>
               <p class="text-sm text-gray-600 dark:text-gray-400">Generating analysis with AI...</p>
             </div>
           </div>
@@ -393,7 +393,7 @@
               <!-- Breakfast -->
               <div v-if="nutrition.breakfast && nutrition.breakfast.length > 0">
                 <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-sun w-5 h-5 text-yellow-500"></span>
+                  <span class="i-heroicons-sun w-5 h-5 text-yellow-500"/>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Breakfast</h3>
                   <span class="text-sm text-gray-500">({{ nutrition.breakfast.length }} items)</span>
                 </div>
@@ -425,7 +425,7 @@
               <!-- Lunch -->
               <div v-if="nutrition.lunch && nutrition.lunch.length > 0">
                 <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-sun w-5 h-5 text-orange-500"></span>
+                  <span class="i-heroicons-sun w-5 h-5 text-orange-500"/>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Lunch</h3>
                   <span class="text-sm text-gray-500">({{ nutrition.lunch.length }} items)</span>
                 </div>
@@ -457,7 +457,7 @@
               <!-- Dinner -->
               <div v-if="nutrition.dinner && nutrition.dinner.length > 0">
                 <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-moon w-5 h-5 text-indigo-500"></span>
+                  <span class="i-heroicons-moon w-5 h-5 text-indigo-500"/>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Dinner</h3>
                   <span class="text-sm text-gray-500">({{ nutrition.dinner.length }} items)</span>
                 </div>
@@ -489,7 +489,7 @@
               <!-- Snacks -->
               <div v-if="nutrition.snacks && nutrition.snacks.length > 0">
                 <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-cake w-5 h-5 text-pink-500"></span>
+                  <span class="i-heroicons-cake w-5 h-5 text-pink-500"/>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Snacks</h3>
                   <span class="text-sm text-gray-500">({{ nutrition.snacks.length }} items)</span>
                 </div>

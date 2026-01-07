@@ -8,12 +8,12 @@
         <template #right>
           <div class="flex gap-3">
             <UButton
-              @click="openCreateModal"
               color="primary"
               variant="solid"
               icon="i-heroicons-plus"
               size="sm"
               class="font-bold"
+              @click="openCreateModal"
             >
               <span class="hidden sm:inline">Add Event</span>
               <span class="sm:hidden">Add</span>
@@ -35,9 +35,9 @@
 
         <!-- Events List -->
         <EventTable
+          v-model:current-page="currentPage"
           :events="paginatedEvents"
           :loading="loading"
-          v-model:current-page="currentPage"
           :total-pages="totalPages"
           :total-events="events.length"
           :visible-pages="visiblePages"
@@ -108,7 +108,7 @@ const visiblePages = computed(() => {
   const pages = []
   const maxVisible = 7
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
+  const end = Math.min(totalPages.value, start + maxVisible - 1)
   
   if (end - start < maxVisible - 1) {
     start = Math.max(1, end - maxVisible + 1)

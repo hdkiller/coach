@@ -137,7 +137,7 @@
     </template>
     <template #footer>
       <UButton label="Cancel" color="neutral" variant="ghost" @click="isConnectModalOpen = false" />
-      <UButton label="Connect Athlete" color="primary" @click="connectAthlete" :loading="connecting" :disabled="!connectCode" />
+      <UButton label="Connect Athlete" color="primary" :loading="connecting" :disabled="!connectCode" @click="connectAthlete" />
     </template>
   </UModal>
 </template>

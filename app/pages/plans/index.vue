@@ -121,32 +121,32 @@
             <div v-if="history.length > 3" class="flex justify-center pt-2">
               <UButton
                 v-if="!showAllHistory"
-                @click="showAllHistory = true"
                 color="neutral"
                 variant="ghost"
                 size="sm"
+                @click="showAllHistory = true"
               >
                 Show All ({{ history.length }})
               </UButton>
               <div v-else class="flex items-center gap-2">
                 <UButton
-                  @click="previousPage"
                   :disabled="currentHistoryPage === 1"
                   color="neutral"
                   variant="ghost"
                   size="sm"
                   icon="i-heroicons-chevron-left"
+                  @click="previousPage"
                 />
                 <span class="text-sm text-gray-600 dark:text-gray-400">
                   Page {{ currentHistoryPage }} of {{ totalHistoryPages }}
                 </span>
                 <UButton
-                  @click="nextPage"
                   :disabled="currentHistoryPage === totalHistoryPages"
                   color="neutral"
                   variant="ghost"
                   size="sm"
                   icon="i-heroicons-chevron-right"
+                  @click="nextPage"
                 />
               </div>
             </div>
@@ -179,7 +179,7 @@
     <template #body>
       <div v-if="loadingPlanDetail" class="flex items-center justify-center py-12">
         <div class="text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"/>
           <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading plan details...</p>
         </div>
       </div>

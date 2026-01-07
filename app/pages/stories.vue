@@ -16,7 +16,7 @@
         <div class="relative rounded-2xl overflow-hidden bg-gray-900 text-white shadow-2xl">
           <div class="absolute inset-0">
              <!-- Placeholder for a real image, using a gradient for now -->
-             <div class="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 opacity-90"></div>
+             <div class="w-full h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 opacity-90"/>
           </div>
           <div class="relative grid md:grid-cols-2 gap-8 p-8 md:p-16 items-center">
             <div>

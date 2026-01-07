@@ -7,13 +7,13 @@
         </template>
         <template #right>
           <UButton
-            @click="generateExplanations"
             :loading="generatingExplanations"
             color="primary"
             variant="solid"
             icon="i-heroicons-sparkles"
             size="sm"
             class="font-bold"
+            @click="generateExplanations"
           >
             <span class="hidden sm:inline">Insights</span>
           </UButton>

@@ -10,10 +10,8 @@
                     <!-- Animated Matrix Background -->
                     <div class="absolute inset-0 z-0">
                         <div
-                            class="absolute inset-0 opacity-20 bg-[url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbm95MXY4Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0/U3qYN8S0j3bpK/giphy.gif')] bg-cover mix-blend-screen pointer-events-none">
-                        </div>
-                        <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent">
-                        </div>
+                            class="absolute inset-0 opacity-20 bg-[url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbm95MXY4Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0/U3qYN8S0j3bpK/giphy.gif')] bg-cover mix-blend-screen pointer-events-none"/>
+                        <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"/>
                     </div>
 
                     <!-- Content -->
@@ -24,7 +22,7 @@
                         </div>
 
                         <h2 class="text-3xl font-bold leading-tight mb-2 tracking-tight">
-                            Initialize Your <br />
+                            Initialize Your <br >
                             <span class="text-primary typing-effect">Digital Twin</span>
                         </h2>
                         <p class="text-gray-400 text-sm font-medium uppercase tracking-wider mb-8">
@@ -74,8 +72,8 @@
                         <div class="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
                             <span class="relative flex h-2 w-2">
                                 <span
-                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"/>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"/>
                             </span>
                             <span class="typing-text">🔥 12 athletes hit a PB in the last hour</span>
                         </div>
@@ -98,7 +96,8 @@
                         </div>
 
                         <div class="space-y-6">
-                            <UButton block size="xl" icon="i-lucide-chrome" color="primary" variant="solid"
+                            <UButton
+block size="xl" icon="i-lucide-chrome" color="primary" variant="solid"
                                 class="shadow-sm hover:bg-primary-600 transition-all py-4" :loading="loading"
                                 @click="handleGoogleLogin">
                                 Create Account with Google
@@ -118,7 +117,8 @@
                         <div class="mt-10 text-center space-y-4">
                             <p class="text-sm text-gray-400">
                                 Already have an account?
-                                <NuxtLink to="/login"
+                                <NuxtLink
+to="/login"
                                     class="text-primary hover:underline underline-offset-4 font-semibold">Log in
                                 </NuxtLink>
                             </p>

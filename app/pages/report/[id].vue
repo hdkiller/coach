@@ -240,7 +240,8 @@
                 <div v-if="report.analysisJson.recent_performance.notable_workouts?.length">
                   <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Notable Workouts</h4>
                   <div class="space-y-3">
-                    <div v-for="(workout, idx) in report.analysisJson.recent_performance.notable_workouts" :key="idx"
+                    <div
+v-for="(workout, idx) in report.analysisJson.recent_performance.notable_workouts" :key="idx"
                          class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div class="flex items-center justify-between mb-1">
                         <span class="font-medium text-gray-900 dark:text-white">{{ workout.title }}</span>

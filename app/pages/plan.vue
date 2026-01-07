@@ -140,8 +140,8 @@
                 <p class="text-gray-600 mb-4">Click below to generate a shareable link.</p>
                 <UButton
                   color="primary"
-                  @click="generateShareLink"
                   :loading="generatingShareLink"
+                  @click="generateShareLink"
                 >
                   Generate Link
                 </UButton>

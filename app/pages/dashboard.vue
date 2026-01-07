@@ -31,7 +31,6 @@
             </UButton>
             <UButton
               v-if="integrationStore?.intervalsConnected"
-              @click="integrationStore.syncAllData"
               :loading="integrationStore.syncingData"
               :disabled="integrationStore.syncingData"
               color="neutral"
@@ -39,6 +38,7 @@
               icon="i-heroicons-arrow-path"
               size="sm"
               class="font-bold"
+              @click="integrationStore.syncAllData"
             >
               <span class="hidden sm:inline">Sync Data</span>
               <span class="sm:hidden">Sync</span>

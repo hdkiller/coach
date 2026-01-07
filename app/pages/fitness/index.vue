@@ -203,8 +203,8 @@
                 <tr
                   v-for="wellness in paginatedWellness"
                   :key="wellness.id"
-                  @click="navigateToWellness(wellness.id)"
                   class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  @click="navigateToWellness(wellness.id)"
                 >
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {{ formatDate(wellness.date) }}
@@ -254,9 +254,9 @@
               </div>
               <div class="flex gap-2">
                 <button
-                  @click="changePage(currentPage - 1)"
                   :disabled="currentPage === 1"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changePage(currentPage - 1)"
                 >
                   Previous
                 </button>
@@ -264,21 +264,21 @@
                   <button
                     v-for="page in visiblePages"
                     :key="page"
-                    @click="changePage(page)"
                     :class="[
                       'px-3 py-1 rounded text-sm',
                       page === currentPage
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
                     ]"
+                    @click="changePage(page)"
                   >
                     {{ page }}
                   </button>
                 </div>
                 <button
-                  @click="changePage(currentPage + 1)"
                   :disabled="currentPage === totalPages"
                   class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  @click="changePage(currentPage + 1)"
                 >
                   Next
                 </button>
@@ -437,7 +437,7 @@ const visiblePages = computed(() => {
   const pages = []
   const maxVisible = 7
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
+  const end = Math.min(totalPages.value, start + maxVisible - 1)
   
   if (end - start < maxVisible - 1) {
     start = Math.max(1, end - maxVisible + 1)

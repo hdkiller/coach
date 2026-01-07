@@ -8,9 +8,10 @@
         <div class="lg:col-span-5 relative bg-gray-900 text-white p-8 sm:p-12 flex flex-col justify-between">
           <!-- Background Image with Overlay -->
           <div class="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=2670&auto=format&fit=crop"
-              alt="Endurance Sports" class="w-full h-full object-cover opacity-40" />
-            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+            <img
+src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=2670&auto=format&fit=crop"
+              alt="Endurance Sports" class="w-full h-full object-cover opacity-40" >
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"/>
           </div>
 
           <!-- Content -->
@@ -21,7 +22,7 @@
             </div>
 
             <h2 class="text-3xl font-bold leading-tight mb-4">
-              Your Digital Twin <br />
+              Your Digital Twin <br >
               <span class="text-primary">Awaits</span>
             </h2>
             <p class="text-gray-300 text-lg leading-relaxed">
@@ -58,17 +59,19 @@
             </div>
 
             <div class="space-y-4">
-              <UButton block size="xl" icon="i-lucide-chrome" color="primary" variant="solid"
+              <UButton
+block size="xl" icon="i-lucide-chrome" color="primary" variant="solid"
                 class="shadow-sm hover:bg-primary-600 transition-all py-4" :loading="loading"
                 @click="handleGoogleLogin">
                 Continue with Google
               </UButton>
 
-              <UButton block size="xl" color="neutral" variant="outline"
+              <UButton
+block size="xl" color="neutral" variant="outline"
                 class="shadow-sm py-4" :loading="loadingIntervals"
                 @click="handleIntervalsLogin">
                 <template #leading>
-                  <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-5 h-5" />
+                  <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-5 h-5" >
                 </template>
                 Continue with Intervals.icu
               </UButton>
