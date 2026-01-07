@@ -50,44 +50,96 @@
 
           <!-- Key Metrics Grid -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div v-if="wellness.recoveryScore" class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/30 rounded-lg p-6 shadow">
+            <div v-if="wellness.recoveryScore" class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
                 <span class="i-heroicons-heart w-6 h-6 text-green-600 dark:text-green-400"></span>
+                <span v-if="getTrend('recoveryScore')" :class="getTrend('recoveryScore')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
+                  <UIcon :name="getTrend('recoveryScore')!.icon" class="w-3 h-3 mr-1" />
+                  {{ getTrend('recoveryScore')?.text }}
+                </span>
               </div>
               <div class="text-3xl font-bold text-green-900 dark:text-green-100">
                 {{ wellness.recoveryScore }}%
               </div>
               <div class="text-sm text-green-700 dark:text-green-300 mt-1">Recovery Score</div>
+              <!-- Mini Chart -->
+              <div v-if="wellness.trends?.recoveryScore?.history" class="absolute bottom-0 left-0 right-0 h-8 flex items-end justify-between px-1 gap-0.5 opacity-30 group-hover:opacity-60 transition-opacity">
+                <div 
+                  v-for="(day, idx) in wellness.trends.recoveryScore.history" 
+                  :key="idx"
+                  class="flex-1 bg-green-500 rounded-t-sm"
+                  :style="{ height: day.value ? `${day.value}%` : '2px' }"
+                />
+              </div>
             </div>
 
-            <div v-if="wellness.readiness" class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 rounded-lg p-6 shadow">
+            <div v-if="wellness.readiness" class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
                 <span class="i-heroicons-bolt w-6 h-6 text-blue-600 dark:text-blue-400"></span>
+                <span v-if="getTrend('readiness')" :class="getTrend('readiness')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
+                  <UIcon :name="getTrend('readiness')!.icon" class="w-3 h-3 mr-1" />
+                  {{ getTrend('readiness')?.text }}
+                </span>
               </div>
               <div class="text-3xl font-bold text-blue-900 dark:text-blue-100">
                 {{ wellness.readiness }}{{ wellness.readiness > 10 ? '%' : '/10' }}
               </div>
               <div class="text-sm text-blue-700 dark:text-blue-300 mt-1">Readiness</div>
+              <!-- Mini Chart -->
+              <div v-if="wellness.trends?.readiness?.history" class="absolute bottom-0 left-0 right-0 h-8 flex items-end justify-between px-1 gap-0.5 opacity-30 group-hover:opacity-60 transition-opacity">
+                <div 
+                  v-for="(day, idx) in wellness.trends.readiness.history" 
+                  :key="idx"
+                  class="flex-1 bg-blue-500 rounded-t-sm"
+                  :style="{ height: day.value ? `${day.value > 10 ? day.value : day.value * 10}%` : '2px' }"
+                />
+              </div>
             </div>
 
-            <div v-if="wellness.sleepHours" class="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/30 rounded-lg p-6 shadow">
+            <div v-if="wellness.sleepHours" class="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
                 <span class="i-heroicons-moon w-6 h-6 text-indigo-600 dark:text-indigo-400"></span>
+                <span v-if="getTrend('sleepHours')" :class="getTrend('sleepHours')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
+                  <UIcon :name="getTrend('sleepHours')!.icon" class="w-3 h-3 mr-1" />
+                  {{ getTrend('sleepHours')?.text }}
+                </span>
               </div>
               <div class="text-3xl font-bold text-indigo-900 dark:text-indigo-100">
                 {{ wellness.sleepHours.toFixed(1) }}h
               </div>
               <div class="text-sm text-indigo-700 dark:text-indigo-300 mt-1">Sleep Duration</div>
+              <!-- Mini Chart -->
+              <div v-if="wellness.trends?.sleepHours?.history" class="absolute bottom-0 left-0 right-0 h-8 flex items-end justify-between px-1 gap-0.5 opacity-30 group-hover:opacity-60 transition-opacity">
+                <div 
+                  v-for="(day, idx) in wellness.trends.sleepHours.history" 
+                  :key="idx"
+                  class="flex-1 bg-indigo-500 rounded-t-sm"
+                  :style="{ height: day.value ? `${(day.value / 12) * 100}%` : '2px' }"
+                />
+              </div>
             </div>
 
-            <div v-if="wellness.hrv" class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/30 rounded-lg p-6 shadow">
+            <div v-if="wellness.hrv" class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/30 rounded-lg p-6 shadow relative overflow-hidden group">
               <div class="flex items-center justify-between mb-2">
                 <span class="i-heroicons-heart-pulse w-6 h-6 text-purple-600 dark:text-purple-400"></span>
+                <span v-if="getTrend('hrv')" :class="getTrend('hrv')?.class" class="text-xs font-medium flex items-center px-2 py-1 rounded-full">
+                  <UIcon :name="getTrend('hrv')!.icon" class="w-3 h-3 mr-1" />
+                  {{ getTrend('hrv')?.text }}
+                </span>
               </div>
               <div class="text-3xl font-bold text-purple-900 dark:text-purple-100">
                 {{ Math.round(wellness.hrv) }}
               </div>
               <div class="text-sm text-purple-700 dark:text-purple-300 mt-1">HRV (ms)</div>
+              <!-- Mini Chart -->
+              <div v-if="wellness.trends?.hrv?.history" class="absolute bottom-0 left-0 right-0 h-8 flex items-end justify-between px-1 gap-0.5 opacity-30 group-hover:opacity-60 transition-opacity">
+                <div 
+                  v-for="(day, idx) in wellness.trends.hrv.history" 
+                  :key="idx"
+                  class="flex-1 bg-purple-500 rounded-t-sm"
+                  :style="{ height: day.value ? `${Math.min((day.value / 150) * 100, 100)}%` : '2px' }"
+                />
+              </div>
             </div>
           </div>
 
@@ -95,9 +147,26 @@
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Heart Rate Metrics</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div v-if="wellness.restingHr" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+              <div v-if="wellness.restingHr" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700 relative group/row">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Resting Heart Rate</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.restingHr }} bpm</span>
+                <div class="flex flex-col items-end gap-1">
+                  <div class="flex items-center gap-2">
+                    <span v-if="getTrend('restingHr', true)" :class="getTrend('restingHr', true)?.class" class="text-xs font-medium flex items-center px-1.5 py-0.5 rounded">
+                      <UIcon :name="getTrend('restingHr', true)!.icon" class="w-3 h-3 mr-1" />
+                      {{ getTrend('restingHr', true)?.text }}
+                    </span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.restingHr }} bpm</span>
+                  </div>
+                  <!-- Mini Sparkline for Row -->
+                  <div v-if="wellness.trends?.restingHr?.history" class="h-4 flex items-end gap-0.5 opacity-20 group-hover/row:opacity-50 transition-opacity">
+                    <div 
+                      v-for="(day, idx) in wellness.trends.restingHr.history.slice(-7)" 
+                      :key="idx"
+                      class="w-1 bg-rose-500 rounded-t-[1px]"
+                      :style="{ height: day.value ? `${Math.min((day.value / 100) * 100, 100)}%` : '2px' }"
+                    />
+                  </div>
+                </div>
               </div>
               <div v-if="wellness.avgSleepingHr" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Avg Sleeping HR</span>
@@ -105,7 +174,13 @@
               </div>
               <div v-if="wellness.hrv" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">HRV (rMSSD)</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ Math.round(wellness.hrv) }} ms</span>
+                <div class="flex items-center gap-2">
+                  <span v-if="getTrend('hrv')" :class="getTrend('hrv')?.class" class="text-xs font-medium flex items-center px-1.5 py-0.5 rounded">
+                    <UIcon :name="getTrend('hrv')!.icon" class="w-3 h-3 mr-1" />
+                    {{ getTrend('hrv')?.text }}
+                  </span>
+                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ Math.round(wellness.hrv) }} ms</span>
+                </div>
               </div>
               <div v-if="wellness.hrvSdnn" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">HRV SDNN</span>
@@ -120,11 +195,23 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div v-if="wellness.sleepHours" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Sleep Duration</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.sleepHours.toFixed(1) }} hours</span>
+                <div class="flex items-center gap-2">
+                  <span v-if="getTrend('sleepHours')" :class="getTrend('sleepHours')?.class" class="text-xs font-medium flex items-center px-1.5 py-0.5 rounded">
+                    <UIcon :name="getTrend('sleepHours')!.icon" class="w-3 h-3 mr-1" />
+                    {{ getTrend('sleepHours')?.text }}
+                  </span>
+                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.sleepHours.toFixed(1) }} hours</span>
+                </div>
               </div>
               <div v-if="wellness.sleepScore" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Sleep Score</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.sleepScore }}%</span>
+                <div class="flex items-center gap-2">
+                  <span v-if="getTrend('sleepScore')" :class="getTrend('sleepScore')?.class" class="text-xs font-medium flex items-center px-1.5 py-0.5 rounded">
+                    <UIcon :name="getTrend('sleepScore')!.icon" class="w-3 h-3 mr-1" />
+                    {{ getTrend('sleepScore')?.text }}
+                  </span>
+                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ wellness.sleepScore }}%</span>
+                </div>
               </div>
               <div v-if="wellness.sleepQuality" class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Sleep Quality</span>
@@ -363,4 +450,31 @@ useHead(() => {
 onMounted(() => {
   fetchWellness()
 })
+
+function getTrend(metric: string, inverse: boolean = false) {
+  if (!wellness.value?.trends?.[metric]) return null
+  
+  const current = wellness.value[metric]
+  const avg = wellness.value.trends[metric].avg7
+  
+  if (current === null || avg === null || avg === 0) return null
+  
+  const diff = current - avg
+  const pct = (diff / avg) * 100
+  const absPct = Math.abs(pct)
+  
+  // Don't show negligible trends
+  if (absPct < 1) return null
+  
+  const isUp = diff > 0
+  const isGood = inverse ? !isUp : isUp
+  
+  return {
+    text: `${Math.round(absPct)}%`,
+    icon: isUp ? 'i-heroicons-arrow-up-right' : 'i-heroicons-arrow-down-right',
+    class: isGood 
+      ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30' 
+      : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30'
+  }
+}
 </script>
