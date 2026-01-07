@@ -30,9 +30,9 @@
     <UTimeline v-else :items="(activityStore.recentActivity.items as any[])" class="max-h-96 overflow-y-auto pr-2">
       <template #default="{ item }">
         <div 
-          class="flex items-start justify-between gap-3 group -mx-2 px-2 py-2 rounded-lg transition-all duration-200"
+          class="relative flex items-start justify-between gap-3 group -mx-2 px-2 py-2 rounded-lg transition-all duration-200"
           :class="item.link ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50' : ''"
-          @click="item.link ? navigateTo(item.link) : null"
+          @click="navigateActivity(item)"
         >
           <div class="flex-1 min-w-0">
             <p 
@@ -65,6 +65,12 @@
 <script setup lang="ts">
 const activityStore = useActivityStore()
 const { formatDate, getUserLocalDate } = useFormat()
+
+function navigateActivity(item: any) {
+  if (item.link) {
+    navigateTo(item.link)
+  }
+}
 
 // Format date for timeline display
 function formatActivityDate(date: string | Date): string {

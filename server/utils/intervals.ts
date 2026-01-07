@@ -718,7 +718,16 @@ export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: s
     // Training load
     tss: activity.tss || null,
     trainingLoad: activity.icu_training_load || null,
-    intensity: activity.icu_intensity || activity.intensity || null,
+    
+    // FIX: Normalize intensity to 0-1 scale
+    intensity: (() => {
+      let val = activity.icu_intensity || activity.intensity || null
+      if (val !== null && val > 5) {
+        val = val / 100
+      }
+      return val ? Math.round(val * 10000) / 10000 : null
+    })(),
+    
     kilojoules: activity.icu_joules || null,
     trimp: activity.trimp || null,
     
