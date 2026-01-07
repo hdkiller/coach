@@ -56,19 +56,66 @@ backfillProfileCommand
         
         let updatesCount = 0;
 
+        // Manual mapping for known issues
+        const manualMap: Record<string, string> = {
+            'usa': 'US',
+            'united states of america': 'US',
+            'uk': 'GB',
+            'united kingdom': 'GB',
+            'great britain': 'GB',
+            'brasil': 'BR',
+            'taiwan': 'TW',
+            'russia': 'RU',
+            'south korea': 'KR',
+            'vietnam': 'VN'
+        };
+
         for (const user of users) {
             if (!user.country) continue;
 
+            // Normalize: trim whitespace and replace multiple spaces with single space
+            const normalizedCountry = user.country.trim().replace(/\s+/g, ' ');
+
             // Check if it's already a valid code (case-insensitive check for code, but exact match preferred)
-            const exactCodeMatch = countries.find(c => c.code === user.country);
+            const exactCodeMatch = countries.find(c => c.code === normalizedCountry);
             if (exactCodeMatch) {
-                // Already valid
+                // If it was just whitespace difference, update it
+                if (normalizedCountry !== user.country) {
+                     console.log(`User ${chalk.magenta(user.email)}: Trimming "${chalk.yellow(user.country)}" -> "${chalk.green(normalizedCountry)}"`);
+                     if (!isDryRun) {
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: { country: normalizedCountry }
+                        });
+                    }
+                    updatesCount++;
+                }
                 continue;
             }
 
-            // Try to find by name (case insensitive)
-            const nameMatch = countries.find(c => c.name.toLowerCase() === user.country!.toLowerCase());
+            // Check manual map first (normalized, lower case)
+            const manualCode = manualMap[normalizedCountry.toLowerCase()];
+            if (manualCode) {
+                console.log(`User ${chalk.magenta(user.email)}: Mapping "${chalk.yellow(user.country)}" -> "${chalk.green(manualCode)}" (Manual Map)`);
+                if (!isDryRun) {
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { country: manualCode }
+                    });
+                }
+                updatesCount++;
+                continue;
+            }
+
+            // Try to find by name (case insensitive, partial match for things like "Taiwan")
+            // Exact name match first
+            let nameMatch = countries.find(c => c.name.toLowerCase() === normalizedCountry.toLowerCase());
             
+            // If not found, try "starts with" for cases like "Taiwan" matching "Taiwan, Province of China"
+            if (!nameMatch) {
+                nameMatch = countries.find(c => c.name.toLowerCase().startsWith(normalizedCountry.toLowerCase() + ','));
+            }
+
             if (nameMatch) {
                 console.log(`User ${chalk.magenta(user.email)}: Converting "${chalk.yellow(user.country)}" -> "${chalk.green(nameMatch.code)}" (${nameMatch.name})`);
                 
@@ -81,7 +128,7 @@ backfillProfileCommand
                 updatesCount++;
             } else {
                 // Try to find by code case-insensitive (e.g. "hu" -> "HU")
-                const codeMatch = countries.find(c => c.code.toLowerCase() === user.country!.toLowerCase());
+                const codeMatch = countries.find(c => c.code.toLowerCase() === normalizedCountry.toLowerCase());
                 if (codeMatch) {
                      console.log(`User ${chalk.magenta(user.email)}: Normalizing case "${chalk.yellow(user.country)}" -> "${chalk.green(codeMatch.code)}"`);
                      if (!isDryRun) {
