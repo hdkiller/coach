@@ -1,18 +1,18 @@
 <template>
   <div>
-    <div class="mb-8 text-center">
-      <div class="flex justify-center mb-6">
-        <div
-          class="p-3 bg-white shadow-sm ring-1 ring-gray-200 dark:bg-white/10 dark:ring-white/10 rounded-2xl backdrop-blur-sm"
-        >
-          <img src="/images/logo.svg" alt="Coach Watts Logo" class="h-16 w-16" />
-        </div>
+    <div class="mb-10 text-center">
+      <div class="flex justify-center mb-8">
+        <img
+          src="/media/logo_with_text_cropped.webp"
+          alt="Coach Watts Logo"
+          class="w-full max-h-60 object-contain"
+        />
       </div>
 
-      <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">
         Welcome to the Future of Training
       </h1>
-      <p class="mt-3 text-base text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+      <p class="text-gray-500 dark:text-gray-400 text-lg max-w-sm mx-auto">
         You're just a few clicks away from AI-powered coaching insights. Let's get your account set
         up for success.
       </p>
@@ -48,7 +48,7 @@
               <a
                 href="/terms"
                 target="_blank"
-                class="text-primary-600 hover:text-primary-500 font-semibold underline decoration-2 decoration-primary-200 underline-offset-2"
+                class="text-primary-600 hover:text-primary-500 font-semibold underline decoration-dotted decoration-primary-500/50 underline-offset-4"
                 @click.stop
                 >Terms of Service</a
               >
@@ -56,7 +56,7 @@
               <a
                 href="/privacy"
                 target="_blank"
-                class="text-primary-600 hover:text-primary-500 font-semibold underline decoration-2 decoration-primary-200 underline-offset-2"
+                class="text-primary-600 hover:text-primary-500 font-semibold underline decoration-dotted decoration-primary-500/50 underline-offset-4"
                 @click.stop
                 >Privacy Policy</a
               >.
@@ -98,12 +98,12 @@
       <UButton
         type="submit"
         block
-        size="lg"
+        size="xl"
         :color="isValid ? 'primary' : 'gray'"
         :variant="isValid ? 'solid' : 'soft'"
         :disabled="!isValid"
         :loading="loading"
-        class="font-bold text-lg py-3 transition-transform active:scale-[0.98]"
+        class="shadow-sm transition-all py-4 font-bold"
         :ui="{ rounded: 'rounded-xl' }"
       >
         {{ isValid ? "Let's Go! 🚀" : 'Accept & Continue' }}
