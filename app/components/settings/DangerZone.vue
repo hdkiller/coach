@@ -121,7 +121,7 @@
   async function confirmClearSchedule() {
     if (
       !confirm(
-        'Are you sure? This will delete all future planned workouts that are not marked as complete.'
+        'Are you sure? This will delete ALL future planned workouts from your schedule AND remove them from Intervals.icu.'
       )
     ) {
       return
