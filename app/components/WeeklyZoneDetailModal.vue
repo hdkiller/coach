@@ -228,23 +228,50 @@
       streams.forEach((stream) => {
         if (!stream) return
 
+        const timeArray = stream.time
+
         // Process HR zones
         if ('heartrate' in stream && Array.isArray(stream.heartrate) && props.userZones?.hrZones) {
           hasHrData = true
-          stream.heartrate.forEach((hr: number) => {
+          stream.heartrate.forEach((hr: number, index: number) => {
             if (hr === null || hr === undefined) return
+
+            let duration = 1
+            if (timeArray && Array.isArray(timeArray) && timeArray.length > index) {
+              if (index < timeArray.length - 1) {
+                duration = timeArray[index + 1] - timeArray[index]
+              } else if (index > 0) {
+                duration = timeArray[index] - timeArray[index - 1]
+              }
+            }
+            // Sanity check: cap duration to avoid massive spikes from pauses (e.g. > 5 mins)
+            if (duration < 0) duration = 0
+            if (duration > 300) duration = 1
+
             const zoneIndex = getZoneIndex(hr, props.userZones.hrZones)
-            if (zoneIndex >= 0 && zoneIndex < 8) hrZoneTimes[zoneIndex]++
+            if (zoneIndex >= 0 && zoneIndex < 8) hrZoneTimes[zoneIndex] += duration
           })
         }
 
         // Process Power zones
         if ('watts' in stream && Array.isArray(stream.watts) && props.userZones?.powerZones) {
           hasPowerData = true
-          stream.watts.forEach((watts: number) => {
+          stream.watts.forEach((watts: number, index: number) => {
             if (watts === null || watts === undefined) return
+
+            let duration = 1
+            if (timeArray && Array.isArray(timeArray) && timeArray.length > index) {
+              if (index < timeArray.length - 1) {
+                duration = timeArray[index + 1] - timeArray[index]
+              } else if (index > 0) {
+                duration = timeArray[index] - timeArray[index - 1]
+              }
+            }
+            if (duration < 0) duration = 0
+            if (duration > 300) duration = 1
+
             const zoneIndex = getZoneIndex(watts, props.userZones.powerZones)
-            if (zoneIndex >= 0 && zoneIndex < 8) powerZoneTimes[zoneIndex]++
+            if (zoneIndex >= 0 && zoneIndex < 8) powerZoneTimes[zoneIndex] += duration
           })
         }
       })
