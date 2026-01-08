@@ -30,6 +30,7 @@ export interface CalendarActivity {
   commute?: boolean
   isPrivate?: boolean
   gearId?: string
+  hasStreams?: boolean
 
   // Planned specific
   plannedDuration?: number

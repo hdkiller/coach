@@ -152,7 +152,10 @@ export default defineEventHandler(async (event) => {
     endDate,
     orderBy: { date: 'asc' },
     include: {
-      plannedWorkout: true
+      plannedWorkout: true,
+      streams: {
+        select: { id: true }
+      }
     }
   })
 
@@ -222,6 +225,7 @@ export default defineEventHandler(async (event) => {
       commute: w.commute,
       isPrivate: w.isPrivate,
       gearId: w.gearId,
+      hasStreams: !!(w as any).streams,
 
       // Planned workout link
       plannedWorkoutId: w.plannedWorkoutId,

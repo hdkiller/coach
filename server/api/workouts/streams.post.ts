@@ -13,7 +13,11 @@ defineRouteMeta({
             type: 'object',
             required: ['workoutIds'],
             properties: {
-              workoutIds: { type: 'array', items: { type: 'string' } }
+              workoutIds: { type: 'array', items: { type: 'string' } },
+              points: {
+                type: 'number',
+                description: 'Target number of points for downsampling (default 2000)'
+              }
             }
           }
         }
@@ -57,7 +61,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { workoutIds } = body
+  const { workoutIds, points } = body
 
   if (!workoutIds || !Array.isArray(workoutIds) || workoutIds.length === 0) {
     return []
@@ -88,7 +92,7 @@ export default defineEventHandler(async (event) => {
   })
 
   // Downsample streams to prevent large payloads (Fixes COACH-WATTS-A)
-  const TARGET_POINTS = 2000
+  const TARGET_POINTS = typeof points === 'number' && points > 0 ? points : 2000
   const streamKeys = [
     'time',
     'watts',
