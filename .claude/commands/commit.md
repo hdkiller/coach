@@ -60,6 +60,7 @@ git log --oneline -1
 - **Types**: `refactor`, `feat`, `fix`, `chore`, `docs`, `style`, `test`
 - **Scopes**: `components`, `api`, `pages`, `composables`, `scripts`, etc.
 - **Length**: Keep it concise but descriptive
+- **Sentry Issues**: If the fix addresses a Sentry issue, include the Sentry Issue ID in the description (e.g., `fix(api): resolve null reference (COACH-WATTS-1M)`) for auto-closure
 - **Single Line ONLY**: NO multi-line messages, NO body, NO footers
 - **NO Claude Attribution**: Do NOT add "Co-Authored-By: Claude" or "Generated with Claude Code" footers
 
@@ -73,6 +74,7 @@ git commit -m "refactor(pages): update page components with improved error handl
 git commit -m "refactor(scripts): update integration providers audit script and dependencies"
 git commit -m "feat(api): add new authentication middleware"
 git commit -m "fix(components): resolve null reference in user profile"
+git commit -m "fix(pages): resolve hydration error in changelog (COACH-WATTS-1F)"
 ```
 
 ### ❌ Bad Examples (These will be rejected by commit hooks)

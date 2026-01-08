@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
   const config = useRuntimeConfig()
-  const { data, pending, error } = await useFetch('/api/changelog')
+  const { data, pending, error } = useFetch('/api/changelog')
 
   useHead({
     title: 'Changelog',

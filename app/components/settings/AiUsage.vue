@@ -70,9 +70,7 @@
                 {{ (data.summary.successRate ?? 0).toFixed(1) }}%
               </div>
               <div class="text-sm text-blue-600 dark:text-blue-400">
-                {{ data.summary.successfulCalls ?? 0 }}/{{
-                  data.summary.totalCalls ?? 0
-                }}
+                {{ data.summary.successfulCalls ?? 0 }}/{{ data.summary.totalCalls ?? 0 }}
                 successful
               </div>
             </div>
@@ -118,7 +116,7 @@
   const loading = ref(true)
   const refreshing = ref(false)
 
-  const { data, refresh: refreshData } = await useFetch('/api/analytics/llm-usage', {
+  const { data, refresh: refreshData } = useFetch('/api/analytics/llm-usage', {
     query: {
       days: 30,
       groupBy: 'operation'

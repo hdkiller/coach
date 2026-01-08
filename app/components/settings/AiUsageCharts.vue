@@ -146,7 +146,7 @@
   const loading = ref(true)
   const { formatDate } = useFormat()
 
-  const { data } = await useFetch('/api/analytics/llm-usage', {
+  const { data } = useFetch('/api/analytics/llm-usage', {
     query: {
       days: 30,
       groupBy: 'operation'
@@ -156,7 +156,7 @@
   })
 
   // Also fetch daily data
-  const { data: dailyDataRaw } = await useFetch('/api/analytics/llm-usage', {
+  const { data: dailyDataRaw } = useFetch('/api/analytics/llm-usage', {
     query: {
       days: 7,
       groupBy: 'date'
