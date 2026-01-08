@@ -348,12 +348,6 @@ export async function updateIntervalsPlannedWorkout(
 
   if (sport) eventData.type = sport
 
-  console.log('[updateIntervalsPlannedWorkout] 📤 Updating on Intervals.icu:', {
-    athleteId,
-    eventId,
-    eventData
-  })
-
   const url = `https://intervals.icu/api/v1/athlete/${athleteId}/events/${eventId}`
   const headers = getIntervalsHeaders(integration)
 
@@ -368,6 +362,13 @@ export async function updateIntervalsPlannedWorkout(
 
   if (!response.ok) {
     const errorText = await response.text()
+    console.error('[updateIntervalsPlannedWorkout] ❌ Intervals.icu update failed:', {
+      status: response.status,
+      athleteId,
+      eventId,
+      errorText,
+      eventData
+    })
     throw new Error(`Intervals API error: ${response.status} ${errorText}`)
   }
 
