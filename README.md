@@ -29,6 +29,10 @@
 
 Unlike static dashboards, Coach Watts understands context—analyzing not just your power numbers, but your recovery, sleep, nutrition, and life stress to guide you toward peak performance.
 
+<p align="center">
+  <img src="docs/assets/images/dashboard_full.png" alt="Coach Watts Dashboard" width="100%">
+</p>
+
 ## ✨ Key Features
 
 - **🔗 Unified Data Hub:** Syncs automatically with multiple fitness platforms to create a 360° view of your athlete profile.
@@ -39,6 +43,20 @@ Unlike static dashboards, Coach Watts understands context—analyzing not just y
 - **📈 Advanced Analytics:** Track Fitness (CTL), Fatigue (ATL), Form (TSB), and Power Curves with intuitive visualizations.
 - **🥗 Nutrition Tracking:** AI analysis of your macro intake vs. training demands.
 - **📅 Smart Planning:** Generate adaptive training plans that fit your schedule and goals.
+
+## 🖼️ Visual Tour
+
+|                                  **Performance Analytics**                                   |                                  **Training Calendar**                                  |
+| :------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: |
+| <img src="docs/assets/images/performance_full.png" alt="Performance Analytics" width="100%"> | <img src="docs/assets/images/activities_full.png" alt="Activity Calendar" width="100%"> |
+
+|                                 **AI Workout Analysis**                                  |                             **Adaptive Planning**                             |
+| :--------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------: |
+| <img src="docs/assets/images/workout_detail_complex.png" alt="AI Analysis" width="100%"> | <img src="docs/assets/images/plan_full.png" alt="Training Plan" width="100%"> |
+
+|                                     **Planned Workouts**                                     |                               **AI Coach Settings**                                |
+| :------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------: |
+| <img src="docs/assets/images/planned_workout_detail.png" alt="Planned Workout" width="100%"> | <img src="docs/assets/images/ai_settings_full.png" alt="AI Settings" width="100%"> |
 
 ## 🔌 Integrations
 
