@@ -3,12 +3,7 @@ import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
-import {
-  getUserTimezone,
-  getStartOfDaysAgoUTC,
-  getStartOfDayUTC,
-  formatUserDate
-} from '../server/utils/date'
+import { getUserTimezone, getStartOfDaysAgoUTC, formatUserDate } from '../server/utils/date'
 
 const adHocWorkoutSchema = {
   type: 'object',
@@ -34,7 +29,10 @@ export const generateAdHocWorkoutTask = task({
     const { userId, date, preferences } = payload
 
     const timezone = await getUserTimezone(userId)
-    const today = getStartOfDayUTC(timezone, new Date(date))
+    // Calculate today based on user's timezone date string forced to UTC midnight
+    // This ensures it matches @db.Date columns (e.g. 2026-01-09T00:00:00Z) even if the real start of day is previous UTC day
+    const dateStr = formatUserDate(new Date(date), timezone, 'yyyy-MM-dd')
+    const today = new Date(`${dateStr}T00:00:00Z`)
 
     logger.log('Generating ad-hoc workout', { userId, date: today, preferences, timezone })
 

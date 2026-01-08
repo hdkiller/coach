@@ -38,12 +38,11 @@ export default defineEventHandler(async (event) => {
   const { type, durationMinutes, intensity, notes } = body
 
   const userId = (session.user as any).id
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const now = new Date()
 
   const handle = await tasks.trigger('generate-ad-hoc-workout', {
     userId,
-    date: today,
+    date: now,
     preferences: {
       type,
       durationMinutes,
