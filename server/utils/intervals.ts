@@ -892,12 +892,12 @@ export function normalizeIntervalsWellness(
     lactate: wellness.lactate || null,
 
     // Hydration & Health
-    hydration: wellness.hydration || null,
+    hydration: wellness.hydration ? String(wellness.hydration) : null,
     hydrationVolume: wellness.hydrationVolume || null,
-    injury: wellness.injury || null,
+    injury: wellness.injury ? String(wellness.injury) : null,
 
     // Cycle
-    menstrualPhase: wellness.menstrualPhase || null,
+    menstrualPhase: wellness.menstrualPhase ? String(wellness.menstrualPhase) : null,
 
     // Training load
     ctl: wellness.ctl || null,
