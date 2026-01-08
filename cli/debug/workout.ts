@@ -177,12 +177,23 @@ troubleshootWorkoutsCommand
               unit: 's'
             },
             { label: 'Distance', db: w.distanceMeters, raw: raw.distance, tolerance: 1, unit: 'm' },
-            { label: 'TSS', db: w.tss, raw: raw.tss, tolerance: 0.1 },
+            {
+              label: 'TSS',
+              db: w.tss,
+              raw: raw.tss ?? raw.icu_training_load ?? null,
+              tolerance: 0.1
+            },
             { label: 'Load', db: w.trainingLoad, raw: raw.icu_training_load, tolerance: 0.1 },
             {
               label: 'Intensity',
               db: w.intensity,
-              raw: raw.icu_intensity || raw.intensity,
+              raw: (() => {
+                let val = raw.icu_intensity || raw.intensity || null
+                if (val !== null && val > 5) {
+                  val = val / 100
+                }
+                return val ? Math.round(val * 10000) / 10000 : null
+              })(),
               tolerance: 0.01
             },
             { label: 'Kjoules', db: w.kilojoules, raw: raw.icu_joules, tolerance: 5 },
@@ -201,7 +212,12 @@ troubleshootWorkoutsCommand
               unit: '%'
             },
             { label: 'RPE', db: w.rpe, raw: raw.perceived_exertion || raw.icu_rpe, tolerance: 0 },
-            { label: 'Feel', db: w.feel, raw: raw.feel, tolerance: 0 },
+            {
+              label: 'Feel',
+              db: w.feel,
+              raw: raw.feel ? 6 - raw.feel : null,
+              tolerance: 0
+            },
             { label: 'Session RPE', db: w.sessionRpe, raw: raw.session_rpe, tolerance: 0 }
           )
         } else if (w.source === 'strava') {
