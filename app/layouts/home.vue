@@ -99,6 +99,9 @@
                 </NuxtLink>
               </li>
               <li>
+                <NuxtLink to="/support" class="hover:text-primary">Support</NuxtLink>
+              </li>
+              <li>
                 <NuxtLink to="/login" class="hover:text-primary">Login</NuxtLink>
               </li>
             </ul>

@@ -50,6 +50,9 @@
             >
               GitHub
             </UButton>
+            <UButton to="/support" variant="ghost" color="neutral" icon="i-heroicons-lifebuoy">
+              Support
+            </UButton>
             <UButton to="#" variant="ghost" color="neutral" icon="i-lucide-book"> Docs </UButton>
           </div>
         </div>
