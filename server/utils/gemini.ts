@@ -437,7 +437,8 @@ export function buildWorkoutSummary(workouts: any[]): string {
       if (w.powerHrRatio) lines.push(`- **Power/HR Ratio**: ${w.powerHrRatio.toFixed(2)}`)
       if (w.efficiencyFactor)
         lines.push(`- **Efficiency Factor**: ${w.efficiencyFactor.toFixed(2)}`)
-      if (w.decoupling) lines.push(`- **Decoupling**: ${w.decoupling.toFixed(1)}%`)
+      if (w.decoupling !== null && w.decoupling !== undefined)
+        lines.push(`- **Decoupling**: ${w.decoupling.toFixed(1)}%`)
 
       // Fitness tracking
       if (w.ctl) lines.push(`- **CTL (Fitness)**: ${Math.round(w.ctl)}`)

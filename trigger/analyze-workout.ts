@@ -400,7 +400,8 @@ function buildWorkoutAnalysisData(workout: any) {
   if (workout.variabilityIndex) data.variability_index = workout.variabilityIndex
   if (workout.powerHrRatio) data.power_hr_ratio = workout.powerHrRatio
   if (workout.efficiencyFactor) data.efficiency_factor = workout.efficiencyFactor
-  if (workout.decoupling) data.decoupling = workout.decoupling
+  if (workout.decoupling !== null && workout.decoupling !== undefined)
+    data.decoupling = workout.decoupling
   if (workout.polarizationIndex) data.polarization_index = workout.polarizationIndex
 
   // Extended Advanced Metrics (Pass through for AI)
@@ -724,9 +725,9 @@ function buildWorkoutAnalysisPrompt(workoutData: any, timezone: string): string 
     if (workoutData.efficiency_factor) {
       prompt += `- Efficiency Factor (EF): ${formatMetric(workoutData.efficiency_factor, 2)} (Watts/HR - higher is better)\n`
     }
-    if (workoutData.decoupling !== undefined) {
+    if (workoutData.decoupling !== undefined && workoutData.decoupling !== null) {
       prompt += `- Decoupling: ${formatMetric(workoutData.decoupling, 1)}%\n`
-      prompt += `  - <5% = Excellent aerobic efficiency, 5-10% = Good, >10% = Needs aerobic work\n`
+      prompt += `  - <5% = Excellent aerobic efficiency (negative values also good), 5-10% = Good, >10% = Needs aerobic work\n`
     }
     if (workoutData.power_hr_ratio) {
       prompt += `- Power/HR Ratio: ${formatMetric(workoutData.power_hr_ratio, 2)}\n`

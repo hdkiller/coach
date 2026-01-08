@@ -219,7 +219,10 @@ export default defineEventHandler(async (event) => {
 
   // 4. Advanced Metrics (Drift, Coasting, Surges)
   const decoupling =
-    hasWatts && hasHr ? calculateAerobicDecoupling(time, wattsStream!, hrStream!) : null
+    workout.decoupling ??
+    (hasWatts && hasHr
+      ? (calculateAerobicDecoupling(time, wattsStream!, hrStream!) || 0) * 100
+      : null)
 
   const coasting = hasWatts
     ? calculateCoastingStats(time, wattsStream!, cadenceStream || [], velocityStream || [])
