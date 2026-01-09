@@ -28,9 +28,16 @@
                 <p class="text-sm text-muted">{{ formatDate(data.createdAt) }}</p>
               </div>
             </div>
-            <UBadge :color="data.success ? 'success' : 'error'" variant="subtle">
-              {{ data.success ? 'Success' : 'Failed' }}
-            </UBadge>
+            <div class="flex items-center gap-4">
+              <AiFeedback
+                :llm-usage-id="data.id"
+                :initial-feedback="data.feedback"
+                :initial-feedback-text="data.feedbackText"
+              />
+              <UBadge :color="data.success ? 'success' : 'error'" variant="subtle">
+                {{ data.success ? 'Success' : 'Failed' }}
+              </UBadge>
+            </div>
           </div>
         </template>
 
@@ -193,6 +200,8 @@
     promptPreview: string | null
     responseFull: string | null
     responsePreview: string | null
+    feedback: string | null
+    feedbackText: string | null
   }
 
   const id = computed(() => route.params.id as string)

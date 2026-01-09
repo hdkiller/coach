@@ -103,6 +103,8 @@ export default defineEventHandler(async (event) => {
     responsePreview: usage.responsePreview,
     promptFull: usage.promptFull,
     responseFull: usage.responseFull,
+    feedback: usage.feedback,
+    feedbackText: usage.feedbackText,
     createdAt: usage.createdAt
   }
 })
