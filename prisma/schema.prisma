@@ -1333,6 +1333,10 @@ model LlmUsage {
   success         Boolean  // Whether the call succeeded
   errorType       String?  // "rate_limit", "api_error", "timeout", etc.
   errorMessage    String?  @db.Text
+
+  // User Feedback
+  feedback        String?  // "THUMBS_UP", "THUMBS_DOWN"
+  feedbackText    String?  @db.Text // Optional text feedback
   
   // Request/Response Data (for debugging)
   promptPreview   String?  @db.Text // First 500 chars of prompt (for quick preview)
