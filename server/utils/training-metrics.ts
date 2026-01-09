@@ -355,20 +355,21 @@ export async function calculateIntensityDistribution(
     where: {
       userId,
       date: { gte: startDate, lte: endDate },
-      intensity: { not: null },
+      durationSec: { gt: 0 },
       isDuplicate: false
     },
     select: {
       id: true,
       type: true,
       intensity: true,
+      tss: true,
       durationSec: true,
       date: true
     }
   })
 
   console.log('[TrainingMetrics] Intensity Distribution Debug:')
-  console.log(`  Found ${workouts.length} workouts with intensity data`)
+  console.log(`  Found ${workouts.length} workouts`)
 
   const distribution = {
     recovery: 0,
@@ -381,61 +382,53 @@ export async function calculateIntensityDistribution(
   let totalTime = 0
 
   for (const workout of workouts) {
-    let intensity = workout.intensity!
+    let intensity = workout.intensity
     const duration = workout.durationSec
 
-    // Normalize intensity: Intensity Factor should be a decimal ratio (typically 0.5-1.5, rarely >2.0)
-    // - If > 2.0: Invalid data (likely from old Strava calculation), skip this workout
-    // - If 2.0-10: Stored as percentage, divide by 100
-    // - Otherwise: Use as-is (intervals.icu provides correct decimal values)
+    // Fallback: Calculate IF from TSS if missing
+    // IF = sqrt( (TSS * 3600) / (Duration * 100) )
+    if ((intensity === null || intensity === undefined) && workout.tss && duration > 0) {
+      intensity = Math.sqrt((workout.tss * 3600) / (duration * 100))
+      console.log(
+        `  Workout ${workout.id}: Calculated IF=${intensity.toFixed(3)} from TSS=${workout.tss}`
+      )
+    }
+
+    if (intensity === null || intensity === undefined) {
+      // Still no intensity, skip
+      continue
+    }
+
+    // Normalize intensity
     if (intensity > 2.0) {
       if (intensity <= 10) {
-        // Stored as percentage (e.g., 8.8 for 88%)
-        console.log(
-          `  Workout ${workout.id} (${workout.type}): Raw IF=${intensity.toFixed(3)} (normalizing to ${(intensity / 100).toFixed(3)}), Duration=${duration}s`
-        )
         intensity = intensity / 100
       } else if (intensity <= 200) {
-        // Stored as percentage * 100 (e.g., 88.210 for 88.21%)
-        console.log(
-          `  Workout ${workout.id} (${workout.type}): Raw IF=${intensity.toFixed(3)} (normalizing to ${(intensity / 100).toFixed(3)}), Duration=${duration}s`
-        )
         intensity = intensity / 100
       } else {
-        // Invalid data (e.g., raw watts from bad Strava calculation)
         console.log(
           `  Workout ${workout.id} (${workout.type}): Invalid IF=${intensity.toFixed(3)}, skipping`
         )
         continue
       }
-    } else {
-      console.log(
-        `  Workout ${workout.id} (${workout.type}): IF=${intensity.toFixed(3)}, Duration=${duration}s`
-      )
     }
 
     totalTime += duration
 
     if (intensity < 0.7) {
       distribution.recovery += duration
-      console.log(`    -> Recovery (<0.70)`)
     } else if (intensity < 0.85) {
       distribution.endurance += duration
-      console.log(`    -> Endurance (0.70-0.85)`)
     } else if (intensity < 0.95) {
       distribution.tempo += duration
-      console.log(`    -> Tempo (0.85-0.95)`)
     } else if (intensity <= 1.05) {
       distribution.threshold += duration
-      console.log(`    -> Threshold (0.95-1.05)`)
     } else {
       distribution.vo2max += duration
-      console.log(`    -> VO2 Max (>1.05)`)
     }
   }
 
   console.log(`  Total time: ${totalTime}s`)
-  console.log(`  Distribution (seconds):`, distribution)
 
   // Convert to percentages
   if (totalTime > 0) {
