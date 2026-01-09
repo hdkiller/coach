@@ -328,8 +328,8 @@
     currentPage.value = page
   }
 
-  function viewDetails(id: string) {
-    router.push(`/settings/llm/usage/${id}`)
+  function viewDetail(id: string) {
+    router.push(`/ai/logs/${id}`)
   }
 
   function formatNumber(num: number | null | undefined): string {

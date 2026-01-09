@@ -56,7 +56,7 @@ Use this component whenever you display AI-generated content that persists in th
     - **Submitting Text:** The user can enter text and click "Submit", which sends another update to the same endpoint including the `feedbackText`.
 
 3.  **Usage Link:**
-    - An icon (`i-heroicons-document-text`) links to `/settings/llm/usage/[id]`, allowing developers or curious users to see the full prompt and response details.
+    - An icon (`i-heroicons-document-text`) links to `/ai/logs/[id]`, allowing developers or curious users to see the full prompt and response details.
 
 ## Integration Checklist
 

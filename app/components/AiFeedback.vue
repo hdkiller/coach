@@ -33,7 +33,7 @@
     <!-- Usage Link -->
     <UTooltip v-if="llmUsageId && !hideUsageLink" text="View AI Log">
       <UButton
-        :to="`/settings/llm/usage/${llmUsageId}`"
+        :to="`/ai/logs/${llmUsageId}`"
         icon="i-heroicons-document-text"
         color="gray"
         variant="ghost"
