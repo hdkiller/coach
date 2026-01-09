@@ -141,6 +141,15 @@
             }}
           </p>
         </div>
+
+        <div class="flex justify-end pt-2">
+          <AiFeedback
+            v-if="recommendationStore.todayRecommendation.llmUsageId"
+            :llm-usage-id="recommendationStore.todayRecommendation.llmUsageId"
+            :initial-feedback="recommendationStore.todayRecommendation.feedback"
+            :initial-feedback-text="recommendationStore.todayRecommendation.feedbackText"
+          />
+        </div>
       </div>
       <div v-else-if="recommendationStore.todayWorkout" class="text-sm text-muted italic">
         Get AI-powered guidance for this workout based on your recovery.
