@@ -87,7 +87,8 @@ interface TrainingContext {
     weeklyTSSAvg: number
   }
   activityBreakdown: ActivityBreakdown[]
-  zoneDistribution?: ZoneDistribution
+  hrZoneDistribution?: ZoneDistribution
+  powerZoneDistribution?: ZoneDistribution
   intensityDistribution: {
     recovery: number // < 0.70 IF
     endurance: number // 0.70-0.85 IF
@@ -127,10 +128,9 @@ function getZoneIndex(value: number, zones: Zone[]): number {
  */
 export async function calculateZoneDistribution(
   workoutIds: string[],
-  userId: string,
-  options: { preferPower?: boolean } = {}
-): Promise<ZoneDistribution | null> {
-  if (workoutIds.length === 0) return null
+  userId: string
+): Promise<{ hr?: ZoneDistribution; power?: ZoneDistribution }> {
+  if (workoutIds.length === 0) return {}
 
   // Fetch user's zone definitions
   const user = await prisma.user.findUnique({
@@ -152,7 +152,7 @@ export async function calculateZoneDistribution(
     }
   })
 
-  if (streams.length === 0) return null
+  if (streams.length === 0) return {}
 
   // Aggregate zone times
   const hrZoneTimes = new Array(5).fill(0)
@@ -200,26 +200,39 @@ export async function calculateZoneDistribution(
     }
   }
 
-  // Prefer power if available (or if explicitly requested), otherwise use HR
-  const usePower = options.preferPower ? hasPowerData : hasPowerData || !hasHrData
-  const zoneTimes = usePower ? powerZoneTimes : hrZoneTimes
-  const zones = usePower ? powerZones : hrZones
-  const type = usePower ? ('power' as const) : ('hr' as const)
+  const result: { hr?: ZoneDistribution; power?: ZoneDistribution } = {}
 
-  if (!usePower && !hasHrData) return null
-
-  const totalTime = zoneTimes.reduce((sum, time) => sum + time, 0)
-  if (totalTime === 0) return null
-
-  return {
-    type,
-    zones: zones.map((zone, index) => ({
-      name: zone.name,
-      timeSeconds: zoneTimes[index],
-      percentage: (zoneTimes[index] / totalTime) * 100
-    })),
-    totalTime
+  if (hasHrData) {
+    const totalTime = hrZoneTimes.reduce((sum, time) => sum + time, 0)
+    if (totalTime > 0) {
+      result.hr = {
+        type: 'hr',
+        zones: hrZones.map((zone, index) => ({
+          name: zone.name,
+          timeSeconds: hrZoneTimes[index],
+          percentage: (hrZoneTimes[index] / totalTime) * 100
+        })),
+        totalTime
+      }
+    }
   }
+
+  if (hasPowerData) {
+    const totalTime = powerZoneTimes.reduce((sum, time) => sum + time, 0)
+    if (totalTime > 0) {
+      result.power = {
+        type: 'power',
+        zones: powerZones.map((zone, index) => ({
+          name: zone.name,
+          timeSeconds: powerZoneTimes[index],
+          percentage: (powerZoneTimes[index] / totalTime) * 100
+        })),
+        totalTime
+      }
+    }
+  }
+
+  return result
 }
 
 /**
@@ -551,22 +564,14 @@ export async function generateTrainingContext(
   const intensityDistribution = await calculateIntensityDistribution(userId, startDate, endDate)
 
   // Optionally get zone distribution (expensive operation)
-  let zoneDistribution: ZoneDistribution | undefined
+  let hrZoneDistribution: ZoneDistribution | undefined
+  let powerZoneDistribution: ZoneDistribution | undefined
   if (includeZones) {
     const workoutIds = workouts.map((w) => w.id)
-    zoneDistribution = (await calculateZoneDistribution(workoutIds, userId)) || undefined
+    const zones = await calculateZoneDistribution(workoutIds, userId)
+    hrZoneDistribution = zones.hr
+    powerZoneDistribution = zones.power
   }
-
-  // Calculate full trend history for context if needed (though not currently returned in TrainingContext interface??)
-  // Wait, TrainingContext interface doesn't have trend history array, just summary stats.
-  // But calculateLoadTrends IS exported and used elsewhere?
-  // Checking usage... it seems calculateLoadTrends is NOT used inside generateTrainingContext in the original code?
-  // Let me check the original code I read.
-
-  // Ah, I see. generateTrainingContext constructs `loadTrend` object manually from single point values.
-  // It does NOT call calculateLoadTrends.
-  // However, I see I modified calculateLoadTrends earlier.
-  // Let's check if anyone calls calculateLoadTrends.
 
   return {
     period,
@@ -579,7 +584,8 @@ export async function generateTrainingContext(
       weeklyTSSAvg
     },
     activityBreakdown,
-    zoneDistribution,
+    hrZoneDistribution,
+    powerZoneDistribution,
     intensityDistribution
   }
 }
@@ -659,11 +665,24 @@ export function formatTrainingContextForPrompt(context: TrainingContext): string
   }
   lines.push('')
 
-  // Zone Distribution (if available)
-  if (context.zoneDistribution) {
-    const type = context.zoneDistribution.type === 'hr' ? 'Heart Rate' : 'Power'
-    lines.push(`### ${type} Zone Distribution`)
-    for (const zone of context.zoneDistribution.zones) {
+  // Power Zone Distribution
+  if (context.powerZoneDistribution) {
+    lines.push(`### Power Zone Distribution`)
+    for (const zone of context.powerZoneDistribution.zones) {
+      if (zone.percentage > 0) {
+        const hours = Math.floor(zone.timeSeconds / 3600)
+        const minutes = Math.floor((zone.timeSeconds % 3600) / 60)
+        const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+        lines.push(`- ${zone.name}: ${timeStr} (${zone.percentage.toFixed(1)}%)`)
+      }
+    }
+    lines.push('')
+  }
+
+  // HR Zone Distribution
+  if (context.hrZoneDistribution) {
+    lines.push(`### Heart Rate Zone Distribution`)
+    for (const zone of context.hrZoneDistribution.zones) {
       if (zone.percentage > 0) {
         const hours = Math.floor(zone.timeSeconds / 3600)
         const minutes = Math.floor((zone.timeSeconds % 3600) / 60)

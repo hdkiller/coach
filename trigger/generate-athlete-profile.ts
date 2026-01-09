@@ -375,7 +375,14 @@ export const generateAthleteProfileTask = task({
       ] = await Promise.all([
         prisma.user.findUnique({
           where: { id: userId },
-          select: { ftp: true, weight: true, maxHr: true, dob: true }
+          select: {
+            ftp: true,
+            weight: true,
+            maxHr: true,
+            dob: true,
+            lthr: true,
+            hrZones: true
+          }
         }),
         workoutRepository.getForUser(userId, {
           startDate: thirtyDaysAgo,
@@ -483,6 +490,25 @@ export const generateAthleteProfileTask = task({
         activeGoals: activeGoals.length
       })
 
+      // Build HR Zone Definitions
+      let hrZoneDefinitions = ''
+      if (user?.lthr) {
+        hrZoneDefinitions += `**User HR Zone Definitions (from profile/settings):**\n`
+        hrZoneDefinitions += `- LTHR: ${user.lthr} bpm\n`
+        if (user.hrZones && Array.isArray(user.hrZones)) {
+          user.hrZones.forEach((z: any) => {
+            hrZoneDefinitions += `- ${z.name}: ${z.min}-${z.max} bpm\n`
+          })
+        } else {
+          // Fallback if no custom zones but LTHR exists
+          hrZoneDefinitions += `- Z1 Recovery: <${Math.round(user.lthr * 0.81)} bpm (<81% LTHR)\n`
+          hrZoneDefinitions += `- Z2 Aerobic: ${Math.round(user.lthr * 0.81)}-${Math.round(user.lthr * 0.9)} bpm (81-90% LTHR)\n`
+          hrZoneDefinitions += `- Z3 Tempo: ${Math.round(user.lthr * 0.9)}-${Math.round(user.lthr * 0.94)} bpm (90-94% LTHR)\n`
+          hrZoneDefinitions += `- Z4 Threshold: ${Math.round(user.lthr * 0.94)}-${Math.round(user.lthr * 1.0)} bpm (94-100% LTHR)\n`
+          hrZoneDefinitions += `- Z5+ VO2 Max: >${Math.round(user.lthr * 1.0)} bpm (>100% LTHR)\n`
+        }
+      }
+
       // Build workout insights from AI analysis
       const workoutInsights = recentWorkouts
         .filter((w) => w.aiAnalysisJson)
@@ -582,7 +608,7 @@ Recent sleep: ${recentWellness
         totalTSS: trainingContext.summary.totalTSS,
         currentCTL: trainingContext.loadTrend.currentCTL,
         currentTSB: trainingContext.loadTrend.currentTSB,
-        hasZoneData: !!trainingContext.zoneDistribution
+        hasZoneData: !!trainingContext.hrZoneDistribution
       })
 
       // Build comprehensive prompt
@@ -595,6 +621,8 @@ USER PROFILE:
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 
 ${formattedContext}
+
+${hrZoneDefinitions}
 
 WORKOUT INSIGHTS (from AI analysis):
 ${workoutInsights || 'No detailed workout analysis available'}
@@ -625,7 +653,9 @@ Focus on:
 - Recent performance trends from workout analysis
 - Key themes from recent recommendations
 - **Current goals and their feasibility** given the athlete's current state
-- What should be considered when planning future workouts to support goal achievement
+- **Dual Intensity View**: Compare/contrast power vs HR distributions. Flag discrepancies (e.g., "74% Endurance power but only 60% Z2 HR -> HR drift in MTB")
+- **HR-Specific Patterns**: Analyze drift, recovery HR drops between intervals, run vs bike differences
+- **Zone Feasibility**: Assess if distributions support goals (e.g., "0% Z4 HR time blocks FTP progress")
 
 Finally, provide **Athlete Profile Scores** (1-10 scale for tracking long-term development):
 - **Current Fitness**: Overall fitness level based on recent training, FTP, and performance
