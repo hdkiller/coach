@@ -179,7 +179,8 @@ export async function createPlannedWorkout(userId: string, args: any): Promise<a
       description: description || '',
       type: type || 'Ride',
       durationSec: duration_minutes ? duration_minutes * 60 : undefined,
-      tss
+      tss,
+      managedBy: 'COACH_WATTS'
     })
 
     console.log('[createPlannedWorkout] ✅ Intervals.icu workout created:', {
@@ -213,7 +214,8 @@ export async function createPlannedWorkout(userId: string, args: any): Promise<a
         workIntensity,
         completed: false,
         syncStatus: 'SYNCED',
-        lastSyncedAt: new Date()
+        lastSyncedAt: new Date(),
+        managedBy: 'COACH_WATTS'
       }
     })
 
@@ -315,7 +317,8 @@ export async function updatePlannedWorkout(userId: string, args: any): Promise<a
         description: workout.description,
         type: workout.type,
         durationSec: workout.durationSec,
-        tss: workout.tss
+        tss: workout.tss,
+        managedBy: workout.managedBy
       },
       userId
     )

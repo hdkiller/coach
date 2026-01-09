@@ -131,7 +131,8 @@ export default defineEventHandler(async (event) => {
         description: updated.description,
         type: updated.type,
         durationSec: updated.durationSec,
-        tss: updated.tss
+        tss: updated.tss,
+        managedBy: updated.managedBy
       },
       userId
     )

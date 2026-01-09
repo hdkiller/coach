@@ -74,7 +74,8 @@ export default defineEventHandler(async (event) => {
         type: workout.type || 'Ride',
         durationSec: workout.durationSec || 3600,
         tss: workout.tss ?? undefined,
-        workout_doc: workoutDoc
+        workout_doc: workoutDoc,
+        managedBy: workout.managedBy
       })
 
       resultWorkout = intervalsWorkout
@@ -106,7 +107,8 @@ export default defineEventHandler(async (event) => {
             type: workout.type || 'Ride',
             durationSec: workout.durationSec || 3600,
             tss: workout.tss ?? undefined,
-            workout_doc: workoutDoc
+            workout_doc: workoutDoc,
+            managedBy: workout.managedBy
           }
         )
 
@@ -138,7 +140,8 @@ export default defineEventHandler(async (event) => {
             type: workout.type || 'Ride',
             durationSec: workout.durationSec || 3600,
             tss: workout.tss ?? undefined,
-            workout_doc: workoutDoc
+            workout_doc: workoutDoc,
+            managedBy: workout.managedBy
           })
 
           resultWorkout = intervalsWorkout

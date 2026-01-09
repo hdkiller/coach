@@ -1,5 +1,8 @@
 import { prisma } from '../../../utils/db'
-import { deleteIntervalsPlannedWorkout } from '../../../utils/intervals'
+import {
+  deleteIntervalsPlannedWorkout,
+  fetchIntervalsPlannedWorkouts
+} from '../../../utils/intervals'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -10,58 +13,106 @@ export default defineEventHandler(async (event) => {
   const userId = session.user.id
   const now = new Date()
 
-  // Find all future planned workouts
-  const workouts = await prisma.plannedWorkout.findMany({
+  // Fetch user's Intervals integration
+  const integration = await prisma.integration.findUnique({
     where: {
-      userId,
-      date: {
-        gt: now
+      userId_provider: {
+        userId,
+        provider: 'intervals'
       }
     }
   })
 
-  // If we have workouts to delete, try to remove them from Intervals.icu first
-  if (workouts.length > 0) {
-    // Fetch user's Intervals integration
-    const integration = await prisma.integration.findUnique({
-      where: {
-        userId_provider: {
-          userId,
-          provider: 'intervals'
+  // 1. Delete LOCAL CoachWatts workouts
+  // We only delete workouts explicitly managed by CoachWatts
+  const localWorkouts = await prisma.plannedWorkout.findMany({
+    where: {
+      userId,
+      date: {
+        gt: now
+      },
+      managedBy: 'COACH_WATTS'
+    }
+  })
+
+  if (localWorkouts.length > 0 && integration) {
+    // Process remote deletions for local records
+    await Promise.allSettled(
+      localWorkouts.map(async (workout) => {
+        if (workout.externalId && !workout.externalId.startsWith('ai_gen')) {
+          try {
+            await deleteIntervalsPlannedWorkout(integration, workout.externalId)
+          } catch (error) {
+            console.error(`Failed to delete Intervals workout ${workout.externalId}:`, error)
+          }
+        }
+      })
+    )
+  }
+
+  // Delete from local DB
+  const localDeleteResult = await prisma.plannedWorkout.deleteMany({
+    where: {
+      userId,
+      date: {
+        gt: now
+      },
+      managedBy: 'COACH_WATTS'
+    }
+  })
+
+  // 2. Remote Cleanup (Extended Range)
+  // Fetch future events from Intervals to find and delete CoachWatts events
+  // that might not be in our local DB (beyond sync horizon or synced incorrectly)
+  let remoteDeleteCount = 0
+
+  if (integration) {
+    try {
+      const startDate = now
+      const endDate = new Date(now)
+      endDate.setDate(endDate.getDate() + 180) // Check next 6 months
+
+      const remoteEvents = await fetchIntervalsPlannedWorkouts(integration, startDate, endDate)
+
+      // Identify events created by CoachWatts via description tag
+      const cwEvents = remoteEvents.filter(
+        (e) => e.description && e.description.includes('[CoachWatts]')
+      )
+
+      if (cwEvents.length > 0) {
+        console.log(`Found ${cwEvents.length} orphaned CoachWatts events on Intervals.icu`)
+
+        await Promise.allSettled(
+          cwEvents.map(async (e) => {
+            try {
+              await deleteIntervalsPlannedWorkout(integration, e.id)
+              remoteDeleteCount++
+            } catch (err) {
+              console.error(`Failed to delete remote orphan ${e.id}`, err)
+            }
+          })
+        )
+
+        // Ensure they are gone locally too (in case they were mis-labeled in DB)
+        const externalIds = cwEvents.map((e) => String(e.id))
+        if (externalIds.length > 0) {
+          await prisma.plannedWorkout.deleteMany({
+            where: {
+              userId,
+              externalId: { in: externalIds }
+            }
+          })
         }
       }
-    })
-
-    if (integration) {
-      // Process deletions in parallel with some concurrency limit if needed,
-      // but for now Promise.allSettled is fine to ensure we attempt all.
-      await Promise.allSettled(
-        workouts.map(async (workout) => {
-          if (workout.externalId) {
-            try {
-              await deleteIntervalsPlannedWorkout(integration, workout.externalId)
-            } catch (error) {
-              console.error(`Failed to delete Intervals workout ${workout.externalId}:`, error)
-              // Continue - we still want to delete locally
-            }
-          }
-        })
-      )
+    } catch (error) {
+      console.error('Remote cleanup failed:', error)
+      // Non-blocking error
     }
   }
 
-  // Delete all future planned workouts locally
-  const result = await prisma.plannedWorkout.deleteMany({
-    where: {
-      userId,
-      date: {
-        gt: now
-      }
-    }
-  })
-
   return {
     success: true,
-    count: result.count
+    localCount: localDeleteResult.count,
+    remoteOrphanCount: remoteDeleteCount
   }
 })

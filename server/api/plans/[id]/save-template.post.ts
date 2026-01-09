@@ -106,7 +106,8 @@ export default defineEventHandler(async (event) => {
             tss: workout.tss,
             workIntensity: workout.workIntensity,
             structuredWorkout: workout.structuredWorkout as any,
-            completionStatus: 'PENDING'
+            completionStatus: 'PENDING',
+            managedBy: 'COACH_WATTS'
           }
         })
       }

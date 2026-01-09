@@ -113,7 +113,8 @@ export default defineEventHandler(async (event) => {
         description: updatedWorkout.description,
         type: updatedWorkout.type,
         durationSec: updatedWorkout.durationSec,
-        tss: updatedWorkout.tss
+        tss: updatedWorkout.tss,
+        managedBy: updatedWorkout.managedBy
       },
       userId
     )
