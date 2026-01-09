@@ -68,73 +68,119 @@ export const recommendTodayActivityTask = task({
     logger.log("Starting today's activity recommendation", { userId, date: today })
 
     // Fetch all required data
-    const [plannedWorkout, todayMetric, recentWorkouts, user, athleteProfile, activeGoals] =
-      await Promise.all([
-        // Today's planned workout
-        prisma.plannedWorkout.findFirst({
-          where: { userId, date: today },
-          orderBy: { createdAt: 'desc' }
-        }),
+    const [
+      plannedWorkout,
+      todayMetric,
+      recentWorkouts,
+      user,
+      athleteProfile,
+      activeGoals,
+      futureWorkouts,
+      currentPlan
+    ] = await Promise.all([
+      // Today's planned workout
+      prisma.plannedWorkout.findFirst({
+        where: { userId, date: today },
+        orderBy: { createdAt: 'desc' }
+      }),
 
-        // Today's recovery metrics from Wellness table (WHOOP, Intervals.icu, etc.)
-        wellnessRepository.getByDate(userId, today),
+      // Today's recovery metrics from Wellness table (WHOOP, Intervals.icu, etc.)
+      wellnessRepository.getByDate(userId, today),
 
-        // Last 7 days of workouts for context
-        workoutRepository.getForUser(userId, {
-          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-          orderBy: { date: 'desc' },
-          includeDuplicates: false
-        }),
+      // Last 7 days of workouts for context
+      workoutRepository.getForUser(userId, {
+        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        orderBy: { date: 'desc' },
+        includeDuplicates: false
+      }),
 
-        // User profile
-        prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            ftp: true,
-            weight: true,
-            maxHr: true,
-            timezone: true,
-            lthr: true,
-            hrZones: true,
-            powerZones: true
+      // User profile
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          ftp: true,
+          weight: true,
+          maxHr: true,
+          timezone: true,
+          lthr: true,
+          hrZones: true,
+          powerZones: true
+        }
+      }),
+
+      // Latest athlete profile
+      prisma.report.findFirst({
+        where: {
+          userId,
+          type: 'ATHLETE_PROFILE',
+          status: 'COMPLETED'
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { analysisJson: true, createdAt: true }
+      }),
+
+      // Active goals
+      prisma.goal.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE'
+        },
+        orderBy: { priority: 'desc' },
+        select: {
+          title: true,
+          type: true,
+          description: true,
+          targetDate: true,
+          eventDate: true,
+          priority: true
+        }
+      }),
+
+      // Future planned workouts (next 3 days)
+      prisma.plannedWorkout.findMany({
+        where: {
+          userId,
+          date: {
+            gt: today,
+            lte: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)
           }
-        }),
+        },
+        orderBy: { date: 'asc' },
+        select: {
+          date: true,
+          title: true,
+          type: true,
+          tss: true,
+          description: true
+        }
+      }),
 
-        // Latest athlete profile
-        prisma.report.findFirst({
-          where: {
-            userId,
-            type: 'ATHLETE_PROFILE',
-            status: 'COMPLETED'
+      // Current active training plan
+      prisma.weeklyTrainingPlan.findFirst({
+        where: {
+          userId,
+          status: 'ACTIVE',
+          weekStartDate: {
+            lte: today
           },
-          orderBy: { createdAt: 'desc' },
-          select: { analysisJson: true, createdAt: true }
-        }),
-
-        // Active goals
-        prisma.goal.findMany({
-          where: {
-            userId,
-            status: 'ACTIVE'
-          },
-          orderBy: { priority: 'desc' },
-          select: {
-            title: true,
-            type: true,
-            description: true,
-            targetDate: true,
-            eventDate: true,
-            priority: true
+          weekEndDate: {
+            gte: today
           }
-        })
-      ])
+        },
+        select: {
+          planJson: true
+        }
+      })
+    ])
 
     logger.log('Data fetched', {
       hasPlannedWorkout: !!plannedWorkout,
       hasTodayMetric: !!todayMetric,
       recentWorkoutsCount: recentWorkouts.length,
       hasAthleteProfile: !!athleteProfile,
-      activeGoalsCount: activeGoals.length
+      activeGoalsCount: activeGoals.length,
+      futureWorkoutsCount: futureWorkouts.length,
+      hasCurrentPlan: !!currentPlan
     })
 
     // Calculate local time context
