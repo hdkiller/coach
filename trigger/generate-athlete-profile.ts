@@ -472,7 +472,6 @@ export const generateAthleteProfileTask = task({
           },
           orderBy: { weekStartDate: 'desc' },
           select: {
-            weekSummary: true,
             totalTSS: true,
             planJson: true
           }
