@@ -39,3 +39,6 @@ backups/
 
 .gemini/
 gha-creds-*.json
+
+# Public Content
+content/social/

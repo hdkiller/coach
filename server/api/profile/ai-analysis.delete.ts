@@ -92,13 +92,19 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // 5. Delete Score Trend Explanations
+  const scoreTrendsDelete = await prisma.scoreTrendExplanation.deleteMany({
+    where: { userId }
+  })
+
   return {
     success: true,
     counts: {
       workouts: workoutsUpdate.count,
       recommendations: recommendationsDelete.count,
       planAdherence: planAdherenceDelete.count,
-      reports: reportsDelete.count
+      reports: reportsDelete.count,
+      scoreTrends: scoreTrendsDelete.count
     }
   }
 })
