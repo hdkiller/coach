@@ -328,7 +328,7 @@
     currentPage.value = page
   }
 
-  function viewDetail(id: string) {
+  function viewDetails(id: string) {
     router.push(`/ai/logs/${id}`)
   }
 
