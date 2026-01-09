@@ -62,5 +62,26 @@ export default defineEventHandler(async (event) => {
     orderBy: { createdAt: 'desc' }
   })
 
-  return recommendation
+  if (!recommendation) return null
+
+  // Find associated LLM usage
+  const llmUsage = await prisma.llmUsage.findFirst({
+    where: {
+      entityId: recommendation.id,
+      entityType: 'ActivityRecommendation'
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      feedback: true,
+      feedbackText: true
+    }
+  })
+
+  return {
+    ...recommendation,
+    llmUsageId: llmUsage?.id,
+    feedback: llmUsage?.feedback,
+    feedbackText: llmUsage?.feedbackText
+  }
 })

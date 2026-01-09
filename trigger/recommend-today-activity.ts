@@ -401,7 +401,7 @@ Provide specific, actionable recommendations with clear reasoning.`
         userId,
         operation: 'activity_recommendation',
         entityType: 'ActivityRecommendation',
-        entityId: undefined
+        entityId: recommendationId
       }
     )
 
