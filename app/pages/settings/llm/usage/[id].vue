@@ -33,6 +33,7 @@
                 :llm-usage-id="data.id"
                 :initial-feedback="data.feedback"
                 :initial-feedback-text="data.feedbackText"
+                hide-usage-link
               />
               <UBadge :color="data.success ? 'success' : 'error'" variant="subtle">
                 {{ data.success ? 'Success' : 'Failed' }}

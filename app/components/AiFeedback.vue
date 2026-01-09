@@ -1,41 +1,46 @@
 <template>
   <div class="flex items-center gap-1">
     <!-- Thumbs Up -->
-    <UButton
-      :icon="
-        feedback === 'THUMBS_UP' ? 'i-heroicons-hand-thumb-up-solid' : 'i-heroicons-hand-thumb-up'
-      "
-      :color="feedback === 'THUMBS_UP' ? 'green' : 'gray'"
-      variant="ghost"
-      size="xs"
-      :loading="loading === 'THUMBS_UP'"
-      @click="submitFeedback('THUMBS_UP')"
-    />
+    <UTooltip text="Helpful">
+      <UButton
+        :icon="
+          feedback === 'THUMBS_UP' ? 'i-heroicons-hand-thumb-up-solid' : 'i-heroicons-hand-thumb-up'
+        "
+        :color="feedback === 'THUMBS_UP' ? 'green' : 'gray'"
+        variant="ghost"
+        size="xs"
+        :loading="loading === 'THUMBS_UP'"
+        @click="submitFeedback('THUMBS_UP')"
+      />
+    </UTooltip>
 
     <!-- Thumbs Down -->
-    <UButton
-      :icon="
-        feedback === 'THUMBS_DOWN'
-          ? 'i-heroicons-hand-thumb-down-solid'
-          : 'i-heroicons-hand-thumb-down'
-      "
-      :color="feedback === 'THUMBS_DOWN' ? 'red' : 'gray'"
-      variant="ghost"
-      size="xs"
-      :loading="loading === 'THUMBS_DOWN'"
-      @click="handleThumbsDown"
-    />
+    <UTooltip text="Not helpful">
+      <UButton
+        :icon="
+          feedback === 'THUMBS_DOWN'
+            ? 'i-heroicons-hand-thumb-down-solid'
+            : 'i-heroicons-hand-thumb-down'
+        "
+        :color="feedback === 'THUMBS_DOWN' ? 'red' : 'gray'"
+        variant="ghost"
+        size="xs"
+        :loading="loading === 'THUMBS_DOWN'"
+        @click="handleThumbsDown"
+      />
+    </UTooltip>
 
     <!-- Usage Link -->
-    <UButton
-      v-if="llmUsageId"
-      :to="`/settings/llm/usage/${llmUsageId}`"
-      icon="i-heroicons-document-text"
-      color="gray"
-      variant="ghost"
-      size="xs"
-      target="_blank"
-    />
+    <UTooltip v-if="llmUsageId && !hideUsageLink" text="View AI Log">
+      <UButton
+        :to="`/settings/llm/usage/${llmUsageId}`"
+        icon="i-heroicons-document-text"
+        color="gray"
+        variant="ghost"
+        size="xs"
+        target="_blank"
+      />
+    </UTooltip>
 
     <!-- Feedback Modal -->
     <UModal
@@ -76,6 +81,7 @@
     llmUsageId?: string
     initialFeedback?: string | null
     initialFeedbackText?: string | null
+    hideUsageLink?: boolean
   }>()
 
   const feedback = ref(props.initialFeedback)
