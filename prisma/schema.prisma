@@ -98,6 +98,7 @@ model User {
   trainingAvailability TrainingAvailability[]
   weeklyTrainingPlans WeeklyTrainingPlan[]
   scoreTrendExplanations ScoreTrendExplanation[]
+  recommendations Recommendation[]
   chatParticipations ChatParticipant[]
   llmUsage LlmUsage[]
   syncQueue SyncQueue[]
@@ -1211,6 +1212,9 @@ model ScoreTrendExplanation {
   generatedAt DateTime @default(now())
   expiresAt   DateTime // When this explanation should be regenerated
   
+  // LLM Tracking
+  llmUsageId   String?
+  
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   createdAt   DateTime @default(now())
@@ -1219,6 +1223,40 @@ model ScoreTrendExplanation {
   @@unique([userId, type, period, metric])
   @@index([userId, type, period])
   @@index([expiresAt]) // For cleanup jobs
+}
+
+// Historical log of specific recommendations to track evolution over time
+model Recommendation {
+  id          String   @id @default(uuid())
+  userId      String
+  
+  // Context
+  sourceType  String   // "nutrition" or "workout"
+  metric      String   // "overall", "technical", etc.
+  period      Int      // 7, 14, 30, 90
+  
+  // Content
+  title       String
+  description String   @db.Text
+  priority    String   // "high", "medium", "low"
+  
+  // Metadata
+  generatedAt DateTime @default(now())
+  
+  // User Interaction
+  status      String   @default("ACTIVE") // ACTIVE, COMPLETED, DISMISSED
+  isPinned    Boolean  @default(false)    // "Focus" recommendation
+  completedAt DateTime?
+  
+  // LLM Tracking
+  llmUsageId   String?
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, sourceType, metric])
+  @@index([generatedAt])
+  @@index([status])
+  @@index([isPinned])
 }
 
 // --------------------------------------
