@@ -3,7 +3,7 @@
     <!-- Thumbs Up -->
     <UTooltip text="Helpful">
       <UButton
-        :color="feedback === 'THUMBS_UP' ? 'green' : 'gray'"
+        :color="feedback === 'THUMBS_UP' ? 'success' : 'neutral'"
         variant="ghost"
         size="xs"
         class="group/up"
@@ -30,7 +30,7 @@
     <!-- Thumbs Down -->
     <UTooltip text="Not helpful">
       <UButton
-        :color="feedback === 'THUMBS_DOWN' ? 'red' : 'gray'"
+        :color="feedback === 'THUMBS_DOWN' ? 'error' : 'neutral'"
         variant="ghost"
         size="xs"
         class="group/down"
@@ -58,7 +58,7 @@
     <UTooltip v-if="llmUsageId && !hideUsageLink" text="View AI Log">
       <UButton
         :to="`/ai/logs/${llmUsageId}`"
-        color="gray"
+        color="neutral"
         variant="ghost"
         size="xs"
         target="_blank"
@@ -94,9 +94,9 @@
 
       <template #footer>
         <div class="flex justify-end gap-2 w-full">
-          <UButton color="gray" variant="ghost" @click="isModalOpen = false">Skip</UButton>
+          <UButton color="neutral" variant="ghost" @click="isModalOpen = false">Skip</UButton>
           <UButton
-            color="black"
+            color="primary"
             :loading="loading === 'SUBMITTING_TEXT'"
             @click="submitTextFeedback"
           >

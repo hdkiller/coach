@@ -1,38 +1,46 @@
 <template>
   <UCard
-    class="flex flex-col h-full transition-all duration-200"
+    class="flex flex-col h-full transition-all duration-200 cursor-pointer hover:ring-2 hover:ring-primary-500/50"
     :class="[recommendation.isPinned ? 'ring-2 ring-primary-500 bg-primary-50/10' : '']"
     :ui="{
-      body: 'flex-1',
-      footer: 'h-14 flex items-center shrink-0 border-t border-gray-100 dark:border-gray-800'
+      header: 'py-3 px-4',
+      body: 'flex-1 py-3 px-4',
+      footer: 'h-12 flex items-center shrink-0 border-t border-gray-100 dark:border-gray-800 px-4'
     }"
+    @click="navigateTo(`/recommendations/${recommendation.id}`)"
   >
     <template #header>
-      <div class="flex justify-between items-start">
-        <div class="flex items-center gap-2">
-          <UBadge :color="priorityColor" variant="subtle" size="xs">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <UBadge :color="priorityColor" variant="subtle" size="sm" class="font-bold px-2 py-0.5">
             {{ recommendation.priority.toUpperCase() }}
           </UBadge>
-          <UBadge color="gray" variant="soft" size="xs">
+          <UBadge color="neutral" variant="soft" size="sm" class="px-2 py-0.5 opacity-80">
             {{ recommendation.sourceType }} / {{ recommendation.metric }}
           </UBadge>
         </div>
-        <div class="flex gap-1">
+        <div class="flex items-center gap-1" @click.stop>
           <UTooltip :text="recommendation.isPinned ? 'Unpin' : 'Pin to Focus'">
             <UButton
               :icon="
                 recommendation.isPinned ? 'i-heroicons-paper-clip-solid' : 'i-heroicons-paper-clip'
               "
-              color="gray"
+              color="neutral"
               variant="ghost"
-              size="xs"
-              class="hover:text-primary-500"
+              size="sm"
+              class="hover:text-primary-500 p-1"
               @click="$emit('toggle-pin', recommendation)"
             />
           </UTooltip>
-          <UDropdown :items="menuItems">
-            <UButton icon="i-heroicons-ellipsis-vertical" color="gray" variant="ghost" size="xs" />
-          </UDropdown>
+          <UDropdownMenu :items="menuItems">
+            <UButton
+              icon="i-heroicons-ellipsis-vertical"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              class="p-1"
+            />
+          </UDropdownMenu>
         </div>
       </div>
     </template>
@@ -58,12 +66,13 @@
             v-if="recommendation.llmUsageId"
             :llm-usage-id="recommendation.llmUsageId"
             size="xs"
+            @click.stop
           />
         </div>
-        <div class="flex gap-1">
+        <div class="flex gap-1" @click.stop>
           <UTooltip v-if="recommendation.status !== 'COMPLETED'" text="Mark Done">
             <UButton
-              color="green"
+              color="success"
               variant="ghost"
               size="xs"
               class="group/btn"
@@ -81,7 +90,7 @@
 
           <UTooltip v-if="recommendation.status === 'ACTIVE'" text="Dismiss">
             <UButton
-              color="gray"
+              color="neutral"
               variant="ghost"
               size="xs"
               class="group/btn"
@@ -114,13 +123,13 @@
   const priorityColor = computed(() => {
     switch (props.recommendation.priority) {
       case 'high':
-        return 'red'
+        return 'error'
       case 'medium':
-        return 'orange'
+        return 'warning'
       case 'low':
-        return 'blue'
+        return 'primary'
       default:
-        return 'gray'
+        return 'neutral'
     }
   })
 
@@ -140,9 +149,9 @@
           )
       },
       {
-        label: 'View History',
+        label: 'View Details & History',
         icon: 'i-heroicons-clock',
-        to: `/recommendations/history?metric=${props.recommendation.metric}&sourceType=${props.recommendation.sourceType}`
+        to: `/recommendations/${props.recommendation.id}`
       }
     ]
   ])
