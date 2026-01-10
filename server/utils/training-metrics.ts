@@ -669,12 +669,20 @@ export function formatTrainingContextForPrompt(context: TrainingContext): string
   // HR Zone Distribution
   if (context.hrZoneDistribution) {
     lines.push(`### Heart Rate Zone Distribution`)
+    const defaultLabels: Record<string, string> = {
+      Z1: 'Recovery',
+      Z2: 'Endurance',
+      Z3: 'Tempo',
+      Z4: 'Threshold',
+      Z5: 'VO2 Max'
+    }
     for (const zone of context.hrZoneDistribution.zones) {
       if (zone.percentage > 0) {
         const hours = Math.floor(zone.timeSeconds / 3600)
         const minutes = Math.floor((zone.timeSeconds % 3600) / 60)
         const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
-        lines.push(`- ${zone.name}: ${timeStr} (${zone.percentage.toFixed(1)}%)`)
+        const semanticLabel = defaultLabels[zone.name] ? ` (${defaultLabels[zone.name]})` : ''
+        lines.push(`- ${zone.name}${semanticLabel}: ${timeStr} (${zone.percentage.toFixed(1)}%)`)
       }
     }
     lines.push('')

@@ -312,6 +312,17 @@ const athleteProfileSchema = {
           type: 'string',
           description:
             "Detailed explanation of training consistency: weekly adherence patterns, missed sessions analysis, and strategies for improvement (e.g., 'Set specific training times', 'Prepare gear night before')"
+        },
+        hr_power_alignment: {
+          type: 'number',
+          description: 'How well do power and HR zones match? (1-10)',
+          minimum: 1,
+          maximum: 10
+        },
+        hr_power_alignment_explanation: {
+          type: 'string',
+          description:
+            "Detailed explanation of HR/Power alignment: analysis of decoupling, HR drift in different activities, and zone correlation (e.g., 'Significant decoupling on long rides', 'MTB power surges not reflected in HR')"
         }
       },
       required: [
@@ -322,7 +333,9 @@ const athleteProfileSchema = {
         'nutrition_compliance',
         'nutrition_compliance_explanation',
         'training_consistency',
-        'training_consistency_explanation'
+        'training_consistency_explanation',
+        'hr_power_alignment',
+        'hr_power_alignment_explanation'
       ]
     }
   },
@@ -683,6 +696,10 @@ Finally, provide **Athlete Profile Scores** (1-10 scale for tracking long-term d
 - **Recovery Capacity**: How well they recover from training stress (HRV, sleep, subjective metrics)
 - **Nutrition Compliance**: Overall nutrition quality and adherence (if nutrition data available)
 - **Training Consistency**: Adherence to training plans and consistency over time
+- **HR/Power Alignment**: How well do power and HR zones match? (Critical for mixed-sport athletes).
+  - 9-10: Perfect correlation across modalities
+  - 5-6: Moderate drift but usable
+  - 1-2: Significant mismatch (e.g., MTB power surges without HR response)
 
 Scoring Guidelines:
 - 9-10: Elite level in this aspect
@@ -741,6 +758,8 @@ Be specific, data-driven, and actionable. Reference actual metrics and patterns 
               profileJson.athlete_scores?.nutrition_compliance_explanation,
             trainingConsistencyExplanation:
               profileJson.athlete_scores?.training_consistency_explanation,
+            hrPowerAlignmentScore: profileJson.athlete_scores?.hr_power_alignment,
+            hrPowerAlignmentExplanation: profileJson.athlete_scores?.hr_power_alignment_explanation,
             currentFitnessExplanationJson: profileJson.athlete_scores
               ?.current_fitness_explanation_json as any,
             recoveryCapacityExplanationJson: profileJson.athlete_scores
