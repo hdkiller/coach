@@ -1362,11 +1362,19 @@
   async function fetchRecentWorkouts() {
     loading.value = true
     try {
-      const workouts = await $fetch('/api/workouts')
-      workoutsTotalItems.value = workouts.length
-      const start = (workoutsPage.value - 1) * workoutsItemsPerPage
-      const end = start + workoutsItemsPerPage
-      recentWorkouts.value = workouts.slice(start, end)
+      // Fetch total count
+      const { count } = await $fetch('/api/workouts/count')
+      workoutsTotalItems.value = count
+
+      // Fetch current page
+      const offset = (workoutsPage.value - 1) * workoutsItemsPerPage
+      const workouts = await $fetch('/api/workouts', {
+        query: {
+          limit: workoutsItemsPerPage,
+          offset
+        }
+      })
+      recentWorkouts.value = workouts
     } catch (error) {
       console.error('Error fetching workouts:', error)
     } finally {

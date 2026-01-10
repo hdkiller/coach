@@ -202,7 +202,11 @@
   async function fetchWorkouts() {
     loading.value = true
     try {
-      const workouts = await $fetch('/api/workouts')
+      // Fetch up to 1000 workouts for better history in charts
+      // The payload is now optimized (COACH-WATTS-7) so this is safe
+      const workouts = await $fetch('/api/workouts', {
+        query: { limit: 1000 }
+      })
       allWorkouts.value = workouts
     } catch (error) {
       console.error('Error fetching workouts:', error)
