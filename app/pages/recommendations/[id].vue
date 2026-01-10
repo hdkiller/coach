@@ -1,16 +1,14 @@
 <template>
   <UDashboardPanel id="recommendation-detail">
     <template #header>
-      <UDashboardNavbar :title="rec?.title || 'Recommendation Detail'">
+      <UDashboardNavbar>
         <template #leading>
           <UButton
             icon="i-heroicons-arrow-left"
             color="neutral"
             variant="ghost"
             to="/recommendations"
-          >
-            Back to Recommendations
-          </UButton>
+          />
         </template>
         <template #right>
           <div v-if="rec" class="flex items-center gap-2">
@@ -43,6 +41,10 @@
         </div>
 
         <div v-else-if="rec" class="space-y-8">
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white px-1">
+            {{ rec.title }}
+          </h1>
+
           <!-- Main Content Section -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left: Main Detail (2/3) -->
@@ -59,13 +61,14 @@
                       </UBadge>
                     </div>
                     <div class="text-xs text-muted">
-                      Generated {{ formatDate(rec.generatedAt) }}
+                      <span class="hidden sm:inline">Generated</span>
+                      {{ formatShortDate(rec.generatedAt) }}
                     </div>
                   </div>
                 </template>
 
                 <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
-                  <p class="whitespace-pre-line text-lg leading-relaxed">{{ rec.description }}</p>
+                  <p class="whitespace-pre-line text-base leading-relaxed">{{ rec.description }}</p>
                 </div>
 
                 <template #footer>
@@ -348,7 +351,7 @@
   const route = useRoute()
   const recId = route.params.id as string
   const toast = useToast()
-  const { formatDate: format } = useFormat()
+  const { formatDate: format, formatShortDate: formatShort } = useFormat()
 
   const { data: rec, pending, refresh } = await useFetch<any>(`/api/recommendations/${recId}`)
 
@@ -372,6 +375,7 @@
   })
 
   const formatDate = (d: string) => format(d)
+  const formatShortDate = (d: string) => formatShort(d)
 
   // Implementation Guide Logic
   const generatingGuide = ref(false)

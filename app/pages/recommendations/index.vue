@@ -1,7 +1,11 @@
 <template>
   <UDashboardPanel id="recommendations">
     <template #header>
-      <UDashboardNavbar title="Coach Recommendations">
+      <UDashboardNavbar>
+        <template #title>
+          <span class="hidden sm:inline">Coach Recommendations</span>
+          <span class="sm:hidden">Recommendations</span>
+        </template>
         <template #right>
           <div class="flex items-center gap-3">
             <UButton
@@ -13,7 +17,8 @@
               :loading="clearing"
               @click="showClearModal = true"
             >
-              Clear All
+              <span class="hidden sm:inline">Clear All</span>
+              <span class="sm:hidden">Clear</span>
             </UButton>
             <UButton
               icon="i-heroicons-sparkles"
@@ -24,7 +29,8 @@
               :loading="refreshingAdvice"
               @click="refreshAdvice"
             >
-              Update Recommendations
+              <span class="hidden sm:inline">Update Recommendations</span>
+              <span class="sm:hidden">Update</span>
             </UButton>
           </div>
         </template>
@@ -50,51 +56,57 @@
           </div>
         </section>
 
-        <!-- Main Content Tabs -->
-        <UTabs :items="tabs" class="w-full">
-          <template #active>
-            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div v-if="activePending" class="col-span-full py-8 flex justify-center">
-                <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-gray-400" />
-              </div>
-              <template v-else>
-                <div
-                  v-if="activeRecs?.length === 0"
-                  class="col-span-full py-8 text-center text-gray-500"
-                >
-                  No active recommendations. You're doing great!
-                </div>
-                <RecommendationCard
-                  v-for="rec in activeRecs"
-                  :key="rec.id"
-                  :recommendation="rec"
-                  @toggle-pin="togglePin"
-                  @update-status="updateStatus"
-                />
-              </template>
+        <!-- Current Advices Section -->
+        <section>
+          <div class="flex items-center gap-2 mb-4">
+            <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">Current Advices</h2>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div v-if="activePending" class="col-span-full py-8 flex justify-center">
+              <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-gray-400" />
             </div>
-          </template>
+            <template v-else>
+              <div
+                v-if="activeRecs?.length === 0"
+                class="col-span-full py-8 text-center text-gray-500"
+              >
+                No active recommendations. You're doing great!
+              </div>
+              <RecommendationCard
+                v-for="rec in activeRecs"
+                :key="rec.id"
+                :recommendation="rec"
+                @toggle-pin="togglePin"
+                @update-status="updateStatus"
+              />
+            </template>
+          </div>
+        </section>
 
-          <template #history>
-            <div class="mt-4 space-y-4">
-              <div v-if="historyPending" class="py-8 flex justify-center">
-                <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-gray-400" />
-              </div>
-              <template v-else>
-                <div v-if="historyRecs?.length === 0" class="py-8 text-center text-gray-500">
-                  No history found.
-                </div>
-                <RecommendationCard
-                  v-for="rec in historyRecs"
-                  :key="rec.id"
-                  :recommendation="rec"
-                  @toggle-pin="togglePin"
-                  @update-status="updateStatus"
-                />
-              </template>
+        <!-- History Section -->
+        <section v-if="historyRecs?.length > 0 || historyPending">
+          <div
+            class="flex items-center gap-2 mb-4 pt-4 border-t border-gray-100 dark:border-gray-800"
+          >
+            <UIcon name="i-heroicons-clock" class="w-5 h-5 text-gray-400" />
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">History</h2>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div v-if="historyPending" class="col-span-full py-8 flex justify-center">
+              <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-gray-400" />
             </div>
-          </template>
-        </UTabs>
+            <template v-else>
+              <RecommendationCard
+                v-for="rec in historyRecs"
+                :key="rec.id"
+                :recommendation="rec"
+                @toggle-pin="togglePin"
+                @update-status="updateStatus"
+              />
+            </template>
+          </div>
+        </section>
 
         <!-- Clear Confirmation Modal -->
         <UModal v-model:open="showClearModal">
@@ -156,11 +168,16 @@
   const isPolling = ref(false)
   const showClearModal = ref(false)
   let pollInterval: NodeJS.Timeout | null = null
+  let currentJobId: string | null = null
 
   // Polling Logic
   async function checkStatus() {
     try {
-      const status: any = await $fetch('/api/recommendations/status')
+      const url = currentJobId
+        ? `/api/recommendations/status?jobId=${currentJobId}`
+        : '/api/recommendations/status'
+
+      const status: any = await $fetch(url)
 
       if (!status.isRunning) {
         stopPolling()
@@ -185,8 +202,9 @@
     }
   }
 
-  function startPolling() {
+  function startPolling(jobId?: string) {
     if (isPolling.value) return
+    if (jobId) currentJobId = jobId
 
     isPolling.value = true
     // Check immediately
@@ -201,6 +219,7 @@
       pollInterval = null
     }
     isPolling.value = false
+    currentJobId = null
   }
 
   // Cleanup
@@ -239,7 +258,7 @@
 
     refreshingAdvice.value = true
     try {
-      await $fetch('/api/recommendations/generate', {
+      const res: any = await $fetch('/api/recommendations/generate', {
         method: 'POST'
       })
 
@@ -250,7 +269,7 @@
         icon: 'i-heroicons-arrow-path-rounded-square'
       })
 
-      startPolling()
+      startPolling(res.jobId)
     } catch (error: any) {
       // If 409 (Already running), we should still start polling to catch the completion
       if (error.statusCode === 409) {
@@ -270,11 +289,6 @@
       }
     }
   }
-
-  const tabs = [
-    { label: 'Current Advices', slot: 'active' },
-    { label: 'History', slot: 'history' }
-  ]
 
   // Fetch Pinned (Always visible at top)
   // Only active pinned ones are shown here.
