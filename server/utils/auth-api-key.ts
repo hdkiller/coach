@@ -46,23 +46,11 @@ export async function validateApiKey(event: H3Event) {
 }
 
 /**
- * Ensures the request is authenticated either via session OR valid API key.
+ * Ensures the request is authenticated via valid API key.
  * Sets event.context.user if valid.
  */
-export async function requireAuth(event: H3Event) {
-  // 1. Try session (NuxtAuth)
-  const session = await getServerSession(event)
-  if (session?.user?.id) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-    if (user) {
-      event.context.user = user
-      return user
-    }
-  }
-
-  // 2. Try API key
+export async function requireApiKeyAuth(event: H3Event) {
+  // Try API key
   const user = await validateApiKey(event)
   if (user) {
     event.context.user = user

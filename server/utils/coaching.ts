@@ -1,6 +1,40 @@
 import type { H3Event } from 'h3'
 import { getServerSession } from '#auth'
 import { coachingRepository } from './repositories/coachingRepository'
+import { oauthRepository } from './repositories/oauthRepository'
+import { validateApiKey } from './auth-api-key'
+
+/**
+ * Validates an OAuth Bearer token and returns the associated user.
+ */
+async function validateOAuthToken(event: H3Event) {
+  const authHeader = getHeader(event, 'Authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null
+  }
+
+  const tokenValue = authHeader.substring(7)
+  const token = await oauthRepository.getAccessToken(tokenValue)
+
+  if (!token || (token.accessTokenExpiresAt && token.accessTokenExpiresAt < new Date())) {
+    return null
+  }
+
+  // Update usage info (async)
+  prisma.oAuthToken
+    .update({
+      where: { id: token.id },
+      data: {
+        lastUsedAt: new Date(),
+        lastIp:
+          getHeader(event, 'x-forwarded-for')?.toString().split(',')[0] ||
+          event.node.req.socket.remoteAddress
+      }
+    })
+    .catch((e) => console.error('Failed to update token usage:', e))
+
+  return token.user
+}
 
 /**
  * Gets the effective user ID for the current request.
@@ -19,6 +53,12 @@ export async function getEffectiveUserId(event: H3Event): Promise<string> {
     const user = await validateApiKey(event)
     if (user) {
       userId = user.id
+    } else {
+      // 3. Try OAuth Bearer Token
+      const oauthUser = await validateOAuthToken(event)
+      if (oauthUser) {
+        userId = oauthUser.id
+      }
     }
   }
 
