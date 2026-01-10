@@ -29,9 +29,14 @@
               {{ Math.round(wellnessData.hrv) }}
               <span class="text-xs font-medium opacity-70">ms</span>
             </div>
-            <div v-if="hrvTrend" class="flex items-center gap-1 mt-2 text-xs font-bold">
-              <UIcon :name="hrvTrend.icon" :class="hrvTrend.color" class="w-3 h-3" />
-              <span :class="hrvTrend.color">{{ hrvTrend.text }}</span>
+            <div v-if="trendData.length > 0" class="mt-2">
+              <TrendIndicator
+                :current="wellnessData.hrv"
+                :previous="trendData.map((d) => d.hrv).filter((v) => v != null)"
+                type="higher-is-better"
+                compact
+                show-value
+              />
             </div>
           </div>
 
@@ -51,11 +56,14 @@
               {{ wellnessData.hoursSlept.toFixed(1) }}
               <span class="text-xs font-medium opacity-70">hrs</span>
             </div>
-            <div
-              v-if="wellnessData.sleepScore"
-              class="mt-2 text-[10px] font-bold text-purple-600/80 dark:text-purple-400 uppercase tracking-widest"
-            >
-              Score: {{ wellnessData.sleepScore }}
+            <div v-if="trendData.length > 0" class="mt-2">
+              <TrendIndicator
+                :current="wellnessData.hoursSlept"
+                :previous="trendData.map((d) => d.hoursSlept).filter((v) => v != null)"
+                type="higher-is-better"
+                compact
+                show-value
+              />
             </div>
           </div>
 
@@ -77,9 +85,14 @@
             <div class="text-2xl font-bold text-rose-900 dark:text-rose-50">
               {{ wellnessData.restingHr }} <span class="text-xs font-medium opacity-70">bpm</span>
             </div>
-            <div v-if="restingHrTrend" class="flex items-center gap-1 mt-2 text-xs font-bold">
-              <UIcon :name="restingHrTrend.icon" :class="restingHrTrend.color" class="w-3 h-3" />
-              <span :class="restingHrTrend.color">{{ restingHrTrend.text }}</span>
+            <div v-if="trendData.length > 0" class="mt-2">
+              <TrendIndicator
+                :current="wellnessData.restingHr"
+                :previous="trendData.map((d) => d.restingHr).filter((v) => v != null)"
+                type="lower-is-better"
+                compact
+                show-value
+              />
             </div>
           </div>
 
@@ -351,77 +364,12 @@
     }
   }
 
+  const { calculateTrend } = useTrend()
+
   // Computed properties for trends
   const maxHRV = computed(() => {
     const values = trendData.value.filter((d) => d.hrv != null).map((d) => d.hrv)
     return values.length > 0 ? Math.max(...values) : 100
-  })
-
-  const hrvTrend = computed(() => {
-    if (!trendData.value || trendData.value.length < 2 || !wellnessData.value?.hrv) return null
-
-    const recentData = trendData.value.filter((d) => d.hrv != null).slice(-3)
-    if (recentData.length < 2) return null
-
-    const avg = recentData.reduce((sum, d) => sum + d.hrv, 0) / recentData.length
-    const current = wellnessData.value.hrv
-    const diff = current - avg
-
-    if (diff > 5) {
-      return {
-        icon: 'i-heroicons-arrow-trending-up',
-        color: 'text-green-600 dark:text-green-400',
-        text: 'Improving',
-        description: 'Your HRV is trending upward, indicating good recovery.'
-      }
-    } else if (diff < -5) {
-      return {
-        icon: 'i-heroicons-arrow-trending-down',
-        color: 'text-red-600 dark:text-red-400',
-        text: 'Declining',
-        description: 'Your HRV is lower than usual, consider easier training.'
-      }
-    }
-    return {
-      icon: 'i-heroicons-minus',
-      color: 'text-gray-600 dark:text-gray-400',
-      text: 'Stable',
-      description: 'Your HRV is consistent with recent averages.'
-    }
-  })
-
-  const restingHrTrend = computed(() => {
-    if (!trendData.value || trendData.value.length < 2 || !wellnessData.value?.restingHr)
-      return null
-
-    const recentData = trendData.value.filter((d) => d.restingHr != null).slice(-3)
-    if (recentData.length < 2) return null
-
-    const avg = recentData.reduce((sum, d) => sum + d.restingHr, 0) / recentData.length
-    const current = wellnessData.value.restingHr
-    const diff = current - avg
-
-    if (diff > 3) {
-      return {
-        icon: 'i-heroicons-arrow-trending-up',
-        color: 'text-red-600 dark:text-red-400',
-        text: 'Elevated',
-        description: 'Your resting HR is higher than usual, indicating possible fatigue or stress.'
-      }
-    } else if (diff < -3) {
-      return {
-        icon: 'i-heroicons-arrow-trending-down',
-        color: 'text-green-600 dark:text-green-400',
-        text: 'Lower',
-        description: 'Your resting HR is lower than usual, a positive sign.'
-      }
-    }
-    return {
-      icon: 'i-heroicons-minus',
-      color: 'text-gray-600 dark:text-gray-400',
-      text: 'Normal',
-      description: 'Your resting HR is within your typical range.'
-    }
   })
 
   const hasSubjectiveMetrics = computed(() => {
@@ -492,8 +440,18 @@
     }
 
     // Elevated resting HR
-    if (restingHr && restingHrTrend.value?.text === 'Elevated') {
-      return 'Elevated resting heart rate suggests your body is under stress. Prioritize recovery activities like easy movement, stretching, or complete rest.'
+    if (restingHr && trendData.value.length > 0) {
+      const rhrTrend = calculateTrend(
+        restingHr,
+        trendData.value.map((d) => d.restingHr).filter((v) => v != null),
+        'lower-is-better',
+        3 // 3% threshold
+      )
+
+      if (rhrTrend.direction === 'up') {
+        // Up is bad for 'lower-is-better' (e.g. Elevated)
+        return 'Elevated resting heart rate suggests your body is under stress. Prioritize recovery activities like easy movement, stretching, or complete rest.'
+      }
     }
 
     return 'Listen to your body and adjust training intensity based on how you feel throughout your session.'

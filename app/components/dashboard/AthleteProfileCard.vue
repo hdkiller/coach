@@ -189,8 +189,18 @@
               <UIcon name="i-heroicons-presentation-chart-line" class="w-3 h-3 text-purple-500" />
               CTL <span class="text-[9px] font-normal lowercase opacity-70">(fitness)</span>
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              {{ (pmcData.summary.currentCTL ?? 0).toFixed(0) }}
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ (pmcData.summary.currentCTL ?? 0).toFixed(0) }}
+              </div>
+              <TrendIndicator
+                v-if="pmcData.data"
+                :current="pmcData.summary.currentCTL ?? 0"
+                :previous="pmcData.data.slice(-8, -1).map((d: any) => d.ctl)"
+                type="higher-is-better"
+                compact
+                icon-only
+              />
             </div>
           </div>
           <div class="space-y-1">
@@ -198,8 +208,18 @@
               <UIcon name="i-heroicons-bolt" class="w-3 h-3 text-yellow-500" />
               ATL <span class="text-[9px] font-normal lowercase opacity-70">(fatigue)</span>
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              {{ (pmcData.summary.currentATL ?? 0).toFixed(0) }}
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ (pmcData.summary.currentATL ?? 0).toFixed(0) }}
+              </div>
+              <TrendIndicator
+                v-if="pmcData.data"
+                :current="pmcData.summary.currentATL ?? 0"
+                :previous="pmcData.data.slice(-8, -1).map((d: any) => d.atl)"
+                type="lower-is-better"
+                compact
+                icon-only
+              />
             </div>
           </div>
           <div class="space-y-1">
@@ -211,9 +231,19 @@
               />
               TSB <span class="text-[9px] font-normal lowercase opacity-70">(form)</span>
             </div>
-            <div class="text-sm font-bold" :class="getTSBTextColor(pmcData.summary.currentTSB)">
-              {{ (pmcData.summary.currentTSB ?? 0) > 0 ? '+' : ''
-              }}{{ (pmcData.summary.currentTSB ?? 0).toFixed(0) }}
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold" :class="getTSBTextColor(pmcData.summary.currentTSB)">
+                {{ (pmcData.summary.currentTSB ?? 0) > 0 ? '+' : ''
+                }}{{ (pmcData.summary.currentTSB ?? 0).toFixed(0) }}
+              </div>
+              <TrendIndicator
+                v-if="pmcData.data"
+                :current="pmcData.summary.currentTSB ?? 0"
+                :previous="pmcData.data.slice(-8, -1).map((d: any) => d.tsb)"
+                type="higher-is-better"
+                compact
+                icon-only
+              />
             </div>
           </div>
         </div>
@@ -244,17 +274,27 @@
               <UIcon name="i-heroicons-bolt-solid" class="w-3 h-3" />
               FTP
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              <template v-if="userStore.profile.ftp">{{ userStore.profile.ftp }}W</template>
-              <UButton
-                v-else
-                to="/profile/settings"
-                icon="i-heroicons-pencil"
-                color="neutral"
-                variant="soft"
-                size="xs"
-                class="-my-1"
-                @click.stop
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                <template v-if="userStore.profile.ftp">{{ userStore.profile.ftp }}W</template>
+                <UButton
+                  v-else
+                  to="/profile/settings"
+                  icon="i-heroicons-pencil"
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                  class="-my-1"
+                  @click.stop
+                />
+              </div>
+              <TrendIndicator
+                v-if="userStore.profile.ftp && ftpHistory.length > 0"
+                :current="userStore.profile.ftp"
+                :previous="ftpHistory.map((d: any) => d.ftp)"
+                type="higher-is-better"
+                compact
+                icon-only
               />
             </div>
           </div>
@@ -263,17 +303,29 @@
               <UIcon name="i-heroicons-scale" class="w-3 h-3" />
               Weight
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              <template v-if="userStore.profile.weight">{{ userStore.profile.weight }}kg</template>
-              <UButton
-                v-else
-                to="/profile/settings"
-                icon="i-heroicons-pencil"
-                color="neutral"
-                variant="soft"
-                size="xs"
-                class="-my-1"
-                @click.stop
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                <template v-if="userStore.profile.weight"
+                  >{{ userStore.profile.weight }}kg</template
+                >
+                <UButton
+                  v-else
+                  to="/profile/settings"
+                  icon="i-heroicons-pencil"
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                  class="-my-1"
+                  @click.stop
+                />
+              </div>
+              <TrendIndicator
+                v-if="userStore.profile.weight && weightHistory.length > 0"
+                :current="userStore.profile.weight"
+                :previous="weightHistory.map((d: any) => d.weight)"
+                type="neutral"
+                compact
+                icon-only
               />
             </div>
           </div>
@@ -329,8 +381,20 @@
               <UIcon name="i-heroicons-moon" class="w-3 h-3 text-indigo-500" />
               Sleep
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              {{ userStore.profile.recentSleep.toFixed(1) }}h
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ userStore.profile.recentSleep.toFixed(1) }}h
+              </div>
+              <TrendIndicator
+                v-if="wellnessHistory.length > 0"
+                :current="userStore.profile.recentSleep"
+                :previous="
+                  wellnessHistory.map((d: any) => d.sleepHours).filter((v: any) => v != null)
+                "
+                type="higher-is-better"
+                compact
+                icon-only
+              />
             </div>
           </div>
           <div v-if="userStore.profile.recentHRV" class="space-y-1">
@@ -338,8 +402,18 @@
               <UIcon name="i-heroicons-heart" class="w-3 h-3 text-indigo-500" />
               HRV
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              {{ Math.round(userStore.profile.recentHRV) }} ms
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ Math.round(userStore.profile.recentHRV) }} ms
+              </div>
+              <TrendIndicator
+                v-if="wellnessHistory.length > 0"
+                :current="userStore.profile.recentHRV"
+                :previous="wellnessHistory.map((d: any) => d.hrv).filter((v: any) => v != null)"
+                type="higher-is-better"
+                compact
+                icon-only
+              />
             </div>
           </div>
           <div v-if="userStore.profile.restingHr" class="space-y-1">
@@ -347,8 +421,41 @@
               <UIcon name="i-heroicons-heart" class="w-3 h-3 text-indigo-500" />
               RHR
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              {{ userStore.profile.restingHr }} bpm
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ userStore.profile.restingHr }} bpm
+              </div>
+              <TrendIndicator
+                v-if="wellnessHistory.length > 0"
+                :current="userStore.profile.restingHr"
+                :previous="
+                  wellnessHistory.map((d: any) => d.restingHr).filter((v: any) => v != null)
+                "
+                type="lower-is-better"
+                compact
+                icon-only
+              />
+            </div>
+          </div>
+          <div v-if="userStore.profile.recentRecoveryScore" class="space-y-1">
+            <div class="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase">
+              <UIcon name="i-heroicons-bolt" class="w-3 h-3 text-indigo-500" />
+              REC
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ userStore.profile.recentRecoveryScore }}%
+              </div>
+              <TrendIndicator
+                v-if="wellnessHistory.length > 0"
+                :current="userStore.profile.recentRecoveryScore"
+                :previous="
+                  wellnessHistory.map((d: any) => d.recoveryScore).filter((v: any) => v != null)
+                "
+                type="higher-is-better"
+                compact
+                icon-only
+              />
             </div>
           </div>
         </div>
@@ -368,18 +475,38 @@
 
   const pmcData = ref<any>(null)
   const pmcLoading = ref(false)
+  const ftpHistory = ref<any[]>([])
+  const wellnessHistory = ref<any[]>([])
+  const weightHistory = ref<any[]>([])
 
-  async function fetchPMCData() {
-    if (!integrationStore.intervalsConnected) return
-
+  async function fetchHistoryData() {
+    // Attempt to fetch even if not connected, as some data might exist
     pmcLoading.value = true
     try {
-      const data = await $fetch('/api/performance/pmc', {
-        query: { days: 7 }
-      })
-      pmcData.value = data
+      const today = new Date()
+      const start = new Date(today)
+      start.setDate(today.getDate() - 7)
+
+      const startDate = start.toISOString().split('T')[0]
+      const endDate = today.toISOString().split('T')[0]
+
+      const [pmc, ftp, wellness, weight] = await Promise.all([
+        integrationStore.intervalsConnected
+          ? $fetch('/api/performance/pmc', { query: { days: 7 } })
+          : Promise.resolve(null),
+        integrationStore.intervalsConnected
+          ? $fetch('/api/performance/ftp-evolution')
+          : Promise.resolve([]),
+        $fetch(`/api/wellness/trend?startDate=${startDate}&endDate=${endDate}`).catch(() => []),
+        $fetch('/api/performance/weight-evolution').catch(() => [])
+      ])
+
+      pmcData.value = pmc
+      ftpHistory.value = Array.isArray(ftp) ? ftp : []
+      wellnessHistory.value = Array.isArray(wellness) ? wellness : []
+      weightHistory.value = Array.isArray(weight) ? weight : []
     } catch (e) {
-      console.error('Failed to load PMC data', e)
+      console.error('Failed to load history data', e)
     } finally {
       pmcLoading.value = false
     }
@@ -402,13 +529,13 @@
   }
 
   onMounted(() => {
-    fetchPMCData()
+    fetchHistoryData()
   })
 
   watch(
-    () => integrationStore.intervalsConnected,
-    (connected) => {
-      if (connected) fetchPMCData()
+    () => [integrationStore.intervalsConnected, integrationStore.whoopConnected],
+    () => {
+      fetchHistoryData()
     }
   )
 
