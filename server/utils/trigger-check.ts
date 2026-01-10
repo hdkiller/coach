@@ -17,3 +17,14 @@ export async function isTaskRunning(taskIdentifier: string, userId: string): Pro
     return false // Fail open to allow retry if check fails
   }
 }
+
+export async function isRunIdRunning(runId: string): Promise<boolean> {
+  try {
+    const run = await runs.retrieve(runId)
+    const runningStatuses = ['EXECUTING', 'QUEUED', 'WAITING_FOR_DEPLOY', 'REATTEMPTING', 'FROZEN']
+    return runningStatuses.includes(run.status)
+  } catch (error) {
+    console.warn(`Failed to check running status for run ${runId}:`, error)
+    return false
+  }
+}

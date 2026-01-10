@@ -221,6 +221,12 @@ INSTRUCTIONS:
    - If a new issue is detected, use the 'new_recommendations' array.
 3. Formulate specific, actionable advice.
 4. Assign priority (high/medium/low).
+5. LABEL FORMATTING (CRITICAL):
+   - The 'metric' field must be a clean, human-readable label.
+   - DO NOT include the source type in the label (e.g. "Run Volume", NOT "workout/Run Volume").
+   - DO NOT use slashes or technical prefixes.
+   - Examples of GOOD labels: "Weekly Distance", "Protein Intake", "Sleep Duration", "Zone 2 Time".
+   - Examples of BAD labels: "workout/volume", "nutrition:protein", "workout / workout/Run Volume".
 
 OUTPUT SCHEMA:
 JSON object with 'new_recommendations', 'updated_recommendations', 'completed_recommendation_ids', and 'dismissed_recommendation_ids' arrays.`

@@ -381,9 +381,6 @@ export async function calculateIntensityDistribution(
     }
   })
 
-  console.log('[TrainingMetrics] Intensity Distribution Debug:')
-  console.log(`  Found ${workouts.length} workouts`)
-
   const distribution = {
     recovery: 0,
     endurance: 0,
