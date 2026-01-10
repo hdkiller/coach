@@ -8,6 +8,7 @@ import checkCommand from './check'
 import debugCommand from './debug'
 import changelogCommand from './changelog'
 import backfillCommand from './backfill'
+import oauthCommand from './oauth'
 
 const program = new Command()
 
@@ -19,6 +20,7 @@ program.addCommand(checkCommand)
 program.addCommand(debugCommand)
 program.addCommand(changelogCommand)
 program.addCommand(backfillCommand)
+program.addCommand(oauthCommand)
 
 program.parse(process.argv)
 
