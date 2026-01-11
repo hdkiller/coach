@@ -25,7 +25,8 @@ export default defineEventHandler(async (event) => {
         restingHr: true,
         lthr: true,
         dob: true,
-        hrZones: true
+        hrZones: true,
+        profileLastUpdated: true
       }
     })
 
@@ -170,10 +171,15 @@ export default defineEventHandler(async (event) => {
     })
 
     // Check data sync status for different categories
-    const [workoutCount, nutritionCount, wellnessCount] = await Promise.all([
+    const [workoutCount, nutritionCount, wellnessCount, latestWorkout] = await Promise.all([
       workoutRepository.count(user.id, { includeDuplicates: true }), // Match original behavior counting all
       nutritionRepository.count(user.id),
-      wellnessRepository.count(user.id)
+      wellnessRepository.count(user.id),
+      prisma.workout.findFirst({
+        where: { userId: user.id },
+        orderBy: { date: 'desc' },
+        select: { date: true }
+      })
     ])
 
     // Determine which integrations provide data for each category
@@ -235,7 +241,9 @@ export default defineEventHandler(async (event) => {
         avgRecentHRV: avgRecentHRV ? Math.round(avgRecentHRV * 10) / 10 : null,
         recentSleep,
         recentRecoveryScore,
-        latestWellnessDate: latestWellnessDate?.toISOString() ?? null
+        latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
+        profileLastUpdated: user.profileLastUpdated?.toISOString() ?? null,
+        latestWorkoutDate: latestWorkout?.date.toISOString() ?? null
       }
     }
 

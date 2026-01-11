@@ -156,35 +156,52 @@ export default defineEventHandler(async (event) => {
       isUpToDate: duplicateCount === 0
     }
 
-    // Workout analysis metadata
-    metadata['analyze-workouts'] = {
-      pendingCount: workoutPendingCount,
-      totalCount: totalWorkouts,
-      lastSync: lastAnalyzedWorkout?.aiAnalyzedAt || null,
-      isUpToDate: workoutPendingCount === 0 && totalWorkouts > 0
-    }
-
-    // Nutrition analysis metadata
-    metadata['analyze-nutrition'] = {
-      pendingCount: nutritionPendingCount,
-      totalCount: totalNutrition,
-      lastSync: lastAnalyzedNutrition?.aiAnalyzedAt || null,
-      isUpToDate: nutritionPendingCount === 0 && totalNutrition > 0
-    }
-
     // Get latest workout/nutrition dates for comparison
     const [latestWorkout, latestNutrition] = await Promise.all([
       prisma.workout.findFirst({
         where: { userId, isDuplicate: false },
         orderBy: { date: 'desc' },
-        select: { date: true }
+        select: { date: true, createdAt: true }
       }),
       prisma.nutrition.findFirst({
         where: { userId },
         orderBy: { date: 'desc' },
-        select: { date: true }
+        select: { date: true, createdAt: true }
       })
     ])
+
+    // Workout analysis metadata
+    // Up to date only if no pending count AND latest workout has been analyzed
+    const workoutAnalysisUpToDate =
+      workoutPendingCount === 0 &&
+      totalWorkouts > 0 &&
+      (!latestWorkout ||
+        !lastAnalyzedWorkout ||
+        lastAnalyzedWorkout.aiAnalyzedAt! >= latestWorkout.createdAt)
+
+    metadata['analyze-workouts'] = {
+      pendingCount: workoutPendingCount,
+      totalCount: totalWorkouts,
+      lastSync: lastAnalyzedWorkout?.aiAnalyzedAt || null,
+      isUpToDate: workoutAnalysisUpToDate,
+      latestDataDate: latestWorkout?.date || null
+    }
+
+    // Nutrition analysis metadata
+    const nutritionAnalysisUpToDate =
+      nutritionPendingCount === 0 &&
+      totalNutrition > 0 &&
+      (!latestNutrition ||
+        !lastAnalyzedNutrition ||
+        lastAnalyzedNutrition.aiAnalyzedAt! >= latestNutrition.createdAt)
+
+    metadata['analyze-nutrition'] = {
+      pendingCount: nutritionPendingCount,
+      totalCount: totalNutrition,
+      lastSync: lastAnalyzedNutrition?.aiAnalyzedAt || null,
+      isUpToDate: nutritionAnalysisUpToDate,
+      latestDataDate: latestNutrition?.date || null
+    }
 
     // Profile generation metadata - check if profile is current
     const lastProfile = await prisma.report.findFirst({
@@ -198,6 +215,7 @@ export default defineEventHandler(async (event) => {
     })
 
     // Profile is up to date if generated after latest analyzed workout/nutrition
+    // AND after the latest actual workout/nutrition was created (ingested)
     const profileUpToDate =
       lastProfile &&
       (!lastAnalyzedWorkout ||
@@ -205,7 +223,9 @@ export default defineEventHandler(async (event) => {
         lastProfile.createdAt >= lastAnalyzedWorkout.aiAnalyzedAt) &&
       (!lastAnalyzedNutrition ||
         !lastAnalyzedNutrition.aiAnalyzedAt ||
-        lastProfile.createdAt >= lastAnalyzedNutrition.aiAnalyzedAt)
+        lastProfile.createdAt >= lastAnalyzedNutrition.aiAnalyzedAt) &&
+      (!latestWorkout || lastProfile.createdAt >= latestWorkout.createdAt) &&
+      (!latestNutrition || lastProfile.createdAt >= latestNutrition.createdAt)
 
     metadata['generate-athlete-profile'] = {
       lastSync: lastProfile?.createdAt || null,
