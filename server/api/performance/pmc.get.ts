@@ -90,12 +90,15 @@ export default defineEventHandler(async (event) => {
 
     if (lastUpdate < maxDate) {
       endDate = lastUpdate
-      endDate.setUTCHours(23, 59, 59, 999)
     }
   }
 
+  // Ensure we include the full end date by setting to end of day
+  endDate.setHours(23, 59, 59, 999)
+
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)
+  startDate.setUTCHours(0, 0, 0, 0) // Start from beginning of the start day (UTC)
 
   // Get initial CTL/ATL values from before the date range
   const initialValues = await getInitialPMCValues(userId, startDate)

@@ -155,8 +155,8 @@ export async function calculateZoneDistribution(
   if (streams.length === 0) return {}
 
   // Aggregate zone times
-  const hrZoneTimes = new Array(5).fill(0)
-  const powerZoneTimes = new Array(5).fill(0)
+  const hrZoneTimes = new Array(hrZones.length).fill(0)
+  const powerZoneTimes = new Array(powerZones.length).fill(0)
   let hasHrData = false
   let hasPowerData = false
 
@@ -166,8 +166,10 @@ export async function calculateZoneDistribution(
     if (s.hrZoneTimes && Array.isArray(s.hrZoneTimes) && (s.hrZoneTimes as number[]).length >= 5) {
       hasHrData = true
       const cached = s.hrZoneTimes as number[]
-      for (let i = 0; i < 5; i++) {
-        hrZoneTimes[i] += cached[i]
+      // Use cached data up to the available buckets, matching current zone config length if possible
+      const limit = Math.min(cached.length, hrZones.length)
+      for (let i = 0; i < limit; i++) {
+        if (cached[i]) hrZoneTimes[i] += cached[i]
       }
     } else if (stream.heartrate && Array.isArray(stream.heartrate)) {
       // Process HR zones from raw stream
@@ -187,8 +189,9 @@ export async function calculateZoneDistribution(
     ) {
       hasPowerData = true
       const cached = s.powerZoneTimes as number[]
-      for (let i = 0; i < 5; i++) {
-        powerZoneTimes[i] += cached[i]
+      const limit = Math.min(cached.length, powerZones.length)
+      for (let i = 0; i < limit; i++) {
+        if (cached[i]) powerZoneTimes[i] += cached[i]
       }
     } else if (stream.watts && Array.isArray(stream.watts)) {
       hasPowerData = true

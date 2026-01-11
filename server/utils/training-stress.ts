@@ -127,11 +127,14 @@ export async function calculatePMCForDateRange(
 ): Promise<PMCMetrics[]> {
   const { prisma } = await import('./db')
 
+  const endDateTime = new Date(endDate)
+  endDateTime.setUTCHours(23, 59, 59, 999)
+
   // Fetch workouts for TSS calculation
   const workouts = await prisma.workout.findMany({
     where: {
       userId,
-      date: { gte: startDate, lte: endDate },
+      date: { gte: startDate, lte: endDateTime },
       isDuplicate: false
     },
     orderBy: { date: 'asc' }
@@ -141,7 +144,7 @@ export async function calculatePMCForDateRange(
   const wellness = await prisma.wellness.findMany({
     where: {
       userId,
-      date: { gte: startDate, lte: endDate }
+      date: { gte: startDate, lte: endDateTime }
     },
     select: {
       date: true,
@@ -185,11 +188,8 @@ export async function calculatePMCForDateRange(
 
   // Iterate through each day in the range
   const currentDate = new Date(startDate)
-  // Reset time to midnight to avoid issues
-  currentDate.setHours(0, 0, 0, 0)
-
-  const endDateTime = new Date(endDate)
-  endDateTime.setHours(23, 59, 59, 999)
+  // Reset time to midnight UTC to avoid timezone issues
+  currentDate.setUTCHours(0, 0, 0, 0)
 
   while (currentDate <= endDateTime) {
     const dateKey = currentDate.toISOString().split('T')[0] ?? ''
@@ -407,11 +407,11 @@ export function calculateProjectedPMC(
 
   // Iterate through each day in the range
   const currentDate = new Date(startDate)
-  // Reset time to midnight to avoid issues
-  currentDate.setHours(0, 0, 0, 0)
+  // Reset time to midnight UTC to avoid timezone issues
+  currentDate.setUTCHours(0, 0, 0, 0)
 
   const endDateTime = new Date(endDate)
-  endDateTime.setHours(23, 59, 59, 999)
+  endDateTime.setUTCHours(23, 59, 59, 999)
 
   while (currentDate <= endDateTime) {
     const dateKey = currentDate.toISOString().split('T')[0] ?? ''
