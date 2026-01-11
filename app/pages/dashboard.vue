@@ -85,13 +85,19 @@
           <!-- Row 1: Athlete Profile / Today's Training / Performance Overview -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6 items-stretch">
             <!-- Athlete Profile Card - shown when connected -->
-            <DashboardAthleteProfileCard @open-wellness="openWellnessModal" />
+            <DashboardAthleteProfileCard
+              @open-wellness="openWellnessModal"
+              @open-training-load="openTrainingLoadModal"
+            />
 
             <!-- Today's Recommendation Card -->
             <DashboardTrainingRecommendationCard @open-details="openRecommendationModal" />
 
             <!-- Performance Overview Card -->
-            <DashboardPerformanceScoresCard @open-score-modal="openScoreModal" />
+            <DashboardPerformanceScoresCard
+              @open-score-modal="openScoreModal"
+              @open-training-load="openTrainingLoadModal"
+            />
           </div>
 
           <!-- Row 2: Recent Activity / Next Steps / Connection Status -->
@@ -215,6 +221,9 @@
     :analysis-data="scoreModalData.analysisData"
     :color="scoreModalData.color"
   />
+
+  <!-- Training Load Modal -->
+  <TrainingLoadModal v-model:open="showTrainingLoadModal" />
 </template>
 
 <script setup lang="ts">
@@ -351,6 +360,13 @@
   function openScoreModal(data: any) {
     scoreModalData.value = data
     showScoreModal.value = true
+  }
+
+  // Training Load modal
+  const showTrainingLoadModal = ref(false)
+
+  function openTrainingLoadModal() {
+    showTrainingLoadModal.value = true
   }
 
   useHead({
