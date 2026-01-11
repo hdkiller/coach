@@ -19,7 +19,7 @@
 <template>
   <div class="flex-1 overflow-y-auto">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-4">
-      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="gray" variant="ghost" />
+      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Workout Stats</h1>
     </div>
 
@@ -47,7 +47,7 @@
                 Total Distance
               </div>
               <div class="text-2xl font-bold">
-                {{ Math.round(stats?.global.totalDistanceKm).toLocaleString() }}
+                {{ Math.round(stats?.global.totalDistanceKm || 0).toLocaleString() }}
                 <span class="text-sm font-normal text-gray-500">km</span>
               </div>
             </div>
@@ -58,7 +58,7 @@
                 Total Duration
               </div>
               <div class="text-2xl font-bold">
-                {{ Math.round(stats?.global.totalDurationHours).toLocaleString() }}
+                {{ Math.round(stats?.global.totalDurationHours || 0).toLocaleString() }}
                 <span class="text-sm font-normal text-gray-500">hrs</span>
               </div>
             </div>
@@ -69,7 +69,7 @@
                 Total TSS
               </div>
               <div class="text-2xl font-bold">
-                {{ Math.round(stats?.global.totalTss).toLocaleString() }}
+                {{ Math.round(stats?.global.totalTss || 0).toLocaleString() }}
               </div>
             </div>
           </UCard>
@@ -79,7 +79,7 @@
                 Total Energy
               </div>
               <div class="text-2xl font-bold">
-                {{ Math.round(stats?.global.totalKj).toLocaleString() }}
+                {{ Math.round(stats?.global.totalKj || 0).toLocaleString() }}
                 <span class="text-sm font-normal text-gray-500">kJ</span>
               </div>
             </div>
@@ -127,7 +127,7 @@
                 class="flex justify-between items-center text-sm"
               >
                 <span class="capitalize">{{ item.type || 'Unknown' }}</span>
-                <UBadge color="gray" variant="soft">{{ item.count }}</UBadge>
+                <UBadge color="neutral" variant="soft">{{ item.count }}</UBadge>
               </div>
             </div>
           </UCard>
@@ -144,7 +144,7 @@
                 class="flex justify-between items-center text-sm"
               >
                 <span class="capitalize">{{ item.source }}</span>
-                <UBadge color="gray" variant="soft">{{ item.count }}</UBadge>
+                <UBadge color="neutral" variant="soft">{{ item.count }}</UBadge>
               </div>
             </div>
           </UCard>
@@ -161,8 +161,12 @@
                   Duplicate Workouts Detected
                 </div>
                 <div class="text-xs text-gray-400 mt-2">
-                  {{ ((stats?.duplicates.duplicates / stats?.duplicates.total) * 100).toFixed(1) }}%
-                  of total
+                  {{
+                    (
+                      ((stats?.duplicates.duplicates || 0) / (stats?.duplicates.total || 1)) *
+                      100
+                    ).toFixed(1)
+                  }}% of total
                 </div>
               </div>
             </UCard>

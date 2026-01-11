@@ -196,7 +196,7 @@
                   <div class="flex justify-end gap-2">
                     <UButton
                       :to="`/admin/users/${user.id}`"
-                      color="white"
+                      color="neutral"
                       variant="ghost"
                       icon="i-lucide-eye"
                       size="xs"

@@ -107,7 +107,7 @@
 <template>
   <div class="flex-1 overflow-y-auto">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-4">
-      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="gray" variant="ghost" />
+      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">LLM Intelligence Stats</h1>
     </div>
 
@@ -138,7 +138,8 @@
                 {{ stats?.tokens.prompt.toLocaleString() }}
               </div>
               <div class="text-xs text-gray-500 mt-1">
-                {{ ((stats?.tokens.prompt / stats?.tokens.total) * 100).toFixed(0) }}% of total
+                {{ (((stats?.tokens.prompt || 0) / (stats?.tokens.total || 1)) * 100).toFixed(0) }}%
+                of total
               </div>
             </div>
           </UCard>
@@ -151,7 +152,9 @@
                 {{ stats?.tokens.completion.toLocaleString() }}
               </div>
               <div class="text-xs text-gray-500 mt-1">
-                {{ ((stats?.tokens.completion / stats?.tokens.total) * 100).toFixed(0) }}% of total
+                {{
+                  (((stats?.tokens.completion || 0) / (stats?.tokens.total || 1)) * 100).toFixed(0)
+                }}% of total
               </div>
             </div>
           </UCard>
@@ -173,7 +176,7 @@
                 class="flex justify-between text-xs"
               >
                 <span class="font-medium">{{ item.model }}</span>
-                <span class="text-gray-500 font-mono">${{ item.cost.toFixed(4) }}</span>
+                <span class="text-gray-500 font-mono">${{ (item.cost || 0).toFixed(4) }}</span>
               </div>
             </div>
           </UCard>
@@ -193,7 +196,7 @@
                 class="flex justify-between text-xs"
               >
                 <span class="font-medium capitalize">{{ item.operation.replace(/_/g, ' ') }}</span>
-                <span class="text-gray-500 font-mono">${{ item.cost.toFixed(4) }}</span>
+                <span class="text-gray-500 font-mono">${{ (item.cost || 0).toFixed(4) }}</span>
               </div>
             </div>
           </UCard>
@@ -255,8 +258,8 @@
                   {{ fail.errorMessage }}
                 </div>
                 <div class="mt-2 flex gap-2">
-                  <UBadge size="xs" color="gray">{{ fail.operation }}</UBadge>
-                  <UBadge size="xs" color="gray">{{ fail.model }}</UBadge>
+                  <UBadge size="xs" color="neutral">{{ fail.operation }}</UBadge>
+                  <UBadge size="xs" color="neutral">{{ fail.model }}</UBadge>
                 </div>
               </div>
               <div v-if="!stats?.recentFailures.length" class="text-center text-gray-400 py-4">
@@ -279,7 +282,7 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                  <tr v-for="user in stats?.topSpenders" :key="user.userId">
+                  <tr v-for="(user, index) in stats?.topSpenders" :key="user.userId || index">
                     <td class="py-2 text-sm">
                       <div class="font-medium">{{ user.name || 'Unknown' }}</div>
                       <div class="text-xs text-gray-500">{{ user.email }}</div>
@@ -287,7 +290,7 @@
                     <td
                       class="py-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400"
                     >
-                      ${{ user.cost.toFixed(4) }}
+                      ${{ (user.cost || 0).toFixed(4) }}
                     </td>
                   </tr>
                 </tbody>
@@ -330,7 +333,7 @@
                     {{ log.user?.email || 'System' }}
                   </td>
                   <td class="py-2 px-4">
-                    <UBadge color="gray" variant="soft" size="xs" class="capitalize">
+                    <UBadge color="neutral" variant="soft" size="xs" class="capitalize">
                       {{ log.operation.replace(/_/g, ' ') }}
                     </UBadge>
                   </td>
@@ -355,7 +358,7 @@
                   <td class="py-2 px-4 text-right">
                     <UButton
                       :to="`/admin/llm/logs/${log.id}`"
-                      color="gray"
+                      color="neutral"
                       variant="ghost"
                       icon="i-lucide-eye"
                       size="xs"

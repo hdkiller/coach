@@ -67,12 +67,12 @@
       class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur z-10"
     >
       <div class="flex items-center gap-4">
-        <UButton to="/admin/stats/llm" icon="i-lucide-arrow-left" color="gray" variant="ghost" />
+        <UButton to="/admin/stats/llm" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
         <h1 class="text-xl font-semibold text-gray-900 dark:text-white">AI Usage Detail (Admin)</h1>
       </div>
       <div v-if="data?.user" class="flex items-center gap-2">
         <span class="text-xs text-gray-500">Requested by:</span>
-        <UButton :to="`/admin/users/${data.user.id}`" color="gray" variant="ghost" class="p-1">
+        <UButton :to="`/admin/users/${data.user.id}`" color="neutral" variant="ghost" class="p-1">
           <div class="flex items-center gap-2">
             <UAvatar :src="data.user.image || undefined" :alt="data.user.name || ''" size="xs" />
             <span class="text-sm font-medium">{{ data.user.name || data.user.email }}</span>
@@ -104,7 +104,7 @@
                   </p>
                 </div>
               </div>
-              <UBadge :color="data.success ? 'green' : 'red'" variant="subtle">
+              <UBadge :color="data.success ? 'success' : 'error'" variant="subtle">
                 {{ data.success ? 'Success' : 'Failed' }}
               </UBadge>
             </div>
@@ -116,7 +116,7 @@
                 Model
               </div>
               <div class="font-semibold">{{ data.model }}</div>
-              <UBadge v-if="data.modelType" color="gray" size="xs" class="mt-1">{{
+              <UBadge v-if="data.modelType" color="neutral" size="xs" class="mt-1">{{
                 data.modelType
               }}</UBadge>
             </div>
@@ -164,7 +164,7 @@
           <div class="space-y-4">
             <div>
               <div class="text-xs font-bold text-gray-500 uppercase mb-1">Error Type</div>
-              <UBadge color="red" variant="soft">{{ data.errorType || 'Unknown' }}</UBadge>
+              <UBadge color="error" variant="soft">{{ data.errorType || 'Unknown' }}</UBadge>
             </div>
             <div>
               <div class="text-xs font-bold text-gray-500 uppercase mb-1">Message</div>

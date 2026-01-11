@@ -14,7 +14,7 @@
 <template>
   <div class="flex-1 overflow-y-auto">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-4">
-      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="gray" variant="ghost" />
+      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Developer Platform Stats</h1>
     </div>
 

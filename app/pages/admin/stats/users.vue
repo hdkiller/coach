@@ -14,7 +14,7 @@
 <template>
   <div class="flex-1 overflow-y-auto">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-4">
-      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="gray" variant="ghost" />
+      <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">User Statistics</h1>
     </div>
 
@@ -133,7 +133,7 @@
                   <span class="capitalize">{{ item.provider }}</span>
                   <span class="font-bold">{{ item.count }}</span>
                 </div>
-                <UProgress :value="item.count" :max="stats?.activity.totalUsers" color="purple" />
+                <UProgress :value="item.count" :max="stats?.activity.totalUsers" color="primary" />
               </div>
               <div v-if="!stats?.integrations.length" class="text-center text-gray-400 py-4">
                 No integrations data

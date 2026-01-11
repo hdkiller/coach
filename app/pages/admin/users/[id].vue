@@ -52,7 +52,7 @@
       class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur z-10"
     >
       <div class="flex items-center gap-4">
-        <UButton to="/admin/users" icon="i-lucide-arrow-left" color="gray" variant="ghost" />
+        <UButton to="/admin/users" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
         <div class="flex items-center gap-3">
           <UAvatar
             :src="data?.profile.image || undefined"
@@ -77,7 +77,7 @@
           @click="impersonateUser"
         />
         <UButton
-          color="gray"
+          color="neutral"
           variant="ghost"
           icon="i-lucide-refresh-cw"
           :loading="pending"
@@ -156,7 +156,7 @@
                   <div class="flex justify-between">
                     <dt class="text-gray-500">Role</dt>
                     <dd>
-                      <UBadge :color="data.profile.isAdmin ? 'purple' : 'gray'" size="xs">
+                      <UBadge :color="data.profile.isAdmin ? 'primary' : 'neutral'" size="xs">
                         {{ data.profile.isAdmin ? 'Admin' : 'User' }}
                       </UBadge>
                     </dd>
@@ -167,7 +167,7 @@
                       <UBadge
                         v-for="acc in data.profile.accounts"
                         :key="acc.provider"
-                        color="gray"
+                        color="neutral"
                         variant="subtle"
                         size="xs"
                       >
@@ -261,10 +261,10 @@
                 <UBadge
                   :color="
                     int.syncStatus === 'SUCCESS'
-                      ? 'green'
+                      ? 'success'
                       : int.syncStatus === 'FAILED'
-                        ? 'red'
-                        : 'gray'
+                        ? 'error'
+                        : 'neutral'
                   "
                   variant="subtle"
                   size="xs"
@@ -305,7 +305,7 @@
                   </td>
                   <td class="py-2 font-medium">{{ workout.title }}</td>
                   <td class="py-2">
-                    <UBadge color="gray" variant="soft" size="xs">{{ workout.type }}</UBadge>
+                    <UBadge color="neutral" variant="soft" size="xs">{{ workout.type }}</UBadge>
                   </td>
                   <td class="py-2 text-right font-mono">
                     {{ Math.round(workout.durationSec / 60) }}m
@@ -344,7 +344,7 @@
                     {{ new Date(log.createdAt).toLocaleString() }}
                   </td>
                   <td class="py-2">
-                    <UBadge color="gray" variant="soft" size="xs" class="capitalize">{{
+                    <UBadge color="neutral" variant="soft" size="xs" class="capitalize">{{
                       log.operation.replace(/_/g, ' ')
                     }}</UBadge>
                   </td>
@@ -365,7 +365,7 @@
                   <td class="py-2 text-right">
                     <UButton
                       :to="`/admin/llm/logs/${log.id}`"
-                      color="gray"
+                      color="neutral"
                       variant="ghost"
                       icon="i-lucide-eye"
                       size="xs"
