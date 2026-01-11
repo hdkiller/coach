@@ -1,9 +1,20 @@
 <template>
   <UCard v-if="integrationStore.intervalsConnected" class="flex flex-col overflow-hidden">
     <template #header>
-      <div class="flex items-center gap-2">
-        <UIcon name="i-heroicons-chart-bar" class="w-5 h-5 text-primary-500" />
-        <h3 class="font-bold text-sm tracking-tight uppercase">Performance Scores</h3>
+      <div class="flex items-center justify-between w-full">
+        <div class="flex items-center gap-2">
+          <UIcon name="i-heroicons-chart-bar" class="w-5 h-5 text-primary-500" />
+          <h3 class="font-bold text-sm tracking-tight uppercase">Performance Scores</h3>
+        </div>
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          icon="i-heroicons-presentation-chart-line"
+          @click="$emit('open-training-load')"
+        >
+          Training Load
+        </UButton>
       </div>
     </template>
 
@@ -73,14 +84,14 @@
 
     <template #footer>
       <UButton
-        to="/performance"
         color="neutral"
         variant="outline"
         size="sm"
         block
         class="font-bold"
+        @click="$emit('open-training-load')"
       >
-        Full Analytics
+        View Analysis
       </UButton>
     </template>
   </UCard>
@@ -91,7 +102,7 @@
   const { getScoreColor: getScoreBadgeColor } = useScoreColor()
   const { formatDate, getUserLocalDate } = useFormat()
 
-  const emit = defineEmits(['open-score-modal'])
+  const emit = defineEmits(['open-score-modal', 'open-training-load'])
 
   // Fetch athlete profile scores
   const { data: scoresData, pending: loadingScores } = useFetch<any>(

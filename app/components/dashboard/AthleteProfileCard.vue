@@ -166,9 +166,9 @@
       </NuxtLink>
 
       <!-- Training Load & Form Section -->
-      <NuxtLink
-        to="/performance"
+      <button
         class="group block w-full text-left p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500/50 transition-all duration-200"
+        @click="$emit('open-training-load')"
       >
         <div class="flex items-center justify-between mb-3">
           <p
@@ -253,7 +253,7 @@
         <div v-else class="text-xs text-gray-500 italic text-center py-1">
           Connect Intervals.icu for training load data
         </div>
-      </NuxtLink>
+      </button>
 
       <!-- Performance Section - Clickable -->
       <NuxtLink
@@ -480,7 +480,7 @@
   const { formatDate, getUserLocalDate } = useFormat()
   const { checkProfileStale, checkWellnessStale } = useDataStatus()
 
-  defineEmits(['open-wellness'])
+  defineEmits(['open-wellness', 'open-training-load'])
 
   const pmcData = ref<any>(null)
   const pmcLoading = ref(false)
