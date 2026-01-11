@@ -239,6 +239,9 @@
 
   const integrationStore = useIntegrationStore()
   const recommendationStore = useRecommendationStore()
+  const userStore = useUserStore()
+  const { checkProfileStale } = useDataStatus()
+  const toast = useToast()
 
   defineEmits(['open-details'])
 
@@ -293,11 +296,35 @@
         isSyncingForAnalysis.value = false
       }
     }
+
+    // Check if profile needs update before generating recommendation
+    const profileStatus = checkProfileStale(
+      userStore.profile?.profileLastUpdated,
+      userStore.profile?.latestWorkoutDate
+    )
+
+    if (profileStatus.isStale) {
+      toast.add({
+        title: 'Updating Profile First',
+        description: 'Your athlete profile is outdated. Updating it for better recommendations...',
+        color: 'info',
+        icon: 'i-heroicons-user-circle'
+      })
+
+      try {
+        await userStore.generateProfile()
+      } catch (e) {
+        // Continue even if profile gen fails, just warn
+        console.error('Profile generation failed, proceeding with recommendation anyway', e)
+      }
+    }
+
     await recommendationStore.generateTodayRecommendation()
   }
 
   function getButtonLabel() {
     if (isSyncingForAnalysis.value) return 'Syncing data...'
+    if (userStore.generating) return 'Updating Profile...'
     if (recommendationStore.generating) return 'Thinking...'
     if (recommendationStore.todayRecommendation) return 'Refresh'
     return 'Ask Coach to Analyze Readiness'
@@ -305,6 +332,7 @@
 
   function getLoadingText() {
     if (recommendationStore.generatingAdHoc) return 'Designing your workout...'
+    if (userStore.generating) return 'Updating your athlete profile...'
     if (recommendationStore.generating) return 'Generating recommendation...'
     return 'Loading...'
   }

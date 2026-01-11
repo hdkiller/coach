@@ -53,6 +53,9 @@
             Athlete's Profile
           </p>
           <div class="flex items-center gap-2">
+            <UTooltip v-if="profileStatus.isStale" :text="profileStatus.label">
+              <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
+            </UTooltip>
             <UButton
               size="xs"
               color="neutral"
@@ -365,11 +368,16 @@
         @click="$emit('open-wellness')"
       >
         <div class="flex items-center justify-between mb-3">
-          <p
-            class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest"
-          >
-            Latest Wellness
-          </p>
+          <div class="flex items-center gap-2">
+            <p
+              class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest"
+            >
+              Latest Wellness
+            </p>
+            <UTooltip v-if="wellnessStatus.isStale" :text="wellnessStatus.label">
+              <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
+            </UTooltip>
+          </div>
           <UIcon
             name="i-heroicons-chevron-right"
             class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors"
@@ -470,6 +478,7 @@
   const userStore = useUserStore()
   const integrationStore = useIntegrationStore()
   const { formatDate, getUserLocalDate } = useFormat()
+  const { checkProfileStale, checkWellnessStale } = useDataStatus()
 
   defineEmits(['open-wellness'])
 
@@ -478,6 +487,12 @@
   const ftpHistory = ref<any[]>([])
   const wellnessHistory = ref<any[]>([])
   const weightHistory = ref<any[]>([])
+
+  const profileStatus = computed(() =>
+    checkProfileStale(userStore.profile?.profileLastUpdated, userStore.profile?.latestWorkoutDate)
+  )
+
+  const wellnessStatus = computed(() => checkWellnessStale(userStore.profile?.latestWellnessDate))
 
   async function fetchHistoryData() {
     // Attempt to fetch even if not connected, as some data might exist
