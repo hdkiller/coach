@@ -17,6 +17,11 @@ defineRouteMeta({
               points: {
                 type: 'number',
                 description: 'Target number of points for downsampling (default 2000)'
+              },
+              keys: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Specific stream keys to return'
               }
             }
           }
@@ -38,7 +43,9 @@ defineRouteMeta({
                   time: { type: 'array' },
                   watts: { type: 'array' },
                   heartrate: { type: 'array' },
-                  cadence: { type: 'array' }
+                  cadence: { type: 'array' },
+                  hrZoneTimes: { type: 'array' },
+                  powerZoneTimes: { type: 'array' }
                 }
               }
             }
@@ -61,7 +68,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { workoutIds, points } = body
+  const { workoutIds, points, keys } = body
 
   if (!workoutIds || !Array.isArray(workoutIds) || workoutIds.length === 0) {
     return []
@@ -84,16 +91,8 @@ export default defineEventHandler(async (event) => {
     return []
   }
 
-  // Fetch streams for verified workouts
-  const streams = await prisma.workoutStream.findMany({
-    where: {
-      workoutId: { in: verifiedIds }
-    }
-  })
-
-  // Downsample streams to prevent large payloads (Fixes COACH-WATTS-A)
-  const TARGET_POINTS = typeof points === 'number' && points > 0 ? points : 2000
-  const streamKeys = [
+  // Define allowed keys to prevent leaking sensitive or internal fields
+  const allowedKeys = [
     'time',
     'watts',
     'heartrate',
@@ -102,11 +101,55 @@ export default defineEventHandler(async (event) => {
     'altitude',
     'distance',
     'grade_smooth',
-    'latlng'
+    'latlng',
+    'moving',
+    'grade',
+    'hrZoneTimes',
+    'powerZoneTimes',
+    'lapSplits',
+    'paceZones'
   ]
 
-  return streams.map((stream) => {
-    // If time stream is short enough, return as is
+  // Default keys if none specified (optimized for bulk fetching)
+  const defaultKeys = ['time', 'watts', 'heartrate', 'cadence', 'hrZoneTimes', 'powerZoneTimes']
+
+  const requestedKeys =
+    keys && Array.isArray(keys) ? keys.filter((k) => allowedKeys.includes(k)) : defaultKeys
+
+  // Build Prisma select object
+  const select: Record<string, boolean> = {
+    id: true,
+    workoutId: true
+  }
+  requestedKeys.forEach((k) => {
+    select[k] = true
+  })
+
+  // Fetch streams for verified workouts with limited fields
+  const streams = await prisma.workoutStream.findMany({
+    where: {
+      workoutId: { in: verifiedIds }
+    },
+    select: select as any
+  })
+
+  // Downsample streams to prevent large payloads (Fixes COACH-WATTS-A)
+  const TARGET_POINTS = typeof points === 'number' && points > 0 ? points : 2000
+  const keysToSample = [
+    'time',
+    'watts',
+    'heartrate',
+    'cadence',
+    'velocity',
+    'altitude',
+    'distance',
+    'grade_smooth',
+    'latlng',
+    'grade'
+  ]
+
+  return streams.map((stream: any) => {
+    // If time stream is short enough, return as is (but only with selected keys)
     if (!stream.time || !Array.isArray(stream.time) || stream.time.length <= TARGET_POINTS) {
       return stream
     }
@@ -114,8 +157,10 @@ export default defineEventHandler(async (event) => {
     const processedStream = { ...stream }
     const step = stream.time.length / TARGET_POINTS
 
-    streamKeys.forEach((key) => {
-      // @ts-expect-error - Dynamic access
+    keysToSample.forEach((key) => {
+      // Only sample if key was requested
+      if (!requestedKeys.includes(key)) return
+
       const data = processedStream[key]
       if (data && Array.isArray(data)) {
         const sampled: any[] = []
@@ -125,7 +170,6 @@ export default defineEventHandler(async (event) => {
             sampled.push(data[index])
           }
         }
-        // @ts-expect-error - Dynamic assignment to stream keys
         processedStream[key] = sampled
       }
     })

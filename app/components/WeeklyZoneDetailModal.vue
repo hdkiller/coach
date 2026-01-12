@@ -213,10 +213,14 @@
       let streams = props.streams
 
       if (!streams) {
-        // Fetch stream data for all workouts in one request
+        // Fetch necessary keys with low resolution fallback to keep payload small
         streams = await $fetch<any[]>('/api/workouts/streams', {
           method: 'POST',
-          body: { workoutIds: props.weekData.workoutIds }
+          body: {
+            workoutIds: props.weekData.workoutIds,
+            keys: ['hrZoneTimes', 'powerZoneTimes', 'heartrate', 'watts', 'time'],
+            points: 150
+          }
         }).catch(() => [])
       }
 
@@ -231,8 +235,22 @@
 
         const timeArray = stream.time
 
-        // Process HR zones
-        if ('heartrate' in stream && Array.isArray(stream.heartrate) && props.userZones?.hrZones) {
+        // Priority 1: Use cached zone times if available (much faster and uses less data)
+        if (
+          stream.hrZoneTimes &&
+          Array.isArray(stream.hrZoneTimes) &&
+          stream.hrZoneTimes.length > 0
+        ) {
+          hasHrData = true
+          stream.hrZoneTimes.forEach((duration: number, index: number) => {
+            if (index < 8) hrZoneTimes[index] += duration
+          })
+        } else if (
+          'heartrate' in stream &&
+          Array.isArray(stream.heartrate) &&
+          props.userZones?.hrZones
+        ) {
+          // Fallback to manual calculation from stream
           hasHrData = true
           stream.heartrate.forEach((hr: number, index: number) => {
             if (hr === null || hr === undefined) return
@@ -254,8 +272,22 @@
           })
         }
 
-        // Process Power zones
-        if ('watts' in stream && Array.isArray(stream.watts) && props.userZones?.powerZones) {
+        // Priority 1: Use cached zone times if available
+        if (
+          stream.powerZoneTimes &&
+          Array.isArray(stream.powerZoneTimes) &&
+          stream.powerZoneTimes.length > 0
+        ) {
+          hasPowerData = true
+          stream.powerZoneTimes.forEach((duration: number, index: number) => {
+            if (index < 8) powerZoneTimes[index] += duration
+          })
+        } else if (
+          'watts' in stream &&
+          Array.isArray(stream.watts) &&
+          props.userZones?.powerZones
+        ) {
+          // Fallback to manual calculation from stream
           hasPowerData = true
           stream.watts.forEach((watts: number, index: number) => {
             if (watts === null || watts === undefined) return

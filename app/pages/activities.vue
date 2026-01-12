@@ -819,7 +819,8 @@
           method: 'POST',
           body: {
             workoutIds: ids,
-            points: 150 // We only need enough points for approximate zone calculation
+            keys: ['hrZoneTimes', 'powerZoneTimes', 'heartrate', 'watts', 'time'],
+            points: 150
           }
         })
 
