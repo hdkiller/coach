@@ -45,7 +45,32 @@ export default defineNuxtConfig({
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:site', content: '@coachwatts' }
       ],
-      link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }]
+      link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
+      script: [
+        {
+          innerHTML: `
+            (function() {
+              window.addEventListener('error', function(event) {
+                var errorText = event.message || '';
+                if (
+                  errorText.includes('Importing a module script failed') ||
+                  errorText.includes('Failed to fetch dynamically imported module') ||
+                  errorText.includes('loading chunk')
+                ) {
+                  var now = Date.now();
+                  var lastReload = sessionStorage.getItem('chunk-error-reload');
+                  if (lastReload && (now - parseInt(lastReload) < 10000)) return;
+                  sessionStorage.setItem('chunk-error-reload', now.toString());
+                  var url = new URL(window.location.href);
+                  url.searchParams.set('reload', now.toString());
+                  window.location.href = url.toString();
+                }
+              }, true);
+            })();
+          `.replace(/\s+/g, ' '),
+          type: 'text/javascript'
+        }
+      ]
     }
   },
 

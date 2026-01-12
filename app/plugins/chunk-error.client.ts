@@ -23,7 +23,14 @@ export default defineNuxtPlugin((nuxtApp) => {
     )
 
     // A hard reload is the most reliable way to fix chunk loading issues after a deployment
-    window.location.reload()
+    // We use a query parameter to bypass the browser cache, which is especially aggressive on Safari
+    const url = new URL(window.location.href)
+    // Remove any existing reload param to avoid stacking
+    if (url.searchParams.has('reload')) {
+      url.searchParams.delete('reload')
+    }
+    url.searchParams.set('reload', now.toString())
+    window.location.href = url.toString()
   }
 
   // Hook into Nuxt's chunk error handling
