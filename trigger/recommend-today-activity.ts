@@ -5,6 +5,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { formatUserDate } from '../server/utils/date'
 import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils/training-stress'
+import { analyzeWellness } from '../server/utils/services/wellness-analysis'
 
 const recommendationSchema = {
   type: 'object',
@@ -191,9 +192,38 @@ export const recommendTodayActivityTask = task({
       getCurrentFitnessSummary(userId)
     ])
 
+    // --- CHECK FOR AND RUN WELLNESS ANALYSIS IF MISSING ---
+    // If we have a wellness record (todayMetric) but no AI analysis, run it now.
+    // This ensures we always have the AI context for the recommendation.
+    let enrichedTodayMetric = todayMetric
+
+    if (
+      todayMetric &&
+      (!todayMetric.aiAnalysisJson || todayMetric.aiAnalysisStatus !== 'COMPLETED')
+    ) {
+      logger.log('Wellness analysis missing for today, running inline...', {
+        wellnessId: todayMetric.id
+      })
+      try {
+        const result = await analyzeWellness(todayMetric.id, userId)
+        if (result.success && result.analysis) {
+          // Update our local object so the prompt gets the new data
+          enrichedTodayMetric = {
+            ...todayMetric,
+            aiAnalysisJson: result.analysis,
+            aiAnalysisStatus: 'COMPLETED'
+          }
+          logger.log('Inline wellness analysis completed successfully')
+        }
+      } catch (err) {
+        logger.error('Failed to run inline wellness analysis', { err })
+        // We continue without the analysis rather than failing the whole recommendation
+      }
+    }
+
     logger.log('Data fetched', {
       hasPlannedWorkout: !!plannedWorkout,
-      hasTodayMetric: !!todayMetric,
+      hasTodayMetric: !!enrichedTodayMetric,
       recentWorkoutsCount: recentWorkouts.length,
       hasAthleteProfile: !!athleteProfile,
       activeGoalsCount: activeGoals.length,
@@ -380,6 +410,18 @@ ${projectedMetrics
       zoneDefinitions += `**Zone 2 (LTHR-based):** ${Math.round(user.lthr * 0.8)}-${Math.round(user.lthr * 0.9)} bpm (80-90% LTHR)\n`
     }
 
+    // Build Wellness Analysis Context
+    let wellnessAnalysisContext = ''
+    if (enrichedTodayMetric?.aiAnalysisJson) {
+      const analysis = enrichedTodayMetric.aiAnalysisJson as any
+      wellnessAnalysisContext = `
+TODAY'S WELLNESS ANALYSIS (AI Generated):
+- Status: ${analysis.status ? analysis.status.toUpperCase() : 'Unknown'}
+- Summary: ${analysis.executive_summary || 'N/A'}
+${analysis.recommendations ? 'Recommendations:\n' + analysis.recommendations.map((r: any) => `  * ${r.title}: ${r.description} (${r.priority})`).join('\n') : ''}
+`
+    }
+
     // Build current fitness context
     const currentStatusContext = `
 CURRENT ATHLETE STATUS (Source of Truth):
@@ -422,17 +464,19 @@ ${metricsContext}
 
 TODAY'S RECOVERY METRICS:
 ${
-  todayMetric
+  enrichedTodayMetric
     ? `
-- Recovery Score: ${todayMetric.recoveryScore ?? 'Unknown'}${todayMetric.recoveryScore !== null ? '%' : ''}
-- HRV (rMSSD): ${todayMetric.hrv ?? 'Unknown'} ms
-- HRV (SDNN): ${todayMetric.hrvSdnn ?? 'Unknown'} ms
-- Resting HR: ${todayMetric.restingHr ?? 'Unknown'} bpm
-- Sleep: ${todayMetric.sleepHours?.toFixed(1) ?? 'Unknown'} hours (Score: ${todayMetric.sleepScore ?? 'Unknown'}%)
-${todayMetric.spO2 ? `- SpO2: ${todayMetric.spO2}%` : ''}
+- Recovery Score: ${enrichedTodayMetric.recoveryScore ?? 'Unknown'}${enrichedTodayMetric.recoveryScore !== null ? '%' : ''}
+- HRV (rMSSD): ${enrichedTodayMetric.hrv ?? 'Unknown'} ms
+- HRV (SDNN): ${enrichedTodayMetric.hrvSdnn ?? 'Unknown'} ms
+- Resting HR: ${enrichedTodayMetric.restingHr ?? 'Unknown'} bpm
+- Sleep: ${enrichedTodayMetric.sleepHours?.toFixed(1) ?? 'Unknown'} hours (Score: ${enrichedTodayMetric.sleepScore ?? 'Unknown'}%)
+${enrichedTodayMetric.spO2 ? `- SpO2: ${enrichedTodayMetric.spO2}%` : ''}
 `
     : 'No recovery data available'
 }
+
+${wellnessAnalysisContext}
 
 TODAY'S COMPLETED TRAINING:
 ${todaysWorkouts.length > 0 ? buildWorkoutSummary(todaysWorkouts) : 'None so far'}

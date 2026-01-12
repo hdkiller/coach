@@ -560,6 +560,23 @@ Recent sleep: ${recentWellness
         .map((w) => `${w.sleepHours?.toFixed(1) || 'N/A'}h`)
         .join(', ')}`
 
+      // Build Wellness Analysis History
+      const wellnessAnalyses = recentWellness
+        .filter((w) => w.aiAnalysisJson)
+        .map((w) => {
+          const analysis = w.aiAnalysisJson as any
+          const status = analysis.status ? `[${analysis.status.toUpperCase()}]` : ''
+          const summary = analysis.executive_summary || 'Analysis available'
+          return `${formatUserDate(w.date, timezone)}: ${status} ${summary}`
+        })
+        .slice(0, 10) // Limit to 10 most recent
+        .join('\n')
+
+      const wellnessAnalysisSummary =
+        wellnessAnalyses.length > 0
+          ? `\n\nWELLNESS ANALYSIS HISTORY (Recent insights):\n${wellnessAnalyses}`
+          : ''
+
       // Build recent recommendations summary
       const recommendationsSummary = recentRecommendations
         .map(
@@ -664,7 +681,7 @@ RECENT TRAINING DETAILS (Last 20 sessions):
 ${buildWorkoutSummary(recentWorkouts)}
 
 RECOVERY METRICS:
-${wellnessSummary}
+${wellnessSummary}${wellnessAnalysisSummary}
 
 RECENT COACHING RECOMMENDATIONS (Last 7 days):
 ${recommendationsSummary || 'No recent recommendations'}
