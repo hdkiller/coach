@@ -263,13 +263,13 @@
 </script>
 
 <template>
-  <UDashboardGroup unit="rem">
+  <UDashboardGroup unit="rem" class="bg-gray-50 dark:bg-inherit">
     <UDashboardSidebar
       id="default"
       v-model:open="open"
       collapsible
       resizable
-      class="bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800"
+      class="bg-gray-50 dark:bg-inherit border-r border-gray-200 dark:border-gray-800"
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
       <template #header="{ collapsed }">
