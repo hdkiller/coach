@@ -13,6 +13,7 @@ defineRouteMeta({
       },
       { name: 'isPinned', in: 'query', schema: { type: 'boolean' } },
       { name: 'metric', in: 'query', schema: { type: 'string' } },
+      { name: 'category', in: 'query', schema: { type: 'string' } },
       { name: 'sourceType', in: 'query', schema: { type: 'string' } },
       { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } }
     ]
@@ -29,6 +30,7 @@ export default defineEventHandler(async (event) => {
   const status = query.status as string | undefined
   const isPinned = query.isPinned === 'true'
   const metric = query.metric as string | undefined
+  const category = query.category as string | undefined
   const sourceType = query.sourceType as string | undefined
   const limit = parseInt(query.limit as string) || 50
 
@@ -52,6 +54,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (metric) where.metric = metric
+  if (category) where.category = category
   if (sourceType) where.sourceType = sourceType
 
   const recommendations = await prisma.recommendation.findMany({
