@@ -1,10 +1,14 @@
 <template>
-  <UModal
-    v-model:open="isOpen"
-    title="Wellness Overview"
-    :description="formattedDate"
-    class="sm:max-w-2xl"
-  >
+  <UModal v-model:open="isOpen" :description="formattedDate" class="sm:max-w-2xl">
+    <template #title>
+      <div class="flex items-center gap-2">
+        <span>Wellness Overview</span>
+        <UTooltip v-if="isStale" :text="staleLabel">
+          <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-amber-500" />
+        </UTooltip>
+      </div>
+    </template>
+
     <template #body>
       <div v-if="loading" class="flex items-center justify-center py-12">
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary-500" />
@@ -153,51 +157,110 @@
 
         <!-- Metric Explanations -->
         <div class="space-y-4">
-          <h4
-            class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1"
+          <div class="flex items-center justify-between px-1">
+            <h4
+              class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+            >
+              Insights
+            </h4>
+            <!-- AI Analyze Button (Only if NOT already analyzed) -->
+            <UButton
+              v-if="wellnessData.aiAnalysisJson && wellnessData.aiAnalysisStatus !== 'PROCESSING'"
+              color="neutral"
+              variant="link"
+              size="2xs"
+              class="p-0 text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 transition-colors font-medium"
+              :loading="analyzingWellness"
+              :disabled="analyzingWellness"
+              @click="analyzeWellness"
+            >
+              Regenerate
+            </UButton>
+            <UButton
+              v-else-if="wellnessData.aiAnalysisStatus === 'PROCESSING'"
+              icon="i-heroicons-arrow-path"
+              color="primary"
+              variant="ghost"
+              size="2xs"
+              loading
+              disabled
+            >
+              Analyzing...
+            </UButton>
+          </div>
+
+          <!-- AI Analysis Content -->
+          <div
+            v-if="wellnessData.aiAnalysisJson"
+            class="p-4 bg-indigo-50 dark:bg-indigo-900/10 rounded-xl ring-1 ring-inset ring-indigo-200 dark:ring-indigo-800/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-colors group/ai-card cursor-pointer relative"
+            @click="navigateTo(`/fitness/${wellnessData.id}`)"
           >
-            Insights
-          </h4>
-
-          <div class="grid gap-3">
-            <div
-              v-if="wellnessData.hrv != null"
-              class="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
-            >
-              <div class="flex items-start gap-3">
-                <UIcon
-                  name="i-heroicons-information-circle"
-                  class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0"
-                />
-                <div class="text-sm">
-                  <span class="font-bold text-gray-900 dark:text-white"
-                    >Heart Rate Variability</span
-                  >
-                  <p class="text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
-                    {{ getHRVInterpretation(wellnessData.hrv) }}
+            <div class="flex items-start gap-3">
+              <UIcon
+                name="i-heroicons-sparkles"
+                class="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0"
+              />
+              <div class="space-y-3 w-full">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-indigo-900 dark:text-indigo-100"
+                      >AI Coach Analysis</span
+                    >
+                    <div class="flex items-center gap-2" @click.stop>
+                      <AiFeedback
+                        v-if="wellnessData.llmUsageId"
+                        :llm-usage-id="wellnessData.llmUsageId"
+                        :initial-feedback="wellnessData.feedback"
+                        :initial-feedback-text="wellnessData.feedbackText"
+                        hide-usage-link
+                      />
+                      <span
+                        v-if="wellnessData.aiAnalysisJson.status"
+                        class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-white/50 dark:bg-indigo-900/40"
+                      >
+                        {{ formatStatus(wellnessData.aiAnalysisJson.status) }}
+                      </span>
+                    </div>
+                  </div>
+                  <p class="text-sm text-indigo-800 dark:text-indigo-200 mt-1 leading-relaxed">
+                    {{ wellnessData.aiAnalysisJson.executive_summary }}
                   </p>
-                </div>
-              </div>
-            </div>
-
-            <div
-              v-if="wellnessData.hoursSlept != null"
-              class="p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
-            >
-              <div class="flex items-start gap-3">
-                <UIcon
-                  name="i-heroicons-moon"
-                  class="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0"
-                />
-                <div class="text-sm">
-                  <span class="font-bold text-gray-900 dark:text-white">Sleep Quality</span>
-                  <p class="text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
-                    {{ getSleepInterpretation(wellnessData.hoursSlept) }}
-                  </p>
+                  <div class="flex justify-end mt-2">
+                    <span
+                      class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 group-hover/ai-card:underline uppercase tracking-tight"
+                    >
+                      View Full Details
+                      <UIcon name="i-heroicons-arrow-right" class="w-3 h-3" />
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Analyze Action (Empty State) -->
+          <button
+            v-else
+            class="w-full text-left p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group flex items-center gap-3"
+            :disabled="analyzingWellness"
+            @click="analyzeWellness"
+          >
+            <div
+              class="p-2 bg-white dark:bg-gray-900 rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+            >
+              <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
+            </div>
+            <div>
+              <span class="font-bold text-gray-900 dark:text-white block">Analyze with AI</span>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Get personalized insights on your recovery and readiness.
+              </p>
+            </div>
+            <UIcon
+              name="i-heroicons-arrow-right"
+              class="w-4 h-4 text-gray-400 group-hover:text-primary-500 ml-auto"
+            />
+          </button>
         </div>
 
         <!-- 7-Day Trends -->
@@ -282,11 +345,36 @@
                 class="w-6 h-6 text-primary-600 dark:text-primary-400 flex-shrink-0"
               />
             </div>
-            <div class="space-y-1 flex-1">
+            <div class="space-y-2 flex-1">
               <h4 class="font-bold text-sm text-primary-900 dark:text-primary-100">
                 Coach Recommendation
               </h4>
-              <p class="text-sm text-primary-800 dark:text-primary-200 leading-relaxed font-medium">
+
+              <!-- AI Recommendation -->
+              <div
+                v-if="
+                  wellnessData.aiAnalysisJson && wellnessData.aiAnalysisJson.recommendations?.length
+                "
+                class="space-y-3"
+              >
+                <div
+                  v-for="(rec, index) in wellnessData.aiAnalysisJson.recommendations.slice(0, 1)"
+                  :key="index"
+                >
+                  <p class="text-sm font-semibold text-primary-900 dark:text-primary-100">
+                    {{ rec.title }}
+                  </p>
+                  <p class="text-sm text-primary-800 dark:text-primary-200 leading-relaxed mt-1">
+                    {{ rec.description }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Fallback Heuristic -->
+              <p
+                v-else
+                class="text-sm text-primary-800 dark:text-primary-200 leading-relaxed font-medium"
+              >
                 {{ getTrainingRecommendation() }}
               </p>
 
@@ -299,7 +387,7 @@
                   icon="i-heroicons-arrow-right"
                   trailing
                 >
-                  View Details
+                  View Full Details
                 </UButton>
               </div>
             </div>
@@ -328,11 +416,21 @@
   }>()
 
   const { formatDate, timezone } = useFormat()
+  const toast = useToast()
+  const { checkWellnessStale } = useDataStatus()
 
   const isOpen = computed({
     get: () => props.open,
     set: (value) => emit('update:open', value)
   })
+
+  const wellnessStatus = computed(() => {
+    if (!props.date) return { isStale: false, label: '' }
+    const dateStr = formatDateFns(props.date, 'yyyy-MM-dd')
+    return checkWellnessStale(dateStr)
+  })
+  const isStale = computed(() => wellnessStatus.value.isStale)
+  const staleLabel = computed(() => wellnessStatus.value.label)
 
   const formattedDate = computed(() => {
     return props.date ? formatDate(props.date, 'EEEE, MMMM d, yyyy') : ''
@@ -341,6 +439,10 @@
   const loading = ref(false)
   const wellnessData = ref<any>(null)
   const trendData = ref<any[]>([])
+
+  // AI Analysis State
+  const analyzingWellness = ref(false)
+  let pollingInterval: NodeJS.Timeout | null = null
 
   // Watch for date changes to fetch data
   watch(
@@ -358,18 +460,32 @@
     async (isOpen) => {
       if (isOpen && props.date) {
         await fetchWellnessData(props.date)
+      } else if (!isOpen) {
+        stopPolling()
       }
     }
   )
 
+  // Cleanup on unmount
+  onUnmounted(() => {
+    stopPolling()
+  })
+
   async function fetchWellnessData(date: Date) {
     loading.value = true
+    stopPolling()
+
     try {
       const dateStr = formatDateFns(date, 'yyyy-MM-dd')
 
       // Fetch wellness data for the specific date
       const response = await $fetch(`/api/wellness/${dateStr}`)
       wellnessData.value = response
+
+      // If processing, start polling
+      if (wellnessData.value?.aiAnalysisStatus === 'PROCESSING') {
+        startPolling()
+      }
 
       // Fetch 7-day trend data
       const startDate = formatDateFns(subDays(date, 6), 'yyyy-MM-dd')
@@ -390,24 +506,109 @@
     }
   }
 
+  // AI Analysis Logic
+  async function analyzeWellness() {
+    if (!wellnessData.value?.id) return
+
+    analyzingWellness.value = true
+    try {
+      const result = (await $fetch(`/api/wellness/${wellnessData.value.id}/analyze`, {
+        method: 'POST'
+      })) as any
+
+      // If already completed, update immediately
+      if (result.status === 'COMPLETED' && result.analysis) {
+        wellnessData.value.aiAnalysisJson = result.analysis
+        wellnessData.value.aiAnalyzedAt = result.analyzedAt
+        wellnessData.value.aiAnalysisStatus = 'COMPLETED'
+        wellnessData.value.llmUsageId = result.llmUsageId
+        wellnessData.value.feedback = result.feedback
+        wellnessData.value.feedbackText = result.feedbackText
+        analyzingWellness.value = false
+
+        toast.add({
+          title: 'Analysis Ready',
+          description: 'Wellness analysis is ready',
+          color: 'success',
+          icon: 'i-heroicons-check-circle'
+        })
+        return
+      }
+
+      // Update status and start polling
+      if (wellnessData.value) {
+        wellnessData.value.aiAnalysisStatus = result.status || 'PROCESSING'
+      }
+
+      toast.add({
+        title: 'Analysis Started',
+        description: 'AI is analyzing your wellness data...',
+        color: 'info',
+        icon: 'i-heroicons-sparkles'
+      })
+
+      startPolling()
+    } catch (e: any) {
+      console.error('Error triggering wellness analysis:', e)
+      analyzingWellness.value = false
+      toast.add({
+        title: 'Analysis Failed',
+        description: e.data?.message || 'Failed to start analysis',
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
+      })
+    }
+  }
+
+  function startPolling() {
+    if (pollingInterval) clearInterval(pollingInterval)
+
+    pollingInterval = setInterval(async () => {
+      if (!wellnessData.value?.id) return
+
+      try {
+        const updated = (await $fetch(`/api/wellness/${wellnessData.value.id}`)) as any
+
+        if (wellnessData.value) {
+          wellnessData.value.aiAnalysisJson = updated.aiAnalysisJson
+          wellnessData.value.aiAnalysisStatus = updated.aiAnalysisStatus
+          wellnessData.value.aiAnalyzedAt = updated.aiAnalyzedAt
+          wellnessData.value.llmUsageId = updated.llmUsageId
+          wellnessData.value.feedback = updated.feedback
+          wellnessData.value.feedbackText = updated.feedbackText
+        }
+
+        if (updated.aiAnalysisStatus === 'COMPLETED' || updated.aiAnalysisStatus === 'FAILED') {
+          analyzingWellness.value = false
+          stopPolling()
+
+          if (updated.aiAnalysisStatus === 'COMPLETED') {
+            toast.add({
+              title: 'Analysis Complete',
+              color: 'success',
+              icon: 'i-heroicons-check-circle'
+            })
+          }
+        }
+      } catch (e) {
+        console.error('Error polling wellness status:', e)
+      }
+    }, 3000)
+  }
+
+  function stopPolling() {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+  }
+
   const { calculateTrend } = useTrend()
 
   // Computed properties for trends
   const maxHRV = computed(() => {
     const values = trendData.value.filter((d) => d.hrv != null).map((d) => d.hrv)
     return values.length > 0 ? Math.max(...values) : 100
-  })
-
-  const hasSubjectiveMetrics = computed(() => {
-    if (!wellnessData.value) return false
-    return (
-      wellnessData.value.soreness != null ||
-      wellnessData.value.fatigue != null ||
-      wellnessData.value.stress != null ||
-      wellnessData.value.mood != null ||
-      wellnessData.value.motivation != null ||
-      wellnessData.value.readiness != null
-    )
   })
 
   // Helper functions
@@ -421,6 +622,11 @@
     if (score >= 67) return 'Well recovered'
     if (score >= 34) return 'Moderate recovery'
     return 'Low recovery'
+  }
+
+  function formatStatus(status: string) {
+    if (!status) return ''
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
   }
 
   function getHRVInterpretation(hrv: number): string {
