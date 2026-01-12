@@ -28,8 +28,10 @@
 
         <div class="flex items-center gap-2">
           <div class="hidden sm:flex items-center gap-2">
-            <UButton to="/login" variant="ghost" color="gray">Sign In</UButton>
-            <UButton to="/join" color="primary">Get Started</UButton>
+            <UButton v-if="route.path !== '/login'" to="/login" variant="ghost" color="gray"
+              >Sign In</UButton
+            >
+            <UButton v-if="route.path !== '/join'" to="/join" color="primary">Get Started</UButton>
           </div>
           <ColorModeButton />
 
@@ -55,8 +57,17 @@
                   >Stories</NuxtLink
                 >
                 <hr class="border-gray-200 dark:border-gray-800" />
-                <UButton to="/login" variant="ghost" color="gray" block>Sign In</UButton>
-                <UButton to="/join" color="primary" block>Get Started</UButton>
+                <UButton
+                  v-if="route.path !== '/login'"
+                  to="/login"
+                  variant="ghost"
+                  color="gray"
+                  block
+                  >Sign In</UButton
+                >
+                <UButton v-if="route.path !== '/join'" to="/join" color="primary" block
+                  >Get Started</UButton
+                >
               </div>
             </template>
           </UPopover>
@@ -143,8 +154,5 @@
 </template>
 
 <script setup>
-  // Minimal ColorModeButton component inline or assumed to exist.
-  // If not, I'll remove it or create it. I'll check app/components later.
-  // For now, I'll assume standard UButton works for toggling if I add logic.
-  // I'll create a simple ColorModeButton component if needed.
+  const route = useRoute()
 </script>

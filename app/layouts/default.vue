@@ -299,7 +299,7 @@
       </template>
 
       <template #footer="{ collapsed }">
-        <div>
+        <div class="w-full">
           <div v-if="!collapsed" class="px-4 pb-2">
             <div class="flex items-center justify-center gap-4 mb-4">
               <NuxtLink
@@ -308,9 +308,14 @@
                 class="hover:opacity-100 transition-opacity"
               >
                 <img
+                  src="/images/logos/strava_powered_by_black.png"
+                  alt="Powered by Strava"
+                  class="h-6 w-auto opacity-75 hover:opacity-100 dark:hidden"
+                />
+                <img
                   src="/images/logos/strava_powered_by.png"
                   alt="Powered by Strava"
-                  class="h-6 w-auto opacity-75 hover:opacity-100"
+                  class="h-6 w-auto opacity-75 hover:opacity-100 hidden dark:block"
                 />
               </NuxtLink>
               <NuxtLink
@@ -331,7 +336,7 @@
               </NuxtLink>
             </div>
             <USeparator class="mb-4" />
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center gap-2">
               <UButton
                 to="https://discord.gg/dPYkzg49T9"
                 target="_blank"
@@ -394,6 +399,7 @@
                 Sign out
               </UButton>
             </div>
+            <ColorModeButton />
           </div>
         </div>
       </template>
