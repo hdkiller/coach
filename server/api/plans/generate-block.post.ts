@@ -1,5 +1,6 @@
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { getServerSession } from '../../utils/session'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)

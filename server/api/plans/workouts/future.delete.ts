@@ -3,6 +3,7 @@ import {
   deleteIntervalsPlannedWorkout,
   fetchIntervalsPlannedWorkouts
 } from '../../../utils/intervals'
+import { getServerSession } from '../../../utils/session'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)

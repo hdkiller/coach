@@ -1,5 +1,6 @@
 import { prisma } from '../../../../../utils/db'
 import { WorkoutConverter } from '../../../../../utils/workout-converter'
+import { getServerSession } from '../../../../../utils/session'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)

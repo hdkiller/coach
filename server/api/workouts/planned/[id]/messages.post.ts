@@ -1,6 +1,7 @@
 import { prisma } from '../../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { z } from 'zod'
+import { getServerSession } from '../../../../utils/session'
 
 const messageRequestSchema = z.object({
   tone: z.string().optional(),
