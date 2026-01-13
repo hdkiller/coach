@@ -6,6 +6,8 @@ export interface AttributionRule {
   textFormat: (deviceName?: string) => string
   // Optional width constraint for the logo to ensure visual consistency
   logoHeightClass: string
+  // Whether to invert the logo colors in dark mode (useful for SVGs with black text)
+  invertInDarkMode?: boolean
 }
 
 export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
@@ -29,7 +31,16 @@ export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
     requiresDeviceName: false,
     textFormat: () => '',
     logoHeightClass: 'h-6'
+  },
+  apple_health: {
+    logoLight: '/images/logos/apple-watch-logo.svg',
+    logoDark: '/images/logos/apple-watch-logo.svg',
+    requiresDeviceName: false,
+    textFormat: () => '',
+    logoHeightClass: 'h-8',
+    invertInDarkMode: true
   }
+  // Future providers can be added here
 }
 
 export function getAttributionRule(provider: string): AttributionRule | undefined {
