@@ -6,15 +6,25 @@
           <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-primary-500" />
           <h3 class="font-bold text-sm tracking-tight uppercase">Today's Training</h3>
         </div>
-        <UBadge
-          v-if="recommendationStore.todayRecommendation"
-          :color="getRecommendationColor(recommendationStore.todayRecommendation.recommendation)"
-          variant="subtle"
-          size="sm"
-          class="font-bold"
-        >
-          {{ getRecommendationLabel(recommendationStore.todayRecommendation.recommendation) }}
-        </UBadge>
+        <div class="flex items-center gap-2">
+          <UButton
+            icon="i-heroicons-clipboard-document-check"
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            title="Daily Check-in"
+            @click.stop="$emit('open-checkin')"
+          />
+          <UBadge
+            v-if="recommendationStore.todayRecommendation"
+            :color="getRecommendationColor(recommendationStore.todayRecommendation.recommendation)"
+            variant="subtle"
+            size="sm"
+            class="font-bold"
+          >
+            {{ getRecommendationLabel(recommendationStore.todayRecommendation.recommendation) }}
+          </UBadge>
+        </div>
       </div>
     </template>
 
@@ -112,6 +122,21 @@
         </div>
       </div>
 
+      <!-- Daily Check-in Button (if not completed) -->
+      <div v-if="!checkinStore.isCompleted">
+        <UButton
+          icon="i-heroicons-clipboard-document-check"
+          color="primary"
+          variant="solid"
+          size="sm"
+          block
+          class="font-bold py-2 justify-start"
+          @click.stop="$emit('open-checkin')"
+        >
+          Do Quick Daily Coach Check-In
+        </UButton>
+      </div>
+
       <!-- The Insight Section -->
       <div v-if="recommendationStore.todayRecommendation" class="space-y-3">
         <p class="text-sm break-words leading-relaxed">
@@ -157,7 +182,14 @@
     </div>
 
     <template #footer>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div
+        :class="[
+          'gap-3',
+          recommendationStore.todayRecommendation && !recommendationStore.generating
+            ? 'grid grid-cols-1 sm:grid-cols-2'
+            : 'flex flex-col'
+        ]"
+      >
         <div
           v-if="recommendationStore.todayRecommendation && !recommendationStore.generating"
           class="flex gap-2"
@@ -194,10 +226,7 @@
           </UButton>
         </div>
         <UButton
-          :class="[
-            'font-bold w-full',
-            { 'sm:col-span-2': !recommendationStore.todayRecommendation }
-          ]"
+          class="font-bold w-full"
           :color="!recommendationStore.todayRecommendation ? 'primary' : 'neutral'"
           :variant="!recommendationStore.todayRecommendation ? 'solid' : 'ghost'"
           size="sm"
@@ -240,10 +269,11 @@
   const integrationStore = useIntegrationStore()
   const recommendationStore = useRecommendationStore()
   const userStore = useUserStore()
+  const checkinStore = useCheckinStore()
   const { checkProfileStale } = useDataStatus()
   const toast = useToast()
 
-  defineEmits(['open-details'])
+  defineEmits(['open-details', 'open-checkin'])
 
   const showCreateAdHoc = ref(false)
   const showRefine = ref(false)

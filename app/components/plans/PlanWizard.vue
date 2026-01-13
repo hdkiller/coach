@@ -64,6 +64,28 @@
             Details
           </div>
         </div>
+        <div class="w-12 h-1 bg-gray-200 dark:bg-gray-800 rounded-full mx-2 overflow-hidden">
+          <div
+            class="h-full bg-primary transition-all duration-300"
+            :style="{ width: step >= 4 ? '100%' : '0%' }"
+          />
+        </div>
+        <div class="flex items-center">
+          <div
+            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+            :class="
+              step >= 4 ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-800 text-gray-500'
+            "
+          >
+            4
+          </div>
+          <div
+            class="text-xs font-medium ml-2"
+            :class="step >= 4 ? 'text-primary' : 'text-gray-500'"
+          >
+            Review
+          </div>
+        </div>
       </div>
 
       <!-- Step 1: Select Goal -->
