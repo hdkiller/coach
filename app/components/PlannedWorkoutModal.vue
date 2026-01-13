@@ -119,7 +119,12 @@
 
         <!-- Mark Complete Section -->
         <div v-if="!plannedWorkout.completed && !showWorkoutSelector" class="flex flex-col gap-2">
-          <UButton color="success" block :loading="loading" @click="markCompleteWithoutActivity">
+          <UButton
+            color="success"
+            block
+            :loading="loading"
+            @click="confirmMarkCompleteWithoutActivity"
+          >
             <UIcon name="i-heroicons-check" class="w-4 h-4" />
             Mark as Done (No Activity)
           </UButton>
