@@ -98,6 +98,7 @@ model User {
   wellness        Wellness[]
   nutrition       Nutrition[]
   reports         Report[]
+  supportMessages SupportMessage[]
   activityRecommendations ActivityRecommendation[]
   trainingAvailability TrainingAvailability[]
   weeklyTrainingPlans WeeklyTrainingPlan[]
@@ -111,6 +112,7 @@ model User {
   shareTokens   ShareToken[]
   apiKeys       ApiKey[]
   
+  dailyCheckins DailyCheckin[]
   trainingPlans TrainingPlan[]
 
   // OAuth & Audit Relations
@@ -738,6 +740,13 @@ model WorkoutStream {
   grade           Json?    // Array of grade percentages
   moving          Json?    // Array of boolean moving indicators
   
+  // New Streams (2026-01-13)
+  torque          Json?    // Array of torque values (N-m)
+  temp            Json?    // Array of temperature values (Celsius)
+  respiration     Json?    // Array of respiration rate values
+  hrv             Json?    // Array of HRV values
+  leftRightBalance Json?   // Array of L/R balance values
+  
   // Computed pacing metrics
   hrZoneTimes     Json?    // Cached time in each heart rate zone (seconds)
   powerZoneTimes  Json?    // Cached time in each power zone (seconds)
@@ -1232,6 +1241,9 @@ model TrainingWeek {
   tssTarget       Int            // Planned TSS
   isRecovery      Boolean        @default(false)
   focus           String?        // Optional override: "Recovery", "Test Week"
+  focusKey        String?        // Standardized key: "AEROBIC_ENDURANCE", "RECOVERY"
+  focusLabel      String?        // User-facing label: "Aerobic Endurance"
+  explanation     String?        @db.Text // AI explanation for why this week is structured this way
   
   // Links to workouts
   workouts        PlannedWorkout[]
@@ -1396,6 +1408,34 @@ model Recommendation {
   @@index([generatedAt])
   @@index([status])
   @@index([isPinned])
+}
+
+// --------------------------------------
+// Daily Check-in System
+// --------------------------------------
+
+model DailyCheckin {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime @db.Date // YYYY-MM-DD (User's local date)
+
+  // AI Content
+  questions       Json     // Array of { id: string, text: string, reasoning: string, answer: "YES" | "NO" | null }
+  
+  status          String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  modelVersion    String?
+  llmUsageId      String?
+  
+  feedback        String?  // "THUMBS_UP", "THUMBS_DOWN"
+  feedbackText    String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
 }
 
 // --------------------------------------
@@ -1566,6 +1606,33 @@ model PlanAdherence {
   
   @@index([workoutId])
   @@index([plannedWorkoutId])
+}
+
+// --------------------------------------
+// Support System
+// --------------------------------------
+
+model SupportMessage {
+  id             String   @id @default(uuid())
+  userId         String?
+  email          String?  // For guest users or fallback
+  name           String?  // For guest users or fallback
+  
+  subject        String
+  message        String   @db.Text
+  
+  autotaskTicketId String? // ID returned from Autotask
+  autotaskTicketNumber String? // Ticket number (if different from ID)
+  
+  status         String   @default("OPEN") // OPEN, CLOSED, PENDING
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([email])
 }
 
 // --------------------------------------
