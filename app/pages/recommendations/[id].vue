@@ -68,7 +68,9 @@
                 </template>
 
                 <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
-                  <p class="whitespace-pre-line text-base leading-relaxed">{{ rec.description }}</p>
+                  <p class="whitespace-pre-line text-base leading-relaxed">
+                    <GlossaryText :text="rec.description" />
+                  </p>
                 </div>
 
                 <template #footer>
@@ -143,7 +145,7 @@
                       Strategy
                     </h4>
                     <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {{ rec.implementationGuide.strategy_summary }}
+                      <GlossaryText :text="rec.implementationGuide.strategy_summary" />
                     </p>
                   </UCard>
 
@@ -163,7 +165,7 @@
                           class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
                         >
                           <span class="font-bold text-primary-500">{{ Number(i) + 1 }}.</span>
-                          <span>{{ action }}</span>
+                          <GlossaryText :text="action" />
                         </li>
                       </ul>
                     </UCard>
@@ -185,7 +187,7 @@
                             name="i-heroicons-check-circle"
                             class="w-4 h-4 text-purple-400 mt-0.5 shrink-0"
                           />
-                          <span>{{ tip }}</span>
+                          <GlossaryText :text="tip" />
                         </li>
                       </ul>
                     </UCard>
@@ -216,7 +218,7 @@
                             name="i-heroicons-x-mark"
                             class="w-4 h-4 text-red-400 mt-0.5 shrink-0"
                           />
-                          <span>{{ pitfall }}</span>
+                          <GlossaryText :text="pitfall" />
                         </li>
                       </ul>
                     </UCard>
@@ -241,7 +243,7 @@
                             name="i-heroicons-arrow-trending-up"
                             class="w-4 h-4 text-green-500 mt-0.5 shrink-0"
                           />
-                          <span>{{ metric }}</span>
+                          <GlossaryText :text="metric" />
                         </li>
                       </ul>
                     </UCard>
@@ -282,7 +284,7 @@
                         class="text-sm font-semibold text-primary-600 dark:text-primary-400 flex items-center gap-1.5"
                       >
                         <UIcon name="i-heroicons-sparkles" class="w-4 h-4" />
-                        Update Reason: {{ item.reason }}
+                        Update Reason: <GlossaryText :text="item.reason" />
                       </div>
 
                       <div>
@@ -292,7 +294,7 @@
                         <div
                           class="text-sm text-gray-600 dark:text-gray-400 mt-2 whitespace-pre-wrap"
                         >
-                          {{ item.description }}
+                          <GlossaryText :text="item.description" />
                         </div>
                       </div>
                     </div>
