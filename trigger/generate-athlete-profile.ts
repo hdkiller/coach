@@ -15,6 +15,8 @@ import {
   getEndOfDayUTC,
   formatUserDate
 } from '../server/utils/date'
+import { getCheckinHistoryContext } from '../server/utils/services/checkin-service'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 // Athlete Profile schema for structured JSON output
 const athleteProfileSchema = {
@@ -368,6 +370,7 @@ export const generateAthleteProfileTask = task({
     })
 
     try {
+      const aiSettings = await getUserAiSettings(userId)
       const timezone = await getUserTimezone(userId)
       const now = new Date() // Current system time for "now" queries if needed, but better to use range end
       const todayEnd = getEndOfDayUTC(timezone, now)
@@ -636,6 +639,22 @@ Plan Summary: ${planData.weekSummary || 'N/A'}
 `
       }
 
+      // Build Daily Check-in Summary
+      const checkinHistory = await getCheckinHistoryContext(
+        userId,
+        thirtyDaysAgo,
+        now, // Use 'now' or 'todayEnd' as end date
+        timezone
+      )
+
+      const checkinsSummary = checkinHistory
+        ? `\nDAILY CHECK-INS (Subjective Feedback):\n${checkinHistory}`
+        : 'No recent check-ins'
+
+      if (checkinHistory) {
+        logger.log('Check-ins Summary for Profile Prompt', { checkinHistory })
+      }
+
       // Calculate training stats
       const totalTSS = recentWorkouts.reduce((sum, w) => sum + (w.tss || 0), 0)
       const avgWorkoutDuration =
@@ -662,7 +681,9 @@ Plan Summary: ${planData.weekSummary || 'N/A'}
       })
 
       // Build comprehensive prompt
-      const prompt = `You are creating a comprehensive Athlete Profile for training planning purposes. Analyze all available data to create a complete picture of this athlete.
+      const prompt = `You are a **${aiSettings.aiPersona}** expert coach creating a comprehensive Athlete Profile for training planning purposes.
+Analyze all available data to create a complete picture of this athlete.
+Adapt your analysis tone and insights to match your **${aiSettings.aiPersona}** persona.
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
@@ -682,6 +703,9 @@ ${buildWorkoutSummary(recentWorkouts)}
 
 RECOVERY METRICS:
 ${wellnessSummary}${wellnessAnalysisSummary}
+
+DAILY CHECK-INS (Subjective Feedback):
+${checkinsSummary}
 
 RECENT COACHING RECOMMENDATIONS (Last 7 days):
 ${recommendationsSummary || 'No recent recommendations'}
@@ -731,7 +755,8 @@ Scoring Guidelines:
 - 3-4: Needs attention and improvement
 - 1-2: Significant weakness requiring focus
 
-Be specific, data-driven, and actionable. Reference actual metrics and patterns observed. Scores should reflect realistic assessment for long-term tracking.`
+Be specific, data-driven, and actionable. Reference actual metrics and patterns observed. Scores should reflect realistic assessment for long-term tracking.
+Maintain your **${aiSettings.aiPersona}** persona throughout.`
 
       logger.log('Generating athlete profile with Gemini')
 
@@ -739,7 +764,7 @@ Be specific, data-driven, and actionable. Reference actual metrics and patterns 
       const profileJson = await generateStructuredAnalysis<any>(
         prompt,
         athleteProfileSchema,
-        'flash',
+        aiSettings.aiModelPreference,
         {
           userId,
           operation: 'athlete_profile_generation',
@@ -761,7 +786,7 @@ Be specific, data-driven, and actionable. Reference actual metrics and patterns 
             status: 'COMPLETED',
             type: 'ATHLETE_PROFILE',
             analysisJson: profileJson as any,
-            modelVersion: 'gemini-2.0-flash-exp',
+            modelVersion: aiSettings.aiModelPreference,
             dateRangeStart: thirtyDaysAgo,
             dateRangeEnd: now
           }

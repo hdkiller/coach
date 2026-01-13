@@ -4,6 +4,7 @@ import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate } from '../server/utils/date'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 // TypeScript interface for the structured analysis
 interface StructuredAnalysis {
@@ -274,20 +275,26 @@ export const analyzeWorkoutTask = task({
       })
 
       const timezone = await getUserTimezone(workout.userId)
+      const aiSettings = await getUserAiSettings(workout.userId)
+
+      logger.log('Using AI settings', {
+        model: aiSettings.aiModelPreference,
+        persona: aiSettings.aiPersona
+      })
 
       // Build comprehensive workout data for analysis
       const workoutData = buildWorkoutAnalysisData(workout)
 
       // Generate the prompt
-      const prompt = buildWorkoutAnalysisPrompt(workoutData, timezone)
+      const prompt = buildWorkoutAnalysisPrompt(workoutData, timezone, aiSettings.aiPersona)
 
-      logger.log('Generating structured analysis with Gemini Flash')
+      logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
 
       // Generate structured JSON analysis
       const structuredAnalysis = await generateStructuredAnalysis<StructuredAnalysis>(
         prompt,
         analysisSchema,
-        'flash',
+        aiSettings.aiModelPreference,
         {
           userId: workout.userId,
           operation: 'workout_analysis',
@@ -625,7 +632,11 @@ function getAnalysisSectionsGuidance(
    - Each point should be 1-2 sentences maximum`
 }
 
-function buildWorkoutAnalysisPrompt(workoutData: any, timezone: string): string {
+function buildWorkoutAnalysisPrompt(
+  workoutData: any,
+  timezone: string,
+  persona: string = 'Supportive'
+): string {
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
   }
@@ -651,7 +662,8 @@ function buildWorkoutAnalysisPrompt(workoutData: any, timezone: string): string 
     coachType = 'strength and conditioning coach'
   }
 
-  let prompt = `You are an expert ${coachType} analyzing a workout. Provide a comprehensive technique-focused analysis.
+  let prompt = `You are an expert ${coachType} analyzing a workout.
+Your persona is: **${persona}**. Adapt your tone and feedback style accordingly.
 
 **IMPORTANT - Workout Type Context**: This is a **${workoutType}** workout. ${getWorkoutTypeGuidance(workoutType, isCardio, isStrength)}
 
@@ -917,18 +929,18 @@ function buildWorkoutAnalysisPrompt(workoutData: any, timezone: string): string 
 
 ## Analysis Request
 
-You are a friendly, supportive ${coachType} analyzing this workout. Use an encouraging, conversational tone.
+You are a **${persona}** ${coachType} analyzing this workout. Adopt this persona fully in your analysis.
 
 ${getAnalysisSectionsGuidance(workoutType, isCardio, isStrength)}
 
 6. **Recommendations**: Provide 2-4 specific, actionable recommendations with:
    - Clear, friendly title
-   - Supportive, encouraging description (2-3 sentences)
+   - Description (2-3 sentences) consistent with your persona
    - Priority level (high/medium/low)
 
 7. **Strengths & Weaknesses**:
    - List 2-4 key strengths (short phrases or single sentences)
-   - List 2-4 areas for improvement (short phrases or single sentences, framed positively)
+   - List 2-4 areas for improvement (short phrases or single sentences)
 
 8. **Performance Scores** (1-10 scale for tracking progress over time):
    - **Overall**: Holistic assessment of workout quality (consider all factors)
@@ -946,9 +958,9 @@ ${getAnalysisSectionsGuidance(workoutType, isCardio, isStrength)}
 
 IMPORTANT:
 - Each analysis_point must be a separate, concise item in the array
-- Use a friendly, supportive coaching tone throughout
-- Be specific with numbers but keep language conversational
-- Focus on encouragement and actionable advice
+- Maintain your **${persona}** persona throughout
+- Be specific with numbers
+- Focus on actionable advice
 - Tailor your analysis to the workout type (${workoutType}) - ignore metrics that don't apply
 - Scores should be realistic and track progress over time - don't inflate scores`
 

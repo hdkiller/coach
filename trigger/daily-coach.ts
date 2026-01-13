@@ -14,6 +14,7 @@ import {
   getStartOfDaysAgoUTC,
   getEndOfDayUTC
 } from '../server/utils/date'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 const suggestionSchema = {
   type: 'object',
@@ -163,8 +164,15 @@ ${activeGoals
 `
     }
 
+    const aiSettings = await getUserAiSettings(userId)
+    logger.log('Using AI settings', {
+      model: aiSettings.aiModelPreference,
+      persona: aiSettings.aiPersona
+    })
+
     // Build prompt with comprehensive context
-    const prompt = `You are a cycling coach providing daily workout guidance.
+    const prompt = `You are a **${aiSettings.aiPersona}** cycling coach providing daily workout guidance.
+Adapt your tone and style to match your persona.
 
 ${athleteContext}
 
@@ -217,16 +225,22 @@ Provide a structured recommendation for today's training${activeGoals.length > 0
 CRITICAL INSTRUCTIONS:
 1. PRIORITIZE the "Training Load & Form" metrics provided in the training context above for any fitness assessment.
 2. IGNORE any conflicting TSB/CTL values found in the "ATHLETE PROFILE" section if they differ from the fresh metrics, as the profile may contain stale summaries.
-3. Base your recommendation on the current TSB and recovery metrics.`
+3. Base your recommendation on the current TSB and recovery metrics.
+4. Maintain your **${aiSettings.aiPersona}** persona throughout.`
 
-    logger.log('Generating suggestion with Gemini Flash')
+    logger.log(`Generating suggestion with Gemini (${aiSettings.aiModelPreference})`)
 
-    const suggestion = await generateStructuredAnalysis(prompt, suggestionSchema, 'flash', {
-      userId,
-      operation: 'daily_coach_suggestion',
-      entityType: 'Report',
-      entityId: undefined
-    })
+    const suggestion = await generateStructuredAnalysis(
+      prompt,
+      suggestionSchema,
+      aiSettings.aiModelPreference,
+      {
+        userId,
+        operation: 'daily_coach_suggestion',
+        entityType: 'Report',
+        entityId: undefined
+      }
+    )
 
     logger.log('Suggestion generated', { suggestion })
 
@@ -238,7 +252,7 @@ CRITICAL INSTRUCTIONS:
         status: 'COMPLETED',
         dateRangeStart: today,
         dateRangeEnd: today,
-        modelVersion: 'gemini-2.0-flash-exp',
+        modelVersion: aiSettings.aiModelPreference,
         suggestions: suggestion as any
       }
     })

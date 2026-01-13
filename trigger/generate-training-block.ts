@@ -8,6 +8,8 @@ import {
   getStartOfDayUTC,
   formatUserDate
 } from '../server/utils/date'
+import { getCurrentFitnessSummary } from '../server/utils/training-stress'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 const trainingBlockSchema = {
   type: 'object',
@@ -19,9 +21,17 @@ const trainingBlockSchema = {
         type: 'object',
         properties: {
           weekNumber: { type: 'integer', description: '1-based index within the block' },
-          focus: {
+          focus_key: {
             type: 'string',
-            description: 'Primary focus of this week (e.g. Loading, Recovery)'
+            description: 'Standardized key (e.g. AEROBIC_ENDURANCE, RECOVERY, VO2_MAX)'
+          },
+          focus_label: {
+            type: 'string',
+            description: 'User-facing label (e.g. "Aerobic Endurance & Skills")'
+          },
+          explanation: {
+            type: 'string',
+            description: 'Reasoning for this week structure and focus'
           },
           volumeTargetMinutes: { type: 'integer' },
           workouts: {
@@ -68,6 +78,9 @@ export const generateTrainingBlockTask = task({
     logger.log('Starting training block generation', { userId, blockId })
 
     const timezone = await getUserTimezone(userId)
+    const aiSettings = await getUserAiSettings(userId)
+    const now = new Date()
+    const localDate = formatUserDate(now, timezone)
 
     // 1. Fetch Context
     const block = await prisma.trainingBlock.findUnique({
@@ -77,8 +90,27 @@ export const generateTrainingBlockTask = task({
           include: {
             goal: {
               include: { events: true }
+            },
+            blocks: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                order: true,
+                name: true,
+                type: true,
+                durationWeeks: true,
+                primaryFocus: true
+              }
             }
           }
+        },
+        weeks: {
+          select: {
+            weekNumber: true,
+            volumeTargetMinutes: true,
+            tssTarget: true
+          },
+          orderBy: { weekNumber: 'asc' }
         }
       }
     })
@@ -89,6 +121,82 @@ export const generateTrainingBlockTask = task({
       where: { id: userId },
       select: { ftp: true, weight: true, maxHr: true, aiPersona: true }
     })
+
+    // Fetch latest athlete profile
+    const athleteProfileReport = await prisma.report.findFirst({
+      where: {
+        userId,
+        type: 'ATHLETE_PROFILE',
+        status: 'COMPLETED'
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { analysisJson: true, createdAt: true }
+    })
+
+    let athleteProfileContext = ''
+    if (athleteProfileReport?.analysisJson) {
+      const profile = athleteProfileReport.analysisJson as any
+      athleteProfileContext = `
+DETAILED ATHLETE ANALYSIS (Generated ${new Date(athleteProfileReport.createdAt).toLocaleDateString()}):
+Training Characteristics:
+${profile.training_characteristics?.training_style || 'No data'}
+Strengths: ${profile.training_characteristics?.strengths?.join(', ') || 'None listed'}
+Areas for Development: ${profile.training_characteristics?.areas_for_development?.join(', ') || 'None listed'}
+
+Recovery Profile: ${profile.recovery_profile?.recovery_pattern || 'Unknown'}
+${profile.recovery_profile?.key_observations ? profile.recovery_profile.key_observations.map((o: string) => `- ${o}`).join('\n') : ''}
+
+Recent Performance Trend: ${profile.recent_performance?.trend || 'Unknown'}
+
+Planning Context:
+${profile.planning_context?.current_focus ? `Current Focus: ${profile.planning_context.current_focus}` : ''}
+${profile.planning_context?.limitations?.length ? `Limitations: ${profile.planning_context.limitations.join(', ')}` : ''}
+${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.planning_context.opportunities.join(', ')}` : ''}
+`
+    }
+
+    const currentFitness = await getCurrentFitnessSummary(userId)
+
+    // 2. Prepare Context Data
+    // Map existing weeks to get volume targets before we delete them
+    const volumeTargets = block.weeks
+      .map((w) => `Week ${w.weekNumber}: ${w.volumeTargetMinutes} mins (TSS ~${w.tssTarget})`)
+      .join('\n')
+
+    // Calculate Global Week Context
+    let globalWeekStart = 1
+    for (const b of block.plan.blocks) {
+      if (b.id === block.id) break
+      globalWeekStart += b.durationWeeks
+    }
+    const globalWeekEnd = globalWeekStart + block.durationWeeks - 1
+    const totalPlanWeeks = block.plan.blocks.reduce((sum, b) => sum + b.durationWeeks, 0)
+
+    const planOverview = block.plan.blocks
+      .map(
+        (b) =>
+          `${b.order}. ${b.name} (${b.type}): ${b.durationWeeks} weeks - Focus: ${b.primaryFocus}${b.id === block.id ? ' [CURRENT]' : ''}`
+      )
+      .join('\n')
+
+    // Calculate Explicit Calendar for Prompt
+    // This prevents the AI from generating extra days or misaligning weeks
+    let calendarContext = ''
+    for (let i = 0; i < block.durationWeeks; i++) {
+      const weekStart = new Date(block.startDate)
+      weekStart.setDate(weekStart.getDate() + i * 7)
+
+      const daysInWeek = []
+      for (let j = 0; j < 7; j++) {
+        const dayDate = new Date(weekStart)
+        dayDate.setDate(dayDate.getDate() + j)
+        const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'long', timeZone: timezone })
+        const dateStr = formatUserDate(dayDate, timezone)
+        daysInWeek.push(`${dayName} (${dateStr})`)
+      }
+
+      calendarContext += `Week ${i + 1}: ${daysInWeek.join(', ')}\n`
+    }
 
     // 3. Build Prompt
     const eventsList =
@@ -107,13 +215,25 @@ export const generateTrainingBlockTask = task({
     // NEW: Get custom instructions from plan
     const customInstructions = (block.plan as any).customInstructions || ''
 
-    const prompt = `You are an expert endurance coach designing a specific mesocycle (training block) for an athlete.
+    const prompt = `You are a **${aiSettings.aiPersona}** expert endurance coach designing a specific mesocycle (training block) for an athlete.
+Adapt your tone and structure reasoning to match your **${aiSettings.aiPersona}** persona.
+
+CURRENT CONTEXT:
+- Date: ${localDate}
+- Timezone: ${timezone}
 
 ATHLETE PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} W
 - Weight: ${user?.weight || 'Unknown'} kg
-- Coach Persona: ${user?.aiPersona || 'Supportive'}
+- Coach Persona: ${aiSettings.aiPersona}
 - Allowed Workout Types: ${allowedTypesString} (ONLY schedule these types + Rest/Recovery)
+${athleteProfileContext}
+
+CURRENT FITNESS STATUS (Source of Truth):
+- CTL (Fitness): ${currentFitness.ctl.toFixed(1)}
+- ATL (Fatigue): ${currentFitness.atl.toFixed(1)}
+- TSB (Form): ${currentFitness.tsb.toFixed(1)}
+- Status: ${currentFitness.formStatus.description}
 
 ${
   customInstructions
@@ -129,14 +249,27 @@ TRAINING GOAL:
 ${eventsList}
 - Strategy: ${block.plan.strategy}
 
-BLOCK CONTEXT:
+TRAINING PLAN OVERVIEW (Macrocycle):
+Total Duration: ${totalPlanWeeks} weeks
+${planOverview}
+
+CURRENT BLOCK CONTEXT:
 - Block Name: "${block.name}"
 - Phase Type: ${block.type} (e.g. Base, Build, Peak)
 - Primary Focus: ${block.primaryFocus}
 - Duration: ${block.durationWeeks} weeks
+- Global Timeline: Weeks ${globalWeekStart}-${globalWeekEnd} of ${totalPlanWeeks}
 - Start Date: ${formatUserDate(block.startDate, timezone)}
 - Progression Logic: ${block.progressionLogic || 'Standard linear progression'}
 - Recovery Week: Week ${block.recoveryWeekIndex || 4} is a recovery week.
+
+VOLUME TARGETS (Baseline from Plan Wizard):
+${volumeTargets}
+*Use these targets as a guide. You may adjust slightly (+/- 10%) based on the phase and progression needs, but aim to hit these durations.*
+
+WEEKLY SCHEDULE CONSTRAINTS (Explicit Dates):
+${calendarContext}
+*Strictly follow this schedule. Only generate workouts for the days listed above for each week.*
 
 INSTRUCTIONS:
 Generate a detailed daily training plan for each week in this block (${block.durationWeeks} weeks).
@@ -147,16 +280,20 @@ Generate a detailed daily training plan for each week in this block (${block.dur
 - Workout types: ${allowedTypesString}, Rest, Active Recovery.
 - Start each week on a Monday.
 - Provide a summary for each week explaining the focus and volume.
+- **Weekly Focus Details:**
+  - focus_key: A standardized, uppercase key (e.g., AEROBIC_ENDURANCE, TEMPO, THRESHOLD, VO2_MAX, RECOVERY, TAPER, RACE).
+  - focus_label: A friendly, descriptive title for the week (e.g., "Base Building 1", "High Intensity Interval Week").
+  - explanation: A clear "Why it works" explanation for the athlete, describing the physiological goal of the week's structure.
 
 OUTPUT FORMAT:
 Return valid JSON matching the schema provided.`
 
     // 4. Generate with Gemini
-    logger.log('Prompting Gemini...')
+    logger.log(`Prompting Gemini (${aiSettings.aiModelPreference})...`)
     const result = await generateStructuredAnalysis<any>(
       prompt,
       trainingBlockSchema,
-      'flash', // Flash is usually sufficient for planning, switch to Pro if logic is complex
+      aiSettings.aiModelPreference,
       {
         userId,
         operation: 'generate_training_block',
@@ -205,7 +342,10 @@ Return valid JSON matching the schema provided.`
               weekNumber: weekData.weekNumber,
               startDate: weekStartDate,
               endDate: weekEndDate,
-              focus: weekData.focus,
+              focus: weekData.focus_label || weekData.focus_key || 'Training Week',
+              focusKey: weekData.focus_key,
+              focusLabel: weekData.focus_label,
+              explanation: weekData.explanation,
               volumeTargetMinutes: weekData.volumeTargetMinutes || 0,
               tssTarget: weekData.workouts.reduce(
                 (acc: number, w: any) => acc + (w.tssEstimate || 0),

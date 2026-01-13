@@ -4,6 +4,7 @@ import { prisma } from '../server/utils/db'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate } from '../server/utils/date'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 // Analysis schema for nutrition
 const nutritionAnalysisSchema = {
@@ -238,20 +239,26 @@ export const analyzeNutritionTask = task({
       })
 
       const timezone = await getUserTimezone(nutrition.userId)
+      const aiSettings = await getUserAiSettings(nutrition.userId)
+
+      logger.log('Using AI settings', {
+        model: aiSettings.aiModelPreference,
+        persona: aiSettings.aiPersona
+      })
 
       // Build comprehensive nutrition data for analysis
       const nutritionData = buildNutritionAnalysisData(nutrition)
 
       // Generate the prompt
-      const prompt = buildNutritionAnalysisPrompt(nutritionData, timezone)
+      const prompt = buildNutritionAnalysisPrompt(nutritionData, timezone, aiSettings.aiPersona)
 
-      logger.log('Generating structured analysis with Gemini Flash')
+      logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
 
       // Generate structured JSON analysis
       const structuredAnalysis = await generateStructuredAnalysis(
         prompt,
         nutritionAnalysisSchema,
-        'flash',
+        aiSettings.aiModelPreference,
         {
           userId: nutrition.userId,
           operation: 'nutrition_analysis',
@@ -334,14 +341,19 @@ function buildNutritionAnalysisData(nutrition: any) {
   return data
 }
 
-function buildNutritionAnalysisPrompt(nutritionData: any, timezone: string): string {
+function buildNutritionAnalysisPrompt(
+  nutritionData: any,
+  timezone: string,
+  persona: string = 'Supportive'
+): string {
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
   }
 
   const dateStr = formatUserDate(nutritionData.date, timezone, 'yyyy-MM-dd')
 
-  let prompt = `You are an expert nutrition coach analyzing a day's food intake. Provide a comprehensive, supportive analysis.
+  let prompt = `You are an expert nutrition coach analyzing a day's food intake.
+Your persona is: **${persona}**. Adapt your tone and feedback style accordingly.
 
 ## Nutrition Summary for ${dateStr}
 
@@ -425,7 +437,7 @@ function buildNutritionAnalysisPrompt(nutritionData: any, timezone: string): str
 
 ## Analysis Request
 
-You are a supportive, encouraging nutrition coach analyzing this day's food intake. Use a friendly, conversational tone.
+You are a **${persona}** nutrition coach analyzing this day's food intake. Use a friendly, conversational tone matching your persona.
 
 IMPORTANT: First assess **data completeness**. Consider:
 - Are all main meals (breakfast, lunch, dinner) logged?

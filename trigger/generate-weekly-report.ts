@@ -9,6 +9,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { userReportsQueue } from './queues'
 import { getUserTimezone, getStartOfDaysAgoUTC, getEndOfDayUTC } from '../server/utils/date'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 // Analysis schema for structured JSON output
 const analysisSchema = {
@@ -242,6 +243,12 @@ export const generateWeeklyReportTask = task({
         }
       }
 
+      const aiSettings = await getUserAiSettings(userId)
+      logger.log('Using AI settings', {
+        model: aiSettings.aiModelPreference,
+        persona: aiSettings.aiPersona
+      })
+
       // Build goals context
       let goalsContext = ''
       if (activeGoals.length > 0) {
@@ -273,7 +280,8 @@ ${activeGoals
       }
 
       // Build prompt for structured analysis
-      const prompt = `You are an expert cycling coach analyzing the previous week of training data (last 7 days).
+      const prompt = `You are a **${aiSettings.aiPersona}** expert cycling coach analyzing the previous week of training data (last 7 days).
+Adapt your analysis tone and style to match your persona.
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
@@ -318,17 +326,22 @@ Scoring Guidelines:
 - 3-4: Needs work, several issues to address
 - 1-2: Poor period, significant problems
 
-Be supportive and specific. Use actual data points and metrics. Scores should realistically reflect the period's quality.`
+Maintain your **${aiSettings.aiPersona}** persona throughout. Be specific with numbers. Scores should realistically reflect the period's quality.`
 
-      logger.log('Generating structured report with Gemini')
+      logger.log(`Generating structured report with Gemini (${aiSettings.aiModelPreference})`)
 
       // Generate structured analysis
-      const analysisJson = await generateStructuredAnalysis<any>(prompt, analysisSchema, 'flash', {
-        userId,
-        operation: 'weekly_report_generation',
-        entityType: 'Report',
-        entityId: reportId
-      })
+      const analysisJson = await generateStructuredAnalysis<any>(
+        prompt,
+        analysisSchema,
+        aiSettings.aiModelPreference,
+        {
+          userId,
+          operation: 'weekly_report_generation',
+          entityType: 'Report',
+          entityId: reportId
+        }
+      )
 
       logger.log('Structured report generated successfully')
 
@@ -340,7 +353,7 @@ Be supportive and specific. Use actual data points and metrics. Scores should re
           data: {
             status: 'COMPLETED',
             analysisJson: analysisJson as any,
-            modelVersion: 'gemini-2.0-flash-thinking-exp-1219',
+            modelVersion: aiSettings.aiModelPreference,
             dateRangeStart: startDate,
             dateRangeEnd: endDate,
             // Store scores for easy querying and tracking

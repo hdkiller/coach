@@ -3,9 +3,13 @@ import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
+import { activityRecommendationRepository } from '../server/utils/repositories/activityRecommendationRepository'
+import { recommendationRepository } from '../server/utils/repositories/recommendationRepository'
 import { formatUserDate } from '../server/utils/date'
 import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { analyzeWellness } from '../server/utils/services/wellness-analysis'
+import { getCheckinHistoryContext } from '../server/utils/services/checkin-service'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 const recommendationSchema = {
   type: 'object',
@@ -69,6 +73,12 @@ export const recommendTodayActivityTask = task({
 
     logger.log("Starting today's activity recommendation", { userId, date: today })
 
+    const aiSettings = await getUserAiSettings(userId)
+    logger.log('Using AI settings', {
+      model: aiSettings.aiModelPreference,
+      persona: aiSettings.aiPersona
+    })
+
     // Fetch all required data
     const [
       plannedWorkout,
@@ -80,7 +90,8 @@ export const recommendTodayActivityTask = task({
       futureWorkouts,
       currentPlan,
       upcomingEvents,
-      currentFitness
+      currentFitness,
+      focusedRecommendations
     ] = await Promise.all([
       // Today's planned workout
       prisma.plannedWorkout.findFirst({
@@ -189,7 +200,10 @@ export const recommendTodayActivityTask = task({
       }),
 
       // Current Fitness State
-      getCurrentFitnessSummary(userId)
+      getCurrentFitnessSummary(userId),
+
+      // Pinned/Focused recommendations
+      recommendationRepository.list(userId, { isPinned: true, status: 'ACTIVE' })
     ])
 
     // --- CHECK FOR AND RUN WELLNESS ANALYSIS IF MISSING ---
@@ -422,6 +436,31 @@ ${analysis.recommendations ? 'Recommendations:\n' + analysis.recommendations.map
 `
     }
 
+    // Build focused recommendations context
+    let focusedRecsContext = ''
+    if (focusedRecommendations && focusedRecommendations.length > 0) {
+      focusedRecsContext = `
+CURRENT FOCUS AREAS (Pinned Recommendations):
+${focusedRecommendations.map((r) => `- [${r.priority.toUpperCase()}] ${r.title}: ${r.description}`).join('\n')}
+`
+    }
+
+    // Build Daily Check-in Summary
+    const checkinHistory = await getCheckinHistoryContext(
+      userId,
+      new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
+      today,
+      userTimezone
+    )
+
+    const checkinsSummary = checkinHistory
+      ? `\nDAILY CHECK-INS (Subjective Feedback - Last 7 Days):\n${checkinHistory}`
+      : ''
+
+    if (checkinHistory) {
+      logger.log('Check-ins Summary for Prompt', { checkinHistory })
+    }
+
     // Build current fitness context
     const currentStatusContext = `
 CURRENT ATHLETE STATUS (Source of Truth):
@@ -433,7 +472,8 @@ CURRENT ATHLETE STATUS (Source of Truth):
 `
 
     // Build comprehensive prompt
-    const prompt = `You are an expert cycling coach analyzing today's training for your athlete.
+    const prompt = `You are a **${aiSettings.aiPersona}** expert cycling coach analyzing today's training for your athlete.
+Adapt your analysis tone and recommendation style to match your **${aiSettings.aiPersona}** persona.
 
 CURRENT CONTEXT:
 - Date: ${localDate}
@@ -444,6 +484,7 @@ ${currentStatusContext}
 
 ${athleteContext}
 ${planContext}
+${focusedRecsContext}
 
 TODAY'S PLANNED WORKOUT:
 ${
@@ -477,6 +518,8 @@ ${enrichedTodayMetric.spO2 ? `- SpO2: ${enrichedTodayMetric.spO2}%` : ''}
 }
 
 ${wellnessAnalysisContext}
+
+${checkinsSummary}
 
 TODAY'S COMPLETED TRAINING:
 ${todaysWorkouts.length > 0 ? buildWorkoutSummary(todaysWorkouts) : 'None so far'}
@@ -525,15 +568,16 @@ DECISION CRITERIA:
 - **Late in the day**: If it is late (e.g. > 20:00) and workout not done, suggest Rest or Short version.
 - **Completed Training**: If user already trained today, recommend REST or mark as complete.
 
-Provide specific, actionable recommendations with clear reasoning.`
+Provide specific, actionable recommendations with clear reasoning.
+Maintain your **${aiSettings.aiPersona}** persona throughout.`
 
-    logger.log('Generating recommendation with Gemini Flash')
+    logger.log(`Generating recommendation with Gemini (${aiSettings.aiModelPreference})`)
 
     // Generate recommendation
     const analysis = await generateStructuredAnalysis(
       prompt,
       recommendationSchema,
-      'flash', // Use flash model for faster recommendations
+      aiSettings.aiModelPreference, // Use user preference
       {
         userId,
         operation: 'activity_recommendation',
@@ -548,32 +592,27 @@ Provide specific, actionable recommendations with clear reasoning.`
     let recommendation
     if (recommendationId) {
       // Update the existing pending recommendation
-      recommendation = await prisma.activityRecommendation.update({
-        where: { id: recommendationId },
-        data: {
-          recommendation: analysis.recommendation,
-          confidence: analysis.confidence,
-          reasoning: analysis.reasoning,
-          analysisJson: analysis as any,
-          plannedWorkoutId: plannedWorkout?.id,
-          status: 'COMPLETED',
-          modelVersion: 'gemini-2.0-flash-exp'
-        }
+      recommendation = await activityRecommendationRepository.update(recommendationId, userId, {
+        recommendation: analysis.recommendation,
+        confidence: analysis.confidence,
+        reasoning: analysis.reasoning,
+        analysisJson: analysis as any,
+        plannedWorkout: plannedWorkout?.id ? { connect: { id: plannedWorkout.id } } : undefined,
+        status: 'COMPLETED',
+        modelVersion: 'gemini-2.0-flash-exp'
       })
     } else {
       // Fallback: create new recommendation if no ID provided
-      recommendation = await prisma.activityRecommendation.create({
-        data: {
-          userId,
-          date: today,
-          recommendation: analysis.recommendation,
-          confidence: analysis.confidence,
-          reasoning: analysis.reasoning,
-          analysisJson: analysis as any,
-          plannedWorkoutId: plannedWorkout?.id,
-          status: 'COMPLETED',
-          modelVersion: 'gemini-2.0-flash-exp'
-        }
+      recommendation = await activityRecommendationRepository.create({
+        user: { connect: { id: userId } },
+        date: today,
+        recommendation: analysis.recommendation,
+        confidence: analysis.confidence,
+        reasoning: analysis.reasoning,
+        analysisJson: analysis as any,
+        plannedWorkout: plannedWorkout?.id ? { connect: { id: plannedWorkout.id } } : undefined,
+        status: 'COMPLETED',
+        modelVersion: 'gemini-2.0-flash-exp'
       })
     }
 

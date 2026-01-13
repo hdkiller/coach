@@ -108,6 +108,12 @@ export const generateWeeklyPlanTask = task({
     })
 
     const timezone = await getUserTimezone(userId)
+    const aiSettings = await getUserAiSettings(userId)
+
+    logger.log('Using AI settings', {
+      model: aiSettings.aiModelPreference,
+      persona: aiSettings.aiPersona
+    })
 
     // Parse startDate. If string, treat as local day. If Date, treat as... well, Date.
     // Assuming input is the start of the week user wants to plan for.
@@ -495,7 +501,9 @@ No active goals set. Plan for general fitness maintenance and improvement.
     }
 
     // Build prompt
-    const prompt = `You are an expert cycling coach creating a personalized ${daysToPlann}-day training plan.
+    const prompt = `You are a **${aiSettings.aiPersona}** expert cycling coach creating a personalized ${daysToPlann}-day training plan.
+Adapt your planning strategy and reasoning to match your **${aiSettings.aiPersona}** persona.
+
 ${phaseInstruction}
 ${planContext}
 
@@ -552,9 +560,10 @@ INSTRUCTIONS:
    - Weekly TSS target: ${Math.round(currentWeeklyTSS)} - ${targetMaxTSS} (unless overridden by instructions).
 5. **CONTEXT**: Consider the "Current Planned Workouts" to understand what the user is replacing or modifying.
 
-Create a structured, progressive plan for the next ${daysToPlann} days.`
+Create a structured, progressive plan for the next ${daysToPlann} days.
+Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasoning and descriptions.`
 
-    logger.log('Generating plan with Gemini Flash')
+    logger.log(`Generating plan with Gemini (${aiSettings.aiModelPreference})`)
 
     // Log prompt instructions for debugging
     const instructionStart = prompt.indexOf('INSTRUCTIONS:')
@@ -566,12 +575,17 @@ Create a structured, progressive plan for the next ${daysToPlann} days.`
       userInstructions: userInstructions || 'None'
     })
 
-    const plan = await generateStructuredAnalysis(prompt, weeklyPlanSchema, 'flash', {
-      userId,
-      operation: 'weekly_plan_generation',
-      entityType: 'WeeklyTrainingPlan',
-      entityId: undefined
-    })
+    const plan = await generateStructuredAnalysis(
+      prompt,
+      weeklyPlanSchema,
+      aiSettings.aiModelPreference,
+      {
+        userId,
+        operation: 'weekly_plan_generation',
+        entityType: 'WeeklyTrainingPlan',
+        entityId: undefined
+      }
+    )
 
     logger.log('Plan generated from AI', {
       daysPlanned: (plan as any).days?.length,
@@ -587,7 +601,7 @@ Create a structured, progressive plan for the next ${daysToPlann} days.`
       daysPlanned: daysToPlann,
       status: 'ACTIVE',
       generatedBy: 'AI',
-      modelVersion: 'gemini-2.0-flash-exp',
+      modelVersion: aiSettings.aiModelPreference,
       planJson: plan as any,
       totalTSS: (plan as any).totalTSS,
       totalDuration: (plan as any).days?.reduce(

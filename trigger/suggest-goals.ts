@@ -11,6 +11,7 @@ import {
   getEndOfDayUTC,
   formatUserDate
 } from '../server/utils/date'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 // Goal suggestions schema for structured JSON output
 const goalSuggestionsSchema = {
@@ -154,13 +155,14 @@ export const suggestGoalsTask = task({
 
     try {
       const timezone = await getUserTimezone(userId)
+      const aiSettings = await getUserAiSettings(userId)
       const now = new Date()
       const todayEnd = getEndOfDayUTC(timezone, now)
       const thirtyDaysAgo = getStartOfDaysAgoUTC(timezone, 30)
-      const sevenDaysAgo = getStartOfDaysAgoUTC(timezone, 7)
 
       logger.log('Fetching athlete data for goal suggestions', {
         timezone,
+        aiModel: aiSettings.aiModelPreference,
         thirtyDaysAgo,
         todayEnd
       })
@@ -322,7 +324,8 @@ Planning Context: ${profile?.planning_context?.current_focus || 'N/A'}`
       }
 
       // Build comprehensive prompt
-      const prompt = `You are an expert endurance sports coach analyzing an athlete's data to suggest personalized, achievable goals.
+      const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach analyzing an athlete's data to suggest personalized, achievable goals.
+Adapt your suggestions and rationale to match your **${aiSettings.aiPersona}** persona.
 
 USER PROFILE:
 - FTP: ${user.ftp || 'Unknown'} watts
@@ -382,13 +385,13 @@ Be specific with metrics and targets. For example:
 
 Identify any potential goal conflicts and provide resolution strategies.`
 
-      logger.log('Generating goal suggestions with Gemini')
+      logger.log(`Generating goal suggestions with Gemini (${aiSettings.aiModelPreference})`)
 
       // Generate structured suggestions
       const suggestionsJson = await generateStructuredAnalysis(
         prompt,
         goalSuggestionsSchema,
-        'flash',
+        aiSettings.aiModelPreference,
         {
           userId,
           operation: 'goal_suggestions',

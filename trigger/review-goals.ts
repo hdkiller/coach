@@ -10,6 +10,7 @@ import {
   getEndOfDayUTC,
   formatUserDate
 } from '../server/utils/date'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 // Goal review schema for structured JSON output
 const goalReviewSchema = {
@@ -229,12 +230,14 @@ export const reviewGoalsTask = task({
 
     try {
       const timezone = await getUserTimezone(userId)
+      const aiSettings = await getUserAiSettings(userId)
       const now = new Date()
       const todayEnd = getEndOfDayUTC(timezone, now)
       const thirtyDaysAgo = getStartOfDaysAgoUTC(timezone, 30)
 
       logger.log('Fetching athlete data and goals for review', {
         timezone,
+        aiModel: aiSettings.aiModelPreference,
         thirtyDaysAgo,
         todayEnd
       })
@@ -411,7 +414,8 @@ Limitations: ${profile?.planning_context?.limitations?.join(', ') || 'N/A'}`
       }
 
       // Build comprehensive prompt
-      const prompt = `You are an expert endurance sports coach reviewing an athlete's current goals for rationality and achievability.
+      const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach reviewing an athlete's current goals for rationality and achievability.
+Adapt your review tone and feedback style to match your **${aiSettings.aiPersona}** persona.
 
 USER PROFILE:
 - FTP: ${user.ftp || 'Unknown'} watts
@@ -467,15 +471,20 @@ Provide an action plan with:
 
 Be honest and constructive. The athlete wants real coaching advice, not cheerleading. Reference specific metrics and data points.`
 
-      logger.log('Generating goal review with Gemini')
+      logger.log(`Generating goal review with Gemini (${aiSettings.aiModelPreference})`)
 
       // Generate structured review
-      const reviewJson = await generateStructuredAnalysis(prompt, goalReviewSchema, 'flash', {
-        userId,
-        operation: 'goal_review',
-        entityType: 'GoalReview',
-        entityId: userId
-      })
+      const reviewJson = await generateStructuredAnalysis(
+        prompt,
+        goalReviewSchema,
+        aiSettings.aiModelPreference,
+        {
+          userId,
+          operation: 'goal_review',
+          entityType: 'GoalReview',
+          entityId: userId
+        }
+      )
 
       logger.log('Goal review generated successfully', {
         goalsReviewed: reviewJson.goal_reviews?.length || 0,

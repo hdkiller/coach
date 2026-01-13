@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { prisma } from '../server/utils/db'
 import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils/gemini'
 import { getUserTimezone, getStartOfDaysAgoUTC } from '../server/utils/date'
+import { getCheckinHistoryContext } from '../server/utils/services/checkin-service'
+import { recommendationRepository } from '../server/utils/repositories/recommendationRepository'
+import { getUserAiSettings } from '../server/utils/ai-settings'
 
 interface RecommendationHistoryItem {
   date: string
@@ -44,6 +47,12 @@ export const generateRecommendationsTask = task({
     logger.log(`User ID: ${userId}`)
 
     const timezone = await getUserTimezone(userId)
+    const aiSettings = await getUserAiSettings(userId)
+
+    logger.log('Using AI settings', {
+      model: aiSettings.aiModelPreference,
+      persona: aiSettings.aiPersona
+    })
 
     // 1. Fetch User Profile
     const user = await prisma.user.findUnique({
@@ -132,27 +141,27 @@ export const generateRecommendationsTask = task({
       orderBy: { date: 'desc' }
     })
 
-    // 4. Fetch Active Recommendations & Categories
-    const activeRecommendations = await prisma.recommendation.findMany({
-      where: { userId, status: 'ACTIVE' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        priority: true,
-        sourceType: true,
-        category: true,
-        metric: true,
-        history: true,
-        generatedAt: true
-      }
-    })
+    // 5. Fetch Active Recommendations & Categories
+    const activeRecommendations = await recommendationRepository.getActive(userId)
 
     const existingCategories = [
       ...new Set(activeRecommendations.map((r) => r.category).filter(Boolean))
     ]
 
     // Format Contexts
+    const checkinHistory = await getCheckinHistoryContext(
+      userId,
+      getStartOfDaysAgoUTC(timezone, 14),
+      new Date(),
+      timezone
+    )
+
+    const checkinsContext = checkinHistory || 'None'
+
+    if (checkinHistory) {
+      logger.log('Check-ins Context for Recommendations Prompt', { checkinHistory })
+    }
+
     const goalsContext =
       user?.goals
         .map((g) => {
@@ -186,7 +195,8 @@ export const generateRecommendationsTask = task({
         : 'None'
 
     // 5. Construct Prompt
-    const prompt = `You are an expert endurance sports coach. Synthesize the following data to generate or refine high-impact, actionable recommendations for the athlete.
+    const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach. Synthesize the following data to generate or refine high-impact, actionable recommendations for the athlete.
+Adapt your tone and feedback style to fully embody your **${aiSettings.aiPersona}** persona.
 
 ATHLETE PROFILE:
 - Name: ${user?.name || 'Athlete'}
@@ -214,6 +224,9 @@ ${buildWorkoutSummary(recentWorkouts)}
 
 Nutrition:
 ${recentNutrition.map((n) => `- ${n.date.toISOString().split('T')[0]}: Score: ${n.overallScore}`).join('\n')}
+
+CHECK-IN FEEDBACK (Subjective Context):
+${checkinsContext}
 
 INSTRUCTIONS:
 1. Review the EXISTING recommendations. Are they still relevant? Do they need to be updated based on new data?
@@ -306,7 +319,7 @@ JSON object with 'new_recommendations', 'updated_recommendations', 'completed_re
     const response = await generateStructuredAnalysis<RecommendationsResponse>(
       prompt,
       schema,
-      'flash',
+      aiSettings.aiModelPreference,
       {
         userId,
         operation: 'generate_recommendations',
@@ -341,9 +354,7 @@ JSON object with 'new_recommendations', 'updated_recommendations', 'completed_re
         status: 'ACTIVE'
       }))
 
-      await prisma.recommendation.createMany({
-        data: recsWithIds
-      })
+      await recommendationRepository.createMany(recsWithIds)
       logger.log(`✅ Created ${recsWithIds.length} new recommendations`)
     }
 
@@ -364,16 +375,13 @@ JSON object with 'new_recommendations', 'updated_recommendations', 'completed_re
         const currentHistory = (existing.history as any) || []
         const newHistory = [...currentHistory, historyItem]
 
-        await prisma.recommendation.update({
-          where: { id: update.id },
-          data: {
-            title: update.new_title,
-            description: update.new_description,
-            priority: update.new_priority,
-            history: newHistory as any,
-            generatedAt: new Date(),
-            llmUsageId: usageId
-          }
+        await recommendationRepository.update(update.id, userId, {
+          title: update.new_title,
+          description: update.new_description,
+          priority: update.new_priority,
+          history: newHistory as any,
+          generatedAt: new Date(),
+          llmUsageId: usageId
         })
       }
       logger.log(`🔄 Updated ${updated_recommendations.length} existing recommendations`)
@@ -382,24 +390,18 @@ JSON object with 'new_recommendations', 'updated_recommendations', 'completed_re
     // 8. Process Completed & Dismissed
     const completedIds = completed_recommendation_ids || []
     if (completedIds.length > 0) {
-      await prisma.recommendation.updateMany({
-        where: { id: { in: completedIds }, userId },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date()
-        }
+      await recommendationRepository.updateMany(userId, completedIds, {
+        status: 'COMPLETED',
+        completedAt: new Date()
       })
       logger.log(`✅ Marked ${completedIds.length} as COMPLETED`)
     }
 
     const dismissedIds = dismissed_recommendation_ids || []
     if (dismissedIds.length > 0) {
-      await prisma.recommendation.updateMany({
-        where: { id: { in: dismissedIds }, userId },
-        data: {
-          status: 'DISMISSED',
-          completedAt: new Date()
-        }
+      await recommendationRepository.updateMany(userId, dismissedIds, {
+        status: 'DISMISSED',
+        completedAt: new Date()
       })
       logger.log(`🚫 Marked ${dismissedIds.length} as DISMISSED`)
     }
@@ -408,18 +410,7 @@ JSON object with 'new_recommendations', 'updated_recommendations', 'completed_re
     logger.log('🕵️ Running Deduplication Check')
 
     // Fetch fresh active recommendations (including newly created ones)
-    const freshActiveRecs = await prisma.recommendation.findMany({
-      where: { userId, status: 'ACTIVE' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        sourceType: true,
-        category: true,
-        metric: true,
-        isPinned: true
-      }
-    })
+    const freshActiveRecs = await recommendationRepository.getActive(userId)
 
     if (freshActiveRecs.length > 1) {
       const dedupPrompt = `You are a data cleaner. Review the following list of active recommendations and identify DUPLICATES or CONFLICTING items.
@@ -451,7 +442,7 @@ JSON object with 'ids_to_dismiss' array (string IDs). If no duplicates or only p
       const dedupResponse = await generateStructuredAnalysis<{ ids_to_dismiss: string[] }>(
         dedupPrompt,
         dedupSchema,
-        'flash',
+        aiSettings.aiModelPreference,
         {
           userId,
           operation: 'deduplicate_recommendations',
@@ -466,12 +457,9 @@ JSON object with 'ids_to_dismiss' array (string IDs). If no duplicates or only p
       ids_to_dismiss = ids_to_dismiss.filter((id) => !pinnedIds.has(id))
 
       if (ids_to_dismiss && ids_to_dismiss.length > 0) {
-        await prisma.recommendation.updateMany({
-          where: { id: { in: ids_to_dismiss }, userId },
-          data: {
-            status: 'DISMISSED',
-            completedAt: new Date()
-          }
+        await recommendationRepository.updateMany(userId, ids_to_dismiss, {
+          status: 'DISMISSED',
+          completedAt: new Date()
         })
         logger.log(`Sweep completed: Dismissed ${ids_to_dismiss.length} redundant recommendations`)
       } else {

@@ -1,6 +1,7 @@
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
+import { recommendationRepository } from '../server/utils/repositories/recommendationRepository'
 
 interface ImplementationGuide {
   strategy_summary: string
@@ -20,9 +21,7 @@ export const generateImplementationGuideTask = task({
     logger.log('Starting implementation guide generation', { userId, recommendationId })
 
     // 1. Fetch Recommendation
-    const recommendation = await prisma.recommendation.findUnique({
-      where: { id: recommendationId, userId }
-    })
+    const recommendation = await recommendationRepository.findById(recommendationId, userId)
 
     if (!recommendation) {
       throw new Error('Recommendation not found')
@@ -80,14 +79,11 @@ JSON object matching the structure.`
     })
 
     // 4. Update Recommendation
-    await prisma.recommendation.update({
-      where: { id: recommendationId },
-      data: {
-        implementationGuide: {
-          ...guide,
-          llmUsageId: usageId
-        } as any
-      }
+    await recommendationRepository.update(recommendationId, userId, {
+      implementationGuide: {
+        ...guide,
+        llmUsageId: usageId
+      } as any
     })
 
     return {
