@@ -88,7 +88,8 @@ export default defineEventHandler(async (event) => {
         workoutId: id
       },
       {
-        concurrencyKey: (session.user as any).id
+        concurrencyKey: (session.user as any).id,
+        tags: [`user:${(session.user as any).id}`]
       }
     )
 

@@ -133,7 +133,8 @@ export default defineEventHandler(async (event) => {
       fitFileId: fitFile.id
     },
     {
-      concurrencyKey: user.id
+      concurrencyKey: user.id,
+      tags: [`user:${user.id}`]
     }
   )
 

@@ -161,10 +161,16 @@ export default defineEventHandler(async (event) => {
   // 4. Trigger Generation for First Block (only for DRAFT plans that were generated empty)
   if (plan.blocks.length > 0 && !plan.isTemplate) {
     const firstBlock = plan.blocks[0]
-    await tasks.trigger('generate-training-block', {
-      userId,
-      blockId: firstBlock.id
-    })
+    await tasks.trigger(
+      'generate-training-block',
+      {
+        userId,
+        blockId: firstBlock.id
+      },
+      {
+        tags: [`user:${userId}`]
+      }
+    )
   }
 
   return { success: true }

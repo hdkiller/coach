@@ -26,10 +26,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Block not found' })
   }
 
-  const handle = await tasks.trigger('generate-training-block', {
-    userId: (session.user as any).id,
-    blockId: blockId
-  })
+  const handle = await tasks.trigger(
+    'generate-training-block',
+    {
+      userId: (session.user as any).id,
+      blockId: blockId
+    },
+    {
+      tags: [`user:${(session.user as any).id}`]
+    }
+  )
 
   return {
     success: true,

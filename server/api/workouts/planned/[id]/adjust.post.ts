@@ -30,10 +30,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workout not found' })
   }
 
-  const handle = await tasks.trigger('adjust-structured-workout', {
-    plannedWorkoutId: workout.id,
-    adjustments
-  })
+  const handle = await tasks.trigger(
+    'adjust-structured-workout',
+    {
+      plannedWorkoutId: workout.id,
+      adjustments
+    },
+    {
+      tags: [`user:${(session.user as any).id}`]
+    }
+  )
 
   return { success: true, jobId: handle.id }
 })

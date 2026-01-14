@@ -42,7 +42,10 @@ export default defineEventHandler(async (event) => {
     const handle = await tasks.trigger(
       'deduplicate-workouts',
       { userId },
-      { concurrencyKey: userId }
+      {
+        concurrencyKey: userId,
+        tags: [`user:${userId}`]
+      }
     )
 
     return {

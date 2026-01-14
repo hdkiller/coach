@@ -26,11 +26,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Plan not found' })
   }
 
-  const handle = await tasks.trigger('adapt-training-plan', {
-    userId: (session.user as any).id,
-    planId: planId,
-    adaptationType
-  })
+  const handle = await tasks.trigger(
+    'adapt-training-plan',
+    {
+      userId: (session.user as any).id,
+      planId: planId,
+      adaptationType
+    },
+    {
+      tags: [`user:${(session.user as any).id}`]
+    }
+  )
 
   return {
     success: true,

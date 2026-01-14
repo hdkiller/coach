@@ -40,16 +40,22 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
   const now = new Date()
 
-  const handle = await tasks.trigger('generate-ad-hoc-workout', {
-    userId,
-    date: now,
-    preferences: {
-      type,
-      durationMinutes,
-      intensity,
-      notes
+  const handle = await tasks.trigger(
+    'generate-ad-hoc-workout',
+    {
+      userId,
+      date: now,
+      preferences: {
+        type,
+        durationMinutes,
+        intensity,
+        notes
+      }
+    },
+    {
+      tags: [`user:${userId}`]
     }
-  })
+  )
 
   return {
     success: true,

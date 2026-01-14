@@ -38,9 +38,15 @@ export default defineEventHandler(async (event) => {
 
   // Trigger the generation task
   try {
-    const handle = await tasks.trigger('generate-structured-workout', {
-      plannedWorkoutId: id
-    })
+    const handle = await tasks.trigger(
+      'generate-structured-workout',
+      {
+        plannedWorkoutId: id
+      },
+      {
+        tags: [`user:${user.id}`]
+      }
+    )
 
     return {
       success: true,

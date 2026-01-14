@@ -129,10 +129,6 @@ export default defineEventHandler(async (event) => {
 
   const streams = workout.streams
 
-  // Debug stream availability
-  console.log(`[Intervals API] Processing streams for workout ${workoutId}`)
-  console.log(`[Intervals API] Stream keys: ${Object.keys(streams).join(', ')}`)
-
   // Parse streams safely
   const getStreamData = (stream: any): number[] | null => {
     if (!stream) return null
@@ -165,23 +161,10 @@ export default defineEventHandler(async (event) => {
   const hasHr = !!(hrStream && hrStream.length > 0)
   const hasCadence = !!(cadenceStream && cadenceStream.length > 0)
 
-  console.log(`[Intervals API] Stream Stats:`)
-  console.log(`  - Watts: ${hasWatts ? wattsStream?.length : 'N/A'}`)
-  console.log(`  - HR: ${hasHr ? hrStream?.length : 'N/A'}`)
-  console.log(`  - Cadence: ${hasCadence ? cadenceStream?.length : 'N/A'}`)
-  console.log(`  - Velocity: ${velocityStream?.length || 'N/A'}`)
-
   // Debug inputs for advanced metrics
   // Advanced metrics heavily rely on FTP
   // We use workout.ftp (snapshot) or user.ftp (current)
   const effectiveFtp = workout.ftp || user.ftp
-
-  console.log(`[Intervals API] Advanced Metrics Requirements:`)
-  console.log(`  - Workout FTP: ${workout.ftp}`)
-  console.log(`  - User FTP: ${user.ftp}`)
-  console.log(`  - Effective FTP: ${effectiveFtp}`)
-  console.log(`  - Has Watts: ${hasWatts}`)
-  console.log(`  - Has Cadence: ${hasCadence}`)
 
   // 1. Detect Intervals
   // Priority: Power > Pace (Velocity) > HR
@@ -242,14 +225,10 @@ export default defineEventHandler(async (event) => {
   let wPrime = null
   if (hasWatts && calculationFtp) {
     try {
-      console.log(`[Intervals API] Calculating W' Balance with FTP ${calculationFtp}...`)
       wPrime = calculateWPrimeBalance(wattsStream!, time, calculationFtp, 20000)
-      console.log(`[Intervals API] W' Balance Result:`, wPrime ? 'Success' : 'Null')
     } catch (e) {
       console.error(`[Intervals API] Error calculating W' Bal:`, e)
     }
-  } else {
-    console.log(`[Intervals API] Skipping W' Balance: hasWatts=${hasWatts}, ftp=${calculationFtp}`)
   }
 
   let efDecay = null
@@ -264,16 +243,10 @@ export default defineEventHandler(async (event) => {
   let quadrants = null
   if (hasWatts && hasCadence && calculationFtp) {
     try {
-      console.log(`[Intervals API] Calculating Quadrants with FTP ${calculationFtp}...`)
       quadrants = calculateQuadrantAnalysis(wattsStream!, cadenceStream!, calculationFtp)
-      console.log(`[Intervals API] Quadrants Result:`, quadrants ? 'Success' : 'Null')
     } catch (e) {
       console.error(`[Intervals API] Error calculating Quadrants:`, e)
     }
-  } else {
-    console.log(
-      `[Intervals API] Skipping Quadrants: hasWatts=${hasWatts}, hasCadence=${hasCadence}, ftp=${calculationFtp}`
-    )
   }
 
   // 5. New Extended Advanced Metrics (Fatigue sensitivity, Stability, Recovery Trend)
@@ -365,12 +338,6 @@ export default defineEventHandler(async (event) => {
     },
     chartData
   }
-
-  // Debug final structure
-  console.log(`[Intervals API] Returning response. Advanced metrics present:`)
-  console.log(`  - W' Prime: ${!!response.advanced.wPrime}`)
-  console.log(`  - Quadrants: ${!!response.advanced.quadrants}`)
-  console.log(`  - Surges: ${response.advanced.surges?.length || 0}`)
 
   return response
 })

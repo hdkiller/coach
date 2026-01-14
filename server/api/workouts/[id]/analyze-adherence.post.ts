@@ -31,10 +31,16 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const handle = await tasks.trigger('analyze-plan-adherence', {
-      workoutId: workout.id,
-      plannedWorkoutId: workout.plannedWorkoutId
-    })
+    const handle = await tasks.trigger(
+      'analyze-plan-adherence',
+      {
+        workoutId: workout.id,
+        plannedWorkoutId: workout.plannedWorkoutId
+      },
+      {
+        tags: [`user:${(session.user as any).id}`]
+      }
+    )
 
     return {
       success: true,

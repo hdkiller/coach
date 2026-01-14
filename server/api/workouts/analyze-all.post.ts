@@ -73,7 +73,8 @@ export default defineEventHandler(async (event) => {
             workoutId: workout.id
           },
           {
-            concurrencyKey: userId
+            concurrencyKey: userId,
+            tags: [`user:${userId}`]
           }
         )
         return { success: true, workoutId: workout.id, jobId: handle.id }

@@ -66,7 +66,8 @@ export default defineEventHandler(async (event) => {
       daysToPlann
     },
     {
-      concurrencyKey: userId
+      concurrencyKey: userId,
+      tags: [`user:${userId}`]
     }
   )
 
