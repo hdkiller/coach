@@ -44,26 +44,38 @@ export default defineEventHandler(async (event) => {
     data: { status: 'ABANDONED' }
   })
 
-  // 3. Delete future planned workouts
+  // 3. Handle future planned workouts
   // We identify "future" by date > now
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  // Find all workout IDs that are in the future
-  // We can do this efficiently with a deleteMany query on PlannedWorkout
-  // but we need to ensure they belong to this plan.
-  // PlannedWorkout is linked to TrainingWeek, which is linked to TrainingBlock, which is linked to TrainingPlan.
+  // Scope: Future workouts belonging to this plan
+  const planScope = {
+    date: { gt: today },
+    trainingWeek: {
+      block: {
+        trainingPlanId: planId
+      }
+    },
+    completed: false
+  }
 
-  // Efficient query:
+  // A. Unlink User-Managed Workouts (preserve them)
+  await prisma.plannedWorkout.updateMany({
+    where: {
+      ...planScope,
+      managedBy: 'USER'
+    },
+    data: {
+      trainingWeekId: null
+    }
+  })
+
+  // B. Delete AI-Managed Workouts
   const deleted = await prisma.plannedWorkout.deleteMany({
     where: {
-      date: { gt: today }, // Strictly future
-      trainingWeek: {
-        block: {
-          trainingPlanId: planId
-        }
-      },
-      completed: false // Only delete uncompleted ones? Or all? Usually abandon means all future.
+      ...planScope,
+      managedBy: 'COACH_WATTS' // or not 'USER'
     }
   })
 

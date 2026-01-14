@@ -73,10 +73,10 @@ export const generateTrainingBlockTask = task({
   id: 'generate-training-block',
   queue: userReportsQueue,
   maxDuration: 300, // 5 minutes
-  run: async (payload: { userId: string; blockId: string }) => {
-    const { userId, blockId } = payload
+  run: async (payload: { userId: string; blockId: string; anchorWorkoutIds?: string[] }) => {
+    const { userId, blockId, anchorWorkoutIds } = payload
 
-    logger.log('Starting training block generation', { userId, blockId })
+    logger.log('Starting training block generation', { userId, blockId, anchorWorkoutIds })
 
     const timezone = await getUserTimezone(userId)
     const aiSettings = await getUserAiSettings(userId)
@@ -123,6 +123,24 @@ export const generateTrainingBlockTask = task({
       where: { id: userId },
       select: { ftp: true, weight: true, maxHr: true, aiPersona: true }
     })
+
+    // Fetch Anchored Workouts
+    const anchoredWorkouts = anchorWorkoutIds?.length
+      ? await prisma.plannedWorkout.findMany({
+          where: {
+            id: { in: anchorWorkoutIds },
+            userId
+          },
+          select: {
+            id: true,
+            date: true,
+            title: true,
+            type: true,
+            durationSec: true,
+            tss: true
+          }
+        })
+      : []
 
     // Fetch latest athlete profile
     const athleteProfileReport = await prisma.report.findFirst({
@@ -318,8 +336,21 @@ WEEKLY SCHEDULE CONSTRAINTS (Explicit Dates):
 ${calendarContext}
 *Strictly follow this schedule. Only generate workouts for the days listed above for each week. If a week has "No valid training days", generate an empty week or rest.*
 
+LOCKED/ANCHOR WORKOUTS (DO NOT CHANGE OR REPLACE):
+${
+  anchoredWorkouts.length > 0
+    ? anchoredWorkouts
+        .map(
+          (w) =>
+            `- ${formatUserDate(w.date, timezone)}: ${w.title} (${w.type}, ${Math.round((w.durationSec || 0) / 60)}min) - KEEP THIS.`
+        )
+        .join('\n')
+    : 'None'
+}
+
 INSTRUCTIONS:
 Generate a detailed daily training plan for each week in this block (${block.durationWeeks} weeks).
+- **RESPECT LOCKED WORKOUTS**: You MUST include the "LOCKED/ANCHOR WORKOUTS" in your plan on their specific days. Do not schedule conflicting workouts on those days unless it's a multi-session day. Account for their TSS.
 - ONLY use the "Allowed Workout Types" listed above, UNLESS the athlete's custom instructions explicitly request otherwise (Custom Instructions take precedence).
 - Ensure progressive overload from week 1 to ${block.durationWeeks - 1}.
 - Ensure the recovery week (if applicable) has significantly reduced volume and intensity.
@@ -364,12 +395,37 @@ Return valid JSON matching the schema provided.`
         const weekIds = existingWeeks.map((w) => w.id)
 
         if (weekIds.length > 0) {
-          // Delete workouts attached to these weeks to prevent orphans
-          await tx.plannedWorkout.deleteMany({
-            where: { trainingWeekId: { in: weekIds } }
+          // 1. Detach anchored workouts if they are currently linked to these weeks
+          if (anchorWorkoutIds?.length) {
+            await tx.plannedWorkout.updateMany({
+              where: {
+                id: { in: anchorWorkoutIds },
+                trainingWeekId: { in: weekIds }
+              },
+              data: { trainingWeekId: null }
+            })
+          }
+
+          // 2. Unlink User-Managed Workouts
+          await tx.plannedWorkout.updateMany({
+            where: {
+              trainingWeekId: { in: weekIds },
+              id: { notIn: anchorWorkoutIds || [] },
+              managedBy: 'USER'
+            },
+            data: { trainingWeekId: null }
           })
 
-          // Delete the weeks themselves
+          // 3. Delete AI-Managed Workouts attached to these weeks
+          await tx.plannedWorkout.deleteMany({
+            where: {
+              trainingWeekId: { in: weekIds },
+              id: { notIn: anchorWorkoutIds || [] },
+              managedBy: { not: 'USER' }
+            }
+          })
+
+          // 4. Delete the weeks themselves
           await tx.trainingWeek.deleteMany({
             where: { blockId }
           })
@@ -418,6 +474,20 @@ Return valid JSON matching the schema provided.`
                   dayOfWeek: workout.dayOfWeek
                 })
                 return null
+              }
+
+              // Check for conflict with Anchor
+              if (anchorWorkoutIds?.length) {
+                const targetDateStr = formatUserDate(targetDate, timezone, 'yyyy-MM-dd')
+                const hasAnchor = anchoredWorkouts.some((anchor) => {
+                  const anchorDateStr = formatUserDate(anchor.date, timezone, 'yyyy-MM-dd')
+                  return anchorDateStr === targetDateStr
+                })
+
+                if (hasAnchor) {
+                  // Log but don't warn, as this is expected
+                  return null
+                }
               }
 
               return {

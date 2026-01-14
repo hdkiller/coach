@@ -43,6 +43,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event).catch(() => ({}))
   const requestedStartDate = body?.startDate ? new Date(body.startDate) : null
   const startDate = requestedStartDate || new Date()
+  const anchorWorkoutIds = body?.anchorWorkoutIds || []
 
   // 1. Archive existing active plans
   await (prisma as any).trainingPlan.updateMany({
@@ -158,6 +159,16 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // 3.5 Unlink Anchored Workouts
+  // This ensures they become "Independent" and visible in the new plan dashboard,
+  // and protects them from being hidden in archived plans.
+  if (anchorWorkoutIds.length > 0) {
+    await (prisma as any).plannedWorkout.updateMany({
+      where: { id: { in: anchorWorkoutIds } },
+      data: { trainingWeekId: null }
+    })
+  }
+
   // 4. Trigger Generation for First Block (only for DRAFT plans that were generated empty)
   if (plan.blocks.length > 0 && !plan.isTemplate) {
     const firstBlock = plan.blocks[0]
@@ -165,7 +176,8 @@ export default defineEventHandler(async (event) => {
       'generate-training-block',
       {
         userId,
-        blockId: firstBlock.id
+        blockId: firstBlock.id,
+        anchorWorkoutIds
       },
       {
         tags: [`user:${userId}`]

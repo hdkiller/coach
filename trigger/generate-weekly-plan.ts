@@ -96,15 +96,18 @@ export const generateWeeklyPlanTask = task({
     daysToPlann: number
     userInstructions?: string
     trainingWeekId?: string
+    anchorWorkoutIds?: string[]
   }) => {
-    const { userId, startDate, daysToPlann, userInstructions, trainingWeekId } = payload
+    const { userId, startDate, daysToPlann, userInstructions, trainingWeekId, anchorWorkoutIds } =
+      payload
 
     logger.log('Starting weekly plan generation', {
       userId,
       startDate,
       daysToPlann,
       userInstructions,
-      trainingWeekId
+      trainingWeekId,
+      anchorWorkoutIds
     })
 
     const timezone = await getUserTimezone(userId)
@@ -270,6 +273,15 @@ export const generateWeeklyPlanTask = task({
         }
       })
     ])
+
+    // Split into Anchors and Context
+    const anchoredWorkouts = existingPlannedWorkouts.filter((w) => anchorWorkoutIds?.includes(w.id))
+    const contextWorkouts = existingPlannedWorkouts.filter((w) => !anchorWorkoutIds?.includes(w.id))
+
+    logger.log('Workouts classified', {
+      anchored: anchoredWorkouts.length,
+      context: contextWorkouts.length
+    })
 
     logger.log('Existing workouts fetched details', {
       count: existingPlannedWorkouts.length,
@@ -515,16 +527,28 @@ ${availabilitySummary || 'No availability set - assume flexible schedule'}
 USER INSTRUCTIONS (HIGHEST PRIORITY):
 ${userInstructions ? `"${userInstructions}"\n\nFollow these instructions above everything else. They override standard progression and availability constraints.` : 'No special instructions.'}
 
-CURRENT PLANNED WORKOUTS FOR THIS WEEK (For Context):
+LOCKED/ANCHOR WORKOUTS (DO NOT CHANGE OR REPLACE):
 ${
-  existingPlannedWorkouts.length > 0
-    ? existingPlannedWorkouts
+  anchoredWorkouts.length > 0
+    ? anchoredWorkouts
+        .map(
+          (w) =>
+            `- ${formatUserDate(w.date, timezone)}: ${w.title} (${w.type}, ${Math.round((w.durationSec || 0) / 60)}min) - KEEP THIS.`
+        )
+        .join('\n')
+    : 'None'
+}
+
+CURRENT PLANNED WORKOUTS (Context - will be replaced unless anchored):
+${
+  contextWorkouts.length > 0
+    ? contextWorkouts
         .map(
           (w) =>
             `- ${formatUserDate(w.date, timezone)}: ${w.title} (${w.type}, ${Math.round((w.durationSec || 0) / 60)}min)`
         )
         .join('\n')
-    : 'None currently planned'
+    : 'None'
 }
 
 RECENT TRAINING (Last 14 days):
@@ -550,15 +574,16 @@ PLANNING PERIOD:
 
 INSTRUCTIONS:
 1. **PRIORITIZE USER INSTRUCTIONS**: If the user asks for specific changes (e.g., "no rides this week"), STRICTLY follow them, even if it contradicts standard training principles.
-2. **RESPECT AVAILABILITY**: Do not schedule workouts on days marked as "rest day" or conflicting with time slots unless the User Instructions explicitly override this.
-3. **WORKOUT TYPES**:
+2. **RESPECT LOCKED WORKOUTS**: You MUST include the "LOCKED/ANCHOR WORKOUTS" in your plan on their specific days. Do not schedule conflicting workouts on those days unless it's a multi-session day (e.g. gym + ride). Account for their TSS in the weekly total.
+3. **RESPECT AVAILABILITY**: Do not schedule workouts on days marked as "rest day" or conflicting with time slots unless the User Instructions explicitly override this.
+4. **WORKOUT TYPES**:
    - USE ONLY: Ride, Run, Gym, Swim, Rest.
    - **DO NOT USE**: "Workout", "Active Recovery", or other generic types. Map recovery sessions to a light "Ride" or "Run" or "Rest".
    - "Gym" means strength training.
-4. **PROGRESSION**:
+5. **PROGRESSION**:
    - If User Instructions are absent/minimal, aim for progressive overload based on the current phase.
    - Weekly TSS target: ${Math.round(currentWeeklyTSS)} - ${targetMaxTSS} (unless overridden by instructions).
-5. **CONTEXT**: Consider the "Current Planned Workouts" to understand what the user is replacing or modifying.
+6. **CONTEXT**: Consider the "Current Planned Workouts" to understand what the user is replacing or modifying.
 
 Create a structured, progressive plan for the next ${daysToPlann} days.
 Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasoning and descriptions.`
@@ -625,27 +650,66 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
 
     // Also update the individual planned workouts if this is an active plan
     if (savedPlan.status === 'ACTIVE') {
-      // First, clear existing future planned workouts for this period to avoid duplicates
-      // We only clear workouts that haven't been completed
+      // First, handle existing workouts
+      const scope = {
+        userId,
+        date: {
+          gte: alignedWeekStart,
+          lte: alignedWeekEndUTC
+        },
+        completed: false,
+        id: {
+          notIn: anchorWorkoutIds || []
+        }
+      }
+
+      // 1. Unlink User-Managed Workouts (preserve them)
+      await prisma.plannedWorkout.updateMany({
+        where: {
+          ...scope,
+          managedBy: 'USER'
+        },
+        data: { trainingWeekId: null }
+      })
+
+      // 2. Delete AI-Managed Workouts
       const deleted = await prisma.plannedWorkout.deleteMany({
         where: {
-          userId,
-          date: {
-            gte: alignedWeekStart,
-            lte: alignedWeekEndUTC
-          },
-          completed: false
+          ...scope,
+          managedBy: { not: 'USER' }
         }
       })
-      logger.log('Deleted existing planned workouts', {
-        count: deleted.count,
+
+      logger.log('Cleaned up existing planned workouts', {
+        deleted: deleted.count,
         weekStart: alignedWeekStart.toISOString(),
-        weekEnd: alignedWeekEndUTC.toISOString()
+        weekEnd: alignedWeekEndUTC.toISOString(),
+        preservedAnchors: anchorWorkoutIds?.length || 0
       })
 
       // Insert new workouts from the generated plan
       const workoutsToCreate = (plan as any).days
         .filter((d: any) => d.workoutType !== 'Rest')
+        // Filter out any days that match an anchored workout date to avoid duplicates if AI ignored instruction
+        .filter((d: any) => {
+          if (!anchorWorkoutIds?.length) return true
+
+          // Check if this generated workout conflicts with an anchor
+          // d.date is YYYY-MM-DD local string
+          // We need to check if any anchor has this same local date
+          const generatedDateStr = d.date
+
+          const hasAnchor = anchoredWorkouts.some((anchor) => {
+            const anchorDateStr = formatUserDate(anchor.date, timezone, 'yyyy-MM-dd')
+            return anchorDateStr === generatedDateStr
+          })
+
+          if (hasAnchor) {
+            logger.log('Skipping generated workout because date is anchored', { date: d.date })
+            return false
+          }
+          return true
+        })
         .map((d: any) => {
           // Parse date strictly from the AI response
           // AI returns 'YYYY-MM-DD' which represents the user's local date.
@@ -729,92 +793,87 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
         data: workoutsToCreate
       })
 
-      if (workoutsToCreate.length > 0) {
-        let targetTrainingWeekId: string | undefined = trainingWeekId
+      // Determine the TrainingWeek ID to link to
+      let targetTrainingWeekId: string | undefined = trainingWeekId
 
-        // If explicitly passed, verify it exists and use it
-        if (targetTrainingWeekId) {
-          const verifiedWeek = await prisma.trainingWeek.findUnique({
-            where: { id: targetTrainingWeekId }
-          })
-          if (!verifiedWeek) {
-            logger.warn('Explicitly passed trainingWeekId not found in DB', { trainingWeekId })
-            targetTrainingWeekId = undefined // Fallback to search logic
-          } else {
-            logger.log('Using explicitly passed TrainingWeek ID', { trainingWeekId })
-            console.log(`Using explicitly passed TrainingWeek ID: ${trainingWeekId}`)
-          }
+      // If explicitly passed, verify it exists and use it
+      if (targetTrainingWeekId) {
+        const verifiedWeek = await prisma.trainingWeek.findUnique({
+          where: { id: targetTrainingWeekId }
+        })
+        if (!verifiedWeek) {
+          logger.warn('Explicitly passed trainingWeekId not found in DB', { trainingWeekId })
+          targetTrainingWeekId = undefined // Fallback to search logic
+        } else {
+          logger.log('Using explicitly passed TrainingWeek ID', { trainingWeekId })
         }
+      }
 
-        // If not found or not passed, search for it
-        if (!targetTrainingWeekId) {
-          // Find the TrainingWeek ID to link these workouts to, if possible
-          const trainingWeek = await prisma.trainingWeek.findFirst({
-            where: {
-              block: {
-                plan: {
-                  userId: userId,
-                  status: 'ACTIVE'
-                }
-              },
-              startDate: {
-                lte: alignedWeekStart
-              },
-              endDate: {
-                gte: alignedWeekEndUTC
+      // If not found or not passed, search for it
+      if (!targetTrainingWeekId) {
+        // Find the TrainingWeek ID to link these workouts to, if possible
+        const trainingWeek = await prisma.trainingWeek.findFirst({
+          where: {
+            block: {
+              plan: {
+                userId: userId,
+                status: 'ACTIVE'
               }
+            },
+            startDate: {
+              lte: alignedWeekStart
+            },
+            endDate: {
+              gte: alignedWeekEndUTC
             }
-          })
-          if (trainingWeek) targetTrainingWeekId = trainingWeek.id
-        }
+          }
+        })
+        if (trainingWeek) targetTrainingWeekId = trainingWeek.id
+      }
 
+      // FALLBACK: Try to find ANY training week for this user that overlaps with this week
+      if (!targetTrainingWeekId) {
+        const fallbackWeek = await prisma.trainingWeek.findFirst({
+          where: {
+            block: {
+              plan: {
+                userId: userId
+              }
+            },
+            startDate: {
+              lte: alignedWeekEndUTC
+            },
+            endDate: {
+              gte: alignedWeekStart
+            }
+          }
+        })
+
+        if (fallbackWeek) {
+          logger.log('Found fallback TrainingWeek', { trainingWeekId: fallbackWeek.id })
+          targetTrainingWeekId = fallbackWeek.id
+        }
+      }
+
+      if (workoutsToCreate.length > 0) {
         if (targetTrainingWeekId) {
           logger.log('Linking generated workouts to TrainingWeek', {
             trainingWeekId: targetTrainingWeekId
           })
-          console.log(`Linking generated workouts to TrainingWeek ID: ${targetTrainingWeekId}`)
           workoutsToCreate.forEach((w) => {
             if (w) (w as any).trainingWeekId = targetTrainingWeekId
           })
         } else {
-          // FALLBACK: Try to find ANY training week for this user that overlaps with this week
-          // This handles cases where the plan might not be strictly 'ACTIVE' or dates are slightly off
-          const fallbackWeek = await prisma.trainingWeek.findFirst({
-            where: {
-              block: {
-                plan: {
-                  userId: userId
-                }
-              },
-              startDate: {
-                lte: alignedWeekEndUTC
-              },
-              endDate: {
-                gte: alignedWeekStart
-              }
+          logger.warn(
+            'No matching TrainingWeek found for these workouts - they will be unlinked from the structured plan',
+            {
+              weekStart: alignedWeekStart.toISOString(),
+              weekEnd: alignedWeekEndUTC.toISOString()
             }
-          })
-
-          if (fallbackWeek) {
-            logger.log('Found fallback TrainingWeek', { trainingWeekId: fallbackWeek.id })
-            console.log(`Linking to fallback TrainingWeek ID: ${fallbackWeek.id}`)
-            workoutsToCreate.forEach((w) => {
-              if (w) (w as any).trainingWeekId = fallbackWeek.id
-            })
-          } else {
-            logger.warn(
-              'No matching TrainingWeek found for these workouts - they will be unlinked from the structured plan',
-              {
-                weekStart: alignedWeekStart.toISOString(),
-                weekEnd: alignedWeekEndUTC.toISOString()
-              }
-            )
-            console.log('WARNING: No matching TrainingWeek found. Workouts will be unlinked.')
-          }
+          )
         }
 
         // Use createMany but we need to match the type exactly.
-        // Prisma createMany is strict.
         const result = await prisma.plannedWorkout.createMany({
           data: workoutsToCreate as any
         })

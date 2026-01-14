@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  const { blockId, weekId, instructions } = await readBody(event)
+  const { blockId, weekId, instructions, anchorWorkoutIds } = await readBody(event)
 
   if (!blockId || !weekId) {
     throw createError({ statusCode: 400, message: 'Block ID and Week ID are required' })
@@ -46,7 +46,8 @@ export default defineEventHandler(async (event) => {
       startDate: week.startDate,
       daysToPlann: 7, // Always plan the full week
       userInstructions: instructions, // Pass the new instructions
-      trainingWeekId: week.id // Pass the specific training week ID to link to
+      trainingWeekId: week.id, // Pass the specific training week ID to link to
+      anchorWorkoutIds // Pass anchors
     },
     {
       tags: [`user:${(session.user as any).id}`]
