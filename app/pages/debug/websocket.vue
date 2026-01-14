@@ -91,7 +91,7 @@
           <h1 class="text-xl font-bold">WebSocket Debugger</h1>
           <UBadge
             :color="
-              status === 'Connected' ? 'green' : status === 'Connecting...' ? 'yellow' : 'red'
+              status === 'Connected' ? 'success' : status === 'Connecting...' ? 'warning' : 'error'
             "
           >
             {{ status }}
@@ -110,11 +110,11 @@
             Connect
           </UButton>
 
-          <UButton v-else icon="i-heroicons-x-mark" color="gray" @click="disconnect">
+          <UButton v-else icon="i-heroicons-x-mark" color="neutral" @click="disconnect">
             Disconnect
           </UButton>
 
-          <UButton icon="i-heroicons-trash" color="white" variant="ghost" @click="clearLogs">
+          <UButton icon="i-heroicons-trash" color="neutral" variant="ghost" @click="clearLogs">
             Clear Logs
           </UButton>
         </div>
@@ -130,7 +130,7 @@
           <UButton :disabled="status !== 'Connected' || !inputMessage" @click="sendMessage">
             Send
           </UButton>
-          <UButton color="gray" :disabled="status !== 'Connected'" @click="sendPing">
+          <UButton color="neutral" :disabled="status !== 'Connected'" @click="sendPing">
             Ping
           </UButton>
         </div>

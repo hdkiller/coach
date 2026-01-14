@@ -1,6 +1,6 @@
 <template>
   <div v-if="modelValue" class="fixed bottom-4 right-4 z-50 w-80 sm:w-96 shadow-xl">
-    <UCard :ui="{ body: { padding: 'p-0' }, header: { padding: 'p-3' } }">
+    <UCard :ui="{ body: 'p-0', header: 'p-3' }">
       <template #header>
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">

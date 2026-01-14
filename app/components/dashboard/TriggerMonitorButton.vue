@@ -10,7 +10,7 @@
     >
       <span class="hidden md:inline">Tasks</span>
       <template v-if="activeRunCount > 0" #trailing>
-        <UBadge color="primary" size="xs" :ui="{ rounded: 'rounded-full' }" class="-ml-1">
+        <UBadge color="primary" size="xs" :ui="{ base: 'rounded-full' }" class="-ml-1">
           {{ activeRunCount }}
         </UBadge>
       </template>
