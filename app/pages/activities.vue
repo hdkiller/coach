@@ -10,54 +10,29 @@
             <ClientOnly>
               <DashboardTriggerMonitorButton />
             </ClientOnly>
-            <!-- View Switcher -->
-            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <UButton
-                icon="i-heroicons-calendar"
-                :color="viewMode === 'calendar' ? 'primary' : 'neutral'"
-                variant="ghost"
-                size="sm"
-                @click="viewMode = 'calendar'"
-              />
-              <UButton
-                icon="i-heroicons-list-bullet"
-                :color="viewMode === 'list' ? 'primary' : 'neutral'"
-                variant="ghost"
-                size="sm"
-                @click="viewMode = 'list'"
-              />
-            </div>
-
-            <!-- Month Navigation -->
-            <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <UButton
-                icon="i-heroicons-chevron-left"
-                variant="ghost"
-                size="sm"
-                @click="prevMonth"
-              />
-              <span
-                class="px-2 text-xs sm:text-sm font-semibold min-w-[80px] sm:min-w-[120px] text-center"
-              >
-                {{ currentMonthLabel }}
-              </span>
-              <UButton
-                icon="i-heroicons-chevron-right"
-                variant="ghost"
-                size="sm"
-                @click="nextMonth"
-              />
-            </div>
 
             <UButton
-              v-if="!isCurrentMonth"
-              label="Today"
-              size="sm"
-              variant="outline"
+              to="/workouts/upload"
+              icon="i-heroicons-cloud-arrow-up"
               color="neutral"
-              class="font-bold hidden sm:flex"
-              @click="goToToday"
-            />
+              variant="outline"
+              size="sm"
+              class="font-bold"
+            >
+              <span class="hidden sm:inline">Upload</span>
+            </UButton>
+
+            <UButton
+              icon="i-heroicons-arrow-path"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="font-bold"
+              :loading="status === 'pending' || integrationStore.syncingData"
+              @click="handleRefresh"
+            >
+              <span class="hidden sm:inline">Refresh</span>
+            </UButton>
           </div>
         </template>
       </UDashboardNavbar>
@@ -81,7 +56,7 @@
             <!-- Legend (Calendar Only) -->
             <div
               v-if="viewMode === 'calendar'"
-              class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0"
+              class="hidden md:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0"
             >
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-green-500" />
@@ -137,28 +112,54 @@
               />
             </UDropdownMenu>
 
-            <UButton
-              to="/workouts/upload"
-              icon="i-heroicons-cloud-arrow-up"
-              color="neutral"
-              variant="outline"
-              size="sm"
-              class="font-bold"
-            >
-              <span class="hidden sm:inline">Upload</span>
-            </UButton>
+            <!-- View Switcher -->
+            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <UButton
+                icon="i-heroicons-calendar"
+                :color="viewMode === 'calendar' ? 'primary' : 'neutral'"
+                variant="ghost"
+                size="sm"
+                @click="viewMode = 'calendar'"
+              />
+              <UButton
+                icon="i-heroicons-list-bullet"
+                :color="viewMode === 'list' ? 'primary' : 'neutral'"
+                variant="ghost"
+                size="sm"
+                @click="viewMode = 'list'"
+              />
+            </div>
+
+            <!-- Month Navigation -->
+            <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <UButton
+                icon="i-heroicons-chevron-left"
+                variant="ghost"
+                size="sm"
+                @click="prevMonth"
+              />
+              <span
+                class="px-2 text-xs sm:text-sm font-semibold min-w-[80px] sm:min-w-[120px] text-center"
+              >
+                {{ currentMonthLabel }}
+              </span>
+              <UButton
+                icon="i-heroicons-chevron-right"
+                variant="ghost"
+                size="sm"
+                @click="nextMonth"
+              />
+            </div>
 
             <UButton
-              icon="i-heroicons-arrow-path"
-              color="neutral"
-              variant="outline"
+              v-if="!isCurrentMonth"
+              label="Today"
               size="sm"
-              class="font-bold"
-              :loading="status === 'pending' || integrationStore.syncingData"
-              @click="handleRefresh"
-            >
-              <span class="hidden sm:inline">Refresh</span>
-            </UButton>
+              variant="outline"
+              color="neutral"
+              class="font-bold hidden sm:flex"
+              @click="goToToday"
+            />
           </div>
         </div>
 
@@ -300,7 +301,11 @@
                   :key="'mob-day-' + day.date.toISOString()"
                   class="space-y-1"
                 >
-                  <div v-if="day.activities.length > 0 || isTodayDate(day.date)" class="flex gap-2">
+                  <div
+                    v-if="day.activities.length > 0 || isTodayDate(day.date)"
+                    :id="isTodayDate(day.date) ? 'mobile-today-anchor' : undefined"
+                    class="flex gap-2"
+                  >
                     <div class="w-12 text-center shrink-0 pt-1">
                       <div class="text-[10px] uppercase text-gray-500">
                         {{ format(day.date, 'EEE') }}
@@ -1391,4 +1396,33 @@
     await integrationStore.syncAllData()
     await refresh()
   }
+
+  // Scroll to today on mobile
+  function scrollToTodayMobile() {
+    // Only applies if we are in calendar view (which has the mobile list)
+    if (viewMode.value !== 'calendar') return
+
+    // Find the element
+    const el = document.getElementById('mobile-today-anchor')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+
+  // Attempt to scroll on mount and when data changes
+  onMounted(() => {
+    // Give time for DOM to render if data is already present
+    setTimeout(scrollToTodayMobile, 500)
+  })
+
+  // Also watch for data readiness
+  watch(
+    () => status.value,
+    (newStatus) => {
+      if (newStatus === 'success') {
+        // Wait for DOM update
+        setTimeout(scrollToTodayMobile, 100)
+      }
+    }
+  )
 </script>

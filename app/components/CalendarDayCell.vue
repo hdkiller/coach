@@ -1,9 +1,9 @@
 <template>
   <div
-    class="min-h-[120px] p-2 bg-white dark:bg-gray-900 transition-colors flex flex-col"
+    class="min-h-[120px] p-2 bg-white dark:bg-gray-900 transition-colors flex flex-col relative"
     :class="{
       'opacity-50': isOtherMonth,
-      'bg-blue-50 dark:bg-blue-950': isToday,
+      'bg-blue-50 dark:bg-blue-900/20 z-10 shadow-md': isToday,
       'bg-gray-100 dark:bg-gray-800 ring-2 ring-primary-500 ring-inset': isDayDragOver
     }"
     @dragover.prevent="onDayDragOver"
@@ -15,9 +15,10 @@
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-2">
         <span
-          class="text-xs font-semibold"
+          class="text-xs font-semibold flex items-center justify-center"
           :class="{
-            'text-blue-600 dark:text-blue-400': isToday,
+            'bg-blue-500 text-white dark:bg-blue-400 dark:text-gray-900 px-2 py-0.5 rounded-full shadow-sm':
+              isToday,
             'text-gray-400': isOtherMonth,
             'text-gray-900 dark:text-gray-100': !isOtherMonth && !isToday
           }"
