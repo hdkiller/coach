@@ -50,15 +50,22 @@
               <div
                 v-for="(step, index) in workout.steps"
                 :key="index"
-                :style="getStepStyle(step)"
-                class="relative group cursor-pointer transition-all hover:opacity-80"
+                class="relative flex items-end h-full"
+                :style="getStepContainerStyle(step)"
                 @mouseenter="hoveredStep = step"
                 @mouseleave="hoveredStep = null"
               >
+                <!-- Bar -->
+                <div
+                  :style="getStepBarStyle(step)"
+                  class="w-full transition-all hover:opacity-80 cursor-pointer"
+                />
+
                 <!-- Tooltip -->
                 <div
                   v-if="hoveredStep === step"
-                  class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
+                  class="absolute left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg whitespace-nowrap z-50 pointer-events-none"
+                  :style="{ bottom: getStepTooltipBottom(step) + '%' }"
                 >
                   <div class="font-semibold">{{ step.name }}</div>
                   <div class="text-[10px] opacity-80 mt-1">
@@ -90,7 +97,7 @@
 
             <!-- Cadence Line Overlay -->
             <svg
-              class="absolute inset-0 pointer-events-none"
+              class="absolute inset-0 pointer-events-none z-10"
               preserveAspectRatio="none"
               viewBox="0 0 1000 100"
             >
@@ -342,8 +349,15 @@
   })
 
   // Functions
-  function getStepStyle(step: any) {
+  function getStepContainerStyle(step: any) {
     const width = (step.durationSeconds / totalDuration.value) * 100
+    return {
+      width: `${width}%`,
+      minWidth: '2px'
+    }
+  }
+
+  function getStepBarStyle(step: any) {
     const color = getStepColor(step.type)
     const maxScale = 1.2 // 120% FTP is top of chart
 
@@ -353,23 +367,32 @@
       const endH = Math.min(step.power.range.end / maxScale, 1) * 100
 
       return {
-        width: `${width}%`,
         height: '100%',
         backgroundColor: color,
-        clipPath: `polygon(0% ${100 - startH}%, 100% ${100 - endH}%, 100% 100%, 0% 100%)`,
-        minWidth: '2px'
+        clipPath: `polygon(0% ${100 - startH}%, 100% ${100 - endH}%, 100% 100%, 0% 100%)`
       }
     } else {
       // Flat logic
-      const powerPercent = (step.power?.value || 0) * 100
       const height = Math.min((step.power?.value || 0) / maxScale, 1) * 100
 
       return {
         height: `${height}%`,
-        width: `${width}%`,
-        backgroundColor: color,
-        minWidth: '2px'
+        backgroundColor: color
       }
+    }
+  }
+
+  function getStepTooltipBottom(step: any): number {
+    const maxScale = 1.2 // 120% FTP is top of chart
+
+    if (step.power?.range) {
+      // Ramp logic - position at the average height of the ramp
+      const startH = Math.min(step.power.range.start / maxScale, 1) * 100
+      const endH = Math.min(step.power.range.end / maxScale, 1) * 100
+      return (startH + endH) / 2
+    } else {
+      // Flat logic - position at the top of the bar
+      return Math.min((step.power?.value || 0) / maxScale, 1) * 100
     }
   }
 
