@@ -15,6 +15,7 @@
       :syncing-providers="syncingProviders"
       @disconnect="disconnectIntegration"
       @sync="syncIntegration"
+      @sync-profile="syncProfile"
       @update-setting="updateIntegrationSetting"
     />
   </div>
@@ -82,6 +83,28 @@
   )
 
   const syncingProviders = ref(new Set<string>())
+
+  const syncProfile = async (provider: string) => {
+    try {
+      if (provider !== 'intervals') return
+
+      await $fetch('/api/integrations/intervals/sync-profile', {
+        method: 'POST'
+      })
+
+      toast.add({
+        title: 'Profile Sync Started',
+        description: 'Auto-detection task has been triggered in the background.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Sync Failed',
+        description: error.data?.message || 'Failed to trigger profile sync',
+        color: 'error'
+      })
+    }
+  }
 
   const syncIntegration = async (provider: string, days?: number) => {
     syncingProviders.value.add(provider)

@@ -49,6 +49,16 @@
             variant="outline"
             size="xs"
             class="font-bold"
+            icon="i-heroicons-user"
+            @click="$emit('sync-profile', 'intervals')"
+          >
+            Sync Profile
+          </UButton>
+          <UButton
+            color="neutral"
+            variant="outline"
+            size="xs"
+            class="font-bold"
             icon="i-heroicons-arrow-path-rounded-square"
             @click="advancedSyncModalOpen = true"
           >
@@ -407,6 +417,7 @@
   defineEmits<{
     disconnect: [provider: string]
     sync: [provider: string, days?: number]
+    'sync-profile': [provider: string]
     updateSetting: [provider: string, setting: string, value: any]
   }>()
 </script>
