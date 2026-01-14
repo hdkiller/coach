@@ -7,7 +7,8 @@ import {
   getStartOfDaysAgoUTC,
   getStartOfDayUTC,
   formatUserDate,
-  getUserLocalDate
+  getUserLocalDate,
+  formatDateUTC
 } from '../server/utils/date'
 import { getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { getUserAiSettings } from '../server/utils/ai-settings'
