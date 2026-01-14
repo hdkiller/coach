@@ -672,16 +672,52 @@
     tone: 'Motivational',
     context: ''
   })
-  const polling = ref(false)
   const workout = ref<any>(null)
   const userFtp = ref<number | undefined>(undefined)
-  let pollingInterval: NodeJS.Timeout | null = null
+
+  // Background Task Monitoring
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
 
   // Share functionality
   const isShareModalOpen = ref(false)
   const shareLink = ref('')
   const generatingShareLink = ref(false)
   const publishing = ref(false)
+
+  // Listeners
+  onTaskCompleted('generate-workout-messages', async (run) => {
+    await fetchWorkout()
+    generatingMessages.value = false
+    toast.add({
+      title: 'Messages Ready',
+      description: 'Coaching messages have been added to your workout.',
+      color: 'success',
+      icon: 'i-heroicons-chat-bubble-left-ellipsis'
+    })
+  })
+
+  onTaskCompleted('adjust-structured-workout', async (run) => {
+    await fetchWorkout()
+    adjusting.value = false
+    toast.add({
+      title: 'Adjustment Complete',
+      description: 'Your workout has been updated based on your feedback.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
+
+  onTaskCompleted('generate-structured-workout', async (run) => {
+    await fetchWorkout()
+    generating.value = false
+    toast.add({
+      title: 'Structure Generated',
+      description: 'Workout structure is ready.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
 
   const isLocalWorkout = computed(() => {
     if (!workout.value) return false
@@ -855,6 +891,7 @@
         method: 'POST',
         body: messageForm
       })
+      refreshRuns()
 
       toast.add({
         title: 'Writing Messages...',
@@ -863,18 +900,13 @@
       })
 
       showMessageModal.value = false
-      const currentUpdated = workout.value?.updatedAt
-        ? new Date(workout.value.updatedAt)
-        : new Date()
-      startPolling(currentUpdated)
     } catch (error: any) {
+      generatingMessages.value = false
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to generate messages',
         color: 'error'
       })
-    } finally {
-      generatingMessages.value = false
     }
   }
 
@@ -885,6 +917,7 @@
         method: 'POST',
         body: adjustForm
       })
+      refreshRuns()
 
       toast.add({
         title: 'Adjustment Started',
@@ -893,20 +926,13 @@
       })
 
       showAdjustModal.value = false
-
-      // Capture current timestamp to ensure we wait for a newer version
-      const currentUpdated = workout.value?.updatedAt
-        ? new Date(workout.value.updatedAt)
-        : new Date()
-      startPolling(currentUpdated)
     } catch (error: any) {
+      adjusting.value = false
       toast.add({
         title: 'Adjustment Failed',
         description: error.data?.message || 'Failed to submit adjustment',
         color: 'error'
       })
-    } finally {
-      adjusting.value = false
     }
   }
 
@@ -916,83 +942,20 @@
       await $fetch(`/api/workouts/planned/${route.params.id}/generate-structure`, {
         method: 'POST'
       })
+      refreshRuns()
 
       toast.add({
         title: 'Generation Started',
         description: 'AI is generating the workout structure. This may take up to 30 seconds.',
         color: 'success'
       })
-
-      // Start polling for the generated structure
-      const currentUpdated = workout.value?.updatedAt
-        ? new Date(workout.value.updatedAt)
-        : new Date()
-      startPolling(currentUpdated)
     } catch (error: any) {
+      generating.value = false
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to generate structure',
         color: 'error'
       })
-      generating.value = false
-    }
-  }
-
-  function startPolling(minUpdatedAt?: Date) {
-    polling.value = true
-    let attempts = 0
-    const maxAttempts = 15 // Poll for up to 45 seconds (15 attempts * 3 seconds)
-
-    pollingInterval = setInterval(async () => {
-      attempts++
-
-      try {
-        const data: any = await $fetch(`/api/workouts/planned/${route.params.id}`)
-
-        const remoteUpdatedAt = new Date(data.workout.updatedAt)
-        const isNewer = minUpdatedAt ? remoteUpdatedAt > minUpdatedAt : true
-
-        // Check if structured workout data is available AND it is fresh
-        if (data.workout?.structuredWorkout && isNewer) {
-          workout.value = data.workout
-          userFtp.value = data.userFtp
-
-          stopPolling()
-          generating.value = false
-
-          toast.add({
-            title: 'Structure Ready',
-            description: 'Your workout has been updated!',
-            color: 'success'
-          })
-        } else if (attempts >= maxAttempts) {
-          // Stop polling after max attempts
-          stopPolling()
-          generating.value = false
-
-          toast.add({
-            title: 'Generation Taking Longer',
-            description:
-              'The workout is still being generated. Try refreshing the page in a moment.',
-            color: 'info'
-          })
-        }
-      } catch (error) {
-        console.error('Polling error:', error)
-
-        if (attempts >= maxAttempts) {
-          stopPolling()
-          generating.value = false
-        }
-      }
-    }, 3000) // Poll every 3 seconds
-  }
-
-  function stopPolling() {
-    polling.value = false
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
     }
   }
 
@@ -1066,10 +1029,5 @@
 
   onMounted(() => {
     fetchWorkout()
-  })
-
-  onUnmounted(() => {
-    // Clean up polling interval if component is unmounted
-    stopPolling()
   })
 </script>

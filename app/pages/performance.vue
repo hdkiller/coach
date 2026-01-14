@@ -6,18 +6,23 @@
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UButton
-            :loading="generatingExplanations"
-            color="primary"
-            variant="solid"
-            icon="i-heroicons-sparkles"
-            size="sm"
-            class="font-bold"
-            @click="generateExplanations"
-          >
-            <span class="sm:hidden">Generate</span>
-            <span class="hidden sm:inline">Generate Insights</span>
-          </UButton>
+          <div class="flex items-center gap-2">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
+            <UButton
+              :loading="generatingExplanations"
+              color="primary"
+              variant="solid"
+              icon="i-heroicons-sparkles"
+              size="sm"
+              class="font-bold"
+              @click="generateExplanations"
+            >
+              <span class="sm:hidden">Generate</span>
+              <span class="hidden sm:inline">Generate Insights</span>
+            </UButton>
+          </div>
         </template>
       </UDashboardNavbar>
     </template>
@@ -741,26 +746,13 @@
         modalData.value.explanation = null
       } else if (response.generating) {
         // Explanation is being generated - show message
-        modalData.value.explanation =
-          'Generating insights for the first time. Please try again in a moment.'
-
-        // Auto-retry after 3 seconds
-        setTimeout(async () => {
-          try {
-            const retryResponse: any = await $fetch('/api/scores/explanation', {
-              query: { type: 'workout', period: selectedPeriod.value, metric }
-            })
-
-            if (retryResponse.cached && retryResponse.analysis) {
-              workoutExplanations.value[cacheKey] = retryResponse.analysis
-              modalData.value.analysisData = retryResponse.analysis
-              modalData.value.explanation = null
-              loadingExplanation.value = false
-            }
-          } catch (retryError) {
-            console.error('Retry failed:', retryError)
-          }
-        }, 3000)
+        modalData.value.explanation = 'Generating insights... This may take a moment.'
+        // Listener will refresh this when 'generate-score-explanations' completes
+        // Note: The specific task might be different but 'generate-score-explanations' covers the batch.
+        // If it's a single on-demand generation, we might need to listen to 'generate-score-explanation-single'
+        // But for now assuming the batch task or a generic refresh handles it.
+        // Actually, we should trigger a refreshRuns() here just in case the backend triggered a job we don't know about yet
+        refreshRuns()
       }
     } catch (error) {
       console.error('Error fetching workout explanation:', error)
@@ -826,26 +818,8 @@
         modalData.value.explanation = null
       } else if (response.generating) {
         // Explanation is being generated - show message
-        modalData.value.explanation =
-          'Generating insights for the first time. Please try again in a moment.'
-
-        // Auto-retry after 3 seconds
-        setTimeout(async () => {
-          try {
-            const retryResponse: any = await $fetch('/api/scores/explanation', {
-              query: { type: 'nutrition', period: selectedPeriod.value, metric }
-            })
-
-            if (retryResponse.cached && retryResponse.analysis) {
-              nutritionExplanations.value[cacheKey] = retryResponse.analysis
-              modalData.value.analysisData = retryResponse.analysis
-              modalData.value.explanation = null
-              loadingExplanation.value = false
-            }
-          } catch (retryError) {
-            console.error('Retry failed:', retryError)
-          }
-        }, 3000)
+        modalData.value.explanation = 'Generating insights... This may take a moment.'
+        refreshRuns()
       }
     } catch (error) {
       console.error('Error fetching nutrition explanation:', error)
@@ -857,13 +831,16 @@
     }
   }
 
+  // Background Task Monitoring
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
+
   // Generate explanations function
   const generateExplanations = async () => {
     generatingExplanations.value = true
     try {
-      const response: any = await $fetch('/api/scores/generate-explanations', {
-        method: 'POST'
-      })
+      await $fetch('/api/scores/generate-explanations', { method: 'POST' })
+      refreshRuns()
 
       toast.add({
         title: 'Insights Generation Started',
@@ -876,16 +853,54 @@
       workoutExplanations.value = {}
       nutritionExplanations.value = {}
     } catch (error: any) {
+      generatingExplanations.value = false
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || error.message || 'Failed to start generation',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
-    } finally {
-      generatingExplanations.value = false
     }
   }
+
+  const refreshCurrentModal = async () => {
+    if (!showModal.value || !modalData.value) return
+
+    // Identify if it is a workout or nutrition modal based on title/context
+    // This is a bit heuristic but works for now given the titles are distinct enough or we can track type
+    const title = modalData.value.title
+    const isWorkout = [
+      'Overall Workout Performance',
+      'Technical Execution',
+      'Effort Management',
+      'Pacing Strategy',
+      'Workout Execution'
+    ].includes(title)
+
+    if (isWorkout) {
+      await openWorkoutModal(title, modalData.value.score, modalData.value.color)
+    } else {
+      await openNutritionModal(title, modalData.value.score, modalData.value.color)
+    }
+  }
+
+  // Listen for completion
+  onTaskCompleted('generate-score-explanations', async () => {
+    generatingExplanations.value = false
+    workoutExplanations.value = {}
+    nutritionExplanations.value = {}
+
+    toast.add({
+      title: 'Insights Ready',
+      description: 'Performance insights have been generated.',
+      color: 'success',
+      icon: 'i-heroicons-check-badge'
+    })
+
+    if (showModal.value) {
+      await refreshCurrentModal()
+    }
+  })
 
   // Watch for period changes and refetch
   watch(selectedPeriod, async () => {

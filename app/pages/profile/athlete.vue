@@ -18,6 +18,9 @@
         </template>
         <template #right>
           <div class="flex items-center gap-1 sm:gap-2">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
             <UButton
               v-if="profile && profile.status === 'COMPLETED'"
               color="neutral"

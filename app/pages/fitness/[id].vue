@@ -11,6 +11,9 @@
 
         <template #right>
           <div class="flex gap-2">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
             <UButton
               icon="i-heroicons-share"
               color="neutral"
@@ -900,7 +903,9 @@
   const generatingShareLink = ref(false)
 
   // Polling reference
-  let pollingInterval: NodeJS.Timeout | null = null
+  const pollingInterval: NodeJS.Timeout | null = null
+
+  const { refresh: refreshRuns } = useUserRuns()
 
   // Computed
   const sleepData = computed(() => {
@@ -915,11 +920,6 @@
     try {
       const id = route.params.id as string
       wellness.value = await $fetch(`/api/wellness/${id}`)
-
-      // If analysis is processing, start polling
-      if (wellness.value?.aiAnalysisStatus === 'PROCESSING') {
-        startPolling()
-      }
     } catch (e: any) {
       console.error('Error fetching wellness:', e)
       error.value = e.data?.message || e.message || 'Failed to load wellness data'
@@ -989,6 +989,9 @@
         wellness.value.aiAnalysisJson = result.analysis
         wellness.value.aiAnalyzedAt = result.analyzedAt
         wellness.value.aiAnalysisStatus = 'COMPLETED'
+        wellness.value.llmUsageId = result.llmUsageId
+        wellness.value.feedback = result.feedback
+        wellness.value.feedbackText = result.feedbackText
         analyzingWellness.value = false
 
         toast.add({
@@ -1002,6 +1005,7 @@
 
       // Update status and start polling
       wellness.value.aiAnalysisStatus = result.status || 'PROCESSING'
+      refreshRuns()
 
       toast.add({
         title: 'Analysis Started',
@@ -1009,8 +1013,6 @@
         color: 'info',
         icon: 'i-heroicons-sparkles'
       })
-
-      startPolling()
     } catch (e: any) {
       console.error('Error triggering wellness analysis:', e)
       analyzingWellness.value = false
@@ -1022,54 +1024,6 @@
       })
     }
   }
-
-  function startPolling() {
-    if (pollingInterval) clearInterval(pollingInterval)
-
-    pollingInterval = setInterval(async () => {
-      if (!wellness.value) return
-
-      try {
-        const updated = (await $fetch(`/api/wellness/${wellness.value.id}`)) as any
-
-        // Update fields
-        wellness.value.aiAnalysis = updated.aiAnalysis
-        wellness.value.aiAnalysisJson = updated.aiAnalysisJson
-        wellness.value.aiAnalysisStatus = updated.aiAnalysisStatus
-        wellness.value.aiAnalyzedAt = updated.aiAnalyzedAt
-        wellness.value.llmUsageId = updated.llmUsageId
-        wellness.value.feedback = updated.feedback
-        wellness.value.feedbackText = updated.feedbackText
-
-        if (updated.aiAnalysisStatus === 'COMPLETED' || updated.aiAnalysisStatus === 'FAILED') {
-          analyzingWellness.value = false
-          stopPolling()
-
-          if (updated.aiAnalysisStatus === 'COMPLETED') {
-            toast.add({
-              title: 'Analysis Complete',
-              color: 'success',
-              icon: 'i-heroicons-check-circle'
-            })
-          }
-        }
-      } catch (e) {
-        console.error('Error polling wellness status:', e)
-      }
-    }, 3000)
-  }
-
-  function stopPolling() {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
-    }
-  }
-
-  // Cleanup
-  onUnmounted(() => {
-    stopPolling()
-  })
 
   // Utility functions
   function formatDate(date: string | Date) {

@@ -7,6 +7,9 @@
         </template>
         <template #right>
           <div class="flex gap-3">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
             <UButton
               :loading="generatingExplanations"
               color="primary"
@@ -615,6 +618,10 @@
   const currentPage = ref(1)
   const itemsPerPage = 20
 
+  // Background Task Monitoring
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
+
   // Period selection for nutrition scores
   const selectedPeriod = ref<number | string>(30)
   const periodOptions = [
@@ -624,6 +631,31 @@
     { label: '90 Days', value: 90 },
     { label: 'Year to Date', value: 'YTD' }
   ]
+
+  // Listeners
+  onTaskCompleted('analyze-nutrition', async () => {
+    await fetchNutrition()
+    analyzingNutrition.value = false
+    toast.add({
+      title: 'Analysis Complete',
+      description: 'Nutrition data has been analyzed.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
+
+  onTaskCompleted('generate-score-explanations', async () => {
+    await refreshNuxtData('nutrition-trends')
+    await fetchAllRecommendations()
+    generatingExplanations.value = false
+    nutritionExplanations.value = {}
+    toast.add({
+      title: 'Insights Ready',
+      description: 'Nutrition insights have been generated.',
+      color: 'success',
+      icon: 'i-heroicons-sparkles'
+    })
+  })
 
   // Fetch nutrition score trends (renamed to avoid conflict with chart data)
   const { data: nutritionTrendsData, pending: nutritionScoresLoading } = await useFetch(
@@ -823,9 +855,8 @@
   async function generateExplanations() {
     generatingExplanations.value = true
     try {
-      const response: any = await $fetch('/api/scores/generate-explanations', {
-        method: 'POST'
-      })
+      await $fetch('/api/scores/generate-explanations', { method: 'POST' })
+      refreshRuns()
 
       toast.add({
         title: 'Insights Generation Started',
@@ -837,14 +868,13 @@
       // Clear the cache so fresh explanations will be fetched
       nutritionExplanations.value = {}
     } catch (error: any) {
+      generatingExplanations.value = false
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || error.message || 'Failed to start generation',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
-    } finally {
-      generatingExplanations.value = false
     }
   }
 
@@ -854,6 +884,7 @@
       const response: any = await $fetch('/api/nutrition/analyze-all', {
         method: 'POST'
       })
+      refreshRuns()
 
       toast.add({
         title: 'Analysis Started',
@@ -861,20 +892,14 @@
         color: 'success',
         icon: 'i-heroicons-check-circle'
       })
-
-      // Refresh the nutrition list after a short delay
-      setTimeout(async () => {
-        await fetchNutrition()
-      }, 2000)
     } catch (error: any) {
+      analyzingNutrition.value = false
       toast.add({
         title: 'Analysis Failed',
         description: error.data?.message || error.message || 'Failed to start analysis',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
-    } finally {
-      analyzingNutrition.value = false
     }
   }
 

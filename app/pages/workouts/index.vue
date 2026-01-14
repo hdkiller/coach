@@ -7,6 +7,7 @@
         </template>
         <template #right>
           <div class="flex gap-3">
+            <DashboardTriggerMonitorButton />
             <UButton
               :loading="generatingExplanations"
               color="primary"
@@ -165,6 +166,33 @@
   const currentPage = ref(1)
   const itemsPerPage = 20
 
+  // Background Task Monitoring
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
+
+  // Listeners
+  onTaskCompleted('analyze-workout', async () => {
+    await fetchWorkouts()
+    analyzingWorkouts.value = false
+    toast.add({
+      title: 'Analysis Complete',
+      description: 'Workout analysis has been updated.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
+
+  onTaskCompleted('generate-score-explanations', async () => {
+    await refreshNuxtData('workout-trends')
+    generatingExplanations.value = false
+    toast.add({
+      title: 'Insights Ready',
+      description: 'Workout insights have been generated.',
+      color: 'success',
+      icon: 'i-heroicons-sparkles'
+    })
+  })
+
   // Filters
   const filterType = ref<string | undefined>(undefined)
   const filterAnalysis = ref<string | undefined>(undefined)
@@ -285,6 +313,7 @@
       const response: any = await $fetch('/api/workouts/analyze-all', {
         method: 'POST'
       })
+      refreshRuns()
 
       toast.add({
         title: 'Analysis Started',
@@ -292,20 +321,14 @@
         color: 'success',
         icon: 'i-heroicons-check-circle'
       })
-
-      // Refresh the workouts list after a short delay
-      setTimeout(async () => {
-        await fetchWorkouts()
-      }, 2000)
     } catch (error: any) {
+      analyzingWorkouts.value = false
       toast.add({
         title: 'Analysis Failed',
         description: error.data?.message || error.message || 'Failed to start analysis',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
-    } finally {
-      analyzingWorkouts.value = false
     }
   }
 
@@ -344,6 +367,7 @@
       const response: any = await $fetch('/api/scores/generate-explanations', {
         method: 'POST'
       })
+      refreshRuns()
 
       toast.add({
         title: 'Generating Insights',
@@ -353,14 +377,13 @@
         icon: 'i-heroicons-sparkles'
       })
     } catch (error: any) {
+      generatingExplanations.value = false
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || error.message || 'Failed to generate insights',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
       })
-    } finally {
-      generatingExplanations.value = false
     }
   }
 

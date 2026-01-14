@@ -23,6 +23,9 @@
 
         <template #right>
           <div class="flex gap-2">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
             <UButton
               icon="i-heroicons-share"
               color="neutral"
@@ -1575,8 +1578,9 @@
     }
   }
 
-  // Polling interval reference
-  let pollingInterval: NodeJS.Timeout | null = null
+  // Background Task Monitoring
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
 
   // Analyze workout function
   async function analyzeWorkout() {
@@ -1606,6 +1610,7 @@
 
       // Update status
       workout.value.aiAnalysisStatus = result.status
+      refreshRuns()
 
       // Show processing message
       toast.add({
@@ -1614,9 +1619,6 @@
         color: 'info',
         icon: 'i-heroicons-sparkles'
       })
-
-      // Start polling for completion
-      startPolling()
     } catch (e: any) {
       console.error('Error triggering workout analysis:', e)
       analyzingWorkout.value = false
@@ -1628,6 +1630,56 @@
       })
     }
   }
+
+  // Analyze plan adherence
+  async function analyzeAdherence() {
+    if (!workout.value) return
+
+    analyzingAdherence.value = true
+    try {
+      await $fetch(`/api/workouts/${workout.value.id}/analyze-adherence`, {
+        method: 'POST'
+      })
+      refreshRuns()
+
+      toast.add({
+        title: 'Analysis Started',
+        description: 'Analyzing plan adherence...',
+        color: 'info',
+        icon: 'i-heroicons-sparkles'
+      })
+    } catch (e: any) {
+      console.error('Error triggering adherence analysis:', e)
+      analyzingAdherence.value = false
+      toast.add({
+        title: 'Analysis Failed',
+        description: e.data?.message || 'Failed to start adherence analysis',
+        color: 'error'
+      })
+    }
+  }
+
+  // Listen for completion
+  onTaskCompleted('analyze-workout', async (run) => {
+    await fetchWorkout()
+    analyzingWorkout.value = false
+    toast.add({
+      title: 'Analysis Complete',
+      description: 'AI workout analysis has been generated successfully',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
+
+  onTaskCompleted('analyze-plan-adherence', async (run) => {
+    await fetchWorkout()
+    analyzingAdherence.value = false
+    toast.add({
+      title: 'Adherence Analysis Complete',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
 
   async function promoteWorkout() {
     if (!workout.value) return
@@ -1661,91 +1713,6 @@
       })
     } finally {
       promoting.value = false
-    }
-  }
-
-  // Analyze plan adherence
-  async function analyzeAdherence() {
-    if (!workout.value) return
-
-    analyzingAdherence.value = true
-    try {
-      await $fetch(`/api/workouts/${workout.value.id}/analyze-adherence`, {
-        method: 'POST'
-      })
-
-      toast.add({
-        title: 'Analysis Started',
-        description: 'Analyzing plan adherence...',
-        color: 'info',
-        icon: 'i-heroicons-sparkles'
-      })
-
-      // Start polling to update the UI when ready
-      startPolling()
-    } catch (e: any) {
-      console.error('Error triggering adherence analysis:', e)
-      analyzingAdherence.value = false
-      toast.add({
-        title: 'Analysis Failed',
-        description: e.data?.message || 'Failed to start adherence analysis',
-        color: 'error'
-      })
-    }
-  }
-
-  // Poll for analysis completion
-  function startPolling() {
-    // Clear any existing polling
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-    }
-
-    // Poll every 3 seconds
-    pollingInterval = setInterval(async () => {
-      if (!workout.value) return
-
-      try {
-        const updated = (await $fetch(`/api/workouts/${workout.value.id}`)) as any
-
-        // Update workout data
-        workout.value.aiAnalysis = updated.aiAnalysis
-        workout.value.aiAnalysisJson = updated.aiAnalysisJson
-        workout.value.aiAnalysisStatus = updated.aiAnalysisStatus
-        workout.value.aiAnalyzedAt = updated.aiAnalyzedAt
-        workout.value.planAdherence = updated.planAdherence
-        workout.value.llmUsageId = updated.llmUsageId
-        workout.value.feedback = updated.feedback
-        workout.value.feedbackText = updated.feedbackText
-
-        // Check adherence status
-        if (analyzingAdherence.value && updated.planAdherence?.analysisStatus === 'COMPLETED') {
-          analyzingAdherence.value = false
-          toast.add({
-            title: 'Adherence Analysis Complete',
-            color: 'success',
-            icon: 'i-heroicons-check-circle'
-          })
-        }
-
-        // If completed or failed, stop polling
-        const workoutAnalysisDone =
-          updated.aiAnalysisStatus === 'COMPLETED' || updated.aiAnalysisStatus === 'FAILED'
-        const adherenceAnalysisDone = !analyzingAdherence.value // simple check if we are waiting for it
-
-        if (!analyzingWorkout.value && !analyzingAdherence.value) {
-          stopPolling()
-        }
-      } catch (e) {
-        console.error('Error polling workout status:', e)
-      }
-    }, 3000) // Poll every 3 seconds
-  }
-
-  function stopPolling() {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
     }
   }
 
@@ -1950,10 +1917,5 @@
   // Load data on mount
   onMounted(() => {
     fetchWorkout()
-  })
-
-  // Cleanup on unmount
-  onUnmounted(() => {
-    stopPolling()
   })
 </script>

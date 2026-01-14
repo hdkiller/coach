@@ -9,6 +9,11 @@
             Back to Data
           </UButton>
         </template>
+        <template #right>
+          <ClientOnly>
+            <DashboardTriggerMonitorButton />
+          </ClientOnly>
+        </template>
       </UDashboardNavbar>
     </template>
 
@@ -721,8 +726,9 @@
     return Math.min(Math.round((value / goal) * 100), 100)
   }
 
-  // Polling interval reference
-  let pollingInterval: NodeJS.Timeout | null = null
+  // Background Task Monitoring
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
 
   // Analyze nutrition function
   async function analyzeNutrition() {
@@ -752,6 +758,7 @@
 
       // Update status
       nutrition.value.aiAnalysisStatus = result.status
+      refreshRuns()
 
       // Show processing message
       toast.add({
@@ -760,9 +767,6 @@
         color: 'info',
         icon: 'i-heroicons-sparkles'
       })
-
-      // Start polling for completion
-      startPolling()
     } catch (e: any) {
       console.error('Error triggering nutrition analysis:', e)
       analyzingNutrition.value = false
@@ -775,63 +779,19 @@
     }
   }
 
-  // Poll for analysis completion
-  function startPolling() {
-    // Clear any existing polling
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-    }
-
-    // Poll every 3 seconds
-    pollingInterval = setInterval(async () => {
-      if (!nutrition.value) return
-
-      try {
-        const updated = (await $fetch(`/api/nutrition/${nutrition.value.id}`)) as any
-
-        // Update nutrition data
-        nutrition.value.aiAnalysis = updated.aiAnalysis
-        nutrition.value.aiAnalysisJson = updated.aiAnalysisJson
-        nutrition.value.aiAnalysisStatus = updated.aiAnalysisStatus
-        nutrition.value.aiAnalyzedAt = updated.aiAnalyzedAt
-        nutrition.value.llmUsageId = updated.llmUsageId
-        nutrition.value.feedback = updated.feedback
-        nutrition.value.feedbackText = updated.feedbackText
-
-        // If completed or failed, stop polling
-        if ((updated as any).aiAnalysisStatus === 'COMPLETED') {
-          stopPolling()
-          analyzingNutrition.value = false
-
-          toast.add({
-            title: 'Analysis Complete',
-            description: 'AI nutrition analysis has been generated successfully',
-            color: 'success',
-            icon: 'i-heroicons-check-circle'
-          })
-        } else if ((updated as any).aiAnalysisStatus === 'FAILED') {
-          stopPolling()
-          analyzingNutrition.value = false
-
-          toast.add({
-            title: 'Analysis Failed',
-            description: 'Failed to generate nutrition analysis. Please try again.',
-            color: 'error',
-            icon: 'i-heroicons-exclamation-circle'
-          })
-        }
-      } catch (e) {
-        console.error('Error polling nutrition status:', e)
-      }
-    }, 3000) // Poll every 3 seconds
-  }
-
-  function stopPolling() {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
-    }
-  }
+  // Listen for completion
+  onTaskCompleted('analyze-nutrition', async (run) => {
+    // We could check run.payload?.nutritionId === nutrition.value.id if available
+    // For now, simpler to just refresh if we are on the page
+    await fetchNutrition()
+    analyzingNutrition.value = false
+    toast.add({
+      title: 'Analysis Complete',
+      description: 'AI nutrition analysis has been generated successfully',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  })
 
   useHead(() => {
     const dateStr = nutrition.value ? formatDate(nutrition.value.date) : ''
@@ -891,10 +851,5 @@
   // Load data on mount
   onMounted(() => {
     fetchNutrition()
-  })
-
-  // Cleanup on unmount
-  onUnmounted(() => {
-    stopPolling()
   })
 </script>

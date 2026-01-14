@@ -20,6 +20,35 @@
   const showSuggestions = ref(false)
   const showReview = ref(false)
 
+  // Background Task Monitoring
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
+
+  // Listeners
+  onTaskCompleted('suggest-goals', async (run) => {
+    if (run.output && run.output.suggestions) {
+      suggestions.value = run.output.suggestions
+      suggestionsLoading.value = false
+      toast.add({
+        title: 'Suggestions Ready',
+        description: 'AI has analyzed your profile and generated goal suggestions',
+        color: 'success'
+      })
+    }
+  })
+
+  onTaskCompleted('review-goals', async (run) => {
+    if (run.output && run.output.review) {
+      review.value = run.output.review
+      reviewLoading.value = false
+      toast.add({
+        title: 'Review Complete',
+        description: 'AI has reviewed your active goals',
+        color: 'success'
+      })
+    }
+  })
+
   const { data, pending: loading, refresh } = await useFetch('/api/goals')
 
   const goals = computed(() => data.value?.goals || [])
@@ -87,15 +116,13 @@
 
     try {
       const result = await $fetch('/api/goals/suggest', { method: 'POST' })
+      refreshRuns()
 
       toast.add({
         title: 'Generating Suggestions',
         description: result.message,
         color: 'primary'
       })
-
-      // Poll for results
-      await pollForSuggestions(result.jobId)
     } catch (error) {
       toast.add({
         title: 'Error',
@@ -104,53 +131,6 @@
       })
       suggestionsLoading.value = false
     }
-  }
-
-  async function pollForSuggestions(jobId: string) {
-    const maxAttempts = 60 // 5 minutes max
-    let attempts = 0
-
-    const interval = setInterval(async () => {
-      attempts++
-
-      if (attempts > maxAttempts) {
-        clearInterval(interval)
-        suggestionsLoading.value = false
-        toast.add({
-          title: 'Timeout',
-          description: 'Suggestion generation took too long',
-          color: 'warning'
-        })
-        return
-      }
-
-      try {
-        const result = (await $fetch(`/api/goals/suggestions?jobId=${jobId}`)) as any
-
-        if (result.isCompleted && result.output) {
-          suggestions.value = result.output.suggestions
-          clearInterval(interval)
-          suggestionsLoading.value = false
-
-          toast.add({
-            title: 'Suggestions Ready',
-            description: 'AI has analyzed your profile and generated goal suggestions',
-            color: 'success'
-          })
-        } else if (result.isFailed) {
-          clearInterval(interval)
-          suggestionsLoading.value = false
-          toast.add({
-            title: 'Generation Failed',
-            description: 'Failed to generate suggestions. Please try again.',
-            color: 'error'
-          })
-        }
-        // Continue polling if still running
-      } catch (error) {
-        // Continue polling
-      }
-    }, 5000)
   }
 
   // Goal Review
@@ -170,15 +150,13 @@
 
     try {
       const result = await $fetch('/api/goals/review', { method: 'POST' })
+      refreshRuns()
 
       toast.add({
         title: 'Reviewing Goals',
         description: result.message,
         color: 'primary'
       })
-
-      // Poll for results
-      await pollForReview(result.jobId)
     } catch (error: any) {
       toast.add({
         title: 'Error',
@@ -187,53 +165,6 @@
       })
       reviewLoading.value = false
     }
-  }
-
-  async function pollForReview(jobId: string) {
-    const maxAttempts = 60 // 5 minutes max
-    let attempts = 0
-
-    const interval = setInterval(async () => {
-      attempts++
-
-      if (attempts > maxAttempts) {
-        clearInterval(interval)
-        reviewLoading.value = false
-        toast.add({
-          title: 'Timeout',
-          description: 'Goal review took too long',
-          color: 'warning'
-        })
-        return
-      }
-
-      try {
-        const result = (await $fetch(`/api/goals/review-result?jobId=${jobId}`)) as any
-
-        if (result.isCompleted && result.output) {
-          review.value = result.output.review
-          clearInterval(interval)
-          reviewLoading.value = false
-
-          toast.add({
-            title: 'Review Complete',
-            description: 'AI has reviewed your active goals',
-            color: 'success'
-          })
-        } else if (result.isFailed) {
-          clearInterval(interval)
-          reviewLoading.value = false
-          toast.add({
-            title: 'Review Failed',
-            description: 'Failed to review goals. Please try again.',
-            color: 'error'
-          })
-        }
-        // Continue polling if still running
-      } catch (error) {
-        // Continue polling
-      }
-    }, 5000)
   }
 
   async function acceptSuggestion(suggestion: any) {

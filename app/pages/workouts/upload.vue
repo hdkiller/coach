@@ -8,6 +8,11 @@
             Back to Data
           </UButton>
         </template>
+        <template #right>
+          <ClientOnly>
+            <DashboardTriggerMonitorButton />
+          </ClientOnly>
+        </template>
       </UDashboardNavbar>
     </template>
 
@@ -156,6 +161,21 @@
     uploadResult.value = null
   }
 
+  const { refresh: refreshRuns } = useUserRuns()
+  const { onTaskCompleted } = useUserRunsState()
+
+  // Listen for completion
+  onTaskCompleted('ingest-fit-file', async (run) => {
+    // Ideally we would link to the new workout, but we'd need to fetch the fit file or workout by run ID
+    useToast().add({
+      title: 'Processing Complete',
+      description: 'Your workout file has been analyzed and added to your history.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle',
+      actions: [{ label: 'View Workouts', click: () => navigateTo('/workouts') } as any]
+    })
+  })
+
   async function uploadFile() {
     if (!selectedFile.value) return
 
@@ -173,6 +193,7 @@
         success: true,
         message: response.message
       }
+      refreshRuns()
 
       // Clear file after successful upload
       setTimeout(() => {
