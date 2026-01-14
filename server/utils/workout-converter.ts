@@ -72,8 +72,8 @@ export const WorkoutConverter = {
         const el = root
           .ele(tagName)
           .att('Duration', String(step.durationSeconds))
-          .att('PowerLow', String(power.range.start))
-          .att('PowerHigh', String(power.range.end))
+          .att('PowerLow', String(power.range.start ?? 0))
+          .att('PowerHigh', String(power.range.end ?? 0))
 
         if (step.cadence) el.att('Cadence', String(step.cadence))
         if (step.name) el.att('Text', step.name)
@@ -165,8 +165,8 @@ export const WorkoutConverter = {
         const ftp = workout.ftp || 250
 
         if (isRamp && power.range) {
-          customTargetValueLow = Math.round(power.range.start * ftp)
-          customTargetValueHigh = Math.round(power.range.end * ftp)
+          customTargetValueLow = Math.round((power.range.start ?? 0) * ftp)
+          customTargetValueHigh = Math.round((power.range.end ?? 0) * ftp)
         } else {
           // Steady: Low and High define the zone window.
           // Usually target - 5% to target + 5%
@@ -227,8 +227,8 @@ export const WorkoutConverter = {
       let endPercent = 0
 
       if (power.range) {
-        startPercent = power.range.start * 100
-        endPercent = power.range.end * 100
+        startPercent = (power.range.start ?? 0) * 100
+        endPercent = (power.range.end ?? 0) * 100
       } else {
         startPercent = (power.value || 0) * 100
         endPercent = startPercent
@@ -274,8 +274,8 @@ export const WorkoutConverter = {
       let endWatts = 0
 
       if (power.range) {
-        startWatts = power.range.start * ftp
-        endWatts = power.range.end * ftp
+        startWatts = (power.range.start ?? 0) * ftp
+        endWatts = (power.range.end ?? 0) * ftp
       } else {
         startWatts = (power.value || 0) * ftp
         endWatts = startWatts
@@ -341,8 +341,8 @@ export const WorkoutConverter = {
       // Check for power first
       if (power.value || power.range) {
         if (power.range) {
-          const start = Math.round(power.range.start * 100)
-          const end = Math.round(power.range.end * 100)
+          const start = Math.round((power.range.start ?? 0) * 100)
+          const end = Math.round((power.range.end ?? 0) * 100)
           intensityStr = `ramp ${start}-${end}%`
         } else {
           const val = Math.round((power.value || 0) * 100)
@@ -355,8 +355,8 @@ export const WorkoutConverter = {
         // Format: 85% LTHR (or % HR)
         // If range: 80-90% LTHR
         if (step.heartRate.range) {
-          const start = Math.round(step.heartRate.range.start * 100)
-          const end = Math.round(step.heartRate.range.end * 100)
+          const start = Math.round((step.heartRate.range.start ?? 0) * 100)
+          const end = Math.round((step.heartRate.range.end ?? 0) * 100)
           intensityStr = `${start}-${end}% LTHR`
         } else {
           const val = Math.round((step.heartRate.value || 0) * 100)

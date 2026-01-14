@@ -31,6 +31,7 @@ const workoutStructureSchema = {
               range: {
                 type: 'object',
                 properties: { start: { type: 'number' }, end: { type: 'number' } },
+                required: ['start', 'end'],
                 description: 'For ramps: start and end % of FTP'
               }
             }
@@ -42,6 +43,7 @@ const workoutStructureSchema = {
               range: {
                 type: 'object',
                 properties: { start: { type: 'number' }, end: { type: 'number' } },
+                required: ['start', 'end'],
                 description: 'For ramps: start and end % of LTHR'
               }
             }
