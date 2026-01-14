@@ -1,4 +1,4 @@
-import { prisma } from './db'
+import { auditLogRepository } from './repositories/auditLogRepository'
 import type { H3Event } from 'h3'
 
 export interface AuditLogOptions {
@@ -32,17 +32,15 @@ export const logAction = async (options: AuditLogOptions) => {
   try {
     // We execute this asynchronously without awaiting to avoid blocking the main request
     // though in some critical cases we might want to await.
-    prisma.auditLog
-      .create({
-        data: {
-          userId,
-          action,
-          resourceType,
-          resourceId,
-          metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
-          ipAddress,
-          userAgent
-        }
+    auditLogRepository
+      .log({
+        userId,
+        action,
+        resourceType,
+        resourceId,
+        metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
+        ipAddress,
+        userAgent
       })
       .catch((err) => {
         console.error('Failed to create audit log (async):', err)
