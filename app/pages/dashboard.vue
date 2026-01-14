@@ -7,6 +7,9 @@
         </template>
         <template #right>
           <div class="flex items-center gap-3">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
             <DashboardReleaseNotification />
             <UButton
               to="/workouts/upload"

@@ -8,6 +8,9 @@
         </template>
         <template #right>
           <div class="flex items-center gap-3">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
             <UButton
               icon="i-heroicons-trash"
               color="neutral"
@@ -203,73 +206,32 @@
   const isHistoryOpen = ref(false)
   const refreshingAdvice = ref(false) // For Refresh Advice
   const clearing = ref(false)
-  const isPolling = ref(false)
   const showClearModal = ref(false)
   const selectedCategory = ref<string | undefined>(undefined)
-  let pollInterval: NodeJS.Timeout | null = null
-  let currentJobId: string | null = null
+
+  const { onTaskCompleted } = useUserRunsState()
+  const { refresh: refreshUserRuns } = useUserRuns()
+
+  // Global listener for ANY recommendation generation completing
+  // This works even if the page was refreshed or opened in another tab
+  onTaskCompleted('generate-recommendations', async () => {
+    // Add a small delay to ensure DB write consistency
+    setTimeout(async () => {
+      await refreshAll()
+      toast.add({
+        title: 'New Recommendations',
+        description: 'Analysis complete. Your recommendations have been updated.',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+      refreshingAdvice.value = false
+    }, 1000)
+  })
 
   // Fetch Categories
   const { data: categories, refresh: refreshCategories } = await useFetch(
     '/api/recommendations/categories'
   )
-
-  // Polling Logic
-  async function checkStatus() {
-    try {
-      const url = currentJobId
-        ? `/api/recommendations/status?jobId=${currentJobId}`
-        : '/api/recommendations/status'
-
-      const status: any = await $fetch(url)
-
-      if (!status.isRunning) {
-        stopPolling()
-        await refreshAll()
-
-        // Show completion toast if we were polling
-        if (refreshingAdvice.value) {
-          toast.add({
-            title: 'Analysis Complete',
-            description: 'New recommendations are ready.',
-            color: 'success',
-            icon: 'i-heroicons-check-circle'
-          })
-        }
-
-        refreshingAdvice.value = false
-      }
-    } catch (error) {
-      console.error('Polling failed:', error)
-      // Don't stop polling on transient errors, but maybe limit retries?
-      // For simplicity, we keep polling unless it's a 401/403
-    }
-  }
-
-  function startPolling(jobId?: string) {
-    if (isPolling.value) return
-    if (jobId) currentJobId = jobId
-
-    isPolling.value = true
-    // Check immediately
-    checkStatus()
-    // Then every 3 seconds
-    pollInterval = setInterval(checkStatus, 3000)
-  }
-
-  function stopPolling() {
-    if (pollInterval) {
-      clearInterval(pollInterval)
-      pollInterval = null
-    }
-    isPolling.value = false
-    currentJobId = null
-  }
-
-  // Cleanup
-  onUnmounted(() => {
-    stopPolling()
-  })
 
   // Actions
   async function confirmClearAll() {
@@ -313,16 +275,19 @@
         icon: 'i-heroicons-arrow-path-rounded-square'
       })
 
-      startPolling(res.jobId)
+      // Refresh global monitor list to show the new run immediately
+      refreshUserRuns()
     } catch (error: any) {
-      // If 409 (Already running), we should still start polling to catch the completion
+      // If 409 (Already running), we should still monitor if we get a jobId
       if (error.statusCode === 409) {
         toast.add({
           title: 'Already Running',
           description: 'Analysis is already in progress. Waiting for completion...',
           color: 'warning'
         })
-        startPolling()
+        // Fallback if no jobId returned, wait a bit and refresh
+        setTimeout(refreshAll, 5000)
+        refreshingAdvice.value = false
       } else {
         toast.add({
           title: 'Error',

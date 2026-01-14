@@ -6,6 +6,9 @@
   const toast = useToast()
   const stoppingImpersonation = ref(false)
 
+  // Background Task Monitor State
+  const { isOpen: showTriggerMonitor } = useTriggerMonitor()
+
   const impersonationMeta = useCookie<{
     adminId: string
     adminEmail: string
@@ -408,5 +411,9 @@
     <UDashboardSearch :groups="groups" />
 
     <slot />
+
+    <ClientOnly>
+      <DashboardTriggerMonitor v-model="showTriggerMonitor" />
+    </ClientOnly>
   </UDashboardGroup>
 </template>
