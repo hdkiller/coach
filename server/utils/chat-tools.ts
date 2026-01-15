@@ -15,7 +15,8 @@ import {
   getTrainingAvailability,
   updateTrainingAvailability,
   generateTrainingPlan,
-  getCurrentPlan
+  getCurrentPlan,
+  getPlannedWorkoutDetails
 } from './chat-tools/training-plan-tools'
 
 /**
@@ -214,6 +215,21 @@ export const chatToolDeclarations: FunctionDeclaration[] = [
           description: 'Include completed workouts (default: false)'
         }
       }
+    }
+  },
+  {
+    name: 'get_planned_workout_details',
+    description:
+      'Get comprehensive details for a specific planned workout. Use this when the user refers to a specific upcoming workout or when analyzing a planned session.',
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        workout_id: {
+          type: SchemaType.STRING,
+          description: 'The exact planned workout ID'
+        }
+      },
+      required: ['workout_id']
     }
   },
   {
@@ -555,6 +571,9 @@ export async function executeToolCall(toolName: string, args: any, userId: strin
 
       case 'get_planned_workouts':
         return await getPlannedWorkouts(userId, args) // This one might need timezone too, let's check imports later
+
+      case 'get_planned_workout_details':
+        return await getPlannedWorkoutDetails(userId, args)
 
       case 'create_planned_workout':
         return await createPlannedWorkout(userId, args)

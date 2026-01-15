@@ -613,3 +613,62 @@ export async function getCurrentPlan(userId: string): Promise<any> {
     }
   }
 }
+
+/**
+ * Get detailed information about a specific planned workout
+ */
+export async function getPlannedWorkoutDetails(userId: string, args: any): Promise<any> {
+  const { workout_id } = args
+
+  if (!workout_id) {
+    return { error: 'workout_id is required' }
+  }
+
+  const workout = await prisma.plannedWorkout.findFirst({
+    where: { id: workout_id, userId },
+    include: {
+      trainingWeek: {
+        include: {
+          block: {
+            include: {
+              plan: {
+                include: {
+                  goal: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+
+  if (!workout) {
+    return { error: 'Planned workout not found' }
+  }
+
+  return {
+    id: workout.id,
+    date: workout.date.toISOString().split('T')[0],
+    title: workout.title,
+    description: workout.description,
+    type: workout.type,
+    category: workout.category,
+    duration_minutes: workout.durationSec ? Math.round(workout.durationSec / 60) : null,
+    tss: workout.tss,
+    intensity: workout.workIntensity,
+    completed: workout.completed,
+    sync_status: workout.syncStatus,
+    managed_by: workout.managedBy,
+    structured_workout: workout.structuredWorkout,
+    context: workout.trainingWeek
+      ? {
+          plan_name:
+            workout.trainingWeek.block.plan.name || workout.trainingWeek.block.plan.goal?.title,
+          block_name: workout.trainingWeek.block.name,
+          week_number: workout.trainingWeek.weekNumber,
+          week_focus: workout.trainingWeek.focus || workout.trainingWeek.block.primaryFocus
+        }
+      : null
+  }
+}

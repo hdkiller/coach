@@ -298,6 +298,7 @@ export default defineEventHandler(async (event) => {
       plannedDuration: p.durationSec,
       plannedDistance: p.distanceMeters,
       plannedTss: p.tss,
+      structuredWorkout: p.structuredWorkout,
 
       // Nutrition data for this date (will be same for all activities on the same day)
       nutrition: nutritionByDate.get(dateKey) || null,

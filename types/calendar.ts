@@ -43,6 +43,7 @@ export interface CalendarActivity {
     tss?: number
     type?: string
   } | null
+  structuredWorkout?: any | null
 
   // Training Load
   ctl?: number | null // Chronic Training Load (Fitness)
