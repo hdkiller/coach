@@ -23,7 +23,7 @@ services:
     container_name: watts-dragonfly
     ulimits:
       memlock: -1
-    command: ['--default_lua_flags=allow-undeclared-keys']
+    command: ['--default_lua_flags=allow-undeclared-keys', '--requirepass=dragonfly']
     ports:
       - '6379:6379'
     volumes:
