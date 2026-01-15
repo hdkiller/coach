@@ -132,6 +132,14 @@
           onSelect: () => {
             isOpen.value = false
           }
+        },
+        {
+          label: 'Queues',
+          icon: 'i-heroicons-queue-list',
+          to: '/admin/queues',
+          onSelect: () => {
+            isOpen.value = false
+          }
         }
       ]
     },
