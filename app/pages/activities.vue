@@ -133,6 +133,15 @@
             <!-- Month Navigation -->
             <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
               <UButton
+                v-if="!isCurrentMonth"
+                label="Today"
+                size="sm"
+                variant="ghost"
+                color="neutral"
+                class="font-bold hidden sm:flex"
+                @click="goToToday"
+              />
+              <UButton
                 icon="i-heroicons-chevron-left"
                 variant="ghost"
                 size="sm"
@@ -150,16 +159,6 @@
                 @click="nextMonth"
               />
             </div>
-
-            <UButton
-              v-if="!isCurrentMonth"
-              label="Today"
-              size="sm"
-              variant="outline"
-              color="neutral"
-              class="font-bold hidden sm:flex"
-              @click="goToToday"
-            />
           </div>
         </div>
 
