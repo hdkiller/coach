@@ -304,9 +304,9 @@ export const IntervalsService = {
     let eventsUpserted = 0
 
     for (const planned of plannedWorkouts) {
-      // Filter out Notes and Holidays
+      // Filter out Notes, Holidays, Sick, Injured, and Season Start events
       if (
-        ['NOTE', 'HOLIDAY'].includes(planned.category || '') ||
+        ['NOTE', 'HOLIDAY', 'SICK', 'INJURED', 'SEASON_START'].includes(planned.category || '') ||
         ['Note', 'Holiday'].includes(planned.type || '')
       ) {
         continue

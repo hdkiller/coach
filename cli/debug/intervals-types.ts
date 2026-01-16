@@ -116,7 +116,7 @@ intervalsTypesCommand
         where: {
           ...where,
           OR: [
-            { category: { in: ['NOTE', 'HOLIDAY'] } },
+            { category: { in: ['NOTE', 'HOLIDAY', 'SICK', 'INJURED', 'SEASON_START'] } },
             { type: { in: ['Note', 'Holiday'] } },
             { category: null },
             { title: { contains: 'Note', mode: 'insensitive' } },
@@ -141,13 +141,18 @@ intervalsTypesCommand
 
         const isNote =
           p.category === 'NOTE' || p.type === 'Note' || rawCategory === 'NOTE' || rawType === 'Note'
+
         const isHoliday =
           p.category === 'HOLIDAY' ||
           p.type === 'Holiday' ||
           rawCategory === 'HOLIDAY' ||
           rawType === 'Holiday'
 
-        if (isNote || isHoliday) {
+        const isOther =
+          ['SICK', 'INJURED', 'SEASON_START'].includes(p.category || '') ||
+          ['SICK', 'INJURED', 'SEASON_START'].includes(rawCategory)
+
+        if (isNote || isHoliday || isOther) {
           if (toDeletePlanned.length < 10) {
             console.log(
               chalk.red(
@@ -155,6 +160,7 @@ intervalsTypesCommand
               )
             )
           }
+
           toDeletePlanned.push(p.id)
         }
       }
