@@ -1,5 +1,9 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
+import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+import { workoutRepository } from '../../utils/repositories/workoutRepository'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -25,7 +29,6 @@ export default defineEventHandler(async (event) => {
         restingHr: true,
         lthr: true,
         dob: true,
-        hrZones: true,
         profileLastUpdated: true
       }
     })
@@ -36,6 +39,10 @@ export default defineEventHandler(async (event) => {
         message: 'User not found'
       })
     }
+
+    // Get Sport Settings via Repository (ensures Default exists)
+    const sportSettings = await sportSettingsRepository.getByUserId(user.id)
+    const defaultProfile = sportSettings.find((s) => s.isDefault)
 
     // Query the most recent wellness data available with actual values
     const wellness = await prisma.wellness.findFirst({
@@ -210,7 +217,15 @@ export default defineEventHandler(async (event) => {
     if (!user.ftp) missingFields.push('Functional Threshold Power (FTP)')
     if (!user.weight) missingFields.push('Weight')
     if (!user.maxHr || !user.restingHr) missingFields.push('Heart Rate Settings (HRR)')
-    if (!user.hrZones) missingFields.push('Custom Zones')
+
+    // Check if default profile has zones configured
+    if (
+      !defaultProfile ||
+      !defaultProfile.hrZones ||
+      (defaultProfile.hrZones as any[]).length === 0
+    ) {
+      missingFields.push('Training Zones')
+    }
 
     const response = {
       connected: true,
@@ -243,7 +258,8 @@ export default defineEventHandler(async (event) => {
         recentRecoveryScore,
         latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
         profileLastUpdated: user.profileLastUpdated?.toISOString() ?? null,
-        latestWorkoutDate: latestWorkout?.date.toISOString() ?? null
+        latestWorkoutDate: latestWorkout?.date.toISOString() ?? null,
+        sportSettings // Return for frontend context
       }
     }
 

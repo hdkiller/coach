@@ -1,4 +1,5 @@
 import { getServerSession } from '../../utils/session'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -74,9 +75,7 @@ export default defineEventHandler(async (event) => {
         city: true,
         state: true,
         country: true,
-        timezone: true,
-        hrZones: true,
-        powerZones: true
+        timezone: true
       }
     })
 
@@ -86,6 +85,9 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'User not found'
       })
     }
+
+    // Get Sport Settings via Repository (handles Default lazy creation)
+    const sportSettings = await sportSettingsRepository.getByUserId(user.id)
 
     // Helper to format date as YYYY-MM-DD
     const formatDate = (date: Date | null) => {
@@ -118,8 +120,7 @@ export default defineEventHandler(async (event) => {
         state: user.state,
         country: user.country,
         timezone: user.timezone,
-        hrZones: user.hrZones,
-        powerZones: user.powerZones
+        sportSettings: sportSettings
       }
     }
   } catch (error) {

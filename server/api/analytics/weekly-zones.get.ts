@@ -2,6 +2,7 @@ import { defineEventHandler, getQuery, createError } from 'h3'
 import { prisma } from '../../utils/db'
 import { userRepository } from '../../utils/repositories/userRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import { calculatePowerZones, calculateHrZones } from '../../utils/zones'
 import { getServerSession } from '../../utils/session'
 import { getUserTimezone, getStartOfYearUTC, getUserLocalDate } from '../../utils/date'
@@ -44,11 +45,14 @@ export default defineEventHandler(async (event) => {
     startDate.setUTCDate(startDate.getUTCDate() - numWeeks * 7)
   }
 
-  // 1. Get user for zone definitions
+  // 1. Get user and sport settings
   const user = await userRepository.getById(userId)
   if (!user) {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
+
+  const allSportSettings = await sportSettingsRepository.getByUserId(userId)
+  const defaultSettings = await sportSettingsRepository.getDefault(userId)
 
   // 2. Get workouts with streams
   const workouts = await workoutRepository.getForUser(userId, {
@@ -57,6 +61,7 @@ export default defineEventHandler(async (event) => {
     select: {
       date: true,
       ftp: true,
+      type: true, // Needed for sport matching
       streams: {
         select: {
           time: true,
@@ -96,7 +101,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // 4. Aggregate
-  for (const workout of workouts) {
+  for (const workoutRaw of workouts) {
+    const workout = workoutRaw as any
     if (!workout.streams) continue
 
     const weekStart = getWeekStart(workout.date)
@@ -106,13 +112,34 @@ export default defineEventHandler(async (event) => {
     const bucket = weeklyData.get(key)
     if (!bucket) continue
 
-    // Get zones for this workout
-    const ftp = workout.ftp || (await userRepository.getFtpForDate(userId, workout.date))
-    const lthr = await userRepository.getLthrForDate(userId, workout.date)
+    // Determine Sport Settings for this workout
+    let activitySettings = defaultSettings
+    if (workout.type) {
+      // Try to find specific match
+      const match = allSportSettings.find(
+        (s: any) => !s.isDefault && s.types && s.types.includes(workout.type)
+      )
+      if (match) activitySettings = match
+    }
 
-    // Check if user has custom zones, otherwise calculate
-    const pZones = (user.powerZones as any) || calculatePowerZones(ftp)
-    const hZones = (user.hrZones as any) || calculateHrZones(lthr, user.maxHr)
+    // Get zones for this workout
+    const ftp = workout.ftp || activitySettings?.ftp || user.ftp || 200
+    // Use settings LTHR if available, otherwise User LTHR (historically fetched via repo, or just current?)
+    // Historic LTHR is better but heavy. Let's use current setting profile LTHR as proxy or fallback.
+    const lthr = activitySettings?.lthr || user.lthr || 160
+    const maxHr = activitySettings?.maxHr || user.maxHr || 190
+
+    // Use custom zones from profile if available, otherwise calculate
+    // Note: sportSettings might have empty powerZones array if not configured
+    let pZones = activitySettings?.powerZones as any[]
+    if (!pZones || pZones.length === 0) {
+      pZones = calculatePowerZones(ftp)
+    }
+
+    let hZones = activitySettings?.hrZones as any[]
+    if (!hZones || hZones.length === 0) {
+      hZones = calculateHrZones(lthr, maxHr)
+    }
 
     const streams = workout.streams
     const time = (streams.time as number[]) || []
@@ -157,15 +184,22 @@ export default defineEventHandler(async (event) => {
       totalDuration: Math.round((w.totalDuration / 3600) * 10) / 10
     }))
 
-  // Use the same HR zone calculation logic for labels as used in aggregation
-  // Get LTHR for today to generate current zone labels
-  const currentLthr = await userRepository.getLthrForDate(userId, getUserLocalDate(timezone))
+  // Generate labels based on Default Profile
+  const defFtp = defaultSettings?.ftp || user.ftp || 200
+  const defLthr = defaultSettings?.lthr || user.lthr || 160
+  const defMaxHr = defaultSettings?.maxHr || user.maxHr || 190
+
+  let labelPZones = (defaultSettings?.powerZones as any[]) || []
+  if (labelPZones.length === 0) labelPZones = calculatePowerZones(defFtp)
+
+  let labelHZones = (defaultSettings?.hrZones as any[]) || []
+  if (labelHZones.length === 0) labelHZones = calculateHrZones(defLthr, defMaxHr)
 
   return {
     weeks: result,
     zoneLabels: {
-      power: calculatePowerZones(user.ftp || 200).map((z) => z.name),
-      hr: calculateHrZones(currentLthr, user.maxHr || 190).map((z) => z.name)
+      power: labelPZones.map((z: any) => z.name),
+      hr: labelHZones.map((z: any) => z.name)
     }
   }
 })

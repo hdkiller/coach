@@ -1,88 +1,77 @@
 import { getServerSession } from '../../utils/session'
 import { z } from 'zod'
-import { prisma } from '../../utils/db'
-import { athleteMetricsService } from '../../utils/athleteMetricsService'
-import { logAction } from '../../utils/audit'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 
-defineRouteMeta({
-  openAPI: {
-    tags: ['Profile'],
-    summary: 'Update user profile',
-    description: 'Updates the profile settings for the authenticated user.',
-    requestBody: {
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              name: { type: 'string', nullable: true },
-              language: { type: 'string', nullable: true },
-              weight: { type: 'number', nullable: true },
-              weightUnits: { type: 'string', nullable: true },
-              height: { type: 'number', nullable: true },
-              heightUnits: { type: 'string', nullable: true },
-              distanceUnits: { type: 'string', nullable: true },
-              temperatureUnits: { type: 'string', nullable: true },
-              restingHr: { type: 'number', nullable: true },
-              maxHr: { type: 'number', nullable: true },
-              ftp: { type: 'number', nullable: true },
-              form: { type: 'string', nullable: true },
-              visibility: { type: 'string', nullable: true },
-              sex: { type: 'string', nullable: true },
-              dob: { type: 'string', format: 'date', nullable: true },
-              city: { type: 'string', nullable: true },
-              state: { type: 'string', nullable: true },
-              country: { type: 'string', nullable: true },
-              timezone: { type: 'string', nullable: true }
-            }
-          }
-        }
-      }
-    },
-    responses: {
-      200: {
-        description: 'Success',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                success: { type: 'boolean' },
-                profile: { type: 'object' }
-              }
-            }
-          }
-        }
-      },
-      400: { description: 'Invalid input' },
-      401: { description: 'Unauthorized' }
-    }
-  }
-})
-
-const profileSchema = z.object({
-  name: z.string().nullable().optional(),
-  language: z.string().nullable().optional(),
-  weight: z.coerce.number().nullable().optional(),
-  weightUnits: z.string().nullable().optional(),
-  height: z.coerce.number().nullable().optional(),
-  heightUnits: z.string().nullable().optional(),
-  distanceUnits: z.string().nullable().optional(),
-  temperatureUnits: z.string().nullable().optional(),
-  restingHr: z.coerce.number().nullable().optional(),
-  maxHr: z.coerce.number().nullable().optional(),
-  ftp: z.coerce.number().nullable().optional(),
-  lthr: z.coerce.number().nullable().optional(),
-  form: z.string().optional(),
-  visibility: z.string().nullable().optional(),
-  sex: z.string().nullable().optional(),
-  dob: z.string().nullable().optional(), // Expecting YYYY-MM-DD
+// Validation schema
+const profileUpdateSchema = z.object({
+  // Basic Settings
+  name: z.string().min(2).optional(),
+  language: z.string().optional(),
+  weight: z.number().nullable().optional(),
+  weightUnits: z.enum(['Kilograms', 'Pounds']).optional(),
+  height: z.number().nullable().optional(),
+  heightUnits: z.enum(['cm', 'ft/in']).optional(),
+  distanceUnits: z.enum(['Kilometers', 'Miles']).optional(),
+  temperatureUnits: z.enum(['Celsius', 'Fahrenheit']).optional(),
+  restingHr: z.number().nullable().optional(),
+  maxHr: z.number().nullable().optional(),
+  lthr: z.number().nullable().optional(),
+  ftp: z.number().nullable().optional(),
+  form: z.enum(['Absolute value', 'Percentage']).optional(),
+  visibility: z.enum(['Private', 'Public', 'Followers Only']).optional(),
+  sex: z.enum(['Male', 'Female', 'Other', 'M', 'F']).optional(),
+  dob: z.string().nullable().optional(), // YYYY-MM-DD
   city: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
   country: z.string().nullable().optional(),
   timezone: z.string().nullable().optional(),
+
+  // Deprecated: Custom Zones (handled via Sport Settings now)
   hrZones: z.any().nullable().optional(),
-  powerZones: z.any().nullable().optional()
+  powerZones: z.any().nullable().optional(),
+
+  // Sport Specific Settings
+  sportSettings: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        name: z.string().optional(),
+        types: z.array(z.string()),
+        isDefault: z.boolean().optional(),
+
+        // Power
+        ftp: z.number().nullable().optional(),
+        indoorFtp: z.number().nullable().optional(),
+        wPrime: z.number().nullable().optional(),
+        powerZones: z.any().optional(),
+        eFtp: z.number().nullable().optional(),
+        eWPrime: z.number().nullable().optional(),
+        pMax: z.number().nullable().optional(),
+        ePMax: z.number().nullable().optional(),
+        powerSpikeThreshold: z.number().nullable().optional(),
+        eftpMinDuration: z.number().nullable().optional(),
+
+        // HR
+        lthr: z.number().nullable().optional(),
+        maxHr: z.number().nullable().optional(),
+        hrZones: z.any().optional(),
+        restingHr: z.number().nullable().optional(),
+        hrLoadType: z.string().optional(),
+
+        // Pace
+        thresholdPace: z.number().nullable().optional(),
+
+        // General
+        warmupTime: z.number().nullable().optional(),
+        cooldownTime: z.number().nullable().optional(),
+        loadPreference: z.string().optional(),
+
+        // Metadata
+        source: z.string().optional(),
+        externalId: z.string().optional()
+      })
+    )
+    .optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -96,89 +85,68 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const result = profileSchema.safeParse(body)
+  const result = profileUpdateSchema.safeParse(body)
 
   if (!result.success) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid input',
-      data: result.error.issues
+      data: (result as any).error.errors
     })
   }
 
   const data = result.data
+  const userEmail = session.user.email
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
+    // 1. Update User (Basic Settings)
+    // Exclude sportSettings from user update
+    const { sportSettings, hrZones, powerZones, ...userUpdateData } = data
 
-    if (!user) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'User not found'
-      })
+    // Normalize sex
+    if (userUpdateData.sex === 'M') userUpdateData.sex = 'Male'
+    if (userUpdateData.sex === 'F') userUpdateData.sex = 'Female'
+
+    // Handle date conversion for DOB
+    const updatePayload: any = { ...userUpdateData }
+    if (updatePayload.dob) {
+      updatePayload.dob = new Date(updatePayload.dob)
     }
 
-    // Convert dob string to Date object if present
-    let dobDate: Date | null | undefined = undefined
-    if (data.dob) {
-      dobDate = new Date(data.dob)
-    } else if (data.dob === null) {
-      dobDate = null
-    }
-
-    const updateData: any = {
-      ...data,
-      dob: dobDate
-    }
-
-    // Remove dob from spread if it was processed separately to avoid type mismatch if any
-    if ('dob' in data) {
-      delete updateData.dob
-      updateData.dob = dobDate
-    }
-
-    // Use AthleteMetricsService if critical metrics are changing
-    // This triggers auto-recalculation of zones if FTP or MaxHR changes
-    if (data.ftp !== undefined || data.maxHr !== undefined || data.weight !== undefined) {
-      await athleteMetricsService.updateMetrics(user.id, {
-        ftp: data.ftp,
-        maxHr: data.maxHr,
-        weight: data.weight
-      })
-
-      // Remove these from generic update to avoid double-write
-      if (data.ftp !== undefined) delete updateData.ftp
-      if (data.maxHr !== undefined) delete updateData.maxHr
-      if (data.weight !== undefined) delete updateData.weight
-    }
-
-    // Perform standard update for remaining fields
     const updatedUser = await prisma.user.update({
-      where: { email: session.user.email },
-      data: updateData
+      where: { email: userEmail },
+      data: updatePayload
     })
 
-    await logAction({
-      userId: updatedUser.id,
-      action: 'USER_PROFILE_UPDATED',
-      resourceType: 'User',
-      resourceId: updatedUser.id,
-      metadata: { fields: Object.keys(data) },
-      event
-    })
+    // 2. Update Sport Settings via Repository
+    let updatedSettings = []
+    if (sportSettings) {
+      updatedSettings = await sportSettingsRepository.upsertSettings(updatedUser.id, sportSettings)
+    } else {
+      // If not updating settings, fetch existing to return consistent response
+      updatedSettings = await sportSettingsRepository.getByUserId(updatedUser.id)
+    }
+
+    // Helper to format date as YYYY-MM-DD
+    const formatDate = (date: Date | null) => {
+      if (!date) return null
+      return date.toISOString().split('T')[0]
+    }
 
     return {
       success: true,
-      profile: updatedUser
+      profile: {
+        ...updatedUser,
+        dob: formatDate(updatedUser.dob),
+        // Return updated sport settings
+        sportSettings: updatedSettings
+      }
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating profile:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update profile',
-      message: error.message
+      statusMessage: 'Failed to update profile'
     })
   }
 })

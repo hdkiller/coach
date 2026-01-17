@@ -2,6 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { chatToolDeclarations, executeToolCall } from '../../utils/chat-tools'
 import { generateCoachAnalysis } from '../../utils/gemini'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import { getUserLocalDate, formatUserDate } from '../../utils/date'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
@@ -85,8 +86,8 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // 2. Fetch User Profile and Goals for Context
-  const [userProfile, activeGoals] = await Promise.all([
+  // 2. Fetch User Profile, Goals and Sport Settings for Context
+  const [userProfile, activeGoals, sportSettings] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -109,8 +110,6 @@ export default defineEventHandler(async (event) => {
         temperatureUnits: true,
         form: true,
         visibility: true,
-        hrZones: true,
-        powerZones: true,
         aiPersona: true,
         aiModelPreference: true,
         aiAutoAnalyzeWorkouts: true,
@@ -152,7 +151,8 @@ export default defineEventHandler(async (event) => {
         aiContext: true,
         createdAt: true
       }
-    })
+    }),
+    sportSettingsRepository.getByUserId(userId)
   ])
 
   // 3. Fetch Chat History (last 50 messages)
@@ -289,15 +289,12 @@ export default defineEventHandler(async (event) => {
     if (userProfile.name) athleteContext += `- **Name**: ${userProfile.name}\n`
 
     const metrics: string[] = []
-    if (userProfile.ftp) metrics.push(`FTP: ${userProfile.ftp}W`)
-    if (userProfile.maxHr) metrics.push(`Max HR: ${userProfile.maxHr} bpm`)
-    if (userProfile.restingHr) metrics.push(`Resting HR: ${userProfile.restingHr} bpm`)
+    if (userProfile.ftp) metrics.push(`Global FTP: ${userProfile.ftp}W`)
+    if (userProfile.maxHr) metrics.push(`Global Max HR: ${userProfile.maxHr} bpm`)
+    if (userProfile.restingHr) metrics.push(`Global Resting HR: ${userProfile.restingHr} bpm`)
     if (userProfile.weight) {
       const weightUnit = userProfile.weightUnits === 'Pounds' ? 'lbs' : 'kg'
       metrics.push(`Weight: ${userProfile.weight.toFixed(2)}${weightUnit}`)
-      if (userProfile.ftp && userProfile.weightUnits !== 'Pounds') {
-        metrics.push(`W/kg: ${(userProfile.ftp / userProfile.weight).toFixed(2)}`)
-      }
     }
     if (userProfile.height) {
       const heightUnit = userProfile.heightUnits === 'ft/in' ? 'ft/in' : 'cm'
@@ -311,7 +308,7 @@ export default defineEventHandler(async (event) => {
     }
     if (userProfile.sex) metrics.push(`Sex: ${userProfile.sex}`)
     if (metrics.length > 0) {
-      athleteContext += `- **Physical Metrics**: ${metrics.join(', ')}\n`
+      athleteContext += `- **Core Physical Metrics**: ${metrics.join(', ')}\n`
     }
 
     // User Preferences & Settings
@@ -330,39 +327,25 @@ export default defineEventHandler(async (event) => {
       athleteContext += `- **Preferences**: ${settings.join(' | ')}\n`
     }
 
-    // Custom Training Zones
-    if (userProfile.powerZones || userProfile.hrZones) {
-      athleteContext += '\n### Custom Training Zones\n'
-
-      if (userProfile.powerZones) {
-        athleteContext += '**Power Zones** (based on FTP):\n'
-        const zones = userProfile.powerZones as any[]
-        zones.forEach((zone, index) => {
-          athleteContext += `- Zone ${index + 1}: ${zone.name || `Zone ${index + 1}`} - ${zone.min}% to ${zone.max}% FTP`
-          if (userProfile.ftp) {
-            const minWatts = Math.round((zone.min / 100) * userProfile.ftp)
-            const maxWatts = Math.round((zone.max / 100) * userProfile.ftp)
-            athleteContext += ` (${minWatts}-${maxWatts}W)`
-          }
-          athleteContext += '\n'
-        })
-      }
-
-      if (userProfile.hrZones) {
-        athleteContext += '\n**Heart Rate Zones** (based on Max HR):\n'
-        const zones = userProfile.hrZones as any[]
-        zones.forEach((zone, index) => {
-          athleteContext += `- Zone ${index + 1}: ${zone.name || `Zone ${index + 1}`} - ${zone.min}% to ${zone.max}% Max HR`
-          if (userProfile.maxHr) {
-            const minBpm = Math.round((zone.min / 100) * userProfile.maxHr)
-            const maxBpm = Math.round((zone.max / 100) * userProfile.maxHr)
-            athleteContext += ` (${minBpm}-${maxBpm} bpm)`
-          }
-          athleteContext += '\n'
-        })
-      }
+    // Sport Specific Settings & Zones
+    if (sportSettings.length > 0) {
+      athleteContext += '\n### Sport Specific Settings & Zones\n'
       athleteContext +=
-        '\n*Use these zones when discussing intensity, pacing, and workout structure.*\n'
+        'The athlete has different performance thresholds and zones for different sports. Use the appropriate zones when discussing specific activities.\n\n'
+
+      for (const s of sportSettings) {
+        const typeLabel = s.isDefault ? 'Default/Fallback' : s.types.join(', ')
+        athleteContext += `#### ${s.name || (s.isDefault ? 'Default' : 'Profile')} (${typeLabel})\n`
+        athleteContext += `- Thresholds: FTP=${s.ftp || 'N/A'}W, LTHR=${s.lthr || 'N/A'}bpm, MaxHR=${s.maxHr || 'N/A'}bpm\n`
+
+        if (s.powerZones && Array.isArray(s.powerZones)) {
+          athleteContext += `- Power Zones: ${s.powerZones.map((z: any) => `${z.name}: ${z.min}-${z.max}W`).join(', ')}\n`
+        }
+        if (s.hrZones && Array.isArray(s.hrZones)) {
+          athleteContext += `- HR Zones: ${s.hrZones.map((z: any) => `${z.name}: ${z.min}-${z.max}bpm`).join(', ')}\n`
+        }
+        athleteContext += '\n'
+      }
     }
 
     // AI Preferences

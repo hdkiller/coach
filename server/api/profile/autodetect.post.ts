@@ -1,8 +1,6 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
-import { athleteMetricsService } from '../../utils/athleteMetricsService'
-import { fetchIntervalsAthleteProfile } from '../../utils/intervals'
-import { roundToTwoDecimals } from '../../utils/number'
+import { IntervalsService } from '../../utils/services/intervalsService'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -16,7 +14,10 @@ export default defineEventHandler(async (event) => {
 
   try {
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
+      where: { email: session.user.email },
+      include: {
+        integrations: true
+      }
     })
 
     if (!user) {
@@ -26,112 +27,120 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Check for Intervals.icu integration
-    const integration = await prisma.integration.findFirst({
-      where: {
-        userId: user.id,
-        provider: 'intervals'
-      }
-    })
+    // Get Sport Settings via Repository (ensures Default exists)
+    const sportSettings = await sportSettingsRepository.getByUserId(user.id)
+    // Attach to user object for downstream logic compatibility
+    ;(user as any).sportSettings = sportSettings
 
-    if (!integration) {
+    const intervalsIntegration = user.integrations.find((i) => i.provider === 'intervals')
+
+    if (!intervalsIntegration) {
       return {
         success: false,
-        message: 'No supported integration found (Intervals.icu required)'
+        message: 'Intervals.icu integration not connected'
       }
     }
 
-    // Fetch profile from Intervals.icu
-    const intervalsProfile = await fetchIntervalsAthleteProfile(integration)
+    // Fetch profile from Intervals (normalized)
+    const intervalsProfile = await IntervalsService.getAthleteProfile(intervalsIntegration)
 
-    // Detect if metrics changed
+    // Compare and detect changes
     const diff: any = {}
+    const detected: any = {} // Store the full detected values for preview
 
-    // Basic Metrics
-    if (intervalsProfile.ftp && intervalsProfile.ftp !== user.ftp) {
-      diff.ftp = intervalsProfile.ftp
+    // 1. Basic Fields
+    if (intervalsProfile.weight && Math.abs((user.weight || 0) - intervalsProfile.weight) > 0.1) {
+      diff.weight = intervalsProfile.weight
+      detected.weight = intervalsProfile.weight
     }
-    // Map maxHR (Intervals) to maxHr (Prisma)
-    if (intervalsProfile.maxHR && intervalsProfile.maxHR !== user.maxHr) {
-      diff.maxHr = intervalsProfile.maxHR
-    }
-    // Map lthr (Intervals) to lthr (Prisma)
-    if (intervalsProfile.lthr && intervalsProfile.lthr !== user.lthr) {
-      diff.lthr = intervalsProfile.lthr
-    }
-    if (intervalsProfile.weight && intervalsProfile.weight !== user.weight) {
-      diff.weight = roundToTwoDecimals(intervalsProfile.weight)
-    }
-    // Map restingHR (Intervals) to restingHr (Prisma)
-    if (intervalsProfile.restingHR && intervalsProfile.restingHR !== user.restingHr) {
+
+    if (intervalsProfile.restingHR && user.restingHr !== intervalsProfile.restingHR) {
       diff.restingHr = intervalsProfile.restingHR
+      detected.restingHr = intervalsProfile.restingHR
     }
 
-    // Helper for comparing zones
-    const areZonesDifferent = (current: any[], incoming: any[]) => {
-      if (!current || !incoming) return true
-      if (current.length !== incoming.length) return true
+    if (intervalsProfile.maxHR && user.maxHr !== intervalsProfile.maxHR) {
+      diff.maxHr = intervalsProfile.maxHR
+      detected.maxHr = intervalsProfile.maxHR
+    }
 
-      for (let i = 0; i < current.length; i++) {
-        const c = current[i]
-        const n = incoming[i]
+    if (intervalsProfile.lthr && user.lthr !== intervalsProfile.lthr) {
+      diff.lthr = intervalsProfile.lthr
+      detected.lthr = intervalsProfile.lthr
+    }
 
-        // Compare essential fields (min, max, name)
-        if (c.min !== n.min || c.max !== n.max || c.name !== n.name) {
-          return true
+    if (intervalsProfile.ftp && user.ftp !== intervalsProfile.ftp) {
+      diff.ftp = intervalsProfile.ftp
+      detected.ftp = intervalsProfile.ftp
+    }
+
+    // 2. Sport Specific Settings
+    if (intervalsProfile.sportSettings && intervalsProfile.sportSettings.length > 0) {
+      const sportDiffs: any[] = []
+      const existingSettings = sportSettings
+
+      for (const newSetting of intervalsProfile.sportSettings) {
+        // Find matching existing setting by externalId (from Intervals)
+        // OR by matching types if no externalId yet (first sync logic?)
+        // IntervalsService.getAthlete normalizes this.
+
+        const existing = existingSettings.find(
+          (s) => s.externalId === newSetting.externalId && s.source === 'intervals'
+        )
+
+        if (!existing) {
+          // New sport setting detected
+          sportDiffs.push({ ...newSetting, source: 'intervals' })
+        } else {
+          // Check for updates in key fields
+          let hasChanges = false
+          if (newSetting.ftp && newSetting.ftp !== existing.ftp) hasChanges = true
+          if (newSetting.lthr && newSetting.lthr !== existing.lthr) hasChanges = true
+          if (newSetting.maxHr && newSetting.maxHr !== existing.maxHr) hasChanges = true
+
+          // Check zones if needed (deep comparison or length check)
+          if (areZonesDifferent(existing.powerZones, newSetting.powerZones)) hasChanges = true
+          if (areZonesDifferent(existing.hrZones, newSetting.hrZones)) hasChanges = true
+
+          if (hasChanges) {
+            sportDiffs.push({ ...newSetting, id: existing.id, source: 'intervals' }) // Include ID to update
+          }
         }
       }
-      return false
-    }
 
-    // Zones Comparison
-    if (intervalsProfile.hrZones) {
-      const currentHrZones = (user.hrZones as any[]) || []
-      const newHrZones = intervalsProfile.hrZones as any[]
-
-      if (areZonesDifferent(currentHrZones, newHrZones)) {
-        diff.hrZones = newHrZones
-      }
-    }
-
-    if (intervalsProfile.powerZones) {
-      const currentPowerZones = (user.powerZones as any[]) || []
-      const newPowerZones = intervalsProfile.powerZones as any[]
-
-      if (areZonesDifferent(currentPowerZones, newPowerZones)) {
-        diff.powerZones = newPowerZones
-      }
-    }
-
-    // LTHR (not stored directly on User but useful to return or map if we add it later)
-    // For now we ignore it unless we add lthr to User schema
-
-    // If no differences
-    if (Object.keys(diff).length === 0) {
-      return {
-        success: true,
-        message: 'No new data found from Intervals.icu',
-        updates: {}, // Backward compatibility
-        diff: {},
-        current: user,
-        detected: intervalsProfile
+      if (sportDiffs.length > 0) {
+        diff.sportSettings = sportDiffs
+        detected.sportSettings = sportDiffs
       }
     }
 
     return {
       success: true,
-      message: 'Differences detected from Intervals.icu',
-      updates: diff, // Backward compatibility
       diff,
-      current: user,
-      detected: intervalsProfile
+      detected
     }
   } catch (error: any) {
     console.error('Error autodetecting profile:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to autodetect profile',
-      message: error.message
+      statusMessage: error.message || 'Failed to autodetect profile'
     })
   }
 })
+
+function areZonesDifferent(current: any, incoming: any) {
+  if (!current && !incoming) return false
+  if (!current || !incoming) return true
+
+  const c = Array.isArray(current) ? current : []
+  const i = Array.isArray(incoming) ? incoming : []
+
+  if (c.length !== i.length) return true
+
+  // Simple check of first/last zone max/min
+  if (c.length > 0) {
+    if (c[0].min !== i[0].min || c[c.length - 1].max !== i[i.length - 1].max) return true
+  }
+
+  return JSON.stringify(c) !== JSON.stringify(i)
+}
