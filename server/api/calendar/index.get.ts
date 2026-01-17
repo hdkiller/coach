@@ -1,6 +1,11 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
-import { getUserLocalDate } from '../../utils/date'
+import {
+  getUserLocalDate,
+  getUserTimezone,
+  getStartOfDayUTC,
+  getEndOfDayUTC
+} from '../../utils/date'
 
 defineRouteMeta({
   openAPI: {
@@ -81,12 +86,19 @@ export default defineEventHandler(async (event) => {
     where: { id: userId },
     select: { timezone: true }
   })
-  const today = getUserLocalDate(user?.timezone ?? 'UTC')
+  const timezone = user?.timezone ?? 'UTC'
+  const today = getUserLocalDate(timezone)
+
+  // Adjust dates to cover the full local days in UTC
+  // We assume the input dates (YYYY-MM-DD) represent local calendar days
+  // So we convert them to the corresponding UTC range
+  const rangeStart = getStartOfDayUTC(timezone, startDate)
+  const rangeEnd = getEndOfDayUTC(timezone, endDate)
 
   // Fetch nutrition data for the date range
   const nutrition = await nutritionRepository.getForUser(userId, {
-    startDate,
-    endDate,
+    startDate: rangeStart,
+    endDate: rangeEnd,
     orderBy: { date: 'asc' }
   })
 
@@ -108,8 +120,8 @@ export default defineEventHandler(async (event) => {
 
   // Fetch wellness data for the date range
   const wellness = await wellnessRepository.getForUser(userId, {
-    startDate,
-    endDate,
+    startDate: rangeStart,
+    endDate: rangeEnd,
     orderBy: { date: 'asc' }
   })
 
@@ -118,8 +130,8 @@ export default defineEventHandler(async (event) => {
     where: {
       userId,
       date: {
-        gte: startDate,
-        lte: endDate
+        gte: rangeStart,
+        lte: rangeEnd
       }
     },
     orderBy: { date: 'asc' }
@@ -154,8 +166,8 @@ export default defineEventHandler(async (event) => {
 
   // Fetch completed workouts
   const workouts = await workoutRepository.getForUser(userId, {
-    startDate,
-    endDate,
+    startDate: rangeStart,
+    endDate: rangeEnd,
     orderBy: { date: 'asc' },
     include: {
       plannedWorkout: true,
@@ -170,8 +182,8 @@ export default defineEventHandler(async (event) => {
     where: {
       userId,
       date: {
-        gte: startDate,
-        lte: endDate
+        gte: rangeStart,
+        lte: rangeEnd
       }
     },
     orderBy: { date: 'asc' }

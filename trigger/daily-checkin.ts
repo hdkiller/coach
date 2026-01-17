@@ -199,7 +199,7 @@ export const generateDailyCheckinTask = task({
     if (athleteProfile?.analysisJson) {
       const profile = athleteProfile.analysisJson as any
       athleteContext = `
-ATHLETE PROFILE (Generated ${new Date(athleteProfile.createdAt).toLocaleDateString()}):
+ATHLETE PROFILE (Generated ${formatUserDate(athleteProfile.createdAt, userTimezone)}):
 ${profile.executive_summary ? `Summary: ${profile.executive_summary}` : ''}
 Current Fitness: ${profile.current_fitness?.status_label || 'Unknown'}
 Training Style: ${profile.training_characteristics?.training_style || 'Unknown'}

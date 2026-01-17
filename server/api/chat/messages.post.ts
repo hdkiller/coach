@@ -634,16 +634,7 @@ export default defineEventHandler(async (event) => {
   // 5. Build System Instruction with Current Time Context
   const now = new Date()
   const userTimeZone = userProfile?.timezone || 'UTC'
-  const userTime = now.toLocaleString('en-US', {
-    timeZone: userTimeZone,
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  })
+  const userTime = formatUserDate(now, userTimeZone, 'EEEE, MMMM d, yyyy h:mm a')
   const hourOfDay = parseInt(
     now.toLocaleString('en-US', { timeZone: userTimeZone, hour: 'numeric', hour12: false })
   )
@@ -687,13 +678,7 @@ Adopt this persona fully in your interactions.
 ### Date & Time Reference
 **Current Time**: ${userTime} (${timeOfDay})
 
-**Today's Date**: ${now.toLocaleDateString('en-US', {
-    timeZone: userTimeZone,
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  })}
+**Today's Date**: ${formatUserDate(now, userTimeZone, 'EEEE, MMMM d, yyyy')}
 
 **Upcoming Days**:
 ${dateReference}

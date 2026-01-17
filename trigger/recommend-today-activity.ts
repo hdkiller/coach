@@ -347,12 +347,7 @@ export const recommendTodayActivityTask = task({
     // Format for display (Friday, January 10, 2026)
     // We construct it based on the effective today
     const targetDateObj = new Date(targetDateStr + 'T12:00:00') // Noon Local
-    const localDate = targetDateObj.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    const localDate = formatUserDate(targetDateObj, userTimezone, 'EEEE, MMMM d, yyyy')
 
     // Split workouts into "Today's" and "Past"
     const todaysWorkouts = recentWorkouts.filter(
@@ -367,7 +362,7 @@ export const recommendTodayActivityTask = task({
     if (athleteProfile?.analysisJson) {
       const profile = athleteProfile.analysisJson as any
       athleteContext = `
-ATHLETE PROFILE (Generated ${new Date(athleteProfile.createdAt).toLocaleDateString()}):
+ATHLETE PROFILE (Generated ${formatUserDate(athleteProfile.createdAt, userTimezone)}):
 ${profile.executive_summary ? `Summary: ${profile.executive_summary}` : ''}
 
 Current Fitness: ${profile.current_fitness?.status_label || 'Unknown'}
