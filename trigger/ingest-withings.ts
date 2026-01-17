@@ -15,6 +15,7 @@ import { prisma } from '../server/utils/db'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { getUserTimezone, getStartOfDayUTC } from '../server/utils/date'
+import { roundToTwoDecimals } from '../server/utils/number'
 
 export const ingestWithingsTask = task({
   id: 'ingest-withings',
@@ -92,6 +93,10 @@ export const ingestWithingsTask = task({
           }
         })
 
+        if (cleanWellness.weight) {
+          cleanWellness.weight = roundToTwoDecimals(cleanWellness.weight)
+        }
+
         // Ensure userId and date are present
         cleanWellness.userId = userId
         cleanWellness.date = wellness.date
@@ -119,10 +124,10 @@ export const ingestWithingsTask = task({
 
         // Also update the User profile weight if this is the most recent measurement
         const isRecent = new Date().getTime() - wellness.date.getTime() < 7 * 24 * 60 * 60 * 1000 // within 7 days
-        if (isRecent && wellness.weight) {
+        if (isRecent && cleanWellness.weight) {
           await prisma.user.update({
             where: { id: userId },
-            data: { weight: wellness.weight }
+            data: { weight: cleanWellness.weight }
           })
         }
       }

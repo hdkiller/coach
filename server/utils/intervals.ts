@@ -1,5 +1,6 @@
 import type { Integration } from '@prisma/client'
 import { formatUserDate } from './date'
+import { roundToTwoDecimals } from './number'
 
 function getIntervalsHeaders(integration: Integration): Record<string, string> {
   // If we have a scope or refresh token, it's an OAuth integration
@@ -975,7 +976,7 @@ export function normalizeIntervalsWellness(
     motivation: wellness.motivation || null,
 
     // Physical
-    weight: wellness.weight || null,
+    weight: wellness.weight ? roundToTwoDecimals(wellness.weight) : null,
     bodyFat: wellness.bodyFat || null,
     abdomen: wellness.abdomen || null,
     vo2max: wellness.vo2max || null,
