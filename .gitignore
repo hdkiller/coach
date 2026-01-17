@@ -37,11 +37,13 @@ backups/
 # Sentry Config File
 .env.sentry-build-plugin
 .secrets/
-.gemini/
 gha-creds-*.json
 application_default_credentials.json
 
 # AI Tool Skills & Configs
+!.gemini/
+.gemini/settings.json
+.gemini/telemetry.log
 .claude/
 .codex/
 .cursor/
