@@ -4,8 +4,23 @@ import {
   getStartOfDayUTC,
   getEndOfDayUTC,
   formatUserDate,
-  formatDateUTC
+  formatDateUTC,
+  getUserTimezone,
+  getStartOfDaysAgoUTC,
+  getStartOfYearUTC,
+  formatUserTime
 } from './date'
+
+import { prisma } from './db'
+
+// Mock the db module
+vi.mock('./db', () => ({
+  prisma: {
+    user: {
+      findUnique: vi.fn()
+    }
+  }
+}))
 
 describe('Date Utils', () => {
   // Mock system time to a known fixed point for consistent testing
@@ -15,10 +30,35 @@ describe('Date Utils', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(SYSTEM_TIME)
+    vi.resetAllMocks()
   })
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  describe('getUserTimezone', () => {
+    it('returns user timezone when found', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ timezone: 'Europe/Paris' } as any)
+      const tz = await getUserTimezone('user-123')
+      expect(tz).toBe('Europe/Paris')
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+        select: { timezone: true }
+      })
+    })
+
+    it('returns UTC when user not found or no timezone', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+      const tz = await getUserTimezone('user-123')
+      expect(tz).toBe('UTC')
+    })
+
+    it('returns UTC when userId is missing', async () => {
+      const tz = await getUserTimezone('')
+      expect(tz).toBe('UTC')
+      expect(prisma.user.findUnique).not.toHaveBeenCalled()
+    })
   })
 
   describe('getUserLocalDate', () => {
@@ -52,6 +92,12 @@ describe('Date Utils', () => {
       const result = getUserLocalDate('America/New_York')
       expect(result.toISOString()).toBe('2026-01-14T00:00:00.000Z')
     })
+
+    it('uses provided date explicitly', () => {
+      const explicitDate = new Date('2025-12-25T12:00:00Z')
+      const result = getUserLocalDate('UTC', explicitDate)
+      expect(result.toISOString()).toBe('2025-12-25T00:00:00.000Z')
+    })
   })
 
   describe('getStartOfDayUTC', () => {
@@ -79,6 +125,25 @@ describe('Date Utils', () => {
     })
   })
 
+  describe('getStartOfDaysAgoUTC', () => {
+    it('returns start of day 3 days ago in NY', () => {
+      // Today: Jan 15. 3 days ago: Jan 12.
+      // Start of Jan 12 in NY -> Jan 12 05:00 UTC
+      const date = new Date('2026-01-15T12:00:00Z')
+      const result = getStartOfDaysAgoUTC('America/New_York', 3, date)
+      expect(result.toISOString()).toBe('2026-01-12T05:00:00.000Z')
+    })
+  })
+
+  describe('getStartOfYearUTC', () => {
+    it('returns start of year in NY', () => {
+      // Start of 2026 in NY -> 2026-01-01 00:00 EST -> 2026-01-01 05:00 UTC
+      const date = new Date('2026-06-15T12:00:00Z')
+      const result = getStartOfYearUTC('America/New_York', date)
+      expect(result.toISOString()).toBe('2026-01-01T05:00:00.000Z')
+    })
+  })
+
   describe('formatUserDate', () => {
     it('formats correctly for New York', () => {
       const date = new Date('2026-01-15T12:00:00Z') // 7am NY
@@ -90,6 +155,26 @@ describe('Date Utils', () => {
       const date = new Date('2026-01-15T12:00:00Z') // 9pm Tokyo
       const result = formatUserDate(date, 'Asia/Tokyo', 'yyyy-MM-dd HH:mm')
       expect(result).toBe('2026-01-15 21:00')
+    })
+
+    it('formats correctly with default format (yyyy-MM-dd)', () => {
+      const date = new Date('2026-01-15T12:00:00Z') // 7am NY
+      const result = formatUserDate(date, 'America/New_York')
+      expect(result).toBe('2026-01-15')
+    })
+  })
+
+  describe('formatUserTime', () => {
+    it('formats time correctly for New York', () => {
+      const date = new Date('2026-01-15T12:00:00Z') // 7am NY
+      const result = formatUserTime(date, 'America/New_York', 'HH:mm')
+      expect(result).toBe('07:00')
+    })
+
+    it('formats time correctly with default format (HH:mm)', () => {
+      const date = new Date('2026-01-15T12:00:00Z') // 7am NY
+      const result = formatUserTime(date, 'America/New_York')
+      expect(result).toBe('07:00')
     })
   })
 
