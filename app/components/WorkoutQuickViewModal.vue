@@ -42,8 +42,21 @@
               <span>•</span>
               <span>{{ formatDateTime(workout.date) }}</span>
             </div>
+            <!-- Data Capability Icons moved here -->
+            <div class="flex items-center gap-1.5 mt-2">
+              <UTooltip
+                v-for="badge in getDataBadges(workout)"
+                :key="badge.label"
+                :text="badge.label"
+              >
+                <UIcon
+                  :name="badge.icon"
+                  class="w-4 h-4 opacity-50 hover:opacity-100 transition-opacity"
+                />
+              </UTooltip>
+            </div>
           </div>
-          <div class="flex flex-col items-end gap-1">
+          <div class="flex flex-col items-end gap-1 shrink-0">
             <UiDataAttribution
               v-if="
                 [
@@ -67,18 +80,6 @@
             >
               {{ workout.source.toUpperCase() }}
             </UBadge>
-            <div class="flex items-center gap-1 mt-1 justify-end flex-wrap max-w-[150px]">
-              <UTooltip
-                v-for="badge in getDataBadges(workout)"
-                :key="badge.label"
-                :text="badge.label"
-              >
-                <UIcon
-                  :name="badge.icon"
-                  class="w-3.5 h-3.5 opacity-60 hover:opacity-100 transition-opacity"
-                />
-              </UTooltip>
-            </div>
           </div>
         </div>
 
