@@ -265,7 +265,11 @@
 
                     <!-- Source Badge/Attribution -->
                     <UiDataAttribution
-                      v-if="['strava', 'garmin', 'zwift', 'apple_health'].includes(workout.source)"
+                      v-if="
+                        ['strava', 'garmin', 'zwift', 'apple_health', 'whoop'].includes(
+                          workout.source
+                        )
+                      "
                       :provider="workout.source"
                       :device-name="workout.deviceName"
                     />

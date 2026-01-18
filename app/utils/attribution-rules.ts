@@ -32,6 +32,13 @@ export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
     textFormat: () => '',
     logoHeightClass: 'h-6'
   },
+  whoop: {
+    logoLight: '/images/logos/WHOOP_Logo_Black.svg',
+    logoDark: '/images/logos/WHOOP_Logo_White.svg',
+    requiresDeviceName: false,
+    textFormat: () => '',
+    logoHeightClass: 'h-6'
+  },
   apple_health: {
     logoLight: '/images/logos/apple-watch-logo.svg',
     logoDark: '/images/logos/apple-watch-logo.svg',
