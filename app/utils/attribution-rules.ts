@@ -46,6 +46,14 @@ export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
     textFormat: () => '',
     logoHeightClass: 'h-6'
   },
+  withings: {
+    logoLight: '/images/logos/withings.svg',
+    logoDark: '/images/logos/withings.svg',
+    requiresDeviceName: false,
+    textFormat: () => '',
+    logoHeightClass: 'h-6',
+    invertInDarkMode: true
+  },
   apple_health: {
     logoLight: '/images/logos/apple-watch-logo.svg',
     logoDark: '/images/logos/apple-watch-logo.svg',

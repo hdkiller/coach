@@ -273,7 +273,8 @@
                           'zwift',
                           'apple_health',
                           'whoop',
-                          'intervals'
+                          'intervals',
+                          'withings'
                         ].includes(workout.source)
                       "
                       :provider="workout.source"
