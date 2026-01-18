@@ -39,6 +39,13 @@ export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
     textFormat: () => '',
     logoHeightClass: 'h-6'
   },
+  intervals: {
+    logoLight: '/images/logos/intervals.png',
+    logoDark: '/images/logos/intervals.png',
+    requiresDeviceName: false,
+    textFormat: () => '',
+    logoHeightClass: 'h-6'
+  },
   apple_health: {
     logoLight: '/images/logos/apple-watch-logo.svg',
     logoDark: '/images/logos/apple-watch-logo.svg',

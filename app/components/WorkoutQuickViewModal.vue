@@ -45,7 +45,11 @@
           </div>
           <div class="flex flex-col items-end gap-1">
             <UiDataAttribution
-              v-if="['strava', 'garmin', 'zwift', 'apple_health', 'whoop'].includes(workout.source)"
+              v-if="
+                ['strava', 'garmin', 'zwift', 'apple_health', 'whoop', 'intervals'].includes(
+                  workout.source
+                )
+              "
               :provider="workout.source"
               :device-name="workout.deviceName"
             />
