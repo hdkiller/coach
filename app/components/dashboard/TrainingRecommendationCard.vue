@@ -226,22 +226,12 @@
           >
             Accept
           </UButton>
-          <UButton
-            v-else
-            color="primary"
-            variant="soft"
-            size="sm"
-            class="font-bold flex-1"
-            @click="openRefineModal"
-          >
-            Refine
-          </UButton>
         </div>
         <div class="space-y-2">
           <UButton
             class="font-bold w-full"
-            :color="!recommendationStore.todayRecommendation ? 'primary' : 'neutral'"
-            :variant="!recommendationStore.todayRecommendation ? 'solid' : 'ghost'"
+            color="primary"
+            variant="solid"
             size="sm"
             :loading="recommendationStore.generating || isSyncingForAnalysis"
             :disabled="
@@ -252,7 +242,7 @@
             :icon="
               !recommendationStore.todayRecommendation
                 ? 'i-heroicons-sparkles'
-                : 'i-heroicons-arrow-path'
+                : 'i-heroicons-adjustments-horizontal'
             "
             @click="handleAnalyzeClick"
           >
@@ -328,26 +318,7 @@
     accepting.value = false
   }
 
-  async function handleRefine(feedback: string) {
-    showRefine.value = false
-    await recommendationStore.generateTodayRecommendation(feedback)
-  }
-
-  async function handleCreateAdHoc(data: any) {
-    showCreateAdHoc.value = false
-    await recommendationStore.generateAdHocWorkout(data)
-  }
-
-  async function handleAnalyzeClick() {
-    if (!recommendationStore.todayRecommendation) {
-      isSyncingForAnalysis.value = true
-      try {
-        await integrationStore.syncAllData()
-      } finally {
-        isSyncingForAnalysis.value = false
-      }
-    }
-
+  async function checkProfileAndGenerate(feedback?: string) {
     // Check if profile needs update before generating recommendation
     const profileStatus = checkProfileStale(
       userStore.profile?.profileLastUpdated,
@@ -365,19 +336,44 @@
       try {
         await userStore.generateProfile()
       } catch (e) {
-        // Continue even if profile gen fails, just warn
         console.error('Profile generation failed, proceeding with recommendation anyway', e)
       }
     }
 
-    await recommendationStore.generateTodayRecommendation()
+    await recommendationStore.generateTodayRecommendation(feedback)
+  }
+
+  async function handleRefine(feedback: string) {
+    showRefine.value = false
+    await checkProfileAndGenerate(feedback)
+  }
+
+  async function handleCreateAdHoc(data: any) {
+    showCreateAdHoc.value = false
+    await recommendationStore.generateAdHocWorkout(data)
+  }
+
+  async function handleAnalyzeClick() {
+    if (recommendationStore.todayRecommendation) {
+      openRefineModal()
+      return
+    }
+
+    isSyncingForAnalysis.value = true
+    try {
+      await integrationStore.syncAllData()
+    } finally {
+      isSyncingForAnalysis.value = false
+    }
+
+    await checkProfileAndGenerate()
   }
 
   function getButtonLabel() {
     if (isSyncingForAnalysis.value) return 'Syncing data...'
     if (userStore.generating) return 'Updating Profile...'
     if (recommendationStore.generating) return 'Thinking...'
-    if (recommendationStore.todayRecommendation) return 'Refresh'
+    if (recommendationStore.todayRecommendation) return 'Refine'
     return 'Ask Coach to Analyze Readiness'
   }
 

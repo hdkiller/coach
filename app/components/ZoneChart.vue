@@ -156,13 +156,15 @@
   interface Props {
     workoutId: string
     publicToken?: string
+    activityType?: string
+    streamData?: any
   }
 
   const props = defineProps<Props>()
 
   const loading = ref(true)
   const error = ref<string | null>(null)
-  const streamData = ref<any>(null)
+  const localStreamData = ref<any>(null)
   const userZones = ref<any>(null)
   const selectedZoneType = ref<'hr' | 'power'>('hr')
 
@@ -185,20 +187,24 @@
   // Computed properties
   const hasStreamData = computed(() => {
     return !!(
-      streamData.value &&
-      (streamData.value.heartrate ||
-        streamData.value.watts ||
-        streamData.value.hrZoneTimes ||
-        streamData.value.powerZoneTimes)
+      localStreamData.value &&
+      (localStreamData.value.heartrate ||
+        localStreamData.value.watts ||
+        localStreamData.value.hrZoneTimes ||
+        localStreamData.value.powerZoneTimes)
     )
   })
 
   const hasHrData = computed(() => {
-    return !!(streamData.value?.heartrate?.length > 0 || streamData.value?.hrZoneTimes?.length > 0)
+    return !!(
+      localStreamData.value?.heartrate?.length > 0 || localStreamData.value?.hrZoneTimes?.length > 0
+    )
   })
 
   const hasPowerData = computed(() => {
-    return !!(streamData.value?.watts?.length > 0 || streamData.value?.powerZoneTimes?.length > 0)
+    return !!(
+      localStreamData.value?.watts?.length > 0 || localStreamData.value?.powerZoneTimes?.length > 0
+    )
   })
 
   const hasZoneData = computed(() => {
@@ -215,18 +221,18 @@
 
   // Watch for data changes to update timeInZones if cached data is present
   watch(
-    [streamData, selectedZoneType],
+    [localStreamData, selectedZoneType],
     () => {
-      if (!streamData.value) return
+      if (!localStreamData.value) return
 
-      if (selectedZoneType.value === 'hr' && streamData.value.hrZoneTimes?.length > 0) {
-        timeInZones.value = streamData.value.hrZoneTimes
+      if (selectedZoneType.value === 'hr' && localStreamData.value.hrZoneTimes?.length > 0) {
+        timeInZones.value = localStreamData.value.hrZoneTimes
         totalTime.value = timeInZones.value.reduce((a, b) => a + b, 0)
       } else if (
         selectedZoneType.value === 'power' &&
-        streamData.value.powerZoneTimes?.length > 0
+        localStreamData.value.powerZoneTimes?.length > 0
       ) {
-        timeInZones.value = streamData.value.powerZoneTimes
+        timeInZones.value = localStreamData.value.powerZoneTimes
         totalTime.value = timeInZones.value.reduce((a, b) => a + b, 0)
       }
     },
@@ -322,13 +328,15 @@
 
   // Calculate zone distribution for chart
   const chartData = computed(() => {
-    if (!hasZoneData.value || !streamData.value) {
+    if (!hasZoneData.value || !localStreamData.value) {
       return { labels: [], datasets: [] }
     }
 
-    const time = streamData.value.time || []
+    const time = localStreamData.value.time || []
     const values =
-      selectedZoneType.value === 'hr' ? streamData.value.heartrate : streamData.value.watts
+      selectedZoneType.value === 'hr'
+        ? localStreamData.value.heartrate
+        : localStreamData.value.watts
 
     if (!values || values.length === 0) {
       return { labels: [], datasets: [] }
@@ -364,13 +372,15 @@
 
   // Calculate summary stats whenever chart data inputs change
   watch(
-    () => [streamData.value, currentZones.value],
+    () => [localStreamData.value, currentZones.value],
     () => {
-      if (!streamData.value || !currentZones.value) return
+      if (!localStreamData.value || !currentZones.value) return
 
-      const time = streamData.value.time || []
+      const time = localStreamData.value.time || []
       const values =
-        selectedZoneType.value === 'hr' ? streamData.value.heartrate : streamData.value.watts
+        selectedZoneType.value === 'hr'
+          ? localStreamData.value.heartrate
+          : localStreamData.value.watts
 
       if (!values || values.length === 0) {
         timeInZones.value = []
@@ -471,7 +481,7 @@
 
   // Helper functions
   function getZoneIndex(value: number): number {
-    if (!currentZones.value) return -1
+    if (!currentZones.value || currentZones.value.length === 0) return -1
 
     for (let i = 0; i < currentZones.value.length; i++) {
       const zone = currentZones.value[i]
@@ -515,10 +525,25 @@
   // Fetch data
   async function fetchData() {
     if (!props.workoutId) return
+
+    // Sync ref with prop if provided
+    if (props.streamData) {
+      localStreamData.value = props.streamData
+    }
+
     loading.value = true
     error.value = null
 
     try {
+      // Fetch stream data if not provided via props and not already fetched
+      if (!localStreamData.value) {
+        const url = props.publicToken
+          ? `/api/share/workouts/${props.publicToken}/streams`
+          : `/api/workouts/${props.workoutId}/streams`
+
+        localStreamData.value = await $fetch<any>(url)
+      }
+
       if (props.workoutId && !userZones.value) {
         // Try to get from workout if provided (it usually includes user)
         const workout = (props as any).workout
@@ -536,11 +561,18 @@
           const profile = await $fetch<any>('/api/profile').catch(() => null)
           if (profile?.profile) {
             const settings = profile.profile.sportSettings || []
-            const defaultProfile = settings.find((s: any) => s.isDefault)
+            let activeProfile = settings.find((s: any) => s.isDefault)
+
+            if (props.activityType) {
+              const match = settings.find(
+                (s: any) => !s.isDefault && s.types && s.types.includes(props.activityType)
+              )
+              if (match) activeProfile = match
+            }
 
             userZones.value = {
-              hrZones: defaultProfile?.hrZones || getDefaultHrZones(),
-              powerZones: defaultProfile?.powerZones || getDefaultPowerZones()
+              hrZones: activeProfile?.hrZones || getDefaultHrZones(),
+              powerZones: activeProfile?.powerZones || getDefaultPowerZones()
             }
           }
         }

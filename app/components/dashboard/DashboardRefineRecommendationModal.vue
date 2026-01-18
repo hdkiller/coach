@@ -1,20 +1,20 @@
 <template>
   <UModal
     v-model:open="isOpen"
-    title="Refine Recommendation"
-    description="Provide feedback to the AI coach to regenerate the recommendation."
+    title="Refine or Refresh"
+    description="Provide feedback to adjust the plan, or leave empty to simply refresh with latest data."
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #body>
       <div class="space-y-4">
         <UFormField
-          label="Your Feedback"
+          label="Your Feedback (Optional)"
           name="feedback"
-          help="The coach will re-evaluate your data and this feedback to suggest a new plan."
+          help="The coach will re-evaluate your data. Add context to guide the new plan."
         >
           <UTextarea
             v-model="feedback"
-            placeholder="e.g. 'I'm feeling extra tired today', 'I want to do a harder session', 'My knee hurts'"
+            placeholder="e.g. 'I'm feeling extra tired today', 'I want to do a harder session'. Leave empty for a quick refresh."
             :rows="5"
             autofocus
             class="w-full"
@@ -34,7 +34,7 @@
           icon="i-heroicons-arrow-path"
           @click="submit"
         >
-          Regenerate Advice
+          {{ feedback.trim() ? 'Refine Plan' : 'Refresh Data' }}
         </UButton>
       </div>
     </template>
