@@ -23,6 +23,17 @@
             </UButton>
 
             <UButton
+              icon="i-heroicons-document-duplicate"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="font-bold"
+              @click="showDeduplicateModal = true"
+            >
+              <span class="hidden sm:inline">Deduplicate</span>
+            </UButton>
+
+            <UButton
               icon="i-heroicons-arrow-path"
               color="neutral"
               variant="outline"
@@ -658,6 +669,8 @@
     @updated="() => refresh()"
   />
 
+  <DeduplicateModal v-model:open="showDeduplicateModal" @updated="() => refresh()" />
+
   <WellnessModal
     v-if="showWellnessModal"
     v-model:open="showWellnessModal"
@@ -758,6 +771,7 @@
   import type { CalendarActivity } from '../../types/calendar'
   import WorkoutMatcher from '~/components/workouts/WorkoutMatcher.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
+  import DeduplicateModal from '~/components/activities/DeduplicateModal.vue'
 
   definePageMeta({
     middleware: 'auth',
@@ -768,6 +782,7 @@
   const { formatDate, formatDateUTC, formatDateTime, getUserLocalDate } = useFormat()
 
   // Modal state
+  const showDeduplicateModal = ref(false)
   const showPlannedWorkoutModal = ref(false)
   const selectedPlannedWorkout = ref<any>(null)
   const showWorkoutModal = ref(false)

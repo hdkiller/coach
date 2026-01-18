@@ -110,7 +110,7 @@
                                   :key="badge.label"
                                   class="flex items-center gap-1 text-[10px]"
                                 >
-                                  <UIcon :name="badge.icon" class="w-3 h-3" />
+                                  <UIcon :name="badge.icon" class="w-3 h-3" :class="badge.color" />
                                   <span>{{ badge.label }}</span>
                                 </div>
                               </div>
@@ -131,11 +131,22 @@
                         </UTooltip>
                       </div>
                       <div class="text-xs text-gray-500 flex items-center justify-between w-full">
-                        <span
-                          >{{ formatSource(group.bestWorkout.source) }} •
-                          {{ formatDurationCompact(group.bestWorkout.durationSec) }}</span
-                        >
-                        <div class="flex items-center gap-1">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                          <span class="truncate"
+                            >{{ formatSource(group.bestWorkout.source) }} •
+                            {{ formatDurationCompact(group.bestWorkout.durationSec) }}</span
+                          >
+                          <span
+                            v-if="group.originalGroup.proposedLink"
+                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-[10px] text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 truncate max-w-[150px]"
+                          >
+                            <UIcon name="i-heroicons-link" class="w-3 h-3 shrink-0" />
+                            <span class="truncate">{{
+                              group.originalGroup.proposedLink.title
+                            }}</span>
+                          </span>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0 ml-2">
                           <UTooltip
                             v-for="badge in getDataBadges(group.bestWorkout)"
                             :key="badge.label"
@@ -472,9 +483,24 @@
     if (workout.averageWatts > 0) badges.push({ icon: 'i-heroicons-bolt', label: 'Power' })
     if (workout.distanceMeters > 0) badges.push({ icon: 'i-heroicons-map-pin', label: 'GPS' })
     if (workout.averageCadence > 0) badges.push({ icon: 'i-ph-sneaker-move', label: 'Cadence' })
-    if (workout.streams) badges.push({ icon: 'i-heroicons-chart-bar', label: 'Detailed Streams' })
+    if (workout.streams)
+      badges.push({
+        icon: 'i-heroicons-chart-bar',
+        label: 'Detailed Streams',
+        color: 'text-green-500'
+      })
+    if (workout.exercises && workout.exercises.length > 0)
+      badges.push({
+        icon: 'i-heroicons-clipboard-document-list',
+        label: 'Exercises',
+        color: 'text-indigo-500'
+      })
     if (workout.elevationGain > 0)
-      badges.push({ icon: 'i-heroicons-arrow-trending-up', label: 'Elevation' })
+      badges.push({
+        icon: 'i-heroicons-arrow-trending-up',
+        label: 'Elevation',
+        color: 'text-gray-500'
+      })
     return badges
   }
 
