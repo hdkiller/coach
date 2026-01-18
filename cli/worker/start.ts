@@ -103,6 +103,31 @@ export const startCommand = new Command('start')
           return { queuedCount }
         }
 
+        if (provider === 'whoop') {
+          const { payload, headers } = job.data
+
+          console.log(chalk.cyan(`[WhoopJob ${job.id}]`) + ` Processing Whoop webhook payload`)
+
+          // Log raw request receipt
+          const log = await logWebhookRequest({
+            provider: 'whoop',
+            eventType: payload?.type || 'UNKNOWN',
+            payload,
+            headers,
+            status: 'PENDING'
+          })
+
+          console.log(chalk.green(`[WhoopJob ${job.id}] Logged event ${log?.id}`))
+
+          if (log)
+            await updateWebhookStatus(
+              log.id,
+              'PROCESSED',
+              'Logged only (processing not implemented)'
+            )
+          return { handled: true, logId: log?.id }
+        }
+
         console.log(
           chalk.cyan(`[WebhookJob ${job.id}]`) +
             ` Processing ${chalk.magenta(provider)}:${chalk.yellow(type)} for user ${chalk.blue(userId)}
