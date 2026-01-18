@@ -306,6 +306,17 @@
         </template>
         <template #right>
           <UButton
+            to="/settings/ai"
+            icon="i-heroicons-cog-6-tooth"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            class="font-bold"
+            aria-label="AI Settings"
+          >
+            <span class="hidden sm:inline">Settings</span>
+          </UButton>
+          <UButton
             color="primary"
             variant="solid"
             icon="i-heroicons-plus"
@@ -317,14 +328,6 @@
             <span class="hidden sm:inline">New Chat</span>
             <span class="sm:hidden">New</span>
           </UButton>
-          <UButton
-            to="/settings/ai"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-cog-6-tooth"
-            aria-label="AI Settings"
-            size="sm"
-          />
         </template>
       </UDashboardNavbar>
     </template>
