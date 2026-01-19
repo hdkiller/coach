@@ -167,7 +167,24 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
-      include: ['prosemirror-state']
+      include: [
+        'chartjs-adapter-date-fns',
+        'chart.js',
+        'date-fns',
+        'vue-chartjs',
+        'chartjs-plugin-annotation',
+        'date-fns-tz',
+        'leaflet',
+        '@vueuse/core',
+        '@sentry/nuxt',
+        'zod',
+        '@internationalized/date',
+        'vuedraggable',
+        '@tiptap/vue-3',
+        '@tiptap/starter-kit',
+        '@tiptap/extension-placeholder',
+        'turndown'
+      ]
     },
     vue: {
       template: {
