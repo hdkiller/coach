@@ -86,7 +86,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "magicast": "^0.5.1",
-    "next": "13.5.11",
+    "next": "14.2.35",
     "prettier": "^3.8.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
