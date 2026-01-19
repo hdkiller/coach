@@ -471,6 +471,23 @@ Return valid JSON matching the schema provided.`
             }
           })
 
+          // Link Anchored Workouts to this week
+          if (anchorWorkoutIds?.length && anchoredWorkouts.length > 0) {
+            // Find anchors that fall within this week's schedule
+            // Use strict calendar date matching against the validDays generated for this week
+            const weekAnchors = anchoredWorkouts.filter((anchor) => {
+              const anchorDateStr = formatDateUTC(anchor.date)
+              return schedule.validDays.some((d) => formatDateUTC(d) === anchorDateStr)
+            })
+
+            if (weekAnchors.length > 0) {
+              await tx.plannedWorkout.updateMany({
+                where: { id: { in: weekAnchors.map((w) => w.id) } },
+                data: { trainingWeekId: createdWeek.id }
+              })
+            }
+          }
+
           // Create Workouts
           const workoutsData = weekData.workouts
             .map((workout: any, index: number) => {

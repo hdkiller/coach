@@ -43,10 +43,11 @@ export const generateWorkoutMessagesTask = task({
 
     const structure = workout.structuredWorkout as any
 
-    const prompt = `Add engaging coaching messages to this cycling workout.
+    const prompt = `Add engaging coaching messages to this ${workout.type || 'activity'} workout.
     
     WORKOUT:
     - Title: ${workout.title}
+    - Type: ${workout.type || 'Unknown'}
     - Description: ${workout.description}
     - Structure: ${JSON.stringify(structure.steps)}
     

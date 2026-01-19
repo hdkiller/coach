@@ -910,6 +910,18 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
           workoutsToCreate.forEach((w) => {
             if (w) (w as any).trainingWeekId = targetTrainingWeekId
           })
+
+          // Link Anchored Workouts to this week as well
+          if (anchorWorkoutIds?.length && anchoredWorkouts.length > 0) {
+            await prisma.plannedWorkout.updateMany({
+              where: { id: { in: anchorWorkoutIds } },
+              data: { trainingWeekId: targetTrainingWeekId }
+            })
+            logger.log('Linked anchored workouts to TrainingWeek', {
+              count: anchoredWorkouts.length,
+              trainingWeekId: targetTrainingWeekId
+            })
+          }
         } else {
           logger.warn(
             'No matching TrainingWeek found for these workouts - they will be unlinked from the structured plan',
