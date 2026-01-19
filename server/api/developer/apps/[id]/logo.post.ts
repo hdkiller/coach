@@ -2,7 +2,7 @@ import { oauthRepository } from '../../../../utils/repositories/oauthRepository'
 import { getEffectiveUserId } from '../../../../utils/coaching'
 import { uploadPublicAsset } from '../../../../utils/storage'
 import { logAction } from '../../../../utils/audit'
-import Jimp from 'jimp'
+import { Jimp } from 'jimp'
 
 defineRouteMeta({
   openAPI: {

@@ -45,7 +45,12 @@ export default defineEventHandler(async (event) => {
             orderBy: { weekNumber: 'asc' },
             include: {
               workouts: {
-                orderBy: { date: 'asc' }
+                orderBy: { date: 'asc' },
+                include: {
+                  completedWorkouts: {
+                    select: { id: true }
+                  }
+                }
               }
             }
           }
