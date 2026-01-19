@@ -43,12 +43,15 @@
     <template #body>
       <div class="p-4 sm:p-6 space-y-8">
         <!-- Pinned / Focus Section -->
-        <section v-if="sortedPinnedRecs && sortedPinnedRecs.length > 0">
+        <section>
           <div class="flex items-center gap-2 mb-4">
             <UIcon name="i-heroicons-paper-clip" class="w-5 h-5 text-primary-500" />
             <h2 class="text-xl font-bold text-gray-900 dark:text-white">Focus Area</h2>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div
+            v-if="sortedPinnedRecs && sortedPinnedRecs.length > 0"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4"
+          >
             <RecommendationCard
               v-for="rec in sortedPinnedRecs"
               :key="rec.id"
@@ -56,6 +59,10 @@
               @toggle-pin="togglePin"
               @update-status="updateStatus"
             />
+          </div>
+          <div v-else class="py-8 text-center text-gray-500 dark:text-gray-400 italic">
+            Pin recommendations to guide the AI. Focused items inform your daily coaching advice,
+            ensuring the AI knows what you're actively working on.
           </div>
         </section>
 
