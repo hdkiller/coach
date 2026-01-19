@@ -6,9 +6,7 @@ steps:
     args:
       - '-c'
       - |
-        corepack enable
-        corepack prepare pnpm@latest --activate
-        pnpm install
+        npm install
         npx prisma generate
     id: Install Dependencies
     entrypoint: sh
