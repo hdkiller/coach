@@ -309,16 +309,16 @@ export const WorkoutConverter = {
         if (ex.sets) details += `${ex.sets} sets`
         if (ex.reps) details += ` x ${ex.reps} reps`
         if (ex.weight) details += ` @ ${ex.weight}`
-        if (details) lines.push(`  ${details}`)
+        if (details) lines.push(`  - ${details}`)
 
         // Line 3: Rest
         if (ex.rest) {
-          lines.push(`  Rest: ${ex.rest}`)
+          lines.push(`  - Rest: ${ex.rest}`)
         }
 
         // Line 4: Note
         if (ex.notes) {
-          lines.push(`  Note: ${ex.notes}`)
+          lines.push(`  - Note: ${ex.notes}`)
         }
 
         // Spacer
