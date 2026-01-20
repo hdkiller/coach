@@ -70,7 +70,7 @@
                 >
                   <div class="font-semibold">{{ step.name }}</div>
                   <div class="text-[10px] opacity-80 mt-1">
-                    {{ formatDuration(step.durationSeconds) }} @
+                    {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
                     <span v-if="step.power?.range">
                       {{ Math.round(step.power.range.start * 100) }}-{{
                         Math.round(step.power.range.end * 100)
@@ -169,7 +169,9 @@
                 </span>
                 <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% </span>
               </div>
-              <div class="text-[10px] text-muted">{{ formatDuration(step.durationSeconds) }}</div>
+              <div class="text-[10px] text-muted">
+                {{ formatDuration(step.durationSeconds || step.duration || 0) }}
+              </div>
             </div>
 
             <!-- Average Watts -->
@@ -290,7 +292,8 @@
     const maxCadence = 120
 
     props.workout.steps.forEach((step: any, index: number) => {
-      const stepWidth = (step.durationSeconds / totalDuration.value) * chartWidth
+      const stepWidth =
+        ((step.durationSeconds || step.duration || 0) / totalDuration.value) * chartWidth
       const cadence = step.cadence || 0
       const y = chartHeight - Math.min(cadence / maxCadence, 1) * chartHeight
 
@@ -329,7 +332,7 @@
       // If running, we might need a different chart or mapping.
 
       const power = val
-      const duration = step.durationSeconds || 0
+      const duration = step.durationSeconds || step.duration || 0
 
       // Find zone
       // Use < for upper bound to align with standard Coggan zones where Z2 ends at 75% inclusive?
@@ -351,7 +354,7 @@
 
   // Functions
   function getStepContainerStyle(step: any) {
-    const width = (step.durationSeconds / totalDuration.value) * 100
+    const width = ((step.durationSeconds || step.duration || 0) / totalDuration.value) * 100
     return {
       width: `${width}%`,
       minWidth: '2px'

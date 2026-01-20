@@ -3,7 +3,8 @@ import { FitWriter } from '@markw65/fit-file-writer'
 
 interface WorkoutStep {
   type: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'
-  durationSeconds: number
+  durationSeconds?: number
+  duration?: number
   power?: {
     value?: number
     range?: { start: number; end: number }
@@ -54,6 +55,7 @@ export const WorkoutConverter = {
     workout.steps.forEach((step) => {
       // Safely access power
       const power = step.power || { value: 0 }
+      const duration = step.durationSeconds || step.duration || 0
 
       // If we only have Heart Rate, ZWO is not the best format but we can try to approximate or just use 0 power
       // Zwift is primarily power-based.
@@ -71,7 +73,7 @@ export const WorkoutConverter = {
 
         const el = root
           .ele(tagName)
-          .att('Duration', String(step.durationSeconds))
+          .att('Duration', String(duration))
           .att('PowerLow', String(power.range.start ?? 0))
           .att('PowerHigh', String(power.range.end ?? 0))
 
@@ -82,7 +84,7 @@ export const WorkoutConverter = {
         // Steady State
         const el = root
           .ele('SteadyState')
-          .att('Duration', String(step.durationSeconds))
+          .att('Duration', String(duration))
           .att('Power', String(power.value || 0))
 
         if (step.cadence) el.att('Cadence', String(step.cadence))
@@ -180,7 +182,7 @@ export const WorkoutConverter = {
         message_index: { value: index },
         wkt_step_name: step.name ? step.name.substring(0, 15) : undefined,
         duration_type: 'time', // 0
-        duration_value: step.durationSeconds * 1000, // ms
+        duration_value: (step.durationSeconds || step.duration || 0) * 1000, // ms
         target_type: targetType,
         // Let's use raw Watts.
         custom_target_value_low: customTargetValueLow,
@@ -216,7 +218,7 @@ export const WorkoutConverter = {
     let currentTime = 0
 
     workout.steps.forEach((step) => {
-      const durationMins = step.durationSeconds / 60
+      const durationMins = (step.durationSeconds || step.duration || 0) / 60
       const endTime = currentTime + durationMins
 
       // Safely access power
@@ -263,7 +265,7 @@ export const WorkoutConverter = {
     let currentTime = 0
 
     workout.steps.forEach((step) => {
-      const durationMins = step.durationSeconds / 60
+      const durationMins = (step.durationSeconds || step.duration || 0) / 60
       const endTime = currentTime + durationMins
 
       // Safely access power
@@ -329,10 +331,11 @@ export const WorkoutConverter = {
 
       // Format duration
       let durationStr = ''
-      if (step.durationSeconds % 60 === 0) {
-        durationStr = `${step.durationSeconds / 60}m`
+      const duration = step.durationSeconds || step.duration || 0
+      if (duration % 60 === 0) {
+        durationStr = `${duration / 60}m`
       } else {
-        durationStr = `${step.durationSeconds}s`
+        durationStr = `${duration}s`
       }
 
       // Format power or heart rate

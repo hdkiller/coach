@@ -723,7 +723,7 @@
     // Fallback to structured workout total duration if available
     if (workout.value?.structuredWorkout?.steps) {
       return workout.value.structuredWorkout.steps.reduce(
-        (sum: number, step: any) => sum + (step.durationSeconds || 0),
+        (sum: number, step: any) => sum + (step.durationSeconds || step.duration || 0),
         0
       )
     }
