@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     const recentFailures = []
 
     for (const run of runList) {
-      switch (run.status) {
+      switch (run.status as any) {
         case 'COMPLETED':
           stats.completed++
           break
