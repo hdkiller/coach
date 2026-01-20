@@ -257,7 +257,7 @@
                 :workout-id="activity.id"
                 :auto-load="false"
                 :stream-data="streams?.[activity.id]"
-                :user-zones="userZones"
+                :user-zones="getActivityZones(activity)"
               />
             </div>
           </div>
@@ -309,6 +309,7 @@
   import type { CalendarActivity } from '../../types/calendar'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import MiniZoneChart from '~/components/MiniZoneChart.vue'
+  import { getSportSettingsForActivity } from '~/utils/sportSettings'
 
   const { formatDateUTC, getUserLocalDate } = useFormat()
 
@@ -318,6 +319,7 @@
     isOtherMonth: boolean
     streams?: Record<string, any>
     userZones?: any
+    allSportSettings?: any[]
   }>()
 
   const emit = defineEmits<{
@@ -327,6 +329,18 @@
     'link-activity': [data: { planned: CalendarActivity; completed: CalendarActivity }]
     'reschedule-activity': [data: { activity: { id: string; source: string }; date: Date }]
   }>()
+
+  function getActivityZones(activity: CalendarActivity) {
+    if (!props.allSportSettings) return props.userZones
+
+    const settings = getSportSettingsForActivity(props.allSportSettings, activity.type || '')
+    if (!settings) return props.userZones
+
+    return {
+      hrZones: settings.hrZones,
+      powerZones: settings.powerZones
+    }
+  }
 
   const dayNumber = computed(() => formatDateUTC(props.date, 'd'))
   const isDragOver = ref<string | null>(null)

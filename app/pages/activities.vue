@@ -272,6 +272,7 @@
                   :is-today="isTodayDate(day.date)"
                   :streams="streamsMap"
                   :user-zones="userZones"
+                  :all-sport-settings="allSportSettings"
                   @activity-click="openActivity"
                   @wellness-click="openWellnessModal"
                   @merge-activity="onMergeActivity"
@@ -681,6 +682,7 @@
     v-model="showWeekZoneModal"
     :week-data="selectedWeekData"
     :user-zones="userZones"
+    :all-sport-settings="allSportSettings"
     :streams="selectedWeekStreams"
   />
 
@@ -772,6 +774,7 @@
   import WorkoutMatcher from '~/components/workouts/WorkoutMatcher.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import DeduplicateModal from '~/components/activities/DeduplicateModal.vue'
+  import { getDefaultSportSettings } from '~/utils/sportSettings'
 
   definePageMeta({
     middleware: 'auth',
@@ -888,10 +891,10 @@
   // User Profile for Zones
   const { data: profile } = await useFetch<any>('/api/profile')
 
-  const userZones = computed(() => {
-    const settings = profile.value?.profile?.sportSettings || []
-    const defaultProfile = settings.find((s: any) => s.isDefault)
+  const allSportSettings = computed(() => profile.value?.profile?.sportSettings || [])
 
+  const userZones = computed(() => {
+    const defaultProfile = getDefaultSportSettings(allSportSettings.value)
     return {
       hrZones: defaultProfile?.hrZones || getDefaultHrZones(),
       powerZones: defaultProfile?.powerZones || getDefaultPowerZones()

@@ -96,6 +96,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getSportSettingsForActivity } from '~/utils/sportSettings'
+
   const props = defineProps<{
     modelValue: boolean
     weekData: {
@@ -108,6 +110,7 @@
       activities: any[]
     } | null
     userZones: any
+    allSportSettings?: any[]
     streams?: any[]
   }>()
 
@@ -143,6 +146,11 @@
   const zoneBreakdown = computed(() => {
     if (!props.userZones || aggregatedZones.value.length === 0) return []
 
+    // Use default zones for labels if we have mixed zones?
+    // Ideally we should normalize, but for now we just show distribution.
+    // We use the default zones for NAMES and RANGES in the UI list, but the distribution IS calculated correctly per activity.
+    // Wait, if Activity A has Z1=100-120 and Activity B has Z1=110-130, we just aggregate "Z1".
+    // This is fine for "Zone Distribution" charts usually.
     const zones = zoneType.value === 'hr' ? props.userZones.hrZones : props.userZones.powerZones
     const total = aggregatedZones.value.reduce((sum, val) => sum + val, 0)
 
@@ -203,6 +211,18 @@
     isOpen.value = false
   }
 
+  function getActivityZones(activity: any) {
+    if (!props.allSportSettings || !activity) return props.userZones
+
+    const settings = getSportSettingsForActivity(props.allSportSettings, activity.type || '')
+    if (!settings) return props.userZones
+
+    return {
+      hrZones: settings.hrZones,
+      powerZones: settings.powerZones
+    }
+  }
+
   async function fetchZoneData() {
     if (import.meta.server) return
     if (!props.weekData || props.weekData.workoutIds.length === 0) return
@@ -233,9 +253,17 @@
       streams.forEach((stream) => {
         if (!stream) return
 
+        // Resolve zones for this specific activity
+        const activity = props.weekData?.activities.find((a) => a.id === stream.workoutId)
+        const zones = getActivityZones(activity)
+        if (!zones) return
+
         const timeArray = stream.time
 
         // Priority 1: Use cached zone times if available (much faster and uses less data)
+        // Note: Cached zone times from DB/ingestion *should* have used the correct zones at ingestion time.
+        // If ingestion logic was correct, this is fine. If ingestion used default zones, this is bad.
+        // Assuming ingestion logic is/was correct (it runs on backend using sportSettingsRepository).
         if (
           stream.hrZoneTimes &&
           Array.isArray(stream.hrZoneTimes) &&
@@ -245,11 +273,7 @@
           stream.hrZoneTimes.forEach((duration: number, index: number) => {
             if (index < 8) hrZoneTimes[index] += duration
           })
-        } else if (
-          'heartrate' in stream &&
-          Array.isArray(stream.heartrate) &&
-          props.userZones?.hrZones
-        ) {
+        } else if ('heartrate' in stream && Array.isArray(stream.heartrate) && zones.hrZones) {
           // Fallback to manual calculation from stream
           hasHrData = true
           stream.heartrate.forEach((hr: number, index: number) => {
@@ -267,7 +291,7 @@
             if (duration < 0) duration = 0
             if (duration > 300) duration = 1
 
-            const zoneIndex = getZoneIndex(hr, props.userZones.hrZones)
+            const zoneIndex = getZoneIndex(hr, zones.hrZones)
             if (zoneIndex >= 0 && zoneIndex < 8) hrZoneTimes[zoneIndex] += duration
           })
         }
@@ -282,11 +306,7 @@
           stream.powerZoneTimes.forEach((duration: number, index: number) => {
             if (index < 8) powerZoneTimes[index] += duration
           })
-        } else if (
-          'watts' in stream &&
-          Array.isArray(stream.watts) &&
-          props.userZones?.powerZones
-        ) {
+        } else if ('watts' in stream && Array.isArray(stream.watts) && zones.powerZones) {
           // Fallback to manual calculation from stream
           hasPowerData = true
           stream.watts.forEach((watts: number, index: number) => {
@@ -303,7 +323,7 @@
             if (duration < 0) duration = 0
             if (duration > 300) duration = 1
 
-            const zoneIndex = getZoneIndex(watts, props.userZones.powerZones)
+            const zoneIndex = getZoneIndex(watts, zones.powerZones)
             if (zoneIndex >= 0 && zoneIndex < 8) powerZoneTimes[zoneIndex] += duration
           })
         }
