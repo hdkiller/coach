@@ -1,3 +1,4 @@
+import './init'
 import { task } from '@trigger.dev/sdk/v3'
 import { analyzeWellness } from '../server/utils/services/wellness-analysis'
 import { userAnalysisQueue } from './queues'

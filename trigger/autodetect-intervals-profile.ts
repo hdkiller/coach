@@ -1,3 +1,4 @@
+import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { IntervalsService } from '../server/utils/services/intervalsService'

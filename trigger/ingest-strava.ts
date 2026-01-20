@@ -1,3 +1,4 @@
+import './init'
 import { logger, task, tasks } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import {

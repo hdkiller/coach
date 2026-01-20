@@ -1,3 +1,4 @@
+import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'

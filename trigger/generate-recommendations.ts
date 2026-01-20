@@ -1,3 +1,4 @@
+import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { v4 as uuidv4 } from 'uuid'
 import { prisma } from '../server/utils/db'

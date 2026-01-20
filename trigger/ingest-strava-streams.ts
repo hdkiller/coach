@@ -1,3 +1,4 @@
+import './init'
 import { task, logger } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'

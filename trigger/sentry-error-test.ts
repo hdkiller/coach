@@ -1,4 +1,5 @@
 import { task } from '@trigger.dev/sdk/v3'
+import './init'
 
 export const sentryErrorTest = task({
   id: 'sentry-error-test',
