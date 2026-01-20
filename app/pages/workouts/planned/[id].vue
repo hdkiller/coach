@@ -114,7 +114,7 @@
           >
             <div class="flex flex-col sm:flex-row items-start justify-between mb-4 gap-4">
               <div class="flex-1 min-w-0 w-full">
-                <h1 class="text-2xl sm:text-3xl font-bold mb-2 break-words">{{ workout.title }}</h1>
+                <h1 class="text-xl sm:text-3xl font-bold mb-2 break-words">{{ workout.title }}</h1>
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-muted">
                   <div class="flex items-center gap-1 flex-shrink-0">
                     <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
@@ -214,7 +214,9 @@
                 </div>
                 <div>
                   <div class="text-xs text-muted">Planned Duration</div>
-                  <div class="text-2xl font-bold">{{ formatDuration(workout.durationSec) }}</div>
+                  <div class="text-xl sm:text-2xl font-bold">
+                    {{ formatDuration(workout.durationSec) }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -228,7 +230,7 @@
                 </div>
                 <div>
                   <div class="text-xs text-muted">Training Stress</div>
-                  <div class="text-2xl font-bold">{{ Math.round(workout.tss) }}</div>
+                  <div class="text-xl sm:text-2xl font-bold">{{ Math.round(workout.tss) }}</div>
                 </div>
               </div>
             </div>
@@ -242,7 +244,7 @@
                 </div>
                 <div>
                   <div class="text-xs text-muted">Intensity</div>
-                  <div class="text-2xl font-bold">
+                  <div class="text-xl sm:text-2xl font-bold">
                     {{ Math.round((workout.workIntensity || 0) * 100) }}%
                   </div>
                 </div>
@@ -265,7 +267,7 @@
                 </div>
                 <div>
                   <div class="text-xs text-muted">Distance</div>
-                  <div class="text-2xl font-bold">
+                  <div class="text-xl sm:text-2xl font-bold">
                     {{ (workout.distanceMeters / 1000).toFixed(1) }} km
                   </div>
                 </div>
@@ -283,7 +285,7 @@
                 </div>
                 <div>
                   <div class="text-xs text-muted">Est. Pace</div>
-                  <div class="text-2xl font-bold">
+                  <div class="text-xl sm:text-2xl font-bold">
                     {{ formatPace(workout.durationSec, workout.distanceMeters) }} /km
                   </div>
                 </div>
@@ -293,21 +295,21 @@
 
           <div
             v-if="workout.structuredWorkout?.coachInstructions"
-            class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-100 dark:border-blue-800"
+            class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 sm:p-6 border border-blue-100 dark:border-blue-800"
           >
             <div class="flex items-start justify-between gap-4">
-              <div class="flex items-start gap-4">
-                <div class="p-2 bg-blue-100 dark:bg-blue-800 rounded-full">
+              <div class="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                <div class="p-2 bg-blue-100 dark:bg-blue-800 rounded-full flex-shrink-0">
                   <UIcon
                     name="i-heroicons-chat-bubble-bottom-center-text"
                     class="w-6 h-6 text-blue-600 dark:text-blue-300"
                   />
                 </div>
-                <div>
+                <div class="min-w-0 flex-1">
                   <h3 class="font-semibold text-lg text-blue-900 dark:text-blue-100">
                     Coach's Advice
                   </h3>
-                  <p class="text-blue-800 dark:text-blue-200 mt-2 italic">
+                  <p class="text-blue-800 dark:text-blue-200 mt-2 italic break-words">
                     "{{ workout.structuredWorkout.coachInstructions }}"
                   </p>
                 </div>
@@ -319,6 +321,7 @@
                 :llm-usage-id="llmUsageId"
                 :initial-feedback="initialFeedback"
                 :initial-feedback-text="initialFeedbackText"
+                class="flex-shrink-0"
               />
             </div>
           </div>
