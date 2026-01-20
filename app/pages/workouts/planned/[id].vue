@@ -6,7 +6,13 @@
           <span class="hidden sm:inline">{{ workout?.title || 'Workout Details' }}</span>
         </template>
         <template #leading>
-          <UButton color="neutral" variant="ghost" icon="i-heroicons-arrow-left" @click="goBack">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-left"
+            class="hidden sm:flex"
+            @click="goBack"
+          >
             Back
           </UButton>
         </template>
