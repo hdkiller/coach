@@ -151,25 +151,36 @@
               </div>
 
               <div class="flex items-center justify-between text-xs pl-5">
-                <div class="flex items-center gap-2 text-muted">
-                  <span>{{ step.type }}</span>
-                  <span>•</span>
-                  <span class="font-semibold text-gray-700 dark:text-gray-300">{{
-                    getZone(
-                      step.power?.value ||
-                        (step.power?.range
-                          ? (step.power.range.start + step.power.range.end) / 2
-                          : 0)
-                    )
-                  }}</span>
-                  <span v-if="step.cadence" class="text-blue-500">• {{ step.cadence }} rpm</span>
-                </div>
+                <div class="text-muted">{{ step.type }}</div>
 
-                <div class="flex items-center gap-3">
-                  <div v-if="userFtp" class="text-primary font-medium">
+                <div class="flex items-center text-right">
+                  <!-- Zone -->
+                  <div
+                    class="w-8 text-center font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0"
+                  >
+                    {{
+                      getZone(
+                        step.power?.value ||
+                          (step.power?.range
+                            ? (step.power.range.start + step.power.range.end) / 2
+                            : 0)
+                      )
+                    }}
+                  </div>
+
+                  <!-- Cadence -->
+                  <div class="w-16 text-blue-500 flex-shrink-0">
+                    <span v-if="step.cadence">{{ step.cadence }} rpm</span>
+                    <span v-else class="opacity-0">-</span>
+                  </div>
+
+                  <!-- Avg Watts -->
+                  <div v-if="userFtp" class="w-12 text-primary font-medium flex-shrink-0">
                     {{ getAvgWatts(step, userFtp) }}w
                   </div>
-                  <div class="font-bold">
+
+                  <!-- Power % -->
+                  <div class="w-12 font-bold flex-shrink-0">
                     <span v-if="step.power?.range">
                       {{ Math.round(step.power.range.start * 100) }}-{{
                         Math.round(step.power.range.end * 100)

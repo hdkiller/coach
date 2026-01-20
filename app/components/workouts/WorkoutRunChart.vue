@@ -120,33 +120,42 @@
               </div>
 
               <div class="flex items-center justify-between text-xs pl-5">
-                <div class="flex items-center gap-2 text-muted">
-                  <span>{{ step.type }}</span>
-                  <span>•</span>
-                  <span class="font-semibold text-gray-700 dark:text-gray-300">{{
-                    getZoneName(getStepIntensity(step))
-                  }}</span>
-                  <span v-if="step.cadence" class="text-blue-500">• {{ step.cadence }} spm</span>
-                </div>
+                <div class="text-muted">{{ step.type }}</div>
 
-                <div class="font-bold">
-                  <span v-if="step.heartRate?.range">
-                    {{ Math.round(step.heartRate.range.start * 100) }}-{{
-                      Math.round(step.heartRate.range.end * 100)
-                    }}%
-                  </span>
-                  <span v-else-if="step.heartRate?.value">
-                    {{ Math.round(step.heartRate.value * 100) }}%
-                  </span>
-                  <span v-else-if="step.power?.range">
-                    {{ Math.round(step.power.range.start * 100) }}-{{
-                      Math.round(step.power.range.end * 100)
-                    }}%
-                  </span>
-                  <span v-else-if="step.power?.value">
-                    {{ Math.round(step.power.value * 100) }}%
-                  </span>
-                  <span v-else> {{ getInferredIntensity(step) * 100 }}% (Est) </span>
+                <div class="flex items-center text-right">
+                  <!-- Zone -->
+                  <div
+                    class="w-8 text-center font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0"
+                  >
+                    {{ getZoneName(getStepIntensity(step)) }}
+                  </div>
+
+                  <!-- Cadence -->
+                  <div class="w-16 text-blue-500 flex-shrink-0">
+                    <span v-if="step.cadence">{{ step.cadence }} spm</span>
+                    <span v-else class="opacity-0">-</span>
+                  </div>
+
+                  <!-- Intensity % -->
+                  <div class="w-14 font-bold flex-shrink-0">
+                    <span v-if="step.heartRate?.range">
+                      {{ Math.round(step.heartRate.range.start * 100) }}-{{
+                        Math.round(step.heartRate.range.end * 100)
+                      }}%
+                    </span>
+                    <span v-else-if="step.heartRate?.value">
+                      {{ Math.round(step.heartRate.value * 100) }}%
+                    </span>
+                    <span v-else-if="step.power?.range">
+                      {{ Math.round(step.power.range.start * 100) }}-{{
+                        Math.round(step.power.range.end * 100)
+                      }}%
+                    </span>
+                    <span v-else-if="step.power?.value">
+                      {{ Math.round(step.power.value * 100) }}%
+                    </span>
+                    <span v-else> {{ getInferredIntensity(step) * 100 }}% </span>
+                  </div>
                 </div>
               </div>
             </div>
