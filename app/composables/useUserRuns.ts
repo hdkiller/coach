@@ -115,7 +115,7 @@ export function useUserRuns() {
       stopPolling()
       if (session.value?.user && (session.value.user as any).id) {
         try {
-          const { token } = await $fetch<{ token: string }>('/api/auth/ws-token')
+          const { token } = await $fetch<{ token: string }>('/api/websocket-token')
           ws?.send(JSON.stringify({ type: 'authenticate', token }))
           ws?.send(JSON.stringify({ type: 'subscribe_user' }))
         } catch (e) {
