@@ -29,23 +29,24 @@
 
         <div>
           <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-            2. Medical Disclaimer (CRITICAL)
+            2. Medical and Nutritional Disclaimer (CRITICAL)
           </h3>
           <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 my-2">
             <p class="font-semibold text-yellow-800 dark:text-yellow-200">
-              Coach Watts is NOT a doctor or a medical service provider.
+              Coach Watts is NOT a doctor, medical service provider, or nutritionist.
             </p>
             <p class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
               The insights, analysis, and coaching advice provided by our AI are for informational
-              and educational purposes only. They do not constitute medical advice, diagnosis, or
-              treatment.
+              and educational purposes only. They do not constitute medical advice, diagnosis,
+              treatment, or professional nutritional counseling.
             </p>
           </div>
           <p class="mt-4">You expressly acknowledge and agree that:</p>
           <ul class="list-disc pl-5 space-y-2 mt-2">
             <li>
-              You should consult with your physician or other qualified health professional before
-              starting any new exercise program or making significant changes to your training load.
+              You should consult with your physician, registered dietitian, or other qualified
+              health professional before starting any new exercise program or making significant
+              changes to your training load or diet.
             </li>
             <li>
               You represent that you are in good physical condition and have no medical reason or
@@ -53,24 +54,32 @@
             </li>
             <li>
               You assume all risks of injury, illness, or death associated with your participation
-              in any exercise activities suggested by the Service.
+              in any exercise activities or dietary changes suggested by the Service.
             </li>
             <li>
               We are not responsible for any health problems that may result from training programs,
-              consultations, products, or events you learn about through the Service.
+              consultations, products, nutritional advice, or events you learn about through the
+              Service.
             </li>
           </ul>
         </div>
 
         <div>
           <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-            3. Description of Service
+            3. Description of Service and AI Disclaimer
           </h3>
           <p>
             Coach Watts provides an AI-powered analytics and coaching platform that aggregates data
             from various third-party fitness applications (e.g., Strava, Whoop, Intervals.icu) to
             provide personalized training insights. We reserve the right to modify, suspend, or
             discontinue any part of the Service at any time without notice.
+          </p>
+          <p class="mt-2">
+            <strong>Artificial Intelligence Disclaimer:</strong> The Service utilizes artificial
+            intelligence ("AI") to generate insights and recommendations. AI output is probabilistic
+            and may contain errors, inaccuracies, or "hallucinations." You are responsible for
+            verifying all information before acting on it. The Service is a tool to aid your
+            decision-making, not a substitute for professional judgment.
           </p>
         </div>
 
@@ -179,7 +188,28 @@
 
         <div>
           <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-            10. Governing Law
+            10. Privacy and Data Retention
+          </h3>
+          <p>
+            Your use of the Service is also governed by our Privacy Policy, available at
+            <a
+              href="https://coachwatts.com/privacy"
+              class="text-primary-600 dark:text-primary-400 hover:underline"
+              target="_blank"
+              >https://coachwatts.com/privacy</a
+            >.
+          </p>
+          <p class="mt-2">
+            Upon termination of your account, your personal data is immediately removed from our
+            active production systems. However, please be aware that encrypted copies of your data
+            may remain in our secure backup archives for a limited period until those backups are
+            rotated out in the ordinary course of business.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+            11. Governing Law
           </h3>
           <p>
             These Terms shall be governed and construed in accordance with the laws of the United
@@ -190,7 +220,29 @@
 
         <div>
           <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-            11. Contact Us
+            12. Dispute Resolution and Class Action Waiver
+          </h3>
+          <p class="uppercase font-semibold text-sm tracking-wide mb-2 text-gray-500">
+            Binding Arbitration
+          </p>
+          <p>
+            ANY DISPUTE, CLAIM OR CONTROVERSY ARISING OUT OF OR RELATING TO THESE TERMS OR THE
+            BREACH, TERMINATION, ENFORCEMENT, INTERPRETATION OR VALIDITY THEREOF, INCLUDING THE
+            DETERMINATION OF THE SCOPE OR APPLICABILITY OF THIS AGREEMENT TO ARBITRATE, SHALL BE
+            DETERMINED BY BINDING ARBITRATION WITHIN THE UNITED STATES, BEFORE ONE ARBITRATOR.
+            JUDGMENT ON THE AWARD MAY BE ENTERED IN ANY COURT HAVING JURISDICTION.
+          </p>
+          <p class="mt-2">
+            <strong>Class Action Waiver:</strong> YOU AGREE THAT ANY ARBITRATION SHALL BE CONDUCTED
+            IN YOUR INDIVIDUAL CAPACITY ONLY AND NOT AS A CLASS ACTION OR OTHER REPRESENTATIVE WORK,
+            AND YOU EXPRESSLY WAIVE YOUR RIGHT TO FILE A CLASS ACTION OR SEEK RELIEF ON A CLASS
+            BASIS.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+            13. Contact Us
           </h3>
           <p>If you have any questions about these Terms, please contact us at:</p>
           <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
