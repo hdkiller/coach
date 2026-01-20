@@ -90,34 +90,65 @@
         </div>
       </UCard>
 
+      <!-- Calendar Logic Verification -->
       <UCard>
         <template #header>
           <h3 class="font-bold flex items-center gap-2">
             <UIcon name="i-heroicons-beaker" />
-            Calendar Logic Verification
+            Calendar Logic Verification (Live)
           </h3>
         </template>
-        <div class="pt-2">
-          <div class="grid grid-cols-2 gap-4 text-sm">
+        <div class="space-y-4">
+          <!-- Date Function Outputs -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div class="p-2 bg-gray-50 dark:bg-gray-800 rounded">
-              <span class="text-gray-500 block mb-1">Jan 18, 2026</span>
-              <div
-                class="font-bold text-lg"
-                :class="testDate2026.startsWith('Sunday') ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ testDate2026 }}
-              </div>
-              <div class="text-xs text-gray-400">Target: Sunday</div>
+              <span class="text-gray-500 block mb-1">getUserLocalDate() (UTC):</span>
+              <div class="font-mono font-bold">{{ userLocalDate }}</div>
             </div>
             <div class="p-2 bg-gray-50 dark:bg-gray-800 rounded">
-              <span class="text-gray-500 block mb-1">Jan 18, 2027</span>
+              <span class="text-gray-500 block mb-1">Target Month Start:</span>
+              <div class="font-mono font-bold">{{ monthStartStr }}</div>
+            </div>
+          </div>
+
+          <!-- Generated Grid Preview -->
+          <div>
+            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+              Generated Grid (First 3 Weeks)
+            </h4>
+            <div
+              class="border border-gray-200 dark:border-gray-700 rounded overflow-hidden text-xs"
+            >
               <div
-                class="font-bold text-lg"
-                :class="testDate2027.startsWith('Monday') ? 'text-green-600' : 'text-red-600'"
+                class="grid grid-cols-8 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 font-bold p-1"
               >
-                {{ testDate2027 }}
+                <div>Week</div>
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+                <div>Sun</div>
               </div>
-              <div class="text-xs text-gray-400">Target: Monday</div>
+              <div
+                v-for="(week, i) in previewWeeks"
+                :key="i"
+                class="grid grid-cols-8 border-b border-gray-200 dark:border-gray-700 last:border-0 p-1"
+              >
+                <div class="text-gray-400 font-mono">W{{ week.number }}</div>
+                <div
+                  v-for="day in week.days"
+                  :key="day.date"
+                  class="font-mono"
+                  :class="{
+                    'text-gray-300 dark:text-gray-600': day.isOtherMonth,
+                    'text-blue-600 font-bold': day.isToday
+                  }"
+                >
+                  {{ day.label }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -153,115 +184,118 @@
 </template>
 
 <script setup lang="ts">
+  import { format, getISOWeek } from 'date-fns'
+
   const { data: session } = useAuth()
+  const { getUserLocalDate, formatDateUTC } = useFormat()
 
   // Client Info
-
   const clientInfo = ref({
     timezone: '',
-
     time: '',
-
     iso: '',
-
     userAgent: ''
   })
 
   // Server Info
-
   const { data } = await useFetch('/api/debug/system')
 
-  // Calendar Tests
-
-  const testDate2026 = ref('')
-
-  const testDate2027 = ref('')
+  // Calendar Logic Replication
+  const userLocalDate = ref('')
+  const monthStartStr = ref('')
+  const previewWeeks = ref<any[]>([])
 
   onMounted(() => {
     // Capture Client Info
-
     const now = new Date()
-
     clientInfo.value = {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-
       time: now.toString(),
-
       iso: now.toISOString(),
-
       userAgent: navigator.userAgent
     }
 
-    // Run Calendar Logic Tests
+    // 1. Get "Current Date" using app logic
+    const currentDate = getUserLocalDate()
+    userLocalDate.value = currentDate.toISOString()
 
-    const d2026 = new Date('2026-01-18T12:00:00')
+    // 2. Replicate activities.vue logic EXACTLY
+    const year = currentDate.getUTCFullYear()
+    const month = currentDate.getUTCMonth()
+    const monthStart = new Date(Date.UTC(year, month, 1))
+    monthStartStr.value = monthStart.toISOString()
 
-    testDate2026.value = d2026.toLocaleDateString(undefined, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    // Find start of week (Monday)
+    const dayOfWeek = monthStart.getUTCDay()
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const start = new Date(monthStart)
+    start.setUTCDate(monthStart.getUTCDate() + diffToMonday)
 
-    const d2027 = new Date('2027-01-18T12:00:00')
+    // Generate 3 weeks for preview
+    const weeks = []
+    const dayIterator = new Date(start)
 
-    testDate2027.value = d2027.toLocaleDateString(undefined, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    for (let w = 0; w < 3; w++) {
+      const currentWeekDays = []
+      for (let d = 0; d < 7; d++) {
+        const day = new Date(dayIterator)
+        const dateStr = day.toISOString().split('T')[0]
+
+        currentWeekDays.push({
+          date: dateStr,
+          label: `${day.getUTCDate()} ${format(day, 'MMM')}`,
+          isOtherMonth: day.getUTCMonth() !== month,
+          isToday: dateStr === userLocalDate.value.split('T')[0]
+        })
+
+        dayIterator.setUTCDate(dayIterator.getUTCDate() + 1)
+      }
+
+      weeks.push({
+        number: getISOWeek(new Date(currentWeekDays[0].date)),
+        days: currentWeekDays
+      })
+    }
+
+    previewWeeks.value = weeks
   })
 
   const copyReport = () => {
     const report = {
       client: clientInfo.value,
-
       server: data.value,
-
       userProfile: {
         timezone: (session.value?.user as any)?.timezone,
-
         id: (session.value?.user as any)?.id
       },
-
-      calendarTest: {
-        jan18_2026: testDate2026.value,
-
-        jan18_2027: testDate2027.value
+      calendarLogic: {
+        userLocalDate: userLocalDate.value,
+        monthStart: monthStartStr.value,
+        previewWeeks: previewWeeks.value
       }
     }
 
     navigator.clipboard.writeText(JSON.stringify(report, null, 2))
 
     const toast = useToast()
-
     toast.add({
       title: 'Report Copied',
-
       description: 'Paste this into the chat to help us debug.',
-
       color: 'success'
     })
   }
 
   function formatUptime(seconds: number) {
     const h = Math.floor(seconds / 3600)
-
     const m = Math.floor((seconds % 3600) / 60)
-
     return `${h}h ${m}m`
   }
 
   function formatBytes(bytes: number) {
     if (bytes === 0) return '0 B'
-
     const k = 1024
-
     const sizes = ['B', 'KB', 'MB', 'GB']
-
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 </script>
