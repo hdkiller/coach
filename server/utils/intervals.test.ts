@@ -78,4 +78,197 @@ describe('Intervals.icu Data Normalization', () => {
       expect(result.date.toISOString()).not.toBe('2026-01-15T00:00:00.000Z')
     })
   })
+
+  describe('Structured Workout Normalization', () => {
+    it('normalizes duration to durationSeconds', () => {
+      const input = {
+        id: 'event-101',
+        start_date_local: '2026-01-20T06:00:00',
+        name: 'Duration Test',
+        category: 'WORKOUT',
+        workout_doc: {
+          steps: [
+            { duration: 600, text: 'Warmup' },
+            { durationSeconds: 900, text: 'Main' }, // Already correct
+            { duration: 300, durationSeconds: 300, text: 'Cooldown' } // Both present
+          ]
+        }
+      }
+
+      const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
+      const steps = result.structuredWorkout.steps
+
+      expect(steps[0].durationSeconds).toBe(600)
+      expect(steps[0].duration).toBe(600) // We backfill duration too
+
+      expect(steps[1].durationSeconds).toBe(900)
+      expect(steps[1].duration).toBe(900)
+
+      expect(steps[2].durationSeconds).toBe(300)
+    })
+
+    it('normalizes Power structure (Flat -> Nested) and Scaling (% -> Ratio)', () => {
+      const input = {
+        id: 'event-102',
+        start_date_local: '2026-01-20T06:00:00',
+        name: 'Power Test',
+        category: 'WORKOUT',
+        workout_doc: {
+          steps: [
+            {
+              // Ramp, Percent
+              duration: 600,
+              power: { start: 50, end: 75, units: '%ftp' }
+            },
+            {
+              // Steady, Percent
+              duration: 300,
+              power: { value: 90, units: '%ftp' }
+            },
+            {
+              // Ramp, Ratio (already correct structure)
+              duration: 300,
+              power: { range: { start: 0.5, end: 0.75 } }
+            },
+            {
+              // Steady, Ratio
+              duration: 300,
+              power: { value: 0.9 }
+            }
+          ]
+        }
+      }
+
+      const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
+      const steps = result.structuredWorkout.steps
+
+      // Step 1: Ramp, Percent -> Nested, Ratio
+      expect(steps[0].power.range).toEqual({ start: 0.5, end: 0.75 })
+      expect(steps[0].power.start).toBeUndefined() // Cleaned up
+      expect(steps[0].power.end).toBeUndefined() // Cleaned up
+
+      // Step 2: Steady, Percent -> Ratio
+      expect(steps[1].power.value).toBe(0.9)
+
+      // Step 3: Already normalized
+      expect(steps[2].power.range).toEqual({ start: 0.5, end: 0.75 })
+
+      // Step 4: Already normalized
+      expect(steps[3].power.value).toBe(0.9)
+    })
+
+    it('normalizes Heart Rate structure and scaling', () => {
+      const input = {
+        id: 'event-103',
+        start_date_local: '2026-01-20T06:00:00',
+        name: 'HR Test',
+        category: 'WORKOUT',
+        workout_doc: {
+          steps: [
+            {
+              // Ramp, Percent
+              duration: 600,
+              heartRate: { start: 60, end: 80, units: '%lthr' }
+            },
+            {
+              // Steady, Percent
+              duration: 300,
+              heartRate: { value: 85, units: '%lthr' }
+            }
+          ]
+        }
+      }
+
+      const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
+      const steps = result.structuredWorkout.steps
+
+      // Step 1
+      expect(steps[0].heartRate.range).toEqual({ start: 0.6, end: 0.8 })
+      expect(steps[0].heartRate.start).toBeUndefined()
+
+      // Step 2
+      expect(steps[1].heartRate.value).toBe(0.85)
+    })
+
+    it('normalizes Cadence (Object -> Number)', () => {
+      const input = {
+        id: 'event-104',
+        start_date_local: '2026-01-20T06:00:00',
+        name: 'Cadence Test',
+        category: 'WORKOUT',
+        workout_doc: {
+          steps: [
+            {
+              duration: 600,
+              cadence: { value: 90, units: 'rpm' }
+            },
+            {
+              duration: 300,
+              cadence: 95 // Already number
+            }
+          ]
+        }
+      }
+
+      const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
+      const steps = result.structuredWorkout.steps
+
+      expect(steps[0].cadence).toBe(90)
+      expect(steps[1].cadence).toBe(95)
+    })
+
+    it('maps text to name and infers type', () => {
+      const input = {
+        id: 'event-105',
+        start_date_local: '2026-01-20T06:00:00',
+        name: 'Metadata Test',
+        category: 'WORKOUT',
+        workout_doc: {
+          steps: [
+            {
+              duration: 600,
+              text: 'Warmup Spin',
+              warmup: true,
+              power: { value: 50, units: '%ftp' }
+            },
+            {
+              duration: 900,
+              text: 'Main Set',
+              power: { value: 90, units: '%ftp' }
+            },
+            {
+              duration: 300,
+              text: 'Rest',
+              power: { value: 50, units: '%ftp' }
+            },
+            {
+              duration: 600,
+              text: 'Cooldown Spin',
+              cooldown: true,
+              power: { value: 50, units: '%ftp' }
+            }
+          ]
+        }
+      }
+
+      const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
+      const steps = result.structuredWorkout.steps
+
+      // Step 1: Warmup flag
+      expect(steps[0].name).toBe('Warmup Spin')
+      expect(steps[0].type).toBe('Warmup')
+
+      // Step 2: High intensity -> Active
+      expect(steps[1].name).toBe('Main Set')
+      expect(steps[1].type).toBe('Active')
+
+      // Step 3: Low intensity -> Rest
+      expect(steps[2].name).toBe('Rest')
+      expect(steps[2].type).toBe('Rest')
+
+      // Step 4: Cooldown flag
+      expect(steps[3].name).toBe('Cooldown Spin')
+      expect(steps[3].type).toBe('Cooldown')
+    })
+  })
 })
