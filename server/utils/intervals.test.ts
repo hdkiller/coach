@@ -1,8 +1,30 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeIntervalsPlannedWorkout, normalizeIntervalsWorkout } from './intervals'
+import {
+  normalizeIntervalsPlannedWorkout,
+  normalizeIntervalsWorkout,
+  cleanIntervalsDescription
+} from './intervals'
 
 describe('Intervals.icu Data Normalization', () => {
   const USER_ID = 'test-user-id'
+
+  describe('cleanIntervalsDescription', () => {
+    it('strips Gym exercises list', () => {
+      const fullText = `
+This is the description.
+It has multiple lines.
+
+- **Bench Press**
+  - 3 sets
+- **Squat**
+  - 3 sets
+[CoachWatts]
+      `.trim()
+
+      const cleaned = cleanIntervalsDescription(fullText)
+      expect(cleaned).toBe('This is the description.\nIt has multiple lines.')
+    })
+  })
 
   describe('normalizeIntervalsPlannedWorkout (Planned / Type B)', () => {
     it('forces start_date_local to UTC Midnight (2026-01-15)', () => {

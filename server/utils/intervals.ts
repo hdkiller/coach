@@ -887,7 +887,8 @@ export function cleanIntervalsDescription(description: string): string {
     // Heuristics for Intervals.icu workout text start
     if (
       /^(Warmup|Cooldown|Main Set)$/i.test(line) || // Section headers
-      /^(\d+x|(- )?\d+(m|s|h)\s+\d+)/.test(line) // Steps (Nx, 10m 50%, - Step 10m...)
+      /^(\d+x|(- )?\d+(m|s|h)\s+\d+)/.test(line) || // Steps (Nx, 10m 50%, - Step 10m...)
+      /^-\s+\*\*(.+)\*\*$/.test(line) // Gym Exercises (- **Name**)
     ) {
       splitIndex = i
       break
