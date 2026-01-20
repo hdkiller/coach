@@ -17,6 +17,7 @@ import intervalsTypesCommand from './intervals-types'
 import calendarNotesCommand from './calendar-notes'
 import verifyLazyProfileCommand from './verify-lazy-profile'
 import deduplicateCommand from './deduplicate' // Importing from where I created it, but logically should move file.
+import compareIntervalsCommand from './compare-intervals'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -38,5 +39,6 @@ debugCommand.addCommand(intervalsTypesCommand)
 debugCommand.addCommand(calendarNotesCommand)
 debugCommand.addCommand(verifyLazyProfileCommand)
 debugCommand.addCommand(deduplicateCommand)
+debugCommand.addCommand(compareIntervalsCommand)
 
 export default debugCommand

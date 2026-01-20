@@ -919,14 +919,76 @@ export function normalizeIntervalsPlannedWorkout(event: IntervalsPlannedWorkout,
   const structuredWorkout = event.workout_doc ?? (event.steps ? { steps: event.steps } : null)
 
   // Normalize steps to ensure durationSeconds is present (Intervals.icu uses 'duration')
+  // Also normalize power/HR structure (Intervals uses flat start/end and % values, we use nested range and ratios)
   if (structuredWorkout && Array.isArray(structuredWorkout.steps)) {
     structuredWorkout.steps = structuredWorkout.steps.map((step: any) => {
+      // Duration
       if (step.duration !== undefined && step.durationSeconds === undefined) {
         step.durationSeconds = step.duration
       }
       if (step.durationSeconds !== undefined && step.duration === undefined) {
         step.duration = step.durationSeconds
       }
+
+      // Power
+      if (step.power) {
+        // Structure: start/end -> range
+        if (step.power.start !== undefined && step.power.end !== undefined && !step.power.range) {
+          step.power.range = {
+            start: step.power.start,
+            end: step.power.end
+          }
+          delete step.power.start
+          delete step.power.end
+        }
+
+        // Scale: % -> Ratio (e.g. 90 -> 0.90)
+        // Heuristic: if units contain % OR value is > 5 (assuming nobody targets > 500% FTP often without units)
+        // Note: Absolute watts (e.g. 200) usually don't have units='%', so we skip if units='watts'
+        const units = step.power.units || ''
+        const isPercent =
+          units.includes('%') || (!units && (step.power.value > 5 || step.power.range?.start > 5))
+
+        if (isPercent) {
+          if (step.power.value !== undefined) step.power.value /= 100
+          if (step.power.range) {
+            step.power.range.start /= 100
+            step.power.range.end /= 100
+          }
+        }
+      }
+
+      // Heart Rate
+      if (step.heartRate) {
+        // Structure: start/end -> range
+        if (
+          step.heartRate.start !== undefined &&
+          step.heartRate.end !== undefined &&
+          !step.heartRate.range
+        ) {
+          step.heartRate.range = {
+            start: step.heartRate.start,
+            end: step.heartRate.end
+          }
+          delete step.heartRate.start
+          delete step.heartRate.end
+        }
+
+        // Scale: % -> Ratio
+        const units = step.heartRate.units || ''
+        const isPercent =
+          units.includes('%') ||
+          (!units && (step.heartRate.value > 5 || step.heartRate.range?.start > 5))
+
+        if (isPercent) {
+          if (step.heartRate.value !== undefined) step.heartRate.value /= 100
+          if (step.heartRate.range) {
+            step.heartRate.range.start /= 100
+            step.heartRate.range.end /= 100
+          }
+        }
+      }
+
       return step
     })
   }
