@@ -623,7 +623,7 @@ export async function executeToolCall(toolName: string, args: any, userId: strin
 /**
  * Get workout stream data (second-by-second time-series)
  */
-async function getWorkoutStream(userId: string, args: any): Promise<any> {
+export async function getWorkoutStream(userId: string, args: any): Promise<any> {
   const { workout_id, include_streams, sample_rate = 1 } = args
 
   // Verify workout belongs to user
@@ -693,6 +693,16 @@ async function getWorkoutStream(userId: string, args: any): Promise<any> {
   ]
   const includeAll = !include_streams
 
+  // Auto-calculate sample rate if not provided or 1, to prevent huge payloads
+  // Target max ~500 points per stream
+  let effectiveSampleRate = sample_rate
+  if ((!args.sample_rate || args.sample_rate === 1) && stream.time && Array.isArray(stream.time)) {
+    const totalPoints = stream.time.length
+    if (totalPoints > 500) {
+      effectiveSampleRate = Math.ceil(totalPoints / 500)
+    }
+  }
+
   const response: any = {
     workout_info: {
       id: workout.id,
@@ -701,35 +711,35 @@ async function getWorkoutStream(userId: string, args: any): Promise<any> {
       date: workout.date.toISOString(),
       duration_seconds: workout.durationSec
     },
-    sample_rate: sample_rate,
-    data_points: stream.time ? Math.floor((stream.time as any[]).length / sample_rate) : 0,
+    sample_rate: effectiveSampleRate,
+    data_points: stream.time ? Math.floor((stream.time as any[]).length / effectiveSampleRate) : 0,
     streams: {}
   }
 
   // Add requested streams
   if (includeAll || requestedStreams.includes('time')) {
-    response.streams.time = sampleArray(stream.time as any[], sample_rate)
+    response.streams.time = sampleArray(stream.time as any[], effectiveSampleRate)
   }
   if (includeAll || requestedStreams.includes('heartrate')) {
-    response.streams.heartrate = sampleArray(stream.heartrate as any[], sample_rate)
+    response.streams.heartrate = sampleArray(stream.heartrate as any[], effectiveSampleRate)
   }
   if (includeAll || requestedStreams.includes('watts')) {
-    response.streams.watts = sampleArray(stream.watts as any[], sample_rate)
+    response.streams.watts = sampleArray(stream.watts as any[], effectiveSampleRate)
   }
   if (includeAll || requestedStreams.includes('cadence')) {
-    response.streams.cadence = sampleArray(stream.cadence as any[], sample_rate)
+    response.streams.cadence = sampleArray(stream.cadence as any[], effectiveSampleRate)
   }
   if (includeAll || requestedStreams.includes('velocity')) {
-    response.streams.velocity = sampleArray(stream.velocity as any[], sample_rate)
+    response.streams.velocity = sampleArray(stream.velocity as any[], effectiveSampleRate)
   }
   if (includeAll || requestedStreams.includes('distance')) {
-    response.streams.distance = sampleArray(stream.distance as any[], sample_rate)
+    response.streams.distance = sampleArray(stream.distance as any[], effectiveSampleRate)
   }
   if (includeAll || requestedStreams.includes('altitude')) {
-    response.streams.altitude = sampleArray(stream.altitude as any[], sample_rate)
+    response.streams.altitude = sampleArray(stream.altitude as any[], effectiveSampleRate)
   }
   if (includeAll || requestedStreams.includes('grade')) {
-    response.streams.grade = sampleArray(stream.grade as any[], sample_rate)
+    response.streams.grade = sampleArray(stream.grade as any[], effectiveSampleRate)
   }
 
   // Add computed metrics
@@ -749,7 +759,7 @@ async function getWorkoutStream(userId: string, args: any): Promise<any> {
  * Create a chart visualization
  * This validates the chart data and returns success so the AI knows it will be displayed
  */
-async function createChart(args: any): Promise<any> {
+export async function createChart(args: any): Promise<any> {
   const { type, title, labels, datasets } = args
 
   // Validate chart type
@@ -801,7 +811,7 @@ async function createChart(args: any): Promise<any> {
 /**
  * Fetch recent workout summaries
  */
-async function getRecentWorkouts(
+export async function getRecentWorkouts(
   userId: string,
   timezone: string,
   limit = 5,
@@ -882,7 +892,7 @@ async function getRecentWorkouts(
  * Get comprehensive details for a specific workout
  * Can search by ID or by description/criteria
  */
-async function getWorkoutDetails(userId: string, timezone: string, args: any): Promise<any> {
+export async function getWorkoutDetails(userId: string, timezone: string, args: any): Promise<any> {
   let workout = null
 
   // If workout_id is provided, use it directly
@@ -1025,7 +1035,6 @@ async function getWorkoutDetails(userId: string, timezone: string, args: any): P
       lr_balance: workout.lrBalance ? workout.lrBalance.toFixed(1) : null
     },
     ai_analysis: workout.aiAnalysis || null,
-    ai_analysis_json: workout.aiAnalysisJson || null,
     duplicate_info: {
       is_duplicate: workout.isDuplicate,
       duplicate_of_id: workout.duplicateOf || null,
@@ -1037,15 +1046,14 @@ async function getWorkoutDetails(userId: string, timezone: string, args: any): P
       updated_at: workout.updatedAt.toISOString(),
       ai_analyzed_at: workout.aiAnalyzedAt?.toISOString() || null,
       ai_analysis_status: workout.aiAnalysisStatus
-    },
-    raw_data: workout.rawJson || null
+    }
   }
 }
 
 /**
  * Get nutrition log for date range
  */
-async function getNutritionLog(
+export async function getNutritionLog(
   userId: string,
   timezone: string,
   startDate: string,
@@ -1090,8 +1098,7 @@ async function getNutritionLog(
       fat: true,
       fiber: true,
       sugar: true,
-      aiAnalysis: true,
-      aiAnalysisJson: true
+      aiAnalysis: true
     }
   })
 
@@ -1116,8 +1123,7 @@ async function getNutritionLog(
         fiber: entry.fiber ? Math.round(entry.fiber) : null,
         sugar: entry.sugar ? Math.round(entry.sugar) : null
       },
-      ai_analysis: entry.aiAnalysis || null,
-      ai_analysis_json: entry.aiAnalysisJson || null
+      ai_analysis: entry.aiAnalysis || null
     })),
     totals: {
       calories: nutritionEntries.reduce((sum, e) => sum + (e.calories || 0), 0),
@@ -1131,7 +1137,7 @@ async function getNutritionLog(
 /**
  * Get wellness metrics for date range
  */
-async function getWellnessMetrics(
+export async function getWellnessMetrics(
   userId: string,
   timezone: string,
   startDate: string,
@@ -1219,7 +1225,11 @@ async function getWellnessMetrics(
 /**
  * Get comprehensive performance metrics and analytics
  */
-async function getPerformanceMetrics(userId: string, timezone: string, args: any): Promise<any> {
+export async function getPerformanceMetrics(
+  userId: string,
+  timezone: string,
+  args: any
+): Promise<any> {
   const periodDays = args.period_days || 30
   const cutoff = getStartOfDaysAgoUTC(timezone, periodDays)
 
@@ -1426,7 +1436,7 @@ async function getPerformanceMetrics(userId: string, timezone: string, args: any
 /**
  * Search workouts with advanced filters
  */
-async function searchWorkouts(userId: string, timezone: string, args: any): Promise<any> {
+export async function searchWorkouts(userId: string, timezone: string, args: any): Promise<any> {
   const where: any = { userId }
 
   if (args.query) {
@@ -1514,7 +1524,11 @@ async function searchWorkouts(userId: string, timezone: string, args: any): Prom
 /**
  * Get details for a specific recommendation
  */
-async function getRecommendationDetails(userId: string, timezone: string, args: any): Promise<any> {
+export async function getRecommendationDetails(
+  userId: string,
+  timezone: string,
+  args: any
+): Promise<any> {
   const { recommendation_id } = args
 
   const rec = await prisma.recommendation.findFirst({
@@ -1546,7 +1560,11 @@ async function getRecommendationDetails(userId: string, timezone: string, args: 
 /**
  * List recommendations
  */
-async function listRecommendations(userId: string, timezone: string, args: any): Promise<any> {
+export async function listRecommendations(
+  userId: string,
+  timezone: string,
+  args: any
+): Promise<any> {
   const status = args.status || 'ACTIVE'
   const priority = args.priority
   const limit = args.limit || 5
