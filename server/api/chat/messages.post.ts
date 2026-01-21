@@ -128,19 +128,39 @@ export default defineEventHandler(async (event) => {
         }
       },
       onFinish: async (event) => {
-        const { text, toolResults: finalStepResults, usage, finishReason, toolCalls } = event // Destructure toolCalls
+        const { text, toolResults: finalStepResults, usage, finishReason, toolCalls } = event
 
         console.log(
           `[Chat API] Stream finished for room ${roomId}. Reason: ${finishReason}. Content length: ${text?.length || 0}`
         )
-        // ... (rest of code) ...
+        // console.log('[Chat API] onFinish event keys:', Object.keys(event))
+
+        // 1. Save AI Response to DB immediately to ensure persistence
+        let aiMessage: any
+        try {
+          aiMessage = await prisma.chatMessage.create({
+            data: {
+              content: text || ' ', // Force non-empty content
+              roomId,
+              senderId: 'ai_agent',
+              seen: {}
+            }
+          })
+        } catch (dbErr: any) {
+          console.error('[Chat API] Failed to save AI message:', dbErr)
+          return
+        }
 
         // 2. Capture metadata
         try {
           const toolApprovals: any[] = []
 
           try {
-            // ... (response access) ...
+            // Access response promise
+            const response = await result.response
+            const responseMessages = response.messages
+
+            const lastResponseMessage = responseMessages[responseMessages.length - 1]
 
             if (lastResponseMessage && Array.isArray(lastResponseMessage.content)) {
               lastResponseMessage.content.forEach((part: any) => {
@@ -177,7 +197,7 @@ export default defineEventHandler(async (event) => {
               })
             }
           } catch (resErr: any) {
-            logDebug(`Failed to read result.response: ${resErr.message}`)
+            console.warn(`[Chat API] Failed to read result.response: ${resErr.message}`)
           }
 
           // Ensure we capture results if they only appear in onFinish
@@ -217,8 +237,7 @@ export default defineEventHandler(async (event) => {
             })
           }
 
-          // Track LLM Usage (moved after save)
-          // ... (LLM tracking logic remains same, just ensure it uses aiMessage.id)
+          // Track LLM Usage
           try {
             const promptTokens = usage.inputTokens || 0
             const completionTokens = usage.outputTokens || 0
@@ -256,10 +275,9 @@ export default defineEventHandler(async (event) => {
             console.error('[Chat] Failed to log LLM usage:', error)
           }
 
-          // Auto-rename logic ...
+          // Auto-rename logic
           const messageCount = await prisma.chatMessage.count({ where: { roomId } })
           if (messageCount === 2) {
-            // ... (existing auto-rename logic)
             try {
               const titlePrompt = `Based on this conversation, generate a very concise, descriptive title (max 6 words). Just return the title, nothing else.\n\nUser: ${content}\nAI: ${(text || '').substring(0, 500)}\n\nTitle:`
               let roomTitle = await generateCoachAnalysis(titlePrompt, 'flash', {
@@ -280,8 +298,8 @@ export default defineEventHandler(async (event) => {
               console.error(`[Chat] Failed to auto-rename room ${roomId}:`, error)
             }
           }
-        } catch (err) {
-          console.error('[Chat API] Error in onFinish metadata processing:', err)
+        } catch (err: any) {
+          console.error(`[Chat API] Error in onFinish metadata processing: ${err.message}`)
         }
       }
     })
