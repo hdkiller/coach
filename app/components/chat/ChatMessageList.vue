@@ -84,9 +84,31 @@
                   <MDC :value="part.text" :cache-key="`${message.id}-${index}`" />
                 </div>
 
+                <!-- Tool Approval Request -->
+                <ChatToolApproval
+                  v-else-if="
+                    part.type === 'tool-approval-request' ||
+                    (part.type.startsWith('tool-') && (part as any).state === 'approval-requested')
+                  "
+                  :approval-id="
+                    (part as any).approvalId ||
+                    (part as any).approval?.id ||
+                    (part as any).toolCallId
+                  "
+                  :tool-call="{
+                    toolName:
+                      (part as any).toolCall?.toolName ||
+                      (part as any).toolName ||
+                      part.type.replace('tool-', ''),
+                    args: (part as any).toolCall?.args || (part as any).args || (part as any).input
+                  }"
+                  @approve="(e) => handleToolApproval({ ...e, approved: true })"
+                  @deny="(e) => handleToolApproval({ ...e, approved: false })"
+                />
+
                 <!-- Tool Invocation Part (Generic or Specific) -->
                 <ChatToolCall
-                  v-else-if="part.type === 'tool-invocation' || part.type.startsWith('tool-call')"
+                  v-else-if="part.type === 'tool-invocation' || part.type.startsWith('tool-')"
                   :tool-call="{
                     name:
                       (part as any).toolName ||
@@ -108,15 +130,6 @@
                           ? 'error'
                           : 'loading'
                   }"
-                />
-
-                <!-- Tool Approval Request -->
-                <ChatToolApproval
-                  v-else-if="part.type === 'tool-approval-request'"
-                  :approval-id="(part as any).approvalId || (part as any).toolCallId"
-                  :tool-call="(part as any).toolCall"
-                  @approve="(e) => handleToolApproval({ ...e, approved: true })"
-                  @deny="(e) => handleToolApproval({ ...e, approved: false })"
                 />
 
                 <!-- Fallback Debug (ignore step-start) -->
