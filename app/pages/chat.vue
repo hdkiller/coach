@@ -112,32 +112,43 @@
   const onToolApproval = (approval: { approvalId: string; approved: boolean; result?: string }) => {
     console.log('[Chat] Tool Approval:', approval)
 
-    // Construct the tool approval response message
-    // Note: AI SDK v5 might have specific helpers, but appending a tool message usually works
-    // For tool approvals, the role is typically 'tool' (or 'user' in some flows? No, tool).
-    // But wait, approval response is special.
+    // Check if addToolResult exists (standard AI SDK UI method)
+    if (typeof (chat as any).addToolResult === 'function') {
+      console.log('[Chat] Calling addToolResult')
+      ;(chat as any).addToolResult({
+        toolCallId: approval.approvalId,
+        result: approval.result || (approval.approved ? 'Approved' : 'Denied')
+      })
+      return
+    }
 
-    // Let's try `chat.addToolResult` if it supports approval result?
-    // Usually addToolResult is for the OUTPUT of the tool.
+    // Fallback: Append message manually via sendMessage or append if available
+    const responsePart = {
+      type: 'tool-approval-response',
+      toolCallId: approval.approvalId,
+      approved: approval.approved,
+      result: approval.result
+    }
 
-    // For approval, we are RESPONDING to a request.
-
-    // According to docs: "add a tool-approval-response to the messages array... Then call generateText again."
-
-    // So we append a message.
-    chat.append({
+    const message = {
       role: 'tool',
-      content: [
-        {
-          type: 'tool-approval-response',
-          toolCallId: approval.approvalId,
-          approved: approval.approved,
-          result: approval.result
-        }
-      ]
-    } as any)
-  }
+      content: [responsePart]
+    }
 
+    console.log('[Chat] Attempting to send tool approval message:', message)
+
+    if (typeof (chat as any).append === 'function') {
+      ;(chat as any).append(message)
+    } else if (typeof (chat as any).sendMessage === 'function') {
+      // Try passing the message object directly to sendMessage
+      ;(chat as any).sendMessage(message)
+    } else {
+      console.error(
+        '[Chat] No suitable method found to send tool approval. Chat object keys:',
+        Object.keys(chat)
+      )
+    }
+  }
   // Load initial room and messages
   onMounted(async () => {
     await loadChat()
