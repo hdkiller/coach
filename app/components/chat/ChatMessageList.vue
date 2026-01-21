@@ -1,15 +1,21 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import ChatToolCall from '~/components/ChatToolCall.vue'
   import ChatChart from '~/components/ChatChart.vue'
   import ChatToolApproval from '~/components/chat/ChatToolApproval.vue'
 
-  defineProps<{
+  const props = defineProps<{
     messages: any[]
     status: any
     loading: boolean
   }>()
 
   const emit = defineEmits(['tool-approval'])
+
+  // Filter out tool messages (responses) as they are internal state or handled via UI
+  const filteredMessages = computed(() => {
+    return props.messages.filter((m) => m.role !== 'tool')
+  })
 
   const handleToolApproval = (response: any) => {
     emit('tool-approval', response)
@@ -69,7 +75,7 @@
       </div>
 
       <div v-else class="h-full flex flex-col">
-        <UChatMessages :messages="messages" :status="status">
+        <UChatMessages :messages="filteredMessages" :status="status">
           <template #content="{ message }">
             <div v-if="message.parts && message.parts.length">
               <template
@@ -138,6 +144,14 @@
                   class="text-[10px] text-red-500 border border-red-200 p-1 my-1 rounded bg-red-50 font-mono overflow-auto max-h-40"
                 >
                   <div>Unknown part type: {{ part.type }}</div>
+                  <pre>{{ JSON.stringify(part, null, 2) }}</pre>
+                </div>
+
+                <!-- TEMP DEBUG: Inspect all parts -->
+                <div
+                  class="text-[10px] bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 p-1 mt-1 border border-yellow-300 dark:border-yellow-700 rounded"
+                >
+                  <strong>DEBUG Part:</strong> Type={{ part.type }}
                   <pre class="text-[9px] mt-1">{{ JSON.stringify(part, null, 2) }}</pre>
                 </div>
               </template>
