@@ -95,6 +95,23 @@ export default defineEventHandler(async (event) => {
 
     // Add tool invocation parts from metadata
     const metadata = (msg.metadata as any) || {}
+
+    // Add tool approvals (pending)
+    if (metadata.toolApprovals && Array.isArray(metadata.toolApprovals)) {
+      metadata.toolApprovals.forEach((approval: any) => {
+        parts.push({
+          type: 'tool-approval-request',
+          approvalId: approval.toolCallId, // Use toolCallId as approvalId
+          toolCallId: approval.toolCallId,
+          toolCall: {
+            toolName: approval.name,
+            args: approval.args,
+            toolCallId: approval.toolCallId
+          }
+        })
+      })
+    }
+
     if (metadata.toolCalls && Array.isArray(metadata.toolCalls)) {
       metadata.toolCalls.forEach((tc: any) => {
         parts.push({

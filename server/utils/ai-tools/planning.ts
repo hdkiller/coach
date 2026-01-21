@@ -183,6 +183,7 @@ export const planningTools = (userId: string, timezone: string) => ({
     inputSchema: z.object({
       workout_id: z.string()
     }),
+    needsApproval: true,
     execute: async ({ workout_id }) => {
       const workout = await prisma.plannedWorkout.findUnique({
         where: { id: workout_id, userId },
@@ -272,6 +273,7 @@ export const planningTools = (userId: string, timezone: string) => ({
       workout_id: z.string(),
       reason: z.string().optional()
     }),
+    needsApproval: true,
     execute: async (args) => {
       // Try deleting from both tables or check which one
       // For simplicity, try PlannedWorkout first

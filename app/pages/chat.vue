@@ -109,6 +109,35 @@
     input.value = ''
   }
 
+  const onToolApproval = (approval: { approvalId: string; approved: boolean; result?: string }) => {
+    console.log('[Chat] Tool Approval:', approval)
+
+    // Construct the tool approval response message
+    // Note: AI SDK v5 might have specific helpers, but appending a tool message usually works
+    // For tool approvals, the role is typically 'tool' (or 'user' in some flows? No, tool).
+    // But wait, approval response is special.
+
+    // Let's try `chat.addToolResult` if it supports approval result?
+    // Usually addToolResult is for the OUTPUT of the tool.
+
+    // For approval, we are RESPONDING to a request.
+
+    // According to docs: "add a tool-approval-response to the messages array... Then call generateText again."
+
+    // So we append a message.
+    chat.append({
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-approval-response',
+          toolCallId: approval.approvalId,
+          approved: approval.approved,
+          result: approval.result
+        }
+      ]
+    } as any)
+  }
+
   // Load initial room and messages
   onMounted(async () => {
     await loadChat()
@@ -280,6 +309,7 @@
             :messages="chatMessages as any"
             :status="chatStatus"
             :loading="loadingMessages"
+            @tool-approval="onToolApproval"
           />
 
           <!-- Input -->

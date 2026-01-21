@@ -1,12 +1,19 @@
 <script setup lang="ts">
   import ChatToolCall from '~/components/ChatToolCall.vue'
   import ChatChart from '~/components/ChatChart.vue'
+  import ChatToolApproval from '~/components/chat/ChatToolApproval.vue'
 
   defineProps<{
     messages: any[]
     status: any
     loading: boolean
   }>()
+
+  const emit = defineEmits(['tool-approval'])
+
+  const handleToolApproval = (response: any) => {
+    emit('tool-approval', response)
+  }
 
   // Extract charts from both metadata (persisted) and tool parts (immediate)
   const getCharts = (message: any) => {
@@ -79,7 +86,7 @@
 
                 <!-- Tool Invocation Part (Generic or Specific) -->
                 <ChatToolCall
-                  v-else-if="part.type === 'tool-invocation' || part.type.startsWith('tool-')"
+                  v-else-if="part.type === 'tool-invocation' || part.type.startsWith('tool-call')"
                   :tool-call="{
                     name:
                       (part as any).toolName ||
@@ -101,6 +108,15 @@
                           ? 'error'
                           : 'loading'
                   }"
+                />
+
+                <!-- Tool Approval Request -->
+                <ChatToolApproval
+                  v-else-if="part.type === 'tool-approval-request'"
+                  :approval-id="(part as any).approvalId || (part as any).toolCallId"
+                  :tool-call="(part as any).toolCall"
+                  @approve="(e) => handleToolApproval({ ...e, approved: true })"
+                  @deny="(e) => handleToolApproval({ ...e, approved: false })"
                 />
 
                 <!-- Fallback Debug (ignore step-start) -->

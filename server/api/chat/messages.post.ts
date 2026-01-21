@@ -122,6 +122,25 @@ export default defineEventHandler(async (event) => {
           `[Chat API] Stream finished for room ${roomId}. Reason: ${finishReason}. Content length: ${text?.length || 0}`
         )
 
+        // Capture tool approval requests from the final message content
+        // result.response is available here via closure
+        const responseMessages = result.response.messages
+        const lastResponseMessage = responseMessages[responseMessages.length - 1]
+
+        const toolApprovals = []
+        if (lastResponseMessage && Array.isArray(lastResponseMessage.content)) {
+          lastResponseMessage.content.forEach((part: any) => {
+            if (part.type === 'tool-approval-request') {
+              toolApprovals.push({
+                toolCallId: part.toolCallId || part.approvalId, // Vercel AI SDK might use approvalId or toolCallId
+                name: part.toolCall.toolName,
+                args: part.toolCall.args,
+                timestamp: new Date().toISOString()
+              })
+            }
+          })
+        }
+
         // Ensure we capture results if they only appear in onFinish (though onStepFinish usually catches them)
         const resultsToSave = allToolResults.length > 0 ? allToolResults : finalStepResults || []
 
@@ -217,13 +236,14 @@ export default defineEventHandler(async (event) => {
             ...tr.args
           }))
 
-        if (charts.length > 0 || toolCallsUsed.length > 0) {
+        if (charts.length > 0 || toolCallsUsed.length > 0 || toolApprovals.length > 0) {
           await prisma.chatMessage.update({
             where: { id: aiMessage.id },
             data: {
               metadata: {
                 charts,
                 toolCalls: toolCallsUsed,
+                toolApprovals, // Save pending approvals
                 toolsUsed: toolCallsUsed.map((t) => t.name),
                 toolCallCount: toolCallsUsed.length
               } as any
