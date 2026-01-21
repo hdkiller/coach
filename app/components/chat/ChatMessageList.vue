@@ -7,6 +7,42 @@
     status: any
     loading: boolean
   }>()
+
+  // Extract charts from both metadata (persisted) and tool parts (immediate)
+  const getCharts = (message: any) => {
+    const charts = []
+
+    // 1. From Metadata (Persisted)
+    if (message.metadata?.charts?.length) {
+      charts.push(...message.metadata.charts)
+    }
+
+    // 2. From Tool Invocations (Immediate)
+    // Only if not already in metadata (to avoid duplicates if we have both)
+    if (message.parts && message.parts.length) {
+      message.parts.forEach((part: any) => {
+        if (
+          (part.type === 'tool-invocation' || part.type.startsWith('tool-')) &&
+          (part.toolName === 'create_chart' ||
+            (part.type.startsWith('tool-') && part.type.includes('create_chart')))
+        ) {
+          const result = part.result || part.output
+          // Check if this chart is already in metadata to avoid duplication
+          // (Simple check by title or ID if available, but metadata usually has generated ID)
+          // For now, if we have metadata charts, assume they cover it.
+          // BUT, during streaming, metadata might be empty.
+          if (!message.metadata?.charts?.length && result && result.success) {
+            charts.push({
+              id: `temp-${part.toolCallId}`,
+              ...result // result contains title, type, data, etc.
+            })
+          }
+        }
+      })
+    }
+
+    return charts
+  }
 </script>
 
 <template>
@@ -81,13 +117,9 @@
               <MDC :value="(message as any).content" />
             </div>
 
-            <!-- Charts from Metadata -->
-            <div v-if="(message as any).metadata?.charts?.length" class="mt-4 space-y-4">
-              <ChatChart
-                v-for="chart in (message as any).metadata.charts"
-                :key="chart.id"
-                :chart-data="chart"
-              />
+            <!-- Charts (Metadata + Immediate) -->
+            <div v-if="getCharts(message).length" class="mt-4 space-y-4">
+              <ChatChart v-for="chart in getCharts(message)" :key="chart.id" :chart-data="chart" />
             </div>
           </template>
         </UChatMessages>
