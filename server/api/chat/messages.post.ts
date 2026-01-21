@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { streamText, convertToModelMessages } from 'ai'
+import { streamText, convertToModelMessages, stepCountIs } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { getToolsWithContext } from '../../utils/ai-tools'
 import { generateCoachAnalysis, MODEL_NAMES } from '../../utils/gemini'
@@ -88,7 +88,7 @@ export default defineEventHandler(async (event) => {
       system: systemInstruction,
       messages: await convertToModelMessages(historyMessages),
       tools,
-      maxSteps: 5, // Allow multi-step interactions (Agency)
+      stopWhen: stepCountIs(5), // Allow multi-step interactions (Agency)
       onStepFinish: async ({ text, toolCalls, toolResults, finishReason, usage }) => {
         console.log(`[Chat API] Step finished. Reason: ${finishReason}`)
         if (toolCalls?.length) {
