@@ -135,9 +135,9 @@ export default defineEventHandler(async (event) => {
         // Capture tool approval requests from the final message content
         // result.response is available here via closure
         try {
-          const responseMessages = result.response.messages
+          const response = await result.response
+          const responseMessages = response.messages
           console.log('[Chat API] Response messages count:', responseMessages?.length)
-
           const lastResponseMessage = responseMessages[responseMessages.length - 1]
 
           const toolApprovals = []
