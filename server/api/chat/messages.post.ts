@@ -93,17 +93,23 @@ export default defineEventHandler(async (event) => {
       stopWhen: stepCountIs(5), // Allow multi-step interactions (Agency)
       onStepFinish: async ({ text, toolCalls, toolResults, finishReason, usage }) => {
         console.log(`[Chat API] Step finished. Reason: ${finishReason}`)
-        if (toolCalls?.length) {
-          console.log(
-            `[Chat API] Tool calls in step: ${toolCalls.map((t) => t.toolName).join(', ')}`
-          )
-        }
+
         if (toolResults && toolResults.length > 0) {
-          console.log(`[Chat API] Tool results in step: ${toolResults.length}`)
-          toolResults.forEach((r) => {
+          // Merge with toolCalls to ensure we have args and toolName
+          const detailedResults = toolResults.map((tr) => {
+            const call = toolCalls?.find((tc) => tc.toolCallId === tr.toolCallId)
+            return {
+              ...tr,
+              args: tr.args || call?.args,
+              toolName: tr.toolName || call?.toolName
+            }
+          })
+
+          console.log(`[Chat API] Tool results in step: ${detailedResults.length}`)
+          detailedResults.forEach((r) => {
             console.log(`[Chat API] Tool result (${r.toolName}):`, JSON.stringify(r, null, 2))
           })
-          allToolResults.push(...toolResults)
+          allToolResults.push(...detailedResults)
         }
       },
       onFinish: async ({ text, toolResults: finalStepResults, usage, finishReason }) => {
@@ -121,6 +127,8 @@ export default defineEventHandler(async (event) => {
 
         // fallback if onStepFinish didn't fire for some reason (e.g. single step?)
         const resultsToSave = allToolResults.length > 0 ? allToolResults : finalStepResults || []
+
+        console.log('[Chat API DEBUG] resultsToSave:', JSON.stringify(resultsToSave, null, 2))
 
         // 1. Save AI Response to DB
         const aiMessage = await prisma.chatMessage.create({
