@@ -21,6 +21,28 @@
     emit('tool-approval', response)
   }
 
+  // Check if an approval request has been answered in subsequent messages
+  const getApprovalResult = (approvalId: string) => {
+    // Iterate through all messages (including hidden tool messages)
+    for (const msg of props.messages) {
+      if (msg.role === 'tool' && msg.content) {
+        // If content is array (SDK format)
+        if (Array.isArray(msg.content)) {
+          const part = msg.content.find(
+            (p: any) =>
+              (p.type === 'tool-result' || p.type === 'tool-approval-response') &&
+              (p.toolCallId === approvalId || p.approvalId === approvalId)
+          )
+          if (part) {
+            return part.result || (part.approved ? 'Approved' : 'Denied')
+          }
+        }
+        // If content is string (legacy/text) - unlikely for tool results but possible
+      }
+    }
+    return null
+  }
+
   // Extract charts from both metadata (persisted) and tool parts (immediate)
   const getCharts = (message: any) => {
     const charts = []
@@ -108,6 +130,13 @@
                       part.type.replace('tool-', ''),
                     args: (part as any).toolCall?.args || (part as any).args || (part as any).input
                   }"
+                  :result="
+                    getApprovalResult(
+                      (part as any).approvalId ||
+                        (part as any).approval?.id ||
+                        (part as any).toolCallId
+                    )
+                  "
                   @approve="(e) => handleToolApproval({ ...e, approved: true })"
                   @deny="(e) => handleToolApproval({ ...e, approved: false })"
                 />

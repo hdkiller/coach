@@ -5,6 +5,7 @@
       toolName: string
       args: any
     }
+    result?: string | null
   }
 
   const props = defineProps<Props>()
@@ -64,7 +65,28 @@
           ><code>{{ formatJson(toolCall.args) }}</code></pre>
         </div>
 
-        <div class="flex gap-2">
+        <!-- Result State -->
+        <div v-if="result" class="flex items-center gap-2">
+          <UIcon
+            :name="
+              result.includes('confirmed') || result.includes('Approved')
+                ? 'i-heroicons-check-circle'
+                : 'i-heroicons-x-circle'
+            "
+            :class="
+              result.includes('confirmed') || result.includes('Approved')
+                ? 'text-green-500'
+                : 'text-red-500'
+            "
+            class="w-5 h-5"
+          />
+          <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+            {{ result.includes('confirmed') ? 'Approved' : result }}
+          </span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div v-else class="flex gap-2">
           <UButton
             size="xs"
             color="primary"
