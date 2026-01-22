@@ -66,3 +66,5 @@ gcs-key.json
 nanobanana-output/
 
 coverage
+
+.gemini/
