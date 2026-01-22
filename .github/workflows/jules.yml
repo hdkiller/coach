@@ -20,18 +20,18 @@ jobs:
       issues: read
     steps:
       - name: Invoke Jules
-        uses: google-labs-code/jules-invoke@v1
+        uses: google-labs-code/jules-action@v1.0.0
         with:
           jules_api_key: ${{ secrets.JULES_API_KEY }}
           prompt: |
             You are an expert software engineer working on the repository ${{ github.repository }}.
-            
+
             Please resolve the following issue:
-            
+
             Issue Title: ${{ github.event.issue.title }}
             Issue Description:
             ${{ github.event.issue.body }}
-            
+
             ${{ github.event_name == 'issue_comment' && format('User Instruction: {0}', github.event.comment.body) || '' }}
-            
+
             Please implement the necessary changes and create a Pull Request.
