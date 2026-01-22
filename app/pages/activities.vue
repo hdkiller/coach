@@ -1535,7 +1535,7 @@
         // Scroll to the cell minus a buffer (approx header height + padding)
         // Header row is ~40px, adding extra context
         container.scrollTo({
-          top: Math.max(0, relativeTop - 50),
+          top: Math.max(0, relativeTop - 25),
           behavior: 'smooth'
         })
       }
