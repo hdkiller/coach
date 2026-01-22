@@ -6,6 +6,15 @@
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
+          <UButton
+            to="/settings/apps"
+            color="white"
+            variant="solid"
+            icon="i-lucide-settings-2"
+            class="hidden lg:inline-flex"
+          >
+            Manage Integrations
+          </UButton>
           <ClientOnly>
             <DashboardTriggerMonitorButton />
           </ClientOnly>
@@ -14,10 +23,6 @@
 
       <UDashboardToolbar>
         <div class="flex gap-2 overflow-x-auto">
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('integrations')">
-            <UIcon name="i-lucide-plug" class="w-4 h-4 mr-2" />
-            Integrations
-          </UButton>
           <UButton variant="ghost" color="neutral" @click="scrollToSection('summary')">
             <UIcon name="i-lucide-bar-chart-3" class="w-4 h-4 mr-2" />
             Summary
@@ -56,398 +61,14 @@
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Data Management</h1>
           <p class="text-sm text-muted mt-1">
-            View and sync your training data from connected integrations
+            View your training data and manage connections in
+            <NuxtLink to="/settings/apps" class="text-primary-500 hover:underline">
+              app settings
+            </NuxtLink>
+            .
           </p>
         </div>
 
-        <!-- Integration Status Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <!-- Intervals.icu Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0"
-                >
-                  <img
-                    src="/images/logos/intervals.png"
-                    alt="Intervals.icu Logo"
-                    class="w-6 h-6 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Intervals.icu</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">
-                    Training activities & wellness
-                  </p>
-                </div>
-              </div>
-              <div v-if="intervalsStatus" :class="getStatusClass(intervalsStatus.syncStatus)">
-                {{ intervalsStatus.syncStatus || 'Not Connected' }}
-              </div>
-            </div>
-
-            <div v-if="intervalsStatus" class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Last Sync:</span>
-                <span class="text-gray-900 dark:text-white">
-                  {{
-                    intervalsStatus.lastSyncAt ? formatDate(intervalsStatus.lastSyncAt) : 'Never'
-                  }}
-                </span>
-              </div>
-              <div v-if="intervalsStatus.errorMessage" class="text-red-600 text-xs mt-2">
-                {{ intervalsStatus.errorMessage }}
-              </div>
-            </div>
-
-            <UButton
-              v-if="!intervalsStatus"
-              to="/settings/apps"
-              color="neutral"
-              variant="solid"
-              class="mt-4 w-full font-bold justify-center rounded-lg"
-            >
-              Configure
-            </UButton>
-            <button
-              v-else
-              :disabled="syncing === 'intervals'"
-              class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              @click="syncIntegration('intervals')"
-            >
-              <span v-if="syncing === 'intervals'">Syncing...</span>
-              <span v-else>Sync Now</span>
-            </button>
-          </div>
-
-          <!-- Whoop Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700"
-                >
-                  <img
-                    src="/images/logos/whoop_square.svg"
-                    alt="WHOOP Logo"
-                    class="w-6 h-6 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Whoop</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">Recovery & strain data</p>
-                </div>
-              </div>
-              <div v-if="whoopStatus" :class="getStatusClass(whoopStatus.syncStatus)">
-                {{ whoopStatus.syncStatus || 'Not Connected' }}
-              </div>
-            </div>
-
-            <div v-if="whoopStatus" class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Last Sync:</span>
-                <span class="text-gray-900 dark:text-white">
-                  {{ whoopStatus.lastSyncAt ? formatDate(whoopStatus.lastSyncAt) : 'Never' }}
-                </span>
-              </div>
-              <div v-if="whoopStatus.errorMessage" class="text-red-600 text-xs mt-2">
-                {{ whoopStatus.errorMessage }}
-              </div>
-            </div>
-
-            <UButton
-              v-if="!whoopStatus"
-              to="/settings/apps"
-              color="neutral"
-              variant="solid"
-              class="mt-4 w-full font-bold justify-center rounded-lg"
-            >
-              Configure
-            </UButton>
-            <button
-              v-else
-              :disabled="syncing === 'whoop'"
-              class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              @click="syncIntegration('whoop')"
-            >
-              <span v-if="syncing === 'whoop'">Syncing...</span>
-              <span v-else>Sync Now</span>
-            </button>
-          </div>
-
-          <!-- Yazio Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700"
-                >
-                  <img
-                    src="/images/logos/yazio_square.webp"
-                    alt="Yazio Logo"
-                    class="w-6 h-6 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Yazio</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">Nutrition tracking</p>
-                </div>
-              </div>
-              <div v-if="yazioStatus" :class="getStatusClass(yazioStatus.syncStatus)">
-                {{ yazioStatus.syncStatus || 'Not Connected' }}
-              </div>
-            </div>
-
-            <div v-if="yazioStatus" class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Last Sync:</span>
-                <span class="text-gray-900 dark:text-white">
-                  {{ yazioStatus.lastSyncAt ? formatDate(yazioStatus.lastSyncAt) : 'Never' }}
-                </span>
-              </div>
-              <div v-if="yazioStatus.errorMessage" class="text-red-600 text-xs mt-2">
-                {{ yazioStatus.errorMessage }}
-              </div>
-            </div>
-
-            <UButton
-              v-if="!yazioStatus"
-              to="/settings/apps"
-              color="neutral"
-              variant="solid"
-              class="mt-4 w-full font-bold justify-center rounded-lg"
-            >
-              Configure
-            </UButton>
-            <button
-              v-else
-              :disabled="syncing === 'yazio'"
-              class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              @click="syncIntegration('yazio')"
-            >
-              <span v-if="syncing === 'yazio'">Syncing...</span>
-              <span v-else>Sync Now</span>
-            </button>
-          </div>
-
-          <!-- Strava Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700"
-                >
-                  <img
-                    src="/images/logos/strava.svg"
-                    alt="Strava Logo"
-                    class="w-6 h-6 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Strava</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">Activity tracking</p>
-                </div>
-              </div>
-              <div v-if="stravaStatus" :class="getStatusClass(stravaStatus.syncStatus)">
-                {{ stravaStatus.syncStatus || 'Not Connected' }}
-              </div>
-            </div>
-
-            <div v-if="stravaStatus" class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Last Sync:</span>
-                <span class="text-gray-900 dark:text-white">
-                  {{ stravaStatus.lastSyncAt ? formatDate(stravaStatus.lastSyncAt) : 'Never' }}
-                </span>
-              </div>
-              <div v-if="stravaStatus.errorMessage" class="text-red-600 text-xs mt-2">
-                {{ stravaStatus.errorMessage }}
-              </div>
-            </div>
-
-            <UButton
-              v-if="!stravaStatus"
-              to="/settings/apps"
-              color="neutral"
-              variant="solid"
-              class="mt-4 w-full font-bold justify-center rounded-lg"
-            >
-              Configure
-            </UButton>
-            <UTooltip
-              v-else
-              :text="
-                isStravaDisabled
-                  ? 'Strava integration is temporarily unavailable on coachwatts.com'
-                  : ''
-              "
-              :disabled="!isStravaDisabled"
-              class="w-full"
-            >
-              <button
-                :disabled="syncing === 'strava' || isStravaDisabled"
-                class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-                :class="{ 'opacity-50 cursor-not-allowed': isStravaDisabled }"
-                @click="syncIntegration('strava')"
-              >
-                <span v-if="syncing === 'strava'">Syncing...</span>
-                <span v-else>Sync Now</span>
-              </button>
-            </UTooltip>
-          </div>
-
-          <!-- Garmin Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700"
-                >
-                  <img
-                    src="/images/logos/Garmin-Tag-black-high-res.png"
-                    alt="Garmin Logo"
-                    class="w-6 h-6 object-contain dark:hidden"
-                  />
-                  <img
-                    src="/images/logos/Garmin-Tag-white-high-res.png"
-                    alt="Garmin Logo"
-                    class="w-6 h-6 object-contain hidden dark:block"
-                  />
-                </div>
-                <div>
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Garmin</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">Activity & wellness data</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-2 text-sm">
-              <p class="text-gray-600 dark:text-gray-400">
-                Garmin data is automatically synced through your Intervals.icu connection.
-              </p>
-            </div>
-
-            <UButton
-              to="/settings/apps"
-              color="neutral"
-              variant="outline"
-              class="mt-4 w-full font-bold justify-center rounded-lg"
-            >
-              Settings
-            </UButton>
-          </div>
-
-          <!-- Hevy Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700"
-                >
-                  <img
-                    src="/images/logos/hevy-icon.png"
-                    alt="Hevy Logo"
-                    class="w-6 h-6 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Hevy</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">Strength workouts</p>
-                </div>
-              </div>
-              <div v-if="hevyStatus" :class="getStatusClass(hevyStatus.syncStatus)">
-                {{ hevyStatus.syncStatus || 'Not Connected' }}
-              </div>
-            </div>
-
-            <div v-if="hevyStatus" class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Last Sync:</span>
-                <span class="text-gray-900 dark:text-white">
-                  {{ hevyStatus.lastSyncAt ? formatDate(hevyStatus.lastSyncAt) : 'Never' }}
-                </span>
-              </div>
-              <div v-if="hevyStatus.errorMessage" class="text-red-600 text-xs mt-2">
-                {{ hevyStatus.errorMessage }}
-              </div>
-            </div>
-
-            <UButton
-              v-if="!hevyStatus"
-              to="/settings/apps"
-              color="neutral"
-              variant="solid"
-              class="mt-4 w-full font-bold justify-center rounded-lg"
-            >
-              Configure
-            </UButton>
-            <button
-              v-else
-              :disabled="syncing === 'hevy'"
-              class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              @click="syncIntegration('hevy')"
-            >
-              <span v-if="syncing === 'hevy'">Syncing...</span>
-              <span v-else>Sync Now</span>
-            </button>
-          </div>
-
-          <!-- Withings Card -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 ring-1 ring-gray-200 dark:ring-gray-700"
-                >
-                  <img
-                    src="/images/logos/withings.png"
-                    alt="Withings Logo"
-                    class="w-6 h-6 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Withings</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">Weight & Sleep Tracking</p>
-                </div>
-              </div>
-              <div v-if="withingsStatus" :class="getStatusClass(withingsStatus.syncStatus)">
-                {{ withingsStatus.syncStatus || 'Not Connected' }}
-              </div>
-            </div>
-
-            <div v-if="withingsStatus" class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Last Sync:</span>
-                <span class="text-gray-900 dark:text-white">
-                  {{ withingsStatus.lastSyncAt ? formatDate(withingsStatus.lastSyncAt) : 'Never' }}
-                </span>
-              </div>
-              <div v-if="withingsStatus.errorMessage" class="text-red-600 text-xs mt-2">
-                {{ withingsStatus.errorMessage }}
-              </div>
-            </div>
-
-            <UButton
-              v-if="!withingsStatus"
-              to="/settings/apps"
-              color="neutral"
-              variant="solid"
-              class="mt-4 w-full font-bold justify-center rounded-lg"
-            >
-              Configure
-            </UButton>
-            <button
-              v-else
-              :disabled="syncing === 'withings'"
-              class="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              @click="syncIntegration('withings')"
-            >
-              <span v-if="syncing === 'withings'">Syncing...</span>
-              <span v-else>Sync Now</span>
-            </button>
-          </div>
-        </div>
 
         <!-- Data Summary -->
         <div id="summary" class="scroll-mt-20" />
@@ -1311,22 +932,10 @@
   })
 
   const toast = useToast()
-  const syncing = ref<string | null>(null)
   const loading = ref(true)
   const analyzingWorkouts = ref(false)
   const analyzingNutrition = ref(false)
 
-  const isStravaDisabled = computed(() => {
-    if (import.meta.server) return false
-    return window.location.hostname === 'coachwatts.com'
-  })
-
-  const intervalsStatus = ref<any>(null)
-  const whoopStatus = ref<any>(null)
-  const yazioStatus = ref<any>(null)
-  const withingsStatus = ref<any>(null)
-  const stravaStatus = ref<any>(null)
-  const hevyStatus = ref<any>(null)
   const dataSummary = ref({
     workouts: 0,
     wellness: 0,
@@ -1356,23 +965,6 @@
   const nutritionPage = ref(1)
   const nutritionItemsPerPage = 14
   const nutritionTotalItems = ref(0)
-
-  // Fetch integration status
-  async function fetchStatus() {
-    try {
-      const response: any = await $fetch('/api/integrations/status')
-      const integrations = response.integrations || []
-
-      intervalsStatus.value = integrations.find((i: any) => i.provider === 'intervals')
-      whoopStatus.value = integrations.find((i: any) => i.provider === 'whoop')
-      withingsStatus.value = integrations.find((i: any) => i.provider === 'withings')
-      yazioStatus.value = integrations.find((i: any) => i.provider === 'yazio')
-      stravaStatus.value = integrations.find((i: any) => i.provider === 'strava')
-      hevyStatus.value = integrations.find((i: any) => i.provider === 'hevy')
-    } catch (error) {
-      console.error('Error fetching integration status:', error)
-    }
-  }
 
   // Fetch data summary
   async function fetchDataSummary() {
@@ -1497,100 +1089,6 @@
     }
   }
 
-  // Sync integration
-  async function syncIntegration(provider: string) {
-    syncing.value = provider
-    try {
-      const response: any = await $fetch('/api/integrations/sync', {
-        method: 'POST',
-        body: { provider }
-      })
-
-      // Show success message with job details
-      toast.add({
-        title: 'Sync Started Successfully',
-        description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data sync is now running. Job ID: ${response.jobId?.slice(0, 8)}...`,
-        color: 'success',
-        icon: 'i-heroicons-check-circle'
-      })
-
-      // Update status immediately to show SYNCING state
-      await fetchStatus()
-
-      // Refresh data after a delay to show results
-      setTimeout(async () => {
-        await fetchStatus()
-        await fetchDataSummary()
-        await fetchRecentWorkouts()
-        await fetchFitnessData()
-        await fetchPlannedWorkouts()
-        await fetchEvents()
-        await fetchNutritionData()
-
-        // Show completion notification if successful
-        if (provider === 'intervals' && intervalsStatus.value?.syncStatus === 'SUCCESS') {
-          toast.add({
-            title: 'Sync Completed',
-            description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
-            color: 'success',
-            icon: 'i-heroicons-check-badge'
-          })
-        } else if (provider === 'whoop' && whoopStatus.value?.syncStatus === 'SUCCESS') {
-          toast.add({
-            title: 'Sync Completed',
-            description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
-            color: 'success',
-            icon: 'i-heroicons-check-badge'
-          })
-        } else if (provider === 'withings' && withingsStatus.value?.syncStatus === 'SUCCESS') {
-          toast.add({
-            title: 'Sync Completed',
-            description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
-            color: 'success',
-            icon: 'i-heroicons-check-badge'
-          })
-        } else if (provider === 'yazio' && yazioStatus.value?.syncStatus === 'SUCCESS') {
-          toast.add({
-            title: 'Sync Completed',
-            description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} data has been successfully synced`,
-            color: 'success',
-            icon: 'i-heroicons-check-badge'
-          })
-        } else if (provider === 'strava' && stravaStatus.value?.syncStatus === 'SUCCESS') {
-          toast.add({
-            title: 'Sync Completed',
-            description: 'Strava data has been successfully synced',
-            color: 'success',
-            icon: 'i-heroicons-check-badge'
-          })
-        } else if (provider === 'hevy' && hevyStatus.value?.syncStatus === 'SUCCESS') {
-          toast.add({
-            title: 'Sync Completed',
-            description: 'Hevy data has been successfully synced',
-            color: 'success',
-            icon: 'i-heroicons-check-badge'
-          })
-        }
-      }, 5000)
-    } catch (error: any) {
-      const errorMessage = error.data?.message || error.message
-      const isTriggerError = errorMessage.includes('Trigger.dev')
-
-      toast.add({
-        title: 'Sync Failed',
-        description: isTriggerError
-          ? `${errorMessage}`
-          : `Error syncing ${provider}: ${errorMessage}`,
-        color: 'error',
-        icon: 'i-heroicons-exclamation-circle'
-      })
-
-      console.error(`Sync error for ${provider}:`, error)
-    } finally {
-      syncing.value = null
-    }
-  }
-
   // Utility functions
   function formatDate(date: string | Date) {
     // Parse date in UTC to avoid timezone conversion issues
@@ -1610,14 +1108,6 @@
       return `${hours}h ${minutes}m`
     }
     return `${minutes}m`
-  }
-
-  function getStatusClass(status: string | undefined) {
-    const baseClass = 'px-3 py-1 rounded-full text-xs font-semibold'
-    if (status === 'SUCCESS') return `${baseClass} bg-green-100 text-green-800`
-    if (status === 'SYNCING') return `${baseClass} bg-blue-100 text-blue-800`
-    if (status === 'FAILED') return `${baseClass} bg-red-100 text-red-800`
-    return `${baseClass} bg-gray-100 text-gray-800`
   }
 
   function getSourceBadgeClass(source: string) {
@@ -1794,7 +1284,6 @@
 
   // Load data on mount
   onMounted(async () => {
-    await fetchStatus()
     await fetchDataSummary()
     await fetchRecentWorkouts()
     await fetchFitnessData()
