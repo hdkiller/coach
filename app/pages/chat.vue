@@ -112,12 +112,21 @@
   const onToolApproval = (approval: { approvalId: string; approved: boolean; result?: string }) => {
     console.log('[Chat] Tool Approval:', approval)
 
-    // Fallback: Append message manually via sendMessage or append if available
+    // Use addToolResult to ensure proper state management in AI SDK
+    if (typeof (chat as any).addToolResult === 'function') {
+      console.log('[Chat] Calling addToolResult')
+      ;(chat as any).addToolResult({
+        toolCallId: approval.approvalId, // Map approvalId back to toolCallId
+        result: approval.result || (approval.approved ? 'Approved' : 'Denied')
+      })
+      return
+    }
+
+    // Fallback: Append message manually
     const responsePart = {
-      type: 'tool-approval-response',
-      approvalId: approval.approvalId, // MUST use approvalId for SDK validation
-      approved: approval.approved,
-      result: approval.result
+      type: 'tool-result', // Use standard tool-result
+      toolCallId: approval.approvalId,
+      result: approval.result || (approval.approved ? 'Approved' : 'Denied')
     }
 
     const message = {
@@ -125,18 +134,15 @@
       content: [responsePart]
     }
 
-    console.log('[Chat] Sending tool approval message:', message)
+    console.log('[Chat] Sending tool result message (fallback):', message)
 
-    // Prefer append if available (standard in some SDK wrappers)
     if (typeof (chat as any).append === 'function') {
       ;(chat as any).append(message)
-    }
-    // Fallback to sendMessage if append is missing (legacy/custom wrappers)
-    else if (typeof (chat as any).sendMessage === 'function') {
+    } else if (typeof (chat as any).sendMessage === 'function') {
       ;(chat as any).sendMessage(message)
     } else {
       console.error(
-        '[Chat] No suitable method found to send tool approval. Chat object keys:',
+        '[Chat] No suitable method found to send tool result. Chat object keys:',
         Object.keys(chat)
       )
     }
@@ -171,7 +177,12 @@
       // Transform DB messages to AI SDK format (UIMessage)
       const transformedMessages = loadedMessages.map((msg) => ({
         id: msg.id,
-        role: msg.senderId === 'ai_agent' ? 'assistant' : 'user',
+        role:
+          msg.senderId === 'ai_agent'
+            ? 'assistant'
+            : msg.senderId === 'system_tool'
+              ? 'tool'
+              : 'user',
         content: msg.content,
         parts: msg.parts || [{ type: 'text', text: msg.content }],
         createdAt: new Date(msg.createdAt),
