@@ -54,6 +54,17 @@
       refreshRuns()
     },
     onError: (error) => {
+      if (error.message && error.message.includes('No tool invocation found')) {
+        console.warn(
+          '[Chat] Suppressing expected tool invocation error. Refreshing chat to get response.'
+        )
+        // The backend executed successfully, but the frontend stream parser got confused.
+        // We can just reload the messages to show the result.
+        setTimeout(() => {
+          if (currentRoomId.value) loadMessages(currentRoomId.value)
+        }, 1000)
+        return
+      }
       console.error('[Chat] onError triggered:', error)
     },
     onToolCall: (toolCall) => {
