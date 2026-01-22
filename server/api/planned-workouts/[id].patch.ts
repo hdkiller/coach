@@ -1,6 +1,6 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
 import { syncPlannedWorkoutToIntervals } from '../../utils/intervals-sync'
+import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -78,21 +78,12 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Check if workout exists and belongs to user
-    const existing = await prisma.plannedWorkout.findUnique({
-      where: { id: workoutId }
-    })
+    const existing = await plannedWorkoutRepository.getById(workoutId, userId)
 
     if (!existing) {
       throw createError({
         statusCode: 404,
         message: 'Workout not found'
-      })
-    }
-
-    if (existing.userId !== userId) {
-      throw createError({
-        statusCode: 403,
-        message: 'Not authorized to update this workout'
       })
     }
 
@@ -106,20 +97,17 @@ export default defineEventHandler(async (event) => {
     }
 
     // Update workout locally first (optimistic update)
-    const updated = await prisma.plannedWorkout.update({
-      where: { id: workoutId },
-      data: {
-        ...(forcedDate && { date: forcedDate }),
-        ...(body.title && { title: body.title }),
-        ...(body.description !== undefined && { description: body.description }),
-        ...(body.type && { type: body.type }),
-        ...(body.durationSec && { durationSec: body.durationSec }),
-        ...(body.duration_minutes && { durationSec: body.duration_minutes * 60 }),
-        ...(body.tss !== undefined && { tss: body.tss }),
-        ...(body.workIntensity !== undefined && { workIntensity: body.workIntensity }),
-        modifiedLocally: true,
-        syncStatus: 'PENDING'
-      }
+    const updated = await plannedWorkoutRepository.update(workoutId, userId, {
+      ...(forcedDate && { date: forcedDate }),
+      ...(body.title && { title: body.title }),
+      ...(body.description !== undefined && { description: body.description }),
+      ...(body.type && { type: body.type }),
+      ...(body.durationSec && { durationSec: body.durationSec }),
+      ...(body.duration_minutes && { durationSec: body.duration_minutes * 60 }),
+      ...(body.tss !== undefined && { tss: body.tss }),
+      ...(body.workIntensity !== undefined && { workIntensity: body.workIntensity }),
+      modifiedLocally: true,
+      syncStatus: 'PENDING'
     })
 
     // Determine if it's a local-only workout that needs CREATE instead of UPDATE
@@ -147,18 +135,15 @@ export default defineEventHandler(async (event) => {
     )
 
     // Update sync status based on result
-    const finalWorkout = await prisma.plannedWorkout.update({
-      where: { id: workoutId },
-      data: {
-        syncStatus: syncResult.synced ? 'SYNCED' : 'PENDING',
-        lastSyncedAt: syncResult.synced ? new Date() : undefined,
-        syncError: syncResult.error || null,
-        // If it was a CREATE operation, update the externalId with the real one from Intervals.icu
-        ...(syncResult.synced &&
-          syncResult.result?.id && {
-            externalId: String(syncResult.result.id)
-          })
-      }
+    const finalWorkout = await plannedWorkoutRepository.update(workoutId, userId, {
+      syncStatus: syncResult.synced ? 'SYNCED' : 'PENDING',
+      lastSyncedAt: syncResult.synced ? new Date() : undefined,
+      syncError: syncResult.error || null,
+      // If it was a CREATE operation, update the externalId with the real one from Intervals.icu
+      ...(syncResult.synced &&
+        syncResult.result?.id && {
+          externalId: String(syncResult.result.id)
+        })
     })
 
     return {

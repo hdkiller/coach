@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { createIntervalsPlannedWorkout } from '../../utils/intervals'
+import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -100,19 +101,17 @@ export default defineEventHandler(async (event) => {
     })
 
     // Create planned workout in our database with the Intervals.icu ID
-    const plannedWorkout = await prisma.plannedWorkout.create({
-      data: {
-        userId,
-        externalId: String(intervalsWorkout.id),
-        date: forcedDate,
-        title: body.title,
-        description: body.description || '',
-        type: body.type || 'Ride',
-        durationSec: body.durationSec || 3600,
-        tss: body.tss,
-        completed: false,
-        rawJson: intervalsWorkout
-      }
+    const plannedWorkout = await plannedWorkoutRepository.create({
+      userId,
+      externalId: String(intervalsWorkout.id),
+      date: forcedDate,
+      title: body.title,
+      description: body.description || '',
+      type: body.type || 'Ride',
+      durationSec: body.durationSec || 3600,
+      tss: body.tss,
+      completed: false,
+      rawJson: intervalsWorkout
     })
 
     return {

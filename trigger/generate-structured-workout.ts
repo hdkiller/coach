@@ -243,12 +243,12 @@ export const generateStructuredWorkoutTask = task({
     
     OUTPUT JSON format matching the schema.`
 
-    const structure = await generateStructuredAnalysis(prompt, workoutStructureSchema, 'flash', {
+    const structure = (await generateStructuredAnalysis(prompt, workoutStructureSchema, 'flash', {
       userId: workout.userId,
       operation: 'generate_structured_workout',
       entityType: 'PlannedWorkout',
       entityId: plannedWorkoutId
-    })
+    })) as any
 
     // Calculate total metrics from steps
     let totalDistance = 0

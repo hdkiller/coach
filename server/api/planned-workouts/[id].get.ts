@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
+import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -61,21 +61,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const workout = await prisma.plannedWorkout.findUnique({
-      where: { id: workoutId }
-    })
+    const workout = await plannedWorkoutRepository.getById(workoutId, userId)
 
     if (!workout) {
       throw createError({
         statusCode: 404,
         message: 'Workout not found'
-      })
-    }
-
-    if (workout.userId !== userId) {
-      throw createError({
-        statusCode: 403,
-        message: 'Not authorized to view this workout'
       })
     }
 

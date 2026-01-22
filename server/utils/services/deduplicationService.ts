@@ -472,6 +472,27 @@ export const deduplicationService = {
       }
     }
 
+    // Exercise Transfer Logic
+    // If best workout has no exercises, check if a duplicate does and transfer them
+    if (!bestWorkout.exercises || bestWorkout.exercises.length === 0) {
+      // Find a donor with exercises
+      const donorWithExercises = duplicatesList.find((w) => w.exercises && w.exercises.length > 0)
+      if (donorWithExercises) {
+        logger.log(
+          `Transferring exercises from duplicate ${donorWithExercises.id} to best workout ${bestWorkout.id}`
+        )
+
+        // Move the exercise records to the new workout ID
+        await prisma.workoutExercise.updateMany({
+          where: { workoutId: donorWithExercises.id },
+          data: { workoutId: bestWorkout.id }
+        })
+
+        // Update local state (reference only)
+        bestWorkout.exercises = donorWithExercises.exercises
+      }
+    }
+
     // Apply updates if any
     if (Object.keys(updates).length > 0) {
       await workoutRepository.update(group.bestWorkoutId, updates)

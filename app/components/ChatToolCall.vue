@@ -4,6 +4,8 @@
     args: Record<string, any>
     response: any
     timestamp: string
+    status?: 'loading' | 'success' | 'error'
+    error?: string // Add optional error field
   }
 
   const props = defineProps<{
@@ -28,12 +30,18 @@
 
   // Check if response has error
   const hasError = computed(() => {
+    if (props.toolCall.status === 'error') return true
+    if (props.toolCall.error) return true
     return (
       props.toolCall.response &&
       typeof props.toolCall.response === 'object' &&
       'error' in props.toolCall.response
     )
   })
+
+  const isLoading = computed(
+    () => props.toolCall.status === 'loading' || (!props.toolCall.response && !hasError.value)
+  )
 
   // Get icon for tool
   const getToolIcon = (name: string) => {
@@ -60,16 +68,24 @@
 
   // Format JSON for display
   const formatJson = (obj: any) => {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      const { _system_note, ...rest } = obj
+      return JSON.stringify(rest, null, 2)
+    }
     return JSON.stringify(obj, null, 2)
   }
 
   // Truncate response for preview
   const responsePreview = computed(() => {
+    if (isLoading.value) return 'Executing tool...'
+
     if (hasError.value) {
-      return props.toolCall.response.error
+      return props.toolCall.error || props.toolCall.response?.error || 'Failed to execute tool'
     }
 
     const response = props.toolCall.response
+    if (!response) return 'No response'
+
     if (typeof response === 'string') {
       return response.length > 100 ? response.substring(0, 100) + '...' : response
     }
@@ -85,7 +101,10 @@
       if (response.success) {
         return 'Operation successful'
       }
-      return `${Object.keys(response).length} fields returned`
+
+      // Filter out _system_note for fields count
+      const keys = Object.keys(response).filter((k) => k !== '_system_note')
+      return `${keys.length} fields returned`
     }
 
     return String(response)
@@ -99,18 +118,20 @@
     <!-- Tool Call Header -->
     <button
       class="w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-      :class="{ 'border-b border-gray-200 dark:border-gray-700': isExpanded }"
+      :class="{ 'border-b border-gray-200 dark:border-gray-700': isExpanded && !isLoading }"
       @click="isExpanded = !isExpanded"
     >
       <!-- Icon -->
       <UIcon
-        :name="getToolIcon(toolCall.name)"
+        :name="isLoading ? 'i-heroicons-arrow-path' : getToolIcon(toolCall.name)"
         class="w-5 h-5 flex-shrink-0 mt-0.5"
-        :class="hasError ? 'text-red-500' : 'text-blue-500'"
+        :class="[
+          hasError ? 'text-red-500' : isLoading ? 'text-gray-400 animate-spin' : 'text-blue-500'
+        ]"
       />
 
       <!-- Main Content -->
-      <div class="flex-1 min-w-0 flex flex-col items-start">
+      <div class="flex-1 min-w-0 flex flex-col items-start text-left">
         <div class="flex items-center justify-between w-full gap-2">
           <span
             class="font-medium text-sm truncate"
@@ -135,15 +156,16 @@
 
       <!-- Chevron -->
       <UIcon
+        v-if="!isLoading"
         :name="isExpanded ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
         class="w-4 h-4 text-gray-400 flex-shrink-0 mt-1"
       />
     </button>
 
     <!-- Expanded Details -->
-    <div v-if="isExpanded" class="p-4 space-y-4">
+    <div v-if="isExpanded && !isLoading" class="p-4 space-y-4">
       <!-- Arguments -->
-      <div v-if="Object.keys(toolCall.args).length > 0">
+      <div v-if="toolCall.args && Object.keys(toolCall.args).length > 0">
         <h4
           class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2"
         >
@@ -160,7 +182,7 @@
       </div>
 
       <!-- Response -->
-      <div>
+      <div v-if="toolCall.response">
         <h4
           class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2"
         >

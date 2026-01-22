@@ -82,20 +82,71 @@ export default defineEventHandler(async (event) => {
   })
 
   // Return messages in AI SDK v5 format
-  return messages.map((msg) => ({
-    id: msg.id,
-    role: msg.senderId === 'ai_agent' ? ('assistant' as const) : ('user' as const),
-    parts: [
-      {
-        type: 'text' as const,
-        id: `text-${msg.id}`,
+  return messages.map((msg) => {
+    const parts: any[] = []
+
+    // Add text part if content exists
+    if (msg.content) {
+      parts.push({
+        type: 'text',
         text: msg.content
-      }
-    ],
-    metadata: {
-      ...((msg.metadata as any) || {}),
-      createdAt: msg.createdAt,
-      senderId: msg.senderId
+      })
     }
-  }))
+
+    // Add tool invocation parts from metadata
+    const metadata = (msg.metadata as any) || {}
+
+    // Add tool approvals (pending)
+    if (metadata.toolApprovals && Array.isArray(metadata.toolApprovals)) {
+      metadata.toolApprovals.forEach((approval: any) => {
+        parts.push({
+          type: 'tool-approval-request',
+          approvalId: approval.approvalId || approval.toolCallId, // Prefer stored approvalId
+          toolCallId: approval.toolCallId,
+          toolCall: {
+            toolName: approval.name,
+            args: approval.args,
+            toolCallId: approval.toolCallId
+          }
+        })
+      })
+    }
+
+    // Add tool response from metadata (for tool-approval-response or tool results)
+    if (metadata.toolResponse && Array.isArray(metadata.toolResponse)) {
+      metadata.toolResponse.forEach((part: any) => {
+        parts.push(part)
+      })
+    }
+
+    if (metadata.toolCalls && Array.isArray(metadata.toolCalls)) {
+      metadata.toolCalls.forEach((tc: any) => {
+        parts.push({
+          type: 'tool-invocation',
+          toolCallId: tc.toolCallId || `call-${Math.random().toString(36).substring(7)}`,
+          toolName: tc.name,
+          args: tc.args,
+          state: 'result',
+          result: tc.response
+        })
+      })
+    }
+
+    return {
+      id: msg.id,
+      role:
+        msg.senderId === 'ai_agent'
+          ? 'assistant'
+          : msg.senderId === 'system_tool'
+            ? 'tool'
+            : 'user',
+      parts,
+      content: msg.content || '', // Ensure top-level content is also set for compatibility
+      metadata: {
+        ...metadata,
+        createdAt: msg.createdAt,
+        senderId: msg.senderId
+      }
+    }
+  })
 })

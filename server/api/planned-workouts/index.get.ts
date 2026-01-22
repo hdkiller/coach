@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
+import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -73,25 +73,13 @@ export default defineEventHandler(async (event) => {
   const endDate = query.endDate ? new Date(query.endDate as string) : undefined
   const independentOnly = query.independentOnly === 'true'
 
-  const where: any = {
-    userId: (session.user as any).id,
-    date: {
-      gte: startDate
-    }
-  }
+  const userId = (session.user as any).id
 
-  if (endDate) {
-    where.date.lte = endDate
-  }
-
-  if (independentOnly) {
-    where.trainingWeekId = null
-  }
-
-  const plannedWorkouts = await prisma.plannedWorkout.findMany({
-    where,
-    orderBy: { date: 'asc' },
-    take: limit
+  const plannedWorkouts = await plannedWorkoutRepository.list(userId, {
+    startDate,
+    endDate,
+    independentOnly,
+    limit
   })
 
   return plannedWorkouts

@@ -26,7 +26,13 @@
     },
     "chrome-devtools": {
       "command": "npx",
-      "args": ["chrome-devtools-mcp@latest", "--autoConnect", "--channel=beta"]
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--autoConnect",
+        "--channel=beta",
+        "--userDataDir",
+        "/Users/hdkiller/.chrome-profile-beta"
+      ]
     },
     "analytics-mcp": {
       "command": "pipx",

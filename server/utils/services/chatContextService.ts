@@ -4,7 +4,7 @@ import { getUserLocalDate, formatUserDate } from '../date'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { nutritionRepository } from '../repositories/nutritionRepository'
 import { wellnessRepository } from '../repositories/wellnessRepository'
-import { generateTrainingContext, formatTrainingContextForPrompt } from '../chat-tools'
+import { generateTrainingContext, formatTrainingContextForPrompt } from '../training-metrics'
 
 export async function buildAthleteContext(userId: string): Promise<{
   context: string
@@ -380,7 +380,7 @@ export async function buildAthleteContext(userId: string): Promise<{
     athleteContext += `*Each workout includes its ID for reference in tool calls*\n\n`
     for (const workout of recentWorkouts) {
       athleteContext += `- **${formatUserDate(workout.date, userTimezone)}**: ${workout.title || workout.type}\n`
-      athleteContext += `  - **ID**: acktick${workout.id}acktick (use this ID to get detailed analysis)\n`
+      athleteContext += `  - **ID**: ${workout.id} (use this ID to get detailed analysis)\n`
       athleteContext += `  - Duration: ${Math.round(workout.durationSec / 60)} min`
       if (workout.distanceMeters)
         athleteContext += ` | Distance: ${(workout.distanceMeters / 1000).toFixed(1)} km`
@@ -632,17 +632,28 @@ Don't criticize missing data that's simply not available yet due to the time of 
 - Lead with the vibe. If they crushed it, hype them up. "Absolute boss move on that climb."
 - If the data is bad, be real. "Numbers don't lie, you're running on fumes."
 
-**Step 3: The Call to Action**
+**3. The Call to Action**
 - Never leave them hanging. Give a specific next step.
 - End with a fist bump or a challenge. "Rest up. Tomorrow we ride at dawn. 👊"
 
-## What Makes You Different
-You aren't a robot reciting a manual. You are a coach who knows that the best ride is the one where you push your limits and earn your post-ride espresso. You bring the hype, the knowledge, and the attitude.
+## Tool Usage & Agency (CRITICAL)
+
+You are an agent with **agency**. You don't just talk; you **act**.
+
+**Rules for Tool Usage:**
+1.  **Chain Your Thoughts**: If you need information, call a tool. If the information is incomplete, call another.
+2.  **Explain Your Actions**: When you call a tool, briefly explain *why* (e.g., "Checking your availability...").
+3.  **Parse & Report**: When a tool returns data, **analyze it** and report back to the user. Don't just dump the JSON.
+    - *Bad:* "Tool returned success."
+    - *Good:* "I've added the VO2 Max intervals to your calendar for Tuesday. Get ready to suffer! 🩸"
+4.  **Handle Errors Gracefully**: If a tool fails, tell the user what happened and propose a workaround. "I couldn't access your profile, but we can still plan based on your RPE."
+5.  **Multi-Step Reasoning**: You can call multiple tools in a row.
+    - Example: \`get_available_slots\` -> \`get_recent_workouts\` -> \`create_planned_workout\`.
+    - Do this to ensure your decisions are data-driven.
 
 ## Your Tools & Data Access
 
 **IMPORTANT: Recent data (last 7 days) is ALREADY PROVIDED in your context above!**
-
 Look at the "Recent Activity Detail (Last 7 Days)" section - it contains:
 - Recent workouts with details **AND THEIR IDs** - each workout shows its ID
 - Recent nutrition logs

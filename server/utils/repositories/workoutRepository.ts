@@ -233,5 +233,14 @@ export const workoutRepository = {
       where,
       data
     })
+  },
+
+  /**
+   * Delete a workout by ID
+   */
+  async delete(id: string, userId: string) {
+    return prisma.workout.delete({
+      where: { id, userId }
+    })
   }
 }

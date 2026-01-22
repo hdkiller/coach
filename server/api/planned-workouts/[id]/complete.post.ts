@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
-import { prisma } from '../../../utils/db'
+import { plannedWorkoutRepository } from '../../../utils/repositories/plannedWorkoutRepository'
+import { workoutRepository } from '../../../utils/repositories/workoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -74,9 +75,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Check if planned workout exists and belongs to user
-    const plannedWorkout = await prisma.plannedWorkout.findUnique({
-      where: { id: plannedWorkoutId }
-    })
+    const plannedWorkout = await plannedWorkoutRepository.getById(plannedWorkoutId, userId)
 
     if (!plannedWorkout) {
       throw createError({
@@ -85,20 +84,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    if (plannedWorkout.userId !== userId) {
-      throw createError({
-        statusCode: 403,
-        message: 'Not authorized to update this planned workout'
-      })
-    }
-
     let updatedWorkout = null
 
     if (body.workoutId) {
       // Check if workout exists and belongs to user
-      const workout = await prisma.workout.findUnique({
-        where: { id: body.workoutId }
-      })
+      const workout = await workoutRepository.getById(body.workoutId, userId)
 
       if (!workout) {
         throw createError({
@@ -107,29 +97,16 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      if (workout.userId !== userId) {
-        throw createError({
-          statusCode: 403,
-          message: 'Not authorized to link to this workout'
-        })
-      }
-
       // Update workout to link to planned workout
-      updatedWorkout = await prisma.workout.update({
-        where: { id: body.workoutId },
-        data: {
-          plannedWorkoutId: plannedWorkoutId
-        }
+      updatedWorkout = await workoutRepository.update(body.workoutId, {
+        plannedWorkout: { connect: { id: plannedWorkoutId } }
       })
     }
 
     // Update planned workout to mark as completed
-    const updatedPlannedWorkout = await prisma.plannedWorkout.update({
-      where: { id: plannedWorkoutId },
-      data: {
-        completed: true,
-        completionStatus: 'COMPLETED'
-      }
+    const updatedPlannedWorkout = await plannedWorkoutRepository.update(plannedWorkoutId, userId, {
+      completed: true,
+      completionStatus: 'COMPLETED'
     })
 
     return {

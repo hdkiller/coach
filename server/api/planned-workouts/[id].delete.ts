@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { deleteIntervalsPlannedWorkout } from '../../utils/intervals'
+import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -58,21 +59,12 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Check if workout belongs to user
-    const workout = await prisma.plannedWorkout.findUnique({
-      where: { id: workoutId }
-    })
+    const workout = await plannedWorkoutRepository.getById(workoutId, userId)
 
     if (!workout) {
       throw createError({
         statusCode: 404,
         message: 'Workout not found'
-      })
-    }
-
-    if (workout.userId !== userId) {
-      throw createError({
-        statusCode: 403,
-        message: 'Not authorized to delete this workout'
       })
     }
 
@@ -95,9 +87,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Delete the workout from our database
-    await prisma.plannedWorkout.delete({
-      where: { id: workoutId }
-    })
+    await plannedWorkoutRepository.delete(workoutId, userId)
 
     return {
       success: true,

@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export type GeminiModel = 'flash' | 'pro'
 
-const MODEL_NAMES = {
+export const MODEL_NAMES = {
   flash: 'gemini-flash-latest',
   pro: 'gemini-3-pro-preview' // Using Gemini 1.5 Pro for advanced reasoning
 } as const
