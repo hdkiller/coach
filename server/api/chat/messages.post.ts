@@ -128,7 +128,7 @@ export default defineEventHandler(async (event) => {
       ...toolMessages.map((m: any) => ({
         role: 'tool',
 
-        content: m.content
+        content: m.content || m.parts // Fallback to parts if content is empty (loaded from DB)
       }))
     ] as any
 
