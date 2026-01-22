@@ -29,12 +29,7 @@
           <div
             class="flex flex-col justify-between text-xs text-muted w-8 sm:w-12 pr-1 sm:pr-2 text-right h-[140px] sm:h-[200px]"
           >
-            <span>120%</span>
-            <span>100%</span>
-            <span>80%</span>
-            <span>60%</span>
-            <span>40%</span>
-            <span>20%</span>
+            <span v-for="label in yAxisLabels" :key="label">{{ label }}%</span>
           </div>
 
           <!-- Chart area -->
@@ -111,10 +106,16 @@
               />
             </svg>
           </div>
+          <!-- Cadence Y-axis labels -->
+          <div
+            class="flex flex-col justify-between text-xs text-muted w-8 sm:w-12 pl-1 sm:pl-2 text-left h-[140px] sm:h-[200px]"
+          >
+            <span v-for="label in cadenceAxisLabels" :key="label">{{ label }}</span>
+          </div>
         </div>
 
         <!-- X-axis (time) -->
-        <div class="flex mt-2 ml-12">
+        <div class="flex mt-2 ml-12 mr-12">
           <div class="flex-1 flex justify-between text-xs text-muted">
             <span>0:00</span>
             <span>{{ formatDuration(totalDuration / 4) }}</span>
@@ -140,7 +141,7 @@
                 <div class="flex items-center gap-2 min-w-0">
                   <div
                     class="w-3 h-3 rounded-full flex-shrink-0"
-                    :style="{ backgroundColor: getStepColor(step.type) }"
+                    :style="{ backgroundColor: getStepColor(step) }"
                   />
                   <span class="text-sm font-medium truncate">{{ step.name }}</span>
                 </div>
@@ -202,7 +203,7 @@
             >
               <div
                 class="w-3 h-3 rounded-full flex-shrink-0 mt-1"
-                :style="{ backgroundColor: getStepColor(step.type) }"
+                :style="{ backgroundColor: getStepColor(step) }"
               />
               <div class="min-w-0">
                 <div class="text-sm font-medium truncate">{{ step.name }}</div>
@@ -340,7 +341,43 @@
 
   const maxPower = computed(() => {
     if (!props.workout?.steps || props.workout.steps.length === 0) return 0
-    return Math.max(...props.workout.steps.map((step: any) => step.power?.value || 0))
+    return Math.max(
+      ...props.workout.steps.map((step: any) => {
+        if (step.power?.range) {
+          return step.power.range.end
+        }
+        return step.power?.value || 0
+      })
+    )
+  })
+
+  const chartMaxPower = computed(() => {
+    const p = Math.max(maxPower.value, 1.2) // Ensure at least 120%
+    return Math.ceil(p / 0.2) * 0.2 // Round up to nearest 20%
+  })
+
+  const yAxisLabels = computed(() => {
+    const labels = []
+    for (let i = 6; i > 0; i--) {
+      labels.push(Math.round((chartMaxPower.value / 6) * i * 100))
+    }
+    return labels
+  })
+
+  const chartMaxCadence = computed(() => {
+    if (!props.workout?.steps) return 120
+    const maxCadenceVal = Math.max(...props.workout.steps.map((s: any) => s.cadence || 0))
+    const c = Math.max(maxCadenceVal, 120) // Ensure at least 120 RPM
+    return Math.ceil(c / 20) * 20 // Round up to nearest 20 RPM
+  })
+
+  const cadenceAxisLabels = computed(() => {
+    const numLabels = 5
+    const labels = []
+    for (let i = numLabels - 1; i >= 0; i--) {
+      labels.push(Math.round((chartMaxCadence.value / (numLabels - 1)) * i))
+    }
+    return labels
   })
 
   const cadencePath = computed(() => {
@@ -350,13 +387,12 @@
     let currentX = 0
     const chartWidth = 1000 // Virtual coordinate system
     const chartHeight = 100 // Virtual coordinate system
-    const maxCadence = 120
 
     props.workout.steps.forEach((step: any, index: number) => {
       const stepWidth =
         ((step.durationSeconds || step.duration || 0) / totalDuration.value) * chartWidth
       const cadence = step.cadence || 0
-      const y = chartHeight - Math.min(cadence / maxCadence, 1) * chartHeight
+      const y = chartHeight - Math.min(cadence / chartMaxCadence.value, 1) * chartHeight
 
       if (index === 0) {
         path += `M ${currentX} ${y} `
@@ -423,8 +459,8 @@
   }
 
   function getStepBarStyle(step: any) {
-    const color = getStepColor(step.type)
-    const maxScale = 1.2 // 120% FTP is top of chart
+    const color = getStepColor(step)
+    const maxScale = chartMaxPower.value
 
     if (step.power?.range) {
       // Ramp logic
@@ -448,8 +484,7 @@
   }
 
   function getStepTooltipBottom(step: any): number {
-    const maxScale = 1.2 // 120% FTP is top of chart
-
+    const maxScale = chartMaxPower.value
     if (step.power?.range) {
       // Ramp logic - position at the average height of the ramp
       const startH = Math.min(step.power.range.start / maxScale, 1) * 100
@@ -477,14 +512,13 @@
     return Math.round((step.power?.value || 0) * ftp)
   }
 
-  function getStepColor(type: string): string {
-    const colors: Record<string, string> = {
-      Warmup: '#10b981', // green
-      Active: '#f59e0b', // amber
-      Rest: '#6366f1', // indigo
-      Cooldown: '#06b6d4' // cyan
-    }
-    return colors[type] || '#9ca3af' // gray default
+  function getStepColor(step: any): string {
+    const val = step.power?.range
+      ? (step.power.range.start + step.power.range.end) / 2
+      : step.power?.value || 0
+
+    const zone = zoneDistribution.value.find((z) => val <= z.max)
+    return zone ? zone.color : '#9ca3af'
   }
 
   function formatDuration(seconds: number): string {
