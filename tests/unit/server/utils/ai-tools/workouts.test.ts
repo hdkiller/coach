@@ -66,7 +66,7 @@ describe('workoutTools', () => {
     })
   })
 
-  describe('get_activity_details', () => {
+  describe('get_workout_details', () => {
     it('should return workout details when found', async () => {
       const mockWorkout = {
         id: 'w1',
@@ -78,7 +78,7 @@ describe('workoutTools', () => {
 
       vi.mocked(workoutRepository.getById).mockResolvedValue(mockWorkout as any)
 
-      const result = await tools.get_activity_details.execute(
+      const result = await tools.get_workout_details.execute(
         { workout_id: 'w1' },
         { toolCallId: '1', messages: [] }
       )
@@ -95,7 +95,7 @@ describe('workoutTools', () => {
     it('should return error when workout not found', async () => {
       vi.mocked(workoutRepository.getById).mockResolvedValue(null)
 
-      const result = await tools.get_activity_details.execute(
+      const result = await tools.get_workout_details.execute(
         { workout_id: 'w1' },
         { toolCallId: '1', messages: [] }
       )
