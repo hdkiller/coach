@@ -25,19 +25,19 @@
   const getApprovalResult = (approvalId: string) => {
     // Iterate through all messages (including hidden tool messages)
     for (const msg of props.messages) {
-      if (msg.role === 'tool' && msg.content) {
-        // If content is array (SDK format)
-        if (Array.isArray(msg.content)) {
-          const part = msg.content.find(
-            (p: any) =>
-              (p.type === 'tool-result' || p.type === 'tool-approval-response') &&
-              (p.toolCallId === approvalId || p.approvalId === approvalId)
-          )
-          if (part) {
-            return part.result || (part.approved ? 'Approved' : 'Denied')
-          }
+      if (msg.role === 'tool') {
+        // Check parts (standard SDK/hydration) or content (if array)
+        const parts = msg.parts || (Array.isArray(msg.content) ? msg.content : [])
+
+        const part = parts.find(
+          (p: any) =>
+            (p.type === 'tool-result' || p.type === 'tool-approval-response') &&
+            (p.toolCallId === approvalId || p.approvalId === approvalId)
+        )
+
+        if (part) {
+          return part.result || (part.approved ? 'Approved' : 'Denied')
         }
-        // If content is string (legacy/text) - unlikely for tool results but possible
       }
     }
     return null
