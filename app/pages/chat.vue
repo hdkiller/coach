@@ -112,33 +112,36 @@
   const onToolApproval = (approval: { approvalId: string; approved: boolean; result?: string }) => {
     console.log('[Chat] Tool Approval:', approval)
 
-    // Use addToolResult to ensure proper state management in AI SDK
-    if (typeof (chat as any).addToolResult === 'function') {
-      console.log('[Chat] Calling addToolResult')
-      ;(chat as any).addToolResult({
-        toolCallId: approval.approvalId, // Map approvalId back to toolCallId
+    // Use addToolApprovalResponse if available (specific for approvals)
+    if (typeof (chat as any).addToolApprovalResponse === 'function') {
+      console.log('[Chat] Calling addToolApprovalResponse')
+      ;(chat as any).addToolApprovalResponse({
+        toolCallId: approval.approvalId,
         result: approval.result || (approval.approved ? 'Approved' : 'Denied')
       })
-
-      // DEBUG: Inspect chat object to find trigger method
-      console.log('[Chat DEBUG] Chat object keys:', Object.keys(chat))
-      console.log('[Chat DEBUG] Chat prototype:', Object.getPrototypeOf(chat))
-
-      // Force request if addToolResult doesn't trigger it automatically
-      // Check for common methods in AI SDK classes
-      if (typeof (chat as any).reload === 'function') {
-        console.log('[Chat] Triggering reload() to send approval...')
-        ;(chat as any).reload()
-      } else if (typeof (chat as any).process === 'function') {
-        console.log('[Chat] Triggering process() to send approval...')
-        ;(chat as any).process()
-      } else {
-        console.warn('[Chat] No reload/process method found. Request might hang.')
-      }
-
-      return
+    }
+    // Use addToolResult as fallback or if appropriate
+    else if (typeof (chat as any).addToolResult === 'function') {
+      console.log('[Chat] Calling addToolResult')
+      ;(chat as any).addToolResult({
+        toolCallId: approval.approvalId,
+        result: approval.result || (approval.approved ? 'Approved' : 'Denied')
+      })
     }
 
+    // DEBUG: Inspect chat object to find trigger method
+    console.log('[Chat DEBUG] Chat object keys:', Object.keys(chat))
+
+    // Force request if needed
+    // 'resumeStream' is available on the object per logs
+    if (typeof (chat as any).resumeStream === 'function') {
+      console.log('[Chat] Triggering resumeStream() to send approval...')
+      ;(chat as any).resumeStream()
+    } else {
+      console.warn('[Chat] No resumeStream method found. Request might hang.')
+    }
+
+    return
     // Fallback: Append message manually
     const responsePart = {
       type: 'tool-result', // Use standard tool-result
