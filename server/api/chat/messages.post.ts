@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
       await prisma.chatMessage.create({
         data: {
           id: userMessageId || undefined,
-          content: content || '', // Allow empty string for tool messages
+          content: typeof content === 'string' ? content : '', // Ensure string, never pass array
           roomId,
           senderId: lastMessage.role === 'tool' ? 'system_tool' : userId, // Distinguish tool responses
           files: files || undefined,
@@ -73,9 +73,18 @@ export default defineEventHandler(async (event) => {
           metadata
         }
       })
-    } catch (err) {
+    } catch (err: any) {
       // If ID collision occurs, it's a duplicate, we can ignore
-      console.warn('[Chat] Message save skipped (likely duplicate ID):', userMessageId)
+      if (err.code === 'P2002') {
+        console.warn('[Chat] Message save skipped (duplicate ID):', userMessageId)
+      } else {
+        console.error('[Chat] Message save failed:', err)
+        console.error('Message Data:', {
+          id: userMessageId,
+          role: lastMessage.role,
+          contentLength: content?.length
+        })
+      }
     }
   }
 
