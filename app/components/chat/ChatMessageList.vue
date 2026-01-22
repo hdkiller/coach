@@ -170,6 +170,9 @@
                   }"
                 />
 
+                <!-- Hidden Parts (Internal) -->
+                <div v-else-if="part.type === 'tool-approval-response'" class="hidden"></div>
+
                 <!-- Fallback Debug (ignore step-start) -->
                 <div
                   v-else-if="part.type !== 'step-start'"
