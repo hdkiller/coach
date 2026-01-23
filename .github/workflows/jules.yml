@@ -36,6 +36,7 @@ jobs:
             ${{ github.event_name == 'issue_comment' && format('User Instruction: {0}', github.event.comment.body) || '' }}
 
             Constraints & Instructions:
+            - Read GEMINI.md and RULES.md to understand the project conventions and guidelines.
             - Do NOT pull docker containers.
             - Do NOT test the web UI manually or via E2E (the user will test it).
             - Write unit tests when possible.
