@@ -27,12 +27,17 @@
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
             >
+              Date
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            >
               Event
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
             >
-              Date
+              Days
             </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
@@ -73,6 +78,17 @@
             class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             @click="$emit('navigate', event.id)"
           >
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+              <div class="flex flex-col leading-tight">
+                <span class="text-[10px] uppercase font-bold text-gray-400">{{
+                  formatDayName(event.date)
+                }}</span>
+                <span class="text-sm font-bold text-gray-900 dark:text-white">{{
+                  formatMonthDay(event.date)
+                }}</span>
+                <span class="text-[10px] text-gray-500">{{ formatYear(event.date) }}</span>
+              </div>
+            </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex flex-col">
                 <span class="text-sm font-bold text-gray-900 dark:text-white">{{
@@ -87,13 +103,20 @@
                 </span>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-              <div class="flex flex-col">
-                <span>{{ formatDate(event.date) }}</span>
-                <span v-if="event.startTime" class="text-xs font-medium text-gray-500">{{
-                  event.startTime
-                }}</span>
-              </div>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+              <span
+                v-if="daysUntil(event.date) > 0"
+                class="font-mono font-bold text-amber-600 dark:text-amber-400"
+              >
+                {{ daysUntil(event.date) }}d
+              </span>
+              <span
+                v-else
+                class="text-green-600 dark:text-green-400 flex items-center gap-1 text-xs"
+              >
+                <UIcon name="i-heroicons-check-circle" class="w-4 h-4" />
+                Done
+              </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
               <div class="flex flex-col">
@@ -223,12 +246,29 @@
 
   defineEmits(['update:currentPage', 'navigate', 'create', 'edit', 'delete'])
 
-  const { formatDate: baseFormatDate } = useFormat()
+  const { formatDate: baseFormatDate, getUserLocalDate } = useFormat()
 
   const itemsPerPage = 20
 
-  function formatDate(date: string) {
-    return baseFormatDate(date, 'EEE, MMM d, yyyy')
+  function formatDayName(date: string) {
+    return baseFormatDate(date, 'EEEE')
+  }
+
+  function formatMonthDay(date: string) {
+    return baseFormatDate(date, 'MMM d')
+  }
+
+  function formatYear(date: string) {
+    return baseFormatDate(date, 'yyyy')
+  }
+
+  function daysUntil(dateString: string) {
+    if (!dateString) return 0
+    const today = getUserLocalDate()
+    const target = new Date(dateString)
+    // Both are UTC midnight or relative.
+    const diffTime = target.getTime() - today.getTime()
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   }
 
   function getPriorityBadgeClass(priority: string) {
