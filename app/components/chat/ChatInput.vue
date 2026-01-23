@@ -3,6 +3,7 @@
     modelValue: string
     status: any
     error?: any
+    disabled?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -17,11 +18,12 @@
       <UChatPrompt
         :model-value="modelValue"
         :error="error"
+        :disabled="disabled"
         placeholder="Ask Coach Watts..."
         @update:model-value="emit('update:modelValue', $event)"
         @submit="emit('submit', $event)"
       >
-        <UChatPromptSubmit :status="status" />
+        <UChatPromptSubmit :status="status" :disabled="disabled" />
       </UChatPrompt>
     </UContainer>
   </div>
