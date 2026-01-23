@@ -33,7 +33,9 @@ export default defineTask({
       }
     }
 
-    console.log(`[nuxt-api-shield] Cleaned ${cleanedCount} old/malformed IP data entries.`)
+    if (cleanedCount > 0) {
+      console.log(`[nuxt-api-shield] Cleaned ${cleanedCount} old/malformed IP data entries.`)
+    }
     return { result: { cleanedCount } }
   }
 })

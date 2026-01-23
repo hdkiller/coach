@@ -25,7 +25,9 @@ export default defineTask({
         cleanedCount++
       }
     }
-    console.log(`[nuxt-api-shield] Cleaned ${cleanedCount} expired ban(s).`)
+    if (cleanedCount > 0) {
+      console.log(`[nuxt-api-shield] Cleaned ${cleanedCount} expired ban(s).`)
+    }
     return { result: { cleanedCount } }
   }
 })
