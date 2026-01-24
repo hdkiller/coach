@@ -1,6 +1,6 @@
 <template>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-    <UCard class="bg-blue-50 dark:bg-blue-900/20 ring-blue-500/10">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+    <UCard :ui="{ body: 'p-3 sm:p-6' }" class="bg-blue-50 dark:bg-blue-900/20 ring-blue-500/10">
       <div class="text-center space-y-1">
         <div
           class="text-3xl font-bold text-blue-600 dark:text-blue-400 tabular-nums tracking-tight"
@@ -15,7 +15,10 @@
       </div>
     </UCard>
 
-    <UCard class="bg-emerald-50 dark:bg-emerald-900/20 ring-emerald-500/10">
+    <UCard
+      :ui="{ body: 'p-3 sm:p-6' }"
+      class="bg-emerald-50 dark:bg-emerald-900/20 ring-emerald-500/10"
+    >
       <div class="text-center space-y-1">
         <div
           class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight"
@@ -30,7 +33,7 @@
       </div>
     </UCard>
 
-    <UCard class="bg-amber-50 dark:bg-amber-900/20 ring-amber-500/10">
+    <UCard :ui="{ body: 'p-3 sm:p-6' }" class="bg-amber-50 dark:bg-amber-900/20 ring-amber-500/10">
       <div class="text-center space-y-1">
         <div
           class="text-3xl font-bold text-amber-600 dark:text-amber-400 tabular-nums tracking-tight"
@@ -45,7 +48,10 @@
       </div>
     </UCard>
 
-    <UCard class="bg-purple-50 dark:bg-purple-900/20 ring-purple-500/10">
+    <UCard
+      :ui="{ body: 'p-3 sm:p-6' }"
+      class="bg-purple-50 dark:bg-purple-900/20 ring-purple-500/10"
+    >
       <div class="text-center space-y-1">
         <div
           class="text-3xl font-bold text-purple-600 dark:text-purple-400 tabular-nums tracking-tight"

@@ -66,6 +66,7 @@
           <UCard
             v-for="q in localQuestions"
             :key="q.id"
+            :ui="{ body: 'p-3 sm:p-6' }"
             class="cursor-pointer transition-all hover:ring-2 hover:ring-primary-500/20"
             :class="{ 'ring-2 ring-primary-500/10': isExpanded(q.id) }"
             @click="toggleExpand(q.id)"
@@ -114,7 +115,7 @@
           </UCard>
 
           <!-- User Notes -->
-          <UCard>
+          <UCard :ui="{ body: 'p-3 sm:p-6' }">
             <div class="space-y-3">
               <label class="text-sm font-medium text-gray-900 dark:text-white block">
                 Do you have anything to share?

@@ -35,7 +35,7 @@
     </template>
 
     <template #body>
-      <div class="p-3 sm:p-6 space-y-6 sm:space-y-10">
+      <div class="p-2 sm:p-6 space-y-6 sm:space-y-10">
         <div v-if="pending" class="flex justify-center py-12">
           <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -49,7 +49,7 @@
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left: Main Detail (2/3) -->
             <div class="lg:col-span-2 space-y-6">
-              <UCard>
+              <UCard :ui="{ body: 'p-4 sm:p-6' }">
                 <template #header>
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -305,7 +305,7 @@
 
             <!-- Right: Meta Info (1/3) -->
             <div class="space-y-6">
-              <UCard>
+              <UCard :ui="{ body: 'p-4 sm:p-6' }">
                 <template #header>
                   <h3 class="font-bold">Meta Details</h3>
                 </template>
