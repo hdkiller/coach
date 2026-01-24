@@ -379,7 +379,7 @@
         fetchToday()
       } else {
         pausePoll()
-        pauseMessages()
+        stopMessages()
       }
     }
   )
