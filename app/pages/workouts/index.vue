@@ -78,7 +78,7 @@
 
         <!-- Filters & Table -->
         <div class="space-y-6">
-          <UCard class="bg-gray-50/30 dark:bg-gray-900/20">
+          <UCard :ui="{ body: 'p-3 sm:p-6' }" class="bg-gray-50/30 dark:bg-gray-900/20">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <UFormField label="Activity Type">
                 <USelect

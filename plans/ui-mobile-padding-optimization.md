@@ -45,9 +45,9 @@ For `UDashboardPanel` content:
 - [x] Refactor `WorkoutSummary.vue`:
   - Reduced card padding to `p-3` and adjusted grid gap.
 
-- [ ] Check `app/components/dashboard/RecommendationDetailModal.vue` (already good, verify mobile width).
+- [x] Check `app/components/dashboard/RecommendationDetailModal.vue` (already good, verify mobile width).
 
-- [ ] Check `app/layouts/admin.vue` (verify no regression in new implementation).
+- [x] Check `app/layouts/admin.vue` (verify no regression in new implementation).
 
 ## 3. Standardization Phase (Prevention)
 
@@ -59,22 +59,22 @@ For `UDashboardPanel` content:
 
 ## 4. Candidate Files for Review
 
-The following files contain both `<UModal>` and `<UCard>`, indicating potential nested padding issues. They should be reviewed:
+The following files contain both `<UModal>` and `<UCard>`. They have been reviewed for nested padding issues:
 
-- [ ] `app/components/settings/ConnectedApps.vue`
-- [ ] `app/components/settings/DangerZone.vue`
-- [ ] `app/components/profile/GoalsSettings.vue`
-- [ ] `app/pages/settings/coaching.vue`
-- [ ] `app/pages/settings/developer.vue`
-- [ ] `app/pages/settings/authorized-apps.vue`
-- [ ] `app/pages/developer/index.vue`
-- [ ] `app/pages/developer/[id].vue`
-- [ ] `app/pages/plans/index.vue`
-- [ ] `app/pages/workouts/planned/[id].vue`
-- [ ] `app/pages/workouts/[id].vue`
-- [ ] `app/pages/admin/webhooks.vue`
-- [ ] `app/pages/recommendations/index.vue`
-- [ ] `app/pages/coaching.vue`
-- [ ] `app/pages/profile/goals.vue`
-- [ ] `app/pages/profile/athlete.vue`
-- [ ] `app/pages/plan.vue`
+- [x] `app/components/settings/ConnectedApps.vue` (No nesting)
+- [x] `app/components/settings/DangerZone.vue` (No nesting)
+- [x] `app/components/profile/GoalsSettings.vue` (No nesting)
+- [x] `app/pages/settings/coaching.vue` (No nesting)
+- [x] `app/pages/settings/developer.vue` (No nesting)
+- [x] `app/pages/settings/authorized-apps.vue` (No nesting)
+- [x] `app/pages/developer/index.vue` (No nesting)
+- [x] `app/pages/developer/[id].vue` (No nesting)
+- [x] `app/pages/plans/index.vue` (No nesting)
+- [x] `app/pages/workouts/planned/[id].vue` (No nesting)
+- [x] `app/pages/workouts/[id].vue` (No nesting)
+- [x] `app/pages/admin/webhooks.vue` (No nesting)
+- [x] `app/pages/recommendations/index.vue` (Uses `#content` slot pattern correctly - Good)
+- [x] `app/pages/coaching.vue` (No nesting)
+- [x] `app/pages/profile/goals.vue` (No nesting)
+- [x] `app/pages/profile/athlete.vue` (No nesting)
+- [x] `app/pages/plan.vue` (No nesting)
