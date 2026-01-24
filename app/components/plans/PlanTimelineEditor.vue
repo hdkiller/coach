@@ -49,26 +49,29 @@
           <UFormField label="Type">
             <USelect
               v-model="block.type"
-              :items="['PREP', 'BASE', 'BUILD', 'PEAK', 'RACE', 'TRANSITION']"
+              :items="TRAINING_BLOCK_TYPES"
+              value-key="value"
               class="w-full"
             />
+            <template #help>
+              <div class="text-[10px] italic leading-tight text-muted mt-1 whitespace-normal">
+                {{ getTypeDescription(block.type) }}
+              </div>
+            </template>
           </UFormField>
 
           <UFormField label="Primary Focus">
             <USelect
               v-model="block.primaryFocus"
-              :items="[
-                'AEROBIC_ENDURANCE',
-                'TEMPO',
-                'SWEET_SPOT',
-                'THRESHOLD',
-                'VO2_MAX',
-                'ANAEROBIC_CAPACITY',
-                'RECOVERY',
-                'MIXED'
-              ]"
+              :items="TRAINING_BLOCK_FOCUSES"
+              value-key="value"
               class="w-full"
             />
+            <template #help>
+              <div class="text-[10px] italic leading-tight text-muted mt-1 whitespace-normal">
+                {{ getFocusDescription(block.primaryFocus) }}
+              </div>
+            </template>
           </UFormField>
 
           <UFormField label="Duration (Weeks)">
@@ -103,7 +106,8 @@
 </template>
 
 <script setup lang="ts">
-  import { format, addWeeks } from 'date-fns'
+  import { addWeeks } from 'date-fns'
+  import { TRAINING_BLOCK_TYPES, TRAINING_BLOCK_FOCUSES } from '~/utils/training-constants'
 
   const props = defineProps<{
     planId: string
@@ -119,6 +123,14 @@
     JSON.parse(JSON.stringify(props.blocks)).sort((a: any, b: any) => a.order - b.order)
   )
   const saving = ref(false)
+
+  function getTypeDescription(value: string) {
+    return TRAINING_BLOCK_TYPES.find((t) => t.value === value)?.description || ''
+  }
+
+  function getFocusDescription(value: string) {
+    return TRAINING_BLOCK_FOCUSES.find((f) => f.value === value)?.description || ''
+  }
 
   function calculateBlockStartDate(index: number) {
     let start = new Date(props.startDate)
@@ -160,17 +172,6 @@
   async function saveChanges() {
     saving.value = true
     try {
-      // We'll perform a multi-step update to ensure consistency
-      // Actually, to make it robust, we'll implement a 'replan' endpoint that takes the whole structure
-      // But since we want to reuse our CRUD APIs, we'll do:
-      // 1. Identify deleted blocks -> Call DELETE
-      // 2. Identify new blocks -> Call POST
-      // 3. Update existing blocks -> Call PATCH
-      // 4. Update orders -> Call Reorder PUT
-
-      // SIMPLIFIED: We'll create a single "REPLAN" endpoint that takes the new structure
-      // and rebuilds the plan structure in one transaction. This is much safer than multiple HTTP calls.
-
       await $fetch(`/api/plans/${props.planId}/replan-structure`, {
         method: 'POST',
         body: {
