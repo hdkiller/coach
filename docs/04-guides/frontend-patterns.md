@@ -24,7 +24,7 @@ When implementing modals using Nuxt UI (`<UModal>`), follow these best practices
 
 ### Example: Confirmation Modal
 
-```vue
+````vue
 <template>
   <UDashboardPanel>
     <!-- Modal Placement: Top level within panel -->
@@ -54,4 +54,37 @@ When implementing modals using Nuxt UI (`<UModal>`), follow these best practices
 <script setup>
   const showModal = ref(false)
 </script>
+
+## Mobile Spacing & Composition ### The "Double Padding" Issue When nesting container components
+(e.g., placing a `UCard` inside a `UModal` or `UDashboardPanel`), default padding tokens can
+compound, significantly reducing usable screen width on mobile devices. **Example of Anti-Pattern:**
+```vue
+<!-- UModal adds p-4, UCard adds p-4. Result: 32px padding on each side (64px lost width). -->
+<UModal>
+  <template #body>
+    <UCard>
+      Content
+    </UCard>
+  </template>
+</UModal>
+````
+
+### Best Practices
+
+1.  **Context-Aware Padding:**
+    - If a component is intended to be nested, verify its mobile padding.
+    - Use `ui` prop overrides to reduce padding in nested contexts.
+
+    ```vue
+    <UCard :ui="{ body: 'p-0 sm:p-6' }">
+    ```
+
+2.  **Avoid Redundant Wrappers:**
+    - Often a `UCard` inside a `UModal` is unnecessary. Use the Modal's built-in structure (`#header`, `#body`, `#footer`) instead of wrapping everything in a Card.
+
+3.  **Flat Variants:**
+    - For lists of items (like "Questions" in a modal), use standard `div` elements with specific styling rather than heavy `UCard` components if they don't need the full card shell (shadow, ring, heavy padding).
+
+```
+
 ```
