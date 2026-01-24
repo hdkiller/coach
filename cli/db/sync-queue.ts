@@ -86,6 +86,43 @@ const syncQueueCommand = new Command('sync-queue-stats')
         })
       }
 
+      // --- Last 7 Days Breakdown ---
+      console.log('\n' + chalk.bold('Last 7 Days Breakdown:'))
+
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      sevenDaysAgo.setHours(0, 0, 0, 0) // Start of the day 7 days ago
+
+      // Raw query for daily stats
+      const dailyStats = (await prisma.$queryRaw`
+        SELECT DATE("createdAt") as day, COUNT(*)::int as count 
+        FROM "SyncQueue" 
+        WHERE "createdAt" >= ${sevenDaysAgo} 
+        GROUP BY DATE("createdAt") 
+        ORDER BY DATE("createdAt") DESC
+      `) as Array<{ day: Date; count: number }>
+
+      // Count older items
+      const olderCount = await prisma.syncQueue.count({
+        where: {
+          createdAt: {
+            lt: sevenDaysAgo
+          }
+        }
+      })
+
+      // Display Daily Stats
+      if (Array.isArray(dailyStats)) {
+        dailyStats.forEach((stat) => {
+          const dateStr = new Date(stat.day).toISOString().split('T')[0]
+          console.log(`${chalk.white(dateStr.padEnd(12))}: ${stat.count}`)
+        })
+      }
+
+      console.log(`${chalk.gray('Older'.padEnd(12))}: ${olderCount}`)
+      console.log(chalk.gray('-'.repeat(16)))
+      console.log(`${chalk.bold('Total'.padEnd(12))}: ${totalCount}`)
+
       // Check for stuck pending items (older than 1 hour)
       const stuckPending = await prisma.syncQueue.count({
         where: {
