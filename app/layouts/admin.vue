@@ -56,6 +56,14 @@
           }
         },
         {
+          label: 'Messaging',
+          icon: 'i-lucide-message-circle',
+          to: '/admin/stats/messaging',
+          onSelect: () => {
+            isOpen.value = false
+          }
+        },
+        {
           label: 'Webhooks',
           icon: 'i-lucide-webhook',
           to: '/admin/stats/webhooks',
