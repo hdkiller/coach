@@ -1354,6 +1354,32 @@ export async function fetchIntervalsActivityStreams(
     if (data.moving) streams.moving = { type: 'moving', data: data.moving }
   }
 
+  // Fallback: If latlng is missing or invalid (scalars), try the /map endpoint
+  // Intervals.icu sometimes separates high-res map data or provides it only via /map for certain activity types
+  const hasValidMap =
+    streams.latlng &&
+    Array.isArray(streams.latlng.data) &&
+    streams.latlng.data.length > 0 &&
+    Array.isArray((streams.latlng.data as any[])[0])
+
+  if (!hasValidMap) {
+    try {
+      const mapUrl = `https://intervals.icu/api/v1/activity/${activityId}/map`
+      // console.log(`[Intervals Sync] Fetching map fallback: ${mapUrl}`)
+      const mapResponse = await fetchWithRetry(mapUrl, { headers })
+
+      if (mapResponse.ok) {
+        const mapData = await mapResponse.json()
+        if (mapData && Array.isArray(mapData.latlngs) && mapData.latlngs.length > 0) {
+          // console.log(`[Intervals Sync] Retrieved ${mapData.latlngs.length} map points from /map endpoint`)
+          streams.latlng = { type: 'latlng', data: mapData.latlngs }
+        }
+      }
+    } catch (error) {
+      console.warn(`[Intervals Sync] Failed to fetch map fallback for ${activityId}:`, error)
+    }
+  }
+
   return streams
 }
 
