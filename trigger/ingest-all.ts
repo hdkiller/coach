@@ -9,6 +9,7 @@ import { ingestYazioTask } from './ingest-yazio'
 import { ingestHevyTask } from './ingest-hevy'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { processSyncQueueTask } from './process-sync-queue'
+import { deduplicateWorkoutsTask } from './deduplicate-workouts'
 
 export const ingestAllTask = task({
   id: 'ingest-all',
@@ -184,6 +185,26 @@ export const ingestAllTask = task({
     logger.log(`  ❌ Failed: ${failedCount}`)
     logger.log(`  📊 Total: ${results.length}`)
     logger.log('='.repeat(60))
+
+    // CHAIN: Deduplicate Workouts (Autonomously)
+    if (results.length > 0) {
+      logger.log('🔄 Chaining: Triggering Workout Deduplication...')
+      try {
+        await deduplicateWorkoutsTask.trigger(
+          {
+            userId,
+            dryRun: false
+          },
+          {
+            concurrencyKey: userId,
+            tags: [`user:${userId}`]
+          }
+        )
+        logger.log('✅ Triggered deduplicate-workouts')
+      } catch (err) {
+        logger.error('❌ Failed to chain deduplicate-workouts', { err })
+      }
+    }
 
     // CHAIN: Trigger Athlete Profile Generation
     if (results.length > 0) {
