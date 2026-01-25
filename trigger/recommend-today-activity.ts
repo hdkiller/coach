@@ -631,9 +631,9 @@ ${
           (pw, i) => `
 WORKOUT ${i + 1}${i === 0 ? ' (Primary)' : ''}:
 - Title: ${pw.title}
+- Type: ${pw.type || 'Unknown'}${pw.type === 'Rest' ? ' (REST DAY - Explicitly Planned)' : ''}
 - Duration: ${pw.durationSec ? Math.round(pw.durationSec / 60) : 'Unknown'} minutes
 - TSS: ${pw.tss || 'Unknown'}
-- Type: ${pw.type || 'Unknown'}
 - Description: ${pw.description || 'None'}
 `
         )
@@ -678,10 +678,11 @@ IMPORTANT: The user has explicitly provided this feedback. You MUST take it into
 }
 
 CRITICAL INSTRUCTIONS:
-1. ALWAYS use the user's specific zones defined below for the relevant activity type.
-2. PRIORITIZE the "CURRENT ATHLETE STATUS (Source of Truth)" metrics above for any fitness assessment.
-3. IGNORE any conflicting TSB/CTL values found in the "ATHLETE PROFILE" section if they differ from the Source of Truth, as they may be stale summaries.
-4. Refer to the "PROJECTED FITNESS TRENDS" for future state, but base your primary decision on the current TSB and recovery metrics.
+1. **REST DAY HANDLING**: If the Planned Workout Type is "Rest", you MUST set the recommendation to "rest" unless the User Feedback explicitly demands training. Do not suggest workouts on a planned rest day.
+2. ALWAYS use the user's specific zones defined below for the relevant activity type.
+3. PRIORITIZE the "CURRENT ATHLETE STATUS (Source of Truth)" metrics above for any fitness assessment.
+4. IGNORE any conflicting TSB/CTL values found in the "ATHLETE PROFILE" section if they differ from the Source of Truth, as they may be stale summaries.
+5. Refer to the "PROJECTED FITNESS TRENDS" for future state, but base your primary decision on the current TSB and recovery metrics.
 
 ${zoneDefinitions}
 

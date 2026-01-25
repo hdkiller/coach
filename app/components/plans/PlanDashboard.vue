@@ -632,7 +632,8 @@
                   draggable="true"
                   :class="{
                     'opacity-50': draggingId === workout.id,
-                    'bg-independent-stripes': workout.isIndependent
+                    'bg-independent-stripes': workout.isIndependent,
+                    'opacity-75 bg-gray-50/50 dark:bg-gray-900/30 italic': workout.type === 'Rest'
                   }"
                   @dragstart="onDragStart($event, workout)"
                   @dragover.prevent
@@ -707,6 +708,9 @@
                         Focus: {{ workout.targetArea }}
                       </div>
                     </div>
+                    <div v-else-if="workout.type === 'Rest'" class="text-muted text-xs">
+                      Rest Day
+                    </div>
                     <div v-else>-</div>
                   </td>
                   <td class="px-4 py-3 text-center">
@@ -716,7 +720,7 @@
                         :workout="workout.structuredWorkout"
                       />
                       <UButton
-                        v-else
+                        v-else-if="workout.type !== 'Rest'"
                         size="xs"
                         color="neutral"
                         variant="ghost"
@@ -766,7 +770,10 @@
               v-for="workout in visibleWorkouts"
               :key="workout.id"
               class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 w-full"
-              :class="{ 'bg-independent-stripes border-dashed': workout.isIndependent }"
+              :class="{
+                'bg-independent-stripes border-dashed': workout.isIndependent,
+                'opacity-75 bg-gray-50/50 dark:bg-gray-900/30 italic': workout.type === 'Rest'
+              }"
               @click="navigateToWorkout(workout.id)"
             >
               <div class="flex items-start gap-3">
@@ -834,17 +841,19 @@
                   </div>
 
                   <div class="text-xs text-muted mt-1 flex flex-wrap items-center gap-x-1.5">
-                    <span v-if="workout.type === 'Ride' || workout.type === 'VirtualRide'"
-                      >{{ Math.round(workout.durationSec / 60) }}m</span
-                    >
-                    <span v-else-if="workout.type === 'Run'"
-                      >{{ Math.round(workout.durationSec / 60) }}m
-                      <span v-if="workout.distanceMeters"
-                        >/ {{ Math.round((workout.distanceMeters / 1000) * 10) / 10 }} km</span
-                      ></span
-                    >
-                    <span v-else>{{ Math.round(workout.durationSec / 60) }}m</span>
-                    <span class="text-gray-300 dark:text-gray-600">•</span>
+                    <template v-if="workout.type !== 'Rest'">
+                      <span v-if="workout.type === 'Ride' || workout.type === 'VirtualRide'"
+                        >{{ Math.round(workout.durationSec / 60) }}m</span
+                      >
+                      <span v-else-if="workout.type === 'Run'"
+                        >{{ Math.round(workout.durationSec / 60) }}m
+                        <span v-if="workout.distanceMeters"
+                          >/ {{ Math.round((workout.distanceMeters / 1000) * 10) / 10 }} km</span
+                        ></span
+                      >
+                      <span v-else>{{ Math.round(workout.durationSec / 60) }}m</span>
+                      <span class="text-gray-300 dark:text-gray-600">•</span>
+                    </template>
                     <span class="font-medium">{{ workout.type }}</span>
                   </div>
 
