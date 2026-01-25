@@ -8,6 +8,7 @@ import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webho
 import { prisma } from '../../server/utils/db'
 import { webhookQueue, pingQueue } from '../../server/utils/queue'
 import { Command } from 'commander'
+import { tasks } from '@trigger.dev/sdk/v3'
 
 export const startCommand = new Command('start')
   .description('Start the webhook worker')
@@ -165,6 +166,70 @@ export const startCommand = new Command('start')
             }
             throw error
           }
+        }
+
+        if (provider === 'fitbit') {
+          const { payload, logId } = job.data
+
+          console.log(
+            chalk.cyan(`[FitbitJob ${job.id}]`) +
+              ` Processing Fitbit webhook payload with ${chalk.yellow(payload.length)} events`
+          )
+
+          let triggeredCount = 0
+
+          for (const update of payload) {
+            const { collectionType, date, ownerId } = update
+
+            if (collectionType !== 'foods') {
+              console.log(
+                chalk.gray(`[FitbitJob ${job.id}] Skipping non-food update: ${collectionType}`)
+              )
+              continue
+            }
+
+            // Resolve User
+            const integration = await prisma.integration.findFirst({
+              where: {
+                provider: 'fitbit',
+                externalUserId: ownerId
+              }
+            })
+
+            if (!integration) {
+              console.warn(`[FitbitJob ${job.id}] No integration found for ownerId: ${ownerId}`)
+              continue
+            }
+
+            try {
+              await tasks.trigger(
+                'ingest-fitbit',
+                {
+                  userId: integration.userId,
+                  startDate: date,
+                  endDate: date
+                },
+                {
+                  concurrencyKey: integration.userId,
+                  tags: [`user:${integration.userId}`]
+                }
+              )
+              triggeredCount++
+              console.log(
+                chalk.green(
+                  `[FitbitJob ${job.id}] Triggered sync for user ${integration.userId} on ${date}`
+                )
+              )
+            } catch (err) {
+              console.error(chalk.red(`[FitbitJob ${job.id}] Failed to trigger sync:`), err)
+            }
+          }
+
+          if (logId) {
+            await updateWebhookStatus(logId, 'PROCESSED', `Triggered ${triggeredCount} syncs`)
+          }
+
+          return { triggeredCount }
         }
 
         console.log(
