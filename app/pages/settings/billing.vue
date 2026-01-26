@@ -235,7 +235,7 @@
       <div
         class="space-y-4 order-2 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
       >
-        <div class="flex items-baseline justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
           <h3 class="text-xl font-bold">Subscription Plans</h3>
 
           <p
