@@ -34,18 +34,21 @@
     </div>
 
     <!-- Pricing Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 items-stretch">
       <UCard
         v-for="plan in PRICING_PLANS"
         :key="plan.key"
-        class="flex flex-col relative overflow-hidden"
+        class="flex flex-col relative overflow-hidden h-full"
         :class="{
           'ring-2 ring-primary border-primary': plan.popular,
+
           'opacity-90 hover:opacity-100 transition-opacity': !plan.popular
         }"
-        :ui="{ body: { base: 'flex-grow', padding: 'p-4 sm:p-6' } }"
+        :ui="{ body: { base: 'flex-grow flex flex-col', padding: 'p-4 sm:p-6' } }"
       >
         <!-- Popular Badge -->
+
         <div
           v-if="plan.popular"
           class="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg"
@@ -54,6 +57,7 @@
         </div>
 
         <!-- Current Plan Badge -->
+
         <div
           v-if="isCurrentPlan(plan)"
           class="absolute top-0 left-0 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-br-lg"
@@ -63,10 +67,12 @@
 
         <template #header>
           <h3 class="text-xl font-bold">{{ plan.name }}</h3>
+
           <div class="mt-4 flex items-baseline gap-1">
             <span class="text-4xl font-extrabold">{{
               formatPrice(getPrice(plan, billingInterval))
             }}</span>
+
             <span class="text-sm text-gray-500 dark:text-gray-400">
               {{
                 plan.key === 'free' ? '' : `/ ${billingInterval === 'annual' ? 'year' : 'month'}`
@@ -75,19 +81,22 @@
           </div>
 
           <!-- Savings Badge for Annual -->
-          <div class="mt-2 h-4">
+
+          <div class="mt-2 h-4 flex items-center">
             <span
               v-if="billingInterval === 'annual' && plan.annualPrice"
-              class="text-xs text-green-600 dark:text-green-400 font-medium"
+              class="text-xs text-green-600 dark:text-green-400 font-medium leading-none"
             >
               Save {{ calculateAnnualSavings(plan) }}% vs monthly
             </span>
           </div>
 
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ plan.description }}</p>
+          <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 min-h-[2.5rem]">
+            {{ plan.description }}
+          </p>
         </template>
 
-        <ul class="space-y-3 mb-6 flex-grow">
+        <ul class="space-y-3 flex-grow">
           <li
             v-for="(feature, fIndex) in plan.features"
             :key="fIndex"
