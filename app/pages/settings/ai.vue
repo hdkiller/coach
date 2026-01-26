@@ -7,27 +7,35 @@
       </p>
     </div>
 
-    <UCard v-if="showEarlyAccessBanner" class="mb-6">
+    <UCard v-if="showUpgradeBanner && !userStore.hasMinimumTier('SUPPORTER')" class="mb-6">
       <div class="flex items-start gap-4">
-        <UIcon name="i-tabler-gift" class="w-10 h-10 text-primary shrink-0 mt-1" />
+        <UIcon name="i-heroicons-sparkles" class="w-10 h-10 text-primary shrink-0 mt-1" />
         <div class="flex-1 flex justify-between items-start">
           <div>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Free for Early Adopters</h3>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+              Consider upgrading your plan
+            </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium">
-              We're currently in early access. All features are free while we build the future of AI
-              coaching.
-              <span class="font-bold text-gray-900 dark:text-white"
-                >Thank you for being an early adopter.</span
-              >
-              Explore, grow, and help us create something extraordinary together.
+              Unlock the full potential of your AI Coach with a paid plan. Get automatic analysis,
+              deep reasoning, and proactive coaching to take your training to the next level.
             </p>
+            <div class="mt-3">
+              <UButton
+                to="/pricing"
+                color="primary"
+                size="sm"
+                label="View Plans"
+                icon="i-heroicons-arrow-right"
+                trailing
+              />
+            </div>
           </div>
           <UButton
             icon="i-heroicons-x-mark"
             color="neutral"
             variant="ghost"
             size="sm"
-            @click="showEarlyAccessBanner = false"
+            @click="showUpgradeBanner = false"
           />
         </div>
       </div>
@@ -37,9 +45,16 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <SettingsAiCoachSettings v-if="aiSettings" :settings="aiSettings" @save="saveAiSettings" />
 
-      <ClientOnly>
-        <SettingsAiUsage />
-      </ClientOnly>
+      <div class="flex flex-col gap-6">
+        <SettingsAiAutomationSettings
+          v-if="aiSettings"
+          :settings="aiSettings"
+          @save="saveAiSettings"
+        />
+        <ClientOnly>
+          <SettingsAiUsage />
+        </ClientOnly>
+      </div>
 
       <ClientOnly>
         <SettingsAiUsageCharts />
@@ -75,7 +90,8 @@
     ]
   })
 
-  const showEarlyAccessBanner = useLocalStorage('ai-settings-early-access-banner', true)
+  const userStore = useUserStore()
+  const showUpgradeBanner = useLocalStorage('ai-settings-upgrade-banner', true)
 
   // Fetch AI settings
   const { data: aiSettings, refresh: refreshSettings } = await useFetch('/api/settings/ai', {

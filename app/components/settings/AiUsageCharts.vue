@@ -128,38 +128,6 @@
             </svg>
           </div>
         </div>
-
-        <!-- Daily Usage Bar Chart -->
-        <div>
-          <h3 class="text-sm font-medium text-muted mb-3">Daily Usage (Last 7 Days)</h3>
-          <div class="space-y-3">
-            <div v-for="day in dailyData" :key="day.date" class="space-y-1 group">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-muted">{{ day.dateLabel }}</span>
-                <span class="font-medium">{{ day.calls }} calls</span>
-              </div>
-              <div
-                class="flex items-center gap-2 cursor-help"
-                @mouseenter="
-                  showTooltip(
-                    $event,
-                    `${day.dateLabel}: ${day.calls} calls, ${formatNumber(day.tokens)} tokens`
-                  )
-                "
-                @mousemove="moveTooltip($event)"
-                @mouseleave="hideTooltip"
-              >
-                <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                  <div
-                    class="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all group-hover:from-blue-400 group-hover:to-blue-500"
-                    :style="{ width: `${day.percentage}%` }"
-                  />
-                </div>
-              </div>
-              <div class="text-xs text-muted">{{ formatNumber(day.tokens) }} tokens</div>
-            </div>
-          </div>
-        </div>
       </template>
 
       <!-- Tooltip -->

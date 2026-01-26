@@ -19,6 +19,9 @@ defineRouteMeta({
                 aiModelPreference: { type: 'string' },
                 aiAutoAnalyzeWorkouts: { type: 'boolean' },
                 aiAutoAnalyzeNutrition: { type: 'boolean' },
+                aiAutoAnalyzeReadiness: { type: 'boolean' },
+                aiProactivityEnabled: { type: 'boolean' },
+                aiDeepAnalysisEnabled: { type: 'boolean' },
                 aiContext: { type: 'string', nullable: true },
                 nickname: { type: 'string', nullable: true }
               }
@@ -48,6 +51,9 @@ export default defineEventHandler(async (event) => {
       aiModelPreference: true,
       aiAutoAnalyzeWorkouts: true,
       aiAutoAnalyzeNutrition: true,
+      aiAutoAnalyzeReadiness: true,
+      aiProactivityEnabled: true,
+      aiDeepAnalysisEnabled: true,
       aiContext: true,
       nutritionTrackingEnabled: true,
       nickname: true
@@ -66,6 +72,9 @@ export default defineEventHandler(async (event) => {
     aiModelPreference: user.aiModelPreference || 'flash',
     aiAutoAnalyzeWorkouts: user.aiAutoAnalyzeWorkouts ?? false,
     aiAutoAnalyzeNutrition: user.aiAutoAnalyzeNutrition ?? false,
+    aiAutoAnalyzeReadiness: user.aiAutoAnalyzeReadiness ?? false,
+    aiProactivityEnabled: user.aiProactivityEnabled ?? false,
+    aiDeepAnalysisEnabled: user.aiDeepAnalysisEnabled ?? false,
     aiContext: user.aiContext,
     nutritionTrackingEnabled: user.nutritionTrackingEnabled ?? true,
     nickname: user.nickname

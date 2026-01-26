@@ -223,32 +223,6 @@
       }
     },
     {
-      accessorKey: 'cost',
-      header: ({ column }) => {
-        const isSorted = column.getIsSorted()
-        return h(
-          'div',
-          { class: 'text-right' },
-          h(UButton, {
-            color: 'neutral',
-            variant: 'ghost',
-            label: 'Cost',
-            icon: isSorted
-              ? isSorted === 'asc'
-                ? 'i-heroicons-arrow-up'
-                : 'i-heroicons-arrow-down'
-              : 'i-heroicons-arrows-up-down',
-            class: '-mx-2.5',
-            onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
-          })
-        )
-      },
-      cell: ({ row }) => {
-        const cost = row.getValue('cost') as number | null
-        return h('div', { class: 'text-right font-mono' }, `$${(cost ?? 0).toFixed(4)}`)
-      }
-    },
-    {
       accessorKey: 'duration',
       header: ({ column }) => {
         const isSorted = column.getIsSorted()

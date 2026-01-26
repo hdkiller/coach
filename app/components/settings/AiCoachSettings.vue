@@ -30,46 +30,44 @@
           <div
             v-for="model in modelOptions"
             :key="model.value"
-            class="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:border-primary transition-colors"
+            class="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:border-primary transition-colors relative"
             :class="{
-              'border-primary bg-primary/5': localSettings.aiModelPreference === model.value
+              'border-primary bg-primary/5': localSettings.aiModelPreference === model.value,
+              'opacity-60 grayscale-[0.5]':
+                model.value === 'pro' && !userStore.hasMinimumTier('PRO')
             }"
-            @click="selectModel(model.value)"
+            @click="
+              model.value === 'pro' && !userStore.hasMinimumTier('PRO')
+                ? upgradeModal.show({
+                    featureTitle: 'Deep Reasoning AI',
+                    featureDescription:
+                      'Unlock the most powerful AI engine for strategic planning and analysis.',
+                    recommendedTier: 'pro'
+                  })
+                : selectModel(model.value)
+            "
           >
             <input
               type="radio"
               :checked="localSettings.aiModelPreference === model.value"
+              :disabled="model.value === 'pro' && !userStore.hasMinimumTier('PRO')"
               class="mt-1"
             />
             <div class="flex-1">
-              <div class="font-medium">{{ model.label }}</div>
+              <div class="flex items-center gap-2">
+                <div class="font-medium">{{ model.label }}</div>
+                <div
+                  v-if="model.value === 'pro' && !userStore.hasMinimumTier('PRO')"
+                  class="flex items-center gap-2"
+                >
+                  <UBadge color="primary" variant="subtle" size="sm">Pro</UBadge>
+                  <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-neutral-500" />
+                </div>
+              </div>
               <div class="text-sm text-muted mt-1">{{ model.description }}</div>
               <div class="text-xs text-muted mt-1">{{ model.pricing }}</div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Automation Settings -->
-      <div>
-        <label class="block text-sm font-medium mb-2">Automatic Analysis</label>
-        <p class="text-sm text-muted mb-3">
-          Enable AI to automatically analyze your activities as they sync
-        </p>
-        <div class="space-y-3">
-          <USwitch
-            v-model="localSettings.aiAutoAnalyzeWorkouts"
-            label="Auto-analyze Workouts"
-            description="Generate insights for every workout that syncs"
-            @update:model-value="handleChange"
-          />
-
-          <USwitch
-            v-model="localSettings.aiAutoAnalyzeNutrition"
-            label="Auto-analyze Nutrition"
-            description="Evaluate meal quality and compliance automatically"
-            @update:model-value="handleChange"
-          />
         </div>
       </div>
 
@@ -104,6 +102,9 @@
       aiModelPreference: string
       aiAutoAnalyzeWorkouts: boolean
       aiAutoAnalyzeNutrition: boolean
+      aiAutoAnalyzeReadiness: boolean
+      aiProactivityEnabled: boolean
+      aiDeepAnalysisEnabled: boolean
       aiContext?: string | null
       nutritionTrackingEnabled: boolean
       nickname?: string | null
@@ -116,6 +117,8 @@
 
   const localSettings = ref({ ...props.settings })
   const saving = ref(false)
+  const userStore = useUserStore()
+  const upgradeModal = useUpgradeModal()
 
   const personaOptions = [
     { value: 'Analytical', label: 'Analytical - Data-driven, technical insights' },
@@ -129,13 +132,13 @@
       value: 'flash',
       label: 'Flash (Gemini Flash)',
       description: 'Fast responses, good for daily summaries and quick insights',
-      pricing: '~$0.001 per analysis'
+      pricing: ''
     },
     {
       value: 'pro',
       label: 'Pro (Gemini 3.0 Pro)',
       description: 'Advanced reasoning, ideal for complex race analysis and strategic planning',
-      pricing: '~$0.02 per analysis'
+      pricing: ''
     }
   ]
 

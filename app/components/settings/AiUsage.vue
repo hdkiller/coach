@@ -4,7 +4,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-chart-bar" class="w-5 h-5 text-primary" />
-          <h2 class="text-xl font-semibold">AI Usage & Cost Analytics</h2>
+          <h2 class="text-xl font-semibold">AI Usage</h2>
         </div>
         <UButton
           v-if="!loading && data"
@@ -28,6 +28,7 @@
       <div v-if="!loading && data" class="space-y-3">
         <!-- Total Cost Card -->
         <div
+          v-if="false"
           class="relative overflow-hidden rounded-xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50 p-5"
         >
           <div class="flex items-start justify-between">
