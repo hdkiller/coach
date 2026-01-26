@@ -75,7 +75,7 @@ export const useUserStore = defineStore('user', () => {
   })
 
   // Check if user has a specific entitlement
-  function hasEntitlement(feature: keyof Omit<UserEntitlements, 'tier'>): boolean {
+  function hasEntitlement(feature: keyof Omit<UserEntitlements, 'tier'>): boolean | string {
     return entitlements.value?.[feature] ?? false
   }
 

@@ -47,7 +47,7 @@ export function getUserEntitlements(
 export function hasEntitlement(
   user: Pick<User, 'subscriptionTier' | 'subscriptionStatus' | 'subscriptionPeriodEnd'>,
   feature: keyof Omit<UserEntitlements, 'tier'>
-): boolean {
+): boolean | string {
   const entitlements = getUserEntitlements(user)
   return entitlements[feature]
 }

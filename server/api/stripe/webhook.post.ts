@@ -54,8 +54,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 
   const tier = getSubscriptionTier(productId)
   const status = mapStripeStatus(subscription.status)
-  const periodEnd = new Date(subscription.current_period_end * 1000)
-
+  const periodEnd = new Date((subscription as any).current_period_end * 1000)
   // Update user in database
   await prisma.user.updateMany({
     where: { stripeCustomerId: customerId },
