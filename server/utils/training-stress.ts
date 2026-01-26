@@ -123,9 +123,10 @@ export async function calculatePMCForDateRange(
   endDate: Date,
   userId: string,
   initialCTL: number = 0,
-  initialATL: number = 0
+  initialATL: number = 0,
+  prismaClient?: any
 ): Promise<PMCMetrics[]> {
-  const { prisma } = await import('./db')
+  const prisma = prismaClient || (await import('./db')).prisma
 
   const endDateTime = new Date(endDate)
   endDateTime.setUTCHours(23, 59, 59, 999)
@@ -230,9 +231,10 @@ export async function calculatePMCForDateRange(
  */
 export async function getInitialPMCValues(
   userId: string,
-  beforeDate: Date
+  beforeDate: Date,
+  prismaClient?: any
 ): Promise<{ ctl: number; atl: number }> {
-  const { prisma } = await import('./db')
+  const prisma = prismaClient || (await import('./db')).prisma
 
   // Find last workout with metrics
   const lastWorkout = await prisma.workout.findFirst({
@@ -315,8 +317,8 @@ export async function backfillPMCMetrics(userId: string): Promise<number> {
 /**
  * Get current fitness summary
  */
-export async function getCurrentFitnessSummary(userId: string) {
-  const { prisma } = await import('./db')
+export async function getCurrentFitnessSummary(userId: string, prismaClient?: any) {
+  const prisma = prismaClient || (await import('./db')).prisma
 
   const latestWorkout = await prisma.workout.findFirst({
     where: {
@@ -342,15 +344,18 @@ export async function getCurrentFitnessSummary(userId: string) {
   let atl = 0
   let lastUpdated: Date | null = null
 
-  const workoutDate = latestWorkout?.date ? new Date(latestWorkout.date).getTime() : 0
-  const wellnessDate = latestWellness?.date ? new Date(latestWellness.date).getTime() : 0
+  // Helper to get YYYY-MM-DD
+  const toDay = (d: Date | null | undefined) => (d ? new Date(d).toISOString().split('T')[0] : '')
+
+  const workoutDay = toDay(latestWorkout?.date)
+  const wellnessDay = toDay(latestWellness?.date)
 
   // Prioritize Wellness if it's the same day or newer (Wellness is usually end-of-day summary)
   if (
-    wellnessDate >= workoutDate &&
     latestWellness &&
     latestWellness.ctl !== null &&
-    latestWellness.atl !== null
+    latestWellness.atl !== null &&
+    (wellnessDay >= workoutDay || !latestWorkout)
   ) {
     ctl = latestWellness.ctl
     atl = latestWellness.atl
