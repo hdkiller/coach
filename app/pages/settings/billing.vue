@@ -47,7 +47,9 @@
     const periodEnd = userStore.user.subscriptionPeriodEnd
 
     const isEffectivePremium =
-      status === 'ACTIVE' || (periodEnd && new Date(periodEnd) > new Date())
+      status === 'ACTIVE' ||
+      status === 'CONTRIBUTOR' ||
+      (periodEnd && new Date(periodEnd) > new Date())
 
     const effectiveTier = isEffectivePremium ? tier : 'FREE'
 
@@ -64,6 +66,7 @@
   // Methods
   function formatStatus(status: SubscriptionStatus | undefined): string {
     if (!status) return 'None'
+    if (status === 'CONTRIBUTOR') return 'Contributor'
     return status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')
   }
 
@@ -77,11 +80,12 @@
         return 'orange'
       case 'UNPAID':
         return 'red'
+      case 'CONTRIBUTOR':
+        return 'primary'
       default:
         return 'gray'
     }
   }
-
   function formatTier(tier: SubscriptionTier | undefined): string {
     if (!tier) return 'Free'
     return tier.charAt(0) + tier.slice(1).toLowerCase()

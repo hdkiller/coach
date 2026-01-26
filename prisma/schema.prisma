@@ -25,6 +25,7 @@ enum SubscriptionStatus {
   PAST_DUE      // Payment failed, retrying
   UNPAID        // Payment failed multiple times
   NONE          // Never subscribed or fully expired
+  CONTRIBUTOR   // Manual status for lifetime/contributor access
 }
 
 // --------------------------------------

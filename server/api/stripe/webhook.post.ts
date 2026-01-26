@@ -55,9 +55,12 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const tier = getSubscriptionTier(productId)
   const status = mapStripeStatus(subscription.status)
   const periodEnd = new Date((subscription as any).current_period_end * 1000)
-  // Update user in database
+  // Update user in database (Skip if user is a CONTRIBUTOR)
   await prisma.user.updateMany({
-    where: { stripeCustomerId: customerId },
+    where: {
+      stripeCustomerId: customerId,
+      NOT: { subscriptionStatus: 'CONTRIBUTOR' }
+    },
     data: {
       stripeSubscriptionId: subscriptionId,
       subscriptionTier: tier,
@@ -75,9 +78,12 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
-  // Downgrade to FREE tier
+  // Downgrade to FREE tier (Skip if user is a CONTRIBUTOR)
   await prisma.user.updateMany({
-    where: { stripeCustomerId: customerId },
+    where: {
+      stripeCustomerId: customerId,
+      NOT: { subscriptionStatus: 'CONTRIBUTOR' }
+    },
     data: {
       stripeSubscriptionId: null,
       subscriptionTier: 'FREE',

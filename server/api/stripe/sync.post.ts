@@ -34,8 +34,13 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { stripeCustomerId: true }
+    select: { stripeCustomerId: true, subscriptionStatus: true }
   })
+
+  // Skip sync for contributors (Manual Override)
+  if (user?.subscriptionStatus === 'CONTRIBUTOR') {
+    return { status: 'skipped_contributor' }
+  }
 
   if (!user?.stripeCustomerId) {
     return { status: 'no_customer_id' }
