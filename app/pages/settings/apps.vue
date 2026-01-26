@@ -14,6 +14,14 @@
       description="Activities synced from Strava to Intervals.icu cannot be automatically imported. Please upload FIT files manually (direct Strava connection is coming soon)."
       @update:open="intervalsStravaWarningDismissed = true"
     />
+    <UAlert
+      v-if="fitbitConnected && fitbitRateLimited"
+      title="Fitbit rate limit reached"
+      icon="i-heroicons-exclamation-triangle"
+      color="warning"
+      variant="soft"
+      :description="fitbitRateLimitMessage"
+    />
     <SettingsConnectedApps
       :intervals-connected="intervalsConnected"
       :whoop-connected="whoopConnected"
@@ -93,6 +101,18 @@
 
   const fitbitConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'fitbit') ?? false
+  )
+
+  const fitbitIntegration = computed(() =>
+    integrationStatus.value?.integrations?.find((i: any) => i.provider === 'fitbit')
+  )
+
+  const fitbitRateLimited = computed(
+    () => fitbitIntegration.value?.syncStatus === 'RATE_LIMITED'
+  )
+
+  const fitbitRateLimitMessage = computed(
+    () => fitbitIntegration.value?.errorMessage || 'Rate limited by Fitbit. Try again later.'
   )
 
   const stravaConnected = computed(

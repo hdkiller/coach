@@ -23,7 +23,8 @@ defineRouteMeta({
                       lastSyncAt: { type: 'string', format: 'date-time', nullable: true },
                       syncStatus: { type: 'string', nullable: true },
                       externalUserId: { type: 'string', nullable: true },
-                      ingestWorkouts: { type: 'boolean' }
+                      ingestWorkouts: { type: 'boolean' },
+                      errorMessage: { type: 'string', nullable: true }
                     }
                   }
                 }
@@ -57,7 +58,8 @@ export default defineEventHandler(async (event) => {
           lastSyncAt: true,
           syncStatus: true,
           externalUserId: true,
-          ingestWorkouts: true
+          ingestWorkouts: true,
+          errorMessage: true
         }
       },
       accounts: {
@@ -106,7 +108,8 @@ export default defineEventHandler(async (event) => {
           lastSyncAt: newIntegration.lastSyncAt,
           syncStatus: newIntegration.syncStatus,
           externalUserId: newIntegration.externalUserId,
-          ingestWorkouts: newIntegration.ingestWorkouts
+          ingestWorkouts: newIntegration.ingestWorkouts,
+          errorMessage: newIntegration.errorMessage
         })
         console.log(`Self-healed missing Intervals.icu integration for user ${user.id}`)
       } catch (error) {

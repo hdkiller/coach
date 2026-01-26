@@ -162,12 +162,13 @@ async function fetchWithRetry(
   try {
     const response = await fetch(url, options)
 
-    const limitHeader = response.headers.get('fitbit-rate-limit-limit') ||
-      response.headers.get('rate-limit-limit')
-    const remainingHeader = response.headers.get('fitbit-rate-limit-remaining') ||
+    const limitHeader =
+      response.headers.get('fitbit-rate-limit-limit') || response.headers.get('rate-limit-limit')
+    const remainingHeader =
+      response.headers.get('fitbit-rate-limit-remaining') ||
       response.headers.get('rate-limit-remaining')
-    const resetHeader = response.headers.get('fitbit-rate-limit-reset') ||
-      response.headers.get('rate-limit-reset')
+    const resetHeader =
+      response.headers.get('fitbit-rate-limit-reset') || response.headers.get('rate-limit-reset')
 
     const remaining = remainingHeader ? parseInt(remainingHeader, 10) : null
     const resetSeconds = resetHeader ? parseInt(resetHeader, 10) : null
@@ -176,22 +177,11 @@ async function fetchWithRetry(
       console.log(
         `[Fitbit API] Rate limit: ${remainingHeader}/${limitHeader ?? 'unknown'} remaining, resets in ${resetSeconds}s`
       )
-
-      if (remaining <= 0 && resetSeconds > 0) {
-        const waitTime = resetSeconds * 1000
-        console.warn(`[Fitbit API] Rate limit exhausted. Waiting ${waitTime}ms before continuing...`)
-        await new Promise((resolve) => setTimeout(resolve, waitTime))
-      }
     }
 
     if (response.status === 429 && retries > 0) {
       const retryAfter = response.headers.get('Retry-After')
-      const resetAfter = resetHeader
-      const waitTime = retryAfter
-        ? parseInt(retryAfter, 10) * 1000
-        : resetAfter
-          ? parseInt(resetAfter, 10) * 1000
-          : Math.min(backoff * 5, 60000)
+      const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : backoff
 
       console.warn(
         `[Fitbit API] 429 Too Many Requests. Retrying in ${waitTime}ms... (${retries} retries left)`
@@ -226,6 +216,16 @@ async function fitbitGet<T>(integration: Integration, path: string): Promise<T> 
   if (!response.ok) {
     const errorText = await response.text()
     console.error('[Fitbit] API error:', errorText)
+
+    if (response.status === 429) {
+      const resetHeader =
+        response.headers.get('fitbit-rate-limit-reset') ||
+        response.headers.get('rate-limit-reset')
+      const resetSeconds = resetHeader ? parseInt(resetHeader, 10) : null
+      throw new Error(
+        `FITBIT_RATE_LIMITED${resetSeconds !== null ? `_RESET_${resetSeconds}` : ''}`
+      )
+    }
 
     if (response.status === 401) {
       const refreshed = await refreshFitbitToken(validIntegration)

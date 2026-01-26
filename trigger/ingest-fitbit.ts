@@ -15,6 +15,9 @@ export const ingestFitbitTask = task({
   id: 'ingest-fitbit',
   queue: userIngestionQueue,
   maxDuration: 900,
+  retry: {
+    maxAttempts: 1
+  },
   run: async (payload: { userId: string; startDate: string; endDate: string }) => {
     const { userId, startDate, endDate } = payload
 
@@ -62,6 +65,9 @@ export const ingestFitbitTask = task({
         dates.push(`${year}-${month}-${day}`)
         currentDate.setUTCDate(currentDate.getUTCDate() + 1)
       }
+
+      // Process most recent days first
+      dates.reverse()
 
       logger.log('-'.repeat(60))
       logger.log(`📅 Generated ${dates.length} dates to process`)
@@ -157,6 +163,11 @@ export const ingestFitbitTask = task({
         } catch (error) {
           errorCount++
           logger.error(`[${date}] ✖ Error processing date`, { error })
+
+          if (error instanceof Error && error.message.startsWith('FITBIT_RATE_LIMITED')) {
+            logger.warn('[Fitbit] Rate limited. Aborting remaining dates to avoid blocking sync.')
+            throw error
+          }
         }
       }
 
@@ -184,15 +195,45 @@ export const ingestFitbitTask = task({
         endDate
       }
     } catch (error) {
-      logger.error('Error ingesting Fitbit nutrition data', { error })
+      const isRateLimited =
+        error instanceof Error && error.message.startsWith('FITBIT_RATE_LIMITED')
+
+      logger.error('Error ingesting Fitbit nutrition data', { error, isRateLimited })
+
+      let errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      let syncStatus: string = 'FAILED'
+
+      if (isRateLimited) {
+        syncStatus = 'RATE_LIMITED'
+        const match = errorMessage.match(/FITBIT_RATE_LIMITED_RESET_(\d+)/)
+        if (match?.[1]) {
+          const resetSeconds = parseInt(match[1], 10)
+          const resetMinutes = Math.max(1, Math.ceil(resetSeconds / 60))
+          errorMessage = `Rate limited by Fitbit. Try again in ~${resetMinutes} minute${
+            resetMinutes === 1 ? '' : 's'
+          }.`
+        } else {
+          errorMessage = 'Rate limited by Fitbit. Try again later.'
+        }
+      }
 
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
-          syncStatus: 'FAILED',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          syncStatus,
+          errorMessage
         }
       })
+
+      if (isRateLimited) {
+        return {
+          success: false,
+          rateLimited: true,
+          userId,
+          startDate,
+          endDate
+        }
+      }
 
       throw error
     }

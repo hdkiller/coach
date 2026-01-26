@@ -255,6 +255,8 @@
                         ? 'success'
                         : int.syncStatus === 'FAILED'
                           ? 'error'
+                          : int.syncStatus === 'RATE_LIMITED'
+                            ? 'warning'
                           : 'neutral'
                     "
                     variant="subtle"
