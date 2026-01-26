@@ -34,8 +34,8 @@
                   Unified Data View
                 </dt>
                 <dd class="inline">
-                  We unite data from Strava, Whoop, and Intervals.icu into a single, comprehensive
-                  view. This solves the "fragmented data" problem.
+                  We unite data from all your connected sources into a single, comprehensive view.
+                  This solves the "fragmented data" problem.
                 </dd>
               </div>
 
@@ -98,17 +98,17 @@
                 <div
                   class="px-3 py-1 bg-gray-900 border border-gray-600 rounded text-xs text-gray-400"
                 >
-                  Strava
+                  Workouts
                 </div>
                 <div
                   class="px-3 py-1 bg-gray-900 border border-gray-600 rounded text-xs text-gray-400"
                 >
-                  Whoop
+                  Wellness
                 </div>
                 <div
                   class="px-3 py-1 bg-gray-900 border border-gray-600 rounded text-xs text-gray-400"
                 >
-                  Yazio
+                  Nutrition
                 </div>
               </div>
 
