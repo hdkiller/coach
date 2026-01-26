@@ -34,7 +34,7 @@
     </div>
 
     <!-- Pricing Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
       <UCard
         v-for="plan in PRICING_PLANS"
         :key="plan.key"
@@ -43,7 +43,7 @@
           'ring-2 ring-primary border-primary': plan.popular,
           'opacity-90 hover:opacity-100 transition-opacity': !plan.popular
         }"
-        :ui="{ body: 'flex-grow' }"
+        :ui="{ body: { base: 'flex-grow', padding: 'p-4 sm:p-6' } }"
       >
         <!-- Popular Badge -->
         <div

@@ -41,175 +41,213 @@
       />
     </div>
 
-    <!-- 1. Pricing & Comparison (The Table) -->
-    <div class="space-y-4">
-      <div class="flex items-baseline justify-between">
-        <h3 class="text-xl font-bold">Subscription Plans</h3>
-        <p
-          v-if="userStore.user?.subscriptionTier !== 'PRO'"
-          class="text-sm text-primary font-medium"
-        >
-          Upgrade to unlock advanced features
-        </p>
-      </div>
-      <LandingPricingPlans />
-    </div>
+    <!-- Main Content Wrapper -->
 
-    <!-- 2. Subscription Management (The "Fold") -->
-    <div
-      class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-8 border-t border-gray-200 dark:border-gray-800"
-    >
-      <!-- Detailed Status Card -->
-      <UCard class="lg:col-span-2">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold">Active Subscription</h3>
-            <UIcon
-              :name="getTierIcon(userStore.user?.subscriptionTier)"
-              class="w-5 h-5 text-primary"
-            />
-          </div>
-        </template>
+    <div class="flex flex-col lg:flex-col gap-8">
+      <!-- 2. Subscription Management (Active Sub + Entitlements) -->
 
-        <div class="space-y-6">
-          <div class="flex items-start gap-4">
-            <div class="p-3 bg-primary/10 rounded-lg">
+      <!-- Show FIRST on mobile, SECOND on desktop -->
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 order-1 lg:order-2">
+        <!-- Detailed Status Card -->
+
+        <UCard class="lg:col-span-2" :ui="{ body: { padding: 'p-4 sm:p-6' } }">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold">Active Subscription</h3>
+
               <UIcon
                 :name="getTierIcon(userStore.user?.subscriptionTier)"
-                class="w-8 h-8 text-primary"
+                class="w-5 h-5 text-primary"
               />
             </div>
-            <div>
-              <div class="text-xl font-bold">
-                {{ formatTier(userStore.user?.subscriptionTier) }} Plan
+          </template>
+
+          <div class="space-y-6">
+            <div class="flex items-start gap-4">
+              <div class="p-3 bg-primary/10 rounded-lg">
+                <UIcon
+                  :name="getTierIcon(userStore.user?.subscriptionTier)"
+                  class="w-8 h-8 text-primary"
+                />
               </div>
-              <p class="text-sm text-neutral-500">
-                {{ getTierDescription(userStore.user?.subscriptionTier) }}
+
+              <div>
+                <div class="text-xl font-bold">
+                  {{ formatTier(userStore.user?.subscriptionTier) }} Plan
+                </div>
+
+                <p class="text-sm text-neutral-500">
+                  {{ getTierDescription(userStore.user?.subscriptionTier) }}
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800"
+            >
+              <div>
+                <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Status</dt>
+
+                <dd class="mt-1">
+                  <UBadge
+                    :color="getStatusColor(userStore.user?.subscriptionStatus) as any"
+                    variant="subtle"
+                  >
+                    {{ formatStatus(userStore.user?.subscriptionStatus) }}
+                  </UBadge>
+                </dd>
+              </div>
+
+              <div v-if="userStore.user?.subscriptionPeriodEnd">
+                <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  {{
+                    userStore.user?.subscriptionStatus === 'CANCELED'
+                      ? 'Access Expires'
+                      : 'Next Billing Date'
+                  }}
+                </dt>
+
+                <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {{ formatDate(userStore.user.subscriptionPeriodEnd) }}
+                </dd>
+              </div>
+
+              <div v-if="userStore.user?.stripeCustomerId">
+                <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Customer ID
+                </dt>
+
+                <dd class="mt-1 text-xs font-mono text-gray-500">
+                  {{ userStore.user.stripeCustomerId }}
+                </dd>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="flex flex-wrap gap-3">
+              <UButton
+                v-if="
+                  userStore.user?.stripeCustomerId && userStore.user?.subscriptionTier !== 'FREE'
+                "
+                color="primary"
+                variant="solid"
+                :loading="loadingPortal"
+                @click="handleManageSubscription"
+              >
+                <UIcon name="i-heroicons-cog-6-tooth" class="w-4 h-4" />
+
+                Manage
+              </UButton>
+
+              <UButton
+                v-if="userStore.user?.stripeCustomerId"
+                color="neutral"
+                variant="outline"
+                :loading="loadingPortal"
+                @click="handleViewInvoices"
+              >
+                <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
+
+                Invoices
+              </UButton>
+
+              <UButton color="neutral" variant="ghost" :loading="syncing" @click="handleSync">
+                <UIcon name="i-heroicons-arrow-path" class="w-4 h-4" />
+
+                Sync
+              </UButton>
+
+              <p
+                v-if="userStore.user?.subscriptionTier === 'FREE'"
+                class="text-xs text-neutral-500 italic mt-2 w-full"
+              >
+                Subscribe to a plan below to manage billing.
               </p>
             </div>
-          </div>
+          </template>
+        </UCard>
 
-          <div
-            class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800"
-          >
-            <div>
-              <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Status</dt>
-              <dd class="mt-1">
-                <UBadge
-                  :color="getStatusColor(userStore.user?.subscriptionStatus) as any"
-                  variant="subtle"
-                >
-                  {{ formatStatus(userStore.user?.subscriptionStatus) }}
-                </UBadge>
-              </dd>
+        <!-- Entitlements Summary -->
+
+        <UCard :ui="{ body: { padding: 'p-4 sm:p-6' } }">
+          <template #header>
+            <h3 class="text-lg font-semibold text-center">Your Entitlements</h3>
+          </template>
+
+          <div class="space-y-4">
+            <div
+              class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
+            >
+              <span class="text-sm">Sync Mode</span>
+
+              <UBadge :color="entitlements?.autoSync ? 'success' : 'neutral'" size="xs">
+                {{ entitlements?.autoSync ? 'Automatic' : 'Manual' }}
+              </UBadge>
             </div>
-            <div v-if="userStore.user?.subscriptionPeriodEnd">
-              <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                {{
-                  userStore.user?.subscriptionStatus === 'CANCELED'
-                    ? 'Access Expires'
-                    : 'Next Billing Date'
-                }}
-              </dt>
-              <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-                {{ formatDate(userStore.user.subscriptionPeriodEnd) }}
-              </dd>
+
+            <div
+              class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
+            >
+              <span class="text-sm">Analysis</span>
+
+              <UBadge :color="entitlements?.autoAnalysis ? 'success' : 'neutral'" size="xs">
+                {{ entitlements?.autoAnalysis ? 'Always-On' : 'On-Demand' }}
+              </UBadge>
             </div>
-            <div v-if="userStore.user?.stripeCustomerId">
-              <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Customer ID</dt>
-              <dd class="mt-1 text-xs font-mono text-gray-500">
-                {{ userStore.user.stripeCustomerId }}
-              </dd>
+
+            <div
+              class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
+            >
+              <span class="text-sm">AI Engine</span>
+
+              <UBadge :color="entitlements?.aiModel === 'pro' ? 'primary' : 'info'" size="xs">
+                {{ entitlements?.aiModel === 'pro' ? 'Deep' : 'Standard' }}
+              </UBadge>
+            </div>
+
+            <div
+              class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
+            >
+              <span class="text-sm">Priority</span>
+
+              <UBadge :color="entitlements?.priorityProcessing ? 'success' : 'neutral'" size="xs">
+                {{ entitlements?.priorityProcessing ? 'Yes' : 'No' }}
+              </UBadge>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Proactive AI</span>
+
+              <UBadge :color="entitlements?.proactivity ? 'success' : 'neutral'" size="xs">
+                {{ entitlements?.proactivity ? 'Yes' : 'No' }}
+              </UBadge>
             </div>
           </div>
+        </UCard>
+      </div>
+
+      <!-- 1. Pricing & Comparison -->
+
+      <!-- Show SECOND on mobile, FIRST on desktop -->
+
+      <div
+        class="space-y-4 order-2 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
+      >
+        <div class="flex items-baseline justify-between">
+          <h3 class="text-xl font-bold">Subscription Plans</h3>
+
+          <p
+            v-if="userStore.user?.subscriptionTier !== 'PRO'"
+            class="text-sm text-primary font-medium"
+          >
+            Upgrade to unlock advanced features
+          </p>
         </div>
 
-        <template #footer>
-          <div class="flex flex-wrap gap-3">
-            <UButton
-              v-if="userStore.user?.stripeCustomerId && userStore.user?.subscriptionTier !== 'FREE'"
-              color="primary"
-              variant="solid"
-              :loading="loadingPortal"
-              @click="handleManageSubscription"
-            >
-              <UIcon name="i-heroicons-cog-6-tooth" class="w-4 h-4" />
-              Manage Subscription
-            </UButton>
-
-            <UButton
-              v-if="userStore.user?.stripeCustomerId"
-              color="neutral"
-              variant="outline"
-              :loading="loadingPortal"
-              @click="handleViewInvoices"
-            >
-              <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
-              View Invoices
-            </UButton>
-
-            <UButton color="neutral" variant="ghost" :loading="syncing" @click="handleSync">
-              <UIcon name="i-heroicons-arrow-path" class="w-4 h-4" />
-              Sync Status
-            </UButton>
-
-            <p
-              v-if="userStore.user?.subscriptionTier === 'FREE'"
-              class="text-xs text-neutral-500 italic mt-2 w-full"
-            >
-              Subscribe to a plan above to manage billing and payment methods.
-            </p>
-          </div>
-        </template>
-      </UCard>
-
-      <!-- Entitlements Summary -->
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-semibold text-center">Your Entitlements</h3>
-        </template>
-
-        <div class="space-y-4">
-          <div
-            class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
-          >
-            <span class="text-sm">Sync Mode</span>
-            <UBadge :color="entitlements?.autoSync ? 'success' : 'neutral'" size="xs">
-              {{ entitlements?.autoSync ? 'Automatic' : 'Manual' }}
-            </UBadge>
-          </div>
-          <div
-            class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
-          >
-            <span class="text-sm">Analysis</span>
-            <UBadge :color="entitlements?.autoAnalysis ? 'success' : 'neutral'" size="xs">
-              {{ entitlements?.autoAnalysis ? 'Always-On' : 'On-Demand' }}
-            </UBadge>
-          </div>
-          <div
-            class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
-          >
-            <span class="text-sm">AI Engine</span>
-            <UBadge :color="entitlements?.aiModel === 'pro' ? 'primary' : 'info'" size="xs">
-              {{ entitlements?.aiModel === 'pro' ? 'Deep' : 'Standard' }}
-            </UBadge>
-          </div>
-          <div
-            class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
-          >
-            <span class="text-sm">Priority</span>
-            <UBadge :color="entitlements?.priorityProcessing ? 'success' : 'neutral'" size="xs">
-              {{ entitlements?.priorityProcessing ? 'Yes' : 'No' }}
-            </UBadge>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">Proactive AI</span>
-            <UBadge :color="entitlements?.proactivity ? 'success' : 'neutral'" size="xs">
-              {{ entitlements?.proactivity ? 'Yes' : 'No' }}
-            </UBadge>
-          </div>
-        </div>
-      </UCard>
+        <LandingPricingPlans />
+      </div>
     </div>
   </div>
 </template>
