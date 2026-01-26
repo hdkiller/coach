@@ -203,7 +203,7 @@
         :class="{ 'order-1 lg:order-2': !isPremium, 'order-1': isPremium }"
       >
         <!-- Detailed Status Card -->
-        <UCard class="lg:col-span-2" :ui="{ body: { padding: 'p-4 sm:p-6' } }">
+        <UCard class="lg:col-span-2" :ui="{ body: 'p-4 sm:p-6' }">
           <template #header>
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold">Active Subscription</h3>
@@ -322,7 +322,7 @@
         </UCard>
 
         <!-- Entitlements Summary -->
-        <UCard :ui="{ body: { padding: 'p-4 sm:p-6' } }">
+        <UCard :ui="{ body: 'p-4 sm:p-6' }">
           <template #header>
             <h3 class="text-lg font-semibold text-center">Your Entitlements</h3>
           </template>
@@ -390,9 +390,9 @@
     </div>
 
     <!-- Change Plan Modal -->
-    <UModal v-model:open="showPlansModal" :ui="{ width: 'sm:max-w-5xl' }">
+    <UModal v-model:open="showPlansModal" :ui="{ content: 'sm:max-w-5xl' }">
       <template #content>
-        <UCard :ui="{ body: { padding: 'p-6 sm:p-8' } }">
+        <UCard :ui="{ body: 'p-6 sm:p-8' }">
           <template #header>
             <div class="flex items-center justify-between">
               <h3 class="text-xl font-bold">Change Your Plan</h3>

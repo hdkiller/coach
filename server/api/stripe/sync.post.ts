@@ -63,17 +63,16 @@ export default defineEventHandler(async (event) => {
 
     // Safety check for date
     let periodEnd: Date | null = null
-    if (activeSub.current_period_end) {
-      periodEnd = new Date(activeSub.current_period_end * 1000)
+    if ((activeSub as any).current_period_end) {
+      periodEnd = new Date((activeSub as any).current_period_end * 1000)
     }
 
     console.log(`Syncing subscription for user ${session.user.id}:`, {
       subId: activeSub.id,
       status: activeSub.status,
-      periodEndRaw: activeSub.current_period_end,
+      periodEndRaw: (activeSub as any).current_period_end,
       periodEndParsed: periodEnd
     })
-
     await prisma.user.update({
       where: { id: session.user.id },
       data: {

@@ -45,7 +45,7 @@
 
           'opacity-90 hover:opacity-100 transition-opacity': !plan.popular
         }"
-        :ui="{ body: { base: 'flex-grow flex flex-col', padding: 'p-4 sm:p-6' } }"
+        :ui="{ body: 'flex-grow flex flex-col p-4 sm:p-6' }"
       >
         <!-- Popular Badge -->
 
