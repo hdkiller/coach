@@ -220,7 +220,7 @@ export const generateStructuredWorkoutTask = task({
     FOR CYCLING (Ride/VirtualRide):
     - Use % of FTP for power targets (e.g. 0.95 = 95%).
     - For ramps (Warmup/Cooldown), use "range" with "start" and "end" values (e.g. start: 0.50, end: 0.75 for warmup).
-    - Include target "cadence" (RPM) for each step as a single INTEGER (e.g. 90). Do not use ranges or objects.
+    - MANDATORY: Include target "cadence" (RPM) for EVERY step (including Warmup/Rest). Use 85-95 for active, 80 for rest.
 
     FOR RUNNING (Run):
     - Steps should have 'type', 'durationSeconds', 'name'.
@@ -257,6 +257,13 @@ export const generateStructuredWorkoutTask = task({
 
     if (structure.steps && Array.isArray(structure.steps)) {
       structure.steps.forEach((step: any) => {
+        // Fix missing cadence for Cycling
+        if ((workout.type === 'Ride' || workout.type === 'VirtualRide') && !step.cadence) {
+          if (step.type === 'Warmup' || step.type === 'Cooldown') step.cadence = 85
+          else if (step.type === 'Rest') step.cadence = 80
+          else step.cadence = 90
+        }
+
         // Distance
         totalDistance += step.distance || 0
 
