@@ -48,16 +48,8 @@ export default defineEventHandler(async (event) => {
 
   const workouts = await plannedWorkoutRepository.list(userId, {
     where: { date: today },
-    limit: 1,
-    orderBy: { createdAt: 'desc' }
+    orderBy: { tss: 'desc' } // Hardest first
   })
 
-  // Hack for lte vs lt: use nextDay minus 1 second/ms?
-  // Or update repo to support lt/lte distinction.
-  // Given current repo implementation, let's update repo to be more flexible or just live with it if we only have daily resolution.
-  // Actually, repo uses `lte`.
-  // Let's modify the repo to support custom where or update list to use exact date range if needed.
-  // Or just use findMany with custom where via a new method `findForDate`.
-
-  return workouts[0] || null
+  return workouts
 })

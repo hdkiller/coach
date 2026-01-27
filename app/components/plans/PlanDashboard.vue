@@ -632,7 +632,8 @@
                   draggable="true"
                   :class="{
                     'opacity-50': draggingId === workout.id,
-                    'bg-independent-stripes': workout.isIndependent
+                    'bg-independent-stripes': workout.isIndependent,
+                    'opacity-60 italic text-muted': workout.type === 'Rest'
                   }"
                   @dragstart="onDragStart($event, workout)"
                   @dragover.prevent
@@ -689,7 +690,8 @@
                     <div class="text-xs text-muted">{{ workout.type }}</div>
                   </td>
                   <td class="px-4 py-3">
-                    <div v-if="workout.type === 'Ride' || workout.type === 'VirtualRide'">
+                    <div v-if="workout.type === 'Rest'" class="text-xs">Rest Day</div>
+                    <div v-else-if="workout.type === 'Ride' || workout.type === 'VirtualRide'">
                       {{ Math.round(workout.durationSec / 60) }}m
                     </div>
                     <div v-else-if="workout.type === 'Run'">
@@ -712,11 +714,11 @@
                   <td class="px-4 py-3 text-center">
                     <div class="flex justify-center">
                       <MiniWorkoutChart
-                        v-if="workout.structuredWorkout"
+                        v-if="workout.structuredWorkout && workout.type !== 'Rest'"
                         :workout="workout.structuredWorkout"
                       />
                       <UButton
-                        v-else
+                        v-else-if="workout.type !== 'Rest'"
                         size="xs"
                         color="neutral"
                         variant="ghost"
@@ -766,7 +768,10 @@
               v-for="workout in visibleWorkouts"
               :key="workout.id"
               class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 w-full"
-              :class="{ 'bg-independent-stripes border-dashed': workout.isIndependent }"
+              :class="{
+                'bg-independent-stripes border-dashed': workout.isIndependent,
+                'opacity-60 italic grayscale text-muted': workout.type === 'Rest'
+              }"
               @click="navigateToWorkout(workout.id)"
             >
               <div class="flex items-start gap-3">
@@ -834,22 +839,35 @@
                   </div>
 
                   <div class="text-xs text-muted mt-1 flex flex-wrap items-center gap-x-1.5">
-                    <span v-if="workout.type === 'Ride' || workout.type === 'VirtualRide'"
-                      >{{ Math.round(workout.durationSec / 60) }}m</span
-                    >
+                    <template v-if="workout.type === 'Rest'">
+                      <span>Rest Day</span>
+                    </template>
+                    <template v-else-if="workout.type === 'Ride' || workout.type === 'VirtualRide'">
+                      <span>{{ Math.round(workout.durationSec / 60) }}m</span>
+                      <span class="text-gray-300 dark:text-gray-600">•</span>
+                      <span class="font-medium">{{ workout.type }}</span>
+                    </template>
                     <span v-else-if="workout.type === 'Run'"
                       >{{ Math.round(workout.durationSec / 60) }}m
                       <span v-if="workout.distanceMeters"
                         >/ {{ Math.round((workout.distanceMeters / 1000) * 10) / 10 }} km</span
-                      ></span
-                    >
-                    <span v-else>{{ Math.round(workout.durationSec / 60) }}m</span>
-                    <span class="text-gray-300 dark:text-gray-600">•</span>
-                    <span class="font-medium">{{ workout.type }}</span>
+                      >
+                      <span class="text-gray-300 dark:text-gray-600">•</span>
+                      <span class="font-medium">{{ workout.type }}</span>
+                    </span>
+                    <template v-else>
+                      <span>{{ Math.round(workout.durationSec / 60) }}m</span>
+                      <span class="text-gray-300 dark:text-gray-600">•</span>
+                      <span class="font-medium">{{ workout.type }}</span>
+                    </template>
                   </div>
 
                   <!-- Mini Chart / Secondary Info Row -->
-                  <div v-if="workout.structuredWorkout" class="mt-2.5" @click.stop>
+                  <div
+                    v-if="workout.structuredWorkout && workout.type !== 'Rest'"
+                    class="mt-2.5"
+                    @click.stop
+                  >
                     <MiniWorkoutChart :workout="workout.structuredWorkout" class="h-10 w-full" />
                   </div>
                   <div

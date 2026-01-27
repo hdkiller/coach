@@ -51,7 +51,7 @@
       <div
         class="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-800"
       >
-        <div v-if="recommendationStore.todayWorkout" class="space-y-2">
+        <div v-if="recommendationStore.todayWorkouts.length > 0" class="space-y-3">
           <div class="flex items-center justify-between">
             <span
               class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest"
@@ -68,48 +68,62 @@
             />
           </div>
 
-          <div
-            class="flex items-center justify-between gap-3 group cursor-pointer relative"
-            @click="navigateTo(`/workouts/planned/${recommendationStore.todayWorkout.id}`)"
-          >
-            <div class="flex items-start gap-3 min-w-0 z-10">
-              <div
-                class="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-primary-600 dark:text-primary-400 shrink-0"
-              >
-                <UIcon
-                  :name="getWorkoutIcon(recommendationStore.todayWorkout.type)"
-                  class="w-5 h-5"
-                />
-              </div>
-              <div class="min-w-0 flex-1">
-                <h4
-                  class="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors break-words"
+          <div class="divide-y divide-gray-100 dark:divide-gray-800 space-y-3">
+            <div
+              v-for="workout in recommendationStore.todayWorkouts"
+              :key="workout.id"
+              :class="[
+                'flex items-center justify-between gap-3 group cursor-pointer relative pt-3 first:pt-0',
+                workout.type === 'Rest' ? 'opacity-60 italic' : ''
+              ]"
+              @click="navigateTo(`/workouts/planned/${workout.id}`)"
+            >
+              <div class="flex items-start gap-3 min-w-0 z-10">
+                <div
+                  :class="[
+                    'p-2 rounded-lg shrink-0',
+                    workout.type === 'Rest'
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                      : 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                  ]"
                 >
-                  {{ recommendationStore.todayWorkout.title }}
-                </h4>
-                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 mt-1">
-                  <span v-if="recommendationStore.todayWorkout.durationSec"
-                    >{{ Math.round(recommendationStore.todayWorkout.durationSec / 60) }} min</span
+                  <UIcon :name="getWorkoutIcon(workout.type)" class="w-5 h-5" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h4
+                    class="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors break-words"
                   >
-                  <span v-if="recommendationStore.todayWorkout.tss"
-                    >• {{ Math.round(recommendationStore.todayWorkout.tss) }} TSS</span
+                    {{ workout.title }}
+                  </h4>
+                  <div
+                    class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 mt-1"
                   >
-                  <span>• {{ recommendationStore.todayWorkout.type }}</span>
+                    <template v-if="workout.type !== 'Rest'">
+                      <span v-if="workout.durationSec"
+                        >{{ Math.round(workout.durationSec / 60) }} min</span
+                      >
+                      <span v-if="workout.tss">• {{ Math.round(workout.tss) }} TSS</span>
+                      <span>• {{ workout.type }}</span>
+                    </template>
+                    <template v-else>
+                      <span>Rest Day</span>
+                    </template>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <UIcon
-              name="i-heroicons-chevron-right"
-              class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors shrink-0 z-10"
-            />
+              <UIcon
+                name="i-heroicons-chevron-right"
+                class="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors shrink-0 z-10"
+              />
 
-            <!-- Mini Workout Chart as background -->
-            <div
-              v-if="recommendationStore.todayWorkout.structuredWorkout"
-              class="absolute right-0 bottom-0 w-32 h-12 opacity-15 dark:opacity-25 pointer-events-none -mb-1 translate-y-1"
-            >
-              <MiniWorkoutChart :workout="recommendationStore.todayWorkout.structuredWorkout" />
+              <!-- Mini Workout Chart as background (only for non-rest) -->
+              <div
+                v-if="workout.structuredWorkout && workout.type !== 'Rest'"
+                class="absolute right-0 bottom-0 w-32 h-12 opacity-15 dark:opacity-25 pointer-events-none -mb-1 translate-y-1"
+              >
+                <MiniWorkoutChart :workout="workout.structuredWorkout" />
+              </div>
             </div>
           </div>
         </div>
@@ -186,7 +200,7 @@
         </div>
       </div>
       <div
-        v-else-if="recommendationStore.todayWorkout"
+        v-else-if="recommendationStore.todayWorkouts.length > 0"
         class="text-[10px] text-gray-500 text-center leading-tight"
       >
         Get AI-powered guidance for this workout based on your recovery.

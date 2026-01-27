@@ -63,6 +63,7 @@ const recommendationSchema = {
       properties: {
         action: { type: 'string' },
         new_title: { type: 'string' },
+        new_type: { type: 'string', enum: ['Ride', 'Run', 'Gym', 'Swim', 'Rest'] },
         new_tss: { type: 'number' },
         new_duration_min: { type: 'number' },
         zone_adjustments: { type: 'string' },
@@ -691,6 +692,8 @@ TASK:
 Analyze whether the athlete should proceed with today's planned workout or modify it based on their current recovery state, recent training load, AND FUTURE PLANS. 
 
 **IMPORTANT**: Pay close attention to the "AI Analysis Insights" in the RECENT TRAINING section. If recent workouts highlight persistent technical weaknesses, fatigue-related pacing issues, or specific improvement recommendations, incorporate those insights into today's guidance.
+
+**PLANNED REST DAYS**: If the today's planned workout type is "Rest", your DEFAULT recommendation should be to **proceed with the rest day** (Rest). Only suggest modifying to a light activity if the athlete is exceptionally fresh (TSB > 10 and high recovery score) or if they specifically asked for a workout in their feedback. Recovery is a vital part of the training process.
 
 DECISION CRITERIA:
 1. **Recovery Status**:

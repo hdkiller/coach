@@ -744,7 +744,6 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
 
       // Insert new workouts from the generated plan
       const workoutsToCreate = (plan as any).days
-        .filter((d: any) => d.workoutType !== 'Rest')
         // Filter out any days that match an anchored workout date to avoid duplicates if AI ignored instruction
         .filter((d: any) => {
           if (!anchorWorkoutIds?.length) return true

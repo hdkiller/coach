@@ -53,13 +53,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Recommendation not found' })
   }
 
-  if (!recommendation.plannedWorkoutId) {
-    throw createError({
-      statusCode: 400,
-      message: 'No planned workout linked to this recommendation'
-    })
-  }
-
   if (recommendation.userAccepted) {
     throw createError({ statusCode: 400, message: 'Recommendation already accepted' })
   }
@@ -74,33 +67,69 @@ export default defineEventHandler(async (event) => {
   // Prepare the new description (completely replacing the old one)
   const newDescription = `${modifications.description}${modifications.zone_adjustments ? `\n\nZone Adjustments: ${modifications.zone_adjustments}` : ''}`
 
-  // Update Planned Workout locally
-  const updatedWorkout = await prisma.plannedWorkout.update({
-    where: { id: recommendation.plannedWorkoutId },
-    data: {
-      title: modifications.new_title,
-      durationSec: modifications.new_duration_min
-        ? Math.round(modifications.new_duration_min * 60)
-        : undefined,
-      tss: modifications.new_tss,
-      description: newDescription,
-      modifiedLocally: true
-      // We explicitly DO NOT clear structuredWorkout here because we want the user to see the old one
-      // while the new one generates in the background. The generation task will overwrite it.
-    }
-  })
+  let targetPlannedWorkoutId = recommendation.plannedWorkoutId
+  let updatedWorkout
+
+  if (targetPlannedWorkoutId) {
+    // UPDATE existing workout
+    updatedWorkout = await prisma.plannedWorkout.update({
+      where: { id: targetPlannedWorkoutId },
+      data: {
+        title: modifications.new_title,
+        durationSec: modifications.new_duration_min
+          ? Math.round(modifications.new_duration_min * 60)
+          : undefined,
+        tss: modifications.new_tss,
+        description: newDescription,
+        modifiedLocally: true
+      }
+    })
+  } else {
+    // CREATE new workout
+    const type =
+      modifications.new_type === 'Gym' ? 'WeightTraining' : modifications.new_type || 'Ride'
+
+    updatedWorkout = await prisma.plannedWorkout.create({
+      data: {
+        userId,
+        date: recommendation.date,
+        title: modifications.new_title,
+        type,
+        durationSec: modifications.new_duration_min
+          ? Math.round(modifications.new_duration_min * 60)
+          : 0,
+        tss: modifications.new_tss || 0,
+        description: newDescription,
+        category: modifications.new_type === 'Rest' ? 'WORKOUT' : 'WORKOUT', // As per Issue #89
+        syncStatus: 'LOCAL_ONLY',
+        externalId: `ai_gen_${userId}_${recommendation.date.toISOString().split('T')[0]}_${Date.now()}`,
+        managedBy: 'COACH_WATTS',
+        modifiedLocally: true
+      }
+    })
+    targetPlannedWorkoutId = updatedWorkout.id
+
+    // Link it to the recommendation
+    await prisma.activityRecommendation.update({
+      where: { id },
+      data: { plannedWorkoutId: targetPlannedWorkoutId }
+    })
+  }
 
   // Trigger regeneration of structured workout based on the new description/title/params
-  await tasks.trigger(
-    'generate-structured-workout',
-    {
-      plannedWorkoutId: recommendation.plannedWorkoutId
-    },
-    {
-      concurrencyKey: userId,
-      tags: [`user:${userId}`]
-    }
-  )
+  // (Skip for Rest days as they don't have structure)
+  if (updatedWorkout.type !== 'Rest') {
+    await tasks.trigger(
+      'generate-structured-workout',
+      {
+        plannedWorkoutId: targetPlannedWorkoutId
+      },
+      {
+        concurrencyKey: userId,
+        tags: [`user:${userId}`]
+      }
+    )
+  }
 
   // Sync to Intervals.icu if it's already published (not local-only)
   const isLocal =

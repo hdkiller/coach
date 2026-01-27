@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 export const useRecommendationStore = defineStore('recommendation', () => {
   const todayRecommendation = ref<any>(null)
-  const todayWorkout = ref<any>(null)
+  const todayWorkouts = ref<any[]>([])
   const loading = ref(false)
   const loadingWorkout = ref(false)
   const generating = ref(false)
@@ -19,9 +19,11 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     if (!integrationStore.intervalsConnected) return
     loadingWorkout.value = true
     try {
-      todayWorkout.value = await $fetch('/api/workouts/planned/today')
+      const data = await $fetch<any[]>('/api/workouts/planned/today')
+      todayWorkouts.value = data || []
     } catch (error) {
-      console.error('Failed to fetch today workout:', error)
+      console.error('Failed to fetch today workouts:', error)
+      todayWorkouts.value = []
     } finally {
       loadingWorkout.value = false
     }
@@ -149,7 +151,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
 
   return {
     todayRecommendation,
-    todayWorkout,
+    todayWorkouts,
     loading,
     loadingWorkout,
     generating,
