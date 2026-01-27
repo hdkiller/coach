@@ -275,3 +275,85 @@ export function detectSurges(
 
   return surges
 }
+
+/**
+ * Calculate optimal running cadence based on speed (km/h)
+ * Formula: Reference Cadence = 124.4 + 3.83 * speed (km/h)
+ * Based on research by Cavanagh & Williams (1982) and others.
+ * @param speedKmh - Running speed in km/h
+ * @param heightCm - Runner's height in cm
+ * @param legLengthCm - Runner's leg length in cm (optional, estimated if missing)
+ * @param currentCadence - User's current cadence in spm (optional)
+ * @param goal - Primary goal: "technique" (efficiency) or "injury_prevention" (+5-10%)
+ * @returns Comprehensive cadence analysis
+ */
+export function calculateOptimalCadence(
+  speedKmh: number,
+  heightCm?: number,
+  legLengthCm?: number,
+  currentCadence?: number,
+  goal: 'technique' | 'injury_prevention' = 'technique'
+) {
+  // 1. Base formula from research: 124.4 + 3.83 * speed
+  let referenceCadence = 124.4 + 3.83 * speedKmh
+
+  // 2. Anthropometric Adjustment
+  // Research shows taller runners/longer legs use slightly lower cadences
+  // Estimate leg length (inseam) if missing: roughly 47% of height
+  const effectiveHeight = heightCm || 175
+  const effectiveLegLength = legLengthCm || effectiveHeight * 0.47
+  const legToHeightRatio = effectiveLegLength / effectiveHeight
+
+  // Adjustment heuristic: ±3 spm based on leg-to-height ratio
+  // Normal ratio is around 0.47-0.48.
+  if (legToHeightRatio > 0.49) {
+    referenceCadence -= 3 // Long legs relative to height -> lower cadence
+  } else if (legToHeightRatio < 0.45) {
+    referenceCadence += 3 // Short legs relative to height -> higher cadence
+  }
+
+  // 3. Goal Adjustment (Injury Prevention)
+  // Heiderscheit et al. (2011) showed +5-10% reduces joint loading
+  if (goal === 'injury_prevention') {
+    referenceCadence *= 1.05 // Targeting the lower end of the reduction benefit
+  }
+
+  const roundedReference = Math.round(referenceCadence)
+  const optimalRange = {
+    min: roundedReference - 5,
+    max: roundedReference + 5
+  }
+
+  // 4. Comparison with current cadence
+  let recommendation = ''
+  let status: 'optimal' | 'low' | 'high' = 'optimal'
+
+  if (currentCadence) {
+    if (currentCadence < optimalRange.min) {
+      status = 'low'
+      const diff = Math.round(((roundedReference - currentCadence) / currentCadence) * 100)
+      recommendation = `Your cadence is low for this pace. Consider a gradual increase of ~3-5% (${Math.round(currentCadence * 1.05)} spm) to improve efficiency and reduce joint impact.`
+    } else if (currentCadence > optimalRange.max) {
+      status = 'high'
+      recommendation = `Your cadence is higher than typical for this pace. If it feels natural and you are injury-free, no change is needed, but you might be sacrificing some stride power.`
+    } else {
+      status = 'optimal'
+      recommendation = `Your cadence is in the optimal range for this pace. Great job maintaining efficient form!`
+    }
+  } else {
+    recommendation = `Target a cadence around ${roundedReference} spm for this pace to optimize running economy.`
+  }
+
+  return {
+    referenceCadence: roundedReference,
+    optimalRange,
+    currentCadence,
+    status,
+    recommendation,
+    metrics: {
+      speedKmh,
+      legToHeightRatio: legToHeightRatio.toFixed(2),
+      adjustmentApplied: goal === 'injury_prevention' ? '+5% (Injury Prevention)' : 'None'
+    }
+  }
+}
