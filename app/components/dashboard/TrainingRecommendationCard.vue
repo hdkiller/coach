@@ -84,25 +84,39 @@
                     'p-2 rounded-lg shrink-0',
                     workout.type === 'Rest'
                       ? 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                      : 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                      : `bg-opacity-10 dark:bg-opacity-20 ${getWorkoutColorClass(workout.type).replace('text-', 'bg-').replace('-500', '')} ${getWorkoutColorClass(workout.type)}`
                   ]"
                 >
                   <UIcon :name="getWorkoutIcon(workout.type)" class="w-5 h-5" />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <h4
-                    class="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors break-words"
-                  >
-                    {{ workout.title }}
-                  </h4>
+                  <div class="flex items-center gap-2">
+                    <h4
+                      class="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors break-words"
+                    >
+                      {{ workout.title }}
+                    </h4>
+                    <UBadge
+                      v-if="workout.completed"
+                      color="success"
+                      variant="subtle"
+                      size="sm"
+                      class="shrink-0 text-[10px] px-1 py-0"
+                    >
+                      Done
+                    </UBadge>
+                  </div>
                   <div
                     class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 mt-1"
                   >
                     <template v-if="workout.type !== 'Rest'">
                       <span v-if="workout.durationSec"
-                        >{{ Math.round(workout.durationSec / 60) }} min</span
+                        >{{ Math.round(workout.durationSec / 60) }}m</span
                       >
-                      <span v-if="workout.tss">• {{ Math.round(workout.tss) }} TSS</span>
+                      <span v-if="workout.tss"
+                        ><span v-if="workout.durationSec">•</span>
+                        {{ Math.round(workout.tss) }} TSS</span
+                      >
                       <span>• {{ workout.type }}</span>
                     </template>
                     <template v-else>
@@ -290,6 +304,11 @@
   import DashboardCreateAdHocModal from '~/components/dashboard/DashboardCreateAdHocModal.vue'
   import DashboardRefineRecommendationModal from '~/components/dashboard/DashboardRefineRecommendationModal.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
+  import {
+    getWorkoutIcon,
+    getWorkoutColorClass,
+    getWorkoutBorderColorClass
+  } from '~/utils/activity-types'
 
   const integrationStore = useIntegrationStore()
   const recommendationStore = useRecommendationStore()
@@ -396,16 +415,6 @@
     if (userStore.generating) return 'Updating your athlete profile...'
     if (recommendationStore.generating) return 'Generating recommendation...'
     return 'Loading...'
-  }
-
-  function getWorkoutIcon(type: string) {
-    if (!type) return 'i-heroicons-bolt'
-    const t = type.toLowerCase()
-    if (t.includes('run')) return 'i-heroicons-play' // Placeholder for run
-    if (t.includes('ride') || t.includes('cycle')) return 'i-heroicons-bolt'
-    if (t.includes('swim')) return 'i-heroicons-water' // Placeholder
-    if (t.includes('weight') || t.includes('gym')) return 'i-heroicons-trophy'
-    return 'i-heroicons-bolt'
   }
 
   function getRecommendationColor(rec: string): 'success' | 'warning' | 'error' | 'neutral' {
