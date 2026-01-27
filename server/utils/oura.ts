@@ -100,8 +100,8 @@ export async function fetchOuraData(
   // The spec says "start_date" and "end_date" can be date or date-time.
   // For daily collections, date string 'YYYY-MM-DD' is usually best.
   // We'll use YYYY-MM-DD part of ISO string.
-  url.searchParams.set('start_date', startDate.toISOString().split('T')[0])
-  url.searchParams.set('end_date', endDate.toISOString().split('T')[0])
+  url.searchParams.set('start_date', startDate.toISOString().split('T')[0]!)
+  url.searchParams.set('end_date', endDate.toISOString().split('T')[0]!)
 
   const allRecords: any[] = []
   let nextToken: string | undefined

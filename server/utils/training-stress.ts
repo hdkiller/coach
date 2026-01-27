@@ -345,7 +345,11 @@ export async function getCurrentFitnessSummary(userId: string, prismaClient?: an
   let lastUpdated: Date | null = null
 
   // Helper to get YYYY-MM-DD
-  const toDay = (d: Date | null | undefined) => (d ? new Date(d).toISOString().split('T')[0] : '')
+  const toDay = (d: Date | null | undefined) => {
+    if (!d) return ''
+    const parts = new Date(d).toISOString().split('T')
+    return parts[0] || ''
+  }
 
   const workoutDay = toDay(latestWorkout?.date)
   const wellnessDay = toDay(latestWellness?.date)

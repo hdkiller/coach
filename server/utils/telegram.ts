@@ -8,7 +8,7 @@ export const sendTelegramMessage = async (chatId: string | number, text: string)
   const url = `https://api.telegram.org/bot${token}/sendMessage`
 
   try {
-    await $fetch(url, {
+    await ($fetch as any)(url, {
       method: 'POST',
       body: {
         chat_id: chatId,
@@ -28,7 +28,7 @@ export const sendTelegramAction = async (chatId: string | number, action: string
 
   const url = `https://api.telegram.org/bot${token}/sendChatAction`
   try {
-    await $fetch(url, {
+    await ($fetch as any)(url, {
       method: 'POST',
       body: {
         chat_id: chatId,

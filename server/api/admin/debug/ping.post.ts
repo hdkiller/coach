@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
   const start = performance.now()
   try {
-    const response = await $fetch.raw(url, {
+    const response = await ($fetch as any).raw(url, {
       method,
       ignoreResponseError: true
     })
