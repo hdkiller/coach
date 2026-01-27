@@ -1,14 +1,44 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { prisma } from '../../server/utils/db'
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
 import { transformHistoryToCoreMessages } from '../../server/utils/ai-history'
 
 const chatHistoryCommand = new Command('chat-history')
   .description('Validate chat history transformation for recent rooms')
   .option('-l, --limit <number>', 'Number of recent rooms to check', '20')
   .option('-r, --roomId <string>', 'Check a specific room ID')
+  .option('--prod', 'Use production database')
   .action(async (options) => {
+    let prisma: PrismaClient | null = null
+    let pool: pg.Pool | null = null
+
     try {
+      // Database connection setup
+      const isProd = options.prod
+      const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+
+      if (isProd) {
+        console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
+      } else {
+        console.log(chalk.blue('Using DEVELOPMENT database.'))
+      }
+
+      if (!connectionString) {
+        console.error(chalk.red('Error: Database connection string is not defined.'))
+        if (isProd) {
+          console.error(chalk.red('Make sure DATABASE_URL_PROD is set in .env'))
+        } else {
+          console.error(chalk.red('Make sure DATABASE_URL is set in .env'))
+        }
+        process.exit(1)
+      }
+
+      pool = new pg.Pool({ connectionString })
+      const adapter = new PrismaPg(pool)
+      prisma = new PrismaClient({ adapter })
+
       console.log(chalk.blue('🔍 Validating chat history consistency...'))
 
       let rooms: { id: string; name: string | null; createdAt: Date }[] = []
@@ -188,19 +218,17 @@ const chatHistoryCommand = new Command('chat-history')
           console.log(
             chalk.red(`🔥 [${room.name || 'Untitled'}] (${room.id}) - Transformation Failed`)
           )
-          console.log(chalk.red(`   - ${error.message}))`))
-          invalidRooms++
+          console.log(chalk.red(`   - ${error.message}`))
         }
       }
 
-      console.log('\n' + chalk.bold('Summary:'))
-      console.log(`Total Checked: ${rooms.length}`)
       console.log(chalk.green(`Valid: ${validRooms}`))
       console.log(chalk.red(`Invalid: ${invalidRooms}`))
     } catch (error: any) {
       console.error(chalk.red('Fatal error:'), error)
     } finally {
-      await prisma.$disconnect()
+      if (prisma) await prisma.$disconnect()
+      if (pool) await pool.end()
     }
   })
 
