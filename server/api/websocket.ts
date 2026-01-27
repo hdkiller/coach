@@ -205,7 +205,7 @@ async function handleChatMessage(
     // Simple conversion for now: map user/model roles.
     // Note: This simplistic conversion might lose tool call history in legacy messages.
     // A robust converter would parse metadata for toolCalls.
-    const historyForModel = chronologicalHistory.map((msg: any) => ({
+    let historyForModel = chronologicalHistory.map((msg: any) => ({
       role: msg.senderId === 'ai_agent' ? 'assistant' : 'user',
       content: msg.content
     })) as any[]

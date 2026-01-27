@@ -306,10 +306,19 @@ export function calculateOptimalCadence(
 
   // Adjustment heuristic: ±3 spm based on leg-to-height ratio
   // Normal ratio is around 0.47-0.48.
-  if (legToHeightRatio > 0.49) {
-    referenceCadence -= 3 // Long legs relative to height -> lower cadence
-  } else if (legToHeightRatio < 0.45) {
-    referenceCadence += 3 // Short legs relative to height -> higher cadence
+  if (legLengthCm) {
+    if (legToHeightRatio > 0.49) {
+      referenceCadence -= 3 // Long legs relative to height -> lower cadence
+    } else if (legToHeightRatio < 0.45) {
+      referenceCadence += 3 // Short legs relative to height -> higher cadence
+    }
+  } else if (heightCm) {
+    // If only height is provided, use height-based thresholds
+    if (heightCm > 185) {
+      referenceCadence -= 3
+    } else if (heightCm < 165) {
+      referenceCadence += 3
+    }
   }
 
   // 3. Goal Adjustment (Injury Prevention)
