@@ -3,6 +3,11 @@ import { planningTools } from './ai-tools/planning'
 import { recommendationTools } from './ai-tools/recommendations'
 import { analysisTools } from './ai-tools/analysis'
 import { profileTools } from './ai-tools/profile'
+import { mathTools } from './ai-tools/math'
+import { metricTools } from './ai-tools/metric-tools'
+import { nutritionTools } from './ai-tools/nutrition'
+import { wellnessTools } from './ai-tools/wellness'
+import { availabilityTools } from './ai-tools/availability'
 import type { AiSettings } from './ai-settings'
 import { getUserAiSettings } from './ai-settings'
 
@@ -12,6 +17,11 @@ export const getToolsWithContext = (userId: string, timezone: string, settings: 
     ...planningTools(userId, timezone),
     ...recommendationTools(userId, timezone),
     ...analysisTools(userId, timezone, settings),
-    ...profileTools(userId, timezone)
+    ...profileTools(userId, timezone),
+    ...mathTools(),
+    ...metricTools(userId, timezone),
+    ...nutritionTools(userId, timezone),
+    ...wellnessTools(userId, timezone),
+    ...availabilityTools(userId)
   }
 }

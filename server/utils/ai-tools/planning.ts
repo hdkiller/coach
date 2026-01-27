@@ -13,9 +13,61 @@ import {
 import { tags } from '@trigger.dev/sdk/v3'
 import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
-import { planService } from '../services/planService'
+import { getUserLocalDate, formatUserDate } from '../../utils/date'
 
 export const planningTools = (userId: string, timezone: string) => ({
+  get_current_plan: tool({
+    description:
+      'Get the current active training plan with all details including daily workouts and weekly summary.',
+    inputSchema: z.object({}),
+    execute: async () => {
+      // Find start of current week relative to user
+      const today = getUserLocalDate(timezone)
+      const currentWeekStart = new Date(today)
+
+      // getUTCDay() since it's a UTC-aligned date
+      const day = currentWeekStart.getUTCDay()
+      const diff = day === 0 ? -6 : 1 - day // adjust to Monday
+      currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + diff)
+
+      // Get active or most recent plan
+      const plan = await prisma.weeklyTrainingPlan.findFirst({
+        where: {
+          userId,
+          weekStartDate: {
+            lte: currentWeekStart
+          }
+        },
+        orderBy: [{ status: 'asc' }, { weekStartDate: 'desc' }]
+      })
+
+      if (!plan) {
+        return {
+          message: 'No training plan found',
+          suggestion: 'Use plan_week to generate one'
+        }
+      }
+
+      const planJson = plan.planJson as any
+
+      return {
+        plan: {
+          id: plan.id,
+          week_start: formatUserDate(plan.weekStartDate, timezone),
+          week_end: formatUserDate(plan.weekEndDate, timezone),
+          days_planned: plan.daysPlanned,
+          status: plan.status,
+          total_tss: plan.totalTSS,
+          workout_count: plan.workoutCount,
+          summary: planJson?.weekSummary,
+          days: planJson?.days || [],
+          generated_at: formatUserDate(plan.createdAt, timezone),
+          model_version: plan.modelVersion
+        }
+      }
+    }
+  }),
+
   create_planned_workout: tool({
     description: 'Create a future planned workout in the calendar.',
     inputSchema: z.object({
