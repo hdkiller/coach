@@ -771,7 +771,10 @@
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Hydration Status</span>
                 <div class="text-right">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  <div
+                    class="text-sm font-medium"
+                    :class="getHydrationColorClass(wellness.hydration)"
+                  >
                     {{ wellness.hydration }}{{ /^[1-4]$/.test(wellness.hydration) ? '/4' : '' }}
                   </div>
                   <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
@@ -803,7 +806,7 @@
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Injury Status</span>
                 <div class="text-right">
-                  <div class="text-sm font-medium text-red-600 dark:text-red-400">
+                  <div class="text-sm font-medium" :class="getInjuryColorClass(wellness.injury)">
                     {{ wellness.injury }}{{ /^[1-4]$/.test(wellness.injury) ? '/4' : '' }}
                   </div>
                   <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
@@ -1184,5 +1187,19 @@
         ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30'
         : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30'
     }
+  }
+
+  function getInjuryColorClass(val: string | number | null | undefined): string {
+    const score = typeof val === 'string' ? parseInt(val) : val
+    if (score === 2) return 'text-amber-600 dark:text-amber-400'
+    if (score >= 3) return 'text-red-600 dark:text-red-400'
+    return 'text-gray-900 dark:text-white'
+  }
+
+  function getHydrationColorClass(val: string | number | null | undefined): string {
+    const score = typeof val === 'string' ? parseInt(val) : val
+    if (score === 3) return 'text-amber-600 dark:text-amber-400'
+    if (score >= 4) return 'text-red-600 dark:text-red-400'
+    return 'text-gray-900 dark:text-white'
   }
 </script>
