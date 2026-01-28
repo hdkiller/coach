@@ -1,6 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { prisma } from './db'
 import { formatUserDate } from './date'
+import {
+  getMoodLabel,
+  getStressLabel,
+  getFatigueLabel,
+  getSorenessLabel,
+  getMotivationLabel
+} from './wellness'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
@@ -593,26 +600,6 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
 }
 
 export function buildMetricsSummary(metrics: any[], timezone?: string): string {
-  const getLabel = (val: number | null, type: string) => {
-    if (val === null || val === undefined) return ''
-    if (type === 'mood') {
-      if (val >= 8) return ' (Great)'
-      if (val >= 6) return ' (Good)'
-      if (val >= 4) return ' (OK)'
-      return ' (Grumpy)'
-    }
-    if (type === 'motivation') {
-      if (val >= 8) return ' (Extreme)'
-      if (val >= 6) return ' (High)'
-      if (val >= 4) return ' (Average)'
-      return ' (Low)'
-    }
-    if (val >= 8) return ' (Extreme)'
-    if (val >= 6) return ' (High)'
-    if (val >= 4) return ' (Average)'
-    return ' (Low)'
-  }
-
   return metrics
     .map((m) => {
       const dateStr = timezone
@@ -636,13 +623,13 @@ export function buildMetricsSummary(metrics: any[], timezone?: string): string {
       if (m.readiness !== null) parts.push(`Readiness ${m.readiness}/10`)
 
       // Subjective wellness
-      if (m.fatigue !== null) parts.push(`Fatigue ${m.fatigue}/10${getLabel(m.fatigue, 'fatigue')}`)
+      if (m.fatigue !== null) parts.push(`Fatigue ${m.fatigue}/10 (${getFatigueLabel(m.fatigue)})`)
       if (m.soreness !== null)
-        parts.push(`Soreness ${m.soreness}/10${getLabel(m.soreness, 'soreness')}`)
-      if (m.stress !== null) parts.push(`Stress ${m.stress}/10${getLabel(m.stress, 'stress')}`)
-      if (m.mood !== null) parts.push(`Mood ${m.mood}/10${getLabel(m.mood, 'mood')}`)
+        parts.push(`Soreness ${m.soreness}/10 (${getSorenessLabel(m.soreness)})`)
+      if (m.stress !== null) parts.push(`Stress ${m.stress}/10 (${getStressLabel(m.stress)})`)
+      if (m.mood !== null) parts.push(`Mood ${m.mood}/10 (${getMoodLabel(m.mood)})`)
       if (m.motivation !== null)
-        parts.push(`Motivation ${m.motivation}/10${getLabel(m.motivation, 'motivation')}`)
+        parts.push(`Motivation ${m.motivation}/10 (${getMotivationLabel(m.motivation)})`)
 
       return parts.join(', ')
     })

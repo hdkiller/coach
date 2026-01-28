@@ -9,6 +9,13 @@ import { formatUserDate, formatDateUTC, getUserLocalDate, calculateAge } from '.
 import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { getUserAiSettings } from '../server/utils/ai-settings'
 import { userReportsQueue } from './queues'
+import {
+  getMoodLabel,
+  getStressLabel,
+  getFatigueLabel,
+  getSorenessLabel,
+  getMotivationLabel
+} from '../server/utils/wellness'
 
 const checkinSchema = {
   type: 'object',
@@ -80,27 +87,6 @@ export const generateDailyCheckinTask = task({
         model: aiSettings.aiModelPreference,
         persona: aiSettings.aiPersona
       })
-
-      // Helper to map subjective scores to text labels for AI context
-      const getLabel = (val: number | null | undefined, type: string) => {
-        if (val === null || val === undefined) return 'N/A'
-        if (type === 'mood') {
-          if (val >= 8) return 'Great'
-          if (val >= 6) return 'Good'
-          if (val >= 4) return 'OK'
-          return 'Grumpy'
-        }
-        if (type === 'motivation') {
-          if (val >= 8) return 'Extreme'
-          if (val >= 6) return 'High'
-          if (val >= 4) return 'Average'
-          return 'Low'
-        }
-        if (val >= 8) return 'Extreme'
-        if (val >= 6) return 'High'
-        if (val >= 4) return 'Average'
-        return 'Low'
-      }
 
       // Fetch all required data
       const [
@@ -379,11 +365,11 @@ ${
 - HRV: ${todayMetric.hrv ?? 'N/A'}ms
 - Sleep: ${todayMetric.sleepHours?.toFixed(1) ?? 'N/A'}h (Score: ${todayMetric.sleepScore ?? 'N/A'}%)
 - Subjective:
-  * Stress: ${todayMetric.stress ?? 'N/A'}/10 (${getLabel(todayMetric.stress, 'stress')})
-  * Fatigue: ${todayMetric.fatigue ?? 'N/A'}/10 (${getLabel(todayMetric.fatigue, 'fatigue')})
-  * Soreness: ${todayMetric.soreness ?? 'N/A'}/10 (${getLabel(todayMetric.soreness, 'soreness')})
-  * Mood: ${todayMetric.mood ?? 'N/A'}/10 (${getLabel(todayMetric.mood, 'mood')})
-  * Motivation: ${todayMetric.motivation ?? 'N/A'}/10 (${getLabel(todayMetric.motivation, 'motivation')})
+  * Stress: ${todayMetric.stress ?? 'N/A'}/10 (${getStressLabel(todayMetric.stress || 0)})
+  * Fatigue: ${todayMetric.fatigue ?? 'N/A'}/10 (${getFatigueLabel(todayMetric.fatigue || 0)})
+  * Soreness: ${todayMetric.soreness ?? 'N/A'}/10 (${getSorenessLabel(todayMetric.soreness || 0)})
+  * Mood: ${todayMetric.mood ?? 'N/A'}/10 (${getMoodLabel(todayMetric.mood || 0)})
+  * Motivation: ${todayMetric.motivation ?? 'N/A'}/10 (${getMotivationLabel(todayMetric.motivation || 0)})
 `
     : 'No recovery data available'
 }

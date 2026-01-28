@@ -2,6 +2,13 @@ import { prisma } from '../db'
 import { generateStructuredAnalysis } from '../gemini'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { getUserAiSettings } from '../ai-settings'
+import {
+  getMoodLabel,
+  getStressLabel,
+  getFatigueLabel,
+  getSorenessLabel,
+  getMotivationLabel
+} from '../wellness'
 
 // Define the schema for the AI analysis
 const wellnessAnalysisSchema = {
@@ -149,55 +156,43 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
       advancedContext += `- Skin Temp: ${skinTemp.toFixed(1)}°C\n`
     }
 
-    // Helper to map subjective scores to text labels for AI context
-    const getLabel = (
-      val: number | null,
-      type: 'mood' | 'stress' | 'fatigue' | 'soreness' | 'motivation'
-    ) => {
-      if (val === null || val === undefined) return 'N/A'
-
-      if (type === 'mood') {
-        // 1=Grumpy, 10=Great
-        if (val >= 8) return 'Great'
-        if (val >= 6) return 'Good'
-        if (val >= 4) return 'OK'
-        return 'Grumpy'
-      }
-
-      if (type === 'motivation') {
-        // 1=Low, 10=High/Extreme
-        if (val >= 8) return 'Extreme'
-        if (val >= 6) return 'High'
-        if (val >= 4) return 'Average'
-        return 'Low'
-      }
-
-      // Stress, Fatigue, Soreness: 1=Low, 10=Extreme
-      if (val >= 8) return 'Extreme'
-      if (val >= 6) return 'High'
-      if (val >= 4) return 'Average'
-      return 'Low'
-    }
-
     const prompt = `
-    Analyze this athlete's daily wellness data as an expert **${aiSettings.aiPersona}** coach.
-    Adapt your tone and recommendations to match your **${aiSettings.aiPersona}** persona.
 
-    CURRENT DAY (${wellness.date.toISOString().split('T')[0]}):
-    - Recovery Score: ${wellness.recoveryScore}%
-    - Resting HR: ${wellness.restingHr} bpm
-    - HRV (rMSSD): ${wellness.hrv ? wellness.hrv + ' ms' : 'N/A'}
-    - HRV (SDNN): ${wellness.hrvSdnn ? wellness.hrvSdnn + ' ms' : 'N/A'}
-    - Sleep: ${wellness.sleepHours} hours (Score: ${wellness.sleepScore})
-    - Readiness: ${readinessLabel}
-    - Subjective:
-      * Stress: ${wellness.stress}/10 (${getLabel(wellness.stress, 'stress')})
-      * Fatigue: ${wellness.fatigue}/10 (${getLabel(wellness.fatigue, 'fatigue')})
-      * Soreness: ${wellness.soreness}/10 (${getLabel(wellness.soreness, 'soreness')})
-      * Mood: ${wellness.mood}/10 (${getLabel(wellness.mood, 'mood')})
-      * Motivation: ${wellness.motivation}/10 (${getLabel(wellness.motivation, 'motivation')})
-    - Vitals: SpO2 ${wellness.spO2}%, Weight ${wellness.weight}kg
-    ${sleepDetails}
+        Analyze this athlete's daily wellness data as an expert **${aiSettings.aiPersona}** coach.
+
+        Adapt your tone and recommendations to match your **${aiSettings.aiPersona}** persona.
+
+    
+
+        CURRENT DAY (${wellness.date.toISOString().split('T')[0]}):
+
+        - Recovery Score: ${wellness.recoveryScore}%
+
+        - Resting HR: ${wellness.restingHr} bpm
+
+        - HRV (rMSSD): ${wellness.hrv ? wellness.hrv + ' ms' : 'N/A'}
+
+        - HRV (SDNN): ${wellness.hrvSdnn ? wellness.hrvSdnn + ' ms' : 'N/A'}
+
+        - Sleep: ${wellness.sleepHours} hours (Score: ${wellness.sleepScore})
+
+        - Readiness: ${readinessLabel}
+
+        - Subjective:
+
+          * Stress: ${wellness.stress}/10 (${getStressLabel(wellness.stress || 0)})
+
+          * Fatigue: ${wellness.fatigue}/10 (${getFatigueLabel(wellness.fatigue || 0)})
+
+          * Soreness: ${wellness.soreness}/10 (${getSorenessLabel(wellness.soreness || 0)})
+
+          * Mood: ${wellness.mood}/10 (${getMoodLabel(wellness.mood || 0)})
+
+          * Motivation: ${wellness.motivation}/10 (${getMotivationLabel(wellness.motivation || 0)})
+
+        - Vitals: SpO2 ${wellness.spO2}%, Weight ${wellness.weight}kg
+
+        ${sleepDetails}
     
     ADVANCED CONTEXT:
     ${advancedContext}
