@@ -205,14 +205,27 @@
                           />
                         </UTooltip>
                       </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                        <span v-if="workout.durationSec"
-                          >{{ Math.round(workout.durationSec / 60) }}m</span
-                        >
-                        <span v-if="workout.tss"
-                          ><span v-if="workout.durationSec">•</span>
-                          {{ Math.round(workout.tss) }} TSS</span
-                        >
+                      <div
+                        class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5"
+                      >
+                        <div v-if="workout.durationSec" class="flex items-center gap-1">
+                          <UIcon
+                            name="i-tabler-clock"
+                            class="w-3 h-3 opacity-80"
+                            :class="getWorkoutColorClass(workout.type)"
+                          />
+                          <span class="font-medium"
+                            >{{ Math.round(workout.durationSec / 60) }}m</span
+                          >
+                        </div>
+                        <div v-if="workout.tss" class="flex items-center gap-1">
+                          <UIcon
+                            name="i-tabler-bolt"
+                            class="w-3 h-3 opacity-80"
+                            :class="getWorkoutColorClass(workout.type)"
+                          />
+                          <span class="font-medium">{{ Math.round(workout.tss) }} TSS</span>
+                        </div>
                       </div>
                     </div>
                     <UIcon
