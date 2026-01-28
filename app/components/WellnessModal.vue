@@ -223,7 +223,7 @@
             </div>
             <div class="text-2xl font-bold text-orange-900 dark:text-orange-50">
               {{ wellnessData.stress }}/10
-              <span class="text-xs font-medium opacity-70 block">{{
+              <span class="text-xs font-medium opacity-70 block mt-0.5">{{
                 getStressLabel(wellnessData.stress)
               }}</span>
             </div>
@@ -255,7 +255,7 @@
             </div>
             <div class="text-2xl font-bold text-yellow-900 dark:text-yellow-50">
               {{ wellnessData.mood }}/10
-              <span class="text-xs font-medium opacity-70 block">{{
+              <span class="text-xs font-medium opacity-70 block mt-0.5">{{
                 getMoodLabel(wellnessData.mood)
               }}</span>
             </div>
@@ -799,19 +799,5 @@
     }
 
     return 'Listen to your body and adjust training intensity based on how you feel throughout your session.'
-  }
-
-  function getMoodLabel(score: number): string {
-    if (score >= 8) return 'Great'
-    if (score >= 6) return 'Good'
-    if (score >= 4) return 'OK'
-    return 'Grumpy'
-  }
-
-  function getStressLabel(score: number): string {
-    if (score >= 8) return 'Extreme'
-    if (score >= 6) return 'High'
-    if (score >= 4) return 'Average'
-    return 'Low'
   }
 </script>

@@ -74,36 +74,36 @@
               <!-- Quick Stats Summary -->
               <div class="flex items-center gap-4 sm:gap-8 overflow-x-auto pb-1 sm:pb-0">
                 <div v-if="wellness.recoveryScore" class="flex flex-col items-end">
-                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
-                    >Recovery</span
-                  >
                   <span class="text-xl font-bold" :class="getScoreColor(wellness.recoveryScore)"
                     >{{ wellness.recoveryScore }}%</span
                   >
+                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
+                    >Recovery</span
+                  >
                 </div>
                 <div v-if="wellness.readiness" class="flex flex-col items-end">
-                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
-                    >Readiness</span
-                  >
                   <span class="text-xl font-bold text-blue-600 dark:text-blue-400">{{
                     wellness.readiness
                   }}</span>
+                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
+                    >Readiness</span
+                  >
                 </div>
                 <div v-if="wellness.sleepHours" class="flex flex-col items-end">
-                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
-                    >Sleep</span
-                  >
                   <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400"
                     >{{ wellness.sleepHours.toFixed(1) }}h</span
                   >
+                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
+                    >Sleep</span
+                  >
                 </div>
                 <div v-if="wellness.hrv" class="flex flex-col items-end">
-                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
-                    >HRV (rMSSD)</span
-                  >
                   <span class="text-xl font-bold text-purple-600 dark:text-purple-400">{{
                     Math.round(wellness.hrv)
                   }}</span>
+                  <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest"
+                    >HRV (rMSSD)</span
+                  >
                 </div>
               </div>
             </div>
@@ -564,18 +564,28 @@
                 class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Muscle Soreness</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white"
-                  >{{ wellness.soreness }}/10</span
-                >
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ wellness.soreness }}/10
+                  </div>
+                  <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
+                    {{ getSorenessLabel(wellness.soreness) }}
+                  </div>
+                </div>
               </div>
               <div
                 v-if="wellness.fatigue"
                 class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Fatigue</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white"
-                  >{{ wellness.fatigue }}/10</span
-                >
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ wellness.fatigue }}/10
+                  </div>
+                  <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
+                    {{ getFatigueLabel(wellness.fatigue) }}
+                  </div>
+                </div>
               </div>
               <div
                 v-if="wellness.stress"
@@ -586,7 +596,7 @@
                   <div class="text-sm font-medium text-gray-900 dark:text-white">
                     {{ wellness.stress }}/10
                   </div>
-                  <div class="text-[10px] text-gray-500 uppercase font-bold">
+                  <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
                     {{ getStressLabel(wellness.stress) }}
                   </div>
                 </div>
@@ -600,7 +610,7 @@
                   <div class="text-sm font-medium text-gray-900 dark:text-white">
                     {{ wellness.mood }}/10
                   </div>
-                  <div class="text-[10px] text-gray-500 uppercase font-bold">
+                  <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
                     {{ getMoodLabel(wellness.mood) }}
                   </div>
                 </div>
@@ -610,9 +620,14 @@
                 class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Motivation</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white"
-                  >{{ wellness.motivation }}/10</span
-                >
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ wellness.motivation }}/10
+                  </div>
+                  <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
+                    {{ getMotivationLabel(wellness.motivation) }}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1159,19 +1174,5 @@
         ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30'
         : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30'
     }
-  }
-
-  function getMoodLabel(score: number): string {
-    if (score >= 8) return 'Great'
-    if (score >= 6) return 'Good'
-    if (score >= 4) return 'OK'
-    return 'Grumpy'
-  }
-
-  function getStressLabel(score: number): string {
-    if (score >= 8) return 'Extreme'
-    if (score >= 6) return 'High'
-    if (score >= 4) return 'Average'
-    return 'Low'
   }
 </script>
