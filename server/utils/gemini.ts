@@ -630,6 +630,9 @@ export function buildMetricsSummary(metrics: any[], timezone?: string): string {
       if (m.mood !== null) parts.push(`Mood ${m.mood}/10 (${getMoodLabel(m.mood)})`)
       if (m.motivation !== null)
         parts.push(`Motivation ${m.motivation}/10 (${getMotivationLabel(m.motivation)})`)
+      if (m.hydration !== null)
+        parts.push(`Hydration ${m.hydration} (${getHydrationLabel(m.hydration)})`)
+      if (m.injury !== null) parts.push(`Injury ${m.injury} (${getInjuryLabel(m.injury)})`)
 
       return parts.join(', ')
     })

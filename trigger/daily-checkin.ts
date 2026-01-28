@@ -370,6 +370,8 @@ ${
   * Soreness: ${todayMetric.soreness ?? 'N/A'}/10 (${getSorenessLabel(todayMetric.soreness || 0)})
   * Mood: ${todayMetric.mood ?? 'N/A'}/10 (${getMoodLabel(todayMetric.mood || 0)})
   * Motivation: ${todayMetric.motivation ?? 'N/A'}/10 (${getMotivationLabel(todayMetric.motivation || 0)})
+  * Hydration: ${todayMetric.hydration ?? 'N/A'} (${getHydrationLabel(todayMetric.hydration)})
+  * Injury: ${todayMetric.injury ?? 'None'} (${getInjuryLabel(todayMetric.injury)})
 `
     : 'No recovery data available'
 }

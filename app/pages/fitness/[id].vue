@@ -770,9 +770,14 @@
                 class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Hydration Status</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{
-                  wellness.hydration
-                }}</span>
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ wellness.hydration }}{{ /^[1-4]$/.test(wellness.hydration) ? '/4' : '' }}
+                  </div>
+                  <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
+                    {{ getHydrationLabel(wellness.hydration) }}
+                  </div>
+                </div>
               </div>
               <div
                 v-if="wellness.hydrationVolume"
@@ -797,9 +802,14 @@
                 class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Injury Status</span>
-                <span class="text-sm font-medium text-red-600 dark:text-red-400">{{
-                  wellness.injury
-                }}</span>
+                <div class="text-right">
+                  <div class="text-sm font-medium text-red-600 dark:text-red-400">
+                    {{ wellness.injury }}{{ /^[1-4]$/.test(wellness.injury) ? '/4' : '' }}
+                  </div>
+                  <div class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">
+                    {{ getInjuryLabel(wellness.injury) }}
+                  </div>
+                </div>
               </div>
               <div
                 v-if="wellness.menstrualPhase"

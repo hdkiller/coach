@@ -184,13 +184,17 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
 
           * Fatigue: ${wellness.fatigue}/10 (${getFatigueLabel(wellness.fatigue || 0)})
 
-          * Soreness: ${wellness.soreness}/10 (${getSorenessLabel(wellness.soreness || 0)})
+                * Soreness: ${wellness.soreness}/10 (${getSorenessLabel(wellness.soreness || 0)})
 
-          * Mood: ${wellness.mood}/10 (${getMoodLabel(wellness.mood || 0)})
+                * Mood: ${wellness.mood}/10 (${getMoodLabel(wellness.mood || 0)})
 
-          * Motivation: ${wellness.motivation}/10 (${getMotivationLabel(wellness.motivation || 0)})
+                * Motivation: ${wellness.motivation}/10 (${getMotivationLabel(wellness.motivation || 0)})
 
-        - Vitals: SpO2 ${wellness.spO2}%, Weight ${wellness.weight}kg
+                * Hydration: ${wellness.hydration || 'N/A'} (${getHydrationLabel(wellness.hydration)})
+
+                * Injury: ${wellness.injury || 'None'} (${getInjuryLabel(wellness.injury)})
+
+              - Vitals: SpO2 ${wellness.spO2}%, Weight ${wellness.weight}kg
 
         ${sleepDetails}
     

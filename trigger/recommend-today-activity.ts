@@ -669,6 +669,8 @@ ${enrichedTodayMetric.spO2 ? `- SpO2: ${enrichedTodayMetric.spO2}%` : ''}
   * Soreness: ${enrichedTodayMetric.soreness ?? 'N/A'}/10 (${getSorenessLabel(enrichedTodayMetric.soreness || 0)})
   * Mood: ${enrichedTodayMetric.mood ?? 'N/A'}/10 (${getMoodLabel(enrichedTodayMetric.mood || 0)})
   * Motivation: ${enrichedTodayMetric.motivation ?? 'N/A'}/10 (${getMotivationLabel(enrichedTodayMetric.motivation || 0)})
+  * Hydration: ${enrichedTodayMetric.hydration ?? 'N/A'} (${getHydrationLabel(enrichedTodayMetric.hydration)})
+  * Injury: ${enrichedTodayMetric.injury ?? 'None'} (${getInjuryLabel(enrichedTodayMetric.injury)})
 `
     : 'No recovery data available'
 }
