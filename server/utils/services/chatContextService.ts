@@ -1,6 +1,6 @@
 import { prisma } from '../db'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
-import { getUserLocalDate, formatUserDate } from '../date'
+import { getUserLocalDate, formatUserDate, formatDateUTC } from '../date'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { nutritionRepository } from '../repositories/nutritionRepository'
 import { wellnessRepository } from '../repositories/wellnessRepository'
@@ -525,7 +525,7 @@ export async function buildAthleteContext(userId: string): Promise<{
             : workout.syncStatus === 'FAILED'
               ? '⚠'
               : '○'
-      athleteContext += `- ${syncIcon} **${formatUserDate(workout.date, userTimezone)}**: ${workout.title || workout.type || 'Workout'}\n`
+      athleteContext += `- ${syncIcon} **${formatDateUTC(workout.date)}**: ${workout.title || workout.type || 'Workout'}\n`
       if (workout.description) athleteContext += `  - ${workout.description}\n`
       const details: string[] = []
       if (workout.type) details.push(`Type: ${workout.type}`)
