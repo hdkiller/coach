@@ -38,98 +38,92 @@ backfillWellnessScoresCommand
     const prisma = new PrismaClient({ adapter })
 
     try {
-      console.log(chalk.gray('Fetching Wellness entries with rawJson...'))
-
-      const wellnessEntries = await prisma.wellness.findMany({
-        where: {
-          rawJson: { not: Prisma.JsonNull }
-        },
-        take: limit,
-        orderBy: { date: 'desc' }
+      console.log(chalk.gray('Fetching Wellness entries count...'))
+      const totalCount = await prisma.wellness.count({
+        where: { rawJson: { not: Prisma.JsonNull } }
       })
+      console.log(chalk.gray(`Found ${totalCount} wellness entries total.`))
 
-      console.log(chalk.gray(`Found ${wellnessEntries.length} wellness entries to process.`))
-
+      let cursor: string | undefined
       let processedCount = 0
       let fixedCount = 0
       let skippedCount = 0
+      const batchSize = 500
 
-      for (const entry of wellnessEntries) {
-        processedCount++
+      while (true) {
+        const wellnessEntries = await prisma.wellness.findMany({
+          where: {
+            rawJson: { not: Prisma.JsonNull }
+          },
+          take: batchSize,
+          skip: cursor ? 1 : 0,
+          cursor: cursor ? { id: cursor } : undefined,
+          orderBy: { id: 'asc' } // Stable sort for cursor
+        })
 
-        const raw = entry.rawJson as any
-        if (!raw) {
-          skippedCount++
-          continue
-        }
+        if (wellnessEntries.length === 0) break
 
-        // Use the updated normalize function to calculate new values
-        // Note: We haven't updated the function yet, so we define the logic here for the backfill
-        // to ensure it matches what we WILL put in the function.
+        cursor = wellnessEntries[wellnessEntries.length - 1].id
 
-        // MOOD: Intervals 1-4 (1=Great, 4=Grumpy) -> CW 1-10 (10=Great)
-        // 1 -> 10, 2 -> 7, 3 -> 4, 4 -> 1
-        const mapMood = (val: number | undefined) => {
-          if (!val) return null
-          const map: Record<number, number> = { 1: 10, 2: 7, 3: 4, 4: 1 }
-          return map[val] || null
-        }
+        const updates: Promise<any>[] = []
 
-        // SORENESS: Intervals 1-4 (1=Low, 4=Extreme) -> CW 1-10 (10=Extreme)
-        // 1 -> 1, 2 -> 4, 3 -> 7, 4 -> 10
-        const mapSoreness = (val: number | undefined) => {
-          if (!val) return null
-          const map: Record<number, number> = { 1: 1, 2: 4, 3: 7, 4: 10 }
-          return map[val] || null
-        }
+        for (const entry of wellnessEntries) {
+          processedCount++
+          const raw = entry.rawJson as any
+          if (!raw) {
+            skippedCount++
+            continue
+          }
 
-        const newMood = mapMood(raw.mood)
-        const newSoreness = mapSoreness(raw.soreness)
+          const normalized = normalizeIntervalsWellness(raw, entry.userId, entry.date)
+          const updateData: any = {}
+          let needsUpdate = false
 
-        let needsUpdate = false
-        const updateData: any = {}
-
-        if (newMood !== null && newMood !== entry.mood) {
-          updateData.mood = newMood
-          needsUpdate = true
-        }
-
-        if (newSoreness !== null && newSoreness !== entry.soreness) {
-          updateData.soreness = newSoreness
-          needsUpdate = true
-        }
-
-        if (needsUpdate) {
-          if (isDryRun) {
-            console.log(
-              chalk.green(
-                `[DRY RUN] Would update Wellness for ${entry.date.toISOString().split('T')[0]}`
-              )
-            )
-            if (updateData.mood) {
-              console.log(
-                chalk.gray(`  Mood: Raw ${raw.mood} | DB ${entry.mood} -> New ${updateData.mood}`)
-              )
-            }
-            if (updateData.soreness) {
-              console.log(
-                chalk.gray(
-                  `  Soreness: Raw ${raw.soreness} | DB ${entry.soreness} -> New ${updateData.soreness}`
-                )
-              )
-            }
-          } else {
-            await prisma.wellness.update({
-              where: { id: entry.id },
-              data: updateData
-            })
-            if (fixedCount % 50 === 0) {
-              process.stdout.write('.')
+          // Check fields
+          const fields = ['mood', 'soreness', 'stress', 'fatigue', 'sleepQuality', 'motivation']
+          for (const field of fields) {
+            const newVal = (normalized as any)[field]
+            const currentVal = (entry as any)[field]
+            if (newVal !== null && newVal !== currentVal) {
+              updateData[field] = newVal
+              needsUpdate = true
             }
           }
-          fixedCount++
-        } else {
-          skippedCount++
+
+          if (needsUpdate) {
+            if (isDryRun) {
+              // Log only first few in dry run to avoid spam
+              if (fixedCount < 20) {
+                console.log(
+                  chalk.green(`[DRY RUN] Update for ${entry.date.toISOString().split('T')[0]}`)
+                )
+                for (const [k, v] of Object.entries(updateData)) {
+                  console.log(chalk.gray(`  ${k}: ${(entry as any)[k]} -> ${v}`))
+                }
+              }
+            } else {
+              // Push promise
+              updates.push(
+                prisma.wellness.update({
+                  where: { id: entry.id },
+                  data: updateData
+                })
+              )
+            }
+            fixedCount++
+          } else {
+            skippedCount++
+          }
+        }
+
+        // Execute batch updates
+        if (updates.length > 0) {
+          await Promise.all(updates)
+        }
+
+        // Progress
+        if (processedCount % 1000 === 0) {
+          console.log(chalk.gray(`Processed ${processedCount}/${totalCount}...`))
         }
       }
 
