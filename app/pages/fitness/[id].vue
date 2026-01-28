@@ -582,18 +582,28 @@
                 class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Stress</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white"
-                  >{{ wellness.stress }}/10</span
-                >
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ wellness.stress }}/10
+                  </div>
+                  <div class="text-[10px] text-gray-500 uppercase font-bold">
+                    {{ getStressLabel(wellness.stress) }}
+                  </div>
+                </div>
               </div>
               <div
                 v-if="wellness.mood"
                 class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
               >
                 <span class="text-sm text-gray-600 dark:text-gray-400">Mood</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white"
-                  >{{ wellness.mood }}/10</span
-                >
+                <div class="text-right">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ wellness.mood }}/10
+                  </div>
+                  <div class="text-[10px] text-gray-500 uppercase font-bold">
+                    {{ getMoodLabel(wellness.mood) }}
+                  </div>
+                </div>
               </div>
               <div
                 v-if="wellness.motivation"
@@ -1149,5 +1159,19 @@
         ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30'
         : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30'
     }
+  }
+
+  function getMoodLabel(score: number): string {
+    if (score >= 8) return 'Great'
+    if (score >= 6) return 'Good'
+    if (score >= 4) return 'OK'
+    return 'Grumpy'
+  }
+
+  function getStressLabel(score: number): string {
+    if (score >= 8) return 'Extreme'
+    if (score >= 6) return 'High'
+    if (score >= 4) return 'Average'
+    return 'Low'
   }
 </script>

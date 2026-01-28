@@ -223,6 +223,9 @@
             </div>
             <div class="text-2xl font-bold text-orange-900 dark:text-orange-50">
               {{ wellnessData.stress }}/10
+              <span class="text-xs font-medium opacity-70 block">{{
+                getStressLabel(wellnessData.stress)
+              }}</span>
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
@@ -252,6 +255,9 @@
             </div>
             <div class="text-2xl font-bold text-yellow-900 dark:text-yellow-50">
               {{ wellnessData.mood }}/10
+              <span class="text-xs font-medium opacity-70 block">{{
+                getMoodLabel(wellnessData.mood)
+              }}</span>
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
@@ -793,5 +799,19 @@
     }
 
     return 'Listen to your body and adjust training intensity based on how you feel throughout your session.'
+  }
+
+  function getMoodLabel(score: number): string {
+    if (score >= 8) return 'Great'
+    if (score >= 6) return 'Good'
+    if (score >= 4) return 'OK'
+    return 'Grumpy'
+  }
+
+  function getStressLabel(score: number): string {
+    if (score >= 8) return 'Extreme'
+    if (score >= 6) return 'High'
+    if (score >= 4) return 'Average'
+    return 'Low'
   }
 </script>
