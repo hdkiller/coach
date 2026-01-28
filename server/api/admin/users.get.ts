@@ -1,4 +1,4 @@
-import { defineEventHandler, createError } from 'h3'
+import { defineEventHandler, createError, getQuery } from 'h3'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 
@@ -13,35 +13,58 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true,
-      isAdmin: true,
-      createdAt: true,
-      integrations: {
-        select: {
-          provider: true
+  const query = getQuery(event)
+  const page = Number(query.page) || 1
+  const limit = Number(query.limit) || 20
+  const search = (query.q as string) || ''
+
+  const skip = (page - 1) * limit
+
+  const where = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } }
+        ]
+      }
+    : {}
+
+  const [total, users] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        isAdmin: true,
+        createdAt: true,
+        integrations: {
+          select: {
+            provider: true
+          }
+        },
+        _count: {
+          select: {
+            workouts: true,
+            nutrition: true,
+            wellness: true,
+            chatParticipations: true,
+            plannedWorkouts: true
+          }
         }
       },
-      _count: {
-        select: {
-          workouts: true,
-          nutrition: true,
-          wellness: true,
-          chatParticipations: true,
-          plannedWorkouts: true
-        }
+      orderBy: {
+        createdAt: 'desc'
       }
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  })
+    })
+  ])
 
-  // Calculate LLM usage stats per user
+  // Calculate LLM usage stats only for the fetched users
+  const userIds = users.map((u) => u.id)
   const llmUsageStats = await prisma.llmUsage.groupBy({
     by: ['userId'],
     _count: {
@@ -52,7 +75,7 @@ export default defineEventHandler(async (event) => {
     },
     where: {
       userId: {
-        not: null
+        in: userIds
       }
     }
   })
@@ -69,8 +92,13 @@ export default defineEventHandler(async (event) => {
   )
 
   // Merge stats into user objects
-  return users.map((user) => ({
+  const mappedUsers = users.map((user) => ({
     ...user,
     llmUsage: llmStatsMap.get(user.id) || { count: 0, cost: 0 }
   }))
+
+  return {
+    users: mappedUsers,
+    total
+  }
 })

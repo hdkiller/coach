@@ -23,6 +23,14 @@
       }
     },
     {
+      label: 'Subscriptions',
+      icon: 'i-heroicons-banknotes',
+      to: '/admin/subscriptions',
+      onSelect: () => {
+        isOpen.value = false
+      }
+    },
+    {
       label: 'Statistics',
       icon: 'i-lucide-bar-chart-3',
       to: '/admin/stats',
