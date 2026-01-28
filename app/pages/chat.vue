@@ -317,7 +317,6 @@
             color="neutral"
             variant="ghost"
             icon="i-heroicons-clock"
-            class="lg:hidden"
             @click="isRoomListOpen = true"
           />
         </template>
