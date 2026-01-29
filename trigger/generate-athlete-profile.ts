@@ -532,6 +532,9 @@ export const generateAthleteProfileTask = task({
         const typeLabel = s.isDefault ? 'Fallback/Generic' : s.types.join(', ')
         sportSettingsContext += `### Profile: ${s.name || (s.isDefault ? 'Default' : 'Sport')} (${typeLabel})\n`
         sportSettingsContext += `- FTP: ${s.ftp || 'N/A'}W, LTHR: ${s.lthr || 'N/A'}bpm, MaxHR: ${s.maxHr || 'N/A'}bpm\n`
+        if (s.loadPreference) {
+          sportSettingsContext += `- Preferred Metric: ${s.loadPreference}\n`
+        }
 
         if (s.hrZones && Array.isArray(s.hrZones)) {
           sportSettingsContext += `  - Heart Rate Zones: ${s.hrZones.map((z: any) => `${z.name}(${z.min}-${z.max})`).join(', ')}\n`
@@ -743,6 +746,10 @@ Create a comprehensive athlete profile that synthesizes all this data. This prof
 2. Understanding the athlete's current capabilities and limitations
 3. Identifying patterns and trends
 4. Making informed coaching decisions
+
+**CRITICAL: Metric Prioritization**
+- **Sport-Specific Settings**: ALWAYS use the FTP, LTHR, and Zones defined in the "SPORT SPECIFIC SETTINGS" section for the relevant activity type (e.g., use Running settings for runs). These override the global "USER PROFILE" values which may be outdated or generic.
+- **Preferred Metrics**: If a sport profile specifies a "Preferred Metric" (e.g., HR_POWER_PACE), prioritize that data stream when analyzing intensity. For example, if "HR" is preferred, judge intensity by Heart Rate Zones even if Power is present.
 
 Focus on:
 - Current fitness state (not historical achievements, but current capability)
