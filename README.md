@@ -97,16 +97,14 @@ docker-compose up -d
 # Starts PostgreSQL on port 5439
 ```
 
-```MacOS
-Run Docker.app via Spotlight
-```
+> **Note for MacOS users:** Ensure Docker Desktop is running (e.g. open Docker.app via Spotlight).
 
 ### 3. Configure Environment
 
-If you haven't already, copy the example env file (./coach/env.example) and edit to fill in your own API keys (see below):
+Edit the `.env` file to fill in your own API keys (see below):
 
 ```bash
-vim ~/.env (or on MacOS: open -a TextEdit ~/.env)
+vim .env # or on MacOS: open -a TextEdit .env
 ```
 
 > **Note:** You will need API keys for Google (Auth & Gemini), and optionally Intervals.icu, Strava, etc. See [Getting Credentials](./docs/04-guides/implementation-guide.md#prerequisites).
