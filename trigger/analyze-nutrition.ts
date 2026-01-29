@@ -7,6 +7,44 @@ import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-settings'
 
+interface NutritionAnalysis {
+  type: string
+  title: string
+  date: string
+  executive_summary: string
+  data_completeness: {
+    status: 'complete' | 'mostly_complete' | 'partial' | 'incomplete'
+    confidence: number
+    missing_meals?: string[]
+    reasoning: string
+  }
+  sections: Array<{
+    title: string
+    status: string
+    status_label?: string
+    analysis_points: string[]
+  }>
+  recommendations: Array<{
+    title: string
+    description: string
+    priority: 'high' | 'medium' | 'low'
+  }>
+  strengths: string[]
+  areas_for_improvement: string[]
+  scores: {
+    overall: number
+    overall_explanation: string
+    macro_balance: number
+    macro_balance_explanation: string
+    quality: number
+    quality_explanation: string
+    adherence: number
+    adherence_explanation: string
+    hydration: number
+    hydration_explanation: string
+  }
+}
+
 // Analysis schema for nutrition
 const nutritionAnalysisSchema = {
   type: 'object',
@@ -271,7 +309,7 @@ export const analyzeNutritionTask = task({
       logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
 
       // Generate structured JSON analysis
-      const structuredAnalysis = await generateStructuredAnalysis(
+      const structuredAnalysis = await generateStructuredAnalysis<NutritionAnalysis>(
         prompt,
         nutritionAnalysisSchema,
         aiSettings.aiModelPreference,

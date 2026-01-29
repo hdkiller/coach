@@ -2,6 +2,7 @@ import { prisma } from '../db'
 import { generateStructuredAnalysis } from '../gemini'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { getUserAiSettings } from '../ai-settings'
+import { auditLogRepository } from '../repositories/auditLogRepository'
 import { getUserLocalDate, getUserTimezone } from '../date'
 import { recommendTodayActivityTask } from '../../../trigger/recommend-today-activity'
 import {
@@ -48,7 +49,7 @@ export async function triggerReadinessCheckIfNeeded(userId: string) {
     }
 
     console.log(
-      `[ReadinessCheck] Triggering recommendation for user ${userId} on ${today.toISOString()}`
+      `🤖 [Auto-Analyze] [ReadinessCheck] Triggering recommendation for user ${userId} on ${today.toISOString()}`
     )
 
     await recommendTodayActivityTask.trigger(
@@ -61,6 +62,14 @@ export async function triggerReadinessCheckIfNeeded(userId: string) {
         tags: [`user:${userId}`]
       }
     )
+
+    // Log the action
+    await auditLogRepository.log({
+      userId,
+      action: 'AUTO_ANALYZE_READINESS',
+      resourceType: 'ActivityRecommendation',
+      metadata: { date: today.toISOString(), source: 'webhook' }
+    })
 
     return { triggered: true }
   } catch (error) {

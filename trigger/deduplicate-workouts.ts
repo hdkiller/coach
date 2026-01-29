@@ -6,6 +6,7 @@ import { recalculateStressAfterDate } from '../server/utils/calculate-workout-st
 import { userBackgroundQueue } from './queues'
 import { deduplicationService } from '../server/utils/services/deduplicationService'
 import { analyzeWorkoutTask } from './analyze-workout'
+import { auditLogRepository } from '../server/utils/repositories/auditLogRepository'
 
 export const deduplicateWorkoutsTask = task({
   id: 'deduplicate-workouts',
@@ -183,7 +184,7 @@ export const deduplicateWorkoutsTask = task({
       // Auto-Analyze Primary Workouts
       // We check if the user has enabled auto-analysis
       if (userSettings?.aiAutoAnalyzeWorkouts) {
-        logger.log('Checking for unanalyzed workouts (last 30 days)...')
+        logger.log('🤖 [Auto-Analyze] Checking for unanalyzed workouts (last 30 days)...')
 
         const thirtyDaysAgo = new Date()
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -208,14 +209,24 @@ export const deduplicateWorkoutsTask = task({
 
         if (unanalyzedWorkouts.length > 0) {
           logger.log(
-            `Found ${unanalyzedWorkouts.length} unanalyzed workouts. Triggering analysis...`
+            `🤖 [Auto-Analyze] Found ${unanalyzedWorkouts.length} unanalyzed workouts. Triggering analysis...`
           )
           for (const workout of unanalyzedWorkouts) {
-            logger.log(`Triggering analysis for: ${workout.title} (${workout.date.toISOString()})`)
+            logger.log(
+              `🤖 [Auto-Analyze] Triggering analysis for: ${workout.title} (${workout.date.toISOString()})`
+            )
             await analyzeWorkoutTask.trigger({ workoutId: workout.id })
+            // Log the action
+            await auditLogRepository.log({
+              userId: actualUserId,
+              action: 'AUTO_ANALYZE_WORKOUT',
+              resourceType: 'Workout',
+              resourceId: workout.id,
+              metadata: { title: workout.title, date: workout.date.toISOString() }
+            })
           }
         } else {
-          logger.log('No unanalyzed workouts found in the last 30 days.')
+          logger.log('🤖 [Auto-Analyze] No unanalyzed workouts found in the last 30 days.')
         }
       }
 
