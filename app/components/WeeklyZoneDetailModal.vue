@@ -120,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-  import { getSportSettingsForActivity } from '~/utils/sportSettings'
+  import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
   import { getZoneColor } from '~/utils/zone-colors'
 
   const props = defineProps<{
@@ -243,7 +243,8 @@
 
     return {
       hrZones: settings.hrZones,
-      powerZones: settings.powerZones
+      powerZones: settings.powerZones,
+      loadPreference: settings.loadPreference
     }
   }
 
@@ -387,14 +388,17 @@
       const plannedZones = calculatePlannedZones()
       aggregatedPlannedZones.value = plannedZones
 
-      // Prefer power if available OR if planned power exists
+      // Auto-select zone type: respect preference
       const hasPlannedPower = plannedZones.some((v) => v > 0)
 
-      if (hasPowerData || hasPlannedPower) {
-        zoneType.value = 'power'
+      zoneType.value = getPreferredMetric(props.userZones, {
+        hasHr: hasHrData,
+        hasPower: hasPowerData || hasPlannedPower
+      })
+
+      if (zoneType.value === 'power') {
         aggregatedZones.value = powerZoneTimes
-      } else if (hasHrData) {
-        zoneType.value = 'hr'
+      } else {
         aggregatedZones.value = hrZoneTimes
         // Reset planned for HR mode as we don't have planned HR zones implemented yet
         aggregatedPlannedZones.value = new Array(8).fill(0)

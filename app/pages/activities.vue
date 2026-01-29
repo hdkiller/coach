@@ -437,6 +437,16 @@
                           <MiniWorkoutChart
                             v-if="activity.structuredWorkout"
                             :workout="activity.structuredWorkout"
+                            :preference="
+                              getPreferredMetric(userZones, {
+                                hasHr: !!activity.structuredWorkout.steps?.some(
+                                  (s: any) => s.heartRate
+                                ),
+                                hasPower: !!activity.structuredWorkout.steps?.some(
+                                  (s: any) => s.power
+                                )
+                              })
+                            "
                             class="w-12 h-8 opacity-75"
                           />
                           <div
@@ -498,7 +508,17 @@
 
               <template #chart-cell="{ row }">
                 <div v-if="row.original.structuredWorkout" class="w-24 h-10">
-                  <MiniWorkoutChart :workout="row.original.structuredWorkout" />
+                  <MiniWorkoutChart
+                    :workout="row.original.structuredWorkout"
+                    :preference="
+                      getPreferredMetric(userZones, {
+                        hasHr: !!row.original.structuredWorkout.steps?.some(
+                          (s: any) => s.heartRate
+                        ),
+                        hasPower: !!row.original.structuredWorkout.steps?.some((s: any) => s.power)
+                      })
+                    "
+                  />
                 </div>
                 <span v-else class="text-gray-400 text-xs">-</span>
               </template>
@@ -817,7 +837,7 @@
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import DeduplicateModal from '~/components/activities/DeduplicateModal.vue'
   import BulkDeleteModal from '~/components/workouts/BulkDeleteModal.vue'
-  import { getDefaultSportSettings } from '~/utils/sportSettings'
+  import { getDefaultSportSettings, getPreferredMetric } from '~/utils/sportSettings'
 
   definePageMeta({
     middleware: 'auth',
@@ -961,7 +981,8 @@
     const defaultProfile = getDefaultSportSettings(allSportSettings.value)
     return {
       hrZones: defaultProfile?.hrZones || getDefaultHrZones(),
-      powerZones: defaultProfile?.powerZones || getDefaultPowerZones()
+      powerZones: defaultProfile?.powerZones || getDefaultPowerZones(),
+      loadPreference: defaultProfile?.loadPreference
     }
   })
 

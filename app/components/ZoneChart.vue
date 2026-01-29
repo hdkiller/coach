@@ -151,6 +151,7 @@
     type ChartOptions
   } from 'chart.js'
   import { getZoneColor } from '~/utils/zone-colors'
+  import { getPreferredMetric } from '~/utils/sportSettings'
 
   ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
@@ -539,17 +540,18 @@
           userZones.value = {
             hrZones: defaultProfile?.hrZones || workout.user.hrZones || getDefaultHrZones(),
             powerZones:
-              defaultProfile?.powerZones || workout.user.powerZones || getDefaultPowerZones()
+              defaultProfile?.powerZones || workout.user.powerZones || getDefaultPowerZones(),
+            loadPreference: defaultProfile?.loadPreference
           }
         } else {
           // Fetch full profile
           const profile = await $fetch<any>('/api/profile').catch(() => null)
           if (profile?.profile) {
-            const settings = profile.profile.sportSettings || []
-            let activeProfile = settings.find((s: any) => s.isDefault)
+            const sportSettings = profile.profile.sportSettings || []
+            let activeProfile = sportSettings.find((s: any) => s.isDefault)
 
             if (props.activityType) {
-              const match = settings.find(
+              const match = sportSettings.find(
                 (s: any) => !s.isDefault && s.types && s.types.includes(props.activityType)
               )
               if (match) activeProfile = match
@@ -557,17 +559,19 @@
 
             userZones.value = {
               hrZones: activeProfile?.hrZones || getDefaultHrZones(),
-              powerZones: activeProfile?.powerZones || getDefaultPowerZones()
+              powerZones: activeProfile?.powerZones || getDefaultPowerZones(),
+              loadPreference: activeProfile?.loadPreference
             }
           }
         }
       }
 
-      // Auto-select zone type based on available data
-      if (hasHrData.value) {
-        selectedZoneType.value = 'hr'
-      } else if (hasPowerData.value) {
-        selectedZoneType.value = 'power'
+      // Auto-select zone type based on available data and preference
+      if (hasHrData.value || hasPowerData.value) {
+        selectedZoneType.value = getPreferredMetric(userZones.value, {
+          hasHr: hasHrData.value,
+          hasPower: hasPowerData.value
+        })
       }
     } catch (e: any) {
       console.error('Error fetching zone data:', e)

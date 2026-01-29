@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
   import { getZoneColor } from '~/utils/zone-colors'
+  import { getPreferredMetric } from '~/utils/sportSettings'
 
   interface Props {
     workoutIds: string[]
@@ -193,13 +194,13 @@
         }
       })
 
-      // Prefer power if available, otherwise use HR
-      if (hasPowerData) {
-        zoneType.value = 'power'
-        aggregatedZones.value = powerZoneTimes
-      } else if (hasHrData) {
-        zoneType.value = 'hr'
-        aggregatedZones.value = hrZoneTimes
+      // Auto-select zone type: respect preference
+      if (hasHrData || hasPowerData) {
+        zoneType.value = getPreferredMetric(props.userZones, {
+          hasHr: hasHrData,
+          hasPower: hasPowerData
+        })
+        aggregatedZones.value = zoneType.value === 'power' ? powerZoneTimes : hrZoneTimes
       }
     } catch (e) {
       console.error('Error fetching weekly zone data:', e)

@@ -249,6 +249,12 @@
             <div v-if="activity.source === 'planned' && activity.structuredWorkout" class="mt-1.5">
               <MiniWorkoutChart
                 :workout="activity.structuredWorkout"
+                :preference="
+                  getPreferredMetric(getActivityZones(activity), {
+                    hasHr: !!activity.structuredWorkout.steps?.some((s: any) => s.heartRate),
+                    hasPower: !!activity.structuredWorkout.steps?.some((s: any) => s.power)
+                  })
+                "
                 class="w-full h-6 opacity-75"
               />
             </div>
@@ -311,7 +317,7 @@
   import type { CalendarActivity } from '../../types/calendar'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import MiniZoneChart from '~/components/MiniZoneChart.vue'
-  import { getSportSettingsForActivity } from '~/utils/sportSettings'
+  import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
 
   const { formatDateUTC, getUserLocalDate } = useFormat()
 
@@ -340,7 +346,8 @@
 
     return {
       hrZones: settings.hrZones,
-      powerZones: settings.powerZones
+      powerZones: settings.powerZones,
+      loadPreference: settings.loadPreference
     }
   }
 

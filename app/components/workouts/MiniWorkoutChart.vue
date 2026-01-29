@@ -16,6 +16,7 @@
 <script setup lang="ts">
   const props = defineProps<{
     workout: any // structuredWorkout JSON
+    preference?: 'hr' | 'power'
   }>()
 
   const steps = computed(() => {
@@ -39,7 +40,14 @@
     const maxScale = 1.2 // 120% is top of chart
 
     // Intensity range (ramp) support
-    const range = step.power?.range || step.heartRate?.range
+    // If preference is specified, try that first
+    let range = null
+    if (props.preference === 'hr') {
+      range = step.heartRate?.range || step.power?.range
+    } else {
+      range = step.power?.range || step.heartRate?.range
+    }
+
     if (range) {
       const startH = Math.max(Math.min(range.start / maxScale, 1) * 100, 10)
       const endH = Math.max(Math.min(range.end / maxScale, 1) * 100, 10)
@@ -53,7 +61,13 @@
     }
 
     // Flat intensity support
-    const value = step.power?.value || step.heartRate?.value || 0
+    let value = 0
+    if (props.preference === 'hr') {
+      value = step.heartRate?.value || step.power?.value || 0
+    } else {
+      value = step.power?.value || step.heartRate?.value || 0
+    }
+
     const height = Math.min((value * 100) / maxScale, 100)
     return {
       height: `${Math.max(height, 10)}%`, // Minimum height for visibility

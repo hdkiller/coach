@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
   import { getZoneColor } from '~/utils/zone-colors'
+  import { getPreferredMetric } from '~/utils/sportSettings'
 
   interface Props {
     workoutId: string
@@ -177,10 +178,11 @@
         Array.isArray(props.streamData.powerZoneTimes) &&
         props.streamData.powerZoneTimes.length > 0
 
-      if (hasWatts || hasCachedPower) {
-        zoneType.value = 'power'
-      } else if (hasHr || hasCachedHr) {
-        zoneType.value = 'hr'
+      if (hasHr || hasCachedHr || hasWatts || hasCachedPower) {
+        zoneType.value = getPreferredMetric(zonesData.value, {
+          hasHr: !!(hasHr || hasCachedHr),
+          hasPower: !!(hasWatts || hasCachedPower)
+        })
       }
       return
     }
@@ -218,15 +220,16 @@
       }
 
       // Set user zones or use defaults
-      const settings = profile?.profile?.sportSettings || []
-      const defaultProfile = settings.find((s: any) => s.isDefault)
+      const sportSettings = profile?.profile?.sportSettings || []
+      const defaultProfile = sportSettings.find((s: any) => s.isDefault)
 
       zonesData.value = props.userZones || {
         hrZones: defaultProfile?.hrZones || getDefaultHrZones(),
-        powerZones: defaultProfile?.powerZones || getDefaultPowerZones()
+        powerZones: defaultProfile?.powerZones || getDefaultPowerZones(),
+        loadPreference: defaultProfile?.loadPreference
       }
 
-      // Auto-select zone type: prefer power if available, otherwise use HR
+      // Auto-select zone type: respect loadPreference
       const hasWatts =
         streams &&
         'watts' in streams &&
@@ -252,10 +255,11 @@
         Array.isArray(streams.powerZoneTimes) &&
         streams.powerZoneTimes.length > 0
 
-      if (hasWatts || hasCachedPower) {
-        zoneType.value = 'power'
-      } else if (hasHr || hasCachedHr) {
-        zoneType.value = 'hr'
+      if (hasHr || hasCachedHr || hasWatts || hasCachedPower) {
+        zoneType.value = getPreferredMetric(zonesData.value, {
+          hasHr: !!(hasHr || hasCachedHr),
+          hasPower: !!(hasWatts || hasCachedPower)
+        })
       }
     } catch (e) {
       console.error('Error fetching mini zone data:', e)
