@@ -37,6 +37,7 @@
       :polar-ingest-workouts="polarIngestWorkouts"
       :telegram-connected="telegramConnected"
       :syncing-providers="syncingProviders"
+      :intervals-settings="intervalsSettings"
       @disconnect="disconnectIntegration"
       @sync="syncIntegration"
       @sync-profile="syncProfile"
@@ -82,6 +83,12 @@
   const intervalsConnected = computed(
     () =>
       integrationStatus.value?.integrations?.some((i: any) => i.provider === 'intervals') ?? false
+  )
+
+  const intervalsSettings = computed(
+    () =>
+      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'intervals')
+        ?.settings ?? {}
   )
 
   const whoopConnected = computed(

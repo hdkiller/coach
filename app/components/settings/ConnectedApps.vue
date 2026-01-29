@@ -586,6 +586,47 @@
         </div>
       </template>
     </UModal>
+
+    <UModal v-model:open="intervalsSettingsModalOpen" title="Intervals.icu Settings">
+      <template #body>
+        <div class="space-y-6 sm:min-w-[400px]">
+          <UFormField
+            label="Readiness Score Scale"
+            description="How should we interpret the 'readiness' value from Intervals.icu?"
+          >
+            <USelectMenu
+              :model-value="intervalsSettings?.readinessScale || 'STANDARD'"
+              :items="[
+                { label: 'Standard (0-100)', value: 'STANDARD' },
+                { label: '10-Point Scale (1-10)', value: 'TEN_POINT' },
+                { label: 'Polar Scale (1-6)', value: 'POLAR' }
+              ]"
+              class="w-full"
+              @update:model-value="
+                (item: any) =>
+                  $emit('updateSetting', 'intervals', 'settings', {
+                    ...intervalsSettings,
+                    readinessScale: item.value
+                  })
+              "
+            />
+          </UFormField>
+
+          <p class="text-xs text-muted">
+            Note: Changing this only affects future data syncs. Existing records in the database
+            will not be re-calculated automatically.
+          </p>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end">
+          <UButton color="neutral" variant="soft" @click="intervalsSettingsModalOpen = false">
+            Close
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -605,10 +646,12 @@
     polarIngestWorkouts: boolean
     telegramConnected: boolean
     syncingProviders: Set<string>
+    intervalsSettings: any
   }>()
 
   const { signIn } = useAuth()
   const advancedSyncModalOpen = ref(false)
+  const intervalsSettingsModalOpen = ref(false)
   const selectedDays = ref<number | undefined>()
   const emit = defineEmits<{
     disconnect: [provider: string]
@@ -630,6 +673,13 @@
         icon: 'i-heroicons-arrow-path-rounded-square',
         onSelect: () => {
           advancedSyncModalOpen.value = true
+        }
+      },
+      {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => {
+          intervalsSettingsModalOpen.value = true
         }
       }
     ],
