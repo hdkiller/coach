@@ -1,32 +1,37 @@
-export function getMoodLabel(score: number): string {
+export function getMoodLabel(score: number | null | undefined): string {
+  if (score === null || score === undefined || score === 0) return 'N/A'
   if (score >= 8) return 'Great'
   if (score >= 6) return 'Good'
   if (score >= 4) return 'OK'
   return 'Grumpy'
 }
 
-export function getStressLabel(score: number): string {
+export function getStressLabel(score: number | null | undefined): string {
+  if (score === null || score === undefined || score === 0) return 'N/A'
   if (score >= 8) return 'Extreme'
   if (score >= 6) return 'High'
   if (score >= 4) return 'Average'
   return 'Low'
 }
 
-export function getSorenessLabel(score: number): string {
+export function getSorenessLabel(score: number | null | undefined): string {
+  if (score === null || score === undefined || score === 0) return 'N/A'
   if (score >= 8) return 'Extreme'
   if (score >= 6) return 'High'
   if (score >= 4) return 'Average'
   return 'Low'
 }
 
-export function getFatigueLabel(score: number): string {
+export function getFatigueLabel(score: number | null | undefined): string {
+  if (score === null || score === undefined || score === 0) return 'N/A'
   if (score >= 8) return 'Extreme'
   if (score >= 6) return 'High'
   if (score >= 4) return 'Average'
   return 'Low'
 }
 
-export function getMotivationLabel(score: number): string {
+export function getMotivationLabel(score: number | null | undefined): string {
+  if (score === null || score === undefined || score === 0) return 'N/A'
   if (score >= 8) return 'Extreme'
   if (score >= 6) return 'High'
   if (score >= 4) return 'Average'
