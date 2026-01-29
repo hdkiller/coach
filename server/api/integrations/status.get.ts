@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
           syncStatus: true,
           externalUserId: true,
           ingestWorkouts: true,
+          settings: true,
           errorMessage: true
         }
       },
@@ -109,6 +110,7 @@ export default defineEventHandler(async (event) => {
           syncStatus: newIntegration.syncStatus,
           externalUserId: newIntegration.externalUserId,
           ingestWorkouts: newIntegration.ingestWorkouts,
+          settings: newIntegration.settings,
           errorMessage: newIntegration.errorMessage
         })
         console.log(`Self-healed missing Intervals.icu integration for user ${user.id}`)

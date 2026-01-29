@@ -75,12 +75,14 @@ export default defineEventHandler(async (event) => {
       }
     },
     data: {
-      ingestWorkouts: body.ingestWorkouts
+      ingestWorkouts: body.ingestWorkouts,
+      settings: body.settings
     },
     select: {
       id: true,
       provider: true,
-      ingestWorkouts: true
+      ingestWorkouts: true,
+      settings: true
     }
   })
 
