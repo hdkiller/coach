@@ -128,21 +128,25 @@
       orientation="vertical"
       :items="navigationItems"
       class="px-1"
+      :ui="{ link: 'justify-start' }"
     >
       <template #item="{ item }">
         <div
-          class="flex items-center gap-2 w-full group py-1.5 px-1.5 cursor-pointer relative"
+          class="flex items-center gap-2 w-full group py-1.5 px-1.5 cursor-pointer relative text-left"
           @click="item.onSelect?.()"
         >
           <UAvatar v-if="item.avatar" v-bind="item.avatar" size="sm" />
-          <div class="flex-1 min-w-0">
+          <div class="flex-1 min-w-0 text-left">
             <p
-              class="text-sm font-medium truncate"
+              class="text-sm font-medium truncate text-left"
               :class="item.active ? 'text-primary' : 'text-gray-900 dark:text-white'"
             >
               {{ item.label }}
             </p>
-            <p v-if="item.description" class="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <p
+              v-if="item.description"
+              class="text-xs text-gray-500 dark:text-gray-400 truncate text-left"
+            >
               {{ item.description }}
             </p>
           </div>
@@ -153,7 +157,7 @@
               color="neutral"
               variant="ghost"
               size="xs"
-              class="opacity-0 group-hover:opacity-100 transition-opacity -mr-1"
+              class="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity -mr-1"
               @click.stop
             />
           </UDropdownMenu>
