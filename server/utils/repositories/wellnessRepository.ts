@@ -151,9 +151,9 @@ export const wellnessRepository = {
             existing.rawJson &&
             typeof existing.rawJson === 'object'
           ) {
-            finalUpdateData[key] = { ...existing.rawJson, ...value }
+            ;(finalUpdateData as any)[key] = { ...(existing.rawJson as any), ...value }
           } else {
-            finalUpdateData[key] = value
+            ;(finalUpdateData as any)[key] = value
           }
         }
       }

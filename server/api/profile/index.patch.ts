@@ -94,13 +94,13 @@ export default defineEventHandler(async (event) => {
   if (!result.success) {
     console.warn('[PATCH /api/profile] Validation failed:', {
       user: session.user.email,
-      errors: result.error.errors,
+      errors: result.error.issues,
       body: body
     })
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid input',
-      data: result.error.errors
+      data: result.error.issues
     })
   }
 
