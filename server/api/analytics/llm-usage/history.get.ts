@@ -103,7 +103,9 @@ export default defineEventHandler(async (event) => {
       retryCount: true,
       success: true,
       errorType: true,
-      createdAt: true
+      createdAt: true,
+      feedback: true,
+      feedbackText: true
     }
   })
 
@@ -122,7 +124,9 @@ export default defineEventHandler(async (event) => {
       retries: item.retryCount,
       success: item.success,
       errorType: item.errorType,
-      createdAt: item.createdAt
+      createdAt: item.createdAt,
+      feedback: item.feedback,
+      feedbackText: item.feedbackText
     })),
     pagination: {
       page,

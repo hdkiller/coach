@@ -8,15 +8,46 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { llmUsageId, feedback, feedbackText } = body
+  const { llmUsageId, feedback, feedbackText, roomId } = body
 
-  if (!llmUsageId || !feedback) {
+  if ((!llmUsageId && !roomId) || !feedback) {
     throw createError({ statusCode: 400, message: 'Missing required fields' })
+  }
+
+  let targetUsageId = llmUsageId
+
+  // If provided roomId but no llmUsageId, try to find the last AI message's usage
+  if (!targetUsageId && roomId) {
+    const lastAiMessage = await prisma.chatMessage.findFirst({
+      where: {
+        roomId,
+        senderId: 'ai_agent'
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    if (lastAiMessage) {
+      const usage = await prisma.llmUsage.findFirst({
+        where: {
+          entityType: 'ChatMessage',
+          entityId: lastAiMessage.id
+        }
+      })
+      if (usage) {
+        targetUsageId = usage.id
+      }
+    }
+  }
+
+  if (!targetUsageId) {
+    throw createError({ statusCode: 404, message: 'Usage record not found' })
   }
 
   // Verify ownership
   const llmUsage = await prisma.llmUsage.findUnique({
-    where: { id: llmUsageId }
+    where: { id: targetUsageId }
   })
 
   if (!llmUsage) {
@@ -28,7 +59,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const updated = await prisma.llmUsage.update({
-    where: { id: llmUsageId },
+    where: { id: targetUsageId },
     data: {
       feedback,
       feedbackText
