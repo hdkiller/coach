@@ -35,7 +35,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         const parts = start_date.split('-')
         start = getStartOfDayUTC(
           timezone,
-          new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+          new Date(parseInt(parts[0]!), parseInt(parts[1]!) - 1, parseInt(parts[2]!))
         )
       } else {
         start = new Date(getUserLocalDate(timezone)) // Defaults to today user time
@@ -46,7 +46,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         const parts = end_date.split('-')
         end = getEndOfDayUTC(
           timezone,
-          new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+          new Date(parseInt(parts[0]!), parseInt(parts[1]!) - 1, parseInt(parts[2]!))
         )
       }
 
@@ -85,7 +85,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         const parts = start_date.split('-')
         start = getStartOfDayUTC(
           timezone,
-          new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+          new Date(parseInt(parts[0]!), parseInt(parts[1]!) - 1, parseInt(parts[2]!))
         )
       }
 
@@ -94,7 +94,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         const parts = end_date.split('-')
         end = getEndOfDayUTC(
           timezone,
-          new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+          new Date(parseInt(parts[0]!), parseInt(parts[1]!) - 1, parseInt(parts[2]!))
         )
       }
 

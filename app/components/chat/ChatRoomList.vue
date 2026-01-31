@@ -226,7 +226,7 @@
     >
       <template #body>
         <AiFeedbackForm
-          :room-id="reportRoomId"
+          :room-id="reportRoomId || undefined"
           @cancel="isReportModalOpen = false"
           @submit="isReportModalOpen = false"
         />
