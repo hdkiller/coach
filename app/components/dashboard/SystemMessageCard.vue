@@ -1,7 +1,7 @@
 <template>
   <UAlert
     v-if="message"
-    :title="null"
+    :title="undefined"
     :color="isAdvert ? 'gray' : color"
     :variant="variant"
     :icon="icon"
@@ -19,7 +19,7 @@
         : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
     ]"
     :ui="{
-      icon: { base: isAdvert ? 'text-amber-500 dark:text-amber-500' : undefined },
+      icon: isAdvert ? 'text-amber-500 dark:text-amber-500' : undefined,
       close: isAdvert
         ? 'text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors'
         : undefined,
