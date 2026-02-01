@@ -129,7 +129,8 @@ export const ingestWithingsTask = task({
           userId,
           wellness.date,
           cleanWellness as any,
-          cleanWellness as any
+          cleanWellness as any,
+          'withings'
         )
         upsertedCount++
 
@@ -200,7 +201,8 @@ export const ingestWithingsTask = task({
             userId,
             wellness.date,
             cleanWellness as any,
-            cleanWellness as any
+            cleanWellness as any,
+            'withings'
           )
           sleepUpsertCount++
         }

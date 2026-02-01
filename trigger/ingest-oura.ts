@@ -120,7 +120,13 @@ export const ingestOuraTask = task({
           continue
         }
 
-        await wellnessRepository.upsert(userId, wellness.date, wellness as any, wellness as any)
+        await wellnessRepository.upsert(
+          userId,
+          wellness.date,
+          wellness as any,
+          wellness as any,
+          'oura'
+        )
         wellnessUpsertCount++
       }
 

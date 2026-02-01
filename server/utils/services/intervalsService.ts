@@ -432,7 +432,13 @@ export const IntervalsService = {
         readinessScale
       )
 
-      await wellnessRepository.upsert(userId, wellnessDate, normalizedWellness, normalizedWellness)
+      await wellnessRepository.upsert(
+        userId,
+        wellnessDate,
+        normalizedWellness,
+        normalizedWellness,
+        'intervals'
+      )
       upsertedCount++
     }
 

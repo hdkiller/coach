@@ -104,8 +104,13 @@ export const polarService = {
       const normalized = normalizePolarSleep(fullSleep, integration.userId)
 
       // Upsert wellness
-      // We use upsert to merge with existing data (e.g. from other sources or re-sync)
-      await wellnessRepository.upsert(integration.userId, normalized.date, normalized, normalized)
+      await wellnessRepository.upsert(
+        integration.userId,
+        normalized.date,
+        normalized,
+        normalized,
+        'polar'
+      )
       count++
     }
     return count
@@ -118,7 +123,13 @@ export const polarService = {
     for (const recharge of recharges) {
       const normalized = normalizePolarNightlyRecharge(recharge, integration.userId)
 
-      await wellnessRepository.upsert(integration.userId, normalized.date, normalized, normalized)
+      await wellnessRepository.upsert(
+        integration.userId,
+        normalized.date,
+        normalized,
+        normalized,
+        'polar'
+      )
       count++
     }
     return count

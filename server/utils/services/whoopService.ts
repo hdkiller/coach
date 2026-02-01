@@ -112,7 +112,8 @@ export const WhoopService = {
       userId,
       normalizedWellness.date,
       normalizedWellness as any,
-      normalizedWellness as any
+      normalizedWellness as any,
+      'whoop'
     )
     console.log(
       `[WhoopService] Upserted wellness for date ${normalizedWellness.date.toISOString()}`

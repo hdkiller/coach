@@ -66,7 +66,13 @@ export const OuraService = {
       )
 
       if (wellness) {
-        await wellnessRepository.upsert(userId, wellness.date, wellness as any, wellness as any)
+        await wellnessRepository.upsert(
+          userId,
+          wellness.date,
+          wellness as any,
+          wellness as any,
+          'oura'
+        )
         console.log(`[OuraService] Upserted wellness for ${date.toISOString()}`)
       }
     }
