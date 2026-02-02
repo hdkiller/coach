@@ -21,7 +21,10 @@ defineRouteMeta({
                   restingHr: { type: 'integer', nullable: true },
                   sleepScore: { type: 'integer', nullable: true },
                   readiness: { type: 'integer', nullable: true },
-                  recoveryScore: { type: 'integer', nullable: true }
+                  recoveryScore: { type: 'integer', nullable: true },
+                  weight: { type: 'number', nullable: true },
+                  systolic: { type: 'integer', nullable: true },
+                  diastolic: { type: 'integer', nullable: true }
                 }
               }
             }

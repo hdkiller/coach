@@ -129,6 +129,36 @@
               </ClientOnly>
             </div>
           </div>
+
+          <!-- Weight Trend -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Weight Trend (Last 30 Days)
+            </h3>
+            <div v-if="loading" class="h-[300px]">
+              <USkeleton class="h-full w-full" />
+            </div>
+            <div v-else style="height: 300px">
+              <ClientOnly>
+                <Line :data="weightTrendData" :options="weightLineChartOptions" />
+              </ClientOnly>
+            </div>
+          </div>
+
+          <!-- Blood Pressure Trend -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Blood Pressure (Last 30 Days)
+            </h3>
+            <div v-if="loading" class="h-[300px]">
+              <USkeleton class="h-full w-full" />
+            </div>
+            <div v-else style="height: 300px">
+              <ClientOnly>
+                <Line :data="bpTrendData" :options="bpLineChartOptions" />
+              </ClientOnly>
+            </div>
+          </div>
         </div>
 
         <!-- Filters -->
@@ -204,6 +234,16 @@
                   <th
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >
+                    Weight
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
+                    BP
+                  </th>
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Soreness
                   </th>
                   <th
@@ -218,14 +258,14 @@
                 class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
               >
                 <tr v-for="i in 10" :key="i">
-                  <td v-for="j in 9" :key="j" class="px-6 py-4">
+                  <td v-for="j in 11" :key="j" class="px-6 py-4">
                     <USkeleton class="h-4 w-full" />
                   </td>
                 </tr>
               </tbody>
               <tbody v-else-if="filteredWellness.length === 0" class="bg-white dark:bg-gray-800">
                 <tr>
-                  <td colspan="9" class="p-8 text-center text-gray-600 dark:text-gray-400">
+                  <td colspan="11" class="p-8 text-center text-gray-600 dark:text-gray-400">
                     No wellness data found. Connect Intervals.icu and sync data to get started.
                   </td>
                 </tr>
@@ -271,6 +311,16 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {{ wellness.restingHr ? wellness.restingHr + ' bpm' : '-' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {{ wellness.weight ? wellness.weight.toFixed(1) + ' kg' : '-' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {{
+                      wellness.systolic && wellness.diastolic
+                        ? `${wellness.systolic}/${wellness.diastolic}`
+                        : '-'
+                    }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {{ wellness.soreness ? wellness.soreness + '/10' : '-' }}
@@ -660,7 +710,197 @@
     }
   })
 
+  const weightTrendData = computed(() => {
+    const today = getUserLocalDate()
+    const thirtyDaysAgo = new Date(today)
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const recentWellness = allWellness.value
+      .filter((w) => w.weight && new Date(w.date) >= thirtyDaysAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const labels = recentWellness.map((w) =>
+      new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    )
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Weight (kg)',
+          data: recentWellness.map((w) => w.weight),
+          borderColor: 'rgb(249, 115, 22)',
+          backgroundColor: 'rgba(249, 115, 22, 0.1)',
+          tension: 0.4,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: true
+        }
+      ]
+    }
+  })
+
+  const bpTrendData = computed(() => {
+    const today = getUserLocalDate()
+    const thirtyDaysAgo = new Date(today)
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const recentWellness = allWellness.value
+      .filter((w) => (w.systolic || w.diastolic) && new Date(w.date) >= thirtyDaysAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const labels = recentWellness.map((w) =>
+      new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    )
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Systolic',
+          data: recentWellness.map((w) => w.systolic),
+          borderColor: 'rgb(236, 72, 153)',
+          backgroundColor: 'rgba(236, 72, 153, 0.1)',
+          tension: 0.4,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: false
+        },
+        {
+          label: 'Diastolic',
+          data: recentWellness.map((w) => w.diastolic),
+          borderColor: 'rgb(14, 165, 233)',
+          backgroundColor: 'rgba(14, 165, 233, 0.1)',
+          tension: 0.4,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          fill: false
+        }
+      ]
+    }
+  })
+
   // Chart options
+  const weightLineChartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false
+    },
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
+        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
+        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
+        borderWidth: 1,
+        padding: 12,
+        callbacks: {
+          label: (context: any) => {
+            return `Weight: ${context.parsed.y.toFixed(1)} kg`
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
+          font: {
+            size: 11
+          },
+          maxRotation: 45,
+          minRotation: 45
+        },
+        border: {
+          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+        }
+      },
+      y: {
+        ticks: {
+          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
+          font: {
+            size: 11
+          }
+        },
+        grid: {
+          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
+        },
+        border: {
+          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+        }
+      }
+    }
+  }))
+
+  const bpLineChartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false
+    },
+    plugins: {
+      legend: {
+        display: true,
+        labels: {
+          color: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)'
+        }
+      },
+      tooltip: {
+        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
+        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
+        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
+        borderWidth: 1,
+        padding: 12
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
+          font: {
+            size: 11
+          },
+          maxRotation: 45,
+          minRotation: 45
+        },
+        border: {
+          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+        }
+      },
+      y: {
+        beginAtZero: false,
+        ticks: {
+          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
+          font: {
+            size: 11
+          }
+        },
+        grid: {
+          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
+        },
+        border: {
+          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
+        }
+      }
+    }
+  }))
+
   const lineChartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,

@@ -96,6 +96,8 @@ inspectCommand
           { label: 'Sleep Score', db: w.sleepScore, raw: raw.sleepScore, unit: '%' },
           { label: 'Readiness', db: w.readiness, raw: raw.readiness, unit: '' },
           { label: 'Weight', db: w.weight, raw: raw.weight, unit: 'kg' },
+          { label: 'Systolic', db: w.systolic, raw: raw.systolic, unit: 'mmHg' },
+          { label: 'Diastolic', db: w.diastolic, raw: raw.diastolic, unit: 'mmHg' },
           { label: 'SpO2', db: w.spO2, raw: raw.spO2, unit: '%' },
           { label: 'Stress', db: w.stress, raw: raw.stress, unit: '' },
           { label: 'Mood', db: w.mood, raw: raw.mood, unit: '' },

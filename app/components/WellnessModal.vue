@@ -209,6 +209,33 @@
             </div>
           </div>
 
+          <!-- Blood Pressure -->
+          <div
+            v-if="wellnessData.systolic != null && wellnessData.diastolic != null"
+            class="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl ring-1 ring-inset ring-red-500/10"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <UIcon name="i-heroicons-activity" class="w-4 h-4 text-red-600 dark:text-red-400" />
+              <span
+                class="text-xs font-bold text-red-900 dark:text-red-100 uppercase tracking-tight"
+                >BP</span
+              >
+            </div>
+            <div class="text-2xl font-bold text-red-900 dark:text-red-50">
+              {{ wellnessData.systolic }}/{{ wellnessData.diastolic }}
+              <span class="text-xs font-medium opacity-70">mmHg</span>
+            </div>
+            <div v-if="trendData.length > 0" class="mt-2">
+              <TrendIndicator
+                :current="wellnessData.systolic"
+                :previous="trendData.map((d) => d.systolic).filter((v) => v != null)"
+                type="lower-is-better"
+                compact
+                show-value
+              />
+            </div>
+          </div>
+
           <!-- Stress -->
           <div
             v-if="wellnessData.stress != null"
