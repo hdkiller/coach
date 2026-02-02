@@ -145,7 +145,7 @@
 
   const loading = ref(false)
   const toast = useToast()
-  const { getUserLocalDate } = useFormat()
+  const { getUserLocalDate, getUserDateFromLocal, formatUserDate, timezone } = useFormat()
 
   const state = reactive({
     title: '',
@@ -178,7 +178,7 @@
         state.title = newData.title || ''
         state.description = newData.description || ''
         state.date = newData.date
-          ? new Date(newData.date).toISOString().split('T')[0]
+          ? formatUserDate(newData.date, timezone.value, 'yyyy-MM-dd')
           : getUserLocalDate().toISOString().split('T')[0]
         state.startTime = newData.startTime || ''
         state.type = newData.type || 'Run'
@@ -314,7 +314,9 @@
   async function onSubmit() {
     loading.value = true
     try {
-      const eventDate = state.date ? new Date(state.date).toISOString() : new Date().toISOString()
+      const eventDate = state.date
+        ? getUserDateFromLocal(state.date).toISOString()
+        : new Date().toISOString()
       const payload = {
         ...state,
         date: eventDate

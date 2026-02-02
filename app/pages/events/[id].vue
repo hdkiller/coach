@@ -237,6 +237,7 @@
   const route = useRoute()
   const router = useRouter()
   const toast = useToast()
+  const { formatDate: formatUserDate } = useFormat()
 
   const event = ref<any>(null)
   const loading = ref(true)
@@ -316,12 +317,7 @@
   }
 
   function formatDate(date: string) {
-    return new Date(date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    })
+    return formatUserDate(date, 'EEEE, MMMM d, yyyy')
   }
 
   function formatLocation(event: any) {
