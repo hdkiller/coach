@@ -1,21 +1,22 @@
 name: '📋 Gemini Scheduled Issue Triage'
 
-on:
-  schedule:
-    - cron: '0 * * * *' # Runs every hour
-  pull_request:
-    branches:
-      - 'main'
-      - 'release/**/*'
-    paths:
-      - '.github/workflows/gemini-scheduled-triage.yml'
-  push:
-    branches:
-      - 'main'
-      - 'release/**/*'
-    paths:
-      - '.github/workflows/gemini-scheduled-triage.yml'
-  workflow_dispatch:
+# on:
+#   schedule:
+#     - cron: '0 * * * *' # Runs every hour
+#   pull_request:
+#     branches:
+#       - 'main'
+#       - 'release/**/*'
+#     paths:
+#       - '.github/workflows/gemini-scheduled-triage.yml'
+#   push:
+#     branches:
+#       - 'main'
+#       - 'release/**/*'
+#     paths:
+#       - '.github/workflows/gemini-scheduled-triage.yml'
+#   workflow_dispatch:
+on: {} # Disabled
 
 concurrency:
   group: '${{ github.workflow }}'

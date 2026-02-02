@@ -96,13 +96,13 @@ jobs:
             if (eventType === 'pull_request.opened') {
               core.setOutput('command', 'review');
             } else if (['issues.opened', 'issues.reopened'].includes(eventType)) {
-              core.setOutput('command', 'triage');
+              core.setOutput('command', 'fallthrough');
             } else if (request.startsWith("@gemini-cli /review")) {
               core.setOutput('command', 'review');
               const additionalContext = request.replace(/^@gemini-cli \/review/, '').trim();
               core.setOutput('additional_context', additionalContext);
             } else if (request.startsWith("@gemini-cli /triage")) {
-              core.setOutput('command', 'triage');
+              core.setOutput('command', 'fallthrough');
             } else if (request.startsWith("@gemini-cli")) {
               const additionalContext = request.replace(/^@gemini-cli/, '').trim();
               core.setOutput('command', 'invoke');
@@ -137,19 +137,19 @@ jobs:
       additional_context: '${{ needs.dispatch.outputs.additional_context }}'
     secrets: 'inherit'
 
-  triage:
-    needs: 'dispatch'
-    if: |-
-      ${{ needs.dispatch.outputs.command == 'triage' }}
-    uses: './.github/workflows/gemini-triage.yml'
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-      issues: 'write'
-      pull-requests: 'write'
-    with:
-      additional_context: '${{ needs.dispatch.outputs.additional_context }}'
-    secrets: 'inherit'
+  # triage:
+  #   needs: 'dispatch'
+  #   if: |-
+  #     ${{ needs.dispatch.outputs.command == 'triage' }}
+  #   uses: './.github/workflows/gemini-triage.yml'
+  #   permissions:
+  #     contents: 'read'
+  #     id-token: 'write'
+  #     issues: 'write'
+  #     pull-requests: 'write'
+  #   with:
+  #     additional_context: '${{ needs.dispatch.outputs.additional_context }}'
+  #   secrets: 'inherit'
 
   invoke:
     needs: 'dispatch'
@@ -169,7 +169,7 @@ jobs:
     needs:
       - 'dispatch'
       - 'review'
-      - 'triage'
+      # - 'triage'
       - 'invoke'
     if: |-
       ${{ always() && !cancelled() && (failure() || needs.dispatch.outputs.command == 'fallthrough') }}

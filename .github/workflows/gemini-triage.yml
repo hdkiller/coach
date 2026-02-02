@@ -1,12 +1,13 @@
 name: '🔀 Gemini Triage'
 
-on:
-  workflow_call:
-    inputs:
-      additional_context:
-        type: 'string'
-        description: 'Any additional context from the request'
-        required: false
+# on:
+#   workflow_call:
+#     inputs:
+#       additional_context:
+#         type: 'string'
+#         description: 'Any additional context from the request'
+#         required: false
+on: {} # Disabled
 
 concurrency:
   group: '${{ github.workflow }}-triage-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}'
