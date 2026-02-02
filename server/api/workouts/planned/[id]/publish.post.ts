@@ -33,6 +33,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workout not found' })
   }
 
+  // Determine correct type for Intervals.icu
+  // "Active Recovery" is not a valid activity type in Intervals.icu, so we map it to 'Ride'
+  let intervalsType = workout.type || 'Ride'
+  if (intervalsType === 'Active Recovery') {
+    intervalsType = 'Ride'
+  }
+
   // Get Intervals integration
   const integration = await prisma.integration.findFirst({
     where: { userId, provider: 'intervals' }
@@ -51,10 +58,7 @@ export default defineEventHandler(async (event) => {
     workout.externalId.startsWith('adhoc-')
 
   // Fetch sport settings to check preferences
-  const sportSettings = await sportSettingsRepository.getForActivityType(
-    userId,
-    workout.type || 'Ride'
-  )
+  const sportSettings = await sportSettingsRepository.getForActivityType(userId, intervalsType)
 
   // Prepare workout data
   let workoutDoc = ''
@@ -85,7 +89,7 @@ export default defineEventHandler(async (event) => {
         date: workout.date,
         title: workout.title,
         description: cleanDescription,
-        type: workout.type || 'Ride',
+        type: intervalsType,
         durationSec: workout.durationSec || 3600,
         tss: workout.tss ?? undefined,
         workout_doc: workoutDoc,
@@ -118,7 +122,7 @@ export default defineEventHandler(async (event) => {
             date: workout.date,
             title: workout.title,
             description: cleanDescription,
-            type: workout.type || 'Ride',
+            type: intervalsType,
             durationSec: workout.durationSec || 3600,
             tss: workout.tss ?? undefined,
             workout_doc: workoutDoc,
@@ -151,7 +155,7 @@ export default defineEventHandler(async (event) => {
             date: workout.date,
             title: workout.title,
             description: cleanDescription,
-            type: workout.type || 'Ride',
+            type: intervalsType,
             durationSec: workout.durationSec || 3600,
             tss: workout.tss ?? undefined,
             workout_doc: workoutDoc,
