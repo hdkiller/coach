@@ -54,14 +54,15 @@ jobs:
     environment: ${{ inputs.environment }}
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.13.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -71,7 +72,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pnpm install
+          pnpm install --frozen-lockfile
 
       - name: Verify Trigger.dev configuration
         run: |
@@ -91,11 +92,11 @@ jobs:
           if [ -n "${TRIGGER_API_URL}" ]; then
             # Sanitize quotes/whitespace/CR from secrets
             API_URL="${TRIGGER_API_URL}"
-            API_URL="${API_URL%\"}"
-            API_URL="${API_URL#\"}"
+            API_URL="${API_URL%"}"
+            API_URL="${API_URL#"}"
             API_URL="${API_URL%'}"
             API_URL="${API_URL#'}"
-            API_URL=$(printf '%s' "${API_URL}" | tr -d '\r' | sed -e 's/^\s*//' -e 's/\s*$//')
+            API_URL=$(printf '%s' "${API_URL}" | tr -d '\r' | sed -e 's/^	*//' -e 's/	*$//')
 
             # Extract host for DNS diagnostics
             HOST=$(echo "${API_URL}" | sed -E 's#^https?://##; s#/.*$##')
@@ -106,7 +107,7 @@ jobs:
             echo "--- getent hosts ${HOST} ---"
             getent hosts "${HOST}" || echo "(no getent entry)"
 
-            HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" --connect-timeout 10 -L "${API_URL}" || echo "000")
+            HTTP_CODE=$(curl -sS -o /dev/null -w "%{{http_code}}" --connect-timeout 10 -L "${API_URL}" || echo "000")
             if [ "${HTTP_CODE}" = "000" ]; then
               echo "::error::Cannot connect to ${API_URL}. DNS/egress/firewall issue or incorrect API URL."
               exit 1
@@ -127,8 +128,8 @@ jobs:
           echo "🔎 Preflight:"
           if [ -n "${TRIGGER_ACCESS_TOKEN}" ]; then echo "  TRIGGER_ACCESS_TOKEN: present"; else echo "  TRIGGER_ACCESS_TOKEN: MISSING"; fi
           # Sanitize possible surrounding quotes
-          API_URL=$(echo "${TRIGGER_API_URL}" | sed -e 's/^\s*\"\?//' -e 's/\"\?\s*$//')
-          PROJECT_REF=$(echo "${TRIGGER_PROJECT_REF}" | sed -e 's/^\s*\"\?//' -e 's/\"\?\s*$//')
+          API_URL=$(echo "${TRIGGER_API_URL}" | sed -e 's/^	*\"?//' -e 's/\"?\t*$//')
+          PROJECT_REF=$(echo "${TRIGGER_PROJECT_REF}" | sed -e 's/^	*\"?//' -e 's/\"?\t*$//')
           if [ -n "${API_URL}" ]; then echo "  TRIGGER_API_URL: ${API_URL}"; else echo "  TRIGGER_API_URL: not set (defaults to Trigger.dev Cloud)"; fi
           if [ -n "${PROJECT_REF}" ]; then echo "  TRIGGER_PROJECT_REF: ${PROJECT_REF}"; else echo "  TRIGGER_PROJECT_REF: not set (will rely on config)"; fi
 
@@ -197,7 +198,7 @@ jobs:
 
       - name: Discord Notification
         uses: sarisia/actions-status-discord@v1
-        if: always() && env.DISCORD_WEBHOOK != ''
+        if: always() && secrets.DISCORD_WEBHOOK != ''
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           title: 'Deploy Status - ${{ github.repository }}'
