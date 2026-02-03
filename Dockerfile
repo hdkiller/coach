@@ -5,21 +5,22 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
+# Install system dependencies
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Stage 1: Install dependencies
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
+COPY prisma ./prisma/
+COPY prisma.config.ts ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Stage 2: Build the application
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# We need DATABASE_URL for prisma generate if it's not set in env, 
-# but usually it's just for the client generation which doesn't strictly need a live DB if schemas are fine.
-RUN echo "DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy" > .env
-RUN pnpm prisma generate
 RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 
 # Stage 3: Production image
