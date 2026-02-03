@@ -9,6 +9,7 @@ import growthCommand from './growth'
 import contributorCommand from './contributor'
 import subscriptionsCommand from './subscriptions'
 import analyzeCommand from './analyze'
+import adminsCommand from './admins'
 
 const usersCommand = new Command('users').description('User management commands')
 
@@ -17,67 +18,7 @@ usersCommand.addCommand(growthCommand)
 usersCommand.addCommand(contributorCommand)
 usersCommand.addCommand(subscriptionsCommand)
 usersCommand.addCommand(analyzeCommand)
-
-usersCommand
-  .command('set-admin')
-  .description('Set or unset admin privileges for a user')
-  .argument('<email>', 'User email address')
-  .argument('<state>', 'true/false')
-  .option('--prod', 'Use production database')
-  .action(async (email, state, options) => {
-    const isProd = options.prod
-    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
-
-    if (isProd) {
-      console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
-    } else {
-      console.log(chalk.blue('Using DEVELOPMENT database.'))
-    }
-
-    if (!connectionString) {
-      console.error(chalk.red('Error: Database connection string is not defined.'))
-      if (isProd) {
-        console.error(chalk.red('Make sure DATABASE_URL_PROD is set in .env'))
-      } else {
-        console.error(chalk.red('Make sure DATABASE_URL is set in .env'))
-      }
-      process.exit(1)
-    }
-
-    const isAdmin = state === 'true' || state === '1'
-
-    const pool = new pg.Pool({ connectionString })
-    const adapter = new PrismaPg(pool)
-    const prisma = new PrismaClient({ adapter })
-
-    try {
-      const user = await prisma.user.findUnique({
-        where: { email }
-      })
-
-      if (!user) {
-        console.error(chalk.red(`User with email ${email} not found.`))
-        process.exit(1)
-      }
-
-      const updatedUser = await prisma.user.update({
-        where: { email },
-        data: { isAdmin }
-      })
-
-      console.log(
-        chalk.green(
-          `Successfully ${isAdmin ? 'granted' : 'revoked'} admin privileges for ${updatedUser.email}`
-        )
-      )
-    } catch (e) {
-      console.error(chalk.red('Error updating user:'), e)
-      process.exit(1)
-    } finally {
-      await prisma.$disconnect()
-      await pool.end()
-    }
-  })
+usersCommand.addCommand(adminsCommand)
 
 usersCommand
   .command('search')
