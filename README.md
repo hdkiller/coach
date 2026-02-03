@@ -10,7 +10,7 @@
     <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" /></a>
     <a href="https://trigger.dev"><img src="https://img.shields.io/badge/Trigger.dev-Background_Jobs-4F46E5?style=flat-square" alt="Trigger.dev" /></a>
     <a href="https://ai.google.dev/"><img src="https://img.shields.io/badge/Gemini-AI-8E75B2?style=flat-square" alt="Google Gemini" /></a>
-    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License" /></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-blue.svg?style=flat-square" alt="License" /></a>
   </p>
 
   <p align="center">
@@ -87,7 +87,7 @@ Coach Watts connects seamlessly with:
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/newpush/coach.git
+git clone git@github.com:hdkiller/coach.git
 cd coach
 cp .env.example .env
 pnpm install
@@ -151,13 +151,17 @@ We welcome contributions! Whether it's fixing bugs, improving documentation, or 
 
 ## 📄 License
 
-Distributed under the Server Side Public License (SSPL) v1. See [`LICENSE`](./LICENSE) for more information. Acknowledgements of third-party assets and contributors can be found in [`ACKNOWLEDGEMENTS.md`](./ACKNOWLEDGEMENTS.md).
+Distributed under the Apache License 2.0. See [`LICENSE`](./LICENSE) for more information. Acknowledgements of third-party assets and contributors can be found in [`ACKNOWLEDGEMENTS.md`](./ACKNOWLEDGEMENTS.md).
+
+### Is Coach Watts open source?
+
+Yes. Coach Watts is open source using the Apache 2.0 license. We are committed to open source software and working with our community to build a great product.
 
 ## ❤️ Community & Support
 
 - **Discord:** [Join our Server](https://discord.gg/dPYkzg49T9)
-- **GitHub:** [Star us on GitHub](https://github.com/newpush/coach)
-- **Issues:** [Report a Bug](https://github.com/newpush/coach/issues)
+- **GitHub:** [Star us on GitHub](https://github.com/hdkiller/coach)
+- **Issues:** [Report a Bug](https://github.com/hdkiller/coach/issues)
 
 ---
 
