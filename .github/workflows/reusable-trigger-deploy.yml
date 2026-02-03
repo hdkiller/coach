@@ -149,8 +149,12 @@ jobs:
           fi
 
           # Run deployment directly (environment variables are already exported)
+          TRIGGER_ACCESS_TOKEN="${TRIGGER_ACCESS_TOKEN}" \
+          TRIGGER_API_URL="${TRIGGER_API_URL}" \
+          TRIGGER_PROJECT_REF="${TRIGGER_PROJECT_REF}" \
           pnpm dlx trigger.dev@${{ inputs.trigger-version }} deploy \
             --env "${TRIGGER_ENV}" \
+            --log-level debug \
             ${BRANCH_ARG} \
             ${TRIGGER_API_URL:+-a "${TRIGGER_API_URL}"} \
             ${TRIGGER_PROJECT_REF:+-p "${TRIGGER_PROJECT_REF}"}
