@@ -1,0 +1,56 @@
+name: Debug Trigger Auth
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: self-hosted
+    environment: preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.13.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Debug Environment and CLI
+        env:
+          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
+          TRIGGER_PROJECT_REF: ${{ secrets.TRIGGER_PROJECT_REF }}
+          TRIGGER_API_URL: ${{ secrets.TRIGGER_API_URL }}
+        run: |
+          echo "Checking environment variables lengths (no values printed)..."
+          echo "TOKEN length: ${#TRIGGER_ACCESS_TOKEN}"
+          echo "PROJECT_REF length: ${#TRIGGER_PROJECT_REF}"
+          echo "API_URL length: ${#TRIGGER_API_URL}"
+
+          # Sanitize
+          CLEAN_TOKEN=$(echo "${TRIGGER_ACCESS_TOKEN}" | sed -e 's/^[[:space:]"'"'']\{0,\}\s*//' -e 's/[[:space:]"'"'']\{0,\}\s*$//' | tr -d '\r')
+          CLEAN_PROJECT=$(echo "${TRIGGER_PROJECT_REF}" | sed -e 's/^[[:space:]"'"'']\{0,\}\s*//' -e 's/[[:space:]"'"'']\{0,\}\s*$//' | tr -d '\r')
+          CLEAN_URL=$(echo "${TRIGGER_API_URL}" | sed -e 's/^[[:space:]"'"'']\{0,\}\s*//' -e 's/[[:space:]"'"'']\{0,\}\s*$//' | tr -d '\r')
+
+          echo "Cleaned lengths:"
+          echo "TOKEN: ${#CLEAN_TOKEN}"
+          echo "PROJECT: ${#CLEAN_PROJECT}"
+          echo "URL: ${#CLEAN_URL}"
+
+          echo "Running Trigger.dev CLI whoami..."
+          TRIGGER_ACCESS_TOKEN="$CLEAN_TOKEN" \
+          TRIGGER_API_URL="$CLEAN_URL" \
+          pnpm dlx trigger.dev@4.3.3 whoami || echo "whoami failed"
+
+          echo "Running Trigger.dev CLI list projects..."
+          TRIGGER_ACCESS_TOKEN="$CLEAN_TOKEN" \
+          TRIGGER_API_URL="$CLEAN_URL" \
+          pnpm dlx trigger.dev@4.3.3 projects list || echo "projects list failed"
