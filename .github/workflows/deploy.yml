@@ -10,6 +10,7 @@ jobs:
   build-and-deploy:
     name: Build and Deploy
     runs-on: self-hosted
+    environment: preview
     permissions:
       contents: read
       packages: write
