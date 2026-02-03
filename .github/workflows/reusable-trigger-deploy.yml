@@ -92,7 +92,7 @@ jobs:
         run: |
           if [ -n "${TRIGGER_API_URL}" ]; then
             # Sanitize quotes/whitespace/CR from secrets using sed to avoid GH Actions expression confusion
-            API_URL=$(echo "${TRIGGER_API_URL}" | sed -e 's/^[[:space:]"'"'"']*//' -e 's/[[:space:]"'"'"']*$//' | tr -d '\r')
+            API_URL=$(echo "${TRIGGER_API_URL}" | sed -e 's/^[[:space:]"'"'"']	extit{//' -e 's/[[:space:]"'"'"']	extit{$//' | tr -d '\r')
 
             # Extract host for DNS diagnostics
             HOST=$(echo "${API_URL}" | sed -E 's#^https?://##; s#/.*$##')
@@ -121,15 +121,15 @@ jobs:
           TRIGGER_PROJECT_REF: ${{ secrets.TRIGGER_PROJECT_REF }}
           TRIGGER_API_URL: ${{ secrets.TRIGGER_API_URL }}
         run: |
+          # Aggressively sanitize all secrets to avoid CLI parsing issues
+          export TRIGGER_ACCESS_TOKEN=$(echo "${TRIGGER_ACCESS_TOKEN}" | sed -e 's/^[[:space:]"'"'"']	extit{//' -e 's/[[:space:]"'"'"']	extit{$//' | tr -d '\r')
+          export TRIGGER_API_URL=$(echo "${TRIGGER_API_URL}" | sed -e 's/^[[:space:]"'"'"']	extit{//' -e 's/[[:space:]"'"'"']	extit{$//' | tr -d '\r')
+          export TRIGGER_PROJECT_REF=$(echo "${TRIGGER_PROJECT_REF}" | sed -e 's/^[[:space:]"'"'"']	extit{//' -e 's/[[:space:]"'"'"']	extit{$//' | tr -d '\r')
+
           echo "🔎 Preflight:"
           if [ -n "${TRIGGER_ACCESS_TOKEN}" ]; then echo "  TRIGGER_ACCESS_TOKEN: present"; else echo "  TRIGGER_ACCESS_TOKEN: MISSING"; fi
-
-          # Sanitize possible surrounding quotes using sed for GH Actions compatibility
-          API_URL=$(echo "${TRIGGER_API_URL}" | sed -e 's/^[[:space:]"'"'"']*//' -e 's/[[:space:]"'"'"']*$//' | tr -d '\r')
-          PROJECT_REF=$(echo "${TRIGGER_PROJECT_REF}" | sed -e 's/^[[:space:]"'"'"']*//' -e 's/[[:space:]"'"'"']*$//' | tr -d '\r')
-
-          if [ -n "${API_URL}" ]; then echo "  TRIGGER_API_URL: ${API_URL}"; else echo "  TRIGGER_API_URL: not set (defaults to Trigger.dev Cloud)"; fi
-          if [ -n "${PROJECT_REF}" ]; then echo "  TRIGGER_PROJECT_REF: ${PROJECT_REF}"; else echo "  TRIGGER_PROJECT_REF: not set (will rely on config)"; fi
+          if [ -n "${TRIGGER_API_URL}" ]; then echo "  TRIGGER_API_URL: ${TRIGGER_API_URL}"; else echo "  TRIGGER_API_URL: not set (defaults to Trigger.dev Cloud)"; fi
+          if [ -n "${TRIGGER_PROJECT_REF}" ]; then echo "  TRIGGER_PROJECT_REF: ${TRIGGER_PROJECT_REF}"; else echo "  TRIGGER_PROJECT_REF: not set (will rely on config)"; fi
 
           # Determine which Trigger.dev environment to use
           TRIGGER_ENV="${{ inputs.trigger-env }}"
@@ -139,38 +139,21 @@ jobs:
 
           echo "🚀 Deploying Trigger.dev tasks to ${TRIGGER_ENV}..."
 
-          # Build deployment command based on configuration
-          DEPLOY_CMD="pnpm dlx trigger.dev@${{ inputs.trigger-version }} deploy"
-
-          # Handle preview branch deployment
+          # Handle preview branch deployment params
+          BRANCH_ARG=""
           if [ "${{ inputs.preview-branch }}" = "true" ]; then
-            echo "📋 Deploying to preview branch..."
-            DEPLOY_CMD="$DEPLOY_CMD --env preview"
-
-            # Add specific branch name if provided
-            if [ "${{ inputs.branch-name }}" != "" ]; then
-              DEPLOY_CMD="$DEPLOY_CMD --branch ${{ inputs.branch-name }}"
-              echo "Using specified branch: ${{ inputs.branch-name }}"
-            else
-              echo "Auto-detecting branch from git context"
+            TRIGGER_ENV="preview"
+            if [ -n "${{ inputs.branch-name }}" ]; then
+              BRANCH_ARG="--branch ${{ inputs.branch-name }}"
             fi
-          else
-            # Add environment flag for regular deployment
-            DEPLOY_CMD="$DEPLOY_CMD --env ${TRIGGER_ENV}"
           fi
 
-          # Append API URL and Project Ref flags if provided
-          if [ -n "${API_URL}" ]; then
-            DEPLOY_CMD="$DEPLOY_CMD -a ${API_URL}"
-          fi
-
-          if [ -n "${PROJECT_REF}" ]; then
-            DEPLOY_CMD="$DEPLOY_CMD -p ${PROJECT_REF}"
-          fi
-
-          echo "Running: $DEPLOY_CMD"
-          eval $DEPLOY_CMD
-
+          # Run deployment directly (environment variables are already exported)
+          pnpm dlx trigger.dev@${{ inputs.trigger-version }} deploy \
+            --env "${TRIGGER_ENV}" \
+            ${BRANCH_ARG} \
+            ${TRIGGER_API_URL:+-a "${TRIGGER_API_URL}"} \
+            ${TRIGGER_PROJECT_REF:+-p "${TRIGGER_PROJECT_REF}"}
       - name: Verify deployment
         env:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
