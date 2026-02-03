@@ -61,10 +61,10 @@ echo ""
 echo "=========================================="
 echo "♻️  Step 5: Restarting application..."
 if command -v pm2 &> /dev/null; then
-  pm2 restart coach-wattz || pm2 restart all
+  pm2 restart coach || pm2 restart all
   echo "✅ PM2 process restarted"
 elif command -v systemctl &> /dev/null; then
-  sudo systemctl restart coach-wattz
+  sudo systemctl restart coach
   echo "✅ Systemd service restarted"
 else
   echo "⚠️  Warning: Could not detect process manager (pm2/systemd)"
@@ -78,7 +78,7 @@ echo ""
 echo "Next steps:"
 echo "1. Test OAuth login at your application URL"
 echo "2. Check application logs for any errors:"
-echo "   pm2 logs coach-wattz --lines 50"
+echo "   pm2 logs coach --lines 50"
 echo "3. If issues persist, run: npx tsx scripts/test-account-query.ts"
 echo ""
 echo "Documentation: docs/ACCOUNT-QUERY-ERROR-DIAGNOSIS.md"

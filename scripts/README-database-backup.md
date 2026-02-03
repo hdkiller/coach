@@ -119,10 +119,10 @@ Add to your crontab (`crontab -e`):
 
 ```bash
 # Daily backup at 2 AM
-0 2 * * * cd /Users/hdkiller/Develop/coach-wattz && ./scripts/backup-database.sh
+0 2 * * * cd /Users/hdkiller/Develop/coach && ./scripts/backup-database.sh
 
 # Backup every 6 hours
-0 */6 * * * cd /Users/hdkiller/Develop/coach-wattz && ./scripts/backup-database.sh
+0 */6 * * * cd /Users/hdkiller/Develop/coach && ./scripts/backup-database.sh
 ```
 
 ### Using launchd (macOS)
@@ -138,7 +138,7 @@ Create a plist file at `~/Library/LaunchAgents/com.wattz.dbbackup.plist`:
     <string>com.wattz.dbbackup</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/hdkiller/Develop/coach-wattz/scripts/backup-database.sh</string>
+        <string>/Users/hdkiller/Develop/coach/scripts/backup-database.sh</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>

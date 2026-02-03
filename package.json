@@ -99,7 +99,7 @@
     "typescript": "^5.9.3",
     "vitest": "^3.0.0"
   },
-  "name": "coach-wattz",
+  "name": "coach",
   "private": true,
   "scripts": {
     "backfill-scores": "tsx scripts/backfill-scores.ts",
