@@ -15,6 +15,11 @@ export const PRICING = {
     threshold: 200_000,
     base: { input: 2.0, output: 12.0 },
     premium: { input: 4.0, output: 18.0 }
+  },
+  'gemini-flash-latest': {
+    threshold: 1_000_000,
+    base: { input: 0.3, output: 2.5 },
+    premium: { input: 0.3, output: 2.5 }
   }
 } as const
 

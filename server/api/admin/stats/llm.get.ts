@@ -1,6 +1,7 @@
 import { defineEventHandler, createError } from 'h3'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { getStartOfDayUTC, getStartOfDaysAgoUTC } from '../../../utils/date'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -47,6 +48,70 @@ export default defineEventHandler(async (event) => {
   // Fetch user details for top spenders
   const topSpendersDetails = await Promise.all(
     topSpendersRaw.map(async (item) => {
+      const user = await prisma.user.findUnique({
+        where: { id: item.userId! },
+        select: { name: true, email: true }
+      })
+      return {
+        userId: item.userId,
+        name: user?.name,
+        email: user?.email,
+        cost: item._sum.estimatedCost
+      }
+    })
+  )
+
+  // 3b. Top Spenders Today
+  const todayStart = getStartOfDayUTC('UTC')
+  const topSpendersTodayRaw = await prisma.llmUsage.groupBy({
+    by: ['userId'],
+    _sum: { estimatedCost: true },
+    where: {
+      createdAt: { gte: todayStart },
+      userId: { not: null }
+    },
+    orderBy: {
+      _sum: {
+        estimatedCost: 'desc'
+      }
+    },
+    take: 5
+  })
+
+  const topSpendersToday = await Promise.all(
+    topSpendersTodayRaw.map(async (item) => {
+      const user = await prisma.user.findUnique({
+        where: { id: item.userId! },
+        select: { name: true, email: true }
+      })
+      return {
+        userId: item.userId,
+        name: user?.name,
+        email: user?.email,
+        cost: item._sum.estimatedCost
+      }
+    })
+  )
+
+  // 3c. Top Spenders Yesterday
+  const yesterdayStart = getStartOfDaysAgoUTC('UTC', 1)
+  const topSpendersYesterdayRaw = await prisma.llmUsage.groupBy({
+    by: ['userId'],
+    _sum: { estimatedCost: true },
+    where: {
+      createdAt: { gte: yesterdayStart, lt: todayStart },
+      userId: { not: null }
+    },
+    orderBy: {
+      _sum: {
+        estimatedCost: 'desc'
+      }
+    },
+    take: 5
+  })
+
+  const topSpendersYesterday = await Promise.all(
+    topSpendersYesterdayRaw.map(async (item) => {
       const user = await prisma.user.findUnique({
         where: { id: item.userId! },
         select: { name: true, email: true }
@@ -244,6 +309,8 @@ export default defineEventHandler(async (event) => {
     dailyToolUsage,
     dailyChatRequests,
     topSpenders: topSpendersDetails,
+    topSpendersToday,
+    topSpendersYesterday,
     recentFailures,
     tokens: {
       prompt: tokenStats._sum.promptTokens || 0,
