@@ -34,6 +34,8 @@
     title: 'LLM Intelligence Stats'
   })
 
+  const spenderTab = ref('today')
+
   const pieOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -575,7 +577,35 @@
           <!-- Top Spenders -->
           <UCard>
             <template #header>
-              <h3 class="font-semibold">Top Spenders (30d)</h3>
+              <div class="flex justify-between items-center">
+                <h3 class="font-semibold">Top Spenders</h3>
+                <div class="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                  <UButton
+                    size="xs"
+                    :color="spenderTab === 'today' ? 'primary' : 'neutral'"
+                    :variant="spenderTab === 'today' ? 'solid' : 'ghost'"
+                    @click="spenderTab = 'today'"
+                  >
+                    Today
+                  </UButton>
+                  <UButton
+                    size="xs"
+                    :color="spenderTab === 'yesterday' ? 'primary' : 'neutral'"
+                    :variant="spenderTab === 'yesterday' ? 'solid' : 'ghost'"
+                    @click="spenderTab = 'yesterday'"
+                  >
+                    Yesterday
+                  </UButton>
+                  <UButton
+                    size="xs"
+                    :color="spenderTab === '30d' ? 'primary' : 'neutral'"
+                    :variant="spenderTab === '30d' ? 'solid' : 'ghost'"
+                    @click="spenderTab = '30d'"
+                  >
+                    30d
+                  </UButton>
+                </div>
+              </div>
             </template>
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -585,7 +615,52 @@
                     <th class="py-2 text-right">Cost</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody
+                  v-if="spenderTab === 'today'"
+                  class="divide-y divide-gray-200 dark:divide-gray-700"
+                >
+                  <tr v-for="(user, index) in stats?.topSpendersToday" :key="user.userId || index">
+                    <td class="py-2 text-sm">
+                      <div class="font-medium">{{ user.name || 'Unknown' }}</div>
+                      <div class="text-xs text-gray-500">{{ user.email }}</div>
+                    </td>
+                    <td
+                      class="py-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400"
+                    >
+                      ${{ (user.cost || 0).toFixed(4) }}
+                    </td>
+                  </tr>
+                  <tr v-if="!stats?.topSpendersToday?.length">
+                    <td colspan="2" class="py-8 text-center text-gray-400 text-sm italic">
+                      No spenders today
+                    </td>
+                  </tr>
+                </tbody>
+                <tbody
+                  v-else-if="spenderTab === 'yesterday'"
+                  class="divide-y divide-gray-200 dark:divide-gray-700"
+                >
+                  <tr
+                    v-for="(user, index) in stats?.topSpendersYesterday"
+                    :key="user.userId || index"
+                  >
+                    <td class="py-2 text-sm">
+                      <div class="font-medium">{{ user.name || 'Unknown' }}</div>
+                      <div class="text-xs text-gray-500">{{ user.email }}</div>
+                    </td>
+                    <td
+                      class="py-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400"
+                    >
+                      ${{ (user.cost || 0).toFixed(4) }}
+                    </td>
+                  </tr>
+                  <tr v-if="!stats?.topSpendersYesterday?.length">
+                    <td colspan="2" class="py-8 text-center text-gray-400 text-sm italic">
+                      No spenders yesterday
+                    </td>
+                  </tr>
+                </tbody>
+                <tbody v-else class="divide-y divide-gray-200 dark:divide-gray-700">
                   <tr v-for="(user, index) in stats?.topSpenders" :key="user.userId || index">
                     <td class="py-2 text-sm">
                       <div class="font-medium">{{ user.name || 'Unknown' }}</div>
