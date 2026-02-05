@@ -246,6 +246,32 @@
     }
   })
 
+  const dailyCachedTokensChartData = computed(() => {
+    if (!stats.value?.dailyCachedTokensByModel) return { labels: [], datasets: [] }
+
+    const data = stats.value.dailyCachedTokensByModel
+    // Get unique dates sorted
+    const dates = [...new Set(data.map((d) => d.date))].sort()
+    // Get unique models
+    const models = [...new Set(data.map((d) => d.model))]
+
+    return {
+      labels: dates.map((d) =>
+        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      ),
+      datasets: models.map((model) => {
+        return {
+          label: model,
+          backgroundColor: getModelColor(model),
+          data: dates.map((date) => {
+            const entry = data.find((d) => d.date === date && d.model === model)
+            return entry ? entry.count : 0
+          })
+        }
+      })
+    }
+  })
+
   const dailyChatRequestsChartData = computed(() => {
     if (!stats.value?.dailyChatRequests) return { labels: [], datasets: [] }
 
@@ -362,7 +388,7 @@
 
       <template v-else>
         <!-- Tokens Breakdown -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <UCard class="bg-blue-50/50 dark:bg-blue-900/10">
             <div class="text-center">
               <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">
@@ -387,6 +413,21 @@
               </div>
             </div>
           </UCard>
+          <UCard class="bg-emerald-50/50 dark:bg-emerald-900/10">
+            <div class="text-center">
+              <div class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">
+                Cached Tokens
+              </div>
+              <div class="text-2xl font-bold font-mono">
+                {{ stats?.tokens.cached?.toLocaleString() || '0' }}
+              </div>
+              <div class="text-xs text-gray-500 mt-1">
+                {{
+                  (((stats?.tokens.cached || 0) / (stats?.tokens.prompt || 1)) * 100).toFixed(0)
+                }}% of input
+              </div>
+            </div>
+          </UCard>
           <UCard class="bg-purple-50/50 dark:bg-purple-900/10">
             <div class="text-center">
               <div class="text-xs font-bold text-purple-500 uppercase tracking-widest mb-1">
@@ -405,7 +446,7 @@
         </div>
 
         <!-- NEW: Daily Trends -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <UCard>
             <template #header>
               <h3 class="font-semibold">Daily Costs by Model</h3>
@@ -421,6 +462,15 @@
             </template>
             <div class="h-64 relative">
               <Bar :data="dailyUsersChartData" :options="stackedBarOptions" />
+            </div>
+          </UCard>
+
+          <UCard>
+            <template #header>
+              <h3 class="font-semibold">Daily Cached Tokens by Model</h3>
+            </template>
+            <div class="h-64 relative">
+              <Bar :data="dailyCachedTokensChartData" :options="stackedBarOptions" />
             </div>
           </UCard>
         </div>
@@ -694,6 +744,7 @@
                   <th class="py-3 px-4">Operation</th>
                   <th class="py-3 px-4">Model</th>
                   <th class="py-3 px-4 text-right">Tokens</th>
+                  <th class="py-3 px-4 text-right">Cached</th>
                   <th class="py-3 px-4 text-right">Cost</th>
                   <th class="py-3 px-4 text-center">Status</th>
                   <th class="py-3 px-4 text-right"></th>
@@ -721,6 +772,9 @@
                   </td>
                   <td class="py-2 px-4 text-right font-mono text-xs">
                     {{ log.totalTokens?.toLocaleString() || '-' }}
+                  </td>
+                  <td class="py-2 px-4 text-right font-mono text-xs text-emerald-600">
+                    {{ log.cachedTokens?.toLocaleString() || '-' }}
                   </td>
                   <td
                     class="py-2 px-4 text-right font-mono text-xs text-emerald-600 dark:text-emerald-400"

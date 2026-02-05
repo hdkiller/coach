@@ -149,6 +149,7 @@ export default defineEventHandler(async (event) => {
     _sum: {
       promptTokens: true,
       completionTokens: true,
+      cachedTokens: true,
       totalTokens: true
     }
   })
@@ -188,6 +189,7 @@ export default defineEventHandler(async (event) => {
       model: true,
       operation: true,
       totalTokens: true,
+      cachedTokens: true,
       estimatedCost: true,
       success: true,
       durationMs: true,
@@ -287,6 +289,23 @@ export default defineEventHandler(async (event) => {
     userCount: Number(row.userCount)
   }))
 
+  // 14. Daily Cached Tokens per Model
+  const dailyCachedTokensByModelRaw = await prisma.$queryRaw<
+    { date: string; model: string; count: bigint }[]
+  >`
+    SELECT DATE("createdAt") as date, model, SUM(COALESCE("cachedTokens", 0)) as count
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("createdAt"), model
+    ORDER BY date ASC
+  `
+
+  const dailyCachedTokensByModel = dailyCachedTokensByModelRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    model: row.model,
+    count: Number(row.count)
+  }))
+
   return {
     usageByModel: usageByModel
       .map((m) => ({
@@ -308,6 +327,7 @@ export default defineEventHandler(async (event) => {
     dailyUsersByModel,
     dailyToolUsage,
     dailyChatRequests,
+    dailyCachedTokensByModel,
     topSpenders: topSpendersDetails,
     topSpendersToday,
     topSpendersYesterday,
@@ -315,6 +335,7 @@ export default defineEventHandler(async (event) => {
     tokens: {
       prompt: tokenStats._sum.promptTokens || 0,
       completion: tokenStats._sum.completionTokens || 0,
+      cached: tokenStats._sum.cachedTokens || 0,
       total: tokenStats._sum.totalTokens || 0
     },
     feedback: {
