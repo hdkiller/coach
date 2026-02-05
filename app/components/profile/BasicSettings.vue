@@ -34,13 +34,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -71,20 +65,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.language }}</p>
@@ -111,13 +92,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -152,20 +127,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.weightUnits }}</p>
@@ -192,13 +154,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -229,20 +185,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.heightUnits }}</p>
@@ -267,20 +210,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.distanceUnits }}</p>
@@ -305,20 +235,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.temperatureUnits }}</p>
@@ -345,13 +262,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -383,13 +294,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -421,13 +326,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -459,13 +358,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -496,20 +389,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.form }}</p>
@@ -545,20 +425,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.visibility }}</p>
@@ -583,20 +450,7 @@
             class="flex-1"
             :search-input="false"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.sex }}</p>
@@ -624,13 +478,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -664,13 +512,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -702,13 +544,7 @@
             @keyup.enter="saveField"
             @keyup.esc="cancelEdit"
           />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
+          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
           <UButton
             size="xs"
             color="neutral"
@@ -743,20 +579,7 @@
             searchable-placeholder="Search country..."
             autofocus
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-          />
-          <UButton
-            size="xs"
-            color="primary"
-            variant="ghost"
-            icon="i-heroicons-check"
-            @click="saveField"
-          />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
+            @update:model-value="saveField"
           />
         </div>
         <p v-else class="font-medium text-lg flex items-center gap-2">
@@ -1037,6 +860,7 @@
       opacity: 0;
       transform: translateY(5px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);

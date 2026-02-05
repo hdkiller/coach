@@ -349,6 +349,7 @@
   } from '../../types/task-dependencies'
 
   const toast = useToast()
+  const userStore = useUserStore()
   const { formatDate: baseFormatDate, formatRelativeTime: baseFormatRelativeTime } = useFormat()
 
   // State
@@ -465,6 +466,8 @@
       }
     }
 
+    const entitlements = userStore.entitlements
+
     // Check if task is up to date based on metadata
     if (metadata?.isUpToDate) {
       return 'Completed'
@@ -473,6 +476,13 @@
     // Check for outdated status
     if (metadata?.lastSync) {
       return 'Outdated'
+    }
+
+    if (
+      entitlements?.tier === 'FREE' &&
+      (taskId === 'analyze-workouts' || taskId === 'analyze-nutrition')
+    ) {
+      return 'Analyze Last 10'
     }
 
     return 'Pending'
