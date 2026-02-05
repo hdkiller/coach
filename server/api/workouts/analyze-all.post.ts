@@ -1,5 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { getUserEntitlements } from '../../utils/entitlements'
+import { workoutRepository } from '../../utils/repositories/workoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -40,10 +42,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  const entitlements = getUserEntitlements(session.user as any)
 
   try {
     // Find all workouts that need analysis (excluding duplicates)
-    const workoutsToAnalyze = await workoutRepository.getPendingAnalysis(userId)
+    let workoutsToAnalyze = await workoutRepository.getPendingAnalysis(userId)
+
+    // Limit to 10 for FREE users
+    if (entitlements.tier === 'FREE') {
+      workoutsToAnalyze = workoutsToAnalyze.slice(0, 10)
+    }
 
     if (workoutsToAnalyze.length === 0) {
       return {

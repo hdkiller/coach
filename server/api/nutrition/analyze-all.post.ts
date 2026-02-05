@@ -1,5 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { getUserEntitlements } from '../../utils/entitlements'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -40,10 +42,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  const entitlements = getUserEntitlements(session.user as any)
 
   try {
     // Find all nutrition records that need analysis
-    const nutritionToAnalyze = await nutritionRepository.getPendingAnalysis(userId)
+    let nutritionToAnalyze = await nutritionRepository.getPendingAnalysis(userId)
+
+    // Limit to 10 for FREE users
+    if (entitlements.tier === 'FREE') {
+      nutritionToAnalyze = nutritionToAnalyze.slice(0, 10)
+    }
 
     if (nutritionToAnalyze.length === 0) {
       return {

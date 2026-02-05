@@ -2,6 +2,7 @@ import { defineEventHandler, createError } from 'h3'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
+import { getUserEntitlements } from '../../utils/entitlements'
 
 defineRouteMeta({
   openAPI: {
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = user.id
+  const entitlements = getUserEntitlements(user as any)
 
   try {
     // Fetch metadata for all tasks
@@ -139,6 +141,12 @@ export default defineEventHandler(async (event) => {
       prisma.workout.count({ where: { userId, isDuplicate: true } })
     ])
 
+    // Cap pending counts for FREE users
+    const workoutPending =
+      entitlements.tier === 'FREE' ? Math.min(workoutPendingCount, 10) : workoutPendingCount
+    const nutritionPending =
+      entitlements.tier === 'FREE' ? Math.min(nutritionPendingCount, 10) : nutritionPendingCount
+
     // Build metadata object
     const metadata: Record<string, any> = {}
 
@@ -174,14 +182,14 @@ export default defineEventHandler(async (event) => {
     // Workout analysis metadata
     // Up to date only if no pending count AND latest workout has been analyzed
     const workoutAnalysisUpToDate =
-      workoutPendingCount === 0 &&
+      workoutPending === 0 &&
       totalWorkouts > 0 &&
       (!latestWorkout ||
         !lastAnalyzedWorkout ||
         lastAnalyzedWorkout.aiAnalyzedAt! >= latestWorkout.createdAt)
 
     metadata['analyze-workouts'] = {
-      pendingCount: workoutPendingCount,
+      pendingCount: workoutPending,
       totalCount: totalWorkouts,
       lastSync: lastAnalyzedWorkout?.aiAnalyzedAt || null,
       isUpToDate: workoutAnalysisUpToDate,
@@ -190,14 +198,14 @@ export default defineEventHandler(async (event) => {
 
     // Nutrition analysis metadata
     const nutritionAnalysisUpToDate =
-      nutritionPendingCount === 0 &&
+      nutritionPending === 0 &&
       totalNutrition > 0 &&
       (!latestNutrition ||
         !lastAnalyzedNutrition ||
         lastAnalyzedNutrition.aiAnalyzedAt! >= latestNutrition.createdAt)
 
     metadata['analyze-nutrition'] = {
-      pendingCount: nutritionPendingCount,
+      pendingCount: nutritionPending,
       totalCount: totalNutrition,
       lastSync: lastAnalyzedNutrition?.aiAnalyzedAt || null,
       isUpToDate: nutritionAnalysisUpToDate,
