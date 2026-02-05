@@ -716,7 +716,7 @@
   <PlannedWorkoutModal
     v-model="showPlannedWorkoutModal"
     :planned-workout="selectedPlannedWorkout"
-    :user-ftp="profile?.profile?.ftp"
+    :user-ftp="userStore.currentFtp"
     :all-sport-settings="allSportSettings"
     @completed="handlePlannedWorkoutCompleted"
     @deleted="handlePlannedWorkoutDeleted"
@@ -745,7 +745,7 @@
     :user-zones="userZones"
     :all-sport-settings="allSportSettings"
     :streams="selectedWeekStreams"
-    :ftp="profile?.profile?.ftp"
+    :ftp="userStore.currentFtp"
   />
 
   <CalendarNoteModal v-model:open="showCalendarNoteModal" :note="selectedCalendarNote" />

@@ -106,7 +106,7 @@
               Max HR
             </div>
             <div class="text-sm font-bold text-gray-900 dark:text-white">
-              <template v-if="userStore.profile.maxHr">{{ userStore.profile.maxHr }} bpm</template>
+              <template v-if="userStore.currentMaxHr">{{ userStore.currentMaxHr }} bpm</template>
               <template v-else-if="userStore.profile.estimatedMaxHR"
                 >~{{ userStore.profile.estimatedMaxHR }} bpm</template
               >
@@ -149,7 +149,7 @@
               LTHR
             </div>
             <div class="text-sm font-bold text-gray-900 dark:text-white">
-              <template v-if="userStore.profile.lthr">{{ userStore.profile.lthr }} bpm</template>
+              <template v-if="userStore.currentLthr">{{ userStore.currentLthr }} bpm</template>
               <UButton
                 v-else
                 to="/profile/settings"
@@ -279,7 +279,7 @@
             </div>
             <div class="flex items-center gap-2">
               <div class="text-sm font-bold text-gray-900 dark:text-white">
-                <template v-if="userStore.profile.ftp">{{ userStore.profile.ftp }}W</template>
+                <template v-if="userStore.currentFtp">{{ userStore.currentFtp }}W</template>
                 <UButton
                   v-else
                   to="/profile/settings"
@@ -292,8 +292,8 @@
                 />
               </div>
               <TrendIndicator
-                v-if="userStore.profile.ftp && ftpHistory.length > 0"
-                :current="userStore.profile.ftp"
+                v-if="userStore.currentFtp && ftpHistory.length > 0"
+                :current="userStore.currentFtp"
                 :previous="ftpHistory.map((d: any) => d.ftp)"
                 type="higher-is-better"
                 compact
@@ -338,8 +338,8 @@
               W/kg
             </div>
             <div class="text-sm font-bold text-gray-900 dark:text-white">
-              <template v-if="userStore.profile.ftp && userStore.profile.weight">
-                {{ (userStore.profile.ftp / userStore.profile.weight).toFixed(2) }}
+              <template v-if="userStore.currentFtp && userStore.profile.weight">
+                {{ (userStore.currentFtp / userStore.profile.weight).toFixed(2) }}
               </template>
               <UButton
                 v-else
