@@ -289,6 +289,20 @@ export default defineEventHandler(async (event) => {
     userCount: Number(row.userCount)
   }))
 
+  // 15. Total Unique Users per Day (All Operations)
+  const dailyTotalUsersRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
+    SELECT DATE("createdAt") as date, COUNT(DISTINCT "userId") as count
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo} AND "userId" IS NOT NULL
+    GROUP BY DATE("createdAt")
+    ORDER BY date ASC
+  `
+
+  const dailyTotalUsers = dailyTotalUsersRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    count: Number(row.count)
+  }))
+
   // 14. Daily Cached Tokens per Model
   const dailyCachedTokensByModelRaw = await prisma.$queryRaw<
     { date: string; model: string; count: bigint }[]
@@ -328,6 +342,7 @@ export default defineEventHandler(async (event) => {
     dailyToolUsage,
     dailyChatRequests,
     dailyCachedTokensByModel,
+    dailyTotalUsers,
     topSpenders: topSpendersDetails,
     topSpendersToday,
     topSpendersYesterday,

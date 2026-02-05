@@ -272,6 +272,32 @@
     }
   })
 
+  const dailyTotalUsersChartData = computed(() => {
+    if (!stats.value?.dailyTotalUsers) return { labels: [], datasets: [] }
+
+    const data = stats.value.dailyTotalUsers
+    const dates = data.map((d) => d.date).sort()
+
+    return {
+      labels: dates.map((d) =>
+        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      ),
+      datasets: [
+        {
+          label: 'Total Unique Users',
+          borderColor: '#10b981', // Emerald
+          backgroundColor: '#10b98133', // Emerald with transparency
+          fill: true,
+          data: dates.map((date) => {
+            const entry = data.find((d) => d.date === date)
+            return entry ? entry.count : 0
+          }),
+          tension: 0.3
+        }
+      ]
+    }
+  })
+
   const dailyChatRequestsChartData = computed(() => {
     if (!stats.value?.dailyChatRequests) return { labels: [], datasets: [] }
 
@@ -580,6 +606,15 @@
             </div>
           </UCard>
         </div>
+
+        <UCard>
+          <template #header>
+            <h3 class="font-semibold">Total Unique Users per Day (All LLM Operations)</h3>
+          </template>
+          <div class="h-64 relative">
+            <Line :data="dailyTotalUsersChartData" :options="barOptions" />
+          </div>
+        </UCard>
 
         <UCard>
           <template #header>
