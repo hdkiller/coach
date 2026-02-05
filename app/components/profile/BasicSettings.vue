@@ -241,38 +241,6 @@
         <p v-else class="font-medium text-lg">{{ modelValue.temperatureUnits }}</p>
       </div>
 
-      <!-- Resting HR -->
-      <div class="group relative">
-        <div class="flex items-center gap-1 mb-1">
-          <label class="text-sm text-muted">Resting HR</label>
-          <button
-            class="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-            @click="startEdit('restingHr')"
-          >
-            <UIcon name="i-heroicons-pencil" class="w-3 h-3 text-muted hover:text-primary" />
-          </button>
-        </div>
-        <div v-if="editingField === 'restingHr'" class="flex gap-2">
-          <UInput
-            v-model="editValue"
-            type="number"
-            size="sm"
-            class="w-full"
-            autofocus
-            @keyup.enter="saveField"
-            @keyup.esc="cancelEdit"
-          />
-          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
-          />
-        </div>
-        <p v-else class="font-medium text-lg">{{ modelValue.restingHr }}</p>
-      </div>
       <!-- Max HR -->
       <div class="group relative">
         <div class="flex items-center gap-1 mb-1">
@@ -337,39 +305,6 @@
         </div>
         <p v-else class="font-medium text-lg">{{ modelValue.lthr }}</p>
       </div>
-      <!-- FTP -->
-      <div class="group relative">
-        <div class="flex items-center gap-1 mb-1">
-          <label class="text-sm text-muted">FTP</label>
-          <button
-            class="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-            @click="startEdit('ftp')"
-          >
-            <UIcon name="i-heroicons-pencil" class="w-3 h-3 text-muted hover:text-primary" />
-          </button>
-        </div>
-        <div v-if="editingField === 'ftp'" class="flex gap-2">
-          <UInput
-            v-model="editValue"
-            type="number"
-            size="sm"
-            class="w-full"
-            autofocus
-            @keyup.enter="saveField"
-            @keyup.esc="cancelEdit"
-          />
-          <UButton size="xs" color="primary" variant="solid" label="Save" @click="saveField" />
-          <UButton
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            @click="cancelEdit"
-          />
-        </div>
-        <p v-else class="font-medium text-lg">{{ modelValue.ftp }} W</p>
-      </div>
-
       <!-- Form -->
       <div class="group relative">
         <div class="flex items-center gap-1 mb-1">
@@ -745,9 +680,23 @@
       })
 
       if (response.success && response.diff && Object.keys(response.diff).length > 0) {
-        pendingDiffs.value = response.diff
-        pendingDetectedProfile.value = response.detected
-        showConfirmModal.value = true
+        // Filter out restingHr and ftp from diffs as they're handled via wellness data or sport settings
+        const { restingHr, ftp, ...otherDiffs } = response.diff
+        pendingDiffs.value = otherDiffs
+
+        // Also filter from detected profile to avoid merging deprecated fields back
+        const { restingHr: _r, ftp: _f, ...otherDetected } = response.detected
+        pendingDetectedProfile.value = otherDetected
+
+        if (Object.keys(pendingDiffs.value).length > 0) {
+          showConfirmModal.value = true
+        } else {
+          toast.add({
+            title: 'No Updates Found',
+            description: 'Your profile is already in sync with connected apps.',
+            color: 'neutral'
+          })
+        }
       } else {
         toast.add({
           title: 'No Updates Found',
@@ -787,10 +736,8 @@
 
   function formatFieldName(key: string | number) {
     const k = String(key)
-    if (k === 'ftp') return 'FTP'
     if (k === 'lthr') return 'LTHR'
     if (k === 'maxHr') return 'Max HR'
-    if (k === 'restingHr') return 'Resting HR'
     if (k === 'hrZones') return 'Heart Rate Zones'
     if (k === 'powerZones') return 'Power Zones'
     if (k === 'sportSettings') return 'Sport Specific Settings'
@@ -830,7 +777,7 @@
       let newValue = editValue.value === '' ? null : editValue.value
 
       // Coerce numeric fields
-      const numericFields = ['weight', 'height', 'restingHr', 'maxHr', 'lthr', 'ftp']
+      const numericFields = ['weight', 'height', 'maxHr', 'lthr']
       if (numericFields.includes(editingField.value) && newValue !== null) {
         const num = Number(newValue)
         newValue = isNaN(num) ? null : num
