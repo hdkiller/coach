@@ -203,6 +203,7 @@
                 type="higher-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -222,6 +223,7 @@
                 type="lower-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -246,6 +248,7 @@
                 type="higher-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -298,6 +301,7 @@
                 type="higher-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -329,6 +333,7 @@
                 type="neutral"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -337,19 +342,30 @@
               <UIcon name="i-heroicons-chart-bar-square" class="w-3 h-3" />
               W/kg
             </div>
-            <div class="text-sm font-bold text-gray-900 dark:text-white">
-              <template v-if="userStore.currentFtp && userStore.profile.weight">
-                {{ (userStore.currentFtp / userStore.profile.weight).toFixed(2) }}
-              </template>
-              <UButton
-                v-else
-                to="/profile/settings"
-                icon="i-heroicons-pencil"
-                color="neutral"
-                variant="soft"
-                size="xs"
-                class="-my-1"
-                @click.stop
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                <template v-if="userStore.currentFtp && userStore.profile.weight">
+                  {{ (userStore.currentFtp / userStore.profile.weight).toFixed(2) }}
+                </template>
+                <UButton
+                  v-else
+                  to="/profile/settings"
+                  icon="i-heroicons-pencil"
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                  class="-my-1"
+                  @click.stop
+                />
+              </div>
+              <TrendIndicator
+                v-if="userStore.currentFtp && userStore.profile.weight && wKgHistory.length > 0"
+                :current="userStore.currentFtp / userStore.profile.weight"
+                :previous="wKgHistory"
+                type="higher-is-better"
+                compact
+                icon-only
+                show-value
               />
             </div>
           </div>
@@ -402,6 +418,7 @@
                 type="higher-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -421,6 +438,7 @@
                 type="higher-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -442,6 +460,7 @@
                 type="lower-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -463,6 +482,7 @@
                 type="higher-is-better"
                 compact
                 icon-only
+                show-value
               />
             </div>
           </div>
@@ -487,6 +507,23 @@
   const ftpHistory = ref<any[]>([])
   const wellnessHistory = ref<any[]>([])
   const weightHistory = ref<any[]>([])
+
+  const wKgHistory = computed(() => {
+    if (!ftpHistory.value.length || !weightHistory.value.length) return []
+
+    return weightHistory.value
+      .map((w) => {
+        const date = new Date(w.date)
+        const f = ftpHistory.value
+          .filter((entry) => new Date(entry.date) <= date)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+
+        const ftp = f ? f.ftp : ftpHistory.value[0]?.ftp || 0
+        if (!ftp || !w.weight) return null
+        return ftp / w.weight
+      })
+      .filter((v) => v !== null) as number[]
+  })
 
   const profileStatus = computed(() =>
     checkProfileStale(userStore.profile?.profileLastUpdated, userStore.profile?.latestWorkoutDate)
@@ -517,9 +554,9 @@
       ])
 
       pmcData.value = pmc
-      ftpHistory.value = Array.isArray(ftp) ? ftp : []
+      ftpHistory.value = (ftp as any)?.data || []
       wellnessHistory.value = Array.isArray(wellness) ? wellness : []
-      weightHistory.value = Array.isArray(weight) ? weight : []
+      weightHistory.value = (weight as any)?.data || []
     } catch (e) {
       console.error('Failed to load history data', e)
     } finally {

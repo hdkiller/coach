@@ -56,12 +56,26 @@
         :class="score.color"
         @click="openScoreModal(key as any)"
       >
-        <span class="text-sm font-bold text-gray-700 dark:text-gray-200">{{ score.label }}</span>
+        <div class="flex flex-col items-start gap-1">
+          <span class="text-sm font-bold text-gray-700 dark:text-gray-200">{{ score.label }}</span>
+          <TrendIndicator
+            v-if="scoresHistory.length > 1"
+            :current="(profileScores as any)?.[key] ?? 0"
+            :previous="
+              scoresHistory
+                .slice(0, -1)
+                .map((h: any) => h[key])
+                .filter((v: any) => v != null)
+            "
+            compact
+            show-value
+          />
+        </div>
         <UBadge
           :color="getScoreColor((profileScores as any)?.[key])"
           variant="subtle"
           size="sm"
-          class="font-bold"
+          class="font-bold text-base"
         >
           {{ (profileScores as any)?.[key]?.toFixed(1) || 'N/A' }}
         </UBadge>
@@ -117,6 +131,7 @@
   )
 
   const profileScores = computed(() => scoresData.value?.scores || null)
+  const scoresHistory = computed(() => scoresData.value?.history || [])
 
   // Helper to get score color
   function getScoreColor(score: number | null): 'error' | 'warning' | 'success' | 'neutral' {
