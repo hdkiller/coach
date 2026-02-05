@@ -1,11 +1,12 @@
 import { tool } from 'ai'
+import { z } from 'zod'
 import { formatUserDate } from '../date'
 
 export const timeTools = (timezone: string) => ({
   get_current_time: tool({
     description:
       'Returns the current precise time, day of the week, and "time of day" (morning/afternoon/etc.) for the user. Use this when you need precise temporal context for meal or workout planning.',
-    parameters: null as any,
+    inputSchema: z.object({}),
     execute: async () => {
       const now = new Date()
       const userTime = formatUserDate(now, timezone, 'EEEE, MMMM d, yyyy h:mm a')
