@@ -131,9 +131,16 @@ export class ChatService {
     try {
       const promptTokens = data.usage.inputTokens || 0
       const completionTokens = data.usage.outputTokens || 0
+      const cachedTokens = data.usage.inputTokenDetails?.cacheReadTokens || 0
+      const reasoningTokens = data.usage.outputTokenDetails?.reasoningTokens || 0
       const totalTokens = promptTokens + completionTokens
 
-      const estimatedCost = calculateLlmCost(data.modelName, promptTokens, completionTokens)
+      const estimatedCost = calculateLlmCost(
+        data.modelName,
+        promptTokens,
+        completionTokens,
+        cachedTokens
+      )
 
       await prisma.llmUsage.create({
         data: {
@@ -146,6 +153,8 @@ export class ChatService {
           entityId: data.messageId,
           promptTokens,
           completionTokens,
+          cachedTokens,
+          reasoningTokens,
           totalTokens,
           estimatedCost,
           durationMs: 0,
