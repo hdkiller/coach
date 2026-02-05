@@ -421,7 +421,7 @@
           />
         </div>
         <p v-else class="font-medium text-lg">
-          {{ modelValue.dob ? formatDate(modelValue.dob) : 'Not set' }}
+          {{ modelValue.dob ? formatUserDate(modelValue.dob, timezone, 'MMM d, yyyy') : 'Not set' }}
         </p>
       </div>
 
@@ -636,7 +636,7 @@
   }>()
 
   const emit = defineEmits(['update:modelValue', 'autodetect'])
-  const { formatDate, formatUserDate, timezone } = useFormat()
+  const { formatUserDate, timezone } = useFormat()
 
   const editingField = ref<string | null>(null)
   const editValue = ref<any>(null)
