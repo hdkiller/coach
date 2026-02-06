@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { createAutotaskTicket } from '../../utils/autotask'
+import { sendEmail } from '../../utils/email'
 import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
@@ -39,37 +39,54 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // 2. Send to Autotask
-  // Format description to include user info
-  const description = `User: ${userName} (${userEmail})\nID: ${userId || 'Guest'}\n\nMessage:\n${message}`
-
-  let ticketId: number | null = null
-  try {
-    ticketId = await createAutotaskTicket({
-      title: subject,
-      description: description,
-      priority: 3 // Medium
+  // 2. Send Email
+  const supportEmail = process.env.SUPPORT_EMAIL
+  if (!supportEmail) {
+    console.error('SUPPORT_EMAIL is not defined')
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Support email configuration error'
     })
-  } catch (error) {
-    console.error('Failed to create Autotask ticket', error)
-    // We don't fail the request if Autotask fails, but we log it.
-    // Ideally we might want a retry mechanism or alert.
   }
 
-  // 3. Update database with ticket ID
-  if (ticketId) {
+  const htmlContent = `
+    <h2>New Support Message</h2>
+    <p><strong>From:</strong> ${userName} (${userEmail})</p>
+    <p><strong>User ID:</strong> ${userId || 'Guest'}</p>
+    <p><strong>Subject:</strong> ${subject}</p>
+    <hr />
+    <h3>Message:</h3>
+    <div style="white-space: pre-wrap;">${message}</div>
+  `
+
+  let emailResponse
+  try {
+    emailResponse = await sendEmail({
+      to: supportEmail,
+      subject: `Support: ${subject}`,
+      html: htmlContent
+    })
+  } catch (error: any) {
+    console.error('Failed to send support email', error)
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to send support email'
+    })
+  }
+
+  // 3. Update database with email ID
+  if (emailResponse?.data?.id) {
     await prisma.supportMessage.update({
       where: { id: supportMessage.id },
       data: {
-        autotaskTicketId: ticketId.toString(),
-        autotaskTicketNumber: ticketId.toString() // Assuming ID and Number are same or similar for now
+        autotaskTicketId: emailResponse.data.id,
+        autotaskTicketNumber: 'RESEND'
       }
     })
   }
 
   return {
     success: true,
-    messageId: supportMessage.id,
-    ticketId
+    messageId: supportMessage.id
   }
 })
