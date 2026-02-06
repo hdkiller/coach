@@ -22,7 +22,8 @@ export default defineEventHandler(async (event) => {
       stripeSubscriptionId: true,
       subscriptionTier: true,
       subscriptionStatus: true,
-      subscriptionPeriodEnd: true
+      subscriptionPeriodEnd: true,
+      dashboardSettings: true
     }
   })
 

@@ -11,6 +11,7 @@ interface User {
   subscriptionTier: SubscriptionTier
   subscriptionStatus: SubscriptionStatus
   subscriptionPeriodEnd: Date | null
+  dashboardSettings?: any
 }
 
 interface UserEntitlements {
@@ -45,6 +46,37 @@ export const useUserStore = defineStore('user', () => {
       user.value = null
     } finally {
       userLoading.value = false
+    }
+  }
+
+  // Update dashboard settings
+  async function updateDashboardSettings(settings: any) {
+    if (!user.value) return
+
+    // Optimistic update
+    // Initialize if missing
+    if (!user.value.dashboardSettings) {
+      user.value.dashboardSettings = {}
+    }
+
+    // Deep merge or top-level merge
+    // For simplicity, we assume 'settings' is a slice we want to merge in
+    // e.g. { performanceScores: { ... } }
+    // We'll do a basic top-level merge here, or rely on the caller to pass the specific structure
+    user.value.dashboardSettings = { ...user.value.dashboardSettings, ...settings }
+
+    try {
+      await $fetch('/api/user/settings', {
+        method: 'PATCH',
+        body: { dashboardSettings: settings }
+      })
+    } catch (error) {
+      console.error('Failed to update settings:', error)
+      toast.add({
+        title: 'Save Failed',
+        description: 'Could not save dashboard preferences.',
+        color: 'error'
+      })
     }
   }
 
@@ -186,6 +218,7 @@ export const useUserStore = defineStore('user', () => {
     userLoading,
     entitlements,
     fetchUser,
+    updateDashboardSettings,
     fetchProfile,
     generateProfile,
     hasEntitlement,
