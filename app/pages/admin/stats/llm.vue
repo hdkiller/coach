@@ -8,7 +8,8 @@
     CategoryScale,
     LinearScale,
     LineElement,
-    PointElement
+    PointElement,
+    Filler
   } from 'chart.js'
   import { Pie, Bar, Line } from 'vue-chartjs'
 
@@ -20,7 +21,8 @@
     CategoryScale,
     LinearScale,
     LineElement,
-    PointElement
+    PointElement,
+    Filler
   )
 
   definePageMeta({
@@ -352,6 +354,28 @@
     if (!stats.value?.dailyCountsByOperation) return { labels: [], datasets: [] }
 
     const data = stats.value.dailyCountsByOperation
+    const dates = [...new Set(data.map((d) => d.date))].sort()
+    const operations = [...new Set(data.map((d) => d.operation))]
+
+    return {
+      labels: dates.map((d) =>
+        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      ),
+      datasets: operations.map((op) => ({
+        label: op.replace(/_/g, ' '),
+        backgroundColor: getOperationColor(op),
+        data: dates.map((date) => {
+          const entry = data.find((d) => d.date === date && d.operation === op)
+          return entry ? entry.count : 0
+        })
+      }))
+    }
+  })
+
+  const dailyFailuresByOperationChartData = computed(() => {
+    if (!stats.value?.dailyFailuresByOperation) return { labels: [], datasets: [] }
+
+    const data = stats.value.dailyFailuresByOperation
     const dates = [...new Set(data.map((d) => d.date))].sort()
     const operations = [...new Set(data.map((d) => d.operation))]
 
@@ -962,36 +986,23 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Recent Failures -->
+          <!-- Daily Failures Chart -->
           <UCard>
             <template #header>
-              <h3 class="font-semibold text-red-500">Recent Failures</h3>
+              <div class="flex justify-between items-center">
+                <h3 class="font-semibold text-red-500">Daily Failures by Operation</h3>
+                <UButton
+                  to="/admin/ai/failed-requests"
+                  label="View Details"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  icon="i-lucide-external-link"
+                />
+              </div>
             </template>
-            <div class="space-y-3">
-              <div
-                v-for="fail in stats?.recentFailures"
-                :key="fail.id"
-                class="text-sm p-3 bg-red-50 dark:bg-red-900/10 rounded-lg"
-              >
-                <div class="flex justify-between mb-1">
-                  <span class="font-bold font-mono text-xs">{{
-                    fail.errorType || 'Unknown Error'
-                  }}</span>
-                  <span class="text-xs text-gray-500">{{
-                    new Date(fail.createdAt).toLocaleDateString()
-                  }}</span>
-                </div>
-                <div class="text-gray-700 dark:text-gray-300 line-clamp-2 text-xs italic">
-                  {{ fail.errorMessage }}
-                </div>
-                <div class="mt-2 flex gap-2">
-                  <UBadge size="xs" color="neutral">{{ fail.operation }}</UBadge>
-                  <UBadge size="xs" color="neutral">{{ fail.model }}</UBadge>
-                </div>
-              </div>
-              <div v-if="!stats?.recentFailures.length" class="text-center text-gray-400 py-4">
-                No recent failures
-              </div>
+            <div class="h-64 relative">
+              <Bar :data="dailyFailuresByOperationChartData" :options="stackedBarNoLegendOptions" />
             </div>
           </UCard>
 

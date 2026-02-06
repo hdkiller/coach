@@ -111,6 +111,14 @@
           }
         },
         {
+          label: 'AI Failed Requests',
+          icon: 'i-lucide-alert-octagon',
+          to: '/admin/ai/failed-requests',
+          onSelect: () => {
+            isOpen.value = false
+          }
+        },
+        {
           label: 'Webhook Logs',
           icon: 'i-lucide-webhook',
           to: '/admin/webhooks',
