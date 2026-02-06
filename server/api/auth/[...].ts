@@ -3,6 +3,7 @@ import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { getRequestIP, getRequestHeader } from 'h3'
 
 const adapter = PrismaAdapter(prisma)
 const originalLinkAccount = adapter.linkAccount
@@ -133,6 +134,22 @@ export default NuxtAuthHandler({
     async signIn({ user, account }: any) {
       if (account?.provider === 'intervals') {
         await syncIntervalsIntegration(user, account)
+      }
+
+      // Capture login IP and timestamp
+      try {
+        const event = useEvent()
+        const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lastLoginAt: new Date(),
+            lastLoginIp: ip
+          }
+        })
+      } catch (error) {
+        console.error('Failed to update user login info:', error)
       }
     }
   }
