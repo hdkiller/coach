@@ -66,6 +66,8 @@ model User {
   nickname                           String?
   nutritionTrackingEnabled           Boolean                      @default(true)
   recoverySensitivity                String?                      @default("MEDIUM")
+  lastLoginAt                        DateTime?
+  lastLoginIp                        String?
   stripeCustomerId                   String?                      @unique
   stripeSubscriptionId               String?                      @unique
   subscriptionPeriodEnd              DateTime?
