@@ -12,6 +12,8 @@ import backfillSportSettingsCommand from './sport-settings'
 import backfillReportTemplatesCommand from './report-templates'
 import backfillIntervalsParsingCommand from './intervals-parsing'
 import backfillMaxWattsCommand from './max-watts'
+import backfillProfileCommand from './profile'
+import backfillOuraCommand from './wellness-oura'
 
 const backfill = new Command('backfill')
 
@@ -30,5 +32,7 @@ backfill
   .addCommand(backfillReportTemplatesCommand)
   .addCommand(backfillIntervalsParsingCommand)
   .addCommand(backfillMaxWattsCommand)
+  .addCommand(backfillProfileCommand)
+  .addCommand(backfillOuraCommand)
 
 export default backfill
