@@ -24,33 +24,87 @@ export default defineEventHandler(async (event) => {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterdayStart = new Date(todayStart)
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
   // Efficient Aggregation for AI Usage
-  const llmStats = await prisma.llmUsage.aggregate({
-    where: {
-      createdAt: { gte: thirtyDaysAgo }
-    },
-    _sum: {
-      estimatedCost: true
-    },
-    _count: {
-      _all: true,
-      success: true // note: this just counts non-nulls, we need a better way for success rate if 'success' is boolean
-    }
-  })
+  const [llmStats, successfulAiCalls, yesterdayStats, todayStats, mtdStats] = await Promise.all([
+    prisma.llmUsage.aggregate({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      _sum: { estimatedCost: true },
+      _count: { _all: true }
+    }),
+    prisma.llmUsage.count({
+      where: { createdAt: { gte: thirtyDaysAgo }, success: true }
+    }),
+    prisma.llmUsage.aggregate({
+      where: { createdAt: { gte: yesterdayStart, lt: todayStart } },
+      _sum: { estimatedCost: true }
+    }),
+    prisma.llmUsage.aggregate({
+      where: { createdAt: { gte: todayStart } },
+      _sum: { estimatedCost: true }
+    }),
+    prisma.llmUsage.aggregate({
+      where: { createdAt: { gte: monthStart } },
+      _sum: { estimatedCost: true }
+    })
+  ])
 
-  // Prisma aggregate doesn't support "count where success=true" easily in one go with boolean
-  // So we do a separate count or accept the small overhead of 2 queries
-  const successfulAiCalls = await prisma.llmUsage.count({
-    where: {
-      createdAt: { gte: thirtyDaysAgo },
-      success: true
-    }
-  })
-
-  const totalAiCost = llmStats._sum.estimatedCost || 0
+  const totalAiCost30d = llmStats._sum.estimatedCost || 0
   const totalAiCalls = llmStats._count._all
   const aiSuccessRate = totalAiCalls > 0 ? (successfulAiCalls / totalAiCalls) * 100 : 100
-  const avgAiCostPerCall = totalAiCalls > 0 ? totalAiCost / totalAiCalls : 0
+  const avgAiCostPerCall = totalAiCalls > 0 ? totalAiCost30d / totalAiCalls : 0
+
+  const aiCostYesterday = yesterdayStats._sum.estimatedCost || 0
+  const aiCostToday = todayStats._sum.estimatedCost || 0
+  const aiCostMTD = mtdStats._sum.estimatedCost || 0
+
+  // Simple forecast for today
+  const hoursPassed = now.getHours() + now.getMinutes() / 60 || 0.1
+  const aiCostForecastToday = aiCostToday * (24 / hoursPassed)
+
+  // --- Subscription Stats ---
+  const [activeSubscribers, activeTierCounts, recentPremiumUsers] = await Promise.all([
+    prisma.user.count({
+      where: {
+        subscriptionStatus: 'ACTIVE',
+        subscriptionTier: { in: ['SUPPORTER', 'PRO'] }
+      }
+    }),
+    prisma.user.groupBy({
+      by: ['subscriptionTier'],
+      _count: { id: true },
+      where: {
+        subscriptionStatus: 'ACTIVE',
+        subscriptionTier: { in: ['SUPPORTER', 'PRO'] }
+      }
+    }),
+    prisma.user.findMany({
+      where: { subscriptionTier: { in: ['SUPPORTER', 'PRO'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        subscriptionTier: true,
+        subscriptionStatus: true
+      }
+    })
+  ])
+
+  let estimatedMRR = 0
+  activeTierCounts.forEach((group) => {
+    if (group.subscriptionTier === 'SUPPORTER') {
+      estimatedMRR += group._count.id * 8.99
+    } else if (group.subscriptionTier === 'PRO') {
+      estimatedMRR += group._count.id * 14.99
+    }
+  })
 
   // --- Daily Histograms via Raw SQL for Performance ---
 
@@ -159,7 +213,14 @@ export default defineEventHandler(async (event) => {
   return {
     totalUsers,
     totalWorkouts,
-    totalAiCost,
+    totalAiCost30d,
+    aiCostYesterday,
+    aiCostToday,
+    aiCostForecastToday,
+    aiCostMTD,
+    estimatedMRR,
+    activeSubscribers,
+    recentPremiumUsers,
     totalAiCalls,
     aiSuccessRate,
     avgAiCostPerCall,

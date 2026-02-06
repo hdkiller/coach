@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   const dailyVolumeRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
     SELECT DATE("createdAt") as date, COUNT(*) as count
     FROM "WebhookLog"
-    WHERE "createdAt" >= ${sevenDaysAgo}
+    WHERE "createdAt" >= ${sevenDaysAgo} AND "provider" = 'telegram'
     GROUP BY DATE("createdAt")
     ORDER BY date ASC
   `
