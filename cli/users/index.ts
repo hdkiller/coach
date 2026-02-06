@@ -7,7 +7,6 @@ import pg from 'pg'
 import statsCommand from './stats'
 import growthCommand from './growth'
 import contributorCommand from './contributor'
-import subscriptionsCommand from './subscriptions'
 import analyzeCommand from './analyze'
 import adminsCommand from './admins'
 
@@ -16,7 +15,6 @@ const usersCommand = new Command('users').description('User management commands'
 usersCommand.addCommand(statsCommand)
 usersCommand.addCommand(growthCommand)
 usersCommand.addCommand(contributorCommand)
-usersCommand.addCommand(subscriptionsCommand)
 usersCommand.addCommand(analyzeCommand)
 usersCommand.addCommand(adminsCommand)
 

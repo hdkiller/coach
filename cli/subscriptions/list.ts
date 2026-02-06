@@ -6,12 +6,13 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import Stripe from 'stripe'
 
-const subscriptionsCommand = new Command('subscriptions')
-  .alias('subscribers')
+const listCommand = new Command('list')
   .description('List users with active or past Stripe subscriptions')
   .option('--prod', 'Use production database')
+  .option('--all', 'Show all users with a Stripe Customer ID (including FREE tier)')
   .action(async (options) => {
     const isProd = options.prod
+    const showAll = options.all
     const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
     const stripeSecretKey = isProd
       ? process.env.STRIPE_PROD_SECRET_KEY
@@ -25,11 +26,6 @@ const subscriptionsCommand = new Command('subscriptions')
 
     if (!connectionString) {
       console.error(chalk.red('Error: Database connection string is not defined.'))
-      if (isProd) {
-        console.error(chalk.red('Make sure DATABASE_URL_PROD is set in .env'))
-      } else {
-        console.error(chalk.red('Make sure DATABASE_URL is set in .env'))
-      }
       process.exit(1)
     }
 
@@ -55,9 +51,9 @@ const subscriptionsCommand = new Command('subscriptions')
       console.log(chalk.blue('Fetching subscription data...'))
 
       const users = await prisma.user.findMany({
-        where: {
-          subscriptionTier: { not: 'FREE' }
-        },
+        where: showAll
+          ? { stripeCustomerId: { not: null } }
+          : { subscriptionTier: { not: 'FREE' } },
         select: {
           id: true,
           email: true,
@@ -91,14 +87,9 @@ const subscriptionsCommand = new Command('subscriptions')
               try {
                 const sub = await stripe.subscriptions.retrieve(u.stripeSubscriptionId)
                 startedAt = new Date(sub.created * 1000).toISOString().split('T')[0]
-                // Prefer Stripe's current period end as it's the source of truth
                 periodEnd = new Date(sub.current_period_end * 1000).toISOString().split('T')[0]
               } catch (e: any) {
-                console.warn(
-                  chalk.yellow(
-                    `\n⚠️  Failed to fetch Stripe sub ${u.stripeSubscriptionId} for ${u.email}: ${e.message}`
-                  )
-                )
+                // Silently skip if sub not found or other Stripe error
               }
             }
 
@@ -118,7 +109,6 @@ const subscriptionsCommand = new Command('subscriptions')
           })
         )
 
-        // Sort by Started date descending, N/A at the bottom
         formattedUsers.sort((a, b) => {
           if (a.Started === 'N/A') return 1
           if (b.Started === 'N/A') return -1
@@ -136,4 +126,4 @@ const subscriptionsCommand = new Command('subscriptions')
     }
   })
 
-export default subscriptionsCommand
+export default listCommand

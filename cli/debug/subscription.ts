@@ -113,4 +113,73 @@ subscriptionCommand
     }
   })
 
+subscriptionCommand
+  .command('set')
+  .description('Manually set subscription tier and status for a user')
+  .argument('<email>', 'User email address')
+  .argument('<tier>', 'Subscription tier (FREE, SUPPORTER, PRO)')
+  .argument(
+    '[status]',
+    'Subscription status (NONE, TRIALING, ACTIVE, PAST_DUE, CANCELED, UNPAID, DELETED, CONTRIBUTOR)',
+    'ACTIVE'
+  )
+  .option('--prod', 'Use production database')
+  .action(async (email, tier, status, options) => {
+    const isProd = options.prod
+    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+
+    const validTiers = ['FREE', 'SUPPORTER', 'PRO']
+    const validStatuses = [
+      'NONE',
+      'TRIALING',
+      'ACTIVE',
+      'PAST_DUE',
+      'CANCELED',
+      'UNPAID',
+      'DELETED',
+      'CONTRIBUTOR'
+    ]
+
+    if (!validTiers.includes(tier.toUpperCase())) {
+      console.error(chalk.red(`Invalid tier. Must be one of: ${validTiers.join(', ')}`))
+      return
+    }
+
+    if (!validStatuses.includes(status.toUpperCase())) {
+      console.error(chalk.red(`Invalid status. Must be one of: ${validStatuses.join(', ')}`))
+      return
+    }
+
+    if (isProd) {
+      console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
+    }
+
+    const pool = new pg.Pool({ connectionString })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
+
+    try {
+      const user = await prisma.user.update({
+        where: { email },
+        data: {
+          subscriptionTier: tier.toUpperCase() as any,
+          subscriptionStatus: status.toUpperCase() as any,
+          subscriptionPeriodEnd:
+            tier.toUpperCase() === 'FREE' ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Default to 30 days if not FREE
+        }
+      })
+
+      console.log(
+        chalk.green(
+          `✅ User ${user.email} updated to ${user.subscriptionTier} tier with ${user.subscriptionStatus} status.`
+        )
+      )
+    } catch (e) {
+      console.error(chalk.red('Error updating user subscription:'), e)
+    } finally {
+      await prisma.$disconnect()
+      await pool.end()
+    }
+  })
+
 export default subscriptionCommand
