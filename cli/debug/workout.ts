@@ -1,9 +1,6 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import 'dotenv/config'
-import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import pg from 'pg'
 import { fetchIntervalsActivityStreams } from '../../server/utils/intervals'
 import {
   calculateAveragePace,
@@ -13,7 +10,6 @@ import {
   analyzePacingStrategy,
   detectSurges
 } from '../../server/utils/pacing'
-import { IntervalsService } from '../../server/utils/services/intervalsService'
 
 const troubleshootWorkoutsCommand = new Command('workout')
 
@@ -64,10 +60,8 @@ troubleshootWorkoutsCommand
       console.log(chalk.blue('Using DEVELOPMENT database.'))
     }
 
-    // Create a fresh client
-    const pool = new pg.Pool({ connectionString })
-    const adapter = new PrismaPg(pool)
-    const prisma = new PrismaClient({ adapter })
+    // Import prisma AFTER setting environment variable
+    const { prisma } = await import('../../server/utils/db')
 
     try {
       const where: any = {}
@@ -131,6 +125,10 @@ troubleshootWorkoutsCommand
         if (options.reSyncActivity && w.source === 'intervals') {
           console.log(chalk.bold.yellow(`\n=== Re-Syncing Activity (Detailed) ===`))
           try {
+            // Import service dynamically to ensure it uses the overridden DATABASE_URL
+            const { IntervalsService } =
+              await import('../../server/utils/services/intervalsService')
+
             // Re-sync this specific workout date range (start = date, end = date)
             // IntervalsService.syncActivities expects dates.
             // We use the workout date.
