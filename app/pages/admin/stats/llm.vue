@@ -94,6 +94,16 @@
     }
   }
 
+  const stackedBarNoLegendOptions = {
+    ...stackedBarOptions,
+    plugins: {
+      ...stackedBarOptions.plugins,
+      legend: {
+        display: false
+      }
+    }
+  }
+
   const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -156,6 +166,28 @@
       return '#' + '00000'.substring(0, 6 - c.length) + c
     }
     return colors[model]
+  }
+
+  // Helper to generate consistent colors for operations
+  const getOperationColor = (operation: string) => {
+    const colors: Record<string, string> = {
+      chat: '#3b82f6', // Blue
+      recommend_today_activity: '#10b981', // Emerald
+      analyze_workout: '#f59e0b', // Amber
+      analyze_nutrition: '#ef4444', // Red
+      daily_checkin: '#8b5cf6', // Purple
+      generate_weekly_plan: '#ec4899', // Pink
+      generate_training_block: '#6366f1' // Indigo
+    }
+    if (!colors[operation]) {
+      let hash = 0
+      for (let i = 0; i < operation.length; i++) {
+        hash = operation.charCodeAt(i) + ((hash << 5) - hash)
+      }
+      const c = (hash & 0x00ffffff).toString(16).toUpperCase()
+      return '#' + '00000'.substring(0, 6 - c.length) + c
+    }
+    return colors[operation]
   }
 
   // Helper to generate consistent colors for tools
@@ -272,6 +304,72 @@
     }
   })
 
+  const dailyTokensByModelChartData = computed(() => {
+    if (!stats.value?.dailyTokensByModel) return { labels: [], datasets: [] }
+
+    const data = stats.value.dailyTokensByModel
+    const dates = [...new Set(data.map((d) => d.date))].sort()
+    const models = [...new Set(data.map((d) => d.model))]
+
+    return {
+      labels: dates.map((d) =>
+        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      ),
+      datasets: models.map((model) => ({
+        label: model,
+        backgroundColor: getModelColor(model),
+        data: dates.map((date) => {
+          const entry = data.find((d) => d.date === date && d.model === model)
+          return entry ? entry.count : 0
+        })
+      }))
+    }
+  })
+
+  const dailyTokensByOperationChartData = computed(() => {
+    if (!stats.value?.dailyTokensByOperation) return { labels: [], datasets: [] }
+
+    const data = stats.value.dailyTokensByOperation
+    const dates = [...new Set(data.map((d) => d.date))].sort()
+    const operations = [...new Set(data.map((d) => d.operation))]
+
+    return {
+      labels: dates.map((d) =>
+        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      ),
+      datasets: operations.map((op) => ({
+        label: op.replace(/_/g, ' '),
+        backgroundColor: getOperationColor(op),
+        data: dates.map((date) => {
+          const entry = data.find((d) => d.date === date && d.operation === op)
+          return entry ? entry.count : 0
+        })
+      }))
+    }
+  })
+
+  const dailyCountsByOperationChartData = computed(() => {
+    if (!stats.value?.dailyCountsByOperation) return { labels: [], datasets: [] }
+
+    const data = stats.value.dailyCountsByOperation
+    const dates = [...new Set(data.map((d) => d.date))].sort()
+    const operations = [...new Set(data.map((d) => d.operation))]
+
+    return {
+      labels: dates.map((d) =>
+        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      ),
+      datasets: operations.map((op) => ({
+        label: op.replace(/_/g, ' '),
+        backgroundColor: getOperationColor(op),
+        data: dates.map((date) => {
+          const entry = data.find((d) => d.date === date && d.operation === op)
+          return entry ? entry.count : 0
+        })
+      }))
+    }
+  })
+
   const dailyTokenBreakdownChartData = computed(() => {
     if (!stats.value?.dailyTokenBreakdown) return { labels: [], datasets: [] }
 
@@ -298,6 +396,32 @@
             const entry = data.find((d) => d.date === date)
             return entry ? entry.uncached : 0
           })
+        }
+      ]
+    }
+  })
+
+  const dailyTotalRequestsChartData = computed(() => {
+    if (!stats.value?.dailyTotalRequests) return { labels: [], datasets: [] }
+
+    const data = stats.value.dailyTotalRequests
+    const dates = data.map((d) => d.date).sort()
+
+    return {
+      labels: dates.map((d) =>
+        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      ),
+      datasets: [
+        {
+          label: 'Total Requests',
+          borderColor: '#3b82f6',
+          backgroundColor: '#3b82f633',
+          fill: true,
+          data: dates.map((date) => {
+            const entry = data.find((d) => d.date === date)
+            return entry ? entry.count : 0
+          }),
+          tension: 0.3
         }
       ]
     }
@@ -608,6 +732,39 @@
           </UCard>
         </div>
 
+        <!-- NEW: Daily Tokens and Operations per Type -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <UCard>
+            <template #header>
+              <h3 class="font-semibold">Daily Tokens per Operation</h3>
+            </template>
+            <div class="h-64 relative">
+              <Bar :data="dailyTokensByOperationChartData" :options="stackedBarNoLegendOptions" />
+            </div>
+          </UCard>
+
+          <UCard>
+            <template #header>
+              <h3 class="font-semibold">Daily Operations per Type</h3>
+            </template>
+            <div class="h-64 relative">
+              <Bar :data="dailyCountsByOperationChartData" :options="stackedBarNoLegendOptions" />
+            </div>
+          </UCard>
+        </div>
+
+        <!-- NEW: Daily Total Tokens per Model -->
+        <div class="grid grid-cols-1 gap-6">
+          <UCard>
+            <template #header>
+              <h3 class="font-semibold">Daily Total Tokens by Model</h3>
+            </template>
+            <div class="h-64 relative">
+              <Bar :data="dailyTokensByModelChartData" :options="stackedBarOptions" />
+            </div>
+          </UCard>
+        </div>
+
         <!-- NEW: Hourly Trends (Past 48 Hours) -->
         <div class="space-y-6">
           <div class="flex items-center gap-2 mt-4">
@@ -668,6 +825,15 @@
         </div>
 
         <div class="grid grid-cols-1 gap-6">
+          <UCard>
+            <template #header>
+              <h3 class="font-semibold">Total Daily Requests (All Operations)</h3>
+            </template>
+            <div class="h-64 relative">
+              <Line :data="dailyTotalRequestsChartData" :options="barOptions" />
+            </div>
+          </UCard>
+
           <UCard>
             <template #header>
               <h3 class="font-semibold">Total Unique Users per Day (All LLM Operations)</h3>
@@ -747,7 +913,7 @@
               <h3 class="font-semibold">Daily Tool Calls per Tool</h3>
             </template>
             <div class="h-64 relative">
-              <Bar :data="dailyToolCallsChartData" :options="stackedBarOptions" />
+              <Bar :data="dailyToolCallsChartData" :options="stackedBarNoLegendOptions" />
             </div>
           </UCard>
         </div>

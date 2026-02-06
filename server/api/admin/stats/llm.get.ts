@@ -303,6 +303,20 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
+  // 15b. Total Requests per Day (All Operations)
+  const dailyTotalRequestsRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
+    SELECT DATE("createdAt") as date, COUNT(*) as count
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("createdAt")
+    ORDER BY date ASC
+  `
+
+  const dailyTotalRequests = dailyTotalRequestsRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    count: Number(row.count)
+  }))
+
   // 14. Daily Cached Tokens per Model
   const dailyCachedTokensByModelRaw = await prisma.$queryRaw<
     { date: string; model: string; count: bigint }[]
@@ -317,6 +331,57 @@ export default defineEventHandler(async (event) => {
   const dailyCachedTokensByModel = dailyCachedTokensByModelRaw.map((row) => ({
     date: new Date(row.date).toISOString().split('T')[0],
     model: row.model,
+    count: Number(row.count)
+  }))
+
+  // 14b. Daily Total Tokens per Model
+  const dailyTokensByModelRaw = await prisma.$queryRaw<
+    { date: string; model: string; count: bigint }[]
+  >`
+    SELECT DATE("createdAt") as date, model, SUM(COALESCE("totalTokens", 0)) as count
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("createdAt"), model
+    ORDER BY date ASC
+  `
+
+  const dailyTokensByModel = dailyTokensByModelRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    model: row.model,
+    count: Number(row.count)
+  }))
+
+  // 14c. Daily Tokens per Operation
+  const dailyTokensByOperationRaw = await prisma.$queryRaw<
+    { date: string; operation: string; count: bigint }[]
+  >`
+    SELECT DATE("createdAt") as date, operation, SUM(COALESCE("totalTokens", 0)) as count
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("createdAt"), operation
+    ORDER BY date ASC
+  `
+
+  const dailyTokensByOperation = dailyTokensByOperationRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    operation: row.operation,
+    count: Number(row.count)
+  }))
+
+  // 14d. Daily Requests per Operation
+  const dailyCountsByOperationRaw = await prisma.$queryRaw<
+    { date: string; operation: string; count: bigint }[]
+  >`
+    SELECT DATE("createdAt") as date, operation, COUNT(*) as count
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("createdAt"), operation
+    ORDER BY date ASC
+  `
+
+  const dailyCountsByOperation = dailyCountsByOperationRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    operation: row.operation,
     count: Number(row.count)
   }))
 
@@ -390,7 +455,11 @@ export default defineEventHandler(async (event) => {
     dailyUsersByModel,
     dailyToolUsage,
     dailyChatRequests,
+    dailyTotalRequests,
     dailyCachedTokensByModel,
+    dailyTokensByModel,
+    dailyTokensByOperation,
+    dailyCountsByOperation,
     dailyTotalUsers,
     dailyTokenBreakdown,
     hourlyStats,
