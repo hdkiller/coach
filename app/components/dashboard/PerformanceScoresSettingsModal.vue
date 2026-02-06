@@ -9,7 +9,7 @@
             </h3>
             <UButton
               icon="i-heroicons-x-mark"
-              color="gray"
+              color="neutral"
               variant="ghost"
               @click="isOpen = false"
             />
