@@ -118,6 +118,14 @@ export async function fetchOuraData(
     })
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        console.warn(`[Oura] Skipping ${endpoint}: Token not authorized (check scopes).`)
+        return []
+      }
+      if (response.status === 404) {
+        return [] // No data for this endpoint/period
+      }
+
       const errorText = await response.text()
       console.error(`[Oura] API Error (${endpoint}):`, {
         status: response.status,

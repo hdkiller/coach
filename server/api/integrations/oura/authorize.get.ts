@@ -51,8 +51,8 @@ export default defineEventHandler(async (event) => {
   authUrl.searchParams.set('client_id', clientId)
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('response_type', 'code')
-  // Using minimal required scopes + email for identification
-  authUrl.searchParams.set('scope', 'email personal daily heartrate workout session')
+  // Using full set of scopes for complete integration
+  authUrl.searchParams.set('scope', 'email personal daily heartrate workout session tag spo2Daily')
   authUrl.searchParams.set('state', state)
 
   // Redirect to Oura authorization page
