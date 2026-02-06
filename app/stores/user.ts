@@ -172,6 +172,18 @@ export const useUserStore = defineStore('user', () => {
     return defaultSettings?.maxHr || profile.value.maxHr || 0
   })
 
+  const currentWPrime = computed(() => {
+    if (!profile.value) return 0
+    const defaultSettings = profile.value.sportSettings?.find((s: any) => s.isDefault)
+    return defaultSettings?.wPrime || profile.value.wPrime || 0
+  })
+
+  const currentThresholdPace = computed(() => {
+    if (!profile.value) return 0
+    const defaultSettings = profile.value.sportSettings?.find((s: any) => s.isDefault)
+    return defaultSettings?.thresholdPace || profile.value.thresholdPace || 0
+  })
+
   async function generateProfile() {
     generating.value = true
     try {
@@ -213,6 +225,8 @@ export const useUserStore = defineStore('user', () => {
     currentFtp,
     currentLthr,
     currentMaxHr,
+    currentWPrime,
+    currentThresholdPace,
     loading,
     generating,
     userLoading,
