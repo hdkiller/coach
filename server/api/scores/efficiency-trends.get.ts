@@ -14,6 +14,11 @@ defineRouteMeta({
         name: 'days',
         in: 'query',
         schema: { type: ['integer', 'string'], default: 90 }
+      },
+      {
+        name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
       }
     ],
     responses: {
@@ -63,6 +68,7 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date()
   let startDate = new Date()
+  const sport = query.sport === 'all' ? undefined : (query.sport as string)
 
   if (query.days === 'YTD') {
     const timezone = await getUserTimezone(userId)
@@ -76,7 +82,8 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate: now,
-    includeDuplicates: false
+    includeDuplicates: false,
+    where: sport ? { type: sport } : undefined
   })
 
   // Filter for workouts that have both Power and HR (needed for Efficiency Factor)

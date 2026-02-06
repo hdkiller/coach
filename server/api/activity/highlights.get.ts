@@ -14,6 +14,11 @@ defineRouteMeta({
         name: 'days',
         in: 'query',
         schema: { type: ['integer', 'string'], default: 30 }
+      },
+      {
+        name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
       }
     ],
     responses: {
@@ -64,6 +69,7 @@ export default defineEventHandler(async (event) => {
   }
   const userId = user.id
   const query = getQuery(event)
+  const sport = query.sport === 'all' ? undefined : (query.sport as string)
 
   const now = new Date()
   let startDate = new Date()
@@ -81,13 +87,11 @@ export default defineEventHandler(async (event) => {
   }
 
   // Fetch workouts for the selected period
-  // We'll need to use raw query or repository method that supports aggregation
-  // For now, let's fetch all workouts and aggregate in memory for simplicity,
-  // but in production, this should be optimized with DB aggregation.
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate: now,
-    includeDuplicates: false
+    includeDuplicates: false,
+    where: sport ? { type: sport } : undefined
   })
 
   // Calculate aggregated stats
@@ -102,23 +106,22 @@ export default defineEventHandler(async (event) => {
     totalTSS += w.tss || 0
   })
 
-  // Calculate Load Ratios (ACWR)
-  // Acute Load = Average daily load over last 7 days
-  // Chronic Load = Average daily load over last 42 days
-
+  // Calculate Load Ratios (ACWR) - also respecting sport filter
   const acuteStartDate = subDays(now, 7)
   const chronicStartDate = subDays(now, 42)
 
   const acuteWorkouts = await workoutRepository.getForUser(userId, {
     startDate: acuteStartDate,
     endDate: now,
-    includeDuplicates: false
+    includeDuplicates: false,
+    where: sport ? { type: sport } : undefined
   })
 
   const chronicWorkouts = await workoutRepository.getForUser(userId, {
     startDate: chronicStartDate,
     endDate: now,
-    includeDuplicates: false
+    includeDuplicates: false,
+    where: sport ? { type: sport } : undefined
   })
 
   const acuteLoad = acuteWorkouts.reduce((sum, w) => sum + (w.tss || 0), 0) / 7

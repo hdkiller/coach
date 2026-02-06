@@ -14,6 +14,11 @@ defineRouteMeta({
         name: 'days',
         in: 'query',
         schema: { type: ['integer', 'string'], default: 90 }
+      },
+      {
+        name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
       }
     ],
     responses: {
@@ -67,34 +72,29 @@ export default defineEventHandler(async (event) => {
 
   const userId = user.id
   const query = getQuery(event)
-
   const now = new Date()
-  let startDate = new Date()
 
-  if (query.days === 'YTD') {
-    const timezone = await getUserTimezone(userId)
-    startDate = getStartOfYearUTC(timezone)
-  } else {
-    const days = Number(query.days) || 90 // Default to 90 days for current period
-    startDate = subDays(now, days)
-  }
+  const startDate =
+    query.days === 'YTD'
+      ? getStartOfYearUTC(await getUserTimezone(userId))
+      : subDays(now, Number(query.days) || 90)
+  const sport = query.sport === 'all' ? undefined : (query.sport as string)
 
   // 1. Fetch workouts for the selected period (Current Curve)
   const currentWorkouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate: now,
-    includeDuplicates: false
+    includeDuplicates: false,
+    where: sport ? { type: sport } : undefined
   })
 
   // 2. Fetch all-time bests (All-Time Curve)
-  // Ideally, we would have a dedicated 'PowerCurve' table or aggregation
-  // For now, we'll scan all workouts (this might need optimization later)
-  // or limit to last 2 years for "All-Time" relevant to current fitness
   const allTimeStartDate = subDays(now, 730) // 2 years
   const allTimeWorkouts = await workoutRepository.getForUser(userId, {
     startDate: allTimeStartDate,
     endDate: now,
-    includeDuplicates: false
+    includeDuplicates: false,
+    where: sport ? { type: sport } : undefined
   })
 
   // Helper to extract max power for standard durations
@@ -140,22 +140,38 @@ export default defineEventHandler(async (event) => {
 
   const processWorkoutsToCurve = (workouts: any[]) => {
     let max1s = 0
-    const max20m = 0 // Est from FTP or best 20m effort
+    let max5m = 0
+    let max20m = 0
+    let max60m = 0
 
     workouts.forEach((w) => {
-      if (w.maxWatts > max1s) max1s = w.maxWatts
-      // If we had 20m power...
+      const mw = w.maxWatts || w.averageWatts || 0
+      const aw = w.averageWatts || 0
+      const duration = w.durationSec || 0
+
+      if (mw > max1s) max1s = mw
+
+      // If workout is long enough, use average watts as a floor for that duration
+      if (duration >= 3600 && aw > max60m) max60m = aw
+      if (duration >= 1200 && aw > max20m) max20m = aw
+      if (duration >= 300 && aw > max5m) max5m = aw
     })
 
-    // Placeholder curve generator (Model based)
-    // This allows the frontend to work while we build the backend stream processor
+    // If we don't have enough data points, estimate from max1s or max60m
+    if (max60m === 0 && max1s > 0) max60m = max1s * 0.25
+    if (max20m === 0 && max60m > 0) max20m = max60m / 0.9 // Est FTP
+    if (max5m === 0 && max20m > 0) max5m = max20m / 0.8
+    if (max1s === 0 && max60m > 0) max1s = max60m * 4
+
+    // Return a smoothed curve based on best known points
     return [
-      { duration: 1, watts: max1s },
-      { duration: 10, watts: max1s * 0.8 },
-      { duration: 60, watts: max1s * 0.5 },
-      { duration: 300, watts: max1s * 0.35 },
-      { duration: 1200, watts: max1s * 0.28 }, // ~FTP
-      { duration: 3600, watts: max1s * 0.25 }
+      { duration: 1, watts: Math.round(max1s) },
+      { duration: 10, watts: Math.round(max1s * 0.85) },
+      { duration: 30, watts: Math.round(max1s * 0.7) },
+      { duration: 60, watts: Math.round(max1s * 0.55) },
+      { duration: 300, watts: Math.round(Math.max(max5m, max1s * 0.4)) },
+      { duration: 1200, watts: Math.round(Math.max(max20m, max1s * 0.3)) },
+      { duration: 3600, watts: Math.round(Math.max(max60m, max1s * 0.25)) }
     ]
   }
 

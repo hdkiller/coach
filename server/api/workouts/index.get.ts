@@ -63,6 +63,12 @@ defineRouteMeta({
         schema: { type: 'boolean' }
       },
       {
+        name: 'type',
+        in: 'query',
+        description: 'Filter workouts by sport type',
+        schema: { type: 'string' }
+      },
+      {
         name: 'x-act-as-user',
         in: 'header',
         description: 'Athlete user ID to act as (for coaches)',
@@ -104,6 +110,7 @@ export default defineEventHandler(async (event) => {
   const startDate = query.startDate ? new Date(query.startDate as string) : undefined
   const endDate = query.endDate ? new Date(query.endDate as string) : undefined
   const includeDuplicates = query.includeDuplicates === 'true'
+  const sportType = query.type === 'all' ? undefined : (query.type as string)
 
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
@@ -111,6 +118,7 @@ export default defineEventHandler(async (event) => {
     limit,
     offset,
     includeDuplicates,
+    where: sportType ? { type: sportType } : undefined,
     // Use select to optimize payload size (COACH-WATTS-7)
     // We explicitly exclude rawJson, aiAnalysis, and other large text fields
     select: {

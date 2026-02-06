@@ -17,6 +17,11 @@ defineRouteMeta({
         name: 'weeks',
         in: 'query',
         schema: { type: ['integer', 'string'], default: 12 }
+      },
+      {
+        name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
       }
     ]
   }
@@ -31,6 +36,7 @@ export default defineEventHandler(async (event) => {
   const timezone = await getUserTimezone(userId)
 
   const query = getQuery(event)
+  const sport = query.sport === 'all' ? undefined : (query.sport as string)
   const endDate = getUserLocalDate(timezone)
   let startDate = getUserLocalDate(timezone)
   let numWeeks = 0
@@ -58,6 +64,7 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate,
+    where: sport ? { type: sport } : undefined,
     select: {
       date: true,
       ftp: true,

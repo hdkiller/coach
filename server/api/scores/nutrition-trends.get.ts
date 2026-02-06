@@ -13,6 +13,11 @@ defineRouteMeta({
         name: 'days',
         in: 'query',
         schema: { type: 'integer', default: 14 }
+      },
+      {
+        name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
       }
     ],
     responses: {
@@ -56,6 +61,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
+  const sport = query.sport === 'all' ? undefined : (query.sport as string)
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email }
