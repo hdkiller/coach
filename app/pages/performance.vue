@@ -43,14 +43,22 @@
             <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
               Activity Highlights
             </h2>
-            <USelect
-              v-model="highlightsPeriod"
-              :items="periodOptions"
-              size="xs"
-              class="w-32 sm:w-36"
-            />
+            <div class="flex gap-2">
+              <USelect
+                v-model="highlightsSport"
+                :items="sportOptions"
+                class="w-32 sm:w-36"
+                size="xs"
+              />
+              <USelect
+                v-model="highlightsPeriod"
+                :items="periodOptions"
+                size="xs"
+                class="w-32 sm:w-36"
+              />
+            </div>
           </div>
-          <ActivityHighlights :period="highlightsPeriod" />
+          <ActivityHighlights :period="highlightsPeriod" :sport="highlightsSport" />
         </div>
 
         <!-- 2. Athlete Profile Scores -->
@@ -178,15 +186,23 @@
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               Power Duration Curve
             </h2>
-            <USelect
-              v-model="powerCurvePeriod"
-              :items="periodOptions"
-              class="w-32 sm:w-36"
-              size="sm"
-            />
+            <div class="flex gap-2">
+              <USelect
+                v-model="powerCurveSport"
+                :items="sportOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+              <USelect
+                v-model="powerCurvePeriod"
+                :items="periodOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+            </div>
           </div>
-          <!-- Pass days to the updated component for Performance Page mode -->
-          <PowerCurveChart :days="powerCurvePeriod" />
+          <!-- Pass days and sport to the updated component for Performance Page mode -->
+          <PowerCurveChart :days="powerCurvePeriod" :sport="powerCurveSport" />
         </div>
 
         <!-- 5. Efficiency & Decoupling -->
@@ -195,18 +211,26 @@
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               Aerobic Efficiency Trend
             </h2>
-            <USelect
-              v-model="efficiencyPeriod"
-              :items="periodOptions"
-              class="w-32 sm:w-36"
-              size="sm"
-            />
+            <div class="flex gap-2">
+              <USelect
+                v-model="efficiencySport"
+                :items="sportOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+              <USelect
+                v-model="efficiencyPeriod"
+                :items="periodOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+            </div>
           </div>
-          <EfficiencyTrendChart :days="efficiencyPeriod" />
+          <EfficiencyTrendChart :days="efficiencyPeriod" :sport="efficiencySport" />
         </div>
 
-        <!-- 6. Readiness vs Performance -->
-        <div class="space-y-6">
+        <!-- 6. Readiness vs Performance (Temporarily Hidden) -->
+        <!-- <div class="space-y-6">
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               Readiness & Performance
@@ -219,16 +243,24 @@
             />
           </div>
           <ReadinessCorrelationChart :days="readinessPeriod" />
-        </div>
+        </div> -->
 
         <!-- 7. FTP Evolution Chart -->
         <div class="space-y-6">
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">FTP Evolution</h2>
-            <USelect v-model="ftpPeriod" :items="ftpPeriodOptions" class="w-32 sm:w-36" size="sm" />
+            <div class="flex gap-2">
+              <USelect v-model="ftpSport" :items="sportOptions" class="w-32 sm:w-36" size="sm" />
+              <USelect
+                v-model="ftpPeriod"
+                :items="ftpPeriodOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+            </div>
           </div>
 
-          <FTPEvolutionChart :months="ftpPeriod" />
+          <FTPEvolutionChart :months="ftpPeriod" :sport="ftpSport" />
         </div>
 
         <!-- 8. Training Intensity Distribution -->
@@ -237,16 +269,24 @@
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               Intensity Distribution
             </h2>
-            <USelect
-              v-model="distributionPeriod"
-              :items="distributionPeriodOptions"
-              class="w-32 sm:w-36"
-              size="sm"
-            />
+            <div class="flex gap-2">
+              <USelect
+                v-model="distributionSport"
+                :items="sportOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+              <USelect
+                v-model="distributionPeriod"
+                :items="distributionPeriodOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+            </div>
           </div>
 
           <UCard>
-            <WeeklyZoneChart :weeks="distributionPeriod" />
+            <WeeklyZoneChart :weeks="distributionPeriod" :sport="distributionSport" />
           </UCard>
         </div>
 
@@ -254,12 +294,20 @@
         <div class="space-y-6">
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Workout Performance</h2>
-            <USelect
-              v-model="selectedPeriod"
-              :items="periodOptions"
-              class="w-32 sm:w-36"
-              size="sm"
-            />
+            <div class="flex gap-2">
+              <USelect
+                v-model="workoutSport"
+                :items="sportOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+              <USelect
+                v-model="selectedPeriod"
+                :items="periodOptions"
+                class="w-32 sm:w-36"
+                size="sm"
+              />
+            </div>
           </div>
 
           <div v-if="workoutLoading" class="flex justify-center py-12">
@@ -384,10 +432,16 @@
 
         <!-- 10. Nutrition Scores -->
         <div class="space-y-4">
-          <div class="px-1">
+          <div class="flex items-center justify-between px-1">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
               Nutrition Quality
             </h2>
+            <USelect
+              v-model="nutritionSport"
+              :items="sportOptions"
+              class="w-32 sm:w-36"
+              size="sm"
+            />
           </div>
 
           <div v-if="nutritionLoading" class="flex justify-center py-12">
@@ -550,9 +604,24 @@
 
   const selectedPeriod = ref<number | string>(30)
   const highlightsPeriod = ref<number | string>(30)
+  const highlightsSport = ref<string>('all')
   const efficiencyPeriod = ref<number | string>(90)
+  const efficiencySport = ref<string>('all')
   const readinessPeriod = ref<number | string>(30)
   const powerCurvePeriod = ref<number | string>(90)
+  const powerCurveSport = ref<string>('all')
+
+  // Fetch available sports
+  const { data: sportsData } = await useFetch<string[]>('/api/workouts/sports')
+  const sportOptions = computed(() => {
+    const options = [{ label: 'All Sports', value: 'all' }]
+    if (sportsData.value) {
+      sportsData.value.forEach((sport) => {
+        options.push({ label: sport, value: sport })
+      })
+    }
+    return options
+  })
 
   const periodOptions = [
     { label: '7 Days', value: 7 },
@@ -572,6 +641,7 @@
   ]
 
   const ftpPeriod = ref<number | string>(12)
+  const ftpSport = ref<string>('all')
   const ftpPeriodOptions = [
     { label: '3 Months', value: 3 },
     { label: '6 Months', value: 6 },
@@ -581,6 +651,7 @@
   ]
 
   const distributionPeriod = ref<number | string>(12)
+  const distributionSport = ref<string>('all')
   const distributionPeriodOptions = [
     { label: '4 Weeks', value: 4 },
     { label: '8 Weeks', value: 8 },
@@ -588,6 +659,9 @@
     { label: '24 Weeks', value: 24 },
     { label: 'Year to Date', value: 'YTD' }
   ]
+
+  const workoutSport = ref<string>('all')
+  const nutritionSport = ref<string>('all')
 
   interface AthleteProfile {
     scores?: {
@@ -616,7 +690,10 @@
   const { data: workoutData, pending: workoutLoading } = await useFetch(
     '/api/scores/workout-trends',
     {
-      query: { days: selectedPeriod }
+      query: computed(() => ({
+        days: selectedPeriod.value,
+        sport: workoutSport.value
+      }))
     }
   )
 
@@ -624,7 +701,10 @@
   const { data: nutritionData, pending: nutritionLoading } = await useFetch(
     '/api/scores/nutrition-trends',
     {
-      query: { days: selectedPeriod }
+      query: computed(() => ({
+        days: selectedPeriod.value,
+        sport: nutritionSport.value
+      }))
     }
   )
 
