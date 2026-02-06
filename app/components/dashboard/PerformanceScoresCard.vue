@@ -11,18 +11,18 @@
             color="neutral"
             variant="ghost"
             size="xs"
-            icon="i-heroicons-cog-6-tooth"
-            @click="showSettingsModal = true"
-          />
-          <UButton
-            color="neutral"
-            variant="ghost"
-            size="xs"
             icon="i-heroicons-presentation-chart-line"
             @click="$emit('open-training-load')"
           >
             Training Load
           </UButton>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-heroicons-cog-6-tooth"
+            @click="showSettingsModal = true"
+          />
         </div>
       </div>
     </template>
