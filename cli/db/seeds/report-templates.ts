@@ -1,4 +1,4 @@
-import { prisma } from '../server/utils/db'
+import { prisma } from '../../../server/utils/db'
 
 // ------------------------------------------------------------------
 // 1. Last 3 Workouts Analysis
@@ -300,48 +300,17 @@ Scoring Guidelines:
 
 Maintain your **{{persona}}** persona throughout. Be specific with numbers. Scores should realistically reflect the period's quality.`
 
-async function main() {
+export const seed = async () => {
   console.log('Seeding report templates...')
 
-  // Upsert Last 3 Workouts
-  await prisma.reportTemplate.upsert({
-    where: { id: 'system-last-3-workouts' }, // We'll use a fixed UUID or manage lookup by name? ID is better for updates.
-    // Actually, I can't set ID on upsert if it's uuid generated. I'll search by name/isSystem
-    // Since we don't have a unique constraint on name, I'll delete existing system ones or just create if not exists?
-    // Let's use a known UUID for system templates to allow updates.
-    create: {
+  const templates = [
+    {
       id: '00000000-0000-0000-0000-000000000001',
       name: 'Last 3 Workouts Analysis',
       description:
         'Analyze your 3 most recent endurance workouts to identify trends, progression, and recovery patterns.',
       icon: 'i-heroicons-chart-bar',
       isSystem: true,
-      inputConfig: {
-        sources: [
-          {
-            entity: 'workout',
-            key: 'workouts', // variable name in context
-            filter: { type: ['Ride', 'VirtualRide', 'Cycling'] },
-            limit: 3,
-            orderBy: { date: 'desc' }
-          },
-          {
-            entity: 'sport_settings',
-            key: 'sportSettings',
-            activityType: 'Ride'
-          }
-        ]
-      },
-      outputConfig: {
-        promptTemplate: last3WorkoutsPrompt,
-        schema: last3WorkoutsSchema
-      }
-    },
-    update: {
-      name: 'Last 3 Workouts Analysis',
-      description:
-        'Analyze your 3 most recent endurance workouts to identify trends, progression, and recovery patterns.',
-      icon: 'i-heroicons-chart-bar',
       inputConfig: {
         sources: [
           {
@@ -362,13 +331,8 @@ async function main() {
         promptTemplate: last3WorkoutsPrompt,
         schema: last3WorkoutsSchema
       }
-    }
-  })
-
-  // Upsert Weekly Analysis
-  await prisma.reportTemplate.upsert({
-    where: { id: '00000000-0000-0000-0000-000000000002' },
-    create: {
+    },
+    {
       id: '00000000-0000-0000-0000-000000000002',
       name: 'Weekly Training Analysis',
       description:
@@ -398,46 +362,24 @@ async function main() {
         promptTemplate: weeklyAnalysisPrompt,
         schema: weeklyAnalysisSchema
       }
-    },
-    update: {
-      name: 'Weekly Training Analysis',
-      description:
-        'Comprehensive analysis of the last 7 days of training including workouts, recovery metrics, and recommendations.',
-      icon: 'i-heroicons-calendar',
-      inputConfig: {
-        sources: [
-          {
-            entity: 'workout',
-            key: 'workouts',
-            range: { type: 'days', value: 7 }
-          },
-          {
-            entity: 'wellness',
-            key: 'metrics',
-            range: { type: 'days', value: 7 }
-          },
-          {
-            entity: 'goal',
-            key: 'activeGoals',
-            filter: { status: 'ACTIVE' }
-          }
-        ]
-      },
-      outputConfig: {
-        promptTemplate: weeklyAnalysisPrompt,
-        schema: weeklyAnalysisSchema
-      }
     }
-  })
+  ]
+
+  for (const template of templates) {
+    const existing = await prisma.reportTemplate.findUnique({
+      where: { id: template.id }
+    })
+
+    if (existing) {
+      console.log(`  Skipping template: ${template.name} (already exists)`)
+      continue
+    }
+
+    await prisma.reportTemplate.create({
+      data: template
+    })
+    console.log(`  Created template: ${template.name}`)
+  }
 
   console.log('Templates seeded successfully.')
 }
-
-main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
