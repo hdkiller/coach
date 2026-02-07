@@ -1,7 +1,7 @@
 import { defineEventHandler, createError } from 'h3'
-import { getServerSession } from '../../../utils/session'
-import { prisma } from '../../../utils/db'
-import { getStartOfDayUTC, getStartOfDaysAgoUTC } from '../../../utils/date'
+import { getServerSession } from '../../../../utils/session'
+import { prisma } from '../../../../utils/db'
+import { getStartOfDayUTC, getStartOfDaysAgoUTC } from '../../../../utils/date'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -10,10 +10,39 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
 
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const thirtyDaysAgo = getStartOfDaysAgoUTC('UTC', 30)
 
-  // 1. Usage by Model
+  // 1. Headline Metrics (Total Cost, Requests, Tokens)
+  const totals = await prisma.llmUsage.aggregate({
+    where: { createdAt: { gte: thirtyDaysAgo } },
+    _sum: {
+      estimatedCost: true,
+      totalTokens: true,
+      promptTokens: true,
+      completionTokens: true,
+      cachedTokens: true,
+      reasoningTokens: true
+    },
+    _count: {
+      id: true
+    }
+  })
+
+  // 2. Daily Cost Trend (Original simple query)
+  const dailyCostsRaw = await prisma.$queryRaw<{ date: string; cost: number }[]>`
+    SELECT DATE("createdAt") as date, SUM("estimatedCost") as cost
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE("createdAt")
+    ORDER BY date ASC
+  `
+
+  const dailyCosts = dailyCostsRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    cost: Number(row.cost || 0)
+  }))
+
+  // 3. Usage by Model (Pie Chart)
   const usageByModel = await prisma.llmUsage.groupBy({
     by: ['model'],
     _count: { id: true },
@@ -21,7 +50,7 @@ export default defineEventHandler(async (event) => {
     where: { createdAt: { gte: thirtyDaysAgo } }
   })
 
-  // 2. Usage by Operation
+  // 4. Usage by Operation
   const usageByOperation = await prisma.llmUsage.groupBy({
     by: ['operation'],
     _count: { id: true },
@@ -29,7 +58,27 @@ export default defineEventHandler(async (event) => {
     where: { createdAt: { gte: thirtyDaysAgo } }
   })
 
-  // 3. Top Spenders
+  // 5. Recent Failures (List)
+  const recentFailures = await prisma.llmUsage.findMany({
+    where: {
+      success: false,
+      createdAt: { gte: thirtyDaysAgo }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      operation: true,
+      model: true,
+      errorType: true,
+      errorMessage: true,
+      createdAt: true
+    }
+  })
+
+  // --- RESTORED METRICS ---
+
+  // 6. Top Spenders
   const topSpendersRaw = await prisma.llmUsage.groupBy({
     by: ['userId'],
     _sum: { estimatedCost: true },
@@ -45,7 +94,6 @@ export default defineEventHandler(async (event) => {
     take: 5
   })
 
-  // Fetch user details for top spenders
   const topSpendersDetails = await Promise.all(
     topSpendersRaw.map(async (item) => {
       const user = await prisma.user.findUnique({
@@ -61,7 +109,7 @@ export default defineEventHandler(async (event) => {
     })
   )
 
-  // 3b. Top Spenders Today
+  // 7. Top Spenders Today
   const todayStart = getStartOfDayUTC('UTC')
   const topSpendersTodayRaw = await prisma.llmUsage.groupBy({
     by: ['userId'],
@@ -93,7 +141,7 @@ export default defineEventHandler(async (event) => {
     })
   )
 
-  // 3c. Top Spenders Yesterday
+  // 8. Top Spenders Yesterday
   const yesterdayStart = getStartOfDaysAgoUTC('UTC', 1)
   const topSpendersYesterdayRaw = await prisma.llmUsage.groupBy({
     by: ['userId'],
@@ -124,82 +172,6 @@ export default defineEventHandler(async (event) => {
       }
     })
   )
-
-  // 4. Recent Failures
-  const recentFailures = await prisma.llmUsage.findMany({
-    where: {
-      success: false,
-      createdAt: { gte: thirtyDaysAgo }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 10,
-    select: {
-      id: true,
-      operation: true,
-      model: true,
-      errorType: true,
-      errorMessage: true,
-      createdAt: true
-    }
-  })
-
-  // 5. Total Token Usage Breakdown
-  const tokenStats = await prisma.llmUsage.aggregate({
-    where: { createdAt: { gte: thirtyDaysAgo } },
-    _sum: {
-      promptTokens: true,
-      completionTokens: true,
-      cachedTokens: true,
-      totalTokens: true
-    }
-  })
-
-  // 6. AI Feedback Stats
-  const feedbackStats = await prisma.llmUsage.groupBy({
-    by: ['feedback'],
-    _count: { id: true },
-    where: {
-      createdAt: { gte: thirtyDaysAgo },
-      feedback: { not: null }
-    }
-  })
-
-  // 7. Daily Feedback Histogram
-  const feedbackByDayRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
-    SELECT DATE("createdAt") as date, COUNT(*) as count
-    FROM "LlmUsage"
-    WHERE "createdAt" >= ${thirtyDaysAgo} AND "feedback" IS NOT NULL
-    GROUP BY DATE("createdAt")
-    ORDER BY date ASC
-  `
-
-  const feedbackByDay = feedbackByDayRaw.map((row) => ({
-    date: new Date(row.date).toISOString().split('T')[0],
-    count: Number(row.count)
-  }))
-
-  // 8. Recent Usage Records (Detailed Table)
-  const recentUsage = await prisma.llmUsage.findMany({
-    where: { createdAt: { gte: thirtyDaysAgo } },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-    select: {
-      id: true,
-      createdAt: true,
-      model: true,
-      operation: true,
-      totalTokens: true,
-      cachedTokens: true,
-      estimatedCost: true,
-      success: true,
-      durationMs: true,
-      user: {
-        select: {
-          email: true
-        }
-      }
-    }
-  })
 
   // 9. Tool Usage Stats (from ChatMessage metadata)
   const usageByToolRaw = await prisma.$queryRaw<{ name: string; count: bigint }[]>`
@@ -289,7 +261,7 @@ export default defineEventHandler(async (event) => {
     userCount: Number(row.userCount)
   }))
 
-  // 15. Total Unique Users per Day (All Operations)
+  // 14. Total Unique Users per Day (All Operations)
   const dailyTotalUsersRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
     SELECT DATE("createdAt") as date, COUNT(DISTINCT "userId") as count
     FROM "LlmUsage"
@@ -303,7 +275,7 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
-  // 15b. Total Requests per Day (All Operations)
+  // 15. Total Requests per Day (All Operations)
   const dailyTotalRequestsRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
     SELECT DATE("createdAt") as date, COUNT(*) as count
     FROM "LlmUsage"
@@ -317,7 +289,7 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
-  // 14. Daily Cached Tokens per Model
+  // 16. Daily Cached Tokens per Model
   const dailyCachedTokensByModelRaw = await prisma.$queryRaw<
     { date: string; model: string; count: bigint }[]
   >`
@@ -334,7 +306,7 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
-  // 14b. Daily Total Tokens per Model
+  // 17. Daily Total Tokens per Model
   const dailyTokensByModelRaw = await prisma.$queryRaw<
     { date: string; model: string; count: bigint }[]
   >`
@@ -351,7 +323,7 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
-  // 14c. Daily Tokens per Operation
+  // 18. Daily Tokens per Operation
   const dailyTokensByOperationRaw = await prisma.$queryRaw<
     { date: string; operation: string; count: bigint }[]
   >`
@@ -368,7 +340,7 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
-  // 14d. Daily Requests per Operation
+  // 19. Daily Requests per Operation
   const dailyCountsByOperationRaw = await prisma.$queryRaw<
     { date: string; operation: string; count: bigint }[]
   >`
@@ -385,7 +357,7 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
-  // 14e. Daily Failures per Operation
+  // 20. Daily Failures per Operation
   const dailyFailuresByOperationRaw = await prisma.$queryRaw<
     { date: string; operation: string; count: bigint }[]
   >`
@@ -402,7 +374,7 @@ export default defineEventHandler(async (event) => {
     count: Number(row.count)
   }))
 
-  // 16. Daily Input Tokens Breakdown (Cached vs Uncached)
+  // 21. Daily Input Tokens Breakdown (Cached vs Uncached)
   const dailyTokenBreakdownRaw = await prisma.$queryRaw<
     { date: string; prompt: bigint; cached: bigint }[]
   >`
@@ -423,12 +395,19 @@ export default defineEventHandler(async (event) => {
     uncached: Math.max(0, Number(row.prompt) - Number(row.cached))
   }))
 
-  // 17. Hourly Stats (Past 48 Hours)
+  // 22. Hourly Stats (Past 48 Hours)
   const fortyEightHoursAgo = new Date()
   fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48)
 
   const hourlyStatsRaw = await prisma.$queryRaw<
-    { hour: string; model: string; prompt: bigint; cached: bigint; cost: number }[]
+    {
+      hour: string
+      model: string
+      prompt: bigint
+      cached: bigint
+      cost: number
+      uncached: bigint
+    }[]
   >`
     SELECT 
       DATE_TRUNC('hour', "createdAt") as hour,
@@ -451,20 +430,78 @@ export default defineEventHandler(async (event) => {
     cost: Number(row.cost)
   }))
 
+  // 23. AI Feedback Stats
+  const feedbackStats = await prisma.llmUsage.groupBy({
+    by: ['feedback'],
+    _count: { id: true },
+    where: {
+      createdAt: { gte: thirtyDaysAgo },
+      feedback: { not: null }
+    }
+  })
+
+  const feedbackByDayRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
+    SELECT DATE("createdAt") as date, COUNT(*) as count
+    FROM "LlmUsage"
+    WHERE "createdAt" >= ${thirtyDaysAgo} AND "feedback" IS NOT NULL
+    GROUP BY DATE("createdAt")
+    ORDER BY date ASC
+  `
+
+  const feedbackByDay = feedbackByDayRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    count: Number(row.count)
+  }))
+
+  // 24. Recent Usage Records
+  const recentUsage = await prisma.llmUsage.findMany({
+    where: { createdAt: { gte: thirtyDaysAgo } },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+    select: {
+      id: true,
+      createdAt: true,
+      model: true,
+      operation: true,
+      totalTokens: true,
+      cachedTokens: true,
+      estimatedCost: true,
+      success: true,
+      durationMs: true,
+      user: {
+        select: {
+          email: true
+        }
+      }
+    }
+  })
+
   return {
+    totals: {
+      requests: totals._count.id,
+      cost: totals._sum.estimatedCost || 0,
+      tokens: {
+        total: totals._sum.totalTokens || 0,
+        prompt: totals._sum.promptTokens || 0,
+        completion: totals._sum.completionTokens || 0,
+        cached: totals._sum.cachedTokens || 0,
+        reasoning: totals._sum.reasoningTokens || 0
+      }
+    },
+    dailyCosts,
     usageByModel: usageByModel
       .map((m) => ({
         model: m.model,
         count: m._count.id,
-        cost: m._sum.estimatedCost,
-        tokens: m._sum.totalTokens
+        cost: m._sum.estimatedCost || 0,
+        tokens: m._sum.totalTokens || 0
       }))
       .sort((a, b) => b.count - a.count),
     usageByOperation: usageByOperation
       .map((o) => ({
         operation: o.operation,
         count: o._count.id,
-        cost: o._sum.estimatedCost
+        cost: o._sum.estimatedCost || 0
       }))
       .sort((a, b) => b.count - a.count),
     usageByTool,
@@ -485,12 +522,6 @@ export default defineEventHandler(async (event) => {
     topSpendersToday,
     topSpendersYesterday,
     recentFailures,
-    tokens: {
-      prompt: tokenStats._sum.promptTokens || 0,
-      completion: tokenStats._sum.completionTokens || 0,
-      cached: tokenStats._sum.cachedTokens || 0,
-      total: tokenStats._sum.totalTokens || 0
-    },
     feedback: {
       summary: feedbackStats.map((f) => ({ type: f.feedback, count: f._count.id })),
       history: feedbackByDay
