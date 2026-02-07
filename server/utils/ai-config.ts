@@ -5,6 +5,39 @@ export const MODEL_NAMES = {
   pro: 'gemini-3-flash-preview'
 } as const
 
+export const MODEL_LIST = [
+  {
+    group: 'Gemini 3.0',
+    label: 'Gemini 3.0 Flash (Preview)',
+    id: 'gemini-3-flash-preview',
+    version: '3.0'
+  },
+  {
+    group: 'Gemini 3.0',
+    label: 'Gemini 3.0 Pro (Preview)',
+    id: 'gemini-3-pro-preview',
+    version: '3.0'
+  },
+  {
+    group: 'Gemini 2.5',
+    label: 'Gemini 2.5 Flash (Latest)',
+    id: 'gemini-flash-latest',
+    version: '2.5'
+  },
+  {
+    group: 'Gemini 2.5',
+    label: 'Gemini 2.5 Pro (Latest)',
+    id: 'gemini-pro-latest',
+    version: '2.5'
+  },
+  {
+    group: 'Gemini 2.5',
+    label: 'Gemini 2.5 Flash (Legacy)',
+    id: 'gemini-2.5-flash',
+    version: '2.5'
+  }
+] as const
+
 export const PRICING = {
   'gemini-3-flash-preview': {
     // Mapped to Gemini 3.0 Flash

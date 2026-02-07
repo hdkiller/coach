@@ -14,6 +14,7 @@ import {
 
 import type { GeminiModel } from './ai-config'
 import { MODEL_NAMES, calculateLlmCost } from './ai-config'
+import { getLlmOperationSettings } from './ai-operation-settings'
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY
@@ -393,26 +394,64 @@ export interface LlmTrackingContext {
   onUsageLogged?: (usageId: string) => void | Promise<void>
 }
 
+/**
+ * Build Google Provider Options based on model constraints
+ */
+export function buildGoogleProviderOptions(
+  modelId: string,
+  thinkingLevel: string,
+  thinkingBudget: number
+) {
+  const providerOptions: any = {}
+
+  if (modelId.includes('gemini-3')) {
+    // Gemini 3 uses level.
+    // Gemini 3 Pro supports 'low' and 'high'
+    // Gemini 3 Flash supports 'minimal', 'low', 'medium', 'high'
+    let level = thinkingLevel
+    if (modelId.includes('pro') && !['low', 'high'].includes(level)) {
+      level = level === 'minimal' ? 'low' : 'high' // Map minimal/medium for Pro
+    }
+
+    providerOptions.google = {
+      thinkingConfig: {
+        thinkingLevel: level,
+        includeThoughts: true
+      }
+    }
+  } else {
+    // For 2.5/Latest models, budget is the driver
+    if (thinkingBudget > 0) {
+      providerOptions.google = {
+        thinkingConfig: {
+          thinkingBudget: thinkingBudget,
+          includeThoughts: true
+        }
+      }
+    }
+  }
+
+  return providerOptions
+}
+
 export async function generateCoachAnalysis(
   prompt: string,
   modelType: GeminiModel = 'flash',
   trackingContext?: LlmTrackingContext
 ): Promise<string> {
-  const modelName = MODEL_NAMES[modelType]
+  const opSettings = await getLlmOperationSettings(
+    trackingContext?.userId,
+    trackingContext?.operation
+  )
+  const modelName = opSettings.modelId
   const startTime = Date.now()
 
-  // Configure thinking based on model version
-  const providerOptions: any = {}
-  if (modelName.includes('gemini-3')) {
-    providerOptions.google = {
-      thinkingConfig: { thinkingLevel: 'medium' }
-    }
-  } else {
-    // Gemini 2.5
-    providerOptions.google = {
-      thinkingConfig: { thinkingBudget: 4000 }
-    }
-  }
+  // Configure thinking based on model version and tier settings
+  const providerOptions = buildGoogleProviderOptions(
+    modelName,
+    opSettings.thinkingLevel,
+    opSettings.thinkingBudget
+  )
 
   try {
     const { text, usage } = await generateText({
@@ -473,21 +512,19 @@ export async function generateStructuredAnalysis<T>(
   modelType: GeminiModel = 'flash',
   trackingContext?: LlmTrackingContext
 ): Promise<T> {
-  const modelName = MODEL_NAMES[modelType]
+  const opSettings = await getLlmOperationSettings(
+    trackingContext?.userId,
+    trackingContext?.operation
+  )
+  const modelName = opSettings.modelId
   const startTime = Date.now()
 
-  // Configure thinking based on model version
-  const providerOptions: any = {}
-  if (modelName.includes('gemini-3')) {
-    providerOptions.google = {
-      thinkingConfig: { thinkingLevel: 'medium' }
-    }
-  } else {
-    // Gemini 2.5
-    providerOptions.google = {
-      thinkingConfig: { thinkingBudget: 4000 }
-    }
-  }
+  // Configure thinking based on model version and tier settings
+  const providerOptions = buildGoogleProviderOptions(
+    modelName,
+    opSettings.thinkingLevel,
+    opSettings.thinkingBudget
+  )
 
   try {
     const { object, usage } = await generateObject({

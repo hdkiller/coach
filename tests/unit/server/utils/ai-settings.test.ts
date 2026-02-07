@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getUserAiSettings } from '../../../../server/utils/ai-settings'
+import { getUserAiSettings } from '../../../../server/utils/ai-user-settings'
 import { prisma } from '../../../../server/utils/db'
 
 // Mock prisma
