@@ -119,12 +119,12 @@ export const OuraService = {
 
           // TSS
           try {
-            const tssResult = await normalizeTSS(upserted.id, userId)
+            const tssResult = await normalizeTSS(upserted.record.id, userId)
             if (tssResult.tss !== null) {
-              await calculateWorkoutStress(upserted.id, userId)
+              await calculateWorkoutStress(upserted.record.id, userId)
             }
           } catch (e) {
-            console.error(`[OuraService] TSS failed for workout ${upserted.id}`, e)
+            console.error(`[OuraService] TSS failed for workout ${upserted.record.id}`, e)
           }
         }
       }
