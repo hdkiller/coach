@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import { prisma } from '../../server/utils/db'
-import { seed as llmTierSettingsSeed } from './seeds/llm-tier-settings'
+import { seed as llmAnalysisLevelSettingsSeed } from './seeds/llm-analysis-level-settings'
 import { seed as reportTemplatesSeed } from './seeds/report-templates'
 
 const seedCommand = new Command('seed').description('Seed the database')
@@ -12,7 +12,7 @@ const seedCommand = new Command('seed').description('Seed the database')
 // 2. Import its seed function here
 // 3. Add it to the seeds object below
 const seeds: Record<string, () => Promise<void>> = {
-  'llm-tier-settings': llmTierSettingsSeed,
+  'llm-analysis-level-settings': llmAnalysisLevelSettingsSeed,
   'report-templates': reportTemplatesSeed
 }
 

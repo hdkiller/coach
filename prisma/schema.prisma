@@ -1265,9 +1265,9 @@ model WebhookLog {
   @@index([status])
 }
 
-model LlmTierSettings {
+model LlmAnalysisLevelSettings {
   id               String   @id @default(uuid())
-  tier             String   @unique // 'FREE', 'SUPPORTER', 'PRO', 'CONTRIBUTOR'
+  level            String   @unique // 'flash', 'pro', 'experimental'
   model            String   @default("flash") // flash/pro family
   modelId          String   @default("gemini-flash-latest") // exact ID
   thinkingBudget   Int      @default(2000)
@@ -1279,19 +1279,19 @@ model LlmTierSettings {
 }
 
 model LlmOperationOverride {
-  id               String   @id @default(uuid())
-  tierSettingsId   String
-  operation        String
-  model            String?
-  modelId          String?
-  thinkingBudget   Int?
-  thinkingLevel    String?
-  maxSteps         Int?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  tierSettings     LlmTierSettings @relation(fields: [tierSettingsId], references: [id], onDelete: Cascade)
+  id                       String   @id @default(uuid())
+  analysisLevelSettingsId  String
+  operation                String
+  model                    String?
+  modelId                  String?
+  thinkingBudget           Int?
+  thinkingLevel            String?
+  maxSteps                 Int?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  analysisLevelSettings     LlmAnalysisLevelSettings @relation(fields: [analysisLevelSettingsId], references: [id], onDelete: Cascade)
 
-  @@unique([tierSettingsId, operation])
+  @@unique([analysisLevelSettingsId, operation])
 }
 
 enum SubscriptionTier {

@@ -13,7 +13,7 @@ vi.mock('./db', () => ({
     user: {
       findUnique: vi.fn()
     },
-    llmTierSettings: {
+    llmAnalysisLevelSettings: {
       findMany: vi.fn()
     },
     llmOperationOverride: {
@@ -91,10 +91,10 @@ describe('LLM Settings Logic', () => {
   })
 
   describe('getLlmOperationSettings', () => {
-    const mockTierSettings = [
+    const mockLevelSettings = [
       {
-        id: 'tier1',
-        tier: 'PRO',
+        id: 'level1',
+        level: 'pro',
         model: 'pro',
         modelId: 'gemini-3-pro-preview',
         thinkingBudget: 0,
@@ -102,13 +102,22 @@ describe('LLM Settings Logic', () => {
         maxSteps: 5
       },
       {
-        id: 'tier2',
-        tier: 'FREE',
+        id: 'level2',
+        level: 'flash',
         model: 'flash',
         modelId: 'gemini-flash-latest',
         thinkingBudget: 1000,
         thinkingLevel: 'low',
         maxSteps: 3
+      },
+      {
+        id: 'level3',
+        level: 'experimental',
+        model: 'pro',
+        modelId: 'gemini-3-pro-preview',
+        thinkingBudget: 0,
+        thinkingLevel: 'high',
+        maxSteps: 20
       }
     ]
 
@@ -118,12 +127,13 @@ describe('LLM Settings Logic', () => {
       // (In reality we just call refreshLlmSettingsCache directly in tests)
     })
 
-    it('should return tier default when no override exists', async () => {
-      vi.mocked(prisma.llmTierSettings.findMany).mockResolvedValue(mockTierSettings as any)
+    it('should return level default when no override exists', async () => {
+      vi.mocked(prisma.llmAnalysisLevelSettings.findMany).mockResolvedValue(
+        mockLevelSettings as any
+      )
       vi.mocked(prisma.llmOperationOverride.findMany).mockResolvedValue([])
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        subscriptionTier: 'PRO',
-        subscriptionStatus: 'ACTIVE'
+        aiModelPreference: 'pro'
       } as any)
 
       await refreshLlmSettingsCache()
@@ -136,7 +146,7 @@ describe('LLM Settings Logic', () => {
     it('should apply operation override correctly', async () => {
       const mockOverrides = [
         {
-          tierSettingsId: 'tier1',
+          analysisLevelSettingsId: 'level1',
           operation: 'chat',
           model: 'flash',
           modelId: 'gemini-flash-latest',
@@ -146,11 +156,12 @@ describe('LLM Settings Logic', () => {
         }
       ]
 
-      vi.mocked(prisma.llmTierSettings.findMany).mockResolvedValue(mockTierSettings as any)
+      vi.mocked(prisma.llmAnalysisLevelSettings.findMany).mockResolvedValue(
+        mockLevelSettings as any
+      )
       vi.mocked(prisma.llmOperationOverride.findMany).mockResolvedValue(mockOverrides as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        subscriptionTier: 'PRO',
-        subscriptionStatus: 'ACTIVE'
+        aiModelPreference: 'pro'
       } as any)
 
       await refreshLlmSettingsCache()
@@ -161,50 +172,26 @@ describe('LLM Settings Logic', () => {
     })
 
     it('should handle "Inherit" (null) vs "Disabled" (0) correctly', async () => {
-      // PRO Tier default is High level (Gemini 3)
-      // Override sets model to Flash (Gemini 2.5) and budget to 0 (Disabled)
-      const mockOverrides = [
+      // flash level has a budget of 1000
+      const mockFlashOverrides = [
         {
-          tierSettingsId: 'tier1',
-          operation: 'disabled_op',
-          model: 'flash',
-          modelId: 'gemini-flash-latest',
-          thinkingBudget: 0, // Explicitly 0
-          thinkingLevel: null,
-          maxSteps: null
-        },
-        {
-          tierSettingsId: 'tier1',
-          operation: 'inherit_op',
-          model: 'flash',
-          modelId: 'gemini-flash-latest',
-          thinkingBudget: null, // Inherit (should fall back to tier default which is 0 for PRO but conceptually it inherits whatever is there)
-          // Wait, PRO tier default has thinkingBudget: 0.
-          // Let's use FREE tier which has budget 1000
-          thinkingLevel: null,
-          maxSteps: null
-        }
-      ]
-
-      // Let's test against FREE tier which has a budget
-      const mockFreeOverrides = [
-        {
-          tierSettingsId: 'tier2', // FREE
+          analysisLevelSettingsId: 'level2', // flash
           operation: 'disabled_op',
           thinkingBudget: 0 // Explicitly 0 (Disabled)
         },
         {
-          tierSettingsId: 'tier2', // FREE
+          analysisLevelSettingsId: 'level2', // flash
           operation: 'inherit_op',
           thinkingBudget: null // Inherit (should be 1000)
         }
       ]
 
-      vi.mocked(prisma.llmTierSettings.findMany).mockResolvedValue(mockTierSettings as any)
-      vi.mocked(prisma.llmOperationOverride.findMany).mockResolvedValue(mockFreeOverrides as any)
+      vi.mocked(prisma.llmAnalysisLevelSettings.findMany).mockResolvedValue(
+        mockLevelSettings as any
+      )
+      vi.mocked(prisma.llmOperationOverride.findMany).mockResolvedValue(mockFlashOverrides as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        subscriptionTier: 'FREE',
-        subscriptionStatus: 'ACTIVE'
+        aiModelPreference: 'flash'
       } as any)
 
       await refreshLlmSettingsCache()
@@ -213,39 +200,25 @@ describe('LLM Settings Logic', () => {
       const disabledSettings = await getLlmOperationSettings('user2', 'disabled_op')
       expect(disabledSettings.thinkingBudget).toBe(0)
 
-      // Case 2: Inherit (null) -> Falls back to Tier Default (1000)
+      // Case 2: Inherit (null) -> Falls back to Level Default (1000)
       const inheritSettings = await getLlmOperationSettings('user2', 'inherit_op')
       expect(inheritSettings.thinkingBudget).toBe(1000)
     })
 
-    it('should prioritize CONTRIBUTOR status over PRO tier', async () => {
-      // Mock CONTRIBUTOR tier settings
-      const contributorSettings = {
-        id: 'tier_contrib',
-        tier: 'CONTRIBUTOR',
-        model: 'pro',
-        modelId: 'gemini-3-pro-preview',
-        thinkingBudget: 0,
-        thinkingLevel: 'high',
-        maxSteps: 10
-      }
-
-      vi.mocked(prisma.llmTierSettings.findMany).mockResolvedValue([
-        ...mockTierSettings,
-        contributorSettings
-      ] as any)
+    it('should use user preference "experimental" correctly', async () => {
+      vi.mocked(prisma.llmAnalysisLevelSettings.findMany).mockResolvedValue(
+        mockLevelSettings as any
+      )
       vi.mocked(prisma.llmOperationOverride.findMany).mockResolvedValue([])
 
-      // User is PRO but also CONTRIBUTOR status
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        subscriptionTier: 'PRO',
-        subscriptionStatus: 'CONTRIBUTOR'
+        aiModelPreference: 'experimental'
       } as any)
 
       await refreshLlmSettingsCache()
-      const settings = await getLlmOperationSettings('user_contrib', 'chat')
+      const settings = await getLlmOperationSettings('user_exp', 'chat')
 
-      expect(settings.maxSteps).toBe(10) // Contributor level
+      expect(settings.maxSteps).toBe(20) // Experimental level
     })
   })
 })

@@ -2,23 +2,24 @@
 
 ## Overview
 
-This feature allows administrators to fine-tune LLM parameters (model selection, thinking budget, etc.) globally or per subscription tier (Free, Supporter, Pro). This ensures cost control for free users while providing high-intelligence reasoning for paid subscribers.
+This feature allows administrators to fine-tune LLM parameters (model selection, thinking budget, etc.) based on the user's selected **AI Analysis Level** (Quick, Thoughtful, Experimental). This ensures cost control for standard users while providing high-intelligence reasoning for power users who opt-in to more advanced levels.
 
 ## 1. Requirements
 
 ### A. Core Capabilities
 
-- **Tier & Status Routing**: Map subscription tiers (`FREE`, `SUPPORTER`, `PRO`) AND special user statuses (`CONTRIBUTOR`) to different Gemini models.
+- **Analysis Level Routing**: Map user preferences (`flash`, `pro`, `experimental`) to different Gemini models.
 - **Hierarchical Overrides**:
-  1.  **Tier Default**: Standard settings for all operations within a tier.
-  2.  **Operation Override**: Specific settings for a single operation (e.g., higher reasoning for `generate_training_block`) within a tier.
+  1.  **Level Default**: Standard settings for all operations within an analysis level.
+  2.  **Operation Override**: Specific settings for a single operation (e.g., higher reasoning for `generate_training_block`) within a level.
 - **Reasoning Control**: Set `thinkingBudget` (2.5 models) and `thinkingLevel` (3.0 models) per group/operation.
-- **Contributor Beta Access**: Allow developers/contributors to use the most advanced models with high reasoning budgets for testing.
+- **Experimental Access**: Allow users on high-tier plans to opt-in to experimental models for cutting-edge features.
 - **Real-time Updates**: Changes should take effect immediately without server restarts.
 
 ### B. Parameters to Control
 
 - `model`: 'flash' | 'pro'
+- `modelId`: Exact Gemini identifier (e.g., `gemini-3-pro-preview`)
 - `thinkingBudget`: 0 - 16,000 (for Gemini 2.5)
 - `thinkingLevel`: 'minimal' | 'low' | 'medium' | 'high' (for Gemini 3.0)
 - `maxSteps`: Limit multi-step tool calls
@@ -39,13 +40,12 @@ The following operations can be fine-tuned:
 
 ### A. Database Schema
 
-Update `LlmTierSettings` to include a reference to overrides, or use a new `LlmOperationOverride` model:
-
 ```prisma
-model LlmTierSettings {
+model LlmAnalysisLevelSettings {
   id               String   @id @default(uuid())
-  tier             String   @unique // 'FREE', 'SUPPORTER', 'PRO', 'CONTRIBUTOR'
+  level            String   @unique // 'flash', 'pro', 'experimental'
   model            String   @default("flash")
+  modelId          String   @default("gemini-flash-latest")
   thinkingBudget   Int      @default(2000)
   thinkingLevel    String   @default("low")
   maxSteps         Int      @default(3)
@@ -54,44 +54,41 @@ model LlmTierSettings {
 }
 
 model LlmOperationOverride {
-  id               String   @id @default(uuid())
-  tierSettingsId   String
-  operation        String   // e.g., 'generate_training_block'
-  model            String?  // Optional: override tier default
-  thinkingBudget   Int?     // Optional: override tier default
-  thinkingLevel    String?  // Optional: override tier default
-  maxSteps         Int?     // Optional: override tier default
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  tierSettings     LlmTierSettings @relation(fields: [tierSettingsId], references: [id], onDelete: Cascade)
+  id                       String   @id @default(uuid())
+  analysisLevelSettingsId  String
+  operation                String   // e.g., 'generate_training_block'
+  model                    String?  // Optional: override level default
+  modelId                  String?
+  thinkingBudget           Int?     // Optional: override level default
+  thinkingLevel            String?  // Optional: override level default
+  maxSteps                 Int?     // Optional: override level default
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  analysisLevelSettings     LlmAnalysisLevelSettings @relation(fields: [analysisLevelSettingsId], references: [id], onDelete: Cascade)
 
-  @@unique([tierSettingsId, operation])
+  @@unique([analysisLevelSettingsId, operation])
 }
 ```
 
 ### B. Configuration Engine
 
 - Update `getLlmOperationSettings(userId, operation)`:
-  1.  Resolve `targetTier` (Contributor vs. Subscription).
-  2.  Fetch `LlmTierSettings` for that tier with `overrides`.
+  1.  Resolve `level` (from user preference `aiModelPreference`).
+  2.  Fetch `LlmAnalysisLevelSettings` for that level with `overrides`.
   3.  Find specific override for the `operation`.
   4.  Merge: `Override ?? Default`.
-- Use memory cache with `tier:operation` keying.
+- Use memory cache with `level:operation` keying.
 
 ## 3. UI/UX Design (`/admin/llm/settings`)
 
-### A. Tier Management Dashboard
+### A. Analysis Level Dashboard
 
-- **Tabs/Grid**: Separate columns for Free, Supporter, and Pro tiers.
+- **Grid**: Separate cards for Quick, Thoughtful, and Experimental levels.
 - **Model Selector**: Dropdown to switch between Flash (low cost) and Pro (high intelligence).
 - **Reasoning Sliders**:
   - For Flash: Numeric input/slider for `thinkingBudget`.
   - For Pro/3.0: Level selector (Minimal -> High).
-- **Cost Preview**: Dynamic estimate of "Cost per 1k requests" based on the selected parameters and current rates.
-
-### B. Monitoring Integration
-
-- Quick links back to the `cw:cli llm stats` data to see current performance vs. new limits.
+- **Override Management**: Table view for operation-specific adjustments.
 
 ## 4. Implementation Steps
 

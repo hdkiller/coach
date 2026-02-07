@@ -10,7 +10,7 @@ export interface LlmOperationSettings {
 }
 
 // Memory cache to avoid DB hits on every LLM call
-// Keyed by "tier:operation" or "tier:default"
+// Keyed by "level:operation" or "level:default"
 let settingsCache: Record<string, LlmOperationSettings> = {}
 let lastCacheUpdate = 0
 const CACHE_TTL = 60 * 1000 // 1 minute
@@ -24,33 +24,27 @@ const DEFAULT_FLASH_SETTINGS: LlmOperationSettings = {
 }
 
 /**
- * Get LLM settings based on user tier and status, with optional operation override
+ * Get LLM settings based on user AI preference, with optional operation override
  */
 export async function getLlmOperationSettings(
   userId?: string,
   operation?: string
 ): Promise<LlmOperationSettings> {
-  // 1. Resolve Tier
-  let tier = 'FREE'
-  let isContributor = false
+  // 1. Resolve Analysis Level
+  let level = 'flash'
 
   if (userId) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
-        subscriptionTier: true,
-        subscriptionStatus: true
+        aiModelPreference: true
       }
     })
 
-    if (user) {
-      tier = user.subscriptionTier || 'FREE'
-      isContributor = user.subscriptionStatus === 'CONTRIBUTOR'
+    if (user?.aiModelPreference) {
+      level = user.aiModelPreference
     }
   }
-
-  // Use CONTRIBUTOR tier if user is a contributor, otherwise use subscription tier
-  const targetTier = isContributor ? 'CONTRIBUTOR' : tier
 
   // 2. Check Cache
   const now = Date.now()
@@ -58,15 +52,15 @@ export async function getLlmOperationSettings(
     await refreshLlmSettingsCache()
   }
 
-  // 3. Resolve Hierarchy: Operation Override > Tier Default > Global Default
+  // 3. Resolve Hierarchy: Operation Override > Level Default > Global Default
   if (operation) {
-    const overrideKey = `${targetTier}:${operation}`
+    const overrideKey = `${level}:${operation}`
     if (settingsCache[overrideKey]) {
       return settingsCache[overrideKey]
     }
   }
 
-  const defaultKey = `${targetTier}:default`
+  const defaultKey = `${level}:default`
   return settingsCache[defaultKey] || DEFAULT_FLASH_SETTINGS
 }
 
@@ -74,15 +68,15 @@ export async function getLlmOperationSettings(
  * Refresh the global settings cache from DB
  */
 export async function refreshLlmSettingsCache() {
-  const [allTierSettings, allOverrides] = await Promise.all([
-    prisma.llmTierSettings.findMany(),
+  const [allLevelSettings, allOverrides] = await Promise.all([
+    prisma.llmAnalysisLevelSettings.findMany(),
     prisma.llmOperationOverride.findMany()
   ])
 
   const newCache: Record<string, LlmOperationSettings> = {}
 
-  for (const s of allTierSettings) {
-    const tierDefault: LlmOperationSettings = {
+  for (const s of allLevelSettings) {
+    const levelDefault: LlmOperationSettings = {
       model: s.model as GeminiModel,
       modelId: s.modelId,
       thinkingBudget: s.thinkingBudget,
@@ -90,18 +84,18 @@ export async function refreshLlmSettingsCache() {
       maxSteps: s.maxSteps
     }
 
-    // Store tier default
-    newCache[`${s.tier}:default`] = tierDefault
+    // Store level default
+    newCache[`${s.level}:default`] = levelDefault
 
     // Store operation overrides
-    const tierOverrides = allOverrides.filter((o) => o.tierSettingsId === s.id)
-    for (const o of tierOverrides) {
-      newCache[`${s.tier}:${o.operation}`] = {
-        model: (o.model as GeminiModel) || tierDefault.model,
-        modelId: o.modelId || tierDefault.modelId,
-        thinkingBudget: o.thinkingBudget ?? tierDefault.thinkingBudget,
-        thinkingLevel: (o.thinkingLevel as any) || tierDefault.thinkingLevel,
-        maxSteps: o.maxSteps ?? tierDefault.maxSteps
+    const levelOverrides = allOverrides.filter((o) => o.analysisLevelSettingsId === s.id)
+    for (const o of levelOverrides) {
+      newCache[`${s.level}:${o.operation}`] = {
+        model: (o.model as GeminiModel) || levelDefault.model,
+        modelId: o.modelId || levelDefault.modelId,
+        thinkingBudget: o.thinkingBudget ?? levelDefault.thinkingBudget,
+        thinkingLevel: (o.thinkingLevel as any) || levelDefault.thinkingLevel,
+        maxSteps: o.maxSteps ?? levelDefault.maxSteps
       }
     }
   }
