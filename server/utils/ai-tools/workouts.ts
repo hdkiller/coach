@@ -122,7 +122,7 @@ export const workoutTools = (userId: string, timezone: string) => ({
 
       if (!workout) {
         // Fallback to planned workout
-        const planned = await prisma.plannedWorkout.findUnique({
+        const planned = await prisma.plannedWorkout.findFirst({
           where: { id: workout_id, userId },
           include: {
             trainingWeek: true

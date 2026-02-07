@@ -1,12 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { workoutTools } from '../../../../../server/utils/ai-tools/workouts'
 import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
+import { prisma } from '../../../../../server/utils/db'
 
 // Mock the repository
 vi.mock('../../../../../server/utils/repositories/workoutRepository', () => ({
   workoutRepository: {
     getForUser: vi.fn(),
     getById: vi.fn()
+  }
+}))
+
+// Mock prisma
+vi.mock('../../../../../server/utils/db', () => ({
+  prisma: {
+    plannedWorkout: {
+      findFirst: vi.fn()
+    }
   }
 }))
 
@@ -96,8 +106,36 @@ describe('workoutTools', () => {
       })
     })
 
+    it('should return planned workout when completed workout not found but planned exists', async () => {
+      vi.mocked(workoutRepository.getById).mockResolvedValue(null)
+      const mockPlanned = {
+        id: 'w1',
+        userId,
+        date: new Date('2023-01-01'),
+        title: 'Planned Ride',
+        trainingWeek: { id: 'week-1' }
+      }
+      vi.mocked(prisma.plannedWorkout.findFirst).mockResolvedValue(mockPlanned as any)
+
+      const result = await tools.get_workout_details.execute(
+        { workout_id: 'w1' },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(prisma.plannedWorkout.findFirst).toHaveBeenCalledWith({
+        where: { id: 'w1', userId },
+        include: { trainingWeek: true }
+      })
+      expect(result).toEqual({
+        ...mockPlanned,
+        isPlanned: true,
+        date: expect.any(String)
+      })
+    })
+
     it('should return error when workout not found', async () => {
       vi.mocked(workoutRepository.getById).mockResolvedValue(null)
+      vi.mocked(prisma.plannedWorkout.findFirst).mockResolvedValue(null)
 
       const result = await tools.get_workout_details.execute(
         { workout_id: 'w1' },
