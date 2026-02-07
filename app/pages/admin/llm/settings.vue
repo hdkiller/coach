@@ -22,32 +22,32 @@
 
     <!-- Body -->
     <div class="p-4 sm:p-6 flex-1 overflow-y-auto max-w-7xl mx-auto w-full">
-      <div v-if="pending && !settings.length" class="flex items-center justify-center py-12">
+      <div v-if="pending && !settings?.length" class="flex items-center justify-center py-12">
         <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-primary" />
       </div>
 
       <div v-else class="space-y-12 pb-24">
-        <div v-for="tier in sortedSettings" :key="tier.tier" class="space-y-4">
-          <!-- Tier Header -->
+        <div v-for="level in sortedSettings" :key="level.level" class="space-y-4">
+          <!-- Level Header -->
           <div class="flex items-center gap-3">
             <UBadge
-              :color="getTierColor(tier.tier)"
+              :color="getLevelColor(level.level)"
               size="lg"
               variant="subtle"
-              class="font-bold px-3 py-1"
+              class="font-bold px-3 py-1 uppercase"
             >
-              {{ tier.tier }} TIER
+              {{ level.level }} ANALYSIS
             </UBadge>
             <div class="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Tier Default Settings Card -->
+            <!-- Level Default Settings Card -->
             <UCard class="lg:col-span-1 border-2 border-primary-500/10 shadow-sm">
               <template #header>
                 <div class="flex items-center justify-between">
                   <span class="font-semibold text-sm uppercase tracking-wider text-gray-500"
-                    >Tier Defaults</span
+                    >Level Defaults</span
                   >
                   <UIcon name="i-lucide-settings-2" class="size-4 text-primary-500" />
                 </div>
@@ -56,61 +56,61 @@
               <div class="space-y-5">
                 <UFormField label="Model Family">
                   <USelect
-                    v-model="tier.model"
+                    v-model="level.model"
                     :items="modelOptions"
                     class="w-full"
-                    @change="onFamilyChange(tier)"
+                    @change="onFamilyChange(level)"
                   />
                 </UFormField>
 
                 <UFormField label="Exact Model">
                   <USelect
-                    v-model="tier.modelId"
-                    :items="getModelsForFamily(tier.model)"
+                    v-model="level.modelId"
+                    :items="getModelsForFamily(level.model)"
                     class="w-full"
-                    @change="saveTier(tier)"
+                    @change="saveLevel(level)"
                   />
                 </UFormField>
 
-                <UFormField v-if="tier.model === 'flash'" label="Thinking Budget">
+                <UFormField v-if="level.model === 'flash'" label="Thinking Budget">
                   <div class="space-y-2">
                     <div class="flex items-center justify-between text-xs text-gray-500">
-                      <span>{{ tier.thinkingBudget.toLocaleString() }} tokens</span>
+                      <span>{{ level.thinkingBudget.toLocaleString() }} tokens</span>
                       <span>16k max</span>
                     </div>
                     <UInput
-                      v-model.number="tier.thinkingBudget"
+                      v-model.number="level.thinkingBudget"
                       type="range"
                       :min="0"
                       :max="16000"
                       :step="500"
-                      @change="saveTier(tier)"
+                      @change="saveLevel(level)"
                     />
                   </div>
                 </UFormField>
 
-                <UFormField v-if="tier.model === 'pro'" label="Thinking Level">
+                <UFormField v-if="level.model === 'pro'" label="Thinking Level">
                   <USelect
-                    v-model="tier.thinkingLevel"
-                    :items="getLevelOptionsForModel(tier.modelId)"
+                    v-model="level.thinkingLevel"
+                    :items="getLevelOptionsForModel(level.modelId)"
                     class="w-full"
-                    @change="saveTier(tier)"
+                    @change="saveLevel(level)"
                   />
                 </UFormField>
 
                 <UFormField label="Max Tool Steps">
                   <div class="space-y-2">
                     <div class="flex items-center justify-between text-xs text-gray-500">
-                      <span>{{ tier.maxSteps }} steps</span>
+                      <span>{{ level.maxSteps }} steps</span>
                       <span>20 max</span>
                     </div>
                     <UInput
-                      v-model.number="tier.maxSteps"
+                      v-model.number="level.maxSteps"
                       type="range"
                       :min="1"
                       :max="20"
                       :step="1"
-                      @change="saveTier(tier)"
+                      @change="saveLevel(level)"
                     />
                   </div>
                 </UFormField>
@@ -132,19 +132,19 @@
                     size="xs"
                     color="neutral"
                     variant="ghost"
-                    @click="openOverrideModal(tier)"
+                    @click="openOverrideModal(level)"
                   />
                 </div>
               </template>
 
               <div>
                 <div
-                  v-if="!tier.overrides?.length"
+                  v-if="!level.overrides?.length"
                   class="flex flex-col items-center justify-center py-12 text-gray-400"
                 >
                   <UIcon name="i-lucide-layers" class="size-8 mb-2 opacity-20" />
-                  <p class="text-sm">No operation overrides for this tier.</p>
-                  <p class="text-xs">Using tier defaults for all operations.</p>
+                  <p class="text-sm">No operation overrides for this level.</p>
+                  <p class="text-xs">Using level defaults for all operations.</p>
                 </div>
 
                 <div v-else class="overflow-x-auto">
@@ -180,7 +180,7 @@
                     </thead>
                     <tbody>
                       <tr
-                        v-for="override in tier.overrides"
+                        v-for="override in level.overrides"
                         :key="override.id"
                         class="border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors group"
                       >
@@ -251,7 +251,7 @@
                               size="xs"
                               color="neutral"
                               variant="ghost"
-                              @click="openOverrideModal(tier, override)"
+                              @click="openOverrideModal(level, override)"
                             />
                             <UButton
                               icon="i-lucide-trash-2"
@@ -279,7 +279,7 @@
         color="neutral"
         variant="subtle"
         class="mt-8"
-        description="Configuration is resolved as: User Status (Contributor) > User Tier (Pro/Free) > Operation Override > Tier Default. Setting an override field to null will make it inherit from the tier default."
+        description="Configuration is resolved as: User AI Preference (Experimental/Thoughtful/Quick) > Operation Override > Level Default. Setting an override field to null will make it inherit from the level default."
       />
     </div>
 
@@ -287,7 +287,7 @@
     <UModal
       v-model:open="isModalOpen"
       :title="editingOverride ? 'Edit Override' : 'New Operation Override'"
-      description="Fine-tune LLM parameters for this specific operation and tier."
+      description="Fine-tune LLM parameters for this specific operation and analysis level."
     >
       <template #content>
         <div class="p-6 space-y-6">
@@ -295,8 +295,8 @@
             <h3 class="text-lg font-semibold sr-only">
               {{ editingOverride ? 'Edit Override' : 'New Operation Override' }}
             </h3>
-            <UBadge v-if="activeTier" :color="getTierColor(activeTier.tier)"
-              >{{ activeTier.tier }} Tier</UBadge
+            <UBadge v-if="activeLevel" :color="getLevelColor(activeLevel.level)" class="uppercase"
+              >{{ activeLevel.level }} Level</UBadge
             >
           </div>
 
@@ -336,7 +336,7 @@
                 <UFormField
                   v-if="
                     overrideState.model === 'flash' ||
-                    (overrideState.model === 'inherit' && activeTier?.model === 'flash')
+                    (overrideState.model === 'inherit' && activeLevel?.model === 'flash')
                   "
                   label="Thinking Budget"
                 >
@@ -344,7 +344,7 @@
                     <USelect
                       v-model="overrideState.thinkingMode"
                       :items="[
-                        { label: 'Inherit Tier Default', value: 'inherit' },
+                        { label: 'Inherit Level Default', value: 'inherit' },
                         { label: 'Disabled (0 tokens)', value: 'disabled' },
                         { label: 'Custom Budget...', value: 'custom' }
                       ]"
@@ -367,7 +367,7 @@
                 <UFormField
                   v-if="
                     overrideState.model === 'pro' ||
-                    (overrideState.model === 'inherit' && activeTier?.model === 'pro')
+                    (overrideState.model === 'inherit' && activeLevel?.model === 'pro')
                   "
                   label="Thinking Level"
                 >
@@ -377,7 +377,7 @@
                       { label: 'Inherit', value: 'inherit' },
                       ...getLevelOptionsForModel(
                         overrideState.model === 'inherit'
-                          ? activeTier.modelId
+                          ? activeLevel.modelId
                           : overrideState.modelId
                       )
                     ]"
@@ -419,8 +419,8 @@
 
   const sortedSettings = computed(() => {
     if (!settings.value) return []
-    const order = ['CONTRIBUTOR', 'PRO', 'SUPPORTER', 'FREE']
-    return [...settings.value].sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier))
+    const order = ['experimental', 'pro', 'flash']
+    return [...settings.value].sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level))
   })
 
   const modelOptions = [
@@ -440,13 +440,13 @@
     return MODEL_LIST.filter((m) => m.family === family)
   }
 
-  async function onFamilyChange(tier: any) {
-    const familyModels = getModelsForFamily(tier.model)
+  async function onFamilyChange(level: any) {
+    const familyModels = getModelsForFamily(level.model)
     if (familyModels.length > 0) {
-      tier.modelId = familyModels[0].value
+      level.modelId = familyModels[0].value
     }
     await nextTick()
-    saveTier(tier)
+    saveLevel(level)
   }
 
   async function onOverrideFamilyChange() {
@@ -503,22 +503,22 @@
     'nutrition_score_explanation_batch'
   ].sort()
 
-  async function saveTier(tier: any) {
+  async function saveLevel(level: any) {
     try {
       await $fetch('/api/admin/llm/settings', {
         method: 'POST',
         body: {
-          action: 'update_tier',
-          tierId: tier.id,
-          model: tier.model,
-          modelId: tier.modelId,
-          thinkingBudget: tier.thinkingBudget,
-          thinkingLevel: tier.thinkingLevel,
-          maxSteps: tier.maxSteps
+          action: 'update_level',
+          levelId: level.id,
+          model: level.model,
+          modelId: level.modelId,
+          thinkingBudget: level.thinkingBudget,
+          thinkingLevel: level.thinkingLevel,
+          maxSteps: level.maxSteps
         }
       })
       refresh()
-      toast.add({ title: `Updated ${tier.tier} defaults`, color: 'success' })
+      toast.add({ title: `Updated ${level.level} defaults`, color: 'success' })
     } catch (e) {
       console.error(e)
       toast.add({ title: 'Error saving settings', color: 'error' })
@@ -527,7 +527,7 @@
 
   // --- Override Management ---
   const isModalOpen = ref(false)
-  const activeTier = ref<any>(null)
+  const activeLevel = ref<any>(null)
   const editingOverride = ref<any>(null)
   const overrideState = reactive({
     operation: '',
@@ -539,8 +539,8 @@
     maxSteps: undefined as number | undefined
   })
 
-  function openOverrideModal(tier: any, override: any = null) {
-    activeTier.value = tier
+  function openOverrideModal(level: any, override: any = null) {
+    activeLevel.value = level
     editingOverride.value = override
 
     if (override) {
@@ -586,7 +586,7 @@
         method: 'POST',
         body: {
           action: 'upsert_override',
-          tierId: activeTier.value.id,
+          levelId: activeLevel.value.id,
           overrideId: editingOverride.value?.id,
           operation: overrideState.operation,
           model: overrideState.model === 'inherit' ? null : overrideState.model,
@@ -625,15 +625,13 @@
     }
   }
 
-  function getTierColor(tier: string) {
-    switch (tier) {
-      case 'CONTRIBUTOR':
+  function getLevelColor(level: string) {
+    switch (level) {
+      case 'experimental':
         return 'blue'
-      case 'PRO':
+      case 'pro':
         return 'primary'
-      case 'SUPPORTER':
-        return 'purple'
-      case 'FREE':
+      case 'flash':
         return 'neutral'
       default:
         return 'neutral'

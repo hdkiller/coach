@@ -281,32 +281,6 @@
     }
   })
 
-  const dailyCachedTokensChartData = computed(() => {
-    if (!stats.value?.dailyCachedTokensByModel) return { labels: [], datasets: [] }
-
-    const data = stats.value.dailyCachedTokensByModel
-    // Get unique dates sorted
-    const dates = [...new Set(data.map((d) => d.date))].sort()
-    // Get unique models
-    const models = [...new Set(data.map((d) => d.model))]
-
-    return {
-      labels: dates.map((d) =>
-        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-      ),
-      datasets: models.map((model) => {
-        return {
-          label: model,
-          backgroundColor: getModelColor(model),
-          data: dates.map((date) => {
-            const entry = data.find((d) => d.date === date && d.model === model)
-            return entry ? entry.count : 0
-          })
-        }
-      })
-    }
-  })
-
   const dailyTokensByModelChartData = computed(() => {
     if (!stats.value?.dailyTokensByModel) return { labels: [], datasets: [] }
 
@@ -392,37 +366,6 @@
           return entry ? entry.count : 0
         })
       }))
-    }
-  })
-
-  const dailyTokenBreakdownChartData = computed(() => {
-    if (!stats.value?.dailyTokenBreakdown) return { labels: [], datasets: [] }
-
-    const data = stats.value.dailyTokenBreakdown
-    const dates = data.map((d) => d.date).sort()
-
-    return {
-      labels: dates.map((d) =>
-        new Date(d!).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-      ),
-      datasets: [
-        {
-          label: 'Cached Tokens',
-          backgroundColor: '#10b981', // Emerald
-          data: dates.map((date) => {
-            const entry = data.find((d) => d.date === date)
-            return entry ? entry.cached : 0
-          })
-        },
-        {
-          label: 'Uncached Input',
-          backgroundColor: '#3b82f6', // Blue
-          data: dates.map((date) => {
-            const entry = data.find((d) => d.date === date)
-            return entry ? entry.uncached : 0
-          })
-        }
-      ]
     }
   })
 
@@ -551,55 +494,6 @@
     }
   })
 
-  const hourlyEfficiencyChartData = computed(() => {
-    if (!stats.value?.hourlyStats) return { labels: [], datasets: [] }
-
-    const data = stats.value.hourlyStats
-    const hours = [...new Set(data.map((h) => h.hour))].sort()
-
-    return {
-      labels: hourlyChartLabels.value,
-      datasets: [
-        {
-          label: 'Cached Tokens',
-          backgroundColor: '#10b981',
-          data: hours.map((hour) => {
-            const entries = data.filter((d) => d.hour === hour)
-            return entries.reduce((sum, e) => sum + e.cached, 0)
-          })
-        },
-        {
-          label: 'Uncached Input',
-          backgroundColor: '#3b82f6',
-          data: hours.map((hour) => {
-            const entries = data.filter((d) => d.hour === hour)
-            return entries.reduce((sum, e) => sum + e.uncached, 0)
-          })
-        }
-      ]
-    }
-  })
-
-  const hourlyCachedByModelChartData = computed(() => {
-    if (!stats.value?.hourlyStats) return { labels: [], datasets: [] }
-
-    const data = stats.value.hourlyStats
-    const hours = [...new Set(data.map((h) => h.hour))].sort()
-    const models = [...new Set(data.map((h) => h.model))]
-
-    return {
-      labels: hourlyChartLabels.value,
-      datasets: models.map((model) => ({
-        label: model,
-        backgroundColor: getModelColor(model),
-        data: hours.map((hour) => {
-          const entry = data.find((d) => d.hour === hour && d.model === model)
-          return entry ? entry.cached : 0
-        })
-      }))
-    }
-  })
-
   const modelChartData = computed(() => {
     if (!stats.value?.usageByModel) return { labels: [], datasets: [] }
     return {
@@ -709,12 +603,17 @@
                 </div>
               </div>
             </UCard>
-            <UCard class="bg-emerald-50/50 dark:bg-emerald-900/10">
+            <UCard
+              class="bg-emerald-50/50 dark:bg-emerald-900/10 hover:border-emerald-500 transition-colors cursor-pointer"
+              @click="navigateTo('/admin/stats/llm/caching')"
+            >
               <div class="text-center">
-                <div class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">
-                  Cached Tokens
+                <div
+                  class="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"
+                >
+                  Cached Tokens <UIcon name="i-lucide-external-link" class="w-3 h-3" />
                 </div>
-                <div class="text-2xl font-bold font-mono">
+                <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
                   {{ stats?.tokens?.cached?.toLocaleString() || '0' }}
                 </div>
                 <div class="text-xs text-gray-500 mt-1">
@@ -817,49 +716,9 @@
                 </div>
               </UCard>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <UCard>
-                <template #header>
-                  <h3 class="font-semibold">Hourly Caching Efficiency (Cached vs Uncached)</h3>
-                </template>
-                <div class="h-64 relative">
-                  <Bar :data="hourlyEfficiencyChartData" :options="stackedBarOptions" />
-                </div>
-              </UCard>
-
-              <UCard>
-                <template #header>
-                  <h3 class="font-semibold">Hourly Cached Tokens by Model</h3>
-                </template>
-                <div class="h-64 relative">
-                  <Bar :data="hourlyCachedByModelChartData" :options="stackedBarOptions" />
-                </div>
-              </UCard>
-            </div>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <UCard>
-              <template #header>
-                <h3 class="font-semibold">Input Caching Efficiency (Cached vs Uncached)</h3>
-              </template>
-              <div class="h-64 relative">
-                <Bar :data="dailyTokenBreakdownChartData" :options="stackedBarOptions" />
-              </div>
-            </UCard>
-
-            <UCard>
-              <template #header>
-                <h3 class="font-semibold">Daily Cached Tokens by Model</h3>
-              </template>
-              <div class="h-64 relative">
-                <Bar :data="dailyCachedTokensChartData" :options="stackedBarOptions" />
-              </div>
-            </UCard>
-          </div>
-
-          <div class="grid grid-cols-1 gap-6">
             <UCard>
               <template #header>
                 <h3 class="font-semibold">Total Daily Requests (All Operations)</h3>
