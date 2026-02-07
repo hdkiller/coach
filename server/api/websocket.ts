@@ -331,7 +331,7 @@ async function handleChatMessage(
           const estimatedCost = calculateLlmCost(
             modelName,
             promptTokens,
-            completionTokens,
+            completionTokens + reasoningTokens,
             cachedTokens
           )
 

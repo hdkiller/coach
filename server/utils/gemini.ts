@@ -113,7 +113,7 @@ async function logUsage(params: {
   const estimatedCost = calculateLlmCost(
     params.modelId,
     params.usage.promptTokens,
-    params.usage.completionTokens,
+    params.usage.completionTokens + (params.usage.reasoningTokens || 0),
     params.usage.cachedTokens || 0
   )
 
@@ -267,7 +267,12 @@ async function retryWithBackoff<T>(
         // Calculate estimated cost
         const estimatedCost =
           promptTokens && completionTokens
-            ? calculateLlmCost(trackingParams.model, promptTokens, completionTokens, cachedTokens)
+            ? calculateLlmCost(
+                trackingParams.model,
+                promptTokens,
+                completionTokens + (reasoningTokens || 0),
+                cachedTokens
+              )
             : undefined
 
         const usageId = await logLlmUsage({
@@ -396,11 +401,25 @@ export async function generateCoachAnalysis(
   const modelName = MODEL_NAMES[modelType]
   const startTime = Date.now()
 
+  // Configure thinking based on model version
+  const providerOptions: any = {}
+  if (modelName.includes('gemini-3')) {
+    providerOptions.google = {
+      thinkingConfig: { thinkingLevel: 'medium' }
+    }
+  } else {
+    // Gemini 2.5
+    providerOptions.google = {
+      thinkingConfig: { thinkingBudget: 4000 }
+    }
+  }
+
   try {
     const { text, usage } = await generateText({
       model: google(modelName),
       prompt: prompt,
-      maxRetries: 3
+      maxRetries: 3,
+      providerOptions
     })
 
     if (trackingContext) {
@@ -457,12 +476,26 @@ export async function generateStructuredAnalysis<T>(
   const modelName = MODEL_NAMES[modelType]
   const startTime = Date.now()
 
+  // Configure thinking based on model version
+  const providerOptions: any = {}
+  if (modelName.includes('gemini-3')) {
+    providerOptions.google = {
+      thinkingConfig: { thinkingLevel: 'medium' }
+    }
+  } else {
+    // Gemini 2.5
+    providerOptions.google = {
+      thinkingConfig: { thinkingBudget: 4000 }
+    }
+  }
+
   try {
     const { object, usage } = await generateObject({
       model: google(modelName),
       prompt: prompt,
       schema: jsonSchema(schema),
-      maxRetries: 3
+      maxRetries: 3,
+      providerOptions
     })
 
     if (trackingContext) {

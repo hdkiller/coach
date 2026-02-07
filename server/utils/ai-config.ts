@@ -7,33 +7,36 @@ export const MODEL_NAMES = {
 
 export const PRICING = {
   'gemini-3-flash-preview': {
-    threshold: 128_000,
+    // Mapped to Gemini 3.0 Flash
+    threshold: 1_000_000_000,
     base: { input: 0.5, output: 3.0, cacheInput: 0.05 },
     premium: { input: 0.5, output: 3.0, cacheInput: 0.05 },
     cacheStorage: 1.0 // $1.00 / 1M tokens / hour
   },
   'gemini-3-pro-preview': {
     threshold: 200_000,
-    base: { input: 2.0, output: 12.0, cacheInput: 0.2 },
-    premium: { input: 4.0, output: 18.0, cacheInput: 0.4 },
+    base: { input: 2, output: 12.0, cacheInput: 0.2 },
+    premium: { input: 4, output: 18.0, cacheInput: 0.4 },
     cacheStorage: 4.5 // $4.50 / 1M tokens / hour
   },
   'gemini-2.5-flash': {
-    threshold: 1_000_000,
-    base: { input: 0.15, output: 0.6, cacheInput: 0.03 },
-    premium: { input: 0.15, output: 0.6, cacheInput: 0.03 },
+    threshold: 1_000_000_000,
+    base: { input: 0.3, output: 2.5, cacheInput: 0.03 },
+    premium: { input: 0.3, output: 2.5, cacheInput: 0.03 },
     cacheStorage: 1.0
   },
   'gemini-pro-latest': {
+    // Mapped to Gemini 2.5 Pro
     threshold: 200_000,
-    base: { input: 1.25, output: 5.0, cacheInput: 0.3125 },
-    premium: { input: 2.5, output: 10.0, cacheInput: 0.625 },
+    base: { input: 1.25, output: 10.0, cacheInput: 0.125 },
+    premium: { input: 2.5, output: 15.0, cacheInput: 0.25 },
     cacheStorage: 4.5
   },
   'gemini-flash-latest': {
-    threshold: 1_000_000,
-    base: { input: 0.075, output: 0.3, cacheInput: 0.01875 },
-    premium: { input: 0.075, output: 0.3, cacheInput: 0.01875 },
+    // Mapped to Gemini 2.5 Flash
+    threshold: 1_000_000_000,
+    base: { input: 0.3, output: 2.5, cacheInput: 0.03 },
+    premium: { input: 0.3, output: 2.5, cacheInput: 0.03 },
     cacheStorage: 1.0
   }
 } as const

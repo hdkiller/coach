@@ -138,7 +138,7 @@ export class ChatService {
       const estimatedCost = calculateLlmCost(
         data.modelName,
         promptTokens,
-        completionTokens,
+        completionTokens + reasoningTokens,
         cachedTokens
       )
 

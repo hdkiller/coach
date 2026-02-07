@@ -208,7 +208,7 @@ llmCommand
           const newCost = calculateLlmCost(
             record.model,
             record.promptTokens || 0,
-            record.completionTokens || 0,
+            (record.completionTokens || 0) + (record.reasoningTokens || 0),
             record.cachedTokens || 0
           )
           const oldCost = record.estimatedCost || 0
@@ -347,7 +347,7 @@ llmCommand
           const uncachedCost = calculateLlmCost(
             record.model,
             record.promptTokens || 0,
-            record.completionTokens || 0,
+            (record.completionTokens || 0) + (record.reasoningTokens || 0),
             0
           )
           const savings = uncachedCost - (record.estimatedCost || 0)
@@ -378,6 +378,326 @@ llmCommand
     } catch (e) {
       console.error(chalk.red('Error fetching LLM usage:'), e)
       process.exit(1)
+    } finally {
+      await prisma.$disconnect()
+      await pool.end()
+    }
+  })
+
+llmCommand
+  .command('stats')
+  .description('Show LLM usage statistics')
+  .option('--days <number>', 'Number of days to look back', '7')
+  .option('--date <YYYY-MM-DD>', 'Specific date to query (e.g., 2026-02-05)')
+  .option('--timezone <string>', 'Timezone for daily breakdown (e.g., America/Los_Angeles)', 'UTC')
+  .option('--prod', 'Use production database')
+  .action(async (options) => {
+    const isProd = options.prod
+    const days = parseInt(options.days, 10)
+    const dateStr = options.date
+    const timezone = options.timezone
+
+    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+
+    if (isProd) {
+      console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
+    } else {
+      console.log(chalk.blue('Using DEVELOPMENT database.'))
+    }
+
+    if (!connectionString) {
+      console.error(chalk.red('Error: Database connection string is not defined.'))
+      process.exit(1)
+    }
+
+    const pool = new pg.Pool({ connectionString })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
+
+    try {
+      const where: any = {}
+
+      if (dateStr) {
+        // Calculate start and end of day in the target timezone
+        const startOfDay = new Date(`${dateStr}T00:00:00`)
+        const endOfDay = new Date(`${dateStr}T23:59:59.999`)
+
+        // To get the UTC range for a specific day in another timezone,
+        // we can use the offset.
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone,
+          timeZoneName: 'shortOffset'
+        })
+        const parts = formatter.formatToParts(startOfDay)
+        const offsetPart = parts.find((p) => p.type === 'timeZoneName')?.value || 'GMT'
+
+        // Simpler approach: create dates and use their UTC equivalents
+        // based on the offset of the target timezone at that specific time.
+        // But for CLI stats, we can just fetch more and filter in memory to be 100% accurate
+        const bufferStart = new Date(startOfDay)
+        bufferStart.setHours(bufferStart.getHours() - 14) // Buffer for earliest possible TZ
+        const bufferEnd = new Date(endOfDay)
+        bufferEnd.setHours(bufferEnd.getHours() + 14) // Buffer for latest possible TZ
+
+        where.createdAt = {
+          gte: bufferStart,
+          lte: bufferEnd
+        }
+
+        console.log(chalk.blue(`Fetching LLM usage statistics for ${dateStr} (${timezone})...`))
+      } else {
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - days)
+        where.createdAt = {
+          gte: startDate
+        }
+        console.log(chalk.blue(`Fetching LLM usage statistics for the past ${days} days...`))
+      }
+
+      let records = await prisma.llmUsage.findMany({
+        where,
+        orderBy: {
+          createdAt: 'asc'
+        }
+      })
+
+      // Filter by timezone if specific date requested
+      if (dateStr) {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+          timeZone: timezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        })
+
+        records = records.filter((r) => {
+          const parts = formatter.formatToParts(r.createdAt)
+          const year = parts.find((p) => p.type === 'year')?.value
+          const month = parts.find((p) => p.type === 'month')?.value
+          const day = parts.find((p) => p.type === 'day')?.value
+          return `${year}-${month}-${day}` === dateStr
+        })
+      }
+
+      if (records.length === 0) {
+        console.log(chalk.yellow(`No records found for the specified period.`))
+        return
+      }
+
+      const statsByModel: Record<
+        string,
+        {
+          count: number
+          promptTokens: number
+          completionTokens: number
+          reasoningTokens: number
+          cachedTokens: number
+          cost: number
+        }
+      > = {}
+
+      let totalReasoningTokens = 0
+      let totalCost = 0
+
+      for (const record of records) {
+        const model = record.model
+        if (!statsByModel[model]) {
+          statsByModel[model] = {
+            count: 0,
+            promptTokens: 0,
+            completionTokens: 0,
+            reasoningTokens: 0,
+            cachedTokens: 0,
+            cost: 0
+          }
+        }
+
+        statsByModel[model].count++
+        statsByModel[model].promptTokens += record.promptTokens || 0
+        statsByModel[model].completionTokens += record.completionTokens || 0
+        statsByModel[model].reasoningTokens += record.reasoningTokens || 0
+        statsByModel[model].cachedTokens += record.cachedTokens || 0
+        statsByModel[model].cost += record.estimatedCost || 0
+
+        totalReasoningTokens += record.reasoningTokens || 0
+        totalCost += record.estimatedCost || 0
+      }
+
+      const periodLabel = dateStr ? dateStr : `Past ${days} Days`
+      console.log(chalk.cyan(`\n--- LLM Usage Stats (${periodLabel}) ---`))
+      console.log(`Total Requests: ${records.length}`)
+      console.log(`Total Reasoning Tokens: ${chalk.bold(totalReasoningTokens)}`)
+      console.log(`Total Estimated Cost: $${totalCost.toFixed(4)}`)
+
+      if (!dateStr) {
+        console.log(chalk.cyan(`\nDaily Breakdown (${timezone}):`))
+        const dailyCounts: Record<string, number> = {}
+
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+          timeZone: timezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        })
+
+        for (const record of records) {
+          const parts = formatter.formatToParts(record.createdAt)
+          const year = parts.find((p) => p.type === 'year')?.value
+          const month = parts.find((p) => p.type === 'month')?.value
+          const day = parts.find((p) => p.type === 'day')?.value
+          const d = `${year}-${month}-${day}`
+          dailyCounts[d] = (dailyCounts[d] || 0) + 1
+        }
+        Object.entries(dailyCounts)
+          .sort()
+          .forEach(([day, count]) => {
+            console.log(`  ${day}: ${count} requests`)
+          })
+      }
+
+      console.log('-------------------------------------------\n')
+
+      for (const [model, stats] of Object.entries(statsByModel)) {
+        console.log(chalk.bold.green(`Model: ${model}`))
+        console.log(`  Requests: ${stats.count}`)
+        console.log(`  Prompt Tokens: ${stats.promptTokens.toLocaleString()}`)
+        console.log(`  Completion Tokens: ${stats.completionTokens.toLocaleString()}`)
+        console.log(`  Reasoning Tokens: ${chalk.yellow(stats.reasoningTokens.toLocaleString())}`)
+        console.log(`  Cached Tokens: ${stats.cachedTokens.toLocaleString()}`)
+        console.log(`  Estimated Cost: $${stats.cost.toFixed(4)}`)
+        console.log('')
+      }
+
+      // Operation breakdown for reasoning tokens and costs
+      const statsByOp: Record<
+        string,
+        { reasoning: number[]; costs: number[]; users: Set<string> }
+      > = {}
+      for (const record of records) {
+        const op = record.operation || 'unknown'
+        if (!statsByOp[op]) {
+          statsByOp[op] = { reasoning: [], costs: [], users: new Set() }
+        }
+        statsByOp[op].reasoning.push(record.reasoningTokens || 0)
+        statsByOp[op].costs.push(record.estimatedCost || 0)
+        if (record.userId) {
+          statsByOp[op].users.add(record.userId)
+        }
+      }
+
+      console.log(chalk.cyan(`\n--- Operation Breakdown (${periodLabel}) ---`))
+      console.log(
+        chalk.dim(
+          `${'Operation'.padEnd(30)} | ${'Cost'.padStart(8)} | ${'Avg/Usr'.padStart(8)} | ${'Usrs'.padStart(5)} | ${'Reason'.padStart(8)} | ${'Count'.padStart(6)}`
+        )
+      )
+      console.log(chalk.dim('-'.repeat(85)))
+
+      Object.entries(statsByOp)
+        .sort((a, b) => {
+          const sumA = a[1].costs.reduce((s, v) => s + v, 0)
+          const sumB = b[1].costs.reduce((s, v) => s + v, 0)
+          return sumB - sumA
+        })
+        .forEach(([op, stats]) => {
+          const count = stats.costs.length
+          const totalCost = stats.costs.reduce((s, v) => s + v, 0)
+          const userCount = stats.users.size || 1 // Avoid division by zero
+          const costPerUser = totalCost / userCount
+          const avgReasoning = Math.round(
+            stats.reasoning.reduce((s, v) => s + v, 0) / stats.reasoning.length
+          )
+
+          console.log(
+            `${op.padEnd(30)} | $${totalCost.toFixed(2).padStart(7)} | $${costPerUser.toFixed(2).padStart(7)} | ${userCount.toString().padStart(5)} | ${avgReasoning.toString().padStart(8)} | ${count.toString().padStart(6)}`
+          )
+        })
+
+      const recordsWithReasoning = records.filter((r) => (r.reasoningTokens || 0) > 0)
+      if (recordsWithReasoning.length > 0) {
+        console.log(chalk.cyan(`\n--- Recent Requests with Reasoning Tokens ---`))
+        for (const r of recordsWithReasoning.slice(-5)) {
+          console.log(
+            `  ${r.createdAt.toISOString()} | ${r.model} | Reasoning: ${chalk.yellow(r.reasoningTokens)} | Op: ${r.operation}`
+          )
+        }
+      }
+    } catch (e) {
+      console.error(chalk.red('Error fetching LLM stats:'), e)
+      process.exit(1)
+    } finally {
+      await prisma.$disconnect()
+      await pool.end()
+    }
+  })
+
+llmCommand
+  .command('top')
+  .description('Show the most expensive or token-heavy LLM requests')
+  .option('--limit <number>', 'Number of records to show', '10')
+  .option('--days <number>', 'Number of days to look back', '7')
+  .option('--sort <type>', 'Sort by cost, reasoning, or total', 'cost')
+  .option('--prod', 'Use production database')
+  .action(async (options) => {
+    const isProd = options.prod
+    const limit = parseInt(options.limit, 10)
+    const days = parseInt(options.days, 10)
+    const sortType = options.sort
+
+    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+
+    if (isProd) {
+      console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
+    }
+
+    if (!connectionString) {
+      console.error(chalk.red('Error: Database connection string is not defined.'))
+      process.exit(1)
+    }
+
+    const pool = new pg.Pool({ connectionString })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
+
+    try {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      console.log(chalk.blue(`Fetching top ${limit} requests sorted by ${sortType}...`))
+
+      const orderBy: any = {}
+      if (sortType === 'reasoning') orderBy.reasoningTokens = 'desc'
+      else if (sortType === 'total') orderBy.totalTokens = 'desc'
+      else orderBy.estimatedCost = 'desc'
+
+      const records = await prisma.llmUsage.findMany({
+        where: { createdAt: { gte: startDate } },
+        take: limit,
+        orderBy,
+        include: {
+          user: {
+            select: { email: true }
+          }
+        }
+      })
+
+      console.log(chalk.cyan(`\n--- Top LLM Requests (Past ${days} Days) ---`))
+      console.log(
+        chalk.dim(
+          `${'ID'.padEnd(38)} | ${'Op'.padEnd(20)} | ${'Model'.padEnd(20)} | ${'Cost'.padStart(8)} | ${'Reason'.padStart(8)}`
+        )
+      )
+      console.log(chalk.dim('-'.repeat(105)))
+
+      for (const r of records) {
+        const cost = `$${(r.estimatedCost || 0).toFixed(4)}`
+        const reason = r.reasoningTokens?.toLocaleString() || '0'
+        console.log(
+          `${r.id.padEnd(38)} | ${r.operation.padEnd(20)} | ${r.model.padEnd(20)} | ${cost.padStart(8)} | ${reason.padStart(8)}`
+        )
+      }
+    } catch (e) {
+      console.error(chalk.red('Error fetching top requests:'), e)
     } finally {
       await prisma.$disconnect()
       await pool.end()
