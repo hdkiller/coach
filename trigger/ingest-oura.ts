@@ -15,12 +15,17 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { normalizeTSS } from '../server/utils/normalize-tss'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
+import type { IngestionResult } from './types'
 
 export const ingestOuraTask = task({
   id: 'ingest-oura',
   queue: userIngestionQueue,
   maxDuration: 900, // 15 minutes
-  run: async (payload: { userId: string; startDate: string; endDate: string }) => {
+  run: async (payload: {
+    userId: string
+    startDate: string
+    endDate: string
+  }): Promise<IngestionResult> => {
     const { userId, startDate, endDate } = payload
 
     logger.log('[Oura Ingest] Starting ingestion', {
@@ -184,8 +189,12 @@ export const ingestOuraTask = task({
 
       return {
         success: true,
-        wellnessCount: wellnessUpsertCount,
-        workoutCount: workoutUpsertCount,
+        counts: {
+          wellness: wellnessUpsertCount,
+          workouts: workoutUpsertCount,
+          sleep: sleepUpsertCount,
+          activity: activityCount
+        },
         skipped: wellnessSkippedCount,
         userId,
         startDate,

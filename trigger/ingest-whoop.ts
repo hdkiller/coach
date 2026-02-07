@@ -14,12 +14,17 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { normalizeTSS } from '../server/utils/normalize-tss'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
+import type { IngestionResult } from './types'
 
 export const ingestWhoopTask = task({
   id: 'ingest-whoop',
   queue: userIngestionQueue,
   maxDuration: 900, // 15 minutes
-  run: async (payload: { userId: string; startDate: string; endDate: string }) => {
+  run: async (payload: {
+    userId: string
+    startDate: string
+    endDate: string
+  }): Promise<IngestionResult> => {
     const { userId, startDate, endDate } = payload
 
     logger.log('[Whoop Ingest] Starting ingestion', {
@@ -204,8 +209,10 @@ export const ingestWhoopTask = task({
 
       return {
         success: true,
-        wellnessCount: upsertedCount,
-        workoutCount: workoutUpsertCount,
+        counts: {
+          wellness: upsertedCount,
+          workouts: workoutUpsertCount
+        },
         skipped: skippedCount,
         userId,
         startDate,

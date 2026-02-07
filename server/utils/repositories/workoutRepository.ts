@@ -214,6 +214,7 @@ export const workoutRepository = {
   /**
    * Upsert a workout (create if new, update if exists)
    * Uses unique constraint on [userId, source, externalId]
+   * Returns the record and a boolean indicating if it was created (isNew)
    */
   async upsert(
     userId: string,
@@ -222,7 +223,9 @@ export const workoutRepository = {
     createData: Prisma.WorkoutUncheckedCreateInput,
     updateData: Prisma.WorkoutUncheckedUpdateInput
   ) {
-    return prisma.workout.upsert({
+    const existing = await this.getByExternalId(userId, source, externalId)
+
+    const record = await prisma.workout.upsert({
       where: {
         userId_source_externalId: {
           userId,
@@ -233,6 +236,11 @@ export const workoutRepository = {
       create: createData,
       update: updateData
     })
+
+    return {
+      record,
+      isNew: !existing
+    }
   },
 
   /**
