@@ -424,8 +424,8 @@
   })
 
   const modelOptions = [
-    { label: 'Gemini 2.5', value: 'flash' },
-    { label: 'Gemini 3.0', value: 'pro' }
+    { label: 'Gemini 2.5 (Thinking Budget)', value: 'flash' },
+    { label: 'Gemini 3.0 (Thinking Level)', value: 'pro' }
   ]
 
   const MODEL_LIST = [
