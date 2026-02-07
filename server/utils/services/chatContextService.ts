@@ -521,6 +521,18 @@ export async function buildAthleteContext(userId: string): Promise<{
         if (constraints.length > 0) {
           athleteContext += ` - ${constraints.join(', ')}`
         }
+
+        // Add detailed custom slots if present
+        if (avail.slots && Array.isArray(avail.slots) && avail.slots.length > 0) {
+          const slotDetails = (avail.slots as any[]).map((s) => {
+            const parts = [`${s.startTime} ${s.name} (${s.duration}m)`]
+            if (s.activityTypes?.length) parts.push(`types: ${s.activityTypes.join('/')}`)
+            if (s.gymAccess) parts.push('gym-ok')
+            if (s.bikeAccess) parts.push('bike-ok')
+            return parts.join(' | ')
+          })
+          athleteContext += `\n    - Detailed Slots:\n      ${slotDetails.join('\n      ')}`
+        }
       } else {
         athleteContext += `Not available`
       }

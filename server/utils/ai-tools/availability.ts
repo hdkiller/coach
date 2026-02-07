@@ -1,6 +1,6 @@
 import { tool } from 'ai'
 import { z } from 'zod'
-import { prisma } from '../../utils/db'
+import { availabilityRepository } from '../repositories/availabilityRepository'
 
 export const availabilityTools = (userId: string) => ({
   get_training_availability: tool({
@@ -8,10 +8,7 @@ export const availabilityTools = (userId: string) => ({
       "Get user's training availability schedule showing when they can train each day of the week.",
     inputSchema: z.object({}),
     execute: async () => {
-      const availability = await prisma.trainingAvailability.findMany({
-        where: { userId },
-        orderBy: { dayOfWeek: 'asc' }
-      })
+      const availability = await availabilityRepository.getFullSchedule(userId)
 
       if (availability.length === 0) {
         return {
@@ -42,6 +39,7 @@ export const availabilityTools = (userId: string) => ({
           outdoor_only: a.outdoorOnly,
           gym_access: a.gymAccess,
           bike_access: a.bikeAccess,
+          slots: a.slots,
           notes: a.notes
         }))
       }
@@ -50,7 +48,7 @@ export const availabilityTools = (userId: string) => ({
 
   update_training_availability: tool({
     description:
-      'Update when the user can train during the week. Use this when user wants to change their availability.',
+      "Update the user's training slots for a specific day. Use this when the user wants to change their schedule, add a gym session, or modify their available time.",
     inputSchema: z.object({
       day_of_week: z
         .number()
@@ -59,50 +57,55 @@ export const availabilityTools = (userId: string) => ({
         .describe(
           'Day to update (0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday)'
         ),
-      morning: z.boolean().optional().describe('Available in morning (5am-12pm)'),
-      afternoon: z.boolean().optional().describe('Available in afternoon (12pm-6pm)'),
-      evening: z.boolean().optional().describe('Available in evening (6pm-11pm)'),
-      bike_access: z.boolean().optional().describe('Has bike or trainer access'),
-      gym_access: z.boolean().optional().describe('Has gym access'),
-      indoor_only: z.boolean().optional().describe('Indoor only constraint'),
-      notes: z.string().optional().describe('Additional notes or constraints')
+      notes: z.string().optional().describe('Additional notes or constraints for the day'),
+      slots: z
+        .array(
+          z.object({
+            name: z.string().describe('Name of the slot, e.g., "Morning Run" or "Evening Gym"'),
+            startTime: z.string().describe('Start time in HH:mm format'),
+            duration: z.number().describe('Duration in minutes'),
+            activityTypes: z
+              .array(z.string())
+              .describe('Types of activities allowed, e.g., ["Run", "Gym"]'),
+            gymAccess: z.boolean().describe('Whether gym access is available in THIS slot'),
+            bikeAccess: z
+              .boolean()
+              .describe('Whether bike/trainer access is available in THIS slot'),
+            indoorOnly: z.boolean().describe('Whether this specific slot is indoor only')
+          })
+        )
+        .describe(
+          'The complete list of training slots for this day. Providing an empty array means a rest day.'
+        )
     }),
     execute: async (args) => {
-      const {
-        day_of_week,
-        morning,
-        afternoon,
-        evening,
-        indoor_only,
-        gym_access,
-        bike_access,
-        notes
-      } = args
+      const { day_of_week, notes, slots } = args
 
       try {
-        const updateData: any = {}
-        if (morning !== undefined) updateData.morning = morning
-        if (afternoon !== undefined) updateData.afternoon = afternoon
-        if (evening !== undefined) updateData.evening = evening
-        if (indoor_only !== undefined) updateData.indoorOnly = indoor_only
-        if (gym_access !== undefined) updateData.gymAccess = gym_access
-        if (bike_access !== undefined) updateData.bikeAccess = bike_access
-        if (notes !== undefined) updateData.notes = notes
+        const updateData: any = {
+          slots,
+          notes: notes !== undefined ? notes : undefined
+        }
 
-        const availability = await prisma.trainingAvailability.upsert({
-          where: {
-            userId_dayOfWeek: {
-              userId,
-              dayOfWeek: day_of_week
-            }
-          },
-          create: {
-            userId,
-            dayOfWeek: day_of_week,
-            ...updateData
-          },
-          update: updateData
-        })
+        // Sync legacy booleans for backward compatibility
+        if (slots) {
+          updateData.morning = slots.some((s) => {
+            const hour = parseInt((s.startTime || '0').split(':')[0])
+            return hour < 12
+          })
+          updateData.afternoon = slots.some((s) => {
+            const hour = parseInt((s.startTime || '0').split(':')[0])
+            return hour >= 12 && hour < 17
+          })
+          updateData.evening = slots.some((s) => {
+            const hour = parseInt((s.startTime || '0').split(':')[0])
+            return hour >= 17
+          })
+          updateData.gymAccess = slots.some((s) => s.gymAccess)
+          updateData.bikeAccess = slots.some((s) => s.bikeAccess)
+        }
+
+        const availability = await availabilityRepository.updateDay(userId, day_of_week, updateData)
 
         const dayNames = [
           'Sunday',
@@ -121,7 +124,8 @@ export const availabilityTools = (userId: string) => ({
             day: dayNames[availability.dayOfWeek],
             morning: availability.morning,
             afternoon: availability.afternoon,
-            evening: availability.evening
+            evening: availability.evening,
+            slots: availability.slots
           }
         }
       } catch (error: any) {
