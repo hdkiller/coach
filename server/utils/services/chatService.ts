@@ -142,6 +142,10 @@ export class ChatService {
         cachedTokens
       )
 
+      const durationMs = (data as any).durationMs || 0
+      const error = (data as any).error
+      const success = !error
+
       await prisma.llmUsage.create({
         data: {
           userId: data.userId,
@@ -157,9 +161,11 @@ export class ChatService {
           reasoningTokens,
           totalTokens,
           estimatedCost,
-          durationMs: 0,
+          durationMs,
           retryCount: 0,
-          success: true,
+          success,
+          errorType: error ? 'api_error' : undefined,
+          errorMessage: error ? String(error) : undefined,
           promptPreview: data.content.substring(0, 500),
           responsePreview: data.response.substring(0, 500)
         }

@@ -154,14 +154,33 @@ export default defineEventHandler(async (event) => {
     }))
 
     // Generate Response
-    const result = await generateText({
-      model: google(modelName),
-      system: systemInstruction,
-      messages: coreMessages as any,
-      tools: tools as any,
-      // @ts-expect-error - maxSteps is valid in AI SDK v6 but types are finicky with 'any' tools
-      maxSteps: 5 // Allow multi-step tool use
-    })
+    let result
+    try {
+      result = await generateText({
+        model: google(modelName),
+        system: systemInstruction,
+        messages: coreMessages as any,
+        tools: tools as any,
+        // @ts-expect-error - maxSteps is valid in AI SDK v6 but types are finicky with 'any' tools
+        maxSteps: 5 // Allow multi-step tool use
+      })
+    } catch (llmError: any) {
+      console.error('[Telegram] LLM Generation Failed:', llmError)
+
+      // Log failed usage
+      await chatService.logLlmUsage({
+        userId,
+        modelName,
+        modelType: 'flash',
+        content: text,
+        response: '',
+        usage: { inputTokens: 0, outputTokens: 0 },
+        messageId: 'failed-generation', // No message ID yet
+        error: llmError.message || String(llmError)
+      } as any) // Cast to any because we're extending the type implicitly here/need to update chatService
+
+      throw llmError // Re-throw to be caught by outer block
+    }
 
     const responseText = result.text
 
@@ -184,13 +203,19 @@ export default defineEventHandler(async (event) => {
       content: text,
       response: responseText,
       usage: result.usage,
-      messageId: aiMsg.id
-    })
+      messageId: aiMsg.id,
+      durationMs: 0 // Will fix in next step
+    } as any)
 
     // Send Response
     await sendTelegramMessage(chatId, responseText)
   } catch (error: any) {
     console.error('[Telegram] Chat Error:', error)
+
+    // Only send error message to user, logging is handled in inner try-catch or here if needed
+    // But we probably want to log it if it wasn't an LLM error (e.g. preparation error)
+    // For now, the plan focused on LLM errors.
+
     await sendTelegramMessage(chatId, 'I blew a gasket. 💥 Try again in a bit.')
   }
 

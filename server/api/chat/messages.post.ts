@@ -127,6 +127,7 @@ export default defineEventHandler(async (event) => {
 
   // 4. Stream Text
   try {
+    const startTime = Date.now()
     const allToolResults: any[] = []
 
     // Map approval IDs to tool call IDs to ensure consistency

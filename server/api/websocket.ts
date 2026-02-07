@@ -228,6 +228,7 @@ async function handleChatMessage(
     // 6. Stream Text with Tools
     const allToolResults: any[] = []
     let fullResponseText = ''
+    const startTime = Date.now()
 
     const result = await streamText({
       model: google(modelName),
@@ -266,6 +267,7 @@ async function handleChatMessage(
       },
       onFinish: async (event) => {
         const { text, usage } = event
+        const durationMs = Date.now() - startTime
 
         // 8. Save AI Response
         const aiMessage = await prisma.chatMessage.create({
@@ -348,6 +350,7 @@ async function handleChatMessage(
               reasoningTokens,
               totalTokens: promptTokens + completionTokens,
               estimatedCost,
+              durationMs,
               retryCount: 0,
               success: true,
               promptPreview: content.substring(0, 500),
