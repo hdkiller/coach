@@ -326,6 +326,28 @@
                   />
                 </div>
               </NuxtLink>
+              <NuxtLink
+                to="/admin/stats/llm/quotas"
+                class="flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-800/50 -mx-2 px-2 py-1 rounded transition-colors group"
+              >
+                <span class="text-sm">LLM Quotas</span>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="px-2 py-1 rounded text-xs font-semibold"
+                    :class="
+                      stats?.systemStatus?.nearLimitUsers > 0
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    "
+                  >
+                    {{ stats?.systemStatus?.nearLimitUsers }} near limit
+                  </span>
+                  <UIcon
+                    name="i-lucide-chevron-right"
+                    class="w-4 h-4 text-gray-400 group-hover:text-gray-600"
+                  />
+                </div>
+              </NuxtLink>
             </div>
           </UCard>
         </div>

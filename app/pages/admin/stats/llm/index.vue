@@ -566,6 +566,15 @@
         <template #leading>
           <UButton to="/admin/stats" icon="i-lucide-arrow-left" color="neutral" variant="ghost" />
         </template>
+        <template #trailing>
+          <UButton
+            to="/admin/stats/llm/quotas"
+            label="Quota Monitoring"
+            icon="i-lucide-gauge"
+            variant="ghost"
+            color="neutral"
+          />
+        </template>
       </UDashboardNavbar>
     </template>
 

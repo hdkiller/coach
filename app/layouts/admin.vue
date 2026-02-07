@@ -88,6 +88,7 @@
       children: [
         {
           label: 'Overview',
+          icon: 'i-lucide-layout-grid',
           to: '/admin/stats/llm',
           exact: true,
           onSelect: () => {
@@ -96,6 +97,7 @@
         },
         {
           label: 'Operations',
+          icon: 'i-lucide-cpu',
           to: '/admin/stats/llm/operations',
           onSelect: () => {
             isOpen.value = false
@@ -103,6 +105,7 @@
         },
         {
           label: 'User Economics',
+          icon: 'i-lucide-coins',
           to: '/admin/stats/llm/users',
           onSelect: () => {
             isOpen.value = false
@@ -110,7 +113,16 @@
         },
         {
           label: 'Caching',
+          icon: 'i-lucide-hard-drive',
           to: '/admin/stats/llm/caching',
+          onSelect: () => {
+            isOpen.value = false
+          }
+        },
+        {
+          label: 'Quotas',
+          icon: 'i-lucide-gauge',
+          to: '/admin/stats/llm/quotas',
           onSelect: () => {
             isOpen.value = false
           }
