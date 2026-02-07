@@ -10,12 +10,17 @@ import {
   fetchYazioProductDetails,
   normalizeYazioData
 } from '../server/utils/yazio'
+import type { IngestionResult } from './types'
 
 export const ingestYazioTask = task({
   id: 'ingest-yazio',
   queue: userIngestionQueue,
   maxDuration: 900, // 15 minutes
-  run: async (payload: { userId: string; startDate: string; endDate: string }) => {
+  run: async (payload: {
+    userId: string
+    startDate: string
+    endDate: string
+  }): Promise<IngestionResult> => {
     const { userId, startDate, endDate } = payload
 
     logger.log('='.repeat(60))
@@ -315,7 +320,9 @@ export const ingestYazioTask = task({
 
       return {
         success: true,
-        count: upsertedCount,
+        counts: {
+          nutrition: upsertedCount
+        },
         userId,
         startDate,
         endDate

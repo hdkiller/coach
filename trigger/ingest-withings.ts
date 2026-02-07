@@ -22,12 +22,17 @@ import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress
 import { roundToTwoDecimals } from '../server/utils/number'
 import { triggerReadinessCheckIfNeeded } from '../server/utils/services/wellness-analysis'
 import { athleteMetricsService } from '../server/utils/athleteMetricsService'
+import type { IngestionResult } from './types'
 
 export const ingestWithingsTask = task({
   id: 'ingest-withings',
   queue: userIngestionQueue,
   maxDuration: 900, // 15 minutes
-  run: async (payload: { userId: string; startDate: string; endDate: string }) => {
+  run: async (payload: {
+    userId: string
+    startDate: string
+    endDate: string
+  }): Promise<IngestionResult> => {
     const { userId, startDate, endDate } = payload
 
     logger.log('[Withings Ingest] Starting ingestion', {
@@ -365,9 +370,11 @@ export const ingestWithingsTask = task({
 
       return {
         success: true,
-        wellnessCount: upsertedCount,
-        sleepCount: sleepUpsertCount,
-        workoutCount: workoutUpsertCount,
+        counts: {
+          wellness: upsertedCount,
+          sleep: sleepUpsertCount,
+          workouts: workoutUpsertCount
+        },
         skipped: skippedCount,
         userId,
         startDate,

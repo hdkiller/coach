@@ -10,6 +10,7 @@ import {
   fetchFitbitWaterLog,
   normalizeFitbitNutrition
 } from '../server/utils/fitbit'
+import type { IngestionResult } from './types'
 
 export const ingestFitbitTask = task({
   id: 'ingest-fitbit',
@@ -18,7 +19,11 @@ export const ingestFitbitTask = task({
   retry: {
     maxAttempts: 1
   },
-  run: async (payload: { userId: string; startDate: string; endDate: string }) => {
+  run: async (payload: {
+    userId: string
+    startDate: string
+    endDate: string
+  }): Promise<IngestionResult> => {
     const { userId, startDate, endDate } = payload
 
     logger.log('='.repeat(60))
@@ -189,7 +194,9 @@ export const ingestFitbitTask = task({
 
       return {
         success: true,
-        count: upsertedCount,
+        counts: {
+          nutrition: upsertedCount
+        },
         userId,
         startDate,
         endDate
@@ -228,7 +235,8 @@ export const ingestFitbitTask = task({
       if (isRateLimited) {
         return {
           success: false,
-          rateLimited: true,
+          counts: {},
+          message: errorMessage,
           userId,
           startDate,
           endDate

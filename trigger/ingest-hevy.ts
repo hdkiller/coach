@@ -8,12 +8,13 @@ import {
   normalizeHevyWorkout
 } from '../server/utils/hevy'
 import { roundToTwoDecimals } from '../server/utils/number'
+import type { IngestionResult } from './types'
 
 export const ingestHevyTask = task({
   id: 'ingest-hevy',
   queue: userIngestionQueue,
   maxDuration: 900, // 15 minutes
-  run: async (payload: { userId: string; fullSync?: boolean }) => {
+  run: async (payload: { userId: string; fullSync?: boolean }): Promise<IngestionResult> => {
     const { userId, fullSync } = payload
 
     // 1. Get Integration
@@ -202,8 +203,10 @@ export const ingestHevyTask = task({
 
       return {
         success: true,
-        count: totalSynced,
-        new: newWorkouts
+        counts: {
+          workouts: newWorkouts
+        },
+        userId
       }
     } catch (error: any) {
       console.error('Hevy Sync Error:', error)
