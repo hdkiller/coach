@@ -21,6 +21,7 @@ import {
 } from '../server/utils/date'
 import { getCheckinHistoryContext } from '../server/utils/services/checkin-service'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
+import { checkQuota } from '../server/utils/quotas/engine'
 import { recommendTodayActivityTask } from './recommend-today-activity'
 
 // Athlete Profile schema for structured JSON output
@@ -367,6 +368,21 @@ export const generateAthleteProfileTask = task({
     const { userId, reportId } = payload
 
     logger.log('Starting athlete profile generation', { userId, reportId })
+
+    // Check Quota
+    try {
+      await checkQuota(userId, 'athlete_profile_generation')
+    } catch (quotaError: any) {
+      if (quotaError.statusCode === 429) {
+        logger.warn('Athlete profile generation quota exceeded', { userId, reportId })
+        await prisma.report.update({
+          where: { id: reportId },
+          data: { status: 'FAILED' } // We could add a statusReason field later
+        })
+        return { success: false, reason: 'QUOTA_EXCEEDED' }
+      }
+      throw quotaError
+    }
 
     // Update report status
     await prisma.report.update({

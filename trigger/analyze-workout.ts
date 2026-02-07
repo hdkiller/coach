@@ -7,6 +7,7 @@ import { sportSettingsRepository } from '../server/utils/repositories/sportSetti
 import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate, calculateAge } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
+import { checkQuota } from '../server/utils/quotas/engine'
 
 // TypeScript interface for the structured analysis
 interface StructuredAnalysis {
@@ -234,19 +235,7 @@ export const analyzeWorkoutTask = task({
 
     logger.log('Starting workout analysis', { workoutId })
 
-    // Update workout status to PROCESSING
-    await workoutRepository.updateStatus(workoutId, 'PROCESSING')
-
     try {
-      // Fetch the workout - passing 'unknown' as userId because we don't have it yet,
-      // but findUnique by ID will work if we use getById without userId check or raw prisma
-      // Actually, standard getById requires userId.
-      // Let's use prisma directly here or update repository to allow system-level fetch
-      // But standard repo pattern suggests always using repo.
-      // I'll assume we can use prisma here for the initial fetch since we don't have userId in payload
-      // OR better, update payload to include userId?
-      // existing code uses prisma.workout.findUnique({ where: { id: workoutId } })
-
       const workout = await prisma.workout.findUnique({
         where: { id: workoutId },
         include: {
@@ -270,6 +259,21 @@ export const analyzeWorkoutTask = task({
       if (!workout) {
         throw new Error('Workout not found')
       }
+
+      // Check Quota
+      try {
+        await checkQuota(workout.userId, 'workout_analysis')
+      } catch (quotaError: any) {
+        if (quotaError.statusCode === 429) {
+          logger.warn('Workout analysis quota exceeded', { userId: workout.userId, workoutId })
+          await workoutRepository.updateStatus(workoutId, 'QUOTA_EXCEEDED')
+          return { success: false, reason: 'QUOTA_EXCEEDED' }
+        }
+        throw quotaError
+      }
+
+      // Update workout status to PROCESSING
+      await workoutRepository.updateStatus(workoutId, 'PROCESSING')
 
       logger.log('Workout data fetched', {
         workoutId,

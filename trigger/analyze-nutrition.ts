@@ -6,6 +6,7 @@ import { nutritionRepository } from '../server/utils/repositories/nutritionRepos
 import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate, formatDateUTC } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
+import { checkQuota } from '../server/utils/quotas/engine'
 
 interface NutritionAnalysis {
   type: string
@@ -258,9 +259,6 @@ export const analyzeNutritionTask = task({
 
     logger.log('Starting nutrition analysis', { nutritionId })
 
-    // Update nutrition status to PROCESSING
-    await nutritionRepository.updateStatus(nutritionId, 'PROCESSING')
-
     try {
       // Fetch the nutrition record
       const nutrition = await prisma.nutrition.findUnique({
@@ -270,6 +268,24 @@ export const analyzeNutritionTask = task({
       if (!nutrition) {
         throw new Error('Nutrition record not found')
       }
+
+      // Check Quota
+      try {
+        await checkQuota(nutrition.userId, 'nutrition_analysis')
+      } catch (quotaError: any) {
+        if (quotaError.statusCode === 429) {
+          logger.warn('Nutrition analysis quota exceeded', {
+            userId: nutrition.userId,
+            nutritionId
+          })
+          await nutritionRepository.updateStatus(nutritionId, 'QUOTA_EXCEEDED')
+          return { success: false, reason: 'QUOTA_EXCEEDED' }
+        }
+        throw quotaError
+      }
+
+      // Update nutrition status to PROCESSING
+      await nutritionRepository.updateStatus(nutritionId, 'PROCESSING')
 
       logger.log('Nutrition data fetched', {
         nutritionId,
