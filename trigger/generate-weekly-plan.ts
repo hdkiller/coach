@@ -6,6 +6,7 @@ import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
+import { availabilityRepository } from '../server/utils/repositories/availabilityRepository'
 import { generateTrainingContext } from '../server/utils/training-metrics'
 import { userBackgroundQueue } from './queues'
 import {
@@ -210,10 +211,7 @@ export const generateWeeklyPlanTask = task({
         where: { id: userId },
         select: { ftp: true, weight: true, maxHr: true, lthr: true, dob: true, sex: true }
       }),
-      prisma.trainingAvailability.findMany({
-        where: { userId },
-        orderBy: { dayOfWeek: 'asc' }
-      }),
+      availabilityRepository.getFullSchedule(userId),
       workoutRepository.getForUser(userId, {
         startDate: getStartOfDaysAgoUTC(timezone, 14), // Last 14 days relative to today
         endDate: alignedWeekStart, // Up to the start of the plan
@@ -333,46 +331,7 @@ export const generateWeeklyPlanTask = task({
     })
 
     // Build availability summary
-    const availabilitySummary = availability
-      .map((a) => {
-        const dayNames = [
-          'Sunday',
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday'
-        ]
-        const slots = []
-        if (a.morning) slots.push('morning')
-        if (a.afternoon) slots.push('afternoon')
-        if (a.evening) slots.push('evening')
-
-        const constraints = []
-        if (a.bikeAccess) constraints.push('bike/trainer available')
-        if (a.gymAccess) constraints.push('gym available')
-        if (a.indoorOnly) constraints.push('indoor only')
-        if (a.outdoorOnly) constraints.push('outdoor only')
-
-        // Build the line
-        let line = `${dayNames[a.dayOfWeek]}: ${slots.length > 0 ? slots.join(', ') : 'rest day'}`
-        if (constraints.length > 0) {
-          line += ` (${constraints.join(', ')})`
-        }
-
-        // Add explicit warnings for equipment limitations
-        if (slots.length > 0 && !a.bikeAccess && !a.gymAccess) {
-          line += ' [NO EQUIPMENT - only bodyweight activities]'
-        } else if (slots.length > 0 && !a.bikeAccess && a.gymAccess) {
-          line += ' [NO BIKE - gym strength training only]'
-        } else if (slots.length > 0 && a.bikeAccess && !a.gymAccess) {
-          line += ' [cycling only, no gym]'
-        }
-
-        return line
-      })
-      .join('\n')
+    const availabilitySummary = availabilityRepository.formatForPrompt(availability)
 
     // Calculate recent training load
     const recentTSS = recentWorkouts.reduce((sum, w) => sum + (w.tss || 0), 0)

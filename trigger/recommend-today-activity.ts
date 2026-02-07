@@ -7,6 +7,7 @@ import { wellnessRepository } from '../server/utils/repositories/wellnessReposit
 import { activityRecommendationRepository } from '../server/utils/repositories/activityRecommendationRepository'
 import { recommendationRepository } from '../server/utils/repositories/recommendationRepository'
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
+import { availabilityRepository } from '../server/utils/repositories/availabilityRepository'
 import { formatUserDate, getUserLocalDate, formatDateUTC, calculateAge } from '../server/utils/date'
 import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { analyzeWellness } from '../server/utils/services/wellness-analysis'
@@ -170,7 +171,8 @@ export const recommendTodayActivityTask = task({
       upcomingEvents,
       currentFitness,
       focusedRecommendations,
-      sportSettings
+      sportSettings,
+      todayAvailability
     ] = await Promise.all([
       // Today's planned workouts (Fetch ALL to handle multi-session days)
       prisma.plannedWorkout.findMany({
@@ -280,11 +282,19 @@ export const recommendTodayActivityTask = task({
       recommendationRepository.list(userId, { isPinned: true, status: 'ACTIVE' }),
 
       // Sport Settings (New centralized system)
-      sportSettingsRepository.getByUserId(userId)
+      sportSettingsRepository.getByUserId(userId),
+
+      // Today's Training Availability
+      availabilityRepository.getForDay(userId, today.getDay())
     ])
 
     // Identify primary workout for linking (DB only allows 1:1) and logic fallback
     const primaryPlannedWorkout = plannedWorkouts[0] || null
+
+    // Build today's availability summary
+    const availabilityContext = todayAvailability
+      ? `\nTODAY'S TRAINING AVAILABILITY:\n${availabilityRepository.formatForPrompt(todayAvailability)}\n`
+      : ''
 
     // --- CHECK FOR AND RUN WELLNESS ANALYSIS IF MISSING ---
     // If we have a wellness record (todayMetric) but no AI analysis, run it now.
@@ -579,6 +589,7 @@ ${currentStatusContext}
 
 ${athleteContext}
 ${planContext}
+${availabilityContext}
 ${focusedRecsContext}
 
 TODAY'S PLANNED WORKOUT(S):
