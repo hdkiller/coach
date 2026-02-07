@@ -194,15 +194,18 @@ export const wellnessRepository = {
       ;(finalUpdateData as any).lastSource = source
     }
 
-    return prisma.wellness.upsert({
-      where: {
-        userId_date: {
-          userId,
-          date
-        }
-      },
-      create: createData,
-      update: finalUpdateData
-    })
+    return {
+      record: await prisma.wellness.upsert({
+        where: {
+          userId_date: {
+            userId,
+            date
+          }
+        },
+        create: createData,
+        update: finalUpdateData
+      }),
+      isNew: !existing
+    }
   }
 }

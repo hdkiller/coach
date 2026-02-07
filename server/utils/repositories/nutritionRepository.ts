@@ -167,6 +167,7 @@ export const nutritionRepository = {
 
   /**
    * Upsert a nutrition entry
+   * Returns the record and a boolean indicating if it was created (isNew)
    */
   async upsert(
     userId: string,
@@ -174,7 +175,9 @@ export const nutritionRepository = {
     createData: Prisma.NutritionUncheckedCreateInput,
     updateData: Prisma.NutritionUncheckedUpdateInput
   ) {
-    return prisma.nutrition.upsert({
+    const existing = await this.getByDate(userId, date)
+
+    const record = await prisma.nutrition.upsert({
       where: {
         userId_date: {
           userId,
@@ -184,5 +187,10 @@ export const nutritionRepository = {
       create: createData,
       update: updateData
     })
+
+    return {
+      record,
+      isNew: !existing
+    }
   }
 }
