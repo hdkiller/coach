@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
+import { availabilityRepository } from '../../utils/repositories/availabilityRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -24,7 +24,10 @@ defineRouteMeta({
                     afternoon: { type: 'boolean' },
                     evening: { type: 'boolean' },
                     indoorOnly: { type: 'boolean' },
-                    outdoorOnly: { type: 'boolean' }
+                    outdoorOnly: { type: 'boolean' },
+                    bikeAccess: { type: 'boolean' },
+                    gymAccess: { type: 'boolean' },
+                    slots: { type: 'array', items: { type: 'object' } }
                   }
                 }
               }
@@ -75,25 +78,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Delete existing availability and create new ones
-  await prisma.trainingAvailability.deleteMany({
-    where: { userId }
-  })
-
-  const created = await prisma.trainingAvailability.createMany({
-    data: body.availability.map((item: any) => ({
-      userId,
-      dayOfWeek: item.dayOfWeek,
-      morning: item.morning || false,
-      afternoon: item.afternoon || false,
-      evening: item.evening || false,
-      preferredTypes: item.preferredTypes || null,
-      indoorOnly: item.indoorOnly || false,
-      outdoorOnly: item.outdoorOnly || false,
-      gymAccess: item.gymAccess || false,
-      notes: item.notes || null
-    }))
-  })
+  const created = await availabilityRepository.updateSchedule(userId, body.availability)
 
   return {
     success: true,

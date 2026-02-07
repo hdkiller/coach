@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
+import { availabilityRepository } from '../../utils/repositories/availabilityRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -45,10 +45,5 @@ export default defineEventHandler(async (event) => {
 
   const userId = (session.user as any).id
 
-  const availability = await prisma.trainingAvailability.findMany({
-    where: { userId },
-    orderBy: { dayOfWeek: 'asc' }
-  })
-
-  return availability
+  return availabilityRepository.getFullSchedule(userId)
 })
