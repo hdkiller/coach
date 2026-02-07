@@ -109,7 +109,7 @@ async function logUsage(params: {
   success: boolean
   error?: any
 }) {
-  const durationMs = 0 // SDK doesn't always expose this directly in a simple way here
+  const durationMs = (params as any).durationMs || 0 // Use passed duration or 0
   const estimatedCost = calculateLlmCost(
     params.modelId,
     params.usage.promptTokens,
@@ -394,6 +394,7 @@ export async function generateCoachAnalysis(
   trackingContext?: LlmTrackingContext
 ): Promise<string> {
   const modelName = MODEL_NAMES[modelType]
+  const startTime = Date.now()
 
   try {
     const { text, usage } = await generateText({
@@ -418,8 +419,9 @@ export async function generateCoachAnalysis(
           cachedTokens: usage.inputTokenDetails?.cacheReadTokens || 0,
           reasoningTokens: (usage as any).outputTokenDetails?.reasoningTokens || 0
         },
-        success: true
-      })
+        success: true,
+        durationMs: Date.now() - startTime
+      } as any)
     }
 
     return text
@@ -438,8 +440,9 @@ export async function generateCoachAnalysis(
           completionTokens: 0
         },
         success: false,
-        error
-      })
+        error,
+        durationMs: Date.now() - startTime
+      } as any)
     }
     throw error
   }
@@ -452,6 +455,7 @@ export async function generateStructuredAnalysis<T>(
   trackingContext?: LlmTrackingContext
 ): Promise<T> {
   const modelName = MODEL_NAMES[modelType]
+  const startTime = Date.now()
 
   try {
     const { object, usage } = await generateObject({
@@ -477,8 +481,9 @@ export async function generateStructuredAnalysis<T>(
           cachedTokens: usage.inputTokenDetails?.cacheReadTokens || 0,
           reasoningTokens: (usage as any).outputTokenDetails?.reasoningTokens || 0
         },
-        success: true
-      })
+        success: true,
+        durationMs: Date.now() - startTime
+      } as any)
     }
 
     return object as T
@@ -497,8 +502,9 @@ export async function generateStructuredAnalysis<T>(
           completionTokens: 0
         },
         success: false,
-        error
-      })
+        error,
+        durationMs: Date.now() - startTime
+      } as any)
     }
     throw error
   }
