@@ -363,10 +363,10 @@ export const generateAthleteProfileTask = task({
   id: 'generate-athlete-profile',
   maxDuration: 600, // 10 minutes for AI processing
   queue: userReportsQueue,
-  run: async (payload: { userId: string; reportId: string; triggerRecommendation?: boolean }) => {
-    const { userId, reportId, triggerRecommendation } = payload
+  run: async (payload: { userId: string; reportId: string }) => {
+    const { userId, reportId } = payload
 
-    logger.log('Starting athlete profile generation', { userId, reportId, triggerRecommendation })
+    logger.log('Starting athlete profile generation', { userId, reportId })
 
     // Update report status
     await prisma.report.update({
@@ -847,44 +847,6 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
       })
 
       logger.log('Athlete profile and user scores saved to database')
-
-      // CHAIN: Trigger Today's Recommendation (Only if requested)
-      if (triggerRecommendation) {
-        logger.log("🔄 Chaining: Triggering Today's Activity Recommendation...")
-        try {
-          const timezone = await getUserTimezone(userId)
-          const today = getUserLocalDate(timezone)
-
-          // Create pending recommendation
-          const recommendation = await prisma.activityRecommendation.create({
-            data: {
-              userId,
-              date: today,
-              recommendation: 'proceed', // placeholder
-              confidence: 0,
-              reasoning: 'Analysis queued after profile update...',
-              status: 'PROCESSING'
-            }
-          })
-
-          await recommendTodayActivityTask.trigger(
-            {
-              userId,
-              date: today,
-              recommendationId: recommendation.id
-            },
-            {
-              concurrencyKey: userId,
-              tags: [`user:${userId}`]
-            }
-          )
-          logger.log('✅ Triggered recommend-today-activity')
-        } catch (err) {
-          logger.error('❌ Failed to chain recommend-today-activity', { err })
-        }
-      } else {
-        logger.log('⏹️ Chaining skipped: triggerRecommendation not set')
-      }
 
       return {
         success: true,

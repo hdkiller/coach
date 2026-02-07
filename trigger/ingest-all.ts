@@ -295,35 +295,55 @@ export const ingestAllTask = task({
     }
 
     // CHAIN: Trigger Athlete Profile Generation
+    let profileTriggered = false
     if (newWorkoutsIngested) {
-      console.log('[DEBUG] Triggering Athlete Profile Generation chain...')
-      logger.log('🔄 Chaining: Triggering Athlete Profile Generation...')
-      try {
-        // Create a placeholder report
-        const report = await prisma.report.create({
-          data: {
-            userId,
-            type: 'ATHLETE_PROFILE',
-            status: 'QUEUED',
-            dateRangeStart: new Date(startDate),
-            dateRangeEnd: new Date(endDate)
-          }
-        })
+      // 5-day freshness check for Athlete Profile to save tokens
+      const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+      const latestProfile = await prisma.report.findFirst({
+        where: {
+          userId,
+          type: 'ATHLETE_PROFILE',
+          status: 'COMPLETED'
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true }
+      })
 
-        await generateAthleteProfileTask.trigger(
-          {
-            userId,
-            reportId: report.id,
-            triggerRecommendation: true // Always true here since we only enter if newWorkoutsIngested is true
-          },
-          {
-            concurrencyKey: userId,
-            tags: [`user:${userId}`]
-          }
-        )
-        logger.log('✅ Triggered generate-athlete-profile')
-      } catch (err) {
-        logger.error('❌ Failed to chain generate-athlete-profile', { err })
+      const shouldRefreshProfile = !latestProfile || latestProfile.createdAt < fiveDaysAgo
+
+      if (shouldRefreshProfile) {
+        console.log('[DEBUG] Triggering Athlete Profile Generation chain...')
+        logger.log('🔄 Chaining: Triggering Athlete Profile Generation (Profile stale > 5d)...')
+        try {
+          // Create a placeholder report
+          const report = await prisma.report.create({
+            data: {
+              userId,
+              type: 'ATHLETE_PROFILE',
+              status: 'QUEUED',
+              dateRangeStart: new Date(startDate),
+              dateRangeEnd: new Date(endDate)
+            }
+          })
+
+          await generateAthleteProfileTask.trigger(
+            {
+              userId,
+              reportId: report.id
+            },
+            {
+              concurrencyKey: userId,
+              tags: [`user:${userId}`]
+            }
+          )
+          profileTriggered = true
+          logger.log('✅ Triggered generate-athlete-profile')
+        } catch (err) {
+          logger.error('❌ Failed to chain generate-athlete-profile', { err })
+        }
+      } else {
+        console.log('[DEBUG] Skipping Athlete Profile Generation: Profile is fresh (< 5 days).')
+        logger.log('ℹ️ Skipping Athlete Profile Generation: Profile is fresh (< 5 days).')
       }
     } else {
       console.log('[DEBUG] Skipping Athlete Profile Generation: No new workouts.')
@@ -368,40 +388,6 @@ export const ingestAllTask = task({
         }
       } catch (err) {
         logger.error('❌ [Auto-Analyze] Failed to trigger nutrition analysis', { err })
-      }
-    }
-
-    // CHAIN: Check Readiness (if wellness updated)
-    if (anyWellnessUpdated) {
-      try {
-        const aiSettings = await getUserAiSettings(userId)
-        if (aiSettings.aiAutoAnalyzeReadiness) {
-          logger.log('🤖 [Auto-Analyze] Wellness updated: Checking readiness...')
-          const timezone = await getUserTimezone(userId)
-          const todayLocal = getUserLocalDate(timezone)
-
-          await recommendTodayActivityTask.trigger(
-            {
-              userId,
-              date: todayLocal
-            },
-            {
-              concurrencyKey: userId,
-              tags: [`user:${userId}`]
-            }
-          )
-          logger.log('🤖 [Auto-Analyze] ✅ Triggered recommend-today-activity (Readiness Check)')
-
-          // Log the action
-          await auditLogRepository.log({
-            userId,
-            action: 'AUTO_ANALYZE_READINESS',
-            resourceType: 'ActivityRecommendation',
-            metadata: { date: todayLocal.toISOString() }
-          })
-        }
-      } catch (err) {
-        logger.error('❌ [Auto-Analyze] Failed to trigger readiness check', { err })
       }
     }
 

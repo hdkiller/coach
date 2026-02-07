@@ -4,7 +4,6 @@ import { wellnessRepository } from '../repositories/wellnessRepository'
 import { getUserAiSettings } from '../ai-settings'
 import { auditLogRepository } from '../repositories/auditLogRepository'
 import { getUserLocalDate, getUserTimezone } from '../date'
-import { recommendTodayActivityTask } from '../../../trigger/recommend-today-activity'
 import { triggerDailyCheckinIfNeeded } from './checkin-service'
 import {
   getMoodLabel,
@@ -70,58 +69,10 @@ const wellnessAnalysisSchema = {
 /**
  * Triggers a readiness check (recommend-today-activity) if enabled and not already done.
  * Useful for webhooks (Whoop, Oura, Intervals) to react to new wellness data.
+ * NOTE: Auto-triggering of recommendation is currently disabled to save tokens.
  */
 export async function triggerReadinessCheckIfNeeded(userId: string) {
-  try {
-    const aiSettings = await getUserAiSettings(userId)
-
-    if (!aiSettings.aiAutoAnalyzeReadiness) {
-      return { triggered: false, reason: 'Auto-analyze readiness disabled' }
-    }
-
-    const timezone = await getUserTimezone(userId)
-    const today = getUserLocalDate(timezone)
-
-    // Check if a recommendation already exists for today
-    const existing = await prisma.activityRecommendation.findFirst({
-      where: {
-        userId,
-        date: today
-      }
-    })
-
-    if (existing) {
-      return { triggered: false, reason: 'Recommendation already exists for today' }
-    }
-
-    console.log(
-      `🤖 [Auto-Analyze] [ReadinessCheck] Triggering recommendation for user ${userId} on ${today.toISOString()}`
-    )
-
-    await recommendTodayActivityTask.trigger(
-      {
-        userId,
-        date: today
-      },
-      {
-        concurrencyKey: userId,
-        tags: [`user:${userId}`]
-      }
-    )
-
-    // Log the action
-    await auditLogRepository.log({
-      userId,
-      action: 'AUTO_ANALYZE_READINESS',
-      resourceType: 'ActivityRecommendation',
-      metadata: { date: today.toISOString(), source: 'webhook' }
-    })
-
-    return { triggered: true }
-  } catch (error) {
-    console.error(`[ReadinessCheck] Failed to trigger check for user ${userId}:`, error)
-    return { triggered: false, error }
-  }
+  return { triggered: false, reason: 'Auto-triggering of recommendation is disabled' }
 }
 
 export async function analyzeWellness(wellnessId: string, userId: string) {
