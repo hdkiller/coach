@@ -27,6 +27,7 @@ import subscriptionCommand from './subscription'
 import fixCheckinsCommand from './fix-checkins'
 import pmcCommand from './pmc'
 import chatHistoryCommand from './chat-history'
+import quotasCommand from './quotas'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -58,5 +59,6 @@ debugCommand.addCommand(subscriptionCommand)
 debugCommand.addCommand(fixCheckinsCommand)
 debugCommand.addCommand(pmcCommand)
 debugCommand.addCommand(chatHistoryCommand)
+debugCommand.addCommand(quotasCommand)
 
 export default debugCommand
