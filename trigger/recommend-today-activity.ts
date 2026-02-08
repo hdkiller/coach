@@ -689,6 +689,11 @@ DECISION CRITERIA:
 - **Late in the day**: If it is late (e.g. > 20:00) and workout not done, suggest Rest or Short version.
 - **Completed Training**: If user already trained today, recommend REST or mark as complete.
 
+**NUTRITION & RECOVERY SENSOR (Hunger Sensor)**:
+- If Sleep Score < 60% OR HRV Balance is "Low", explicitly recommend: "Consider 30-40g of slow-digesting protein (like Casein or Cottage Cheese) before bed tonight to aid overnight repair."
+- If Training Load > 100 TSS yesterday, recommend "Ensure you hit your carb targets to refill glycogen stores."
+- Include this advice in your reasoning.
+
 Provide specific, actionable recommendations with clear reasoning.
 Maintain your **${aiSettings.aiPersona}** persona throughout.`
 

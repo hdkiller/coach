@@ -1,7 +1,13 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { prisma } from '../../utils/db'
-import { getStartOfDayUTC, getEndOfDayUTC, formatUserDate, formatDateUTC } from '../../utils/date'
+import {
+  getStartOfDayUTC,
+  getEndOfDayUTC,
+  formatUserDate,
+  formatDateUTC,
+  getUserLocalDate
+} from '../../utils/date'
 
 // Helper to calculate totals from all meals
 const recalculateDailyTotals = (nutrition: any) => {
@@ -141,7 +147,11 @@ export const nutritionTools = (userId: string, timezone: string) => ({
           fat: z.number().describe('Fat in grams'),
           fiber: z.number().optional().describe('Fiber in grams'),
           sugar: z.number().optional().describe('Sugar in grams'),
-          quantity: z.string().optional().describe('Quantity description (e.g. "1 cup", "100g")')
+          quantity: z.string().optional().describe('Quantity description (e.g. "1 cup", "100g")'),
+          logged_at: z
+            .string()
+            .optional()
+            .describe('ISO timestamp or time string (e.g. "08:30") when the item was consumed')
         })
       )
     }),
@@ -152,7 +162,7 @@ export const nutritionTools = (userId: string, timezone: string) => ({
         parseInt(dateParts[1]!) - 1,
         parseInt(dateParts[2]!)
       )
-      const dateUtc = getStartOfDayUTC(timezone, localDate)
+      const dateUtc = getUserLocalDate(timezone, localDate)
 
       // Get existing record or create new
       let nutrition = await prisma.nutrition.findUnique({
@@ -201,6 +211,25 @@ export const nutritionTools = (userId: string, timezone: string) => ({
         }
       })
 
+      try {
+        await prisma.auditLog.create({
+          data: {
+            userId,
+            action: 'LOG_NUTRITION_MEAL',
+            resourceType: 'Nutrition',
+            resourceId: updatedNutrition.id,
+            metadata: {
+              date,
+              meal_type,
+              itemCount: items.length,
+              calories: totals.calories
+            }
+          }
+        })
+      } catch (e) {
+        console.error('[NutritionTool] Failed to create audit log:', e)
+      }
+
       return {
         message: `Successfully logged ${items.length} item(s) to ${meal_type} for ${date}`,
         totals: {
@@ -234,7 +263,7 @@ export const nutritionTools = (userId: string, timezone: string) => ({
         parseInt(dateParts[1]!) - 1,
         parseInt(dateParts[2]!)
       )
-      const dateUtc = getStartOfDayUTC(timezone, localDate)
+      const dateUtc = getUserLocalDate(timezone, localDate)
 
       let nutrition = await prisma.nutrition.findUnique({
         where: {
@@ -296,6 +325,25 @@ export const nutritionTools = (userId: string, timezone: string) => ({
         }
       })
 
+      try {
+        await prisma.auditLog.create({
+          data: {
+            userId,
+            action: 'DELETE_NUTRITION_ITEM',
+            resourceType: 'Nutrition',
+            resourceId: updatedNutrition.id,
+            metadata: {
+              date,
+              meal_type,
+              item_name,
+              calories: totals.calories
+            }
+          }
+        })
+      } catch (e) {
+        console.error('[NutritionTool] Failed to create audit log:', e)
+      }
+
       return {
         message,
         totals: {
@@ -305,6 +353,61 @@ export const nutritionTools = (userId: string, timezone: string) => ({
           fat: Math.round(updatedNutrition.fat || 0)
         },
         remaining_items: updatedItems
+      }
+    }
+  }),
+
+  get_fueling_recommendations: tool({
+    description: 'Get the calculated fueling plan for a specific date.',
+    inputSchema: z.object({
+      date: z.string().optional().describe('Date in ISO format (YYYY-MM-DD). Defaults to today.')
+    }),
+    execute: async ({ date }) => {
+      const targetDate = date ? new Date(date) : new Date()
+
+      const dateUtc = getStartOfDayUTC(timezone, targetDate)
+
+      const nutrition = await prisma.nutrition.findUnique({
+        where: { userId_date: { userId, date: dateUtc } },
+        select: {
+          fuelingPlan: true,
+          caloriesGoal: true,
+          carbsGoal: true,
+          proteinGoal: true,
+          fatGoal: true
+        }
+      })
+
+      if (!nutrition || !nutrition.fuelingPlan) {
+        // Fallback: Check for planned workout to see if we *should* have one
+        const workout = await prisma.plannedWorkout.findFirst({
+          where: { userId, date: dateUtc }
+        })
+
+        if (workout) {
+          return {
+            status: 'PENDING_GENERATION',
+            message:
+              "A planned workout exists but the fueling plan hasn't been generated yet. It should be available shortly."
+          }
+        }
+
+        return {
+          status: 'NO_PLAN',
+          message:
+            'No structured fueling plan found. Ensures the user has a planned workout for this date.'
+        }
+      }
+
+      return {
+        status: 'FOUND',
+        plan: nutrition.fuelingPlan,
+        daily_targets: {
+          calories: nutrition.caloriesGoal,
+          carbs: nutrition.carbsGoal,
+          protein: nutrition.proteinGoal,
+          fat: nutrition.fatGoal
+        }
       }
     }
   })

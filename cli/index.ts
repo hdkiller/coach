@@ -11,6 +11,7 @@ import backfillCommand from './backfill'
 import oauthCommand from './oauth'
 import statsCommand from './stats'
 import usersCommand from './users'
+import nutritionCommand from './nutrition'
 import subscriptionsCommand from './subscriptions'
 import geminiCommand from './gemini'
 import llmCommand from './llm'
@@ -34,6 +35,7 @@ program.addCommand(backfillCommand)
 program.addCommand(oauthCommand)
 program.addCommand(statsCommand)
 program.addCommand(usersCommand)
+program.addCommand(nutritionCommand)
 program.addCommand(subscriptionsCommand)
 program.addCommand(geminiCommand)
 program.addCommand(llmCommand)

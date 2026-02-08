@@ -225,6 +225,240 @@
             </div>
           </div>
 
+          <!-- Meals Breakdown -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Meals Breakdown</h2>
+
+            <div class="space-y-6">
+              <!-- Breakfast -->
+              <div v-if="nutrition.breakfast && nutrition.breakfast.length > 0">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="i-heroicons-sun w-5 h-5 text-yellow-500" />
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Breakfast</h3>
+                  <span class="text-sm text-gray-500"
+                    >({{ nutrition.breakfast.length }} items)</span
+                  >
+                </div>
+                <div class="space-y-2">
+                  <div
+                    v-for="item in nutrition.breakfast"
+                    :key="item.id"
+                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                          {{ item.product_name || item.name || 'Unknown Product' }}
+                        </div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          <span v-if="item.product_brand" class="text-gray-500"
+                            >{{ item.product_brand }} •
+                          </span>
+                          <template v-if="item.amount !== undefined">
+                            {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
+                          </template>
+                          <template v-else-if="item.quantity">
+                            {{ item.quantity }}
+                          </template>
+                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
+
+                          <!-- Macros badge if available from AI -->
+                          <div
+                            v-if="item.calories"
+                            class="mt-1 flex gap-2 text-[10px] uppercase font-bold tracking-wider"
+                          >
+                            <span class="text-orange-500">{{ item.calories }} kcal</span>
+                            <span v-if="item.carbs" class="text-blue-500">{{ item.carbs }}g C</span>
+                            <span v-if="item.protein" class="text-green-500"
+                              >{{ item.protein }}g P</span
+                            >
+                            <span v-if="item.fat" class="text-yellow-500">{{ item.fat }}g F</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        v-if="(item.date || item.logged_at) && item.source !== 'fitbit'"
+                        class="text-xs text-gray-500"
+                      >
+                        {{ formatTime(item.logged_at || item.date) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lunch -->
+              <div v-if="nutrition.lunch && nutrition.lunch.length > 0">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="i-heroicons-sun w-5 h-5 text-orange-500" />
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Lunch</h3>
+                  <span class="text-sm text-gray-500">({{ nutrition.lunch.length }} items)</span>
+                </div>
+                <div class="space-y-2">
+                  <div
+                    v-for="item in nutrition.lunch"
+                    :key="item.id"
+                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                          {{ item.product_name || item.name || 'Unknown Product' }}
+                        </div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          <span v-if="item.product_brand" class="text-gray-500"
+                            >{{ item.product_brand }} •
+                          </span>
+                          <template v-if="item.amount !== undefined">
+                            {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
+                          </template>
+                          <template v-else-if="item.quantity">
+                            {{ item.quantity }}
+                          </template>
+                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
+
+                          <!-- Macros badge if available from AI -->
+                          <div
+                            v-if="item.calories"
+                            class="mt-1 flex gap-2 text-[10px] uppercase font-bold tracking-wider"
+                          >
+                            <span class="text-orange-500">{{ item.calories }} kcal</span>
+                            <span v-if="item.carbs" class="text-blue-500">{{ item.carbs }}g C</span>
+                            <span v-if="item.protein" class="text-green-500"
+                              >{{ item.protein }}g P</span
+                            >
+                            <span v-if="item.fat" class="text-yellow-500">{{ item.fat }}g F</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        v-if="(item.date || item.logged_at) && item.source !== 'fitbit'"
+                        class="text-xs text-gray-500"
+                      >
+                        {{ formatTime(item.logged_at || item.date) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dinner -->
+              <div v-if="nutrition.dinner && nutrition.dinner.length > 0">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="i-heroicons-moon w-5 h-5 text-indigo-500" />
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Dinner</h3>
+                  <span class="text-sm text-gray-500">({{ nutrition.dinner.length }} items)</span>
+                </div>
+                <div class="space-y-2">
+                  <div
+                    v-for="item in nutrition.dinner"
+                    :key="item.id"
+                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                          {{ item.product_name || item.name || 'Unknown Product' }}
+                        </div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          <span v-if="item.product_brand" class="text-gray-500"
+                            >{{ item.product_brand }} •
+                          </span>
+                          <template v-if="item.amount !== undefined">
+                            {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
+                          </template>
+                          <template v-else-if="item.quantity">
+                            {{ item.quantity }}
+                          </template>
+                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
+
+                          <!-- Macros badge if available from AI -->
+                          <div
+                            v-if="item.calories"
+                            class="mt-1 flex gap-2 text-[10px] uppercase font-bold tracking-wider"
+                          >
+                            <span class="text-orange-500">{{ item.calories }} kcal</span>
+                            <span v-if="item.carbs" class="text-blue-500">{{ item.carbs }}g C</span>
+                            <span v-if="item.protein" class="text-green-500"
+                              >{{ item.protein }}g P</span
+                            >
+                            <span v-if="item.fat" class="text-yellow-500">{{ item.fat }}g F</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        v-if="(item.date || item.logged_at) && item.source !== 'fitbit'"
+                        class="text-xs text-gray-500"
+                      >
+                        {{ formatTime(item.logged_at || item.date) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Snacks -->
+              <div v-if="nutrition.snacks && nutrition.snacks.length > 0">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="i-heroicons-cake w-5 h-5 text-pink-500" />
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Snacks</h3>
+                  <span class="text-sm text-gray-500">({{ nutrition.snacks.length }} items)</span>
+                </div>
+                <div class="space-y-2">
+                  <div
+                    v-for="item in nutrition.snacks"
+                    :key="item.id"
+                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                          {{ item.product_name || item.name || 'Unknown Product' }}
+                        </div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          <span v-if="item.product_brand" class="text-gray-500"
+                            >{{ item.product_brand }} •
+                          </span>
+                          <template v-if="item.amount !== undefined">
+                            {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
+                          </template>
+                          <template v-else-if="item.quantity">
+                            {{ item.quantity }}
+                          </template>
+                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
+
+                          <!-- Macros badge if available from AI -->
+                          <div
+                            v-if="item.calories"
+                            class="mt-1 flex gap-2 text-[10px] uppercase font-bold tracking-wider"
+                          >
+                            <span class="text-orange-500">{{ item.calories }} kcal</span>
+                            <span v-if="item.carbs" class="text-blue-500">{{ item.carbs }}g C</span>
+                            <span v-if="item.protein" class="text-green-500"
+                              >{{ item.protein }}g P</span
+                            >
+                            <span v-if="item.fat" class="text-yellow-500">{{ item.fat }}g F</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        v-if="(item.date || item.logged_at) && item.source !== 'fitbit'"
+                        class="text-xs text-gray-500"
+                      >
+                        {{ formatTime(item.logged_at || item.date) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No meals logged -->
+              <div v-if="!hasAnyMeals" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                No meals logged for this day
+              </div>
+            </div>
+          </div>
+
           <!-- Personal Notes Section -->
           <NotesEditor
             v-model="nutrition.notes"
@@ -491,156 +725,6 @@
               <p class="text-sm text-gray-600 dark:text-gray-400">Generating analysis with AI...</p>
             </div>
           </div>
-
-          <!-- Meals Breakdown -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Meals Breakdown</h2>
-
-            <div class="space-y-6">
-              <!-- Breakfast -->
-              <div v-if="nutrition.breakfast && nutrition.breakfast.length > 0">
-                <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-sun w-5 h-5 text-yellow-500" />
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Breakfast</h3>
-                  <span class="text-sm text-gray-500"
-                    >({{ nutrition.breakfast.length }} items)</span
-                  >
-                </div>
-                <div class="space-y-2">
-                  <div
-                    v-for="item in nutrition.breakfast"
-                    :key="item.id"
-                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1">
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">
-                          {{ item.product_name || 'Unknown Product' }}
-                        </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <span v-if="item.product_brand" class="text-gray-500"
-                            >{{ item.product_brand }} •
-                          </span>
-                          {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
-                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
-                        </div>
-                      </div>
-                      <div v-if="item.date && item.source !== 'fitbit'" class="text-xs text-gray-500">
-                        {{ formatTime(item.date) }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Lunch -->
-              <div v-if="nutrition.lunch && nutrition.lunch.length > 0">
-                <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-sun w-5 h-5 text-orange-500" />
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Lunch</h3>
-                  <span class="text-sm text-gray-500">({{ nutrition.lunch.length }} items)</span>
-                </div>
-                <div class="space-y-2">
-                  <div
-                    v-for="item in nutrition.lunch"
-                    :key="item.id"
-                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1">
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">
-                          {{ item.product_name || 'Unknown Product' }}
-                        </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <span v-if="item.product_brand" class="text-gray-500"
-                            >{{ item.product_brand }} •
-                          </span>
-                          {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
-                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
-                        </div>
-                      </div>
-                      <div v-if="item.date && item.source !== 'fitbit'" class="text-xs text-gray-500">
-                        {{ formatTime(item.date) }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Dinner -->
-              <div v-if="nutrition.dinner && nutrition.dinner.length > 0">
-                <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-moon w-5 h-5 text-indigo-500" />
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Dinner</h3>
-                  <span class="text-sm text-gray-500">({{ nutrition.dinner.length }} items)</span>
-                </div>
-                <div class="space-y-2">
-                  <div
-                    v-for="item in nutrition.dinner"
-                    :key="item.id"
-                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1">
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">
-                          {{ item.product_name || 'Unknown Product' }}
-                        </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <span v-if="item.product_brand" class="text-gray-500"
-                            >{{ item.product_brand }} •
-                          </span>
-                          {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
-                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
-                        </div>
-                      </div>
-                      <div v-if="item.date && item.source !== 'fitbit'" class="text-xs text-gray-500">
-                        {{ formatTime(item.date) }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Snacks -->
-              <div v-if="nutrition.snacks && nutrition.snacks.length > 0">
-                <div class="flex items-center gap-2 mb-3">
-                  <span class="i-heroicons-cake w-5 h-5 text-pink-500" />
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Snacks</h3>
-                  <span class="text-sm text-gray-500">({{ nutrition.snacks.length }} items)</span>
-                </div>
-                <div class="space-y-2">
-                  <div
-                    v-for="item in nutrition.snacks"
-                    :key="item.id"
-                    class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1">
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">
-                          {{ item.product_name || 'Unknown Product' }}
-                        </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          <span v-if="item.product_brand" class="text-gray-500"
-                            >{{ item.product_brand }} •
-                          </span>
-                          {{ item.amount }}{{ item.serving ? ` ${item.serving}` : 'g' }}
-                          <span v-if="item.serving_quantity"> × {{ item.serving_quantity }}</span>
-                        </div>
-                      </div>
-                      <div v-if="item.date && item.source !== 'fitbit'" class="text-xs text-gray-500">
-                        {{ formatTime(item.date) }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- No meals logged -->
-              <div v-if="!hasAnyMeals" class="text-center py-8 text-gray-500 dark:text-gray-400">
-                No meals logged for this day
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </template>
@@ -715,10 +799,23 @@
   }
 
   function formatTime(dateTime: string) {
-    return new Date(dateTime).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    if (!dateTime) return ''
+
+    // Handle HH:mm format
+    if (/^\d{2}:\d{2}$/.test(dateTime)) {
+      return dateTime
+    }
+
+    try {
+      const date = new Date(dateTime)
+      if (isNaN(date.getTime())) return dateTime
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (e) {
+      return dateTime
+    }
   }
 
   function getPercentage(value: number, goal: number) {

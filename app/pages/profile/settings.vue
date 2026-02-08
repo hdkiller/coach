@@ -54,6 +54,12 @@
               @update:settings="updateSportSettings"
               @autodetect="handleAutodetect"
             />
+
+            <ProfileNutritionSettings
+              v-if="activeTab === 'nutrition'"
+              :settings="nutritionSettings"
+              @update:settings="(val) => (nutritionSettings = val)"
+            />
           </div>
         </div>
       </div>
@@ -64,6 +70,7 @@
 <script setup lang="ts">
   import ProfileBasicSettings from '~/components/profile/BasicSettings.vue'
   import ProfileSportSettings from '~/components/profile/SportSettings.vue'
+  import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
 
   const { data } = useAuth()
   const user = computed(() => data.value?.user)
@@ -75,7 +82,8 @@
 
   const tabs = [
     { id: 'basic', label: 'Basic Settings', icon: 'i-heroicons-user-circle' },
-    { id: 'sports', label: 'Sport Settings', icon: 'i-heroicons-trophy' }
+    { id: 'sports', label: 'Sport Settings', icon: 'i-heroicons-trophy' },
+    { id: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-fire' }
   ]
 
   const activeTab = ref('basic')
@@ -101,10 +109,16 @@
   })
 
   const sportSettings = ref<any[]>([])
+  const nutritionSettings = ref<any>(null)
 
   // Fetch profile data
   const { data: profileData, refresh: refreshProfile } = await useFetch('/api/profile', {
     key: 'user-profile'
+  })
+
+  // Fetch nutrition settings separately for now (or could merge into /api/profile later)
+  const { data: nutritionData } = await useFetch('/api/profile/nutrition', {
+    key: 'user-nutrition-settings'
   })
 
   async function handleProfileUpdate(newProfile: any) {
@@ -195,6 +209,11 @@
       if (pData.profile.sportSettings) {
         sportSettings.value = pData.profile.sportSettings as any[]
       }
+    }
+
+    // Sync nutrition settings
+    if (nutritionData.value && (nutritionData.value as any).settings) {
+      nutritionSettings.value = (nutritionData.value as any).settings
     }
   })
 
