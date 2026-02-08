@@ -232,6 +232,14 @@
       }
     },
     {
+      label: 'Bug Reports',
+      icon: 'i-heroicons-bug-ant',
+      to: '/admin/bug-reports',
+      onSelect: () => {
+        isOpen.value = false
+      }
+    },
+    {
       label: 'Back to Site',
       icon: 'i-lucide-arrow-left',
       to: '/dashboard',
