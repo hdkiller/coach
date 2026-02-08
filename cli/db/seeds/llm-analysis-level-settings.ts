@@ -1,6 +1,6 @@
-import { prisma } from '../../../server/utils/db'
+import type { PrismaClient } from '@prisma/client'
 
-export const seed = async (options: { force?: boolean } = {}) => {
+export const seed = async (prisma: PrismaClient, options: { force?: boolean } = {}) => {
   console.log('Seeding LLM Analysis Level Settings...')
 
   const settings = [

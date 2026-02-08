@@ -1,4 +1,4 @@
-import { prisma } from '../../../server/utils/db'
+import type { PrismaClient } from '@prisma/client'
 
 // ------------------------------------------------------------------
 // 1. Last 3 Workouts Analysis
@@ -300,7 +300,7 @@ Scoring Guidelines:
 
 Maintain your **{{persona}}** persona throughout. Be specific with numbers. Scores should realistically reflect the period's quality.`
 
-export const seed = async (options: { force?: boolean } = {}) => {
+export const seed = async (prisma: PrismaClient, options: { force?: boolean } = {}) => {
   console.log('Seeding report templates...')
 
   const templates = [
