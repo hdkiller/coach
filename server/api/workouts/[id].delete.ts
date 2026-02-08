@@ -78,9 +78,11 @@ export default defineEventHandler(async (event) => {
   // For now, let's just delete the workout.
 
   try {
-    // Soft delete by marking as ignored if we want to prevent re-ingestion
-    // But typically, if a user deletes a workout, they might want to re-import it later or it's gone from source.
-    // If it still exists on source (e.g. Strava), it WILL be re-ingested on next sync unless we track deleted IDs.
+    // Delete associated FitFile if it exists to allow re-upload
+    // Note: We use deleteMany to avoid errors if no FitFile is associated
+    await prisma.fitFile.deleteMany({
+      where: { workoutId: id }
+    })
 
     // For now, we are doing a hard delete.
     // IMPLICATION: If the activity exists on the external provider (Strava, etc.),

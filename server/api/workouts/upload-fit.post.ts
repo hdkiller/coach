@@ -121,30 +121,50 @@ export default defineEventHandler(async (event) => {
 
       // Check for duplicates
       const existingFile = await prisma.fitFile.findFirst({
-        where: { hash }
+        where: { hash },
+        include: { workout: true }
       })
+
+      let fitFileId = existingFile?.id
 
       if (existingFile) {
-        results.duplicates++
-        continue
-      }
-
-      // Store file in DB
-      const fitFile = await prisma.fitFile.create({
-        data: {
-          userId: user.id,
-          filename,
-          fileData: Buffer.from(fileData),
-          hash
+        // If the file exists and is linked to a workout, it's a real duplicate
+        if (existingFile.workoutId) {
+          results.duplicates++
+          continue
         }
-      })
+
+        // If the file exists but has no workout, it's "orphaned"
+        // We can reuse/re-adopt it by updating its metadata if needed, 
+        // but primarily we just need to proceed to trigger ingestion.
+        console.info(`Adopting orphaned FIT file: ${existingFile.id}`)
+        await prisma.fitFile.update({
+          where: { id: existingFile.id },
+          data: {
+            userId: user.id,
+            filename,
+            // fileData stays the same
+          }
+        })
+      } else {
+        // Store new file in DB
+        const newFitFile = await prisma.fitFile.create({
+          data: {
+            userId: user.id,
+            filename,
+            fileData: Buffer.from(fileData),
+            hash
+          }
+        })
+        fitFileId = newFitFile.id
+      }
 
       // Trigger ingestion task
       await tasks.trigger(
         'ingest-fit-file',
         {
           userId: user.id,
-          fitFileId: fitFile.id
+          fitFileId: fitFileId!
         },
         {
           concurrencyKey: user.id,
