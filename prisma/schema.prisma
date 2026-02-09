@@ -667,6 +667,7 @@ model PlannedWorkout {
   targetArea        String?
   managedBy         String                   @default("USER")
   fuelingStrategy   String?
+  startTime         String?
   recommendations   ActivityRecommendation[]
   planAdherences    PlanAdherence[]
   trainingWeek      TrainingWeek?            @relation(fields: [trainingWeekId], references: [id])
