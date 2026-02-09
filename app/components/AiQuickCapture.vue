@@ -1,9 +1,9 @@
 <template>
   <div
-    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-[width,opacity,transform] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col items-center max-w-2xl"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-[width,opacity,transform] ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col items-center max-w-2xl"
     :class="[
       !isVisible ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0',
-      shouldBeWide ? 'w-[calc(100%-2rem)]' : 'w-40'
+      shouldBeWide ? 'w-[calc(100%-2rem)] duration-700 delay-0' : 'w-40 duration-700 delay-300'
     ]"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
@@ -122,8 +122,8 @@
     >
       <!-- Expanded Input View -->
       <div 
-        class="absolute inset-0 px-1 transition-opacity duration-500 delay-100 flex items-center"
-        :class="shouldBeWide ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'"
+        class="absolute inset-0 px-1 transition-opacity flex items-center"
+        :class="shouldBeWide ? 'opacity-100 pointer-events-auto duration-500 delay-300' : 'opacity-0 pointer-events-none duration-200 delay-0'"
       >
         <UInput
           v-model="input"
@@ -170,8 +170,8 @@
 
       <!-- Minimized Pill View -->
       <div 
-        class="absolute inset-0 flex items-center justify-center gap-2 px-4 transition-opacity duration-500"
-        :class="shouldBeWide ? 'opacity-0 pointer-events-none' : 'opacity-100'"
+        class="absolute inset-0 flex items-center justify-center gap-2 px-4 transition-opacity"
+        :class="shouldBeWide ? 'opacity-0 pointer-events-none duration-200 delay-0' : 'opacity-100 duration-500 delay-300'"
       >
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
         <span class="text-xs font-black uppercase tracking-widest text-gray-500 truncate">Ask Coach</span>
