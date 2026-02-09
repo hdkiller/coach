@@ -22,9 +22,22 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Workout ID is required' })
   }
 
+  // Verify ownership and load necessary fields
   const workout = await prisma.plannedWorkout.findUnique({
     where: { id },
-    select: { id: true, userId: true, title: true }
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      date: true,
+      user: {
+        select: {
+          subscriptionTier: true,
+          isAdmin: true,
+          timezone: true
+        }
+      }
+    }
   })
 
   if (!workout) {
@@ -34,6 +47,23 @@ export default defineEventHandler(async (event) => {
   // Verify ownership
   if (workout.userId !== user.id) {
     throw createError({ statusCode: 403, message: 'Access denied' })
+  }
+
+  // Subscription Limit Check
+  if (workout.user.subscriptionTier === 'FREE') {
+    const { getUserLocalDate } = await import('../../../../utils/date')
+    const timezone = workout.user.timezone || 'UTC'
+    const today = getUserLocalDate(timezone)
+    const fourWeeksFromNow = new Date(today)
+    fourWeeksFromNow.setUTCDate(today.getUTCDate() + 28)
+
+    if (workout.date > fourWeeksFromNow) {
+      throw createError({
+        statusCode: 403,
+        message:
+          'Structured workout generation is limited to 4 weeks in advance for free users. Please upgrade to Pro to plan further ahead.'
+      })
+    }
   }
 
   // Trigger the generation task
