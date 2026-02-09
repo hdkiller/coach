@@ -26,6 +26,10 @@ Detailed documentation for specific application features.
 - [**Goal-Driven Training**](./02-features/goal-driven-training.md) - Periodized AI training plans and adaptation logic.
 - [**Training Plan Integration**](./02-features/chat/training-plan-integration.md) - Managing training plans via chat.
 
+### Nutrition & Fueling
+
+- [**Nutrition System**](./02-features/nutrition.md) - Dynamic periodized fueling, fuel states, and metabolic engine.
+
 ### Analytics & Scoring
 
 - [**Scoring System**](./02-features/analytics/scoring-system.md) - The 1-10 scoring logic for workouts and nutrition.
