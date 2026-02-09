@@ -3,9 +3,17 @@ import { nutritionSettingsRepository } from '../../utils/repositories/nutritionS
 import { getServerSession } from '../../utils/session'
 
 const updateSchema = z.object({
+  nutritionTrackingEnabled: z.boolean().optional(),
   bmr: z.number().min(500).max(5000).optional(),
   activityLevel: z
-    .enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'MODERATELY_ACTIVE', 'VERY_ACTIVE', 'EXTRA_ACTIVE'])
+    .enum([
+      'SEDENTARY',
+      'LIGHTLY_ACTIVE',
+      'ACTIVE',
+      'MODERATELY_ACTIVE',
+      'VERY_ACTIVE',
+      'EXTRA_ACTIVE'
+    ])
     .optional(),
   currentCarbMax: z.number().min(0).max(150),
   ultimateCarbGoal: z.number().min(0).max(150),
@@ -57,6 +65,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const {
+    nutritionTrackingEnabled,
     bmr,
     activityLevel,
     currentCarbMax,
@@ -89,6 +98,14 @@ export default defineEventHandler(async (event) => {
     foodIntolerances,
     lifestyleExclusions
   } = result.data
+
+  // Update user model for global tracking preference
+  if (nutritionTrackingEnabled !== undefined) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { nutritionTrackingEnabled }
+    })
+  }
 
   const settings = await nutritionSettingsRepository.upsert(userId, {
     bmr,

@@ -54,16 +54,28 @@ export default defineEventHandler(async (event) => {
 
   const userId = (session.user as any).id
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true }
+  })
+  const timezone = user?.timezone ?? 'UTC'
+
   // Get date range for the past 5 days
   const endDate = new Date()
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - 5)
+  // For timestamped columns (Workout)
+  const rangeStart = new Date()
+  rangeStart.setDate(rangeStart.getDate() - 5)
+
+  // For date-only columns (Nutrition, Wellness) - @db.Date
+  const todayLocal = getUserLocalDate(timezone)
+  const calendarStart = new Date(todayLocal)
+  calendarStart.setUTCDate(calendarStart.getUTCDate() - 5)
 
   try {
     // Fetch workouts from the past 5 days (excluding duplicates)
     const workouts = await workoutRepository.getForUser(userId, {
-      startDate,
-      endDate,
+      startDate: rangeStart,
+      endDate: endDate,
       limit: 10,
       orderBy: { date: 'desc' }
       // Note: Repository handles duplicate exclusion by default
@@ -72,16 +84,16 @@ export default defineEventHandler(async (event) => {
 
     // Fetch nutrition from the past 5 days
     const nutrition = await nutritionRepository.getForUser(userId, {
-      startDate,
-      endDate,
+      startDate: calendarStart,
+      endDate: endDate,
       limit: 10,
       orderBy: { date: 'desc' }
     })
 
     // Fetch wellness data from the past 5 days
     const wellness = await wellnessRepository.getForUser(userId, {
-      startDate,
-      endDate,
+      startDate: calendarStart,
+      endDate: endDate,
       limit: 10,
       orderBy: { date: 'desc' }
     })

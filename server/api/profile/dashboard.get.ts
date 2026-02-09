@@ -29,7 +29,8 @@ export default defineEventHandler(async (event) => {
         restingHr: true,
         lthr: true,
         dob: true,
-        profileLastUpdated: true
+        profileLastUpdated: true,
+        nutritionTrackingEnabled: true
       }
     })
 
@@ -263,6 +264,7 @@ export default defineEventHandler(async (event) => {
         latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
         profileLastUpdated: user.profileLastUpdated?.toISOString() ?? null,
         latestWorkoutDate: latestWorkout?.date.toISOString() ?? null,
+        nutritionTrackingEnabled: user.nutritionTrackingEnabled,
         sportSettings // Return for frontend context
       }
     }

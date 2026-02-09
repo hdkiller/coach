@@ -90,15 +90,23 @@ export default defineEventHandler(async (event) => {
   const today = getUserLocalDate(timezone)
 
   // Adjust dates to cover the full local days in UTC
-  // We assume the input dates (YYYY-MM-DD) represent local calendar days
-  // So we convert them to the corresponding UTC range
+  // rangeStart/rangeEnd are used for timestamped columns (Workout)
   const rangeStart = getStartOfDayUTC(timezone, startDate)
   const rangeEnd = getEndOfDayUTC(timezone, endDate)
 
+  // calendarStart/calendarEnd are used for date-only columns (Nutrition, Wellness, PlannedWorkout)
+  // These are stored as UTC Midnight in the database.
+  const calendarStart = new Date(
+    Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate())
+  )
+  const calendarEnd = new Date(
+    Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())
+  )
+
   // Fetch nutrition data for the date range
   const nutrition = await nutritionRepository.getForUser(userId, {
-    startDate: rangeStart,
-    endDate: rangeEnd,
+    startDate: calendarStart,
+    endDate: calendarEnd,
     orderBy: { date: 'asc' }
   })
 
@@ -114,14 +122,16 @@ export default defineEventHandler(async (event) => {
       caloriesGoal: n.caloriesGoal,
       proteinGoal: n.proteinGoal,
       carbsGoal: n.carbsGoal,
-      fatGoal: n.fatGoal
+      fatGoal: n.fatGoal,
+      fuelingPlan: n.fuelingPlan,
+      overallScore: n.overallScore
     })
   }
 
   // Fetch wellness data for the date range
   const wellness = await wellnessRepository.getForUser(userId, {
-    startDate: rangeStart,
-    endDate: rangeEnd,
+    startDate: calendarStart,
+    endDate: calendarEnd,
     orderBy: { date: 'asc' }
   })
 
@@ -130,8 +140,8 @@ export default defineEventHandler(async (event) => {
     where: {
       userId,
       date: {
-        gte: rangeStart,
-        lte: rangeEnd
+        gte: calendarStart,
+        lte: calendarEnd
       }
     },
     orderBy: { date: 'asc' }
@@ -164,7 +174,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Fetch completed workouts
+  // Fetch completed workouts (timestamped)
   const workouts = await workoutRepository.getForUser(userId, {
     startDate: rangeStart,
     endDate: rangeEnd,
@@ -177,19 +187,19 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // Fetch planned workouts
+  // Fetch planned workouts (date-only)
   const plannedWorkouts = await prisma.plannedWorkout.findMany({
     where: {
       userId,
       date: {
-        gte: rangeStart,
-        lte: rangeEnd
+        gte: calendarStart,
+        lte: calendarEnd
       }
     },
     orderBy: { date: 'asc' }
   })
 
-  // Fetch calendar notes
+  // Fetch calendar notes (timestamped)
   const calendarNotes = await calendarNoteRepository.getForUser(userId, {
     startDate: rangeStart,
     endDate: rangeEnd,

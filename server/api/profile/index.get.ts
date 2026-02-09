@@ -77,7 +77,8 @@ export default defineEventHandler(async (event) => {
         city: true,
         state: true,
         country: true,
-        timezone: true
+        timezone: true,
+        nutritionTrackingEnabled: true
       }
     })
 
@@ -123,6 +124,7 @@ export default defineEventHandler(async (event) => {
         state: user.state,
         country: user.country,
         timezone: user.timezone,
+        nutritionTrackingEnabled: user.nutritionTrackingEnabled,
         sportSettings: sportSettings
       }
     }
