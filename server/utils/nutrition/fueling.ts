@@ -42,6 +42,7 @@ export interface SerializedFuelingWindow {
   description: string
   status: 'PENDING' | 'HIT' | 'MISSED' | 'PARTIAL'
   supplements?: string[]
+  plannedWorkoutId?: string
 }
 
 export interface SerializedFuelingPlan {
@@ -135,7 +136,8 @@ export function calculateFuelingStrategy(
     targetSodium: intraSodium,
     description: `Fuel State ${state} (${state === 1 ? 'Eco' : state === 2 ? 'Steady' : 'Performance'}): ${Math.round(durationHours * 10) / 10}h ride.`,
     status: 'PENDING',
-    supplements: extractSupplements(durationHours, intensity)
+    supplements: extractSupplements(durationHours, intensity),
+    plannedWorkoutId: workout.id
   })
 
   // --- 3. PRE-WORKOUT ---
@@ -160,7 +162,8 @@ export function calculateFuelingStrategy(
     targetFluid: 500,
     targetSodium: 500,
     description: 'Pre-workout fueling window.',
-    status: 'PENDING'
+    status: 'PENDING',
+    plannedWorkoutId: workout.id
   })
 
   // --- 4. POST-WORKOUT ---
@@ -185,7 +188,8 @@ export function calculateFuelingStrategy(
     targetFluid: 750, // Rehydration
     targetSodium: 0,
     description: 'Post-workout recovery window.',
-    status: 'PENDING'
+    status: 'PENDING',
+    plannedWorkoutId: workout.id
   })
 
   return {

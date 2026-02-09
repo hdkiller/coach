@@ -228,6 +228,7 @@ export async function createIntervalsPlannedWorkout(
     tss?: number
     workout_doc?: string
     managedBy?: string
+    startTime?: string | null
   }
 ): Promise<IntervalsPlannedWorkout> {
   const athleteId = getIntervalsAthleteId(integration)
@@ -251,14 +252,10 @@ export async function createIntervalsPlannedWorkout(
   const day = String(data.date.getUTCDate()).padStart(2, '0')
   // Use UTC components because our input date is forced to UTC midnight for the correct calendar day.
   // We want to send this exact date as the local start date to Intervals.
-  const dateStr = `${year}-${month}-${day}T06:00:00` // Set to 6am local to be safe? Or 00:00?
-  // Let's use T00:00:00 for now, but be aware Intervals might shift it if athlete settings differ.
-  // Actually, keeping original logic for time-preservation if passed, but defaulting to safe calendar day.
 
-  // const hour = String(data.date.getHours()).padStart(2, '0')
-  // const minute = String(data.date.getMinutes()).padStart(2, '0')
-  // const second = String(data.date.getSeconds()).padStart(2, '0')
-  // const dateStr = `${year}-${month}-${day}T${hour}:${minute}:${second}`
+  // Use provided startTime (HH:mm) or default to 06:00:00
+  const timeStr = data.startTime ? `${data.startTime}:00` : '06:00:00'
+  const dateStr = `${year}-${month}-${day}T${timeStr}`
 
   const workoutText = data.workout_doc || ''
   let combinedDescription = data.description
@@ -365,6 +362,7 @@ export async function updateIntervalsPlannedWorkout(
     tss?: number
     workout_doc?: string
     managedBy?: string
+    startTime?: string | null
   }
 ): Promise<IntervalsPlannedWorkout> {
   const athleteId = getIntervalsAthleteId(integration)
@@ -381,7 +379,18 @@ export async function updateIntervalsPlannedWorkout(
     const year = data.date.getUTCFullYear()
     const month = String(data.date.getUTCMonth() + 1).padStart(2, '0')
     const day = String(data.date.getUTCDate()).padStart(2, '0')
-    dateStr = `${year}-${month}-${day}T00:00:00`
+
+    // Use provided startTime (HH:mm) or default to 00:00:00 (since it's an update, maybe better to preserve?)
+    // Actually, if date is provided but not startTime, we use T00:00:00.
+    // If startTime is provided, we use it.
+    const timeStr = data.startTime ? `${data.startTime}:00` : '00:00:00'
+    dateStr = `${year}-${month}-${day}T${timeStr}`
+  } else if (data.startTime) {
+    // If only startTime is provided, we need the existing date.
+    // However, the interface currently expects data.date to be present if we want to change dateStr.
+    // For now, let's assume if startTime is provided without date, we might not be able to easily update start_date_local
+    // without knowing the current date. But the caller should probably provide both or we should fetch it.
+    // In this API, we usually provide the date.
   }
 
   const eventData: any = {}
@@ -1167,6 +1176,15 @@ export function normalizeIntervalsPlannedWorkout(event: IntervalsPlannedWorkout,
     description: description,
     type: event.type || null,
     category: event.category || 'WORKOUT',
+    startTime: (() => {
+      if (event.start_date_local && event.start_date_local.includes('T')) {
+        const timePart = event.start_date_local.split('T')[1]
+        if (timePart && timePart.length >= 5) {
+          return timePart.substring(0, 5)
+        }
+      }
+      return null
+    })(),
     durationSec: durationSec ? Math.round(durationSec) : null,
     distanceMeters: distance ? Math.round(distance) : null,
     tss: tss ? Math.round(tss * 10) / 10 : null,
