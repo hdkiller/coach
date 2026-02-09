@@ -189,6 +189,53 @@ model DailyMetric {
 }
 
 // --------------------------------------
+// Nutrition & Metabolic Engine
+// --------------------------------------
+
+// Professional-grade nutrition calibration settings
+model UserNutritionSettings {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+
+  // Metabolic Baselines
+  bmr                Int?
+  activityLevel      String?  // "SEDENTARY", "ACTIVE", etc.
+  baseProteinPerKg   Float    @default(1.6)
+  baseFatPerKg       Float    @default(1.0)
+
+  // Fuel State Calibration (Intensity Triggers)
+  fuelState1Trigger  Float    @default(0.60) // IF threshold
+  fuelState2Trigger  Float    @default(0.85) // IF threshold
+  fuelingSensitivity Float    @default(1.0)  // global multiplier (0.8 - 1.2)
+
+  // Carb Ranges (g/kg) per State
+  fuelState1Min      Float    @default(3.0)
+  fuelState1Max      Float    @default(4.5)
+  fuelState2Min      Float    @default(5.0)
+  fuelState2Max      Float    @default(7.5)
+  fuelState3Min      Float    @default(8.0)
+  fuelState3Max      Float    @default(12.0)
+
+  // Gut Training
+  currentCarbMax     Int      @default(60)
+  ultimateCarbGoal   Int      @default(90)
+  carbScalingFactor  Float    @default(1.0)
+
+  // Dietary Constraints & Safety
+  dietaryProfile     String[] @default([])
+  foodAllergies      String[] @default([])
+  foodIntolerances   String[] @default([])
+  lifestyleExclusions String[] @default([])
+
+  // Personalization
+  goalProfile        String   @default("MAINTAIN")
+  mealPattern        Json?    // Array of { name: string, time: string }
+  enabledSupplements String[] @default([])
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --------------------------------------
 // AI Agent Outputs
 // --------------------------------------
 
@@ -249,6 +296,7 @@ model Report {
 - Has many: Workouts (training activities)
 - Has many: DailyMetrics (recovery data)
 - Has many: Reports (AI-generated insights)
+- Has one: NutritionSettings (metabolic engine calibration)
 
 ### Account Table
 
@@ -349,6 +397,22 @@ model Report {
 **Unique Constraint:** `[userId, date]` - One record per day per user
 
 **Note:** If multiple sources provide data for the same day, use the most reliable source (priority: Whoop > Garmin > Oura for recovery)
+
+### UserNutritionSettings Table
+
+**Purpose:** Professional-grade nutrition calibration and metabolic profiling
+
+| Field                 | Type     | Description                                     |
+| :-------------------- | :------- | :---------------------------------------------- |
+| `bmr`                 | Int?     | Basal Metabolic Rate (kcal/day)                 |
+| `fuelingSensitivity`  | Float    | Global multiplier (0.8 - 1.2) for carb targets  |
+| `fuelState1Trigger`   | Float    | IF threshold for State 1 (Eco)                  |
+| `fuelState2Trigger`   | Float    | IF threshold for State 2 (Steady)               |
+| `currentCarbMax`      | Int      | Gut training limit (g/hr)                       |
+| `dietaryProfile`      | String[] | General patterns (Vegan, Keto, etc.)            |
+| `lifestyleExclusions` | String[] | Proactive avoidances (Seed Oils, Alcohol, etc.) |
+
+**Unique Constraint:** `userId` (One settings profile per user)
 
 ### Report Table
 
