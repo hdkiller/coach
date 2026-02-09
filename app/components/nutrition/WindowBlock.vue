@@ -116,6 +116,33 @@
 
             <span class="font-normal opacity-80">({{ getGelCountLabel(targetCarbs) }})</span>
           </p>
+
+          <!-- Fueling Checklist -->
+          <div
+            v-if="intraScriptItems.length > 0"
+            class="mt-4 space-y-3 border-t border-amber-200/50 dark:border-amber-800/30 pt-4"
+          >
+            <div
+              v-for="item in intraScriptItems"
+              :key="item.time"
+              class="flex items-center gap-3 p-2 rounded-lg bg-white/50 dark:bg-black/20 border border-amber-200/30 dark:border-amber-800/30 shadow-sm"
+            >
+              <UCheckbox
+                :label="item.label"
+                color="primary"
+                :ui="{
+                  label:
+                    'text-[11px] font-black text-amber-900 dark:text-amber-100 uppercase tracking-tight',
+                  container: 'flex items-center gap-2'
+                }"
+              />
+              <div
+                class="ml-auto text-[10px] font-black px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400"
+              >
+                {{ item.time }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div
@@ -253,6 +280,28 @@
     // Fallback based on carbs if prop not passed
     if (props.targetCarbs >= 80) return 'Gut Training: Active'
     return null
+  })
+
+  const intraScriptItems = computed(() => {
+    if (props.type !== 'INTRA_WORKOUT' || props.targetCarbs <= 0) return []
+
+    const items = []
+    const totalCarbs = props.targetCarbs
+    const durationMs = Math.abs(props.endTime.getTime() - props.startTime.getTime())
+    const durationHours = durationMs / 3600000
+
+    // Heuristic: If we have a target >= 80g (Gut Training), we use the requested script pattern
+    if (totalCarbs >= 80 && durationHours >= 1.5) {
+      items.push({ time: '0:45', label: '1 Gel (30g Carbs)' })
+      items.push({ time: '1:30', label: '500ml Mix (60g Carbs)' })
+    } else if (totalCarbs >= 60 && durationHours >= 1) {
+      items.push({ time: '0:30', label: '1 Gel (30g Carbs)' })
+      items.push({ time: '1:00', label: '1 Gel (30g Carbs)' })
+    } else if (totalCarbs >= 30) {
+      items.push({ time: '0:45', label: '1 Gel (30g Carbs)' })
+    }
+
+    return items
   })
 
   const formatTime = (date: Date) => {

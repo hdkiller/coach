@@ -218,22 +218,6 @@
         </div>
       </div>
     </div>
-
-    <template #footer>
-      <div class="relative">
-        <UInput
-          icon="i-heroicons-chat-bubble-left-ellipsis"
-          placeholder="I just had a banana..."
-          size="sm"
-          variant="none"
-          class="bg-gray-50 dark:bg-gray-900/50 rounded-lg"
-          @keyup.enter="handleQuickLog"
-        />
-        <div class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">
-          Press Enter to Log
-        </div>
-      </div>
-    </template>
   </UCard>
 </template>
 
@@ -381,15 +365,6 @@
     if (tankPercentage.value > 30) return 'Moderate depletion. Focus on post-workout window.'
     return 'CRITICAL: Refuel immediately to avoid metabolic crash.'
   })
-
-  function handleQuickLog(event: any) {
-    const text = event.target.value
-    if (!text) return
-
-    // Emit event to be handled by chat or nutrition store
-    // For now just clear
-    event.target.value = ''
-  }
 </script>
 
 <style scoped>
