@@ -117,6 +117,7 @@
           <div v-if="userStore.profile?.nutritionTrackingEnabled">
             <DashboardNutritionFuelingCard
               :plan="todayNutrition?.fuelingPlan"
+              :workouts="todayWorkouts"
               :loading="loadingNutrition"
               @refresh="fetchTodayNutrition"
             />
@@ -363,6 +364,7 @@
   const showWelcome = useLocalStorage('dashboard-welcome-banner', true)
 
   const upcomingWorkouts = ref<any[]>([])
+  const todayWorkouts = ref<any[]>([])
   const loadingUpcoming = ref(false)
   const isLoading = ref(true)
   const todayNutrition = ref<any>(null)
@@ -374,8 +376,14 @@
     loadingNutrition.value = true
     try {
       const dateStr = formatDateUTC(getUserLocalDate(), 'yyyy-MM-dd')
-      const data = await $fetch<any>(`/api/nutrition/${dateStr}`)
-      todayNutrition.value = data
+      const [nData, wData] = await Promise.all([
+        $fetch<any>(`/api/nutrition/${dateStr}`),
+        $fetch<any[]>('/api/planned-workouts', {
+          query: { startDate: `${dateStr}T00:00:00Z`, endDate: `${dateStr}T23:59:59Z` }
+        })
+      ])
+      todayNutrition.value = nData
+      todayWorkouts.value = wData
     } catch (error: any) {
       if (error.statusCode !== 404) {
         console.error('Failed to fetch today nutrition:', error)

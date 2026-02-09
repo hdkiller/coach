@@ -89,7 +89,17 @@
     { id: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-fire' }
   ]
 
-  const activeTab = ref('basic')
+  const route = useRoute()
+  const activeTab = ref((route.query.tab as string) || 'basic')
+
+  watch(
+    () => route.query.tab,
+    (newTab) => {
+      if (newTab && tabs.some((t) => t.id === newTab)) {
+        activeTab.value = newTab as string
+      }
+    }
+  )
 
   // Profile Data
   const profile = ref<any>({

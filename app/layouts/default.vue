@@ -449,6 +449,7 @@
     <slot />
 
     <ClientOnly>
+      <AiQuickCapture />
       <DashboardTriggerMonitor v-model="showTriggerMonitor" />
       <ImpersonationBanner />
       <CoachingBanner />

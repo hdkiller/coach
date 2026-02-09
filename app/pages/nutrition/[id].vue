@@ -144,31 +144,6 @@
           />
         </div>
       </div>
-
-      <!-- STICKY BOTTOM QUICK LOG BAR -->
-      <div
-        class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 z-50"
-      >
-        <div class="max-w-4xl mx-auto relative">
-          <UInput
-            v-model="quickLogInput"
-            icon="i-heroicons-chat-bubble-left-ellipsis"
-            placeholder="I just had 200g of Greek Yogurt with honey..."
-            size="lg"
-            class="w-full shadow-2xl"
-            :loading="isLogging"
-            @keyup.enter="handleQuickLog"
-          >
-            <template #trailing>
-              <kbd
-                class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-800 text-[10px] font-medium text-gray-400"
-              >
-                Enter to Log
-              </kbd>
-            </template>
-          </UInput>
-        </div>
-      </div>
     </template>
   </UDashboardPanel>
 </template>
@@ -211,39 +186,80 @@
   const timeline = computed(() => {
     if (!nutrition.value || !nutritionSettings.value) return []
 
-    return mapNutritionToTimeline(nutrition.value, workouts.value, {
-      preWorkoutWindow: nutritionSettings.value.preWorkoutWindow || 90,
-      postWorkoutWindow: nutritionSettings.value.postWorkoutWindow || 60,
-      baseProteinPerKg: nutritionSettings.value.baseProteinPerKg || 1.6,
-      baseFatPerKg: nutritionSettings.value.baseFatPerKg || 1.0,
-      weight: userStore.profile?.weight || 75
+    console.log('[NutritionDashboard] Computing timeline with:', {
+      nutritionDate: nutrition.value.date,
+
+      workoutCount: workouts.value.length,
+
+      hasFuelingPlan: !!nutrition.value.fuelingPlan
     })
+
+    const result = mapNutritionToTimeline(
+      nutrition.value,
+
+      workouts.value,
+
+      {
+        preWorkoutWindow: nutritionSettings.value.preWorkoutWindow || 90,
+
+        postWorkoutWindow: nutritionSettings.value.postWorkoutWindow || 60,
+
+        baseProteinPerKg: nutritionSettings.value.baseProteinPerKg || 1.6,
+
+        baseFatPerKg: nutritionSettings.value.baseFatPerKg || 1.0,
+
+        weight: userStore.profile?.weight || 75
+      }
+    )
+
+    console.log(
+      '[NutritionDashboard] Timeline generated:',
+      result.map((w) => ({ type: w.type, start: w.startTime, items: w.items.length }))
+    )
+
+    return result
   })
 
   // Data Fetching
+
   async function fetchData() {
     loading.value = true
+
     error.value = null
+
     const id = route.params.id as string
 
     try {
       // 1. Fetch Nutrition record
+
+      console.log('[NutritionDashboard] Fetching nutrition for:', id)
+
       const nData = await $fetch<any>(`/api/nutrition/${id}`)
+
       nutrition.value = nData
 
       const dateStr = nData.date
 
       // 2. Fetch Planned Workouts for this date
+
+      console.log('[NutritionDashboard] Fetching workouts for date:', dateStr)
+
       const wData = await $fetch<any[]>('/api/planned-workouts', {
         query: { startDate: `${dateStr}T00:00:00Z`, endDate: `${dateStr}T23:59:59Z` }
       })
+
       workouts.value = wData
 
+      console.log(`[NutritionDashboard] Received ${wData.length} workouts`)
+
       // 3. Fetch Nutrition Settings
+
       const sData = await $fetch<any>('/api/profile/nutrition')
+
       nutritionSettings.value = sData.settings
     } catch (e: any) {
       console.error('Fetch Error:', e)
+
       error.value = 'Could not load nutrition dashboard. Please try again.'
     } finally {
       loading.value = false

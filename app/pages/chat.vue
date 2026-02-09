@@ -200,23 +200,24 @@
     const workoutId = route.query.workoutId as string
     const isPlanned = route.query.isPlanned === 'true'
     const recommendationId = route.query.recommendationId as string
+    const initialMessage = route.query.initialMessage as string
 
-    if (workoutId || recommendationId) {
+    if (workoutId || recommendationId || initialMessage) {
       // Create new chat
       await createNewChat()
 
-      let initialText = ''
+      let text = initialMessage || ''
       if (workoutId) {
-        initialText = isPlanned
+        text = isPlanned
           ? `I'd like to discuss my upcoming planned workout (ID: ${workoutId}). What should I focus on?`
           : `Please analyze my completed workout with ID ${workoutId}. How did I perform?`
       } else if (recommendationId) {
-        initialText = `Can you explain this recommendation (ID: ${recommendationId}) in more detail?`
+        text = `Can you explain this recommendation (ID: ${recommendationId}) in more detail?`
       }
 
-      if (initialText) {
+      if (text) {
         chat.sendMessage({
-          text: initialText,
+          text,
           role: 'user'
         } as any)
       }
