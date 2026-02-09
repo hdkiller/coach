@@ -16,17 +16,33 @@
     <!-- Date Number & Wellness Metrics -->
     <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-2">
-        <span
-          class="text-xs font-semibold flex items-center justify-center"
-          :class="{
-            'bg-blue-500 text-white dark:bg-blue-400 dark:text-gray-900 px-2 py-0.5 rounded-full shadow-sm':
-              isToday,
-            'text-gray-400': isOtherMonth,
-            'text-gray-900 dark:text-gray-100': !isOtherMonth && !isToday
-          }"
-        >
-          {{ dayNumber }}
-        </span>
+        <div class="relative">
+          <span
+            class="text-xs font-semibold flex items-center justify-center w-6 h-6"
+            :class="{
+              'bg-blue-500 text-white dark:bg-blue-400 dark:text-gray-900 rounded-full shadow-sm':
+                isToday,
+              'text-gray-400': isOtherMonth,
+              'text-gray-900 dark:text-gray-100': !isOtherMonth && !isToday,
+              'ring-2 ring-green-500 ring-offset-1': isNutritionCompliant,
+              'ring-2 ring-red-500 ring-offset-1': isNutritionNonCompliant
+            }"
+          >
+            {{ dayNumber }}
+          </span>
+
+          <!-- Fuel State Dot -->
+          <div
+            v-if="fuelState"
+            class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-gray-900"
+            :class="{
+              'bg-blue-500': fuelState === 1,
+              'bg-orange-500': fuelState === 2,
+              'bg-red-500': fuelState === 3
+            }"
+            :title="`Fuel State ${fuelState}`"
+          />
+        </div>
 
         <!-- Wellness Metrics -->
         <button
@@ -276,32 +292,34 @@
     <!-- Nutrition Summary (subtle, at bottom) - mt-auto pushes to bottom -->
     <div
       v-if="dayNutrition"
-      class="mt-auto pt-2 border-t border-gray-200 dark:border-gray-700 text-[10px] text-gray-500 dark:text-gray-500"
+      class="mt-auto pt-2 border-t border-gray-200 dark:border-gray-700 text-[10px] text-gray-500 dark:text-gray-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors rounded-b"
+      title="View nutrition details"
+      @click.stop="$emit('nutrition-click', date)"
     >
       <div class="grid grid-cols-2 gap-x-2 gap-y-0.5">
-        <div v-if="dayNutrition.calories != null" class="flex justify-between">
-          <span>Cal:</span>
+        <div v-if="dayNutrition.calories != null" class="flex items-center gap-1">
+          <UIcon name="i-tabler-flame" class="w-3 h-3 text-orange-500" />
           <span class="font-medium" :class="getNutritionClass('calories')">
             {{ dayNutrition.calories
             }}{{ dayNutrition.caloriesGoal ? `/${dayNutrition.caloriesGoal}` : '' }}
           </span>
         </div>
-        <div v-if="dayNutrition.protein != null" class="flex justify-between">
-          <span>Pro:</span>
+        <div v-if="dayNutrition.protein != null" class="flex items-center gap-1">
+          <UIcon name="i-tabler-egg" class="w-3 h-3 text-blue-500" />
           <span class="font-medium" :class="getNutritionClass('protein')">
             {{ Math.round(dayNutrition.protein)
             }}{{ dayNutrition.proteinGoal ? `/${Math.round(dayNutrition.proteinGoal)}` : '' }}g
           </span>
         </div>
-        <div v-if="dayNutrition.carbs != null" class="flex justify-between">
-          <span>Carb:</span>
+        <div v-if="dayNutrition.carbs != null" class="flex items-center gap-1">
+          <UIcon name="i-tabler-bread" class="w-3 h-3 text-yellow-500" />
           <span class="font-medium" :class="getNutritionClass('carbs')">
             {{ Math.round(dayNutrition.carbs)
             }}{{ dayNutrition.carbsGoal ? `/${Math.round(dayNutrition.carbsGoal)}` : '' }}g
           </span>
         </div>
-        <div v-if="dayNutrition.fat != null" class="flex justify-between">
-          <span>Fat:</span>
+        <div v-if="dayNutrition.fat != null" class="flex items-center gap-1">
+          <UIcon name="i-tabler-droplet" class="w-3 h-3 text-green-500" />
           <span class="font-medium" :class="getNutritionClass('fat')">
             {{ Math.round(dayNutrition.fat)
             }}{{ dayNutrition.fatGoal ? `/${Math.round(dayNutrition.fatGoal)}` : '' }}g
@@ -333,6 +351,7 @@
   const emit = defineEmits<{
     'activity-click': [activity: CalendarActivity]
     'wellness-click': [date: Date]
+    'nutrition-click': [date: Date]
     'merge-activity': [data: { source: CalendarActivity; target: CalendarActivity }]
     'link-activity': [data: { planned: CalendarActivity; completed: CalendarActivity }]
     'reschedule-activity': [data: { activity: { id: string; source: string }; date: Date }]
@@ -486,6 +505,35 @@
     return activityWithWellness?.wellness || null
   })
 
+  const fuelState = computed(() => {
+    const nutrition = dayNutrition.value as any
+    const plan = nutrition?.fuelingPlan
+    if (!plan) return null
+
+    // Estimate state from daily carb target if not explicitly stored
+    // or if we have it in the description of INTRA_WORKOUT window
+    const intraWindow = plan.windows?.find((w: any) => w.type === 'INTRA_WORKOUT')
+    if (intraWindow?.description?.includes('Fuel State 3')) return 3
+    if (intraWindow?.description?.includes('Fuel State 2')) return 2
+    if (intraWindow?.description?.includes('Fuel State 1')) return 1
+
+    return null
+  })
+
+  const isNutritionCompliant = computed(() => {
+    const nutrition = dayNutrition.value as any
+    if (!nutrition) return false
+    const score = nutrition.overallScore || 0
+    return score >= 85
+  })
+
+  const isNutritionNonCompliant = computed(() => {
+    const nutrition = dayNutrition.value as any
+    if (!nutrition) return false
+    const score = nutrition.overallScore
+    return score !== null && score < 70
+  })
+
   function formatDuration(seconds: number | undefined | null): string {
     if (typeof seconds !== 'number' || isNaN(seconds)) return ''
 
@@ -526,10 +574,11 @@
   }
 
   function getNutritionClass(metric: 'calories' | 'protein' | 'carbs' | 'fat'): string {
-    if (!dayNutrition.value) return ''
+    const nutrition = dayNutrition.value as any
+    if (!nutrition) return ''
 
-    const actual = dayNutrition.value[metric]
-    const goal = dayNutrition.value[`${metric}Goal` as keyof typeof dayNutrition.value]
+    const actual = nutrition[metric]
+    const goal = nutrition[`${metric}Goal` as keyof typeof nutrition]
 
     if (actual == null || goal == null) return ''
 

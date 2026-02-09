@@ -1,5 +1,31 @@
 <template>
   <div class="space-y-6">
+    <UCard>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-full">
+            <UIcon
+              name="i-heroicons-beaker"
+              class="w-6 h-6 text-primary-600 dark:text-primary-400"
+            />
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-gray-900 dark:text-white">
+              Enable Nutrition System
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Activate periodized fueling guidance and metabolic tracking.
+            </p>
+          </div>
+        </div>
+        <USwitch
+          v-model="localSettings.nutritionTrackingEnabled"
+          size="lg"
+          @update:model-value="saveSettings"
+        />
+      </div>
+    </UCard>
+
     <UAlert
       v-if="isProfileDataMissing"
       icon="i-heroicons-exclamation-triangle"
@@ -132,7 +158,7 @@
                 {{ localSettings.goalProfile === 'LOSE' ? 'Deficit' : 'Surplus' }}
               </span>
             </div>
-            <URange
+            <USlider
               v-model.number="localSettings.targetAdjustmentPercent"
               :min="adjustmentRange.min"
               :max="adjustmentRange.max"
@@ -341,7 +367,7 @@
               }}
             </span>
           </div>
-          <URange
+          <USlider
             v-model="localSettings.fuelingSensitivity"
             :min="0.8"
             :max="1.2"
@@ -975,9 +1001,10 @@
     profile?: any
   }>()
 
-  const emit = defineEmits(['update:settings', 'navigate'])
+  const emit = defineEmits(['update:settings', 'navigate', 'saved'])
 
   const localSettings = ref({
+    nutritionTrackingEnabled: props.profile?.nutritionTrackingEnabled ?? true,
     bmr: 1600,
     activityLevel: 'MODERATELY_ACTIVE',
     currentCarbMax: 60,
@@ -1020,6 +1047,7 @@
   const activityLevels = [
     { label: 'Sedentary', value: 'SEDENTARY' },
     { label: 'Lightly Active', value: 'LIGHTLY_ACTIVE' },
+    { label: 'Active', value: 'ACTIVE' },
     { label: 'Moderately Active', value: 'MODERATELY_ACTIVE' },
     { label: 'Very Active', value: 'VERY_ACTIVE' },
     { label: 'Extra Active', value: 'EXTRA_ACTIVE' }
@@ -1266,6 +1294,16 @@
   }
 
   watch(
+    () => props.profile,
+    (newVal) => {
+      if (newVal) {
+        localSettings.value.nutritionTrackingEnabled = newVal.nutritionTrackingEnabled
+      }
+    },
+    { immediate: true }
+  )
+
+  watch(
     () => props.settings,
     (newVal) => {
       if (!newVal) return
@@ -1303,6 +1341,7 @@
       })
 
       emit('update:settings', localSettings.value)
+      emit('saved')
     } catch (err: any) {
       toast.add({
         title: 'Save Failed',
