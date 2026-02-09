@@ -1,5 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
+import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -80,15 +82,9 @@ export default defineEventHandler(async (event) => {
           data: { feedback, feedbackText }
         })
       } else if (llmUsage.entityType === 'Workout') {
-        await prisma.workout.update({
-          where: { id: llmUsage.entityId },
-          data: { feedback, feedbackText }
-        })
+        await workoutRepository.update(llmUsage.entityId, { feedback, feedbackText })
       } else if (llmUsage.entityType === 'Nutrition') {
-        await prisma.nutrition.update({
-          where: { id: llmUsage.entityId },
-          data: { feedback, feedbackText }
-        })
+        await nutritionRepository.update(llmUsage.entityId, { feedback, feedbackText })
       } else if (llmUsage.entityType === 'Report') {
         await prisma.report.update({
           where: { id: llmUsage.entityId },

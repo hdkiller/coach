@@ -2,6 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { generateStructuredAnalysis } from '../../utils/gemini'
 import { getUserAiSettings } from '../../utils/ai-user-settings'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -98,13 +99,8 @@ export default defineEventHandler(async (event) => {
   const aiSettings = await getUserAiSettings(user.id)
 
   // Get recent nutrition entries
-  const nutrition = await prisma.nutrition.findMany({
-    where: {
-      userId: user.id,
-      date: {
-        gte: startDate
-      }
-    },
+  const nutrition = await nutritionRepository.getForUser(user.id, {
+    startDate,
     select: {
       date: true,
       calories: true,
@@ -112,10 +108,7 @@ export default defineEventHandler(async (event) => {
       carbs: true,
       fat: true
     },
-    orderBy: {
-      date: 'desc'
-    },
-    take: 10 // Last 10 days for context
+    limit: 10 // Last 10 days for context
   })
 
   const prompt = `You are a **${aiSettings.aiPersona}** expert nutrition coach analyzing trends for an endurance athlete.

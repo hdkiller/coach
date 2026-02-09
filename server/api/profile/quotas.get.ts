@@ -1,6 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { getQuotaSummary } from '../../utils/quotas/engine'
-import { QUOTA_REGISTRY, QuotaOperation } from '../../utils/quotas/registry'
+import { QUOTA_REGISTRY, type QuotaOperation } from '../../utils/quotas/registry'
 
 defineRouteMeta({
   openAPI: {

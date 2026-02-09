@@ -20,7 +20,8 @@ defineRouteMeta({
               description: { type: 'string' },
               type: { type: 'string', default: 'Ride' },
               durationSec: { type: 'integer' },
-              tss: { type: 'number' }
+              tss: { type: 'number' },
+              fuelingStrategy: { type: 'string', enum: ['STANDARD', 'TRAIN_LOW', 'HIGH_CARB'] }
             }
           }
         }
@@ -120,10 +121,28 @@ export default defineEventHandler(async (event) => {
       type: body.type || 'Ride',
       durationSec: body.durationSec || 3600,
       tss: body.tss,
+      fuelingStrategy: body.fuelingStrategy || 'STANDARD',
       completed: false,
       syncStatus,
       rawJson: intervalsWorkout || {}
     })
+
+    // If fueling strategy is not standard, trigger fueling plan generation immediately
+    if (body.fuelingStrategy && body.fuelingStrategy !== 'STANDARD') {
+      const { tasks } = await import('@trigger.dev/sdk/v3')
+      await tasks.trigger(
+        'generate-fueling-plan',
+        {
+          plannedWorkoutId: plannedWorkout.id,
+          userId,
+          date: forcedDate.toISOString()
+        },
+        {
+          concurrencyKey: userId,
+          tags: [`user:${userId}`]
+        }
+      )
+    }
 
     return {
       success: true,

@@ -1,4 +1,7 @@
 import { getServerSession } from '../../utils/session'
+import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -76,19 +79,13 @@ export default defineEventHandler(async (event) => {
     })
     resourceExists = !!report
   } else if (resourceType === 'WORKOUT') {
-    const workout = await prisma.workout.findFirst({
-      where: { id: resourceId, userId }
-    })
+    const workout = await workoutRepository.getById(resourceId, userId)
     resourceExists = !!workout
   } else if (resourceType === 'NUTRITION') {
-    const nutrition = await prisma.nutrition.findFirst({
-      where: { id: resourceId, userId }
-    })
+    const nutrition = await nutritionRepository.getById(resourceId, userId)
     resourceExists = !!nutrition
   } else if (resourceType === 'PLANNED_WORKOUT') {
-    const planned = await prisma.plannedWorkout.findFirst({
-      where: { id: resourceId, userId }
-    })
+    const planned = await plannedWorkoutRepository.getById(resourceId, userId)
     resourceExists = !!planned
   } else if (resourceType === 'TRAINING_PLAN') {
     const plan = await prisma.trainingPlan.findFirst({

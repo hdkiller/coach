@@ -26,7 +26,8 @@ defineRouteMeta({
               description: { type: 'string' },
               type: { type: 'string' },
               durationSec: { type: 'integer' },
-              tss: { type: 'number' }
+              tss: { type: 'number' },
+              fuelingStrategy: { type: 'string', enum: ['STANDARD', 'TRAIN_LOW', 'HIGH_CARB'] }
             }
           }
         }
@@ -114,9 +115,27 @@ export default defineEventHandler(async (event) => {
       ...(body.duration_minutes && { durationSec: body.duration_minutes * 60 }),
       ...(body.tss !== undefined && { tss: body.tss }),
       ...(body.workIntensity !== undefined && { workIntensity: body.workIntensity }),
+      ...(body.fuelingStrategy !== undefined && { fuelingStrategy: body.fuelingStrategy }),
       modifiedLocally: true,
       ...(importPlannedWorkouts && { syncStatus: 'PENDING' })
     })
+
+    // If fueling strategy changed, trigger fueling plan regeneration
+    if (body.fuelingStrategy && body.fuelingStrategy !== existing.fuelingStrategy) {
+      const { tasks } = await import('@trigger.dev/sdk/v3')
+      await tasks.trigger(
+        'generate-fueling-plan',
+        {
+          plannedWorkoutId: workoutId,
+          userId,
+          date: updated.date.toISOString()
+        },
+        {
+          concurrencyKey: userId,
+          tags: [`user:${userId}`]
+        }
+      )
+    }
 
     // Determine if it's a local-only workout that needs CREATE instead of UPDATE
     const isLocal =

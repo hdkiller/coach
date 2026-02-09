@@ -1,3 +1,6 @@
+import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+
 defineRouteMeta({
   openAPI: {
     tags: ['Public'],
@@ -82,16 +85,13 @@ export default defineEventHandler(async (event) => {
       where: { id: shareToken.resourceId }
     })
   } else if (shareToken.resourceType === 'WORKOUT') {
-    data = await prisma.workout.findUnique({
-      where: { id: shareToken.resourceId },
+    data = await workoutRepository.getById(shareToken.resourceId, shareToken.userId, {
       include: {
         streams: true
       }
     })
   } else if (shareToken.resourceType === 'NUTRITION') {
-    data = await prisma.nutrition.findUnique({
-      where: { id: shareToken.resourceId }
-    })
+    data = await nutritionRepository.getByIdInternal(shareToken.resourceId)
   } else if (shareToken.resourceType === 'ATHLETE_PROFILE') {
     data = await prisma.report.findUnique({
       where: { id: shareToken.resourceId }

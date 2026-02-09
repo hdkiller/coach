@@ -3,6 +3,8 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { getUserEntitlements } from '../../utils/entitlements'
+import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -73,29 +75,32 @@ export default defineEventHandler(async (event) => {
     // Fetch metadata for all tasks
     const [lastAnalyzedWorkout, lastAnalyzedNutrition, integrationStats] = await Promise.all([
       // Last analyzed workout (excluding duplicates)
-      prisma.workout.findFirst({
-        where: {
-          userId,
-          isDuplicate: false,
-          aiAnalysisStatus: 'COMPLETED'
-        },
-        select: {
-          aiAnalyzedAt: true
-        },
-        orderBy: { aiAnalyzedAt: 'desc' }
-      }),
+      workoutRepository
+        .getForUser(userId, {
+          where: {
+            aiAnalysisStatus: 'COMPLETED'
+          },
+          select: {
+            aiAnalyzedAt: true
+          },
+          orderBy: { aiAnalyzedAt: 'desc' },
+          limit: 1
+        })
+        .then((res) => res[0]),
 
       // Last analyzed nutrition
-      prisma.nutrition.findFirst({
-        where: {
-          userId,
-          aiAnalysisStatus: 'COMPLETED'
-        },
-        select: {
-          aiAnalyzedAt: true
-        },
-        orderBy: { aiAnalyzedAt: 'desc' }
-      }),
+      nutritionRepository
+        .getForUser(userId, {
+          where: {
+            aiAnalysisStatus: 'COMPLETED'
+          },
+          select: {
+            aiAnalyzedAt: true
+          },
+          orderBy: { aiAnalyzedAt: 'desc' },
+          limit: 1
+        })
+        .then((res) => res[0]),
 
       // Integration sync times
       prisma.integration.findMany({
@@ -107,18 +112,17 @@ export default defineEventHandler(async (event) => {
       })
     ])
 
-    // Count pending analyses and duplicates
+    // Count pending analyses and totals
     const [
       workoutPendingCount,
       nutritionPendingCount,
       totalWorkouts,
       totalNutrition,
-      duplicateCount
+      totalWithDuplicates
     ] = await Promise.all([
-      prisma.workout.count({
+      workoutRepository.count(userId, {
+        includeDuplicates: false,
         where: {
-          userId,
-          isDuplicate: false,
           OR: [
             { aiAnalysisStatus: 'NOT_STARTED' },
             { aiAnalysisStatus: 'PENDING' },
@@ -126,9 +130,8 @@ export default defineEventHandler(async (event) => {
           ]
         }
       }),
-      prisma.nutrition.count({
+      nutritionRepository.count(userId, {
         where: {
-          userId,
           OR: [
             { aiAnalysisStatus: 'NOT_STARTED' },
             { aiAnalysisStatus: 'PENDING' },
@@ -136,10 +139,12 @@ export default defineEventHandler(async (event) => {
           ]
         }
       }),
-      prisma.workout.count({ where: { userId, isDuplicate: false } }),
-      prisma.nutrition.count({ where: { userId } }),
-      prisma.workout.count({ where: { userId, isDuplicate: true } })
+      workoutRepository.count(userId, { includeDuplicates: false }),
+      nutritionRepository.count(userId),
+      workoutRepository.count(userId, { includeDuplicates: true })
     ])
+
+    const duplicateCount = totalWithDuplicates - totalWorkouts
 
     // Cap pending counts for FREE users
     const workoutPending =
@@ -167,16 +172,8 @@ export default defineEventHandler(async (event) => {
 
     // Get latest workout/nutrition dates for comparison
     const [latestWorkout, latestNutrition] = await Promise.all([
-      prisma.workout.findFirst({
-        where: { userId, isDuplicate: false },
-        orderBy: { date: 'desc' },
-        select: { date: true, createdAt: true }
-      }),
-      prisma.nutrition.findFirst({
-        where: { userId },
-        orderBy: { date: 'desc' },
-        select: { date: true, createdAt: true }
-      })
+      workoutRepository.getMostRecent(userId),
+      nutritionRepository.getMostRecent(userId)
     ])
 
     // Workout analysis metadata

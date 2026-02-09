@@ -1,7 +1,7 @@
 import { defineEventHandler, createError } from 'h3'
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
-import { QUOTA_REGISTRY, QuotaOperation } from '../../../../utils/quotas/registry'
+import { QUOTA_REGISTRY, type QuotaOperation } from '../../../../utils/quotas/registry'
 import type { SubscriptionTier } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
