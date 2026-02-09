@@ -96,6 +96,7 @@ export default defineEventHandler(async (event) => {
       try {
         intervalsWorkout = await createIntervalsPlannedWorkout(integration, {
           date: forcedDate,
+          startTime: body.startTime,
           title: body.title,
           description: body.description,
           type: body.type || 'Ride',
@@ -116,6 +117,7 @@ export default defineEventHandler(async (event) => {
       userId,
       externalId,
       date: forcedDate,
+      startTime: body.startTime,
       title: body.title,
       description: body.description || '',
       type: body.type || 'Ride',

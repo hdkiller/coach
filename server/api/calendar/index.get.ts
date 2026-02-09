@@ -314,6 +314,7 @@ export default defineEventHandler(async (event) => {
       id: p.id,
       title: p.title,
       date: workoutDate.toISOString(),
+      startTime: p.startTime,
       type: p.type || 'Workout',
       source: 'planned',
       status: status,
