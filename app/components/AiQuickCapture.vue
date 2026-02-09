@@ -1,9 +1,9 @@
 <template>
   <div
-    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-[width,opacity,transform] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col items-center"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 transition-[width,opacity,transform] duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col items-center max-w-2xl"
     :class="[
       !isVisible ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0',
-      shouldBeWide ? 'w-[calc(100%-2rem)] max-w-2xl' : 'w-40'
+      shouldBeWide ? 'w-[calc(100%-2rem)]' : 'w-40'
     ]"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
@@ -127,7 +127,6 @@
       >
         <UInput
           v-model="input"
-          icon="i-heroicons-sparkles"
           :placeholder="isExpanded ? 'Type a reply...' : 'Ask anything or log data...'"
           size="lg"
           variant="none"
@@ -135,10 +134,17 @@
           :loading="chatStatus === 'streaming'"
           :ui="{ icon: { leading: { wrapper: chatMessages.length > 0 ? 'cursor-pointer hover:text-primary-500 transition-colors' : '' } } }"
           @keyup.enter="handleSubmit"
-          @click:icon="toggleExpand"
           @focus="isFocused = true"
           @blur="isFocused = false"
         >
+          <template #leading>
+            <UIcon
+              name="i-heroicons-sparkles"
+              class="w-5 h-5 transition-colors"
+              :class="[shouldBeWide ? 'animate-pulse text-primary-500' : 'text-gray-400 dark:text-gray-500']"
+              @click="toggleExpand"
+            />
+          </template>
           <template #trailing>
             <div class="flex items-center gap-2 mr-1">
               <kbd
@@ -167,7 +173,7 @@
         class="absolute inset-0 flex items-center justify-center gap-2 px-4 transition-opacity duration-500"
         :class="shouldBeWide ? 'opacity-0 pointer-events-none' : 'opacity-100'"
       >
-        <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500 animate-pulse" />
+        <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
         <span class="text-xs font-black uppercase tracking-widest text-gray-500 truncate">Ask Coach</span>
       </div>
     </div>
