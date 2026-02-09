@@ -7,7 +7,7 @@ import { syncPlannedWorkoutToIntervals } from '../server/utils/intervals-sync'
 import { WorkoutConverter } from '../server/utils/workout-converter'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
-import { getUserTimezone } from '../server/utils/date'
+import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 
 const workoutStructureSchema = {
   type: 'object',
