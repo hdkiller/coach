@@ -113,7 +113,16 @@
             />
           </div>
 
-          <!-- Row 2: Recent Activity / Next Steps / Connection Status -->
+          <!-- Row 2: Daily Fueling (Full width if enabled) -->
+          <div v-if="userStore.profile?.nutritionTrackingEnabled">
+            <DashboardNutritionFuelingCard
+              :plan="todayNutrition?.fuelingPlan"
+              :loading="loadingNutrition"
+              @refresh="fetchTodayNutrition"
+            />
+          </div>
+
+          <!-- Row 3: Recent Activity / Next Steps / Connection Status -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             <!-- Recent Activity Card -->
             <DashboardRecentActivityCard />
@@ -339,7 +348,8 @@
       recommendationStore.fetchTodayRecommendation(),
       activityStore.fetchRecentActivity(),
       fetchUpcomingWorkouts(),
-      checkinStore.fetchToday()
+      checkinStore.fetchToday(),
+      fetchTodayNutrition()
     ])
 
     toast.add({
@@ -355,8 +365,25 @@
   const upcomingWorkouts = ref<any[]>([])
   const loadingUpcoming = ref(false)
   const isLoading = ref(true)
+  const todayNutrition = ref<any>(null)
+  const loadingNutrition = ref(false)
 
   const missingFields = computed(() => userStore.profile?.missingFields || [])
+
+  async function fetchTodayNutrition() {
+    loadingNutrition.value = true
+    try {
+      const dateStr = formatDateUTC(getUserLocalDate(), 'yyyy-MM-dd')
+      const data = await $fetch<any>(`/api/nutrition/${dateStr}`)
+      todayNutrition.value = data
+    } catch (error: any) {
+      if (error.statusCode !== 404) {
+        console.error('Failed to fetch today nutrition:', error)
+      }
+    } finally {
+      loadingNutrition.value = false
+    }
+  }
 
   async function fetchUpcomingWorkouts() {
     loadingUpcoming.value = true
@@ -390,7 +417,8 @@
           recommendationStore.fetchTodayRecommendation(),
           activityStore.fetchRecentActivity(),
           fetchUpcomingWorkouts(),
-          checkinStore.fetchToday()
+          checkinStore.fetchToday(),
+          fetchTodayNutrition()
         ])
       }
     } finally {
@@ -408,7 +436,8 @@
           recommendationStore.fetchTodayRecommendation(),
           activityStore.fetchRecentActivity(),
           fetchUpcomingWorkouts(),
-          checkinStore.fetchToday()
+          checkinStore.fetchToday(),
+          fetchTodayNutrition()
         ])
       }
     }

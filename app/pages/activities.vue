@@ -101,6 +101,16 @@
                 <span>Notes</span>
               </div>
               <div
+                class="flex items-center gap-3 border-l border-gray-300 dark:border-gray-700 pl-3"
+              >
+                <div class="flex items-center gap-1">
+                  <div class="w-2 h-2 rounded-full bg-blue-500" title="State 1: Eco" />
+                  <div class="w-2 h-2 rounded-full bg-orange-500" title="State 2: Steady" />
+                  <div class="w-2 h-2 rounded-full bg-red-500" title="State 3: Performance" />
+                </div>
+                <span>Fueling</span>
+              </div>
+              <div
                 class="flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 pl-3"
               >
                 <div class="w-4 h-1 bg-green-500 rounded-sm" />
@@ -310,6 +320,7 @@
                   :all-sport-settings="allSportSettings"
                   @activity-click="openActivity"
                   @wellness-click="openWellnessModal"
+                  @nutrition-click="openNutrition"
                   @merge-activity="onMergeActivity"
                   @link-activity="onLinkActivity"
                   @reschedule-activity="onRescheduleActivity"
@@ -381,13 +392,15 @@
                       >
                         <div
                           v-if="day.activities.find((a) => a.wellness)?.wellness?.recoveryScore"
-                          class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-[10px] font-bold text-blue-600 dark:text-blue-400"
+                          class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-[10px] font-bold text-blue-600 dark:text-blue-400 cursor-pointer"
+                          @click="openWellnessModal(day.date)"
                         >
                           {{ day.activities.find((a) => a.wellness)?.wellness?.recoveryScore }}% REC
                         </div>
                         <div
                           v-if="day.activities.find((a) => a.nutrition)?.nutrition?.calories"
-                          class="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-[10px] font-bold text-amber-600 dark:text-amber-400"
+                          class="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-[10px] font-bold text-amber-600 dark:text-amber-400 cursor-pointer"
+                          @click="openNutrition(day.date)"
                         >
                           {{
                             Math.round(
@@ -1215,6 +1228,11 @@
   function openWellnessModal(date: Date) {
     selectedWellnessDate.value = date
     showWellnessModal.value = true
+  }
+
+  function openNutrition(date: Date) {
+    const dateStr = formatDateUTC(date, 'yyyy-MM-dd')
+    navigateTo(`/nutrition/${dateStr}`)
   }
 
   function onMergeActivity({
