@@ -62,6 +62,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         workouts: workouts.map((w) => ({
           id: w.id,
           date: formatDateUTC(w.date),
+          time: w.startTime,
           title: w.title,
           type: w.type,
           duration: w.durationSec ? Math.round(w.durationSec / 60) + ' min' : undefined,
@@ -120,6 +121,7 @@ export const planningTools = (userId: string, timezone: string) => ({
       return workouts.map((w) => ({
         id: w.id,
         date: formatDateUTC(w.date),
+        time: w.startTime,
         title: w.title,
         type: w.type,
         duration: w.durationSec ? Math.round(w.durationSec / 60) + ' min' : undefined,
@@ -213,7 +215,7 @@ export const planningTools = (userId: string, timezone: string) => ({
     description: 'Create a future planned workout in the calendar.',
     inputSchema: z.object({
       date: z.string().describe('Date (YYYY-MM-DD)'),
-      time_of_day: z.string().optional(),
+      time_of_day: z.string().optional().describe('Time in HH:mm format'),
       title: z.string(),
       description: z.string().optional(),
       type: z.string().describe('Sport type (Ride, Run, Swim, etc)'),
@@ -229,6 +231,7 @@ export const planningTools = (userId: string, timezone: string) => ({
       const workout = await plannedWorkoutRepository.create({
         userId,
         date: new Date(args.date),
+        startTime: args.time_of_day,
         title: args.title,
         description: args.description || args.intensity,
         type: args.type,
@@ -266,6 +269,7 @@ export const planningTools = (userId: string, timezone: string) => ({
     inputSchema: z.object({
       workout_id: z.string(),
       date: z.string().optional(),
+      time_of_day: z.string().optional().describe('Time in HH:mm format'),
       title: z.string().optional(),
       description: z.string().optional(),
       type: z.string().optional(),
@@ -277,6 +281,7 @@ export const planningTools = (userId: string, timezone: string) => ({
       if (args.title) data.title = args.title
       if (args.description) data.description = args.description
       if (args.type) data.type = args.type
+      if (args.time_of_day) data.startTime = args.time_of_day
       if (args.duration_minutes) {
         data.durationSec = args.duration_minutes * 60
       }
@@ -422,6 +427,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         if (isLocal) {
           const intervalsWorkout = await createIntervalsPlannedWorkout(integration, {
             date: workout.date,
+            startTime: workout.startTime,
             title: workout.title,
             description: cleanDescription,
             type: workout.type || 'Ride',
@@ -440,6 +446,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         } else {
           await updateIntervalsPlannedWorkout(integration, workout.externalId, {
             date: workout.date,
+            startTime: workout.startTime,
             title: workout.title,
             description: cleanDescription,
             type: workout.type || 'Ride',

@@ -2,6 +2,7 @@ export interface CalendarActivity {
   id: string
   title: string
   date: string // ISO date string
+  startTime?: string | null
   type?: string
   source: 'completed' | 'planned' | 'note' | 'wellness' | 'nutrition'
   status: 'completed' | 'planned' | 'missed' | 'completed_plan' | 'note'
