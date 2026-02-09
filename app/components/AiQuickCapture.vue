@@ -206,7 +206,7 @@
   function onMouseLeave() {
     hoverTimeout = setTimeout(() => {
       isHovered.value = false
-    }, 300) // Keep it expanded for 300ms after mouse leaves
+    }, 3000) // Keep it expanded for 3s after mouse leaves
   }
 
   // Initialize Chat class (shallowRef so we can trigger updates when the instance is created)
