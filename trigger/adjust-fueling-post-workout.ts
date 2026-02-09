@@ -1,6 +1,7 @@
 import { task } from '@trigger.dev/sdk/v3'
-import { prisma } from '../server/utils/db' // Adjust path if needed
 import { getStartOfDayUTC } from '../server/utils/date'
+import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
+import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import type {
   SerializedFuelingPlan,
   SerializedFuelingWindow
@@ -12,8 +13,7 @@ export const adjustFuelingPostWorkoutTask = task({
     const { workoutId, userId } = payload
 
     // 1. Fetch Workout
-    const workout = await prisma.workout.findUnique({
-      where: { id: workoutId },
+    const workout = await workoutRepository.getById(workoutId, userId, {
       include: { plannedWorkout: true }
     })
 
@@ -49,9 +49,7 @@ export const adjustFuelingPostWorkoutTask = task({
 
     // 2. Fetch Nutrition Plan
     const date = getStartOfDayUTC(workout.date)
-    const nutrition = await prisma.nutrition.findUnique({
-      where: { userId_date: { userId, date } }
-    })
+    const nutrition = await nutritionRepository.getByDate(userId, date)
 
     if (!nutrition || !nutrition.fuelingPlan) {
       console.log(`No nutrition plan found for ${date}. Skipping.`)
@@ -84,13 +82,10 @@ export const adjustFuelingPostWorkoutTask = task({
     plan.dailyTotals.protein += 10
 
     // 4. Save
-    await prisma.nutrition.update({
-      where: { id: nutrition.id },
-      data: {
-        fuelingPlan: plan as any,
-        carbsGoal: plan.dailyTotals.carbs,
-        proteinGoal: plan.dailyTotals.protein
-      }
+    await nutritionRepository.update(nutrition.id, {
+      fuelingPlan: plan as any,
+      carbsGoal: plan.dailyTotals.carbs,
+      proteinGoal: plan.dailyTotals.protein
     })
 
     // 5. Notify (Todo: Push Notification or Chat Message)

@@ -1,6 +1,7 @@
 import { schedules } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { getStartOfDayUTC } from '../server/utils/date'
+import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import type { SerializedFuelingPlan } from '../server/utils/nutrition/fueling'
 
 export const nutritionLastCallTask = schedules.task({
@@ -43,9 +44,7 @@ export const nutritionLastCallTask = schedules.task({
 
       // 2. Fetch Nutrition Plan
       const dayStart = getStartOfDayUTC(workout.date)
-      const nutrition = await prisma.nutrition.findUnique({
-        where: { userId_date: { userId, date: dayStart } }
-      })
+      const nutrition = await nutritionRepository.getByDate(userId, dayStart)
 
       if (!nutrition || !nutrition.fuelingPlan) {
         // No plan yet? Maybe trigger generation?

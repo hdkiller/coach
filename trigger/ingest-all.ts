@@ -18,6 +18,7 @@ import { analyzeNutritionTask } from './analyze-nutrition'
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { auditLogRepository } from '../server/utils/repositories/auditLogRepository'
+import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import type { IngestionResult } from './types'
 
 export const ingestAllTask = task({
@@ -357,13 +358,10 @@ export const ingestAllTask = task({
         if (aiSettings.aiAutoAnalyzeNutrition) {
           logger.log('🤖 [Auto-Analyze] Nutrition updated: Checking for unanalyzed records...')
           // Find unanalyzed nutrition records in the date range
-          const unanalyzedNutrition = await prisma.nutrition.findMany({
+          const unanalyzedNutrition = await nutritionRepository.getForUser(userId, {
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
             where: {
-              userId,
-              date: {
-                gte: new Date(startDate),
-                lte: new Date(endDate)
-              },
               aiAnalysisStatus: 'NOT_STARTED'
             },
             select: { id: true, date: true }

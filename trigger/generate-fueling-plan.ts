@@ -3,6 +3,7 @@ import { prisma } from '../server/utils/db'
 import { calculateFuelingStrategy } from '../server/utils/nutrition/fueling'
 import { getUserNutritionSettings } from '../server/utils/nutrition/settings'
 import { getStartOfDayUTC, getUserTimezone } from '../server/utils/date'
+import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 
 export const generateFuelingPlanTask = task({
   id: 'generate-fueling-plan',
@@ -24,9 +25,7 @@ export const generateFuelingPlanTask = task({
     const timezone = await getUserTimezone(userId)
     const targetDateStart = getStartOfDayUTC(timezone, new Date(date))
 
-    const existingNutrition = await prisma.nutrition.findUnique({
-      where: { userId_date: { userId, date: targetDateStart } }
-    })
+    const existingNutrition = await nutritionRepository.getByDate(userId, targetDateStart)
 
     if (existingNutrition?.isManualLock) {
       console.log(`Nutrition for ${date} is locked by user. Skipping auto-update.`)
@@ -45,7 +44,16 @@ export const generateFuelingPlanTask = task({
       sodiumTarget: settings.sodiumTarget,
       sweatRate: settings.sweatRate || 0.8,
       preWorkoutWindow: settings.preWorkoutWindow,
-      postWorkoutWindow: settings.postWorkoutWindow
+      postWorkoutWindow: settings.postWorkoutWindow,
+      fuelingSensitivity: settings.fuelingSensitivity,
+      fuelState1Trigger: settings.fuelState1Trigger,
+      fuelState1Min: settings.fuelState1Min,
+      fuelState1Max: settings.fuelState1Max,
+      fuelState2Trigger: settings.fuelState2Trigger,
+      fuelState2Min: settings.fuelState2Min,
+      fuelState2Max: settings.fuelState2Max,
+      fuelState3Min: settings.fuelState3Min,
+      fuelState3Max: settings.fuelState3Max
     }
 
     const fuelingPlan = calculateFuelingStrategy(profile, {
@@ -54,9 +62,10 @@ export const generateFuelingPlanTask = task({
     })
 
     // 4. Update Nutrition Record
-    await prisma.nutrition.upsert({
-      where: { userId_date: { userId, date: targetDateStart } },
-      create: {
+    await nutritionRepository.upsert(
+      userId,
+      targetDateStart,
+      {
         userId,
         date: targetDateStart,
         fuelingPlan: fuelingPlan as any, // Cast to Json
@@ -66,7 +75,7 @@ export const generateFuelingPlanTask = task({
         proteinGoal: fuelingPlan.dailyTotals.protein,
         fatGoal: fuelingPlan.dailyTotals.fat
       },
-      update: {
+      {
         fuelingPlan: fuelingPlan as any,
         sourcePrecedence: 'AI',
         // Only update goals if not locked (checked above, but double check logic if partial)
@@ -75,7 +84,7 @@ export const generateFuelingPlanTask = task({
         proteinGoal: fuelingPlan.dailyTotals.protein,
         fatGoal: fuelingPlan.dailyTotals.fat
       }
-    })
+    )
 
     return {
       success: true,

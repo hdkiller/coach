@@ -6,6 +6,7 @@ import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils
 import { getUserTimezone, getStartOfDaysAgoUTC } from '../server/utils/date'
 import { getCheckinHistoryContext } from '../server/utils/services/checkin-service'
 import { recommendationRepository } from '../server/utils/repositories/recommendationRepository'
+import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { userReportsQueue } from './queues'
 
@@ -135,10 +136,9 @@ export const generateRecommendationsTask = task({
       orderBy: { date: 'desc' }
     })
 
-    const recentNutrition = await prisma.nutrition.findMany({
+    const recentNutrition = await nutritionRepository.getForUser(userId, {
+      startDate,
       where: {
-        userId,
-        date: { gte: startDate },
         aiAnalysis: { not: null }
       },
       select: {
@@ -146,8 +146,7 @@ export const generateRecommendationsTask = task({
         aiAnalysis: true,
         overallScore: true
       },
-      take: 5,
-      orderBy: { date: 'desc' }
+      limit: 5
     })
 
     // 5. Fetch Active Recommendations & Categories

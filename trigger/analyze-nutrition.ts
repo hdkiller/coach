@@ -1,7 +1,6 @@
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
-import { prisma } from '../server/utils/db'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate, formatDateUTC } from '../server/utils/date'
@@ -261,9 +260,7 @@ export const analyzeNutritionTask = task({
 
     try {
       // Fetch the nutrition record
-      const nutrition = await prisma.nutrition.findUnique({
-        where: { id: nutritionId }
-      })
+      const nutrition = await nutritionRepository.getByIdInternal(nutritionId)
 
       if (!nutrition) {
         throw new Error('Nutrition record not found')
