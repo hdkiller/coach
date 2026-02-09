@@ -217,30 +217,85 @@ Exposes the fueling plan to the AI agent.
 
 ### Phase 1: Schema & Utilities
 
-- [ ] Create `UserNutritionSettings` model with "Pro" fields (Gut training, Sodium).
-- [ ] Update `Nutrition` model with `fuelingPlan`.
-- [ ] Implement `calculateFuelingStrategy` utility function (Math + Overrides).
+- [x] Create `UserNutritionSettings` model with "Pro" fields (Gut training, Sodium).
+- [x] Update `Nutrition` model with `fuelingPlan`.
+- [x] Implement `calculateFuelingStrategy` utility function (Math + Overrides).
 
 ### Phase 2: Background Tasks (Trigger.dev)
 
-- [ ] Create `trigger/generate-fueling-plan.ts`.
+- [x] Create `trigger/generate-fueling-plan.ts`.
   - Listens for `planned-workout` events.
   - Applies "Train Low" logic if flagged.
-- [ ] Create `trigger/adjust-fueling-post-workout.ts`.
+- [x] Create `trigger/adjust-fueling-post-workout.ts`.
   - Listens for `workout` events.
   - Performs Delta check (Planned vs Actual).
 
 ### Phase 3: Chat Integration
 
-- [ ] Implement `get_fueling_recommendations` tool.
-- [ ] Update System Prompt to understand "Fueling Windows" & Supplements.
+- [x] Implement `get_fueling_recommendations` tool.
+- [x] Update System Prompt to understand "Fueling Windows" & Supplements.
 
 ### Phase 4: UI Updates
 
-- [ ] Update Nutrition Details page to visualize the `fuelingPlan` timeline (Pre/Intra/Post bars).
+- [x] Update Nutrition Details page to visualize the `fuelingPlan` timeline (Pre/Intra/Post bars).
+- [x] Implement Calendar "Fuel State" indicators and compliance rings.
+- [x] Implement Dashboard "Fueling Card" with Glycogen tank and timeline.
+- [x] Implement Planned Workout "Fueling Script" and Hydration targets.
+- [x] Implement Completed Workout "Metabolic Delta" and Stomach Feel feedback.
 
 ### Phase 5: "Pro" Polish (Advanced Triggers)
 
 - [ ] **TTE Logic**: Ensure `calculateFuelingStrategy` prioritizes Pre-Workout over Intra-Workout for short (<45m) high-intensity sessions.
 - [ ] **Last Call Notification**: 2h before workout: _"Fuel up now! Target: 60g carbs."_
 - [ ] **Hunger Sensor**: If `sleepScore` < 70 & `hrv` < baseline, suggest late-night Casein protein.
+
+## 7. UI/UX Implementation Plan
+
+### 7.1 The Calendar (The "Strategic View")
+
+**Role:** Long-term planning and periodization oversight.
+
+- **Component:** `app/components/CalendarDayCell.vue`
+- **Features:**
+  - **Fuel State Indicators:** Small color-coded dots (Blue: Eco/State 1, Orange: Steady/State 2, Red: Performance/State 3) on each day to visualize the "Carb Wave".
+  - **Compliance Score:** A subtle color ring around the date (Green: 90-110% adherence, Red: <80% or >120%) showing nutritional consistency.
+
+### 7.2 The Dashboard (The "Operational Hub")
+
+**Role:** Real-time guidance for the current day's execution.
+
+- **Component:** `app/components/dashboard/NutritionFuelingCard.vue` (New)
+- **Features:**
+  - **Main Gauge:** High-impact "Fuel State" header (visual theme shifts based on intensity).
+  - **Fueling Window Timeline:** Vertical list of Pre, Intra, and Post windows with macro targets.
+  - **Live Energy Graph:** A visualization showing projected glycogen "fuel tank" levels throughout the day.
+  - **AI Chat Bar:** Persistent bottom entry point for instant natural language logging (e.g., "I just had a banana").
+
+### 7.3 The Planned Workout Details (The "Prep Room")
+
+**Role:** Precise preparation instructions before exercise.
+
+- **Page:** `app/pages/workouts/planned/[id].vue`
+- **Features:**
+  - **Fueling Script:** A literal "To-Do" list for the workout (e.g., "0:45: Take 1 gel").
+  - **Hydration/Sodium Target:** Clear fluid (L) and Sodium (mg) targets derived from intensity and duration.
+  - **Gut Training Status:** A badge indicating if the session is a "Gut Training Test" with higher carb-per-hour targets.
+
+### 7.4 The Specific Day Page (The "Journal")
+
+**Role:** Granular tracking and meal timing verification.
+
+- **Page:** `app/pages/nutrition/[id].vue`
+- **Features:**
+  - **Window Grouping:** Meal list refactored to group items into their respective Fueling Windows (Pre/Intra/Post/Base).
+  - **Source Precedence Icons:** Visual indicators for data source (Yazio, AI Log, Manual Edit).
+
+### 7.5 The Completed Workout Details (The "Debrief")
+
+**Role:** Metabolic analysis and subjective feedback for system tuning.
+
+- **Page:** `app/pages/workouts/[id].vue`
+- **Features:**
+  - **Metabolic Delta:** Actual vs. Planned kJ comparison.
+  - **Recovery Correction Banner:** Prominent alert if over-performance requires extra recovery carbs (e.g., "Ride was +15% kJ. Added 40g carbs to recovery target").
+  - **Subjective Feedback:** A 1-5 "Stomach Feel" rating to help the AI calibrate the `currentCarbMax` setting.

@@ -87,4 +87,37 @@ Tracks usage of performance-enhancing supplements to provide AI-powered timing a
 - **Beta-Alanine**: Acid buffering.
 - **Sodium Bicarbonate**: Intracellular buffering.
 - **Glycerol**: Hyperhydration.
-- **Creatine, Collagen, Tart Cherry**: Recovery and structural support.
+- **Creatine, Collagen, Tart Cherry**: Recovery and structural integrity.
+
+## UI Implementation & Visualization
+
+The nutrition system is integrated across five primary views to provide a seamless "Plan-Execute-Debrief" loop:
+
+### 1. Strategic Calendar (Overview)
+
+- **Fuel State Dots**: Colored indicators (Blue/Eco, Orange/Steady, Red/Performance) on each day show the weekly "Carb Wave."
+- **Compliance Rings**: Subtle green or red rings around the date indicate whether macro targets were met for that day.
+
+### 2. Operational Dashboard (Execution)
+
+- **Nutrition Fueling Card**: A full-width dedicated section providing a real-time summary of the current day.
+- **Glycogen "Fuel Tank"**: Visual progress bar showing projected energy levels and metabolic state.
+- **Fueling Timeline**: Vertical list of windows (Pre, Intra, Post) with specific carb/protein targets and descriptions.
+- **AI Quick Log**: A persistent input bar for logging food items via natural language (e.g., "I just had a banana").
+
+### 3. Planned Workout "Prep Room" (Preparation)
+
+- **Nutrition & Fueling Prep**: Specific section inside planned workouts with step-by-step fueling scripts (e.g., "Take 1 gel every 45 minutes").
+- **Hydration Targets**: Clear fluid (L) and sodium (mg) requirements based on projected intensity and duration.
+- **Gut Training Badge**: Visual indicator for "Gut Training Test" sessions where carb intake is deliberately pushed toward your upper limit.
+
+### 4. Nutrition Journal (The "Specific Day")
+
+- **Window Grouping**: Food entries are automatically grouped into their respective fueling windows (Pre/Intra/Post/Daily Base) instead of a simple chronological list.
+- **Source Icons**: Clear visual markers showing where data originated (Synced from Yazio, logged via AI Chat, or manually entered).
+
+### 5. Workout Debrief (Metabolic Analysis)
+
+- **Metabolic Delta**: Comparison of actual kJ burned vs. planned work.
+- **Recovery Correction**: Automatic alerts if over-performance requires extra recovery fuel (e.g., "+40g carbs added to target").
+- **Subjective Feedback**: A "Stomach Feel" rating (1-5) used to tune and calibrate your future "Carb Max" settings.
