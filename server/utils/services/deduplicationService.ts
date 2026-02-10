@@ -345,11 +345,11 @@ export const deduplicationService = {
    * Executes the merge logic for a duplicate group.
    */
   async mergeDuplicateGroup(group: DuplicateGroup) {
-    if (group.toDelete.length === 0) return { deletedCount: 0, keptCount: 0 }
+    if (group.toDelete.length === 0) return { deletedCount: 0, keptCount: 1 }
 
     const duplicatesToDelete = await prisma.workout.findMany({
       where: { id: { in: group.toDelete } },
-      select: { id: true, plannedWorkoutId: true }
+      select: { id: true, plannedWorkoutId: true, streams: { select: { id: true } } }
     })
 
     // Collect planned workout IDs from duplicates
@@ -415,6 +415,7 @@ export const deduplicationService = {
     }
 
     // Special handling for plannedWorkoutId
+    let plannedWorkoutToUpdateId: string | null = null
     if (!bestWorkout.plannedWorkoutId) {
       if (plannedWorkoutIds.length > 0) {
         logger.log(`Transferring planned workout link from duplicate to best workout`, {
@@ -422,15 +423,7 @@ export const deduplicationService = {
           plannedWorkoutId: plannedWorkoutIds[0]
         })
         updates.plannedWorkoutId = plannedWorkoutIds[0]
-
-        // Mark the planned workout as completed
-        await prisma.plannedWorkout.update({
-          where: { id: plannedWorkoutIds[0] as string },
-          data: {
-            completed: true,
-            completionStatus: 'COMPLETED'
-          }
-        })
+        plannedWorkoutToUpdateId = plannedWorkoutIds[0] as string
       } else {
         // Use shared logic to find matching planned workout
         const matchingPlanned = await this.findProposedLink(bestWorkout)
@@ -441,86 +434,85 @@ export const deduplicationService = {
             title: matchingPlanned.title
           })
           updates.plannedWorkoutId = matchingPlanned.id
-
-          await prisma.plannedWorkout.update({
-            where: { id: matchingPlanned.id },
-            data: {
-              completed: true,
-              completionStatus: 'COMPLETED'
-            }
-          })
+          plannedWorkoutToUpdateId = matchingPlanned.id
         }
       }
     }
 
-    // Stream Transfer Logic
-    if (!bestWorkout.streams) {
-      const donorWithStreams = duplicatesList.find((w) => w.streams)
-      if (donorWithStreams) {
-        logger.log(
-          `Transferring streams from duplicate ${donorWithStreams.id} to best workout ${bestWorkout.id}`
-        )
-
-        // We need to move the stream record to the new workout ID
-        // First check if bestWorkout somehow has a stream record (collision protection)
-        const existingStream = await prisma.workoutStream.findUnique({
-          where: { workoutId: bestWorkout.id }
+    // Execute all database updates in a transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Update planned workout status if linked
+      if (plannedWorkoutToUpdateId) {
+        await tx.plannedWorkout.update({
+          where: { id: plannedWorkoutToUpdateId },
+          data: {
+            completed: true,
+            completionStatus: 'COMPLETED'
+          }
         })
+      }
 
-        if (!existingStream) {
-          await prisma.workoutStream.update({
+      // 2. Stream Transfer Logic
+      // Check if bestWorkout already has streams in DB to avoid collision
+      const existingBestStream = await tx.workoutStream.findUnique({
+        where: { workoutId: bestWorkout.id },
+        select: { id: true }
+      })
+
+      if (!existingBestStream) {
+        // Find a donor that has streams
+        const donorWithStreams = duplicatesToDelete.find((w) => w.streams)
+        if (donorWithStreams) {
+          logger.log(
+            `Transferring streams from duplicate ${donorWithStreams.id} to best workout ${bestWorkout.id}`
+          )
+          await tx.workoutStream.update({
             where: { workoutId: donorWithStreams.id },
             data: { workoutId: bestWorkout.id }
           })
-          // Update local state (reference only, doesn't affect DB)
-          bestWorkout.streams = donorWithStreams.streams
         }
       }
-    }
 
-    // Exercise Transfer Logic
-    // If best workout has no exercises, check if a duplicate does and transfer them
-    if (!bestWorkout.exercises || bestWorkout.exercises.length === 0) {
-      // Find a donor with exercises
-      const donorWithExercises = duplicatesList.find((w) => w.exercises && w.exercises.length > 0)
-      if (donorWithExercises) {
-        logger.log(
-          `Transferring exercises from duplicate ${donorWithExercises.id} to best workout ${bestWorkout.id}`
-        )
+      // 3. Exercise Transfer Logic
+      // Move exercise records if primary has none
+      const existingBestExercises = await tx.workoutExercise.count({
+        where: { workoutId: bestWorkout.id }
+      })
 
-        // Move the exercise records to the new workout ID
-        await prisma.workoutExercise.updateMany({
-          where: { workoutId: donorWithExercises.id },
-          data: { workoutId: bestWorkout.id }
-        })
-
-        // Update local state (reference only)
-        bestWorkout.exercises = donorWithExercises.exercises
+      if (existingBestExercises === 0) {
+        const donorWithExercises = duplicatesList.find((w) => w.exercises && w.exercises.length > 0)
+        if (donorWithExercises) {
+          logger.log(
+            `Transferring exercises from duplicate ${donorWithExercises.id} to best workout ${bestWorkout.id}`
+          )
+          await tx.workoutExercise.updateMany({
+            where: { workoutId: donorWithExercises.id },
+            data: { workoutId: bestWorkout.id }
+          })
+        }
       }
-    }
 
-    // Apply updates if any
-    if (Object.keys(updates).length > 0) {
-      await workoutRepository.update(group.bestWorkoutId, updates)
-      // Update local object for consistency
-      Object.assign(bestWorkout, updates)
-    }
-
-    // Mark duplicates
-    // Note: We use individual updates because updateMany doesn't always support foreign key scalars in all Prisma versions/configs
-    for (const id of group.toDelete) {
-      await workoutRepository.update(id, {
-        isDuplicate: true,
-        canonicalWorkout: { connect: { id: group.bestWorkoutId } }
+      // 4. Update primary workout with merged fields and completeness score
+      updates.completenessScore = this.calculateCompletenessScore({ ...bestWorkout, ...updates })
+      await tx.workout.update({
+        where: { id: group.bestWorkoutId },
+        data: updates
       })
-    }
 
-    // Update completeness score
-    if (bestWorkout) {
-      await workoutRepository.update(group.bestWorkoutId, {
-        completenessScore: bestWorkout.completenessScore
-      })
-    }
+      // 5. Mark duplicates with both boolean and explicit link
+      for (const id of group.toDelete) {
+        await tx.workout.update({
+          where: { id },
+          data: {
+            isDuplicate: true,
+            duplicateOf: group.bestWorkoutId
+          }
+        })
+      }
+    })
+
+    // Update local bestWorkout object for consistency if needed by caller
+    Object.assign(bestWorkout, updates)
 
     return {
       deletedCount: group.toDelete.length,
