@@ -96,10 +96,17 @@
                     <UIcon name="i-heroicons-calendar" class="w-4 h-4" />
                     <span class="whitespace-nowrap">{{ formatDate(workout.date) }}</span>
                   </div>
-                  <div v-if="workout.startTime" class="flex items-center gap-1 flex-shrink-0">
+                  <div
+                    class="flex items-center gap-1 flex-shrink-0 cursor-pointer hover:text-primary transition-colors group"
+                    @click="openTimeModal"
+                  >
                     <span class="hidden sm:inline">•</span>
                     <UIcon name="i-heroicons-clock" class="w-4 h-4" />
-                    <span class="whitespace-nowrap">{{ workout.startTime }}</span>
+                    <span class="whitespace-nowrap">{{ workout.startTime || 'Set Time' }}</span>
+                    <UIcon
+                      name="i-heroicons-pencil"
+                      class="w-3 h-3 ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
                   </div>
                   <span class="hidden sm:inline">•</span>
                   <div class="flex items-center gap-1 flex-shrink-0">
@@ -601,6 +608,29 @@
       <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
     </template>
   </UModal>
+
+  <UModal
+    v-if="showTimeModal"
+    v-model:open="showTimeModal"
+    title="Set Start Time"
+    description="Adjust the starting time for this workout."
+  >
+    <template #body>
+      <div class="p-6 flex flex-col gap-5">
+        <div class="w-full">
+          <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200"
+            >Start Time</label
+          >
+          <UInput v-model="timeForm.startTime" type="time" class="w-full" />
+        </div>
+
+        <div class="flex justify-end pt-2 gap-2">
+          <UButton variant="ghost" @click="showTimeModal = false">Cancel</UButton>
+          <UButton color="primary" :loading="updatingTime" @click="submitTime">Update Time</UButton>
+        </div>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -629,6 +659,8 @@
   const showDeleteModal = ref(false)
   const deleting = ref(false)
   const showAdjustModal = ref(false)
+  const showTimeModal = ref(false)
+  const updatingTime = ref(false)
   const showMessageModal = ref(false)
   const showDownloadModal = ref(false)
   const showPublishModal = ref(false)
@@ -636,6 +668,9 @@
     durationMinutes: 60,
     intensity: 'moderate',
     feedback: ''
+  })
+  const timeForm = reactive({
+    startTime: ''
   })
   const messageForm = reactive({
     tone: 'Motivational',
@@ -1007,6 +1042,37 @@
                 : 'recovery'
     }
     showAdjustModal.value = true
+  }
+
+  function openTimeModal() {
+    timeForm.startTime = workout.value?.startTime || ''
+    showTimeModal.value = true
+  }
+
+  async function submitTime() {
+    if (!workout.value?.id) return
+    updatingTime.value = true
+    try {
+      await $fetch(`/api/planned-workouts/${workout.value.id}`, {
+        method: 'PATCH',
+        body: { startTime: timeForm.startTime }
+      })
+      workout.value.startTime = timeForm.startTime
+      toast.add({
+        title: 'Time Updated',
+        description: 'The workout start time has been updated.',
+        color: 'success'
+      })
+      showTimeModal.value = false
+    } catch (error: any) {
+      toast.add({
+        title: 'Update Failed',
+        description: error.data?.message || 'Failed to update start time',
+        color: 'error'
+      })
+    } finally {
+      updatingTime.value = false
+    }
   }
 
   function openMessageModal() {
