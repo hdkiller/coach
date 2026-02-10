@@ -60,7 +60,8 @@ export default defineEventHandler(async (event) => {
 
         await sendTelegramMessage(
           chatId,
-          "🚴 **Connected!** I'm Coach Watts.\n\nI'm ready to analyze your data and help you crush your goals. Ask me anything about your training, nutrition, or recovery."
+          "🚴 **Connected!** I'm Coach Watts.\n\nI'm ready to analyze your data and help you crush your goals. Ask me anything about your training, nutrition, or recovery.",
+          'Markdown'
         )
         return { status: 'linked' }
       } else {
@@ -152,6 +153,27 @@ export default defineEventHandler(async (event) => {
     roomId = existingRoom.id
   }
 
+  // 4. Handle Authenticated Commands
+  if (text === '/help') {
+    const helpText = [
+      '⚡ **Coach Watts Telegram Help**',
+      '',
+      '/help - Show this help message',
+      '/roominfo - Get the current chat room ID',
+      '/start - Restart or link your account',
+      '',
+      'Just send me a message to start chatting! I can help with training plans, nutrition, and analyzing your workouts.'
+    ].join('\n')
+    await sendTelegramMessage(chatId, helpText, 'Markdown')
+    return { status: 'help' }
+  }
+
+  if (text === '/roominfo') {
+    await sendTelegramMessage(chatId, `Current Room ID: \`${roomId}\``, 'Markdown')
+    return { status: 'roominfo' }
+  }
+
+  // 5. Process Chat Message
   // Save User Message
   await chatService.saveUserMessage({
     userId,

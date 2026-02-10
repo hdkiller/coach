@@ -1,4 +1,8 @@
-export const sendTelegramMessage = async (chatId: string | number, text: string) => {
+export const sendTelegramMessage = async (
+  chatId: string | number,
+  text: string,
+  parseMode?: 'Markdown' | 'HTML'
+) => {
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) {
     console.error('TELEGRAM_BOT_TOKEN not set')
@@ -12,9 +16,8 @@ export const sendTelegramMessage = async (chatId: string | number, text: string)
       method: 'POST',
       body: {
         chat_id: chatId,
-        text: text
-        // We avoid parse_mode='Markdown' initially to prevent crashes on unescaped chars
-        // parse_mode: 'Markdown'
+        text: text,
+        parse_mode: parseMode
       }
     })
   } catch (error: any) {
