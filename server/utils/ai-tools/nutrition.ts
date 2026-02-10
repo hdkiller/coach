@@ -159,6 +159,12 @@ export const nutritionTools = (userId: string, timezone: string) => ({
       )
       const dateUtc = getUserLocalDate(timezone, localDate)
 
+      // Add IDs to items if they don't have them
+      const itemsWithIds = items.map((item) => ({
+        id: crypto.randomUUID(),
+        ...item
+      }))
+
       // Get existing record or create new
       let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
 
@@ -166,12 +172,12 @@ export const nutritionTools = (userId: string, timezone: string) => ({
         nutrition = await nutritionRepository.create({
           userId,
           date: dateUtc,
-          [meal_type]: items
+          [meal_type]: itemsWithIds
         })
       } else {
         // Append items to existing meal
         const currentItems = (nutrition[meal_type] as any[]) || []
-        const updatedItems = [...currentItems, ...items]
+        const updatedItems = [...currentItems, ...itemsWithIds]
 
         nutrition = await nutritionRepository.update(nutrition.id, {
           [meal_type]: updatedItems

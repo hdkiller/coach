@@ -1,0 +1,163 @@
+import { getServerSession } from '../../../utils/session'
+import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
+import { generateStructuredAnalysis } from '../../../utils/gemini'
+import { z } from 'zod'
+
+const LogSchema = z.object({
+  query: z.string(),
+  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']).optional()
+})
+
+const FoodItemSchema = z.object({
+  items: z.array(
+    z.object({
+      name: z.string().describe('Clear name of the food item (e.g. "Oatmeal", "Blueberries")'),
+      calories: z.number().describe('Estimated calories'),
+      protein: z.number().describe('Grams of protein'),
+      carbs: z.number().describe('Grams of carbohydrates'),
+      fat: z.number().describe('Grams of fat'),
+      fiber: z.number().optional().describe('Grams of fiber'),
+      sugar: z.number().optional().describe('Grams of sugar'),
+      amount: z.number().optional().describe('Numeric quantity'),
+      unit: z.string().optional().describe('Unit of measurement (e.g. "g", "ml", "cup")'),
+      quantity: z
+        .string()
+        .optional()
+        .describe('Human readable quantity (e.g. "1 bowl", "a handful")'),
+      mealType: z
+        .enum(['breakfast', 'lunch', 'dinner', 'snacks'])
+        .optional()
+        .describe('The meal category'),
+      logged_at: z
+        .string()
+        .optional()
+        .describe('Time of consumption in HH:mm format (24h) if mentioned')
+    })
+  )
+})
+
+export default defineEventHandler(async (event) => {
+  const session = await getServerSession(event)
+  if (!session?.user) {
+    throw createError({ statusCode: 401, message: 'Unauthorized' })
+  }
+
+  const userId = (session.user as any).id
+  const id = getRouterParam(event, 'id')
+  const body = await readBody(event)
+  const { query, mealType } = LogSchema.parse(body)
+
+  let nutrition: any = null
+  let dateStr = ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(id!)) {
+    dateStr = id!
+    const dateObj = new Date(`${id}T00:00:00Z`)
+    nutrition = await nutritionRepository.getByDate(userId, dateObj)
+  } else {
+    nutrition = await nutritionRepository.getById(id!, userId)
+    if (nutrition) {
+      dateStr = nutrition.date.toISOString().split('T')[0]
+    }
+  }
+
+  if (!nutrition) {
+    // If not found, we still need a date to create one later
+    if (!dateStr) throw createError({ statusCode: 404, message: 'Nutrition entry not found' })
+  }
+
+  // Use AI to parse the query
+  const prompt = `
+    You are a nutrition expert. Analyze the following food log entry and extract individual food items with their estimated nutritional values.
+    
+    User Query: "${query}"
+    Target Date: ${dateStr}
+    Default Meal Type: ${mealType || 'unknown'}
+
+    CRITICAL INSTRUCTIONS:
+    1. For each food item, provide a clear 'name'.
+    2. Estimate calories, protein, carbs, and fat based on standard nutritional data if not provided.
+    3. Use the 'quantity' field for descriptions like "1 bowl" or "a handful".
+    4. If the user mentions a specific time (e.g. "at 9:30", "around 10am"), extract it into 'logged_at' in HH:mm format (24h).
+    5. If the user doesn't specify a meal type (breakfast, lunch, dinner, snacks), try to infer it from the query context (e.g. "morning" implies breakfast) or the time mentioned.
+    6. Return a JSON object with an 'items' array matching the schema.
+  `
+
+  const result = await generateStructuredAnalysis<any>(prompt, FoodItemSchema, 'flash', {
+    userId,
+    operation: 'LOG_NUTRITION_AI'
+  })
+
+  if (!result.items || result.items.length === 0) {
+    return { success: false, message: 'Could not parse any food items from your query.' }
+  }
+
+  // Update nutrition record
+  if (!nutrition) {
+    const dateObj = new Date(`${dateStr}T00:00:00Z`)
+    // We need to create it
+    // Group items by mealType
+    const meals: any = { breakfast: [], lunch: [], dinner: [], snacks: [] }
+    result.items.forEach((item: any) => {
+      const targetMeal = item.mealType || mealType || 'snacks'
+      meals[targetMeal].push({
+        ...item,
+        id: crypto.randomUUID(),
+        source: 'ai'
+      })
+    })
+
+    nutrition = await nutritionRepository.create({
+      userId,
+      date: dateObj,
+      ...meals
+    })
+  } else {
+    // Update existing record
+    const updates: any = {}
+    result.items.forEach((item: any) => {
+      const targetMeal = item.mealType || mealType || 'snacks'
+      if (!updates[targetMeal]) {
+        updates[targetMeal] = [...((nutrition[targetMeal] as any[]) || [])]
+      }
+      updates[targetMeal].push({
+        ...item,
+        id: crypto.randomUUID(),
+        source: 'ai'
+      })
+    })
+
+    nutrition = await nutritionRepository.update(nutrition.id, updates)
+  }
+
+  // Recalculate daily totals
+  const mealsList = ['breakfast', 'lunch', 'dinner', 'snacks']
+  let calories = 0
+  let protein = 0
+  let carbs = 0
+  let fat = 0
+  let fiber = 0
+  let sugar = 0
+
+  for (const meal of mealsList) {
+    const items = (nutrition[meal] as any[]) || []
+    for (const i of items) {
+      calories += i.calories || 0
+      protein += i.protein || 0
+      carbs += i.carbs || 0
+      fat += i.fat || 0
+      fiber += i.fiber || 0
+      sugar += i.sugar || 0
+    }
+  }
+
+  await nutritionRepository.update(nutrition.id, {
+    calories,
+    protein,
+    carbs,
+    fat,
+    fiber,
+    sugar
+  })
+
+  return { success: true, itemsAdded: result.items }
+})
