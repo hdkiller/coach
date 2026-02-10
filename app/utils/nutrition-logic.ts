@@ -117,10 +117,12 @@ export function calculateGlycogenState(
 export interface EnergyPoint {
   time: string
   timestamp: number
-  level: number
+  level: number       // % capacity
+  kcalBalance: number // +/- kcal relative to day start
   isFuture: boolean
   event?: string
-  meal?: string
+  eventType?: 'workout' | 'meal'
+  eventIcon?: string
 }
 
 /**
@@ -140,21 +142,21 @@ export function calculateEnergyTimeline(
   const INTERVAL = 15 // minutes
   const TOTAL_POINTS = (24 * 60) / INTERVAL
 
-  // 1. Athlete Constants (Normalization)
-  // Standard Capacity: Weight * mu (mu = 8g glycogen/kg for trained athletes)
+  // 1. Athlete Constants
   const weight = settings?.user?.weight || 75
-  const C_cap = weight * 8 
+  const C_cap_grams = weight * 8 
   
   // 2. Initial State (Morning Baseline)
-  // Simulation starts at 00:00. Start at 85% to allow for some drain before breakfast.
-  let currentGrams = C_cap * 0.85
+  // Start at 85% capacity at midnight
+  let currentGrams = C_cap_grams * 0.85
+  let currentKcalDelta = 0 // Starting point for the day
 
   // 3. Resting Drain (Brain/CNS)
-  // Rdrain (g/15min) = (BMR * 0.60) / (4 * 96)
   const dailyBmr = settings?.bmr || 1600
-  const intervalRestDrain = (dailyBmr * 0.6) / (4 * 96)
+  const intervalRestDrainGrams = (dailyBmr * 0.6) / (4 * 96)
+  const intervalRestDrainKcal = (dailyBmr * 1.2) / 96
 
-  // 4. Prep Meals with Delayed Absorption (Sigmoid for Mixed, Linear for Fast)
+  // 4. Prep Meals
   const meals: any[] = []
   const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks']
   const mealPattern = settings?.mealPattern || []
@@ -183,6 +185,7 @@ export function calculateEnergyTimeline(
             time: mealTime,
             name: item.name,
             totalCarbs: item.carbs || 0,
+            totalKcal: item.calories || 0,
             type: item.name?.toLowerCase().includes('gel') ? 'FAST' : 'MIXED'
           })
         }
@@ -190,23 +193,28 @@ export function calculateEnergyTimeline(
     }
   })
 
-  // 5. Prep Workouts with Oxidation Rates
+  // 5. Prep Workouts
   const workoutEvents = workouts.map((w) => {
     const start = new Date(w.startTime || w.date)
     const durationMin = (w.durationSec || 3600) / 60
     const intensity = w.intensityFactor || w.workIntensity || 0.7
 
     // Oxidation rate lookup (g/min)
-    let gramsPerMin = 1.5 // Default Z2
-    if (intensity > 0.9) gramsPerMin = 4.25 // Z4+
-    else if (intensity > 0.75) gramsPerMin = 2.75 // Z3
-    else if (intensity < 0.6) gramsPerMin = 0.75 // Z1
+    let gramsPerMin = 1.5
+    if (intensity > 0.9) gramsPerMin = 4.5
+    else if (intensity > 0.75) gramsPerMin = 3.0
+    else if (intensity < 0.6) gramsPerMin = 0.8
+
+    // Kcal burn
+    const kcalPerMin = (gramsPerMin * 4) / 0.8 
 
     return {
       start,
       end: new Date(start.getTime() + durationMin * 60000),
-      drainPerInterval: gramsPerMin * INTERVAL,
-      title: w.title
+      drainGramsPerInterval: gramsPerMin * INTERVAL,
+      drainKcalPerInterval: kcalPerMin * INTERVAL,
+      title: w.title,
+      type: w.type
     }
   })
 
@@ -214,60 +222,65 @@ export function calculateEnergyTimeline(
   for (let i = 0; i <= TOTAL_POINTS; i++) {
     const currentTime = new Date(dayStart.getTime() + i * INTERVAL * 60000)
 
-    // --- SUBTRACT DRAIN (Resting) ---
+    // --- SUBTRACT DRAIN ---
     if (i > 0) {
-      currentGrams -= intervalRestDrain
+      currentGrams -= intervalRestDrainGrams
+      currentKcalDelta -= intervalRestDrainKcal
     }
 
     // --- SUBTRACT EXERCISE ---
     const activeWorkout = workoutEvents.find((w) => currentTime >= w.start && currentTime <= w.end)
     if (activeWorkout) {
-      currentGrams -= activeWorkout.drainPerInterval
+      currentGrams -= activeWorkout.drainGramsPerInterval
+      currentKcalDelta -= activeWorkout.drainKcalPerInterval
     }
 
-    // --- ADD ABSORPTION (The Refill) ---
+    // --- ADD ABSORPTION ---
     let intervalGramsIn = 0
-    let intervalMealLabel = ''
+    let intervalKcalIn = 0
+    let intervalEvent: any = null
 
     meals.forEach((meal) => {
       const minsSince = (currentTime.getTime() - meal.time.getTime()) / 60000
       if (minsSince >= 0) {
         if (meal.type === 'FAST') {
-          // Linear ramp over 30 mins
           if (minsSince <= 30) {
-            intervalGramsIn += meal.totalCarbs / (30 / INTERVAL)
+            const factor = INTERVAL / 30
+            intervalGramsIn += meal.totalCarbs * factor
+            intervalKcalIn += meal.totalKcal * factor
           }
         } else {
-          // Mixed Meal Sigmoid: A(t) = M_total / (1 + e^-k(t-t0))
-          const k = 0.08
-          const t0 = 60
+          const k = 0.08, t0 = 60
           const sigmoid = (t: number) => 1 / (1 + Math.exp(-k * (t - t0)))
-          const absorbedAtCurrent = sigmoid(minsSince)
-          const absorbedAtPrev = sigmoid(minsSince - INTERVAL)
-          intervalGramsIn += meal.totalCarbs * (absorbedAtCurrent - absorbedAtPrev)
+          const delta = sigmoid(minsSince) - sigmoid(minsSince - INTERVAL)
+          intervalGramsIn += meal.totalCarbs * delta
+          intervalKcalIn += meal.totalKcal * delta
         }
       }
       
-      // Marker detection
       if (minsSince >= 0 && minsSince < INTERVAL) {
-        intervalMealLabel = meal.name
+        intervalEvent = { name: meal.name, type: 'meal', icon: 'i-tabler-tools-kitchen-2' }
       }
     })
 
-    // Cap Absorption (max 90g/hr = 22.5g/15min)
-    currentGrams += Math.min(intervalGramsIn, 22.5)
+    currentGrams += Math.min(intervalGramsIn, 22.5) 
+    currentKcalDelta += intervalKcalIn
 
-    // Bounds check
-    currentGrams = Math.max(0, Math.min(C_cap, currentGrams))
-    const levelPercentage = Math.round((currentGrams / C_cap) * 100)
+    currentGrams = Math.max(0, Math.min(C_cap_grams, currentGrams))
+    
+    if (activeWorkout && (currentTime.getTime() - activeWorkout.start.getTime()) < (INTERVAL * 60000)) {
+       intervalEvent = { name: activeWorkout.title, type: 'workout', icon: 'i-tabler-bike' }
+    }
 
     points.push({
       time: currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
       timestamp: currentTime.getTime(),
-      level: levelPercentage,
+      level: Math.round((currentGrams / C_cap_grams) * 100),
+      kcalBalance: Math.round(currentKcalDelta),
       isFuture: currentTime > now,
-      event: activeWorkout?.title,
-      meal: intervalMealLabel || undefined
+      event: intervalEvent?.name,
+      eventType: intervalEvent?.type,
+      eventIcon: intervalEvent?.icon
     })
   }
 

@@ -111,21 +111,10 @@
     <!-- Active Plan Content -->
     <div v-else class="p-4 space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-        <!-- Left Side: Tank & Info -->
-        <div class="space-y-6">
-          <!-- Live Energy Visualization -->
-          <div class="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
-            <div class="flex items-center justify-between mb-4">
-               <h4 class="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5">
-                <UIcon name="i-heroicons-bolt" class="w-3.5 h-3.5 text-primary-500" />
-                Live Energy Availability
-              </h4>
-              <span v-if="currentLevel < 25" class="text-[9px] font-black uppercase text-red-500 animate-pulse">Low Fuel Warning</span>
-            </div>
-            <NutritionLiveEnergyChart :points="energyPoints" />
-          </div>
-
-          <!-- Fuel Tank Visualization -->
+                <!-- Left Side: Tank & Info -->
+                <div class="space-y-6">
+                  <!-- Fuel Tank Visualization -->
+        
           <div class="space-y-2 group cursor-pointer" @click="showExplainModal = true">
             <div class="flex justify-between text-xs font-bold uppercase tracking-wider">
               <span class="text-gray-500 flex items-center gap-1">
@@ -257,6 +246,47 @@
               Full Nutrition Overview
             </UButton>
           </div>
+
+          <!-- Live Energy Visualization -->
+          <div
+            class="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 p-4"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-1.5">
+                <h4
+                  class="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5"
+                >
+                  <UIcon name="i-heroicons-bolt" class="w-3.5 h-3.5 text-primary-500" />
+                  Live Energy Availability
+                </h4>
+                <span
+                  v-if="currentLevel < 25"
+                  class="text-[9px] font-black uppercase text-red-500 animate-pulse ml-2"
+                  >Low Fuel Warning</span
+                >
+              </div>
+              <UTabs
+                v-model="energyViewIdx"
+                :items="[{ label: '%', value: '0' }, { label: 'kcal', value: '1' }]"
+                size="xs"
+                class="w-24"
+                @update:model-value="console.log('[FuelingCard] View switched to:', $event)"
+              />
+            </div>
+            <NutritionLiveEnergyChart :points="energyPoints" :view-mode="energyViewMode" />
+            
+            <!-- Legend/Status (Moved from Chart component) -->
+            <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-gray-400 px-1 mt-4">
+              <div class="flex gap-3">
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary-500"></span> Actual</span>
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full border border-primary-500 border-dashed"></span> Predicted</span>
+              </div>
+              <div class="flex gap-3">
+                <span class="flex items-center gap-1"><UIcon name="i-tabler-tools-kitchen-2" class="w-3 h-3 text-green-500" /> Meal</span>
+                <span class="flex items-center gap-1"><UIcon name="i-tabler-bike" class="w-3 h-3 text-red-500" /> Workout</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Right Side: Timeline -->
@@ -367,6 +397,9 @@
 
   const itemModal = ref<any>(null)
   const aiModal = ref<any>(null)
+
+  const energyViewIdx = ref('0') // '0': %, '1': kcal
+  const energyViewMode = computed(() => energyViewIdx.value === '0' ? 'percent' : 'kcal')
 
   function handleAddItem(event: { type: string; meals?: string[] }) {
     let mealType = 'snacks'
