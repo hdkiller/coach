@@ -3,12 +3,6 @@
     <UCard>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-full">
-            <UIcon
-              name="i-heroicons-beaker"
-              class="w-6 h-6 text-primary-600 dark:text-primary-400"
-            />
-          </div>
           <div>
             <h3 class="text-base font-bold text-gray-900 dark:text-white">
               Enable Nutrition System
