@@ -11,8 +11,32 @@ export default defineEventHandler(async (event) => {
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  // 1. Integrations Stats
+  // 1. Daily Check-ins (Last 30 Days)
+  const dailyCheckinsByDayRaw = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
+    SELECT "date" as date, COUNT(*) as count
+    FROM "DailyCheckin"
+    WHERE "date" >= ${thirtyDaysAgo}
+    GROUP BY "date"
+    ORDER BY date ASC
+  `
+
+  // 2. Recurring Active Users (LLM activity on >= 3 unique days in last 7 days)
+  const recurringUsersCountRaw = await prisma.$queryRaw<{ count: bigint }[]>`
+    SELECT COUNT(*)::bigint as count FROM (
+      SELECT "userId"
+      FROM "LlmUsage"
+      WHERE "createdAt" >= ${sevenDaysAgo}
+        AND "userId" IS NOT NULL
+      GROUP BY "userId"
+      HAVING COUNT(DISTINCT DATE("createdAt")) >= 3
+    ) as subquery
+  `
+  const recurringUsersCount = Number(recurringUsersCountRaw[0]?.count || 0)
+
+  // 3. Integrations Stats
   const integrations = await prisma.integration.groupBy({
     by: ['provider'],
     _count: {
@@ -105,6 +129,7 @@ export default defineEventHandler(async (event) => {
 
   const usersByDay = fillMissingDays(mapToRecord(usersByDayRaw, 'count'))
   const activeUsersByDay = fillMissingDays(mapToRecord(activeUsersByDayRaw, 'count'))
+  const dailyCheckinsByDay = fillMissingDays(mapToRecord(dailyCheckinsByDayRaw, 'count'))
 
   // 6. Users by Country
   const usersByCountry = await prisma.user.groupBy({
@@ -126,11 +151,13 @@ export default defineEventHandler(async (event) => {
     },
     activity: {
       activeLast30Days: activeUsersCount,
+      recurringUsers: recurringUsersCount,
       totalUsers,
       inactiveUsers,
       retentionRate,
       usersByDay,
-      activeUsersByDay
+      activeUsersByDay,
+      dailyCheckinsByDay
     },
     authProviders: authProviders.map((p) => ({ provider: p.provider, count: p._count.userId })),
     usersByCountry: usersByCountry
