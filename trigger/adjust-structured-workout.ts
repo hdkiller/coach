@@ -12,10 +12,14 @@ import { syncPlannedWorkoutToIntervals } from '../server/utils/intervals-sync'
 const workoutStructureSchema = {
   type: 'object',
   properties: {
-    description: { type: 'string', description: 'Overall workout strategy description' },
+    description: {
+      type: 'string',
+      description:
+        'Overall workout strategy in complete sentences. NEVER use bullet points or list the steps here.'
+    },
     coachInstructions: {
       type: 'string',
-      description: 'Personalized coaching advice based on athlete profile'
+      description: 'Personalized advice on technique, execution, and purpose (2-3 sentences).'
     },
     steps: {
       type: 'array',
@@ -48,6 +52,20 @@ const workoutStructureSchema = {
                 properties: { start: { type: 'number' }, end: { type: 'number' } },
                 required: ['start', 'end'],
                 description: 'For ramps: start and end % of LTHR'
+              }
+            }
+          },
+          pace: {
+            type: 'object',
+            description: 'Target % of threshold pace (e.g. 0.95 = 95%)',
+            properties: {
+              value: { type: 'number' },
+              range: {
+                type: 'object',
+                properties: {
+                  start: { type: 'number' },
+                  end: { type: 'number' }
+                }
               }
             }
           },
@@ -176,6 +194,10 @@ export const adjustStructuredWorkoutTask = task({
       })
     }
 
+    if (sportSettings?.loadPreference) {
+      zoneDefinitions += `\n**Preferred Load Metric:** ${sportSettings.loadPreference}\n`
+    }
+
     const prompt = `Adjust this structured ${workout.type} workout based on user feedback.
     
     ORIGINAL WORKOUT:
@@ -203,7 +225,8 @@ export const adjustStructuredWorkoutTask = task({
     - Create a NEW JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration (${Math.round((workout.durationSec || 3600) / 60)}m).
     - Respect the user's feedback.
-    - Add updated "coachInstructions".
+    - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
+    - **coachInstructions**: Provide an updated personalized message (2-3 sentences) explaining the purpose of these adjustments.
 
     FOR CYCLING (Ride/VirtualRide):
     - Use % of FTP for power targets (e.g. 0.95 = 95%).
@@ -212,7 +235,15 @@ export const adjustStructuredWorkoutTask = task({
     FOR RUNNING (Run):
     - ALWAYS include 'distance' (meters) for each step (estimate if needed).
     - CRITICAL: Use 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for intensity.
+    - HIGHLY RECOMMENDED: Include a 'pace' object with 'value' (target % of threshold pace) for active steps.
     - If user specifies "Zone 2", refer to their HR Zones provided above.
+
+    FOR SWIMMING (Swim):
+    - ALWAYS include 'distance' (meters) for each step (estimate if needed).
+    - Use 'stroke' to specify: Free, Back, Breast, Fly, IM, Choice, Kick, Pull.
+    - Use 'equipment' array for gear: Fins, Paddles, Snorkel, Pull Buoy.
+    - CRITICAL: You MUST include a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for EVERY step.
+    - RECOMMENDED: Include a 'pace' object with 'value' (target % of threshold pace) for main set intervals.
     
     OUTPUT JSON format matching the schema.`
 

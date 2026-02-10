@@ -12,10 +12,14 @@ import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 const workoutStructureSchema = {
   type: 'object',
   properties: {
-    description: { type: 'string', description: 'Overall workout strategy description' },
+    description: {
+      type: 'string',
+      description:
+        'Overall workout strategy in complete sentences. NEVER use bullet points or list the steps here.'
+    },
     coachInstructions: {
       type: 'string',
-      description: 'Personalized coaching advice based on athlete profile'
+      description: 'Personalized advice on technique, execution, and purpose (2-3 sentences).'
     },
     steps: {
       type: 'array',
@@ -48,6 +52,20 @@ const workoutStructureSchema = {
                 properties: { start: { type: 'number' }, end: { type: 'number' } },
                 required: ['start', 'end'],
                 description: 'For ramps: start and end % of LTHR'
+              }
+            }
+          },
+          pace: {
+            type: 'object',
+            description: 'Target % of threshold pace (e.g. 0.95 = 95%)',
+            properties: {
+              value: { type: 'number' },
+              range: {
+                type: 'object',
+                properties: {
+                  start: { type: 'number' },
+                  end: { type: 'number' }
+                }
               }
             }
           },
@@ -245,7 +263,8 @@ export const generateStructuredWorkoutTask = task({
     INSTRUCTIONS:
     - Create a JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration exactly.
-    - Add "coachInstructions": A personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the '${persona}' persona tone.
+    - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
+    - **coachInstructions**: Provide a personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the '${persona}' persona tone.
 
     FOR CYCLING (Ride/VirtualRide):
     - Use % of FTP for power targets (e.g. 0.95 = 95%).
@@ -257,6 +276,7 @@ export const generateStructuredWorkoutTask = task({
     - ALWAYS include 'distance' (meters) for each step. If duration-based, ESTIMATE the distance based on the intensity/pace.
     - Use 'power' object if it's a power-based run (e.g. Stryd).
     - CRITICAL: You MUST include a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for EVERY step (except Rest where it's optional but recommended).
+    - HIGHLY RECOMMENDED: Include a 'pace' object with 'value' (target % of threshold pace) for active steps. Providing both 'heartRate' and 'pace' is preferred for running.
     - DO NOT rely solely on description for intensity. Even for "Easy Jog", provide an estimated HR intensity (e.g. 0.70).
     - If pace based, put pace in 'description' AND provide the equivalent HR intensity in 'heartRate.value' (e.g. 5k pace ~ 1.05 intensity).
     
@@ -265,6 +285,8 @@ export const generateStructuredWorkoutTask = task({
     - Use 'stroke' to specify: Free, Back, Breast, Fly, IM, Choice, Kick, Pull.
     - Use 'equipment' array for gear: Fins, Paddles, Snorkel, Pull Buoy.
     - Include 'stroke' type in description if applicable.
+    - CRITICAL: You MUST include a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for EVERY step. Even if it's a technical drill, provide an estimated HR intensity.
+    - RECOMMENDED: Include a 'pace' object with 'value' (target % of threshold pace) for main set intervals.
 
     FOR STRENGTH (Gym/WeightTraining):
     - Instead of 'steps', provide a list of 'exercises'.
