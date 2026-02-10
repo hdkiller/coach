@@ -9,12 +9,16 @@
 
   const emit = defineEmits<{
     (e: 'select' | 'delete', roomId: string): void
+    (e: 'rename', roomId: string, newName: string): void
   }>()
 
   const roomToDelete = ref<string | null>(null)
+  const roomToRename = ref<any | null>(null)
   const isDeleteModalOpen = ref(false)
+  const isRenameModalOpen = ref(false)
   const isReportModalOpen = ref(false)
   const reportRoomId = ref<string | null>(null)
+  const newRoomName = ref('')
 
   // Share Modal State
   const isShareModalOpen = ref(false)
@@ -28,6 +32,12 @@
     isDeleteModalOpen.value = true
   }
 
+  function confirmRename(room: any) {
+    roomToRename.value = room
+    newRoomName.value = room.roomName
+    isRenameModalOpen.value = true
+  }
+
   function confirmReport(roomId: string) {
     reportRoomId.value = roomId
     isReportModalOpen.value = true
@@ -38,6 +48,14 @@
       emit('delete', roomToDelete.value)
       isDeleteModalOpen.value = false
       roomToDelete.value = null
+    }
+  }
+
+  function handleRename() {
+    if (roomToRename.value && newRoomName.value.trim()) {
+      emit('rename', roomToRename.value.roomId, newRoomName.value.trim())
+      isRenameModalOpen.value = false
+      roomToRename.value = null
     }
   }
 
@@ -80,6 +98,11 @@
 
   const getDropdownItems = (room: any) => [
     [
+      {
+        label: 'Rename Chat',
+        icon: 'i-heroicons-pencil-square',
+        onSelect: () => confirmRename(room)
+      },
       {
         label: 'Share Chat',
         icon: 'i-heroicons-share',
@@ -178,6 +201,30 @@
     </UNavigationMenu>
 
     <div v-else class="text-left py-8 text-sm text-gray-500 px-4">No chat history yet</div>
+
+    <!-- Rename Modal -->
+    <UModal v-model:open="isRenameModalOpen" title="Rename Chat">
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="New Name">
+            <UInput
+              v-model="newRoomName"
+              placeholder="Enter new chat name"
+              autofocus
+              @keyup.enter="handleRename"
+            />
+          </UFormField>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton color="neutral" variant="ghost" @click="isRenameModalOpen = false">
+            Cancel
+          </UButton>
+          <UButton :disabled="!newRoomName.trim()" @click="handleRename"> Save Changes </UButton>
+        </div>
+      </template>
+    </UModal>
 
     <!-- Share Modal -->
     <UModal

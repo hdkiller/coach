@@ -316,6 +316,30 @@
     }
   }
 
+  async function renameRoom(roomId: string, newName: string) {
+    try {
+      await $fetch(`/api/chat/rooms/${roomId}`, {
+        method: 'PATCH',
+        body: { name: newName }
+      })
+
+      // Update locally or refresh
+      await loadRooms(false)
+
+      useToast().add({
+        title: 'Chat room renamed',
+        color: 'success'
+      })
+    } catch (err: any) {
+      console.error('Failed to rename room:', err)
+      useToast().add({
+        title: 'Error',
+        description: 'Failed to rename chat room',
+        color: 'error'
+      })
+    }
+  }
+
   // Get current room info
   const currentRoom = computed(() => rooms.value.find((r) => r.roomId === currentRoomId.value))
 
@@ -381,6 +405,7 @@
           :loading="loadingRooms"
           @select="selectRoom"
           @delete="deleteRoom"
+          @rename="renameRoom"
         />
 
         <!-- Chat Area -->
