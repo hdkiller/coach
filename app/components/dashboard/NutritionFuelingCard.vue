@@ -113,6 +113,18 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         <!-- Left Side: Tank & Info -->
         <div class="space-y-6">
+          <!-- Live Energy Visualization -->
+          <div class="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+            <div class="flex items-center justify-between mb-4">
+               <h4 class="text-[10px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1.5">
+                <UIcon name="i-heroicons-bolt" class="w-3.5 h-3.5 text-primary-500" />
+                Live Energy Availability
+              </h4>
+              <span v-if="currentLevel < 25" class="text-[9px] font-black uppercase text-red-500 animate-pulse">Low Fuel Warning</span>
+            </div>
+            <NutritionLiveEnergyChart :points="energyPoints" />
+          </div>
+
           <!-- Fuel Tank Visualization -->
           <div class="space-y-2 group cursor-pointer" @click="showExplainModal = true">
             <div class="flex justify-between text-xs font-bold uppercase tracking-wider">
@@ -329,7 +341,7 @@
 
 <script setup lang="ts">
   import { mapNutritionToTimeline } from '~/utils/nutrition-timeline'
-  import { calculateGlycogenState } from '~/utils/nutrition-logic'
+  import { calculateGlycogenState, calculateEnergyTimeline } from '~/utils/nutrition-logic'
 
   const props = defineProps<{
     nutrition: any
@@ -418,6 +430,25 @@
   }
 
   const plan = computed(() => props.nutrition?.fuelingPlan)
+
+  const energyPoints = computed(() => {
+    if (!props.nutrition || !props.settings) return []
+    const { timezone } = useFormat()
+    return calculateEnergyTimeline(
+      props.nutrition,
+      props.workouts || [],
+      props.settings,
+      timezone.value
+    )
+  })
+
+  const currentLevel = computed(() => {
+    const points = energyPoints.value
+    if (points.length === 0) return 0
+    const nowIdx = points.findIndex((p) => p.isFuture)
+    const activePoint = nowIdx > 0 ? points[nowIdx - 1] : points[0]
+    return activePoint?.level || 0
+  })
 
   const timeline = computed(() => {
     if (!props.nutrition || !plan.value) return []
