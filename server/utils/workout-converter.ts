@@ -5,6 +5,7 @@ interface WorkoutStep {
   type: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'
   durationSeconds?: number
   duration?: number
+  distance?: number
   power?: {
     value?: number
     range?: { start: number; end: number }
@@ -26,6 +27,7 @@ interface WorkoutMessage {
 interface WorkoutData {
   title: string
   description: string
+  type?: string
   author?: string
   steps: WorkoutStep[]
   exercises?: any[]
@@ -367,13 +369,23 @@ export const WorkoutConverter = {
 
       currentType = step.type
 
+      // Format distance
+      let distanceStr = ''
+      if (step.distance) {
+        const isSwim = workout.type?.toLowerCase().includes('swim')
+        // Use 'mtrs' for swimming to avoid 'm' being interpreted as minutes by Intervals.icu
+        distanceStr = isSwim ? `${step.distance}mtrs` : `${step.distance}m`
+      }
+
       // Format duration
       let durationStr = ''
       const duration = step.durationSeconds || step.duration || 0
-      if (duration % 60 === 0) {
-        durationStr = `${duration / 60}m`
-      } else {
-        durationStr = `${duration}s`
+      if (duration > 0) {
+        if (duration % 60 === 0) {
+          durationStr = `${duration / 60}m`
+        } else {
+          durationStr = `${duration}s`
+        }
       }
 
       // Format power or heart rate
@@ -442,9 +454,12 @@ export const WorkoutConverter = {
         }
       }
 
-      line += ` ${durationStr} ${intensityStr}${cadenceStr}`
+      if (distanceStr) line += ` ${distanceStr}`
+      if (durationStr) line += ` ${durationStr}`
+      if (intensityStr) line += ` ${intensityStr}`
+      if (cadenceStr) line += ` ${cadenceStr}`
 
-      lines.push(line)
+      lines.push(line.trim().replace(/\s+/g, ' '))
     })
 
     return lines.join('\n')
