@@ -258,9 +258,16 @@ export async function createIntervalsPlannedWorkout(
   const dateStr = `${year}-${month}-${day}T${timeStr}`
 
   const workoutText = data.workout_doc || ''
-  let combinedDescription = data.description
-    ? `${data.description}\n\n${workoutText}`.trim()
-    : workoutText
+  let combinedDescription = ''
+
+  if (workoutText) {
+    // If we have a structured workout doc, it contains everything Intervals.icu needs
+    // We use it as the main description so Intervals.icu can parse the blocks correctly
+    combinedDescription = workoutText
+  } else {
+    // Fallback for non-structured workouts
+    combinedDescription = data.description || ''
+  }
 
   // Append CoachWatts signature if managed by us
   if (data.managedBy === 'COACH_WATTS' && !combinedDescription.includes('[CoachWatts]')) {
@@ -400,8 +407,13 @@ export async function updateIntervalsPlannedWorkout(
   // Handle workout doc / description merge
   if (data.workout_doc || data.description !== undefined) {
     const workoutText = data.workout_doc || ''
-    const description = data.description || ''
-    let combinedDescription = `${description}\n\n${workoutText}`.trim()
+    let combinedDescription = ''
+
+    if (workoutText) {
+      combinedDescription = workoutText
+    } else {
+      combinedDescription = data.description || ''
+    }
 
     // Append CoachWatts signature if managed by us
     if (data.managedBy === 'COACH_WATTS' && !combinedDescription.includes('[CoachWatts]')) {

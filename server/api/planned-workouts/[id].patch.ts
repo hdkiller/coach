@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
       ...(body.title && { title: body.title }),
       ...(body.description !== undefined && { description: body.description }),
       ...(body.type && { type: body.type }),
-      ...(body.startTime && { startTime: body.startTime }),
+      ...(body.startTime !== undefined && { startTime: body.startTime }),
       ...(body.durationSec && { durationSec: body.durationSec }),
       ...(body.duration_minutes && { durationSec: body.duration_minutes * 60 }),
       ...(body.tss !== undefined && { tss: body.tss }),
