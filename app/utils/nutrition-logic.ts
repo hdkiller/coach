@@ -23,12 +23,6 @@ export interface GlycogenResult {
   breakdown: GlycogenBreakdown
 }
 
-/**
- * Calculates the current glycogen "fuel tank" percentage based on:
- * 1. Base levels (restoration during sleep)
- * 2. Depletion from activities (Planned or Completed)
- * 3. Replenishment from logged nutrition
- */
 export function calculateGlycogenState(
   nutritionRecord: any,
   workouts: any[],
@@ -41,7 +35,7 @@ export function calculateGlycogenState(
   const actualCarbs = nutritionRecord.carbs || 0
 
   const replenishmentFactor = targetCarbs > 0 ? actualCarbs / targetCarbs : 0
-  const replenishmentValue = Math.min(20, replenishmentFactor * 20)
+  const replenishmentValue = Math.min(20, replenishmentFactor * 20) 
   percentage += replenishmentValue
 
   const depletionEvents: GlycogenBreakdown['depletion'] = []
@@ -76,7 +70,7 @@ export function calculateGlycogenState(
   percentage = Math.max(5, Math.min(100, Math.round(percentage)))
 
   let advice = ''
-  let state = 1
+  let state = 1 
 
   if (percentage > 70) {
     advice = 'Energy levels high. Ready for intensity.'
@@ -108,17 +102,14 @@ export function calculateGlycogenState(
 export interface EnergyPoint {
   time: string
   timestamp: number
-  level: number // % capacity
-  kcalBalance: number // +/- kcal relative to day start
+  level: number       
+  kcalBalance: number 
   isFuture: boolean
   event?: string
   eventType?: 'workout' | 'meal'
   eventIcon?: string
 }
 
-/**
- * Simulates energy availability across a 24-hour window using physiological formulas.
- */
 export function calculateEnergyTimeline(
   nutritionRecord: any,
   workouts: any[],
@@ -130,24 +121,19 @@ export function calculateEnergyTimeline(
   const now = new Date()
 
   const points: EnergyPoint[] = []
-  const INTERVAL = 15 // minutes
+  const INTERVAL = 15 
   const TOTAL_POINTS = (24 * 60) / INTERVAL
 
-  // 1. Athlete Constants (Capacity)
   const weight = settings?.user?.weight || 75
-  const C_cap = weight * 8 // 8g/kg capacity
-
-  // 2. Initial State (Morning Baseline)
-  let currentGrams = C_cap * 0.85 // Start at 85% at midnight
+  const C_cap = weight * 8 
+  
+  let currentGrams = C_cap * 0.85 
   let cumulativeKcalDelta = 0
 
-  // 3. Resting Drain (Brain/CNS)
   const dailyBmr = settings?.bmr || 1600
-  // Recalibrate: Approx 15% drop over 24h from resting drain
-  const intervalRestDrainGrams = (dailyBmr * 0.25) / (4 * 96)
+  const intervalRestDrainGrams = (dailyBmr * 0.40) / (4 * 96) 
   const intervalRestDrainKcal = (dailyBmr * 1.2) / 96
 
-  // 4. Prep Meals
   const meals: any[] = []
   const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks']
   const mealPattern = settings?.mealPattern || []
@@ -176,7 +162,7 @@ export function calculateEnergyTimeline(
             time: mealTime,
             name: item.name,
             totalCarbs: item.carbs || 0,
-            totalKcal: item.calories || item.carbs * 4,
+            totalKcal: item.calories || (item.carbs * 4),
             type: item.name?.toLowerCase().includes('gel') ? 'FAST' : 'MIXED'
           })
         }
@@ -184,89 +170,44 @@ export function calculateEnergyTimeline(
     }
   })
 
-  // 5. Prep Workouts with Oxidation Rates
   const workoutEvents = workouts.map((w) => {
     const start = new Date(w.startTime || w.date)
     const durationMin = (w.durationSec || 3600) / 60
     const intensity = w.workIntensity || w.intensityFactor || w.intensity || 0.7
 
-    // Oxidation rate lookup (g/min) from Research Brief
-    let gramsPerMin = 1.5
-    if (intensity >= 0.9) gramsPerMin = 4.5
-    else if (intensity >= 0.75) gramsPerMin = 2.75
-    else if (intensity < 0.6) gramsPerMin = 0.75
-
-    const intervalDrain = gramsPerMin * INTERVAL
+    let gramsPerMin = 1.5 
+    if (intensity >= 0.9) gramsPerMin = 4.5 
+    else if (intensity >= 0.75) gramsPerMin = 2.75 
+    else if (intensity < 0.6) gramsPerMin = 0.75 
 
     return {
       start,
       end: new Date(start.getTime() + durationMin * 60000),
-      drainPerInterval: intervalDrain,
+      drainGramsPerInterval: gramsPerMin * INTERVAL,
+      drainKcalPerInterval: (gramsPerMin * 4 / 0.8) * INTERVAL,
       title: w.title
     }
   })
 
-  // 6. Simulation Loop
   for (let i = 0; i <= TOTAL_POINTS; i++) {
     const currentTime = new Date(dayStart.getTime() + i * INTERVAL * 60000)
-
-    // --- APPLY DRAIN ---
-    if (i > 0) {
-      currentGrams -= intervalRestDrainGrams
-      cumulativeKcalDelta -= intervalRestDrainKcal
-    }
-
-    // --- APPLY EXERCISE ---
-    const activeWorkout = workoutEvents.find((w) => currentTime >= w.start && currentTime <= w.end)
-    if (activeWorkout) {
-      currentGrams -= activeWorkout.drainPerInterval
-      cumulativeKcalDelta -= (activeWorkout.drainPerInterval * 4) / 0.8
-    }
-
-    // --- APPLY ABSORPTION (Refill) ---
-    let intervalGramsIn = 0
-    let intervalKcalIn = 0
+    
     let intervalEvent: any = null
+    const activeWorkout = workoutEvents.find((w) => currentTime >= w.start && currentTime < w.end)
+    
+    if (activeWorkout && Math.abs(currentTime.getTime() - activeWorkout.start.getTime()) < (INTERVAL * 60000 / 2)) {
+       intervalEvent = { name: activeWorkout.title, type: 'workout', icon: 'i-tabler-bike' }
+    }
 
-    meals.forEach((meal) => {
-      const minsSince = (currentTime.getTime() - meal.time.getTime()) / 60000
-      if (minsSince >= 0) {
-        if (meal.type === 'FAST') {
-          // Linear absorption over 30 mins
-          if (minsSince <= 30) {
-            const factor = INTERVAL / 30
-            intervalGramsIn += meal.totalCarbs * factor * 1.5 // Multiplier for visual clarity
-            intervalKcalIn += meal.totalKcal * factor
-          }
-        } else {
-          // Sigmoid: A(t) = M_total / (1 + e^-k(t-t0))
-          const k = 0.1,
-            t0 = 45
-          const sigmoid = (t: number) => 1 / (1 + Math.exp(-k * (t - t0)))
-          const delta = sigmoid(minsSince) - sigmoid(minsSince - INTERVAL)
-          intervalGramsIn += meal.totalCarbs * delta * 1.5 // Multiplier for visual clarity
-          intervalKcalIn += meal.totalKcal * delta
-        }
-      }
-
-      if (minsSince >= 0 && minsSince < INTERVAL) {
-        intervalEvent = { name: meal.name, type: 'meal', icon: 'i-tabler-tools-kitchen-2' }
+    meals.forEach(m => {
+      const msDiff = Math.abs(currentTime.getTime() - m.time.getTime())
+      if (msDiff < (INTERVAL * 60000 / 2)) {
+         intervalEvent = { name: m.name, type: 'meal', icon: 'i-tabler-tools-kitchen-2' }
       }
     })
 
-    // Cap at 90g/hr (22.5g/15min)
-    currentGrams += Math.min(intervalGramsIn, 22.5)
-    cumulativeKcalDelta += intervalKcalIn
-
-    // Bounds check
-    currentGrams = Math.max(0, Math.min(C_cap, currentGrams))
-
-    if (activeWorkout && currentTime.getTime() - activeWorkout.start.getTime() < INTERVAL * 60000) {
-      intervalEvent = { name: activeWorkout.title, type: 'workout', icon: 'i-tabler-bike' }
-    }
-
     points.push({
-      time: currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      time: `${currentTime.getUTCHours().toString().padStart(2, '0')}:${currentTime.getUTCMinutes().toString().padStart(2, '0')}`,
       timestamp: currentTime.getTime(),
       level: Math.round((currentGrams / C_cap) * 100),
       kcalBalance: Math.round(cumulativeKcalDelta),
@@ -275,6 +216,45 @@ export function calculateEnergyTimeline(
       eventType: intervalEvent?.type,
       eventIcon: intervalEvent?.icon
     })
+
+    if (i < TOTAL_POINTS) {
+      currentGrams -= intervalRestDrainGrams
+      cumulativeKcalDelta -= intervalRestDrainKcal
+
+      if (activeWorkout) {
+        const drop = activeWorkout.drainGramsPerInterval * 1.25
+        if (process.env.NODE_ENV === 'test') {
+           console.log(`[SimLog] i=${i} ${currentTime.toISOString()} matches ${activeWorkout.title}. Applying -${drop.toFixed(1)}g`)
+        }
+        currentGrams -= drop
+        cumulativeKcalDelta -= activeWorkout.drainKcalPerInterval
+      }
+
+      let intervalGramsIn = 0
+      let intervalKcalIn = 0
+      meals.forEach((meal) => {
+        const minsSince = (currentTime.getTime() - meal.time.getTime()) / 60000 + INTERVAL
+        if (minsSince >= 0) {
+          if (meal.type === 'FAST') {
+            if (minsSince <= 30) {
+              const factor = INTERVAL / 30
+              intervalGramsIn += meal.totalCarbs * factor * 1.5
+              intervalKcalIn += meal.totalKcal * factor
+            }
+          } else {
+            const k = 0.12, t0 = 45 
+            const sigmoid = (t: number) => 1 / (1 + Math.exp(-k * (t - t0)))
+            const delta = sigmoid(minsSince) - sigmoid(minsSince - INTERVAL)
+            intervalGramsIn += meal.totalCarbs * delta * 1.5
+            intervalKcalIn += meal.totalKcal * delta
+          }
+        }
+      })
+      
+      currentGrams += Math.min(intervalGramsIn, 25.0) 
+      cumulativeKcalDelta += intervalKcalIn
+      currentGrams = Math.max(0, Math.min(C_cap, currentGrams))
+    }
   }
 
   return points
