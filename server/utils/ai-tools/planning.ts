@@ -412,6 +412,7 @@ export const planningTools = (userId: string, timezone: string) => ({
         const workoutData = {
           title: workout.title,
           description: workout.description || '',
+          type: workout.type || 'Ride',
           steps: (workout.structuredWorkout as any).steps || [],
           exercises: (workout.structuredWorkout as any).exercises,
           messages: (workout.structuredWorkout as any).messages || [],

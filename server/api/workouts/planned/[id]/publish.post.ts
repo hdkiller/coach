@@ -66,6 +66,7 @@ export default defineEventHandler(async (event) => {
     const workoutData = {
       title: workout.title,
       description: workout.description || '',
+      type: intervalsType,
       steps: (workout.structuredWorkout as any).steps || [],
       exercises: (workout.structuredWorkout as any).exercises, // Add this
       messages: (workout.structuredWorkout as any).messages || [],

@@ -444,6 +444,7 @@ export const generateStructuredWorkoutTask = task({
       const workoutData = {
         title: updatedWorkout.title,
         description: updatedWorkout.description || '',
+        type: updatedWorkout.type || '',
         steps: structure.steps || [],
         exercises: structure.exercises, // Add this
         messages: [],

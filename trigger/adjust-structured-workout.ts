@@ -284,6 +284,7 @@ export const adjustStructuredWorkoutTask = task({
       const workoutData = {
         title: updatedWorkout.title,
         description: updatedWorkout.description || '',
+        type: updatedWorkout.type || '',
         steps: (structure as any).steps || [],
         messages: [],
         ftp: ftp,
