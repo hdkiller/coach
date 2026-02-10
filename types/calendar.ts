@@ -65,6 +65,7 @@ export interface CalendarActivity {
     proteinGoal?: number | null
     carbsGoal?: number | null
     fatGoal?: number | null
+    isEstimate?: boolean
   } | null
 
   // Wellness Data

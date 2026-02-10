@@ -81,8 +81,11 @@ export function mapNutritionToTimeline(
   workouts: any[],
   options: TimelineOptions
 ): FuelingTimelineWindow[] {
+  // Filter out rest activities from the timeline
+  const trainingWorkouts = workouts.filter((w) => w.type !== 'Rest')
+
   console.log('[TimelineUtil] Mapping started', {
-    workoutCount: workouts.length,
+    workoutCount: trainingWorkouts.length,
     hasPlan: !!nutritionRecord.fuelingPlan
   })
 
@@ -98,7 +101,7 @@ export function mapNutritionToTimeline(
     // 1. Use the pre-calculated windows from the API
     baseTimeline = fuelingPlan.windows.map((w: any) => {
       // Find associated workout by ID or by time overlap
-      const workout = workouts.find((work) => {
+      const workout = trainingWorkouts.find((work) => {
         if (w.plannedWorkoutId && w.plannedWorkoutId === work.id) return true
 
         // Fallback: If it's INTRA window, match by proximity
@@ -130,7 +133,7 @@ export function mapNutritionToTimeline(
     console.log('[TimelineUtil] No stored plan found, generating manually')
     // 2. Fallback: Manual generation
     const rawWindows: FuelingTimelineWindow[] = []
-    workouts.forEach((workout) => {
+    trainingWorkouts.forEach((workout) => {
       const workoutStart = new Date(getWorkoutDate(workout))
       const durationMin = (workout.durationSec || 3600) / 60
       const workoutEnd = addMinutes(workoutStart, durationMin)

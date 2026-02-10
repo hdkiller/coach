@@ -85,6 +85,24 @@ export function calculateFuelingStrategy(
   // Apply Sensitivity
   const dailyCarbTargetGrams = profile.weight * ((carbRange.min + carbRange.max) / 2) * sensitivity
 
+  // --- 1b. HANDLE REST DAYS (NO WINDOWS) ---
+  if (workout.type === 'Rest' || workout.durationSec === 0) {
+    return {
+      windows: [],
+      dailyTotals: {
+        calories: Math.round(
+          dailyCarbTargetGrams * 4 + profile.weight * 1.6 * 4 + profile.weight * 1.0 * 9
+        ),
+        carbs: Math.round(dailyCarbTargetGrams),
+        protein: Math.round(profile.weight * 1.6),
+        fat: Math.round(profile.weight * 1.0),
+        fluid: 2000, // Base hydration only
+        sodium: 1000 // Base sodium only
+      },
+      notes: []
+    }
+  }
+
   // --- 2. INTRA-WORKOUT STRATEGY ---
   let targetCarbsPerHour = 0
   const hydrationPerHour = (profile.sweatRate || 0.8) * 1000 // ml

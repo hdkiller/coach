@@ -72,25 +72,19 @@ export default defineEventHandler(async (event) => {
     Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate())
   )
 
-  // 1. Find a planned workout for this day
+  // 1. Find a training workout for this day
   const plannedWorkouts = await plannedWorkoutRepository.list(userId, {
     startDate: normalizedDate,
     endDate: normalizedDate,
-    limit: 1
+    limit: 10
   })
 
-  if (plannedWorkouts.length === 0) {
-    return {
-      success: false,
-      message: `No planned workout found for ${normalizedDate.toISOString().split('T')[0]}. Please add a workout to generate a fueling plan.`
-    }
-  }
+  const trainingWorkout = plannedWorkouts.find((w) => w.type !== 'Rest')
 
-  const workout = plannedWorkouts[0]
-  if (!workout) {
+  if (!trainingWorkout) {
     return {
       success: false,
-      message: 'Unexpected error: Workout disappeared.'
+      message: `No training workout found for ${normalizedDate.toISOString().split('T')[0]}. Fueling plans are only generated for active training days.`
     }
   }
 
@@ -99,7 +93,7 @@ export default defineEventHandler(async (event) => {
   const handle = await tasks.trigger(
     'generate-fueling-plan',
     {
-      plannedWorkoutId: workout.id,
+      plannedWorkoutId: trainingWorkout.id,
       userId,
       date: normalizedDate.toISOString()
     },
