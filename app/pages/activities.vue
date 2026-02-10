@@ -706,7 +706,7 @@
               <template #status-cell="{ row }">
                 <UBadge
                   :color="
-                    row.original.status === 'completed'
+                    row.original.status === 'completed' || row.original.status === 'completed_plan'
                       ? 'success'
                       : row.original.status === 'missed'
                         ? 'error'

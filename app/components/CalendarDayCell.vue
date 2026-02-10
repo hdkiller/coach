@@ -81,7 +81,8 @@
           'bg-green-50 dark:bg-green-900/20':
             activity.source === 'completed' && !activity.plannedWorkoutId,
           'bg-blue-50 dark:bg-blue-900/20':
-            activity.source === 'completed' && activity.plannedWorkoutId,
+            (activity.source === 'completed' && activity.plannedWorkoutId) ||
+            (activity.source === 'planned' && activity.status === 'completed_plan'),
           'bg-amber-50 dark:bg-amber-900/20':
             activity.source === 'planned' && activity.status === 'planned',
           'bg-red-50 dark:bg-red-900/20': activity.status === 'missed',
@@ -114,7 +115,9 @@
             class="w-2 h-2 rounded-full mt-0.5 flex-shrink-0"
             :class="{
               'bg-green-500': activity.source === 'completed' && !activity.plannedWorkoutId,
-              'bg-blue-500': activity.source === 'completed' && activity.plannedWorkoutId,
+              'bg-blue-500':
+                (activity.source === 'completed' && activity.plannedWorkoutId) ||
+                (activity.source === 'planned' && activity.status === 'completed_plan'),
               'bg-amber-500': activity.source === 'planned' && activity.status === 'planned',
               'bg-red-500': activity.status === 'missed',
               'bg-gray-400 dark:bg-gray-600': activity.source === 'note'
