@@ -108,18 +108,38 @@ export default defineEventHandler(async (event) => {
   await sendTelegramAction(chatId, 'typing')
 
   // Find or Create Chat Room for Telegram
-  // We use a single persistent room for Telegram for now
+  // We use session-based rooms to avoid large context windows and partition conversations.
+  const SESSION_TIMEOUT_MS = 6 * 60 * 60 * 1000 // 6 hours
   let room = await prisma.chatRoom.findFirst({
     where: {
-      name: 'Telegram Chat',
-      users: { some: { userId } }
+      users: { some: { userId } },
+      name: { startsWith: 'Telegram Chat' }
+    },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 1
+      }
     }
   })
 
-  if (!room) {
+  const latestMessage = room?.messages[0]
+  const lastActivity = latestMessage?.createdAt || room?.createdAt
+  const now = new Date()
+  const shouldCreateNewRoom =
+    !room || (lastActivity && now.getTime() - lastActivity.getTime() > SESSION_TIMEOUT_MS)
+
+  if (shouldCreateNewRoom) {
+    const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const timeStr = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
     room = await prisma.chatRoom.create({
       data: {
-        name: 'Telegram Chat',
+        name: `Telegram Chat (${dateStr} ${timeStr})`,
         users: {
           create: { userId }
         }
@@ -141,11 +161,11 @@ export default defineEventHandler(async (event) => {
   try {
     const { google, modelName, tools, systemInstruction } = await chatService.prepareAI(userId)
 
-    // Build History (Last 10 messages)
+    // Build History (Last 20 messages)
     const history = await prisma.chatMessage.findMany({
       where: { roomId },
       orderBy: { createdAt: 'desc' },
-      take: 10
+      take: 20
     })
 
     const coreMessages = history.reverse().map((m) => ({
