@@ -110,7 +110,7 @@ export default defineEventHandler(async (event) => {
   // Find or Create Chat Room for Telegram
   // We use session-based rooms to avoid large context windows and partition conversations.
   const SESSION_TIMEOUT_MS = 6 * 60 * 60 * 1000 // 6 hours
-  let room = await prisma.chatRoom.findFirst({
+  const existingRoom = await prisma.chatRoom.findFirst({
     where: {
       users: { some: { userId } },
       name: { startsWith: 'Telegram Chat' }
@@ -124,11 +124,13 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const latestMessage = room?.messages[0]
-  const lastActivity = latestMessage?.createdAt || room?.createdAt
+  const latestMessage = existingRoom?.messages[0]
+  const lastActivity = latestMessage?.createdAt || existingRoom?.createdAt
   const now = new Date()
   const shouldCreateNewRoom =
-    !room || (lastActivity && now.getTime() - lastActivity.getTime() > SESSION_TIMEOUT_MS)
+    !existingRoom || (lastActivity && now.getTime() - lastActivity.getTime() > SESSION_TIMEOUT_MS)
+
+  let roomId: string
 
   if (shouldCreateNewRoom) {
     const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -137,7 +139,7 @@ export default defineEventHandler(async (event) => {
       minute: '2-digit',
       hour12: false
     })
-    room = await prisma.chatRoom.create({
+    const newRoom = await prisma.chatRoom.create({
       data: {
         name: `Telegram Chat (${dateStr} ${timeStr})`,
         users: {
@@ -145,9 +147,10 @@ export default defineEventHandler(async (event) => {
         }
       }
     })
+    roomId = newRoom.id
+  } else {
+    roomId = existingRoom.id
   }
-
-  const roomId = room.id
 
   // Save User Message
   await chatService.saveUserMessage({
