@@ -160,21 +160,27 @@
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold">Billing & Subscription</h2>
-        <p class="text-neutral-500">Manage your subscription and billing information.</p>
-      </div>
-      <div v-if="userStore.user?.subscriptionStatus" class="hidden sm:block">
-        <UBadge
-          :color="getStatusColor(userStore.user?.subscriptionStatus) as any"
-          class="font-semibold"
-        >
-          {{ formatTier(userStore.user?.subscriptionTier) }} •
-          {{ formatStatus(userStore.user?.subscriptionStatus) }}
-        </UBadge>
-      </div>
-    </div>
+    <UCard :ui="{ body: 'hidden' }">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold uppercase tracking-tight">Billing & Subscription</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Manage your subscription and billing information.
+            </p>
+          </div>
+          <div v-if="userStore.user?.subscriptionStatus" class="hidden sm:block">
+            <UBadge
+              :color="getStatusColor(userStore.user?.subscriptionStatus) as any"
+              class="font-semibold"
+            >
+              {{ formatTier(userStore.user?.subscriptionTier) }} •
+              {{ formatStatus(userStore.user?.subscriptionStatus) }}
+            </UBadge>
+          </div>
+        </div>
+      </template>
+    </UCard>
 
     <!-- Success/Canceled Alerts -->
     <div class="space-y-4">

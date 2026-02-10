@@ -1,9 +1,13 @@
 <template>
   <div class="space-y-6">
-    <div>
-      <h2 class="text-2xl font-bold">Connected Apps</h2>
-      <p class="text-neutral-500">Manage your connected apps and integrations.</p>
-    </div>
+    <UCard :ui="{ body: 'hidden' }">
+      <template #header>
+        <h2 class="text-xl font-bold uppercase tracking-tight">Connected Apps</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Manage your connected apps and integrations.
+        </p>
+      </template>
+    </UCard>
     <UAlert
       v-if="intervalsConnected && !intervalsStravaWarningDismissed"
       title="Strava Activity Sync"

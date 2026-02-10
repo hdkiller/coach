@@ -54,15 +54,6 @@
             <UIcon name="i-lucide-alert-triangle" class="w-4 h-4 mr-2" />
             Danger Zone
           </UButton>
-          <UButton
-            :variant="isActive('/settings/changelog') ? 'solid' : 'ghost'"
-            :color="isActive('/settings/changelog') ? 'primary' : 'neutral'"
-            class="whitespace-nowrap"
-            @click="navigateTo('/settings/changelog')"
-          >
-            <UIcon name="i-lucide-list" class="w-4 h-4 mr-2" />
-            Changelog
-          </UButton>
         </div>
       </UDashboardToolbar>
     </template>

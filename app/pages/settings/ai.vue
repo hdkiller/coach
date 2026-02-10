@@ -1,11 +1,13 @@
 <template>
   <div class="space-y-6">
-    <div>
-      <h2 class="text-2xl font-bold">AI Coach Settings</h2>
-      <p class="text-neutral-500">
-        Configure your AI coach preferences, personality, and data access.
-      </p>
-    </div>
+    <UCard :ui="{ body: 'hidden' }">
+      <template #header>
+        <h2 class="text-xl font-bold uppercase tracking-tight">AI Coach Settings</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Configure your AI coach preferences, personality, and data access.
+        </p>
+      </template>
+    </UCard>
 
     <UCard v-if="showUpgradeBanner && !userStore.hasMinimumTier('SUPPORTER')" class="mb-6">
       <div class="flex items-start gap-4">
