@@ -145,6 +145,10 @@
                       <dd>{{ new Date(data.profile.createdAt).toLocaleDateString() }}</dd>
                     </div>
                     <div class="flex justify-between">
+                      <dt class="text-gray-500">Reg. Country</dt>
+                      <dd>{{ data.profile.registrationCountry || 'Unknown' }}</dd>
+                    </div>
+                    <div class="flex justify-between">
                       <dt class="text-gray-500">Role</dt>
                       <dd>
                         <UBadge :color="data.profile.isAdmin ? 'primary' : 'neutral'" size="xs">
@@ -257,7 +261,7 @@
                           ? 'error'
                           : int.syncStatus === 'RATE_LIMITED'
                             ? 'warning'
-                          : 'neutral'
+                            : 'neutral'
                     "
                     variant="subtle"
                     size="xs"

@@ -157,6 +157,11 @@
                     <th
                       class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
+                      Country
+                    </th>
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    >
                       LLM Spending
                     </th>
                     <th
@@ -226,6 +231,14 @@
                       class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
                     >
                       {{ new Date(user.createdAt).toLocaleDateString() }}
+                    </td>
+                    <td
+                      class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                    >
+                      <span v-if="user.registrationCountry" class="flex items-center gap-1">
+                        {{ user.registrationCountry }}
+                      </span>
+                      <span v-else class="text-gray-400 italic">Unknown</span>
                     </td>
                     <td
                       class="px-6 py-4 whitespace-nowrap text-sm font-medium text-emerald-600 dark:text-emerald-400"

@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
         image: true,
         isAdmin: true,
         createdAt: true,
+        registrationCountry: true,
         integrations: {
           select: {
             provider: true
