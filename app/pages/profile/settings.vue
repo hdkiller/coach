@@ -38,7 +38,7 @@
 
           <template v-if="activeTab === 'availability'">
             <div class="space-y-4">
-              <UCard>
+              <UCard :ui="{ body: 'p-0 sm:p-0' }">
                 <template #header>
                   <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
                     Training Schedule
@@ -54,7 +54,7 @@
                   :loading="savingAvailability"
                   @save="handleAvailabilitySave"
                 />
-                <div v-else class="space-y-4">
+                <div v-else class="p-4 sm:p-6 space-y-4">
                   <div
                     v-for="i in 7"
                     :key="i"

@@ -200,39 +200,73 @@
       class="flex flex-col gap-6 p-4 sm:p-6 bg-neutral-50/50 dark:bg-neutral-900/20 border-b border-neutral-100 dark:border-neutral-800/50 transition-all hover:bg-neutral-100/50 dark:hover:bg-neutral-900/40 group/day first:rounded-t-2xl last:rounded-b-2xl last:border-b-0"
     >
       <!-- Row 1: Header (Day Info & Controls) -->
-      <div class="flex items-center justify-between w-full">
-        <div class="flex items-center gap-4">
-          <h3
-            class="font-bold text-xl text-neutral-900 dark:text-white group-hover/day:text-primary-600 dark:group-hover/day:text-primary-400 transition-colors"
-          >
-            {{ days[day.dayOfWeek === 0 ? 6 : day.dayOfWeek - 1] }}
-          </h3>
-          <div class="flex items-center gap-2">
-            <UBadge
-              v-if="day.slots?.length > 0"
-              size="xs"
-              variant="subtle"
-              color="primary"
-              class="font-black px-1.5 py-0"
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3 sm:gap-4">
+        <!-- Top Row on Mobile: Day + Badge and More Options -->
+        <div class="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-4">
+          <div class="flex items-center gap-3">
+            <h3
+              class="font-bold text-lg sm:text-xl text-neutral-900 dark:text-white group-hover/day:text-primary-600 dark:group-hover/day:text-primary-400 transition-colors"
             >
-              {{ day.slots.length }}
-            </UBadge>
-            <span v-else class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest"
-              >Rest Day</span
+              {{ days[day.dayOfWeek === 0 ? 6 : day.dayOfWeek - 1] }}
+            </h3>
+            <div class="flex items-center gap-2">
+              <UBadge
+                v-if="day.slots?.length > 0"
+                size="xs"
+                variant="subtle"
+                color="primary"
+                class="font-black px-1.5 py-0"
+              >
+                {{ day.slots.length }}
+              </UBadge>
+              <span v-else class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest"
+                >Rest Day</span
+              >
+            </div>
+          </div>
+
+          <!-- Ellipsis on mobile only (Right aligned) -->
+          <div class="sm:hidden">
+            <UDropdownMenu
+              :items="[
+                [
+                  {
+                    label: 'Copy to Weekdays',
+                    icon: 'i-heroicons-document-duplicate',
+                    onSelect: () => copyToWeekdays(day)
+                  },
+                  {
+                    label: 'Clear Day',
+                    icon: 'i-heroicons-trash',
+                    color: 'error',
+                    onSelect: () => (day.slots = [])
+                  }
+                ]
+              ]"
+              :content="{ align: 'end' }"
             >
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-ellipsis-horizontal"
+                size="sm"
+              />
+            </UDropdownMenu>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <!-- Add Session and Desktop controls -->
+        <div class="flex items-center gap-2 w-full sm:w-auto">
           <UDropdownMenu
             :items="[
-              ...templateGroups.map((group) =>
-                group.items.map((t) => ({
+              ...templateGroups.map((group) => [
+                { label: group.label, type: 'label' as const },
+                ...group.items.map((t) => ({
                   label: t.name,
                   icon: t.activityTypes[0] ? WORKOUT_ICONS[t.activityTypes[0]] : 'i-heroicons-plus',
                   onSelect: () => addSlot(day, t)
                 }))
-              ),
+              ]),
               [
                 {
                   label: 'Custom Session',
@@ -241,6 +275,7 @@
                 }
               ]
             ]"
+            class="w-full sm:w-auto"
             :content="{ align: 'end' }"
           >
             <UButton
@@ -248,35 +283,39 @@
               color="primary"
               icon="i-heroicons-plus"
               size="sm"
+              class="w-full sm:w-auto justify-center sm:justify-start"
               label="Add Session"
             />
           </UDropdownMenu>
 
-          <UDropdownMenu
-            :items="[
-              [
-                {
-                  label: 'Copy to Weekdays',
-                  icon: 'i-heroicons-document-duplicate',
-                  onSelect: () => copyToWeekdays(day)
-                },
-                {
-                  label: 'Clear Day',
-                  icon: 'i-heroicons-trash',
-                  color: 'error',
-                  onSelect: () => (day.slots = [])
-                }
-              ]
-            ]"
-            :content="{ align: 'end' }"
-          >
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="i-heroicons-ellipsis-horizontal"
-              size="sm"
-            />
-          </UDropdownMenu>
+          <!-- Ellipsis on desktop only -->
+          <div class="hidden sm:block">
+            <UDropdownMenu
+              :items="[
+                [
+                  {
+                    label: 'Copy to Weekdays',
+                    icon: 'i-heroicons-document-duplicate',
+                    onSelect: () => copyToWeekdays(day)
+                  },
+                  {
+                    label: 'Clear Day',
+                    icon: 'i-heroicons-trash',
+                    color: 'error',
+                    onSelect: () => (day.slots = [])
+                  }
+                ]
+              ]"
+              :content="{ align: 'end' }"
+            >
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-heroicons-ellipsis-horizontal"
+                size="sm"
+              />
+            </UDropdownMenu>
+          </div>
         </div>
       </div>
 
@@ -296,19 +335,20 @@
           <div
             v-for="(slot, idx) in day.slots"
             :key="slot.id"
-            class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 shadow-sm relative group/slot transition-all hover:shadow-md hover:border-primary-500/50"
+            class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 sm:p-5 shadow-sm group/slot transition-all hover:shadow-md hover:ring-1 hover:ring-primary-500/20 hover:border-primary-500/50"
           >
-            <div class="absolute left-0 top-4 bottom-4 w-1 bg-primary-500 rounded-full" />
-
             <div class="space-y-4">
               <div class="flex items-center justify-between gap-2">
-                <UInput
-                  v-model="slot.name"
-                  size="sm"
-                  variant="none"
-                  class="font-bold text-neutral-900 dark:text-white p-0 h-auto text-base"
-                  placeholder="Session Name"
-                />
+                <div class="flex items-center gap-2 flex-1">
+                  <UIcon name="i-lucide-calendar-range" class="size-4 text-primary-500" />
+                  <UInput
+                    v-model="slot.name"
+                    size="sm"
+                    variant="none"
+                    class="font-bold text-neutral-900 dark:text-white p-0 h-auto text-base flex-1"
+                    placeholder="Session Name"
+                  />
+                </div>
                 <UButton
                   color="error"
                   variant="ghost"
@@ -319,73 +359,35 @@
                 />
               </div>
 
-              <div class="flex flex-row items-end gap-4">
-                <div class="flex-1 space-y-1.5">
-                  <label class="text-[10px] font-black uppercase text-neutral-400 tracking-wider"
-                    >Start Time</label
-                  >
-                  <UInput
-                    v-model="slot.startTime"
-                    type="time"
-                    size="sm"
-                    block
-                    color="neutral"
-                    variant="subtle"
-                  />
-                </div>
-                <div class="flex-1 space-y-1.5">
-                  <label class="text-[10px] font-black uppercase text-neutral-400 tracking-wider"
-                    >Duration</label
-                  >
-                  <div class="flex items-center gap-2">
-                    <UInput
-                      v-model="slot.duration"
-                      type="number"
-                      size="sm"
-                      block
-                      color="neutral"
-                      variant="subtle"
-                    />
-                    <span class="text-[10px] font-bold text-neutral-400 tracking-widest shrink-0"
-                      >MIN</span
-                    >
-                  </div>
-                </div>
+              <div class="flex flex-row items-start gap-4">
+                <UFormField label="Start Time" class="flex-1">
+                  <UInput v-model="slot.startTime" type="time" size="sm" class="w-full" />
+                </UFormField>
+                <UFormField label="Duration" class="flex-1">
+                  <UInput v-model="slot.duration" type="number" size="sm" class="w-full">
+                    <template #trailing>
+                      <span class="text-gray-500 dark:text-gray-400 text-xs">min</span>
+                    </template>
+                  </UInput>
+                </UFormField>
               </div>
 
-                                          <USelectMenu v-model="slot.activityTypes" multiple :items="activityTypes" size="xs"
-
-                                            placeholder="All Sports" class="w-full" value-key="value">
-
-                            
-
-                              <template #default="{ modelValue }">
-
-                                <UButton color="neutral" variant="subtle" size="xs" class="w-full justify-start overflow-hidden px-3 py-2 h-auto min-h-8">
-
-                                  <template v-if="Array.isArray(modelValue) && modelValue.length">
-
-                                    <div class="flex gap-1 flex-wrap overflow-hidden py-0.5">
-
-                                      <UBadge v-for="type in modelValue" :key="String(type)" size="xs" variant="soft" color="neutral" class="whitespace-nowrap">
-
-                                        {{ type }}
-
-                                      </UBadge>
-
-                                    </div>
-
-                                  </template>
-
-                                  <span v-else class="text-neutral-400 text-xs italic">All Sports</span>
-
-                                </UButton>
-
-                              </template>
-
-                            </USelectMenu>
-
-              
+              <USelectMenu
+                v-model="slot.activityTypes"
+                multiple
+                :items="activityTypes"
+                size="sm"
+                placeholder="All Sports"
+                class="w-full"
+                value-key="value"
+                variant="outline"
+                color="neutral"
+                :ui="{
+                  content:
+                    'bg-white dark:bg-neutral-900 shadow-xl border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden p-1',
+                  item: 'rounded-lg cursor-pointer'
+                }"
+              />
 
               <div
                 class="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800"
