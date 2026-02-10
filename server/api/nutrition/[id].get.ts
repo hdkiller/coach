@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
         limit: 1
       })
 
-      if (plannedWorkouts.length > 0) {
+      if (plannedWorkouts.length > 0 && plannedWorkouts[0]) {
         const workout = plannedWorkouts[0]
         const user = await prisma.user.findUnique({
           where: { id: userId },
@@ -103,6 +103,7 @@ export default defineEventHandler(async (event) => {
         const timezone = await getUserTimezone(userId)
         let startTimeDate: Date | null = null
         if (
+          workout &&
           workout.startTime &&
           typeof workout.startTime === 'string' &&
           workout.startTime.includes(':')
@@ -138,7 +139,7 @@ export default defineEventHandler(async (event) => {
           {
             ...workout,
             startTime: startTimeDate,
-            strategyOverride: workout.fuelingStrategy || undefined
+            strategyOverride: workout?.fuelingStrategy || undefined
           } as any
         )
 

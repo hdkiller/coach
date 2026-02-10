@@ -238,13 +238,15 @@ export default defineEventHandler(async (event) => {
   const plannedByDate = new Map<string, any[]>()
   for (const p of plannedWorkouts) {
     const dateKey = p.date.toISOString().split('T')[0]
-    if (!plannedByDate.has(dateKey)) {
-      plannedByDate.set(dateKey, [])
+    if (dateKey) {
+      if (!plannedByDate.has(dateKey)) {
+        plannedByDate.set(dateKey, [])
+      }
+      plannedByDate.get(dateKey)!.push(p)
     }
-    plannedByDate.get(dateKey)!.push(p)
   }
 
-  for (const [dateKey, workouts] of plannedByDate.entries()) {
+  for (const [dateKey, dayWorkouts] of plannedByDate.entries()) {
     const existing = nutritionByDate.get(dateKey)
 
     // Override if:
@@ -253,7 +255,7 @@ export default defineEventHandler(async (event) => {
     if (!existing || (!existing.fuelingPlan && !existing.isManualLock)) {
       // Estimate fueling strategy for this day based on planned workouts
       // We'll use the first workout for simplicity in this preview estimation
-      const primaryWorkout = workouts[0]
+      const primaryWorkout = dayWorkouts[0]
       if (primaryWorkout) {
         // Convert HH:mm string to a Date object relative to the workout date
         let startTimeDate: Date | null = null
