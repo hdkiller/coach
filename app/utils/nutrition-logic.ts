@@ -34,21 +34,16 @@ export function calculateGlycogenState(
   workouts: any[],
   currentTime: Date = new Date()
 ): GlycogenResult {
-  // 1. Establish Baselines
-  // We assume the tank starts at 80% at midnight (after overnight restoration)
   const midnightBaseline = 80
   let percentage = midnightBaseline
 
-  // Total daily goals (the "Fill" capacity for the day's demand)
   const targetCarbs = nutritionRecord.carbsGoal || 300
   const actualCarbs = nutritionRecord.carbs || 0
 
-  // 2. Replenishment (The Fill)
   const replenishmentFactor = targetCarbs > 0 ? actualCarbs / targetCarbs : 0
-  const replenishmentValue = Math.min(20, replenishmentFactor * 20) // Max 20% addition
+  const replenishmentValue = Math.min(20, replenishmentFactor * 20)
   percentage += replenishmentValue
 
-  // 3. Depletion (The Drain)
   const depletionEvents: GlycogenBreakdown['depletion'] = []
   let totalDepletion = 0
 
@@ -57,7 +52,6 @@ export function calculateGlycogenState(
     const isCompleted = workout.source === 'completed'
     const isPlanned = workout.source === 'planned'
 
-    // Intensity factor proxy
     const intensity = workout.intensity || workout.workIntensity || 0.7
     const durationMin = (workout.duration || workout.plannedDuration || 3600) / 60
 
@@ -79,13 +73,10 @@ export function calculateGlycogenState(
   })
 
   percentage -= totalDepletion
-
-  // 4. Bounds Check
   percentage = Math.max(5, Math.min(100, Math.round(percentage)))
 
-  // 5. Determine Advice & State
   let advice = ''
-  let state = 1 // 1: Good, 2: Warning, 3: Critical
+  let state = 1
 
   if (percentage > 70) {
     advice = 'Energy levels high. Ready for intensity.'
@@ -117,7 +108,7 @@ export function calculateGlycogenState(
 export interface EnergyPoint {
   time: string
   timestamp: number
-  level: number       // % capacity
+  level: number // % capacity
   kcalBalance: number // +/- kcal relative to day start
   isFuture: boolean
   event?: string
@@ -142,18 +133,18 @@ export function calculateEnergyTimeline(
   const INTERVAL = 15 // minutes
   const TOTAL_POINTS = (24 * 60) / INTERVAL
 
-  // 1. Athlete Constants
+  // 1. Athlete Constants (Capacity)
   const weight = settings?.user?.weight || 75
-  const C_cap_grams = weight * 8 
-  
+  const C_cap = weight * 8 // 8g/kg capacity
+
   // 2. Initial State (Morning Baseline)
-  // Start at 85% capacity at midnight
-  let currentGrams = C_cap_grams * 0.85
-  let currentKcalDelta = 0 // Starting point for the day
+  let currentGrams = C_cap * 0.85 // Start at 85% at midnight
+  let cumulativeKcalDelta = 0
 
   // 3. Resting Drain (Brain/CNS)
   const dailyBmr = settings?.bmr || 1600
-  const intervalRestDrainGrams = (dailyBmr * 0.6) / (4 * 96)
+  // Recalibrate: Approx 15% drop over 24h from resting drain
+  const intervalRestDrainGrams = (dailyBmr * 0.25) / (4 * 96)
   const intervalRestDrainKcal = (dailyBmr * 1.2) / 96
 
   // 4. Prep Meals
@@ -185,7 +176,7 @@ export function calculateEnergyTimeline(
             time: mealTime,
             name: item.name,
             totalCarbs: item.carbs || 0,
-            totalKcal: item.calories || 0,
+            totalKcal: item.calories || item.carbs * 4,
             type: item.name?.toLowerCase().includes('gel') ? 'FAST' : 'MIXED'
           })
         }
@@ -193,28 +184,25 @@ export function calculateEnergyTimeline(
     }
   })
 
-  // 5. Prep Workouts
+  // 5. Prep Workouts with Oxidation Rates
   const workoutEvents = workouts.map((w) => {
     const start = new Date(w.startTime || w.date)
     const durationMin = (w.durationSec || 3600) / 60
-    const intensity = w.intensityFactor || w.workIntensity || 0.7
+    const intensity = w.workIntensity || w.intensityFactor || w.intensity || 0.7
 
-    // Oxidation rate lookup (g/min)
+    // Oxidation rate lookup (g/min) from Research Brief
     let gramsPerMin = 1.5
-    if (intensity > 0.9) gramsPerMin = 4.5
-    else if (intensity > 0.75) gramsPerMin = 3.0
-    else if (intensity < 0.6) gramsPerMin = 0.8
+    if (intensity >= 0.9) gramsPerMin = 4.5
+    else if (intensity >= 0.75) gramsPerMin = 2.75
+    else if (intensity < 0.6) gramsPerMin = 0.75
 
-    // Kcal burn
-    const kcalPerMin = (gramsPerMin * 4) / 0.8 
+    const intervalDrain = gramsPerMin * INTERVAL
 
     return {
       start,
       end: new Date(start.getTime() + durationMin * 60000),
-      drainGramsPerInterval: gramsPerMin * INTERVAL,
-      drainKcalPerInterval: kcalPerMin * INTERVAL,
-      title: w.title,
-      type: w.type
+      drainPerInterval: intervalDrain,
+      title: w.title
     }
   })
 
@@ -222,20 +210,20 @@ export function calculateEnergyTimeline(
   for (let i = 0; i <= TOTAL_POINTS; i++) {
     const currentTime = new Date(dayStart.getTime() + i * INTERVAL * 60000)
 
-    // --- SUBTRACT DRAIN ---
+    // --- APPLY DRAIN ---
     if (i > 0) {
       currentGrams -= intervalRestDrainGrams
-      currentKcalDelta -= intervalRestDrainKcal
+      cumulativeKcalDelta -= intervalRestDrainKcal
     }
 
-    // --- SUBTRACT EXERCISE ---
+    // --- APPLY EXERCISE ---
     const activeWorkout = workoutEvents.find((w) => currentTime >= w.start && currentTime <= w.end)
     if (activeWorkout) {
-      currentGrams -= activeWorkout.drainGramsPerInterval
-      currentKcalDelta -= activeWorkout.drainKcalPerInterval
+      currentGrams -= activeWorkout.drainPerInterval
+      cumulativeKcalDelta -= (activeWorkout.drainPerInterval * 4) / 0.8
     }
 
-    // --- ADD ABSORPTION ---
+    // --- APPLY ABSORPTION (Refill) ---
     let intervalGramsIn = 0
     let intervalKcalIn = 0
     let intervalEvent: any = null
@@ -244,39 +232,44 @@ export function calculateEnergyTimeline(
       const minsSince = (currentTime.getTime() - meal.time.getTime()) / 60000
       if (minsSince >= 0) {
         if (meal.type === 'FAST') {
+          // Linear absorption over 30 mins
           if (minsSince <= 30) {
             const factor = INTERVAL / 30
-            intervalGramsIn += meal.totalCarbs * factor
+            intervalGramsIn += meal.totalCarbs * factor * 1.5 // Multiplier for visual clarity
             intervalKcalIn += meal.totalKcal * factor
           }
         } else {
-          const k = 0.08, t0 = 60
+          // Sigmoid: A(t) = M_total / (1 + e^-k(t-t0))
+          const k = 0.1,
+            t0 = 45
           const sigmoid = (t: number) => 1 / (1 + Math.exp(-k * (t - t0)))
           const delta = sigmoid(minsSince) - sigmoid(minsSince - INTERVAL)
-          intervalGramsIn += meal.totalCarbs * delta
+          intervalGramsIn += meal.totalCarbs * delta * 1.5 // Multiplier for visual clarity
           intervalKcalIn += meal.totalKcal * delta
         }
       }
-      
+
       if (minsSince >= 0 && minsSince < INTERVAL) {
         intervalEvent = { name: meal.name, type: 'meal', icon: 'i-tabler-tools-kitchen-2' }
       }
     })
 
-    currentGrams += Math.min(intervalGramsIn, 22.5) 
-    currentKcalDelta += intervalKcalIn
+    // Cap at 90g/hr (22.5g/15min)
+    currentGrams += Math.min(intervalGramsIn, 22.5)
+    cumulativeKcalDelta += intervalKcalIn
 
-    currentGrams = Math.max(0, Math.min(C_cap_grams, currentGrams))
-    
-    if (activeWorkout && (currentTime.getTime() - activeWorkout.start.getTime()) < (INTERVAL * 60000)) {
-       intervalEvent = { name: activeWorkout.title, type: 'workout', icon: 'i-tabler-bike' }
+    // Bounds check
+    currentGrams = Math.max(0, Math.min(C_cap, currentGrams))
+
+    if (activeWorkout && currentTime.getTime() - activeWorkout.start.getTime() < INTERVAL * 60000) {
+      intervalEvent = { name: activeWorkout.title, type: 'workout', icon: 'i-tabler-bike' }
     }
 
     points.push({
       time: currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
       timestamp: currentTime.getTime(),
-      level: Math.round((currentGrams / C_cap_grams) * 100),
-      kcalBalance: Math.round(currentKcalDelta),
+      level: Math.round((currentGrams / C_cap) * 100),
+      kcalBalance: Math.round(cumulativeKcalDelta),
       isFuture: currentTime > now,
       event: intervalEvent?.name,
       eventType: intervalEvent?.type,
