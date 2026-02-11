@@ -99,6 +99,7 @@
               protein: nutrition.proteinGoal || 150,
               fat: nutrition.fatGoal || 80
             }"
+            :fueling-plan="nutrition.fuelingPlan"
             :actuals="{
               calories: nutrition.calories || 0,
               carbs: nutrition.carbs || 0,
