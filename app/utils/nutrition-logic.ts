@@ -1,5 +1,5 @@
 import { differenceInMinutes, startOfDay, endOfDay } from 'date-fns'
-import { fromZonedTime, toZonedTime } from 'date-fns-tz'
+import { fromZonedTime, toZonedTime, format } from 'date-fns-tz'
 import { getWorkoutDate } from './nutrition-timeline'
 
 export interface GlycogenBreakdown {
@@ -264,7 +264,7 @@ export function calculateEnergyTimeline(
     const combinedName = intervalEvents.map((e) => e.name).join(' + ')
 
     points.push({
-      time: `${currentTime.getUTCHours().toString().padStart(2, '0')}:${currentTime.getUTCMinutes().toString().padStart(2, '0')}`,
+      time: format(currentTime, 'HH:mm', { timeZone: timezone }),
       timestamp: currentTime.getTime(),
       level: Math.round((currentGrams / C_cap) * 100),
       kcalBalance: Math.round(cumulativeKcalDelta),
