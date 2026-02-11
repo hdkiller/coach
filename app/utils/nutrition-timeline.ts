@@ -51,7 +51,22 @@ export interface TimelineOptions {
 }
 
 export function getWorkoutDate(workout: any, timezone: string): number {
+  if (workout.startTime) {
+    if (
+      workout.startTime instanceof Date ||
+      (typeof workout.startTime === 'string' && workout.startTime.includes('T'))
+    ) {
+      // If it's already a full date, return it
+      const d = new Date(workout.startTime)
+      if (!isNaN(d.getTime())) return d.getTime()
+    }
+  }
+
   const d = new Date(workout.date)
+  if (isNaN(d.getTime())) {
+    return 0 // Or some fallback
+  }
+
   let h = 10
   let m = 0
 
@@ -61,16 +76,11 @@ export function getWorkoutDate(workout: any, timezone: string): number {
       const [sh, sm] = workout.startTime.split(':').map(Number)
       h = sh || 0
       m = sm || 0
-    } else if (
-      workout.startTime instanceof Date ||
-      (typeof workout.startTime === 'string' && workout.startTime.includes('T'))
-    ) {
-      // If it's already a full date
-      return new Date(workout.startTime).getTime()
     }
   }
 
   // Use UTC components of the base date to ensure we stay on the intended calendar day
+  // This handles dates like "2026-02-11T00:00:00Z" correctly regardless of local timezone
   const dateStr = d.toISOString().split('T')[0]
   const hh = String(h).padStart(2, '0')
   const mm = String(m).padStart(2, '0')

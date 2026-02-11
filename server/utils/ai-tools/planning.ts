@@ -31,8 +31,10 @@ export const planningTools = (userId: string, timezone: string) => ({
       limit: z.number().optional().default(20)
     }),
     execute: async ({ start_date, end_date, limit }) => {
-      const start = start_date ? new Date(`${start_date}T00:00:00Z`) : getUserLocalDate(timezone)
-      const end = end_date ? new Date(`${end_date}T00:00:00Z`) : undefined
+      const start = start_date
+        ? getStartOfLocalDateUTC(timezone, start_date)
+        : getUserLocalDate(timezone)
+      const end = end_date ? getEndOfLocalDateUTC(timezone, end_date) : undefined
 
       const workouts = await plannedWorkoutRepository.list(userId, {
         startDate: start,
