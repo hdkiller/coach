@@ -1,13 +1,27 @@
 import { Command } from 'commander'
-import { prisma } from '../../server/utils/db'
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
 import chalk from 'chalk'
 
 const compareIntervalsCommand = new Command('compare-intervals')
-
-compareIntervalsCommand
   .description('Compare a planned workout with its Intervals.icu counterpart')
   .argument('<workoutId>', 'Internal Planned Workout ID')
-  .action(async (workoutId) => {
+  .option('--prod', 'Use production database')
+  .action(async (workoutId, options) => {
+    const isProd = options.prod
+    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+
+    if (isProd) {
+      console.log(chalk.yellow('Using PRODUCTION database.'))
+    } else {
+      console.log(chalk.blue('Using DEVELOPMENT database.'))
+    }
+
+    const pool = new pg.Pool({ connectionString })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
+
     try {
       console.log(chalk.blue(`Fetching workout ${workoutId}...`))
       const workout = await prisma.plannedWorkout.findUnique({
@@ -111,8 +125,7 @@ compareIntervalsCommand
         const local = localSteps[i] || {}
         const remoteStep = remoteSteps[i] || {}
 
-        console.log(`\nStep ${i + 1}:
-`)
+        console.log(`\nStep ${i + 1}:`)
         console.log(
           `  Local Duration (sec):  ${local.durationSeconds} ${local.durationSeconds ? '(OK)' : chalk.red('(MISSING)')}`
         )
@@ -131,36 +144,6 @@ compareIntervalsCommand
         console.log(
           `  Remote Flags:    warmup=${remoteStep.warmup}, cooldown=${remoteStep.cooldown}`
         )
-
-        // Check Cadence
-        if (typeof local.cadence === 'object') {
-          console.log(chalk.red('  ❌ Cadence NOT normalized (Local is object)'))
-        } else if (typeof local.cadence === 'number') {
-          console.log(chalk.green('  ✓ Cadence normalized'))
-        }
-
-        // Deep compare power
-        if (local.power && remoteStep.power) {
-          // Check Scale
-          const localVal = local.power.value || (local.power.range ? local.power.range.start : 0)
-          const remoteVal = remoteStep.power.value || remoteStep.power.start || 0
-
-          console.log(`  -> Scale check: Local ${localVal} vs Remote ${remoteVal}`)
-
-          // Heuristic check
-          if (remoteVal > 2 && localVal < 2) {
-            console.log(chalk.green('  ✓ Power scaled correctly (Remote % -> Local Ratio)'))
-          } else if (remoteVal > 2 && localVal > 2) {
-            console.log(chalk.red('  ❌ Power NOT scaled (Local is still %)'))
-          }
-
-          // Check Structure
-          if (remoteStep.power.start && !local.power.range) {
-            console.log(chalk.red('  ❌ Ramp structure missing in Local'))
-          } else if (remoteStep.power.start && local.power.range) {
-            console.log(chalk.green('  ✓ Ramp structure normalized'))
-          }
-        }
       }
 
       // Check for normalization global status
