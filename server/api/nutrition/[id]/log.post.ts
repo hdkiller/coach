@@ -91,73 +91,98 @@ export default defineEventHandler(async (event) => {
     return { success: false, message: 'Could not parse any food items from your query.' }
   }
 
-  // Update nutrition record
-  if (!nutrition) {
-    const dateObj = new Date(`${dateStr}T00:00:00Z`)
-    // We need to create it
-    // Group items by mealType
-    const meals: any = { breakfast: [], lunch: [], dinner: [], snacks: [] }
-    result.items.forEach((item: any) => {
-      const targetMeal = item.mealType || mealType || 'snacks'
-      meals[targetMeal].push({
-        ...item,
-        id: crypto.randomUUID(),
-        source: 'ai'
-      })
-    })
+  // Group items by target date
+  const itemsByDate: Record<string, any[]> = {}
 
-    nutrition = await nutritionRepository.create({
-      userId,
-      date: dateObj,
-      ...meals
-    })
-  } else {
-    // Update existing record
-    const updates: any = {}
-    result.items.forEach((item: any) => {
-      const targetMeal = item.mealType || mealType || 'snacks'
-      if (!updates[targetMeal]) {
-        updates[targetMeal] = [...((nutrition[targetMeal] as any[]) || [])]
-      }
-      updates[targetMeal].push({
-        ...item,
-        id: crypto.randomUUID(),
-        source: 'ai'
-      })
-    })
+  result.items.forEach((item: any) => {
+    let targetDateStr = dateStr
 
-    nutrition = await nutritionRepository.update(nutrition.id, updates)
-  }
-
-  // Recalculate daily totals
-  const mealsList = ['breakfast', 'lunch', 'dinner', 'snacks']
-  let calories = 0
-  let protein = 0
-  let carbs = 0
-  let fat = 0
-  let fiber = 0
-  let sugar = 0
-
-  for (const meal of mealsList) {
-    const items = (nutrition[meal] as any[]) || []
-    for (const i of items) {
-      calories += i.calories || 0
-      protein += i.protein || 0
-      carbs += i.carbs || 0
-      fat += i.fat || 0
-      fiber += i.fiber || 0
-      sugar += i.sugar || 0
+    // Check if item has a specific logged_at that implies a different date
+    if (item.logged_at && item.logged_at.includes('T')) {
+      targetDateStr = item.logged_at.split('T')[0]
     }
-  }
 
-  await nutritionRepository.update(nutrition.id, {
-    calories,
-    protein,
-    carbs,
-    fat,
-    fiber,
-    sugar
+    if (!itemsByDate[targetDateStr]) {
+      itemsByDate[targetDateStr] = []
+    }
+    itemsByDate[targetDateStr].push(item)
   })
 
-  return { success: true, itemsAdded: result.items }
+  const addedItems: any[] = []
+
+  // Process each date group
+  for (const [targetDateStr, items] of Object.entries(itemsByDate)) {
+    const targetDate = new Date(`${targetDateStr}T00:00:00Z`)
+
+    // Get or create record for this date
+    let targetNutrition = await nutritionRepository.getByDate(userId, targetDate)
+
+    if (!targetNutrition) {
+      const meals: any = { breakfast: [], lunch: [], dinner: [], snacks: [] }
+      items.forEach((item: any) => {
+        const targetMeal = item.mealType || mealType || 'snacks'
+        meals[targetMeal].push({
+          ...item,
+          id: crypto.randomUUID(),
+          source: 'ai'
+        })
+      })
+
+      targetNutrition = await nutritionRepository.create({
+        userId,
+        date: targetDate,
+        ...meals
+      })
+    } else {
+      // Update existing
+      const updates: any = {}
+      items.forEach((item: any) => {
+        const targetMeal = item.mealType || mealType || 'snacks'
+        if (!updates[targetMeal]) {
+          updates[targetMeal] = [...((targetNutrition![targetMeal as keyof typeof targetNutrition] as any[]) || [])]
+        }
+        updates[targetMeal].push({
+          ...item,
+          id: crypto.randomUUID(),
+          source: 'ai'
+        })
+      })
+
+      targetNutrition = await nutritionRepository.update(targetNutrition.id, updates)
+    }
+
+    // Recalculate totals for this record
+    const mealsList = ['breakfast', 'lunch', 'dinner', 'snacks']
+    let calories = 0
+    let protein = 0
+    let carbs = 0
+    let fat = 0
+    let fiber = 0
+    let sugar = 0
+
+    for (const meal of mealsList) {
+      const mealItems = (targetNutrition[meal as keyof typeof targetNutrition] as any[]) || []
+      for (const i of mealItems) {
+        calories += i.calories || 0
+        protein += i.protein || 0
+        carbs += i.carbs || 0
+        fat += i.fat || 0
+        fiber += i.fiber || 0
+        sugar += i.sugar || 0
+      }
+    }
+
+    await nutritionRepository.update(targetNutrition.id, {
+      calories,
+      protein,
+      carbs,
+      fat,
+      fiber,
+      sugar
+    })
+
+    addedItems.push(...items)
+  }
+
+  return { success: true, itemsAdded: addedItems }
 })
