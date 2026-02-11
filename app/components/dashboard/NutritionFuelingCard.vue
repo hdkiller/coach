@@ -172,10 +172,11 @@
                   v-model="energyViewIdx"
                   :items="[
                     { label: '%', value: '0' },
-                    { label: 'kcal', value: '1' }
+                    { label: 'kcal', value: '1' },
+                    { label: 'carbs', value: '2' }
                   ]"
                   size="xs"
-                  class="w-24"
+                  class="w-32"
                   @update:model-value="console.log('[FuelingCard] View switched to:', $event)"
                 />
               </div>
@@ -402,8 +403,12 @@
   const itemModal = ref<any>(null)
   const aiModal = ref<any>(null)
 
-  const energyViewIdx = ref('0') // '0': %, '1': kcal
-  const energyViewMode = computed(() => (energyViewIdx.value === '0' ? 'percent' : 'kcal'))
+  const energyViewIdx = ref('0') // '0': %, '1': kcal, '2': carbs
+  const energyViewMode = computed(() => {
+    if (energyViewIdx.value === '0') return 'percent'
+    if (energyViewIdx.value === '1') return 'kcal'
+    return 'carbs'
+  })
 
   function handleAddItem(event: { type: string; meals?: string[] }) {
     let mealType = 'snacks'

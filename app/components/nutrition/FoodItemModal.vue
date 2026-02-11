@@ -28,6 +28,15 @@
           <UInput v-model="state.name" placeholder="e.g. Oatmeal with blueberries" class="w-full" />
         </UFormField>
 
+        <UFormField label="Absorption Type" name="absorptionType">
+          <USelect
+            v-model="state.absorptionType"
+            :items="absorptionTypes"
+            class="w-full"
+            placeholder="Select absorption rate"
+          />
+        </UFormField>
+
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Amount" name="amount">
             <UInput v-model="state.amount" type="number" step="0.1" class="w-full" />
@@ -82,6 +91,7 @@
 
 <script setup lang="ts">
   import { z } from 'zod'
+  import { ABSORPTION_PROFILES, getProfileForItem } from '~/utils/nutrition-absorption'
 
   const props = defineProps<{
     nutritionId?: string
@@ -101,6 +111,11 @@
     { label: 'Snacks', value: 'snacks' }
   ]
 
+  const absorptionTypes = Object.values(ABSORPTION_PROFILES).map((p) => ({
+    label: p.label,
+    value: p.id
+  }))
+
   const schema = z.object({
     name: z.string().min(1, 'Name is required'),
     mealType: z.string(),
@@ -110,7 +125,8 @@
     fat: z.coerce.number().min(0),
     amount: z.coerce.number().optional(),
     unit: z.string().optional(),
-    logged_at: z.string().optional()
+    logged_at: z.string().optional(),
+    absorptionType: z.string()
   })
 
   const state = ref<any>({
@@ -122,13 +138,25 @@
     fat: 0,
     amount: 1,
     unit: 'serving',
-    logged_at: ''
+    logged_at: '',
+    absorptionType: 'COMPLEX'
   })
+
+  // Watch name to suggest absorption type
+  watch(
+    () => state.value.name,
+    (newName) => {
+      if (!isEditing.value && newName) {
+        const profile = getProfileForItem(newName)
+        state.value.absorptionType = profile.id
+      }
+    }
+  )
 
   const currentItemId = ref<string | null>(null)
 
   function open(mode: 'add' | 'edit', initialData?: any) {
-    const { formatDate } = useFormat()
+    const { formatDate, getUserLocalTime } = useFormat()
     isEditing.value = mode === 'edit'
     if (initialData) {
       currentItemId.value = initialData.id
@@ -151,7 +179,7 @@
         fat: 0,
         amount: 1,
         unit: 'serving',
-        logged_at: ''
+        logged_at: getUserLocalTime()
       }
     }
     isOpen.value = true

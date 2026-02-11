@@ -34,7 +34,7 @@
 
   const props = defineProps<{
     points: EnergyPoint[]
-    viewMode: 'percent' | 'kcal'
+    viewMode: 'percent' | 'kcal' | 'carbs'
   }>()
 
   // Pre-load icons as images for Chart.js pointStyle (Simplified for now using circles/shapes)
@@ -42,13 +42,18 @@
 
   const chartData = computed(() => {
     const isKcal = props.viewMode === 'kcal'
+    const isCarbs = props.viewMode === 'carbs'
 
     return {
       labels: props.points.map((p) => p.time),
       datasets: [
         {
           label: 'Energy availability',
-          data: props.points.map((p) => (isKcal ? p.kcalBalance : p.level)),
+          data: props.points.map((p) => {
+            if (isKcal) return p.kcalBalance
+            if (isCarbs) return p.carbBalance
+            return p.level
+          }),
           borderColor: '#3b82f6',
           borderWidth: 2,
           fill: true,
@@ -98,24 +103,29 @@
 
   const chartOptions = computed(() => {
     const isKcal = props.viewMode === 'kcal'
+    const isCarbs = props.viewMode === 'carbs'
 
     let yMin = 0
     let yMax = 100
 
-    if (isKcal) {
-      const values = props.points.map((p) => p.kcalBalance)
+    if (isKcal || isCarbs) {
+      const values = props.points.map((p) => (isKcal ? p.kcalBalance : p.carbBalance))
       const minVal = Math.min(...values)
       const maxVal = Math.max(...values)
       const range = maxVal - minVal
-      // Add 20% padding to top and bottom
-      yMin = Math.floor((minVal - range * 0.2) / 100) * 100
-      yMax = Math.ceil((maxVal + range * 0.2) / 100) * 100
 
-      // Ensure we show at least a +/- 500 range
-      if (yMax - yMin < 1000) {
+      const step = isKcal ? 100 : 25
+
+      // Add 20% padding to top and bottom
+      yMin = Math.floor((minVal - range * 0.2) / step) * step
+      yMax = Math.ceil((maxVal + range * 0.2) / step) * step
+
+      // Ensure minimum range
+      const minRange = isKcal ? 1000 : 200
+      if (yMax - yMin < minRange) {
         const mid = (yMax + yMin) / 2
-        yMin = mid - 500
-        yMax = mid + 500
+        yMin = mid - minRange / 2
+        yMax = mid + minRange / 2
       }
     }
 
@@ -142,7 +152,9 @@
           callbacks: {
             label: (context: any) => {
               const val = context.parsed.y
-              return isKcal ? `Balance: ${val > 0 ? '+' : ''}${val} kcal` : `Fuel Tank: ${val}%`
+              if (isKcal) return `Balance: ${val > 0 ? '+' : ''}${val} kcal`
+              if (isCarbs) return `Balance: ${val > 0 ? '+' : ''}${val}g Carbs`
+              return `Fuel Tank: ${val}%`
             },
             afterBody: (context: any) => {
               const p = props.points[context[0].dataIndex]
@@ -172,7 +184,7 @@
             // Highlight optimal zone
             optimalZone: {
               type: 'box' as const,
-              yMin: isKcal ? 500 : 70,
+              yMin: isKcal ? 500 : isCarbs ? 125 : 70,
               yMax: yMax,
               backgroundColor: 'rgba(16, 185, 129, 0.03)',
               borderWidth: 0
@@ -181,7 +193,7 @@
             dangerZone: {
               type: 'box' as const,
               yMin: yMin,
-              yMax: isKcal ? -200 : 25,
+              yMax: isKcal ? -200 : isCarbs ? -50 : 25,
               backgroundColor: 'rgba(239, 68, 68, 0.05)',
               borderWidth: 0
             }
@@ -202,10 +214,13 @@
           max: yMax,
           grid: { color: 'rgba(148, 163, 184, 0.1)' },
           ticks: {
-            stepSize: isKcal ? Math.ceil((yMax - yMin) / 5 / 100) * 100 : 25,
+            stepSize: isKcal ? Math.ceil((yMax - yMin) / 5 / 100) * 100 : isCarbs ? 50 : 25,
             color: '#94a3b8',
             font: { size: 10 },
-            callback: (val: any) => (isKcal ? `${val > 0 ? '+' : ''}${val}` : `${val}%`)
+            callback: (val: any) => {
+              if (isKcal || isCarbs) return `${val > 0 ? '+' : ''}${val}${isCarbs ? 'g' : ''}`
+              return `${val}%`
+            }
           }
         }
       }

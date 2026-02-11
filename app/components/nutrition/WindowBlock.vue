@@ -243,8 +243,17 @@
               />
             </div>
             <div>
-              <div class="text-sm font-bold text-gray-900 dark:text-white">
+              <div class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 {{ item.name || item.product_name }}
+                <UBadge
+                  v-if="item.absorptionType"
+                  :color="getAbsorptionColor(item.absorptionType)"
+                  variant="subtle"
+                  size="xs"
+                  class="text-[8px] font-black uppercase px-1 py-0 leading-none"
+                >
+                  {{ item.absorptionType }}
+                </UBadge>
               </div>
               <div
                 class="text-[10px] text-gray-500 font-medium uppercase flex items-center gap-1.5"
@@ -424,6 +433,19 @@
     }
 
     return formatTime(date)
+  }
+
+  function getAbsorptionColor(type: string) {
+    switch (type) {
+      case 'SIMPLE':
+        return 'primary'
+      case 'INTERMEDIATE':
+        return 'warning'
+      case 'COMPLEX':
+        return 'neutral'
+      default:
+        return 'neutral'
+    }
   }
 
   function getSupplementIcon(supp: string) {
