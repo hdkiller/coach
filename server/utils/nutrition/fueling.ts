@@ -15,6 +15,23 @@ export interface FuelingProfile {
   fuelState2Max?: number
   fuelState3Min?: number
   fuelState3Max?: number
+  bmr?: number
+  activityLevel?: string
+  targetAdjustmentPercent?: number
+  goalProfile?: string
+}
+
+export interface CalorieBreakdown {
+  baseCalories: number
+  activityCalories: number
+  adjustmentCalories: number
+  totalTarget: number
+  workouts: {
+    title: string
+    calories: number
+    intensity: number
+    durationHours: number
+  }[]
 }
 
 export interface WorkoutContext {
@@ -43,6 +60,7 @@ export interface SerializedFuelingWindow {
   status: 'PENDING' | 'HIT' | 'MISSED' | 'PARTIAL'
   supplements?: string[]
   plannedWorkoutId?: string
+  workoutTitle?: string
 }
 
 export interface SerializedFuelingPlan {
@@ -54,6 +72,13 @@ export interface SerializedFuelingPlan {
     fat: number
     fluid: number
     sodium: number
+    baseCalories: number
+    activityCalories: number
+    adjustmentCalories: number
+    workoutCalories?: {
+      title: string
+      calories: number
+    }[]
   }
   notes: string[]
 }
@@ -96,8 +121,13 @@ export function calculateFuelingStrategy(
         carbs: Math.round(dailyCarbTargetGrams),
         protein: Math.round(profile.weight * 1.6),
         fat: Math.round(profile.weight * 1.0),
-        fluid: 2000, // Base hydration only
-        sodium: 1000 // Base sodium only
+        fluid: 2000,
+        sodium: 1000,
+        baseCalories: Math.round(
+          dailyCarbTargetGrams * 4 + profile.weight * 1.6 * 4 + profile.weight * 1.0 * 9
+        ),
+        activityCalories: 0,
+        adjustmentCalories: 0
       },
       notes: []
     }
@@ -155,7 +185,8 @@ export function calculateFuelingStrategy(
     description: `Fuel State ${state} (${state === 1 ? 'Eco' : state === 2 ? 'Steady' : 'Performance'}): ${Math.round(durationHours * 10) / 10}h ride.`,
     status: 'PENDING',
     supplements: extractSupplements(durationHours, intensity),
-    plannedWorkoutId: workout.id
+    plannedWorkoutId: workout.id,
+    workoutTitle: workout.title
   })
 
   // --- 3. PRE-WORKOUT ---
@@ -181,7 +212,8 @@ export function calculateFuelingStrategy(
     targetSodium: 500,
     description: 'Pre-workout fueling window.',
     status: 'PENDING',
-    plannedWorkoutId: workout.id
+    plannedWorkoutId: workout.id,
+    workoutTitle: workout.title
   })
 
   // --- 4. POST-WORKOUT ---
@@ -207,22 +239,80 @@ export function calculateFuelingStrategy(
     targetSodium: 0,
     description: 'Post-workout recovery window.',
     status: 'PENDING',
-    plannedWorkoutId: workout.id
+    plannedWorkoutId: workout.id,
+    workoutTitle: workout.title
   })
+
+  // --- 5. CALORIES & CONSOLIDATION ---
+  const breakdown = calculateDailyCalorieBreakdown(profile, [
+    { ...workout, durationHours, intensity }
+  ])
 
   return {
     windows,
     dailyTotals: {
-      calories: Math.round(
-        dailyCarbTargetGrams * 4 + profile.weight * 1.6 * 4 + profile.weight * 1.0 * 9
-      ),
+      calories: breakdown.totalTarget,
       carbs: Math.round(dailyCarbTargetGrams),
       protein: Math.round(profile.weight * 1.6),
       fat: Math.round(profile.weight * 1.0),
       fluid: intraFluid + 2000,
-      sodium: intraSodium + 1000
+      sodium: intraSodium + 1000,
+      baseCalories: breakdown.baseCalories,
+      activityCalories: breakdown.activityCalories,
+      adjustmentCalories: breakdown.adjustmentCalories,
+      workoutCalories: breakdown.workouts.map((w) => ({ title: w.title, calories: w.calories }))
     },
     notes
+  }
+}
+
+export function calculateDailyCalorieBreakdown(
+  profile: FuelingProfile,
+  workouts: any[]
+): CalorieBreakdown {
+  const ACTIVITY_MULTIPLIERS: Record<string, number> = {
+    SEDENTARY: 1.2,
+    LIGHTLY_ACTIVE: 1.375,
+    ACTIVE: 1.55,
+    MODERATELY_ACTIVE: 1.725,
+    VERY_ACTIVE: 1.9,
+    EXTRA_ACTIVE: 2.1
+  }
+
+  const multiplier = ACTIVITY_MULTIPLIERS[profile.activityLevel || 'ACTIVE'] || 1.55
+  const baseCalories = Math.round((profile.bmr || 1600) * multiplier)
+
+  let activityCalories = 0
+  const workoutDetails: CalorieBreakdown['workouts'] = []
+
+  for (const w of workouts) {
+    // Only add activity calories if it's not a rest day and has duration
+    if (w.type !== 'Rest' && w.durationHours > 0) {
+      const avgPower = profile.ftp * (w.intensity || 0.5)
+      const workoutkJ = avgPower * w.durationHours * 3.6
+      const cost = Math.round(workoutkJ)
+      activityCalories += cost
+      workoutDetails.push({
+        title: w.title || 'Workout',
+        calories: cost,
+        intensity: w.intensity,
+        durationHours: w.durationHours
+      })
+    }
+  }
+
+  const subtotalCalories = baseCalories + activityCalories
+  const adjustmentCalories = Math.round(
+    subtotalCalories * ((profile.targetAdjustmentPercent || 0) / 100)
+  )
+  const totalTarget = subtotalCalories + adjustmentCalories
+
+  return {
+    baseCalories,
+    activityCalories,
+    adjustmentCalories,
+    totalTarget,
+    workouts: workoutDetails
   }
 }
 

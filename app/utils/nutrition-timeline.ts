@@ -1,5 +1,6 @@
 import { addMinutes, startOfDay, endOfDay } from 'date-fns'
 import { fromZonedTime } from 'date-fns-tz'
+import { mergeFuelingWindows } from './merging-nutrition'
 
 export type WindowType =
   | 'PRE_WORKOUT'
@@ -49,7 +50,7 @@ export interface TimelineOptions {
   timezone: string
 }
 
-function getWorkoutDate(workout: any): number {
+export function getWorkoutDate(workout: any, timezone: string): number {
   const d = new Date(workout.date)
   let h = 10
   let m = 0
@@ -70,11 +71,15 @@ function getWorkoutDate(workout: any): number {
   }
 
   // Use UTC components of the base date to ensure we stay on the intended calendar day
-  // then apply h:m as local time to get the correct UTC timestamp for the browser's zone
-  const year = d.getUTCFullYear()
-  const month = d.getUTCMonth()
-  const day = d.getUTCDate()
-  return new Date(year, month, day, h, m, 0, 0).getTime()
+  const dateStr = d.toISOString().split('T')[0]
+  const hh = String(h).padStart(2, '0')
+  const mm = String(m).padStart(2, '0')
+
+  try {
+    return fromZonedTime(`${dateStr}T${hh}:${mm}:00`, timezone).getTime()
+  } catch (e) {
+    return new Date(`${dateStr}T${hh}:${mm}:00Z`).getTime()
+  }
 }
 
 /**
@@ -119,7 +124,7 @@ export function mapNutritionToTimeline(
         // Fallback: If it's INTRA window, match by proximity
         if (w.type === 'INTRA_WORKOUT') {
           const wStart = new Date(w.startTime).getTime()
-          const workStart = getWorkoutDate(work)
+          const workStart = getWorkoutDate(work, options.timezone)
           const diffMin = Math.abs(wStart - workStart) / 60000
 
           if (diffMin < 120) {
@@ -138,6 +143,7 @@ export function mapNutritionToTimeline(
         startTime: new Date(w.startTime),
         endTime: new Date(w.endTime),
         workout,
+        workoutTitle: w.workoutTitle || workout?.title, // Preserve stored title if workout matching is fuzzy
         items: []
       }
     })
@@ -146,7 +152,7 @@ export function mapNutritionToTimeline(
     // 2. Fallback: Manual generation
     const rawWindows: FuelingTimelineWindow[] = []
     trainingWorkouts.forEach((workout) => {
-      const workoutStart = new Date(getWorkoutDate(workout))
+      const workoutStart = new Date(getWorkoutDate(workout, options.timezone))
       const durationMin = (workout.durationSec || 3600) / 60
       const workoutEnd = addMinutes(workoutStart, durationMin)
 
@@ -195,42 +201,33 @@ export function mapNutritionToTimeline(
       })
     })
 
-    if (rawWindows.length > 0 && rawWindows[0]) {
-      rawWindows.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
-      let current: FuelingTimelineWindow = { ...rawWindows[0] } as FuelingTimelineWindow
-      const merged: FuelingTimelineWindow[] = []
-      for (let i = 1; i < rawWindows.length; i++) {
-        const next = rawWindows[i]
-        if (next && next.startTime < current.endTime) {
-          current.endTime = new Date(Math.max(current.endTime.getTime(), next.endTime.getTime()))
-          current.targetCarbs = (current.targetCarbs || 0) + (next.targetCarbs || 0)
-          current.targetProtein = (current.targetProtein || 0) + (next.targetProtein || 0)
-          current.type = 'TRANSITION'
-          current.description = `Transition window`
-        } else if (next) {
-          merged.push({ ...current })
-          current = { ...next } as FuelingTimelineWindow
-        }
-      }
-      merged.push({ ...current })
-      baseTimeline = merged
+    if (rawWindows.length > 0) {
+      baseTimeline = mergeFuelingWindows(rawWindows as any) as any
     }
   }
 
   // 3. Inject WORKOUT_EVENT markers
   const timelineWithEvents: FuelingTimelineWindow[] = []
 
+  // Keep track of which workouts are already represented in the timeline
+  const representedWorkoutIds = new Set<string>()
+  baseTimeline.forEach((w) => {
+    if (w.plannedWorkoutId) representedWorkoutIds.add(w.plannedWorkoutId)
+    if (w.workout?.id) representedWorkoutIds.add(w.workout.id)
+  })
+
   // Sort base windows
   baseTimeline.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
 
   baseTimeline.forEach((window) => {
-    // If this is an INTRA window, we want to show the WORKOUT card just before it
-    if (window.type === 'INTRA_WORKOUT' && window.workout) {
+    // Inject WORKOUT_EVENT for INTRA and TRANSITION windows that represent a workout
+    if ((window.type === 'INTRA_WORKOUT' || window.type === 'TRANSITION') && window.workout) {
       console.log(`[TimelineUtil] Adding WORKOUT_EVENT for: ${window.workout.title}`)
+      const workoutStartTime = new Date(getWorkoutDate(window.workout, options.timezone))
       timelineWithEvents.push({
         type: 'WORKOUT_EVENT',
-        startTime: window.startTime,
-        endTime: window.endTime,
+        startTime: workoutStartTime,
+        endTime: addMinutes(workoutStartTime, (window.workout.durationSec || 3600) / 60),
         targetCarbs: 0,
         targetProtein: 0,
         targetFat: 0,
@@ -242,7 +239,35 @@ export function mapNutritionToTimeline(
     timelineWithEvents.push(window)
   })
 
-  // 4. Final step: Add Daily Base gaps and slot items
+  // 4. Inject "orphaned" workouts (those not tied to a window)
+  trainingWorkouts.forEach((workout) => {
+    if (!representedWorkoutIds.has(workout.id)) {
+      console.log(`[TimelineUtil] Injecting orphaned workout: ${workout.title}`)
+      const workoutStart = new Date(getWorkoutDate(workout, options.timezone))
+
+      // Find insertion point
+      const insertIdx = timelineWithEvents.findIndex((w) => w.startTime > workoutStart)
+      const eventWindow: FuelingTimelineWindow = {
+        type: 'WORKOUT_EVENT',
+        startTime: workoutStart,
+        endTime: addMinutes(workoutStart, (workout.durationSec || 3600) / 60),
+        targetCarbs: 0,
+        targetProtein: 0,
+        targetFat: 0,
+        description: workout.title,
+        workout: workout,
+        items: []
+      }
+
+      if (insertIdx === -1) {
+        timelineWithEvents.push(eventWindow)
+      } else {
+        timelineWithEvents.splice(insertIdx, 0, eventWindow)
+      }
+    }
+  })
+
+  // 5. Final step: Add Daily Base gaps and slot items
   const finalTimeline: FuelingTimelineWindow[] = []
   let lastTime = dayStart
 
