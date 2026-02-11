@@ -356,7 +356,7 @@
     :unit="selectedMacro.unit"
     :fuel-state="fuelState"
     :settings="settings"
-    :weight="weight"
+    :weight="weight || 75"
     :fueling-plan="nutrition?.fuelingPlan"
   />
 
