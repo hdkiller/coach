@@ -9,16 +9,19 @@ vi.mock('date-fns-tz', () => ({
     }
     return new Date(date)
   },
-  toZonedTime: (date: string | Date, tz: string) => new Date(date)
+  toZonedTime: (date: string | Date, tz: string) => new Date(date),
+  format: (date: Date, fmt: string, options: any) => {
+    const hours = String(date.getUTCHours()).padStart(2, '0')
+    const mins = String(date.getUTCMinutes()).padStart(2, '0')
+    return `${hours}:${mins}`
+  }
 }))
 
 describe('calculateEnergyTimeline', () => {
   const mockSettings = {
     bmr: 1800,
     user: { weight: 70 }, // mu = 8 -> 560g capacity
-    mealPattern: [
-      { name: 'Breakfast', time: '08:00' }
-    ]
+    mealPattern: [{ name: 'Breakfast', time: '08:00' }]
   }
 
   const mockNutrition = {
@@ -34,10 +37,10 @@ describe('calculateEnergyTimeline', () => {
 
   it('should start at 85% and have a realistic resting drain', () => {
     const points = calculateEnergyTimeline(mockNutrition, [], mockSettings, 'UTC')
-    
+
     // Start of day
     expect(points[0]?.level).toBe(85)
-    
+
     // Check at 4:00 AM (after 4 hours)
     const fourAm = points.find((p) => p.time === '04:00')
     // Approx 1-1.5% drop per hour -> 4-6% total
@@ -47,15 +50,27 @@ describe('calculateEnergyTimeline', () => {
 
   it('should show replenishment with an S-curve (Sigmoid)', () => {
     const points = calculateEnergyTimeline(mockNutrition, [], mockSettings, 'UTC')
-    
+
     const atMeal = points.find((p) => p.time === '08:00')
     const peakAbsorption = points.find((p) => p.time === '09:30')
-    
+
     console.log('[TestDebug] Level at meal:', atMeal?.level)
     console.log('[TestDebug] Level 90m after:', peakAbsorption?.level)
 
     // replenishment should be positive during the absorption window
     expect(peakAbsorption!.level).toBeGreaterThan(atMeal!.level)
+  })
+
+  it('should track carbBalance throughout the day', () => {
+    const points = calculateEnergyTimeline(mockNutrition, [], mockSettings, 'UTC')
+
+    const morning = points.find((p) => p.time === '07:00')
+    const postMeal = points.find((p) => p.time === '11:00')
+
+    // Baseline drain
+    expect(morning?.carbBalance).toBeLessThan(0)
+    // Post meal absorption should increase balance
+    expect(postMeal?.carbBalance).toBeGreaterThan(morning!.carbBalance)
   })
 
   it('should show steep depletion for high intensity workout', () => {
@@ -67,20 +82,23 @@ describe('calculateEnergyTimeline', () => {
         workIntensity: 0.95 // Z4
       }
     ]
-    
+
     const points = calculateEnergyTimeline(mockNutrition, mockWorkouts, mockSettings, 'UTC')
-    
-    const workoutRange = points.filter(p => p.time >= '10:45' && p.time <= '12:15')
-    console.log('[TestDebug] Points in workout range:', workoutRange.map(p => `${p.time}: ${p.level}%`).join(', '))
+
+    const workoutRange = points.filter((p) => p.time >= '10:45' && p.time <= '12:15')
+    console.log(
+      '[TestDebug] Points in workout range:',
+      workoutRange.map((p) => `${p.time}: ${p.level}%`).join(', ')
+    )
 
     const beforeWorkout = points.find((p) => p.time === '11:00')
     const afterWorkout = points.find((p) => p.time === '12:00')
-    
+
     console.log('[TestDebug] Level Before:', beforeWorkout?.level)
     console.log('[TestDebug] Level After:', afterWorkout?.level)
     console.log('[TestDebug] Total Drop:', (beforeWorkout?.level || 0) - (afterWorkout?.level || 0))
 
     // Expect a major drop for high intensity
-    expect((beforeWorkout!.level - afterWorkout!.level)).toBeGreaterThan(25)
+    expect(beforeWorkout!.level - afterWorkout!.level).toBeGreaterThan(25)
   })
 })

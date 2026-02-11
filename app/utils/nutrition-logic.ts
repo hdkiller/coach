@@ -1,6 +1,12 @@
 import { differenceInMinutes, startOfDay, endOfDay } from 'date-fns'
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz'
 import { getWorkoutDate } from './nutrition-timeline'
+import {
+  getProfileForItem,
+  getAbsorbedInInterval,
+  ABSORPTION_PROFILES,
+  type AbsorptionType
+} from './nutrition-absorption'
 
 export interface GlycogenBreakdown {
   midnightBaseline: number
@@ -32,6 +38,16 @@ export function getGramsPerMin(intensity: number): number {
   return 1.5
 }
 
+function getDateStr(date: any): string {
+  if (date instanceof Date) {
+    return date.toISOString().split('T')[0]!
+  }
+  if (typeof date === 'string') {
+    return date.split('T')[0]!
+  }
+  return new Date().toISOString().split('T')[0]!
+}
+
 export function calculateGlycogenState(
   nutritionRecord: any,
   workouts: any[],
@@ -47,7 +63,7 @@ export function calculateGlycogenState(
   // Only count meals that have occurred/been logged until now
   let absorbedUntilNow = 0
   const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks']
-  const dateStr = nutritionRecord.date.split('T')[0]
+  const dateStr = getDateStr(nutritionRecord.date)
 
   mealTypes.forEach((type) => {
     if (Array.isArray(nutritionRecord[type])) {
@@ -153,6 +169,7 @@ export interface EnergyPoint {
   timestamp: number
   level: number
   kcalBalance: number
+  carbBalance: number
   isFuture: boolean
   event?: string
   eventType?: 'workout' | 'meal'
@@ -165,7 +182,7 @@ export function calculateEnergyTimeline(
   settings: any,
   timezone: string
 ): EnergyPoint[] {
-  const dateStr = nutritionRecord.date.split('T')[0]
+  const dateStr = getDateStr(nutritionRecord.date)
   const dayStart = fromZonedTime(`${dateStr}T00:00:00`, timezone)
   const now = new Date()
 
@@ -177,7 +194,9 @@ export function calculateEnergyTimeline(
   const C_cap = weight * 8
 
   let currentGrams = C_cap * 0.85
+  const initialGrams = currentGrams
   let cumulativeKcalDelta = 0
+  let cumulativeCarbDelta = 0
 
   const dailyBmr = settings?.bmr || 1600
   const intervalRestDrainGrams = (dailyBmr * 0.4) / (4 * 96)
@@ -214,7 +233,10 @@ export function calculateEnergyTimeline(
             totalKcal:
               item.calories ||
               (item.carbs || 0) * 4 + (item.protein || 0) * 4 + (item.fat || 0) * 9,
-            type: item.name?.toLowerCase().includes('gel') ? 'FAST' : 'MIXED'
+            profile: item.absorptionType
+              ? ABSORPTION_PROFILES[item.absorptionType as AbsorptionType] ||
+                getProfileForItem(item.name || '')
+              : getProfileForItem(item.name || '')
           })
         }
       })
@@ -268,6 +290,7 @@ export function calculateEnergyTimeline(
       timestamp: currentTime.getTime(),
       level: Math.round((currentGrams / C_cap) * 100),
       kcalBalance: Math.round(cumulativeKcalDelta),
+      carbBalance: Math.round(cumulativeCarbDelta),
       isFuture: currentTime > now,
       event: hasEvents ? combinedName : undefined,
       eventType: hasEvents ? primaryType : undefined,
@@ -281,6 +304,7 @@ export function calculateEnergyTimeline(
     if (i < TOTAL_POINTS) {
       currentGrams -= intervalRestDrainGrams
       cumulativeKcalDelta -= intervalRestDrainKcal
+      cumulativeCarbDelta -= intervalRestDrainGrams
 
       if (activeWorkout) {
         const drop = activeWorkout.drainGramsPerInterval * 1.25
@@ -291,32 +315,34 @@ export function calculateEnergyTimeline(
         }
         currentGrams -= drop
         cumulativeKcalDelta -= activeWorkout.drainKcalPerInterval
+        cumulativeCarbDelta -= drop
       }
 
       let intervalGramsIn = 0
       let intervalKcalIn = 0
+
       meals.forEach((meal) => {
-        const minsSince = (currentTime.getTime() - meal.time.getTime()) / 60000 + INTERVAL
+        const minsSince = (currentTime.getTime() - meal.time.getTime()) / 60000
         if (minsSince >= 0) {
-          if (meal.type === 'FAST') {
-            if (minsSince <= 30) {
-              const factor = INTERVAL / 30
-              intervalGramsIn += meal.totalCarbs * factor * 1.5
-              intervalKcalIn += meal.totalKcal * factor
-            }
-          } else {
-            const k = 0.12,
-              t0 = 45
-            const sigmoid = (t: number) => 1 / (1 + Math.exp(-k * (t - t0)))
-            const delta = sigmoid(minsSince) - sigmoid(minsSince - INTERVAL)
-            intervalGramsIn += meal.totalCarbs * delta * 1.5
-            intervalKcalIn += meal.totalKcal * delta
-          }
+          const absorbed = getAbsorbedInInterval(
+            minsSince,
+            minsSince + INTERVAL,
+            meal.totalCarbs,
+            meal.profile
+          )
+          intervalGramsIn += absorbed
+
+          // Kcal follows the same absorption curve
+          const kcalFactor = meal.totalCarbs > 0 ? absorbed / meal.totalCarbs : 0
+          intervalKcalIn += meal.totalKcal * kcalFactor
         }
       })
 
-      currentGrams += Math.min(intervalGramsIn, 25.0)
+      // Capped at physiological oxidation limit (90g/hr = 22.5g/15min)
+      const cappedGramsIn = Math.min(intervalGramsIn, 22.5)
+      currentGrams += cappedGramsIn
       cumulativeKcalDelta += intervalKcalIn
+      cumulativeCarbDelta += cappedGramsIn
       currentGrams = Math.max(0, Math.min(C_cap, currentGrams))
     }
   }

@@ -1,5 +1,6 @@
 import { Yazio } from 'yazio'
 import type { Integration } from '@prisma/client'
+import { getProfileForItem } from '../../app/utils/nutrition-absorption'
 
 export interface YazioDailySummary {
   steps?: number
@@ -126,7 +127,8 @@ export function normalizeYazioData(
       carbs: carbs,
       fat: fat,
       fiber: fiber,
-      sugar: sugar
+      sugar: sugar,
+      absorptionType: getProfileForItem((item as any).product_name || (item as any).name || '').id
     }
 
     if (mealGroups[mealTime]) {
@@ -166,7 +168,8 @@ export function normalizeYazioData(
       carbs: carbs,
       fat: fat,
       fiber: fiber,
-      sugar: sugar
+      sugar: sugar,
+      absorptionType: getProfileForItem(item.name || '').id
     }
 
     if (mealGroups[mealTime]) {
