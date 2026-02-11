@@ -26,7 +26,8 @@
             </UBadge>
           </div>
 
-          <div class="flex items-center gap-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+          <div
+            class="flex items-center gap-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
             <div class="flex items-center gap-1">
               <UIcon name="i-tabler-clock" class="w-3.5 h-3.5" />
               <span>{{ formatDuration(workout.durationSec) }}</span>
@@ -53,11 +54,17 @@
             </div>
           </div>
 
-          <div class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center min-w-[70px]">
+          <div
+            class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center min-w-[70px]">
             <div class="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase leading-none mb-1">
               Status
             </div>
-            <div class="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase leading-none">Planned</div>
+            <div :class="[
+              'text-[10px] font-bold uppercase leading-none',
+              isCompleted ? 'text-green-600 dark:text-green-400' : 'text-primary-600 dark:text-primary-400'
+            ]">
+              {{ statusLabel }}
+            </div>
           </div>
         </div>
       </div>
@@ -101,4 +108,14 @@ const formatTime = (date?: Date) => {
   if (!date || isNaN(date.getTime())) return ''
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
+
+const isCompleted = computed(() => {
+  return props.workout?.completed || props.workout?.completionStatus === 'COMPLETED'
+})
+
+const statusLabel = computed(() => {
+  if (isCompleted.value) return 'Completed'
+  if (props.workout?.completionStatus === 'SKIPPED') return 'Skipped'
+  return 'Planned'
+})
 </script>
