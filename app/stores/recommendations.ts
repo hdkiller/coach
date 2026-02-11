@@ -20,7 +20,17 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     loadingWorkout.value = true
     try {
       const data = await $fetch<any[]>('/api/workouts/planned/today')
-      todayWorkouts.value = data || []
+      todayWorkouts.value = (data || []).sort((a, b) => {
+        const getTime = (workout: any) => {
+          if (workout.startTime) return workout.startTime
+          // For completed workouts, extract time from date
+          const date = new Date(workout.date)
+          const h = date.getUTCHours().toString().padStart(2, '0')
+          const m = date.getUTCMinutes().toString().padStart(2, '0')
+          return `${h}:${m}`
+        }
+        return getTime(a).localeCompare(getTime(b))
+      })
     } catch (error) {
       console.error('Failed to fetch today workouts:', error)
       todayWorkouts.value = []

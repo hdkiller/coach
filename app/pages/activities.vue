@@ -1062,6 +1062,19 @@
         return dateStr === dayStr
       })
 
+      // Sort activities by time within the day
+      dayActivities.sort((a, b) => {
+        const getTime = (activity: CalendarActivity) => {
+          if (activity.source === 'planned' && activity.startTime) return activity.startTime
+          // For completed/notes/wellness/nutrition, use the actual date timestamp
+          const date = new Date(activity.date)
+          const h = date.getUTCHours().toString().padStart(2, '0')
+          const m = date.getUTCMinutes().toString().padStart(2, '0')
+          return `${h}:${m}`
+        }
+        return getTime(a).localeCompare(getTime(b))
+      })
+
       // Check if other month based on UTC month index
       // currentDate.value is already UTC midnight User Local Date
       const isOtherMonth = day.getUTCMonth() !== currentDate.value.getUTCMonth()
