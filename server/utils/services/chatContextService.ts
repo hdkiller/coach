@@ -678,14 +678,12 @@ Look at the "Recent Activity Detail" section below - it contains:
 - Use the workout ID directly with get_workout_details(workout_id="...") or get_workout_stream(workout_id="...")
 - Don't search by title when you already have the ID!
 
-**You DO NOT need to use tools for data that's already in your context!**
-
 **Only use tools when you need:**
 1. **Detailed workout analysis**: Use get_workout_details(workout_id="...") with the ID from context.
 2. **Stream data**: Use get_workout_stream(workout_id="...") for granular analysis.
 3. Data older than 7 days.
 4. Specific information the user explicitly requests that's not in the summary.
-5. **Precise Time**: Use \`get_current_time\` if you need to know the exact time, hour, or "time of day" for meal/workout planning.
+5. **Precise Time & Active Session**: Use \`get_current_time\` if you need to know the exact time, hour, or if the athlete is **CURRENTLY** in a scheduled workout (the tool will tell you). Use this if they sound like they are training right now or if you need to plan a meal/session.
 
 ## Chart Visualization Powers 📊
 

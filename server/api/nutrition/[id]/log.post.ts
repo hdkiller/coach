@@ -2,6 +2,8 @@ import { getServerSession } from '../../../utils/session'
 import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 import { generateStructuredAnalysis } from '../../../utils/gemini'
 import { z } from 'zod'
+import { getProfileForItem } from '../../../../app/utils/nutrition-absorption'
+import { getUserTimezone, formatUserTime, getStartOfLocalDateUTC } from '../../../utils/date'
 
 const LogSchema = z.object({
   query: z.string(),
@@ -18,6 +20,10 @@ const FoodItemSchema = z.object({
       fat: z.number().describe('Grams of fat'),
       fiber: z.number().optional().describe('Grams of fiber'),
       sugar: z.number().optional().describe('Grams of sugar'),
+      absorptionType: z
+        .enum(['SIMPLE', 'INTERMEDIATE', 'COMPLEX'])
+        .optional()
+        .describe('How fast the food is absorbed'),
       amount: z.number().optional().describe('Numeric quantity'),
       unit: z.string().optional().describe('Unit of measurement (e.g. "g", "ml", "cup")'),
       quantity: z
@@ -43,6 +49,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  const timezone = await getUserTimezone(userId)
   const id = getRouterParam(event, 'id')
   const body = await readBody(event)
   const { query, mealType } = LogSchema.parse(body)
@@ -79,7 +86,8 @@ export default defineEventHandler(async (event) => {
     3. Use the 'quantity' field for descriptions like "1 bowl" or "a handful".
     4. If the user mentions a specific time (e.g. "at 9:30", "around 10am"), extract it into 'logged_at' in HH:mm format (24h).
     5. If the user doesn't specify a meal type (breakfast, lunch, dinner, snacks), try to infer it from the query context (e.g. "morning" implies breakfast) or the time mentioned.
-    6. Return a JSON object with an 'items' array matching the schema.
+    6. Assign an 'absorptionType': 'SIMPLE' for fast carbs (gels, juice, honey), 'INTERMEDIATE' for fruits/bars/grains, and 'COMPLEX' for mixed meals or heavy protein/fat items.
+    7. Return a JSON object with an 'items' array matching the schema.
   `
 
   const result = await generateStructuredAnalysis<any>(prompt, FoodItemSchema, 'flash', {
@@ -96,16 +104,38 @@ export default defineEventHandler(async (event) => {
 
   result.items.forEach((item: any) => {
     let targetDateStr = dateStr
+    let normalizedLoggedAt = item.logged_at
 
-    // Check if item has a specific logged_at that implies a different date
-    if (item.logged_at && item.logged_at.includes('T')) {
-      targetDateStr = item.logged_at.split('T')[0]
+    // If no time is provided, use current time in user's timezone
+    if (!normalizedLoggedAt) {
+      normalizedLoggedAt = formatUserTime(new Date(), timezone)
+    }
+
+    if (normalizedLoggedAt.includes('T')) {
+      targetDateStr = normalizedLoggedAt.split('T')[0]
+    } else if (/^\d{2}:\d{2}/.test(normalizedLoggedAt)) {
+      const timeMatch = normalizedLoggedAt.match(/^(\d{2}):(\d{2})/)
+      if (timeMatch) {
+        const h = parseInt(timeMatch[1]!)
+        const m = parseInt(timeMatch[2]!)
+        const baseDate = getStartOfLocalDateUTC(timezone, targetDateStr)
+        const finalDate = new Date(baseDate.getTime() + (h * 3600 + m * 60) * 1000)
+        normalizedLoggedAt = finalDate.toISOString()
+      }
     }
 
     if (!itemsByDate[targetDateStr]) {
       itemsByDate[targetDateStr] = []
     }
-    itemsByDate[targetDateStr].push(item)
+
+    // Ensure absorptionType is set
+    const processedItem = {
+      ...item,
+      logged_at: normalizedLoggedAt,
+      absorptionType: item.absorptionType || getProfileForItem(item.name).id
+    }
+
+    itemsByDate[targetDateStr]!.push(processedItem)
   })
 
   const addedItems: any[] = []
@@ -139,7 +169,9 @@ export default defineEventHandler(async (event) => {
       items.forEach((item: any) => {
         const targetMeal = item.mealType || mealType || 'snacks'
         if (!updates[targetMeal]) {
-          updates[targetMeal] = [...((targetNutrition![targetMeal as keyof typeof targetNutrition] as any[]) || [])]
+          updates[targetMeal] = [
+            ...((targetNutrition![targetMeal as keyof typeof targetNutrition] as any[]) || [])
+          ]
         }
         updates[targetMeal].push({
           ...item,

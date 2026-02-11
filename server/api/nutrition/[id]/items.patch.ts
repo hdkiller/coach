@@ -13,7 +13,8 @@ const ItemSchema = z.object({
   sugar: z.coerce.number().optional(),
   amount: z.coerce.number().optional(),
   unit: z.string().optional(),
-  logged_at: z.string().optional()
+  logged_at: z.string().optional(),
+  absorptionType: z.enum(['SIMPLE', 'INTERMEDIATE', 'COMPLEX']).optional()
 })
 
 const PatchSchema = z.object({

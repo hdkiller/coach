@@ -31,6 +31,6 @@ export const getToolsWithContext = (
     ...nutritionTools(userId, timezone),
     ...wellnessTools(userId, timezone),
     ...availabilityTools(userId),
-    ...timeTools(timezone)
+    ...timeTools(userId, timezone)
   }
 }

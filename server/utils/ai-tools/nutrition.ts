@@ -1,16 +1,21 @@
 import { tool } from 'ai'
 import { z } from 'zod'
+import { prisma } from '../db'
 import { nutritionRepository } from '../repositories/nutritionRepository'
 import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import {
   getStartOfDayUTC,
   getEndOfDayUTC,
   formatUserDate,
+  formatUserTime,
   formatDateUTC,
   getUserLocalDate,
   getStartOfLocalDateUTC,
   getEndOfLocalDateUTC
 } from '../../utils/date'
+import { calculateGlycogenState, calculateEnergyTimeline } from '../../../app/utils/nutrition-logic'
+import { getProfileForItem } from '../../../app/utils/nutrition-absorption'
+import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 
 // Helper to calculate totals from all meals
 const recalculateDailyTotals = (nutrition: any) => {
@@ -126,6 +131,10 @@ export const nutritionTools = (userId: string, timezone: string) => ({
           fat: z.number().describe('Fat in grams'),
           fiber: z.number().optional().describe('Fiber in grams'),
           sugar: z.number().optional().describe('Sugar in grams'),
+          absorption_type: z
+            .enum(['SIMPLE', 'INTERMEDIATE', 'COMPLEX'])
+            .optional()
+            .describe('How fast the food is absorbed'),
           quantity: z.string().optional().describe('Quantity description (e.g. "1 cup", "100g")'),
           logged_at: z
             .string()
@@ -137,18 +146,35 @@ export const nutritionTools = (userId: string, timezone: string) => ({
     execute: async ({ date, meal_type, items }) => {
       const dateUtc = new Date(`${date}T00:00:00Z`)
 
-      // Add IDs to items and normalize logged_at if it's a full date string
+      // Add IDs to items and normalize logged_at
       const itemsWithIds = items.map((item) => {
         let normalizedLoggedAt = item.logged_at
-        if (normalizedLoggedAt && normalizedLoggedAt.includes('T')) {
+
+        // If no time is provided, use current time in user's timezone
+        if (!normalizedLoggedAt) {
+          normalizedLoggedAt = formatUserTime(new Date(), timezone)
+        }
+
+        if (normalizedLoggedAt.includes('T')) {
           // If it's a full ISO string, ensure the date part matches the intended date
           const timePart = normalizedLoggedAt.split('T')[1]
           normalizedLoggedAt = `${date}T${timePart}`
+        } else if (/^\d{2}:\d{2}/.test(normalizedLoggedAt)) {
+          // If it's HH:mm, convert to full ISO string using user's timezone
+          const timeMatch = normalizedLoggedAt.match(/^(\d{2}):(\d{2})/)
+          if (timeMatch) {
+            const h = parseInt(timeMatch[1]!)
+            const m = parseInt(timeMatch[2]!)
+            const baseDate = getStartOfLocalDateUTC(timezone, date)
+            const finalDate = new Date(baseDate.getTime() + (h * 3600 + m * 60) * 1000)
+            normalizedLoggedAt = finalDate.toISOString()
+          }
         }
 
         return {
           id: crypto.randomUUID(),
           ...item,
+          absorptionType: item.absorption_type || getProfileForItem(item.name).id,
           logged_at: normalizedLoggedAt
         }
       })
@@ -361,6 +387,120 @@ export const nutritionTools = (userId: string, timezone: string) => ({
           protein: nutrition.proteinGoal,
           fat: nutrition.fatGoal
         }
+      }
+    }
+  }),
+
+  get_daily_fueling_status: tool({
+    description:
+      'Get detailed fueling status (fuel tank level, energy timeline metrics) for a specific date. Use this to answer questions like "How is my fueling today?", "Will I function well for my workout?", or "Do I have enough energy?".',
+    inputSchema: z.object({
+      date: z.string().optional().describe('Date in ISO format (YYYY-MM-DD). Defaults to today.')
+    }),
+    execute: async ({ date }) => {
+      let dateUtc: Date
+      if (date) {
+        dateUtc = new Date(`${date}T00:00:00Z`)
+      } else {
+        dateUtc = getUserLocalDate(timezone)
+      }
+
+      const [nutrition, workouts, settings] = await Promise.all([
+        nutritionRepository.getByDate(userId, dateUtc),
+        plannedWorkoutRepository.list(userId, {
+          startDate: dateUtc,
+          endDate: dateUtc
+        }),
+        getUserNutritionSettings(userId)
+      ])
+
+      const safeNutrition = nutrition || { date: dateUtc.toISOString() }
+
+      // Logic expects a Date object for 'currentTime' to calculate tank level "right now" vs end of day
+      const queryDateStr = formatDateUTC(dateUtc, 'yyyy-MM-dd')
+      const todayStr = formatDateUTC(getUserLocalDate(timezone), 'yyyy-MM-dd')
+      const isToday = queryDateStr === todayStr
+
+      // If today, use actual current time. If past/future, use 23:59:59 of that day.
+      const now = new Date()
+      let simTime = now
+      if (!isToday) {
+        simTime = getEndOfDayUTC(timezone, dateUtc)
+      }
+
+      // 3. Run Logic (reusing frontend shared logic)
+      const glycogenState = calculateGlycogenState(
+        safeNutrition,
+        workouts,
+        settings,
+        timezone,
+        simTime
+      )
+
+      const energyTimeline = calculateEnergyTimeline(safeNutrition, workouts, settings, timezone)
+
+      // 4. Summarize
+      const formatTime = (t: string) => t // events already formatted in HH:mm
+
+      const minLevel = Math.min(...energyTimeline.map((p) => p.level))
+      const minPoint = energyTimeline.find((p) => p.level === minLevel)
+
+      // Identify periods below 30% (Zone 3 / Red)
+      const criticalPeriods = energyTimeline.filter((p) => p.level < 30)
+      const criticalTimeRange =
+        criticalPeriods.length > 0
+          ? `${criticalPeriods[0]!.time} - ${criticalPeriods[criticalPeriods.length - 1]!.time}`
+          : 'None'
+
+      // Identify workout fueling states
+      const workoutStates = workouts.map((w) => {
+        // approximate start time logic matching timeline
+        // This is complex to match exactly without reusing timeline map logic
+        // For simple chat summary, we can just list them
+        return {
+          title: w.title,
+          intensity: w.workIntensity?.toFixed(2) || 'N/A'
+        }
+      })
+
+      return {
+        date: queryDateStr,
+        is_today: isToday,
+        fuel_tank: {
+          level: glycogenState.percentage,
+          status:
+            glycogenState.state === 1
+              ? 'Optimal'
+              : glycogenState.state === 2
+                ? 'Moderate'
+                : 'Critical',
+          advice: glycogenState.advice,
+          breakdown: {
+            baseline: glycogenState.breakdown.midnightBaseline,
+            replenished: glycogenState.breakdown.replenishment.value,
+            depleted_by_exercise: glycogenState.breakdown.depletion.reduce(
+              (acc, curr) => acc + curr.value,
+              0
+            )
+          }
+        },
+        energy_timeline: {
+          minimum_level: minLevel,
+          minimum_time: minPoint?.time,
+          critical_drop_periods: criticalTimeRange,
+          summary: `Energy drops to a minimum of ${minLevel}% at ${minPoint?.time}.`
+        },
+        nutrition_summary: {
+          calories: {
+            logged: Math.round(nutrition?.calories || 0),
+            target: Math.round(nutrition?.caloriesGoal || 0)
+          },
+          carbs: {
+            logged: Math.round(nutrition?.carbs || 0),
+            target: Math.round(nutrition?.carbsGoal || 0)
+          }
+        },
+        workouts_on_day: workoutStates.length
       }
     }
   })
