@@ -197,13 +197,13 @@
                   >
                 </div>
                 <div class="flex gap-3">
-                  <span class="flex items-center gap-1"
-                    ><UIcon name="i-tabler-tools-kitchen-2" class="w-3 h-3 text-green-500" />
-                    Meal</span
-                  >
-                  <span class="flex items-center gap-1"
-                    ><UIcon name="i-tabler-bike" class="w-3 h-3 text-red-500" /> Workout</span
-                  >
+                  <span class="flex items-center gap-1">
+                    <UIcon name="i-tabler-tools-kitchen-2" class="w-3 h-3 text-green-500" />
+                    Meal
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <UIcon name="i-tabler-bike" class="w-3 h-3 text-red-500" /> Workout
+                  </span>
                 </div>
               </div>
             </div>
@@ -356,6 +356,7 @@
     :fuel-state="fuelState"
     :settings="settings"
     :weight="weight"
+    :fueling-plan="nutrition?.fuelingPlan"
   />
 
   <NutritionFoodItemModal
@@ -514,7 +515,13 @@
         }
       }
     }
-    return calculateGlycogenState(props.nutrition, props.workouts || [])
+    const { timezone } = useFormat()
+    return calculateGlycogenState(
+      props.nutrition,
+      props.workouts || [],
+      props.settings,
+      timezone.value
+    )
   })
 
   const tankPercentage = computed(() => glycogenState.value.percentage)
@@ -623,23 +630,29 @@
     0% {
       transform: translateX(-100%);
     }
+
     100% {
       transform: translateX(100%);
     }
   }
+
   .animate-shimmer {
     animation: shimmer 2s infinite;
   }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #e2e8f0;
     border-radius: 10px;
   }
+
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #334155;
   }

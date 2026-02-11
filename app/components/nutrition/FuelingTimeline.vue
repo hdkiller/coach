@@ -48,7 +48,7 @@
 
   function getWorkoutFuelState(workout: any) {
     if (!workout) return 1
-    const intensity = workout.workIntensity || 0.65
+    const intensity = workout.workIntensity || workout.intensityFactor || 0.65
     if (intensity > 0.85) return 3
     if (intensity > 0.6) return 2
     return 1
@@ -68,6 +68,7 @@
     }
 
     const typeStr = typeMap[window.type] || window.type
-    return window.workoutTitle ? `${typeStr}: ${window.workoutTitle}` : typeStr
+    const title = window.workoutTitle || window.workout?.title
+    return title ? `${typeStr}: ${title}` : typeStr
   }
 </script>

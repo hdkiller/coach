@@ -100,6 +100,7 @@
     fuelState: number
     settings: any
     weight: number
+    fuelingPlan?: any
   }>()
 
   const emit = defineEmits<{
@@ -172,17 +173,62 @@
         value: `${s.baseFatPerKg || 1.0} g/kg`
       })
     } else if (props.label === 'Calories') {
+      const fp = props.fuelingPlan?.dailyTotals || props.settings?.fuelingPlan?.dailyTotals || {}
+
+      const bmrAdjustmentMultiplier =
+        (props.settings?.activityLevel || s.activityLevel) === 'SEDENTARY' ? 1.2 : 1.375
+      const bmrBase = s.bmr || 1600
+      const lifestyleAddition = Math.round(bmrBase * (bmrAdjustmentMultiplier - 1))
+
       items.push({
-        label: 'BMR + Activity',
-        description:
-          'Combined energy requirement including your resting metabolic rate and planned training volume.',
-        value: `${Math.round(props.target)} kcal`
+        label: 'Basal Metabolic Rate (BMR)',
+        description: 'Energy required for basic life functions at rest.',
+        value: `${Math.round(bmrBase)} kcal`
       })
-      if (s.targetAdjustmentPercent !== 0) {
+
+      items.push({
+        label: 'Lifestyle Activity',
+        description: `Energy for non-exercise movement (${Math.round((bmrAdjustmentMultiplier - 1) * 100)}% multiplier).`,
+        value: `+${lifestyleAddition} kcal`
+      })
+
+      // Show specific workouts if present
+      if (fp.workoutCalories && fp.workoutCalories.length > 0) {
+        fp.workoutCalories.forEach((w: any) => {
+          items.push({
+            label: w.title || 'Training Demand',
+            description: 'Estimated energy cost of this workout.',
+            value: `+${Math.round(w.calories)} kcal`
+          })
+        })
+      } else if (fp.activityCalories > 5) {
         items.push({
-          label: 'Daily Deficit/Surplus',
-          description: `Adjustment applied to support your ${s.goalProfile} target.`,
-          value: `${s.targetAdjustmentPercent > 0 ? '+' : ''}${Math.round(props.target * (s.targetAdjustmentPercent / 100))} kcal`
+          label: 'Training Demand',
+          description: "Estimated energy cost of today's planned workouts.",
+          value: `+${Math.round(fp.activityCalories)} kcal`
+        })
+      }
+
+      // Adjustment (Handle missing granular data explicitly)
+      const bmrMultiplied = Math.round(bmrBase * bmrAdjustmentMultiplier)
+      let adjustmentValue = fp.adjustmentCalories
+
+      if (adjustmentValue === undefined) {
+        // Fallback: estimate based on percent if missing from plan
+        if (s.targetAdjustmentPercent) {
+          const subtotal = bmrMultiplied + (fp.activityCalories || 0)
+          adjustmentValue = Math.round(subtotal * (s.targetAdjustmentPercent / 100))
+        } else {
+          // If no targetAdjustmentPercent, calculate the difference to reach the target
+          adjustmentValue = props.target - bmrMultiplied - (fp.activityCalories || 0)
+        }
+      }
+
+      if (Math.abs(adjustmentValue) > 5) {
+        items.push({
+          label: `Goal Adjustment (${s.goalProfile || 'MAINTAIN'})`,
+          description: `Adjustment applied for your goal.`,
+          value: `${adjustmentValue > 0 ? '+' : ''}${Math.round(adjustmentValue)} kcal`
         })
       }
     }

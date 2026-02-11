@@ -106,6 +106,7 @@
       :fuel-state="fuelState"
       :settings="settings"
       :weight="weight"
+      :fueling-plan="fuelingPlan"
     />
   </div>
 </template>
@@ -130,6 +131,7 @@
         protein: number
         fat: number
       }
+      fuelingPlan?: any
     }>(),
     {
       isLocked: false,

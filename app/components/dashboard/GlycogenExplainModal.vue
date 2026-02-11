@@ -54,6 +54,23 @@
             </div>
           </div>
 
+          <!-- BMR Drain -->
+          <div
+            v-if="breakdown.restingMetabolism"
+            class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800"
+          >
+            <div class="flex items-center gap-2 text-sm font-medium">
+              <UIcon name="i-heroicons-clock" class="w-4 h-4 text-gray-400" />
+              <div class="flex flex-col">
+                <span>Resting Metabolism</span>
+                <span class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter"
+                  >Source: Basal Metabolic Rate</span
+                >
+              </div>
+            </div>
+            <div class="text-sm font-bold text-red-400">-{{ breakdown.restingMetabolism }}%</div>
+          </div>
+
           <!-- Replenishment -->
           <div class="space-y-2 py-2 border-b border-gray-100 dark:border-gray-800">
             <div class="flex items-center justify-between">
