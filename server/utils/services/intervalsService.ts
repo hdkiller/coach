@@ -32,6 +32,7 @@ import {
 } from '../pacing'
 import { getZoneIndex, DEFAULT_HR_ZONES, DEFAULT_POWER_ZONES } from '../training-metrics'
 import { triggerReadinessCheckIfNeeded } from './wellness-analysis'
+import { deduplicationService } from './deduplicationService'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 
 export const IntervalsService = {
@@ -719,14 +720,70 @@ export const IntervalsService = {
 
   /**
    * Handle activity deletion.
+   * If the deleted workout was a canonical workout, promote one of its duplicates.
    */
   async deleteActivity(userId: string, activityId: string) {
-    await prisma.workout.deleteMany({
+    const workoutToDelete = await prisma.workout.findFirst({
       where: {
         userId,
         source: 'intervals',
         externalId: activityId
+      },
+      include: {
+        duplicates: {
+          include: {
+            exercises: true,
+            streams: true
+          }
+        }
       }
+    })
+
+    if (!workoutToDelete) return
+
+    await prisma.$transaction(async (tx) => {
+      // If the workout has duplicates, we need to promote one of them
+      if (workoutToDelete.duplicates.length > 0) {
+        // Calculate scores for all duplicates to find the best one to promote
+        const scoredDuplicates = workoutToDelete.duplicates.map((d) => ({
+          ...d,
+          score: deduplicationService.calculateCompletenessScore(d)
+        }))
+
+        // Sort by score descending
+        scoredDuplicates.sort((a, b) => b.score - a.score)
+
+        const newPrimary = scoredDuplicates[0]
+        const remainingDuplicates = scoredDuplicates.slice(1)
+
+        // 1. Promote the best duplicate
+        await tx.workout.update({
+          where: { id: newPrimary.id },
+          data: {
+            isDuplicate: false,
+            duplicateOf: null,
+            // If the old primary was linked to a planned workout, transfer the link
+            plannedWorkoutId: newPrimary.plannedWorkoutId || workoutToDelete.plannedWorkoutId
+          }
+        })
+
+        // 2. Update all OTHER duplicates to point to the new primary
+        if (remainingDuplicates.length > 0) {
+          await tx.workout.updateMany({
+            where: {
+              id: { in: remainingDuplicates.map((d) => d.id) }
+            },
+            data: {
+              duplicateOf: newPrimary.id
+            }
+          })
+        }
+      }
+
+      // Finally, delete the workout
+      await tx.workout.delete({
+        where: { id: workoutToDelete.id }
+      })
     })
   },
 
