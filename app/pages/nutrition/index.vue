@@ -50,14 +50,28 @@
                       7-day rolling glycogen tank projection
                     </p>
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-3">
                     <div class="flex items-center gap-1">
                       <div class="size-2 rounded-full bg-blue-500" />
-                      <span class="text-xs text-gray-500">Actual</span>
+                      <span class="text-[10px] text-gray-500">Glycogen</span>
                     </div>
                     <div class="flex items-center gap-1">
                       <div class="size-2 rounded-full bg-blue-500 border border-dashed" />
-                      <span class="text-xs text-gray-500">Projected</span>
+                      <span class="text-[10px] text-gray-500">Projected</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <div class="size-2 rounded bg-[#ef4444]" />
+                      <span class="text-[10px] text-gray-500">Workout</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <div class="size-2 rounded-full bg-[#10b981]" />
+                      <span class="text-[10px] text-gray-500">Meal</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <div
+                        class="size-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-[#8b5cf6]"
+                      />
+                      <span class="text-[10px] text-gray-500">Multiple</span>
                     </div>
                   </div>
                 </div>
@@ -66,7 +80,11 @@
               <div v-if="loadingWave" class="h-[300px] flex items-center justify-center">
                 <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-gray-400" />
               </div>
-              <NutritionMultiDayEnergyChart v-else-if="wavePoints.length" :points="wavePoints" />
+              <NutritionMultiDayEnergyChart
+                v-else-if="wavePoints.length"
+                :points="wavePoints"
+                :highlighted-date="highlightedDate"
+              />
               <div v-else class="h-[300px] flex items-center justify-center text-gray-500">
                 No wave data available
               </div>
@@ -81,12 +99,23 @@
               <div v-if="loadingStrategy" class="h-24 flex items-center justify-center">
                 <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-gray-400" />
               </div>
-              <NutritionWeeklyFuelingGrid v-else-if="strategy" :days="strategy.fuelingMatrix" />
+              <NutritionWeeklyFuelingGrid
+                v-else-if="strategy"
+                :days="strategy.fuelingMatrix"
+                @hover-day="highlightedDate = $event"
+              />
             </UCard>
           </div>
 
           <!-- Sidebar Section -->
           <div class="space-y-6">
+            <!-- Active Fueling Feed (The "On-Ramp") -->
+            <NutritionActiveFuelingFeed
+              :feed="activeFeed"
+              :loading="loadingActiveFeed"
+              @open-ai-helper="openAiHelper"
+            />
+
             <!-- Strategy Summary Card -->
             <UCard color="primary" variant="subtle">
               <template #header>
@@ -133,39 +162,8 @@
                   {{ hydrationAdvice }}
                 </div>
               </div>
-            </UCard>
 
-            <!-- Fueling Script / Grocery List -->
-            <UCard>
-              <template #header>
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-shopping-cart" class="size-5 text-warning-500" />
-                  <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                    Fueling Script
-                  </h3>
-                </div>
-              </template>
-              <div v-if="loadingStrategy" class="space-y-4">
-                <USkeleton class="h-10 w-full" />
-                <USkeleton class="h-10 w-full" />
-              </div>
-              <div v-else-if="strategy" class="space-y-4">
-                <div
-                  v-for="priority in fuelingPriorities"
-                  :key="priority.date"
-                  class="p-3 border border-gray-100 dark:border-gray-800 rounded-lg"
-                >
-                  <div class="flex justify-between items-start mb-1">
-                    <span class="text-xs font-bold uppercase text-gray-500">{{
-                      priority.dayLabel
-                    }}</span>
-                    <UBadge :color="getStateColor(priority.state)" size="xs" variant="subtle">
-                      {{ priority.label }}
-                    </UBadge>
-                  </div>
-                  <p class="text-sm font-medium">{{ priority.advice }}</p>
-                </div>
-
+              <template #footer>
                 <UButton
                   block
                   color="neutral"
@@ -175,7 +173,7 @@
                 >
                   View Grocery Needs
                 </UButton>
-              </div>
+              </template>
             </UCard>
           </div>
         </div>
@@ -213,6 +211,14 @@
           </div>
         </template>
       </UModal>
+
+      <!-- AI Meal Helper Modal -->
+      <NutritionFoodAiModal
+        v-model:open="showAiHelper"
+        :date="format(new Date(), 'yyyy-MM-dd')"
+        :initial-context="aiHelperContext"
+        @updated="refreshData"
+      />
     </template>
   </UDashboardPanel>
 </template>
@@ -227,35 +233,56 @@
 
   const loadingWave = ref(true)
   const loadingStrategy = ref(true)
+  const loadingActiveFeed = ref(true)
   const wavePoints = ref<any[]>([])
   const strategy = ref<any>(null)
+  const activeFeed = ref<any>(null)
   const showGroceryList = ref(false)
+  const highlightedDate = ref<string | null>(null)
 
-  const loading = computed(() => loadingWave.value || loadingStrategy.value)
+  const showAiHelper = ref(false)
+  const aiHelperContext = ref<any>(null)
+
+  const loading = computed(
+    () => loadingWave.value || loadingStrategy.value || loadingActiveFeed.value
+  )
 
   async function refreshData() {
     loadingWave.value = true
     loadingStrategy.value = true
+    loadingActiveFeed.value = true
 
     try {
-      const [waveRes, strategyRes] = await Promise.all([
+      const [waveRes, strategyRes, feedRes] = await Promise.all([
         $fetch('/api/nutrition/extended-wave', { query: { daysAhead: 3 } }),
-        $fetch('/api/nutrition/strategy')
+        $fetch('/api/nutrition/strategy'),
+        $fetch('/api/nutrition/active-feed')
       ])
 
       wavePoints.value = (waveRes as any).points
       strategy.value = strategyRes
+      activeFeed.value = feedRes
     } catch (e) {
       console.error('Failed to load nutrition strategy:', e)
     } finally {
       loadingWave.value = false
       loadingStrategy.value = false
+      loadingActiveFeed.value = false
     }
   }
 
   onMounted(() => {
     refreshData()
   })
+
+  function openAiHelper(context: any) {
+    aiHelperContext.value = {
+      type: 'suggestion',
+      targetCarbs: context.carbs,
+      windowType: context.basedOnWindowType
+    }
+    showAiHelper.value = true
+  }
 
   const hydrationAdvice = computed(() => {
     if (!strategy.value) return 'Loading...'
@@ -264,23 +291,6 @@
       return 'Severe dehydration risk. Sip 250ml every 30 mins until balance is restored.'
     if (debt > 500) return 'Moderate fluid debt. Increase intake by 500ml over your baseline today.'
     return 'Fluid balance is optimal. Maintain standard hydration pattern.'
-  })
-
-  const fuelingPriorities = computed(() => {
-    if (!strategy.value) return []
-    return strategy.value.fuelingMatrix
-      .filter((d: any) => d.state >= 2 || !d.isRest)
-      .slice(0, 3)
-      .map((d: any) => ({
-        ...d,
-        dayLabel: format(parseISO(d.date), 'EEEE'),
-        advice:
-          d.state === 3
-            ? `Focus on "Aggressive Refill" (8-12g/kg) to support peak performance.`
-            : d.state === 2
-              ? `Target steady carb availability (5-7g/kg) for endurance support.`
-              : `Eco mode active. Focus on high-quality baseline macros.`
-      }))
   })
 
   const groceryItems = computed(() => {
@@ -305,10 +315,4 @@
 
     return items
   })
-
-  function getStateColor(state: number) {
-    if (state === 3) return 'primary'
-    if (state === 2) return 'info'
-    return 'success'
-  }
 </script>
