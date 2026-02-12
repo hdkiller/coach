@@ -27,6 +27,15 @@ const workoutStructureSchema = {
       items: {
         type: 'object',
         properties: {
+          steps: {
+            type: 'array',
+            description: 'Nested steps for repeats/loops',
+            items: { $ref: '#' }
+          },
+          reps: {
+            type: 'integer',
+            description: 'Number of times to repeat these steps (for loops)'
+          },
           type: { type: 'string', enum: ['Warmup', 'Active', 'Rest', 'Cooldown'] },
           durationSeconds: { type: 'integer' },
           distance: { type: 'integer', description: 'Distance in meters (Swim/Run)' },
@@ -254,39 +263,64 @@ export const adjustStructuredWorkoutTask = task({
       entityId: plannedWorkoutId
     })) as any
 
-    // Calculate total metrics from steps
-    let totalDistance = 0
-    let totalDuration = 0
-    let totalTSS = 0
+    const calculateMetrics = (steps: any[]) => {
+      let distance = 0
+      let duration = 0
+      let tss = 0
 
-    if (structure.steps && Array.isArray(structure.steps)) {
-      structure.steps.forEach((step: any) => {
-        totalDistance += step.distance || 0
-        const duration = step.durationSeconds || 0
-        totalDuration += duration
+      steps.forEach((step: any) => {
+        let stepDistance = 0
+        let stepDuration = 0
+        let stepTSS = 0
 
-        let intensity = 0.5
-        if (step.power) {
-          intensity =
-            typeof step.power.value === 'number'
-              ? step.power.value
-              : step.power.range
-                ? (step.power.range.start + step.power.range.end) / 2
-                : 0.5
-        } else if (step.heartRate) {
-          intensity =
-            typeof step.heartRate.value === 'number'
-              ? step.heartRate.value
-              : step.heartRate.range
-                ? (step.heartRate.range.start + step.heartRate.range.end) / 2
-                : 0.5
+        if (step.steps && Array.isArray(step.steps)) {
+          const nested = calculateMetrics(step.steps)
+          stepDistance = nested.distance
+          stepDuration = nested.duration
+          stepTSS = nested.tss
+        } else {
+          // Distance
+          stepDistance = step.distance || 0
+
+          // Duration
+          stepDuration = step.durationSeconds || 0
+
+          // Estimate TSS
+          let intensity = 0.5
+          if (step.power) {
+            intensity =
+              typeof step.power.value === 'number'
+                ? step.power.value
+                : step.power.range
+                  ? (step.power.range.start + step.power.range.end) / 2
+                  : 0.5
+          } else if (step.heartRate) {
+            intensity =
+              typeof step.heartRate.value === 'number'
+                ? step.heartRate.value
+                : step.heartRate.range
+                  ? (step.heartRate.range.start + step.heartRate.range.end) / 2
+                  : 0.5
+          }
+
+          if (stepDuration > 0) {
+            stepTSS = ((stepDuration * intensity * intensity) / 3600) * 100
+          }
         }
 
-        if (duration > 0) {
-          totalTSS += ((duration * intensity * intensity) / 3600) * 100
-        }
+        const reps = step.reps || 1
+        distance += stepDistance * reps
+        duration += stepDuration * reps
+        tss += stepTSS * reps
       })
+
+      return { distance, duration, tss }
     }
+
+    const totals = calculateMetrics(structure.steps || [])
+    const totalDistance = totals.distance
+    const totalDuration = totals.duration
+    const totalTSS = totals.tss
 
     const updateData: any = {
       structuredWorkout: structure as any

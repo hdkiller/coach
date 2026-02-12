@@ -27,6 +27,15 @@ const workoutStructureSchema = {
       items: {
         type: 'object',
         properties: {
+          steps: {
+            type: 'array',
+            description: 'Nested steps for repeats/loops',
+            items: { $ref: '#' }
+          },
+          reps: {
+            type: 'integer',
+            description: 'Number of times to repeat these steps (for loops)'
+          },
           type: { type: 'string', enum: ['Warmup', 'Active', 'Rest', 'Cooldown'] },
           durationSeconds: { type: 'integer' },
           distance: { type: 'integer', description: 'Distance in meters (Swim/Run)' },
@@ -302,68 +311,88 @@ export const generateStructuredWorkoutTask = task({
       entityId: plannedWorkoutId
     })) as any
 
-    // Calculate total metrics from steps
-    let totalDistance = 0
-    let totalDuration = 0
-    let totalTSS = 0
+    const calculateMetrics = (steps: any[]) => {
+      let distance = 0
+      let duration = 0
+      let tss = 0
 
-    if (structure.steps && Array.isArray(structure.steps)) {
-      structure.steps.forEach((step: any) => {
-        // Fix missing cadence for Cycling
-        if ((workout.type === 'Ride' || workout.type === 'VirtualRide') && !step.cadence) {
-          if (step.type === 'Warmup' || step.type === 'Cooldown') step.cadence = 85
-          else if (step.type === 'Rest') step.cadence = 80
-          else step.cadence = 90
-        }
+      steps.forEach((step: any) => {
+        let stepDistance = 0
+        let stepDuration = 0
+        let stepTSS = 0
 
-        // Distance
-        totalDistance += step.distance || 0
-
-        // Duration
-        const duration = step.durationSeconds || 0
-        totalDuration += duration
-
-        // Estimate TSS
-        // TSS = (sec * IF^2) / 3600 * 100
-        let intensity = 0.5 // Default fallback
-
-        if (step.power) {
-          if (typeof step.power.value === 'number') {
-            intensity = step.power.value
-          } else if (step.power.range) {
-            intensity = (step.power.range.start + step.power.range.end) / 2
-          }
-        } else if (step.heartRate) {
-          // HR intensity roughly proxies power intensity for TSS estimation
-          if (typeof step.heartRate.value === 'number') {
-            intensity = step.heartRate.value
-          } else if (step.heartRate.range) {
-            intensity = (step.heartRate.range.start + step.heartRate.range.end) / 2
-          }
+        if (step.steps && Array.isArray(step.steps)) {
+          const nested = calculateMetrics(step.steps)
+          stepDistance = nested.distance
+          stepDuration = nested.duration
+          stepTSS = nested.tss
         } else {
-          // Infer from type
-          switch (step.type) {
-            case 'Warmup':
-              intensity = 0.5
-              break
-            case 'Cooldown':
-              intensity = 0.4
-              break
-            case 'Rest':
-              intensity = 0.4
-              break
-            case 'Active':
-              intensity = 0.75
-              break // Moderate default
+          // Fix missing cadence for Cycling
+          if ((workout.type === 'Ride' || workout.type === 'VirtualRide') && !step.cadence) {
+            if (step.type === 'Warmup' || step.type === 'Cooldown') step.cadence = 85
+            else if (step.type === 'Rest') step.cadence = 80
+            else step.cadence = 90
+          }
+
+          // Distance
+          stepDistance = step.distance || 0
+
+          // Duration
+          stepDuration = step.durationSeconds || 0
+
+          // Estimate TSS
+          // TSS = (sec * IF^2) / 3600 * 100
+          let intensity = 0.5 // Default fallback
+
+          if (step.power) {
+            if (typeof step.power.value === 'number') {
+              intensity = step.power.value
+            } else if (step.power.range) {
+              intensity = (step.power.range.start + step.power.range.end) / 2
+            }
+          } else if (step.heartRate) {
+            // HR intensity roughly proxies power intensity for TSS estimation
+            if (typeof step.heartRate.value === 'number') {
+              intensity = step.heartRate.value
+            } else if (step.heartRate.range) {
+              intensity = (step.heartRate.range.start + step.heartRate.range.end) / 2
+            }
+          } else {
+            // Infer from type
+            switch (step.type) {
+              case 'Warmup':
+                intensity = 0.5
+                break
+              case 'Cooldown':
+                intensity = 0.4
+                break
+              case 'Rest':
+                intensity = 0.4
+                break
+              case 'Active':
+                intensity = 0.75
+                break // Moderate default
+            }
+          }
+
+          if (stepDuration > 0) {
+            stepTSS = ((stepDuration * intensity * intensity) / 3600) * 100
           }
         }
 
-        // Add step TSS
-        if (duration > 0) {
-          totalTSS += ((duration * intensity * intensity) / 3600) * 100
-        }
+        const reps = step.reps || 1
+        distance += stepDistance * reps
+        duration += stepDuration * reps
+        tss += stepTSS * reps
       })
+
+      return { distance, duration, tss }
     }
+
+    const totals = calculateMetrics(structure.steps || [])
+    const totalDistance = totals.distance
+    let totalDuration = totals.duration
+    let totalTSS = totals.tss
 
     // Calculate metrics from Exercises (if present)
     if (structure.exercises && Array.isArray(structure.exercises)) {
