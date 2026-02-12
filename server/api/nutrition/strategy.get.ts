@@ -68,12 +68,8 @@ export default defineEventHandler(async (event) => {
       })
       const plan = dayPlan.plan as any
 
-      // Determine Fuel State based on intensity of primary workout
-      // This logic should ideally match calculateFuelingStrategy
       const totals = plan.dailyTotals
-      let state = 1
-      if (totals.carbs / weight >= settings.fuelState3Min) state = 3
-      else if (totals.carbs / weight >= settings.fuelState2Min) state = 2
+      const state = totals.fuelState || 1
 
       fuelingMatrix.push({
         date: formatDateUTC(date),
