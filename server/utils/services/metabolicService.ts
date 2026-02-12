@@ -16,6 +16,7 @@ import { plannedWorkoutRepository } from '../repositories/plannedWorkoutReposito
 import { ABSORPTION_PROFILES } from '../nutrition-domain/absorption'
 import { calculateDailyCalorieBreakdown, calculateFuelingStrategy } from '../nutrition/fueling'
 import { mergeFuelingWindows } from '../nutrition-domain/merging'
+import { HYDRATION_DEBT_NUDGE_THRESHOLD_ML, MEAL_LINKED_WATER_ML } from '../nutrition/hydration'
 
 export const metabolicService = {
   /**
@@ -402,6 +403,17 @@ export const metabolicService = {
     startingGlycogen: number
     startingFluid: number
   }> {
+    const targetRecord = await nutritionRepository.getByDate(userId, targetDate)
+    if (
+      targetRecord?.startingGlycogenPercentage != null &&
+      targetRecord?.startingFluidDeficit != null
+    ) {
+      return {
+        startingGlycogen: targetRecord.startingGlycogenPercentage,
+        startingFluid: Math.max(0, targetRecord.startingFluidDeficit)
+      }
+    }
+
     const yesterday = new Date(targetDate)
     yesterday.setUTCDate(targetDate.getUTCDate() - 1)
 
@@ -661,7 +673,7 @@ export const metabolicService = {
       ftp: user?.ftp || 250,
       currentCarbMax: settings.currentCarbMax,
       sodiumTarget: settings.sodiumTarget,
-      sweatRate: settings.sweatRate || 0.8,
+      sweatRate: settings.sweatRate ?? undefined,
       preWorkoutWindow: settings.preWorkoutWindow,
       postWorkoutWindow: settings.postWorkoutWindow,
       fuelingSensitivity: settings.fuelingSensitivity,
@@ -807,6 +819,15 @@ export const metabolicService = {
     })
     const weight = user?.weight || 75
     const MEAL_CAP = weight * 2.0 // 2.0g/kg per sitting
+    const hydrationBaselineProbe = await this.getWaveRange(
+      userId,
+      new Date(today.getTime() - 24 * 60 * 60 * 1000),
+      today
+    )
+    const hydrationDebt = Math.max(
+      0,
+      Math.round(hydrationBaselineProbe[hydrationBaselineProbe.length - 1]?.fluidDeficit || 0)
+    )
 
     const days: any[] = []
 
@@ -903,6 +924,28 @@ export const metabolicService = {
     const allWindowsSorted = days
       .flatMap((d) => d.windows)
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      .map((w) => ({
+        ...w
+      }))
+
+    if (hydrationDebt > 0) {
+      let remainingDebt = hydrationDebt
+      let nudgesApplied = 0
+      for (const window of allWindowsSorted) {
+        if (remainingDebt <= 0) break
+        if (window.type === 'INTRA_WORKOUT') continue
+
+        const addFluid = Math.min(MEAL_LINKED_WATER_ML + 100, remainingDebt)
+        window.targetFluid = Math.max(0, (window.targetFluid || 0) + addFluid)
+        remainingDebt -= addFluid
+
+        if (hydrationDebt >= HYDRATION_DEBT_NUDGE_THRESHOLD_ML && nudgesApplied < 2) {
+          window.advice =
+            'High fluid debt detected. Add 500ml of water to your next two meals to normalize.'
+          nudgesApplied += 1
+        }
+      }
+    }
 
     return allWindowsSorted.map((w) => {
       const mealName = this.getMealSlotName(new Date(w.startTime), timezone)
@@ -914,10 +957,10 @@ export const metabolicService = {
       else if (w.type === 'TRANSITION') label = `${mealName} (Lead-up)`
 
       // Contextual Advice
-      let advice = w.description
+      let advice = w.advice || w.description
       if (w.type === 'INTRA_WORKOUT')
         advice = 'Direct performance fueling; focus on rapid absorption.'
-      else if (w.type === 'DAILY_BASE' || w.type === 'TRANSITION') {
+      else if (!w.advice && (w.type === 'DAILY_BASE' || w.type === 'TRANSITION')) {
         advice =
           w.targetCarbs > weight * 1.5
             ? `Strategic carb-load: High-carb ${mealName.toLowerCase()} to build glycogen reserves.`
