@@ -14,6 +14,7 @@ import backfillIntervalsParsingCommand from './intervals-parsing'
 import backfillMaxWattsCommand from './max-watts'
 import backfillProfileCommand from './profile'
 import backfillOuraCommand from './wellness-oura'
+import backfillChatRoomsCommand from './chat-rooms'
 
 const backfill = new Command('backfill')
 
@@ -34,5 +35,6 @@ backfill
   .addCommand(backfillMaxWattsCommand)
   .addCommand(backfillProfileCommand)
   .addCommand(backfillOuraCommand)
+  .addCommand(backfillChatRoomsCommand)
 
 export default backfill
