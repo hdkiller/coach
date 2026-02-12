@@ -1,11 +1,11 @@
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between px-1">
+    <div class="flex items-center justify-between px-4 sm:px-1 pt-4 sm:pt-0">
       <h3
         class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2"
       >
         <UIcon name="i-lucide-calendar-clock" class="size-4 text-primary-500" />
-        Upcoming Fueling Plan
+        Upcoming Plan
       </h3>
       <UButton
         size="xs"
@@ -14,12 +14,13 @@
         icon="i-lucide-shopping-cart"
         @click="$emit('export-grocery')"
       >
-        Export to Grocery List
+        <span class="hidden sm:inline">Export to Grocery List</span>
+        <span class="sm:hidden">Export</span>
       </UButton>
     </div>
 
     <div
-      class="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900/50"
+      class="overflow-x-auto border-y sm:border border-gray-200 dark:border-gray-800 sm:rounded-xl bg-white dark:bg-gray-900/50"
     >
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
         <thead class="bg-gray-50 dark:bg-gray-800/50">

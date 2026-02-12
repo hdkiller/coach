@@ -231,59 +231,61 @@
         <div
           v-for="(item, idx) in items"
           :key="item.id || `item-${idx}`"
-          class="group flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm"
+          class="group flex flex-col gap-1 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm"
         >
-          <div class="flex items-center gap-3">
-            <div
-              class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center"
-            >
-              <UIcon
-                :name="item.source === 'yazio' ? 'i-heroicons-link' : 'i-heroicons-pencil'"
-                class="w-4 h-4 text-gray-400"
+          <!-- Row 1: Title and Actions -->
+          <div class="flex items-center justify-between gap-4">
+            <div class="text-sm font-bold text-gray-900 dark:text-white min-w-0 flex-1">
+              <span class="truncate block">{{ item.name || item.product_name }}</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <UBadge
+                v-if="item.absorptionType"
+                :color="getAbsorptionColor(item.absorptionType)"
+                variant="subtle"
+                size="xs"
+                class="text-[8px] font-black uppercase px-1 py-0 leading-none"
+              >
+                {{ item.absorptionType }}
+              </UBadge>
+              <UButton
+                v-if="!isLocked"
+                icon="i-heroicons-pencil-square"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                class="opacity-0 group-hover:opacity-100 transition-opacity -my-1"
+                @click="$emit('edit', item)"
               />
             </div>
-            <div>
-              <div class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                {{ item.name || item.product_name }}
-                <UBadge
-                  v-if="item.absorptionType"
-                  :color="getAbsorptionColor(item.absorptionType)"
-                  variant="subtle"
-                  size="xs"
-                  class="text-[8px] font-black uppercase px-1 py-0 leading-none"
-                >
-                  {{ item.absorptionType }}
-                </UBadge>
-              </div>
-              <div
-                class="text-[10px] text-gray-500 font-medium uppercase flex items-center gap-1.5"
-              >
-                <span v-if="getItemTime(item)" class="text-primary-500 font-bold">{{
-                  getItemTime(item)
-                }}</span>
-                <span v-if="getItemTime(item)">•</span>
-                <span>{{ item.amount }}{{ item.unit || 'g' }} • {{ item.calories }} kcal</span>
-              </div>
-            </div>
           </div>
-          <div class="flex gap-1.5">
-            <div class="flex flex-col items-end">
-              <span class="text-[10px] font-black text-yellow-600 dark:text-yellow-400"
-                >{{ item.carbs }}g C</span
-              >
-              <span class="text-[10px] font-black text-blue-600 dark:text-blue-400"
-                >{{ item.protein }}g P</span
+
+          <!-- Row 2: Secondary Info and Macros -->
+          <div class="flex items-center justify-between gap-2">
+            <div
+              class="text-[10px] text-gray-500 font-medium uppercase flex items-center gap-1.5 min-w-0"
+            >
+              <span v-if="getItemTime(item)" class="text-primary-500 font-bold shrink-0">{{
+                getItemTime(item)
+              }}</span>
+              <span v-if="getItemTime(item)" class="shrink-0">•</span>
+              <span class="truncate"
+                >{{ item.amount }}{{ item.unit || 'g' }} • {{ item.calories }} kcal</span
               >
             </div>
-            <UButton
-              v-if="!isLocked"
-              icon="i-heroicons-pencil-square"
-              variant="ghost"
-              color="neutral"
-              size="xs"
-              class="opacity-0 group-hover:opacity-100 transition-opacity"
-              @click="$emit('edit', item)"
-            />
+
+            <div class="flex items-center gap-3 shrink-0">
+              <span
+                class="text-[10px] font-black text-yellow-600 dark:text-yellow-400 whitespace-nowrap"
+              >
+                {{ item.carbs }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g C</span>
+              </span>
+              <span
+                class="text-[10px] font-black text-blue-600 dark:text-blue-400 whitespace-nowrap"
+              >
+                {{ item.protein }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g P</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
