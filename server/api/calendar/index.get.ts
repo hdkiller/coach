@@ -346,6 +346,7 @@ export default defineEventHandler(async (event) => {
 
       // Metrics
       duration: w.durationSec,
+      durationSec: w.durationSec,
       distance: w.distanceMeters,
       tss: w.tss,
       trainingLoad: w.trainingLoad, // icu_training_load
@@ -386,6 +387,7 @@ export default defineEventHandler(async (event) => {
             id: (w as any).plannedWorkout.id,
             title: (w as any).plannedWorkout.title,
             duration: (w as any).plannedWorkout.durationSec,
+            durationSec: (w as any).plannedWorkout.durationSec,
             tss: (w as any).plannedWorkout.tss,
             type: (w as any).plannedWorkout.type
           }
@@ -439,6 +441,7 @@ export default defineEventHandler(async (event) => {
 
       // Metrics (planned)
       duration: p.durationSec || 0,
+      durationSec: p.durationSec || 0,
       distance: p.distanceMeters,
       tss: p.tss,
       intensity: p.workIntensity,

@@ -174,7 +174,8 @@ export function calculateFuelingStrategy(
     targetCarbsPerHour = effectiveCap
   }
 
-  const intraCarbs = Math.round(targetCarbsPerHour * durationHours)
+  // Apply Goal Adjustment to Intra-Workout as well
+  const intraCarbs = Math.round(targetCarbsPerHour * durationHours * adjustmentMultiplier)
   const intraFluid = Math.round(hydrationPerHour * durationHours)
   const intraSodium = Math.round(sodiumPerHour * durationHours)
 
@@ -204,12 +205,12 @@ export function calculateFuelingStrategy(
   const preDuration = profile.preWorkoutWindow || 90
   const preStart = new Date(workoutStart.getTime() - preDuration * 60000)
 
-  let preCarbs = profile.weight * 1.0 * sensitivity
+  let preCarbs = profile.weight * 1.0 * sensitivity * adjustmentMultiplier
   if (workout.strategyOverride === 'TRAIN_LOW') {
     preCarbs = 10 // Minimal carbs
     notes.push('TRAIN LOW: Minimal pre-workout carbs (<10g) to maintain low glycogen state.')
   } else if (state === 3 || durationHours > 3) {
-    preCarbs = profile.weight * 2.0 * sensitivity
+    preCarbs = profile.weight * 2.0 * sensitivity * adjustmentMultiplier
   }
 
   windows.push({
@@ -231,7 +232,7 @@ export function calculateFuelingStrategy(
   const postDuration = profile.postWorkoutWindow || 60
   const postEnd = new Date(workoutEnd.getTime() + postDuration * 60000)
 
-  const postCarbs = profile.weight * 1.2 * sensitivity
+  const postCarbs = profile.weight * 1.2 * sensitivity * adjustmentMultiplier
   let postProtein = 30
 
   if (workout.strategyOverride === 'TRAIN_LOW') {
