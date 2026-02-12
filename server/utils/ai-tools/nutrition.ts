@@ -13,8 +13,8 @@ import {
   getStartOfLocalDateUTC,
   getEndOfLocalDateUTC
 } from '../../utils/date'
-import { calculateGlycogenState, calculateEnergyTimeline } from '../../../app/utils/nutrition-logic'
-import { getProfileForItem } from '../../../app/utils/nutrition-absorption'
+import { calculateGlycogenState, calculateEnergyTimeline } from '../nutrition-domain/logic'
+import { getProfileForItem } from '../nutrition-domain/absorption'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 
 // Helper to calculate totals from all meals
@@ -132,7 +132,7 @@ export const nutritionTools = (userId: string, timezone: string) => ({
           fiber: z.number().optional().describe('Fiber in grams'),
           sugar: z.number().optional().describe('Sugar in grams'),
           absorption_type: z
-            .enum(['SIMPLE', 'INTERMEDIATE', 'COMPLEX'])
+            .enum(['RAPID', 'FAST', 'BALANCED', 'DENSE', 'HYPER_LOAD'])
             .optional()
             .describe('How fast the food is absorbed'),
           quantity: z.string().optional().describe('Quantity description (e.g. "1 cup", "100g")'),

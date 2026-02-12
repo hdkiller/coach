@@ -439,6 +439,7 @@ export const IntervalsService = {
     const wellnessData = await fetchIntervalsWellness(integration, startDate, historicalEnd)
     const settings = integration.settings as any
     const readinessScale = settings?.readinessScale || 'STANDARD'
+    const sleepScoreScale = settings?.sleepScoreScale || 'STANDARD'
 
     let upsertedCount = 0
     for (const wellness of wellnessData) {
@@ -453,7 +454,8 @@ export const IntervalsService = {
         wellness,
         userId,
         wellnessDate,
-        readinessScale
+        readinessScale,
+        sleepScoreScale
       )
 
       const { isNew } = await wellnessRepository.upsert(

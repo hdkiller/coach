@@ -85,6 +85,20 @@ export async function buildAthleteContext(userId: string): Promise<{
     sportSettingsRepository.getByUserId(userId)
   ])
 
+  // Fetch Intervals Integration settings for scale preferences
+  const intervalsIntegration = await prisma.integration.findUnique({
+    where: {
+      userId_provider: {
+        userId,
+        provider: 'intervals'
+      }
+    },
+    select: { settings: true }
+  })
+  const intervalsSettings = intervalsIntegration?.settings as any
+  const readinessScale = intervalsSettings?.readinessScale || 'STANDARD'
+  const sleepScoreScale = intervalsSettings?.sleepScoreScale || 'STANDARD'
+
   // Get user timezone
   const userTimezone = userProfile?.timezone || 'UTC'
   const todayDate = getUserLocalDate(userTimezone)
@@ -454,8 +468,26 @@ export async function buildAthleteContext(userId: string): Promise<{
       if (wellness.recoveryScore) metrics.push(`Recovery: ${wellness.recoveryScore}%`)
       if (wellness.hrv) metrics.push(`HRV: ${wellness.hrv}ms`)
       if (wellness.sleepHours) metrics.push(`Sleep: ${wellness.sleepHours}h`)
-      if (wellness.sleepScore) metrics.push(`Sleep Score: ${wellness.sleepScore}%`)
-      if (wellness.readiness) metrics.push(`Readiness: ${wellness.readiness}%`)
+      if (wellness.sleepScore) {
+        if (sleepScoreScale === 'TEN_POINT') {
+          // Db stores 0-100, but user wants 1-10. Convert back.
+          // However, if we normalized it from 1-10 -> 0-100, we might have lost precision?
+          // 8.5 -> 85. 85/10 = 8.5. It works.
+          metrics.push(`Sleep Score: ${wellness.sleepScore / 10}/10`)
+        } else {
+          metrics.push(`Sleep Score: ${wellness.sleepScore}%`)
+        }
+      }
+      if (wellness.readiness) {
+        if (readinessScale === 'STANDARD') {
+          // 0-100
+          // DB stores 1-10. We need to convert to 0-100.
+          metrics.push(`Readiness: ${wellness.readiness * 10}%`)
+        } else {
+          // TEN_POINT, POLAR (1-6 ~ 1-10 normalized), or default fallback
+          metrics.push(`Readiness: ${wellness.readiness}/10`)
+        }
+      }
       if (wellness.injury)
         metrics.push(`Injury: ${wellness.injury} (${getInjuryLabel(wellness.injury)})`)
 
