@@ -102,8 +102,20 @@
                           (part.type.startsWith('tool-') ? part.type.replace('tool-', '') : ''),
                         args: (part as any).args || (part as any).input,
                         response: (part as any).result || (part as any).output,
-                        status: (part as any).state === 'result' ? 'success' : 'loading',
-                        timestamp: new Date().toISOString()
+                        status:
+                          (part as any).state === 'result' ||
+                          (part as any).state === 'output-available'
+                            ? 'success'
+                            : (part as any).state === 'error' ||
+                                (part as any).state === 'output-error' ||
+                                (part as any).state === 'output-denied'
+                              ? 'error'
+                              : 'loading',
+                        timestamp:
+                          (message as any).createdAt &&
+                          !isNaN(new Date((message as any).createdAt).getTime())
+                            ? new Date((message as any).createdAt).toISOString()
+                            : new Date().toISOString()
                       }"
                     />
                   </div>
@@ -272,7 +284,7 @@
     }, 3000) // Keep it expanded for 3s after mouse leaves
   }
 
-  // Initialize Chat class (shallowRef so we can trigger updates when the instance is created)
+  // Initialize Chat class (shallowRef to avoid interfering with internal SDK reactivity)
   const chatInstance = shallowRef<any>(null)
   const chatMessages = computed(() => chatInstance.value?.messages || [])
   const chatStatus = computed(() => chatInstance.value?.status || 'idle')
@@ -374,8 +386,7 @@
 
       // 3. Send message
       chatInstance.value.sendMessage({
-        text,
-        role: 'user'
+        text
       })
     } catch (e: any) {
       console.error('[QuickCapture] Error:', e)

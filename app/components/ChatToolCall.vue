@@ -39,9 +39,12 @@
     )
   })
 
-  const isLoading = computed(
-    () => props.toolCall.status === 'loading' || (!props.toolCall.response && !hasError.value)
-  )
+  const isLoading = computed(() => {
+    if (props.toolCall.status) {
+      return props.toolCall.status === 'loading'
+    }
+    return !props.toolCall.response && !hasError.value
+  })
 
   // Get icon for tool
   const getToolIcon = (name: string) => {
