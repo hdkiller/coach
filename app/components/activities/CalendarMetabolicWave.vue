@@ -44,7 +44,8 @@
         />
 
         <path
-          :d="generatePath(getDayPoints(day.date), false)"
+          v-if="showPastLine(day.date)"
+          :d="generatePath(getDayPoints(day.date), false, false, true)"
           fill="none"
           stroke="#2563eb"
           stroke-width="2"
@@ -54,8 +55,8 @@
 
         <!-- Dashed Future Line (if applicable) -->
         <path
-          v-if="hasFuturePoints(getDayPoints(day.date))"
-          :d="generatePath(getDayPoints(day.date), false, true)"
+          v-if="showFutureLine(day.date)"
+          :d="generatePath(getDayPoints(day.date), false, true, false)"
           fill="none"
           stroke="#94a3b8"
           stroke-width="1.5"
@@ -101,7 +102,7 @@
   const pointsByDay = computed(() => {
     const map: Record<string, WavePoint[]> = {}
     allPoints.value.forEach((p) => {
-      const dateKey = p.dateKey || new Date(p.timestamp).toISOString().split('T')[0]
+      const dateKey = p.dateKey
       if (!dateKey) return
 
       if (!map[dateKey]) map[dateKey] = []
@@ -110,23 +111,99 @@
     return map
   })
 
+  function normalizeDayPoints(points: WavePoint[]): WavePoint[] {
+    const sorted = [...points].sort((a, b) => a.timestamp - b.timestamp)
+    if (sorted.length <= 1) return sorted
+
+    const normalized: WavePoint[] = []
+    let lastMinute = -1
+
+    for (const p of sorted) {
+      const m = pointMinutes(p.time)
+      if (m == null) {
+        normalized.push(p)
+        continue
+      }
+
+      // Drop rollover points like ...23:45 -> 00:00 that belong to next day boundary.
+      if (m < lastMinute) {
+        continue
+      }
+
+      normalized.push(p)
+      lastMinute = m
+    }
+
+    return normalized
+  }
+
   function getDayPoints(date: Date): WavePoint[] {
     const key = date.toISOString().split('T')[0]
     if (!key) return []
-    return pointsByDay.value[key] || []
+    return normalizeDayPoints(pointsByDay.value[key] || [])
   }
 
-  function hasFuturePoints(points: WavePoint[]) {
-    return points.some((p) => p.isFuture)
+  function getDayDataType(date: Date): 'historical' | 'current' | 'future' | null {
+    const points = getDayPoints(date)
+    if (!points.length) return null
+    return points[0]?.dataType || null
+  }
+
+  function pointMinutes(time: string | undefined): number | null {
+    const match = /^(\d{1,2}):(\d{2})$/.exec((time || '').trim())
+    if (!match) return null
+    const hh = Number(match[1])
+    const mm = Number(match[2])
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null
+    return hh * 60 + mm
+  }
+
+  function isFuturePointForRender(point: WavePoint, dayType: 'historical' | 'current' | 'future') {
+    if (dayType === 'historical') return false
+    if (dayType === 'future') return true
+
+    // For "current" day, split by clock-time to avoid timestamp/day-key drift artifacts.
+    const pm = pointMinutes(point.time)
+    if (pm == null) return !!point.isFuture
+    const now = new Date()
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+    return pm > nowMinutes
+  }
+
+  function showPastLine(date: Date): boolean {
+    const dataType = getDayDataType(date)
+    if (dataType === 'future') return false
+    if (dataType === 'historical') return true
+    return getDayPoints(date).some((p) => !isFuturePointForRender(p, 'current'))
+  }
+
+  function showFutureLine(date: Date): boolean {
+    const dataType = getDayDataType(date)
+    if (dataType === 'historical') return false
+    if (dataType === 'future') return true
+    return getDayPoints(date).some((p) => isFuturePointForRender(p, 'current'))
   }
 
   // Generate SVG Path
   // Normalize X (00:00 -> 24:00) to 0-100
   // Normalize Y (0-100%) to 100-0
-  function generatePath(points: WavePoint[], isArea: boolean, onlyFuture: boolean = false) {
+  function generatePath(
+    points: WavePoint[],
+    isArea: boolean,
+    onlyFuture: boolean = false,
+    onlyPast: boolean = false
+  ) {
     if (!points.length) return ''
 
-    const filteredPoints = (onlyFuture ? points.filter((p) => p.isFuture) : points).slice()
+    const dayType = points[0]?.dataType || 'current'
+    const filteredPoints = points
+      .filter((p) => {
+        const future = isFuturePointForRender(p, dayType as 'historical' | 'current' | 'future')
+        if (onlyFuture) return future
+        if (onlyPast) return !future
+        return true
+      })
+      .slice()
 
     if (filteredPoints.length === 0) return ''
 
@@ -139,10 +216,26 @@
     const msInDay = 24 * 60 * 60 * 1000
 
     const coords = filteredPoints.map((p) => {
-      const match = /^(\d{2}):(\d{2})$/.exec(p.time || '')
-      const hh = match ? Number(match[1]) : 0
-      const mm = match ? Number(match[2]) : 0
-      const msFromMidnight = (hh * 60 + mm) * 60 * 1000
+      const timeStr = (p.time || '').trim()
+      const match = /^(\d{1,2}):(\d{2})$/.exec(timeStr)
+
+      let minutesFromMidnight: number
+      if (match) {
+        const hh = Number(match[1])
+        const mm = Number(match[2])
+        minutesFromMidnight = hh * 60 + mm
+      } else {
+        // Fallback to timestamp-based positioning anchored to the server-provided dateKey
+        const dateKey = p.dateKey || new Date(p.timestamp).toISOString().split('T')[0] || ''
+        const dayStartMs = dateKey ? Date.parse(`${dateKey}T00:00:00Z`) : NaN
+        if (!Number.isNaN(dayStartMs)) {
+          minutesFromMidnight = Math.round((p.timestamp - dayStartMs) / 60000)
+        } else {
+          minutesFromMidnight = 0
+        }
+      }
+
+      const msFromMidnight = Math.max(0, Math.min(24 * 60, minutesFromMidnight)) * 60 * 1000
       // Clamp to 0-100 range (handle slight TZ offsets if any)
       const x = Math.max(0, Math.min(100, (msFromMidnight / msInDay) * 100))
       const y = 100 - p.level
