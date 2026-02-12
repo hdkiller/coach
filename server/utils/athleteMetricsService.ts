@@ -3,6 +3,8 @@ import { userRepository } from './repositories/userRepository'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
 import { calculatePowerZones, calculateHrZones } from './zones'
 import { roundToTwoDecimals } from './number'
+import { metabolicService } from './services/metabolicService'
+import { getUserLocalDate, getUserTimezone } from './date'
 
 export const athleteMetricsService = {
   /**
@@ -87,6 +89,18 @@ export const athleteMetricsService = {
 
     // 6. Sync Goal Progress
     await this.syncGoalProgress(userId, metrics)
+
+    // 7. REACTIVE: Update metabolic plan synchronously
+    // If weight or FTP changed, the whole fueling plan needs updating
+    if (metrics.weight !== undefined || metrics.ftp !== undefined) {
+      try {
+        const timezone = await getUserTimezone(userId)
+        const today = getUserLocalDate(timezone)
+        await metabolicService.calculateFuelingPlanForDate(userId, today, { persist: true })
+      } catch (err) {
+        console.error('[MetricsService] Failed to update metabolic plan:', err)
+      }
+    }
 
     return updatedUser
   },

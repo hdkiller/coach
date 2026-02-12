@@ -75,6 +75,7 @@ export interface SerializedFuelingPlan {
     baseCalories: number
     activityCalories: number
     adjustmentCalories: number
+    fuelState: number
     workoutCalories?: {
       title: string
       calories: number
@@ -97,18 +98,23 @@ export function calculateFuelingStrategy(
 
   // --- 1. DETERMINE FUEL STATE & DAILY BASELINE ---
   let state = 1
-  let carbRange = { min: profile.fuelState1Min || 3.0, max: profile.fuelState1Max || 4.5 }
+  let carbRange = { min: profile.fuelState1Min || 2.5, max: profile.fuelState1Max || 4.0 }
 
   if (intensity > (profile.fuelState2Trigger || 0.85)) {
     state = 3
-    carbRange = { min: profile.fuelState3Min || 8.0, max: profile.fuelState3Max || 12.0 }
-  } else if (intensity > (profile.fuelState1Trigger || 0.6)) {
+    carbRange = { min: profile.fuelState3Min || 7.0, max: profile.fuelState3Max || 10.0 }
+  } else if (intensity > (profile.fuelState1Trigger || 0.7)) {
     state = 2
-    carbRange = { min: profile.fuelState2Min || 5.0, max: profile.fuelState2Max || 7.5 }
+    carbRange = { min: profile.fuelState2Min || 4.5, max: profile.fuelState2Max || 6.5 }
   }
 
-  // Apply Sensitivity
-  const dailyCarbTargetGrams = profile.weight * ((carbRange.min + carbRange.max) / 2) * sensitivity
+  // Calculate base carbs (average of range)
+  let dailyCarbTargetGrams = profile.weight * ((carbRange.min + carbRange.max) / 2) * sensitivity
+
+  // Apply Goal Adjustment to Carbs as well (e.g. -20% for LOSE)
+  // This ensures the Carb Goal doesn't fight the Calorie Goal
+  const adjustmentMultiplier = 1 + (profile.targetAdjustmentPercent || 0) / 100
+  dailyCarbTargetGrams *= adjustmentMultiplier
 
   // --- 1b. HANDLE REST DAYS (NO WINDOWS) ---
   if (workout.type === 'Rest' || workout.durationSec === 0) {
@@ -127,7 +133,8 @@ export function calculateFuelingStrategy(
           dailyCarbTargetGrams * 4 + profile.weight * 1.6 * 4 + profile.weight * 1.0 * 9
         ),
         activityCalories: 0,
-        adjustmentCalories: 0
+        adjustmentCalories: 0,
+        fuelState: 1
       },
       notes: []
     }
@@ -155,12 +162,16 @@ export function calculateFuelingStrategy(
     targetCarbsPerHour *= sensitivity
   }
 
-  // Apply Gut Training Cap
-  if (targetCarbsPerHour > profile.currentCarbMax) {
+  // Apply Gut Training Cap & Global Physiological Limit (90g/hr)
+  const GLOBAL_CAP = 90
+  const userCap = profile.currentCarbMax || GLOBAL_CAP
+  const effectiveCap = Math.min(GLOBAL_CAP, userCap)
+
+  if (targetCarbsPerHour > effectiveCap) {
     notes.push(
-      `Capping intra-ride carbs at ${profile.currentCarbMax}g/hr (Your Gut Limit). Ideal for this intensity: ${Math.round(targetCarbsPerHour)}g/hr.`
+      `Capping intra-ride carbs at ${effectiveCap}g/hr. Ideal for this intensity: ${Math.round(targetCarbsPerHour)}g/hr.`
     )
-    targetCarbsPerHour = profile.currentCarbMax
+    targetCarbsPerHour = effectiveCap
   }
 
   const intraCarbs = Math.round(targetCarbsPerHour * durationHours)
@@ -260,6 +271,7 @@ export function calculateFuelingStrategy(
       baseCalories: breakdown.baseCalories,
       activityCalories: breakdown.activityCalories,
       adjustmentCalories: breakdown.adjustmentCalories,
+      fuelState: state,
       workoutCalories: breakdown.workouts.map((w) => ({ title: w.title, calories: w.calories }))
     },
     notes
