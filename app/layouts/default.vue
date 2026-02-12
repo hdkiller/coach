@@ -105,14 +105,6 @@
         }
       },
       {
-        label: 'My Plans',
-        icon: 'i-lucide-library',
-        to: '/plans',
-        onSelect: () => {
-          open.value = false
-        }
-      },
-      {
         label: 'Workouts',
         icon: 'i-lucide-activity',
         to: '/workouts',

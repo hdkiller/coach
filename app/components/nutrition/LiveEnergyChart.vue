@@ -34,6 +34,7 @@
 
   const props = defineProps<{
     points: EnergyPoint[]
+    ghostPoints?: EnergyPoint[]
     viewMode: 'percent' | 'kcal' | 'carbs'
   }>()
 
@@ -44,60 +45,84 @@
     const isKcal = props.viewMode === 'kcal'
     const isCarbs = props.viewMode === 'carbs'
 
+    const datasets: any[] = [
+      {
+        label: 'Energy availability',
+        data: props.points.map((p) => {
+          if (isKcal) return p.kcalBalance
+          if (isCarbs) return p.carbBalance
+          return p.level
+        }),
+        borderColor: '#3b82f6',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        // Hexis style: Solid for past, dashed for future
+        segment: {
+          borderDash: (ctx: any) => {
+            const point = props.points[ctx.p1DataIndex]
+            return point?.isFuture ? [5, 5] : undefined
+          },
+          borderColor: (ctx: any) => {
+            const point = props.points[ctx.p1DataIndex]
+            return point?.isFuture ? 'rgba(59, 130, 246, 0.5)' : '#3b82f6'
+          }
+        },
+        backgroundColor: (context: any) => {
+          const chart = context.chart
+          const { ctx, chartArea } = chart
+          if (!chartArea) return null
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
+          gradient.addColorStop(0, 'rgba(239, 68, 68, 0.05)') // Red bottom
+          gradient.addColorStop(0.3, 'rgba(59, 130, 246, 0.1)') // Blue mid
+          return gradient
+        },
+        pointRadius: (ctx: any) => {
+          const p = props.points[ctx.dataIndex]
+          return p?.eventType ? 6 : 0
+        },
+        pointHoverRadius: 8,
+        pointBackgroundColor: (ctx: any) => {
+          const p = props.points[ctx.dataIndex]
+          if (!p?.eventType) return 'transparent'
+          if (p.eventIcon === 'i-tabler-layers-intersect') return '#8b5cf6' // Purple for mixed/multi
+          // Synthetic/Probable meals are purple/dashed
+          if (p.event && (p.event.includes('Synthetic') || p.event.includes('Probable')))
+            return '#a855f7'
+          return p.eventType === 'workout' ? '#ef4444' : '#10b981'
+        },
+        pointStyle: (ctx: any) => {
+          const p = props.points[ctx.dataIndex]
+          if (p?.eventIcon === 'i-tabler-layers-intersect') return 'triangle'
+          if (p?.eventType === 'workout') return 'rectRot'
+          if (p?.eventType === 'meal') return 'circle'
+          return 'circle'
+        }
+      }
+    ]
+
+    // Add Metabolic Ghost dataset if provided
+    if (props.ghostPoints && props.ghostPoints.length > 0) {
+      datasets.push({
+        label: 'Metabolic Ghost',
+        data: props.ghostPoints.map((p) => {
+          if (isKcal) return p.kcalBalance
+          if (isCarbs) return p.carbBalance
+          return p.level
+        }),
+        borderColor: 'rgba(139, 92, 246, 0.3)', // Faint purple
+        borderWidth: 1.5,
+        borderDash: [3, 3],
+        fill: false,
+        tension: 0.4,
+        pointRadius: 0, // Ghost line has no points
+        pointHitRadius: 0
+      })
+    }
+
     return {
       labels: props.points.map((p) => p.time),
-      datasets: [
-        {
-          label: 'Energy availability',
-          data: props.points.map((p) => {
-            if (isKcal) return p.kcalBalance
-            if (isCarbs) return p.carbBalance
-            return p.level
-          }),
-          borderColor: '#3b82f6',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4,
-          // Hexis style: Solid for past, dashed for future
-          segment: {
-            borderDash: (ctx: any) => {
-              const point = props.points[ctx.p1DataIndex]
-              return point?.isFuture ? [5, 5] : undefined
-            },
-            borderColor: (ctx: any) => {
-              const point = props.points[ctx.p1DataIndex]
-              return point?.isFuture ? 'rgba(59, 130, 246, 0.5)' : '#3b82f6'
-            }
-          },
-          backgroundColor: (context: any) => {
-            const chart = context.chart
-            const { ctx, chartArea } = chart
-            if (!chartArea) return null
-            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
-            gradient.addColorStop(0, 'rgba(239, 68, 68, 0.05)') // Red bottom
-            gradient.addColorStop(0.3, 'rgba(59, 130, 246, 0.1)') // Blue mid
-            return gradient
-          },
-          pointRadius: (ctx: any) => {
-            const p = props.points[ctx.dataIndex]
-            return p?.eventType ? 6 : 0
-          },
-          pointHoverRadius: 8,
-          pointBackgroundColor: (ctx: any) => {
-            const p = props.points[ctx.dataIndex]
-            if (!p?.eventType) return 'transparent'
-            if (p.eventIcon === 'i-tabler-layers-intersect') return '#8b5cf6' // Purple for mixed/multi
-            return p.eventType === 'workout' ? '#ef4444' : '#10b981'
-          },
-          pointStyle: (ctx: any) => {
-            const p = props.points[ctx.dataIndex]
-            if (p?.eventIcon === 'i-tabler-layers-intersect') return 'triangle'
-            if (p?.eventType === 'workout') return 'rectRot'
-            if (p?.eventType === 'meal') return 'circle'
-            return 'circle'
-          }
-        }
-      ]
+      datasets
     }
   })
 
@@ -152,16 +177,37 @@
           callbacks: {
             label: (context: any) => {
               const val = context.parsed.y
+              // Only show value for main dataset
+              if (context.dataset.label === 'Metabolic Ghost') return ''
               if (isKcal) return `Balance: ${val > 0 ? '+' : ''}${val} kcal`
               if (isCarbs) return `Balance: ${val > 0 ? '+' : ''}${val}g Carbs`
               return `Fuel Tank: ${val}%`
             },
             afterBody: (context: any) => {
-              const p = props.points[context[0].dataIndex]
+              const idx = context[0].dataIndex
+              const p = props.points[idx]
               if (!p?.event) return ''
+
               let icon = p.eventType === 'meal' ? '🍴' : '🚴'
               if (p.eventIcon === 'i-tabler-layers-intersect') icon = '🥞' // Pancake/Layers for multi
-              return `\n${icon} ${p.event}`
+
+              let details = `\n${icon} ${p.event}`
+
+              // Add nutritional details if available
+              if (p.eventCarbs !== undefined || p.eventFluid !== undefined) {
+                const carbs =
+                  p.eventCarbs !== undefined
+                    ? `${p.eventCarbs > 0 ? '+' : ''}${p.eventCarbs}g Carbs`
+                    : ''
+                const fluid = p.eventFluid !== undefined ? `${p.eventFluid}ml` : ''
+                details += `\nImpact: ${[carbs, fluid].filter(Boolean).join(', ')}`
+              }
+
+              if (p.event.includes('Synthetic') || p.event.includes('Probable')) {
+                details += '\n(Planned/Estimated)'
+              }
+
+              return details
             }
           }
         },

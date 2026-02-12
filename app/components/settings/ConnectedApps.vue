@@ -613,6 +613,28 @@
           </UFormField>
 
           <UFormField
+            label="Sleep Score Scale"
+            description="How should we interpret the 'sleep score' value from Intervals.icu?"
+          >
+            <USelectMenu
+              :model-value="intervalsSettings?.sleepScoreScale || 'STANDARD'"
+              :items="[
+                { label: 'Standard (0-100)', value: 'STANDARD' },
+                { label: '10-Point Scale (1-10)', value: 'TEN_POINT' },
+                { label: 'Polar Scale (1-6)', value: 'POLAR' }
+              ]"
+              class="w-full"
+              @update:model-value="
+                (item: any) =>
+                  $emit('updateSetting', 'intervals', 'settings', {
+                    ...intervalsSettings,
+                    sleepScoreScale: item.value
+                  })
+              "
+            />
+          </UFormField>
+
+          <UFormField
             label="Planned Workouts Sync"
             description="Enable bidirectional synchronization of planned workouts with Intervals.icu."
           >

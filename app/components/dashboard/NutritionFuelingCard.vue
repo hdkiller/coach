@@ -180,7 +180,11 @@
                   @update:model-value="console.log('[FuelingCard] View switched to:', $event)"
                 />
               </div>
-              <NutritionLiveEnergyChart :points="energyPoints" :view-mode="energyViewMode" />
+              <NutritionLiveEnergyChart
+                :points="energyPoints"
+                :ghost-points="ghostPoints"
+                :view-mode="energyViewMode"
+              />
 
               <!-- Legend/Status -->
               <div
@@ -196,6 +200,10 @@
                     ></span>
                     Predicted</span
                   >
+                  <span v-if="ghostPoints.length > 0" class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 border border-purple-400 border-dashed"></span> Ghost
+                    (Rec)
+                  </span>
                 </div>
                 <div class="flex gap-3">
                   <span class="flex items-center gap-1">
@@ -207,6 +215,50 @@
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Meal Recommendation Section -->
+          <div
+            v-if="recommendationStore.todayRecommendation?.analysisJson?.meal_recommendation"
+            class="bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30 rounded-xl p-4"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <UIcon name="i-heroicons-sparkles" class="w-4 h-4 text-purple-500" />
+              <h4
+                class="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider"
+              >
+                AI Nutrition Advice
+              </h4>
+            </div>
+            <div class="space-y-1">
+              <p class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ recommendationStore.todayRecommendation.analysisJson.meal_recommendation.item }}
+              </p>
+              <div class="flex items-center gap-3">
+                <UBadge color="primary" variant="subtle" size="xs">
+                  {{
+                    recommendationStore.todayRecommendation.analysisJson.meal_recommendation.carbs
+                  }}g Carbs
+                </UBadge>
+                <UBadge color="neutral" variant="subtle" size="xs">
+                  {{
+                    recommendationStore.todayRecommendation.analysisJson.meal_recommendation
+                      .absorptionType
+                  }}
+                </UBadge>
+                <span class="text-[10px] text-gray-500 font-medium uppercase tracking-tight">
+                  Timing:
+                  {{
+                    recommendationStore.todayRecommendation.analysisJson.meal_recommendation.timing
+                  }}
+                </span>
+              </div>
+              <p class="text-xs text-gray-500 italic mt-2 leading-relaxed">
+                {{
+                  recommendationStore.todayRecommendation.analysisJson.meal_recommendation.reasoning
+                }}
+              </p>
             </div>
           </div>
 
@@ -377,6 +429,7 @@
 <script setup lang="ts">
   import { mapNutritionToTimeline } from '~/utils/nutrition-timeline'
   import { calculateGlycogenState, calculateEnergyTimeline } from '~/utils/nutrition-logic'
+  import { ABSORPTION_PROFILES, type AbsorptionType } from '~/utils/nutrition-absorption'
 
   const props = defineProps<{
     nutrition: any
@@ -391,8 +444,8 @@
   }>()
 
   const userStore = useUserStore()
+  const recommendationStore = useRecommendationStore()
   const { formatDateUTC } = useFormat()
-  const { onTaskCompleted } = useUserRunsState()
   const toast = useToast()
 
   const generating = ref(false)
@@ -474,20 +527,76 @@
   const plan = computed(() => props.nutrition?.fuelingPlan)
 
   const energyPoints = computed(() => {
+    // Priority: Server-provided points (consistent with metabolic chain)
+    if (props.nutrition?.energyPoints && props.nutrition.energyPoints.length > 0) {
+      return props.nutrition.energyPoints
+    }
+
     if (!props.nutrition || !props.settings) return []
+
     const { timezone } = useFormat()
+
     return calculateEnergyTimeline(
       props.nutrition,
       props.workouts || [],
       props.settings,
-      timezone.value
+      timezone.value,
+      undefined,
+      {
+        startingGlycogenPercentage: props.nutrition.startingGlycogen,
+        startingFluidDeficit: props.nutrition.startingFluid
+      }
+    )
+  })
+
+  // Metabolic Ghost Line Calculation
+
+  const ghostPoints = computed(() => {
+    const mealRec = recommendationStore.todayRecommendation?.analysisJson?.meal_recommendation
+
+    if (!mealRec || !props.nutrition || !props.settings) return []
+
+    const { timezone } = useFormat()
+
+    const now = new Date()
+
+    // Simulate adding the recommended meal 15 mins from now
+
+    const ghostTime = new Date(now.getTime() + 15 * 60000)
+
+    return calculateEnergyTimeline(
+      props.nutrition,
+
+      props.workouts || [],
+
+      props.settings,
+
+      timezone.value,
+
+      {
+        totalCarbs: mealRec.carbs || 30,
+
+        totalKcal: (mealRec.carbs || 30) * 4,
+
+        profile:
+          ABSORPTION_PROFILES[mealRec.absorptionType as AbsorptionType] ||
+          ABSORPTION_PROFILES.BALANCED,
+
+        time: ghostTime
+      },
+
+      {
+        startingGlycogenPercentage: props.nutrition.startingGlycogen,
+
+        startingFluidDeficit: props.nutrition.startingFluid
+      }
     )
   })
 
   const currentLevel = computed(() => {
     const points = energyPoints.value
     if (points.length === 0) return 0
-    const nowIdx = points.findIndex((p) => p.isFuture)
+    const nowIdx = points.findIndex((p: any) => p.isFuture)
     const activePoint = nowIdx > 0 ? points[nowIdx - 1] : points[0]
     return activePoint?.level || 0
   })
@@ -508,6 +617,20 @@
   })
 
   const glycogenState = computed(() => {
+    // Priority: Server-provided summary
+    if (props.nutrition?.percentage != null) {
+      return {
+        percentage: props.nutrition.percentage,
+        advice: props.nutrition.advice || '',
+        state: props.nutrition.state || 1,
+        breakdown: props.nutrition.breakdown || {
+          midnightBaseline: 80,
+          replenishment: { value: 0, actualCarbs: 0, targetCarbs: 0 },
+          depletion: []
+        }
+      }
+    }
+
     if (!props.nutrition) {
       return {
         percentage: 85,
@@ -525,7 +648,9 @@
       props.nutrition,
       props.workouts || [],
       props.settings,
-      timezone.value
+      timezone.value,
+      new Date(),
+      props.nutrition.startingGlycogen
     )
   })
 
@@ -567,11 +692,6 @@
     return window.workoutTitle ? `${typeStr}: ${window.workoutTitle}` : typeStr
   }
 
-  onTaskCompleted('generate-fueling-plan', () => {
-    generating.value = false
-    emit('refresh')
-  })
-
   async function handleGenerate() {
     generating.value = true
     try {
@@ -586,20 +706,21 @@
           color: 'success'
         })
       } else {
-        generating.value = false
         toast.add({
           title: 'No Workout Found',
           description: response.message,
           color: 'warning'
         })
       }
+      emit('refresh')
     } catch (e: any) {
-      generating.value = false
       toast.add({
         title: 'Failed to start generation',
         description: e.data?.message || e.message,
         color: 'error'
       })
+    } finally {
+      generating.value = false
     }
   }
 
