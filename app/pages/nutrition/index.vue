@@ -35,14 +35,13 @@
     </template>
 
     <template #body>
-      <div class="p-0 sm:p-6 space-y-0 sm:space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-0 lg:gap-6">
+      <div class="p-0 sm:p-6 space-y-4 sm:space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           <!-- Main Chart Section -->
-          <div class="lg:col-span-2 space-y-0 sm:space-y-6">
+          <div id="top-section" class="lg:col-span-2 space-y-4 sm:space-y-6">
             <UCard
               :ui="{
-                rounded: 'rounded-none sm:rounded-lg',
-                shadow: 'shadow-none sm:shadow',
+                root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
                 body: 'p-4 sm:p-6'
               }"
             >
@@ -118,7 +117,7 @@
           </div>
 
           <!-- Sidebar Section -->
-          <div class="space-y-0 sm:space-y-6 lg:row-span-2 lg:col-start-3">
+          <div class="space-y-4 sm:space-y-6 lg:row-span-2 lg:col-start-3">
             <!-- Active Fueling Feed (The "On-Ramp") -->
             <NutritionActiveFuelingFeed
               :feed="activeFeed"
@@ -171,7 +170,7 @@
                 <p class="text-sm text-gray-500 mt-1">Persistent Fluid Debt</p>
 
                 <div
-                  class="mt-4 p-3 rounded-lg bg-info-50 dark:bg-info-900/20 text-info-700 dark:text-info-300 text-xs"
+                  class="mt-4 p-3 bg-info-50 dark:bg-info-900/20 rounded-lg text-xs text-info-700 dark:text-info-300"
                 >
                   {{ hydrationAdvice }}
                 </div>
@@ -193,34 +192,30 @@
 
           <!-- Upcoming Fueling Plan (Moved to separate div for better grid control) -->
           <div class="lg:col-span-2">
-            <UCard
-              v-if="upcomingPlan?.windows?.length"
-              :ui="{ rounded: 'rounded-none sm:rounded-lg', shadow: 'shadow-none sm:shadow' }"
-            >
+            <div v-if="upcomingPlan?.windows?.length" class="space-y-4">
               <NutritionUpcomingFuelingFeed
                 :windows="upcomingPlan.windows"
                 :selected-date="selectedDate"
                 @suggest="openAiHelperForWindow"
                 @export-grocery="showGroceryList = true"
               />
-              <template #footer>
-                <div class="flex justify-between items-center">
-                  <p class="text-[10px] text-gray-500 italic">
-                    Targets are dynamically calculated based on your planned training intensity and
-                    fuel states.
-                  </p>
-                  <UButton
-                    v-if="selectedDate"
-                    :to="`/nutrition/${selectedDate}`"
-                    size="xs"
-                    color="primary"
-                    variant="link"
-                  >
-                    View Full Journal for {{ selectedDate }} →
-                  </UButton>
-                </div>
-              </template>
-            </UCard>
+
+              <div class="flex justify-between items-center px-4 sm:px-0">
+                <p class="text-[10px] text-gray-500 italic">
+                  Targets are dynamically calculated based on your planned training intensity and
+                  fuel states.
+                </p>
+                <UButton
+                  v-if="selectedDate"
+                  :to="`/nutrition/${selectedDate}`"
+                  size="xs"
+                  color="primary"
+                  variant="link"
+                >
+                  View Full Journal for {{ selectedDate }} →
+                </UButton>
+              </div>
+            </div>
           </div>
         </div>
 

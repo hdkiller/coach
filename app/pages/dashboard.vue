@@ -64,7 +64,7 @@
         </div>
 
         <!-- Dashboard Grid (Connected User) -->
-        <div v-else class="p-3 sm:p-6 space-y-4 sm:space-y-8">
+        <div v-else class="p-0 sm:p-6 space-y-4 sm:space-y-8">
           <DashboardSystemMessageCard />
 
           <DashboardMissingDataBanner
@@ -72,7 +72,11 @@
             :missing-fields="missingFields"
           />
 
-          <UCard v-if="showWelcome" class="mb-4">
+          <UCard
+            v-if="showWelcome"
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }"
+            class="mb-4"
+          >
             <div class="flex justify-between items-start">
               <div>
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -93,7 +97,7 @@
           </UCard>
 
           <!-- Row 1: Athlete Profile / Today's Training / Performance Overview -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6 items-stretch">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 items-stretch">
             <!-- Athlete Profile Card - shown when connected -->
             <DashboardAthleteProfileCard
               @open-wellness="openWellnessModal"
@@ -126,12 +130,15 @@
           </div>
 
           <!-- Row 3: Recent Activity / Next Steps / Connection Status -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             <!-- Recent Activity Card -->
             <DashboardRecentActivityCard />
 
             <!-- Upcoming Workouts Card -->
-            <UCard class="flex flex-col">
+            <UCard
+              :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
+              class="flex flex-col"
+            >
               <template #header>
                 <div class="flex items-center justify-between">
                   <h3
