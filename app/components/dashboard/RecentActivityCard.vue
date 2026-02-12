@@ -1,7 +1,10 @@
 <template>
   <UCard
     class="lg:col-span-2 overflow-hidden flex flex-col h-full"
-    :ui="{ body: 'px-4 py-4 sm:px-6 sm:py-6' }"
+    :ui="{
+      root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+      body: 'px-4 py-4 sm:px-6 sm:py-6'
+    }"
   >
     <template #header>
       <div class="flex items-center justify-between">

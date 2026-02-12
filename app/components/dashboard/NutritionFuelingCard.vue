@@ -1,5 +1,5 @@
 <template>
-  <UCard :ui="{ body: 'p-0 sm:p-4' }">
+  <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-0 sm:p-4' }">
     <template #header>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -18,9 +18,22 @@
               }"
             />
             <UIcon v-else name="i-heroicons-beaker" class="w-4 h-4 text-gray-400" />
-            <h3 class="font-bold text-gray-900 dark:text-white text-sm tracking-tight uppercase">
-              Daily Fueling: {{ nutrition ? stateLabel : 'No Plan' }}
-            </h3>
+            <div class="flex flex-col">
+              <h3
+                class="font-bold text-gray-900 dark:text-white text-[11px] sm:text-sm tracking-tight uppercase"
+              >
+                Daily Fueling:
+              </h3>
+              <span
+                v-if="nutrition"
+                class="text-[9px] sm:text-xs text-gray-500 font-medium uppercase tracking-tight"
+              >
+                {{ stateLabel }}
+              </span>
+              <span v-else class="text-[9px] sm:text-xs text-gray-500 font-medium italic"
+                >No Plan</span
+              >
+            </div>
           </template>
         </div>
         <div class="flex items-center gap-2">

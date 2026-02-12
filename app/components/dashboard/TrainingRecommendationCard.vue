@@ -1,5 +1,9 @@
 <template>
-  <UCard v-if="integrationStore.intervalsConnected" class="flex flex-col overflow-hidden">
+  <UCard
+    v-if="integrationStore.intervalsConnected"
+    :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }"
+    class="flex flex-col overflow-hidden"
+  >
     <template #header>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">

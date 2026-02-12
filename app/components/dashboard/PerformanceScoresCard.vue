@@ -1,10 +1,17 @@
 <template>
-  <UCard v-if="integrationStore.intervalsConnected" class="flex flex-col overflow-hidden">
+  <UCard
+    v-if="integrationStore.intervalsConnected"
+    :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }"
+    class="flex flex-col overflow-hidden"
+  >
     <template #header>
       <div class="flex items-center justify-between w-full">
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-chart-bar" class="w-5 h-5 text-primary-500" />
-          <h3 class="font-bold text-sm tracking-tight uppercase">Performance Scores</h3>
+          <h3 class="font-bold text-sm tracking-tight uppercase">
+            <span class="hidden sm:inline">Performance Scores</span>
+            <span class="sm:hidden">Performance</span>
+          </h3>
         </div>
         <div class="flex items-center gap-1">
           <UButton
@@ -14,7 +21,8 @@
             icon="i-heroicons-presentation-chart-line"
             @click="$emit('open-training-load')"
           >
-            Training Load
+            <span class="hidden sm:inline">Training Load</span>
+            <span class="sm:hidden">Load</span>
           </UButton>
           <UButton
             color="neutral"

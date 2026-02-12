@@ -1,5 +1,5 @@
 <template>
-  <UCard>
+  <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }">
     <template #header>
       <div class="flex items-center justify-between">
         <h3 class="font-semibold">Data Sync</h3>

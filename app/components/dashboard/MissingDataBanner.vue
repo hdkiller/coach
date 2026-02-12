@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="isVisible && missingFields.length > 0"
-    class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6"
+    class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-none sm:rounded-lg p-4 mb-6"
   >
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div class="flex items-start gap-3">

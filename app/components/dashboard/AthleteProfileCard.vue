@@ -1,5 +1,8 @@
 <template>
-  <UCard class="flex flex-col overflow-hidden">
+  <UCard
+    :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }"
+    class="flex flex-col overflow-hidden"
+  >
     <template #header>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -104,7 +107,7 @@
               v-if="userStore.profile.age"
               class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest"
             >
-              {{ userStore.profile.age }} yrs
+              {{ userStore.profile.age }} <span class="text-[9px] opacity-70">yrs</span>
             </p>
           </div>
         </div>
@@ -125,9 +128,13 @@
             </div>
             <div class="text-sm font-bold text-gray-900 dark:text-white">
               <template v-if="metric.key === 'maxHr'">
-                <template v-if="userStore.currentMaxHr">{{ userStore.currentMaxHr }} bpm</template>
+                <template v-if="userStore.currentMaxHr"
+                  >{{ userStore.currentMaxHr }}
+                  <span class="text-[9px] opacity-70">bpm</span></template
+                >
                 <template v-else-if="userStore.profile.estimatedMaxHR"
-                  >~{{ userStore.profile.estimatedMaxHR }} bpm</template
+                  >~{{ userStore.profile.estimatedMaxHR }}
+                  <span class="text-[9px] opacity-70">bpm</span></template
                 >
                 <UButton
                   v-else
@@ -142,7 +149,8 @@
               </template>
               <template v-else-if="metric.key === 'restingHr'">
                 <template v-if="userStore.profile.restingHr"
-                  >{{ userStore.profile.restingHr }} bpm</template
+                  >{{ userStore.profile.restingHr }}
+                  <span class="text-[9px] opacity-70">bpm</span></template
                 >
                 <UButton
                   v-else
@@ -156,7 +164,10 @@
                 />
               </template>
               <template v-else-if="metric.key === 'lthr'">
-                <template v-if="userStore.currentLthr">{{ userStore.currentLthr }} bpm</template>
+                <template v-if="userStore.currentLthr"
+                  >{{ userStore.currentLthr }}
+                  <span class="text-[9px] opacity-70">bpm</span></template
+                >
                 <UButton
                   v-else
                   to="/profile/settings"
@@ -169,10 +180,13 @@
                 />
               </template>
               <template v-else-if="metric.key === 'age'">
-                {{ userStore.profile.age || 'N/A' }} yrs
+                {{ userStore.profile.age || 'N/A' }} <span class="text-[9px] opacity-70">yrs</span>
               </template>
               <template v-else-if="metric.key === 'height'">
-                {{ userStore.profile.height || 'N/A' }}{{ userStore.profile.heightUnits || 'cm' }}
+                {{ userStore.profile.height || 'N/A'
+                }}<span class="text-[9px] opacity-70">{{
+                  userStore.profile.heightUnits || 'cm'
+                }}</span>
               </template>
             </div>
           </div>
@@ -299,7 +313,10 @@
             <div class="flex items-center gap-2">
               <div class="text-sm font-bold text-gray-900 dark:text-white">
                 <template v-if="metric.key === 'ftp'">
-                  <template v-if="userStore.currentFtp">{{ userStore.currentFtp }}W</template>
+                  <template v-if="userStore.currentFtp"
+                    >{{ userStore.currentFtp
+                    }}<span class="text-[9px] opacity-70">W</span></template
+                  >
                   <UButton
                     v-else
                     to="/profile/settings"
@@ -313,7 +330,8 @@
                 </template>
                 <template v-else-if="metric.key === 'weight'">
                   <template v-if="userStore.profile.weight"
-                    >{{ userStore.profile.weight.toFixed(2) }}kg</template
+                    >{{ userStore.profile.weight.toFixed(2)
+                    }}<span class="text-[9px] opacity-70">kg</span></template
                   >
                   <UButton
                     v-else
@@ -427,28 +445,31 @@
             <div class="flex items-center gap-2">
               <div class="text-sm font-bold text-gray-900 dark:text-white">
                 <template v-if="metric.key === 'sleep'">
-                  {{
-                    userStore.profile.recentSleep
-                      ? userStore.profile.recentSleep.toFixed(1) + 'h'
-                      : 'N/A'
-                  }}
+                  <template v-if="userStore.profile.recentSleep">
+                    {{ userStore.profile.recentSleep.toFixed(1) }}
+                    <span class="text-[9px] opacity-70">h</span>
+                  </template>
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'hrv'">
-                  {{
-                    userStore.profile.recentHRV
-                      ? Math.round(userStore.profile.recentHRV) + ' ms'
-                      : 'N/A'
-                  }}
+                  <template v-if="userStore.profile.recentHRV">
+                    {{ Math.round(userStore.profile.recentHRV) }}
+                    <span class="text-[9px] opacity-70">ms</span>
+                  </template>
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'rhr'">
-                  {{ userStore.profile.restingHr ? userStore.profile.restingHr + ' bpm' : 'N/A' }}
+                  <template v-if="userStore.profile.restingHr">
+                    {{ userStore.profile.restingHr }} <span class="text-[9px] opacity-70">bpm</span>
+                  </template>
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'recovery'">
-                  {{
-                    userStore.profile.recentRecoveryScore
-                      ? userStore.profile.recentRecoveryScore + '%'
-                      : 'N/A'
-                  }}
+                  <template v-if="userStore.profile.recentRecoveryScore">
+                    {{ userStore.profile.recentRecoveryScore }}
+                    <span class="text-[9px] opacity-70">%</span>
+                  </template>
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'readiness'">
                   {{ userStore.profile.recentReadiness || 'N/A' }}
@@ -463,7 +484,10 @@
                   {{ userStore.profile.recentMood || 'N/A' }}
                 </template>
                 <template v-else-if="metric.key === 'spO2'">
-                  {{ userStore.profile.recentSpO2 ? userStore.profile.recentSpO2 + '%' : 'N/A' }}
+                  <template v-if="userStore.profile.recentSpO2">
+                    {{ userStore.profile.recentSpO2 }} <span class="text-[9px] opacity-70">%</span>
+                  </template>
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'bloodPressure'">
                   {{
@@ -473,18 +497,18 @@
                   }}
                 </template>
                 <template v-else-if="metric.key === 'respiration'">
-                  {{
-                    userStore.profile.recentRespiration
-                      ? userStore.profile.recentRespiration + ' brpm'
-                      : 'N/A'
-                  }}
+                  <template v-if="userStore.profile.recentRespiration">
+                    {{ userStore.profile.recentRespiration }}
+                    <span class="text-[9px] opacity-70">brpm</span>
+                  </template>
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'skinTemp'">
-                  {{
-                    userStore.profile.recentSkinTemp
-                      ? userStore.profile.recentSkinTemp + '°C'
-                      : 'N/A'
-                  }}
+                  <template v-if="userStore.profile.recentSkinTemp">
+                    {{ userStore.profile.recentSkinTemp }}
+                    <span class="text-[9px] opacity-70">°C</span>
+                  </template>
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'vo2max'">
                   {{ userStore.profile.recentVo2max || 'N/A' }}
