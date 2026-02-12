@@ -98,8 +98,8 @@
   const props = defineProps<{
     workout: any
     fuelState?: number
-    startTime?: Date
-    endTime?: Date
+    startTime?: Date | string
+    endTime?: Date | string
   }>()
 
   const icon = computed(() => {
@@ -127,9 +127,11 @@
     return `${m}m`
   }
 
-  const formatTime = (date?: Date) => {
-    if (!date || isNaN(date.getTime())) return ''
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const formatTime = (date?: Date | string) => {
+    if (!date) return ''
+    const d = typeof date === 'string' ? new Date(date) : date
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
   const isCompleted = computed(() => {

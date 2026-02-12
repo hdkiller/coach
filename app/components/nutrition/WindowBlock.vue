@@ -126,11 +126,8 @@
 
           <p class="text-xs font-bold text-amber-800 dark:text-amber-200">
             Target:
-            {{
-              Math.round(
-                targetCarbs / (Math.abs(endTime.getTime() - startTime.getTime()) / 3600000)
-              )
-            }}g carbs per hour.
+            {{ Math.round(targetCarbs / (Math.abs(end.getTime() - start.getTime()) / 3600000)) }}g
+            carbs per hour.
 
             <span class="font-normal opacity-80">({{ getGelCountLabel(targetCarbs) }})</span>
           </p>
@@ -297,8 +294,8 @@
   const props = defineProps<{
     type: string
     title: string
-    startTime: Date
-    endTime: Date
+    startTime: Date | string
+    endTime: Date | string
     targetCarbs: number
     targetProtein: number
     targetFat: number
@@ -312,6 +309,9 @@
   }>()
 
   defineEmits(['add', 'addAi', 'edit'])
+
+  const start = computed(() => new Date(props.startTime))
+  const end = computed(() => new Date(props.endTime))
 
   const strategyLabel = computed(() => {
     if (props.type !== 'INTRA_WORKOUT') return null
@@ -328,7 +328,7 @@
 
     const items = []
     const totalCarbs = props.targetCarbs
-    const durationMs = Math.abs(props.endTime.getTime() - props.startTime.getTime())
+    const durationMs = Math.abs(end.value.getTime() - start.value.getTime())
     const durationHours = durationMs / 3600000
 
     // Heuristic: If we have a target >= 80g (Gut Training), we use the requested script pattern
@@ -345,10 +345,11 @@
     return items
   })
 
-  const formatTime = (date: Date) => {
-    if (!date || isNaN(date.getTime())) return ''
+  const formatTime = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date
+    if (!d || isNaN(d.getTime())) return ''
     const { formatDate } = useFormat()
-    return formatDate(date, 'HH:mm')
+    return formatDate(d, 'HH:mm')
   }
 
   const windowIcon = computed(() => {

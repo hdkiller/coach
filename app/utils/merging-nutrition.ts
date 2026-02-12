@@ -33,16 +33,20 @@ export function mergeFuelingWindows(windows: FuelingWindow[]): FuelingWindow[] {
   )
 
   const merged: FuelingWindow[] = []
-  let current: FuelingWindow = { ...(sorted[0] as FuelingWindow) }
+  let current: FuelingWindow = {
+    ...(sorted[0] as FuelingWindow),
+    startTime: new Date(sorted[0]!.startTime),
+    endTime: new Date(sorted[0]!.endTime)
+  }
 
   for (let i = 1; i < sorted.length; i++) {
     const next: FuelingWindow = sorted[i] as FuelingWindow
     if (!next) continue
 
-    const currentStart = current.startTime ? new Date(current.startTime).getTime() : 0
-    const currentEnd = current.endTime ? new Date(current.endTime).getTime() : 0
-    const nextStart = next.startTime ? new Date(next.startTime).getTime() : 0
-    const nextEnd = next.endTime ? new Date(next.endTime).getTime() : 0
+    const currentStart = (current.startTime as Date).getTime()
+    const currentEnd = (current.endTime as Date).getTime()
+    const nextStart = new Date(next.startTime).getTime()
+    const nextEnd = new Date(next.endTime).getTime()
 
     if (!currentStart || !nextStart) {
       merged.push(current)
@@ -59,7 +63,7 @@ export function mergeFuelingWindows(windows: FuelingWindow[]): FuelingWindow[] {
       const isSameType = current.type === next.type
 
       // Determine new end time
-      current.endTime = new Date(Math.max(currentEnd, nextEnd)).toISOString()
+      current.endTime = new Date(Math.max(currentEnd, nextEnd))
 
       // Combine nutrition targets
       current.targetCarbs = (current.targetCarbs || 0) + (next.targetCarbs || 0)
@@ -91,7 +95,11 @@ export function mergeFuelingWindows(windows: FuelingWindow[]): FuelingWindow[] {
       }
     } else {
       merged.push(current)
-      current = { ...next }
+      current = {
+        ...next,
+        startTime: new Date(next.startTime),
+        endTime: new Date(next.endTime)
+      }
     }
   }
 
