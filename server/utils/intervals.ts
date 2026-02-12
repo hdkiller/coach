@@ -979,6 +979,50 @@ function normalizeWorkoutSteps(steps: any[]): any[] {
   if (!Array.isArray(steps)) return []
 
   return steps.map((step: any) => {
+    const normalizeTarget = (target: any) => {
+      if (target === null || target === undefined) return null
+
+      if (Array.isArray(target)) {
+        if (target.length >= 2) {
+          return { range: { start: Number(target[0]) || 0, end: Number(target[1]) || 0 } }
+        }
+        if (target.length === 1) {
+          return { value: Number(target[0]) || 0 }
+        }
+        return null
+      }
+
+      if (typeof target === 'number') {
+        return { value: target }
+      }
+
+      if (typeof target === 'object') {
+        if (target.range && typeof target.range === 'object') {
+          return {
+            range: {
+              start: Number(target.range.start) || 0,
+              end: Number(target.range.end) || 0
+            },
+            units: target.units
+          }
+        }
+        if (target.start !== undefined && target.end !== undefined) {
+          return {
+            range: {
+              start: Number(target.start) || 0,
+              end: Number(target.end) || 0
+            },
+            units: target.units
+          }
+        }
+        if (target.value !== undefined) {
+          return { value: Number(target.value) || 0, units: target.units }
+        }
+      }
+
+      return null
+    }
+
     // 1. Recurse for nested steps (repeats)
     if (step.steps && Array.isArray(step.steps)) {
       step.steps = normalizeWorkoutSteps(step.steps)
@@ -997,6 +1041,11 @@ function normalizeWorkoutSteps(steps: any[]): any[] {
     if (step.durationSeconds !== undefined && step.duration === undefined) {
       step.duration = step.durationSeconds
     }
+
+    // Normalize common Intervals target formats (arrays, numbers, start/end objects)
+    step.power = normalizeTarget(step.power) || step.power
+    step.heartRate = normalizeTarget(step.heartRate) || step.heartRate
+    step.pace = normalizeTarget(step.pace) || step.pace
 
     // Power
     if (step.power) {
