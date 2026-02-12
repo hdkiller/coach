@@ -35,13 +35,21 @@
     </template>
 
     <template #body>
-      <div class="p-4 sm:p-6 space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="p-0 sm:p-6 space-y-0 sm:space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-0 lg:gap-6">
           <!-- Main Chart Section -->
-          <div class="lg:col-span-2 space-y-6">
-            <UCard :ui="{ body: 'p-0 sm:p-6' }">
+          <div class="lg:col-span-2 space-y-0 sm:space-y-6">
+            <UCard
+              :ui="{
+                rounded: 'rounded-none sm:rounded-lg',
+                shadow: 'shadow-none sm:shadow',
+                body: 'p-4 sm:p-6'
+              }"
+            >
               <template #header>
-                <div class="flex items-center justify-between">
+                <div
+                  class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0"
+                >
                   <div>
                     <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
                       Metabolic Horizon
@@ -50,7 +58,7 @@
                       7-day rolling glycogen tank projection
                     </p>
                   </div>
-                  <div class="flex items-center gap-3">
+                  <div class="flex flex-wrap items-center gap-3">
                     <div class="flex items-center gap-1">
                       <div class="size-2 rounded-full bg-blue-500" />
                       <span class="text-[10px] text-gray-500">Glycogen</span>
@@ -90,7 +98,7 @@
               </div>
             </UCard>
 
-            <UCard>
+            <UCard :ui="{ rounded: 'rounded-none sm:rounded-lg', shadow: 'shadow-none sm:shadow' }">
               <template #header>
                 <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
                   Weekly Fueling Periodization
@@ -107,37 +115,10 @@
                 @select-day="selectedDate = $event"
               />
             </UCard>
-
-            <!-- Upcoming Fueling Plan (The "Upcoming Feed") -->
-            <UCard v-if="upcomingPlan?.windows?.length">
-              <NutritionUpcomingFuelingFeed
-                :windows="upcomingPlan.windows"
-                :selected-date="selectedDate"
-                @suggest="openAiHelperForWindow"
-                @export-grocery="showGroceryList = true"
-              />
-              <template #footer>
-                <div class="flex justify-between items-center">
-                  <p class="text-[10px] text-gray-500 italic">
-                    Targets are dynamically calculated based on your planned training intensity and
-                    fuel states.
-                  </p>
-                  <UButton
-                    v-if="selectedDate"
-                    :to="`/nutrition/${selectedDate}`"
-                    size="xs"
-                    color="primary"
-                    variant="link"
-                  >
-                    View Full Journal for {{ selectedDate }} →
-                  </UButton>
-                </div>
-              </template>
-            </UCard>
           </div>
 
           <!-- Sidebar Section -->
-          <div class="space-y-6">
+          <div class="space-y-0 sm:space-y-6 lg:row-span-2 lg:col-start-3">
             <!-- Active Fueling Feed (The "On-Ramp") -->
             <NutritionActiveFuelingFeed
               :feed="activeFeed"
@@ -146,7 +127,11 @@
             />
 
             <!-- Strategy Summary Card -->
-            <UCard color="primary" variant="subtle">
+            <UCard
+              color="primary"
+              variant="subtle"
+              :ui="{ rounded: 'rounded-none sm:rounded-lg', shadow: 'shadow-none sm:shadow' }"
+            >
               <template #header>
                 <div class="flex items-center gap-2">
                   <UIcon name="i-lucide-sparkles" class="size-5 text-primary-500" />
@@ -167,7 +152,7 @@
             </UCard>
 
             <!-- Hydration Debt Card -->
-            <UCard>
+            <UCard :ui="{ rounded: 'rounded-none sm:rounded-lg', shadow: 'shadow-none sm:shadow' }">
               <template #header>
                 <div class="flex items-center gap-2">
                   <UIcon name="i-lucide-droplets" class="size-5 text-blue-500" />
@@ -205,68 +190,100 @@
               </template>
             </UCard>
           </div>
-        </div>
-      </div>
 
-      <UModal
-        v-model:open="showGroceryList"
-        title="Strategic Grocery List"
-        :ui="{ content: 'sm:max-w-md' }"
-      >
-        <template #content>
-          <div class="p-6 space-y-4">
-            <div
-              class="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800"
+          <!-- Upcoming Fueling Plan (Moved to separate div for better grid control) -->
+          <div class="lg:col-span-2">
+            <UCard
+              v-if="upcomingPlan?.windows?.length"
+              :ui="{ rounded: 'rounded-none sm:rounded-lg', shadow: 'shadow-none sm:shadow' }"
             >
-              <p
-                class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1"
-              >
-                48-Hour Carb Target
-              </p>
-              <div class="flex items-baseline gap-2">
-                <span class="text-3xl font-black text-primary-700 dark:text-primary-300"
-                  >{{ next48hCarbTotal }}g</span
-                >
-                <span class="text-sm text-primary-600/70">Total Carbs Needed</span>
-              </div>
-              <p class="text-[10px] text-primary-600/60 mt-1 italic">
-                This is the sum of all planned workout and baseline fueling windows.
-              </p>
-            </div>
-
-            <p class="text-sm text-gray-500">
-              Based on your metabolic horizon, ensure you have these fueling essentials ready:
-            </p>
-
-            <ul class="space-y-2">
-              <li
-                v-for="item in groceryItems"
-                :key="item.name"
-                class="flex items-center gap-2 text-sm"
-              >
-                <UIcon :name="item.icon" class="size-4 text-primary-500" />
-                <span>{{ item.name }}</span>
-                <span class="ml-auto text-xs text-gray-400">{{ item.reason }}</span>
-              </li>
-            </ul>
-
-            <div
-              class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-xs text-primary-700 dark:text-primary-300"
-            >
-              <strong>Pro Tip:</strong> Focus on high-glycemic carbs for your State 3 days to ensure
-              rapid replenishment.
-            </div>
+              <NutritionUpcomingFuelingFeed
+                :windows="upcomingPlan.windows"
+                :selected-date="selectedDate"
+                @suggest="openAiHelperForWindow"
+                @export-grocery="showGroceryList = true"
+              />
+              <template #footer>
+                <div class="flex justify-between items-center">
+                  <p class="text-[10px] text-gray-500 italic">
+                    Targets are dynamically calculated based on your planned training intensity and
+                    fuel states.
+                  </p>
+                  <UButton
+                    v-if="selectedDate"
+                    :to="`/nutrition/${selectedDate}`"
+                    size="xs"
+                    color="primary"
+                    variant="link"
+                  >
+                    View Full Journal for {{ selectedDate }} →
+                  </UButton>
+                </div>
+              </template>
+            </UCard>
           </div>
-        </template>
-      </UModal>
+        </div>
 
-      <!-- AI Meal Helper Modal -->
-      <NutritionFoodAiModal
-        v-model:open="showAiHelper"
-        :date="format(new Date(), 'yyyy-MM-dd')"
-        :initial-context="aiHelperContext"
-        @updated="refreshData"
-      />
+        <UModal
+          v-model:open="showGroceryList"
+          title="Strategic Grocery List"
+          :ui="{ content: 'sm:max-w-md' }"
+        >
+          <template #content>
+            <div class="p-6 space-y-4">
+              <div
+                class="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800"
+              >
+                <p
+                  class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1"
+                >
+                  48-Hour Carb Target
+                </p>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-black text-primary-700 dark:text-primary-300"
+                    >{{ next48hCarbTotal }}g</span
+                  >
+                  <span class="text-sm text-primary-600/70">Total Carbs Needed</span>
+                </div>
+                <p class="text-[10px] text-primary-600/60 mt-1 italic">
+                  This is the sum of all planned workout and baseline fueling windows.
+                </p>
+              </div>
+
+              <p class="text-sm text-gray-500">
+                Based on your metabolic horizon, ensure you have these fueling essentials ready:
+              </p>
+
+              <ul class="space-y-2">
+                <li
+                  v-for="item in groceryItems"
+                  :key="item.name"
+                  class="flex items-center gap-2 text-sm"
+                >
+                  <UIcon :name="item.icon" class="size-4 text-primary-500" />
+                  <span>{{ item.name }}</span>
+                  <span class="ml-auto text-xs text-gray-400">{{ item.reason }}</span>
+                </li>
+              </ul>
+
+              <div
+                class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-xs text-primary-700 dark:text-primary-300"
+              >
+                <strong>Pro Tip:</strong> Focus on high-glycemic carbs for your State 3 days to
+                ensure rapid replenishment.
+              </div>
+            </div>
+          </template>
+        </UModal>
+
+        <!-- AI Meal Helper Modal -->
+        <NutritionFoodAiModal
+          v-model:open="showAiHelper"
+          :date="format(new Date(), 'yyyy-MM-dd')"
+          :initial-context="aiHelperContext"
+          @updated="refreshData"
+        />
+      </div>
     </template>
   </UDashboardPanel>
 </template>
