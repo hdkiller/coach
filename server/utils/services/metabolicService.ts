@@ -184,9 +184,10 @@ export const metabolicService = {
     const currentPoint =
       [...points].reverse().find((p) => p.timestamp <= now.getTime()) || points[0]
 
-    const computedPlan = dayNutrition?.fuelingPlan
-      ? { plan: dayNutrition.fuelingPlan as any }
-      : await this.calculateFuelingPlanForDate(userId, date, { persist: false })
+    const computedPlan = await this.calculateFuelingPlanForDate(userId, date, {
+      persist: false,
+      mergeWindows: false
+    })
     const plan = computedPlan.plan as any
 
     const windows = Array.isArray(plan?.windows)
@@ -564,9 +565,10 @@ export const metabolicService = {
   async calculateFuelingPlanForDate(
     userId: string,
     date: Date,
-    options: { persist?: boolean } = {}
+    options: { persist?: boolean; mergeWindows?: boolean } = {}
   ) {
     const persist = options.persist ?? true
+    const mergeWindows = options.mergeWindows ?? false
     const targetDateStart = new Date(date)
     targetDateStart.setUTCHours(0, 0, 0, 0)
     const targetDateEnd = new Date(targetDateStart)
@@ -679,7 +681,7 @@ export const metabolicService = {
     }, 1)
 
     const breakdown = calculateDailyCalorieBreakdown(profile, contexts)
-    const mergedWindows = mergeFuelingWindows(combinedWindows)
+    const mergedWindows = mergeWindows ? mergeFuelingWindows(combinedWindows) : combinedWindows
     const uniqueNotes = Array.from(new Set(combinedNotes))
 
     const finalPlan = {
@@ -791,7 +793,7 @@ export const metabolicService = {
         date,
         dateKey: dateStr,
         carbsGoal: plan.dailyTotals.carbs,
-        windows: mergeFuelingWindows(windows)
+        windows: windows // Use the local copy that includes baseline slots
       })
     }
 
