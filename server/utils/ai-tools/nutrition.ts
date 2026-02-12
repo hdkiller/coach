@@ -391,6 +391,66 @@ export const nutritionTools = (userId: string, timezone: string) => ({
     }
   }),
 
+  get_metabolic_strategy: tool({
+    description:
+      'Analyze the users metabolic strategy for the next 7 days, including fueling states (Performance, Steady, Eco), hydration debt, and key fueling challenges. Use this when the user asks about their upcoming week, how to prepare for a big race, or why they feel fatigued.',
+    inputSchema: z.object({
+      days_ahead: z.number().default(7).describe('Number of days to analyze (default 7, max 14)')
+    }),
+    execute: async ({ days_ahead }) => {
+      const days = Math.min(14, Math.max(1, days_ahead))
+      const today = getUserLocalDate(timezone)
+      const settings = await getUserNutritionSettings(userId)
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { weight: true, ftp: true }
+      })
+      const weight = user?.weight || 75
+
+      const strategy = []
+      for (let i = 0; i < days; i++) {
+        const date = new Date(today)
+        date.setUTCDate(today.getUTCDate() + i)
+
+        const dayPlan = await metabolicService.calculateFuelingPlanForDate(userId, date, {
+          persist: false
+        })
+        const plan = dayPlan.plan as any
+        const totals = plan.dailyTotals
+
+        let state = 1
+        if (totals.carbs / weight >= settings.fuelState3Min) state = 3
+        else if (totals.carbs / weight >= settings.fuelState2Min) state = 2
+
+        strategy.push({
+          date: formatDateUTC(date),
+          state: state === 3 ? 'Performance' : state === 2 ? 'Steady' : 'Eco',
+          carbsTarget: Math.round(totals.carbs),
+          isRest: !plan.windows.some((w: any) => w.type !== 'DAILY_BASE'),
+          notes: plan.notes
+        })
+      }
+
+      // Calculate persistent hydration debt
+      const startDate = new Date(today)
+      startDate.setUTCDate(today.getUTCDate() - 3)
+      const points = await metabolicService.getWaveRange(userId, startDate, today)
+      const lastPoint = points[points.length - 1]
+      const hydrationDebt = lastPoint ? Math.max(0, lastPoint.fluidDeficit) : 0
+
+      return {
+        strategy,
+        hydration_debt_ml: Math.round(hydrationDebt),
+        user_weight_kg: weight,
+        current_date: formatDateUTC(today),
+        settings: {
+          carb_max: settings.currentCarbMax,
+          sweat_rate: settings.sweatRate
+        }
+      }
+    }
+  }),
+
   get_daily_fueling_status: tool({
     description:
       'Get detailed fueling status (fuel tank level, energy timeline metrics) for a specific date. Use this to answer questions like "How is my fueling today?", "Will I function well for my workout?", or "Do I have enough energy?".',
