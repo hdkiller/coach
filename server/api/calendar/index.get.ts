@@ -90,6 +90,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  const startTime = Date.now()
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -115,7 +116,12 @@ export default defineEventHandler(async (event) => {
     Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())
   )
 
+  console.log(
+    `[Calendar API] Fetching data for ${userId} from ${calendarStart.toISOString()} to ${calendarEnd.toISOString()}`
+  )
+
   // Fetch nutrition data for the date range
+  const nutritionStartTime = Date.now()
   const nutrition = await nutritionRepository.getForUser(userId, {
     startDate: calendarStart,
     endDate: calendarEnd,
@@ -142,15 +148,21 @@ export default defineEventHandler(async (event) => {
       snacks: true
     }
   })
+  console.log(`[Calendar API] Nutrition fetch took ${Date.now() - nutritionStartTime}ms`)
 
   // Create a map of nutrition data by date (YYYY-MM-DD)
   const nutritionByDate = new Map()
+  const metabolicStartTime = Date.now()
+  const metabolicStates = await metabolicService.getMetabolicStatesForRange(
+    userId,
+    calendarStart,
+    calendarEnd
+  )
+
   for (const n of nutrition) {
     if (!n) continue
-    const dateKey = n.date.toISOString().split('T')[0]
-
-    // Use metabolicService to ensure chain is valid
-    const state = await metabolicService.getMetabolicState(userId, n.date)
+    const dateKey = n.date.toISOString().split('T')[0] as string
+    const state = metabolicStates.get(dateKey) || { startingGlycogen: 85, startingFluid: 0 }
 
     nutritionByDate.set(dateKey, {
       ...n,
@@ -158,13 +170,18 @@ export default defineEventHandler(async (event) => {
       startingFluid: state.startingFluid
     })
   }
+  console.log(
+    `[Calendar API] Metabolic state calculation for ${nutrition.length} days took ${Date.now() - metabolicStartTime}ms`
+  )
 
   // Fetch wellness data for the date range
+  const wellnessStartTime = Date.now()
   const wellness = await wellnessRepository.getForUser(userId, {
     startDate: calendarStart,
     endDate: calendarEnd,
     orderBy: { date: 'asc' }
   })
+  console.log(`[Calendar API] Wellness fetch took ${Date.now() - wellnessStartTime}ms`)
 
   // Fetch daily metrics data for the date range
   const dailyMetrics = await prisma.dailyMetric.findMany({
@@ -206,6 +223,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Fetch completed workouts (timestamped)
+  const workoutStartTime = Date.now()
   const workouts = await workoutRepository.getForUser(userId, {
     startDate: rangeStart,
     endDate: rangeEnd,
@@ -217,8 +235,10 @@ export default defineEventHandler(async (event) => {
       }
     }
   })
+  console.log(`[Calendar API] Workout fetch took ${Date.now() - workoutStartTime}ms`)
 
   // Fetch planned workouts (date-only)
+  const plannedStartTime = Date.now()
   const plannedWorkouts = await prisma.plannedWorkout.findMany({
     where: {
       userId,
@@ -229,10 +249,10 @@ export default defineEventHandler(async (event) => {
     },
     orderBy: { date: 'asc' }
   })
+  console.log(`[Calendar API] Planned workout fetch took ${Date.now() - plannedStartTime}ms`)
 
   // PROACTIVE NUTRITION ESTIMATION
-  // If we have planned workouts for a day, we prefer the dynamic estimate
-  // over static defaults, unless the user has manually locked the day.
+  const estimationStartTime = Date.now()
   const nutritionSettings = await getUserNutritionSettings(userId)
   const profile = {
     weight: user?.weight || 75,
@@ -315,13 +335,16 @@ export default defineEventHandler(async (event) => {
       }
     }
   }
+  console.log(`[Calendar API] Nutrition estimation took ${Date.now() - estimationStartTime}ms`)
 
   // Fetch calendar notes (timestamped)
+  const notesStartTime = Date.now()
   const calendarNotes = await calendarNoteRepository.getForUser(userId, {
     startDate: rangeStart,
     endDate: rangeEnd,
     orderBy: { startDate: 'asc' }
   })
+  console.log(`[Calendar API] Notes fetch took ${Date.now() - notesStartTime}ms`)
 
   // Create a set of plannedWorkoutIds that are already represented by completed workouts
   // We'll use this to mark them as linked or hide them if we only want them nested
@@ -519,6 +542,10 @@ export default defineEventHandler(async (event) => {
       })
     }
   }
+
+  console.log(
+    `[Calendar API] Total execution took ${Date.now() - startTime}ms for ${activities.length} activities`
+  )
 
   return activities
 })

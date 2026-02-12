@@ -7,7 +7,8 @@ import {
   getStartOfDayUTC,
   getEndOfDayUTC,
   buildZonedDateTimeFromUtcDate,
-  formatDateUTC
+  formatDateUTC,
+  formatUserTime
 } from '../date'
 import { calculateEnergyTimeline, calculateGlycogenState } from '../nutrition-domain/logic'
 import { getUserNutritionSettings } from '../nutrition/settings'
@@ -514,13 +515,53 @@ export const metabolicService = {
    * This is the single computation path for activity sparkline and extended wave charts.
    */
   async getWaveRange(userId: string, startDate: Date, endDate: Date) {
+    const startTime = Date.now()
     const timezone = await getUserTimezone(userId)
+    const settings = await getUserNutritionSettings(userId)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weight: true, ftp: true }
+    })
     const todayKey = formatDateUTC(getUserLocalDate(timezone))
     const allPoints: any[] = []
 
+    // 1. Get initial state
     const firstDayState = await this.getMetabolicState(userId, startDate)
     let currentStartingGlycogen = firstDayState.startingGlycogen
     let currentStartingFluid = firstDayState.startingFluid
+
+    // 2. Fetch all data upfront
+    const rangeStart = getStartOfDayUTC(timezone, startDate)
+    const rangeEnd = getEndOfDayUTC(timezone, endDate)
+
+    const [allNutrition, allWorkouts, allPlanned] = await Promise.all([
+      nutritionRepository.getForUser(userId, { startDate, endDate }),
+      workoutRepository.getForUser(userId, {
+        startDate: rangeStart,
+        endDate: rangeEnd,
+        includeDuplicates: false
+      }),
+      plannedWorkoutRepository.list(userId, { startDate, endDate })
+    ])
+
+    const nutritionMap = new Map()
+    allNutrition.forEach((n) => nutritionMap.set(n.date.toISOString().split('T')[0] as string, n))
+
+    const workoutsByDate = new Map<string, any[]>()
+    const completedPlannedIds = new Set(
+      allWorkouts.map((w: any) => w.plannedWorkoutId).filter(Boolean)
+    )
+
+    const addWorkout = (w: any, date: Date) => {
+      const key = date.toISOString().split('T')[0] as string
+      if (!workoutsByDate.has(key)) workoutsByDate.set(key, [])
+      workoutsByDate.get(key)!.push(w)
+    }
+
+    allWorkouts.forEach((w) => addWorkout(w, w.date))
+    allPlanned
+      .filter((p: any) => !p.completed && !completedPlannedIds.has(p.id))
+      .forEach((p) => addWorkout(p, p.date))
 
     const daysDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
     for (let i = 0; i <= daysDiff; i++) {
@@ -530,11 +571,22 @@ export const metabolicService = {
       const dataType =
         dateStr < todayKey ? 'historical' : dateStr === todayKey ? 'current' : 'future'
 
-      const { points } = await this.getDailyTimeline(
-        userId,
-        date,
-        currentStartingGlycogen,
-        currentStartingFluid
+      const dayNutrition = nutritionMap.get(dateStr)
+      const dayWorkouts = workoutsByDate.get(dateStr) || []
+
+      const points = calculateEnergyTimeline(
+        dayNutrition || {
+          date: date.toISOString(),
+          carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+        },
+        dayWorkouts,
+        settings,
+        timezone,
+        undefined,
+        {
+          startingGlycogenPercentage: currentStartingGlycogen,
+          startingFluidDeficit: currentStartingFluid
+        }
       )
 
       allPoints.push(
@@ -555,6 +607,9 @@ export const metabolicService = {
       }
     }
 
+    console.log(
+      `[MetabolicService] getWaveRange for ${daysDiff + 1} days took ${Date.now() - startTime}ms`
+    )
     return allPoints
   },
 
@@ -592,6 +647,12 @@ export const metabolicService = {
         date: {
           gte: targetDateStart,
           lte: targetDateEnd
+        },
+        completed: {
+          not: true
+        },
+        completedWorkouts: {
+          none: {}
         }
       },
       orderBy: { date: 'asc' }
@@ -884,6 +945,107 @@ export const metabolicService = {
     if (hour >= 11 && hour < 16) return 'Lunch'
     if (hour >= 17 && hour < 22) return 'Dinner'
     return 'Snack'
+  },
+
+  /**
+   * Efficiently computes metabolic states for a date range in a single pass.
+   * Avoids N+1 queries by fetching all data upfront.
+   */
+  async getMetabolicStatesForRange(userId: string, startDate: Date, endDate: Date) {
+    const startTime = Date.now()
+    const timezone = await getUserTimezone(userId)
+    const settings = await getUserNutritionSettings(userId)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weight: true, ftp: true }
+    })
+
+    // 1. Get starting state for the range (recursive but only once)
+    const initialDayState = await this.getMetabolicState(userId, startDate)
+
+    // 2. Fetch ALL nutrition and workouts for the entire range upfront
+    const rangeStart = getStartOfDayUTC(timezone, startDate)
+    const rangeEnd = getEndOfDayUTC(timezone, endDate)
+
+    const [allNutrition, allWorkouts, allPlanned] = await Promise.all([
+      nutritionRepository.getForUser(userId, { startDate, endDate }),
+      workoutRepository.getForUser(userId, {
+        startDate: rangeStart,
+        endDate: rangeEnd,
+        includeDuplicates: false
+      }),
+      plannedWorkoutRepository.list(userId, { startDate, endDate })
+    ])
+
+    // Map data for fast lookup
+    const nutritionMap = new Map()
+    allNutrition.forEach((n) => nutritionMap.set(n.date.toISOString().split('T')[0] as string, n))
+
+    const workoutsByDate = new Map<string, any[]>()
+    const completedPlannedIds = new Set(
+      allWorkouts.map((w: any) => w.plannedWorkoutId).filter(Boolean)
+    )
+
+    // Helper to group by local date
+    const addWorkout = (w: any, date: Date) => {
+      const key = date.toISOString().split('T')[0] as string
+      if (!workoutsByDate.has(key)) workoutsByDate.set(key, [])
+      workoutsByDate.get(key)!.push(w)
+    }
+
+    allWorkouts.forEach((w) => addWorkout(w, w.date))
+    allPlanned
+      .filter((p: any) => !p.completed && !completedPlannedIds.has(p.id))
+      .forEach((p) => addWorkout(p, p.date))
+
+    // 3. Single-pass simulation through the range
+    const statesByDate = new Map<string, { startingGlycogen: number; startingFluid: number }>()
+    let currentGlycogen = initialDayState.startingGlycogen
+    let currentFluid = initialDayState.startingFluid
+
+    const daysDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    for (let i = 0; i <= daysDiff; i++) {
+      const date = new Date(startDate)
+      date.setUTCDate(startDate.getUTCDate() + i)
+      const dateKey = date.toISOString().split('T')[0] as string
+
+      statesByDate.set(dateKey, {
+        startingGlycogen: currentGlycogen,
+        startingFluid: currentFluid
+      })
+
+      // Simulate the day to get the STARTING state for the next day
+      const dayNutrition = nutritionMap.get(dateKey)
+      const dayWorkouts = workoutsByDate.get(dateKey) || []
+
+      const points = calculateEnergyTimeline(
+        dayNutrition || {
+          date: date.toISOString(),
+          carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+        },
+        dayWorkouts,
+        settings,
+        timezone,
+        undefined,
+        {
+          startingGlycogenPercentage: currentGlycogen,
+          startingFluidDeficit: currentFluid
+        }
+      )
+
+      const lastPoint = points[points.length - 1]
+      if (lastPoint) {
+        currentGlycogen = lastPoint.level
+        currentFluid = Math.max(0, lastPoint.fluidDeficit)
+      }
+    }
+
+    console.log(
+      `[MetabolicService] Bulk range calculation for ${daysDiff + 1} days took ${
+        Date.now() - startTime
+      }ms`
+    )
+    return statesByDate
   },
 
   /**
