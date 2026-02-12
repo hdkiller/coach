@@ -817,6 +817,11 @@ model Nutrition {
   fuelingPlan                   Json?
   isManualLock                  Boolean           @default(false)
   sourcePrecedence              String?
+  startingGlycogenPercentage    Float?
+  startingFluidDeficit          Float?
+  endingGlycogenPercentage      Float?
+  endingFluidDeficit            Float?
+  isChainValid                  Boolean           @default(false)
   user                          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   reports                       ReportNutrition[]
 

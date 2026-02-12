@@ -28,7 +28,35 @@ The system categorizes physiological demand into three "Fuel States" based on In
 
 Users can **calibrate** these triggers and the associated g/kg carbohydrate ranges in their Professional settings.
 
-### 2. Fueling Sensitivity
+### 2. Glycemic Response Modeling (Performance Simulation)
+
+Coach Wattz moves beyond simple calorie counting by treating every food item as a **Rate of Appearance (Ra)** curve. This simulates how quickly energy actually becomes available in the "Fuel Tank."
+
+#### Absorption Profiles
+
+Food items are categorized into five distinct profiles, each using a **Gamma distribution** model to calculate its specific glycemic response:
+
+| Fuel Type                      | Time to Start | Peak Energy | Duration | Best For...                   |
+| :----------------------------- | :------------ | :---------- | :------- | :---------------------------- |
+| **Rapid (Liquid/Gel)**         | 5 min         | 15–20 min   | 45 min   | Intra-Workout State 3         |
+| **Fast (Fruit/White Bread)**   | 10 min        | 30–45 min   | 90 min   | Immediate Pre-Workout         |
+| **Balanced (Oats/Pasta)**      | 30 min        | 60–90 min   | 3 hours  | Pre-Workout Meals             |
+| **Dense (Protein/Fats/Fiber)** | 45 min        | 120+ min    | 5+ hours | Daily Base / Recovery         |
+| **Hyper-Load (Large Meal)**    | 60 min        | 180 min     | 8 hours  | Night before State 3 / Racing |
+
+#### Physiological Absorption Cap
+
+Even with high carbohydrate intake, the human body has a finite processing rate. The system enforces a **physiological oxidation limit of 90g/hr** (22.5g per 15-minute interval). Overeating results in a capped "refill plateau," accurately reflecting metabolic bottlenecks.
+
+### 3. Metabolic Ghost (Future Projection)
+
+To help athletes "see the future" of their recovery, the Operation Dashboard includes a **Metabolic Ghost** line.
+
+- **Function**: A faint, dashed purple line on the Live Energy Availability chart.
+- **Trigger**: Visible whenever the AI Coach provides a specific meal recommendation.
+- **Benefit**: It simulates the projected energy availability if the user follows the AI's current advice, allowing them to visualize the impact of refueling before they eat.
+
+### 3. Fueling Sensitivity
 
 A global multiplier (80% to 120%) that scales all carbohydrate targets.
 
@@ -102,8 +130,14 @@ The nutrition system is integrated across five primary views to provide a seamle
 
 - **Nutrition Fueling Card**: A full-width dedicated section providing a real-time summary of the current day.
 - **Glycogen "Fuel Tank"**: Visual progress bar showing projected energy levels and metabolic state.
-- **Fueling Timeline**: Vertical list of windows (Pre, Intra, Post) with specific carb/protein targets and descriptions.
-- **AI Quick Log**: A persistent input bar for logging food items via natural language (e.g., "I just had a banana").
+- **Live Energy Availability Chart**: An interactive visualization showing projected fuel levels throughout the day using Glycemic Response Modeling.
+  - **Toggles**: Switch between **%** (Fuel Tank), **kcal** (Energy Balance), and **carbs** (Net Carb Balance).
+  - **Dashed Lines**: Represent predicted future state based on planned workouts and remaining absorption.
+  - **Metabolic Ghost**: A faint purple dashed line showing the projected impact of current AI meal advice.
+- **AI Nutrition Advice**: A dedicated card that appears when the AI identifies a fueling gap, recommending specific items (e.g., "1 large bagel with jam") based on the 5 absorption profiles.
+- **Fueling Timeline**: Vertical list of windows (Pre, Intra, Post) with specific carb/protein targets.
+  - **Absorption Badges**: Each logged item displays its profile (Rapid, Fast, Balanced, Dense, Hyper-Load).
+- **AI Quick Log**: A persistent input bar for logging food items via natural language. The AI automatically identifies the correct absorption profile.
 
 ### 3. Planned Workout "Prep Room" (Preparation)
 

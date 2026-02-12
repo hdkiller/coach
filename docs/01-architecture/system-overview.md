@@ -6,16 +6,17 @@ Coach Watts is an AI-powered cycling coach that analyzes training data from mult
 
 ## 1. High-Level Stack
 
-| Component           | Technology         | Purpose                                       |
-| ------------------- | ------------------ | --------------------------------------------- |
-| **Framework**       | Nuxt 3             | Full Stack: SSR + API Routes                  |
-| **Database**        | PostgreSQL         | Primary data store (via Supabase or Neon)     |
-| **ORM**             | Prisma             | Type-safe database access                     |
-| **Data Access**     | Repository Pattern | Centralized data access logic                 |
-| **Authentication**  | NuxtAuth           | Based on NextAuth with Google Provider        |
-| **Background Jobs** | Trigger.dev (v3)   | Async data ingestion and AI processing        |
-| **AI Engine**       | Google Gemini 2.5  | Flash for daily checks, Pro for deep analysis |
-| **UI Library**      | Nuxt UI            | Component library for consistent design       |
+| Component            | Technology               | Purpose                                       |
+| -------------------- | ------------------------ | --------------------------------------------- |
+| **Framework**        | Nuxt 3                   | Full Stack: SSR + API Routes                  |
+| **Database**         | PostgreSQL               | Primary data store (via Supabase or Neon)     |
+| **ORM**              | Prisma                   | Type-safe database access                     |
+| **Data Access**      | Repository Pattern       | Centralized data access logic                 |
+| **Authentication**   | NuxtAuth                 | Based on NextAuth with Google Provider        |
+| **Background Jobs**  | Trigger.dev (v3)         | Async data ingestion and AI processing        |
+| **AI Engine**        | Google Gemini 2.5        | Flash for daily checks, Pro for deep analysis |
+| **Metabolic Engine** | Custom TS Implementation | Glycemic Response Modeling & Ra curves        |
+| **UI Library**       | Nuxt UI                  | Component library for consistent design       |
 
 ## 2. Core Functional Modules
 
