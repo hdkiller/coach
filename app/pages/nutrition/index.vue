@@ -102,8 +102,37 @@
               <NutritionWeeklyFuelingGrid
                 v-else-if="strategy"
                 :days="strategy.fuelingMatrix"
+                :selected-date="selectedDate"
                 @hover-day="highlightedDate = $event"
+                @select-day="selectedDate = $event"
               />
+            </UCard>
+
+            <!-- Upcoming Fueling Plan (The "Upcoming Feed") -->
+            <UCard v-if="upcomingPlan?.windows?.length">
+              <NutritionUpcomingFuelingFeed
+                :windows="upcomingPlan.windows"
+                :selected-date="selectedDate"
+                @suggest="openAiHelperForWindow"
+                @export-grocery="showGroceryList = true"
+              />
+              <template #footer>
+                <div class="flex justify-between items-center">
+                  <p class="text-[10px] text-gray-500 italic">
+                    Targets are dynamically calculated based on your planned training intensity and
+                    fuel states.
+                  </p>
+                  <UButton
+                    v-if="selectedDate"
+                    :to="`/nutrition/${selectedDate}`"
+                    size="xs"
+                    color="primary"
+                    variant="link"
+                  >
+                    View Full Journal for {{ selectedDate }} →
+                  </UButton>
+                </div>
+              </template>
             </UCard>
           </div>
 
@@ -186,6 +215,25 @@
       >
         <template #content>
           <div class="p-6 space-y-4">
+            <div
+              class="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800"
+            >
+              <p
+                class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1"
+              >
+                48-Hour Carb Target
+              </p>
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-primary-700 dark:text-primary-300"
+                  >{{ next48hCarbTotal }}g</span
+                >
+                <span class="text-sm text-primary-600/70">Total Carbs Needed</span>
+              </div>
+              <p class="text-[10px] text-primary-600/60 mt-1 italic">
+                This is the sum of all planned workout and baseline fueling windows.
+              </p>
+            </div>
+
             <p class="text-sm text-gray-500">
               Based on your metabolic horizon, ensure you have these fueling essentials ready:
             </p>
@@ -237,8 +285,10 @@
   const wavePoints = ref<any[]>([])
   const strategy = ref<any>(null)
   const activeFeed = ref<any>(null)
+  const upcomingPlan = ref<any>(null)
   const showGroceryList = ref(false)
   const highlightedDate = ref<string | null>(null)
+  const selectedDate = ref<string | null>(null)
 
   const showAiHelper = ref(false)
   const aiHelperContext = ref<any>(null)
@@ -253,15 +303,17 @@
     loadingActiveFeed.value = true
 
     try {
-      const [waveRes, strategyRes, feedRes] = await Promise.all([
+      const [waveRes, strategyRes, feedRes, upcomingRes] = await Promise.all([
         $fetch('/api/nutrition/extended-wave', { query: { daysAhead: 3 } }),
         $fetch('/api/nutrition/strategy'),
-        $fetch('/api/nutrition/active-feed')
+        $fetch('/api/nutrition/active-feed'),
+        $fetch('/api/nutrition/upcoming-plan')
       ])
 
       wavePoints.value = (waveRes as any).points
       strategy.value = strategyRes
       activeFeed.value = feedRes
+      upcomingPlan.value = upcomingRes
     } catch (e) {
       console.error('Failed to load nutrition strategy:', e)
     } finally {
@@ -279,7 +331,18 @@
     aiHelperContext.value = {
       type: 'suggestion',
       targetCarbs: context.carbs,
-      windowType: context.basedOnWindowType
+      windowType: context.basedOnWindowType,
+      item: context.item
+    }
+    showAiHelper.value = true
+  }
+
+  function openAiHelperForWindow(window: any) {
+    aiHelperContext.value = {
+      type: 'suggestion',
+      targetCarbs: window.targetCarbs,
+      windowType: window.type,
+      item: null
     }
     showAiHelper.value = true
   }
@@ -314,5 +377,18 @@
     }
 
     return items
+  })
+
+  const next48hCarbTotal = computed(() => {
+    if (!upcomingPlan.value?.windows) return 0
+    const now = new Date()
+    const limit = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+
+    return upcomingPlan.value.windows
+      .filter((w: any) => {
+        const d = new Date(w.startTime)
+        return d >= now && d <= limit
+      })
+      .reduce((sum: number, w: any) => sum + (w.targetCarbs || 0), 0)
   })
 </script>
