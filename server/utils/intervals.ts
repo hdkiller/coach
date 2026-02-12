@@ -1271,7 +1271,8 @@ export function normalizeIntervalsWellness(
   wellness: IntervalsWellness,
   userId: string,
   date: Date,
-  readinessScale: string = 'STANDARD'
+  readinessScale: string = 'STANDARD',
+  sleepScoreScale: string = 'STANDARD'
 ) {
   let readiness = wellness.readiness || null
 
@@ -1301,6 +1302,32 @@ export function normalizeIntervalsWellness(
     readiness = Math.max(1, Math.min(10, readiness))
   }
 
+  let sleepScore = wellness.sleepScore || null
+
+  // Normalize Sleep Score based on user preference
+  if (sleepScore !== null) {
+    if (sleepScoreScale === 'TEN_POINT') {
+      // Map 1-10 to 0-100
+      sleepScore = Math.round(sleepScore * 10)
+    } else if (sleepScoreScale === 'POLAR') {
+      // Polar Sleep Charge? Or just 1-10 like readiness?
+      // Assuming user wants 0-100 output from a 1-6 input if they select POLAR?
+      // Let's implement generic small-scale handling if needed, but for now stick to request.
+      // If the user selected POLAR for sleep, they likely have a 1-6 or similar small scale.
+      // Map 1-6 to 0-100?
+      // 1 => 16, 6 => 100
+      sleepScore = Math.round((sleepScore / 6) * 100)
+    } else {
+      // STANDARD (0-100)
+      // Ensure it is 0-100.
+      // If we receive a small number like 8 (and it's actually 8/100?), we keep it.
+      // But if user meant 8/10, they should use TEN_POINT.
+    }
+
+    // Safety clamp
+    sleepScore = Math.max(0, Math.min(100, sleepScore))
+  }
+
   return {
     userId,
     date,
@@ -1316,7 +1343,7 @@ export function normalizeIntervalsWellness(
     // Sleep
     sleepSecs: wellness.sleepSecs || null,
     sleepHours: wellness.sleepSecs ? Math.round((wellness.sleepSecs / 3600) * 10) / 10 : null,
-    sleepScore: wellness.sleepScore || null,
+    sleepScore: sleepScore,
     sleepQuality: mapIntervalsSleepQuality(wellness.sleepQuality),
 
     // Recovery

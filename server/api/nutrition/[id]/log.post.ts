@@ -2,7 +2,7 @@ import { getServerSession } from '../../../utils/session'
 import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 import { generateStructuredAnalysis } from '../../../utils/gemini'
 import { z } from 'zod'
-import { getProfileForItem } from '../../../../app/utils/nutrition-absorption'
+import { getProfileForItem } from '../../../utils/nutrition-domain/absorption'
 import { getUserTimezone, formatUserTime, getStartOfLocalDateUTC } from '../../../utils/date'
 
 const LogSchema = z.object({
@@ -21,7 +21,7 @@ const FoodItemSchema = z.object({
       fiber: z.number().optional().describe('Grams of fiber'),
       sugar: z.number().optional().describe('Grams of sugar'),
       absorptionType: z
-        .enum(['SIMPLE', 'INTERMEDIATE', 'COMPLEX'])
+        .enum(['RAPID', 'FAST', 'BALANCED', 'DENSE', 'HYPER_LOAD'])
         .optional()
         .describe('How fast the food is absorbed'),
       amount: z.number().optional().describe('Numeric quantity'),
@@ -86,7 +86,12 @@ export default defineEventHandler(async (event) => {
     3. Use the 'quantity' field for descriptions like "1 bowl" or "a handful".
     4. If the user mentions a specific time (e.g. "at 9:30", "around 10am"), extract it into 'logged_at' in HH:mm format (24h).
     5. If the user doesn't specify a meal type (breakfast, lunch, dinner, snacks), try to infer it from the query context (e.g. "morning" implies breakfast) or the time mentioned.
-    6. Assign an 'absorptionType': 'SIMPLE' for fast carbs (gels, juice, honey), 'INTERMEDIATE' for fruits/bars/grains, and 'COMPLEX' for mixed meals or heavy protein/fat items.
+    6. Assign an 'absorptionType': 
+       - 'RAPID' for pure sugar/liquids (gels, juice, honey, sports drink).
+       - 'FAST' for simple carbs (white bread, ripe fruit, banana, candy).
+       - 'BALANCED' for complex carbs (oats, pasta, rice, potato, bars).
+       - 'DENSE' for items high in protein/fat/fiber (meat, nuts, avocado, whole grains).
+       - 'HYPER_LOAD' for very large, high-calorie meals (pizza, Thanksgiving dinner, big pasta party).
     7. Return a JSON object with an 'items' array matching the schema.
   `
 

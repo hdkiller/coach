@@ -121,22 +121,7 @@ export default defineEventHandler(async (event) => {
       ...(importPlannedWorkouts && { syncStatus: 'PENDING' })
     })
 
-    // If fueling strategy changed, trigger fueling plan regeneration
-    if (body.fuelingStrategy && body.fuelingStrategy !== existing.fuelingStrategy) {
-      const { tasks } = await import('@trigger.dev/sdk/v3')
-      await tasks.trigger(
-        'generate-fueling-plan',
-        {
-          plannedWorkoutId: workoutId,
-          userId,
-          date: updated.date.toISOString()
-        },
-        {
-          concurrencyKey: userId,
-          tags: [`user:${userId}`]
-        }
-      )
-    }
+    // Fueling plan is generated on demand in real-time by nutrition endpoints.
 
     // Determine if it's a local-only workout that needs CREATE instead of UPDATE
     const isLocal =

@@ -1,5 +1,6 @@
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { getServerSession } from '../../utils/session'
+import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -8,9 +9,20 @@ export default defineEventHandler(async (event) => {
   }
   const userId = session.user.id
 
-  const settings = await getUserNutritionSettings(userId)
+  const [settings, user] = await Promise.all([
+    getUserNutritionSettings(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { weight: true }
+    })
+  ])
 
   return {
-    settings
+    settings: {
+      ...settings,
+      user: {
+        weight: user?.weight || 75
+      }
+    }
   }
 })

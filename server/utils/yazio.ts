@@ -1,6 +1,6 @@
 import { Yazio } from 'yazio'
 import type { Integration } from '@prisma/client'
-import { getProfileForItem } from '../../app/utils/nutrition-absorption'
+import { getProfileForItem } from './nutrition-domain/absorption'
 
 export interface YazioDailySummary {
   steps?: number

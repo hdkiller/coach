@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   normalizeIntervalsPlannedWorkout,
   normalizeIntervalsWorkout,
-  cleanIntervalsDescription
+  cleanIntervalsDescription,
+  normalizeIntervalsWellness
 } from './intervals'
 
 describe('Intervals.icu Data Normalization', () => {
@@ -315,6 +316,60 @@ It has multiple lines.
       expect(steps[0].heartRate).toBeDefined()
       expect(steps[0].heartRate.range).toEqual({ start: 0.7, end: 0.8 })
       expect(steps[0].hr).toBeUndefined()
+    })
+  })
+
+  describe('normalizeIntervalsWellness', () => {
+    const userId = 'test-user-id'
+    const date = new Date('2023-01-01T00:00:00Z')
+
+    describe('Sleep Score Normalization', () => {
+      it('should use STANDARD scale (0-100) by default', () => {
+        const wellness: any = { sleepScore: 85 }
+        const result = normalizeIntervalsWellness(wellness, userId, date)
+        expect(result.sleepScore).toBe(85)
+      })
+
+      it('should normalize TEN_POINT scale (1-10 -> 10-100)', () => {
+        const wellness: any = { sleepScore: 8.5 }
+        // 8.5 * 10 = 85
+        const result = normalizeIntervalsWellness(wellness, userId, date, 'STANDARD', 'TEN_POINT')
+        expect(result.sleepScore).toBe(85)
+      })
+
+      it('should normalize POLAR scale (1-6 -> 0-100)', () => {
+        const wellness: any = { sleepScore: 3.5 }
+        // (3.5 / 6) * 100 = 58.33 -> 58
+        const result = normalizeIntervalsWellness(wellness, userId, date, 'STANDARD', 'POLAR')
+        expect(result.sleepScore).toBe(58)
+      })
+
+      it('should clamp values nicely', () => {
+        const wellness: any = { sleepScore: 110 } // Should be capped at 100
+        const result = normalizeIntervalsWellness(wellness, userId, date, 'STANDARD', 'STANDARD')
+        expect(result.sleepScore).toBe(100)
+      })
+    })
+
+    describe('Readiness Normalization (Regression Test)', () => {
+      it('should normalize POLAR readiness (1-6 -> 1-10)', () => {
+        const wellness: any = { readiness: 3.5 }
+        // (3.5 / 6) * 10 = 5.83 -> 6
+        const result = normalizeIntervalsWellness(wellness, userId, date, 'POLAR')
+        expect(result.readiness).toBe(6)
+      })
+
+      it('should normalize TEN_POINT readiness', () => {
+        const wellness: any = { readiness: 8 }
+        const result = normalizeIntervalsWellness(wellness, userId, date, 'TEN_POINT')
+        expect(result.readiness).toBe(8)
+      })
+
+      it('should handle STANDARD readiness (0-100 -> 1-10)', () => {
+        const wellness: any = { readiness: 85 }
+        const result = normalizeIntervalsWellness(wellness, userId, date, 'STANDARD')
+        expect(result.readiness).toBe(9) // 85 -> 8.5 -> 9
+      })
     })
   })
 })

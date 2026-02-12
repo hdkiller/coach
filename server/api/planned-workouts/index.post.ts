@@ -129,22 +129,7 @@ export default defineEventHandler(async (event) => {
       rawJson: intervalsWorkout || {}
     })
 
-    // If fueling strategy is not standard, trigger fueling plan generation immediately
-    if (body.fuelingStrategy && body.fuelingStrategy !== 'STANDARD') {
-      const { tasks } = await import('@trigger.dev/sdk/v3')
-      await tasks.trigger(
-        'generate-fueling-plan',
-        {
-          plannedWorkoutId: plannedWorkout.id,
-          userId,
-          date: forcedDate.toISOString()
-        },
-        {
-          concurrencyKey: userId,
-          tags: [`user:${userId}`]
-        }
-      )
-    }
+    // Fueling plan is now generated on demand in real-time by nutrition endpoints.
 
     return {
       success: true,

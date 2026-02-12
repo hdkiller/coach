@@ -14,7 +14,7 @@ const ItemSchema = z.object({
   amount: z.coerce.number().optional(),
   unit: z.string().optional(),
   logged_at: z.string().optional(),
-  absorptionType: z.enum(['SIMPLE', 'INTERMEDIATE', 'COMPLEX']).optional()
+  absorptionType: z.enum(['RAPID', 'FAST', 'BALANCED', 'DENSE', 'HYPER_LOAD']).optional()
 })
 
 const PatchSchema = z.object({
@@ -44,7 +44,26 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!nutrition) {
-    throw createError({ statusCode: 404, message: 'Nutrition entry not found' })
+    if (action === 'add' && /^\d{4}-\d{2}-\d{2}$/.test(id!)) {
+      const dateObj = new Date(`${id}T00:00:00Z`)
+      nutrition = await nutritionRepository.create({
+        userId,
+        date: dateObj,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fiber: 0,
+        sugar: 0,
+        waterMl: 0,
+        breakfast: [],
+        lunch: [],
+        dinner: [],
+        snacks: []
+      })
+    } else {
+      throw createError({ statusCode: 404, message: 'Nutrition entry not found' })
+    }
   }
 
   const mealsList = ['breakfast', 'lunch', 'dinner', 'snacks']

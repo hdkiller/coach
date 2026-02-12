@@ -13,6 +13,7 @@ import { calendarNoteRepository } from '../../utils/repositories/calendarNoteRep
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { calculateFuelingStrategy } from '../../utils/nutrition/fueling'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
+import { metabolicService } from '../../utils/services/metabolicService'
 
 defineRouteMeta({
   openAPI: {
@@ -118,25 +119,43 @@ export default defineEventHandler(async (event) => {
   const nutrition = await nutritionRepository.getForUser(userId, {
     startDate: calendarStart,
     endDate: calendarEnd,
-    orderBy: { date: 'asc' }
+    orderBy: { date: 'asc' },
+    select: {
+      id: true,
+      date: true,
+      calories: true,
+      protein: true,
+      carbs: true,
+      fat: true,
+      caloriesGoal: true,
+      proteinGoal: true,
+      carbsGoal: true,
+      fatGoal: true,
+      fuelingPlan: true,
+      overallScore: true,
+      isManualLock: true,
+      endingGlycogenPercentage: true,
+      endingFluidDeficit: true,
+      breakfast: true,
+      lunch: true,
+      dinner: true,
+      snacks: true
+    }
   })
 
   // Create a map of nutrition data by date (YYYY-MM-DD)
   const nutritionByDate = new Map()
   for (const n of nutrition) {
+    if (!n) continue
     const dateKey = n.date.toISOString().split('T')[0]
+
+    // Use metabolicService to ensure chain is valid
+    const state = await metabolicService.getMetabolicState(userId, n.date)
+
     nutritionByDate.set(dateKey, {
-      calories: n.calories,
-      protein: n.protein,
-      carbs: n.carbs,
-      fat: n.fat,
-      caloriesGoal: n.caloriesGoal,
-      proteinGoal: n.proteinGoal,
-      carbsGoal: n.carbsGoal,
-      fatGoal: n.fatGoal,
-      fuelingPlan: n.fuelingPlan,
-      overallScore: n.overallScore,
-      isManualLock: n.isManualLock
+      ...n,
+      startingGlycogen: state.startingGlycogen,
+      startingFluid: state.startingFluid
     })
   }
 

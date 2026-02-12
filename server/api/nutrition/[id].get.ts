@@ -8,6 +8,7 @@ import {
 } from '../../utils/nutrition/fueling'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 import { buildZonedDateTimeFromUtcDate, getUserTimezone } from '../../utils/date'
+import { metabolicService } from '../../utils/services/metabolicService'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -21,6 +22,8 @@ export default defineEventHandler(async (event) => {
 
   const userId = (session.user as any).id
   const id = getRouterParam(event, 'id')
+  const query = getQuery(event)
+  const currentTime = query.currentTime ? new Date(query.currentTime as string) : new Date()
 
   if (!id) {
     throw createError({
@@ -44,6 +47,29 @@ export default defineEventHandler(async (event) => {
   if (!nutrition) {
     nutrition = await nutritionRepository.getById(id, userId)
     if (nutrition) dateObj = new Date(nutrition.date)
+  }
+
+  // CARRYOVER LOGIC: Get yesterday's ending state via metabolicService
+  let startingGlycogen: number = 85
+  let startingFluid: number = 0
+  let energyPoints: any[] = []
+  let glycogenState: any = null
+
+  if (dateObj) {
+    const state = await metabolicService.getMetabolicState(userId, dateObj)
+    startingGlycogen = state.startingGlycogen
+    startingFluid = state.startingFluid
+
+    // Unified Server-side calculation
+    const timelineResult = await metabolicService.getDailyTimeline(
+      userId,
+      dateObj,
+      startingGlycogen,
+      startingFluid,
+      currentTime
+    )
+    energyPoints = timelineResult.points
+    glycogenState = timelineResult.liveStatus
   }
 
   // AGGREGATED CALORIE AND PLAN ESTIMATION
@@ -213,6 +239,10 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...nutrition,
+    startingGlycogen,
+    startingFluid,
+    energyPoints,
+    ...(glycogenState || {}),
     date:
       nutrition.date instanceof Date
         ? nutrition.date.toISOString().split('T')[0]
