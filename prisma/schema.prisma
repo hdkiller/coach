@@ -117,6 +117,8 @@ model User {
   wellness                           Wellness[]
   workouts                           Workout[]
   nutritionSettings                  UserNutritionSettings?
+  nutritionRecommendations           NutritionRecommendation[]
+  nutritionPlans                     NutritionPlan[]
 
   @@index([createdAt])
   @@index([subscriptionTier])
@@ -983,6 +985,77 @@ model ActivityRecommendation {
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
+}
+
+model NutritionRecommendation {
+  id           String   @id @default(uuid())
+  userId       String
+  date         DateTime @db.Date
+  scope        String   // 'MEAL' | 'DAY'
+  windowType   String?  // 'PRE_WORKOUT' | 'INTRA_WORKOUT' | 'POST_WORKOUT' | 'DAILY_BASE'
+  status       String   @default("PENDING") // 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+  contextJson  Json     // target + constraints snapshot
+  resultJson   Json?    // recommendation options
+  runId        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([status])
+}
+
+model NutritionPlan {
+  id                     String              @id @default(uuid())
+  userId                 String
+  startDate              DateTime            @db.Date
+  endDate                DateTime            @db.Date
+  status                 String              @default("DRAFT") // 'DRAFT' | 'ACTIVE' | 'LOCKED' | 'COMPLETED'
+  sourceRecommendationId String?
+  summaryJson            Json?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals                  NutritionPlanMeal[]
+
+  @@index([userId, startDate, endDate])
+}
+
+model NutritionPlanMeal {
+  id                     String        @id @default(uuid())
+  planId                 String
+  date                   DateTime      @db.Date
+  windowType             String
+  scheduledAt            DateTime
+  status                 String        @default("PLANNED") // 'PLANNED' | 'DONE' | 'SKIPPED' | 'REPLACED'
+  targetJson             Json          // macro target snapshot
+  mealJson               Json          // selected option, ingredients, portions, absorption type
+  actualNutritionItemId  String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  plan                   NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, date, windowType])
+  @@index([planId, date])
+}
+
+model MealOptionCatalog {
+  id             String   @id @default(uuid())
+  title          String
+  windowType     String   // 'PRE' | 'INTRA' | 'POST' | 'BASE'
+  absorptionType String   // 'RAPID' | 'BALANCED' | 'COMPLEX'
+  dietaryBuckets String[] // 'VEGAN', 'GLUTEN_FREE', etc.
+  baseMacros     Json     // { carbs, protein, fat, kcal }
+  keyIngredient  String   // The primary carb source for scaling
+  ingredients    Json     // List of items with quantity, unit, isScalable
+  prepMinutes    Int
+  constraintTags String[] // 'low-fodmap', 'no-nuts', etc.
+  source         String   @default("SYSTEM") // 'SYSTEM' | 'LLM'
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([windowType])
+  @@index([absorptionType])
 }
 
 model TrainingPlan {
