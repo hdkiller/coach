@@ -599,7 +599,8 @@
               :items="[
                 { label: 'Standard (0-100)', value: 'STANDARD' },
                 { label: '10-Point Scale (1-10)', value: 'TEN_POINT' },
-                { label: 'Polar Scale (1-6)', value: 'POLAR' }
+                { label: 'Polar Scale (1-6)', value: 'POLAR' },
+                { label: 'HRV4Training (Absolute)', value: 'HRV4TRAINING' }
               ]"
               class="w-full"
               @update:model-value="
