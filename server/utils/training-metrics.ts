@@ -1,5 +1,5 @@
 import { prisma } from './db'
-import { formatUserDate, formatDateUTC } from './date'
+import { formatUserDate, formatDateUTC, getUserLocalDate } from './date'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
 
 /**
@@ -475,9 +475,15 @@ export async function generateTrainingContext(
     includeZones?: boolean
     period?: string
     timezone?: string
+    adjustForTodayUncompletedPlannedTSS?: boolean
   } = {}
 ): Promise<TrainingContext> {
-  const { includeZones = false, period = 'Recent Period', timezone = 'UTC' } = options
+  const {
+    includeZones = false,
+    period = 'Recent Period',
+    timezone = 'UTC',
+    adjustForTodayUncompletedPlannedTSS = false
+  } = options
 
   // Fetch workouts
   const workouts = await prisma.workout.findMany({
@@ -528,22 +534,69 @@ export async function generateTrainingContext(
 
   let currentCTL: number | null = null
   let currentATL: number | null = null
+  let currentLoadSource: 'workout' | 'wellness' | null = null
+  let currentLoadDate: Date | null = null
 
   // Logic to pick the most recent data source
   if (latestWellness && latestWorkout) {
     if (latestWellness.date >= latestWorkout.date) {
       currentCTL = latestWellness.ctl
       currentATL = latestWellness.atl
+      currentLoadSource = 'wellness'
+      currentLoadDate = latestWellness.date
     } else {
       currentCTL = latestWorkout.ctl
       currentATL = latestWorkout.atl
+      currentLoadSource = 'workout'
+      currentLoadDate = latestWorkout.date
     }
   } else if (latestWellness) {
     currentCTL = latestWellness.ctl
     currentATL = latestWellness.atl
+    currentLoadSource = 'wellness'
+    currentLoadDate = latestWellness.date
   } else if (latestWorkout) {
     currentCTL = latestWorkout.ctl
     currentATL = latestWorkout.atl
+    currentLoadSource = 'workout'
+    currentLoadDate = latestWorkout.date
+  }
+
+  if (
+    adjustForTodayUncompletedPlannedTSS &&
+    currentCTL !== null &&
+    currentATL !== null &&
+    currentLoadSource &&
+    currentLoadDate
+  ) {
+    const todayDate = getUserLocalDate(timezone)
+    const todayKey = formatDateUTC(todayDate)
+    const sourceDayKey =
+      currentLoadSource === 'wellness'
+        ? formatDateUTC(currentLoadDate)
+        : formatUserDate(currentLoadDate, timezone)
+
+    if (sourceDayKey === todayKey) {
+      const plannedForToday = await prisma.plannedWorkout.findMany({
+        where: {
+          userId,
+          date: todayDate,
+          completed: { not: true },
+          completionStatus: { not: 'COMPLETED' },
+          completedWorkouts: { none: {} }
+        },
+        select: { tss: true }
+      })
+
+      const pendingPlannedTSS = plannedForToday.reduce(
+        (sum, w) => sum + (typeof w.tss === 'number' ? w.tss : 0),
+        0
+      )
+
+      if (pendingPlannedTSS > 0) {
+        currentATL = Math.max(0, currentATL - pendingPlannedTSS)
+      }
+    }
   }
 
   const currentTSB = calculateTSB(currentCTL, currentATL)

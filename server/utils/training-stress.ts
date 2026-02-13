@@ -6,6 +6,7 @@
  * - ATL (Acute Training Load) - 7-day weighted average representing "Fatigue"
  * - TSB (Training Stress Balance) - CTL - ATL representing "Form"
  */
+import { formatDateUTC, formatUserDate, getUserLocalDate } from './date'
 
 export interface PMCMetrics {
   date: Date
@@ -317,7 +318,14 @@ export async function backfillPMCMetrics(userId: string): Promise<number> {
 /**
  * Get current fitness summary
  */
-export async function getCurrentFitnessSummary(userId: string, prismaClient?: any) {
+export async function getCurrentFitnessSummary(
+  userId: string,
+  prismaClient?: any,
+  options: {
+    adjustForTodayUncompletedPlannedTSS?: boolean
+    timezone?: string
+  } = {}
+) {
   const prisma = prismaClient || (await import('./db')).prisma
 
   const latestWorkout = await prisma.workout.findFirst({
@@ -343,6 +351,7 @@ export async function getCurrentFitnessSummary(userId: string, prismaClient?: an
   let ctl = 0
   let atl = 0
   let lastUpdated: Date | null = null
+  let loadSource: 'workout' | 'wellness' | null = null
 
   // Helper to get YYYY-MM-DD
   const toDay = (d: Date | null | undefined) => {
@@ -364,10 +373,12 @@ export async function getCurrentFitnessSummary(userId: string, prismaClient?: an
     ctl = latestWellness.ctl
     atl = latestWellness.atl
     lastUpdated = latestWellness.date
+    loadSource = 'wellness'
   } else if (latestWorkout && latestWorkout.ctl !== null && latestWorkout.atl !== null) {
     ctl = latestWorkout.ctl
     atl = latestWorkout.atl
     lastUpdated = latestWorkout.date
+    loadSource = 'workout'
   } else {
     // No data found
     return {
@@ -376,6 +387,46 @@ export async function getCurrentFitnessSummary(userId: string, prismaClient?: an
       tsb: 0,
       formStatus: getFormStatus(0),
       lastUpdated: null
+    }
+  }
+
+  // Optional readiness-mode correction:
+  // Intervals.icu wellness can include today's planned TSS in ATL.
+  // For pre-workout readiness checks, remove uncompleted planned TSS for today.
+  if (options.adjustForTodayUncompletedPlannedTSS && lastUpdated && loadSource) {
+    let timezone = options.timezone
+    if (!timezone) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { timezone: true }
+      })
+      timezone = user?.timezone || 'UTC'
+    }
+    timezone = timezone || 'UTC'
+    const todayDate = getUserLocalDate(timezone)
+    const todayKey = formatDateUTC(todayDate)
+    const sourceDayKey =
+      loadSource === 'wellness' ? formatDateUTC(lastUpdated) : formatUserDate(lastUpdated, timezone)
+
+    if (sourceDayKey === todayKey) {
+      const plannedForToday = await prisma.plannedWorkout.findMany({
+        where: {
+          userId,
+          date: todayDate,
+          completed: { not: true },
+          completionStatus: { not: 'COMPLETED' },
+          completedWorkouts: { none: {} }
+        },
+        select: { tss: true }
+      })
+
+      const pendingPlannedTSS = plannedForToday.reduce((sum: number, w: { tss: number | null }) => {
+        return sum + (w.tss || 0)
+      }, 0)
+
+      if (pendingPlannedTSS > 0) {
+        atl = Math.max(0, atl - pendingPlannedTSS)
+      }
     }
   }
 

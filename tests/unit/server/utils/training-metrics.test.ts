@@ -26,6 +26,9 @@ vi.mock('../../../../server/utils/db', () => ({
     workout: {
       findMany: vi.fn()
     },
+    plannedWorkout: {
+      findMany: vi.fn()
+    },
     wellness: {
       findMany: vi.fn(),
       findFirst: vi.fn()
@@ -116,7 +119,7 @@ describe('Training Metrics Utils', () => {
     })
 
     it('should use pre-calculated zone times if available', async () => {
-       const mockZones = [
+      const mockZones = [
         { name: 'Z1', min: 0, max: 100 },
         { name: 'Z2', min: 101, max: 200 }
       ]
@@ -182,14 +185,14 @@ describe('Training Metrics Utils', () => {
 
       expect(result).toHaveLength(2)
 
-      const run = result.find(r => r.type === 'Run')
+      const run = result.find((r) => r.type === 'Run')
       expect(run).toBeDefined()
       expect(run!.count).toBe(2)
       expect(run!.totalDuration).toBe(5400)
       expect(run!.totalTSS).toBe(150)
       expect(run!.avgTSS).toBe(75)
 
-      const ride = result.find(r => r.type === 'Ride')
+      const ride = result.find((r) => r.type === 'Ride')
       expect(ride).toBeDefined()
       expect(ride!.count).toBe(1)
       expect(ride!.totalTSS).toBe(150)
@@ -209,7 +212,7 @@ describe('Training Metrics Utils', () => {
         { intensity: 0.8, durationSec: 1000 }, // endurance
         { intensity: 0.9, durationSec: 1000 }, // tempo
         { intensity: 1.0, durationSec: 1000 }, // threshold
-        { intensity: 1.1, durationSec: 1000 }  // vo2max
+        { intensity: 1.1, durationSec: 1000 } // vo2max
       ] as any)
 
       const result = await calculateIntensityDistribution('user1', new Date(), new Date())
@@ -253,7 +256,7 @@ describe('Training Metrics Utils', () => {
           type: 'Run',
           intensity: 1.0
         },
-         {
+        {
           id: 'w2',
           date: new Date('2023-01-01'),
           durationSec: 3600,
@@ -268,7 +271,9 @@ describe('Training Metrics Utils', () => {
 
       vi.mocked(prisma.wellness.findFirst).mockResolvedValue(null)
 
-      const context = await generateTrainingContext(userId, startDate, endDate, { includeZones: false })
+      const context = await generateTrainingContext(userId, startDate, endDate, {
+        includeZones: false
+      })
 
       expect(context.summary.totalWorkouts).toBe(2)
       expect(context.summary.totalTSS).toBe(200)
@@ -277,13 +282,50 @@ describe('Training Metrics Utils', () => {
     })
 
     it('should detect increasing trend', async () => {
-       vi.mocked(prisma.workout.findMany).mockResolvedValue([
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([
         { id: 'w1', date: new Date('2023-01-07'), ctl: 56, atl: 50, durationSec: 100 },
         { id: 'w2', date: new Date('2023-01-01'), ctl: 50, atl: 45, durationSec: 100 }
       ] as any)
 
       const context = await generateTrainingContext('user1', new Date(), new Date())
       expect(context.loadTrend.trend).toBe('increasing')
+    })
+
+    it('should subtract uncompleted planned TSS from today ATL in readiness mode', async () => {
+      const today = new Date()
+      today.setUTCHours(0, 0, 0, 0)
+
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([
+        {
+          id: 'w1',
+          date: new Date('2023-01-06T10:00:00Z'),
+          durationSec: 3600,
+          distanceMeters: 10000,
+          tss: 100,
+          ctl: 50,
+          atl: 60,
+          type: 'Run',
+          intensity: 1.0
+        }
+      ] as any)
+
+      vi.mocked(prisma.wellness.findFirst).mockResolvedValue({
+        date: today,
+        ctl: 70,
+        atl: 90
+      } as any)
+
+      vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([{ tss: 25 }, { tss: 15 }] as any)
+
+      const context = await generateTrainingContext('user1', today, today, {
+        includeZones: false,
+        timezone: 'UTC',
+        adjustForTodayUncompletedPlannedTSS: true
+      })
+
+      expect(context.loadTrend.currentCTL).toBe(70)
+      expect(context.loadTrend.currentATL).toBe(50)
+      expect(context.loadTrend.currentTSB).toBe(20)
     })
   })
 
@@ -306,7 +348,14 @@ describe('Training Metrics Utils', () => {
           weeklyTSSAvg: 300
         },
         activityBreakdown: [
-          { type: 'Run', count: 5, totalDuration: 18000, totalDistance: 50000, totalTSS: 300, avgTSS: 60 }
+          {
+            type: 'Run',
+            count: 5,
+            totalDuration: 18000,
+            totalDistance: 50000,
+            totalTSS: 300,
+            avgTSS: 60
+          }
         ],
         intensityDistribution: {
           recovery: 0,

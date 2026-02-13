@@ -22,6 +22,12 @@ vi.mock('../../../../server/utils/db', () => ({
       findFirst: vi.fn(),
       update: vi.fn()
     },
+    plannedWorkout: {
+      findMany: vi.fn()
+    },
+    user: {
+      findUnique: vi.fn()
+    },
     wellness: {
       findMany: vi.fn(),
       findFirst: vi.fn()
@@ -135,7 +141,7 @@ describe('Training Stress Utils', () => {
       // ATL = 70 + (0 - 70)/7 = 60.00
       expect(result[2].date).toEqual(new Date('2023-01-03T00:00:00.000Z'))
       expect(result[2].ctl).toBeCloseTo(58.57, 2)
-      expect(result[2].atl).toBeCloseTo(60.00, 2)
+      expect(result[2].atl).toBeCloseTo(60.0, 2)
       expect(result[2].tss).toBe(0)
     })
   })
@@ -207,6 +213,30 @@ describe('Training Stress Utils', () => {
       const result = await getCurrentFitnessSummary('user1')
       expect(result).toMatchObject({ ctl: 60, atl: 60 })
     })
+
+    it('should subtract today uncompleted planned TSS when readiness mode is enabled', async () => {
+      const today = new Date()
+      today.setUTCHours(0, 0, 0, 0)
+
+      vi.mocked(prisma.workout.findFirst).mockResolvedValue({
+        date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+        ctl: 50,
+        atl: 50
+      } as any)
+      vi.mocked(prisma.wellness.findFirst).mockResolvedValue({
+        date: today,
+        ctl: 80,
+        atl: 100
+      } as any)
+      vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([{ tss: 30 }] as any)
+
+      const result = await getCurrentFitnessSummary('user1', undefined, {
+        adjustForTodayUncompletedPlannedTSS: true,
+        timezone: 'UTC'
+      })
+
+      expect(result).toMatchObject({ ctl: 80, atl: 70, tsb: 10 })
+    })
   })
 
   describe('calculateProjectedPMC', () => {
@@ -215,11 +245,15 @@ describe('Training Stress Utils', () => {
       const endDate = new Date('2023-01-02T00:00:00Z')
       const initialCTL = 50
       const initialATL = 50
-      const plannedWorkouts = [
-        { date: new Date('2023-01-01T10:00:00Z'), tss: 100 }
-      ]
+      const plannedWorkouts = [{ date: new Date('2023-01-01T10:00:00Z'), tss: 100 }]
 
-      const result = calculateProjectedPMC(startDate, endDate, initialCTL, initialATL, plannedWorkouts)
+      const result = calculateProjectedPMC(
+        startDate,
+        endDate,
+        initialCTL,
+        initialATL,
+        plannedWorkouts
+      )
 
       expect(result).toHaveLength(2)
 
