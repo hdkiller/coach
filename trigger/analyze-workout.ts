@@ -892,9 +892,15 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
     if (workoutData.power_hr_ratio) {
       prompt += `- Power/HR Ratio: ${formatMetric(workoutData.power_hr_ratio, 2)}\n`
     }
-    if (workoutData.lr_balance) {
-      prompt += `- L/R Balance: ${formatMetric(workoutData.lr_balance, 1)}%\n`
-      prompt += `  - 48-52% = Acceptable, 50/50 = Ideal, >53% = Significant imbalance\n`
+    if (workoutData.lr_balance !== undefined && workoutData.lr_balance !== null) {
+      const leftPct = workoutData.lr_balance
+      const rightPct = 100 - leftPct
+      const dominantSide = leftPct > rightPct ? 'Left' : rightPct > leftPct ? 'Right' : 'Neither'
+      prompt += `- L/R Balance (Left%/Right%): ${formatMetric(leftPct, 1)}/${formatMetric(rightPct, 1)}\n`
+      prompt += `  - Interpretation: first value is LEFT leg share, second is RIGHT leg share\n`
+      prompt += `  - Dominance rule: >50% means that side is dominant; <50% means the other side is dominant\n`
+      prompt += `  - Dominant side in this workout: ${dominantSide}\n`
+      prompt += `  - 48-52% = Acceptable, 50/50 = Ideal, >53% or <47% = Significant imbalance\n`
     }
 
     if (workoutData.fatigue_sensitivity) {

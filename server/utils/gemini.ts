@@ -645,7 +645,14 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
       if (w.trainer) lines.push(`- **Indoor Trainer**: Yes`)
 
       // Balance
-      if (w.lrBalance) lines.push(`- **L/R Balance**: ${w.lrBalance.toFixed(1)}%`)
+      if (w.lrBalance !== null && w.lrBalance !== undefined) {
+        const leftPct = w.lrBalance
+        const rightPct = 100 - leftPct
+        lines.push(`- **L/R Balance (Left%/Right%)**: ${leftPct.toFixed(1)}/${rightPct.toFixed(1)}`)
+        lines.push(
+          `- **L/R Dominance**: ${leftPct > 50 ? 'Left' : leftPct < 50 ? 'Right' : 'Even'}`
+        )
+      }
 
       // Zone Data (from Streams)
       if (w.streams) {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { calculateLoadTrends } from '../../../../server/utils/training-metrics'
-import { buildMetricsSummary } from '../../../../server/utils/gemini'
+import { buildMetricsSummary, buildWorkoutSummary } from '../../../../server/utils/gemini'
 import { workoutTools } from '../../../../server/utils/ai-tools/workouts'
 import { prisma } from '../../../../server/utils/db'
 import { workoutRepository } from '../../../../server/utils/repositories/workoutRepository'
@@ -89,6 +89,25 @@ describe('Timezone Integrity across Utilities', () => {
       // Should show Feb 10, NOT Feb 9
       expect(summary).toContain('Feb 10, 2026')
       expect(summary).not.toContain('Feb 9, 2026')
+    })
+  })
+
+  describe('buildWorkoutSummary (Gemini)', () => {
+    it('should format L/R balance as Left/Right with correct dominance', () => {
+      const workouts = [
+        {
+          date: new Date('2026-02-10T15:00:00Z'),
+          title: 'Tempo Ride',
+          durationSec: 3600,
+          type: 'Ride',
+          lrBalance: 53
+        }
+      ]
+
+      const summary = buildWorkoutSummary(workouts, timezone)
+
+      expect(summary).toContain('**L/R Balance (Left%/Right%)**: 53.0/47.0')
+      expect(summary).toContain('**L/R Dominance**: Left')
     })
   })
 
