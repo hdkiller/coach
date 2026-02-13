@@ -330,7 +330,12 @@
                   v-if="calendarSettings.showMetabolicWave"
                   class="col-span-8 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700"
                 >
-                  <CalendarMetabolicWave :week="week" :week-index="weekIdx" />
+                  <CalendarMetabolicWave
+                    :week="week"
+                    :week-index="weekIdx"
+                    :points="metabolicWavePoints"
+                    :loading="metabolicWaveStatus === 'pending'"
+                  />
                 </div>
 
                 <!-- Week Spacer -->
@@ -968,38 +973,54 @@
   const viewMode = ref<'calendar' | 'list'>('calendar')
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+  const calendarRange = computed(() => {
+    // Manual UTC start/end calculation to match calendarWeeks
+    const year = currentDate.value.getUTCFullYear()
+    const month = currentDate.value.getUTCMonth()
+    const monthStart = new Date(Date.UTC(year, month, 1))
+
+    // Start of week (Monday)
+    const dayOfWeek = monthStart.getUTCDay()
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const start = new Date(monthStart)
+    start.setUTCDate(monthStart.getUTCDate() + diffToMonday)
+
+    // End of month -> End of week
+    const monthEnd = new Date(Date.UTC(year, month + 1, 0))
+    const endDayOfWeek = monthEnd.getUTCDay()
+    const diffToSunday = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek
+    const end = new Date(monthEnd)
+    end.setUTCDate(monthEnd.getUTCDate() + diffToSunday)
+
+    return {
+      startDate: formatDateUTC(start, 'yyyy-MM-dd'),
+      endDate: formatDateUTC(end, 'yyyy-MM-dd')
+    }
+  })
+
   // API Fetch
   const {
     data: activities,
     status,
     refresh
   } = await useFetch<CalendarActivity[]>('/api/calendar', {
-    query: computed(() => {
-      // Manual UTC start/end calculation to match calendarWeeks
-      const year = currentDate.value.getUTCFullYear()
-      const month = currentDate.value.getUTCMonth()
-      const monthStart = new Date(Date.UTC(year, month, 1))
-
-      // Start of week (Monday)
-      const dayOfWeek = monthStart.getUTCDay()
-      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-      const start = new Date(monthStart)
-      start.setUTCDate(monthStart.getUTCDate() + diffToMonday)
-
-      // End of month -> End of week
-      const monthEnd = new Date(Date.UTC(year, month + 1, 0))
-      const endDayOfWeek = monthEnd.getUTCDay()
-      const diffToSunday = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek
-      const end = new Date(monthEnd)
-      end.setUTCDate(monthEnd.getUTCDate() + diffToSunday)
-
-      return {
-        startDate: formatDateUTC(start, 'yyyy-MM-dd'),
-        endDate: formatDateUTC(end, 'yyyy-MM-dd')
-      }
-    }),
+    query: calendarRange,
     watch: [currentDate]
   })
+
+  // Metabolic Wave Fetch (Consolidated to fix N+1)
+  const { data: metabolicWaveResponse, status: metabolicWaveStatus } = await useAsyncData(
+    'metabolic-wave',
+    async () => {
+      if (!calendarSettings.value.showMetabolicWave) return null
+      return $fetch<any>('/api/nutrition/metabolic-wave', {
+        query: calendarRange.value
+      })
+    },
+    { watch: [currentDate, () => calendarSettings.value.showMetabolicWave] }
+  )
+
+  const metabolicWavePoints = computed(() => metabolicWaveResponse.value?.points || [])
 
   // Bulk fetch streams for visible activities
   const streamsMap = ref<Record<string, any>>({})

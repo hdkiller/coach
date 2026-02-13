@@ -75,7 +75,7 @@
 
       <!-- Loading State -->
       <div
-        v-if="loading"
+        v-if="props.loading"
         class="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-900/50 z-10"
       >
         <UIcon name="i-heroicons-arrow-path" class="w-3 h-3 animate-spin text-gray-400" />
@@ -87,7 +87,7 @@
 <script setup lang="ts">
   import { format } from 'date-fns'
   import type { EnergyPoint } from '~/utils/nutrition-logic'
-  type WavePoint = EnergyPoint & {
+  export type WavePoint = EnergyPoint & {
     dateKey?: string
     dataType?: 'historical' | 'current' | 'future'
   }
@@ -95,13 +95,14 @@
   const props = defineProps<{
     week: any[]
     weekIndex: number
+    points?: WavePoint[]
+    loading?: boolean
   }>()
 
-  const loading = ref(false)
-  const allPoints = ref<WavePoint[]>([])
   const pointsByDay = computed(() => {
     const map: Record<string, WavePoint[]> = {}
-    allPoints.value.forEach((p) => {
+    const points = props.points || []
+    points.forEach((p) => {
       const dateKey = p.dateKey
       if (!dateKey) return
 
@@ -253,29 +254,4 @@
 
     return d
   }
-
-  async function fetchWaveData() {
-    if (!props.week.length) return
-
-    loading.value = true
-    try {
-      const startDate = format(props.week[0].date, 'yyyy-MM-dd')
-      const endDate = format(props.week[6].date, 'yyyy-MM-dd')
-
-      const response = await $fetch<any>('/api/nutrition/metabolic-wave', {
-        query: { startDate, endDate }
-      })
-
-      if (response.success) {
-        allPoints.value = response.points
-      }
-    } catch (e) {
-      console.error('Failed to fetch metabolic wave:', e)
-    } finally {
-      loading.value = false
-    }
-  }
-
-  onMounted(fetchWaveData)
-  watch(() => props.week, fetchWaveData)
 </script>
