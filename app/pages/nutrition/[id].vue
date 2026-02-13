@@ -298,19 +298,6 @@
   const userStore = useUserStore()
   const { formatDateUTC } = useFormat()
 
-  useHead({
-    title: computed(() => {
-      const date = nutrition.value?.date || (route.params.id as string)
-      return `Fueling Strategy - ${formatDateLabel(date)}`
-    }),
-    meta: [
-      {
-        name: 'description',
-        content: 'Detailed fueling timeline and metabolic status for your training day.'
-      }
-    ]
-  })
-
   // State
   const nutrition = ref<any>(null)
   const workouts = ref<any[]>([])
@@ -325,6 +312,20 @@
   const aiModal = ref<any>(null)
 
   const energyViewIdx = ref('0') // '0': %, '1': kcal, '2': carbs
+
+  useHead({
+    title: computed(() => {
+      const date = nutrition.value?.date || (route.params.id as string)
+      return `Fueling Strategy - ${formatDateLabel(date)}`
+    }),
+    meta: [
+      {
+        name: 'description',
+        content: 'Detailed fueling timeline and metabolic status for your training day.'
+      }
+    ]
+  })
+
   const energyViewMode = computed(() => {
     if (energyViewIdx.value === '0') return 'percent'
     if (energyViewIdx.value === '1') return 'kcal'
@@ -461,8 +462,8 @@
       )
 
       return result
-    } catch (e) {
-      console.error('[NutritionDashboard] Timeline computation failed:', e)
+    } catch (error) {
+      console.error('[NutritionDashboard] Timeline computation failed:', error)
       return []
     }
   })
@@ -512,8 +513,8 @@
       nutritionSettings.value = sData.settings
 
       console.log('[NutritionDashboard] Data fetching complete')
-    } catch (e: any) {
-      console.error('Fetch Error:', e)
+    } catch (error: any) {
+      console.error('Fetch Error:', error)
 
       error.value = 'Could not load nutrition dashboard. Please try again.'
     } finally {
@@ -536,10 +537,10 @@
         color: 'primary'
       })
       await fetchData()
-    } catch (e: any) {
+    } catch (error: any) {
       toast.add({
         title: 'Error',
-        description: e?.data?.message || 'Failed to regenerate fueling strategy.',
+        description: error?.data?.message || 'Failed to regenerate fueling strategy.',
         color: 'error'
       })
     } finally {
@@ -558,7 +559,7 @@
         description: 'AI coach is analyzing your day...',
         color: 'primary'
       })
-    } catch (e) {
+    } catch (error) {
       toast.add({ title: 'Error', description: 'Failed to trigger analysis.', color: 'error' })
     }
   }
@@ -574,7 +575,7 @@
       toast.add({ title: 'Logged', description: 'Item added to your journal.', color: 'success' })
       quickLogInput.value = ''
       await fetchData()
-    } catch (e) {
+    } catch (error) {
       toast.add({ title: 'Error', description: 'Could not log item.', color: 'error' })
     } finally {
       isLogging.value = false
