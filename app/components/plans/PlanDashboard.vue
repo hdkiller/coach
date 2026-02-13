@@ -769,9 +769,12 @@
               v-for="workout in visibleWorkouts"
               :key="workout.id"
               class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 w-full"
+              :data-mobile-workout-id="workout.id"
               :class="{
                 'bg-independent-stripes border-dashed': workout.isIndependent,
-                'opacity-60 italic grayscale text-muted': workout.type === 'Rest'
+                'opacity-60 italic grayscale text-muted': workout.type === 'Rest',
+                'ring-2 ring-primary-500/40': mobileDropTargetId === workout.id && draggingId,
+                'opacity-50': draggingId === workout.id
               }"
               @click="navigateToWorkout(workout.id)"
             >
@@ -795,6 +798,19 @@
                       {{ formatDay(workout.date) }}
                     </span>
                     <div class="flex items-center gap-1.5 ml-2">
+                      <UButton
+                        icon="i-heroicons-bars-3"
+                        color="neutral"
+                        variant="ghost"
+                        size="xs"
+                        aria-label="Drag workout"
+                        class="touch-none"
+                        @click.stop.prevent
+                        @touchstart.stop.prevent="onMobileDragStart($event, workout)"
+                        @touchmove.stop.prevent="onMobileDragMove($event)"
+                        @touchend.stop.prevent="onMobileDragEnd"
+                        @touchcancel.stop.prevent="onMobileDragCancel"
+                      />
                       <UButton
                         v-if="workout.isIndependent"
                         icon="i-heroicons-link-slash"
@@ -990,6 +1006,7 @@
   const generatingAllStructures = ref(false)
   const adapting = ref<string | null>(null)
   const draggingId = ref<string | null>(null)
+  const mobileDropTargetId = ref<string | null>(null)
   const hoveredLinkId = ref<string | null>(null)
   const publishingId = ref<string | null>(null)
   const toast = useToast()
@@ -1318,17 +1335,19 @@
     draggingId.value = workout.id
   }
 
-  async function onDrop(event: DragEvent, targetWorkout: any) {
-    const sourceId = draggingId.value
-    draggingId.value = null
-
-    if (!sourceId || sourceId === targetWorkout.id) return
-
+  function findWorkoutById(workoutId: string) {
     // Find source in either list
-    let sourceWorkout = selectedWeek.value.workouts.find((w: any) => w.id === sourceId)
+    let sourceWorkout = selectedWeek.value?.workouts?.find((w: any) => w.id === workoutId)
     if (!sourceWorkout) {
-      sourceWorkout = independentWorkouts.value.find((w: any) => w.id === sourceId)
+      sourceWorkout = independentWorkouts.value.find((w: any) => w.id === workoutId)
     }
+    return sourceWorkout
+  }
+
+  async function moveWorkout(sourceId: string, targetWorkout: any) {
+    if (sourceId === targetWorkout.id) return
+
+    const sourceWorkout = findWorkoutById(sourceId)
 
     if (!sourceWorkout) return
 
@@ -1354,6 +1373,53 @@
       targetWorkout.date = targetDate
       toast.add({ title: 'Failed to move', color: 'error' })
     }
+  }
+
+  async function onDrop(event: DragEvent, targetWorkout: any) {
+    const sourceId = draggingId.value
+    draggingId.value = null
+    mobileDropTargetId.value = null
+    if (!sourceId) return
+    await moveWorkout(sourceId, targetWorkout)
+  }
+
+  function onMobileDragStart(event: TouchEvent, workout: any) {
+    if (!event.touches.length) return
+    draggingId.value = workout.id
+    mobileDropTargetId.value = workout.id
+  }
+
+  function onMobileDragMove(event: TouchEvent) {
+    if (!draggingId.value || !event.touches.length) return
+
+    const touch = event.touches[0]
+    if (!touch) return
+
+    const targetElement = document
+      .elementFromPoint(touch.clientX, touch.clientY)
+      ?.closest('[data-mobile-workout-id]') as HTMLElement | null
+
+    mobileDropTargetId.value = targetElement?.dataset.mobileWorkoutId || mobileDropTargetId.value
+  }
+
+  async function onMobileDragEnd() {
+    const sourceId = draggingId.value
+    const targetId = mobileDropTargetId.value
+
+    draggingId.value = null
+    mobileDropTargetId.value = null
+
+    if (!sourceId || !targetId || sourceId === targetId) return
+
+    const targetWorkout = findWorkoutById(targetId)
+    if (!targetWorkout) return
+
+    await moveWorkout(sourceId, targetWorkout)
+  }
+
+  function onMobileDragCancel() {
+    draggingId.value = null
+    mobileDropTargetId.value = null
   }
 
   async function linkWorkout(workout: any) {
