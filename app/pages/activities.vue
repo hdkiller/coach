@@ -381,7 +381,9 @@
                   class="space-y-1"
                 >
                   <div
-                    v-if="day.activities.length > 0 || isTodayDate(day.date)"
+                    v-if="
+                      day.activities.length > 0 || isTodayDate(day.date) || mobileDraggingActivity
+                    "
                     :id="isTodayDate(day.date) ? 'mobile-today-anchor' : undefined"
                     :data-mobile-day-key="getDateKey(day.date)"
                     class="flex gap-2 rounded-lg"
@@ -446,69 +448,84 @@
                         }"
                         @click="openActivity(activity)"
                       >
-                        <div class="flex items-center gap-3 overflow-hidden flex-1">
+                        <div class="flex items-start gap-3 min-w-0 flex-1">
                           <UIcon
                             :name="getActivityIcon(activity.type || '')"
-                            class="w-5 h-5 shrink-0"
+                            class="w-5 h-5 mt-0.5 shrink-0"
                             :class="{
                               'text-green-500': activity.source === 'completed',
                               'text-amber-500': activity.source === 'planned',
                               'text-gray-400': activity.source === 'note'
                             }"
                           />
-                          <div class="truncate">
+                          <div class="min-w-0 flex-1">
                             <div class="text-xs font-bold truncate">{{ activity.title }}</div>
-                            <div class="text-[10px] text-gray-500">
-                              {{
-                                formatDurationCompact(
-                                  activity.duration || activity.plannedDuration || 0
-                                )
-                              }}
-                              •
-                              {{
-                                formatDistance(activity.distance || activity.plannedDistance || 0)
-                              }}
+
+                            <div class="mt-1 flex items-center justify-between gap-2 min-w-0">
+                              <div class="text-[10px] text-gray-500 truncate">
+                                <span
+                                  v-if="activity.tss || activity.plannedTss"
+                                  class="text-green-600 font-medium"
+                                >
+                                  {{ Math.round(activity.tss || activity.plannedTss || 0) }} TSS •
+                                </span>
+                                {{
+                                  formatDurationCompact(
+                                    activity.duration || activity.plannedDuration || 0
+                                  )
+                                }}
+                                •
+                                {{
+                                  formatDistance(activity.distance || activity.plannedDistance || 0)
+                                }}
+                              </div>
+
+                              <div class="flex items-center gap-2 shrink-0">
+                                <MiniWorkoutChart
+                                  v-if="activity.structuredWorkout"
+                                  :workout="activity.structuredWorkout"
+                                  :preference="
+                                    getPreferredMetric(userZones, {
+                                      hasHr: !!activity.structuredWorkout.steps?.some(
+                                        (s: any) => s.heartRate
+                                      ),
+                                      hasPower: !!activity.structuredWorkout.steps?.some(
+                                        (s: any) => s.power
+                                      )
+                                    })
+                                  "
+                                  class="w-12 h-8 opacity-75"
+                                />
+                                <UButton
+                                  v-if="isMobileDraggableActivity(activity)"
+                                  icon="i-heroicons-bars-3"
+                                  color="neutral"
+                                  variant="ghost"
+                                  size="xs"
+                                  aria-label="Drag to reschedule workout"
+                                  class="touch-none"
+                                  @click.stop.prevent
+                                  @touchstart.stop.prevent="
+                                    onMobileActivityDragStart($event, activity)
+                                  "
+                                  @touchmove.stop.prevent="onMobileActivityDragMove($event)"
+                                  @touchend.stop.prevent="onMobileActivityDragEnd"
+                                  @touchcancel.stop.prevent="onMobileActivityDragCancel"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
+                      </div>
 
-                        <div class="flex items-center gap-2 shrink-0">
-                          <UButton
-                            v-if="isMobileDraggableActivity(activity)"
-                            icon="i-heroicons-bars-3"
-                            color="neutral"
-                            variant="ghost"
-                            size="xs"
-                            aria-label="Drag to reschedule workout"
-                            class="touch-none"
-                            @click.stop.prevent
-                            @touchstart.stop.prevent="onMobileActivityDragStart($event, activity)"
-                            @touchmove.stop.prevent="onMobileActivityDragMove($event)"
-                            @touchend.stop.prevent="onMobileActivityDragEnd"
-                            @touchcancel.stop.prevent="onMobileActivityDragCancel"
-                          />
-                          <MiniWorkoutChart
-                            v-if="activity.structuredWorkout"
-                            :workout="activity.structuredWorkout"
-                            :preference="
-                              getPreferredMetric(userZones, {
-                                hasHr: !!activity.structuredWorkout.steps?.some(
-                                  (s: any) => s.heartRate
-                                ),
-                                hasPower: !!activity.structuredWorkout.steps?.some(
-                                  (s: any) => s.power
-                                )
-                              })
-                            "
-                            class="w-12 h-8 opacity-75"
-                          />
-                          <div
-                            v-if="activity.tss || activity.plannedTss"
-                            class="text-xs font-bold text-green-600 shrink-0"
-                          >
-                            {{ Math.round(activity.tss || activity.plannedTss || 0) }}
-                          </div>
-                        </div>
+                      <div
+                        v-if="
+                          mobileDraggingActivity &&
+                          day.activities.filter((a) => a.id && a.type !== 'wellness').length === 0
+                        "
+                        class="p-2 rounded-lg border border-dashed border-primary-300/70 text-[11px] text-primary-600 dark:text-primary-400"
+                      >
+                        Drop workout here
                       </div>
                     </div>
                   </div>
