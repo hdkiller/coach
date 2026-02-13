@@ -132,25 +132,12 @@
                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 rounded-tl-none'
               ]"
             >
-              <div v-if="message.parts && message.parts.length">
-                <template v-for="(part, index) in message.parts" :key="index">
-                  <div
-                    v-if="part.type === 'text'"
-                    class="prose prose-sm prose-slate dark:prose-invert max-w-none"
-                    :class="message.role === 'user' ? 'prose-invert' : ''"
-                  >
-                    <MDC :value="part.text" />
-                  </div>
-                  <!-- We don't render tool calls in the shared view for now to keep it clean -->
-                </template>
-              </div>
-              <div
-                v-else
-                class="prose prose-sm prose-slate dark:prose-invert max-w-none"
-                :class="message.role === 'user' ? 'prose-invert' : ''"
-              >
-                <MDC :value="message.content" />
-              </div>
+              <ChatMessageContent
+                :message="message"
+                :show-tools="false"
+                :show-charts="false"
+                :show-approvals="false"
+              />
             </div>
           </div>
         </div>

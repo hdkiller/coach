@@ -71,60 +71,7 @@
                 message.role === 'user' ? 'items-end' : 'items-start'
               ]"
             >
-              <!-- Parts Rendering (Text & Tools) -->
-              <template v-if="message.parts && message.parts.length">
-                <template v-for="(part, idx) in message.parts" :key="idx">
-                  <!-- Text Part -->
-                  <div
-                    v-if="part.type === 'text'"
-                    :class="[
-                      'max-w-[85%] rounded-2xl px-4 py-2 text-sm',
-                      message.role === 'user'
-                        ? 'bg-primary-500 text-white font-medium shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
-                    ]"
-                  >
-                    <MDC :value="part.text || ''" />
-                  </div>
-
-                  <!-- Tool Invocation -->
-                  <div
-                    v-else-if="
-                      (part.type === 'tool-invocation' || part.type.startsWith('tool-')) &&
-                      part.type !== 'tool-approval-response'
-                    "
-                    class="w-full mt-1"
-                  >
-                    <ChatToolCall
-                      :tool-call="{
-                        name:
-                          (part as any).toolName ||
-                          (part.type.startsWith('tool-') ? part.type.replace('tool-', '') : ''),
-                        args: (part as any).args || (part as any).input,
-                        response: (part as any).result || (part as any).output,
-                        status:
-                          (part as any).state === 'result' ||
-                          (part as any).state === 'output-available'
-                            ? 'success'
-                            : (part as any).state === 'error' ||
-                                (part as any).state === 'output-error' ||
-                                (part as any).state === 'output-denied'
-                              ? 'error'
-                              : 'loading',
-                        timestamp:
-                          (message as any).createdAt &&
-                          !isNaN(new Date((message as any).createdAt).getTime())
-                            ? new Date((message as any).createdAt).toISOString()
-                            : new Date().toISOString()
-                      }"
-                    />
-                  </div>
-                </template>
-              </template>
-
-              <!-- Legacy/Fallback Content Rendering -->
               <div
-                v-else-if="message.content"
                 :class="[
                   'max-w-[85%] rounded-2xl px-4 py-2 text-sm',
                   message.role === 'user'
@@ -132,11 +79,16 @@
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
                 ]"
               >
-                <MDC :value="message.content" />
+                <ChatMessageContent
+                  :message="message"
+                  :show-charts="false"
+                  :show-approvals="false"
+                />
               </div>
             </div>
 
             <!-- Typing Indicator -->
+
             <div
               v-if="chatStatus === 'streaming'"
               class="flex items-center gap-2 text-xs text-gray-400 font-medium px-2 italic"
