@@ -139,7 +139,7 @@
     amount: 1,
     unit: 'serving',
     logged_at: '',
-    absorptionType: 'COMPLEX'
+    absorptionType: 'BALANCED'
   })
 
   // Watch name to suggest absorption type

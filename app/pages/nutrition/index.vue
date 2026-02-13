@@ -87,14 +87,19 @@
               <div v-if="loadingWave" class="h-[300px] flex items-center justify-center">
                 <UIcon name="i-lucide-loader-2" class="size-8 animate-spin text-gray-400" />
               </div>
-              <NutritionMultiDayEnergyChart
-                v-else-if="wavePoints.length"
-                :points="wavePoints"
-                :highlighted-date="highlightedDate"
-              />
-              <div v-else class="h-[300px] flex items-center justify-center text-gray-500">
-                No wave data available
-              </div>
+              <ClientOnly>
+                <NutritionMultiDayEnergyChart
+                  v-if="!loadingWave && wavePoints.length"
+                  :points="wavePoints"
+                  :highlighted-date="highlightedDate"
+                />
+                <div
+                  v-else-if="!loadingWave"
+                  class="h-[300px] flex items-center justify-center text-gray-500"
+                >
+                  No wave data available
+                </div>
+              </ClientOnly>
             </UCard>
 
             <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }">
@@ -106,22 +111,26 @@
               <div v-if="loadingStrategy" class="h-24 flex items-center justify-center">
                 <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-gray-400" />
               </div>
-              <NutritionWeeklyFuelingGrid
-                v-else-if="strategy"
-                :days="strategy.fuelingMatrix"
-                @hover-day="highlightedDate = $event"
-              />
+              <ClientOnly>
+                <NutritionWeeklyFuelingGrid
+                  v-if="!loadingStrategy && strategy"
+                  :days="strategy.fuelingMatrix"
+                  @hover-day="highlightedDate = $event"
+                />
+              </ClientOnly>
             </UCard>
           </div>
 
           <!-- Sidebar Section -->
           <div class="space-y-4 sm:space-y-6 lg:row-span-2 lg:col-start-3">
             <!-- Active Fueling Feed (The "On-Ramp") -->
-            <NutritionActiveFuelingFeed
-              :feed="activeFeed"
-              :loading="loadingActiveFeed"
-              @open-ai-helper="openAiHelper"
-            />
+            <ClientOnly>
+              <NutritionActiveFuelingFeed
+                :feed="activeFeed"
+                :loading="loadingActiveFeed"
+                @open-ai-helper="openAiHelper"
+              />
+            </ClientOnly>
 
             <!-- Strategy Summary Card -->
             <UCard
@@ -211,20 +220,22 @@
 
           <!-- Upcoming Fueling Plan (Moved to separate div for better grid control) -->
           <div class="lg:col-span-2">
-            <div v-if="upcomingPlan?.windows?.length" class="space-y-4">
-              <NutritionUpcomingFuelingFeed
-                :windows="upcomingPlan.windows"
-                @suggest="openAiHelperForWindow"
-                @export-grocery="showGroceryList = true"
-              />
+            <ClientOnly>
+              <div v-if="upcomingPlan?.windows?.length" class="space-y-4">
+                <NutritionUpcomingFuelingFeed
+                  :windows="upcomingPlan.windows"
+                  @suggest="openAiHelperForWindow"
+                  @export-grocery="showGroceryList = true"
+                />
 
-              <div class="flex justify-between items-center px-4 sm:px-0">
-                <p class="text-[10px] text-gray-500 italic">
-                  Targets are dynamically calculated based on your planned training intensity and
-                  fuel states.
-                </p>
+                <div class="flex justify-between items-center px-4 sm:px-0">
+                  <p class="text-[10px] text-gray-500 italic">
+                    Targets are dynamically calculated based on your planned training intensity and
+                    fuel states.
+                  </p>
+                </div>
               </div>
-            </div>
+            </ClientOnly>
           </div>
         </div>
 

@@ -132,11 +132,13 @@
                 class="w-32"
               />
             </div>
-            <NutritionLiveEnergyChart
-              :points="energyPoints"
-              :ghost-points="ghostPoints"
-              :view-mode="energyViewMode"
-            />
+            <ClientOnly>
+              <NutritionLiveEnergyChart
+                :points="energyPoints"
+                :ghost-points="ghostPoints"
+                :view-mode="energyViewMode"
+              />
+            </ClientOnly>
 
             <!-- Legend/Status -->
             <div
