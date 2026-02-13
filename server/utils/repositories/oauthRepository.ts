@@ -94,6 +94,7 @@ export const oauthRepository = {
       homepageUrl?: string
       logoUrl?: string
       redirectUris?: string[]
+      webhookSecret?: string | null
     }
   ) {
     // We use updateMany to ensure ownership
@@ -135,6 +136,26 @@ export const oauthRepository = {
       where: { id, ownerId: userId },
       data: {
         clientSecret: hashedSecret
+      }
+    })
+
+    if (result.count === 0) {
+      throw new Error('App not found or you do not have permission to modify it')
+    }
+
+    return secret
+  },
+
+  /**
+   * Regenerates the webhook secret for an application.
+   */
+  async regenerateWebhookSecret(id: string, userId: string) {
+    const secret = 'wh_' + uuidv4().replace(/-/g, '')
+
+    const result = await prisma.oAuthApp.updateMany({
+      where: { id, ownerId: userId },
+      data: {
+        webhookSecret: secret
       }
     })
 

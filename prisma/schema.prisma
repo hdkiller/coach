@@ -193,6 +193,7 @@ model OAuthApp {
   logoUrl      String?
   clientId     String          @unique @default(dbgenerated("gen_random_uuid()"))
   clientSecret String
+  webhookSecret String?
   redirectUris String[]
   isTrusted    Boolean         @default(false)
   isPublic     Boolean         @default(false)
