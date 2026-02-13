@@ -1,7 +1,7 @@
 export type GeminiModel = 'flash' | 'pro'
 
 export const MODEL_NAMES = {
-  flash: 'gemini-flash-latest',
+  flash: 'gemini-2.5-flash-preview-09-2025',
   pro: 'gemini-3-flash-preview'
 } as const
 
@@ -20,8 +20,8 @@ export const MODEL_LIST = [
   },
   {
     group: 'Gemini 2.5',
-    label: 'Gemini 2.5 Flash (Latest)',
-    id: 'gemini-flash-latest',
+    label: 'Gemini 2.5 Flash',
+    id: 'gemini-2.5-flash-preview-09-2025',
     version: '2.5'
   },
   {
@@ -65,8 +65,15 @@ export const PRICING = {
     premium: { input: 2.5, output: 15.0, cacheInput: 0.25 },
     cacheStorage: 4.5
   },
+  'gemini-2.5-flash-preview-09-2025': {
+    // Pinned Gemini 2.5 Flash mapping
+    threshold: 1_000_000_000,
+    base: { input: 0.3, output: 2.5, cacheInput: 0.03 },
+    premium: { input: 0.3, output: 2.5, cacheInput: 0.03 },
+    cacheStorage: 1.0
+  },
   'gemini-flash-latest': {
-    // Mapped to Gemini 2.5 Flash
+    // Legacy alias kept for backwards compatibility
     threshold: 1_000_000_000,
     base: { input: 0.3, output: 2.5, cacheInput: 0.03 },
     premium: { input: 0.3, output: 2.5, cacheInput: 0.03 },

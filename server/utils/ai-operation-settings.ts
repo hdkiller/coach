@@ -17,7 +17,7 @@ const CACHE_TTL = 60 * 1000 // 1 minute
 
 const DEFAULT_FLASH_SETTINGS: LlmOperationSettings = {
   model: 'flash',
-  modelId: 'gemini-flash-latest',
+  modelId: 'gemini-2.5-flash-preview-09-2025',
   thinkingBudget: 2000,
   thinkingLevel: 'low',
   maxSteps: 3
