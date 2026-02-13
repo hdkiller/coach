@@ -237,6 +237,43 @@ describe('WorkoutConverter', () => {
       expect(result).toContain('75% LTHR 80%')
     })
 
+    it('exports explicit heart-rate ranges for steady-state steps', () => {
+      const workout = {
+        title: 'Run Z2',
+        type: 'Run',
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 1800,
+            heartRate: { range: { start: 0.75, end: 0.85 } },
+            name: 'Endurance'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- Endurance 30m 75-85% LTHR')
+    })
+
+    it('can convert single HR targets into ranges using tolerance setting', () => {
+      const workout = {
+        title: 'Run Steady',
+        type: 'Run',
+        sportSettings: { intervalsHrRangeTolerancePct: 0.02 },
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 1200,
+            heartRate: { value: 0.8 },
+            name: 'Steady'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- Steady 20m 78-82% LTHR')
+    })
+
     it('cleans up description preamble correctly', () => {
       const workout = {
         title: 'Clean Desc',

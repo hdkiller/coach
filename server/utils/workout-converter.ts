@@ -41,6 +41,7 @@ interface WorkoutData {
   ftp?: number // Optional, for calculating absolute watts if needed
   sportSettings?: {
     loadPreference?: string | null
+    intervalsHrRangeTolerancePct?: number | null
   }
 }
 
@@ -392,6 +393,21 @@ export const WorkoutConverter = {
     const loadPref = workout.sportSettings?.loadPreference?.toLowerCase() || ''
     const prioritizeHr = loadPref.startsWith('hr')
     const isSwim = workout.type?.toLowerCase().includes('swim')
+    const rawHrTolerancePct = Number(workout.sportSettings?.intervalsHrRangeTolerancePct || 0)
+    const hrTolerancePct =
+      rawHrTolerancePct > 1 ? rawHrTolerancePct / 100 : Math.max(0, rawHrTolerancePct)
+    const normalizeHrTargetForExport = (
+      target: { value?: number; range?: { start: number; end: number } } | null
+    ) => {
+      if (!target) return null
+      if (target.range) return target
+      if (typeof target.value !== 'number') return target
+      if (hrTolerancePct <= 0) return target
+
+      const start = Math.max(0, target.value - hrTolerancePct)
+      const end = target.value + hrTolerancePct
+      return { range: { start, end } }
+    }
 
     // Add description as a preamble if available
     // We filter out lines starting with "-" to avoid Intervals.icu misinterpreting
@@ -428,7 +444,7 @@ export const WorkoutConverter = {
 
         // Safely access power
         const power = normalizeTarget(step.power) || { value: 0 }
-        const heartRate = normalizeTarget(step.heartRate)
+        const heartRate = normalizeHrTargetForExport(normalizeTarget(step.heartRate))
         const pace = normalizeTarget(step.pace)
 
         // Add header if type changes (only at root level)
