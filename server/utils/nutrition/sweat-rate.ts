@@ -43,7 +43,7 @@ function getTempBand(temperatureC: number): SweatRateBand {
   return (
     SWEAT_RATE_LOOKUP_TABLE.find(
       (band) => temperatureC >= band.temperatureMinC && temperatureC <= band.temperatureMaxC
-    ) || SWEAT_RATE_LOOKUP_TABLE[2]
+    ) || SWEAT_RATE_LOOKUP_TABLE[2]!
   )
 }
 
