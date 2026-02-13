@@ -219,6 +219,7 @@
 
   function formatRelativeTime(date: string | Date) {
     const d = typeof date === 'string' ? new Date(date) : date
+    if (!(d instanceof Date) || isNaN(d.getTime())) return ''
     return formatDistanceToNow(d, { addSuffix: true })
   }
 

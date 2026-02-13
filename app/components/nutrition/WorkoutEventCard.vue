@@ -130,7 +130,7 @@
   const formatTime = (date?: Date | string) => {
     if (!date) return ''
     const d = typeof date === 'string' ? new Date(date) : date
-    if (isNaN(d.getTime())) return ''
+    if (!(d instanceof Date) || isNaN(d.getTime())) return ''
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
