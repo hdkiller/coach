@@ -383,7 +383,12 @@
                   <div
                     v-if="day.activities.length > 0 || isTodayDate(day.date)"
                     :id="isTodayDate(day.date) ? 'mobile-today-anchor' : undefined"
-                    class="flex gap-2"
+                    :data-mobile-day-key="getDateKey(day.date)"
+                    class="flex gap-2 rounded-lg"
+                    :class="{
+                      'ring-2 ring-primary-500/40 ring-inset':
+                        mobileDragTargetDateKey === getDateKey(day.date) && mobileDraggingActivity
+                    }"
                   >
                     <div class="w-12 text-center shrink-0 pt-1">
                       <div class="text-[10px] uppercase text-gray-500">
@@ -436,6 +441,9 @@
                         )"
                         :key="activity.id"
                         class="p-2 rounded-lg border dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm flex items-center justify-between gap-3"
+                        :class="{
+                          'opacity-50': mobileDraggingActivity?.id === activity.id
+                        }"
                         @click="openActivity(activity)"
                       >
                         <div class="flex items-center gap-3 overflow-hidden flex-1">
@@ -465,6 +473,20 @@
                         </div>
 
                         <div class="flex items-center gap-2 shrink-0">
+                          <UButton
+                            v-if="isMobileDraggableActivity(activity)"
+                            icon="i-heroicons-bars-3"
+                            color="neutral"
+                            variant="ghost"
+                            size="xs"
+                            aria-label="Drag to reschedule workout"
+                            class="touch-none"
+                            @click.stop.prevent
+                            @touchstart.stop.prevent="onMobileActivityDragStart($event, activity)"
+                            @touchmove.stop.prevent="onMobileActivityDragMove($event)"
+                            @touchend.stop.prevent="onMobileActivityDragEnd"
+                            @touchcancel.stop.prevent="onMobileActivityDragCancel"
+                          />
                           <MiniWorkoutChart
                             v-if="activity.structuredWorkout"
                             :workout="activity.structuredWorkout"
@@ -971,6 +993,10 @@
 
   const currentDate = ref(getUserLocalDate())
   const viewMode = ref<'calendar' | 'list'>('calendar')
+  const mobileDraggingActivity = ref<{ id: string; source: string; date: string | Date } | null>(
+    null
+  )
+  const mobileDragTargetDateKey = ref<string | null>(null)
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   const calendarRange = computed(() => {
@@ -1183,6 +1209,16 @@
     }))
   })
 
+  const mobileDayDateMap = computed(() => {
+    const map = new Map<string, Date>()
+    for (const week of calendarWeeks.value) {
+      for (const day of week) {
+        map.set(getDateKey(day.date), day.date)
+      }
+    }
+    return map
+  })
+
   const currentMonthLabel = computed(() => formatDateUTC(currentDate.value, 'MMMM yyyy'))
 
   const isCurrentMonth = computed(() => isSameMonth(currentDate.value, getUserLocalDate()))
@@ -1251,6 +1287,65 @@
 
   function formatDistance(meters: number): string {
     return `${Math.round(meters / 1000)}k`
+  }
+
+  function getDateKey(date: Date | string): string {
+    return formatDateUTC(date, 'yyyy-MM-dd')
+  }
+
+  function isMobileDraggableActivity(activity: CalendarActivity): boolean {
+    return activity.source === 'planned' && activity.status !== 'completed_plan'
+  }
+
+  function onMobileActivityDragStart(event: TouchEvent, activity: CalendarActivity) {
+    if (!isMobileDraggableActivity(activity) || !event.touches.length) return
+
+    mobileDraggingActivity.value = {
+      id: activity.id,
+      source: activity.source,
+      date: activity.date
+    }
+    mobileDragTargetDateKey.value = getDateKey(activity.date)
+  }
+
+  function onMobileActivityDragMove(event: TouchEvent) {
+    if (!mobileDraggingActivity.value || !event.touches.length) return
+
+    const touch = event.touches[0]
+    if (!touch) return
+
+    const dayElement = document
+      .elementFromPoint(touch.clientX, touch.clientY)
+      ?.closest('[data-mobile-day-key]') as HTMLElement | null
+
+    if (!dayElement?.dataset.mobileDayKey) return
+    mobileDragTargetDateKey.value = dayElement.dataset.mobileDayKey
+  }
+
+  async function onMobileActivityDragEnd() {
+    const drag = mobileDraggingActivity.value
+    const targetDateKey = mobileDragTargetDateKey.value
+
+    mobileDraggingActivity.value = null
+    mobileDragTargetDateKey.value = null
+
+    if (!drag || !targetDateKey) return
+
+    const sourceDateKey = getDateKey(drag.date)
+    if (sourceDateKey === targetDateKey) return
+
+    const targetDate = mobileDayDateMap.value.get(targetDateKey)
+    if (!targetDate) return
+
+    await onRescheduleActivity({
+      activity: { id: drag.id, source: drag.source },
+      date: targetDate
+    })
+  }
+
+  function onMobileActivityDragCancel() {
+    mobileDraggingActivity.value = null
+    mobileDragTargetDateKey.value = null
   }
 
   async function openActivity(activity: CalendarActivity) {
