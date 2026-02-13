@@ -22,6 +22,7 @@ defineRouteMeta({
       },
       { name: 'scope', in: 'query', required: false, schema: { type: 'string' } },
       { name: 'state', in: 'query', required: false, schema: { type: 'string' } },
+      { name: 'prompt', in: 'query', required: false, schema: { type: 'string' } },
       { name: 'code_challenge', in: 'query', required: false, schema: { type: 'string' } },
       {
         name: 'code_challenge_method',
@@ -44,6 +45,7 @@ export default defineEventHandler(async (event) => {
   const redirectUri = query.redirect_uri as string
   const scope = query.scope as string
   const state = query.state as string
+  const prompt = query.prompt as string
   const codeChallenge = query.code_challenge as string
   const codeChallengeMethod = query.code_challenge_method as string
 
@@ -90,6 +92,7 @@ export default defineEventHandler(async (event) => {
   consentUrl.searchParams.set('redirect_uri', redirectUri)
   consentUrl.searchParams.set('scope', scope || 'profile:read')
   if (state) consentUrl.searchParams.set('state', state)
+  if (prompt) consentUrl.searchParams.set('prompt', prompt)
   if (codeChallenge) {
     consentUrl.searchParams.set('code_challenge', codeChallenge)
     consentUrl.searchParams.set('code_challenge_method', codeChallengeMethod || 'S256')

@@ -7,7 +7,8 @@ const updateAppSchema = z.object({
   name: z.string().min(3).max(50).optional(),
   description: z.string().max(500).optional(),
   homepageUrl: z.string().url().optional().or(z.literal('')),
-  redirectUris: z.array(z.string().url()).min(1).max(10).optional()
+  redirectUris: z.array(z.string().url()).min(1).max(10).optional(),
+  webhookSecret: z.string().max(100).optional().nullable()
 })
 
 defineRouteMeta({
@@ -56,15 +57,21 @@ export default defineEventHandler(async (event) => {
       name: validatedData.name,
       description: validatedData.description,
       homepageUrl: validatedData.homepageUrl || undefined,
-      redirectUris: validatedData.redirectUris
+      redirectUris: validatedData.redirectUris,
+      webhookSecret: validatedData.webhookSecret
     })
+
+    const auditMetadata = { ...validatedData }
+    if (auditMetadata.webhookSecret) {
+      auditMetadata.webhookSecret = '[REDACTED]'
+    }
 
     await logAction({
       userId,
       action: 'OAUTH_APP_UPDATED',
       resourceType: 'OAuthApp',
       resourceId: id,
-      metadata: { changes: validatedData },
+      metadata: { changes: auditMetadata },
       event
     })
 
