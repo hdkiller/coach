@@ -150,6 +150,7 @@
 
 <script setup lang="ts">
   const { signIn } = useAuth()
+  const route = useRoute()
   const toast = useToast()
 
   definePageMeta({
@@ -157,6 +158,8 @@
     middleware: ['guest'],
     auth: false
   })
+
+  const callbackUrl = (route.query.callbackUrl as string) || '/dashboard'
 
   useSeoMeta({
     title: 'AI Endurance Coaching',
@@ -179,7 +182,7 @@
   async function handleGoogleLogin() {
     loading.value = true
     try {
-      await signIn('google', { callbackUrl: '/dashboard' })
+      await signIn('google', { callbackUrl })
     } catch (error: any) {
       toast.add({
         title: 'Login Failed',
@@ -193,7 +196,7 @@
   async function handleIntervalsLogin() {
     loadingIntervals.value = true
     try {
-      await signIn('intervals', { callbackUrl: '/dashboard' })
+      await signIn('intervals', { callbackUrl })
     } catch (error: any) {
       toast.add({
         title: 'Login Failed',

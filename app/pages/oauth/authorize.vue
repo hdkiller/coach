@@ -37,6 +37,32 @@
 
         <USeparator />
 
+        <!-- Current User Info -->
+        <div
+          v-if="user"
+          class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700"
+        >
+          <div class="flex items-center gap-2 overflow-hidden">
+            <UAvatar :src="user.image || undefined" :alt="user.name || undefined" size="xs" />
+            <div class="flex flex-col min-w-0">
+              <p class="text-xs font-bold text-gray-900 dark:text-white truncate">
+                {{ user.name }}
+              </p>
+              <p class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+            </div>
+          </div>
+          <UButton
+            label="Switch"
+            variant="ghost"
+            size="xs"
+            color="neutral"
+            class="text-[10px] font-bold"
+            @click="handleSwitchAccount"
+          />
+        </div>
+
+        <USeparator />
+
         <div class="space-y-3">
           <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
             This app will be able to:
@@ -92,12 +118,14 @@
 <script setup lang="ts">
   definePageMeta({
     layout: 'simple',
-    middleware: 'auth'
+    middleware: 'oauth-auth'
   })
 
+  const { data: authData, signOut } = useAuth()
   const route = useRoute()
   const toast = useToast()
 
+  const user = computed(() => authData.value?.user)
   const loading = ref(true)
   const processing = ref(false)
   const error = ref<string | null>(null)
@@ -156,6 +184,17 @@
         }
     )
   })
+
+  async function handleSwitchAccount() {
+    // Redirect back to this page but with prompt=login
+    const newQuery = { ...route.query, prompt: 'login' }
+    const callbackUrl = useNuxtApp().$router.resolve({
+      path: route.path,
+      query: newQuery
+    }).fullPath
+
+    await signOut({ callbackUrl })
+  }
 
   async function fetchAppDetails() {
     if (!query.client_id) {

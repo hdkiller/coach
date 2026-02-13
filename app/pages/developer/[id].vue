@@ -193,9 +193,198 @@
             </div>
           </UCard>
         </div>
+
+        <!-- Incoming Webhook -->
+        <UCard>
+          <template #header>
+            <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
+              Incoming Webhook
+            </h3>
+          </template>
+
+          <div class="space-y-6">
+            <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
+              You can push data to Coach Watts using our generic webhook endpoint. We capture the
+              raw request body and associate it with your application.
+            </p>
+
+            <UFormField label="Webhook URL" help="Your unique endpoint for pushing data.">
+              <UInput
+                :model-value="`https://coachwatts.com/api/webhooks/oauth/${app.clientId}`"
+                readonly
+                icon="i-heroicons-link"
+                class="w-full font-mono"
+                @click="
+                  copyToClipboard(
+                    `https://coachwatts.com/api/webhooks/oauth/${app.clientId}`,
+                    'Webhook URL'
+                  )
+                "
+              />
+            </UFormField>
+
+            <UFormField
+              label="Webhook Secret"
+              help="Used to sign or validate your webhook requests. Include this in your 'X-Webhook-Secret' header."
+            >
+              <div class="flex items-center gap-2">
+                <UInput
+                  :model-value="
+                    generatedWebhookSecret ||
+                    (app.webhookSecret ? '••••••••••••••••••••••••••••••••' : '')
+                  "
+                  placeholder="No secret generated yet"
+                  readonly
+                  :type="generatedWebhookSecret ? 'text' : 'password'"
+                  class="flex-1 font-mono"
+                />
+                <UButton
+                  v-if="generatedWebhookSecret || app.webhookSecret"
+                  icon="i-heroicons-clipboard"
+                  color="neutral"
+                  variant="ghost"
+                  @click="
+                    copyToClipboard(generatedWebhookSecret || app.webhookSecret, 'Webhook Secret')
+                  "
+                />
+                <UButton
+                  :label="app.webhookSecret ? 'Regenerate' : 'Generate Secret'"
+                  :icon="app.webhookSecret ? 'i-heroicons-arrow-path' : 'i-heroicons-plus'"
+                  color="neutral"
+                  variant="outline"
+                  @click="isRegenerateWebhookModalOpen = true"
+                />
+              </div>
+            </UFormField>
+
+            <div class="flex justify-end pt-4">
+              <UButton
+                label="View Recent Logs"
+                icon="i-heroicons-list-bullet"
+                color="primary"
+                variant="soft"
+                @click="isLogsModalOpen = true"
+              />
+            </div>
+          </div>
+        </UCard>
       </div>
     </template>
   </UDashboardPanel>
+
+  <!-- Webhook Logs Modal -->
+  <UModal
+    v-model:open="isLogsModalOpen"
+    title="Recent Webhook Logs"
+    :ui="{ content: 'sm:max-w-4xl' }"
+  >
+    <template #body>
+      <div class="space-y-4">
+        <div v-if="loadingLogs" class="flex justify-center py-12">
+          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+        </div>
+        <div v-else-if="!logs?.length" class="text-center py-12 text-gray-500">
+          No logs found for this application.
+        </div>
+        <div v-else class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+            <thead>
+              <tr class="text-left text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                <th class="pb-2 px-2">Time</th>
+                <th class="pb-2 px-2">Status</th>
+                <th class="pb-2 px-2">Secret</th>
+                <th class="pb-2 px-2 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+              <template v-for="log in logs" :key="log.id">
+                <tr class="text-sm">
+                  <td class="py-3 px-2 whitespace-nowrap text-gray-500 font-medium">
+                    {{ new Date(log.createdAt).toLocaleString() }}
+                  </td>
+                  <td class="py-3 px-2">
+                    <UBadge
+                      :color="log.status === 'PROCESSED' ? 'success' : 'error'"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      {{ log.status }}
+                    </UBadge>
+                  </td>
+                  <td class="py-3 px-2">
+                    <UBadge
+                      :color="log.error === 'SECRET_MATCHED' ? 'success' : 'warning'"
+                      variant="soft"
+                      size="xs"
+                      class="font-mono"
+                    >
+                      {{ log.error || 'NONE' }}
+                    </UBadge>
+                  </td>
+                  <td class="py-3 px-2 text-right">
+                    <UButton
+                      label="Inspect"
+                      variant="ghost"
+                      size="xs"
+                      @click="selectedLog = selectedLog?.id === log.id ? null : log"
+                    />
+                  </td>
+                </tr>
+                <tr v-if="selectedLog?.id === log.id">
+                  <td colspan="4" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div class="space-y-4">
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                          <p class="text-[10px] font-bold text-gray-500 uppercase">Headers</p>
+                          <div
+                            class="p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded overflow-auto max-h-48"
+                          >
+                            <pre class="text-[10px] font-mono">{{
+                              JSON.stringify(log.headers, null, 2)
+                            }}</pre>
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <p class="text-[10px] font-bold text-gray-500 uppercase">Query</p>
+                          <div
+                            class="p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded overflow-auto max-h-48"
+                          >
+                            <pre class="text-[10px] font-mono">{{
+                              JSON.stringify(log.query, null, 2)
+                            }}</pre>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="space-y-1">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase">Payload</p>
+                        <div
+                          class="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded overflow-auto max-h-96"
+                        >
+                          <VueJsonPretty
+                            :data="log.payload"
+                            :deep="2"
+                            show-length
+                            show-line
+                            class="text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <div class="flex justify-between items-center w-full">
+        <p class="text-[10px] text-gray-500">Showing last 50 requests</p>
+        <UButton label="Close" color="neutral" variant="ghost" @click="isLogsModalOpen = false" />
+      </div>
+    </template>
+  </UModal>
 
   <!-- Regenerate Secret Modal -->
   <UModal v-model:open="isRegenerateModalOpen" title="Regenerate Client Secret">
@@ -219,6 +408,38 @@
           color="warning"
           :loading="regenerating"
           @click="onRegenerateSecret"
+        />
+      </div>
+    </template>
+  </UModal>
+
+  <!-- Regenerate Webhook Secret Modal -->
+  <UModal
+    v-model:open="isRegenerateWebhookModalOpen"
+    :title="app?.webhookSecret ? 'Regenerate Webhook Secret' : 'Generate Webhook Secret'"
+  >
+    <template #body>
+      <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
+        Are you sure you want to {{ app?.webhookSecret ? 'regenerate' : 'generate' }} the webhook
+        secret?
+        <span v-if="app?.webhookSecret" class="text-red-500 font-bold"
+          >The old secret will stop working immediately.</span
+        >
+      </p>
+    </template>
+    <template #footer>
+      <div class="flex justify-end gap-3">
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="ghost"
+          @click="isRegenerateWebhookModalOpen = false"
+        />
+        <UButton
+          :label="app?.webhookSecret ? 'Regenerate' : 'Generate'"
+          color="warning"
+          :loading="regeneratingWebhook"
+          @click="onRegenerateWebhookSecret"
         />
       </div>
     </template>
@@ -254,6 +475,8 @@
 
 <script setup lang="ts">
   import { z } from 'zod'
+  import VueJsonPretty from 'vue-json-pretty'
+  import 'vue-json-pretty/lib/styles.css'
 
   definePageMeta({
     middleware: 'auth'
@@ -279,10 +502,18 @@
 
   const updating = ref(false)
   const regenerating = ref(false)
+  const regeneratingWebhook = ref(false)
   const deleting = ref(false)
   const isRegenerateModalOpen = ref(false)
+  const isRegenerateWebhookModalOpen = ref(false)
   const isDeleteModalOpen = ref(false)
+  const isLogsModalOpen = ref(false)
   const generatedSecret = ref('')
+  const generatedWebhookSecret = ref('')
+
+  const logs = ref<any[]>([])
+  const loadingLogs = ref(false)
+  const selectedLog = ref<any>(null)
 
   const logoInput = ref<HTMLInputElement | null>(null)
 
@@ -323,6 +554,27 @@
       .filter((s) => s !== '')
   })
 
+  watch(isLogsModalOpen, (val) => {
+    if (val) {
+      fetchLogs()
+    }
+  })
+
+  async function fetchLogs() {
+    loadingLogs.value = true
+    try {
+      logs.value = await $fetch(`/api/developer/apps/${appId}/webhook-logs`)
+    } catch (error: any) {
+      toast.add({
+        title: 'Error',
+        description: error.data?.message || 'Failed to fetch logs',
+        color: 'error'
+      })
+    } finally {
+      loadingLogs.value = false
+    }
+  }
+
   async function onUpdateSubmit() {
     updating.value = true
     try {
@@ -360,6 +612,27 @@
       })
     } finally {
       regenerating.value = false
+    }
+  }
+
+  async function onRegenerateWebhookSecret() {
+    regeneratingWebhook.value = true
+    try {
+      const data: any = await $fetch(`/api/developer/apps/${appId}/webhook-secret`, {
+        method: 'POST'
+      })
+      generatedWebhookSecret.value = data.webhookSecret
+      isRegenerateWebhookModalOpen.value = false
+      toast.add({ title: 'Success', description: 'Webhook secret generated', color: 'success' })
+      refresh()
+    } catch (error: any) {
+      toast.add({
+        title: 'Error',
+        description: error.data?.message || 'Failed to generate webhook secret',
+        color: 'error'
+      })
+    } finally {
+      regeneratingWebhook.value = false
     }
   }
 

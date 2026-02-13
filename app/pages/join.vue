@@ -175,6 +175,7 @@
 
 <script setup lang="ts">
   const { signIn } = useAuth()
+  const route = useRoute()
   const toast = useToast()
 
   definePageMeta({
@@ -182,6 +183,8 @@
     middleware: ['guest'],
     auth: false
   })
+
+  const callbackUrl = (route.query.callbackUrl as string) || '/dashboard'
 
   useSeoMeta({
     title: 'Initialize Your Digital Twin',
@@ -203,7 +206,7 @@
   async function handleGoogleLogin() {
     loading.value = true
     try {
-      await signIn('google', { callbackUrl: '/dashboard' })
+      await signIn('google', { callbackUrl })
     } catch (error: any) {
       toast.add({
         title: 'Login Failed',
