@@ -447,7 +447,8 @@ export const WorkoutConverter = {
 
           if (header) {
             const cleanHeader = header.trim().toLowerCase()
-            const lastLine = lines.length > 0 ? lines[lines.length - 1].trim().toLowerCase() : ''
+            const lastLineRaw = lines.length > 0 ? lines[lines.length - 1] : ''
+            const lastLine = lastLineRaw ? lastLineRaw.trim().toLowerCase() : ''
 
             // Avoid adding header if it's already redundant with preamble or previous line
             const isRedundant =
@@ -466,7 +467,8 @@ export const WorkoutConverter = {
         if (step.steps && step.steps.length > 0) {
           const reps = step.reps || 1
           if (reps > 1) {
-            if (lines.length > 0 && !lines[lines.length - 1].endsWith('\n')) {
+            const lastLine = lines.length > 0 ? lines[lines.length - 1] : null
+            if (lastLine && typeof lastLine === 'string' && !lastLine.endsWith('\n')) {
               lines.push('')
             }
             lines.push(`${indent}${reps}x`)

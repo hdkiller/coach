@@ -19,7 +19,9 @@ export function createNutritionDateContext(
   now: Date = new Date()
 ): NutritionDateContext {
   const dateStr =
-    typeof date === 'string' ? date.split('T')[0] : formatInTimeZone(date, timezone, 'yyyy-MM-dd')
+    (typeof date === 'string'
+      ? date.split('T')[0]
+      : formatInTimeZone(date, timezone, 'yyyy-MM-dd')) || ''
 
   const dayStart = fromZonedTime(`${dateStr}T00:00:00`, timezone)
   const dayEnd = fromZonedTime(`${dateStr}T23:59:59.999`, timezone)

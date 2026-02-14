@@ -1,5 +1,3 @@
-import type { CoreMessage, Message } from 'ai'
-
 /**
  * Truncates message history to stay within a reasonable context window.
  * Ensures that tool calls and their results are kept together.
