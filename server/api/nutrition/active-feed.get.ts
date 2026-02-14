@@ -11,6 +11,15 @@ export default defineEventHandler(async (event) => {
   const now = new Date()
 
   try {
+    const resolveItemName = (item: any) => {
+      const candidate = item?.name || item?.product_name || item?.title || item?.itemName || 'Food'
+      return String(candidate).trim() || 'Food'
+    }
+    const toNumber = (value: unknown) => {
+      const numeric = Number(value)
+      return Number.isFinite(numeric) ? numeric : 0
+    }
+
     // 1. Get Next Fueling Window and Suggested Intake
     const context = await metabolicService.getMealTargetContext(userId, today, now)
 
@@ -69,11 +78,12 @@ export default defineEventHandler(async (event) => {
           }
 
           if (loggedAt && !isNaN(loggedAt.getTime())) {
+            const itemName = resolveItemName(item)
             allLoggedItems.push({
-              id: item.id || `${record.id}-${meal}-${item.name}`,
-              name: item.name,
-              carbs: item.carbs || 0,
-              calories: item.calories || 0,
+              id: item.id || `${record.id}-${meal}-${itemName}`,
+              name: itemName,
+              carbs: toNumber(item.carbs),
+              calories: toNumber(item.calories),
               loggedAt,
               mealType: meal
             })
@@ -97,7 +107,8 @@ export default defineEventHandler(async (event) => {
           absorbed += getAbsorbedInInterval(t, t + 5, item.carbs, profile)
         }
 
-        const absorptionProgress = Math.min(100, Math.round((absorbed / item.carbs) * 100)) || 0
+        const absorptionProgress =
+          item.carbs > 0 ? Math.min(100, Math.round((absorbed / item.carbs) * 100)) : 0
 
         return {
           ...item,

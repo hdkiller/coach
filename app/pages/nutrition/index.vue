@@ -421,17 +421,40 @@
     loadingActiveFeed.value = true
 
     try {
-      const [waveRes, strategyRes, feedRes, upcomingRes] = await Promise.all([
+      const [waveRes, strategyRes, feedRes, upcomingRes] = await Promise.allSettled([
         $fetch('/api/nutrition/extended-wave', { query: { daysAhead: 3 } }),
         $fetch('/api/nutrition/strategy'),
         $fetch('/api/nutrition/active-feed'),
         $fetch('/api/nutrition/upcoming-plan')
       ])
 
-      wavePoints.value = (waveRes as any).points
-      strategy.value = strategyRes
-      activeFeed.value = feedRes
-      upcomingPlan.value = upcomingRes
+      if (waveRes.status === 'fulfilled') {
+        wavePoints.value = (waveRes.value as any).points || []
+      } else {
+        console.error('Failed to load extended wave:', waveRes.reason)
+        wavePoints.value = []
+      }
+
+      if (strategyRes.status === 'fulfilled') {
+        strategy.value = strategyRes.value
+      } else {
+        console.error('Failed to load strategy:', strategyRes.reason)
+        strategy.value = null
+      }
+
+      if (feedRes.status === 'fulfilled') {
+        activeFeed.value = feedRes.value
+      } else {
+        console.error('Failed to load active feed:', feedRes.reason)
+        activeFeed.value = null
+      }
+
+      if (upcomingRes.status === 'fulfilled') {
+        upcomingPlan.value = upcomingRes.value
+      } else {
+        console.error('Failed to load upcoming plan:', upcomingRes.reason)
+        upcomingPlan.value = null
+      }
     } catch (e) {
       console.error('Failed to load nutrition strategy:', e)
     } finally {
