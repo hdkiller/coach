@@ -9,6 +9,7 @@ export interface CustomSession {
     name?: string | null
     email?: string | null
     image?: string | null
+    timezone?: string | null
     id: string
     isAdmin: boolean
     isImpersonating?: boolean
@@ -49,6 +50,7 @@ export async function getServerSession(event: H3Event): Promise<CustomSession | 
           name: targetUser.name,
           email: targetUser.email,
           image: targetUser.image,
+          timezone: targetUser.timezone ?? null,
           isAdmin: (targetUser as any).isAdmin || false,
           isImpersonating: true,
           originalUserId: (session.user as any).id,
@@ -80,6 +82,7 @@ export async function getServerSession(event: H3Event): Promise<CustomSession | 
             name: targetUser.name,
             email: targetUser.email,
             image: targetUser.image,
+            timezone: targetUser.timezone ?? null,
             isAdmin: (targetUser as any).isAdmin || false,
             isCoaching: true,
             originalUserId: currentUserId,

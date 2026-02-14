@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 
 const bodySchema = z.object({

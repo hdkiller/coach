@@ -333,8 +333,16 @@
             name="i-heroicons-exclamation-circle"
             class="w-16 h-16 text-red-500 mx-auto mb-4"
           />
-          <h3 class="text-xl font-semibold mb-2">Workout Not Found</h3>
-          <p class="text-muted mb-4">The planned workout you're looking for doesn't exist.</p>
+          <h3 class="text-xl font-semibold mb-2">
+            {{ loadError?.statusCode === 403 ? 'Access Denied' : 'Workout Not Found' }}
+          </h3>
+          <p class="text-muted mb-4">
+            {{
+              loadError?.statusCode === 403
+                ? "You don't have permission to view this planned workout."
+                : "The planned workout you're looking for doesn't exist."
+            }}
+          </p>
           <UButton color="primary" @click="goBack">Go Back</UButton>
         </div>
       </div>
@@ -673,6 +681,7 @@
     context: ''
   })
   const workout = ref<any>(null)
+  const loadError = ref<{ statusCode?: number; message?: string } | null>(null)
   const userFtp = ref<number | undefined>(undefined)
   const llmUsageId = ref<string | undefined>(undefined)
   const initialFeedback = ref<string | null>(null)
@@ -1098,6 +1107,7 @@
 
   async function fetchWorkout() {
     loading.value = true
+    loadError.value = null
     workoutFuelingPlan.value = null
     try {
       const data: any = await $fetch(`/api/workouts/planned/${route.params.id}`)
@@ -1146,6 +1156,9 @@
     } catch (error) {
       console.error('Failed to fetch workout', error)
       workout.value = null
+      const statusCode = (error as any)?.statusCode || (error as any)?.data?.statusCode
+      const message = (error as any)?.data?.message || (error as any)?.message
+      loadError.value = { statusCode, message }
     } finally {
       loading.value = false
     }

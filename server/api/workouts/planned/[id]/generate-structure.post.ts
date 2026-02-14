@@ -1,21 +1,13 @@
-import { getServerSession } from '#auth'
+import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true }
-  })
-
-  if (!user) {
-    throw createError({ statusCode: 404, message: 'User not found' })
-  }
+  const userId = session.user.id
 
   const id = getRouterParam(event, 'id')
   if (!id) {
@@ -45,7 +37,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify ownership
-  if (workout.userId !== user.id) {
+  if (workout.userId !== userId) {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
 
@@ -74,8 +66,8 @@ export default defineEventHandler(async (event) => {
         plannedWorkoutId: id
       },
       {
-        concurrencyKey: user.id,
-        tags: [`user:${user.id}`]
+        concurrencyKey: userId,
+        tags: [`user:${userId}`]
       }
     )
 
