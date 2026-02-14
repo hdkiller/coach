@@ -3,6 +3,7 @@
   import ChatToolCall from '~/components/ChatToolCall.vue'
   import ChatChart from '~/components/ChatChart.vue'
   import ChatToolApproval from '~/components/chat/ChatToolApproval.vue'
+  import ChatPlannedWorkoutCard from '~/components/chat/ChatPlannedWorkoutCard.vue'
 
   const props = withDefaults(
     defineProps<{
@@ -83,6 +84,38 @@
 
     return list
   })
+
+  const getPartToolName = (part: any) =>
+    (part as any).toolName || (part.type?.startsWith('tool-') ? part.type.replace('tool-', '') : '')
+
+  const getPartToolArgs = (part: any) => (part as any).args || (part as any).input
+
+  const getPartToolResponse = (part: any) => (part as any).result || (part as any).output
+
+  const plannedWorkoutToolNames = new Set([
+    'get_planned_workout_details',
+    'get_planned_workout_structure',
+    'set_planned_workout_structure',
+    'patch_planned_workout_structure'
+  ])
+
+  const hasPlannedWorkoutStructure = (response: any) => {
+    if (!response || typeof response !== 'object') return false
+    const structure = response.structuredWorkout || response.structured_workout
+    if (!structure || typeof structure !== 'object') return false
+    return (
+      (Array.isArray(structure.steps) && structure.steps.length > 0) ||
+      (Array.isArray(structure.exercises) && structure.exercises.length > 0)
+    )
+  }
+
+  const shouldRenderPlannedWorkoutCard = (part: any) => {
+    if (!(part.type === 'tool-invocation' || part.type?.startsWith('tool-'))) return false
+    const toolName = getPartToolName(part)
+    if (!plannedWorkoutToolNames.has(toolName)) return false
+    const response = getPartToolResponse(part)
+    return hasPlannedWorkoutStructure(response)
+  }
 </script>
 
 <template>
@@ -125,6 +158,14 @@
       />
 
       <!-- Tool Invocation Part -->
+      <ChatPlannedWorkoutCard
+        v-else-if="showTools && shouldRenderPlannedWorkoutCard(part)"
+        :tool-name="getPartToolName(part)"
+        :response="getPartToolResponse(part)"
+        :args="getPartToolArgs(part)"
+      />
+
+      <!-- Tool Invocation Part -->
       <ChatToolCall
         v-else-if="
           showTools &&
@@ -132,11 +173,9 @@
           part.type !== 'tool-approval-response'
         "
         :tool-call="{
-          name:
-            (part as any).toolName ||
-            (part.type.startsWith('tool-') ? part.type.replace('tool-', '') : ''),
-          args: (part as any).args || (part as any).input,
-          response: (part as any).result || (part as any).output,
+          name: getPartToolName(part),
+          args: getPartToolArgs(part),
+          response: getPartToolResponse(part),
           error: (part as any).errorText || (part as any).error,
           timestamp:
             (message as any).createdAt && !isNaN(new Date((message as any).createdAt).getTime())
