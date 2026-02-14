@@ -158,6 +158,21 @@
         </div>
       </div>
 
+      <USeparator class="my-2" />
+
+      <div class="space-y-1">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">
+          AI Tools Settings
+        </h3>
+      </div>
+
+      <USwitch
+        v-model="localSettings.aiRequireToolApproval"
+        label="Request tool approval"
+        description="Ask for approval before running certain AI tool actions."
+        @update:model-value="handleChange"
+      />
+
       <!-- Save Button -->
       <div class="flex justify-end pt-4">
         <UButton :loading="saving" @click="saveSettings"> Save Changes </UButton>
@@ -174,6 +189,7 @@
       aiAutoAnalyzeReadiness: boolean
       aiProactivityEnabled: boolean
       aiDeepAnalysisEnabled: boolean
+      aiRequireToolApproval: boolean
       [key: string]: any // Allow other props to pass through without type error if mixed
     }
   }>()

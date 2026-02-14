@@ -119,25 +119,26 @@
     input.value = ''
   }
 
-  const onToolApproval = (approval: { approvalId: string; approved: boolean; result?: string }) => {
-    // Manually construct the tool approval response message
-    const responsePart = {
-      type: 'tool-approval-response',
-      approvalId: approval.approvalId,
-      approved: approval.approved,
-      result: approval.result
+  const onToolApproval = async (approval: {
+    approvalId: string
+    approved: boolean
+    result?: string
+  }) => {
+    if (typeof (chat as any).addToolApprovalResponse === 'function') {
+      await (chat as any).addToolApprovalResponse({
+        id: approval.approvalId,
+        approved: approval.approved,
+        reason: approval.result
+      })
+      // Trigger the follow-up model step so approved tools actually execute.
+      await (chat as any).sendMessage()
+      return
     }
 
-    const message = {
-      role: 'tool',
-      content: [responsePart]
-    }
-
-    if (typeof (chat as any).sendMessage === 'function') {
-      ;(chat as any).sendMessage(message)
-    } else {
-      console.error('[Chat] No sendMessage method found. Chat object keys:', Object.keys(chat))
-    }
+    console.error(
+      '[Chat] No addToolApprovalResponse method found. Chat object keys:',
+      Object.keys(chat)
+    )
   }
   // Load initial room and messages
   onMounted(async () => {
