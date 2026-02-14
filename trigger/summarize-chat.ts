@@ -91,13 +91,13 @@ export const summarizeChatTask = task({
         operation: 'summarize-chat',
         entityType: 'ChatRoom',
         entityId: roomId,
-        promptTokens: summaryUsage.promptTokens,
-        completionTokens: summaryUsage.completionTokens,
-        totalTokens: summaryUsage.totalTokens,
+        promptTokens: summaryUsage.inputTokens || 0,
+        completionTokens: summaryUsage.outputTokens || 0,
+        totalTokens: (summaryUsage.inputTokens || 0) + (summaryUsage.outputTokens || 0),
         estimatedCost: calculateLlmCost(
           'gemini-flash-lite-latest',
-          summaryUsage.promptTokens,
-          summaryUsage.completionTokens
+          summaryUsage.inputTokens || 0,
+          summaryUsage.outputTokens || 0
         ),
         success: true
       }
@@ -122,13 +122,13 @@ export const summarizeChatTask = task({
           operation: 'rename-chat',
           entityType: 'ChatRoom',
           entityId: roomId,
-          promptTokens: titleUsage.promptTokens,
-          completionTokens: titleUsage.completionTokens,
-          totalTokens: titleUsage.totalTokens,
+          promptTokens: titleUsage.inputTokens || 0,
+          completionTokens: titleUsage.outputTokens || 0,
+          totalTokens: (titleUsage.inputTokens || 0) + (titleUsage.outputTokens || 0),
           estimatedCost: calculateLlmCost(
             'gemini-flash-lite-latest',
-            titleUsage.promptTokens,
-            titleUsage.completionTokens
+            titleUsage.inputTokens || 0,
+            titleUsage.outputTokens || 0
           ),
           success: true
         }
@@ -137,7 +137,10 @@ export const summarizeChatTask = task({
 
     // 4. Update ChatRoom metadata and name
     metadata.historySummary = summary
-    metadata.lastSummarizedMessageId = messages[messages.length - 1].id
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg) {
+      metadata.lastSummarizedMessageId = lastMsg.id
+    }
     metadata.summarizedCount = (metadata.summarizedCount || 0) + messages.length
 
     await prisma.chatRoom.update({
