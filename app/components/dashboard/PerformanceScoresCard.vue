@@ -48,42 +48,49 @@
     </div>
 
     <!-- Actual scores data -->
-    <div v-else-if="profileScores" class="grid gap-3 flex-grow">
-      <button
+    <div v-else-if="profileScores || pmcSummary" class="grid grid-cols-2 gap-3 flex-grow p-4">
+      <UTooltip
         v-for="(score, key) in visibleScoreOptions"
         :key="key"
-        class="flex justify-between items-center p-3 rounded-xl ring-1 ring-inset hover:ring-primary-500/50 transition-all duration-200"
-        :class="score.color"
-        @click="openScoreModal(key as any)"
+        :text="score.description"
+        :content="{ side: 'top' }"
+        class="w-full"
       >
-        <div class="flex flex-col items-start gap-1">
-          <span class="text-sm font-bold text-gray-700 dark:text-gray-200">{{ score.label }}</span>
-          <TrendIndicator
-            v-if="settings.showTrends && scoresHistory.length > 1"
-            :current="(profileScores as any)?.[key] ?? 0"
-            :previous="
-              scoresHistory
-                .slice(0, -1)
-                .map((h: any) => h[key])
-                .filter((v: any) => v != null)
-            "
-            compact
-            show-value
-          />
-        </div>
-        <UBadge
-          :color="getScoreColor((profileScores as any)?.[key])"
-          variant="subtle"
-          size="sm"
-          class="font-bold text-base"
+        <button
+          class="flex flex-col items-start p-3 rounded-xl ring-1 ring-inset hover:ring-primary-500/50 transition-all duration-200 text-left h-full w-full"
+          :class="score.color"
+          @click="openScoreModal(key as string)"
         >
-          {{ (profileScores as any)?.[key]?.toFixed(1) || 'N/A' }}
-        </UBadge>
-      </button>
+          <div class="mb-auto">
+            <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight leading-tight block">{{
+              score.label
+            }}</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 mt-2">
+            <TrendIndicator
+              v-if="settings.showTrends && getHistory(key as string).length > 1"
+              :current="getCurrentValue(key as string) ?? 0"
+              :previous="getHistory(key as string)"
+              :type="key === 'atl' ? 'lower-is-better' : 'higher-is-better'"
+              compact
+              icon-only
+            />
+            <div class="text-xl font-bold text-gray-900 dark:text-white">
+              <template v-if="key === 'tsb' && (getCurrentValue(key as string) ?? 0) > 0">+</template>
+              {{ ['atl', 'avgTss', 'currentFitness', 'recoveryCapacity', 'nutritionCompliance', 'trainingConsistency'].includes(key as string) ? (getCurrentValue(key as string)?.toFixed(0) || 'N/A') : (getCurrentValue(key as string)?.toFixed(1) || 'N/A') }}
+            </div>
+          </div>
+
+          <div v-if="score.sublabel" class="mt-1">
+            <span class="text-[9px] text-gray-500 dark:text-gray-400 font-medium leading-tight block">{{ score.sublabel }}</span>
+          </div>
+        </button>
+      </UTooltip>
 
       <div
-        v-if="profileScores.lastUpdated"
-        class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
+        v-if="profileScores?.lastUpdated"
+        class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 col-span-2"
       >
         <p
           class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight text-center italic"
@@ -136,6 +143,21 @@
   const profileScores = computed(() => scoresData.value?.scores || null)
   const scoresHistory = computed(() => scoresData.value?.history || [])
 
+  // Fetch PMC data for TL/ATL/TSB if enabled
+  const { data: pmcData, pending: loadingPMC } = useFetch<any>(
+    '/api/performance/pmc',
+    {
+      lazy: true,
+      server: false,
+      query: { days: 7 },
+      immediate: true,
+      watch: [() => integrationStore.intervalsConnected]
+    }
+  )
+
+  const pmcSummary = computed(() => pmcData.value?.summary || null)
+  const pmcHistory = computed(() => pmcData.value?.data || [])
+
   // Settings State
   const showSettingsModal = ref(false)
 
@@ -145,7 +167,11 @@
       currentFitness: true,
       recoveryCapacity: true,
       nutritionCompliance: true,
-      trainingConsistency: true
+      trainingConsistency: true,
+      ctl: false,
+      atl: false,
+      tsb: false,
+      avgTss: false
     }
   }
 
@@ -168,19 +194,51 @@
   const allScoreConfigs = {
     currentFitness: {
       label: 'Current Fitness',
-      color: 'bg-amber-50 dark:bg-amber-900/20 ring-amber-500/10'
+      color: 'bg-amber-50 dark:bg-amber-900/20 ring-amber-500/10',
+      sublabel: 'Fitness Level (1-10)',
+      description: 'Your current cardiovascular and muscular fitness based on recent performance data.'
     },
     recoveryCapacity: {
       label: 'Recovery Capacity',
-      color: 'bg-emerald-50 dark:bg-emerald-900/20 ring-emerald-500/10'
+      color: 'bg-emerald-50 dark:bg-emerald-900/20 ring-emerald-500/10',
+      sublabel: 'Recovery State (1-10)',
+      description: 'How well your body is currently responding to and recovering from training stress.'
     },
     nutritionCompliance: {
       label: 'Nutrition Quality',
-      color: 'bg-purple-50 dark:bg-purple-900/20 ring-purple-500/10'
+      color: 'bg-purple-50 dark:bg-purple-900/20 ring-purple-500/10',
+      sublabel: 'Fueling Quality (1-10)',
+      description: 'How closely your nutrition and fueling habits align with your training needs.'
     },
     trainingConsistency: {
       label: 'Consistency',
-      color: 'bg-blue-50 dark:bg-blue-900/20 ring-blue-500/10'
+      color: 'bg-blue-50 dark:bg-blue-900/20 ring-blue-500/10',
+      sublabel: 'Plan Adherence (1-10)',
+      description: 'A measure of how reliably you have been completing your scheduled workouts.'
+    },
+    ctl: {
+      label: 'TL (Fitness)',
+      color: 'bg-purple-50 dark:bg-purple-900/20 ring-purple-500/10',
+      sublabel: 'Long-term Load (~42d)',
+      description: 'Chronic Training Load (CTL) represents your long-term fitness based on the last 42 days of training.'
+    },
+    atl: {
+      label: 'ATL (Fatigue)',
+      color: 'bg-yellow-50 dark:bg-yellow-900/20 ring-yellow-500/10',
+      sublabel: 'Short-term Load (~7d)',
+      description: 'Acute Training Load (ATL) represents your short-term fatigue based on the last 7 days of training.'
+    },
+    tsb: {
+      label: 'TSB (Form)',
+      color: 'bg-indigo-50 dark:bg-indigo-900/20 ring-indigo-500/10',
+      sublabel: 'Freshness (CTL - ATL)',
+      description: 'Training Stress Balance (TSB) is your freshness. Positive means fresh, negative means fatigued. -10 to +5 is optimal for racing.'
+    },
+    avgTss: {
+      label: 'Avg TSS',
+      color: 'bg-blue-50 dark:bg-blue-900/20 ring-blue-500/10',
+      sublabel: 'Workout Avg (7d)',
+      description: 'Average Training Stress Score per workout over the last 7 days.'
     }
   }
 
@@ -197,8 +255,21 @@
   })
 
   // Helper to get score color
-  function getScoreColor(score: number | null): 'error' | 'warning' | 'success' | 'neutral' {
-    return getScoreBadgeColor(score)
+  function getScoreColor(key: string, value: number | null): 'error' | 'warning' | 'success' | 'neutral' {
+    if (key === 'tsb') {
+      if (value === null) return 'neutral'
+      if (value >= 5) return 'success'
+      if (value < -30) return 'error'
+      if (value < -10) return 'warning'
+      return 'neutral'
+    }
+    
+    // Performance scores use standard badge color
+    if (['currentFitness', 'recoveryCapacity', 'nutritionCompliance', 'trainingConsistency'].includes(key)) {
+      return getScoreBadgeColor(value)
+    }
+
+    return 'neutral'
   }
 
   // Helper to format score date
@@ -220,10 +291,37 @@
     return formatDate(scoreDate, 'MMM d')
   }
 
+  // Get current value for a key
+  function getCurrentValue(key: string) {
+    if (key === 'ctl') return pmcSummary.value?.currentCTL
+    if (key === 'atl') return pmcSummary.value?.currentATL
+    if (key === 'tsb') return pmcSummary.value?.currentTSB
+    if (key === 'avgTss') return pmcSummary.value?.avgTSS
+    return (profileScores.value as any)?.[key]
+  }
+
+  // Get history for a key
+  function getHistory(key: string) {
+    if (key === 'ctl') return pmcHistory.value.slice(0, -1).map((h: any) => h.ctl)
+    if (key === 'atl') return pmcHistory.value.slice(0, -1).map((h: any) => h.atl)
+    if (key === 'tsb') return pmcHistory.value.slice(0, -1).map((h: any) => h.tsb)
+    if (key === 'avgTss') return pmcHistory.value.slice(0, -1).map((h: any) => h.tss)
+    
+    return scoresHistory.value
+      .slice(0, -1)
+      .map((h: any) => h[key])
+      .filter((v: any) => v != null)
+  }
+
   // Function to open score detail modal
   function openScoreModal(
-    scoreType: 'currentFitness' | 'recoveryCapacity' | 'nutritionCompliance' | 'trainingConsistency'
+    scoreType: string
   ) {
+    if (['ctl', 'atl', 'tsb', 'avgTss'].includes(scoreType)) {
+      emit('open-training-load')
+      return
+    }
+
     if (!profileScores.value) return
 
     const scoreConfig = {
@@ -255,7 +353,7 @@
         analysisData: profileScores.value.trainingConsistencyExplanationJson,
         color: 'orange' as const
       }
-    }
+    } as any
 
     const config = scoreConfig[scoreType]
 

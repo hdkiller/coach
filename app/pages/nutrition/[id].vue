@@ -57,30 +57,38 @@
         <div v-else-if="nutrition" class="space-y-8">
           <!-- 0. THE DATE HEADER -->
           <UCard class="border-primary-100 dark:border-primary-900 shadow-sm">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-4">
-                <UButton
-                  icon="i-heroicons-chevron-left"
-                  color="neutral"
-                  variant="ghost"
-                  @click="navigateDate(-1)"
-                />
-                <div class="p-3 bg-primary-50 dark:bg-primary-950/20 rounded-xl">
-                  <UIcon name="i-heroicons-calendar-days" class="w-8 h-8 text-primary-500" />
+            <div class="flex items-center gap-2 sm:justify-between">
+              <UButton
+                icon="i-heroicons-chevron-left"
+                color="neutral"
+                variant="ghost"
+                class="shrink-0"
+                @click="navigateDate(-1)"
+              />
+
+              <div class="min-w-0 flex flex-1 items-center justify-center gap-2 sm:justify-start sm:gap-4">
+                <div
+                  class="hidden sm:block p-2 sm:p-3 bg-primary-50 dark:bg-primary-950/20 rounded-lg sm:rounded-xl"
+                >
+                  <UIcon name="i-heroicons-calendar-days" class="w-5 h-5 sm:w-8 sm:h-8 text-primary-500" />
                 </div>
-                <div>
-                  <h1 class="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-                    {{ formatDateLabel(nutrition?.date || (route.params.id as string)) }}
+                <div class="min-w-0 text-center sm:text-left">
+                  <h1
+                    class="text-lg sm:text-2xl font-black tracking-tight text-gray-900 dark:text-white truncate"
+                  >
+                    {{ formatDatePrimary(nutrition?.date || (route.params.id as string)) }}
                   </h1>
-                  <p class="text-sm text-gray-500 font-bold uppercase tracking-widest">
-                    Daily Fueling Strategy
+                  <p class="text-sm text-gray-500 font-bold">
+                    {{ formatDateWeekday(nutrition?.date || (route.params.id as string)) }}
                   </p>
                 </div>
               </div>
+
               <UButton
                 icon="i-heroicons-chevron-right"
                 color="neutral"
                 variant="ghost"
+                class="shrink-0"
                 @click="navigateDate(1)"
               />
             </div>
@@ -599,6 +607,23 @@
       month: 'long',
       day: 'numeric',
       year: 'numeric'
+    })
+  }
+
+  function formatDatePrimary(date: string) {
+    if (!date) return ''
+    const d = new Date(date + 'T12:00:00') // Force noon to avoid TZ shift in label
+    return `${d.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric'
+    })},`
+  }
+
+  function formatDateWeekday(date: string) {
+    if (!date) return ''
+    const d = new Date(date + 'T12:00:00') // Force noon to avoid TZ shift in label
+    return d.toLocaleDateString('en-US', {
+      weekday: 'long'
     })
   }
 

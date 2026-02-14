@@ -71,7 +71,11 @@
       currentFitness: true,
       recoveryCapacity: true,
       nutritionCompliance: true,
-      trainingConsistency: true
+      trainingConsistency: true,
+      ctl: false,
+      atl: false,
+      tsb: false,
+      avgTss: false
     }
   }
 
@@ -117,7 +121,11 @@
     { key: 'currentFitness', label: 'Current Fitness' },
     { key: 'recoveryCapacity', label: 'Recovery Capacity' },
     { key: 'nutritionCompliance', label: 'Nutrition Quality' },
-    { key: 'trainingConsistency', label: 'Training Consistency' }
+    { key: 'trainingConsistency', label: 'Training Consistency' },
+    { key: 'ctl', label: 'TL (Fitness)' },
+    { key: 'atl', label: 'ATL (Fatigue)' },
+    { key: 'tsb', label: 'TSB (Form)' },
+    { key: 'avgTss', label: 'Avg TSS' }
   ] as const
 
   function resetDefaults() {
