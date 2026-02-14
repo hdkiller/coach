@@ -12,8 +12,12 @@
           <span class="text-xs text-muted">Planned Intensity</span>
         </div>
         <div class="flex items-center gap-1.5">
-          <div class="w-3 h-1 bg-white border border-gray-400 border-dashed" />
-          <span class="text-muted">Target Cadence (RPM)</span>
+          <div class="w-3 h-1 bg-blue-300 border border-blue-300 border-dashed" />
+          <span class="text-muted">Cadence (Inferred Baseline)</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-1 bg-white" />
+          <span class="text-muted">Cadence (Explicit)</span>
         </div>
       </div>
 
@@ -64,11 +68,12 @@
                     </span>
                     <span v-else> {{ Math.round((step.power?.value || 0) * userFtp) }}W </span>
                   </div>
-                  <div
-                    v-if="step.cadence"
-                    class="text-[10px] opacity-80 border-t border-white/20 mt-1 pt-1"
-                  >
-                    Target Cadence: {{ step.cadence }} RPM
+                  <div class="text-[10px] opacity-80 border-t border-white/20 mt-1 pt-1">
+                    Target Cadence:
+                    {{ Math.round(getStepCadenceMeta(step).value) }} RPM
+                    <span v-if="getStepCadenceMeta(step).inferred" class="text-blue-200">
+                      (inferred)
+                    </span>
                   </div>
                 </template>
 
@@ -87,12 +92,19 @@
               viewBox="0 0 1000 100"
             >
               <path
-                :d="cadencePath"
+                :d="cadencePaths.merged"
+                fill="none"
+                stroke="#93c5fd"
+                stroke-width="2"
+                stroke-dasharray="4,2"
+                class="drop-shadow-sm opacity-90"
+              />
+              <path
+                :d="cadencePaths.explicit"
                 fill="none"
                 stroke="white"
                 stroke-width="2"
-                stroke-dasharray="4,2"
-                class="drop-shadow-sm opacity-60"
+                class="drop-shadow-sm opacity-70"
               />
             </svg>
           </div>
@@ -161,9 +173,15 @@
                   </div>
 
                   <!-- Cadence -->
-                  <div class="w-16 text-blue-500 flex-shrink-0">
-                    <span v-if="step.cadence">{{ step.cadence }} rpm</span>
-                    <span v-else class="opacity-0">-</span>
+                  <div class="w-16 flex-shrink-0">
+                    <span
+                      class="text-blue-500"
+                      :class="{
+                        'italic text-blue-300 dark:text-blue-400': getStepCadenceMeta(step).inferred
+                      }"
+                    >
+                      {{ Math.round(getStepCadenceMeta(step).value) }} rpm
+                    </span>
                   </div>
 
                   <!-- Avg Watts -->
@@ -209,9 +227,13 @@
                   )
                 }}
               </div>
-              <div class="text-sm text-blue-500 font-semibold text-center whitespace-nowrap">
-                <span v-if="step.cadence">{{ step.cadence }} RPM</span>
-                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+              <div
+                class="text-sm text-blue-500 font-semibold text-center whitespace-nowrap"
+                :class="{
+                  'italic text-blue-300 dark:text-blue-400': getStepCadenceMeta(step).inferred
+                }"
+              >
+                <span>{{ Math.round(getStepCadenceMeta(step).value) }} RPM</span>
               </div>
               <div class="text-right">
                 <div class="text-sm font-bold whitespace-nowrap">
@@ -367,36 +389,42 @@
     return [120, 100, 80, 60, 40, 0]
   })
 
-  const cadencePath = computed(() => {
-    if (!normalizedSteps.value.length || totalDuration.value === 0) return ''
+  const cadencePaths = computed(() => {
+    if (!normalizedSteps.value.length || totalDuration.value === 0) {
+      return { merged: '', explicit: '' }
+    }
 
-    let path = ''
+    let mergedPath = ''
+    let explicitPath = ''
     let currentTime = 0
 
     normalizedSteps.value.forEach((step: any) => {
-      if (!step.cadence) {
-        currentTime += step.durationSeconds || step.duration || 0
-        return
+      const stepDuration = Number(step.durationSeconds || step.duration || 0)
+      if (stepDuration <= 0) return
+
+      const cadenceMeta = getStepCadenceMeta(step)
+      const startX = (currentTime / totalDuration.value) * 1000
+      const endX = ((currentTime + stepDuration) / totalDuration.value) * 1000
+      const y = 100 - (Math.max(0, Math.min(cadenceMeta.value, 120)) / 120) * 100
+
+      if (mergedPath === '') {
+        mergedPath = `M ${startX} ${y} L ${endX} ${y}`
+      } else {
+        mergedPath += ` L ${startX} ${y} L ${endX} ${y}`
       }
 
-      // 1000 is the viewBox width, 100 is the height
-      // X coordinate: (time / totalDuration) * 1000
-      // Y coordinate: 100 - (cadence / maxCadence) * 100
-      const startX = (currentTime / totalDuration.value) * 1000
-      const stepDuration = step.durationSeconds || step.duration || 0
-      const endX = ((currentTime + stepDuration) / totalDuration.value) * 1000
-      const y = 100 - (step.cadence / 120) * 100 // Scale to 120 RPM max
-
-      if (path === '') {
-        path = `M ${startX} ${y} L ${endX} ${y}`
-      } else {
-        path += ` L ${startX} ${y} L ${endX} ${y}`
+      if (!cadenceMeta.inferred) {
+        if (explicitPath === '') {
+          explicitPath = `M ${startX} ${y} L ${endX} ${y}`
+        } else {
+          explicitPath += ` L ${startX} ${y} L ${endX} ${y}`
+        }
       }
 
       currentTime += stepDuration
     })
 
-    return path
+    return { merged: mergedPath, explicit: explicitPath }
   })
 
   const zoneDistribution = computed(() => {
@@ -476,6 +504,45 @@
     }
 
     return undefined
+  }
+
+  function getTargetValue(
+    target: { value?: number; range?: { start: number; end: number } } | undefined
+  ) {
+    if (!target) return undefined
+    if (typeof target.value === 'number') return target.value
+    if (target.range) return (target.range.start + target.range.end) / 2
+    return undefined
+  }
+
+  function getStepIntensity(step: any): number {
+    const power = getTargetValue(step.power)
+    if (power !== undefined) return power
+
+    const hr = getTargetValue(step.heartRate)
+    if (hr !== undefined) return hr
+
+    const pace = getTargetValue(step.pace)
+    if (pace !== undefined) return pace
+
+    if (step?.type === 'Rest') return 0.55
+    return 0.75
+  }
+
+  function getStepCadenceMeta(step: any): { value: number; inferred: boolean } {
+    const explicit = Number(step?.cadence)
+    if (Number.isFinite(explicit) && explicit > 0) {
+      return { value: explicit, inferred: false }
+    }
+
+    const intensity = getStepIntensity(step)
+    if (step?.type === 'Rest') return { value: 85, inferred: true }
+    if (step?.type === 'Cooldown') return { value: 85, inferred: true }
+    if (step?.type === 'Warmup') return { value: 88, inferred: true }
+    if (intensity >= 0.95) return { value: 90, inferred: true }
+    if (intensity >= 0.8) return { value: 88, inferred: true }
+    if (intensity >= 0.65) return { value: 90, inferred: true }
+    return { value: 85, inferred: true }
   }
 
   function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
