@@ -159,17 +159,6 @@ export const nutritionPlanService = {
         )
       })
 
-    console.log('[nutritionPlanService.lockMeal] normalized key', {
-      userId,
-      date: dayStartUtc.toISOString(),
-      windowType,
-      slotName,
-      normalizedWindowTypes: normalizedAssignments.map(
-        (assignment) => assignment.normalizedWindowType
-      ),
-      timezone
-    })
-
     // 1. Find or Create the weekly/period plan
     // We try to find a plan that covers this date
     let plan = await prisma.nutritionPlan.findFirst({
@@ -193,11 +182,29 @@ export const nutritionPlanService = {
       })
     }
 
+    const toFiniteNumber = (value: unknown) => {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+    const normalizedTotals = {
+      carbs: toFiniteNumber(meal?.totals?.carbs ?? meal?.carbs),
+      protein: toFiniteNumber(meal?.totals?.protein ?? meal?.protein),
+      kcal: toFiniteNumber(
+        meal?.totals?.kcal ?? meal?.totals?.calories ?? meal?.kcal ?? meal?.calories
+      ),
+      fat: toFiniteNumber(meal?.totals?.fat ?? meal?.fat)
+    }
     const sanitizedMeal = {
       ...(meal || {}),
-      title: this.sanitizeMealTitle(meal?.title) || meal?.title || 'Meal'
+      title:
+        this.sanitizeMealTitle(meal?.title) ||
+        this.sanitizeMealTitle(meal?.name) ||
+        meal?.title ||
+        meal?.name ||
+        'Meal',
+      totals: normalizedTotals
     }
-    const totals = sanitizedMeal?.totals || {}
+    const totals = sanitizedMeal.totals
     const assignmentTargetTotalCarbs = normalizedAssignments.reduce(
       (sum, assignment) => sum + Number(assignment.targetCarbs || 0),
       0
@@ -312,15 +319,6 @@ export const nutritionPlanService = {
       })
       persistedPlanMeals.push(planMeal)
     }
-    console.log('[nutritionPlanService.lockMeal] upserted', {
-      count: persistedPlanMeals.length,
-      planId: plan.id,
-      meals: persistedPlanMeals.map((planMeal) => ({
-        id: planMeal.id,
-        windowType: planMeal.windowType,
-        scheduledAt: planMeal.scheduledAt
-      }))
-    })
 
     // 3. Update the Nutrition record's fuelingPlan JSON
     // This allows the metabolic engine to see the "Locked" intent in the same transaction context
@@ -351,19 +349,13 @@ export const nutritionPlanService = {
           ...fuelingPlan.windows[windowIndex],
           isLocked: true,
           lockedMealId: lockedMeal.id,
-          lockedMeal: mealForAssignment
+          lockedMeal: (lockedMeal as any)?.mealJson || null
         }
       }
 
       await prisma.nutrition.update({
         where: { id: nutrition.id },
         data: { fuelingPlan }
-      })
-      console.log('[nutritionPlanService.lockMeal] updated nutrition fuelingPlan window lock', {
-        nutritionId: nutrition.id,
-        windowType,
-        slotName,
-        assignments: splitTotalsForAssignments.map((assignment) => assignment.normalizedWindowType)
       })
     }
 

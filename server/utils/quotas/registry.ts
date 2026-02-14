@@ -10,6 +10,7 @@ export type QuotaOperation =
   | 'custom_report_generation'
   | 'unified_report_generation'
   | 'activity_recommendation'
+  | 'meal_recommendation'
   | 'generate_structured_workout'
 
 export type EnforcementType = 'STRICT' | 'MEASURE'
@@ -31,6 +32,8 @@ export const QUOTA_REGISTRY: Record<
     daily_checkin: { limit: 1, window: '24 hours', enforcement: 'MEASURE' },
     unified_report_generation: { limit: 1, window: '30 days', enforcement: 'MEASURE' },
     nutrition_analysis: { limit: 5, window: '7 days', enforcement: 'MEASURE' },
+    activity_recommendation: { limit: 1, window: '24 hours', enforcement: 'MEASURE' },
+    meal_recommendation: { limit: 3, window: '24 hours', enforcement: 'MEASURE' },
     generate_structured_workout: { limit: 5, window: '7 days', enforcement: 'MEASURE' }
   },
   SUPPORTER: {
@@ -40,6 +43,8 @@ export const QUOTA_REGISTRY: Record<
     daily_checkin: { limit: 2, window: '24 hours', enforcement: 'MEASURE' },
     unified_report_generation: { limit: 5, window: '30 days', enforcement: 'MEASURE' },
     nutrition_analysis: { limit: 20, window: '7 days', enforcement: 'MEASURE' },
+    activity_recommendation: { limit: 5, window: '24 hours', enforcement: 'MEASURE' },
+    meal_recommendation: { limit: 10, window: '24 hours', enforcement: 'MEASURE' },
     generate_structured_workout: { limit: 20, window: '7 days', enforcement: 'MEASURE' }
   },
   PRO: {
@@ -49,6 +54,8 @@ export const QUOTA_REGISTRY: Record<
     daily_checkin: { limit: 5, window: '24 hours', enforcement: 'MEASURE' },
     unified_report_generation: { limit: 20, window: '30 days', enforcement: 'MEASURE' },
     nutrition_analysis: { limit: 100, window: '7 days', enforcement: 'MEASURE' },
+    activity_recommendation: { limit: 20, window: '24 hours', enforcement: 'MEASURE' },
+    meal_recommendation: { limit: 50, window: '24 hours', enforcement: 'MEASURE' },
     generate_structured_workout: { limit: 100, window: '7 days', enforcement: 'MEASURE' }
   }
 }
@@ -79,6 +86,7 @@ export function mapOperationToQuota(operation: string): QuotaOperation | null {
     'custom_report_generation',
     'unified_report_generation',
     'activity_recommendation',
+    'meal_recommendation',
     'generate_structured_workout'
   ]
 

@@ -154,5 +154,88 @@ describe('nutritionPlanService', () => {
         )
       ).rejects.toThrow('Invalid date for lockMeal')
     })
+
+    it('normalizes flat meal fields into totals and uses name as title', async () => {
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({
+        id: 'plan-1'
+      } as any)
+      vi.mocked(prisma.nutritionPlanMeal.upsert).mockResolvedValue({
+        id: 'plan-meal-1',
+        planId: 'plan-1',
+        date: new Date('2026-02-14T00:00:00.000Z'),
+        windowType: 'PRE_WORKOUT',
+        scheduledAt: new Date('2026-02-14T00:00:00.000Z')
+      } as any)
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue(null)
+
+      await nutritionPlanService.lockMeal('user-1', '2026-02-14', 'PRE_WORKOUT', {
+        carbs: 70,
+        name: 'Toast Crusher (2 Slices Toast with Honey/Jam)',
+        fat: 2,
+        calories: 320,
+        protein: 5
+      })
+
+      expect(prisma.nutritionPlanMeal.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            mealJson: expect.objectContaining({
+              title: 'Toast Crusher (2 Slices Toast with Honey/Jam)',
+              totals: {
+                carbs: 70,
+                protein: 5,
+                kcal: 320,
+                fat: 2
+              }
+            })
+          })
+        })
+      )
+    })
+
+    it('writes lockedMeal into fueling plan windows without scope errors', async () => {
+      vi.mocked(prisma.nutritionPlan.findFirst).mockResolvedValue({
+        id: 'plan-1'
+      } as any)
+
+      const persistedMeal = {
+        id: 'plan-meal-1',
+        planId: 'plan-1',
+        date: new Date('2026-02-14T00:00:00.000Z'),
+        windowType: 'PRE_WORKOUT',
+        scheduledAt: new Date('2026-02-14T00:00:00.000Z'),
+        mealJson: { title: 'Banana + Gel', totals: { carbs: 45 } }
+      }
+      vi.mocked(prisma.nutritionPlanMeal.upsert).mockResolvedValue(persistedMeal as any)
+
+      vi.mocked(prisma.nutrition.findUnique).mockResolvedValue({
+        id: 'nutrition-1',
+        fuelingPlan: {
+          windows: [{ type: 'PRE_WORKOUT', label: 'Before workout', isLocked: false }]
+        }
+      } as any)
+
+      await nutritionPlanService.lockMeal('user-1', '2026-02-14', 'PRE_WORKOUT', {
+        title: 'Banana + Gel',
+        totals: { carbs: 45 }
+      })
+
+      expect(prisma.nutrition.update).toHaveBeenCalledWith({
+        where: { id: 'nutrition-1' },
+        data: {
+          fuelingPlan: {
+            windows: [
+              {
+                type: 'PRE_WORKOUT',
+                label: 'Before workout',
+                isLocked: true,
+                lockedMealId: 'plan-meal-1',
+                lockedMeal: { title: 'Banana + Gel', totals: { carbs: 45 } }
+              }
+            ]
+          }
+        }
+      })
+    })
   })
 })
