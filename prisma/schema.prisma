@@ -78,6 +78,7 @@ model User {
   aiDeepAnalysisEnabled              Boolean                      @default(false)
   aiProactivityEnabled               Boolean                      @default(false)
   aiAutoAnalyzeReadiness             Boolean                      @default(false)
+  aiRequireToolApproval              Boolean                      @default(false)
   accounts                           Account[]
   activityRecommendations            ActivityRecommendation[]
   apiKeys                            ApiKey[]

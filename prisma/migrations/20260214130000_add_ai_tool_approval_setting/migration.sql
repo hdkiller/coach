@@ -1,0 +1,2 @@
+ALTER TABLE "User"
+ADD COLUMN "aiRequireToolApproval" BOOLEAN NOT NULL DEFAULT false;
