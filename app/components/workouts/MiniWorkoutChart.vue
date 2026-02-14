@@ -16,13 +16,39 @@
 <script setup lang="ts">
   const props = defineProps<{
     workout: any // structuredWorkout JSON
-    preference?: 'hr' | 'power'
+    preference?: 'hr' | 'power' | 'pace'
   }>()
 
   const steps = computed(() => {
     if (!props.workout?.steps || props.workout.steps.length === 0) return []
-    return props.workout.steps
+    return flattenWorkoutSteps(props.workout.steps)
   })
+
+  function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
+    if (!Array.isArray(steps)) return []
+
+    const flattened: any[] = []
+
+    steps.forEach((step: any) => {
+      const children = Array.isArray(step.steps) ? step.steps : []
+      const hasChildren = children.length > 0
+
+      if (hasChildren) {
+        const reps = Number(step.reps) > 1 ? Number(step.reps) : 1
+        for (let i = 0; i < reps; i++) {
+          flattened.push(...flattenWorkoutSteps(children, depth + 1))
+        }
+        return
+      }
+
+      flattened.push({
+        ...step,
+        _depth: depth
+      })
+    })
+
+    return flattened
+  }
 
   const totalDuration = computed(() => {
     return steps.value.reduce(
@@ -40,12 +66,13 @@
     const maxScale = 1.2 // 120% is top of chart
 
     // Intensity range (ramp) support
-    // If preference is specified, try that first
     let range = null
     if (props.preference === 'hr') {
-      range = step.heartRate?.range || step.power?.range
+      range = step.heartRate?.range || step.pace?.range || step.power?.range
+    } else if (props.preference === 'pace') {
+      range = step.pace?.range || step.heartRate?.range || step.power?.range
     } else {
-      range = step.power?.range || step.heartRate?.range
+      range = step.power?.range || step.pace?.range || step.heartRate?.range
     }
 
     if (range) {
@@ -63,9 +90,11 @@
     // Flat intensity support
     let value = 0
     if (props.preference === 'hr') {
-      value = step.heartRate?.value || step.power?.value || 0
+      value = step.heartRate?.value || step.pace?.value || step.power?.value || 0
+    } else if (props.preference === 'pace') {
+      value = step.pace?.value || step.heartRate?.value || step.power?.value || 0
     } else {
-      value = step.power?.value || step.heartRate?.value || 0
+      value = step.power?.value || step.pace?.value || step.heartRate?.value || 0
     }
 
     const height = Math.min((value * 100) / maxScale, 100)

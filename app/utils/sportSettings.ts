@@ -33,31 +33,34 @@ export function getDefaultSportSettings(allSettings: any[]) {
 }
 
 /**
- * Determine the preferred metric (hr or power) based on sport settings preference
+ * Determine the preferred metric (hr, power, or pace) based on sport settings preference
  * and available data streams.
  */
 export function getPreferredMetric(
   settings: any,
-  availableData: { hasHr: boolean; hasPower: boolean }
-): 'hr' | 'power' {
-  const { hasHr, hasPower } = availableData
-
-  // If only one is available, pick that regardless of preference
-  if (hasHr && !hasPower) return 'hr'
-  if (hasPower && !hasHr) return 'power'
-  if (!hasHr && !hasPower) return 'hr' // Final fallback
+  availableData: { hasHr: boolean; hasPower: boolean; hasPace?: boolean }
+): 'hr' | 'power' | 'pace' {
+  const { hasHr, hasPower, hasPace } = availableData
 
   // Both available, check preference
   const preference = settings?.loadPreference || 'POWER_HR_PACE'
 
-  if (preference.startsWith('HR')) {
+  if (preference.startsWith('HR') && hasHr) {
     return 'hr'
   }
 
-  if (preference.startsWith('POWER')) {
+  if (preference.startsWith('POWER') && hasPower) {
     return 'power'
   }
 
-  // Fallback if preference is PACE or something else
-  return 'power'
+  if (preference.includes('PACE') && hasPace) {
+    return 'pace'
+  }
+
+  // Fallbacks if preferred not available
+  if (hasHr) return 'hr'
+  if (hasPower) return 'power'
+  if (hasPace) return 'pace'
+
+  return 'hr' // Final fallback
 }

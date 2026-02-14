@@ -290,7 +290,8 @@
                   :preference="
                     getPreferredMetric(getActivityZones(activity), {
                       hasHr: !!activity.structuredWorkout.steps?.some((s: any) => s.heartRate),
-                      hasPower: !!activity.structuredWorkout.steps?.some((s: any) => s.power)
+                      hasPower: !!activity.structuredWorkout.steps?.some((s: any) => s.power),
+                      hasPace: !!activity.structuredWorkout.steps?.some((s: any) => s.pace)
                     })
                   "
                   class="w-full h-6 opacity-75"
