@@ -60,7 +60,61 @@ export default defineEventHandler(async (event) => {
       .join('')
   }
 
-  const historyMessages = truncatedMessages
+  // Convert legacy tool-role approval messages into assistant approval states.
+  // AI SDK v6 convertToModelMessages accepts only system/user/assistant UI roles.
+  const normalizeMessagesForSdk = (inputMessages: any[]) => {
+    const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
+
+    for (const msg of inputMessages) {
+      if (msg.role !== 'tool') continue
+      const parts = Array.isArray(msg.parts)
+        ? msg.parts
+        : Array.isArray(msg.content)
+          ? msg.content
+          : []
+      for (const part of parts) {
+        if (part?.type !== 'tool-approval-response' || !part.approvalId) continue
+        approvalResponses.set(part.approvalId, {
+          approved: !!part.approved,
+          reason: part.reason || part.result
+        })
+      }
+    }
+
+    return inputMessages
+      .filter((msg) => msg.role !== 'tool')
+      .map((msg) => {
+        if (msg.role !== 'assistant' || !Array.isArray(msg.parts)) return msg
+
+        const parts = msg.parts.map((part: any) => {
+          if (!part?.type?.startsWith('tool-')) return part
+
+          const approvalId = part.approvalId || part.approval?.id
+          if (!approvalId) return part
+
+          const response = approvalResponses.get(approvalId)
+          if (!response) return part
+
+          return {
+            ...part,
+            state: 'approval-responded',
+            approval: {
+              ...(part.approval || {}),
+              id: approvalId,
+              approved: response.approved,
+              reason: response.reason
+            }
+          }
+        })
+
+        return {
+          ...msg,
+          parts
+        }
+      })
+  }
+
+  const historyMessages = normalizeMessagesForSdk(truncatedMessages)
 
   // Allow empty content for tool messages (approvals/results)
   if (!roomId || (!content && lastMessage?.role !== 'tool')) {
