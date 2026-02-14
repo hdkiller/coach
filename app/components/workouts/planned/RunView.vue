@@ -61,10 +61,23 @@
 
   const totalDistance = computed(() => {
     if (!props.workout.structuredWorkout?.steps) return 0
-    return props.workout.structuredWorkout.steps.reduce(
-      (sum: number, step: any) => sum + (step.distance || 0),
-      0
-    )
+
+    const calculateRecursiveDistance = (steps: any[]): number => {
+      return steps.reduce((sum: number, step: any) => {
+        const reps = Number(step.reps) || 1
+        let stepDist = 0
+
+        if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {
+          stepDist = calculateRecursiveDistance(step.steps)
+        } else {
+          stepDist = Number(step.distance) || 0
+        }
+
+        return sum + stepDist * reps
+      }, 0)
+    }
+
+    return calculateRecursiveDistance(props.workout.structuredWorkout.steps)
   })
 
   const avgIntensity = computed(() => {

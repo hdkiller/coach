@@ -43,7 +43,7 @@
             <!-- Intensity bars -->
             <div class="absolute inset-0 flex items-end gap-0.5">
               <UTooltip
-                v-for="(step, index) in workout.steps"
+                v-for="(step, index) in normalizedSteps"
                 :key="index"
                 :popper="{ placement: 'top' }"
                 :style="getStepStyle(step)"
@@ -53,34 +53,8 @@
                   <div class="font-semibold">{{ step.name }}</div>
                   <div class="text-[10px] opacity-80 mt-1">
                     {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
-                    <span v-if="preference === 'hr'">
-                      <span v-if="step.heartRate?.range">
-                        {{ Math.round(step.heartRate.range.start * 100) }}-{{
-                          Math.round(step.heartRate.range.end * 100)
-                        }}% LTHR
-                      </span>
-                      <span v-else-if="step.heartRate?.value">
-                        {{ Math.round(step.heartRate.value * 100) }}% LTHR
-                      </span>
-                      <span v-else-if="step.power">
-                        {{ Math.round((step.power.value || 0) * 100) }}% Power
-                      </span>
-                      <span v-else> {{ getInferredIntensity(step) * 100 }}% (Inferred) </span>
-                    </span>
-                    <span v-else>
-                      <span v-if="step.power?.range">
-                        {{ Math.round(step.power.range.start * 100) }}-{{
-                          Math.round(step.power.range.end * 100)
-                        }}% Power
-                      </span>
-                      <span v-else-if="step.power?.value">
-                        {{ Math.round(step.power.value * 100) }}% Power
-                      </span>
-                      <span v-else-if="step.heartRate">
-                        {{ Math.round((step.heartRate.value || 0) * 100) }}% LTHR
-                      </span>
-                      <span v-else> {{ getInferredIntensity(step) * 100 }}% (Inferred) </span>
-                    </span>
+                    {{ getStepIntensityLabel(step) }}
+                    <span v-if="!step.heartRate && !step.power && !step.pace"> (Inferred)</span>
                   </div>
                 </template>
                 <div class="w-full h-full" />
@@ -106,7 +80,7 @@
         <h4 class="text-sm font-semibold text-muted">Workout Steps</h4>
         <div class="space-y-1">
           <div
-            v-for="(step, index) in workout.steps"
+            v-for="(step, index) in normalizedSteps"
             :key="index"
             class="rounded hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors p-2"
           >
@@ -143,42 +117,15 @@
                   </div>
 
                   <!-- Intensity % -->
-                  <div class="w-18 font-bold flex-shrink-0">
-                    <template v-if="preference === 'hr'">
-                      <span v-if="step.heartRate?.range">
-                        {{ Math.round(step.heartRate.range.start * 100) }}-{{
-                          Math.round(step.heartRate.range.end * 100)
-                        }}% LTHR
-                      </span>
-                      <span v-else-if="step.heartRate?.value">
-                        {{ Math.round(step.heartRate.value * 100) }}% LTHR
-                      </span>
-                      <span v-else-if="step.power">
-                        {{ Math.round((step.power.value || 0) * 100) }}%
-                      </span>
-                      <span v-else> {{ getInferredIntensity(step) * 100 }}% </span>
-                    </template>
-                    <template v-else>
-                      <span v-if="step.power?.range">
-                        {{ Math.round(step.power.range.start * 100) }}-{{
-                          Math.round(step.power.range.end * 100)
-                        }}%
-                      </span>
-                      <span v-else-if="step.power?.value">
-                        {{ Math.round(step.power.value * 100) }}%
-                      </span>
-                      <span v-else-if="step.heartRate">
-                        {{ Math.round((step.heartRate.value || 0) * 100) }}% LTHR
-                      </span>
-                      <span v-else> {{ getInferredIntensity(step) * 100 }}% </span>
-                    </template>
+                  <div class="w-24 font-bold flex-shrink-0">
+                    {{ getStepIntensityLabel(step) }}
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Desktop View -->
-            <div class="hidden sm:grid grid-cols-[12px_1fr_48px_80px_110px] items-center gap-4">
+            <div class="hidden sm:grid grid-cols-[12px_1fr_48px_80px_140px] items-center gap-4">
               <div
                 class="w-3 h-3 rounded-full flex-shrink-0 mt-1"
                 :style="{ backgroundColor: getStepColor(getStepIntensity(step)) }"
@@ -197,34 +144,7 @@
               </div>
               <div class="text-right">
                 <div class="text-sm font-bold whitespace-nowrap">
-                  <template v-if="preference === 'hr'">
-                    <span v-if="step.heartRate?.range">
-                      {{ Math.round(step.heartRate.range.start * 100) }}-{{
-                        Math.round(step.heartRate.range.end * 100)
-                      }}% LTHR
-                    </span>
-                    <span v-else-if="step.heartRate?.value">
-                      {{ Math.round(step.heartRate.value * 100) }}% LTHR
-                    </span>
-                    <span v-else-if="step.power">
-                      {{ Math.round((step.power.value || 0) * 100) }}%
-                    </span>
-                    <span v-else> {{ getInferredIntensity(step) * 100 }}% </span>
-                  </template>
-                  <template v-else>
-                    <span v-if="step.power?.range">
-                      {{ Math.round(step.power.range.start * 100) }}-{{
-                        Math.round(step.power.range.end * 100)
-                      }}%
-                    </span>
-                    <span v-else-if="step.power?.value">
-                      {{ Math.round(step.power.value * 100) }}%
-                    </span>
-                    <span v-else-if="step.heartRate">
-                      {{ Math.round((step.heartRate.value || 0) * 100) }}% LTHR
-                    </span>
-                    <span v-else> {{ getInferredIntensity(step) * 100 }}% </span>
-                  </template>
+                  {{ getStepIntensityLabel(step) }}
                 </div>
                 <div class="text-[10px] text-muted">
                   {{ formatDuration(step.durationSeconds || step.duration || 0) }}
@@ -297,9 +217,10 @@
   )
 
   // Computed properties
+  const normalizedSteps = computed(() => flattenWorkoutSteps(props.workout?.steps || []))
+
   const totalDuration = computed(() => {
-    if (!props.workout?.steps) return 0
-    return props.workout.steps.reduce(
+    return normalizedSteps.value.reduce(
       (sum: number, step: any) => sum + (step.durationSeconds || step.duration || 0),
       0
     )
@@ -314,9 +235,9 @@
       { name: 'Z5', min: 1.05, max: 9.99, duration: 0, color: ZONE_COLORS[4] } // Red
     ]
 
-    if (!props.workout?.steps) return distribution
+    if (!normalizedSteps.value.length) return distribution
 
-    props.workout.steps.forEach((step: any) => {
+    normalizedSteps.value.forEach((step: any) => {
       const intensity = getStepIntensity(step)
       const duration = step.durationSeconds || step.duration || 0
 
@@ -333,6 +254,49 @@
   function getZoneSegmentTooltip(zone: any) {
     const percent = Math.round((zone.duration / totalDuration.value) * 100)
     return `${zone.name}: ${formatDuration(zone.duration)} (${percent}%) (${props.preference === 'hr' ? 'HR' : 'Power'})`
+  }
+
+  function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
+    if (!Array.isArray(steps)) return []
+
+    const flattened: any[] = []
+
+    steps.forEach((step: any) => {
+      const children = Array.isArray(step.steps) ? step.steps : []
+      const hasChildren = children.length > 0
+
+      if (hasChildren) {
+        const reps = Number(step.reps) > 1 ? Number(step.reps) : 1
+        for (let i = 0; i < reps; i++) {
+          flattened.push(...flattenWorkoutSteps(children, depth + 1))
+        }
+        return
+      }
+
+      flattened.push({
+        ...step,
+        _depth: depth
+      })
+    })
+
+    return flattened
+  }
+
+  function getStepIntensityLabel(step: any): string {
+    if (step.heartRate?.range) {
+      return `${Math.round(step.heartRate.range.start * 100)}-${Math.round(step.heartRate.range.end * 100)}% LTHR`
+    } else if (step.heartRate?.value) {
+      return `${Math.round(step.heartRate.value * 100)}% LTHR`
+    } else if (step.power?.range) {
+      return `${Math.round(step.power.range.start * 100)}-${Math.round(step.power.range.end * 100)}% Power`
+    } else if (step.power?.value) {
+      return `${Math.round(step.power.value * 100)}% Power`
+    } else if (step.pace?.range) {
+      return `${Math.round(step.pace.range.start * 100)}-${Math.round(step.pace.range.end * 100)}% Pace`
+    } else if (step.pace?.value) {
+      return `${Math.round(step.pace.value * 100)}% Pace`
+    }
+    return `${Math.round(getInferredIntensity(step) * 100)}%`
   }
 
   function getStepIntensity(step: any): number {
