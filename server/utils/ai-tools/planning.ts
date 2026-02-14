@@ -22,6 +22,171 @@ import {
   getEndOfLocalDateUTC
 } from '../../utils/date'
 
+const structuredWorkoutSchema = z
+  .object({
+    description: z.string().optional(),
+    coachInstructions: z.string().optional(),
+    messages: z.array(z.string()).optional(),
+    steps: z.array(z.record(z.string(), z.unknown())).optional(),
+    exercises: z.array(z.record(z.string(), z.unknown())).optional()
+  })
+  .passthrough()
+  .refine(
+    (value) =>
+      value.description !== undefined ||
+      value.coachInstructions !== undefined ||
+      value.messages !== undefined ||
+      value.steps !== undefined ||
+      value.exercises !== undefined,
+    {
+      message:
+        'structured_workout must include at least one of: description, coachInstructions, messages, steps, exercises'
+    }
+  )
+
+const patchOperationSchema = z.object({
+  op: z.enum(['add', 'replace', 'remove']),
+  path: z
+    .string()
+    .describe(
+      'Dot path inside structured workout (e.g. "steps.0.name", "messages.1", "coachInstructions")'
+    ),
+  value: z.unknown().optional()
+})
+
+const parsePatchPath = (rawPath: string): string[] => {
+  const normalized = rawPath
+    .trim()
+    .replace(/^structured_workout\./, '')
+    .replace(/^structuredWorkout\./, '')
+    .replace(/^\./, '')
+
+  if (!normalized) {
+    throw new Error('Patch path cannot be empty')
+  }
+
+  return normalized.split('.').filter(Boolean)
+}
+
+const toArrayIndex = (segment: string, length: number, allowEnd = false): number => {
+  if (segment === '-' && allowEnd) return length
+  const index = Number(segment)
+  if (!Number.isInteger(index)) {
+    throw new Error(`Invalid array index "${segment}"`)
+  }
+  if (index < 0) {
+    throw new Error(`Array index out of bounds: ${index}`)
+  }
+  return index
+}
+
+const resolvePatchParent = (root: any, pathSegments: string[]) => {
+  let parent = root
+
+  for (let i = 0; i < pathSegments.length - 1; i++) {
+    const segment = pathSegments[i]
+    if (segment === '__proto__' || segment === 'constructor' || segment === 'prototype') {
+      throw new Error(`Unsafe patch path segment "${segment}"`)
+    }
+
+    if (Array.isArray(parent)) {
+      const index = toArrayIndex(segment, parent.length)
+      if (index >= parent.length) {
+        throw new Error(`Array path segment out of bounds at "${segment}"`)
+      }
+      parent = parent[index]
+      continue
+    }
+
+    if (parent === null || typeof parent !== 'object') {
+      throw new Error(`Path segment "${segment}" does not resolve to an object or array`)
+    }
+
+    if (!(segment in parent)) {
+      throw new Error(`Path segment "${segment}" does not exist`)
+    }
+    parent = parent[segment]
+  }
+
+  return { parent, key: pathSegments[pathSegments.length - 1] }
+}
+
+const applyStructurePatchOperation = (structuredWorkout: any, operation: any) => {
+  const pathSegments = parsePatchPath(operation.path)
+  const { parent, key } = resolvePatchParent(structuredWorkout, pathSegments)
+
+  if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+    throw new Error(`Unsafe patch key "${key}"`)
+  }
+
+  if (operation.op === 'add') {
+    if (operation.value === undefined) {
+      throw new Error(`Patch operation "add" requires a value`)
+    }
+
+    if (Array.isArray(parent)) {
+      const index = toArrayIndex(key, parent.length, true)
+      if (index > parent.length) {
+        throw new Error(`Array index out of bounds: ${index}`)
+      }
+      parent.splice(index, 0, operation.value)
+      return
+    }
+
+    if (parent === null || typeof parent !== 'object') {
+      throw new Error('Cannot add value to non-object parent')
+    }
+
+    parent[key] = operation.value
+    return
+  }
+
+  if (operation.op === 'replace') {
+    if (operation.value === undefined) {
+      throw new Error(`Patch operation "replace" requires a value`)
+    }
+
+    if (Array.isArray(parent)) {
+      const index = toArrayIndex(key, parent.length)
+      if (index >= parent.length) {
+        throw new Error(`Array index out of bounds: ${index}`)
+      }
+      parent[index] = operation.value
+      return
+    }
+
+    if (parent === null || typeof parent !== 'object') {
+      throw new Error('Cannot replace value on non-object parent')
+    }
+
+    if (!(key in parent)) {
+      throw new Error(`Path "${operation.path}" does not exist for replace`)
+    }
+    parent[key] = operation.value
+    return
+  }
+
+  if (operation.op === 'remove') {
+    if (Array.isArray(parent)) {
+      const index = toArrayIndex(key, parent.length)
+      if (index >= parent.length) {
+        throw new Error(`Array index out of bounds: ${index}`)
+      }
+      parent.splice(index, 1)
+      return
+    }
+
+    if (parent === null || typeof parent !== 'object') {
+      throw new Error('Cannot remove value from non-object parent')
+    }
+
+    if (!(key in parent)) {
+      throw new Error(`Path "${operation.path}" does not exist for remove`)
+    }
+    delete parent[key]
+  }
+}
+
 export const planningTools = (userId: string, timezone: string) => ({
   get_planned_workouts: tool({
     description: 'Get a list of planned workouts for a specific date range.',
@@ -177,6 +342,129 @@ export const planningTools = (userId: string, timezone: string) => ({
       return {
         ...workout,
         date: formatDateUTC(workout.date)
+      }
+    }
+  }),
+
+  get_planned_workout_structure: tool({
+    description:
+      'Get only the structured workout data (steps/exercises/instructions) for a planned workout.',
+    inputSchema: z.object({
+      workout_id: z.string().describe('The ID of the planned workout')
+    }),
+    execute: async ({ workout_id }) => {
+      const workout = (await plannedWorkoutRepository.getById(workout_id, userId, {
+        select: {
+          id: true,
+          title: true,
+          date: true,
+          type: true,
+          durationSec: true,
+          structuredWorkout: true,
+          updatedAt: true
+        }
+      })) as any
+
+      if (!workout) return { error: 'Planned workout not found' }
+
+      return {
+        success: true,
+        workout_id: workout.id,
+        title: workout.title,
+        date: formatDateUTC(workout.date),
+        type: workout.type,
+        duration_minutes: workout.durationSec ? Math.round(workout.durationSec / 60) : undefined,
+        has_structure: Boolean(workout.structuredWorkout),
+        structured_workout: workout.structuredWorkout || null,
+        updated_at: workout.updatedAt
+      }
+    }
+  }),
+
+  set_planned_workout_structure: tool({
+    description:
+      'Directly set a planned workout structure (steps/exercises/instructions) without AI regeneration.',
+    inputSchema: z.object({
+      workout_id: z.string().describe('The ID of the planned workout'),
+      structured_workout: structuredWorkoutSchema
+    }),
+    execute: async ({ workout_id, structured_workout }) => {
+      const existing = (await plannedWorkoutRepository.getById(workout_id, userId, {
+        select: {
+          id: true,
+          syncStatus: true
+        }
+      })) as any
+
+      if (!existing) return { error: 'Planned workout not found' }
+
+      const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
+        structuredWorkout: structured_workout as any,
+        modifiedLocally: true,
+        syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
+        syncError: null
+      })) as any
+
+      return {
+        success: true,
+        workout_id: updated.id,
+        status: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'QUEUED_FOR_SYNC',
+        message:
+          'Planned workout structure updated. Publish to Intervals.icu when you are ready to push changes.',
+        structured_workout: updated.structuredWorkout
+      }
+    }
+  }),
+
+  patch_planned_workout_structure: tool({
+    description:
+      'Patch specific parts of a planned workout structure using add/replace/remove operations.',
+    inputSchema: z.object({
+      workout_id: z.string().describe('The ID of the planned workout'),
+      operations: z.array(patchOperationSchema).min(1)
+    }),
+    execute: async ({ workout_id, operations }) => {
+      const existing = (await plannedWorkoutRepository.getById(workout_id, userId, {
+        select: {
+          id: true,
+          syncStatus: true,
+          structuredWorkout: true
+        }
+      })) as any
+
+      if (!existing) return { error: 'Planned workout not found' }
+      if (!existing.structuredWorkout || typeof existing.structuredWorkout !== 'object') {
+        return {
+          success: false,
+          error: 'No structured workout exists yet. Use generate or set first.'
+        }
+      }
+
+      try {
+        const patched = JSON.parse(JSON.stringify(existing.structuredWorkout))
+        for (const operation of operations) {
+          applyStructurePatchOperation(patched, operation)
+        }
+
+        const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
+          structuredWorkout: patched as any,
+          modifiedLocally: true,
+          syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
+          syncError: null
+        })) as any
+
+        return {
+          success: true,
+          workout_id: updated.id,
+          status: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'QUEUED_FOR_SYNC',
+          applied_operations: operations.length,
+          structured_workout: updated.structuredWorkout
+        }
+      } catch (e: any) {
+        return {
+          success: false,
+          error: e?.message || 'Failed to patch structured workout.'
+        }
       }
     }
   }),
