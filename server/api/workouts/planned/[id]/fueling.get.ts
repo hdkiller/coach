@@ -1,7 +1,7 @@
 import { prisma } from '../../../../utils/db'
 import { getServerSession } from '../../../../utils/session'
 import { getUserNutritionSettings } from '../../../../utils/nutrition/settings'
-import { calculateFuelingStrategy } from '../../../../utils/nutrition/fueling'
+import { calculateFuelingStrategy } from '../../../../utils/nutrition-domain'
 import { buildZonedDateTimeFromUtcDate, getUserTimezone } from '../../../../utils/date'
 
 export default defineEventHandler(async (event) => {

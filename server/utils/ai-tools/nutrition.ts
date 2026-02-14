@@ -13,11 +13,13 @@ import {
   getStartOfLocalDateUTC,
   getEndOfLocalDateUTC
 } from '../../utils/date'
-import { calculateGlycogenState, calculateEnergyTimeline } from '../nutrition-domain/logic'
+import { calculateGlycogenState, calculateEnergyTimeline } from '../nutrition-domain'
 import { getProfileForItem } from '../nutrition-domain/absorption'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../services/metabolicService'
 import { INTRA_WORKOUT_TARGET_ML_PER_HOUR, MEAL_LINKED_WATER_ML } from '../nutrition/hydration'
+import { mealRecommendationService } from '../services/mealRecommendationService'
+import { nutritionPlanService } from '../services/nutritionPlanService'
 
 const DEFAULT_MEAL_TIMES: Record<'breakfast' | 'lunch' | 'dinner' | 'snacks', string> = {
   breakfast: '07:00',
@@ -706,6 +708,45 @@ export const nutritionTools = (userId: string, timezone: string) => ({
         },
         workouts_on_day: workoutStates.length
       }
+    }
+  }),
+
+  get_meal_recommendations: tool({
+    description:
+      'Get tailored meal recommendations for a specific window (PRE_WORKOUT, POST_WORKOUT, etc.) based on metabolic needs. Returns multiple options from the catalog or AI-generated.',
+    inputSchema: z.object({
+      date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
+      window_type: z
+        .enum(['PRE_WORKOUT', 'INTRA_WORKOUT', 'POST_WORKOUT', 'DAILY_BASE'])
+        .optional()
+        .describe('Specific window type to get recommendations for')
+    }),
+    execute: async ({ date, window_type }) => {
+      const targetDate = new Date(`${date}T12:00:00Z`)
+      const result = await mealRecommendationService.getRecommendations(userId, targetDate, {
+        scope: 'MEAL',
+        windowType: window_type
+      })
+      return result
+    }
+  }),
+
+  lock_meal_to_plan: tool({
+    description:
+      "Lock a specific meal option into the user's nutrition plan for a metabolic window.",
+    inputSchema: z.object({
+      date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
+      window_type: z.string().describe('The window type (e.g. PRE_WORKOUT)'),
+      meal: z.any().describe('The meal object to lock (from get_meal_recommendations)')
+    }),
+    execute: async ({ date, window_type, meal }) => {
+      const result = await nutritionPlanService.lockMeal(
+        userId,
+        new Date(`${date}T12:00:00Z`),
+        window_type,
+        meal
+      )
+      return { success: true, planMeal: result }
     }
   })
 })

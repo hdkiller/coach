@@ -3,7 +3,7 @@ import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../utils/date'
 import { prisma } from '../../utils/db'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
-import { calculateFuelingStrategy } from '../../utils/nutrition/fueling'
+import { calculateFuelingStrategy } from '../../utils/nutrition-domain'
 import {
   getHydrationRingStatus,
   HYDRATION_DEBT_FLUSH_THRESHOLD_ML,

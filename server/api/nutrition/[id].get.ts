@@ -1,18 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
-import { getUserNutritionSettings } from '../../utils/nutrition/settings'
-import {
-  calculateFuelingStrategy,
-  calculateDailyCalorieBreakdown
-} from '../../utils/nutrition/fueling'
-import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
-import {
-  buildZonedDateTimeFromUtcDate,
-  getEndOfDayUTC,
-  getStartOfDayUTC,
-  getUserTimezone
-} from '../../utils/date'
 import { metabolicService } from '../../utils/services/metabolicService'
 
 export default defineEventHandler(async (event) => {
@@ -61,7 +49,7 @@ export default defineEventHandler(async (event) => {
   let glycogenState: any = null
 
   if (dateObj) {
-    const state = await metabolicService.getMetabolicState(userId, dateObj)
+    const state = await metabolicService.getMetabolicStateForDate(userId, dateObj)
     startingGlycogen = state.startingGlycogen
     startingFluid = state.startingFluid
 
@@ -75,175 +63,37 @@ export default defineEventHandler(async (event) => {
     )
     energyPoints = timelineResult.points
     glycogenState = timelineResult.liveStatus
-  }
 
-  // AGGREGATED CALORIE AND PLAN ESTIMATION
-  if (dateObj) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { weight: true, ftp: true }
-    })
-    const settings = await getUserNutritionSettings(userId)
-    const timezone = await getUserTimezone(userId)
-    const dayStart = getStartOfDayUTC(timezone, dateObj)
-    const dayEnd = getEndOfDayUTC(timezone, dateObj)
-    const [plannedWorkouts, completedWorkouts] = await Promise.all([
-      plannedWorkoutRepository.list(userId, {
-        startDate: dateObj,
-        endDate: dateObj,
-        limit: 20
-      }),
-      prisma.workout.findMany({
-        where: {
-          userId,
-          isDuplicate: false,
-          date: {
-            gte: dayStart,
-            lte: dayEnd
-          }
-        },
-        include: {
-          plannedWorkout: {
-            select: {
-              fuelingStrategy: true
-            }
-          }
-        },
-        orderBy: { date: 'asc' }
+    // Use unified service for fueling plan if missing or needs refresh
+    if (!nutrition || !nutrition.fuelingPlan) {
+      const planResult = await metabolicService.calculateFuelingPlanForDate(userId, dateObj, {
+        persist: false
       })
-    ])
+      const estimate = planResult.plan as any
 
-    const profile = {
-      weight: user?.weight || 75,
-      ftp: user?.ftp || 250,
-      currentCarbMax: settings.currentCarbMax,
-      sodiumTarget: settings.sodiumTarget,
-      sweatRate: settings.sweatRate ?? undefined,
-      preWorkoutWindow: settings.preWorkoutWindow,
-      postWorkoutWindow: settings.postWorkoutWindow,
-      fuelingSensitivity: settings.fuelingSensitivity,
-      fuelState1Trigger: settings.fuelState1Trigger,
-      fuelState1Min: settings.fuelState1Min,
-      fuelState1Max: settings.fuelState1Max,
-      fuelState2Trigger: settings.fuelState2Trigger,
-      fuelState2Min: settings.fuelState2Min,
-      fuelState2Max: settings.fuelState2Max,
-      fuelState3Min: settings.fuelState3Min,
-      fuelState3Max: settings.fuelState3Max,
-      bmr: settings.bmr ?? 1600,
-      activityLevel: settings.activityLevel || 'ACTIVE',
-      targetAdjustmentPercent: settings.targetAdjustmentPercent ?? 0
-    }
-
-    const completedPlannedIds = new Set(
-      completedWorkouts.map((w) => w.plannedWorkoutId).filter(Boolean)
-    )
-    const remainingPlanned = plannedWorkouts.filter((p) => !completedPlannedIds.has(p.id))
-
-    const completedContexts: any[] = completedWorkouts.map((workout) => ({
-      ...workout,
-      startTime: workout.date,
-      durationHours: (workout.durationSec || 0) / 3600,
-      intensity: workout.intensity || 0.6,
-      strategyOverride: workout.plannedWorkout?.fuelingStrategy || undefined
-    }))
-
-    const plannedContexts: any[] = remainingPlanned.map((workout) => {
-      let startTimeDate: Date | null = null
-      if (
-        workout.startTime &&
-        typeof workout.startTime === 'string' &&
-        workout.startTime.includes(':')
-      ) {
-        startTimeDate = buildZonedDateTimeFromUtcDate(
-          workout.date,
-          workout.startTime,
-          timezone,
-          10,
-          0
-        )
-      }
-      return {
-        ...workout,
-        startTime: startTimeDate,
-        durationHours: (workout.durationSec || 0) / 3600,
-        intensity: workout.workIntensity || 0.5,
-        strategyOverride: workout?.fuelingStrategy || undefined
-      }
-    })
-    const contexts: any[] = [...completedContexts, ...plannedContexts]
-
-    // Aggregate energy demand
-    const breakdown = calculateDailyCalorieBreakdown(profile, contexts)
-
-    // Create a plain result object to avoid Prisma serialization issues
-    const plainNutrition = { ...nutrition }
-
-    if (plainNutrition && plainNutrition.fuelingPlan) {
-      // Upcast existing plan if missing granular totals
-      const fp = { ...(plainNutrition.fuelingPlan as any) }
-      if (
-        fp &&
-        fp.dailyTotals &&
-        (!fp.dailyTotals.baseCalories || !fp.dailyTotals.workoutCalories)
-      ) {
-        fp.dailyTotals.baseCalories = breakdown.baseCalories
-        fp.dailyTotals.activityCalories = breakdown.activityCalories
-        fp.dailyTotals.adjustmentCalories = breakdown.adjustmentCalories
-        fp.dailyTotals.workoutCalories = breakdown.workouts.map((w: any) => ({
-          title: w.title,
-          calories: w.calories
-        }))
-
-        // Correct the total goal if it deviates significantly and not locked
-        if (
-          !plainNutrition.isManualLock &&
-          Math.abs((plainNutrition.caloriesGoal || 0) - breakdown.totalTarget) > 10
-        ) {
-          plainNutrition.caloriesGoal = breakdown.totalTarget
-          fp.dailyTotals.calories = breakdown.totalTarget
+      if (!nutrition) {
+        nutrition = {
+          date: dateObj,
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          caloriesGoal: estimate.dailyTotals.calories,
+          proteinGoal: estimate.dailyTotals.protein,
+          carbsGoal: estimate.dailyTotals.carbs,
+          fatGoal: estimate.dailyTotals.fat,
+          fuelingPlan: estimate,
+          aiAnalysisStatus: 'NOT_STARTED',
+          isEstimate: true
         }
-        plainNutrition.fuelingPlan = fp
-      }
-    } else if (dateObj) {
-      // Proactive estimation
-      const primaryContext =
-        contexts.length > 0
-          ? contexts[0]
-          : { title: 'Rest', intensity: 0, durationHours: 0, startTime: null, type: 'Rest' }
-      const estimate = calculateFuelingStrategy(profile, primaryContext) as any
-
-      estimate.dailyTotals.calories = breakdown.totalTarget
-      estimate.dailyTotals.baseCalories = breakdown.baseCalories
-      estimate.dailyTotals.activityCalories = breakdown.activityCalories
-      estimate.dailyTotals.adjustmentCalories = breakdown.adjustmentCalories
-      estimate.dailyTotals.workoutCalories = breakdown.workouts.map((w: any) => ({
-        title: w.title,
-        calories: w.calories
-      }))
-
-      if (!plainNutrition.date) {
-        plainNutrition.date = dateObj
-        plainNutrition.calories = 0
-        plainNutrition.protein = 0
-        plainNutrition.carbs = 0
-        plainNutrition.fat = 0
-        plainNutrition.caloriesGoal = estimate.dailyTotals.calories
-        plainNutrition.proteinGoal = estimate.dailyTotals.protein
-        plainNutrition.carbsGoal = estimate.dailyTotals.carbs
-        plainNutrition.fatGoal = estimate.dailyTotals.fat
-        plainNutrition.fuelingPlan = estimate
-        plainNutrition.aiAnalysisStatus = 'NOT_STARTED'
-        plainNutrition.isEstimate = true
       } else {
-        plainNutrition.fuelingPlan = estimate
-        plainNutrition.caloriesGoal = estimate.dailyTotals.calories
-        plainNutrition.proteinGoal = estimate.dailyTotals.protein
-        plainNutrition.carbsGoal = estimate.dailyTotals.carbs
-        plainNutrition.fatGoal = estimate.dailyTotals.fat
+        nutrition.fuelingPlan = estimate
+        nutrition.caloriesGoal = estimate.dailyTotals.calories
+        nutrition.proteinGoal = estimate.dailyTotals.protein
+        nutrition.carbsGoal = estimate.dailyTotals.carbs
+        nutrition.fatGoal = estimate.dailyTotals.fat
       }
     }
-    nutrition = plainNutrition
   }
 
   if (!nutrition) {

@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const userId = await getEffectiveUserId(event)
   const timezone = await getUserTimezone(userId)
   const today = getUserLocalDate(timezone)
-  const state = await metabolicService.getMetabolicState(userId, today)
+  const state = await metabolicService.getMetabolicStateForDate(userId, today)
 
   await nutritionRepository.upsert(
     userId,

@@ -11,7 +11,7 @@ import { nutritionRepository } from '../../utils/repositories/nutritionRepositor
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { calendarNoteRepository } from '../../utils/repositories/calendarNoteRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
-import { calculateFuelingStrategy } from '../../utils/nutrition/fueling'
+import { calculateFuelingStrategy } from '../../utils/nutrition-domain'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../../utils/services/metabolicService'
 
