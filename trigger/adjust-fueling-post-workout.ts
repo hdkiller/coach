@@ -5,7 +5,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import type {
   SerializedFuelingPlan,
   SerializedFuelingWindow
-} from '../server/utils/nutrition/fueling'
+} from '../server/utils/nutrition-domain'
 
 export const adjustFuelingPostWorkoutTask = task({
   id: 'adjust-fueling-post-workout',

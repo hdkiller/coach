@@ -7,7 +7,7 @@ import {
   getStartOfDayUTC,
   getEndOfDayUTC
 } from '../../server/utils/date'
-import { calculateEnergyTimeline } from '../../app/utils/nutrition-logic'
+import { calculateEnergyTimeline } from '../../server/utils/nutrition-domain'
 import { workoutRepository } from '../../server/utils/repositories/workoutRepository'
 import { plannedWorkoutRepository } from '../../server/utils/repositories/plannedWorkoutRepository'
 import { nutritionRepository } from '../../server/utils/repositories/nutritionRepository'
@@ -193,7 +193,7 @@ const chainCommand = new Command('chain')
             where: { userId: user.id, date: date },
             data: { startingGlycogenPercentage: null, startingFluidDeficit: null }
           })
-          await metabolicService.ensureMetabolicState(user.id, date)
+          await metabolicService.repairMetabolicChain(user.id, date)
         }
       }
 

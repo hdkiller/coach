@@ -86,9 +86,9 @@ const debugMetabolicCommand = new Command('debug-metabolic')
 
       // 3. Simulation
       console.log(chalk.yellow('\n3. Metabolic Chain Simulation:'))
-      const chainState = await metabolicService.ensureMetabolicState(userId, targetDate)
+      const chainState = await metabolicService.repairMetabolicChain(userId, targetDate)
       console.log(
-        `- ensureMetabolicState returned: ${chalk.green(chainState.startingGlycogen.toFixed(1))}%`
+        `- repairMetabolicChain returned: ${chalk.green(chainState.startingGlycogen.toFixed(1))}%`
       )
 
       // 4. Unified Simulation (Chart + Tank)
@@ -124,7 +124,7 @@ const debugMetabolicCommand = new Command('debug-metabolic')
       // 6. Check Next Day start
       const tomorrow = new Date(targetDate)
       tomorrow.setUTCDate(targetDate.getUTCDate() + 1)
-      const tomorrowState = await metabolicService.ensureMetabolicState(userId, tomorrow)
+      const tomorrowState = await metabolicService.repairMetabolicChain(userId, tomorrow)
       console.log(
         `\n- Tomorrow Morning Start (Calculated): ${chalk.cyan(tomorrowState.startingGlycogen.toFixed(1))}%`
       )

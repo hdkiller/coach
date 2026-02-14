@@ -4,7 +4,7 @@ import { nutritionRepository } from '../../server/utils/repositories/nutritionRe
 import { plannedWorkoutRepository } from '../../server/utils/repositories/plannedWorkoutRepository'
 import { getUserNutritionSettings } from '../../server/utils/nutrition/settings'
 import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../server/utils/date'
-import { calculateEnergyTimeline } from '../../app/utils/nutrition-logic'
+import { calculateEnergyTimeline } from '../../server/utils/nutrition-domain'
 import { metabolicService } from '../../server/utils/services/metabolicService'
 import chalk from 'chalk'
 import Table from 'cli-table3'
@@ -52,7 +52,7 @@ const debugChartCommand = new Command('chart')
         user: { weight: user.weight || 75 }
       }
 
-      const state = await metabolicService.ensureMetabolicState(user.id, targetDate)
+      const state = await metabolicService.repairMetabolicChain(user.id, targetDate)
 
       console.log(
         chalk.yellow(`

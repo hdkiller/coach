@@ -2,7 +2,7 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import { prisma } from '../../server/utils/db'
 import { getUserNutritionSettings } from '../../server/utils/nutrition/settings'
-import { calculateFuelingStrategy } from '../../server/utils/nutrition/fueling'
+import { calculateFuelingStrategy } from '../../server/utils/nutrition-domain'
 import {
   buildZonedDateTimeFromUtcDate,
   getUserTimezone,

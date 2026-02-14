@@ -2,7 +2,7 @@ import { schedules } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
 import { getUserLocalDate, getUserTimezone } from '../server/utils/date'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
-import type { SerializedFuelingPlan } from '../server/utils/nutrition/fueling'
+import type { SerializedFuelingPlan } from '../server/utils/nutrition-domain'
 
 export const nutritionLastCallTask = schedules.task({
   id: 'nutrition-last-call',

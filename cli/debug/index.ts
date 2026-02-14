@@ -30,6 +30,7 @@ import pmcCommand from './pmc'
 import chatHistoryCommand from './chat-history'
 import quotasCommand from './quotas'
 import chartCommand from './chart'
+import nutritionPlanDebugCommand from './nutrition-plan'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -64,5 +65,6 @@ debugCommand.addCommand(pmcCommand)
 debugCommand.addCommand(chatHistoryCommand)
 debugCommand.addCommand(quotasCommand)
 debugCommand.addCommand(chartCommand)
+debugCommand.addCommand(nutritionPlanDebugCommand)
 
 export default debugCommand

@@ -8,6 +8,9 @@ import chainCommand from './chain'
 import debugMetabolicCommand from './debug-metabolic'
 import fuelingWorkoutCommand from './fueling-workout'
 import compareFuelingCommand from './compare-fueling'
+import seedCatalogCommand from './seed-catalog'
+
+import offCommand from './off'
 
 const nutritionCommand = new Command('nutrition').description('Nutrition management commands')
 
@@ -20,5 +23,7 @@ nutritionCommand.addCommand(chainCommand)
 nutritionCommand.addCommand(debugMetabolicCommand)
 nutritionCommand.addCommand(fuelingWorkoutCommand)
 nutritionCommand.addCommand(compareFuelingCommand)
+nutritionCommand.addCommand(seedCatalogCommand)
+nutritionCommand.addCommand(offCommand)
 
 export default nutritionCommand
