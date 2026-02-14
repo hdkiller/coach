@@ -168,7 +168,7 @@
                 {{ trainingContextSummary }}
               </p>
               <div v-if="showTrainingContextDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
-                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700">
+                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
                   <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Goal / Plan</div>
                   <div class="text-sm font-semibold text-gray-900 dark:text-white">
                     {{
@@ -178,19 +178,19 @@
                     }}
                   </div>
                 </div>
-                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700">
+                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
                   <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Block</div>
                   <div class="text-sm font-semibold text-gray-900 dark:text-white">
                     {{ workout.trainingWeek.block.name }}
                   </div>
                 </div>
-                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700">
+                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
                   <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Week</div>
                   <div class="text-sm font-semibold text-gray-900 dark:text-white">
                     {{ workout.trainingWeek.weekNumber }}
                   </div>
                 </div>
-                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700">
+                <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
                   <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Focus</div>
                   <div class="text-sm font-semibold text-gray-900 dark:text-white">
                     {{ workout.trainingWeek.focus || workout.trainingWeek.block.primaryFocus }}
@@ -291,7 +291,7 @@
           <!-- No Structured Data -->
           <div
             v-else
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+            class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6"
           >
             <div class="text-center py-8">
               <UIcon name="i-heroicons-chart-bar" class="w-12 h-12 text-muted mx-auto mb-3" />
@@ -484,7 +484,7 @@
           Intervals.icu calendar for <strong>{{ formatDate(workout.date) }}</strong
           >.
         </p>
-        <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg text-sm">
+        <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm">
           <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
             <li>Structured intervals will be {{ isLocalWorkout ? 'included' : 'updated' }}</li>
             <li>TSS and duration targets will be synced</li>

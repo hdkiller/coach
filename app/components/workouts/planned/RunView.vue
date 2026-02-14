@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+    class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6"
   >
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Run Details</h3>
@@ -29,11 +29,11 @@
 
     <!-- Summary Stats -->
     <div v-if="hasStructure" class="grid grid-cols-2 gap-4 mb-6">
-      <div class="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+      <div class="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
         <div class="text-xs text-muted mb-1">Total Distance (Est.)</div>
         <div class="text-xl font-bold">{{ (totalDistance / 1000).toFixed(1) }} km</div>
       </div>
-      <div class="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+      <div class="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
         <div class="text-xs text-muted mb-1">Avg Intensity</div>
         <div class="text-xl font-bold">{{ Math.round(avgIntensity * 100) }}%</div>
       </div>

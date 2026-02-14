@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+    class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6"
   >
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Swim Session</h3>
@@ -31,7 +31,7 @@
       <div
         v-for="(step, index) in workout.structuredWorkout.steps"
         :key="index"
-        class="flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+        class="flex items-center p-3 bg-gray-50 dark:bg-gray-950 rounded-lg"
       >
         <div
           class="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900 text-cyan-600 dark:text-cyan-300 flex items-center justify-center font-bold text-sm mr-4"

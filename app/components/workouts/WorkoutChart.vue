@@ -23,7 +23,7 @@
 
       <!-- Chart -->
       <div
-        class="relative bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
+        class="relative bg-gray-50 dark:bg-gray-950 rounded-lg p-4 border border-gray-200 dark:border-gray-800"
       >
         <!-- Y-axis labels -->
         <div class="flex">
@@ -135,7 +135,7 @@
           <div
             v-for="(step, index) in normalizedSteps"
             :key="index"
-            class="rounded hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors p-2"
+            class="rounded hover:bg-gray-50 dark:hover:bg-gray-950 transition-colors p-2"
           >
             <!-- Mobile View -->
             <div class="flex flex-col gap-1.5 sm:hidden">

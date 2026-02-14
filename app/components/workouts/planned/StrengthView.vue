@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+    class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6"
   >
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Strength Training</h3>
@@ -39,7 +39,7 @@
           <div
             v-for="(exercise, eIndex) in group.exercises"
             :key="eIndex"
-            class="flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+            class="flex items-center p-3 bg-gray-50 dark:bg-gray-950 rounded-lg"
           >
             <div
               class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm mr-4 flex-shrink-0"
@@ -67,7 +67,7 @@
     </div>
     <div v-else-if="workout.description" class="space-y-4">
       <div
-        class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300"
+        class="p-4 bg-gray-50 dark:bg-gray-950 rounded-lg whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300"
       >
         {{ workout.description }}
       </div>

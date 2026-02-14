@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+    class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6"
   >
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
       <h3 class="text-lg font-semibold">Power Profile</h3>
