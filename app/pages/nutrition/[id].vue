@@ -410,16 +410,6 @@
     if (!nutrition.value || !nutritionSettings.value) return []
 
     try {
-      console.log('[NutritionDashboard] Computing timeline with:', {
-        nutritionDate: nutrition.value.date,
-
-        workoutCount: workouts.value.length,
-
-        hasFuelingPlan: !!nutrition.value.fuelingPlan,
-
-        timezone: (useFormat() as any).timezone.value
-      })
-
       const result = mapNutritionToTimeline(
         nutrition.value,
 
@@ -442,14 +432,8 @@
         }
       )
 
-      console.log(
-        '[NutritionDashboard] Timeline generated:',
-        result.map((w) => ({ type: w.type, start: w.startTime, items: w.items.length }))
-      )
-
       return result
     } catch (error) {
-      console.error('[NutritionDashboard] Timeline computation failed:', error)
       return []
     }
   })
@@ -465,7 +449,6 @@
 
     try {
       // 1. Fetch Nutrition record
-      console.log('[NutritionDashboard] Fetching nutrition for:', id)
       const nData = await $fetch<any>(`/api/nutrition/${id}`, {
         query: { currentTime: new Date().toISOString() }
       })
@@ -475,7 +458,6 @@
       const dateStr = nData.date
 
       // 2. Fetch all training activities for this date
-      console.log('[NutritionDashboard] Fetching activities for date:', dateStr)
       const wData = await $fetch<any[]>('/api/calendar', {
         query: { startDate: dateStr, endDate: dateStr }
       })
@@ -488,17 +470,11 @@
           a.type !== 'Note'
       )
 
-      console.log(`[NutritionDashboard] Received ${workouts.value.length} training activities`)
-
       // 3. Fetch Nutrition Settings
-
-      console.log('[NutritionDashboard] Fetching nutrition settings...')
 
       const sData = await $fetch<any>('/api/profile/nutrition')
 
       nutritionSettings.value = sData.settings
-
-      console.log('[NutritionDashboard] Data fetching complete')
     } catch (error: any) {
       console.error('Fetch Error:', error)
 

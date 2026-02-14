@@ -96,12 +96,47 @@
     })
   }
 
+  async function summarizeRoom(roomId: string) {
+    try {
+      toast.add({
+        title: 'Summarizing Chat',
+        description: 'Generating a summary to optimize memory... This happens in the background.',
+        icon: 'i-heroicons-arrow-path',
+        color: 'neutral'
+      })
+
+      await $fetch(`/api/chat/rooms/${roomId}/summarize`, {
+        method: 'POST'
+      })
+
+      toast.add({
+        title: 'Summarization Started',
+        description:
+          'The AI is now condensing this conversation. The summary will be available in your next message.',
+        icon: 'i-heroicons-check-circle',
+        color: 'success'
+      })
+    } catch (error) {
+      console.error('Failed to summarize room:', error)
+      toast.add({
+        title: 'Error',
+        description: 'Failed to trigger summarization.',
+        color: 'error'
+      })
+    }
+  }
+
   const getDropdownItems = (room: any) => [
     [
       {
         label: 'Rename Chat',
         icon: 'i-heroicons-pencil-square',
         onSelect: () => confirmRename(room)
+      },
+      {
+        label: 'Summarize & Optimize',
+        icon: 'i-heroicons-sparkles',
+        onSelect: () => summarizeRoom(room.roomId)
       },
       {
         label: 'Share Chat',
