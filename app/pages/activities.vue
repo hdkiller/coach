@@ -236,7 +236,7 @@
 
               <!-- Week Rows -->
               <template
-                v-for="({ week, summary }, weekIdx) in calendarWeeksWithSummary"
+                v-for="({ week, summary }, weekIdx) in orderedCalendarWeeksWithSummary"
                 :key="weekIdx"
               >
                 <!-- Week Summary Cell -->
@@ -244,7 +244,14 @@
                   class="bg-gray-50 dark:bg-gray-800/50 p-2 flex flex-col justify-between border-r border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   @click="openWeekZoneDetail(week)"
                 >
-                  <div class="text-xs font-bold text-gray-400">
+                  <div
+                    class="text-xs font-bold"
+                    :class="
+                      week[0] && isCurrentWeek(week[0].date)
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-gray-400'
+                    "
+                  >
                     W{{ week[0] ? getWeekNumber(week[0].date) : '' }}
                   </div>
                   <div class="mt-2 text-[10px] space-y-0.5">
@@ -361,14 +368,21 @@
             <!-- Mobile List View for Calendar (simplified) -->
             <div class="lg:hidden space-y-4">
               <div
-                v-for="(week, weekIdx) in calendarWeeks"
+                v-for="(week, weekIdx) in orderedCalendarWeeks"
                 :key="'mob-week-' + weekIdx"
                 class="space-y-2"
               >
                 <div
                   class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-2 rounded-lg sticky top-0 z-10"
                 >
-                  <span class="text-xs font-bold uppercase"
+                  <span
+                    class="text-xs font-bold uppercase"
+                    :class="
+                      week[0] && isCurrentWeek(week[0].date)
+                        ? 'text-green-600 dark:text-green-400'
+                        : ''
+                    "
+                  >
                     >Week {{ week[0] ? getWeekNumber(week[0].date) : '' }}</span
                   >
                   <div class="flex items-center gap-3 text-[10px]">
@@ -915,7 +929,7 @@
 
 <script setup lang="ts">
   import { nextTick } from 'vue'
-  import { format, isSameMonth, getISOWeek } from 'date-fns'
+  import { format, isSameMonth, getISOWeek, getISOWeekYear } from 'date-fns'
   import { useStorage } from '@vueuse/core'
   import type { CalendarActivity } from '../../types/calendar'
   import { getWeekSummary } from '~/composables/useWeekSummary'
@@ -939,6 +953,7 @@
     showMetabolicWave: false,
     showFuelState: true,
     showWeekSeparator: true,
+    reverseWeekOrder: false,
     alignActivitiesByTime: false,
     showWellness: true,
     showNutrition: true,
@@ -1238,6 +1253,20 @@
     }))
   })
 
+  const orderedCalendarWeeks = computed(() => {
+    if (calendarSettings.value.reverseWeekOrder) {
+      return [...calendarWeeks.value].reverse()
+    }
+    return calendarWeeks.value
+  })
+
+  const orderedCalendarWeeksWithSummary = computed(() => {
+    if (calendarSettings.value.reverseWeekOrder) {
+      return [...calendarWeeksWithSummary.value].reverse()
+    }
+    return calendarWeeksWithSummary.value
+  })
+
   const mobileDayDateMap = computed(() => {
     const map = new Map<string, Date>()
     for (const week of calendarWeeks.value) {
@@ -1278,6 +1307,11 @@
   // Helpers
   function getWeekNumber(date: Date) {
     return getISOWeek(date)
+  }
+
+  function isCurrentWeek(date: Date) {
+    const today = getUserLocalDate()
+    return getISOWeek(date) === getISOWeek(today) && getISOWeekYear(date) === getISOWeekYear(today)
   }
 
   function getTSBColor(tsb: number | null): string {

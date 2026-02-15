@@ -51,6 +51,16 @@
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Current Week at Top
+                </div>
+                <div class="text-xs text-muted">Show the most recent week first.</div>
+              </div>
+              <USwitch v-model="settings.reverseWeekOrder" />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
                   Time-Aligned Layout
                 </div>
                 <div class="text-xs text-muted">
@@ -108,6 +118,7 @@
     showMetabolicWave: false,
     showFuelState: true,
     showWeekSeparator: true,
+    reverseWeekOrder: false,
     alignActivitiesByTime: false,
     showWellness: true,
     showNutrition: true,
