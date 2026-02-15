@@ -9,6 +9,7 @@ const planDebugCommand = new Command('plan')
   .description('Debug training plan structure and workouts')
   .option('--prod', 'Use production database')
   .option('--id <id>', 'Specific plan ID')
+  .option('--email <email>', 'User email to debug')
   .action(async (options) => {
     const isProd = options.prod
     const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
@@ -20,17 +21,20 @@ const planDebugCommand = new Command('plan')
     try {
       console.log(chalk.bold(`\n--- Training Plan Debugger ---`))
 
-      const user = await prisma.user.findFirst({
-        where: { email: 'lracz@newpush.com' } // Hardcoded for this specific user's debug
-      })
+      let user = null
+      if (options.email) {
+        user = await prisma.user.findFirst({
+          where: { email: options.email }
+        })
+      }
 
-      if (!user) {
-        console.error(chalk.red('User not found'))
+      if (options.email && !user) {
+        console.error(chalk.red(`User with email ${options.email} not found`))
         return
       }
 
       const plan = await prisma.trainingPlan.findFirst({
-        where: options.id ? { id: options.id } : { userId: user.id, status: 'ACTIVE' },
+        where: options.id ? { id: options.id } : { userId: user?.id, status: 'ACTIVE' },
         include: {
           blocks: {
             orderBy: { order: 'asc' },

@@ -13,7 +13,7 @@
         </p>
         <p class="mt-6 text-lg leading-8 text-gray-400">
           We don't just show you charts. We ingest your entire digital physiology, analyze the
-          hidden patterns, and build a coaching strategy unique to you.
+          hidden patterns, and build a coaching strategy that includes training and fueling.
         </p>
       </div>
 
@@ -31,12 +31,12 @@
             </div>
             <dt class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
               <span class="font-mono text-primary-500">01_</span>
-              Connect
+              Connect Data
             </dt>
             <dd class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
               <p class="flex-auto">
-                Connect your favorite training and recovery apps. We pull data from Strava, Whoop,
-                Garmin, and more to create a single source of truth.
+                Connect your training and nutrition apps. We combine Strava, Whoop, Garmin, Yazio,
+                and more into one performance timeline.
               </p>
 
               <!-- Visual Hint -->
@@ -75,12 +75,12 @@
             </div>
             <dt class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
               <span class="font-mono text-primary-500">02_</span>
-              Analyze
+              Model Readiness
             </dt>
             <dd class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
               <p class="flex-auto">
-                Our AI analyzes every session to find hidden fatigue and recovery trends that
-                standard charts miss.
+                Our AI models fatigue, recovery, and fuel availability so you can see what standard
+                charts miss.
               </p>
               <div class="mt-4 flex items-center gap-2">
                 <span class="relative flex h-3 w-3">
@@ -113,18 +113,18 @@
             </div>
             <dt class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
               <span class="font-mono text-primary-500">03_</span>
-              Profile
+              Plan Fueling
             </dt>
             <dd class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
               <p class="flex-auto">
-                Your Digital Twin evolves daily. Instead of just numbers, we track your readiness to
-                perform.
+                Get pre, intra, and post-workout fueling targets with carbs, fluids, and sodium
+                based on your actual training load.
               </p>
               <!-- Score Hint -->
               <div class="mt-4 flex gap-2">
                 <span
                   class="px-2 py-0.5 rounded bg-green-500/20 text-green-400 text-xs font-bold border border-green-500/30"
-                  >FITNESS: PEAKING</span
+                  >FUEL: OPTIMIZED</span
                 >
                 <span
                   class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30"
@@ -150,19 +150,19 @@
             </div>
             <dt class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white">
               <span class="font-mono text-primary-500">04_</span>
-              Coach
+              Execute Daily
             </dt>
             <dd class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
               <p class="flex-auto">
-                Receive actionable, daily advice. "Your recovery is low (33%). Let's swap today's
-                intervals for Zone 2."
+                Receive specific actions for training and nutrition. Know whether to push, recover,
+                or refuel before your next key session.
               </p>
 
               <div
                 class="mt-4 p-3 bg-gray-800 rounded-lg border-l-2 border-primary-500 text-xs text-gray-300 italic flex gap-3 items-center"
               >
                 <UIcon name="i-heroicons-cpu-chip" class="w-5 h-5 text-primary-500 shrink-0" />
-                <span>"Swap intervals for 60min Z2 today."</span>
+                <span>"Fuel low for threshold work. Add 60g carbs 90min pre-ride."</span>
               </div>
             </dd>
           </div>

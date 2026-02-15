@@ -20,9 +20,13 @@
           Unlock Your True Potential. <br />
           <span class="text-primary-500">Stop Guessing. Start Winning.</span>
         </h1>
+        <p class="mt-4 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
+          Train by watts. Fuel by physiology.
+        </p>
         <p class="mt-6 text-lg leading-8 text-gray-300">
-          The only AI Endurance Coach that evolves with you every single day. Built by cybersecurity
-          experts to be secure, private, and insanely effective.
+          The AI Endurance Coach that adapts training, recovery, and fueling every day. We turn your
+          workouts and nutrition logs into clear performance decisions, built on secure private
+          infrastructure.
         </p>
         <div class="mt-10 flex items-center gap-x-6">
           <UButton
