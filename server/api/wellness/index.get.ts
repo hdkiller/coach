@@ -1,10 +1,12 @@
-import { getServerSession } from '../../utils/session'
+import { requireAuth } from '../../utils/auth-guard'
+import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 
 defineRouteMeta({
   openAPI: {
     tags: ['Wellness'],
     summary: 'List wellness data',
     description: 'Returns the last 90 days of wellness data for the authenticated user.',
+    security: [{ bearerAuth: [] }],
     responses: {
       200: {
         description: 'Success',
@@ -31,23 +33,17 @@ defineRouteMeta({
           }
         }
       },
-      401: { description: 'Unauthorized' }
+      401: { description: 'Unauthorized' },
+      403: { description: 'Forbidden' }
     }
   }
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Unauthorized'
-    })
-  }
+  const user = await requireAuth(event, ['health:read'])
 
   try {
-    const userId = (session.user as any).id
+    const userId = user.id
 
     const wellness = await wellnessRepository.getForUser(userId, {
       limit: 90,

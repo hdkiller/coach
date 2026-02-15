@@ -186,9 +186,16 @@ export const nutritionRepository = {
     userId: string,
     date: Date,
     createData: Prisma.NutritionUncheckedCreateInput,
-    updateData: Prisma.NutritionUncheckedUpdateInput
+    updateData: Prisma.NutritionUncheckedUpdateInput,
+    source?: string
   ) {
     const existing = await this.getByDate(userId, date)
+
+    // Ensure source is set in the data if provided
+    if (source) {
+      ;(createData as any).sourcePrecedence = source
+      ;(updateData as any).sourcePrecedence = source
+    }
 
     const record = await prisma.nutrition.upsert({
       where: {

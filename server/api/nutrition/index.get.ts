@@ -1,10 +1,13 @@
-import { getEffectiveUserId } from '../../utils/coaching'
+import { requireAuth } from '../../utils/auth-guard'
+import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+import { prisma } from '../../utils/db'
 
 defineRouteMeta({
   openAPI: {
     tags: ['Nutrition'],
     summary: 'List nutrition data',
     description: 'Returns the recent nutrition logs for the authenticated user.',
+    security: [{ bearerAuth: [] }],
     parameters: [
       {
         name: 'limit',
@@ -41,13 +44,15 @@ defineRouteMeta({
           }
         }
       },
-      401: { description: 'Unauthorized' }
+      401: { description: 'Unauthorized' },
+      403: { description: 'Forbidden' }
     }
   }
 })
 
 export default defineEventHandler(async (event) => {
-  const userId = await getEffectiveUserId(event)
+  const user = await requireAuth(event, ['nutrition:read'])
+  const userId = user.id
 
   const query = getQuery(event)
   const limit = query.limit ? parseInt(query.limit as string) : 30
