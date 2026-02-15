@@ -11,6 +11,7 @@
   const { isOpen: showTriggerMonitor } = useTriggerMonitor()
 
   const userStore = useUserStore()
+  const { formatDate, getUserLocalDate } = useFormat()
 
   // Ensure user data (including subscription) is loaded
   await callOnce(async () => {
@@ -252,13 +253,98 @@
     return [primaryLinks]
   })
 
-  const groups = computed(() => [
-    {
-      id: 'links',
-      label: 'Go to',
-      items: links.value.flat()
+  const groups = computed(() => {
+    const searchGroups: any[] = [
+      {
+        id: 'links',
+        label: 'Go to',
+        items: links.value.flat()
+      },
+      {
+        id: 'settings',
+        label: 'Settings',
+        items: [
+          {
+            label: 'Profile > Basic Settings',
+            icon: 'i-heroicons-user-circle',
+            to: '/profile/settings?tab=basic',
+            onSelect: () => (open.value = false)
+          },
+          {
+            label: 'Profile > Sport Settings',
+            icon: 'i-heroicons-trophy',
+            to: '/profile/settings?tab=sports',
+            onSelect: () => (open.value = false)
+          },
+          {
+            label: 'Profile > Availability Settings',
+            icon: 'i-lucide-calendar-clock',
+            to: '/profile/settings?tab=availability',
+            onSelect: () => (open.value = false)
+          },
+          {
+            label: 'Profile > Nutrition Settings',
+            icon: 'i-heroicons-fire',
+            to: '/profile/settings?tab=nutrition',
+            onSelect: () => (open.value = false)
+          }
+        ]
+      }
+    ]
+
+    const quickActions: any[] = []
+
+    // Add smart items if available
+    if (lastWorkout.value) {
+      quickActions.push({
+        id: 'last-workout',
+        label: `Last Workout: ${lastWorkout.value.title}`,
+        description: formatDate(lastWorkout.value.date, 'PPPP'),
+        icon: 'i-lucide-history',
+        to: `/workouts/${lastWorkout.value.id}`,
+        onSelect: () => (open.value = false)
+      })
     }
-  ])
+
+    // Nutrition Today
+    const today = getUserLocalDate().toISOString().split('T')[0]
+    quickActions.push({
+      id: 'nutrition-today',
+      label: 'Nutrition > Today',
+      icon: 'i-lucide-utensils',
+      to: `/nutrition/${today}`,
+      onSelect: () => (open.value = false)
+    })
+
+    // Weekly Plan
+    quickActions.push({
+      id: 'weekly-plan',
+      label: 'Weekly Plan',
+      icon: 'i-lucide-calendar',
+      to: '/plan',
+      onSelect: () => (open.value = false)
+    })
+
+    if (quickActions.length > 0) {
+      searchGroups.unshift({
+        id: 'quick-actions',
+        label: 'Quick Actions',
+        items: quickActions
+      })
+    }
+
+    return searchGroups
+  })
+
+  // Smart Item Data Fetching
+  const { data: recentWorkouts } = await useFetch('/api/workouts', {
+    query: { limit: 1 },
+    key: 'last-workout-search'
+  })
+  const lastWorkout = computed(() => {
+    const workouts = recentWorkouts.value as any[]
+    return workouts?.[0]
+  })
 </script>
 
 <template>
@@ -288,11 +374,7 @@
       </template>
 
       <template #default="{ collapsed }">
-        <UDashboardSearchButton
-          v-if="false"
-          :collapsed="collapsed"
-          class="bg-transparent ring-default"
-        />
+        <UDashboardSearchButton :collapsed="collapsed" class="bg-transparent ring-default mb-4" />
 
         <UNavigationMenu :collapsed="collapsed" :items="links[0]" orientation="vertical" tooltip />
       </template>
