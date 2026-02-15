@@ -5,6 +5,6 @@
     >
       <NuxtPage />
     </div>
-    <UNotifications />
+    <UToaster />
   </UApp>
 </template>

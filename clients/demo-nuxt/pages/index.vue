@@ -197,6 +197,115 @@
           </UCard>
         </div>
 
+        <!-- Sync Simulator -->
+        <div class="space-y-6">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">Developer: Sync Simulator</h2>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <!-- Wellness Sync -->
+            <UCard>
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-heart" class="text-red-500" />
+                  <span class="font-bold">Sync Wellness Data</span>
+                </div>
+              </template>
+              <div class="space-y-4">
+                <UFormField label="HRV (ms)">
+                  <UInput v-model="wellnessForm.hrv" type="number" />
+                </UFormField>
+                <UFormField label="Weight (kg)">
+                  <UInput v-model="wellnessForm.weight" type="number" step="0.1" />
+                </UFormField>
+                <UButton block color="neutral" :loading="syncingWellness" @click="syncWellness">
+                  Sync to Coach Watts
+                </UButton>
+
+                <!-- Recent Wellness Items -->
+                <div
+                  v-if="wellnessHistory.length > 0"
+                  class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2"
+                >
+                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    Recently Logged
+                  </p>
+                  <div
+                    v-for="(h, i) in wellnessHistory"
+                    :key="i"
+                    class="flex items-center justify-between text-xs bg-gray-50 dark:bg-gray-800/50 p-2 rounded"
+                  >
+                    <span class="font-medium text-gray-500">{{ h.timestamp }}</span>
+                    <span class="font-bold text-primary">{{ h.hrv }}ms / {{ h.weight }}kg</span>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+
+            <!-- Nutrition Sync -->
+            <UCard>
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-shopping-cart" class="text-green-500" />
+                  <span class="font-bold">Sync Nutrition Item</span>
+                </div>
+              </template>
+              <div class="space-y-4">
+                <UFormField label="Meal/Food Name">
+                  <UInput v-model="nutritionForm.name" placeholder="e.g. Pasta Party" />
+                </UFormField>
+                <UFormField label="Carbs (g)">
+                  <UInput v-model="nutritionForm.carbs" type="number" />
+                </UFormField>
+                <UButton block color="neutral" :loading="syncingNutrition" @click="syncNutrition">
+                  Add to Timeline
+                </UButton>
+
+                <!-- Recent Nutrition Items -->
+                <div
+                  v-if="nutritionHistory.length > 0"
+                  class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2"
+                >
+                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    Recently Logged
+                  </p>
+                  <div
+                    v-for="(h, i) in nutritionHistory"
+                    :key="i"
+                    class="flex items-center justify-between text-xs bg-gray-50 dark:bg-gray-800/50 p-2 rounded"
+                  >
+                    <div class="flex flex-col">
+                      <span class="font-bold text-gray-900 dark:text-white">{{ h.name }}</span>
+                      <span class="text-[10px] text-gray-400">{{ h.timestamp }}</span>
+                    </div>
+                    <span class="font-bold text-green-500">{{ h.carbs }}g carbs</span>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+          </div>
+
+          <!-- FIT File Upload -->
+          <UCard>
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-cloud-arrow-up" class="text-primary" />
+                <span class="font-bold">Upload FIT Activity</span>
+              </div>
+            </template>
+            <div class="flex items-center gap-4">
+              <input
+                type="file"
+                accept=".fit"
+                class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                @change="handleFileChange"
+              />
+              <UButton :disabled="!selectedFile" :loading="uploadingFit" @click="uploadFitFile">
+                Upload File
+              </UButton>
+            </div>
+          </UCard>
+        </div>
+
         <!-- Developer Data -->
         <UAccordion
           color="gray"
@@ -232,6 +341,19 @@
   const workouts = ref<any[]>([])
   const loadingWorkouts = ref(false)
 
+  // Sync Simulator State
+  const syncingWellness = ref(false)
+  const wellnessForm = ref({ hrv: 70, weight: 75 })
+
+  const syncingNutrition = ref(false)
+  const nutritionForm = ref({ name: '', carbs: 40 })
+
+  const wellnessHistory = ref<any[]>([])
+  const nutritionHistory = ref<any[]>([])
+
+  const uploadingFit = ref(false)
+  const selectedFile = ref<File | null>(null)
+
   const wkg = computed(() => {
     if (user.value?.ftp && user.value?.weight) {
       return (user.value.ftp / user.value.weight).toFixed(1)
@@ -245,7 +367,10 @@
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', config.public.clientId)
     url.searchParams.set('redirect_uri', config.public.redirectUri)
-    url.searchParams.set('scope', 'profile:read workout:read health:read offline_access')
+    url.searchParams.set(
+      'scope',
+      'profile:read profile:write workout:read workout:write health:read health:write nutrition:read nutrition:write offline_access'
+    )
     url.searchParams.set('state', Math.random().toString(36).substring(7))
 
     // PKCE could be added here for extra security (Client-side generation)
@@ -294,6 +419,94 @@
       toast.add({ title: 'Error', description: 'Failed to fetch workouts', color: 'error' })
     } finally {
       loadingWorkouts.value = false
+    }
+  }
+
+  // --- Sync Simulator Methods ---
+
+  async function syncWellness() {
+    if (!accessToken.value) return
+    syncingWellness.value = true
+    const payload = {
+      date: new Date().toISOString().split('T')[0],
+      hrv: wellnessForm.value.hrv,
+      weight: wellnessForm.value.weight
+    }
+    try {
+      await $fetch('/api/proxy-sync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+        body: {
+          type: 'wellness',
+          payload
+        }
+      })
+      wellnessHistory.value.unshift({ ...payload, timestamp: new Date().toLocaleTimeString() })
+      toast.add({ title: 'Wellness Synced', color: 'green' })
+      refreshUserInfo()
+    } catch (e: any) {
+      toast.add({ title: 'Sync Failed', description: e.data?.message, color: 'error' })
+    } finally {
+      syncingWellness.value = false
+    }
+  }
+
+  async function syncNutrition() {
+    if (!accessToken.value) return
+    if (!nutritionForm.value.name) return
+    syncingNutrition.value = true
+    const item = {
+      name: nutritionForm.value.name,
+      carbs: nutritionForm.value.carbs,
+      logged_at: new Date().toISOString()
+    }
+    try {
+      await $fetch('/api/proxy-sync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+        body: {
+          type: 'nutrition',
+          payload: {
+            date: new Date().toISOString().split('T')[0],
+            items: [item]
+          }
+        }
+      })
+      nutritionHistory.value.unshift({ ...item, timestamp: new Date().toLocaleTimeString() })
+      toast.add({ title: 'Nutrition Added', color: 'green' })
+      nutritionForm.value.name = ''
+    } catch (e: any) {
+      toast.add({ title: 'Sync Failed', description: e.data?.message, color: 'error' })
+    } finally {
+      syncingNutrition.value = false
+    }
+  }
+
+  function handleFileChange(event: any) {
+    selectedFile.value = event.target.files[0]
+  }
+
+  async function uploadFitFile() {
+    if (!accessToken.value || !selectedFile.value) return
+    uploadingFit.value = true
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedFile.value)
+      formData.append('metadata', JSON.stringify({ source: 'Demo App' }))
+
+      await $fetch(`${config.public.coachWattsUrl}/api/workouts/upload-fit`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+        body: formData
+      })
+
+      toast.add({ title: 'File Uploaded', description: 'Processing started...', color: 'green' })
+      selectedFile.value = null
+      setTimeout(fetchWorkouts, 3000) // Polling fallback
+    } catch (e: any) {
+      toast.add({ title: 'Upload Failed', description: e.data?.message, color: 'error' })
+    } finally {
+      uploadingFit.value = false
     }
   }
 
