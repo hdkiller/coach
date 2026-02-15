@@ -30,16 +30,28 @@
             </p>
           </div>
         </div>
-        <UButton
-          to="/settings/changelog"
-          color="neutral"
-          variant="outline"
-          icon="i-heroicons-arrow-right"
-          size="sm"
-          class="font-bold shrink-0"
-        >
-          View Changelog
-        </UButton>
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            to="/settings/changelog"
+            color="neutral"
+            variant="outline"
+            icon="i-heroicons-list-bullet"
+            size="sm"
+            class="font-bold shrink-0"
+          >
+            View Changelog
+          </UButton>
+          <UButton
+            to="/settings/release-notes"
+            color="neutral"
+            variant="outline"
+            icon="i-heroicons-sparkles"
+            size="sm"
+            class="font-bold shrink-0"
+          >
+            View Release Notes
+          </UButton>
+        </div>
       </div>
     </UCard>
 
