@@ -440,7 +440,7 @@ export default defineEventHandler(async (event) => {
                   tr.toolName === 'create_chart' && (tr.result?.success || tr.output?.success)
               )
               .map((tr: any, index: number) => ({
-                id: `chart - ${aiMessage.id} -${index} `,
+                id: `chart-${aiMessage.id}-${index}`,
                 ...tr.args
               }))
 

@@ -139,19 +139,101 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
 
   create_chart: tool({
     description: 'Generate a chart visualization for the chat UI.',
-    inputSchema: z.object({
-      type: z.enum(['line', 'bar', 'doughnut', 'scatter']).describe('Type of chart'),
-      title: z.string(),
-      labels: z.array(z.string()).describe('X-axis labels'),
-      datasets: z.array(
-        z.object({
-          label: z.string(),
-          data: z.array(z.number()),
-          backgroundColor: z.string().optional(),
-          borderColor: z.string().optional()
-        })
-      )
-    }),
+    inputSchema: z
+      .object({
+        type: z
+          .enum([
+            'line',
+            'bar',
+            'doughnut',
+            'radar',
+            'scatter',
+            'area',
+            'stackedBar',
+            'bubble',
+            'mixed'
+          ])
+          .describe('Type of chart'),
+        title: z.string(),
+        labels: z.array(z.string()).optional().default([]).describe('X-axis labels'),
+        datasets: z.array(
+          z.object({
+            label: z.string(),
+            type: z.enum(['line', 'bar']).optional(),
+            data: z.array(
+              z.union([
+                z.number(),
+                z.object({
+                  x: z.number(),
+                  y: z.number(),
+                  r: z.number().optional()
+                })
+              ])
+            ),
+            color: z.string().optional(),
+            backgroundColor: z.union([z.string(), z.array(z.string())]).optional(),
+            borderColor: z.union([z.string(), z.array(z.string())]).optional(),
+            borderWidth: z.number().optional(),
+            tension: z.number().optional(),
+            fill: z.boolean().optional(),
+            pointRadius: z.number().optional(),
+            pointHoverRadius: z.number().optional(),
+            yAxisID: z.string().optional(),
+            borderDash: z.array(z.number()).optional()
+          })
+        ),
+        options: z.record(z.string(), z.any()).optional()
+      })
+      .superRefine((value, ctx) => {
+        const isScatter = value.type === 'scatter'
+        const isBubble = value.type === 'bubble'
+        const requiresObjectPoints = isScatter || isBubble
+        const requiresLabels = !isScatter && !isBubble
+        const isMixed = value.type === 'mixed'
+
+        for (const [index, dataset] of value.datasets.entries()) {
+          const hasObjectPoints = dataset.data.some(
+            (point) => typeof point === 'object' && point !== null
+          )
+          const hasNumericPoints = dataset.data.some((point) => typeof point === 'number')
+
+          if (requiresObjectPoints) {
+            if (hasNumericPoints) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['datasets', index, 'data'],
+                message: `${value.type} charts require { x, y } point objects.`
+              })
+            }
+          } else if (hasObjectPoints) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['datasets', index, 'data'],
+              message: `${value.type} charts require numeric data points.`
+            })
+          }
+
+          if (isMixed && dataset.type && dataset.type !== 'line' && dataset.type !== 'bar') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['datasets', index, 'type'],
+              message: 'Mixed chart datasets only support type "line" or "bar".'
+            })
+          }
+
+          if (
+            requiresLabels &&
+            value.labels.length > 0 &&
+            dataset.data.length !== value.labels.length
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['datasets', index, 'data'],
+              message: 'Dataset length must match labels length.'
+            })
+          }
+        }
+      }),
     execute: async (args) => {
       return { success: true, ...args }
     }

@@ -748,9 +748,16 @@ Look at the "Recent Activity Detail" section below - it contains:
 
 You can create inline charts using the \`create_chart\` tool.
 - \`line\`: Trends (TSS, weight, power)
+- \`area\`: Filled trends and cumulative progression
 - \`bar\`: Comparisons (last 5 rides, weekly totals)
+- \`stackedBar\`: Composition over time (zones, macro splits)
 - \`doughnut\`: Distributions (workout types)
 - \`radar\`: Multi-dimensional scores
+- \`scatter\`: Relationships and correlations (e.g., HR vs pace, cadence vs power)
+- \`bubble\`: 3-variable relationships (x/y + bubble size)
+- \`mixed\`: Combined bar + line charts in one view
+
+For richer charts, include dataset styling (\`backgroundColor\`, \`borderColor\`, \`borderWidth\`) and \`options\` (axes, legend, stacked bars, dual-axis).
 
 ## Training Plan Management (CRITICAL)
 
