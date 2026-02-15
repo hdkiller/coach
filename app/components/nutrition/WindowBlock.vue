@@ -58,7 +58,7 @@
           >
             <UIcon name="i-tabler-bread" class="w-3.5 h-3.5 text-yellow-500" />
             <span class="text-xs font-black text-yellow-700 dark:text-yellow-400"
-              >{{ targetCarbs }}g</span
+              >{{ formatMacro(targetCarbs) }}g</span
             >
           </div>
           <div
@@ -67,7 +67,7 @@
           >
             <UIcon name="i-tabler-egg" class="w-3.5 h-3.5 text-blue-500" />
             <span class="text-xs font-black text-blue-700 dark:text-blue-400"
-              >{{ targetProtein }}g</span
+              >{{ formatMacro(targetProtein) }}g</span
             >
           </div>
 
@@ -275,12 +275,12 @@
               <span
                 class="text-[10px] font-black text-yellow-600 dark:text-yellow-400 whitespace-nowrap"
               >
-                {{ item.carbs }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g C</span>
+                {{ formatMacro(item.carbs) }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g C</span>
               </span>
               <span
                 class="text-[10px] font-black text-blue-600 dark:text-blue-400 whitespace-nowrap"
               >
-                {{ item.protein }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g P</span>
+                {{ formatMacro(item.protein) }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g P</span>
               </span>
             </div>
           </div>
@@ -309,6 +309,13 @@
   }>()
 
   defineEmits(['add', 'addAi', 'edit'])
+
+  function formatMacro(val: number | string | undefined) {
+    if (val === undefined || val === null) return 0
+    const num = typeof val === 'string' ? parseFloat(val) : val
+    if (isNaN(num)) return 0
+    return Math.round(num * 10) / 10
+  }
 
   const start = computed(() => new Date(props.startTime))
   const end = computed(() => new Date(props.endTime))
