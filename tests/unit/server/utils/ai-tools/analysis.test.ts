@@ -67,6 +67,83 @@ describe('analysisTools', () => {
   })
 
   describe('create_chart', () => {
+    it('should accept all supported chart types', () => {
+      const schema = tools.create_chart.inputSchema as any
+      const supported = [
+        'line',
+        'area',
+        'bar',
+        'stackedBar',
+        'doughnut',
+        'radar',
+        'scatter',
+        'bubble',
+        'mixed'
+      ]
+
+      for (const type of supported) {
+        const payload =
+          type === 'scatter' || type === 'bubble'
+            ? {
+                type,
+                title: 'Scatter',
+                datasets: [{ label: 'Series', data: [{ x: 100, y: 160, r: 8 }] }]
+              }
+            : type === 'mixed'
+              ? {
+                  type,
+                  title: 'Mixed',
+                  labels: ['A', 'B'],
+                  datasets: [
+                    { label: 'Volume', type: 'bar', data: [1, 2] },
+                    { label: 'Trend', type: 'line', data: [1, 2] }
+                  ]
+                }
+              : {
+                  type,
+                  title: 'Chart',
+                  labels: ['A', 'B'],
+                  datasets: [{ label: 'Series', data: [1, 2] }]
+                }
+
+        expect(() => schema.parse(payload)).not.toThrow()
+      }
+    })
+
+    it('should reject label/data length mismatch for non-scatter charts', () => {
+      const schema = tools.create_chart.inputSchema as any
+      expect(() =>
+        schema.parse({
+          type: 'line',
+          title: 'Invalid',
+          labels: ['A', 'B'],
+          datasets: [{ label: 'Series', data: [1] }]
+        })
+      ).toThrow()
+    })
+
+    it('should reject numeric scatter data points', () => {
+      const schema = tools.create_chart.inputSchema as any
+      expect(() =>
+        schema.parse({
+          type: 'scatter',
+          title: 'Invalid Scatter',
+          datasets: [{ label: 'Series', data: [1, 2, 3] }]
+        })
+      ).toThrow()
+    })
+
+    it('should reject numeric bubble data points', () => {
+      const schema = tools.create_chart.inputSchema as any
+      expect(() =>
+        schema.parse({
+          type: 'bubble',
+          title: 'Invalid Bubble',
+          datasets: [{ label: 'Series', data: [1, 2, 3] }]
+        })
+      ).toThrow()
+    })
+
     it('should pass through args with success flag', async () => {
       const args = {
         type: 'line',
