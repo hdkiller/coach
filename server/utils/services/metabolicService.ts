@@ -1176,7 +1176,14 @@ export const metabolicService = {
       )
 
       let allocated = 0
-      intraWindows.forEach((w: any) => (allocated += w.targetCarbs))
+      intraWindows.forEach((w: any) => (allocated += Number(w.targetCarbs || 0)))
+
+      // Count existing stationary targets (e.g. PRE/POST windows) before distributing
+      // baseline carbs so the day's final sum does not overshoot the canonical target.
+      allocated += stationaryWindows.reduce(
+        (sum: number, w: any) => sum + Number(w.targetCarbs || 0),
+        0
+      )
 
       // 2. Stationary Windows (Capped at 2.0g/kg)
       let remainingForStationary = totalToAllocate - allocated
