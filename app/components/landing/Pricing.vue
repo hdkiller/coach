@@ -15,24 +15,15 @@
         </p>
       </div>
 
-      <div v-if="subscriptionsEnabled">
+      <div>
         <LandingPricingPlans />
 
-        <div class="mx-auto mt-16 max-w-2xl lg:text-center">
+        <div v-if="subscriptionsEnabled" class="mx-auto mt-16 max-w-2xl lg:text-center">
           <p class="text-sm text-gray-500">
             All plans include a 14-day money-back guarantee. No credit card required for the free
             plan.
           </p>
         </div>
-      </div>
-      <div v-else class="max-w-2xl mx-auto">
-        <UAlert
-          icon="i-heroicons-information-circle"
-          color="info"
-          variant="soft"
-          title="Subscriptions Temporarily Unavailable"
-          description="We are currently performing maintenance on our subscription system. New subscriptions are temporarily disabled, but existing subscriptions remain active and functional. Please check back soon!"
-        />
       </div>
     </div>
   </div>

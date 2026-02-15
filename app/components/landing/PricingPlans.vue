@@ -112,11 +112,19 @@
             :color="plan.popular ? 'primary' : 'neutral'"
             :variant="plan.popular ? 'solid' : 'outline'"
             block
-            :disabled="isCurrentPlan(plan) || loading || !subscriptionsEnabled"
+            :disabled="
+              isCurrentPlan(plan) ||
+              loading ||
+              (status === 'authenticated' && !subscriptionsEnabled && plan.key !== 'free')
+            "
             :loading="loading && selectedPlan === plan.key"
             @click="handlePlanSelect(plan)"
           >
-            {{ subscriptionsEnabled ? getButtonLabel(plan) : 'Temporarily Unavailable' }}
+            {{
+              subscriptionsEnabled || plan.key === 'free' || status !== 'authenticated'
+                ? getButtonLabel(plan)
+                : 'Temporarily Unavailable'
+            }}
           </UButton>
         </div>
       </UCard>

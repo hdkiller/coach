@@ -384,9 +384,9 @@
       </div>
 
       <!-- 1. Pricing & Comparison -->
-      <!-- Show ONLY if NOT premium (or in modal) AND subscriptions are enabled -->
+      <!-- Show ONLY if NOT premium (or in modal) -->
       <div
-        v-if="!isPremium && subscriptionsEnabled"
+        v-if="!isPremium"
         class="space-y-4 order-2 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
       >
         <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
@@ -398,21 +398,19 @@
             Upgrade to unlock advanced features
           </p>
         </div>
-        <LandingPricingPlans />
-      </div>
 
-      <!-- Maintenance Message when Subscriptions are Disabled -->
-      <div
-        v-if="!isPremium && !subscriptionsEnabled"
-        class="space-y-4 order-2 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
-      >
-        <UAlert
-          icon="i-heroicons-information-circle"
-          color="info"
-          variant="soft"
-          title="Subscriptions Temporarily Unavailable"
-          description="We are currently performing maintenance on our subscription system. New subscriptions are temporarily disabled, but existing subscriptions remain active and functional."
-        />
+        <LandingPricingPlans />
+
+        <!-- Maintenance Message when Subscriptions are Disabled -->
+        <div v-if="!subscriptionsEnabled" class="mt-4">
+          <UAlert
+            icon="i-heroicons-information-circle"
+            color="info"
+            variant="soft"
+            title="Subscriptions Temporarily Unavailable"
+            description="We are currently performing maintenance on our subscription system. New subscriptions and plan changes are temporarily disabled, but existing subscriptions remain active and functional."
+          />
+        </div>
       </div>
     </div>
 
@@ -432,10 +430,9 @@
             </div>
           </template>
 
-          <div v-if="subscriptionsEnabled">
-            <LandingPricingPlans />
-          </div>
-          <div v-else class="py-8">
+          <LandingPricingPlans />
+
+          <div v-if="!subscriptionsEnabled" class="mt-8">
             <UAlert
               icon="i-heroicons-information-circle"
               color="info"

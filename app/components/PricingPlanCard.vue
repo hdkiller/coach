@@ -60,10 +60,10 @@
         :color="plan.popular || highlight ? 'primary' : 'neutral'"
         :variant="plan.popular || highlight ? 'solid' : 'outline'"
         block
-        :disabled="isCurrentPlan || !subscriptionsEnabled"
+        :disabled="isCurrentPlan || (!subscriptionsEnabled && plan.key !== 'free')"
         @click="$emit('select', plan)"
       >
-        {{ subscriptionsEnabled ? buttonLabel : 'Unavailable' }}
+        {{ subscriptionsEnabled || plan.key === 'free' ? buttonLabel : 'Unavailable' }}
       </UButton>
     </template>
   </UCard>

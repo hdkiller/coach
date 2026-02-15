@@ -22,7 +22,7 @@
 
         <!-- Feature-specific message -->
         <div
-          v-if="feature && subscriptionsEnabled"
+          v-if="feature"
           class="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
         >
           <div class="flex items-start gap-3">
@@ -42,13 +42,13 @@
         </div>
 
         <!-- Recommended plan (if specified) -->
-        <div v-if="recommendedTier && subscriptionsEnabled">
+        <div v-if="recommendedTier">
           <h4 class="font-semibold mb-3">Recommended Plan</h4>
           <PricingPlanCard :plan="recommendedPlan!" :show-popular="false" :highlight="true" />
         </div>
 
         <!-- All plans -->
-        <div v-if="subscriptionsEnabled">
+        <div>
           <h4 class="font-semibold mb-3">
             {{ recommendedTier ? 'All Plans' : 'Choose Your Plan' }}
           </h4>
@@ -68,13 +68,7 @@
           <UButton variant="ghost" color="neutral" @click="close">
             {{ subscriptionsEnabled ? 'Maybe Later' : 'Close' }}
           </UButton>
-          <UButton
-            v-if="subscriptionsEnabled"
-            variant="link"
-            color="primary"
-            :to="'/pricing'"
-            @click="close"
-          >
+          <UButton variant="link" color="primary" :to="'/pricing'" @click="close">
             View Full Pricing Details
             <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 ml-1" />
           </UButton>
