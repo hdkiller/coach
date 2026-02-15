@@ -15,7 +15,9 @@
               to="/nutrition/history"
               icon="i-lucide-history"
               color="neutral"
-              variant="ghost"
+              variant="outline"
+              size="sm"
+              class="font-bold"
             >
               <span class="hidden sm:inline">View History</span>
             </UButton>
@@ -23,11 +25,25 @@
             <UButton
               icon="i-lucide-refresh-cw"
               color="neutral"
-              variant="ghost"
+              variant="outline"
+              size="sm"
+              class="font-bold"
               :loading="loading"
               @click="refreshData"
             >
               <span class="hidden sm:inline">Refresh</span>
+            </UButton>
+
+            <UButton
+              to="/chat"
+              icon="i-heroicons-chat-bubble-left-right"
+              color="primary"
+              variant="solid"
+              size="sm"
+              class="font-bold"
+            >
+              <span class="hidden sm:inline">New Chat</span>
+              <span class="sm:hidden">Chat</span>
             </UButton>
           </div>
         </template>

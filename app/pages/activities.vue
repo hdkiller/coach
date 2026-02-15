@@ -43,6 +43,18 @@
             >
               <span class="hidden sm:inline">Refresh</span>
             </UButton>
+
+            <UButton
+              to="/chat"
+              icon="i-heroicons-chat-bubble-left-right"
+              color="primary"
+              variant="solid"
+              size="sm"
+              class="font-bold"
+            >
+              <span class="hidden sm:inline">New Chat</span>
+              <span class="sm:hidden">Chat</span>
+            </UButton>
           </div>
         </template>
       </UDashboardNavbar>

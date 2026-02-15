@@ -22,17 +22,6 @@
               <span class="hidden sm:inline">Upload</span>
             </UButton>
             <UButton
-              to="/chat"
-              icon="i-heroicons-chat-bubble-left-right"
-              color="primary"
-              variant="solid"
-              size="sm"
-              class="font-bold"
-            >
-              <span class="hidden sm:inline">New Chat</span>
-              <span class="sm:hidden">Chat</span>
-            </UButton>
-            <UButton
               v-if="integrationStore?.intervalsConnected"
               :loading="integrationStore.syncingData"
               :disabled="integrationStore.syncingData"
@@ -45,6 +34,17 @@
             >
               <span class="hidden sm:inline">Sync Data</span>
               <span class="sm:hidden">Sync</span>
+            </UButton>
+            <UButton
+              to="/chat"
+              icon="i-heroicons-chat-bubble-left-right"
+              color="primary"
+              variant="solid"
+              size="sm"
+              class="font-bold"
+            >
+              <span class="hidden sm:inline">New Chat</span>
+              <span class="sm:hidden">Chat</span>
             </UButton>
           </div>
         </template>
