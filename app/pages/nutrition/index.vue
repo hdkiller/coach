@@ -102,6 +102,16 @@
                       No wave data available
                     </div>
                   </ClientOnly>
+
+                  <UAlert
+                    v-if="missingPlannedStartTimeCount > 0"
+                    class="mt-4"
+                    color="warning"
+                    variant="soft"
+                    icon="i-heroicons-exclamation-triangle"
+                    title="Planned activity missing start time"
+                    :description="missingStartTimeWarning"
+                  />
                 </UCard>
 
                 <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }">
@@ -347,6 +357,7 @@
 
 <script setup lang="ts">
   import { format, parseISO, addDays, startOfWeek } from 'date-fns'
+  import { countPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
 
   definePageMeta({
     middleware: 'auth',
@@ -387,6 +398,7 @@
   const upcomingPlan = ref<any>(null)
   const showGroceryList = ref(false)
   const highlightedDate = ref<string | null>(null)
+  const missingPlannedStartTimeCount = ref(0)
 
   const showAiHelper = ref(false)
   const aiHelperContext = ref<any>(null)
@@ -415,6 +427,46 @@
     () => loadingWave.value || loadingStrategy.value || loadingActiveFeed.value
   )
 
+  const missingStartTimeWarning = computed(() => {
+    const count = missingPlannedStartTimeCount.value
+    if (!count) return ''
+    return `${count} planned ${count === 1 ? 'activity is' : 'activities are'} missing a start time. They can appear at 00:00 and skew this metabolic horizon.`
+  })
+
+  function getWaveDateRange() {
+    const dateKeys = wavePoints.value
+      .map((p: any) => p?.dateKey)
+      .filter((key: any) => typeof key === 'string')
+      .sort()
+
+    if (dateKeys.length > 0) {
+      return {
+        startDate: dateKeys[0],
+        endDate: dateKeys[dateKeys.length - 1]
+      }
+    }
+
+    return {
+      startDate: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
+      endDate: format(addDays(new Date(), 3), 'yyyy-MM-dd')
+    }
+  }
+
+  async function refreshMissingStartTimeWarning() {
+    try {
+      const { startDate, endDate } = getWaveDateRange()
+      const activities = await $fetch<any[]>('/api/calendar', {
+        query: { startDate, endDate }
+      })
+      missingPlannedStartTimeCount.value = countPlannedWorkoutsWithMissingStartTime(
+        activities || []
+      )
+    } catch (error) {
+      console.error('Failed to evaluate planned workouts without start time:', error)
+      missingPlannedStartTimeCount.value = 0
+    }
+  }
+
   async function refreshData() {
     loadingWave.value = true
     loadingStrategy.value = true
@@ -430,9 +482,11 @@
 
       if (waveRes.status === 'fulfilled') {
         wavePoints.value = (waveRes.value as any).points || []
+        await refreshMissingStartTimeWarning()
       } else {
         console.error('Failed to load extended wave:', waveRes.reason)
         wavePoints.value = []
+        missingPlannedStartTimeCount.value = 0
       }
 
       if (strategyRes.status === 'fulfilled') {

@@ -66,11 +66,16 @@
                 @click="navigateDate(-1)"
               />
 
-              <div class="min-w-0 flex flex-1 items-center justify-center gap-2 sm:justify-start sm:gap-4">
+              <div
+                class="min-w-0 flex flex-1 items-center justify-center gap-2 sm:justify-start sm:gap-4"
+              >
                 <div
                   class="hidden sm:block p-2 sm:p-3 bg-primary-50 dark:bg-primary-950/20 rounded-lg sm:rounded-xl"
                 >
-                  <UIcon name="i-heroicons-calendar-days" class="w-5 h-5 sm:w-8 sm:h-8 text-primary-500" />
+                  <UIcon
+                    name="i-heroicons-calendar-days"
+                    class="w-5 h-5 sm:w-8 sm:h-8 text-primary-500"
+                  />
                 </div>
                 <div class="min-w-0 text-center sm:text-left">
                   <h1
@@ -147,6 +152,16 @@
                 :view-mode="energyViewMode"
               />
             </ClientOnly>
+
+            <UAlert
+              v-if="missingPlannedStartTimeCount > 0"
+              class="mt-4"
+              color="warning"
+              variant="soft"
+              icon="i-heroicons-exclamation-triangle"
+              title="Planned activity missing start time"
+              :description="missingStartTimeWarning"
+            />
 
             <!-- Legend/Status -->
             <div
@@ -295,7 +310,10 @@
 </template>
 
 <script setup lang="ts">
-  import { mapNutritionToTimeline } from '~/utils/nutrition-timeline'
+  import {
+    mapNutritionToTimeline,
+    countPlannedWorkoutsWithMissingStartTime
+  } from '~/utils/nutrition-timeline'
   import { ABSORPTION_PROFILES, type AbsorptionType } from '~/utils/nutrition-absorption'
   import { addDays, format } from 'date-fns'
 
@@ -362,6 +380,10 @@
     // Priority: Server-provided points (consistent with metabolic chain)
     return nutrition.value?.energyPoints || []
   })
+
+  const missingPlannedStartTimeCount = computed(() =>
+    countPlannedWorkoutsWithMissingStartTime(workouts.value)
+  )
 
   // Metabolic Ghost Line - Fetched from server
   const ghostPoints = ref<any[]>([])
@@ -444,6 +466,12 @@
     } catch (error) {
       return []
     }
+  })
+
+  const missingStartTimeWarning = computed(() => {
+    const count = missingPlannedStartTimeCount.value
+    if (!count) return ''
+    return `${count} planned ${count === 1 ? 'activity is' : 'activities are'} missing a start time. They can appear at 00:00 and skew this energy projection.`
   })
 
   // Data Fetching

@@ -103,6 +103,75 @@ export function getWorkoutDate(workout: any, timezone: string): number {
   }
 }
 
+export function hasMissingPlannedWorkoutStartTime(workout: any): boolean {
+  if (!workout || workout.type === 'Rest' || workout.type === 'Note') return false
+
+  const source = String(workout.source || '').toLowerCase()
+  const isCompleted =
+    source === 'completed' ||
+    source === 'intervals' ||
+    workout.status === 'completed' ||
+    workout.status === 'completed_plan'
+
+  if (isCompleted || source !== 'planned') {
+    return false
+  }
+
+  const startTime = workout.startTime
+  if (startTime == null) return true
+
+  if (typeof startTime === 'string') {
+    const trimmed = startTime.trim()
+    if (!trimmed) return true
+
+    if (/^00:00(?::00(?:\.\d{1,3})?)?$/.test(trimmed)) return true
+
+    if (trimmed.includes(':')) {
+      const [hRaw, mRaw, sRaw] = trimmed.split(':')
+      const h = Number(hRaw)
+      const m = Number(mRaw)
+      const s = Number((sRaw || '0').split('.')[0])
+      if (
+        Number.isFinite(h) &&
+        Number.isFinite(m) &&
+        Number.isFinite(s) &&
+        h === 0 &&
+        m === 0 &&
+        s === 0
+      ) {
+        return true
+      }
+    }
+
+    if (trimmed.includes('T')) {
+      const parsed = new Date(trimmed)
+      if (!isNaN(parsed.getTime())) {
+        const isMidnight =
+          parsed.getUTCHours() === 0 && parsed.getUTCMinutes() === 0 && parsed.getUTCSeconds() === 0
+        if (isMidnight) return true
+      }
+    }
+  }
+
+  if (startTime instanceof Date) {
+    return (
+      startTime.getUTCHours() === 0 &&
+      startTime.getUTCMinutes() === 0 &&
+      startTime.getUTCSeconds() === 0
+    )
+  }
+
+  return false
+}
+
+export function countPlannedWorkoutsWithMissingStartTime(workouts: any[]): number {
+  if (!Array.isArray(workouts) || workouts.length === 0) return 0
+  return workouts.reduce(
+    (count, workout) => count + (hasMissingPlannedWorkoutStartTime(workout) ? 1 : 0),
+    0
+  )
+}
+
 /**
  * Maps nutrition record and planned workouts to a unified timeline.
  * Relies on server-provided fuelingPlan for windows and targets.
