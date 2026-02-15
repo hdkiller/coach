@@ -2,6 +2,7 @@ import { prisma } from '../db'
 import { nutritionRepository } from '../repositories/nutritionRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
+import { remediationService } from './remediationService'
 import {
   getUserTimezone,
   getUserLocalDate,
@@ -154,6 +155,20 @@ export const metabolicService = {
     const dayWorkouts = await this.getRelevantWorkouts(userId, date, timezone)
     const dayNutrition = await nutritionRepository.getByDate(userId, date)
 
+    const rangeStart = getStartOfDayUTC(timezone, date)
+    const rangeEnd = getEndOfDayUTC(timezone, date)
+
+    const journeyEvents = await prisma.athleteJourneyEvent.findMany({
+      where: {
+        userId,
+        timestamp: {
+          gte: rangeStart,
+          lte: rangeEnd
+        }
+      },
+      orderBy: { timestamp: 'asc' }
+    })
+
     const todayLocal = getUserLocalDate(timezone)
 
     // Synthesize meals if needed (ONLY for Today or Future)
@@ -219,6 +234,7 @@ export const metabolicService = {
     return {
       points,
       dayNutrition,
+      journeyEvents,
       liveStatus: {
         ...summary,
         percentage // Force match with chart point
@@ -441,8 +457,9 @@ export const metabolicService = {
     }
 
     if (recursionDepth >= 5) {
+      const dbValue = yesterdayRecord?.endingGlycogenPercentage
       return {
-        startingGlycogen: yesterdayRecord?.endingGlycogenPercentage ?? 85,
+        startingGlycogen: dbValue !== null && dbValue !== undefined && dbValue > 0 ? dbValue : 85,
         startingFluid: Math.max(0, yesterdayRecord?.endingFluidDeficit ?? 0)
       }
     }
@@ -691,14 +708,24 @@ export const metabolicService = {
     const rangeStart = getStartOfDayUTC(timezone, startDate)
     const rangeEnd = getEndOfDayUTC(timezone, endDate)
 
-    const [allNutrition, allWorkouts, allPlanned] = await Promise.all([
+    const [allNutrition, allWorkouts, allPlanned, journeyEvents] = await Promise.all([
       nutritionRepository.getForUser(userId, { startDate, endDate }),
       workoutRepository.getForUser(userId, {
         startDate: rangeStart,
         endDate: rangeEnd,
         includeDuplicates: false
       }),
-      plannedWorkoutRepository.list(userId, { startDate, endDate })
+      plannedWorkoutRepository.list(userId, { startDate, endDate }),
+      prisma.athleteJourneyEvent.findMany({
+        where: {
+          userId,
+          timestamp: {
+            gte: rangeStart,
+            lte: rangeEnd
+          }
+        },
+        orderBy: { timestamp: 'asc' }
+      })
     ])
 
     const nutritionMap = new Map()
@@ -781,7 +808,10 @@ export const metabolicService = {
       }
     }
 
-    return allPoints
+    return {
+      points: allPoints,
+      journeyEvents
+    }
   },
 
   /**
@@ -879,6 +909,9 @@ export const metabolicService = {
     )
     const remainingPlanned = plannedWorkouts.filter((w) => !completedPlannedIds.has(w.id))
 
+    // Check for symptom-based overrides
+    const override = await remediationService.getActiveFuelingOverride(userId, date)
+
     if (remainingPlanned.length === 0 && completedWorkouts.length === 0) {
       contexts.push({
         id: 'rest-virtual',
@@ -932,7 +965,20 @@ export const metabolicService = {
     let totalSodium = 1000
 
     for (const ctx of contexts) {
+      if (override?.strategy) {
+        ctx.strategyOverride = override.strategy
+      }
+
       const plan = calculateFuelingStrategy(profile, ctx)
+
+      // Apply carb adjustment if requested by remediation
+      if (override?.carbAdjustment) {
+        plan.dailyTotals.carbs *= override.carbAdjustment
+        plan.windows.forEach((w) => {
+          if (w.targetCarbs) w.targetCarbs *= override.carbAdjustment ?? 1
+        })
+      }
+
       combinedWindows.push(...plan.windows)
       combinedNotes.push(...plan.notes)
 
@@ -954,15 +1000,15 @@ export const metabolicService = {
 
     const breakdown = calculateDailyCalorieBreakdown(profile, contexts)
     const mergedWindows = mergeWindows ? mergeFuelingWindows(combinedWindows) : combinedWindows
-    const uniqueNotes = Array.from(new Set(combinedNotes))
+    const uniqueNotes = Array.from(new Set([...combinedNotes, ...(override?.notes || [])]))
 
     const finalPlan = {
       windows: mergedWindows,
       notes: uniqueNotes,
       dailyTotals: {
-        carbs: maxDailyCarbs,
-        protein: maxDailyProtein,
-        fat: maxDailyFat,
+        carbs: Math.round(maxDailyCarbs),
+        protein: Math.round(maxDailyProtein),
+        fat: Math.round(maxDailyFat),
         calories: breakdown.totalTarget,
         fluid: totalFluid,
         sodium: totalSodium,
@@ -970,7 +1016,8 @@ export const metabolicService = {
         activityCalories: breakdown.activityCalories,
         adjustmentCalories: breakdown.adjustmentCalories,
         fuelState: dominantState,
-        workoutCalories: breakdown.workouts.map((w) => ({ title: w.title, calories: w.calories }))
+        workoutCalories: breakdown.workouts.map((w) => ({ title: w.title, calories: w.calories })),
+        isRescueProtocol: override?.isRescueProtocol || false
       }
     }
 
@@ -1021,7 +1068,7 @@ export const metabolicService = {
     })
     const weight = user?.weight || 75
     const MEAL_CAP = weight * 2.0 // 2.0g/kg per sitting
-    const hydrationBaselineProbe = await this.getWaveRange(
+    const { points: hydrationBaselineProbe } = await this.getWaveRange(
       userId,
       new Date(today.getTime() - 24 * 60 * 60 * 1000),
       today

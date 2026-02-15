@@ -45,10 +45,11 @@ export default defineEventHandler(async (event) => {
   const startDate = new Date(`${startStr}T00:00:00Z`)
   const endDate = new Date(`${endStr}T00:00:00Z`)
 
-  const points = await metabolicService.getWaveRange(userId, startDate, endDate)
+  const { points, journeyEvents } = await metabolicService.getWaveRange(userId, startDate, endDate)
 
   return {
     success: true,
-    points
+    points,
+    journeyEvents
   }
 })

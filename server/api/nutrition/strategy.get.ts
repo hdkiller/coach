@@ -88,9 +88,21 @@ export default defineEventHandler(async (event) => {
     // 2. Calculate Hydration Debt (Last 72h + Today)
     const startDate = new Date(today)
     startDate.setUTCDate(today.getUTCDate() - 3)
-    const points = await metabolicService.getWaveRange(userId, startDate, today)
+    const { points } = await metabolicService.getWaveRange(userId, startDate, today)
     const lastPoint = points[points.length - 1]
+
     const hydrationDebt = lastPoint ? Math.max(0, lastPoint.fluidDeficit) : 0
+
+    // 2.5 Wellness Pattern Analysis (Recent symptoms)
+    const recentSymptoms = await prisma.athleteJourneyEvent.findMany({
+      where: {
+        userId,
+        timestamp: { gte: startDate },
+        eventType: 'SYMPTOM'
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 3
+    })
 
     // 3. Simple Strategic Summary (Static for now, could be AI later)
     const highIntensityDays = fuelingMatrix.filter((d) => d.state >= 2).length
@@ -101,6 +113,18 @@ export default defineEventHandler(async (event) => {
       summary += ` You have ${performanceDays} high-performance session(s) requiring aggressive carb loading.`
     } else {
       summary += ` Focus on metabolic efficiency and steady endurance.`
+    }
+
+    if (recentSymptoms.length > 0) {
+      const mostRecent = recentSymptoms[0]!
+      if (mostRecent.category === 'GI_DISTRESS' && mostRecent.severity >= 7) {
+        summary += ` HEADS UP: You recently logged severe GI distress. We've activated a rescue fueling protocol (low-fiber/liquid) for your next session.`
+      } else if (
+        (mostRecent.category === 'FATIGUE' || mostRecent.category === 'MUSCLE_PAIN') &&
+        mostRecent.severity >= 7
+      ) {
+        summary += ` RECOVERY ALERT: High fatigue/muscle pain logged. We've increased your carbohydrate targets for the next 24 hours to support replenishment.`
+      }
     }
 
     if (hydrationDebt > HYDRATION_DEBT_NUDGE_THRESHOLD_ML) {

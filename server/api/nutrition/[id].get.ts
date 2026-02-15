@@ -46,6 +46,7 @@ export default defineEventHandler(async (event) => {
   let startingGlycogen: number = 85
   let startingFluid: number = 0
   let energyPoints: any[] = []
+  let journeyEvents: any[] = []
   let glycogenState: any = null
   let chainCalibration: any = null
 
@@ -64,6 +65,7 @@ export default defineEventHandler(async (event) => {
     )
     energyPoints = timelineResult.points
     glycogenState = timelineResult.liveStatus
+    journeyEvents = timelineResult.journeyEvents
 
     const lookbackStart = new Date(dateObj)
     lookbackStart.setUTCDate(dateObj.getUTCDate() - 6)
@@ -175,6 +177,7 @@ export default defineEventHandler(async (event) => {
     startingGlycogen,
     startingFluid,
     energyPoints,
+    journeyEvents,
     ...(glycogenState || {}),
     chainCalibration,
     date:

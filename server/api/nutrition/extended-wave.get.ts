@@ -63,11 +63,12 @@ export default defineEventHandler(async (event) => {
   const daysAhead = query.daysAhead ? parseInt(query.daysAhead as string) : 3
 
   try {
-    const points = await metabolicService.generateExtendedWave(userId, daysAhead)
+    const { points, journeyEvents } = await metabolicService.generateExtendedWave(userId, daysAhead)
 
     return {
       success: true,
-      points
+      points,
+      journeyEvents
     }
   } catch (error: any) {
     console.error('Error generating extended wave:', error)
