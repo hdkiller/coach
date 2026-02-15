@@ -210,9 +210,9 @@ describe('WorkoutConverter', () => {
 
       const result = WorkoutConverter.toIntervalsICU(workout as any)
 
-      expect(result).toContain('- Mixed 400mtr 60% LTHR')
+      expect(result).toContain('- Mixed 400m 60% LTHR')
       expect(result).toContain('4x')
-      expect(result).toContain(' - Hard 100mtr 90% pace')
+      expect(result).toContain(' - Hard 100m 90% Pace')
       expect(result).toContain(' - Rest 30s')
     })
 
@@ -233,8 +233,33 @@ describe('WorkoutConverter', () => {
 
       const result = WorkoutConverter.toIntervalsICU(workout as any)
 
-      // HR should come first
-      expect(result).toContain('75% LTHR 80%')
+      // HR should be the only exported primary metric
+      expect(result).toContain('75% LTHR')
+      expect(result).not.toContain('80%')
+    })
+
+    it('preserves absolute target units for Intervals export', () => {
+      const workout = {
+        title: 'Absolute Units',
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 600,
+            power: { range: { start: 220, end: 260 }, units: 'w' },
+            name: 'Steady'
+          },
+          {
+            type: 'Active',
+            durationSeconds: 300,
+            heartRate: { value: 165, units: 'bpm' },
+            name: 'HR Push'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- Steady 10m 220-260w')
+      expect(result).toContain('- HR Push 5m 165bpm')
     })
 
     it('exports explicit heart-rate ranges for steady-state steps', () => {
