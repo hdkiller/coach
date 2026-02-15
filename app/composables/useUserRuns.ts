@@ -33,9 +33,15 @@ export const ACTIVE_STATUSES = [
 
 export function useUserRuns() {
   const { data: session } = useAuth()
+  const hasUserSession = computed(() => Boolean((session.value?.user as any)?.id))
 
   // --- Initial Fetch ---
   const fetchActiveRuns = async () => {
+    if (!hasUserSession.value) {
+      runs.value = []
+      return
+    }
+
     if (isLoading.value && !pollInterval) return
 
     isLoading.value = true
@@ -86,7 +92,7 @@ export function useUserRuns() {
   const startPolling = () => {
     if (pollInterval) return
     pollInterval = setInterval(() => {
-      if (!isConnected.value && activeSubscribers > 0) {
+      if (!isConnected.value && activeSubscribers > 0 && hasUserSession.value) {
         fetchActiveRuns()
       }
     }, 5000)
@@ -204,6 +210,11 @@ export function useUserRuns() {
   }
 
   const init = async () => {
+    if (!hasUserSession.value) {
+      runs.value = []
+      return
+    }
+
     if (!initPromise) {
       initPromise = fetchActiveRuns()
     }
@@ -218,8 +229,18 @@ export function useUserRuns() {
     watch(
       () => (session.value?.user as any)?.id,
       (newId) => {
-        if (newId && !ws) {
-          connectWebSocket()
+        if (newId) {
+          init()
+        } else {
+          if (ws) {
+            ws.close()
+            ws = null
+          }
+          isConnected.value = false
+          initPromise = null
+          stopPolling()
+          stopPing()
+          runs.value = []
         }
       }
     )
@@ -227,7 +248,9 @@ export function useUserRuns() {
 
   onMounted(() => {
     activeSubscribers++
-    init()
+    if (hasUserSession.value) {
+      init()
+    }
   })
 
   onUnmounted(() => {
