@@ -12,6 +12,7 @@ Welcome to the Coach Watts Developer Platform. You can build applications, integ
 
 - **[Authentication](./authentication.md):** How to authenticate users using OAuth 2.0.
 - **[Scopes](./scopes.md):** Permissions your app can request.
+- **[Syncing Data](./sync-data.md):** How to upload activity, wellness, and nutrition data.
 
 ## Base URL
 

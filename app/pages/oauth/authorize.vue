@@ -164,6 +164,24 @@
       description: 'Access your HRV, sleep, and recovery metrics.',
       icon: 'i-heroicons-heart'
     },
+    'health:write': {
+      id: 'health:write',
+      title: 'Log Health Data',
+      description: 'Log new health metrics like HRV, sleep, and weight.',
+      icon: 'i-heroicons-plus-circle'
+    },
+    'nutrition:read': {
+      id: 'nutrition:read',
+      title: 'Read Nutrition',
+      description: 'View your daily nutrition logs and macro targets.',
+      icon: 'i-heroicons-shopping-cart'
+    },
+    'nutrition:write': {
+      id: 'nutrition:write',
+      title: 'Log Nutrition',
+      description: 'Log new meals, calories, and macros.',
+      icon: 'i-heroicons-plus-circle'
+    },
     offline_access: {
       id: 'offline_access',
       title: 'Offline Access',
