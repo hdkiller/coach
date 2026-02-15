@@ -1,3 +1,4 @@
+import { requireAuth } from '../../utils/auth-guard'
 import { getEffectiveUserId } from '../../utils/coaching'
 
 defineRouteMeta({
@@ -37,6 +38,7 @@ defineRouteMeta({
     tags: ['Workouts'],
     summary: 'List workouts',
     description: 'Returns a list of workouts for the authenticated user or an athlete they coach.',
+    security: [{ bearerAuth: [] }],
     parameters: [
       {
         name: 'limit',
@@ -102,6 +104,11 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
+  // Check auth and scope
+  const user = await requireAuth(event, ['workout:read'])
+
+  // Still allow acting as another user if it's a session/api_key (full access)
+  // or if we ever support scoped "act as"
   const userId = await getEffectiveUserId(event)
 
   const query = getQuery(event)
