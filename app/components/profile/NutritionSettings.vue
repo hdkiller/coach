@@ -124,6 +124,29 @@
           </UInput>
         </UFormField>
 
+        <UFormField
+          label="Metabolic Safety Floor"
+          name="metabolicFloor"
+          help="The default glycogen level used when data chain is broken (e.g. 60% = 0.6)."
+        >
+          <div class="flex items-center gap-4">
+            <UInput
+              v-model.number="localSettings.metabolicFloor"
+              type="number"
+              :step="0.05"
+              :min="0.1"
+              :max="0.95"
+              class="flex-1"
+            >
+              <template #trailing>
+                <span class="text-gray-500 dark:text-gray-400 text-xs"
+                  >{{ Math.round(localSettings.metabolicFloor * 100) }}%</span
+                >
+              </template>
+            </UInput>
+          </div>
+        </UFormField>
+
         <div class="md:col-span-2 space-y-4">
           <UFormField
             label="Goal Profile"
@@ -1015,6 +1038,7 @@
     fuelState2Max: 7.5,
     fuelState3Min: 8.0,
     fuelState3Max: 12.0,
+    metabolicFloor: 0.6,
     enabledSupplements: [],
     baseProteinPerKg: 1.6,
     baseFatPerKg: 1.0,
