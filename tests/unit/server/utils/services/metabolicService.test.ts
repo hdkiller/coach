@@ -106,4 +106,40 @@ describe('metabolicService smoke coverage', () => {
     expect(calculateGlycogenState).toHaveBeenCalled()
     expect(result).toEqual({ percentage: 78 })
   })
+
+  it('getMetabolicStateForDate should not throw when recursion fallback uses metabolic floor', async () => {
+    vi.mocked(getUserNutritionSettings).mockResolvedValue({
+      metabolicFloor: 0.55
+    } as any)
+    vi.mocked(nutritionRepository.getByDate).mockResolvedValue({
+      endingGlycogenPercentage: null,
+      endingFluidDeficit: 120
+    } as any)
+
+    const result = await metabolicService.getMetabolicStateForDate(userId, date, 5)
+
+    expect(getUserNutritionSettings).toHaveBeenCalledWith(userId)
+    expect(result.startingGlycogen).toBeCloseTo(55)
+    expect(result.startingFluid).toBe(120)
+  })
+
+  it('repairMetabolicChain should not throw in base-case fallback path', async () => {
+    vi.mocked(getUserNutritionSettings).mockResolvedValue({
+      metabolicFloor: 0.5
+    } as any)
+    vi.mocked(nutritionRepository.getByDate)
+      .mockResolvedValueOnce(null as any)
+      .mockResolvedValueOnce({
+        endingGlycogenPercentage: null,
+        endingFluidDeficit: 40
+      } as any)
+
+    const result = await metabolicService.repairMetabolicChain(userId, new Date('2026-01-01T00:00:00Z'), 5)
+
+    expect(getUserNutritionSettings).toHaveBeenCalledWith(userId)
+    expect(result).toEqual({
+      startingGlycogen: 50,
+      startingFluid: 40
+    })
+  })
 })

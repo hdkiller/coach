@@ -459,6 +459,7 @@ export const metabolicService = {
 
     if (recursionDepth >= 5) {
       const dbValue = yesterdayRecord?.endingGlycogenPercentage
+      const settings = await getUserNutritionSettings(userId)
       const metabolicFloor = settings?.metabolicFloor || 0.6
       return {
         startingGlycogen:
@@ -481,6 +482,7 @@ export const metabolicService = {
 
     const lastPoint = points[points.length - 1]
     if (!lastPoint) {
+      const settings = await getUserNutritionSettings(userId)
       const metabolicFloor = settings?.metabolicFloor || 0.6
       return {
         startingGlycogen: metabolicFloor * 100,
@@ -604,6 +606,7 @@ export const metabolicService = {
     }
 
     // BASE CASE: Recursion limit reached or we decided to trust DB (e.g. deep past)
+    const settings = await getUserNutritionSettings(userId)
     const metabolicFloor = settings?.metabolicFloor || 0.6
     const endingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? metabolicFloor * 100
     const endingFluid = yesterdayRecord?.endingFluidDeficit ?? 0
