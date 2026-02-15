@@ -9,7 +9,7 @@
           Privacy Policy
         </p>
         <p class="mt-4 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          Effective Date: January 8, 2026
+          Effective Date: February 15, 2026
         </p>
       </div>
 
@@ -20,7 +20,7 @@
           </h3>
           <p>
             Welcome to Coach Watts ("we," "our," or "us"). This service is operated by
-            <strong>TheNewPush, LLC</strong>, a company headquartered in Baltimore, Maryland. We are
+            <strong>Watt Mind Kft.</strong>, a company headquartered in Gödöllő, Hungary. We are
             committed to protecting the privacy of your personal and physiological information. This
             Privacy Policy explains how we collect, use, and safeguard your data when you use our
             AI-powered coaching application (the "Service").
@@ -54,8 +54,8 @@
               <p
                 class="bg-primary-50 dark:bg-primary-900/20 border-l-4 border-primary-500 p-4 mb-4"
               >
-                <strong>Note:</strong> Under Maryland Law (MODPA) and GDPR, this is classified as
-                "Sensitive Data" which requires your explicit consent.
+                <strong>Note:</strong> Under Hungarian and European Union Law (GDPR), this is
+                classified as "Sensitive Data" which requires your explicit consent.
               </p>
               <p class="mb-2">
                 We collect physiological data only when you connect third-party services (such as
@@ -226,17 +226,13 @@
           <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
             6. International Data Transfers
           </h3>
-          <p>TheNewPush, LLC is located in the United States.</p>
+          <p>Watt Mind Kft. is located in Hungary (European Union).</p>
           <p class="mt-2">
-            <strong>For International Users:</strong> By using our Service, you acknowledge and
-            consent that your data will be transferred to, stored, and processed in the United
-            States.
-          </p>
-          <p class="mt-2">
-            <strong>GDPR Compliance:</strong> For users in the EEA/UK, we rely on the EU-U.S. Data
-            Privacy Framework (DPF) (where applicable) or standard derogations for specific
-            situations (performance of a contract/consent) to legitimize the transfer of data to the
-            US.
+            <strong>Data Storage:</strong> While we are headquartered in the EU, our trusted cloud
+            providers (Supabase, Vercel, Google Cloud) may process data in the United States or
+            other regions. We ensure that such transfers are protected by standard contractual
+            clauses (SCCs) or other legally recognized transfer mechanisms to ensure a level of data
+            protection equivalent to that in the EU.
           </p>
         </div>
 
@@ -257,12 +253,16 @@
 
         <div>
           <h3 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-            8. Your Rights (Maryland & GDPR)
+            8. Your Rights (GDPR)
           </h3>
-          <p>Depending on your location, you have specific rights regarding your data:</p>
+          <p>Under the GDPR, you have the following rights regarding your personal data:</p>
           <ul class="list-disc pl-5 space-y-2 mt-2">
-            <li><strong>Right to Access:</strong> Know what data we hold about you.</li>
-            <li><strong>Right to Correction:</strong> Fix inaccurate personal data.</li>
+            <li>
+              <strong>Right to Access:</strong> Know what data we hold about you and receive a copy.
+            </li>
+            <li>
+              <strong>Right to Correction:</strong> Fix inaccurate or incomplete personal data.
+            </li>
             <li>
               <strong>Right to Deletion:</strong> Request full deletion of your data ("Right to be
               Forgotten").
@@ -272,11 +272,35 @@
               machine-readable format.
             </li>
             <li>
+              <strong>Right to Restrict Processing:</strong> Request that we limit how we use your
+              data.
+            </li>
+            <li>
+              <strong>Right to Object:</strong> Object to our processing of your data based on
+              legitimate interests.
+            </li>
+            <li>
               <strong>Right to Withdraw Consent:</strong> Stop the processing of your Health Data at
               any time.
             </li>
           </ul>
-          <p class="mt-4">To exercise these rights, please contact us at the email below.</p>
+          <p class="mt-4">To exercise these rights, please contact us at support@coachwatts.com.</p>
+
+          <h4 class="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-2">
+            Supervisory Authority
+          </h4>
+          <p>
+            If you believe we have not processed your data in accordance with GDPR, you have the
+            right to lodge a complaint with your local data protection authority. In Hungary, this
+            is:
+          </p>
+          <p class="mt-2 font-medium italic">
+            Nemzeti Adatvédelmi és Információszabadság Hatóság (NAIH)<br />
+            H-1055 Budapest, Falk Miksa utca 9-11.<br />
+            <a href="https://naih.hu" target="_blank" class="text-primary-600 hover:underline"
+              >https://naih.hu</a
+            >
+          </p>
         </div>
 
         <div>
@@ -305,16 +329,15 @@
           </h3>
           <p>If you have any questions about this Privacy Policy or our data practices:</p>
           <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p><strong>TheNewPush, LLC</strong></p>
-            <p>3700 O'Donnell Street, Suite 200</p>
-            <p>Baltimore, MD 21224</p>
-            <p>United States</p>
+            <p><strong>Watt Mind Kft.</strong></p>
+            <p>2100 Gödöllő, Babati utca 26.</p>
+            <p>Hungary</p>
             <p class="mt-2">
               Email:
               <a
-                href="mailto:support@newpush.com"
+                href="mailto:support@coachwatts.com"
                 class="text-primary-600 dark:text-primary-400 hover:underline"
-                >support@newpush.com</a
+                >support@coachwatts.com</a
               >
             </p>
           </div>
@@ -336,7 +359,7 @@
       {
         name: 'description',
         content:
-          'Coach Watts Privacy Policy. How TheNewPush, LLC. collects, uses, and protects your personal fitness and health data.'
+          'Coach Watts Privacy Policy. How Watt Mind Kft. collects, uses, and protects your personal fitness and health data.'
       }
     ]
   })

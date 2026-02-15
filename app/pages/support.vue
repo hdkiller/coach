@@ -83,7 +83,7 @@
 
           <template #footer>
             <UButton
-              to="mailto:support@newpush.com"
+              to="mailto:support@coachwatts.com"
               color="neutral"
               variant="solid"
               block

@@ -30,7 +30,7 @@
     <footer class="bg-gray-900 py-12 border-t border-gray-800">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="flex flex-col items-center justify-between gap-6 sm:flex-row">
-          <p class="text-sm text-gray-400">&copy; 2025 Coach Watts. All rights reserved.</p>
+          <p class="text-sm text-gray-400">&copy; 2026 Coach Watts. All rights reserved.</p>
           <div class="flex gap-6">
             <UButton
               to="https://discord.gg/dPYkzg49T9"

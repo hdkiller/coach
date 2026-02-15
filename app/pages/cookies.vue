@@ -9,7 +9,7 @@
           Cookie Policy
         </p>
         <p class="mt-4 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          Effective Date: January 8, 2026
+          Effective Date: February 15, 2026
         </p>
       </div>
 
@@ -22,7 +22,7 @@
             Cookies are small text files that are placed on your computer or mobile device when you
             visit a website. They are widely used by website owners to make their websites work, or
             work more efficiently, as well as to provide reporting information. Cookies set by the
-            website owner (in this case, <strong>TheNewPush, LLC.</strong>) are called "first-party
+            website owner (in this case, <strong>Watt Mind Kft.</strong>) are called "first-party
             cookies." Cookies set by parties other than the website owner are called "third-party
             cookies."
           </p>
@@ -119,13 +119,13 @@
             us at:
           </p>
           <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p><strong>TheNewPush, LLC.</strong></p>
+            <p><strong>Watt Mind Kft.</strong></p>
             <p>
               Email:
               <a
-                href="mailto:support@newpush.com"
+                href="mailto:support@coachwatts.com"
                 class="text-primary-600 dark:text-primary-400 hover:underline"
-                >support@newpush.com</a
+                >support@coachwatts.com</a
               >
             </p>
           </div>
@@ -147,7 +147,7 @@
       {
         name: 'description',
         content:
-          'Coach Watts Cookie Policy. Learn about how TheNewPush, LLC. uses cookies to improve your experience and how you can manage them.'
+          'Coach Watts Cookie Policy. Learn about how Watt Mind Kft. uses cookies to improve your experience and how you can manage them.'
       }
     ]
   })

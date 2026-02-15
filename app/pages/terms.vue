@@ -9,7 +9,7 @@
           Terms of Service
         </p>
         <p class="mt-4 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          Effective Date: January 8, 2026
+          Effective Date: February 15, 2026
         </p>
       </div>
 
@@ -20,7 +20,7 @@
           </h3>
           <p>
             These Terms of Service ("Terms") constitute a legally binding agreement between you and
-            <strong>TheNewPush, LLC.</strong> ("NewPush," "we," "us," or "our") governing your
+            <strong>Watt Mind Kft.</strong> ("Watt Mind," "we," "us," or "our") governing your
             access to and use of the Coach Watts application and website (the "Service"). By
             accessing or using the Service, you agree to be bound by these Terms. If you do not
             agree to these Terms, you must not use the Service.
@@ -134,13 +134,13 @@
           </h3>
           <p>
             The Service and its original content (excluding user-provided data), features, and
-            functionality are and will remain the exclusive property of NewPush LLC and its
+            functionality are and will remain the exclusive property of Watt Mind Kft. and its
             licensors. The Service is protected by copyright, trademark, and other laws.
           </p>
           <p class="mt-2">
             You retain ownership of the fitness and health data you sync to the Service. By using
-            the Service, you grant NewPush LLC a worldwide, non-exclusive, royalty-free license to
-            use, reproduce, modify, perform, display, and distribute such data solely for the
+            the Service, you grant Watt Mind Kft. a worldwide, non-exclusive, royalty-free license
+            to use, reproduce, modify, perform, display, and distribute such data solely for the
             purpose of operating and improving the Service and providing insights to you.
           </p>
         </div>
@@ -165,12 +165,12 @@
             Read this section carefully
           </p>
           <p>
-            TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, NEWPUSH LLC SHALL NOT BE LIABLE FOR
-            ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF
-            PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE,
-            GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM (A) YOUR ACCESS TO OR USE OF OR
-            INABILITY TO ACCESS OR USE THE SERVICE; (B) ANY CONDUCT OR CONTENT OF ANY THIRD PARTY ON
-            THE SERVICE; OR (C) UNAUTHORIZED ACCESS, USE, OR ALTERATION OF YOUR TRANSMISSIONS OR
+            TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, WATT MIND KFT. SHALL NOT BE LIABLE
+            FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS
+            OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA,
+            USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM (A) YOUR ACCESS TO OR USE OF
+            OR INABILITY TO ACCESS OR USE THE SERVICE; (B) ANY CONDUCT OR CONTENT OF ANY THIRD PARTY
+            ON THE SERVICE; OR (C) UNAUTHORIZED ACCESS, USE, OR ALTERATION OF YOUR TRANSMISSIONS OR
             CONTENT.
           </p>
         </div>
@@ -212,9 +212,10 @@
             11. Governing Law
           </h3>
           <p>
-            These Terms shall be governed and construed in accordance with the laws of the United
-            States, without regard to its conflict of law provisions. Our failure to enforce any
-            right or provision of these Terms will not be considered a waiver of those rights.
+            These Terms shall be governed and construed in accordance with the laws of Hungary and
+            the European Union, without regard to its conflict of law provisions. Our failure to
+            enforce any right or provision of these Terms will not be considered a waiver of those
+            rights.
           </p>
         </div>
 
@@ -229,8 +230,8 @@
             ANY DISPUTE, CLAIM OR CONTROVERSY ARISING OUT OF OR RELATING TO THESE TERMS OR THE
             BREACH, TERMINATION, ENFORCEMENT, INTERPRETATION OR VALIDITY THEREOF, INCLUDING THE
             DETERMINATION OF THE SCOPE OR APPLICABILITY OF THIS AGREEMENT TO ARBITRATE, SHALL BE
-            DETERMINED BY BINDING ARBITRATION WITHIN THE UNITED STATES, BEFORE ONE ARBITRATOR.
-            JUDGMENT ON THE AWARD MAY BE ENTERED IN ANY COURT HAVING JURISDICTION.
+            DETERMINED BY BINDING ARBITRATION WITHIN HUNGARY OR THE EUROPEAN UNION, BEFORE ONE
+            ARBITRATOR. JUDGMENT ON THE AWARD MAY BE ENTERED IN ANY COURT HAVING JURISDICTION.
           </p>
           <p class="mt-2">
             <strong>Class Action Waiver:</strong> YOU AGREE THAT ANY ARBITRATION SHALL BE CONDUCTED
@@ -246,8 +247,8 @@
           </h3>
           <p>If you have any questions about these Terms, please contact us at:</p>
           <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p><strong>TheNewPush, LLC.</strong></p>
-            <p>Email: legal@newpush.com</p>
+            <p><strong>Watt Mind Kft.</strong></p>
+            <p>Email: support@coachwatts.com</p>
           </div>
         </div>
       </div>
@@ -267,7 +268,7 @@
       {
         name: 'description',
         content:
-          'Coach Watts Terms of Service. User agreement, medical disclaimer, and liability limitations for TheNewPush, LLC. services.'
+          'Coach Watts Terms of Service. User agreement, medical disclaimer, and liability limitations for Watt Mind Kft. services.'
       }
     ]
   })
