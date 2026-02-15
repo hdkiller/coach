@@ -35,3 +35,26 @@ export interface EnergyPoint {
   eventCarbs?: number
   eventFluid?: number
 }
+
+export type JourneyEventType = 'SYMPTOM' | 'WELLNESS_CHECK' | 'RECOVERY_NOTE'
+export type JourneyEventCategory =
+  | 'GI_DISTRESS'
+  | 'MUSCLE_PAIN'
+  | 'FATIGUE'
+  | 'SLEEP'
+  | 'MOOD'
+  | 'CRAMPING'
+  | 'DIZZINESS'
+  | 'HUNGER'
+
+export interface AthleteJourneyEvent {
+  id: string
+  userId: string
+  timestamp: string | Date
+  eventType: JourneyEventType
+  category: JourneyEventCategory
+  severity: number
+  description?: string
+  metabolicSnapshot?: any
+  suspectedTriggerId?: string
+}
