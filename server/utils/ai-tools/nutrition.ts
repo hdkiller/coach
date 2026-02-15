@@ -582,7 +582,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       // Calculate persistent hydration debt
       const startDate = new Date(today)
       startDate.setUTCDate(today.getUTCDate() - 3)
-      const points = await metabolicService.getWaveRange(userId, startDate, today)
+      const { points } = await metabolicService.getWaveRange(userId, startDate, today)
       const lastPoint = points[points.length - 1]
       const hydrationDebt = lastPoint ? Math.max(0, lastPoint.fluidDeficit) : 0
 

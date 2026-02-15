@@ -204,17 +204,19 @@ export function calculateEnergyTimeline(
   const INTERVAL = 15
   const TOTAL_POINTS = (24 * 60) / INTERVAL
 
-  const weight = settings?.user?.weight || 75
-  const C_cap = weight * 8
+  const weight = settings?.weight || settings?.user?.weight || 75
+  const C_cap = Math.max(weight * 8, 100) // Ensure C_cap is never 0
 
   const effectiveCarbsGoal =
     nutritionRecord.carbsGoal || (settings?.fuelState1Min ? settings.fuelState1Min * weight : 300)
 
-  let currentGrams =
-    C_cap *
-    (options.startingGlycogenPercentage !== undefined
-      ? options.startingGlycogenPercentage / 100
-      : 0.85)
+  let startingPct =
+    options.startingGlycogenPercentage !== undefined ? options.startingGlycogenPercentage : 85
+
+  // Safety floor: A new day shouldn't realistically start at 0% unless something is wrong with the chain
+  if (startingPct <= 0) startingPct = 85
+
+  let currentGrams = C_cap * (startingPct / 100)
   let currentFluidDeficit = options.startingFluidDeficit || 0
 
   let cumulativeKcalDelta = 0

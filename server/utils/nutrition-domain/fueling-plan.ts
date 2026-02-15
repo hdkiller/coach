@@ -82,6 +82,11 @@ export function calculateFuelingStrategy(
   if (workout.strategyOverride === 'TRAIN_LOW') {
     targetCarbsPerHour = 0
     notes.push('TRAIN LOW Protocol: No carb intake during ride to enhance fat oxidation.')
+  } else if (workout.strategyOverride === 'LOW_FIBER_LIQUID') {
+    targetCarbsPerHour = Math.min(45, targetCarbsPerHour)
+    notes.push(
+      'RESCUE PROTOCOL: Capping intra-workout carbs at 45g/hr and prioritizing liquid/gel forms.'
+    )
   } else {
     if (durationHours < 1) {
       targetCarbsPerHour = 0
@@ -136,9 +141,19 @@ export function calculateFuelingStrategy(
   const preStart = new Date(workoutStart.getTime() - preDuration * 60000)
 
   let preCarbs = profile.weight * 1.0 * sensitivity * adjustmentMultiplier
+  let preProtein = 20
+  let preFat = 10
+  let preDescription = 'Pre-workout fueling window.'
+
   if (workout.strategyOverride === 'TRAIN_LOW') {
     preCarbs = 10
     notes.push('TRAIN LOW: Minimal pre-workout carbs (<10g) to maintain low glycogen state.')
+  } else if (workout.strategyOverride === 'LOW_FIBER_LIQUID') {
+    preCarbs = profile.weight * 0.8
+    preProtein = 15
+    preFat = 2
+    preDescription = 'RESCUE PROTOCOL: Low-fiber, liquid-based pre-workout fueling.'
+    notes.push('RESCUE PROTOCOL: Reducing pre-workout fiber and fat to minimize digestive load.')
   } else if (state === 3 || durationHours > 3) {
     preCarbs = profile.weight * 2.0 * sensitivity * adjustmentMultiplier
   }
@@ -148,11 +163,11 @@ export function calculateFuelingStrategy(
     startTime: preStart.toISOString(),
     endTime: workoutStart.toISOString(),
     targetCarbs: Math.round(preCarbs),
-    targetProtein: 20,
-    targetFat: 10,
+    targetProtein: preProtein,
+    targetFat: preFat,
     targetFluid: 500,
     targetSodium: 500,
-    description: 'Pre-workout fueling window.',
+    description: preDescription,
     status: 'PENDING',
     plannedWorkoutId: workout.id,
     workoutTitle: workout.title
@@ -162,12 +177,20 @@ export function calculateFuelingStrategy(
   const postDuration = profile.postWorkoutWindow || 60
   const postEnd = new Date(workoutEnd.getTime() + postDuration * 60000)
 
-  const postCarbs = profile.weight * 1.2 * sensitivity * adjustmentMultiplier
+  let postCarbs = profile.weight * 1.2 * sensitivity * adjustmentMultiplier
   let postProtein = 30
+  let postFat = 15
+  let postDescription = 'Post-workout recovery window.'
 
   if (workout.strategyOverride === 'TRAIN_LOW') {
     postProtein = 45
     notes.push('TRAIN LOW: Increased post-workout protein to support muscle repair.')
+  } else if (workout.strategyOverride === 'LOW_FIBER_LIQUID') {
+    postCarbs = profile.weight * 1.0
+    postProtein = 40
+    postFat = 5
+    postDescription = 'RESCUE PROTOCOL: Rapid-absorption recovery fueling.'
+    notes.push('RESCUE PROTOCOL: Focusing on rapid protein and carb absorption with minimal fat.')
   }
 
   windows.push({
@@ -176,10 +199,10 @@ export function calculateFuelingStrategy(
     endTime: postEnd.toISOString(),
     targetCarbs: Math.round(postCarbs),
     targetProtein: postProtein,
-    targetFat: 15,
+    targetFat: postFat,
     targetFluid: 750,
     targetSodium: 0,
-    description: 'Post-workout recovery window.',
+    description: postDescription,
     status: 'PENDING',
     plannedWorkoutId: workout.id,
     workoutTitle: workout.title
