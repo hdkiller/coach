@@ -151,10 +151,13 @@
             Calculation Logic
           </h4>
           <p class="text-[10px] leading-relaxed text-gray-500 italic">
-            Muscle glycogen is your body's primary high-intensity fuel. We assume an 80% baseline
-            after sleep. Logged carbohydrates can fill the tank to 100%. Workouts drain the tank
-            based on intensity (IF) and duration. Staying above 35% prevents "bonking" or metabolic
-            crashes.
+            Muscle glycogen is your body's primary high-intensity fuel. Today's start was
+            {{ breakdown.midnightBaseline }}% (carryover chain baseline). Logged carbohydrates
+            refill over time via absorption curves, while resting metabolism and training reduce the
+            tank. Staying above ~35% lowers the risk of metabolic crashes during hard efforts.
+          </p>
+          <p v-if="projectionNote" class="text-[10px] leading-relaxed text-gray-500 mt-2">
+            {{ projectionNote }}
           </p>
         </div>
 
@@ -181,6 +184,8 @@
     state: number
     advice: string
     breakdown: GlycogenBreakdown
+    coachTip?: string
+    projectionNote?: string
   }>()
 
   const emit = defineEmits<{
@@ -210,6 +215,8 @@
   })
 
   const actionableTip = computed(() => {
+    if (props.coachTip) return props.coachTip
+
     if (props.percentage < 35) {
       return `Your glycogen stores are critical. Consume ${Math.max(40, Math.round(props.breakdown.replenishment.targetCarbs * 0.2))}g of fast-acting carbohydrates (e.g., fruit, energy bar, oats) immediately to stabilize energy levels.`
     }

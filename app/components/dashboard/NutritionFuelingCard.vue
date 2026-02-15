@@ -168,7 +168,7 @@
               >
             </p>
             <p v-if="isChainCalibrating" class="text-[10px] text-amber-600 dark:text-amber-400">
-              Fuel chain is still calibrating ({{ chainAnchoredDays }}/7 anchored days).
+              Fuel chain is still calibrating ({{ chainAnchoredDays }}/7 linked days).
             </p>
           </div>
 
@@ -410,6 +410,8 @@
     :state="glycogenState.state"
     :advice="tankAdvice"
     :breakdown="glycogenState.breakdown"
+    :coach-tip="modalCoachTip"
+    :projection-note="modalProjectionNote"
   />
 
   <NutritionMacroExplainModal
@@ -685,7 +687,44 @@
   const chainCalibrationTooltip = computed(() => {
     const anchored = chainAnchoredDays.value
     const confidence = props.nutrition?.chainCalibration?.confidence || 'CALIBRATING'
-    return `This tank is based on chain reconstruction (${anchored}/7 anchored days, ${confidence.toLowerCase()} confidence). It stabilizes as more consecutive days are linked.`
+    return `This tank is based on chain reconstruction (${anchored}/7 linked days from recent logs/chain state, ${confidence.toLowerCase()} confidence). It stabilizes as more consecutive days are linked.`
+  })
+
+  const nextPlannedWindow = computed(() => {
+    const windows = Array.isArray(props.nutrition?.fuelingPlan?.windows)
+      ? props.nutrition.fuelingPlan.windows
+      : []
+    const now = Date.now()
+    return windows
+      .filter((w: any) => {
+        const endTs = new Date(w.endTime).getTime()
+        return Number.isFinite(endTs) && endTs > now && (w.targetCarbs || 0) > 0
+      })
+      .sort(
+        (a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      )[0]
+  })
+
+  const modalCoachTip = computed(() => {
+    const tank = tankPercentage.value
+    const nextWindow = nextPlannedWindow.value
+    if (tank < 35 && nextWindow) {
+      const startTs = new Date(nextWindow.startTime).getTime()
+      const minsToStart = Math.round((startTs - Date.now()) / 60000)
+      const windowLabel = String(nextWindow.type || 'fueling')
+        .replaceAll('_', ' ')
+        .toLowerCase()
+      const targetCarbs = Math.round(nextWindow.targetCarbs || 0)
+      const immediateCarbs = Math.max(20, Math.min(45, Math.round(targetCarbs * 0.4)))
+      const timingText = minsToStart <= 0 ? 'is active now' : `starts in ~${minsToStart} min`
+      return `Fuel is low. Your next ${windowLabel} window ${timingText} (target ${targetCarbs}g carbs). Take ~${immediateCarbs}g fast carbs now, then complete the remaining target in that window.`
+    }
+    return undefined
+  })
+
+  const modalProjectionNote = computed(() => {
+    if (!nextPlannedWindow.value) return undefined
+    return 'Planned/synthetic windows are projections. They affect the future line, but become real replenishment as time passes and intake is logged.'
   })
 
   const mealRecommendationReasoning = computed(() => {
