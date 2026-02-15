@@ -44,7 +44,8 @@ export function calculateGlycogenState(
   const weight = settings?.weight || settings?.user?.weight || 75
   const C_cap = weight * 8
 
-  const baselinePct = startingPercentage !== undefined ? startingPercentage : 70
+  const metabolicFloor = settings?.metabolicFloor || 0.6
+  const baselinePct = startingPercentage !== undefined ? startingPercentage : metabolicFloor * 100
   let currentGrams = C_cap * (baselinePct / 100)
 
   const targetCarbs = nutritionRecord.carbsGoal || 300
@@ -206,16 +207,19 @@ export function calculateEnergyTimeline(
 
   const weight = settings?.weight || settings?.user?.weight || 75
   const C_cap = Math.max(weight * 8, 100) // Ensure C_cap is never 0
+  const metabolicFloor = settings?.metabolicFloor || 0.6
 
   const effectiveCarbsGoal =
     nutritionRecord.carbsGoal || (settings?.fuelState1Min ? settings.fuelState1Min * weight : 300)
 
   let startingPct =
-    options.startingGlycogenPercentage !== undefined ? options.startingGlycogenPercentage : 70
+    options.startingGlycogenPercentage !== undefined
+      ? options.startingGlycogenPercentage
+      : metabolicFloor * 100
 
   // Safety floor: A new day shouldn't realistically start at 0% unless something is wrong with the chain
 
-  if (startingPct <= 0) startingPct = 70
+  if (startingPct <= 0) startingPct = metabolicFloor * 100
 
   let currentGrams = C_cap * (startingPct / 100)
   let currentFluidDeficit = options.startingFluidDeficit || 0

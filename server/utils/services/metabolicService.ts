@@ -215,7 +215,8 @@ export const metabolicService = {
     const nowIdx = points.findIndex((p) => p.timestamp > nowTs)
     const activePoint = nowIdx > 0 ? points[nowIdx - 1] : points[points.length - 1]
 
-    const percentage = activePoint?.level ?? 70
+    const percentage =
+      activePoint?.level ?? (settings?.metabolicFloor ? settings.metabolicFloor * 100 : 60)
 
     // Get advice and breakdown using the same data
     // We still use calculateGlycogenState for the breakdown formatting, but force the percentage
@@ -458,8 +459,10 @@ export const metabolicService = {
 
     if (recursionDepth >= 5) {
       const dbValue = yesterdayRecord?.endingGlycogenPercentage
+      const metabolicFloor = settings?.metabolicFloor || 0.6
       return {
-        startingGlycogen: dbValue !== null && dbValue !== undefined && dbValue > 0 ? dbValue : 70,
+        startingGlycogen:
+          dbValue !== null && dbValue !== undefined && dbValue > 0 ? dbValue : metabolicFloor * 100,
         startingFluid: Math.max(0, yesterdayRecord?.endingFluidDeficit ?? 0)
       }
     }
@@ -478,8 +481,9 @@ export const metabolicService = {
 
     const lastPoint = points[points.length - 1]
     if (!lastPoint) {
+      const metabolicFloor = settings?.metabolicFloor || 0.6
       return {
-        startingGlycogen: 70,
+        startingGlycogen: metabolicFloor * 100,
         startingFluid: 0
       }
     }
@@ -600,7 +604,8 @@ export const metabolicService = {
     }
 
     // BASE CASE: Recursion limit reached or we decided to trust DB (e.g. deep past)
-    const endingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? 70
+    const metabolicFloor = settings?.metabolicFloor || 0.6
+    const endingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? metabolicFloor * 100
     const endingFluid = yesterdayRecord?.endingFluidDeficit ?? 0
 
     return {
@@ -635,7 +640,8 @@ export const metabolicService = {
     yesterday.setUTCDate(date.getUTCDate() - 1)
     const yesterdayRecord = await nutritionRepository.getByDate(userId, yesterday)
 
-    const prevEndingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? 70
+    const metabolicFloor = settings?.metabolicFloor || 0.6
+    const prevEndingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? metabolicFloor * 100
     const prevEndingFluid = yesterdayRecord?.endingFluidDeficit ?? 0
 
     const startingGlycogen = prevEndingGlycogen
@@ -803,7 +809,8 @@ export const metabolicService = {
         currentStartingGlycogen = lastPoint.level
         currentStartingFluid = lastPoint.fluidDeficit
       } else {
-        currentStartingGlycogen = 70
+        const metabolicFloor = settings?.metabolicFloor || 0.6
+        currentStartingGlycogen = metabolicFloor * 100
         currentStartingFluid = 0
       }
     }

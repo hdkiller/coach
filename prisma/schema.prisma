@@ -861,6 +861,7 @@ model UserNutritionSettings {
   fuelState2Max      Float    @default(7.5)
   fuelState3Min      Float    @default(8.0)
   fuelState3Max      Float    @default(12.0)
+  metabolicFloor     Float    @default(0.60)
   enabledSupplements String[] @default([])
   goalProfile           String   @default("MAINTAIN")
   targetAdjustmentPercent Float    @default(0.0)
