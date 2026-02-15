@@ -46,6 +46,7 @@
     "jimp": "0.22.12",
     "leaflet": "^1.9.4",
     "marked": "^17.0.1",
+    "motion-v": "^1.7.4",
     "next-auth": "4.21.1",
     "nuxt": "^4.2.2",
     "nuxt-api-shield": "^0.10.0",
