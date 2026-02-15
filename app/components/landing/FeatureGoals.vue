@@ -79,7 +79,9 @@
           </div>
           <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
             "Reach 70kg Race Weight" <br />
-            <span class="text-xs text-gray-500">Nutrition sync with MyFitnessPal.</span>
+            <span class="text-xs text-gray-500"
+              >Fuel targets adapt to training load, not just calories.</span
+            >
           </p>
           <div class="mt-4 flex gap-2">
             <UBadge color="neutral" variant="subtle" size="xs">-2.5kg to go</UBadge>

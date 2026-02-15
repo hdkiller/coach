@@ -131,12 +131,13 @@
               <p
                 class="mt-2 text-lg font-medium tracking-tight text-gray-950 dark:text-white max-lg:text-center"
               >
-                Fuel Like a Ferrari
+                Know Your Fuel State
               </p>
               <p
                 class="mt-2 max-w-lg text-sm/6 text-gray-600 dark:text-gray-400 max-lg:text-center"
               >
-                Connect Yazio or MyFitnessPal to align fueling with burning.
+                Track glycogen trends, see metabolic horizon risk, and get actionable fueling
+                targets before and after key sessions.
               </p>
             </div>
             <div
@@ -144,13 +145,13 @@
             >
               <div class="relative">
                 <UIcon
-                  name="i-heroicons-cake"
-                  class="w-16 h-16 text-pink-400 transform transition-transform duration-500 group-hover:scale-110"
+                  name="i-heroicons-battery-100"
+                  class="w-16 h-16 text-emerald-400 transform transition-transform duration-500 group-hover:scale-110"
                 />
                 <div
-                  class="absolute -bottom-2 -right-2 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100"
+                  class="absolute -bottom-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100"
                 >
-                  SYNCED
+                  FUEL LIVE
                 </div>
               </div>
             </div>
