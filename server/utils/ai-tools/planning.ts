@@ -295,7 +295,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       if (!plan) {
         return {
           message: 'No training plan found',
-          suggestion: 'Use plan_week to generate one'
+          suggestion: 'Ask me to plan your week'
         }
       }
 
@@ -850,34 +850,6 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         }
       } catch (e: any) {
         return { success: false, error: e.message }
-      }
-    }
-  }),
-
-  plan_week: tool({
-    description: 'Generate a full training plan for the upcoming week.',
-    inputSchema: z.object({
-      days: z.number().optional().default(7),
-      start_date: z.string().optional(),
-      user_confirmed: z
-        .boolean()
-        .describe('Has the user explicitly asked to generate/confirm the plan?')
-    }),
-    needsApproval: async () => aiSettings.aiRequireToolApproval,
-    execute: async (args) => {
-      if (!args.user_confirmed) {
-        return {
-          needs_confirmation: true,
-          message: 'I can generate a plan for you. Do you want me to proceed?'
-        }
-      }
-
-      // This would call the complex planning logic or Trigger.dev task
-      return {
-        success: true,
-        message: 'Weekly plan generated and added to your calendar.',
-        plan_summary:
-          'Focus: Base Building. Total Volume: 8h. Key sessions: Tue Intervals, Sat Long Ride.'
       }
     }
   })
