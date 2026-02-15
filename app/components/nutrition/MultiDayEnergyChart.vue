@@ -18,6 +18,7 @@
     Filler
   } from 'chart.js'
   import annotationPlugin from 'chartjs-plugin-annotation'
+  import type { AthleteJourneyEvent } from '~/types/nutrition'
 
   ChartJS.register(
     CategoryScale,
@@ -33,8 +34,29 @@
 
   const props = defineProps<{
     points: any[]
+    journeyEvents?: AthleteJourneyEvent[]
     highlightedDate?: string | null
   }>()
+
+  const categoryIcons: Record<string, string> = {
+    GI_DISTRESS: '🤢',
+    MUSCLE_PAIN: '🦵',
+    FATIGUE: '😴',
+    SLEEP: '🌙',
+    MOOD: '🎭',
+    CRAMPING: '⚡',
+    DIZZINESS: '💫',
+    HUNGER: '🍴'
+  }
+
+  const categoryColors: Record<string, string> = {
+    GI_DISTRESS: '#f97316',
+    MUSCLE_PAIN: '#ef4444',
+    FATIGUE: '#8b5cf6',
+    CRAMPING: '#ef4444',
+    DIZZINESS: '#eab308',
+    HUNGER: '#3b82f6'
+  }
 
   const chartData = computed(() => {
     return {
@@ -89,6 +111,36 @@
             if (p?.eventType === 'meal') return 'circle'
             return 'circle'
           }
+        },
+        {
+          label: 'Symptoms',
+          data: props.points.map((p) => {
+            if (!p) return null
+            const event = props.journeyEvents?.find((e) => {
+              const eTime = new Date(e.timestamp)
+              const pTime = p.timestamp
+              return Math.abs(eTime.getTime() - pTime) < (15 * 60000) / 2
+            })
+            return event ? p.level : null
+          }),
+          borderColor: 'transparent',
+          pointRadius: 10,
+          pointHoverRadius: 12,
+          pointBackgroundColor: (ctx: any) => {
+            const val = ctx.dataset.data[ctx.dataIndex]
+            if (val === null) return 'transparent'
+
+            const p = props.points[ctx.dataIndex]
+            if (!p) return 'transparent'
+            const event = props.journeyEvents?.find((e) => {
+              const eTime = new Date(e.timestamp)
+              const pTime = p.timestamp
+              return Math.abs(eTime.getTime() - pTime) < (15 * 60000) / 2
+            })
+            return event ? categoryColors[event.category] || '#f97316' : 'transparent'
+          },
+          pointStyle: 'rectRounded',
+          showLine: false
         }
       ]
     }
@@ -172,6 +224,24 @@
             afterBody: (context: any) => {
               const p = props.points[context[0].dataIndex]
               if (!p) return ''
+
+              // 1. Check for Symptom Events
+              const event = props.journeyEvents?.find((e) => {
+                const eTime = new Date(e.timestamp)
+                const pTime = p?.timestamp
+                if (pTime === undefined) return false
+                return Math.abs(eTime.getTime() - pTime) < (15 * 60000) / 2
+              })
+
+              if (event) {
+                const lines = []
+                lines.push(
+                  `${categoryIcons[event.category] || '⚠️'} ${event.category.replace(/_/g, ' ')}`
+                )
+                lines.push(`Severity: ${event.severity}/10`)
+                if (event.description) lines.push(`"${event.description}"`)
+                return lines
+              }
 
               const lines = []
               if (p.eventType === 'workout') {

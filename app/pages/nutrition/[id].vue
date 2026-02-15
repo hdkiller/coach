@@ -149,6 +149,7 @@
               <NutritionLiveEnergyChart
                 :points="energyPoints"
                 :ghost-points="ghostPoints"
+                :journey-events="journeyEvents"
                 :view-mode="energyViewMode"
               />
             </ClientOnly>
@@ -329,6 +330,7 @@
   // State
   const nutrition = ref<any>(null)
   const workouts = ref<any[]>([])
+  const journeyEvents = ref<any[]>([])
   const nutritionSettings = ref<any>(null)
   const loading = ref(true)
   const error = ref<string | null>(null)
@@ -490,6 +492,7 @@
       })
 
       nutrition.value = nData
+      journeyEvents.value = nData.journeyEvents || []
 
       const dateStr = nData.date
 

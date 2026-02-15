@@ -18,7 +18,7 @@
     Filler
   } from 'chart.js'
   import annotationPlugin from 'chartjs-plugin-annotation'
-  import type { EnergyPoint } from '~/types/nutrition'
+  import type { EnergyPoint, AthleteJourneyEvent } from '~/types/nutrition'
 
   ChartJS.register(
     CategoryScale,
@@ -35,11 +35,29 @@
   const props = defineProps<{
     points: EnergyPoint[]
     ghostPoints?: EnergyPoint[]
+    journeyEvents?: AthleteJourneyEvent[]
     viewMode: 'percent' | 'kcal' | 'carbs'
   }>()
 
-  // Pre-load icons as images for Chart.js pointStyle (Simplified for now using circles/shapes)
-  // We use custom point draws or simple indicators for performance
+  const categoryIcons: Record<string, string> = {
+    GI_DISTRESS: '🤢',
+    MUSCLE_PAIN: '🦵',
+    FATIGUE: '😴',
+    SLEEP: '🌙',
+    MOOD: '🎭',
+    CRAMPING: '⚡',
+    DIZZINESS: '💫',
+    HUNGER: '🍴'
+  }
+
+  const categoryColors: Record<string, string> = {
+    GI_DISTRESS: '#f97316', // Orange
+    MUSCLE_PAIN: '#ef4444', // Red
+    FATIGUE: '#8b5cf6', // Purple
+    CRAMPING: '#ef4444',
+    DIZZINESS: '#eab308', // Yellow
+    HUNGER: '#3b82f6' // Blue
+  }
 
   const chartData = computed(() => {
     const isKcal = props.viewMode === 'kcal'
@@ -49,6 +67,7 @@
       {
         label: 'Energy availability',
         data: props.points.map((p) => {
+          if (!p) return null
           if (isKcal) return p.kcalBalance
           if (isCarbs) return p.carbBalance
           return p.level
@@ -100,6 +119,44 @@
         }
       }
     ]
+
+    // Add Symptom Pips dataset
+    if (props.journeyEvents && props.journeyEvents.length > 0) {
+      datasets.push({
+        label: 'Symptoms',
+        data: props.points.map((p) => {
+          if (!p) return null
+          const event = props.journeyEvents?.find((e) => {
+            const eTime = new Date(e.timestamp)
+            const pTime = p.timestamp
+            return Math.abs(eTime.getTime() - pTime) < (15 * 60000) / 2 // Match within interval
+          })
+          if (!event) return null
+          if (isKcal) return p.kcalBalance
+          if (isCarbs) return p.carbBalance
+          return p.level
+        }),
+        borderColor: 'transparent',
+        pointRadius: 10,
+        pointHoverRadius: 12,
+        pointBackgroundColor: (ctx: any) => {
+          const val = ctx.dataset.data[ctx.dataIndex]
+          if (val === null) return 'transparent'
+
+          const p = props.points[ctx.dataIndex]
+          if (!p) return 'transparent'
+          const event = props.journeyEvents?.find((e) => {
+            const eTime = new Date(e.timestamp)
+            const pTime = p?.timestamp
+            if (pTime === undefined) return false
+            return Math.abs(eTime.getTime() - pTime) < (15 * 60000) / 2
+          })
+          return event ? categoryColors[event.category] || '#f97316' : 'transparent'
+        },
+        pointStyle: 'rectRounded',
+        showLine: false
+      })
+    }
 
     // Add Metabolic Ghost dataset if provided
     if (props.ghostPoints && props.ghostPoints.length > 0) {
@@ -186,6 +243,24 @@
             afterBody: (context: any) => {
               const idx = context[0].dataIndex
               const p = props.points[idx]
+              if (!p) return ''
+
+              // 1. Check for Symptom Events first
+              const event = props.journeyEvents?.find((e) => {
+                const eTime = new Date(e.timestamp)
+                const pTime = p?.timestamp
+                if (pTime === undefined) return false
+                return Math.abs(eTime.getTime() - pTime) < (15 * 60000) / 2
+              })
+
+              if (event) {
+                let details = `\n${categoryIcons[event.category] || '⚠️'} ${event.category.replace(/_/g, ' ')}`
+                details += `\nSeverity: ${event.severity}/10`
+                if (event.description) details += `\n"${event.description}"`
+                return details
+              }
+
+              // 2. Fallback to normal events
               if (!p?.event) return ''
 
               let icon = p.eventType === 'meal' ? '🍴' : '🚴'

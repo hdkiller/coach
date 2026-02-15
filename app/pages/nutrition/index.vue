@@ -109,6 +109,7 @@
                     <NutritionMultiDayEnergyChart
                       v-if="!loadingWave && wavePoints.length"
                       :points="wavePoints"
+                      :journey-events="journeyEvents"
                       :highlighted-date="highlightedDate"
                     />
                     <div
@@ -409,6 +410,7 @@
   const generatingPlan = ref(false)
   const planDashboard = ref<any>(null)
   const wavePoints = ref<any[]>([])
+  const journeyEvents = ref<any[]>([])
   const strategy = ref<any>(null)
   const activeFeed = ref<any>(null)
   const upcomingPlan = ref<any>(null)
@@ -498,10 +500,12 @@
 
       if (waveRes.status === 'fulfilled') {
         wavePoints.value = (waveRes.value as any).points || []
+        journeyEvents.value = (waveRes.value as any).journeyEvents || []
         await refreshMissingStartTimeWarning()
       } else {
         console.error('Failed to load extended wave:', waveRes.reason)
         wavePoints.value = []
+        journeyEvents.value = []
         missingPlannedStartTimeCount.value = 0
       }
 

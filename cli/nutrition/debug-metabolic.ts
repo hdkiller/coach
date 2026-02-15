@@ -146,7 +146,11 @@ const debugMetabolicCommand = new Command('debug-metabolic')
       console.log(`- Read-only Live Status: ${chalk.bold(readOnlyLiveStatus.percentage)}%`)
 
       // 5. Wave Path (Used by Metabolic Horizon)
-      const wavePoints = await metabolicService.getWaveRange(userId, targetDate, targetDate)
+      const { points: wavePoints } = await metabolicService.getWaveRange(
+        userId,
+        targetDate,
+        targetDate
+      )
       if (wavePoints.length > 0) {
         const nowTs = now.getTime()
         const nowIdx = wavePoints.findIndex((p) => p.timestamp > nowTs)
