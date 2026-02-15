@@ -75,7 +75,7 @@
           />
         </div>
 
-        <!-- Feature 2: Race Strategy -->
+        <!-- Feature 2: Readiness-Aware Coaching -->
         <div class="relative lg:col-span-3 group">
           <div
             class="absolute inset-px rounded-lg bg-white dark:bg-gray-800 lg:rounded-tr-[2rem] transition-all duration-300 group-hover:bg-gray-50 dark:group-hover:bg-gray-800/50"
@@ -87,13 +87,13 @@
               <p
                 class="mt-2 text-lg font-medium tracking-tight text-gray-950 dark:text-white max-lg:text-center"
               >
-                The Perfect Pacing Strategy
+                Readiness-Aware Coaching
               </p>
               <p
                 class="mt-2 max-w-lg text-sm/6 text-gray-600 dark:text-gray-400 max-lg:text-center"
               >
-                Upload a GPX file. We analyze the terrain and your power curve to tell you exactly
-                how to pace it.
+                Every day starts with a readiness check. We adapt session intent based on fatigue,
+                recovery, and recent load so you train hard on the right days.
               </p>
             </div>
             <div
@@ -102,14 +102,17 @@
               <div
                 class="w-full h-16 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full blur-xl opacity-20 absolute group-hover:opacity-40 transition-opacity duration-700"
               />
-              <!-- Animated Map Icon -->
+              <!-- Animated Coaching Icon -->
               <div
                 class="relative z-10 transform transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3"
               >
-                <UIcon name="i-heroicons-map" class="w-24 h-24 text-primary-500" />
                 <UIcon
-                  name="i-heroicons-map-pin"
-                  class="w-8 h-8 text-red-500 absolute -top-2 -right-2 animate-bounce"
+                  name="i-heroicons-adjustments-horizontal"
+                  class="w-24 h-24 text-primary-500"
+                />
+                <UIcon
+                  name="i-heroicons-check-badge"
+                  class="w-8 h-8 text-emerald-500 absolute -top-2 -right-2 animate-bounce"
                 />
               </div>
             </div>

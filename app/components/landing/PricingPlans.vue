@@ -148,7 +148,7 @@
   const { createCheckoutSession, openCustomerPortal } = useStripe()
   const config = useRuntimeConfig()
 
-  const billingInterval = ref<BillingInterval>('annual')
+  const billingInterval = ref<BillingInterval>('monthly')
   const loading = ref(false)
   const selectedPlan = ref<string | null>(null)
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
