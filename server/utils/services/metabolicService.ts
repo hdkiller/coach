@@ -215,7 +215,7 @@ export const metabolicService = {
     const nowIdx = points.findIndex((p) => p.timestamp > nowTs)
     const activePoint = nowIdx > 0 ? points[nowIdx - 1] : points[points.length - 1]
 
-    const percentage = activePoint?.level ?? 85
+    const percentage = activePoint?.level ?? 70
 
     // Get advice and breakdown using the same data
     // We still use calculateGlycogenState for the breakdown formatting, but force the percentage
@@ -459,7 +459,7 @@ export const metabolicService = {
     if (recursionDepth >= 5) {
       const dbValue = yesterdayRecord?.endingGlycogenPercentage
       return {
-        startingGlycogen: dbValue !== null && dbValue !== undefined && dbValue > 0 ? dbValue : 85,
+        startingGlycogen: dbValue !== null && dbValue !== undefined && dbValue > 0 ? dbValue : 70,
         startingFluid: Math.max(0, yesterdayRecord?.endingFluidDeficit ?? 0)
       }
     }
@@ -479,7 +479,7 @@ export const metabolicService = {
     const lastPoint = points[points.length - 1]
     if (!lastPoint) {
       return {
-        startingGlycogen: 85,
+        startingGlycogen: 70,
         startingFluid: 0
       }
     }
@@ -600,7 +600,7 @@ export const metabolicService = {
     }
 
     // BASE CASE: Recursion limit reached or we decided to trust DB (e.g. deep past)
-    const endingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? 85
+    const endingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? 70
     const endingFluid = yesterdayRecord?.endingFluidDeficit ?? 0
 
     return {
@@ -635,7 +635,7 @@ export const metabolicService = {
     yesterday.setUTCDate(date.getUTCDate() - 1)
     const yesterdayRecord = await nutritionRepository.getByDate(userId, yesterday)
 
-    const prevEndingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? 85
+    const prevEndingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? 70
     const prevEndingFluid = yesterdayRecord?.endingFluidDeficit ?? 0
 
     const startingGlycogen = prevEndingGlycogen
@@ -803,7 +803,7 @@ export const metabolicService = {
         currentStartingGlycogen = lastPoint.level
         currentStartingFluid = lastPoint.fluidDeficit
       } else {
-        currentStartingGlycogen = 85
+        currentStartingGlycogen = 70
         currentStartingFluid = 0
       }
     }
