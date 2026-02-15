@@ -5,7 +5,13 @@
     <div v-if="chartType === 'line'" style="height: 250px">
       <Line :data="chartData" :options="chartOptions" />
     </div>
+    <div v-else-if="chartType === 'area'" style="height: 250px">
+      <Line :data="chartData" :options="chartOptions" />
+    </div>
     <div v-else-if="chartType === 'bar'" style="height: 250px">
+      <Bar :data="chartData" :options="chartOptions" />
+    </div>
+    <div v-else-if="chartType === 'stackedBar'" style="height: 250px">
       <Bar :data="chartData" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'doughnut'" style="height: 250px">
@@ -14,11 +20,20 @@
     <div v-else-if="chartType === 'radar'" style="height: 250px">
       <Radar :data="chartData" :options="chartOptions" />
     </div>
+    <div v-else-if="chartType === 'scatter'" style="height: 250px">
+      <Scatter :data="chartData" :options="chartOptions" />
+    </div>
+    <div v-else-if="chartType === 'bubble'" style="height: 250px">
+      <Bubble :data="chartData" :options="chartOptions" />
+    </div>
+    <div v-else-if="chartType === 'mixed'" style="height: 250px">
+      <Bar :data="chartData" :options="chartOptions" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { Line, Bar, Doughnut, Radar } from 'vue-chartjs'
+  import { Line, Bar, Doughnut, Radar, Scatter, Bubble } from 'vue-chartjs'
   import {
     Chart as ChartJS,
     CategoryScale,
@@ -49,13 +64,32 @@
   )
 
   interface ChartDataProp {
-    type: 'line' | 'bar' | 'doughnut' | 'radar'
+    type:
+      | 'line'
+      | 'bar'
+      | 'doughnut'
+      | 'radar'
+      | 'scatter'
+      | 'area'
+      | 'stackedBar'
+      | 'bubble'
+      | 'mixed'
     title: string
-    labels: string[]
+    labels?: string[]
     datasets: Array<{
       label: string
-      data: number[]
+      data: number[] | Array<{ x: number; y: number; r?: number }>
+      type?: 'line' | 'bar'
       color?: string
+      backgroundColor?: string | string[]
+      borderColor?: string | string[]
+      borderWidth?: number
+      tension?: number
+      fill?: boolean
+      pointRadius?: number
+      pointHoverRadius?: number
+      yAxisID?: string
+      borderDash?: number[]
     }>
     options?: any
   }
@@ -67,6 +101,12 @@
   const colorMode = useColorMode()
 
   const chartType = computed(() => props.chartData.type)
+  const isScatterLike = computed(
+    () => chartType.value === 'scatter' || chartType.value === 'bubble'
+  )
+  const isStackedBar = computed(() => chartType.value === 'stackedBar')
+  const isArea = computed(() => chartType.value === 'area')
+  const isMixed = computed(() => chartType.value === 'mixed')
 
   const chartData = computed(() => {
     // Vibrant, distinct color palette with good contrast
@@ -86,32 +126,40 @@
     ]
 
     return {
-      labels: props.chartData.labels,
+      labels: props.chartData.labels || [],
       datasets: props.chartData.datasets.map((dataset, index) => {
         const color =
           dataset.color || defaultColors[index % defaultColors.length] || 'rgb(59, 130, 246)'
+        const defaultBorderColor =
+          props.chartData.type === 'doughnut'
+            ? colorMode.value === 'dark'
+              ? 'rgb(17, 24, 39)'
+              : 'rgb(255, 255, 255)'
+            : color
 
         // For doughnut charts, use different colors for each segment
-        const bgColor =
+        const defaultBackgroundColor =
           props.chartData.type === 'doughnut'
             ? dataset.data.map((_, i) => defaultColors[i % defaultColors.length])
             : color.replace('rgb', 'rgba').replace(')', ', 0.2)')
 
         return {
           label: dataset.label,
+          type: isMixed.value ? dataset.type || 'bar' : undefined,
           data: dataset.data,
-          borderColor:
-            props.chartData.type === 'doughnut'
-              ? colorMode.value === 'dark'
-                ? 'rgb(17, 24, 39)'
-                : 'rgb(255, 255, 255)'
-              : color,
-          backgroundColor: bgColor,
-          borderWidth: props.chartData.type === 'doughnut' ? 3 : 2,
-          tension: 0.4,
-          fill: props.chartData.type === 'line',
-          pointRadius: props.chartData.type === 'line' ? 3 : undefined,
-          pointHoverRadius: props.chartData.type === 'line' ? 5 : undefined
+          borderColor: dataset.borderColor || defaultBorderColor,
+          backgroundColor: dataset.backgroundColor || defaultBackgroundColor,
+          borderWidth: dataset.borderWidth ?? (props.chartData.type === 'doughnut' ? 3 : 2),
+          tension: dataset.tension ?? 0.4,
+          fill: dataset.fill ?? isArea.value,
+          pointRadius:
+            dataset.pointRadius ??
+            (chartType.value === 'line' || chartType.value === 'area' ? 3 : undefined),
+          pointHoverRadius:
+            dataset.pointHoverRadius ??
+            (chartType.value === 'line' || chartType.value === 'area' ? 5 : undefined),
+          yAxisID: dataset.yAxisID,
+          borderDash: dataset.borderDash
         }
       })
     }
@@ -157,10 +205,13 @@
       props.chartData.type !== 'doughnut' && props.chartData.type !== 'radar'
         ? {
             x: {
+              type: isScatterLike.value ? ('linear' as const) : ('category' as const),
+              position: isScatterLike.value ? ('bottom' as const) : undefined,
+              stacked: isStackedBar.value,
               grid: {
                 color:
                   colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)',
-                display: props.chartData.type !== 'bar'
+                display: props.chartData.type !== 'bar' && props.chartData.type !== 'stackedBar'
               },
               ticks: {
                 color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
@@ -174,6 +225,8 @@
               }
             },
             y: {
+              type: isScatterLike.value ? ('linear' as const) : undefined,
+              stacked: isStackedBar.value,
               ticks: {
                 color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
                 font: {
