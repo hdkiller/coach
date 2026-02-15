@@ -103,71 +103,11 @@ export function getAbsorbedInInterval(
 }
 
 /**
- * Maps a food item to its absorption profile
+ * Maps a food item to its absorption profile.
+ * Defaults to BALANCED (the middle value) when no specific type is known.
  */
-export function getProfileForItem(itemName: string): AbsorptionProfile {
-  const name = itemName.toLowerCase()
-
-  // RAPID: Liquid/Gel
-  if (
-    name.includes('gel') ||
-    name.includes('liquid') ||
-    name.includes('drink') ||
-    name.includes('juice') ||
-    name.includes('honey') ||
-    name.includes('sugar') ||
-    name.includes('glucose') ||
-    name.includes('maltodextrin')
-  ) {
-    return ABSORPTION_PROFILES.RAPID
-  }
-
-  // FAST: Fruit/White Bread
-  if (
-    name.includes('banana') ||
-    name.includes('date') ||
-    name.includes('white bread') ||
-    name.includes('toast') ||
-    name.includes('jam') ||
-    name.includes('syrup') ||
-    name.includes('candy') ||
-    name.includes('gummy')
-  ) {
-    return ABSORPTION_PROFILES.FAST
-  }
-
-  // BALANCED: Oats/Pasta
-  if (
-    name.includes('oats') ||
-    name.includes('pasta') ||
-    name.includes('rice') ||
-    name.includes('potato') ||
-    name.includes('cereal') ||
-    name.includes('bagel') ||
-    name.includes('bar')
-  ) {
-    return ABSORPTION_PROFILES.BALANCED
-  }
-
-  // DENSE: Protein/Fats/Fiber
-  if (
-    name.includes('meat') ||
-    name.includes('chicken') ||
-    name.includes('beef') ||
-    name.includes('steak') ||
-    name.includes('egg') ||
-    name.includes('nut') ||
-    name.includes('butter') ||
-    name.includes('oil') ||
-    name.includes('avocado') ||
-    name.includes('fiber') ||
-    name.includes('whole grain') ||
-    name.includes('salad') ||
-    name.includes('veg')
-  ) {
-    return ABSORPTION_PROFILES.DENSE
-  }
-
-  // Default to BALANCED for generic meals, HYPER_LOAD is usually assigned by AI for "Large Meal"
+export function getProfileForItem(_itemName?: string): AbsorptionProfile {
+  // Default to BALANCED for generic meals.
+  // We no longer rely on string keyword matching for absorption rates.
   return ABSORPTION_PROFILES.BALANCED
 }

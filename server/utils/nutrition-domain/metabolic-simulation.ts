@@ -59,10 +59,17 @@ export function calculateGlycogenState(
         let mealTime: Date | null = null
         const timeVal = item.logged_at || item.date
         if (timeVal) {
-          if (typeof timeVal === 'string' && /^\d{2}:\d{2}$/.test(timeVal)) {
+          if (typeof timeVal === 'string' && /^\d{1,2}:\d{2}$/.test(timeVal)) {
             mealTime = fromZonedTime(`${dateStr}T${timeVal}:00`, timezone)
           } else {
-            mealTime = new Date(timeVal)
+            // Check if it's just a time like "10:08:00"
+            const timeOnlyMatch =
+              typeof timeVal === 'string' && timeVal.match(/^(\d{2}:\d{2}(:\d{2})?)$/)
+            if (timeOnlyMatch) {
+              mealTime = fromZonedTime(`${dateStr}T${timeOnlyMatch[1]}`, timezone)
+            } else {
+              mealTime = new Date(timeVal)
+            }
           }
         }
 
@@ -70,8 +77,8 @@ export function calculateGlycogenState(
           const minsSince = differenceInMinutes(currentTime, mealTime)
           const profile = item.absorptionType
             ? ABSORPTION_PROFILES[item.absorptionType as AbsorptionType] ||
-              getProfileForItem(item.name || '')
-            : getProfileForItem(item.name || '')
+              getProfileForItem(item.name || item.product_name || '')
+            : getProfileForItem(item.name || item.product_name || '')
 
           const absorbed = getAbsorbedInInterval(0, minsSince, item.carbs || 0, profile)
           absorbedUntilNow += absorbed
@@ -233,10 +240,17 @@ export function calculateEnergyTimeline(
         const timeVal = item.logged_at || item.date
 
         if (timeVal) {
-          if (typeof timeVal === 'string' && /^\d{2}:\d{2}$/.test(timeVal)) {
+          if (typeof timeVal === 'string' && /^\d{1,2}:\d{2}$/.test(timeVal)) {
             mealTime = fromZonedTime(`${dateStr}T${timeVal}:00`, timezone)
           } else {
-            mealTime = new Date(timeVal)
+            // Check if it's just a time like "10:08:00" or similar from external sources
+            const timeOnlyMatch =
+              typeof timeVal === 'string' && timeVal.match(/^(\d{2}:\d{2}(:\d{2})?)$/)
+            if (timeOnlyMatch) {
+              mealTime = fromZonedTime(`${dateStr}T${timeOnlyMatch[1]}`, timezone)
+            } else {
+              mealTime = new Date(timeVal)
+            }
           }
         } else {
           const pattern = mealPattern.find((p: any) => p.name.toLowerCase() === type.toLowerCase())
@@ -248,7 +262,7 @@ export function calculateEnergyTimeline(
         if (mealTime && !isNaN(mealTime.getTime())) {
           actualMeals.push({
             time: mealTime,
-            name: item.name,
+            name: item.name || item.product_name,
             totalCarbs: item.carbs || 0,
             totalKcal:
               item.calories ||
@@ -256,8 +270,8 @@ export function calculateEnergyTimeline(
             totalFluid: item.waterMl || 0,
             profile: item.absorptionType
               ? ABSORPTION_PROFILES[item.absorptionType as AbsorptionType] ||
-                getProfileForItem(item.name || '')
-              : getProfileForItem(item.name || '')
+                getProfileForItem(item.name || item.product_name || '')
+              : getProfileForItem(item.name || item.product_name || '')
           })
         }
       })
@@ -319,7 +333,7 @@ export function calculateEnergyTimeline(
     const hasPassed = windowStartTime < now
 
     const hasRealLog = actualMeals.some(
-      (m) => Math.abs(m.time.getTime() - windowStartTime.getTime()) < 60 * 60 * 1000
+      (m) => Math.abs(m.time.getTime() - windowStartTime.getTime()) < 2 * 60 * 60 * 1000
     )
 
     const hasBetterSynthetic = sortedCandidates.some(
@@ -327,7 +341,7 @@ export function calculateEnergyTimeline(
         other !== cand &&
         other.type !== 'DAILY_BASE' &&
         cand.type === 'DAILY_BASE' &&
-        Math.abs(other.time.getTime() - windowStartTime.getTime()) < 60 * 60 * 1000
+        Math.abs(other.time.getTime() - windowStartTime.getTime()) < 2 * 60 * 60 * 1000
     )
 
     if (!hasRealLog && !hasBetterSynthetic) {
