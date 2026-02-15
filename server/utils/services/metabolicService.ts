@@ -382,21 +382,65 @@ export const metabolicService = {
     startingFluid: number
   }> {
     const targetRecord = await nutritionRepository.getByDate(userId, targetDate)
+    const yesterday = new Date(targetDate)
+    yesterday.setUTCDate(targetDate.getUTCDate() - 1)
+    const yesterdayRecord = await nutritionRepository.getByDate(userId, yesterday)
+
     if (
       targetRecord?.startingGlycogenPercentage != null &&
       targetRecord?.startingFluidDeficit != null
     ) {
+      const hasConsistentDbHandoff =
+        yesterdayRecord?.endingGlycogenPercentage == null ||
+        Math.abs(
+          targetRecord.startingGlycogenPercentage - yesterdayRecord.endingGlycogenPercentage
+        ) <= 1
+
+      // Strong check: compare against simulated yesterday end to avoid trusting stale cached starts.
+      if (recursionDepth >= 2 && hasConsistentDbHandoff) {
+        return {
+          startingGlycogen: targetRecord.startingGlycogenPercentage,
+          startingFluid: Math.max(0, targetRecord.startingFluidDeficit)
+        }
+      }
+
+      const yesterdayState = await this.getMetabolicStateForDate(
+        userId,
+        yesterday,
+        recursionDepth + 1
+      )
+      const { points } = await this.getDailyTimeline(
+        userId,
+        yesterday,
+        yesterdayState.startingGlycogen,
+        yesterdayState.startingFluid
+      )
+      const lastPoint = points[points.length - 1]
+
+      if (!lastPoint) {
+        return {
+          startingGlycogen: targetRecord.startingGlycogenPercentage,
+          startingFluid: Math.max(0, targetRecord.startingFluidDeficit)
+        }
+      }
+
+      const hasConsistentSimulatedHandoff =
+        Math.abs(targetRecord.startingGlycogenPercentage - lastPoint.level) <= 1
+
+      if (hasConsistentDbHandoff && hasConsistentSimulatedHandoff) {
+        return {
+          startingGlycogen: targetRecord.startingGlycogenPercentage,
+          startingFluid: Math.max(0, targetRecord.startingFluidDeficit)
+        }
+      }
+
       return {
-        startingGlycogen: targetRecord.startingGlycogenPercentage,
-        startingFluid: Math.max(0, targetRecord.startingFluidDeficit)
+        startingGlycogen: lastPoint.level,
+        startingFluid: Math.max(0, lastPoint.fluidDeficit)
       }
     }
 
-    const yesterday = new Date(targetDate)
-    yesterday.setUTCDate(targetDate.getUTCDate() - 1)
-
     if (recursionDepth >= 5) {
-      const yesterdayRecord = await nutritionRepository.getByDate(userId, yesterday)
       return {
         startingGlycogen: yesterdayRecord?.endingGlycogenPercentage ?? 85,
         startingFluid: Math.max(0, yesterdayRecord?.endingFluidDeficit ?? 0)
@@ -443,15 +487,24 @@ export const metabolicService = {
   }> {
     // FAST PATH: Check if we already have a finalized starting state for this day
     const targetRecord = await nutritionRepository.getByDate(userId, targetDate)
-    if (targetRecord?.startingGlycogenPercentage != null) {
-      return {
-        startingGlycogen: targetRecord.startingGlycogenPercentage,
-        startingFluid: targetRecord.startingFluidDeficit ?? 0
-      }
-    }
-
     const yesterday = new Date(targetDate)
     yesterday.setUTCDate(targetDate.getUTCDate() - 1)
+    const yesterdayRecord = await nutritionRepository.getByDate(userId, yesterday)
+
+    if (targetRecord?.startingGlycogenPercentage != null) {
+      const hasConsistentHandoff =
+        yesterdayRecord?.endingGlycogenPercentage == null ||
+        Math.abs(
+          targetRecord.startingGlycogenPercentage - yesterdayRecord.endingGlycogenPercentage
+        ) <= 1
+
+      if (hasConsistentHandoff) {
+        return {
+          startingGlycogen: targetRecord.startingGlycogenPercentage,
+          startingFluid: targetRecord.startingFluidDeficit ?? 0
+        }
+      }
+    }
 
     // Check if yesterday is in the future relative to "Real Today"
     const timezone = await getUserTimezone(userId)
@@ -530,8 +583,6 @@ export const metabolicService = {
     }
 
     // BASE CASE: Recursion limit reached or we decided to trust DB (e.g. deep past)
-    const yesterdayRecord = await nutritionRepository.getByDate(userId, yesterday)
-
     const endingGlycogen = yesterdayRecord?.endingGlycogenPercentage ?? 85
     const endingFluid = yesterdayRecord?.endingFluidDeficit ?? 0
 
@@ -679,6 +730,22 @@ export const metabolicService = {
 
       const dayNutrition = nutritionMap.get(dateStr)
       const dayWorkouts = workoutsByDate.get(dateStr) || []
+      const hasLogs = !!(
+        dayNutrition &&
+        ((Array.isArray(dayNutrition.breakfast) && dayNutrition.breakfast.length > 0) ||
+          (Array.isArray(dayNutrition.lunch) && dayNutrition.lunch.length > 0) ||
+          (Array.isArray(dayNutrition.dinner) && dayNutrition.dinner.length > 0) ||
+          (Array.isArray(dayNutrition.snacks) && dayNutrition.snacks.length > 0))
+      )
+      const shouldSynthesizeMeals = !hasLogs && dataType !== 'historical'
+      const simulationMeals = shouldSynthesizeMeals
+        ? synthesizeRefills(
+            date,
+            dayWorkouts,
+            { weight: user?.weight || 75, ftp: user?.ftp || 250, ...settings },
+            timezone
+          )
+        : []
 
       const points = calculateEnergyTimeline(
         dayNutrition || {
@@ -691,7 +758,8 @@ export const metabolicService = {
         undefined,
         {
           startingGlycogenPercentage: currentStartingGlycogen,
-          startingFluidDeficit: currentStartingFluid
+          startingFluidDeficit: currentStartingFluid,
+          crossDayMeals: simulationMeals
         }
       )
 

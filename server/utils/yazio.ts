@@ -127,8 +127,7 @@ export function normalizeYazioData(
       carbs: carbs,
       fat: fat,
       fiber: fiber,
-      sugar: sugar,
-      absorptionType: getProfileForItem((item as any).product_name || (item as any).name || '').id
+      sugar: sugar
     }
 
     if (mealGroups[mealTime]) {
@@ -168,8 +167,7 @@ export function normalizeYazioData(
       carbs: carbs,
       fat: fat,
       fiber: fiber,
-      sugar: sugar,
-      absorptionType: getProfileForItem(item.name || '').id
+      sugar: sugar
     }
 
     if (mealGroups[mealTime]) {

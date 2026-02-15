@@ -230,7 +230,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         return {
           id: crypto.randomUUID(),
           ...item,
-          absorptionType: item.absorption_type || getProfileForItem(item.name).id,
+          absorptionType: item.absorption_type || 'BALANCED',
           logged_at: normalizedLoggedAt
         }
       })

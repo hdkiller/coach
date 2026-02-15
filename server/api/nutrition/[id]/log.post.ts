@@ -2,7 +2,6 @@ import { getServerSession } from '../../../utils/session'
 import { nutritionRepository } from '../../../utils/repositories/nutritionRepository'
 import { generateStructuredAnalysis } from '../../../utils/gemini'
 import { z } from 'zod'
-import { getProfileForItem } from '../../../utils/nutrition-domain/absorption'
 import { getUserTimezone, getStartOfLocalDateUTC } from '../../../utils/date'
 import { metabolicService } from '../../../utils/services/metabolicService'
 import { getUserNutritionSettings } from '../../../utils/nutrition/settings'
@@ -229,7 +228,7 @@ export default defineEventHandler(async (event) => {
     const processedItem = {
       ...item,
       logged_at: normalizedLoggedAt,
-      absorptionType: item.absorptionType || getProfileForItem(item.name).id
+      absorptionType: item.absorptionType || 'BALANCED'
     }
 
     itemsByDate[targetDateStr]!.items.push(processedItem)
