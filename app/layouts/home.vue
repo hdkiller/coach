@@ -21,7 +21,13 @@
             class="hover:text-primary transition-colors flex items-center gap-1"
           >
             Pricing
-            <UBadge size="xs" color="primary" variant="soft" class="font-bold">Free</UBadge>
+            <UBadge
+              size="xs"
+              color="primary"
+              variant="soft"
+              class="font-bold leading-none inline-flex items-center justify-center !bg-emerald-400 !text-emerald-950 px-1.5 py-0.5"
+              >Free</UBadge
+            >
           </NuxtLink>
           <NuxtLink to="/stories" class="hover:text-primary transition-colors">Stories</NuxtLink>
         </nav>
@@ -49,7 +55,13 @@
                   class="text-sm font-medium hover:text-primary transition-colors flex items-center justify-between"
                 >
                   Pricing
-                  <UBadge size="xs" color="primary" variant="soft" class="font-bold">Free</UBadge>
+                  <UBadge
+                    size="xs"
+                    color="primary"
+                    variant="soft"
+                    class="font-bold leading-none inline-flex items-center justify-center !bg-emerald-400 !text-emerald-950 px-1.5 py-0.5"
+                    >Free</UBadge
+                  >
                 </NuxtLink>
                 <NuxtLink
                   to="/stories"
@@ -106,7 +118,13 @@
               <li>
                 <NuxtLink to="/#pricing" class="hover:text-primary flex items-center gap-1">
                   Pricing
-                  <UBadge size="xs" color="primary" variant="soft" class="font-bold">Free</UBadge>
+                  <UBadge
+                    size="xs"
+                    color="primary"
+                    variant="soft"
+                    class="font-bold leading-none inline-flex items-center justify-center !bg-emerald-400 !text-emerald-950 px-1.5 py-0.5"
+                    >Free</UBadge
+                  >
                 </NuxtLink>
               </li>
               <li>

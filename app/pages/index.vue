@@ -1,8 +1,8 @@
 <template>
   <div class="bg-gray-900 min-h-screen">
     <LandingHero />
-    <LandingHowItWorks />
     <LandingNutritionExplainer />
+    <LandingHowItWorks />
     <LandingDeepDiveArchitecture />
     <LandingFeatureBento />
     <LandingFeatureGoals />
