@@ -555,7 +555,8 @@
       const hasChildren = children.length > 0
 
       if (hasChildren) {
-        const reps = Number(step.reps) > 1 ? Number(step.reps) : 1
+        const repsRaw = Number(step.reps ?? step.repeat ?? step.intervals)
+        const reps = repsRaw > 1 ? repsRaw : 1
         for (let i = 0; i < reps; i++) {
           flattened.push(...flattenWorkoutSteps(children, depth + 1))
         }

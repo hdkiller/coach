@@ -45,6 +45,49 @@ const structuredWorkoutSchema = z
     }
   )
 
+const toPositiveInt = (value: unknown): number | undefined => {
+  if (value === null || value === undefined) return undefined
+  const raw =
+    typeof value === 'string'
+      ? value.trim().length > 0
+        ? Number(value.trim())
+        : NaN
+      : Number(value)
+  if (!Number.isFinite(raw)) return undefined
+  const int = Math.trunc(raw)
+  return int > 0 ? int : undefined
+}
+
+const normalizeStructuredWorkoutRepetition = (structuredWorkout: any) => {
+  const normalized = JSON.parse(JSON.stringify(structuredWorkout || {}))
+
+  const visit = (node: any) => {
+    if (!node || typeof node !== 'object') return
+
+    if (Array.isArray(node)) {
+      node.forEach((entry) => visit(entry))
+      return
+    }
+
+    const reps =
+      toPositiveInt((node as any).reps) ??
+      toPositiveInt((node as any).repeat) ??
+      toPositiveInt((node as any).intervals)
+    if (reps !== undefined) {
+      ;(node as any).reps = reps
+    }
+
+    if ('repeat' in node) {
+      delete (node as any).repeat
+    }
+
+    Object.values(node).forEach((value) => visit(value))
+  }
+
+  visit(normalized)
+  return normalized
+}
+
 const patchOperationSchema = z.object({
   op: z.enum(['add', 'replace', 'remove']),
   path: z
@@ -401,8 +444,10 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       if (!existing) return { error: 'Planned workout not found' }
 
+      const normalized = normalizeStructuredWorkoutRepetition(structured_workout)
+
       const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
-        structuredWorkout: structured_workout as any,
+        structuredWorkout: normalized as any,
         modifiedLocally: true,
         syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
         syncError: null
@@ -450,8 +495,10 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           applyStructurePatchOperation(patched, operation)
         }
 
+        const normalized = normalizeStructuredWorkoutRepetition(patched)
+
         const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
-          structuredWorkout: patched as any,
+          structuredWorkout: normalized as any,
           modifiedLocally: true,
           syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
           syncError: null

@@ -143,6 +143,43 @@ describe('planningTools', () => {
         })
       )
     })
+
+    it('normalizes legacy repeat fields into reps', async () => {
+      vi.mocked(plannedWorkoutRepository.getById).mockResolvedValue({
+        id: 'pw-repeat',
+        syncStatus: 'SYNCED'
+      } as any)
+      vi.mocked(plannedWorkoutRepository.update).mockResolvedValue({
+        id: 'pw-repeat',
+        structuredWorkout: {
+          steps: [{ name: 'Main Set', steps: [{ name: 'On' }], reps: 4 }]
+        }
+      } as any)
+
+      await tools.set_planned_workout_structure.execute(
+        {
+          workout_id: 'pw-repeat',
+          structured_workout: {
+            steps: [{ name: 'Main Set', steps: [{ name: 'On' }], type: 'Repeat', repeat: 4 }]
+          }
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(plannedWorkoutRepository.update).toHaveBeenCalledWith(
+        'pw-repeat',
+        userId,
+        expect.objectContaining({
+          structuredWorkout: expect.objectContaining({
+            steps: [
+              expect.objectContaining({
+                reps: 4
+              })
+            ]
+          })
+        })
+      )
+    })
   })
 
   describe('patch_planned_workout_structure', () => {
@@ -278,6 +315,47 @@ describe('planningTools', () => {
         })
       )
       expect(plannedWorkoutRepository.update).not.toHaveBeenCalled()
+    })
+
+    it('normalizes repeat field after patch operations', async () => {
+      vi.mocked(plannedWorkoutRepository.getById).mockResolvedValue({
+        id: 'pw-5',
+        syncStatus: 'SYNCED',
+        structuredWorkout: {
+          steps: [{ type: 'Active', name: 'Main', steps: [{ type: 'Active', name: 'Work' }] }]
+        }
+      } as any)
+
+      vi.mocked(plannedWorkoutRepository.update).mockResolvedValue({
+        id: 'pw-5',
+        structuredWorkout: {
+          steps: [
+            { type: 'Active', name: 'Main', steps: [{ type: 'Active', name: 'Work' }], reps: 4 }
+          ]
+        }
+      } as any)
+
+      await tools.patch_planned_workout_structure.execute(
+        {
+          workout_id: 'pw-5',
+          operations: [{ op: 'add', path: 'steps.0.repeat', value: 4 }]
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(plannedWorkoutRepository.update).toHaveBeenCalledWith(
+        'pw-5',
+        userId,
+        expect.objectContaining({
+          structuredWorkout: expect.objectContaining({
+            steps: [
+              expect.objectContaining({
+                reps: 4
+              })
+            ]
+          })
+        })
+      )
     })
   })
 })

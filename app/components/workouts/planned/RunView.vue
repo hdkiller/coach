@@ -64,7 +64,7 @@
 
     const calculateRecursiveDistance = (steps: any[]): number => {
       return steps.reduce((sum: number, step: any) => {
-        const reps = Number(step.reps) || 1
+        const reps = Number(step.reps ?? step.repeat ?? step.intervals) || 1
         let stepDist = 0
 
         if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {

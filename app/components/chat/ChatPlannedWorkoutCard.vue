@@ -77,7 +77,8 @@
       for (const item of items) {
         const children = Array.isArray(item?.steps) ? item.steps : []
         if (children.length > 0) {
-          const reps = Number(item?.reps) > 1 ? Number(item.reps) : 1
+          const repsRaw = Number(item?.reps ?? item?.repeat ?? item?.intervals)
+          const reps = repsRaw > 1 ? repsRaw : 1
           for (let i = 0; i < reps; i++) {
             out.push(...flatten(children, depth + 1))
           }

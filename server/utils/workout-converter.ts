@@ -521,7 +521,7 @@ export const WorkoutConverter = {
         }
 
         if (step.steps && step.steps.length > 0) {
-          const reps = step.reps || 1
+          const reps = Number(step.reps ?? (step as any).repeat ?? (step as any).intervals) || 1
           if (reps > 1) {
             const lastLine = lines.length > 0 ? lines[lines.length - 1] : null
             if (lastLine && typeof lastLine === 'string' && !lastLine.endsWith('\n')) lines.push('')
@@ -602,7 +602,8 @@ export const WorkoutConverter = {
         }
 
         if (name) line += ` ${name}`
-        if (distanceStr && !name.toLowerCase().includes(`${step.distance}m`)) line += ` ${distanceStr}`
+        if (distanceStr && !name.toLowerCase().includes(`${step.distance}m`))
+          line += ` ${distanceStr}`
 
         if (durationStr) {
           const durationMinutes = duration > 0 && duration % 60 === 0 ? duration / 60 : null
