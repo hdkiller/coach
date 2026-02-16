@@ -16,7 +16,7 @@ const workoutStructureSchema = {
     description: {
       type: 'string',
       description:
-        'Overall workout strategy in complete sentences. NEVER use bullet points or list the steps here.'
+        'Overall workout strategy in complete sentences (e.g. "Warm up gradually, then perform 3x8 minutes at threshold with 2 minutes recovery."). NEVER use bullet points or list the steps here.'
     },
     coachInstructions: {
       type: 'string',
@@ -30,8 +30,32 @@ const workoutStructureSchema = {
         properties: {
           steps: {
             type: 'array',
-            description: 'Nested steps for repeats/loops',
-            items: { $ref: '#' }
+            description: 'Nested steps for repeats/loops. Use sparingly.',
+            items: {
+              type: 'object',
+              properties: {
+                // Reduced set for nested steps to prevent bloat
+                type: { type: 'string', enum: ['Warmup', 'Active', 'Rest', 'Cooldown'] },
+                durationSeconds: { type: 'integer' },
+                distance: { type: 'integer' },
+                name: { type: 'string' },
+                power: {
+                  type: 'object',
+                  properties: {
+                    value: { type: 'number' },
+                    units: { type: 'string' }
+                  }
+                },
+                heartRate: {
+                  type: 'object',
+                  properties: {
+                    value: { type: 'number' },
+                    units: { type: 'string' }
+                  }
+                }
+              },
+              required: ['type', 'name', 'durationSeconds']
+            }
           },
           reps: {
             type: 'integer',
@@ -81,7 +105,8 @@ const workoutStructureSchema = {
               value: { type: 'number' },
               units: {
                 type: 'string',
-                description: 'Pace target unit. Use "Pace" for percentages, or an absolute unit like "/km".'
+                description:
+                  'Pace target unit. Use "Pace" for percentages, or an absolute unit like "/km".'
               },
               range: {
                 type: 'object',
@@ -273,6 +298,16 @@ export const generateStructuredWorkoutTask = task({
       zoneDefinitions += `**Preferred Load Metric:** ${loadPreference}\n`
     }
 
+    const warmupTime = sportSettings?.warmupTime || 10
+    const cooldownTime = sportSettings?.cooldownTime || 5
+
+    if (sportSettings?.warmupTime) {
+      zoneDefinitions += `**Default Warmup Duration:** ${sportSettings.warmupTime} minutes\n`
+    }
+    if (sportSettings?.cooldownTime) {
+      zoneDefinitions += `**Default Cooldown Duration:** ${sportSettings.cooldownTime} minutes\n`
+    }
+
     const prompt = `Design a structured ${workout.type} workout for ${workout.user.name || 'Athlete'}.
     
     TITLE: ${workout.title}
@@ -289,7 +324,7 @@ export const generateStructuredWorkoutTask = task({
     - Phase: ${phase}
     - Focus: ${focus}
     - Coach Persona: ${persona}
-
+    
     RECENT WORKOUTS:
     ${buildWorkoutSummary(recentWorkouts, timezone)}
 
@@ -299,6 +334,12 @@ export const generateStructuredWorkoutTask = task({
 
     When generating "[Zone 2]" workouts, target ONLY the user's defined Z2 range for this specific sport. Never use generic percentages - always reference the provided zones first.
     
+    JSON HYGIENE RULES:
+    1. OMIT properties with null or empty values. If a metric (e.g. power) is not relevant for a step, do not include the key at all.
+    2. NEVER repeat keys within the same object.
+    3. MANDATORY: Every step (including nested steps) MUST have a non-zero durationSeconds.
+    4. Ensure the structure is VALID JSON.
+
     INSTRUCTIONS:
     - Create a JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration exactly.
@@ -312,6 +353,7 @@ export const generateStructuredWorkoutTask = task({
     - **steps**: All rules below (targets, etc.) apply to BOTH top-level steps AND nested steps inside repeats.
     - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
     - **coachInstructions**: Provide a personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the '${persona}' persona tone.
+    - **Warmup/Cooldown**: Use the user's default durations (${warmupTime} minutes for Warmup, ${cooldownTime} minutes for Cooldown) unless the workout TITLE or DESCRIPTION explicitly asks for a different specific duration.
 
     FOR CYCLING (Ride/VirtualRide):
     - MANDATORY: Use % of FTP for power targets (e.g. 0.95 = 95%) for EVERY step.
@@ -366,7 +408,6 @@ export const generateStructuredWorkoutTask = task({
       steps.forEach((step: any) => {
         // 1. Recover misplaced targets (AI sometimes puts 'value' or 'range' at top level)
         const recoverTarget = (fieldName: string) => {
-          // If it's a string like "range", it's invalid AI junk, clear it
           if (typeof step[fieldName] === 'string') {
             step[fieldName] = undefined
           }
@@ -384,54 +425,41 @@ export const generateStructuredWorkoutTask = task({
               step[fieldName] = { value: step.value }
               delete step.value
             } else if (!hasOwnTarget && parentStep?.[fieldName]) {
-              // Inherit from parent ONLY if child has NO intensity targets of its own
               step[fieldName] = JSON.parse(JSON.stringify(parentStep[fieldName]))
             }
           }
         }
 
-        // 2. Sport-Specific Normalization (Recursive)
+        // 2. Sport-Specific Normalization
         if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
           recoverTarget('power')
-
-          // Ensure Power exists for charts
           if (!step.power || (step.power.value === undefined && !step.power.range)) {
             if (step.type === 'Warmup') step.power = { value: 0.5 }
             else if (step.type === 'Rest') step.power = { value: 0.45 }
             else if (step.type === 'Cooldown') step.power = { value: 0.4 }
             else step.power = { value: 0.75 }
           }
-
-          // Ensure Cadence exists
           if (!step.cadence) {
             if (step.type === 'Warmup' || step.type === 'Cooldown') step.cadence = 85
             else if (step.type === 'Rest') step.cadence = 80
             else if (parentStep?.cadence) step.cadence = parentStep.cadence
             else step.cadence = 90
           }
-
-          // Strip swimming artifacts
           step.stroke = undefined
           step.equipment = undefined
         } else if (workout.type === 'Run') {
           recoverTarget('heartRate')
           recoverTarget('pace')
           recoverTarget('power')
-
-          // Ensure at least one target exists for runs (HR preferred)
-          // Only apply defaults if ALL targets are truly missing/empty after recovery
           const hasHr = step.heartRate && (step.heartRate.value || step.heartRate.range)
           const hasPace = step.pace && (step.pace.value || step.pace.range)
           const hasPower = step.power && (step.power.value || step.power.range)
-
           if (!hasHr && !hasPace && !hasPower) {
             if (step.type === 'Warmup') step.heartRate = { value: 0.6 }
             else if (step.type === 'Rest') step.heartRate = { value: 0.5 }
             else if (step.type === 'Cooldown') step.heartRate = { value: 0.55 }
             else step.heartRate = { value: 0.75 }
           }
-
-          // Ensure distance is a number
           if (step.distance) step.distance = Number(step.distance)
         }
 
@@ -451,26 +479,28 @@ export const generateStructuredWorkoutTask = task({
           stepDuration = nested.duration
           stepTSS = nested.tss
         } else {
-          // Distance
           stepDistance = step.distance || 0
-
-          // Duration
           stepDuration = step.durationSeconds || 0
 
-          // Estimate TSS
+          if (stepDuration === 0 && !structure.exercises) {
+            if (step.distance && step.distance > 0) {
+              stepDuration = Math.round(step.distance * 3)
+              step.durationSeconds = stepDuration
+            } else if (step.type !== 'Rest') {
+              stepDuration = 60
+              step.durationSeconds = stepDuration
+            }
+          }
+
           let intensity = 0.5
           if (step.heartRate) {
-            if (typeof step.heartRate.value === 'number') {
-              intensity = step.heartRate.value
-            } else if (step.heartRate.range) {
+            if (typeof step.heartRate.value === 'number') intensity = step.heartRate.value
+            else if (step.heartRate.range)
               intensity = (step.heartRate.range.start + step.heartRate.range.end) / 2
-            }
           } else if (step.power) {
-            if (typeof step.power.value === 'number') {
-              intensity = step.power.value
-            } else if (step.power.range) {
+            if (typeof step.power.value === 'number') intensity = step.power.value
+            else if (step.power.range)
               intensity = (step.power.range.start + step.power.range.end) / 2
-            }
           } else {
             switch (step.type) {
               case 'Warmup':
@@ -487,18 +517,23 @@ export const generateStructuredWorkoutTask = task({
                 break
             }
           }
-
           if (stepDuration > 0) {
             stepTSS = ((stepDuration * intensity * intensity) / 3600) * 100
           }
         }
 
-        const reps = Number(step.reps) || 1
-        distance += stepDistance * reps
-        duration += stepDuration * reps
-        tss += stepTSS * reps
+        if (stepDuration > 0 || stepDistance > 0 || (step.steps && step.steps.length > 0)) {
+          const reps = Number(step.reps) || 1
+          distance += stepDistance * reps
+          duration += stepDuration * reps
+          tss += stepTSS * reps
+        } else {
+          console.warn(
+            `[GenerateStructure] Skipping invalid step with no duration/distance: ${step.name}`,
+            step
+          )
+        }
       })
-
       return { distance, duration, tss }
     }
 
@@ -507,33 +542,23 @@ export const generateStructuredWorkoutTask = task({
     let totalDuration = totals.duration
     let totalTSS = totals.tss
 
-    // Calculate metrics from Exercises (if present)
     if (structure.exercises && Array.isArray(structure.exercises)) {
       let gymDuration = 0
       structure.exercises.forEach((ex: any) => {
         let exDuration = 0
-
-        // If explicit duration
-        if (ex.duration) {
-          exDuration = ex.duration
-        } else {
-          // Estimate
+        if (ex.duration) exDuration = ex.duration
+        else {
           const sets = ex.sets || 1
-          // Parse reps (could be '8-12' or 'AMRAP')
           let reps = 10
           if (typeof ex.reps === 'number') reps = ex.reps
           else if (typeof ex.reps === 'string') {
             const match = ex.reps.match(/\d+/)
             if (match) reps = parseInt(match[0], 10)
           }
-
-          const repDuration = 5 // seconds (controlled tempo)
+          const repDuration = 5
           const workTime = sets * reps * repDuration
-
-          // Rest
-          let restTimePerSet = 90 // seconds default (standard strength rest)
+          let restTimePerSet = 90
           if (ex.rest) {
-            // Parse "90s", "2m", "1.5 min"
             const restStr = String(ex.rest).toLowerCase()
             if (restStr.includes('m') && !restStr.includes('ms')) {
               const mins = parseFloat(restStr) || 0
@@ -543,46 +568,23 @@ export const generateStructuredWorkoutTask = task({
               restTimePerSet = secs
             }
           }
-
-          // Total time including transition
-          const totalRest = sets * restTimePerSet
-          exDuration = workTime + totalRest
+          exDuration = workTime + sets * restTimePerSet
         }
-
         gymDuration += exDuration
       })
-
       totalDuration += gymDuration
-
-      // Estimate TSS for Strength (approx 40 TSS/hr)
-      // Only add if no TSS calculated from steps (avoid double counting if mixed)
       if (gymDuration > 0 && totalTSS === 0) {
-        const strengthTSS = (gymDuration / 3600) * 40
-        totalTSS += strengthTSS
+        totalTSS += (gymDuration / 3600) * 40
       }
     }
 
-    const updateData: any = {
-      structuredWorkout: structure as any
-    }
+    const updateData: any = { structuredWorkout: structure as any }
+    if (totalDistance > 0) updateData.distanceMeters = totalDistance
+    if (totalDuration > 0) updateData.durationSec = totalDuration
+    if (totalTSS > 0) updateData.tss = Math.round(totalTSS)
 
-    if (totalDistance > 0) {
-      updateData.distanceMeters = totalDistance
-    }
-
-    if (totalDuration > 0) {
-      updateData.durationSec = totalDuration
-    }
-
-    if (totalTSS > 0) {
-      updateData.tss = Math.round(totalTSS)
-    }
-
-    // Calculate Intensity Factor (IF)
-    // IF = sqrt((36 * TSS) / duration)
     if (totalTSS > 0 && totalDuration > 0) {
       const calculatedIntensity = Math.sqrt((36 * totalTSS) / totalDuration)
-      // Ensure it's a reasonable number (e.g. 0.0 to 1.5)
       if (!isNaN(calculatedIntensity) && calculatedIntensity > 0) {
         updateData.workIntensity = parseFloat(calculatedIntensity.toFixed(2))
       }
@@ -593,7 +595,6 @@ export const generateStructuredWorkoutTask = task({
       data: updateData
     })
 
-    // Sync to Intervals.icu if it's already published (not local-only)
     const isLocal =
       updatedWorkout.syncStatus === 'LOCAL_ONLY' ||
       updatedWorkout.externalId.startsWith('ai_gen_') ||
@@ -602,22 +603,17 @@ export const generateStructuredWorkoutTask = task({
 
     if (!isLocal) {
       logger.log('Syncing updated structure to Intervals.icu', { plannedWorkoutId })
-
-      // Convert structure to Intervals.icu format (text/string)
-      // We must reconstruct the workout data object for the converter
       const workoutData = {
         title: updatedWorkout.title,
         description: updatedWorkout.description || '',
         type: updatedWorkout.type || '',
         steps: structure.steps || [],
-        exercises: structure.exercises, // Add this
+        exercises: structure.exercises,
         messages: [],
         ftp: workout.user.ftp || 250,
         sportSettings: sportSettings || undefined
       }
-
       const workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
-
       const syncResult = await syncPlannedWorkoutToIntervals(
         'UPDATE',
         {
@@ -629,7 +625,7 @@ export const generateStructuredWorkoutTask = task({
           type: updatedWorkout.type,
           durationSec: updatedWorkout.durationSec,
           tss: updatedWorkout.tss,
-          workout_doc: workoutDoc, // Pass the converted string
+          workout_doc: workoutDoc,
           managedBy: updatedWorkout.managedBy
         },
         workout.userId
@@ -638,18 +634,12 @@ export const generateStructuredWorkoutTask = task({
       if (syncResult.synced) {
         await (prisma as any).plannedWorkout.update({
           where: { id: plannedWorkoutId },
-          data: {
-            syncStatus: 'SYNCED',
-            lastSyncedAt: new Date(),
-            syncError: null
-          }
+          data: { syncStatus: 'SYNCED', lastSyncedAt: new Date(), syncError: null }
         })
       } else {
         await (prisma as any).plannedWorkout.update({
           where: { id: plannedWorkoutId },
-          data: {
-            syncError: syncResult.error || 'Failed to sync structured intervals'
-          }
+          data: { syncError: syncResult.error || 'Failed to sync structured intervals' }
         })
       }
     }

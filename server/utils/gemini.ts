@@ -460,7 +460,6 @@ export async function generateCoachAnalysis(
       maxRetries: 3,
       providerOptions
     })
-
     if (trackingContext) {
       await logUsage({
         userId: trackingContext.userId,
@@ -484,6 +483,7 @@ export async function generateCoachAnalysis(
 
     return text
   } catch (error: any) {
+    console.error(`[Gemini] generateCoachAnalysis failed:`, error)
     if (trackingContext) {
       await logUsage({
         userId: trackingContext.userId,
@@ -534,7 +534,6 @@ export async function generateStructuredAnalysis<T>(
       maxRetries: 3,
       providerOptions
     })
-
     if (trackingContext) {
       await logUsage({
         userId: trackingContext.userId,
@@ -558,6 +557,7 @@ export async function generateStructuredAnalysis<T>(
 
     return object as T
   } catch (error: any) {
+    console.error(`[Gemini] generateStructuredAnalysis failed:`, error)
     if (trackingContext) {
       await logUsage({
         userId: trackingContext.userId,

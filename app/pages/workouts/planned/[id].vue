@@ -111,7 +111,7 @@
                     {{ workout.completed ? 'Completed' : 'Planned' }}
                   </UBadge>
                   <UBadge color="neutral" variant="soft" size="sm" class="font-medium">
-                    {{ formatDate(workout.date) }}
+                    {{ formatDateUTC(workout.date, 'EEEE, MMMM d, yyyy') }}
                   </UBadge>
                   <UBadge
                     color="neutral"
@@ -513,7 +513,8 @@
       <div class="p-6 space-y-4">
         <p class="text-sm text-gray-600 dark:text-gray-300">
           This will {{ isLocalWorkout ? 'create a new' : 'update the' }} workout on your
-          Intervals.icu calendar for <strong>{{ formatDate(workout.date) }}</strong
+          Intervals.icu calendar for
+          <strong>{{ formatDateUTC(workout.date, 'EEEE, MMMM d, yyyy') }}</strong
           >.
         </p>
         <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm">
@@ -1187,7 +1188,7 @@
     const formatSteps = (steps: any[], indent = '') => {
       steps.forEach((step: any) => {
         if (step.steps && step.steps.length > 0) {
-          const reps = step.reps || 1
+          const reps = Number(step.reps ?? step.repeat ?? step.intervals) || 1
           lines.push(`${indent}${reps}x`)
           formatSteps(step.steps, indent + '  ')
           return
@@ -1513,15 +1514,6 @@
     navigateTo({
       path: '/chat',
       query: { workoutId: workout.value.id, isPlanned: 'true' }
-    })
-  }
-
-  function formatDate(d: string | Date) {
-    return new Date(d).toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
     })
   }
 
