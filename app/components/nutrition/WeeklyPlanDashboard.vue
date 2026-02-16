@@ -7,9 +7,27 @@
             <UIcon name="i-lucide-calendar-range" class="h-5 w-5 text-primary-500" />
           </div>
           <div>
-            <h3 class="text-sm font-black uppercase tracking-tight leading-tight">
-              Weekly Nutrition Plan
-            </h3>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-black uppercase tracking-tight leading-tight">
+                Weekly Nutrition Plan
+              </h3>
+              <div class="flex items-center gap-1">
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-lucide-chevron-left"
+                  @click="emit('prev-week')"
+                />
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-lucide-chevron-right"
+                  @click="emit('next-week')"
+                />
+              </div>
+            </div>
             <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
               {{ format(parseISO(startDate), 'MMM d') }} - {{ format(parseISO(endDate), 'MMM d') }}
             </p>
@@ -460,7 +478,7 @@
   }>()
 
   const emit = defineEmits<{
-    (e: 'generate-draft' | 'open-grocery'): void
+    (e: 'generate-draft' | 'open-grocery' | 'prev-week' | 'next-week'): void
     (e: 'suggest-window', window: any): void
   }>()
 
@@ -889,9 +907,13 @@
     fetchPlan()
   }
 
-  onMounted(() => {
-    fetchPlan()
-  })
+  watch(
+    () => [props.startDate, props.endDate],
+    () => {
+      fetchPlan()
+    },
+    { immediate: true }
+  )
 
   defineExpose({ refresh })
 </script>

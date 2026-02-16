@@ -273,7 +273,11 @@
                 <div>
                   <h3 class="text-lg font-black uppercase tracking-tight">Active Plan</h3>
                   <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">
-                    Lock in your fueling for the week
+                    {{
+                      isCurrentWeek
+                        ? 'Lock in your fueling for the week'
+                        : 'Review your historical fueling strategy'
+                    }}
                   </p>
                 </div>
               </div>
@@ -286,6 +290,8 @@
                   @generate-draft="generatePlan"
                   @open-grocery="showGroceryList = true"
                   @suggest-window="openAiHelperForWindow"
+                  @prev-week="prevWeek"
+                  @next-week="nextWeek"
                 />
               </ClientOnly>
             </div>
@@ -373,7 +379,7 @@
 </template>
 
 <script setup lang="ts">
-  import { format, parseISO, addDays, startOfWeek } from 'date-fns'
+  import { format, parseISO, addDays, startOfWeek, subDays, isSameWeek } from 'date-fns'
   import { countPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
 
   definePageMeta({
@@ -434,12 +440,23 @@
     dayPlannedCarbs: 0,
     currentAssignedCarbs: 0
   })
+  const baseDate = ref(new Date())
   const weekStartDate = computed(() =>
-    format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    format(startOfWeek(baseDate.value, { weekStartsOn: 1 }), 'yyyy-MM-dd')
   )
   const weekEndDate = computed(() =>
     format(addDays(parseISO(weekStartDate.value), 6), 'yyyy-MM-dd')
   )
+
+  const isCurrentWeek = computed(() => isSameWeek(baseDate.value, new Date(), { weekStartsOn: 1 }))
+
+  function prevWeek() {
+    baseDate.value = subDays(baseDate.value, 7)
+  }
+
+  function nextWeek() {
+    baseDate.value = addDays(baseDate.value, 7)
+  }
 
   const loading = computed(
     () => loadingWave.value || loadingStrategy.value || loadingActiveFeed.value
