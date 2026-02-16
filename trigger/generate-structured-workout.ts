@@ -22,6 +22,12 @@ const workoutStructureSchema = {
       type: 'string',
       description: 'Personalized advice on technique, execution, and purpose (2-3 sentences).'
     },
+    sRPE_target: {
+      type: 'number',
+      minimum: 1,
+      maximum: 10,
+      description: 'Optional session RPE target on a 1-10 scale.'
+    },
     steps: {
       type: 'array',
       description: 'Linear sequence of workout steps (Ride, Run, Swim)',
@@ -36,22 +42,41 @@ const workoutStructureSchema = {
               properties: {
                 // Reduced set for nested steps to prevent bloat
                 type: { type: 'string', enum: ['Warmup', 'Active', 'Rest', 'Cooldown'] },
-                durationSeconds: { type: 'integer' },
-                distance: { type: 'integer' },
+                durationSeconds: { type: 'integer', minimum: 1 },
+                distance: { type: 'integer', minimum: 1 },
                 name: { type: 'string' },
+                primaryTarget: {
+                  type: 'string',
+                  enum: ['power', 'heartRate', 'pace', 'rpe'],
+                  description:
+                    'Primary target cue for this step. Use exactly one primary target to avoid conflicting instructions.'
+                },
                 power: {
                   type: 'object',
                   properties: {
-                    value: { type: 'number' },
+                    value: { type: 'number', minimum: 0 },
                     units: { type: 'string' }
                   }
                 },
                 heartRate: {
                   type: 'object',
                   properties: {
-                    value: { type: 'number' },
+                    value: { type: 'number', minimum: 0 },
                     units: { type: 'string' }
                   }
+                },
+                pace: {
+                  type: 'object',
+                  properties: {
+                    value: { type: 'number', minimum: 0 },
+                    units: { type: 'string' }
+                  }
+                },
+                rpe: {
+                  type: 'number',
+                  minimum: 1,
+                  maximum: 10,
+                  description: 'Step RPE target on a 1-10 scale.'
                 }
               },
               required: ['type', 'name', 'durationSeconds']
@@ -59,23 +84,34 @@ const workoutStructureSchema = {
           },
           reps: {
             type: 'integer',
+            minimum: 1,
+            maximum: 50,
             description: 'Number of times to repeat these steps (for loops)'
           },
           type: { type: 'string', enum: ['Warmup', 'Active', 'Rest', 'Cooldown'] },
-          durationSeconds: { type: 'integer' },
-          distance: { type: 'integer', description: 'Distance in meters (Swim/Run)' },
+          durationSeconds: { type: 'integer', minimum: 1 },
+          distance: { type: 'integer', minimum: 1, description: 'Distance in meters (Swim/Run)' },
           description: { type: 'string', description: 'Pace or stroke description' },
+          primaryTarget: {
+            type: 'string',
+            enum: ['power', 'heartRate', 'pace', 'rpe'],
+            description:
+              'Primary target cue for this step. Use exactly one primary target to avoid conflicting instructions.'
+          },
           power: {
             type: 'object',
             properties: {
-              value: { type: 'number', description: 'Target % of FTP (e.g. 0.95)' },
+              value: { type: 'number', minimum: 0, description: 'Target % of FTP (e.g. 0.95)' },
               units: {
                 type: 'string',
                 description: 'Target unit. Prefer "%" by default; can also be "w" or zone labels.'
               },
               range: {
                 type: 'object',
-                properties: { start: { type: 'number' }, end: { type: 'number' } },
+                properties: {
+                  start: { type: 'number', minimum: 0 },
+                  end: { type: 'number', minimum: 0 }
+                },
                 description: 'For ramps: start and end % of FTP',
                 required: ['start', 'end']
               },
@@ -89,14 +125,21 @@ const workoutStructureSchema = {
           heartRate: {
             type: 'object',
             properties: {
-              value: { type: 'number', description: 'Target % of LTHR (e.g. 0.85)' },
+              value: {
+                type: 'number',
+                minimum: 0,
+                description: 'Target % of LTHR (e.g. 0.85) or absolute bpm if units=bpm.'
+              },
               units: {
                 type: 'string',
                 description: 'Target unit. Use "LTHR" by default; can also be "HR" or "bpm".'
               },
               range: {
                 type: 'object',
-                properties: { start: { type: 'number' }, end: { type: 'number' } },
+                properties: {
+                  start: { type: 'number', minimum: 0 },
+                  end: { type: 'number', minimum: 0 }
+                },
                 required: ['start', 'end'],
                 description:
                   'Target range as % of LTHR (e.g. start: 0.70, end: 0.80 for Zone 2 blocks or progression)'
@@ -112,7 +155,7 @@ const workoutStructureSchema = {
             type: 'object',
             description: 'Target % of threshold pace (e.g. 0.95 = 95%)',
             properties: {
-              value: { type: 'number' },
+              value: { type: 'number', minimum: 0 },
               units: {
                 type: 'string',
                 description:
@@ -121,15 +164,30 @@ const workoutStructureSchema = {
               range: {
                 type: 'object',
                 properties: {
-                  start: { type: 'number' },
-                  end: { type: 'number' }
+                  start: { type: 'number', minimum: 0 },
+                  end: { type: 'number', minimum: 0 }
                 }
               }
             }
           },
+          rpe: {
+            type: 'number',
+            minimum: 1,
+            maximum: 10,
+            description: 'Step RPE target on a 1-10 scale.'
+          },
           cadence: {
             type: 'integer',
             description: 'Target cadence in RPM (single integer, no ranges)'
+          },
+          cadenceRange: {
+            type: 'object',
+            properties: {
+              start: { type: 'integer', minimum: 1 },
+              end: { type: 'integer', minimum: 1 }
+            },
+            required: ['start', 'end'],
+            description: 'Target cadence range for this step (e.g. 85-95 RPM).'
           },
           name: { type: 'string', description: "e.g. '5min @ 95%'" },
           stroke: {
@@ -140,6 +198,44 @@ const workoutStructureSchema = {
             type: 'array',
             items: { type: 'string' },
             description: 'For swimming: Fins, Paddles, Snorkel, Pull Buoy'
+          },
+          sendoffSeconds: {
+            type: 'integer',
+            minimum: 1,
+            description: 'Swim send-off time in seconds (e.g. leave every 90s).'
+          },
+          targetSplit: {
+            type: 'string',
+            description: 'Swim target split (e.g. "1:40/100m").'
+          },
+          cssPercent: {
+            type: 'number',
+            minimum: 0,
+            description: 'Swim pace relative to CSS (e.g. 1.03 = 103% CSS).'
+          },
+          restSeconds: {
+            type: 'integer',
+            minimum: 0,
+            description: 'Explicit rest between swim/run reps or sets in seconds.'
+          },
+          surface: {
+            type: 'string',
+            enum: ['road', 'track', 'trail', 'treadmill', 'mixed'],
+            description: 'Running surface context.'
+          },
+          terrain: {
+            type: 'string',
+            enum: ['flat', 'rolling', 'hilly', 'mixed'],
+            description: 'Running terrain context.'
+          },
+          gradePercent: {
+            type: 'number',
+            description: 'Running grade/incline in percent when relevant.'
+          },
+          environment: {
+            type: 'string',
+            enum: ['indoor', 'outdoor'],
+            description: 'Environment context for execution constraints.'
           }
         },
         required: ['type', 'name']
@@ -152,12 +248,32 @@ const workoutStructureSchema = {
         type: 'object',
         properties: {
           name: { type: 'string' },
-          sets: { type: 'integer' },
+          sets: { type: 'integer', minimum: 1, maximum: 20 },
           reps: { type: 'string', description: "e.g. '8-12' or 'AMRAP'" },
           weight: { type: 'string', description: "e.g. '70% 1RM' or 'Bodyweight'" },
-          duration: { type: 'integer', description: 'Duration in seconds if time-based' },
+          duration: {
+            type: 'integer',
+            minimum: 1,
+            description: 'Duration in seconds if time-based'
+          },
           rest: { type: 'string', description: "Rest between sets e.g. '90s'" },
-          notes: { type: 'string', description: 'Form cues or tempo' }
+          notes: { type: 'string', description: 'Form cues or tempo' },
+          intent: {
+            type: 'string',
+            enum: ['max_strength', 'power', 'muscular_endurance', 'prehab'],
+            description: 'Primary intent for endurance-specific strength work.'
+          },
+          movementPattern: {
+            type: 'string',
+            enum: ['squat', 'hinge', 'push', 'pull', 'lunge', 'core', 'carry', 'mobility'],
+            description: 'Primary movement pattern for exercise classification.'
+          },
+          rpe: {
+            type: 'number',
+            minimum: 1,
+            maximum: 10,
+            description: 'Exercise effort target on a 1-10 scale.'
+          }
         },
         required: ['name']
       }
@@ -349,12 +465,16 @@ export const generateStructuredWorkoutTask = task({
     2. NEVER repeat keys within the same object.
     3. MANDATORY: Every step (including nested steps) MUST have a non-zero durationSeconds.
     4. Ensure the structure is VALID JSON.
+    5. NEVER output placeholder values such as "N/A", "none", "-", or empty strings.
+    6. Include only sport-relevant keys for this workout type. Do not include swim/run-only fields in cycling workouts.
 
     INSTRUCTIONS:
     - Create a JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration exactly.
     - Every workout must have a clear physiological objective (e.g. aerobic endurance, threshold, VO2, neuromuscular, recovery) and each block should support that objective.
     - Sequence intensity logically (warm-up -> quality work -> recovery -> cooldown). Avoid random intensity jumps.
+    - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
+    - If a step name implies a focus change (e.g. cadence focus), at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
     - Include specific execution cues in 'coachInstructions' (breathing, pacing, cadence control, form focus).
     - **METRIC PRIORITY**: Respect the user's PREFERRED INTENSITY METRIC (${loadPreference}). 
       - Priority Order: ${loadPreference.split('_').join(' > ')}.
@@ -364,12 +484,17 @@ export const generateStructuredWorkoutTask = task({
     - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
     - **coachInstructions**: Provide a personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the '${persona}' persona tone.
     - **Warmup/Cooldown**: Use the user's default durations (${warmupTime} minutes for Warmup, ${cooldownTime} minutes for Cooldown) unless the workout TITLE or DESCRIPTION explicitly asks for a different specific duration.
+    - For aerobic/endurance workouts, create at least 2 distinct main-set sub-blocks with clear purpose (settle, sustain, technique/cadence or control), not one repeated generic block.
+    - For Zone 2 workouts, keep primary targets inside the user's provided endurance/aerobic zones whenever available.
 
     FOR CYCLING (Ride/VirtualRide):
     - MANDATORY: Use % of FTP for power targets (e.g. 0.95 = 95%) for EVERY step.
     - Set 'power.units' to "%" unless there is an explicit reason to use "w".
     - For ramps (Warmup/Cooldown), use "range" with "start" and "end" values (e.g. start: 0.50, end: 0.75 for warmup).
     - MANDATORY: Include target "cadence" (RPM) for EVERY step (including Warmup/Rest). Use 85-95 for active, 80 for rest.
+    - For cadence-focus steps, cadence MUST differ from surrounding steady steps (e.g. steady 85-90, focus 95-100) and power should be adjusted if needed.
+    - For aerobic rides, avoid repeated identical 20+ minute blocks unless deliberate repeats are requested.
+    - If HR zones are available, include at least one HR guardrail in coachInstructions (e.g. cap near top of aerobic zone).
     - For interval sets, include realistic recovery between hard repetitions and maintain repeatability of quality efforts.
 
     FOR RUNNING (Run):
@@ -398,6 +523,12 @@ export const generateStructuredWorkoutTask = task({
     - Instead of 'steps', provide a list of 'exercises'.
     - Each exercise should have 'name', 'sets', 'reps', 'weight' (optional description like "Heavy" or %1RM), 'rest' (e.g. "90s"), and 'notes'.
     - Structure it as Warmup -> Main Lifts -> Accessories -> Cooldown if possible.
+
+    FINAL SELF-CHECK BEFORE OUTPUT:
+    - Total duration equals target duration.
+    - No redundant adjacent steps.
+    - Every step has a clear purpose and a valid primary target.
+    - Output contains no placeholder or irrelevant sport fields.
     
     OUTPUT JSON format matching the schema.`
 
