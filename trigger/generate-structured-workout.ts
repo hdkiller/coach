@@ -76,8 +76,13 @@ const workoutStructureSchema = {
               range: {
                 type: 'object',
                 properties: { start: { type: 'number' }, end: { type: 'number' } },
-                required: ['start', 'end'],
-                description: 'For ramps: start and end % of FTP'
+                description: 'For ramps: start and end % of FTP',
+                required: ['start', 'end']
+              },
+              ramp: {
+                type: 'boolean',
+                description:
+                  'Set to TRUE if this step is a progressive ramp (e.g. Warmup 50->75%). Set to FALSE or omit for steady-state ranges (e.g. Zone 2 65-75%).'
               }
             }
           },
@@ -95,6 +100,11 @@ const workoutStructureSchema = {
                 required: ['start', 'end'],
                 description:
                   'Target range as % of LTHR (e.g. start: 0.70, end: 0.80 for Zone 2 blocks or progression)'
+              },
+              ramp: {
+                type: 'boolean',
+                description:
+                  'Set to TRUE if this step is a progressive ramp. Set to FALSE or omit for steady-state ranges.'
               }
             }
           },
