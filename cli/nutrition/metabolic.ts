@@ -1,13 +1,23 @@
 import { Command } from 'commander'
-import { prisma } from '../../server/utils/db'
-import { nutritionRepository } from '../../server/utils/repositories/nutritionRepository'
-import { plannedWorkoutRepository } from '../../server/utils/repositories/plannedWorkoutRepository'
-import { getUserNutritionSettings } from '../../server/utils/nutrition/settings'
-import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../server/utils/date'
-import { calculateEnergyTimeline } from '../../server/utils/nutrition-domain'
-import { metabolicService } from '../../server/utils/services/metabolicService'
 import chalk from 'chalk'
 import Table from 'cli-table3'
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
+import { startOfDay, endOfDay } from 'date-fns'
+import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
+import { calculateEnergyTimeline } from '../../server/utils/nutrition-domain'
+
+function formatDateUTC(date: Date): string {
+  return format(date, 'yyyy-MM-dd', { timeZone: 'UTC' })
+}
+
+function getDayRangeUTC(timezone: string, date: Date) {
+  const zonedDate = toZonedTime(date, timezone)
+  const rangeStart = fromZonedTime(startOfDay(zonedDate), timezone)
+  const rangeEnd = fromZonedTime(endOfDay(zonedDate), timezone)
+  return { rangeStart, rangeEnd }
+}
 
 const metabolicCommand = new Command('metabolic')
   .description('Debug the metabolic engine for a user and date')
@@ -15,8 +25,23 @@ const metabolicCommand = new Command('metabolic')
   .argument('[date]', 'Date to analyze (YYYY-MM-DD), defaults to today')
   .option('--prod', 'Use production database')
   .action(async (emailOrId, dateStr, options) => {
+    const isProd = options.prod
+    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+
+    if (!connectionString) {
+      console.error(
+        chalk.red(isProd ? 'DATABASE_URL_PROD is not defined.' : 'DATABASE_URL is not defined.')
+      )
+      process.exit(1)
+    }
+
+    console.log(chalk[isProd ? 'yellow' : 'blue'](`Using ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} database.`))
+
+    const pool = new pg.Pool({ connectionString })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
+
     try {
-      // 1. Resolve User
       const user = await prisma.user.findFirst({
         where: {
           OR: [{ email: emailOrId }, { id: emailOrId }]
@@ -28,76 +53,100 @@ const metabolicCommand = new Command('metabolic')
         return
       }
 
-      const timezone = await getUserTimezone(user.id)
-      const targetDate = dateStr ? new Date(`${dateStr}T00:00:00Z`) : getUserLocalDate(timezone)
-      const formattedDate = formatDateUTC(targetDate)
+      const timezone = user.timezone || 'UTC'
+      const targetDate = dateStr ? new Date(`${dateStr}T00:00:00Z`) : new Date()
+      const targetDateKey = dateStr || format(toZonedTime(new Date(), timezone), 'yyyy-MM-dd')
+      const targetDateUtc = new Date(`${targetDateKey}T00:00:00Z`)
+
+      const yesterdayUtc = new Date(targetDateUtc)
+      yesterdayUtc.setUTCDate(yesterdayUtc.getUTCDate() - 1)
+
+      const [settingsRecord, todayNutrition, yesterdayNutrition] = await Promise.all([
+        prisma.userNutritionSettings.findUnique({ where: { userId: user.id } }),
+        prisma.nutrition.findFirst({ where: { userId: user.id, date: targetDateUtc } }),
+        prisma.nutrition.findFirst({ where: { userId: user.id, date: yesterdayUtc } })
+      ])
+
+      const { rangeStart, rangeEnd } = getDayRangeUTC(timezone, targetDateUtc)
+
+      const [completedWorkouts, plannedWorkouts] = await Promise.all([
+        prisma.workout.findMany({
+          where: {
+            userId: user.id,
+            isDuplicate: false,
+            date: { gte: rangeStart, lte: rangeEnd }
+          },
+          orderBy: { date: 'asc' }
+        }),
+        prisma.plannedWorkout.findMany({
+          where: {
+            userId: user.id,
+            date: { gte: rangeStart, lte: rangeEnd }
+          },
+          orderBy: { date: 'asc' }
+        })
+      ])
+
+      const completedPlannedIds = new Set(
+        completedWorkouts.map((w) => w.plannedWorkoutId).filter(Boolean)
+      )
+      const remainingPlanned = plannedWorkouts.filter(
+        (p) => !p.completed && !completedPlannedIds.has(p.id)
+      )
+      const workoutsForSimulation = [...completedWorkouts, ...remainingPlanned]
+
+      const settings = {
+        ...settingsRecord,
+        weight: user.weight || 75,
+        user: { weight: user.weight || 75 }
+      }
+
+      const metabolicFloor = Number(settingsRecord?.metabolicFloor ?? 0.6)
+      const startingGlycogen = Number(
+        todayNutrition?.startingGlycogenPercentage ??
+          yesterdayNutrition?.endingGlycogenPercentage ??
+          metabolicFloor * 100
+      )
+      const startingFluid = Number(
+        todayNutrition?.startingFluidDeficit ?? yesterdayNutrition?.endingFluidDeficit ?? 0
+      )
+
+      const fallbackCarbsGoal = Number(settingsRecord?.fuelState1Min ?? 3) * (user.weight || 75)
+      const nutritionForSimulation =
+        todayNutrition ||
+        ({
+          date: targetDateUtc.toISOString(),
+          carbsGoal: fallbackCarbsGoal
+        } as any)
 
       console.log(
         chalk.bold.cyan(`
-=== Metabolic Debug: ${user.email} (${formattedDate}) ===`)
+=== Metabolic Debug: ${user.email} (${formatDateUTC(targetDateUtc)}) ===`)
       )
       console.log(chalk.gray(`Timezone: ${timezone}`))
+      console.log(chalk.yellow('\nStarting State:'))
+      console.log(`- Glycogen: ${chalk.bold(startingGlycogen.toFixed(1))}%`)
+      console.log(`- Fluid Deficit: ${chalk.bold(Math.round(startingFluid))}ml`)
 
-      // 2. Fetch Context
-      const [nutrition, workouts, settings] = await Promise.all([
-        nutritionRepository.getByDate(user.id, targetDate),
-        plannedWorkoutRepository.list(user.id, {
-          startDate: targetDate,
-          endDate: targetDate
-        }),
-        getUserNutritionSettings(user.id)
-      ])
-
-      const state = await metabolicService.repairMetabolicChain(user.id, targetDate)
-
-      console.log(
-        chalk.yellow(`
-Starting State:`)
-      )
-      console.log(`- Glycogen: ${chalk.bold(state.startingGlycogen.toFixed(1))}%`)
-      console.log(`- Fluid Deficit: ${chalk.bold(state.startingFluid)}ml`)
-
-      // 3. Run Simulation
       const points = calculateEnergyTimeline(
-        nutrition || {
-          date: targetDate.toISOString(),
-          carbsGoal: settings.fuelState1Min * user.weight
-        },
-        workouts,
+        nutritionForSimulation,
+        workoutsForSimulation,
         settings,
         timezone,
         undefined,
         {
-          startingGlycogenPercentage: state.startingGlycogen,
-          startingFluidDeficit: state.startingFluid
+          startingGlycogenPercentage: startingGlycogen,
+          startingFluidDeficit: startingFluid
         }
       )
 
-      // 4. Dump Events Found by Logic
-      console.log(
-        chalk.yellow(`
-Detected Simulation Events:`)
-      )
+      console.log(chalk.yellow('\nDetected Simulation Events:'))
       const eventTable = new Table({
         head: ['Time', 'Type', 'Name', 'Carbs', 'Fluid', 'Status'],
-        colWidths: [10, 15, 30, 10, 10, 15]
+        colWidths: [10, 15, 40, 10, 10, 15]
       })
 
-      // We need to peek into what logic did. Logic doesn't export the internal meals array,
-      // but we can see the 'event' field in points.
       const eventPoints = points.filter((p) => p.event)
-
-      // Let's also output some info about what calculateEnergyTimeline is seeing
-      if (nutrition?.fuelingPlan) {
-        console.log(
-          chalk.gray(
-            `Found Fueling Plan with ${(nutrition.fuelingPlan as any).windows?.length || 0} windows.`
-          )
-        )
-      } else {
-        console.log(chalk.gray(`No Fueling Plan found. Relying on baseline heuristics.`))
-      }
-
       eventPoints.forEach((p) => {
         eventTable.push([
           p.time,
@@ -115,17 +164,12 @@ Detected Simulation Events:`)
         console.log(eventTable.toString())
       }
 
-      // 5. Sample the Curve
-      console.log(
-        chalk.yellow(`
-Metabolic Wave (Hourly Samples):`)
-      )
+      console.log(chalk.yellow('\nMetabolic Wave (Hourly Samples):'))
       const waveTable = new Table({
         head: ['Time', 'Tank (%)', 'Carb Bal (g)', 'Fluid Def (ml)'],
         colWidths: [10, 15, 15, 15]
       })
 
-      // Sample every 4 points (1 hour)
       for (let i = 0; i < points.length; i += 4) {
         const p = points[i]!
         let color = chalk.green
@@ -141,27 +185,24 @@ Metabolic Wave (Hourly Samples):`)
       }
       console.log(waveTable.toString())
 
-      // 6. Summary Info
       const minPoint = points.reduce((prev, curr) => (prev.level < curr.level ? prev : curr))
       const maxPoint = points.reduce((prev, curr) => (prev.level > curr.level ? prev : curr))
 
-      console.log(
-        chalk.yellow(`
-Daily Summary:`)
-      )
+      console.log(chalk.yellow('\nDaily Summary:'))
       console.log(`- Peak Energy: ${chalk.bold(maxPoint.level)}% at ${maxPoint.time}`)
       console.log(
         `- Min Energy: ${minPoint.level < 25 ? chalk.red.bold(minPoint.level) : chalk.bold(minPoint.level)}% at ${minPoint.time}`
       )
 
       if (minPoint.level < 20) {
-        console.log(
-          chalk.red.bold(`
-⚠️  WARNING: Potential Bonk Detected at ${minPoint.time}!`)
-        )
+        console.log(chalk.red.bold(`\n⚠️  WARNING: Potential Bonk Detected at ${minPoint.time}!`))
       }
     } catch (err) {
       console.error(chalk.red('Error:'), err)
+      process.exitCode = 1
+    } finally {
+      await prisma.$disconnect()
+      await pool.end()
     }
   })
 
