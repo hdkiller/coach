@@ -38,7 +38,11 @@
         </UButton>
       </div>
     </div>
-    <WorkoutChart :workout="workout.structuredWorkout" :user-ftp="userFtp" />
+    <WorkoutChart
+      :workout="workout.structuredWorkout"
+      :user-ftp="userFtp"
+      :sport-settings="sportSettings"
+    />
   </div>
 </template>
 
@@ -48,6 +52,7 @@
   defineProps<{
     workout: any
     userFtp?: number
+    sportSettings?: any
     generating?: boolean
   }>()
 

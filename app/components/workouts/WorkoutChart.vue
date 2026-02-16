@@ -77,11 +77,20 @@
                   </div>
                 </template>
 
-                <!-- Bar -->
-                <div
-                  :style="getStepBarStyle(step)"
-                  class="w-full transition-all hover:opacity-80"
-                />
+                <!-- Wrapper to force stacking context -->
+                <div class="relative w-full h-full flex items-end">
+                  <!-- Range Shade -->
+                  <div
+                    v-if="getStepRange(step)"
+                    :style="getStepRangeShadeStyle(step)"
+                    class="absolute left-0 w-full pointer-events-none border-y border-current/40"
+                  />
+                  <!-- Bar -->
+                  <div
+                    :style="getStepBarStyle(step)"
+                    class="w-full transition-all hover:opacity-80"
+                  />
+                </div>
               </UTooltip>
             </div>
 
@@ -194,9 +203,9 @@
                     <span v-if="step.power?.range">
                       {{ Math.round(step.power.range.start * 100) }}-{{
                         Math.round(step.power.range.end * 100)
-                      }}%
+                      }}% FTP
                     </span>
-                    <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% </span>
+                    <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% FTP </span>
                   </div>
                 </div>
               </div>
@@ -207,8 +216,8 @@
               class="hidden sm:grid items-center gap-4"
               :class="
                 userFtp
-                  ? 'grid-cols-[12px_1fr_48px_80px_110px_70px]'
-                  : 'grid-cols-[12px_1fr_48px_80px_110px]'
+                  ? 'grid-cols-[12px_1fr_54px_80px_110px_70px]'
+                  : 'grid-cols-[12px_1fr_54px_80px_110px]'
               "
             >
               <div
@@ -240,9 +249,9 @@
                   <span v-if="step.power?.range">
                     {{ Math.round(step.power.range.start * 100) }}-{{
                       Math.round(step.power.range.end * 100)
-                    }}%
+                    }}% FTP
                   </span>
-                  <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% </span>
+                  <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% FTP </span>
                 </div>
                 <div class="text-[10px] text-muted">
                   {{ formatDuration(step.durationSeconds || step.duration || 0) }}
@@ -337,6 +346,7 @@
   const props = defineProps<{
     workout: any // structuredWorkout JSON
     userFtp?: number
+    sportSettings?: any
   }>()
 
   const normalizedSteps = computed(() => flattenWorkoutSteps(props.workout?.steps || []))
@@ -428,7 +438,8 @@
   })
 
   const zoneDistribution = computed(() => {
-    const distribution = [
+    // Default zones if settings are missing
+    let distribution = [
       // Z1: Emerald Green (Recovery)
       { name: 'Z1', min: 0, max: 0.55, duration: 0, color: ZONE_COLORS[0] },
       // Z2: Royal Blue (Endurance)
@@ -442,6 +453,19 @@
       // Z6: Electric Purple (Anaerobic)
       { name: 'Z6', min: 1.2, max: 9.99, duration: 0, color: ZONE_COLORS[5] }
     ]
+
+    // Use sport specific Power zones if available
+    if (props.sportSettings?.powerZones && props.sportSettings.ftp) {
+      const ftp = props.sportSettings.ftp
+      distribution = props.sportSettings.powerZones.map((z: any, i: number) => ({
+        name: `Z${i + 1}`,
+        longName: z.name || `Zone ${i + 1}`,
+        min: z.min / ftp,
+        max: z.max / ftp,
+        duration: 0,
+        color: ZONE_COLORS[i] || '#9ca3af'
+      }))
+    }
 
     if (!normalizedSteps.value.length) return distribution
 
@@ -464,7 +488,7 @@
   // Functions
   function normalizeTarget(
     target: any
-  ): { value?: number; range?: { start: number; end: number } } | undefined {
+  ): { value?: number; range?: { start: number; end: number }; ramp?: boolean } | undefined {
     if (target === null || target === undefined) return undefined
 
     if (Array.isArray(target)) {
@@ -487,7 +511,8 @@
           range: {
             start: Number(target.range.start) || 0,
             end: Number(target.range.end) || 0
-          }
+          },
+          ramp: target.ramp
         }
       }
       if (target.start !== undefined && target.end !== undefined) {
@@ -495,7 +520,8 @@
           range: {
             start: Number(target.start) || 0,
             end: Number(target.end) || 0
-          }
+          },
+          ramp: target.ramp
         }
       }
       if (target.value !== undefined) {
@@ -599,19 +625,62 @@
     }
   }
 
+  function getStepRange(step: any) {
+    return step.power?.range
+  }
+
+  function getStepRangeShadeStyle(step: any) {
+    const range = getStepRange(step)
+    if (!range) return {}
+
+    const maxScale = chartMaxPower.value
+    const startH = Math.min(range.start / maxScale, 1) * 100
+    const endH = Math.min(range.end / maxScale, 1) * 100
+
+    // Ramp logic: Trapezoid from Start to End
+    // Backward compatibility: if ramp is missing but range exists, assume ramp
+    if (step.power?.ramp === true || (step.power?.range && step.power?.ramp === undefined)) {
+      const startY = 100 - startH
+      const endY = 100 - endH
+      // Polygon: Top-Left (0% startY), Top-Right (100% endY), Bottom-Right (100% 100%), Bottom-Left (0% 100%)
+      return {
+        height: '100%',
+        bottom: '0%',
+        backgroundColor: getStepColor(step),
+        opacity: 0.8, // More opaque for ramps
+        clipPath: `polygon(0% ${startY}%, 100% ${endY}%, 100% 100%, 0% 100%)`
+      }
+    }
+
+    // Range logic: Stacked Window
+    const height = Math.abs(endH - startH)
+    const bottom = Math.min(startH, endH)
+
+    return {
+      height: `${height}%`,
+      bottom: `${bottom}%`,
+      backgroundColor: getStepColor(step),
+      opacity: 0.2 // Default opacity for ranges
+    }
+  }
+
   function getStepBarStyle(step: any) {
     const color = getStepColor(step)
     const maxScale = chartMaxPower.value
 
+    if (step.power?.ramp === true || (step.power?.range && step.power?.ramp === undefined)) {
+      // Hide standard bar for ramps, as the "Range" element handles the full shape
+      return { height: '0%' }
+    }
+
     if (step.power?.range) {
-      // Ramp logic
-      const startH = Math.min(step.power.range.start / maxScale, 1) * 100
-      const endH = Math.min(step.power.range.end / maxScale, 1) * 100
+      // Solid bar to min (base requirement)
+      const val = step.power.range.start
+      const height = Math.min(val / maxScale, 1) * 100
 
       return {
-        height: '100%',
-        backgroundColor: color,
-        clipPath: `polygon(0% ${100 - startH}%, 100% ${100 - endH}%, 100% 100%, 0% 100%)`
+        height: `${height}%`,
+        backgroundColor: color
       }
     } else {
       // Flat logic
@@ -626,19 +695,17 @@
 
   function getZoneSegmentTooltip(zone: any) {
     if (totalDuration.value === 0) {
-      return `${zone.name}: ${formatDuration(zone.duration)}`
+      return `${zone.longName || zone.name}: ${formatDuration(zone.duration)}`
     }
     const percent = Math.round((zone.duration / totalDuration.value) * 100)
-    return `${zone.name}: ${formatDuration(zone.duration)} (${percent}%) (Power)`
+    return `${zone.longName || zone.name}: ${formatDuration(zone.duration)} (${percent}%) (Power)`
   }
 
   function getZone(power: number): string {
-    if (power <= 0.55) return 'Z1'
-    if (power <= 0.75) return 'Z2'
-    if (power <= 0.9) return 'Z3'
-    if (power <= 1.05) return 'Z4'
-    if (power <= 1.2) return 'Z5'
-    return 'Z6'
+    const zone =
+      zoneDistribution.value.find((z) => power <= z.max) ||
+      zoneDistribution.value[zoneDistribution.value.length - 1]
+    return zone ? zone.name : '??'
   }
 
   function getAvgWatts(step: any, ftp: number): number {
@@ -653,7 +720,9 @@
       ? (step.power.range.start + step.power.range.end) / 2
       : step.power?.value || 0
 
-    const zone = zoneDistribution.value.find((z) => val <= z.max)
+    const zone =
+      zoneDistribution.value.find((z) => val <= z.max) ||
+      zoneDistribution.value[zoneDistribution.value.length - 1]
     return zone ? zone.color : '#9ca3af'
   }
 

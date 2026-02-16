@@ -42,7 +42,7 @@
     <!-- Structure Chart -->
     <div v-if="hasStructure" class="mb-6">
       <h4 class="text-sm font-semibold text-muted mb-3">Structure Profile</h4>
-      <WorkoutRunChart :workout="workout.structuredWorkout" />
+      <WorkoutRunChart :workout="workout.structuredWorkout" :sport-settings="sportSettings" />
     </div>
   </div>
 </template>
@@ -52,6 +52,7 @@
 
   const props = defineProps<{
     workout: any
+    sportSettings?: any
     generating?: boolean
   }>()
 

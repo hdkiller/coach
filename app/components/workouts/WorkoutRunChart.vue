@@ -25,12 +25,7 @@
           <div
             class="flex flex-col justify-between text-xs text-muted w-8 sm:w-12 pr-1 sm:pr-2 text-right h-[140px] sm:h-[200px]"
           >
-            <span>120%</span>
-            <span>100%</span>
-            <span>80%</span>
-            <span>60%</span>
-            <span>40%</span>
-            <span>20%</span>
+            <span v-for="(label, i) in yAxisLabels" :key="i">{{ label }}%</span>
           </div>
 
           <!-- Chart area -->
@@ -46,8 +41,8 @@
                 v-for="(step, index) in normalizedSteps"
                 :key="index"
                 :popper="{ placement: 'top' }"
-                :style="getStepStyle(step)"
-                class="relative group"
+                :style="getStepContainerStyle(step)"
+                class="relative group flex items-end"
               >
                 <template #text>
                   <div class="font-semibold">{{ step.name }}</div>
@@ -57,16 +52,29 @@
                     <span v-if="!step.heartRate && !step.power && !step.pace"> (Inferred)</span>
                   </div>
                 </template>
-                <div class="w-full h-full" />
+                <!-- Wrapper to force stacking context -->
+                <div class="relative w-full h-full flex items-end">
+                  <!-- Range Shade -->
+                  <div
+                    v-if="getStepRange(step)"
+                    :style="getStepRangeStyle(step)"
+                    class="absolute left-0 w-full pointer-events-none border-y border-current/40"
+                  />
+                  <!-- Primary Target Bar -->
+                  <div
+                    :style="getStepBarStyle(step)"
+                    class="w-full h-full transition-all group-hover:opacity-80"
+                  />
+                </div>
               </UTooltip>
             </div>
           </div>
         </div>
 
         <!-- X-axis (time) -->
-        <div class="flex mt-2 ml-12">
+        <div class="flex mt-2 ml-8 sm:ml-12">
           <div class="flex-1 flex justify-between text-xs text-muted">
-            <span>0:00</span>
+            <span>0</span>
             <span>{{ formatDuration(totalDuration / 4) }}</span>
             <span>{{ formatDuration(totalDuration / 2) }}</span>
             <span>{{ formatDuration((totalDuration * 3) / 4) }}</span>
@@ -125,7 +133,8 @@
             </div>
 
             <!-- Desktop View -->
-            <div class="hidden sm:grid grid-cols-[12px_1fr_48px_80px_140px] items-center gap-4">
+            <!-- Desktop View -->
+            <div class="hidden sm:grid grid-cols-[12px_1fr_54px_80px_140px] items-center gap-4">
               <div
                 class="w-3 h-3 rounded-full flex-shrink-0 mt-1"
                 :style="{ backgroundColor: getStepColor(getStepIntensity(step)) }"
@@ -210,6 +219,7 @@
     defineProps<{
       workout: any // structuredWorkout JSON
       preference?: 'hr' | 'power' | 'pace'
+      sportSettings?: any
     }>(),
     {
       preference: 'hr'
@@ -226,14 +236,57 @@
     )
   })
 
+  const chartMaxPower = computed(() => {
+    let maxTarget = 0
+    normalizedSteps.value.forEach((step: any) => {
+      let target: any
+      if (props.preference === 'hr') target = step.heartRate
+      else if (props.preference === 'power') target = step.power
+      else if (props.preference === 'pace') target = step.pace
+
+      if (target) {
+        if (target.value !== undefined) {
+          maxTarget = Math.max(maxTarget, target.value)
+        } else if (target.range) {
+          maxTarget = Math.max(maxTarget, target.range.end)
+        }
+      }
+    })
+    // Ensure a minimum scale and add a buffer
+    return Math.max(1.2, maxTarget * 1.1)
+  })
+
+  const yAxisLabels = computed(() => {
+    const labels = []
+    const step = chartMaxPower.value / 5
+    for (let i = 5; i >= 0; i--) {
+      labels.push(Math.round(i * step * 100))
+    }
+    return labels
+  })
+
   const zoneDistribution = computed(() => {
-    const distribution = [
+    // Default zones if settings are missing
+    let distribution = [
       { name: 'Z1', min: 0, max: 0.75, duration: 0, color: ZONE_COLORS[0] }, // Green
       { name: 'Z2', min: 0.75, max: 0.85, duration: 0, color: ZONE_COLORS[1] }, // Blue
       { name: 'Z3', min: 0.85, max: 0.95, duration: 0, color: ZONE_COLORS[2] }, // Amber
       { name: 'Z4', min: 0.95, max: 1.05, duration: 0, color: ZONE_COLORS[3] }, // Orange
       { name: 'Z5', min: 1.05, max: 9.99, duration: 0, color: ZONE_COLORS[4] } // Red
     ]
+
+    // Use sport specific HR zones if available and preferred
+    if (props.preference === 'hr' && props.sportSettings?.hrZones && props.sportSettings.lthr) {
+      const lthr = props.sportSettings.lthr
+      distribution = props.sportSettings.hrZones.map((z: any, i: number) => ({
+        name: `Z${i + 1}`,
+        longName: z.name || `Zone ${i + 1}`,
+        min: z.min / lthr,
+        max: z.max / lthr,
+        duration: 0,
+        color: ZONE_COLORS[i] || '#9ca3af'
+      }))
+    }
 
     if (!normalizedSteps.value.length) return distribution
 
@@ -253,7 +306,7 @@
   // Functions
   function getZoneSegmentTooltip(zone: any) {
     const percent = Math.round((zone.duration / totalDuration.value) * 100)
-    return `${zone.name}: ${formatDuration(zone.duration)} (${percent}%) (${props.preference === 'hr' ? 'HR' : 'Power'})`
+    return `${zone.longName || zone.name}: ${formatDuration(zone.duration)} (${percent}%) (${props.preference === 'hr' ? 'HR' : 'Power'})`
   }
 
   function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
@@ -276,11 +329,71 @@
 
       flattened.push({
         ...step,
-        _depth: depth
+        _depth: depth,
+        heartRate: normalizeTarget(step.heartRate) || step.heartRate,
+        power: normalizeTarget(step.power) || step.power,
+        pace: normalizeTarget(step.pace) || step.pace
       })
     })
 
     return flattened
+  }
+
+  function normalizeTarget(
+    target: any
+  ): { value?: number; range?: { start: number; end: number }; ramp?: boolean } | undefined {
+    if (target === null || target === undefined) return undefined
+
+    if (Array.isArray(target)) {
+      if (target.length >= 2) {
+        return { range: { start: Number(target[0]) || 0, end: Number(target[1]) || 0 } }
+      }
+      if (target.length === 1) {
+        return { value: Number(target[0]) || 0 }
+      }
+      return undefined
+    }
+
+    if (typeof target === 'number') {
+      return { value: target }
+    }
+
+    if (typeof target === 'object') {
+      if (target.range && typeof target.range === 'object') {
+        const start = target.range.start !== undefined ? target.range.start : target.range[0]
+        const end = target.range.end !== undefined ? target.range.end : target.range[1]
+        return {
+          range: {
+            start: Number(start) || 0,
+            end: Number(end) || 0
+          },
+          ramp: target.ramp
+        }
+      }
+      if (target.start !== undefined && target.end !== undefined) {
+        return {
+          range: {
+            start: Number(target.start) || 0,
+            end: Number(target.end) || 0
+          },
+          ramp: target.ramp
+        }
+      }
+      if (target.value !== undefined) {
+        return { value: Number(target.value) || 0 }
+      }
+    }
+
+    return undefined
+  }
+
+  function getTargetValue(
+    target: { value?: number; range?: { start: number; end: number } } | undefined
+  ) {
+    if (!target) return undefined
+    if (typeof target.value === 'number') return target.value
+    if (target.range) return (target.range.start + target.range.end) / 2
+    return undefined
   }
 
   function getStepIntensityLabel(step: any): string {
@@ -289,52 +402,30 @@
     } else if (step.heartRate?.value) {
       return `${Math.round(step.heartRate.value * 100)}% LTHR`
     } else if (step.power?.range) {
-      return `${Math.round(step.power.range.start * 100)}-${Math.round(step.power.range.end * 100)}% Power`
+      return `${Math.round(step.power.range.start * 100)}-${Math.round(step.power.range.end * 100)}% FTP`
     } else if (step.power?.value) {
-      return `${Math.round(step.power.value * 100)}% Power`
+      return `${Math.round(step.power.value * 100)}% FTP`
     } else if (step.pace?.range) {
       return `${Math.round(step.pace.range.start * 100)}-${Math.round(step.pace.range.end * 100)}% Pace`
     } else if (step.pace?.value) {
       return `${Math.round(step.pace.value * 100)}% Pace`
     }
-    return `${Math.round(getInferredIntensity(step) * 100)}%`
+    const preferenceUnit =
+      props.preference === 'hr' ? 'LTHR' : props.preference === 'pace' ? 'Pace' : 'FTP'
+    return `${Math.round(getInferredIntensity(step) * 100)}% ${preferenceUnit}`
   }
 
   function getStepIntensity(step: any): number {
-    if (props.preference === 'hr') {
-      const hr = step.heartRate?.range
-        ? (step.heartRate.range.start + step.heartRate.range.end) / 2
-        : step.heartRate?.value
-      if (hr) return hr
-    } else if (props.preference === 'pace') {
-      const pace = step.pace?.range
-        ? (step.pace.range.start + step.pace.range.end) / 2
-        : step.pace?.value
-      if (pace) return pace
-    } else {
-      const pwr = step.power?.range
-        ? (step.power.range.start + step.power.range.end) / 2
-        : step.power?.value
-      if (pwr) return pwr
-    }
+    const hr = getTargetValue(step.heartRate)
+    const pwr = getTargetValue(step.power)
+    const pace = getTargetValue(step.pace)
 
-    // Final fallbacks in order of typical availability
-    const pwr = step.power?.range
-      ? (step.power.range.start + step.power.range.end) / 2
-      : step.power?.value
-    if (pwr) return pwr
+    if (props.preference === 'hr' && hr !== undefined) return hr
+    if (props.preference === 'pace' && pace !== undefined) return pace
+    if (props.preference === 'power' && pwr !== undefined) return pwr
 
-    const hr = step.heartRate?.range
-      ? (step.heartRate.range.start + step.heartRate.range.end) / 2
-      : step.heartRate?.value
-    if (hr) return hr
-
-    const pace = step.pace?.range
-      ? (step.pace.range.start + step.pace.range.end) / 2
-      : step.pace?.value
-    if (pace) return pace
-
-    return getInferredIntensity(step)
+    // Final fallbacks
+    return pwr ?? hr ?? pace ?? getInferredIntensity(step)
   }
 
   function getInferredIntensity(step: any): number {
@@ -342,51 +433,88 @@
     return 0.8
   }
 
-  function getStepStyle(step: any) {
+  function getStepContainerStyle(step: any) {
     const width = ((step.durationSeconds || step.duration || 0) / totalDuration.value) * 100
-    const intensity = getStepIntensity(step)
-    const color = getStepColor(intensity)
-    const maxScale = 1.2 // 120% is top of chart
-
-    const range = step.heartRate?.range || step.power?.range
-    if (range) {
-      const startH = Math.min(range.start / maxScale, 1) * 100
-      const endH = Math.min(range.end / maxScale, 1) * 100
-
-      return {
-        height: '100%',
-        width: `${width}%`,
-        backgroundColor: color,
-        clipPath: `polygon(0% ${100 - startH}%, 100% ${100 - endH}%, 100% 100%, 0% 100%)`,
-        minWidth: '2px'
-      }
-    }
-
-    const height = Math.min(intensity / maxScale, 1) * 100
-
     return {
-      height: `${height}%`,
       width: `${width}%`,
-      backgroundColor: color,
+      height: '100%',
       minWidth: '2px'
     }
   }
 
+  function getStepRange(step: any) {
+    if (props.preference === 'hr') return step.heartRate?.range
+    if (props.preference === 'pace') return step.pace?.range
+    if (props.preference === 'power') return step.power?.range
+    return step.heartRate?.range || step.power?.range || step.pace?.range
+  }
+
+  function getStepRangeStyle(step: any) {
+    const range = getStepRange(step)
+    if (!range) return {}
+
+    const maxScale = chartMaxPower.value
+    const startH = (range.start / maxScale) * 100
+    const endH = (range.end / maxScale) * 100
+
+    // Ramp logic: Trapezoid from Start to End
+    if (step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp) {
+      const startY = 100 - startH
+      const endY = 100 - endH
+      // Polygon: Top-Left (0% startY), Top-Right (100% endY), Bottom-Right (100% 100%), Bottom-Left (0% 100%)
+      return {
+        height: '100%',
+        bottom: '0%',
+        backgroundColor: getStepColor(getStepIntensity(step)),
+        opacity: 0.8, // More opaque for ramps
+        clipPath: `polygon(0% ${startY}%, 100% ${endY}%, 100% 100%, 0% 100%)`
+      }
+    }
+
+    // Range logic: Stacked Window
+    const height = Math.abs(endH - startH)
+    const bottom = Math.min(startH, endH)
+
+    return {
+      height: `${height}%`,
+      bottom: `${bottom}%`,
+      backgroundColor: getStepColor(getStepIntensity(step)),
+      opacity: 0.2 // Default opacity for ranges
+    }
+  }
+
+  function getStepBarStyle(step: any) {
+    const intensity = getStepIntensity(step)
+    const range = getStepRange(step)
+
+    if (range && (step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp)) {
+      // Hide standard bar for ramps, as the "Range" element handles the full shape
+      return { height: '0%' }
+    }
+
+    const val = range ? range.start : intensity
+    const color = getStepColor(intensity)
+    const maxScale = chartMaxPower.value
+    const height = (val / maxScale) * 100
+
+    return {
+      height: `${height}%`,
+      backgroundColor: color
+    }
+  }
+
   function getStepColor(intensity: number): string {
-    // Use zone colors
-    if (intensity <= 0.75) return ZONE_COLORS[0] || '#10b981'
-    if (intensity <= 0.85) return ZONE_COLORS[1] || '#3b82f6'
-    if (intensity <= 0.95) return ZONE_COLORS[2] || '#f59e0b'
-    if (intensity <= 1.05) return ZONE_COLORS[3] || '#f97316'
-    return ZONE_COLORS[4] || '#ef4444'
+    const zone =
+      zoneDistribution.value.find((z) => intensity <= z.max) ||
+      zoneDistribution.value[zoneDistribution.value.length - 1]
+    return zone ? zone.color : '#9ca3af'
   }
 
   function getZoneName(intensity: number): string {
-    if (intensity <= 0.75) return 'Z1'
-    if (intensity <= 0.85) return 'Z2'
-    if (intensity <= 0.95) return 'Z3'
-    if (intensity <= 1.05) return 'Z4'
-    return 'Z5'
+    const zone =
+      zoneDistribution.value.find((z) => intensity <= z.max) ||
+      zoneDistribution.value[zoneDistribution.value.length - 1]
+    return zone ? zone.name : '??'
   }
 
   function formatDuration(seconds: number): string {

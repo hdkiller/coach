@@ -153,7 +153,10 @@
       range = step.power?.range || step.pace?.range || step.heartRate?.range
     }
 
-    if (range) {
+    const isRamp =
+      step.ramp === true || (range && step.ramp === undefined && props.preference === 'power')
+
+    if (range && isRamp) {
       const startH = Math.max(Math.min(range.start / maxScale, 1) * 100, 10)
       const endH = Math.max(Math.min(range.end / maxScale, 1) * 100, 10)
 
@@ -162,6 +165,17 @@
         width: '100%',
         backgroundColor: color,
         clipPath: `polygon(0% ${100 - startH}%, 100% ${100 - endH}%, 100% 100%, 0% 100%)`
+      }
+    }
+
+    // Steady range (block at midpoint)
+    if (range && !isRamp) {
+      const val = (range.start + range.end) / 2
+      const height = Math.min((val * 100) / maxScale, 100)
+      return {
+        height: `${Math.max(height, 10)}%`,
+        width: '100%',
+        backgroundColor: color
       }
     }
 
@@ -254,7 +268,7 @@
 
   function normalizeTarget(
     target: any
-  ): { value?: number; range?: { start: number; end: number } } | null {
+  ): { value?: number; range?: { start: number; end: number }; ramp?: boolean } | null {
     if (target === null || target === undefined) return null
 
     if (typeof target === 'number') {
@@ -267,7 +281,8 @@
           range: {
             start: Number(target.range.start) || 0,
             end: Number(target.range.end) || 0
-          }
+          },
+          ramp: target.ramp
         }
       }
       if (target.value !== undefined) {
