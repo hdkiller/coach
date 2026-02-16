@@ -31,6 +31,7 @@ import chatHistoryCommand from './chat-history'
 import quotasCommand from './quotas'
 import chartCommand from './chart'
 import nutritionPlanDebugCommand from './nutrition-plan'
+import chatLogCommand from './chat'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -63,6 +64,7 @@ debugCommand.addCommand(subscriptionCommand)
 debugCommand.addCommand(fixCheckinsCommand)
 debugCommand.addCommand(pmcCommand)
 debugCommand.addCommand(chatHistoryCommand)
+debugCommand.addCommand(chatLogCommand)
 debugCommand.addCommand(quotasCommand)
 debugCommand.addCommand(chartCommand)
 debugCommand.addCommand(nutritionPlanDebugCommand)
