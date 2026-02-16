@@ -267,7 +267,7 @@
               }}</span>
               <span v-if="getItemTime(item)" class="shrink-0">•</span>
               <span class="truncate"
-                >{{ item.amount }}{{ item.unit || 'g' }} • {{ item.calories }} kcal</span
+                >{{ item.amount }}{{ item.unit || 'g' }} • {{ formatKcal(item.calories) }} kcal</span
               >
             </div>
 
@@ -315,6 +315,13 @@
     const num = typeof val === 'string' ? parseFloat(val) : val
     if (isNaN(num)) return 0
     return Math.round(num * 10) / 10
+  }
+
+  function formatKcal(val: number | string | undefined) {
+    if (val === undefined || val === null) return 0
+    const num = typeof val === 'string' ? parseFloat(val) : val
+    if (isNaN(num)) return 0
+    return Math.round(num)
   }
 
   const start = computed(() => new Date(props.startTime))
