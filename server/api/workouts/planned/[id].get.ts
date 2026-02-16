@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -92,11 +93,18 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // Fetch sport settings for this workout type
+  const sportSettings = await sportSettingsRepository.getForActivityType(
+    user.id,
+    workout.type || ''
+  )
+
   return {
     workout,
     userFtp: user.ftp,
     llmUsageId: llmUsage?.id,
     initialFeedback: llmUsage?.feedback,
-    initialFeedbackText: llmUsage?.feedbackText
+    initialFeedbackText: llmUsage?.feedbackText,
+    sportSettings
   }
 })

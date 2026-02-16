@@ -306,6 +306,7 @@
             v-if="workout.structuredWorkout"
             :workout="workout"
             :user-ftp="userFtp"
+            :sport-settings="sportSettings"
             :generating="generating"
             @add-messages="openMessageModal"
             @adjust="openAdjustModal"
@@ -753,6 +754,7 @@
   const dayNutrition = ref<any>(null)
   const nutritionSettings = ref<any>(null)
   const workoutFuelingPlan = ref<any>(null)
+  const sportSettings = ref<any>(null)
 
   const fuelingPlan = computed(() => {
     if (workoutFuelingPlan.value?.windows?.length) return workoutFuelingPlan.value
@@ -1314,6 +1316,7 @@
       llmUsageId.value = data.llmUsageId
       initialFeedback.value = data.initialFeedback
       initialFeedbackText.value = data.initialFeedbackText
+      sportSettings.value = data.sportSettings
 
       // Fetch nutrition for the workout date
       if (workout.value?.date) {
