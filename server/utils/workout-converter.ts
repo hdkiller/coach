@@ -498,6 +498,13 @@ export const WorkoutConverter = {
     ) => {
       steps.forEach((step, index) => {
         if (indent === '') {
+          const lastLine = lines.length > 0 ? lines[lines.length - 1] : ''
+          if (typeof lastLine === 'string' && /^\s+-\s+/.test(lastLine)) {
+            lines.push('')
+          }
+        }
+
+        if (indent === '') {
           let header = ''
           if (index === 0 && step.type === 'Warmup') {
             header = 'Warmup'
@@ -526,7 +533,7 @@ export const WorkoutConverter = {
             const lastLine = lines.length > 0 ? lines[lines.length - 1] : null
             if (lastLine && typeof lastLine === 'string' && !lastLine.endsWith('\n')) lines.push('')
             lines.push(`${indent}${reps}x`)
-            formatSteps(step.steps, indent + ' ', step)
+            formatSteps(step.steps, indent + '  ', step)
           } else {
             formatSteps(step.steps, indent, step)
           }
