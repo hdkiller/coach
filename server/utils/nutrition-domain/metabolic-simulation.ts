@@ -33,6 +33,33 @@ function getDateStr(date: any): string {
   return new Date().toISOString().split('T')[0]!
 }
 
+function parseMealDateTime(
+  timeVal: unknown,
+  dateStr: string,
+  timezone: string
+): Date | null {
+  if (!timeVal) return null
+
+  if (typeof timeVal === 'string') {
+    if (/^\d{1,2}:\d{2}$/.test(timeVal)) {
+      return fromZonedTime(`${dateStr}T${timeVal}:00`, timezone)
+    }
+
+    const timeOnlyMatch = timeVal.match(/^(\d{2}:\d{2}(:\d{2})?)$/)
+    if (timeOnlyMatch) {
+      return fromZonedTime(`${dateStr}T${timeOnlyMatch[1]}`, timezone)
+    }
+
+    // Naive local datetime (common in external logs like Yazio): interpret in user timezone.
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(timeVal)) {
+      return fromZonedTime(timeVal.replace(' ', 'T'), timezone)
+    }
+  }
+
+  const parsed = new Date(timeVal as any)
+  return isNaN(parsed.getTime()) ? null : parsed
+}
+
 export function calculateGlycogenState(
   nutritionRecord: any,
   workouts: any[],
@@ -57,22 +84,8 @@ export function calculateGlycogenState(
   mealTypes.forEach((type) => {
     if (Array.isArray(nutritionRecord[type])) {
       nutritionRecord[type].forEach((item: any) => {
-        let mealTime: Date | null = null
         const timeVal = item.logged_at || item.date
-        if (timeVal) {
-          if (typeof timeVal === 'string' && /^\d{1,2}:\d{2}$/.test(timeVal)) {
-            mealTime = fromZonedTime(`${dateStr}T${timeVal}:00`, timezone)
-          } else {
-            // Check if it's just a time like "10:08:00"
-            const timeOnlyMatch =
-              typeof timeVal === 'string' && timeVal.match(/^(\d{2}:\d{2}(:\d{2})?)$/)
-            if (timeOnlyMatch) {
-              mealTime = fromZonedTime(`${dateStr}T${timeOnlyMatch[1]}`, timezone)
-            } else {
-              mealTime = new Date(timeVal)
-            }
-          }
-        }
+        const mealTime = parseMealDateTime(timeVal, dateStr, timezone)
 
         if (mealTime && mealTime <= currentTime) {
           const minsSince = differenceInMinutes(currentTime, mealTime)
@@ -243,23 +256,11 @@ export function calculateEnergyTimeline(
   mealTypes.forEach((type) => {
     if (Array.isArray(nutritionRecord[type]) && nutritionRecord[type].length > 0) {
       nutritionRecord[type].forEach((item: any) => {
-        let mealTime: Date | null = null
         const timeVal = item.logged_at || item.date
 
-        if (timeVal) {
-          if (typeof timeVal === 'string' && /^\d{1,2}:\d{2}$/.test(timeVal)) {
-            mealTime = fromZonedTime(`${dateStr}T${timeVal}:00`, timezone)
-          } else {
-            // Check if it's just a time like "10:08:00" or similar from external sources
-            const timeOnlyMatch =
-              typeof timeVal === 'string' && timeVal.match(/^(\d{2}:\d{2}(:\d{2})?)$/)
-            if (timeOnlyMatch) {
-              mealTime = fromZonedTime(`${dateStr}T${timeOnlyMatch[1]}`, timezone)
-            } else {
-              mealTime = new Date(timeVal)
-            }
-          }
-        } else {
+        let mealTime = parseMealDateTime(timeVal, dateStr, timezone)
+
+        if (!mealTime) {
           const pattern = mealPattern.find((p: any) => p.name.toLowerCase() === type.toLowerCase())
           if (pattern) {
             mealTime = fromZonedTime(`${dateStr}T${pattern.time}:00`, timezone)
