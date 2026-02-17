@@ -42,6 +42,14 @@
               <USwitch v-model="settings.showPoints" />
             </div>
 
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">Show Data Labels</div>
+                <div class="text-xs text-muted">Show values on top of bars/points.</div>
+              </div>
+              <USwitch v-model="settings.showLabels" />
+            </div>
+
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Fill Opacity</div>
@@ -100,6 +108,14 @@
 
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">Normal Range (Std Dev)</div>
+                <div class="text-xs text-muted">Show 30d baseline with 1σ deviation band.</div>
+              </div>
+              <USwitch v-model="settings.showStdDev" />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Median Line</div>
                 <div class="text-xs text-muted">Identify the middle point of your data.</div>
               </div>
@@ -134,9 +150,11 @@
     type: props.metricKey === 'sleep' ? 'bar' : 'line',
     smooth: true,
     showPoints: false,
+    showLabels: false,
     opacity: 0.5,
     show7dAvg: false,
     show30dAvg: false,
+    showStdDev: false,
     showMedian: false,
     showTarget: false,
     targetValue: undefined
