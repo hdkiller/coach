@@ -58,6 +58,7 @@
       get_planned_workouts: 'i-heroicons-calendar-days',
       create_planned_workout: 'i-heroicons-plus-circle',
       update_planned_workout: 'i-heroicons-pencil-square',
+      reschedule_planned_workout: 'i-heroicons-calendar-days',
       delete_planned_workout: 'i-heroicons-trash',
       get_training_availability: 'i-heroicons-clock',
       update_training_availability: 'i-heroicons-calendar',
