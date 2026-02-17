@@ -1,35 +1,48 @@
 <template>
-  <div class="power-curve-chart">
-    <div v-if="loading" class="flex justify-center items-center py-12">
-      <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+  >
+    <div v-if="loading" class="flex flex-col justify-center items-center py-12">
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
+      />
+      <p class="text-xs font-black uppercase tracking-widest text-gray-500">
+        Auditing Power Profile...
+      </p>
     </div>
 
-    <div v-else-if="!powerData || !chartData.datasets.length" class="text-center py-12">
-      <UIcon name="i-heroicons-bolt-slash" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
-      <p class="text-gray-600 dark:text-gray-400">No power data available for this period</p>
+    <div
+      v-else-if="!powerData || !chartData.datasets.length"
+      class="flex flex-col items-center justify-center py-12 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800"
+    >
+      <UIcon name="i-heroicons-bolt-slash" class="w-12 h-12 mb-4 text-gray-400 opacity-50" />
+      <p
+        class="text-[10px] text-gray-500 font-black uppercase tracking-widest leading-relaxed text-center"
+      >
+        Power Telemetry Unavailable<br />for this session profile.
+      </p>
     </div>
 
-    <div v-else class="space-y-6">
-      <!-- Chart -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Power Duration Curve
-          </h3>
-          <div class="flex gap-4 text-xs">
-            <div class="flex items-center gap-1">
-              <span class="w-3 h-3 rounded-full bg-emerald-500" />
-              <span class="text-gray-600 dark:text-gray-400">Current Period</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <span class="w-3 h-3 rounded-full border border-gray-500 border-dashed" />
-              <span class="text-gray-600 dark:text-gray-400">All Time Best</span>
-            </div>
-          </div>
+    <div v-else class="space-y-8">
+      <!-- Legend/Status -->
+      <div class="flex items-center justify-center gap-x-8 gap-y-2 mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-1.5 h-6 rounded-full bg-emerald-500" />
+          <span class="text-[9px] font-black uppercase tracking-widest text-gray-500"
+            >Current Distribution</span
+          >
         </div>
-        <div style="height: 300px">
-          <Line :data="chartData" :options="chartOptions" />
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-0.5 border-t border-gray-400 border-dashed" />
+          <span class="text-[9px] font-black uppercase tracking-widest text-gray-500"
+            >Longitudinal Best</span
+          >
         </div>
+      </div>
+
+      <!-- Chart Area -->
+      <div class="h-[300px] relative">
+        <Line :data="chartData" :options="chartOptions" :height="300" />
       </div>
     </div>
   </div>
@@ -72,6 +85,7 @@
     sport?: string
   }>()
 
+  const theme = useTheme()
   const loading = ref(true)
   const powerData = ref<any>(null)
 
@@ -152,20 +166,22 @@
             label: 'Current Period',
             data: mapData(powerData.value.current),
             borderColor: '#10b981', // Emerald 500
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            backgroundColor: 'transparent',
             borderWidth: 3,
-            pointRadius: 4,
+            pointRadius: 0,
+            pointHoverRadius: 6,
             tension: 0.4,
-            fill: true
+            fill: false
           },
           {
             label: 'All Time Best',
             data: mapData(powerData.value.allTime),
-            borderColor: '#6b7280', // Gray 500
+            borderColor: '#94a3b8', // Slate 400
             backgroundColor: 'transparent',
-            borderWidth: 2,
-            borderDash: [5, 5],
+            borderWidth: 1.5,
+            borderDash: [4, 4],
             pointRadius: 0,
+            pointHoverRadius: 0,
             tension: 0.4,
             fill: false
           }
@@ -185,13 +201,13 @@
           {
             label: 'Max Power (W)',
             data: powers,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 3,
-            pointRadius: 4,
+            borderColor: '#3b82f6',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 0,
             pointHoverRadius: 6,
             tension: 0.4,
-            fill: true
+            fill: false
           }
         ]
       }
@@ -201,14 +217,26 @@
   })
 
   // Chart options
-  const chartOptions = {
+  const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: { top: 10 }
+    },
     plugins: {
       legend: {
-        display: false // We use custom legend
+        display: false
       },
       tooltip: {
+        backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
+        titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
+        bodyColor: theme.isDark.value ? '#d1d5db' : '#374151',
+        borderColor: theme.isDark.value ? '#374151' : '#e5e7eb',
+        borderWidth: 1,
+        padding: 12,
+        titleFont: { size: 12, weight: 'bold' as const },
+        bodyFont: { size: 11 },
+        displayColors: true,
         mode: 'index' as const,
         intersect: false,
         callbacks: {
@@ -220,36 +248,26 @@
     },
     scales: {
       x: {
-        display: true,
-        title: {
-          display: true,
-          text: 'Duration',
-          color: 'rgb(107, 114, 128)'
-        },
-        grid: {
-          display: false
-        },
+        grid: { display: false },
         ticks: {
-          color: 'rgb(107, 114, 128)',
-          maxRotation: 0,
-          autoSkip: true,
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
           maxTicksLimit: 8
-        }
+        },
+        border: { display: false }
       },
       y: {
-        display: true,
-        title: {
-          display: true,
-          text: 'Power (watts)',
-          color: 'rgb(107, 114, 128)'
-        },
+        position: 'right' as const,
         grid: {
-          color: 'rgba(128, 128, 128, 0.1)'
+          color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          drawTicks: false
         },
         ticks: {
-          color: 'rgb(107, 114, 128)'
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          maxTicksLimit: 6
         },
-        beginAtZero: false
+        border: { display: false }
       }
     },
     interaction: {
@@ -257,7 +275,7 @@
       axis: 'x' as const,
       intersect: false
     }
-  }
+  }))
 
   // Load data on mount
   onMounted(() => {

@@ -1,49 +1,52 @@
 <template>
-  <div class="efficiency-trend-chart">
-    <div v-if="loading" class="flex justify-center items-center py-12">
+  <div class="efficiency-trend-chart h-full w-full">
+    <div v-if="loading" class="flex justify-center items-center h-full">
       <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
     </div>
 
     <div
       v-else-if="!trendData || !trendData.trends || trendData.trends.length === 0"
-      class="text-center py-12"
+      class="flex items-center justify-center h-full"
     >
-      <UIcon name="i-heroicons-chart-bar" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
-      <p class="text-gray-600 dark:text-gray-400">No efficiency data available for this period</p>
+      <div class="text-center">
+        <UIcon name="i-heroicons-chart-bar" class="size-12 mx-auto mb-4 text-gray-400 opacity-50" />
+        <p class="text-gray-500 font-bold uppercase tracking-widest text-[10px]">
+          No efficiency data available
+        </p>
+      </div>
     </div>
 
-    <div v-else class="space-y-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Aerobic Efficiency Factor (EF)
-          </h3>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">Trend:</span>
-            <UBadge
-              :color="
-                trendDirection === 'up'
-                  ? 'primary'
-                  : trendDirection === 'down'
-                    ? 'error'
-                    : 'neutral'
-              "
-              size="xs"
-              variant="subtle"
-            >
-              {{
-                trendDirection === 'up'
-                  ? 'Improving'
-                  : trendDirection === 'down'
-                    ? 'Declining'
-                    : 'Stable'
-              }}
-            </UBadge>
-          </div>
+    <div v-else class="h-full flex flex-col">
+      <!-- Status Badge -->
+      <div class="flex items-center justify-center mb-6">
+        <div
+          class="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
+        >
+          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Trend:</span>
+          <span
+            class="text-[10px] font-black uppercase tracking-widest"
+            :class="[
+              trendDirection === 'up'
+                ? 'text-green-500'
+                : trendDirection === 'down'
+                  ? 'text-red-500'
+                  : 'text-blue-500'
+            ]"
+          >
+            {{
+              trendDirection === 'up'
+                ? 'Improving'
+                : trendDirection === 'down'
+                  ? 'Declining'
+                  : 'Stable'
+            }}
+          </span>
         </div>
-        <div style="height: 300px">
-          <Line :data="chartData" :options="chartOptions" />
-        </div>
+      </div>
+
+      <!-- Chart Area -->
+      <div class="flex-1 min-h-[300px] relative">
+        <Line :data="chartData" :options="chartOptions" :height="300" />
       </div>
     </div>
   </div>
@@ -82,6 +85,7 @@
     sport?: string
   }>()
 
+  const theme = useTheme()
   const loading = ref(true)
   const trendData = ref<any>(null)
 
@@ -146,31 +150,43 @@
           label: 'Efficiency Factor (NP/HR)',
           data: trends.map((t: any) => t.efficiencyFactor),
           borderColor: '#8b5cf6', // Violet 500
-          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          backgroundColor: 'transparent',
           borderWidth: 2,
-          pointRadius: 3,
+          pointRadius: 0,
           pointHoverRadius: 5,
           tension: 0.3,
-          fill: true
+          fill: false
         }
       ]
     }
   })
 
   // Chart options
-  const chartOptions = {
+  const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: { top: 10 }
+    },
     plugins: {
       legend: {
         display: false
       },
       tooltip: {
+        backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
+        titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
+        bodyColor: theme.isDark.value ? '#d1d5db' : '#374151',
+        borderColor: theme.isDark.value ? '#374151' : '#e5e7eb',
+        borderWidth: 1,
+        padding: 12,
+        titleFont: { size: 12, weight: 'bold' as const },
+        bodyFont: { size: 11 },
+        displayColors: true,
         mode: 'index' as const,
         intersect: false,
         callbacks: {
           label: function (context: any) {
-            return `EF: ${context.parsed.y.toFixed(2)}`
+            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`
           }
         }
       }
@@ -188,24 +204,26 @@
           display: false
         },
         ticks: {
-          color: 'rgb(107, 114, 128)',
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
           maxRotation: 0,
           autoSkip: true,
           maxTicksLimit: 8
-        }
+        },
+        border: { display: false }
       },
       y: {
-        title: {
-          display: true,
-          text: 'EF Ratio',
-          color: 'rgb(107, 114, 128)'
-        },
+        position: 'right' as const,
         grid: {
-          color: 'rgba(128, 128, 128, 0.1)'
+          color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          drawTicks: false
         },
         ticks: {
-          color: 'rgb(107, 114, 128)'
-        }
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          maxTicksLimit: 6
+        },
+        border: { display: false }
       }
     },
     interaction: {
@@ -213,7 +231,7 @@
       axis: 'x' as const,
       intersect: false
     }
-  }
+  }))
 
   onMounted(() => {
     fetchTrendData()

@@ -1,100 +1,132 @@
 <template>
-  <div class="space-y-4">
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+  >
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-8">
-      <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
-        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading zone data...</p>
-      </div>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-12">
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
+      />
+      <p class="text-xs font-black uppercase tracking-widest text-gray-500">
+        Mapping Intensity Zones...
+      </p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="text-center py-8">
-      <p class="text-sm text-gray-600 dark:text-gray-400">{{ error }}</p>
+    <div v-else-if="error" class="text-center py-12">
+      <UIcon name="i-heroicons-exclamation-triangle" class="w-12 h-12 text-red-500 mx-auto mb-4" />
+      <p class="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+        {{ error }}
+      </p>
     </div>
 
     <!-- No Data State -->
-    <div v-else-if="!hasZoneData" class="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg">
-      <p class="text-sm text-gray-600 dark:text-gray-400">No zone data available</p>
-      <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+    <div
+      v-else-if="!hasZoneData"
+      class="text-center py-12 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800"
+    >
+      <UIcon
+        name="i-heroicons-chart-bar"
+        class="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4"
+      />
+      <p class="text-sm font-black text-gray-500 uppercase tracking-widest">Zone Data Pending</p>
+      <p
+        class="text-[10px] text-gray-400 uppercase font-bold tracking-widest mt-2 max-w-xs mx-auto leading-relaxed"
+      >
         {{
           !hasStreamData
-            ? 'Stream data not available for this workout'
-            : 'No HR or Power data available'
+            ? 'Intensity data streams were not detected for this session.'
+            : 'Insufficient data points found to generate distribution.'
         }}
       </p>
     </div>
 
     <!-- Zone Chart -->
-    <div v-else class="space-y-4">
+    <div v-else class="space-y-10">
       <!-- Zone Type Selector -->
       <div v-if="hasHrData && hasPowerData" class="flex gap-2">
-        <button
+        <UButton
           v-for="type in ['hr', 'power'] as const"
           :key="type"
-          :class="[
-            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-            selectedZoneType === type
-              ? 'bg-primary-500 text-white'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-          ]"
+          :color="selectedZoneType === type ? 'primary' : 'neutral'"
+          :variant="selectedZoneType === type ? 'solid' : 'ghost'"
+          size="xs"
+          class="font-black uppercase tracking-widest text-[9px] px-3"
           @click="selectedZoneType = type as 'hr' | 'power'"
         >
-          {{ type === 'hr' ? 'Heart Rate Zones' : 'Power Zones' }}
-        </button>
+          {{ type === 'hr' ? 'Heart Rate' : 'Power Output' }}
+        </UButton>
       </div>
 
       <!-- Chart Container -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+      <div class="space-y-8">
         <!-- Stacked Bar Chart -->
         <div v-if="chartData.datasets.length > 0">
-          <div class="mb-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              {{ selectedZoneType === 'hr' ? 'Heart Rate' : 'Power' }} Zone Distribution
+          <div class="mb-6">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+              {{ selectedZoneType === 'hr' ? 'Heart Rate' : 'Power' }} Intensity Timeline
             </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Color-coded timeline showing which zone you were in throughout the workout
-            </p>
           </div>
-          <div style="height: 200px; position: relative">
-            <Bar :data="chartData" :options="chartOptions" />
+          <div style="height: 120px; position: relative">
+            <Bar :data="chartData" :options="chartOptions" :height="120" />
           </div>
         </div>
 
         <!-- Zone Legend -->
-        <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-          <div v-for="(zone, index) in currentZones" :key="index" class="flex items-center gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div
+            v-for="(zone, index) in currentZones"
+            :key="index"
+            class="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center gap-3 group transition-all hover:border-primary-500/30"
+          >
             <div
-              class="w-4 h-4 rounded"
+              class="w-1.5 h-6 rounded-full shrink-0"
               :style="{ backgroundColor: getZoneColor(Number(index)) }"
             />
-            <div class="text-xs">
-              <div class="font-medium text-gray-700 dark:text-gray-300">{{ zone.name }}</div>
-              <div class="text-gray-500 dark:text-gray-400">
-                {{ zone.min }}-{{ zone.max }} {{ selectedZoneType === 'hr' ? 'bpm' : 'W' }}
+            <div class="min-w-0">
+              <div
+                class="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate"
+              >
+                {{ zone.name }}
+              </div>
+              <div class="text-[10px] font-bold text-gray-900 dark:text-white tabular-nums">
+                {{ zone.min }}-{{ zone.max
+                }}<span class="text-[8px] ml-0.5 text-gray-400 uppercase">{{
+                  selectedZoneType === 'hr' ? 'bpm' : 'W'
+                }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Training Distribution Profile -->
-        <div v-if="trainingProfile" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Training Distribution Profile
-            </h4>
-          </div>
-          <div :class="getProfileBadgeClass(trainingProfile.type)" class="p-4 rounded-lg">
-            <div class="flex items-start gap-3">
-              <div class="flex-shrink-0">
+        <div v-if="trainingProfile" class="pt-8 border-t border-gray-100 dark:border-gray-800">
+          <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">
+            Zone Profile
+          </h3>
+          <div
+            :class="getProfileBadgeClass(trainingProfile.type)"
+            class="p-6 rounded-xl relative overflow-hidden"
+          >
+            <div class="absolute -right-4 -bottom-4 opacity-10 rotate-12">
+              <UIcon :name="getProfileIcon(trainingProfile.type)" class="size-24" />
+            </div>
+            <div class="flex items-start gap-4 relative z-10">
+              <div class="p-3 bg-white/20 dark:bg-black/20 rounded-xl backdrop-blur-sm">
                 <UIcon :name="getProfileIcon(trainingProfile.type)" class="w-8 h-8" />
               </div>
               <div class="flex-1">
-                <h5 class="font-bold text-lg mb-1">{{ trainingProfile.type }}</h5>
-                <p class="text-sm opacity-90">{{ trainingProfile.description }}</p>
-                <div class="mt-2 text-xs opacity-75">
-                  <span class="font-medium">Zone Distribution:</span>
-                  {{ trainingProfile.distribution }}
+                <h5 class="text-xl font-black uppercase tracking-tight mb-1">
+                  {{ trainingProfile.type }} Profile
+                </h5>
+                <p class="text-sm font-medium opacity-90 leading-relaxed max-w-2xl">
+                  {{ trainingProfile.description }}
+                </p>
+                <div
+                  class="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80"
+                >
+                  <span class="i-heroicons-chart-pie size-3.5" />
+                  Distribution Breakdown: {{ trainingProfile.distribution }}
                 </div>
               </div>
             </div>
@@ -102,26 +134,35 @@
         </div>
 
         <!-- Time in Zone Summary -->
-        <div v-if="timeInZones.length > 0" class="mt-6">
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Time in Zone Summary
-          </h4>
-          <div class="space-y-2">
+        <div
+          v-if="timeInZones.length > 0"
+          class="pt-8 border-t border-gray-100 dark:border-gray-800"
+        >
+          <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">
+            Time in Zones
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
             <div v-for="(zone, index) in currentZones" :key="index" class="relative">
-              <div class="flex justify-between text-xs mb-1">
-                <span class="font-medium text-gray-600 dark:text-gray-400">{{ zone.name }}</span>
-                <span class="text-gray-500 dark:text-gray-400">
+              <div
+                class="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2.5"
+              >
+                <span class="text-gray-500">{{ zone.name }}</span>
+                <span class="text-gray-900 dark:text-white tabular-nums">
                   {{ formatDuration(timeInZones[Number(index)] || 0) }}
-                  ({{
-                    totalTime > 0
-                      ? (((timeInZones[Number(index)] || 0) / totalTime) * 100).toFixed(1)
-                      : 0
-                  }}%)
+                  <span class="text-gray-400 ml-1"
+                    >({{
+                      totalTime > 0
+                        ? (((timeInZones[Number(index)] || 0) / totalTime) * 100).toFixed(1)
+                        : 0
+                    }}%)</span
+                  >
                 </span>
               </div>
-              <div class="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                class="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner"
+              >
                 <div
-                  class="h-full transition-all duration-500"
+                  class="h-full transition-all duration-1000 ease-out"
                   :style="{
                     width:
                       (totalTime > 0 ? ((timeInZones[Number(index)] || 0) / totalTime) * 100 : 0) +
@@ -607,20 +648,20 @@
   }
 
   function getProfileBadgeClass(type: string) {
-    const base = 'border shadow-sm'
+    const base = 'shadow-sm'
     switch (type) {
       case 'HIIT':
-        return `${base} bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300`
+        return `${base} bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300`
       case 'Threshold':
-        return `${base} bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-300`
+        return `${base} bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300`
       case 'Polarized':
-        return `${base} bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/20 dark:border-primary-800 dark:text-primary-300`
+        return `${base} bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300`
       case 'Base':
-        return `${base} bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300`
+        return `${base} bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300`
       case 'Pyramidal':
-        return `${base} bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300`
+        return `${base} bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300`
       default:
-        return `${base} bg-gray-50 border-gray-200 text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300`
+        return `${base} bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300`
     }
   }
 

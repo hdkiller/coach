@@ -1,11 +1,13 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-    <div v-if="!hasScores" class="text-center py-12 text-gray-500">No score data available</div>
-
-    <div v-else class="flex justify-center">
-      <div class="w-full max-w-md">
-        <Radar :data="chartData" :options="chartOptions" />
-      </div>
+  <div class="h-full w-full relative flex items-center justify-center">
+    <div
+      v-if="!hasScores"
+      class="flex items-center justify-center h-full text-gray-500 font-bold uppercase tracking-widest text-[10px]"
+    >
+      No performance data available
+    </div>
+    <div v-else class="w-full h-full">
+      <Radar :data="chartData" :options="chartOptions" :height="320" />
     </div>
   </div>
 </template>
@@ -35,7 +37,7 @@
     if (props.type === 'workout') {
       return ['Overall', 'Technical', 'Effort', 'Pacing', 'Execution']
     } else {
-      return ['Overall', 'Macro Balance', 'Quality', 'Adherence', 'Hydration']
+      return ['Overall', 'Balance', 'Quality', 'Adherence', 'Hydration']
     }
   })
 
@@ -54,42 +56,50 @@
   )
 
   const hasScores = computed(() => {
-    return Object.values(props.scores).some((score) => score != null && score !== undefined)
+    return Object.values(props.scores).some(
+      (score) => score != null && score !== undefined && score > 0
+    )
   })
 
   const chartData = computed(() => ({
     labels: labels.value,
     datasets: [
       {
-        label: props.type === 'workout' ? 'Workout Scores' : 'Nutrition Scores',
+        label: props.type === 'workout' ? 'Workout Performance' : 'Nutrition Performance',
         data: scoreKeys.value.map((key) => props.scores[key] || 0),
-        backgroundColor: chartColor.value + '33', // ~20% opacity
+        backgroundColor: chartColor.value + '26', // ~15% opacity
         borderColor: chartColor.value,
         borderWidth: 2,
         pointBackgroundColor: chartColor.value,
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
+        pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
+        pointHoverBackgroundColor: theme.isDark.value ? '#111827' : '#fff',
         pointHoverBorderColor: chartColor.value,
-        pointRadius: 5,
-        pointHoverRadius: 7
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        tension: 0.1
       }
     ]
   }))
 
   const chartOptions = computed(() => ({
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: 10
+    },
     plugins: {
       legend: {
         display: false
       },
       tooltip: {
-        backgroundColor: theme.isDark.value ? '#1f2937' : '#ffffff',
+        backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
         titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
         bodyColor: theme.isDark.value ? '#d1d5db' : '#374151',
         borderColor: theme.isDark.value ? '#374151' : '#e5e7eb',
         borderWidth: 1,
         padding: 12,
+        titleFont: { size: 12, weight: 'bold' as const },
+        bodyFont: { size: 11 },
         callbacks: {
           label: (context: any) => {
             return `${context.label}: ${context.parsed.r.toFixed(1)}/10`
@@ -101,26 +111,25 @@
       r: {
         min: 0,
         max: 10,
-        ticks: {
-          stepSize: 2,
-          color: theme.colors.value.chartText,
-          backdropColor: 'transparent',
-          font: {
-            size: 10
-          }
-        },
+        beginAtZero: true,
         grid: {
-          color: theme.colors.value.chartGrid
-        },
-        pointLabels: {
-          color: theme.isDark.value ? '#d1d5db' : '#374151',
-          font: {
-            size: 11,
-            weight: 'bold' as const
-          }
+          color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          circular: true
         },
         angleLines: {
-          color: theme.colors.value.chartGrid
+          color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
+        },
+        ticks: {
+          display: false,
+          stepSize: 2
+        },
+        pointLabels: {
+          color: '#94a3b8',
+          font: {
+            size: 10,
+            weight: 'bold' as const
+          },
+          padding: 5
         }
       }
     }

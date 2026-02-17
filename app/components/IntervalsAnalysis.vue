@@ -1,53 +1,78 @@
 <template>
-  <div class="space-y-6">
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+  >
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-8">
-      <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
-        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Analyzing intervals...</p>
-      </div>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-12">
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
+      />
+      <p class="text-xs font-black uppercase tracking-widest text-gray-500">
+        Auditing Interval Telemetry...
+      </p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="text-center py-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-      <p class="text-red-600 dark:text-red-400">{{ error }}</p>
+    <div v-else-if="error" class="text-center py-12">
+      <UIcon name="i-heroicons-exclamation-triangle" class="w-12 h-12 text-red-500 mx-auto mb-4" />
+      <p class="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+        {{ error }}
+      </p>
     </div>
 
     <!-- Data Display -->
-    <div v-else-if="data" class="space-y-6">
+    <div v-else-if="data" class="space-y-10">
       <!-- Visual Chart -->
-      <div v-if="chartConfig" class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 h-80">
-        <h3
-          class="text-sm font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider"
-        >
-          Interval Visualization
+      <div v-if="chartConfig" class="space-y-6">
+        <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+          Dynamic Interval Audit
         </h3>
-        <Line :data="chartConfig.data" :options="chartConfig.options" />
+        <div
+          class="h-64 relative bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800 p-4"
+        >
+          <Line :data="chartConfig.data" :options="chartConfig.options" :height="250" />
+        </div>
       </div>
 
       <!-- Metrics Overview Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Intervals Count -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-l-4 border-primary-500">
-          <div class="text-sm text-gray-500 dark:text-gray-400">Work Intervals</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">
+        <div
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 group transition-all hover:border-primary-500/30"
+        >
+          <div
+            class="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 mb-4"
+          >
+            Work Intervals
+          </div>
+          <div
+            class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+          >
             {{ workIntervals.length }}
           </div>
-          <div class="text-xs text-gray-500 mt-1">
-            Total Work Time: {{ formatDuration(totalWorkDuration) }}
+          <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-2">
+            Duration: {{ formatDuration(totalWorkDuration) }}
           </div>
         </div>
 
         <!-- Best Effort (Context Aware) -->
         <div
           v-if="bestEffort"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-l-4 border-amber-500"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 group transition-all hover:border-amber-500/30"
         >
-          <div class="text-sm text-gray-500 dark:text-gray-400">Best 5min Effort</div>
-          <div class="text-2xl font-bold text-gray-900 dark:text-white">
+          <div
+            class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-4"
+          >
+            Peak 5min Effort
+          </div>
+          <div
+            class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+          >
             {{ formatValue(bestEffort.value, bestEffort.metric) }}
           </div>
-          <div class="text-xs text-gray-500 mt-1">
+          <div
+            class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-2 tabular-nums"
+          >
             {{ formatTime(bestEffort.start_time) }} - {{ formatTime(bestEffort.end_time) }}
           </div>
         </div>
@@ -55,124 +80,137 @@
         <!-- HR Recovery -->
         <div
           v-if="data.recovery"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-l-4 border-green-500"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 group transition-all hover:border-emerald-500/30"
         >
-          <div class="text-sm text-gray-500 dark:text-gray-400">HR Recovery (1min)</div>
-          <div class="flex items-end gap-2">
-            <div class="text-2xl font-bold text-gray-900 dark:text-white">
-              -{{ data.recovery.drops }} <span class="text-sm font-normal text-gray-500">bpm</span>
-            </div>
+          <div
+            class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-4"
+          >
+            Cardiologic Recovery
           </div>
-          <div class="text-xs text-gray-500 mt-1">
+          <div class="flex items-baseline gap-2">
+            <div
+              class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+            >
+              -{{ data.recovery.drops }}
+            </div>
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest"
+              >bpm / min</span
+            >
+          </div>
+          <div
+            class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-2 tabular-nums"
+          >
             {{ data.recovery.peakHr }} bpm → {{ data.recovery.recoveryHr }} bpm
           </div>
         </div>
       </div>
 
       <!-- Intervals Table -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div class="space-y-4">
         <div
-          class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          class="flex justify-between items-center group cursor-pointer"
           @click="showTable = !showTable"
         >
           <div class="flex items-center gap-2">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+              Telemetry Event Log
+            </h3>
             <UIcon
-              :name="showTable ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
-              class="w-5 h-5 text-gray-500"
+              :name="showTable ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+              class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors"
             />
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Detected Intervals</h3>
           </div>
           <UBadge
-            :color="
-              data.detectionMetric === 'power'
-                ? 'primary'
-                : data.detectionMetric === 'pace'
-                  ? 'info'
-                  : 'error'
-            "
-            variant="subtle"
+            color="neutral"
+            variant="soft"
+            size="xs"
+            class="font-black uppercase tracking-widest text-[9px]"
           >
-            Based on {{ data.detectionMetric }}
+            Audit Mode: {{ data.detectionMetric }}
           </UBadge>
         </div>
 
-        <div v-if="showTable" class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-900">
+        <div
+          v-if="showTable"
+          class="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800"
+        >
+          <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-950">
               <tr>
                 <th
                   scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
-                  Type
+                  Metric
                 </th>
                 <th
                   scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Start
                 </th>
                 <th
                   scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Duration
                 </th>
                 <th
                   scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Avg Power
                 </th>
                 <th
                   scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Avg HR
                 </th>
-                <th
-                  v-if="hasPace"
-                  scope="col"
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Avg Pace
-                </th>
               </tr>
             </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
               <tr
                 v-for="(interval, index) in data.intervals"
                 :key="index"
-                :class="interval.type === 'WORK' ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''"
+                :class="interval.type === 'WORK' ? 'bg-primary-50/20 dark:bg-primary-900/10' : ''"
               >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <UBadge :color="getIntervalColor(interval.type)" variant="subtle" size="xs">
+                <td class="px-5 py-4 whitespace-nowrap">
+                  <UBadge
+                    :color="getIntervalColor(interval.type)"
+                    variant="soft"
+                    size="xs"
+                    class="font-black uppercase tracking-widest text-[9px]"
+                  >
                     {{ interval.type }}
                   </UBadge>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <td
+                  class="px-5 py-4 whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400 tabular-nums"
+                >
                   {{ formatTime(interval.start_time) }}
                 </td>
                 <td
-                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                  class="px-5 py-4 whitespace-nowrap text-xs font-black text-gray-900 dark:text-white tabular-nums"
                 >
                   {{ formatDuration(interval.duration) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  <span v-if="interval.avg_power">{{ Math.round(interval.avg_power) }}W</span>
-                  <span v-else class="text-gray-400">-</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  <span v-if="interval.avg_heartrate"
-                    >{{ Math.round(interval.avg_heartrate) }} bpm</span
+                <td
+                  class="px-5 py-4 whitespace-nowrap text-xs font-black text-gray-900 dark:text-white tabular-nums"
+                >
+                  <span v-if="interval.avg_power"
+                    >{{ Math.round(interval.avg_power)
+                    }}<span class="text-[9px] ml-0.5 text-gray-400">W</span></span
                   >
                   <span v-else class="text-gray-400">-</span>
                 </td>
                 <td
-                  v-if="hasPace"
-                  class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white"
+                  class="px-5 py-4 whitespace-nowrap text-xs font-black text-gray-900 dark:text-white tabular-nums"
                 >
-                  <span v-if="interval.avg_pace">{{ formatPace(interval.avg_pace) }}</span>
+                  <span v-if="interval.avg_heartrate"
+                    >{{ Math.round(interval.avg_heartrate) }}
+                    <span class="text-[9px] ml-0.5 text-gray-400 uppercase">bpm</span></span
+                  >
                   <span v-else class="text-gray-400">-</span>
                 </td>
               </tr>
@@ -182,21 +220,29 @@
       </div>
 
       <!-- Peak Efforts Grid -->
-      <div v-if="peakEfforts.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Peak Efforts</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div v-if="peakEfforts.length > 0" class="pt-8 border-t border-gray-100 dark:border-gray-800">
+        <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">
+          Peak Physiological Tensions
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <div
             v-for="peak in peakEfforts"
             :key="peak.duration"
-            class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700"
+            class="p-4 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl shadow-sm transition-all hover:border-primary-500/30 group"
           >
-            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+            <div
+              class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 group-hover:text-primary-500 transition-colors"
+            >
               {{ peak.duration_label }}
             </div>
-            <div class="text-xl font-bold text-primary-600 dark:text-primary-400 mt-1">
+            <div
+              class="text-xl font-black text-gray-900 dark:text-white tracking-tight tabular-nums"
+            >
               {{ formatValue(peak.value, peak.metric) }}
             </div>
-            <div class="text-xs text-gray-400 mt-1">
+            <div
+              class="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest tabular-nums"
+            >
               {{ formatTime(peak.start_time) }}
             </div>
           </div>

@@ -1,109 +1,169 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-    <div v-if="loading" class="flex items-center gap-4 py-8 text-gray-600 dark:text-gray-400">
-      <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500" />
-      Loading pacing data...
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+  >
+    <div
+      v-if="loading"
+      class="flex flex-col items-center justify-center py-12 text-gray-600 dark:text-gray-400"
+    >
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
+      />
+      <p class="text-xs font-black uppercase tracking-widest">Analyzing Pacing...</p>
     </div>
 
-    <div v-else-if="error" class="py-8 text-center">
-      <p class="text-red-600 dark:text-red-400">{{ error }}</p>
-      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-        Pacing data may not be available for this workout.
+    <div v-else-if="error" class="py-12 text-center">
+      <UIcon name="i-heroicons-exclamation-triangle" class="w-12 h-12 text-red-500 mx-auto mb-4" />
+      <p class="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+        {{ error }}
+      </p>
+      <p class="mt-2 text-xs font-bold text-gray-500 uppercase tracking-widest">
+        Pacing data unavailable for this session.
       </p>
     </div>
 
-    <div v-else-if="streams" class="space-y-6">
+    <div v-else-if="streams" class="space-y-10">
       <!-- Summary Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <span class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2"
-            >Average Pace</span
-          >
-          <span class="text-2xl font-semibold text-gray-900 dark:text-white">{{
+        <div
+          class="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/50 group transition-all cursor-pointer hover:border-blue-500/50 active:scale-[0.98]"
+          @click="
+            emit('open-metric', { key: 'Average Pace', value: formatPace(streams.avgPacePerKm) })
+          "
+        >
+          <div class="flex items-center justify-between mb-4">
+            <span
+              class="block text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-[0.2em]"
+              >Average Pace</span
+            >
+            <UIcon
+              name="i-heroicons-magnifying-glass-circle"
+              class="w-4 h-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+            />
+          </div>
+          <span class="text-3xl font-black text-blue-900 dark:text-blue-100 tracking-tight">{{
             formatPace(streams.avgPacePerKm)
           }}</span>
         </div>
 
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <span class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2"
-            >Pace Consistency</span
-          >
-          <span class="text-2xl font-semibold text-gray-900 dark:text-white">
-            {{ streams.paceVariability ? `${streams.paceVariability.toFixed(2)} m/s` : 'N/A' }}
+        <div
+          class="p-5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/50 group transition-all cursor-pointer hover:border-indigo-500/50 active:scale-[0.98]"
+          @click="
+            emit('open-metric', {
+              key: 'Consistency Variance',
+              value: streams.paceVariability ? streams.paceVariability.toFixed(2) : 'N/A',
+              unit: 'm/s'
+            })
+          "
+        >
+          <div class="flex items-center justify-between mb-4">
+            <span
+              class="block text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-[0.2em]"
+              >Consistency Variance</span
+            >
+            <UIcon
+              name="i-heroicons-magnifying-glass-circle"
+              class="w-4 h-4 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity"
+            />
+          </div>
+          <span class="text-3xl font-black text-indigo-900 dark:text-indigo-100 tracking-tight">
+            {{ streams.paceVariability ? `${streams.paceVariability.toFixed(2)}` : 'N/A' }}
+            <span class="text-xs font-bold text-indigo-400 uppercase ml-1">m/s</span>
           </span>
         </div>
 
         <div
           v-if="streams.pacingStrategy"
-          class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg md:col-span-2 lg:col-span-1"
+          class="p-5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50 md:col-span-2 lg:col-span-1 group transition-all cursor-pointer hover:border-emerald-500/50 active:scale-[0.98]"
+          @click="
+            emit('open-metric', {
+              key: 'Execution Strategy',
+              value: formatStrategy(streams.pacingStrategy.strategy)
+            })
+          "
         >
-          <span class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2"
-            >Pacing Strategy</span
+          <div class="flex items-center justify-between mb-4">
+            <span
+              class="block text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-[0.2em]"
+              >Execution Strategy</span
+            >
+            <UIcon
+              name="i-heroicons-magnifying-glass-circle"
+              class="w-4 h-4 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"
+            />
+          </div>
+          <span
+            class="block text-2xl font-black text-emerald-900 dark:text-emerald-100 uppercase tracking-tight"
+            >{{ formatStrategy(streams.pacingStrategy.strategy) }}</span
           >
-          <span class="block text-2xl font-semibold text-gray-900 dark:text-white">{{
-            formatStrategy(streams.pacingStrategy.strategy)
-          }}</span>
-          <span class="block text-sm text-gray-600 dark:text-gray-400 italic mt-1">{{
-            streams.pacingStrategy.description
-          }}</span>
+          <span
+            class="block text-[10px] text-emerald-700 dark:text-emerald-300 font-medium italic mt-2"
+            >{{ streams.pacingStrategy.description }}</span
+          >
         </div>
       </div>
 
       <!-- Lap Splits Table -->
       <div v-if="streams.lapSplits && streams.lapSplits.length > 0">
         <div
-          class="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded transition-colors"
+          class="flex items-center justify-between mb-4 group cursor-pointer"
           @click="showSplits = !showSplits"
         >
           <div class="flex items-center gap-2">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+              Segment Splits
+            </h3>
             <UIcon
-              :name="showSplits ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
-              class="w-5 h-5 text-gray-500"
+              :name="showSplits ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+              class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors"
             />
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Lap Splits</h3>
           </div>
         </div>
 
-        <div v-if="showSplits" class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
+        <div v-if="showSplits" class="overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+            <thead class="bg-gray-50/50 dark:bg-gray-950/50">
               <tr>
                 <th
-                  class="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Lap
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Distance
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Time
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Pace
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
               <tr
                 v-for="split in streams.lapSplits"
                 :key="split.lap"
                 :class="getSplitClass(split, streams.lapSplits)"
               >
-                <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">{{ split.lap }}</td>
-                <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                <td class="px-5 py-4 text-sm font-black text-gray-900 dark:text-white">
+                  {{ split.lap }}
+                </td>
+                <td class="px-5 py-4 text-sm font-medium text-gray-600 dark:text-gray-400">
                   {{ formatDistance(split.distance) }}
                 </td>
-                <td class="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                <td
+                  class="px-5 py-4 text-sm font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                >
                   {{ formatTime(split.time) }}
                 </td>
-                <td class="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                <td class="px-5 py-4 text-sm font-black text-gray-900 dark:text-white tabular-nums">
                   {{ split.pace }}
                 </td>
               </tr>
@@ -113,124 +173,139 @@
       </div>
 
       <!-- Pacing Strategy Details -->
-      <div v-if="streams.pacingStrategy">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Split Analysis</h3>
-        <div class="grid grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div class="flex flex-col gap-2">
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">First Half</span>
-            <span class="text-xl font-semibold text-gray-900 dark:text-white">{{
+      <div v-if="streams.pacingStrategy" class="pt-6 border-t border-gray-100 dark:border-gray-800">
+        <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">
+          Split Analysis
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl">
+            <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2 block"
+              >First Half</span
+            >
+            <span class="text-xl font-black text-gray-900 dark:text-white tabular-nums">{{
               formatPaceSeconds(streams.pacingStrategy.firstHalfPace)
             }}</span>
           </div>
-          <div class="flex flex-col gap-2">
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Second Half</span>
-            <span class="text-xl font-semibold text-gray-900 dark:text-white">{{
+          <div class="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl">
+            <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2 block"
+              >Second Half</span
+            >
+            <span class="text-xl font-black text-gray-900 dark:text-white tabular-nums">{{
               formatPaceSeconds(streams.pacingStrategy.secondHalfPace)
             }}</span>
           </div>
           <div
-            class="flex flex-col gap-2"
-            :class="getDifferenceClass(streams.pacingStrategy.paceDifference)"
+            class="p-4 rounded-xl tabular-nums"
+            :class="getDifferenceBgClass(streams.pacingStrategy.paceDifference)"
           >
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Difference</span>
-            <span class="text-xl font-semibold"
-              >{{ Math.abs(streams.pacingStrategy.paceDifference) }}s</span
+            <span class="text-[9px] font-black uppercase tracking-widest mb-2 block opacity-70"
+              >Pace Delta</span
+            >
+            <span class="text-xl font-black"
+              >{{ streams.pacingStrategy.paceDifference > 0 ? '+' : ''
+              }}{{ streams.pacingStrategy.paceDifference }}s</span
             >
           </div>
         </div>
-        <div class="mt-4 flex flex-col gap-2">
-          <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Evenness Score</span>
-          <div class="h-6 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+        <div class="mt-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest"
+              >Steady State Integrity</span
+            >
+            <span class="text-[10px] font-black text-gray-900 dark:text-white tracking-widest"
+              >{{ streams.pacingStrategy.evenness }}/100</span
+            >
+          </div>
+          <div class="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
             <div
-              class="h-full transition-all duration-300"
+              class="h-full transition-all duration-1000 ease-out"
               :style="{ width: streams.pacingStrategy.evenness + '%' }"
               :class="getEvennessClass(streams.pacingStrategy.evenness)"
             />
           </div>
-          <span class="text-sm font-semibold text-gray-700 dark:text-gray-300"
-            >{{ streams.pacingStrategy.evenness }}/100</span
-          >
         </div>
       </div>
 
       <!-- Surges Detection -->
-      <div v-if="streams.surges && streams.surges.length > 0">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Detected Surges</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {{ streams.surges.length }} sudden pace increase{{ streams.surges.length > 1 ? 's' : '' }}
-          detected
-        </p>
+      <div
+        v-if="streams.surges && streams.surges.length > 0"
+        class="pt-6 border-t border-gray-100 dark:border-gray-800"
+      >
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+            Pacing Surges
+          </h3>
+          <UBadge
+            color="warning"
+            variant="soft"
+            size="xs"
+            class="font-black uppercase tracking-widest text-[9px]"
+          >
+            {{ streams.surges.length }} Surges Detected
+          </UBadge>
+        </div>
 
         <!-- Visual Timeline -->
-        <div class="relative h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 overflow-hidden">
-          <!-- Background gradient -->
-          <div
-            class="absolute inset-0 bg-gradient-to-r from-green-100 via-yellow-100 to-green-100 dark:from-green-900/30 dark:via-yellow-900/30 dark:to-green-900/30"
-          />
-
+        <div
+          class="relative h-12 bg-gray-100 dark:bg-gray-950 rounded-xl mb-6 overflow-hidden shadow-inner"
+        >
           <!-- Surge markers -->
           <div
             v-for="(surge, index) in streams.surges"
             :key="index"
-            class="absolute top-0 bottom-0 w-1 bg-yellow-500 hover:w-2 transition-all cursor-pointer"
+            class="absolute top-0 bottom-0 w-0.5 bg-amber-500/40 hover:bg-amber-500 transition-all cursor-crosshair"
             :style="{ left: getSurgePosition(surge.time) + '%' }"
             :title="`${formatTime(surge.time)} - +${surge.increase.toFixed(2)} m/s`"
-          >
-            <div
-              class="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-yellow-500 rounded-full border-2 border-white dark:border-gray-800"
-            />
-          </div>
-
-          <!-- Time labels -->
-          <div
-            class="absolute inset-x-0 bottom-1 flex justify-between px-2 text-xs text-gray-600 dark:text-gray-400"
-          >
-            <span>Start</span>
-            <span>End</span>
-          </div>
+          />
         </div>
 
         <!-- Compact Summary Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <div
-            v-for="(surge, index) in streams.surges.slice(0, 8)"
+            v-for="(surge, index) in streams.surges.slice(0, 12)"
             :key="index"
-            class="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm"
+            class="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl group"
           >
-            <div class="font-medium text-gray-700 dark:text-gray-300">
+            <div
+              class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 tabular-nums"
+            >
               {{ formatTime(surge.time) }}
             </div>
-            <div class="font-semibold text-yellow-700 dark:text-yellow-400 text-xs">
-              +{{ surge.increase.toFixed(1) }} m/s
+            <div class="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">
+              +{{ surge.increase.toFixed(1) }}
+              <span class="text-[9px] uppercase font-bold text-gray-400">m/s</span>
             </div>
           </div>
         </div>
 
-        <!-- Show more button if there are many surges -->
-        <button
-          v-if="streams.surges.length > 8 && !showAllSurges"
-          class="mt-3 text-sm text-primary-600 dark:text-primary-400 hover:underline"
+        <UButton
+          v-if="streams.surges.length > 12 && !showAllSurges"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="mt-6 font-black uppercase tracking-widest text-[9px]"
           @click="showAllSurges = true"
         >
-          Show {{ streams.surges.length - 8 }} more surge{{
-            streams.surges.length - 8 > 1 ? 's' : ''
-          }}
-        </button>
+          Audit {{ streams.surges.length - 12 }} Additional Surges
+        </UButton>
 
         <div
-          v-if="showAllSurges && streams.surges.length > 8"
-          class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2"
+          v-if="showAllSurges && streams.surges.length > 12"
+          class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-3"
         >
           <div
-            v-for="(surge, index) in streams.surges.slice(8)"
-            :key="index + 8"
-            class="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm"
+            v-for="(surge, index) in streams.surges.slice(12)"
+            :key="index + 12"
+            class="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl"
           >
-            <div class="font-medium text-gray-700 dark:text-gray-300">
+            <div
+              class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 tabular-nums"
+            >
               {{ formatTime(surge.time) }}
             </div>
-            <div class="font-semibold text-yellow-700 dark:text-yellow-400 text-xs">
-              +{{ surge.increase.toFixed(1) }} m/s
+            <div class="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">
+              +{{ surge.increase.toFixed(1) }}
+              <span class="text-[9px] uppercase font-bold text-gray-400">m/s</span>
             </div>
           </div>
         </div>
@@ -244,6 +319,8 @@
     workoutId: string
     publicToken?: string
   }>()
+
+  const emit = defineEmits(['open-metric'])
 
   const endpoint = computed(() =>
     props.publicToken
@@ -352,21 +429,23 @@
       allSplits.reduce((sum: number, s: any) => sum + s.paceSeconds, 0) / allSplits.length
     const deviation = ((split.paceSeconds - avgPace) / avgPace) * 100
 
-    if (Math.abs(deviation) < 3) return 'bg-blue-50 dark:bg-blue-900/20'
-    if (deviation > 0) return 'bg-red-50 dark:bg-red-900/20'
-    return 'bg-green-50 dark:bg-green-900/20'
+    if (Math.abs(deviation) < 3) return 'bg-blue-50/50 dark:bg-blue-900/10'
+    if (deviation > 0) return 'bg-red-50/50 dark:bg-red-900/10'
+    return 'bg-green-50/50 dark:bg-green-900/10'
   }
 
-  function getDifferenceClass(difference: number): string {
-    if (Math.abs(difference) < 5) return 'text-green-600 dark:text-green-400'
-    if (difference > 0) return 'text-orange-600 dark:text-orange-400'
-    return 'text-blue-600 dark:text-blue-400'
+  function getDifferenceBgClass(difference: number): string {
+    if (Math.abs(difference) < 5)
+      return 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800/50 text-green-700 dark:text-green-300'
+    if (difference > 0)
+      return 'bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/50 text-orange-700 dark:text-orange-300'
+    return 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50 text-blue-700 dark:text-blue-300'
   }
 
   function getEvennessClass(score: number): string {
-    if (score >= 80) return 'bg-green-500'
+    if (score >= 80) return 'bg-emerald-500'
     if (score >= 60) return 'bg-blue-500'
-    if (score >= 40) return 'bg-orange-500'
+    if (score >= 40) return 'bg-amber-500'
     return 'bg-red-500'
   }
 </script>

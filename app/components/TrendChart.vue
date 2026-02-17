@@ -1,23 +1,12 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-    <div v-if="!data || data.length === 0" class="text-center py-12 text-gray-500">
-      No score data available for this period
+  <div class="h-full w-full relative">
+    <div
+      v-if="!data || data.length === 0"
+      class="flex items-center justify-center h-full text-gray-500 font-bold uppercase tracking-widest text-[10px]"
+    >
+      No performance data available
     </div>
-
-    <div v-else class="space-y-4">
-      <!-- Legend -->
-      <div class="flex flex-wrap gap-4 justify-center text-sm">
-        <div v-for="metric in visibleMetrics" :key="metric.key" class="flex items-center gap-2">
-          <div :class="['w-3 h-3 rounded-full', metric.color]" />
-          <span class="text-gray-700 dark:text-gray-300">{{ metric.label }}</span>
-        </div>
-      </div>
-
-      <!-- Chart -->
-      <div class="relative" style="height: 300px">
-        <Line :data="chartData" :options="chartOptions" />
-      </div>
-    </div>
+    <Line v-else :data="chartData" :options="chartOptions" :height="300" />
   </div>
 </template>
 
@@ -60,32 +49,27 @@
         {
           key: 'overallScore',
           label: 'Overall',
-          color: 'bg-yellow-500',
-          strokeColor: theme.colors.value.get('amber', 500)
+          color: theme.colors.value.get('amber', 500)
         },
         {
           key: 'technicalScore',
           label: 'Technical',
-          color: 'bg-blue-500',
-          strokeColor: theme.colors.value.get('blue', 500)
+          color: theme.colors.value.get('blue', 500)
         },
         {
           key: 'effortScore',
           label: 'Effort',
-          color: 'bg-red-500',
-          strokeColor: theme.colors.value.get('red', 500)
+          color: theme.colors.value.get('red', 500)
         },
         {
           key: 'pacingScore',
           label: 'Pacing',
-          color: 'bg-green-500',
-          strokeColor: theme.colors.value.get('green', 500)
+          color: theme.colors.value.get('green', 500)
         },
         {
           key: 'executionScore',
           label: 'Execution',
-          color: 'bg-purple-500',
-          strokeColor: theme.colors.value.get('purple', 500)
+          color: theme.colors.value.get('purple', 500)
         }
       ]
     } else {
@@ -93,38 +77,31 @@
         {
           key: 'overallScore',
           label: 'Overall',
-          color: 'bg-yellow-500',
-          strokeColor: theme.colors.value.get('amber', 500)
+          color: theme.colors.value.get('amber', 500)
         },
         {
           key: 'macroBalanceScore',
           label: 'Macro Balance',
-          color: 'bg-blue-500',
-          strokeColor: theme.colors.value.get('blue', 500)
+          color: theme.colors.value.get('blue', 500)
         },
         {
           key: 'qualityScore',
           label: 'Quality',
-          color: 'bg-green-500',
-          strokeColor: theme.colors.value.get('green', 500)
+          color: theme.colors.value.get('green', 500)
         },
         {
           key: 'adherenceScore',
           label: 'Adherence',
-          color: 'bg-purple-500',
-          strokeColor: theme.colors.value.get('purple', 500)
+          color: theme.colors.value.get('purple', 500)
         },
         {
           key: 'hydrationScore',
           label: 'Hydration',
-          color: 'bg-cyan-500',
-          strokeColor: theme.colors.value.get('cyan', 500)
+          color: theme.colors.value.get('cyan', 500)
         }
       ]
     }
   })
-
-  const visibleMetrics = computed(() => metrics.value)
 
   const formatDate = (date: string) => {
     return baseFormatDate(date, 'MMM d')
@@ -137,20 +114,33 @@
 
     const labels = props.data.map((item) => formatDate(item.date))
 
-    const datasets = visibleMetrics.value.map((metric) => ({
+    const datasets = metrics.value.map((metric) => ({
       label: metric.label,
       data: props.data.map((item) => item[metric.key] || 0),
-      borderColor: metric.strokeColor,
-      backgroundColor: metric.strokeColor + '1A', // 1A is ~10% opacity in hex
+      borderColor: metric.color,
+      backgroundColor: 'transparent',
+      fill: false,
       tension: 0.4,
       borderWidth: 2,
-      pointRadius: 4,
+      pointRadius: (ctx: any) => {
+        const isGhost = props.data[ctx.dataIndex]?.isGhost
+        return isGhost ? 0 : 3
+      },
       pointHoverRadius: 6,
-      pointBackgroundColor: metric.strokeColor,
-      pointBorderColor: '#fff',
-      pointHoverBackgroundColor: '#fff',
-      pointHoverBorderColor: metric.strokeColor,
-      pointBorderWidth: 2
+      pointBackgroundColor: metric.color,
+      pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
+      pointBorderWidth: 1.5,
+      // For ghost data (synthetic/backfilled), show dashed line
+      segment: {
+        borderDash: (ctx: any) => {
+          const point = props.data[ctx.p1DataIndex]
+          return point?.isGhost ? [4, 4] : undefined
+        },
+        borderColor: (ctx: any) => {
+          const point = props.data[ctx.p1DataIndex]
+          return point?.isGhost ? `${metric.color}80` : metric.color
+        }
+      }
     }))
 
     return { labels, datasets }
@@ -159,6 +149,12 @@
   const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 10,
+        bottom: 5
+      }
+    },
     interaction: {
       mode: 'index' as const,
       intersect: false
@@ -168,16 +164,21 @@
         display: false
       },
       tooltip: {
-        backgroundColor: theme.isDark.value ? '#1f2937' : '#ffffff',
+        backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
         titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
         bodyColor: theme.isDark.value ? '#d1d5db' : '#374151',
         borderColor: theme.isDark.value ? '#374151' : '#e5e7eb',
         borderWidth: 1,
         padding: 12,
+        titleFont: { size: 12, weight: 'bold' as const },
+        bodyFont: { size: 11 },
         displayColors: true,
+        boxPadding: 4,
         callbacks: {
           label: (context: any) => {
-            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}/10`
+            const isGhost = props.data[context.dataIndex]?.isGhost
+            const suffix = isGhost ? ' (Predicted)' : ''
+            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}/10${suffix}`
           }
         }
       }
@@ -185,17 +186,16 @@
     scales: {
       x: {
         grid: {
-          display: false,
-          color: theme.colors.value.chartGrid
+          display: false
         },
         ticks: {
-          color: theme.colors.value.chartText,
+          color: '#94a3b8',
           font: {
-            size: 11,
+            size: 10,
             weight: 'bold' as const
           },
-          maxRotation: 0,
-          autoSkipPadding: 20
+          maxTicksLimit: 7,
+          maxRotation: 0
         },
         border: {
           display: false
@@ -203,16 +203,20 @@
       },
       y: {
         min: 0,
-        max: 10,
+        max: 10.5, // Slight padding for icons/labels
+        position: 'right' as const,
         ticks: {
           stepSize: 2,
-          color: theme.colors.value.chartText,
+          color: '#94a3b8',
           font: {
-            size: 11
-          }
+            size: 10,
+            weight: 'bold' as const
+          },
+          callback: (val: any) => (val % 2 === 0 ? val : '')
         },
         grid: {
-          color: theme.colors.value.chartGrid
+          color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          drawTicks: false
         },
         border: {
           display: false

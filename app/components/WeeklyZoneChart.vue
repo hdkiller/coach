@@ -32,7 +32,7 @@
       </div>
 
       <div class="h-64 relative">
-        <Bar :data="chartData" :options="chartOptions" />
+        <Bar :data="chartData" :options="chartOptions" :height="256" />
       </div>
 
       <!-- Legend -->

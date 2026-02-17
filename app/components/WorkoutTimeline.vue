@@ -1,66 +1,94 @@
 <template>
-  <div class="space-y-6">
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+  >
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-8">
-      <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
-        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading timeline data...</p>
-      </div>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-12">
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
+      />
+      <p class="text-xs font-black uppercase tracking-widest text-gray-500">
+        Initializing Biometric Timeline...
+      </p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="text-center py-8">
-      <p class="text-sm text-gray-600 dark:text-gray-400">{{ error }}</p>
+    <div v-else-if="error" class="text-center py-12">
+      <UIcon name="i-heroicons-exclamation-triangle" class="w-12 h-12 text-red-500 mx-auto mb-4" />
+      <p class="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+        {{ error }}
+      </p>
     </div>
 
     <!-- No Data State -->
-    <div v-else-if="!hasStreamData" class="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg">
-      <p class="text-sm text-gray-600 dark:text-gray-400">
-        No timeline data available for this workout
+    <div
+      v-else-if="!hasStreamData"
+      class="text-center py-12 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800"
+    >
+      <UIcon
+        name="i-heroicons-chart-bar"
+        class="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4"
+      />
+      <p class="text-sm font-black text-gray-500 uppercase tracking-widest">
+        Timeline Telemetry Pending
       </p>
-      <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
-        Stream data may not have been captured during the activity
+      <p
+        class="text-[10px] text-gray-400 uppercase font-bold tracking-widest mt-2 max-w-xs mx-auto leading-relaxed"
+      >
+        Time-series biometric streams were not detected for this activity.
       </p>
     </div>
 
     <!-- Timeline Charts -->
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-10">
       <!-- Metric Selection Buttons -->
       <div class="flex flex-wrap gap-2">
-        <button
+        <UButton
           v-for="metric in availableMetrics"
           :key="metric.key"
-          :class="[
-            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-            selectedMetrics.includes(metric.key)
-              ? 'bg-primary-500 text-white'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-          ]"
+          :color="selectedMetrics.includes(metric.key) ? 'primary' : 'neutral'"
+          :variant="selectedMetrics.includes(metric.key) ? 'solid' : 'ghost'"
+          size="xs"
+          class="font-black uppercase tracking-widest text-[9px] px-3"
           @click="toggleMetric(metric.key)"
         >
           {{ metric.label }}
-        </button>
+        </UButton>
       </div>
 
       <!-- Compact Stacked Charts -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+      <div class="space-y-4">
         <div
           v-for="(metric, index) in selectedMetrics"
           :key="metric"
-          :class="[
-            'border-gray-200 dark:border-gray-700',
-            index < selectedMetrics.length - 1 ? 'border-b' : ''
-          ]"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden"
         >
-          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-900">
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div
+            class="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/30 dark:bg-gray-900/30"
+          >
+            <span
+              class="text-[9px] font-black text-gray-900 dark:text-white uppercase tracking-widest"
+            >
               {{ getMetricLabel(metric) }}
             </span>
+            <div
+              v-if="hoverIndex !== null && streamData[metric]"
+              class="text-[10px] font-black tabular-nums"
+            >
+              <span class="text-gray-400">{{ formatTime(streamData.time[hoverIndex]) }} •</span>
+              <span class="text-primary-500 ml-1">{{
+                Math.round(streamData[metric][hoverIndex])
+              }}</span>
+              <span class="text-[8px] text-gray-400 ml-0.5">{{
+                availableMetrics.find((m) => m.key === metric)?.unit
+              }}</span>
+            </div>
           </div>
-          <div class="px-4 py-2" style="height: 150px">
+          <div class="px-2 py-4" style="height: 150px">
             <Line
               :data="getChartData(metric)"
               :options="getChartOptions(metric, index === selectedMetrics.length - 1) as any"
+              :height="120"
             />
           </div>
         </div>
