@@ -3,6 +3,9 @@ import { syncPlannedWorkoutToIntervals } from '../../utils/intervals-sync'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
+import { WorkoutConverter } from '../../utils/workout-converter'
+import { cleanIntervalsDescription } from '../../utils/intervals'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -140,6 +143,31 @@ export default defineEventHandler(async (event) => {
       existing.externalId.startsWith('adhoc-')
 
     let finalWorkout = updated
+    let workoutDoc = ''
+
+    if (updated.structuredWorkout) {
+      const intervalsType = (updated.type === 'Active Recovery' ? 'Ride' : updated.type) || 'Ride'
+      const sportSettings = await sportSettingsRepository.getForActivityType(userId, intervalsType)
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { ftp: true }
+      })
+
+      const workoutData = {
+        title: updated.title,
+        description: updated.description || '',
+        type: intervalsType,
+        steps: (updated.structuredWorkout as any).steps || [],
+        exercises: (updated.structuredWorkout as any).exercises,
+        messages: (updated.structuredWorkout as any).messages || [],
+        ftp: user?.ftp || 250,
+        sportSettings: sportSettings || undefined
+      }
+
+      workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
+    }
+
+    const cleanDescription = cleanIntervalsDescription(updated.description || '')
 
     // Only attempt sync if enabled
     if (importPlannedWorkouts) {
@@ -152,10 +180,11 @@ export default defineEventHandler(async (event) => {
           date: updated.date,
           startTime: updated.startTime,
           title: updated.title,
-          description: updated.description,
+          description: cleanDescription,
           type: updated.type,
           durationSec: updated.durationSec,
           tss: updated.tss,
+          workout_doc: workoutDoc,
           managedBy: updated.managedBy
         },
         userId
