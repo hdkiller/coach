@@ -47,6 +47,7 @@ export default defineNuxtConfig({
         { property: 'og:type', content: 'website' },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:site', content: '@coachwatts' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' }
       ],
