@@ -60,6 +60,23 @@ export default defineEventHandler(async (event) => {
       .join('')
   }
 
+  const hasToolApprovalResponse = truncatedMessages.some((msg: any) => {
+    if (msg.role !== 'tool') return false
+    const parts = Array.isArray(msg.parts)
+      ? msg.parts
+      : Array.isArray(msg.content)
+        ? msg.content
+        : []
+    return parts.some((part: any) => part?.type === 'tool-approval-response')
+  })
+
+  const isAssistantApprovalContinuation =
+    lastMessage?.role === 'assistant' &&
+    Array.isArray(lastMessage?.parts) &&
+    lastMessage.parts.some(
+      (part: any) => part?.type?.startsWith('tool-') && part?.state === 'approval-responded'
+    )
+
   // Convert legacy tool-role approval messages into assistant approval states.
   // AI SDK v6 convertToModelMessages accepts only system/user/assistant UI roles.
   const normalizeMessagesForSdk = (inputMessages: any[]) => {
@@ -116,8 +133,11 @@ export default defineEventHandler(async (event) => {
 
   const historyMessages = normalizeMessagesForSdk(truncatedMessages)
 
-  // Allow empty content for tool messages (approvals/results)
-  if (!roomId || (!content && lastMessage?.role !== 'tool')) {
+  // Allow empty content for non-text continuation turns triggered by tool approval.
+  const isToolContinuationTurn =
+    lastMessage?.role === 'tool' || hasToolApprovalResponse || isAssistantApprovalContinuation
+
+  if (!roomId || (!content && !isToolContinuationTurn)) {
     throw createError({ statusCode: 400, message: 'Room ID and content required' })
   }
 
@@ -147,7 +167,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 1. Save User/Tool Message to DB if it's not already persisted
-  const userMessageId = lastMessage.id
+  const userMessageId = lastMessage?.id
 
   const existingMessage = userMessageId
     ? await prisma.chatMessage.findUnique({
@@ -155,7 +175,9 @@ export default defineEventHandler(async (event) => {
       })
     : null
 
-  if (!existingMessage) {
+  const shouldPersistIncomingMessage = !!lastMessage && ['user', 'tool'].includes(lastMessage.role)
+
+  if (shouldPersistIncomingMessage && !existingMessage) {
     try {
       const metadata: any = {}
       if (lastMessage.role === 'tool' && Array.isArray(lastMessage.content)) {
