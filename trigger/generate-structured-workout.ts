@@ -282,6 +282,66 @@ const workoutStructureSchema = {
   required: ['coachInstructions']
 }
 
+function parseSingleZoneFromName(stepName: unknown): number | null {
+  if (typeof stepName !== 'string' || stepName.trim().length === 0) return null
+  const matches = [...stepName.matchAll(/\bZ([1-7])\b/gi)]
+  const uniqueZones = [...new Set(matches.map((m) => Number(m[1])))]
+  return uniqueZones.length === 1 ? uniqueZones[0]! : null
+}
+
+function getFallbackZoneBounds(zone: number): { start: number; end: number } | null {
+  const map: Record<number, { start: number; end: number }> = {
+    1: { start: 0.5, end: 0.6 },
+    2: { start: 0.6, end: 0.75 },
+    3: { start: 0.75, end: 0.9 },
+    4: { start: 0.9, end: 1.05 },
+    5: { start: 1.05, end: 1.2 },
+    6: { start: 1.2, end: 1.4 },
+    7: { start: 1.4, end: 1.6 }
+  }
+  return map[zone] || null
+}
+
+function getZoneBoundsFromSettings(
+  zone: number,
+  sportSettings: any,
+  ftp: number
+): { start: number; end: number } | null {
+  if (!sportSettings?.powerZones || !Array.isArray(sportSettings.powerZones) || ftp <= 0) {
+    return null
+  }
+  const zoneDef = sportSettings.powerZones[zone - 1]
+  if (!zoneDef) return null
+  const min = Number(zoneDef.min)
+  const max = Number(zoneDef.max)
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= 0) return null
+  const start = Math.max(0, min / ftp)
+  const end = Math.max(start, max / ftp)
+  return { start, end }
+}
+
+function applyZoneHintToCyclingPower(step: any, sportSettings: any, ftp: number) {
+  const zone = parseSingleZoneFromName(step?.name)
+  if (!zone) return
+
+  const bounds = getZoneBoundsFromSettings(zone, sportSettings, ftp) || getFallbackZoneBounds(zone)
+  if (!bounds) return
+
+  const midpoint = Number(((bounds.start + bounds.end) / 2).toFixed(3))
+  if (step?.power?.range) {
+    step.power.range = {
+      start: Number(bounds.start.toFixed(3)),
+      end: Number(bounds.end.toFixed(3))
+    }
+    step.power.units = '%'
+    return
+  }
+
+  if (!step.power) step.power = {}
+  step.power.value = midpoint
+  step.power.units = '%'
+}
+
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
@@ -580,6 +640,10 @@ export const generateStructuredWorkoutTask = task({
             else if (step.type === 'Cooldown') step.power = { value: 0.4 }
             else step.power = { value: 0.75 }
           }
+          if (!step.power.units) {
+            step.power.units = '%'
+          }
+          applyZoneHintToCyclingPower(step, sportSettings, ftp)
           if (!step.cadence) {
             if (step.type === 'Warmup' || step.type === 'Cooldown') step.cadence = 85
             else if (step.type === 'Rest') step.cadence = 80
@@ -719,6 +783,15 @@ export const generateStructuredWorkoutTask = task({
       }
     }
 
+    const hasSteps = Array.isArray(structure.steps) && structure.steps.length > 0
+    const hasExercises = Array.isArray(structure.exercises) && structure.exercises.length > 0
+    if ((hasSteps || hasExercises) && totalDuration <= 0) {
+      throw new Error('Generated structured workout has zero total duration')
+    }
+    if ((hasSteps || hasExercises) && totalTSS <= 0) {
+      throw new Error('Generated structured workout has zero total TSS')
+    }
+
     const updateData: any = { structuredWorkout: structure as any }
     if (totalDistance > 0) updateData.distanceMeters = totalDistance
     if (totalDuration > 0) updateData.durationSec = totalDuration
@@ -761,6 +834,7 @@ export const generateStructuredWorkoutTask = task({
           id: updatedWorkout.id,
           externalId: updatedWorkout.externalId,
           date: updatedWorkout.date,
+          startTime: updatedWorkout.startTime,
           title: updatedWorkout.title,
           description: updatedWorkout.description,
           type: updatedWorkout.type,
