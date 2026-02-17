@@ -19,15 +19,28 @@
         </div>
       </div>
 
-      <!-- Gut Training Badge -->
-      <UBadge
-        v-if="isGutTraining"
-        color="primary"
-        variant="solid"
-        class="animate-pulse font-black text-[10px] uppercase"
-      >
-        Gut Training Session
-      </UBadge>
+      <div class="flex items-center gap-2">
+        <UButton
+          v-if="fuelState > 0"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="font-black uppercase tracking-widest text-[10px]"
+          @click="showFuelStateModal = true"
+        >
+          Why Fuel State {{ fuelState }}?
+        </UButton>
+
+        <!-- Gut Training Badge -->
+        <UBadge
+          v-if="isGutTraining"
+          color="primary"
+          variant="solid"
+          class="animate-pulse font-black text-[10px] uppercase"
+        >
+          Gut Training Session
+        </UBadge>
+      </div>
     </div>
 
     <!-- Hydration & Sodium Grid -->
@@ -153,6 +166,122 @@
       </div>
     </div>
   </div>
+
+  <UModal v-model:open="showFuelStateModal" :ui="{ content: 'sm:max-w-lg' }">
+    <template #content>
+      <div class="p-6 space-y-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h3 class="text-lg font-black uppercase tracking-tight text-gray-900 dark:text-white">
+              Fuel State {{ fuelState }} Breakdown
+            </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              How this workout was classified for fueling.
+            </p>
+          </div>
+          <UBadge color="primary" variant="soft" class="font-black uppercase text-[10px]">
+            {{ stateLabel }}
+          </UBadge>
+        </div>
+
+        <div class="space-y-3">
+          <div
+            class="flex items-start justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-800"
+          >
+            <div>
+              <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Workout Intensity</p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                Intensity factor used to pick the fuel state.
+              </p>
+            </div>
+            <p class="text-sm font-black text-gray-900 dark:text-white">
+              IF {{ intensityDisplay }}
+            </p>
+          </div>
+
+          <div
+            class="flex items-start justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-800"
+          >
+            <div>
+              <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Your Thresholds</p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                State 2 starts above State 1 trigger; State 3 starts above State 2 trigger.
+              </p>
+            </div>
+            <p class="text-sm font-black text-gray-900 dark:text-white">
+              {{ thresholdsDisplay }}
+            </p>
+          </div>
+
+          <div
+            class="flex items-start justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-800"
+          >
+            <div>
+              <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Selected Rule</p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                Applied directly from your Fuel State trigger settings.
+              </p>
+            </div>
+            <p class="text-sm font-black text-gray-900 dark:text-white text-right">
+              {{ selectedRule }}
+            </p>
+          </div>
+
+          <div
+            class="flex items-start justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-800"
+          >
+            <div>
+              <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Workout Context</p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                Session duration and strategy affect script details.
+              </p>
+            </div>
+            <p class="text-sm font-black text-gray-900 dark:text-white text-right">
+              {{ workoutContextDisplay }}
+            </p>
+          </div>
+
+          <div
+            class="flex items-start justify-between gap-3 py-2 border-b border-gray-100 dark:border-gray-800"
+          >
+            <div>
+              <p class="text-sm font-bold text-gray-700 dark:text-gray-200">Intra-Workout Target</p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                Final carbs/fluid/sodium from this classification.
+              </p>
+            </div>
+            <p class="text-sm font-black text-gray-900 dark:text-white text-right">
+              {{ intraTargetDisplay }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="bg-primary-50 dark:bg-primary-950/20 p-4 rounded-xl border border-primary-100 dark:border-primary-900"
+        >
+          <p
+            class="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-wider"
+          >
+            What to change if this looks off
+          </p>
+          <p class="text-xs text-primary-600 dark:text-primary-400 mt-1 leading-relaxed">
+            Adjust Intensity Factor in the workout structure or update Fuel State triggers in
+            Nutrition Settings.
+          </p>
+        </div>
+
+        <UButton
+          color="neutral"
+          variant="soft"
+          block
+          class="font-bold uppercase text-xs tracking-tight"
+          @click="showFuelStateModal = false"
+        >
+          Close
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -160,7 +289,13 @@
     fuelingPlan: any
     fuelState: number
     isGutTraining?: boolean
+    workoutIntensity?: number
+    durationSec?: number
+    strategyOverride?: string | null
+    nutritionSettings?: any
   }>()
+
+  const showFuelStateModal = ref(false)
 
   const intraWindow = computed(() =>
     props.fuelingPlan?.windows?.find((w: any) => w.type === 'INTRA_WORKOUT')
@@ -177,5 +312,63 @@
     if (props.fuelState === 2) return 'Steady Fueling'
     if (props.fuelState === 1) return 'Low Intensity'
     return null
+  })
+
+  const stateLabel = computed(() => {
+    if (props.fuelState === 3) return 'Performance'
+    if (props.fuelState === 2) return 'Steady'
+    return 'Eco'
+  })
+
+  const resolvedSettings = computed(() => ({
+    fuelState1Trigger: Number(props.nutritionSettings?.fuelState1Trigger ?? 0.7),
+    fuelState2Trigger: Number(props.nutritionSettings?.fuelState2Trigger ?? 0.85)
+  }))
+
+  const resolvedIntensity = computed(() => {
+    const fromWorkout = Number(props.workoutIntensity ?? NaN)
+    if (Number.isFinite(fromWorkout) && fromWorkout > 0) return fromWorkout
+
+    const desc = String(intraWindow.value?.description || '')
+    const maybeState = desc.match(/Fuel State\s+(\d)/i)?.[1]
+    if (maybeState === '3') return resolvedSettings.value.fuelState2Trigger + 0.01
+    if (maybeState === '2')
+      return (
+        (resolvedSettings.value.fuelState1Trigger + resolvedSettings.value.fuelState2Trigger) / 2
+      )
+    return Math.max(0.01, resolvedSettings.value.fuelState1Trigger - 0.01)
+  })
+
+  const intensityDisplay = computed(() => resolvedIntensity.value.toFixed(2))
+
+  const thresholdsDisplay = computed(
+    () =>
+      `S1<${resolvedSettings.value.fuelState1Trigger.toFixed(2)} • S2<${resolvedSettings.value.fuelState2Trigger.toFixed(2)} • S3>${resolvedSettings.value.fuelState2Trigger.toFixed(2)}`
+  )
+
+  const selectedRule = computed(() => {
+    const intensity = resolvedIntensity.value
+    const s1 = resolvedSettings.value.fuelState1Trigger
+    const s2 = resolvedSettings.value.fuelState2Trigger
+    if (intensity > s2) return `IF ${intensity.toFixed(2)} > ${s2.toFixed(2)} → Fuel State 3`
+    if (intensity > s1)
+      return `IF ${intensity.toFixed(2)} > ${s1.toFixed(2)} and <= ${s2.toFixed(2)} → Fuel State 2`
+    return `IF ${intensity.toFixed(2)} <= ${s1.toFixed(2)} → Fuel State 1`
+  })
+
+  const workoutContextDisplay = computed(() => {
+    const hours = Math.max(0, Number(props.durationSec || 0) / 3600)
+    const durationLabel = `${hours.toFixed(1)}h`
+    const strategy = props.strategyOverride
+      ? String(props.strategyOverride).replaceAll('_', ' ')
+      : 'STANDARD'
+    return `${durationLabel} • ${strategy}`
+  })
+
+  const intraTargetDisplay = computed(() => {
+    const carbs = Math.round(Number(intraWindow.value?.targetCarbs || 0))
+    const fluid = Math.round(Number(intraWindow.value?.targetFluid || 0))
+    const sodium = Math.round(Number(intraWindow.value?.targetSodium || 0))
+    return `${carbs}g • ${fluid}ml • ${sodium}mg`
   })
 </script>
