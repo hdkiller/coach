@@ -1,332 +1,495 @@
 <template>
   <UDashboardPanel id="fitness">
     <template #header>
-      <UDashboardNavbar title="Fitness & Wellness">
+      <UDashboardNavbar title="Fitness Integrity">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <ClientOnly>
-            <DashboardTriggerMonitorButton />
-          </ClientOnly>
+          <div class="flex items-center gap-3">
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
+
+            <USelect
+              v-model="selectedPeriod"
+              :items="periodOptions"
+              size="sm"
+              class="w-32"
+              color="neutral"
+              variant="outline"
+            />
+          </div>
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
-      <div class="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        <!-- Page Header -->
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Fitness & Wellness</h1>
-          <p class="text-sm text-muted mt-1">
-            Track your recovery, sleep quality, and overall wellness metrics
+      <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
+        <!-- Dashboard Branding -->
+        <div class="px-4 sm:px-0">
+          <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+            Fitness
+          </h1>
+          <p
+            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+          >
+            Wellness Biometrics & Recovery Integrity
           </p>
         </div>
 
-        <!-- Summary Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                <USkeleton v-if="loading" class="h-9 w-12 mx-auto" />
-                <template v-else>{{ totalDays }}</template>
+        <!-- Summary Stats (Refined with Trends) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <!-- eFTP Card -->
+          <div
+            class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 sm:p-4 border border-blue-100 dark:border-blue-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400"
+                >eFTP</span
+              >
+              <UIcon name="i-heroicons-bolt" class="size-3.5 text-blue-500" />
+            </div>
+            <div class="flex items-baseline gap-1">
+              <div class="text-2xl font-black text-blue-900 dark:text-blue-100 tracking-tight">
+                <USkeleton v-if="loadingFTP" class="h-8 w-12" />
+                <template v-else>{{ ftpData?.summary?.currentFTP || '-' }}</template>
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Total Days</div>
+              <span v-if="!loadingFTP" class="text-xs font-black text-blue-500 uppercase">W</span>
+            </div>
+            <div
+              v-if="!loadingFTP && ftpData?.summary?.improvement !== undefined"
+              class="mt-1 flex items-center gap-1"
+            >
+              <UIcon
+                :name="
+                  ftpData.summary.improvement >= 0
+                    ? 'i-heroicons-arrow-trending-up'
+                    : 'i-heroicons-arrow-trending-down'
+                "
+                class="size-3"
+                :class="ftpData.summary.improvement >= 0 ? 'text-green-500' : 'text-red-500'"
+              />
+              <span
+                class="text-[10px] font-bold uppercase tracking-tighter"
+                :class="ftpData.summary.improvement >= 0 ? 'text-green-600' : 'text-red-600'"
+              >
+                {{ ftpData.summary.improvement > 0 ? '+' : '' }}{{ ftpData.summary.improvement }}%
+                vs start
+              </span>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-                <USkeleton v-if="loading" class="h-9 w-12 mx-auto" />
-                <template v-else>{{
-                  avgRecovery !== null ? avgRecovery.toFixed(0) : '-'
-                }}</template>
+          <!-- Fitness (CTL) Card -->
+          <div
+            class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 sm:p-4 border border-purple-100 dark:border-purple-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400"
+                >Fitness (CTL)</span
+              >
+              <UIcon name="i-heroicons-sparkles" class="size-3.5 text-purple-500" />
+            </div>
+            <div class="flex items-baseline gap-1">
+              <div class="text-2xl font-black text-purple-900 dark:text-purple-100 tracking-tight">
+                <USkeleton v-if="loadingPMC" class="h-8 w-12" />
+                <template v-else>{{ pmcData?.summary?.currentCTL?.toFixed(0) || '-' }}</template>
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Recovery</div>
+              <span v-if="!loadingPMC" class="text-xs font-black text-purple-500 uppercase"
+                >CTL</span
+              >
+            </div>
+            <div v-if="!loadingPMC && ctlChange !== 0" class="mt-1 flex items-center gap-1">
+              <UIcon
+                :name="
+                  ctlChange > 0
+                    ? 'i-heroicons-arrow-trending-up'
+                    : 'i-heroicons-arrow-trending-down'
+                "
+                class="size-3"
+                :class="ctlChange > 0 ? 'text-green-500' : 'text-red-500'"
+              />
+              <span
+                class="text-[10px] font-bold uppercase tracking-tighter"
+                :class="ctlChange > 0 ? 'text-green-600' : 'text-red-600'"
+              >
+                {{ ctlChange > 0 ? '+' : '' }}{{ ctlChange.toFixed(1) }} CTL change
+              </span>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-                <USkeleton v-if="loading" class="h-9 w-12 mx-auto" />
-                <template v-else>{{ avgSleep !== null ? avgSleep.toFixed(1) : '-' }}h</template>
+          <!-- Weekly TSS Card -->
+          <div
+            class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 sm:p-4 border border-emerald-100 dark:border-emerald-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400"
+                >Weekly TSS</span
+              >
+              <UIcon name="i-heroicons-chart-bar" class="size-3.5 text-emerald-500" />
+            </div>
+            <div class="flex items-baseline gap-1">
+              <div
+                class="text-2xl font-black text-emerald-900 dark:text-emerald-100 tracking-tight"
+              >
+                <USkeleton v-if="loadingZones" class="h-8 w-12" />
+                <template v-else>{{ Math.round(currentWeekTss) }}</template>
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Sleep</div>
+              <span v-if="!loadingZones" class="text-xs font-black text-emerald-500 uppercase"
+                >/ {{ Math.round(avgWeeklyTss) }}</span
+              >
+            </div>
+            <div
+              v-if="!loadingZones"
+              class="mt-1 text-[10px] font-bold uppercase tracking-tighter text-emerald-600"
+            >
+              Avg: {{ Math.round(avgWeeklyTss) }} TSS/wk
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                <USkeleton v-if="loading" class="h-9 w-12 mx-auto" />
+          <!-- HRV Avg Card -->
+          <div
+            class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 sm:p-4 border border-amber-100 dark:border-amber-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400"
+                >HRV Avg</span
+              >
+              <UIcon name="i-heroicons-heart" class="size-3.5 text-amber-500" />
+            </div>
+            <div class="flex items-baseline gap-1">
+              <div class="text-2xl font-black text-amber-900 dark:text-amber-100 tracking-tight">
+                <USkeleton v-if="loading" class="h-8 w-12" />
                 <template v-else>{{ avgHRV !== null ? avgHRV.toFixed(0) : '-' }}</template>
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg HRV (rMSSD)</div>
+              <span v-if="!loading" class="text-xs font-black text-amber-500 uppercase">ms</span>
+            </div>
+            <div v-if="!loading && hrvTrend !== 0" class="mt-1 flex items-center gap-1">
+              <UIcon
+                :name="
+                  hrvTrend > 0 ? 'i-heroicons-arrow-trending-up' : 'i-heroicons-arrow-trending-down'
+                "
+                class="size-3"
+                :class="hrvTrend > 0 ? 'text-green-500' : 'text-red-500'"
+              />
+              <span
+                class="text-[10px] font-bold uppercase tracking-tighter"
+                :class="hrvTrend > 0 ? 'text-green-600' : 'text-red-600'"
+              >
+                {{ hrvTrend > 0 ? '+' : '' }}{{ hrvTrend.toFixed(1) }}% vs baseline
+              </span>
             </div>
           </div>
         </div>
 
         <!-- Charts Section -->
-        <div v-if="loading || allWellness.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div
+          v-if="loading || allWellness.length > 0"
+          class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
+        >
           <!-- Recovery Score Trend -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Recovery Score (Last 30 Days)
-            </h3>
-            <div v-if="loading" class="h-[300px]">
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
+          >
+            <template #header>
+              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                Recovery Trajectory
+              </h3>
+            </template>
+            <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
-            <div v-else style="height: 300px">
+            <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="recoveryTrendData" :options="lineChartOptions" />
+                <Line :data="recoveryTrendData" :options="lineChartOptions" :height="300" />
               </ClientOnly>
             </div>
-          </div>
+          </UCard>
 
           <!-- Sleep Hours Trend -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Sleep Duration (Last 30 Days)
-            </h3>
-            <div v-if="loading" class="h-[300px]">
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
+          >
+            <template #header>
+              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                Sleep Duration
+              </h3>
+            </template>
+            <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
-            <div v-else style="height: 300px">
+            <div v-else class="h-[300px]">
               <ClientOnly>
-                <Bar :data="sleepTrendData" :options="barChartOptions" />
+                <Bar :data="sleepTrendData" :options="barChartOptions" :height="300" />
               </ClientOnly>
             </div>
-          </div>
+          </UCard>
 
           <!-- HRV Trend -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Heart Rate Variability (Last 30 Days)
-            </h3>
-            <div v-if="loading" class="h-[300px]">
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
+          >
+            <template #header>
+              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                Biometric Variance (HRV)
+              </h3>
+            </template>
+            <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
-            <div v-else style="height: 300px">
+            <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="hrvTrendData" :options="hrvLineChartOptions" />
+                <Line :data="hrvTrendData" :options="hrvLineChartOptions" :height="300" />
               </ClientOnly>
             </div>
-          </div>
+          </UCard>
 
           <!-- Resting HR Trend -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Resting Heart Rate (Last 30 Days)
-            </h3>
-            <div v-if="loading" class="h-[300px]">
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
+          >
+            <template #header>
+              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                Resting Heart Rate
+              </h3>
+            </template>
+            <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
-            <div v-else style="height: 300px">
+            <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="restingHrTrendData" :options="hrLineChartOptions" />
+                <Line :data="restingHrTrendData" :options="hrLineChartOptions" :height="300" />
               </ClientOnly>
             </div>
-          </div>
+          </UCard>
 
           <!-- Weight Trend -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Weight Trend (Last 30 Days)
-            </h3>
-            <div v-if="loading" class="h-[300px]">
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
+          >
+            <template #header>
+              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                Mass Progression
+              </h3>
+            </template>
+            <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
-            <div v-else style="height: 300px">
+            <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="weightTrendData" :options="weightLineChartOptions" />
+                <Line :data="weightTrendData" :options="weightLineChartOptions" :height="300" />
               </ClientOnly>
             </div>
-          </div>
+          </UCard>
 
           <!-- Blood Pressure Trend -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Blood Pressure (Last 30 Days)
-            </h3>
-            <div v-if="loading" class="h-[300px]">
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
+          >
+            <template #header>
+              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                Blood Pressure
+              </h3>
+            </template>
+            <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
-            <div v-else style="height: 300px">
+            <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="bpTrendData" :options="bpLineChartOptions" />
+                <Line :data="bpTrendData" :options="bpLineChartOptions" :height="300" />
               </ClientOnly>
             </div>
-          </div>
+          </UCard>
         </div>
 
-        <!-- Filters -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <!-- Filter Area -->
+        <UCard
+          :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-3' }"
+          class="bg-gray-50/50 dark:bg-gray-900/40 border-dashed border-gray-200 dark:border-gray-800"
+        >
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Recovery Status
-              </label>
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
+                >Recovery</span
+              >
               <USelect
                 v-model="filterRecovery"
                 :items="recoveryStatusOptions"
-                placeholder="All"
+                placeholder="All Status"
+                size="sm"
+                color="neutral"
+                variant="outline"
                 class="w-full"
               />
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Sleep Quality
-              </label>
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
+                >Sleep</span
+              >
               <USelect
                 v-model="filterSleep"
                 :items="sleepQualityOptions"
-                placeholder="All"
+                placeholder="All Quality"
+                size="sm"
+                color="neutral"
+                variant="outline"
                 class="w-full"
               />
             </div>
           </div>
-        </div>
+        </UCard>
 
         <!-- Wellness Table -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div
+          class="bg-white dark:bg-gray-900 rounded-xl shadow border border-gray-100 dark:border-gray-800 overflow-hidden"
+        >
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead class="bg-gray-50 dark:bg-gray-900">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <thead class="bg-gray-50 dark:bg-gray-950">
                 <tr>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Date
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
-                    Recovery
+                    Recov
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Readiness
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Sleep
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
-                    HRV (rMSSD)
+                    HRV
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
-                    HRV (SDNN)
+                    RHR
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                  >
-                    Resting HR
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Weight
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     BP
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
-                    Soreness
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                  >
-                    Mood
+                    Feel
                   </th>
                 </tr>
               </thead>
               <tbody
                 v-if="loading"
-                class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800"
               >
                 <tr v-for="i in 10" :key="i">
-                  <td v-for="j in 11" :key="j" class="px-6 py-4">
+                  <td v-for="j in 9" :key="j" class="px-6 py-4">
                     <USkeleton class="h-4 w-full" />
                   </td>
                 </tr>
               </tbody>
-              <tbody v-else-if="filteredWellness.length === 0" class="bg-white dark:bg-gray-800">
+              <tbody v-else-if="filteredWellness.length === 0" class="bg-white dark:bg-gray-900">
                 <tr>
-                  <td colspan="11" class="p-8 text-center text-gray-600 dark:text-gray-400">
-                    No wellness data found. Connect Intervals.icu and sync data to get started.
+                  <td
+                    colspan="9"
+                    class="p-8 text-center text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest text-xs"
+                  >
+                    No biometric data recorded
                   </td>
                 </tr>
               </tbody>
               <tbody
                 v-else
-                class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
+                class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800"
               >
                 <tr
                   v-for="wellness in paginatedWellness"
                   :key="wellness.id"
-                  class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   @click="navigateToWellness(wellness.id)"
                 >
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {{ formatDateUTC(wellness.date) }}
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium uppercase tracking-tight"
+                  >
+                    {{ formatDateUTC(wellness.date, 'MMM dd, yyyy') }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <span
                       v-if="wellness.recoveryScore"
                       :class="getRecoveryBadgeClass(wellness.recoveryScore)"
+                      class="px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-widest"
                     >
                       {{ wellness.recoveryScore }}%
                     </span>
                     <span v-else class="text-gray-400">-</span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
+                  >
                     {{ wellness.readiness ? wellness.readiness + '/10' : '-' }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    <div>
+                    <div class="font-black tabular-nums">
                       {{ wellness.sleepHours ? wellness.sleepHours.toFixed(1) + 'h' : '-' }}
                     </div>
-                    <div v-if="wellness.sleepScore" class="text-xs text-gray-500">
-                      Score: {{ wellness.sleepScore }}%
+                    <div
+                      v-if="wellness.sleepScore"
+                      class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter"
+                    >
+                      {{ wellness.sleepScore }}% Qual
                     </div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
+                  >
                     {{ wellness.hrv ? Math.round(wellness.hrv) + 'ms' : '-' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {{ wellness.hrvSdnn ? Math.round(wellness.hrvSdnn) + 'ms' : '-' }}
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
+                  >
+                    {{ wellness.restingHr ? wellness.restingHr : '-' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {{ wellness.restingHr ? wellness.restingHr + ' bpm' : '-' }}
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
+                  >
+                    {{ wellness.weight ? wellness.weight.toFixed(1) + 'kg' : '-' }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {{ wellness.weight ? wellness.weight.toFixed(1) + ' kg' : '-' }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
+                  >
                     {{
                       wellness.systolic && wellness.diastolic
                         ? `${wellness.systolic}/${wellness.diastolic}`
                         : '-'
                     }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {{ wellness.soreness ? wellness.soreness + '/10' : '-' }}
-                  </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span v-if="wellness.mood" :class="getMoodBadgeClass(wellness.mood)">
+                    <span
+                      v-if="wellness.mood"
+                      :class="getMoodBadgeClass(wellness.mood)"
+                      class="px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-widest"
+                    >
                       {{ wellness.mood }}/10
                     </span>
                     <span v-else class="text-gray-400">-</span>
@@ -339,44 +502,49 @@
           <!-- Pagination -->
           <div
             v-if="totalPages > 1"
-            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
+            class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
           >
             <div class="flex items-center justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
-                {{ Math.min(currentPage * itemsPerPage, filteredWellness.length) }} of
-                {{ filteredWellness.length }} entries
+              <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
+                  Math.min(currentPage * itemsPerPage, filteredWellness.length)
+                }}
+                of {{ filteredWellness.length }} entries
               </div>
               <div class="flex gap-2">
-                <button
+                <UButton
                   :disabled="currentPage === 1"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  class="font-black uppercase tracking-widest text-[10px]"
                   @click="changePage(currentPage - 1)"
                 >
-                  Previous
-                </button>
+                  Prev
+                </UButton>
                 <div class="flex gap-1">
-                  <button
+                  <UButton
                     v-for="page in visiblePages"
                     :key="page"
-                    :class="[
-                      'px-3 py-1 rounded text-sm',
-                      page === currentPage
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    ]"
+                    size="xs"
+                    :color="page === currentPage ? 'primary' : 'neutral'"
+                    :variant="page === currentPage ? 'solid' : 'ghost'"
+                    class="font-black uppercase tracking-widest text-[10px] min-w-[28px] justify-center"
                     @click="changePage(page)"
                   >
                     {{ page }}
-                  </button>
+                  </UButton>
                 </div>
-                <button
+                <UButton
                   :disabled="currentPage === totalPages"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  class="font-black uppercase tracking-widest text-[10px]"
                   @click="changePage(currentPage + 1)"
                 >
                   Next
-                </button>
+                </UButton>
               </div>
             </div>
           </div>
@@ -430,11 +598,95 @@
   })
 
   const toast = useToast()
-  const colorMode = useColorMode()
+  const theme = useTheme()
   const loading = ref(true)
   const allWellness = ref<any[]>([])
   const currentPage = ref(1)
   const itemsPerPage = 20
+
+  const selectedPeriod = ref<string | number>(30)
+  const periodOptions = [
+    { label: '7 Days', value: 7 },
+    { label: '14 Days', value: 14 },
+    { label: '30 Days', value: 30 },
+    { label: '90 Days', value: 90 },
+    { label: 'Year to Date', value: 'YTD' }
+  ]
+
+  // Period-aware fetching for additional metrics
+  const { data: ftpData, pending: loadingFTP } = await useFetch<any>(
+    '/api/performance/ftp-evolution',
+    {
+      query: computed(() => ({
+        months:
+          selectedPeriod.value === 'YTD'
+            ? 'YTD'
+            : Math.ceil(
+                (typeof selectedPeriod.value === 'string'
+                  ? parseInt(selectedPeriod.value)
+                  : selectedPeriod.value) / 30
+              )
+      }))
+    }
+  )
+
+  const { data: pmcData, pending: loadingPMC } = await useFetch<any>('/api/performance/pmc', {
+    query: computed(() => ({ days: selectedPeriod.value }))
+  })
+
+  const { data: zonesData, pending: loadingZones } = await useFetch<any>(
+    '/api/analytics/weekly-zones',
+    {
+      query: computed(() => ({
+        weeks:
+          selectedPeriod.value === 'YTD'
+            ? 'YTD'
+            : Math.ceil(
+                (typeof selectedPeriod.value === 'string'
+                  ? parseInt(selectedPeriod.value)
+                  : selectedPeriod.value) / 7
+              )
+      }))
+    }
+  )
+
+  // Trend Calculations
+  const ctlChange = computed(() => {
+    if (!pmcData.value?.data?.length) return 0
+    const data = pmcData.value.data
+    const current = data[data.length - 1]?.ctl || 0
+    const start = data[0]?.ctl || 0
+    return current - start
+  })
+
+  const currentWeekTss = computed(() => {
+    if (!pmcData.value?.data?.length) return 0
+    // Sum TSS from last 7 days
+    const data = pmcData.value.data
+    return data.slice(-7).reduce((sum: number, d: any) => sum + (d.tss || 0), 0)
+  })
+
+  const avgWeeklyTss = computed(() => {
+    if (!pmcData.value?.data?.length) return 0
+    const data = pmcData.value.data
+    const totalTss = data.reduce((sum: number, d: any) => sum + (d.tss || 0), 0)
+    const numWeeks = data.length / 7
+    return totalTss / (numWeeks || 1)
+  })
+
+  const hrvTrend = computed(() => {
+    if (!allWellness.value.length) return 0
+    const recent = filteredWellness.value.filter((w) => w.hrv)
+    if (recent.length < 2) return 0
+
+    const avgRecent = recent.reduce((sum, w) => sum + w.hrv, 0) / recent.length
+    // Use first 7 days as baseline if available, else first point
+    const baselineDays = recent.slice(0, 7)
+    const avgBaseline = baselineDays.reduce((sum, w) => sum + w.hrv, 0) / baselineDays.length
+
+    if (avgBaseline === 0) return 0
+    return ((avgRecent - avgBaseline) / avgBaseline) * 100
+  })
 
   // Filters
   const filterRecovery = ref<string | undefined>(undefined)
@@ -459,7 +711,8 @@
   async function fetchWellness() {
     loading.value = true
     try {
-      const wellness = await $fetch('/api/wellness')
+      // Fetch up to 180 days to support YTD and historical trends
+      const wellness = await $fetch('/api/wellness', { query: { limit: 180 } })
 
       allWellness.value = wellness
     } catch (error) {
@@ -480,13 +733,23 @@
   const filteredWellness = computed(() => {
     let wellness = [...allWellness.value]
 
-    // Filter out future dates - compare using UTC dates only
-    // todayUTC from getUserLocalDate() is already UTC midnight of user's local day
     const todayUTC = getUserLocalDate()
+    let startDate: Date
+
+    if (selectedPeriod.value === 'YTD') {
+      startDate = new Date(Date.UTC(todayUTC.getUTCFullYear(), 0, 1))
+    } else {
+      const days =
+        typeof selectedPeriod.value === 'string'
+          ? parseInt(selectedPeriod.value)
+          : selectedPeriod.value
+      startDate = new Date(todayUTC)
+      startDate.setUTCDate(todayUTC.getUTCDate() - (days || 30))
+    }
 
     wellness = wellness.filter((w) => {
       const wellnessDate = new Date(w.date)
-      return wellnessDate <= todayUTC
+      return wellnessDate <= todayUTC && wellnessDate >= startDate
     })
 
     if (filterRecovery.value) {
@@ -516,19 +779,19 @@
     return wellness
   })
 
-  const totalDays = computed(() => allWellness.value.length)
+  const totalDays = computed(() => filteredWellness.value.length)
   const avgRecovery = computed(() => {
-    const withRecovery = allWellness.value.filter((w) => w.recoveryScore)
+    const withRecovery = filteredWellness.value.filter((w) => w.recoveryScore)
     if (withRecovery.length === 0) return null
     return withRecovery.reduce((sum, w) => sum + w.recoveryScore, 0) / withRecovery.length
   })
   const avgSleep = computed(() => {
-    const withSleep = allWellness.value.filter((w) => w.sleepHours)
+    const withSleep = filteredWellness.value.filter((w) => w.sleepHours)
     if (withSleep.length === 0) return null
     return withSleep.reduce((sum, w) => sum + w.sleepHours, 0) / withSleep.length
   })
   const avgHRV = computed(() => {
-    const withHRV = allWellness.value.filter((w) => w.hrv)
+    const withHRV = filteredWellness.value.filter((w) => w.hrv)
     if (withHRV.length === 0) return null
     return withHRV.reduce((sum, w) => sum + w.hrv, 0) / withHRV.length
   })
@@ -588,15 +851,10 @@
     navigateTo(`/fitness/${id}`)
   }
 
-  // Watch filters and reset to page 1
   // Chart data computations
   const recoveryTrendData = computed(() => {
-    const today = getUserLocalDate()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const recentWellness = allWellness.value
-      .filter((w) => w.recoveryScore && new Date(w.date) >= thirtyDaysAgo)
+    const recentWellness = [...filteredWellness.value]
+      .filter((w) => w.recoveryScore)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const labels = recentWellness.map((w) =>
@@ -610,24 +868,20 @@
           label: 'Recovery Score',
           data: recentWellness.map((w) => w.recoveryScore),
           borderColor: 'rgb(34, 197, 94)',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          backgroundColor: 'transparent',
           tension: 0.4,
           borderWidth: 2,
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
-          fill: true
+          fill: false
         }
       ]
     }
   })
 
   const sleepTrendData = computed(() => {
-    const today = getUserLocalDate()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const recentWellness = allWellness.value
-      .filter((w) => w.sleepHours && new Date(w.date) >= thirtyDaysAgo)
+    const recentWellness = [...filteredWellness.value]
+      .filter((w) => w.sleepHours)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const labels = recentWellness.map((w) =>
@@ -649,12 +903,8 @@
   })
 
   const hrvTrendData = computed(() => {
-    const today = getUserLocalDate()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const recentWellness = allWellness.value
-      .filter((w) => w.hrv && new Date(w.date) >= thirtyDaysAgo)
+    const recentWellness = [...filteredWellness.value]
+      .filter((w) => w.hrv)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const labels = recentWellness.map((w) =>
@@ -668,24 +918,20 @@
           label: 'HRV (rMSSD)',
           data: recentWellness.map((w) => w.hrv),
           borderColor: 'rgb(168, 85, 247)',
-          backgroundColor: 'rgba(168, 85, 247, 0.1)',
+          backgroundColor: 'transparent',
           tension: 0.4,
           borderWidth: 2,
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
-          fill: true
+          fill: false
         }
       ]
     }
   })
 
   const restingHrTrendData = computed(() => {
-    const today = getUserLocalDate()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const recentWellness = allWellness.value
-      .filter((w) => w.restingHr && new Date(w.date) >= thirtyDaysAgo)
+    const recentWellness = [...filteredWellness.value]
+      .filter((w) => w.restingHr)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const labels = recentWellness.map((w) =>
@@ -699,24 +945,20 @@
           label: 'Resting HR (bpm)',
           data: recentWellness.map((w) => w.restingHr),
           borderColor: 'rgb(239, 68, 68)',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          backgroundColor: 'transparent',
           tension: 0.4,
           borderWidth: 2,
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
-          fill: true
+          fill: false
         }
       ]
     }
   })
 
   const weightTrendData = computed(() => {
-    const today = getUserLocalDate()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const recentWellness = allWellness.value
-      .filter((w) => w.weight && new Date(w.date) >= thirtyDaysAgo)
+    const recentWellness = [...filteredWellness.value]
+      .filter((w) => w.weight)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const labels = recentWellness.map((w) =>
@@ -730,24 +972,20 @@
           label: 'Weight (kg)',
           data: recentWellness.map((w) => w.weight),
           borderColor: 'rgb(249, 115, 22)',
-          backgroundColor: 'rgba(249, 115, 22, 0.1)',
+          backgroundColor: 'transparent',
           tension: 0.4,
           borderWidth: 2,
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
-          fill: true
+          fill: false
         }
       ]
     }
   })
 
   const bpTrendData = computed(() => {
-    const today = getUserLocalDate()
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const recentWellness = allWellness.value
-      .filter((w) => (w.systolic || w.diastolic) && new Date(w.date) >= thirtyDaysAgo)
+    const recentWellness = [...filteredWellness.value]
+      .filter((w) => w.systolic || w.diastolic)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const labels = recentWellness.map((w) =>
@@ -761,10 +999,10 @@
           label: 'Systolic',
           data: recentWellness.map((w) => w.systolic),
           borderColor: 'rgb(236, 72, 153)',
-          backgroundColor: 'rgba(236, 72, 153, 0.1)',
+          backgroundColor: 'transparent',
           tension: 0.4,
           borderWidth: 2,
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
           fill: false
         },
@@ -772,10 +1010,10 @@
           label: 'Diastolic',
           data: recentWellness.map((w) => w.diastolic),
           borderColor: 'rgb(14, 165, 233)',
-          backgroundColor: 'rgba(14, 165, 233, 0.1)',
+          backgroundColor: 'transparent',
           tension: 0.4,
           borderWidth: 2,
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
           fill: false
         }
@@ -784,364 +1022,116 @@
   })
 
   // Chart options
-  const weightLineChartOptions = computed(() => ({
+  const baseChartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false
+    layout: {
+      padding: { top: 10 }
     },
     plugins: {
-      legend: {
-        display: false
-      },
+      legend: { display: false },
       tooltip: {
-        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
-        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
-        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
-        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
+        backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
+        titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
+        bodyColor: theme.isDark.value ? '#d1d5db' : '#374151',
+        borderColor: theme.isDark.value ? '#374151' : '#e5e7eb',
         borderWidth: 1,
         padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            return `Weight: ${context.parsed.y.toFixed(1)} kg`
-          }
-        }
+        titleFont: { size: 12, weight: 'bold' as const },
+        bodyFont: { size: 11 },
+        displayColors: true
       }
     },
     scales: {
       x: {
-        grid: {
-          display: false
-        },
+        grid: { display: false },
         ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          },
-          maxRotation: 45,
-          minRotation: 45
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          maxTicksLimit: 7,
+          maxRotation: 0
         },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
+        border: { display: false }
       },
       y: {
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          }
-        },
+        position: 'right' as const,
         grid: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
+          color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+          drawTicks: false
         },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
+        ticks: {
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          maxTicksLimit: 5
+        },
+        border: { display: false }
       }
     }
   }))
 
-  const bpLineChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false
-    },
-    plugins: {
-      legend: {
-        display: true,
-        labels: {
-          color: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)'
-        }
-      },
-      tooltip: {
-        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
-        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
-        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
-        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
-        borderWidth: 1,
-        padding: 12
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          },
-          maxRotation: 45,
-          minRotation: 45
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      },
-      y: {
-        beginAtZero: false,
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          }
-        },
-        grid: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
+  const lineChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
+    opts.plugins.tooltip.callbacks = {
+      label: (context: any) => `Recovery: ${context.parsed.y.toFixed(0)}%`
+    }
+    opts.scales.y.min = 0
+    opts.scales.y.max = 100
+    return opts
+  })
+
+  const barChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
+    opts.plugins.tooltip.callbacks = {
+      label: (context: any) => `Sleep: ${context.parsed.y.toFixed(1)}h`
+    }
+    opts.scales.y.beginAtZero = true
+    opts.scales.y.max = 12
+    return opts
+  })
+
+  const hrvLineChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
+    opts.plugins.tooltip.callbacks = {
+      label: (context: any) => `HRV: ${context.parsed.y.toFixed(0)}ms`
+    }
+    opts.scales.y.beginAtZero = true
+    return opts
+  })
+
+  const hrLineChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
+    opts.plugins.tooltip.callbacks = {
+      label: (context: any) => `HR: ${context.parsed.y.toFixed(0)} bpm`
+    }
+    opts.scales.y.beginAtZero = false
+    return opts
+  })
+
+  const weightLineChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
+    opts.plugins.tooltip.callbacks = {
+      label: (context: any) => `Weight: ${context.parsed.y.toFixed(1)}kg`
+    }
+    opts.scales.y.beginAtZero = false
+    return opts
+  })
+
+  const bpLineChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
+    opts.plugins.legend = {
+      display: true,
+      position: 'bottom',
+      labels: {
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' as const },
+        usePointStyle: true,
+        boxWidth: 6
       }
     }
-  }))
+    return opts
+  })
 
-  const lineChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false
-    },
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
-        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
-        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
-        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
-        borderWidth: 1,
-        padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            return `Recovery: ${context.parsed.y.toFixed(0)}%`
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          },
-          maxRotation: 45,
-          minRotation: 45
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      },
-      y: {
-        min: 0,
-        max: 100,
-        ticks: {
-          stepSize: 20,
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          }
-        },
-        grid: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      }
-    }
-  }))
-
-  const barChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
-        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
-        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
-        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
-        borderWidth: 1,
-        padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}h`
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          },
-          maxRotation: 45,
-          minRotation: 45
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      },
-      y: {
-        beginAtZero: true,
-        max: 12,
-        ticks: {
-          stepSize: 2,
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          }
-        },
-        grid: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      }
-    }
-  }))
-
-  const hrvLineChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false
-    },
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
-        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
-        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
-        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
-        borderWidth: 1,
-        padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            return `HRV: ${context.parsed.y.toFixed(0)}ms`
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          },
-          maxRotation: 45,
-          minRotation: 45
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          }
-        },
-        grid: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      }
-    }
-  }))
-
-  const hrLineChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false
-    },
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        backgroundColor: colorMode.value === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
-        titleColor: colorMode.value === 'dark' ? 'rgb(229, 231, 235)' : 'rgb(17, 24, 39)',
-        bodyColor: colorMode.value === 'dark' ? 'rgb(209, 213, 219)' : 'rgb(55, 65, 81)',
-        borderColor: colorMode.value === 'dark' ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)',
-        borderWidth: 1,
-        padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            return `HR: ${context.parsed.y.toFixed(0)} bpm`
-          }
-        }
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          },
-          maxRotation: 45,
-          minRotation: 45
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: colorMode.value === 'dark' ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)',
-          font: {
-            size: 11
-          }
-        },
-        grid: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)'
-        },
-        border: {
-          color: colorMode.value === 'dark' ? 'rgba(75, 85, 99, 0.3)' : 'rgba(229, 231, 235, 0.8)'
-        }
-      }
-    }
-  }))
-
-  watch([filterRecovery, filterSleep], () => {
+  watch([selectedPeriod], () => {
     currentPage.value = 1
   })
 

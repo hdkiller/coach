@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="activities">
     <template #header>
-      <UDashboardNavbar title="Activities">
+      <UDashboardNavbar title="Performance Lab">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -17,7 +17,7 @@
               color="neutral"
               variant="outline"
               size="sm"
-              class="font-bold"
+              class="font-black uppercase tracking-widest text-[10px]"
             >
               <span class="hidden sm:inline">Upload</span>
             </UButton>
@@ -37,7 +37,7 @@
               color="neutral"
               variant="outline"
               size="sm"
-              class="font-bold"
+              class="font-black uppercase tracking-widest text-[10px]"
               :loading="status === 'pending' || integrationStore.syncingData"
               @click="handleRefresh"
             >
@@ -50,7 +50,7 @@
               color="primary"
               variant="solid"
               size="sm"
-              class="font-bold"
+              class="font-black uppercase tracking-widest text-[10px]"
             >
               <span class="hidden sm:inline">New Chat</span>
               <span class="sm:hidden">Chat</span>
@@ -72,13 +72,13 @@
 
         <!-- Secondary Controls -->
         <div
-          class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border-b dark:border-gray-800"
+          class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border-b dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30"
         >
           <div class="flex items-center gap-4 flex-wrap">
             <!-- Legend (Calendar Only) -->
             <div
               v-if="viewMode === 'calendar'"
-              class="hidden md:flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0"
+              class="hidden md:flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 shrink-0"
             >
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-green-500" />
@@ -86,41 +86,31 @@
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-blue-500" />
-                <span>From Plan</span>
+                <span>Plan</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Planned</span>
+                <span>Proposed</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-red-500" />
                 <span>Missed</span>
               </div>
-              <div class="flex items-center gap-1.5">
-                <div class="w-2 h-2 rounded-full bg-gray-400" />
-                <span>Notes</span>
-              </div>
               <div
-                class="flex items-center gap-3 border-l border-gray-300 dark:border-gray-700 pl-3"
+                class="flex items-center gap-3 border-l border-gray-300 dark:border-gray-700 pl-4 ml-1"
               >
                 <div class="flex items-center gap-1">
-                  <div class="w-2 h-2 rounded-full bg-blue-500" title="State 1: Eco" />
-                  <div class="w-2 h-2 rounded-full bg-orange-500" title="State 2: Steady" />
-                  <div class="w-2 h-2 rounded-full bg-red-500" title="State 3: Performance" />
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-500" title="State 1: Eco" />
+                  <div class="w-1.5 h-1.5 rounded-full bg-orange-500" title="State 2: Steady" />
+                  <div class="w-1.5 h-1.5 rounded-full bg-red-500" title="State 3: Performance" />
                 </div>
-                <span>Fueling</span>
-              </div>
-              <div
-                class="flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 pl-3"
-              >
-                <div class="w-4 h-1 bg-green-500 rounded-sm" />
-                <span>TSS</span>
+                <span>Fuel States</span>
               </div>
             </div>
           </div>
 
           <!-- List View Controls -->
-          <div class="flex items-center gap-4 justify-between md:justify-end overflow-x-auto">
+          <div class="flex items-center gap-3 justify-between md:justify-end overflow-x-auto">
             <UInput
               v-if="viewMode === 'list'"
               v-model="tableSearch"
@@ -128,6 +118,7 @@
               placeholder="Filter..."
               size="sm"
               class="w-48"
+              :ui="{ base: 'font-bold uppercase tracking-widest text-[10px]' }"
             />
 
             <UDropdownMenu
@@ -142,7 +133,7 @@
                 variant="outline"
                 trailing-icon="i-heroicons-chevron-down"
                 size="sm"
-                class="font-bold"
+                class="font-black uppercase tracking-widest text-[10px]"
                 aria-label="Toggle columns"
                 :disabled="columnMenuItems.length === 0"
               />
@@ -154,17 +145,19 @@
               color="neutral"
               variant="ghost"
               size="sm"
-              class="font-bold"
               @click="showCalendarSettingsModal = true"
             />
 
             <!-- View Switcher -->
-            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <div
+              class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1 shadow-inner border border-gray-200/50 dark:border-gray-700/50"
+            >
               <UButton
                 icon="i-heroicons-calendar"
                 :color="viewMode === 'calendar' ? 'primary' : 'neutral'"
                 variant="ghost"
                 size="sm"
+                class="rounded-lg"
                 @click="viewMode = 'calendar'"
               />
               <UButton
@@ -172,29 +165,33 @@
                 :color="viewMode === 'list' ? 'primary' : 'neutral'"
                 variant="ghost"
                 size="sm"
+                class="rounded-lg"
                 @click="viewMode = 'list'"
               />
             </div>
 
             <!-- Month Navigation -->
-            <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <div
+              class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 shadow-inner border border-gray-200/50 dark:border-gray-700/50"
+            >
               <UButton
                 v-if="!isCurrentMonth"
                 label="Today"
                 size="sm"
                 variant="ghost"
                 color="neutral"
-                class="font-bold hidden sm:flex"
+                class="font-black uppercase tracking-widest text-[10px] hidden sm:flex"
                 @click="goToToday"
               />
               <UButton
                 icon="i-heroicons-chevron-left"
                 variant="ghost"
                 size="sm"
+                class="rounded-lg"
                 @click="prevMonth"
               />
               <span
-                class="px-2 text-xs sm:text-sm font-semibold min-w-[80px] sm:min-w-[120px] text-center"
+                class="px-3 text-[10px] font-black uppercase tracking-widest min-w-[80px] sm:min-w-[120px] text-center"
               >
                 {{ currentMonthLabel }}
               </span>
@@ -202,6 +199,7 @@
                 icon="i-heroicons-chevron-right"
                 variant="ghost"
                 size="sm"
+                class="rounded-lg"
                 @click="nextMonth"
               />
             </div>

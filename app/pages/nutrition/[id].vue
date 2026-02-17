@@ -216,6 +216,13 @@
                 </UButton>
               </div>
             </div>
+            <UAlert
+              v-if="carbsTargetReached"
+              color="warning"
+              variant="soft"
+              icon="i-heroicons-information-circle"
+              :description="`Daily carb target reached (${Math.round(nutrition.carbs || 0)}/${Math.round(nutrition.carbsGoal || 0)}g). Remaining window carbs are timing-focused and optional.`"
+            />
             <NutritionFuelingTimeline
               :windows="timeline"
               :is-locked="nutrition.isManualLock"
@@ -376,6 +383,12 @@
 
   const goalAdjustment = computed(() => {
     return nutritionSettings.value?.targetAdjustmentPercent || 0
+  })
+
+  const carbsTargetReached = computed(() => {
+    const actual = Number(nutrition.value?.carbs || 0)
+    const target = Number(nutrition.value?.carbsGoal || 0)
+    return target > 0 && actual >= target
   })
 
   const energyPoints = computed(() => {
