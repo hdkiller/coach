@@ -2,7 +2,7 @@
   <UModal
     v-model:open="isOpen"
     :title="metricInfo?.label || 'Metric Detail'"
-    :ui="{ width: 'sm:max-w-2xl' }"
+    :ui="{ content: 'sm:max-w-2xl' }"
   >
     <template #body>
       <div v-if="metricInfo" class="space-y-6">

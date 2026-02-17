@@ -250,8 +250,8 @@
 
   const selectedScenarioId = ref(scenarios[1]?.id ?? 'pre-60')
 
-  const activeScenario = computed(() => {
-    return scenarios.find((scenario) => scenario.id === selectedScenarioId.value) ?? scenarios[0]
+  const activeScenario = computed<Scenario>(() => {
+    return scenarios.find((scenario) => scenario.id === selectedScenarioId.value) || scenarios[0]!
   })
 
   const timelineLabels = ['06:00', '09:00', '12:00', '15:00', '18:00', '21:00']

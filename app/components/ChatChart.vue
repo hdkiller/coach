@@ -3,31 +3,31 @@
     class="my-4 bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
   >
     <div v-if="chartType === 'line'" style="height: 250px">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'area'" style="height: 250px">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'bar'" style="height: 250px">
-      <Bar :data="chartData" :options="chartOptions" />
+      <Bar :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'stackedBar'" style="height: 250px">
-      <Bar :data="chartData" :options="chartOptions" />
+      <Bar :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'doughnut'" style="height: 250px">
-      <Doughnut :data="chartData" :options="chartOptions" />
+      <Doughnut :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'radar'" style="height: 250px">
-      <Radar :data="chartData" :options="chartOptions" />
+      <Radar :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'scatter'" style="height: 250px">
-      <Scatter :data="chartData" :options="chartOptions" />
+      <Scatter :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'bubble'" style="height: 250px">
-      <Bubble :data="chartData" :options="chartOptions" />
+      <Bubble :data="chartData as any" :options="chartOptions" />
     </div>
     <div v-else-if="chartType === 'mixed'" style="height: 250px">
-      <Bar :data="chartData" :options="chartOptions" />
+      <Bar :data="chartData as any" :options="chartOptions" />
     </div>
   </div>
 </template>

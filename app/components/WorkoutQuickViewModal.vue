@@ -324,8 +324,8 @@
               }
             ]"
             :ui="{
-              item: { base: 'text-[10px] font-black uppercase tracking-widest' },
-              header: { base: 'hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl px-2' }
+              item: 'text-[10px] font-black uppercase tracking-widest',
+              header: 'hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl px-2'
             }"
           >
             <template #body>
