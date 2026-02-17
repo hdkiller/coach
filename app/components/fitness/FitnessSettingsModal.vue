@@ -58,11 +58,15 @@
     bp: { type: 'line', visible: true }
   }
 
-  // Local state for the form, initialized from store
+  // Local state for the form, initialized from store with defaults for each key
   const settings = ref(
-    JSON.parse(
-      JSON.stringify(userStore.user?.dashboardSettings?.fitnessCharts || defaultSettings)
-    )
+    Object.keys(defaultSettings).reduce((acc, key) => {
+      acc[key] = {
+        ...defaultSettings[key as keyof typeof defaultSettings],
+        ...(userStore.user?.dashboardSettings?.fitnessCharts?.[key] || {})
+      }
+      return acc
+    }, {} as any)
   )
 
   // Update local state when modal opens or user store changes
@@ -70,9 +74,13 @@
     () => isOpen.value,
     (open) => {
       if (open) {
-        settings.value = JSON.parse(
-          JSON.stringify(userStore.user?.dashboardSettings?.fitnessCharts || defaultSettings)
-        )
+        settings.value = Object.keys(defaultSettings).reduce((acc, key) => {
+          acc[key] = {
+            ...defaultSettings[key as keyof typeof defaultSettings],
+            ...(userStore.user?.dashboardSettings?.fitnessCharts?.[key] || {})
+          }
+          return acc
+        }, {} as any)
       }
     }
   )

@@ -724,12 +724,12 @@
   const activeMetricSettings = ref<{ key: string; title: string } | null>(null)
 
   const defaultChartSettings: any = {
-    recovery: { type: 'line', visible: true },
-    sleep: { type: 'bar', visible: true },
-    hrv: { type: 'line', visible: true },
-    restingHr: { type: 'line', visible: true },
-    weight: { type: 'line', visible: true },
-    bp: { type: 'line', visible: true }
+    recovery: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
+    sleep: { type: 'bar', visible: true, smooth: true, showPoints: false, opacity: 0.8 },
+    hrv: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
+    restingHr: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
+    weight: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
+    bp: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 }
   }
 
   const chartSettings = computed(() => {
@@ -997,23 +997,25 @@
       new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     )
 
+    const settings = chartSettings.value.recovery || defaultChartSettings.recovery
+
     const datasets: any[] = [
       {
-        type: chartSettings.value.recovery?.type || 'line',
+        type: settings.type || 'line',
         label: 'Recovery Score',
         data: recentWellness.map((w) => w.recoveryScore),
         borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.5)',
-        tension: 0.4,
+        backgroundColor: `rgba(34, 197, 94, ${settings.opacity ?? 0.5})`,
+        tension: settings.smooth ? 0.4 : 0,
         borderWidth: 2,
-        pointRadius: 0,
+        pointRadius: settings.showPoints ? 3 : 0,
         pointHoverRadius: 6,
-        fill: false
+        fill: settings.type === 'line' ? 'origin' : false
       }
     ]
 
     // Add 7d average if enabled
-    if (chartSettings.value.recovery?.showAverage) {
+    if (settings.showAverage) {
       const avgData = recentWellness.map((_, index) => {
         const start = Math.max(0, index - 6)
         const window = recentWellness.slice(start, index + 1)
@@ -1030,7 +1032,21 @@
         borderDash: [5, 5],
         borderWidth: 2,
         pointRadius: 0,
-        tension: 0.4,
+        tension: settings.smooth ? 0.4 : 0,
+        fill: false
+      })
+    }
+
+    // Target Line
+    if (settings.showTarget && settings.targetValue !== undefined) {
+      datasets.push({
+        type: 'line',
+        label: 'Target',
+        data: new Array(labels.length).fill(settings.targetValue),
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderDash: [2, 2],
+        borderWidth: 1,
+        pointRadius: 0,
         fill: false
       })
     }
@@ -1040,6 +1056,103 @@
       datasets
     }
   })
+
+  // Helper to build datasets based on per-chart settings
+  function getChartDataset(key: string, data: any[], color: string, label: string) {
+    const settings = chartSettings.value[key] || defaultChartSettings[key] || {}
+    const datasets: any[] = [
+      {
+        type: settings.type || 'line',
+        label,
+        data,
+        borderColor: color,
+        backgroundColor: color.replace('rgb', 'rgba').replace(')', `, ${settings.opacity ?? 0.5})`),
+        tension: settings.smooth ? 0.4 : 0,
+        borderWidth: 2,
+        pointRadius: settings.showPoints ? 3 : 0,
+        pointHoverRadius: 6,
+        fill: settings.type === 'line' ? 'origin' : false
+      }
+    ]
+
+    // 7d Rolling Average
+    if (settings.show7dAvg) {
+      const avgData = data.map((_, index) => {
+        const start = Math.max(0, index - 6)
+        const window = data.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr, 0)
+        return sum / window.length
+      })
+
+      datasets.push({
+        type: 'line',
+        label: '7d Avg',
+        data: avgData,
+        borderColor: color.replace('rgb', 'rgba').replace(')', ', 0.4)'),
+        backgroundColor: 'transparent',
+        borderDash: [5, 5],
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: settings.smooth ? 0.4 : 0,
+        fill: false
+      })
+    }
+
+    // 30d Rolling Average (Baseline)
+    if (settings.show30dAvg) {
+      const avgData = data.map((_, index) => {
+        const start = Math.max(0, index - 29)
+        const window = data.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr, 0)
+        return sum / window.length
+      })
+
+      datasets.push({
+        type: 'line',
+        label: '30d Avg',
+        data: avgData,
+        borderColor: color.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+        backgroundColor: 'transparent',
+        borderDash: [2, 2],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: settings.smooth ? 0.4 : 0,
+        fill: false
+      })
+    }
+
+    // Median
+    if (settings.showMedian) {
+      const sorted = [...data].sort((a, b) => a - b)
+      const mid = Math.floor(sorted.length / 2)
+      const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+
+      datasets.push({
+        type: 'line',
+        label: 'Median',
+        data: new Array(data.length).fill(median),
+        borderColor: 'rgba(148, 163, 184, 0.4)',
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false
+      })
+    }
+
+    if (settings.showTarget && settings.targetValue !== undefined) {
+      datasets.push({
+        type: 'line',
+        label: 'Target',
+        data: new Array(data.length).fill(settings.targetValue),
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderDash: [2, 2],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false
+      })
+    }
+
+    return datasets
+  }
 
   const sleepTrendData = computed(() => {
     const recentWellness = [...filteredWellness.value]
@@ -1052,15 +1165,12 @@
 
     return {
       labels,
-      datasets: [
-        {
-          label: 'Hours',
-          data: recentWellness.map((w) => w.sleepHours),
-          backgroundColor: 'rgba(59, 130, 246, 0.8)',
-          borderColor: 'rgb(59, 130, 246)',
-          borderWidth: 2
-        }
-      ]
+      datasets: getChartDataset(
+        'sleep',
+        recentWellness.map((w) => w.sleepHours),
+        'rgb(59, 130, 246)',
+        'Hours'
+      )
     }
   })
 
@@ -1075,19 +1185,12 @@
 
     return {
       labels,
-      datasets: [
-        {
-          label: 'HRV (rMSSD)',
-          data: recentWellness.map((w) => w.hrv),
-          borderColor: 'rgb(168, 85, 247)',
-          backgroundColor: 'rgba(168, 85, 247, 0.5)',
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          fill: false
-        }
-      ]
+      datasets: getChartDataset(
+        'hrv',
+        recentWellness.map((w) => w.hrv),
+        'rgb(168, 85, 247)',
+        'HRV (rMSSD)'
+      )
     }
   })
 
@@ -1102,19 +1205,12 @@
 
     return {
       labels,
-      datasets: [
-        {
-          label: 'Resting HR (bpm)',
-          data: recentWellness.map((w) => w.restingHr),
-          borderColor: 'rgb(239, 68, 68)',
-          backgroundColor: 'rgba(239, 68, 68, 0.5)',
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          fill: false
-        }
-      ]
+      datasets: getChartDataset(
+        'restingHr',
+        recentWellness.map((w) => w.restingHr),
+        'rgb(239, 68, 68)',
+        'Resting HR (bpm)'
+      )
     }
   })
 
@@ -1129,19 +1225,12 @@
 
     return {
       labels,
-      datasets: [
-        {
-          label: 'Weight (kg)',
-          data: recentWellness.map((w) => w.weight),
-          borderColor: 'rgb(249, 115, 22)',
-          backgroundColor: 'rgba(249, 115, 22, 0.5)',
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          fill: false
-        }
-      ]
+      datasets: getChartDataset(
+        'weight',
+        recentWellness.map((w) => w.weight),
+        'rgb(249, 115, 22)',
+        'Weight (kg)'
+      )
     }
   })
 
@@ -1154,32 +1243,51 @@
       new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     )
 
+    const datasets: any[] = []
+    const settings = chartSettings.value.bp || defaultChartSettings.bp || {}
+
+    datasets.push({
+      type: settings.type || 'line',
+      label: 'Systolic',
+      data: recentWellness.map((w) => w.systolic),
+      borderColor: 'rgb(236, 72, 153)',
+      backgroundColor: `rgba(236, 72, 153, ${settings.opacity ?? 0.5})`,
+      tension: settings.smooth ? 0.4 : 0,
+      borderWidth: 2,
+      pointRadius: settings.showPoints ? 3 : 0,
+      pointHoverRadius: 6,
+      fill: settings.type === 'line' ? 'origin' : false
+    })
+
+    datasets.push({
+      type: settings.type || 'line',
+      label: 'Diastolic',
+      data: recentWellness.map((w) => w.diastolic),
+      borderColor: 'rgb(14, 165, 233)',
+      backgroundColor: `rgba(14, 165, 233, ${settings.opacity ?? 0.5})`,
+      tension: settings.smooth ? 0.4 : 0,
+      borderWidth: 2,
+      pointRadius: settings.showPoints ? 3 : 0,
+      pointHoverRadius: 6,
+      fill: settings.type === 'line' ? 'origin' : false
+    })
+
+    if (settings.showTarget && settings.targetValue !== undefined) {
+      datasets.push({
+        type: 'line',
+        label: 'Target',
+        data: new Array(labels.length).fill(settings.targetValue),
+        borderColor: 'rgba(148, 163, 184, 0.5)',
+        borderDash: [5, 5],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false
+      })
+    }
+
     return {
       labels,
-      datasets: [
-        {
-          label: 'Systolic',
-          data: recentWellness.map((w) => w.systolic),
-          borderColor: 'rgb(236, 72, 153)',
-          backgroundColor: 'rgba(236, 72, 153, 0.5)',
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          fill: false
-        },
-        {
-          label: 'Diastolic',
-          data: recentWellness.map((w) => w.diastolic),
-          borderColor: 'rgb(14, 165, 233)',
-          backgroundColor: 'rgba(14, 165, 233, 0.5)',
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          fill: false
-        }
-      ]
+      datasets
     }
   })
 
@@ -1233,6 +1341,21 @@
 
   function getChartOptions(key: string, type: 'line' | 'bar') {
     const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
+    const settings = chartSettings.value[key] || defaultChartSettings[key] || {}
+
+    // Show legend if any analysis overlays or multi-datasets are active
+    const hasOverlays = settings.show7dAvg || settings.show30dAvg || settings.showMedian || settings.showTarget || key === 'bp'
+
+    opts.plugins.legend = {
+      display: !!hasOverlays,
+      position: 'bottom',
+      labels: {
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' as const },
+        usePointStyle: true,
+        boxWidth: 6
+      }
+    }
 
     // Set common defaults for bars
     if (type === 'bar') {
@@ -1241,17 +1364,6 @@
 
     // Metric specific overrides
     if (key === 'recovery') {
-      const showAvg = chartSettings.value.recovery?.showAverage
-      opts.plugins.legend = {
-        display: !!showAvg,
-        position: 'bottom',
-        labels: {
-          color: '#94a3b8',
-          font: { size: 10, weight: 'bold' as const },
-          usePointStyle: true,
-          boxWidth: 6
-        }
-      }
       opts.plugins.tooltip.callbacks = {
         label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(0)}%`
       }
@@ -1259,35 +1371,24 @@
       opts.scales.y.max = 100
     } else if (key === 'sleep') {
       opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `Sleep: ${context.parsed.y.toFixed(1)}h`
+        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(1)}h`
       }
       opts.scales.y.max = 12
     } else if (key === 'hrv') {
       opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `HRV: ${context.parsed.y.toFixed(0)}ms`
+        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(0)}ms`
       }
       opts.scales.y.beginAtZero = true
     } else if (key === 'restingHr') {
       opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `HR: ${context.parsed.y.toFixed(0)} bpm`
+        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(0)} bpm`
       }
       opts.scales.y.beginAtZero = false
     } else if (key === 'weight') {
       opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `Weight: ${context.parsed.y.toFixed(1)}kg`
+        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(1)}kg`
       }
       opts.scales.y.beginAtZero = false
-    } else if (key === 'bp') {
-      opts.plugins.legend = {
-        display: true,
-        position: 'bottom',
-        labels: {
-          color: '#94a3b8',
-          font: { size: 10, weight: 'bold' as const },
-          usePointStyle: true,
-          boxWidth: 6
-        }
-      }
     }
 
     return opts
