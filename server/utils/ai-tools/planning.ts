@@ -128,7 +128,7 @@ const resolvePatchParent = (root: any, pathSegments: string[]) => {
   let parent = root
 
   for (let i = 0; i < pathSegments.length - 1; i++) {
-    const segment = pathSegments[i]
+    const segment = pathSegments[i]!
     if (segment === '__proto__' || segment === 'constructor' || segment === 'prototype') {
       throw new Error(`Unsafe patch path segment "${segment}"`)
     }
@@ -152,7 +152,7 @@ const resolvePatchParent = (root: any, pathSegments: string[]) => {
     parent = parent[segment]
   }
 
-  return { parent, key: pathSegments[pathSegments.length - 1] }
+  return { parent, key: pathSegments[pathSegments.length - 1]! }
 }
 
 const applyStructurePatchOperation = (structuredWorkout: any, operation: any) => {

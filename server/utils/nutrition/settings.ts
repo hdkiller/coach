@@ -28,6 +28,7 @@ export const DEFAULT_NUTRITION_SETTINGS: Omit<
   fuelState2Max: 6.5,
   fuelState3Min: 7.0,
   fuelState3Max: 10.0,
+  metabolicFloor: 0.6,
   enabledSupplements: [],
   goalProfile: 'MAINTAIN',
   targetAdjustmentPercent: 0.0,
