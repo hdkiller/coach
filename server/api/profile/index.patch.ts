@@ -121,7 +121,7 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error) {
     console.error('[PATCH /api/profile] Update failed:', {
-      user: userEmail,
+      user: user.email,
       error: error,
       payload: data
     })

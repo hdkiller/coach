@@ -110,14 +110,40 @@ export default defineEventHandler(async (event) => {
   // Process each file
   for (const filePart of fileParts) {
     try {
-      // ... (existing code for hash and file creation)
+      // Calculate hash to detect duplicates
+      const hash = crypto.createHash('sha256').update(filePart.data).digest('hex')
+
+      // Check if file already exists for this user
+      const existing = await prisma.fitFile.findFirst({
+        where: {
+          userId: user.id,
+          hash: hash
+        }
+      })
+
+      if (existing) {
+        results.duplicates++
+        continue
+      }
+
+      // Create fit file record
+      const fitFile = await prisma.fitFile.create({
+        data: {
+          userId: user.id,
+          filename: filePart.filename || 'upload.fit',
+          fileData: Buffer.from(filePart.data),
+          hash: hash
+        }
+      })
+
+      const fitFileId = fitFile.id
 
       // Trigger ingestion task
       await tasks.trigger(
         'ingest-fit-file',
         {
           userId: user.id,
-          fitFileId: fitFileId!,
+          fitFileId: fitFileId,
           rawJson,
           source // Pass the source attribution
         },
