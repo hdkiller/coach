@@ -1,7 +1,8 @@
 <template>
   <div class="space-y-8">
-    <!-- Billing Interval Toggle -->
-    <div class="flex justify-center">
+    <!-- Toggles Row -->
+    <div class="flex flex-wrap justify-center items-center gap-4">
+      <!-- Billing Interval Toggle -->
       <div class="inline-flex items-center gap-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
         <button
           class="px-4 py-2 rounded-md text-sm font-medium transition-all"
@@ -29,6 +30,32 @@
           >
             Save 33%
           </span>
+        </button>
+      </div>
+
+      <!-- Currency Toggle -->
+      <div class="inline-flex items-center gap-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+        <button
+          class="px-4 py-2 rounded-md text-sm font-medium transition-all"
+          :class="
+            currency === 'usd'
+              ? 'bg-white dark:bg-gray-900 shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          "
+          @click="setCurrency('usd')"
+        >
+          $ USD
+        </button>
+        <button
+          class="px-4 py-2 rounded-md text-sm font-medium transition-all"
+          :class="
+            currency === 'eur'
+              ? 'bg-white dark:bg-gray-900 shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+          "
+          @click="setCurrency('eur')"
+        >
+          € EUR
         </button>
       </div>
     </div>
@@ -70,7 +97,7 @@
 
           <div class="mt-4 flex items-baseline gap-1">
             <span class="text-4xl font-extrabold">{{
-              formatPrice(getPrice(plan, billingInterval))
+              formatPrice(getPrice(plan, billingInterval), currency)
             }}</span>
 
             <span class="text-sm text-gray-500 dark:text-gray-400">
@@ -146,6 +173,7 @@
   const { status } = useAuth()
   const userStore = useUserStore()
   const { createCheckoutSession, openCustomerPortal } = useStripe()
+  const { currency, setCurrency } = useCurrency()
   const config = useRuntimeConfig()
 
   const billingInterval = ref<BillingInterval>('monthly')
@@ -211,7 +239,7 @@
     }
 
     // Logged in - start Stripe checkout
-    const priceId = getStripePriceId(plan, billingInterval.value)
+    const priceId = getStripePriceId(plan, billingInterval.value, currency.value)
     if (!priceId) {
       console.error('No Stripe price ID found for plan:', plan.key, billingInterval.value)
       return

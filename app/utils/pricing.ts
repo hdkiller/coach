@@ -76,10 +76,11 @@ export function calculateAnnualSavings(plan: PricingPlan): number {
 /**
  * Format price for display
  */
-export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatPrice(price: number, currency: 'usd' | 'eur' = 'usd'): string {
+  const locale = currency === 'eur' ? 'de-DE' : 'en-US'
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'USD',
+    currency: currency.toUpperCase(),
     minimumFractionDigits: price % 1 === 0 ? 0 : 2
   }).format(price)
 }
@@ -92,21 +93,32 @@ export function getPrice(plan: PricingPlan, interval: BillingInterval): number {
 }
 
 /**
- * Get Stripe price ID for a plan and interval
+ * Get Stripe price ID for a plan, interval, and currency
  */
-export function getStripePriceId(plan: PricingPlan, interval: BillingInterval): string | undefined {
+export function getStripePriceId(
+  plan: PricingPlan,
+  interval: BillingInterval,
+  currency: 'usd' | 'eur' = 'usd'
+): string | undefined {
   const config = useRuntimeConfig()
+  const eur = currency === 'eur'
 
   if (plan.key === 'supporter') {
-    return interval === 'monthly'
-      ? config.public.stripeSupporterMonthlyPriceId
+    if (interval === 'monthly') {
+      return eur
+        ? config.public.stripeSupporterMonthlyEurPriceId
+        : config.public.stripeSupporterMonthlyPriceId
+    }
+    return eur
+      ? config.public.stripeSupporterAnnualEurPriceId
       : config.public.stripeSupporterAnnualPriceId
   }
 
   if (plan.key === 'pro') {
-    return interval === 'monthly'
-      ? config.public.stripeProMonthlyPriceId
-      : config.public.stripeProAnnualPriceId
+    if (interval === 'monthly') {
+      return eur ? config.public.stripeProMonthlyEurPriceId : config.public.stripeProMonthlyPriceId
+    }
+    return eur ? config.public.stripeProAnnualEurPriceId : config.public.stripeProAnnualPriceId
   }
 
   return undefined

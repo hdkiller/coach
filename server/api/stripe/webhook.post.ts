@@ -56,7 +56,8 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   console.log(`Resolved tier '${tier}' for product '${productId}'`)
 
   const status = mapStripeStatus(subscription.status)
-  const periodEnd = new Date((subscription as any).current_period_end * 1000)
+  const periodEndTimestamp = subscription.items.data[0]?.current_period_end
+  const periodEnd = periodEndTimestamp ? new Date(periodEndTimestamp * 1000) : null
   // Update user in database (Skip if user is a CONTRIBUTOR)
   await prisma.user.updateMany({
     where: {
@@ -127,8 +128,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get the raw body
-  const body = await readRawBody(event)
+  // Get the raw body as a Buffer (required for Stripe signature verification)
+  const body = await readRawBody(event, false)
   if (!body) {
     throw createError({
       statusCode: 400,

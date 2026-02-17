@@ -66,17 +66,14 @@ export default defineEventHandler(async (event) => {
     const tier = getSubscriptionTier(productId)
     const status = mapStripeStatus(activeSub.status)
 
-    // Safety check for date
-    let periodEnd: Date | null = null
-    if ((activeSub as any).current_period_end) {
-      periodEnd = new Date((activeSub as any).current_period_end * 1000)
-    }
+    const periodEndTimestamp = activeSub.items.data[0]?.current_period_end
+    const periodEnd = periodEndTimestamp ? new Date(periodEndTimestamp * 1000) : null
 
     console.log(`Syncing subscription for user ${session.user.id}:`, {
       subId: activeSub.id,
       status: activeSub.status,
-      periodEndRaw: (activeSub as any).current_period_end,
-      periodEndParsed: periodEnd
+      periodEndTimestamp,
+      periodEnd
     })
     await prisma.user.update({
       where: { id: session.user.id },

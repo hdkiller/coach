@@ -29,9 +29,18 @@
   const config = useRuntimeConfig()
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
 
-  // Always refresh user data on mount to ensure latest subscription status
-  onMounted(() => {
-    userStore.fetchUser()
+  // Always refresh user data on mount to ensure latest subscription status.
+  // After a successful checkout, also sync with Stripe so the webhook delay
+  // doesn't leave the user looking at the upgrade plans.
+  onMounted(async () => {
+    if (showSuccessMessage.value) {
+      try {
+        await $fetch('/api/stripe/sync', { method: 'POST' })
+      } catch {
+        // Sync is best-effort; ignore errors
+      }
+    }
+    await userStore.fetchUser()
   })
 
   // Computed
@@ -386,7 +395,7 @@
       <!-- 1. Pricing & Comparison -->
       <!-- Show ONLY if NOT premium (or in modal) -->
       <div
-        v-if="!isPremium"
+        v-if="!isPremium && !showSuccessMessage"
         class="space-y-4 order-2 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
       >
         <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
