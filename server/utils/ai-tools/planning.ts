@@ -89,6 +89,10 @@ const normalizeStructuredWorkoutRepetition = (structuredWorkout: any) => {
   return normalized
 }
 
+const getPendingSyncStatus = (syncStatus: string | null | undefined) => {
+  return syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING'
+}
+
 const patchOperationSchema = z.object({
   op: z.enum(['add', 'replace', 'remove']),
   path: z
@@ -589,24 +593,27 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
+      const existing = await plannedWorkoutRepository.getById(args.workout_id, userId, {
+        select: { id: true, syncStatus: true }
+      })
+      if (!existing) return { success: false, error: 'Planned workout not found' }
+
+      const nextSyncStatus = getPendingSyncStatus((existing as any).syncStatus)
       const data: any = {}
-      if (args.title) data.title = args.title
-      if (args.description) data.description = args.description
-      if (args.type) data.type = args.type
-      if (args.time_of_day) data.startTime = args.time_of_day
-      if (args.duration_minutes) {
+      if (args.title !== undefined) data.title = args.title
+      if (args.description !== undefined) data.description = args.description
+      if (args.type !== undefined) data.type = args.type
+      if (args.time_of_day !== undefined) data.startTime = args.time_of_day
+      if (args.duration_minutes !== undefined) {
         data.durationSec = args.duration_minutes * 60
       }
-      if (args.tss) data.tss = args.tss
+      if (args.tss !== undefined) data.tss = args.tss
       if (args.date) {
-        // Preserve time if possible, otherwise default
-        const existing = await plannedWorkoutRepository.getById(args.workout_id, userId, {
-          select: { date: true }
-        })
-        if (existing) {
-          data.date = new Date(`${args.date}T00:00:00Z`)
-        }
+        data.date = new Date(`${args.date}T00:00:00Z`)
       }
+      data.modifiedLocally = true
+      data.syncStatus = nextSyncStatus
+      data.syncError = null
 
       const workout = await plannedWorkoutRepository.update(args.workout_id, userId, data)
 
@@ -625,7 +632,120 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         console.error('Failed to trigger structured workout regeneration:', e)
       }
 
-      return { success: true, workout_id: workout.id, status: 'QUEUED_FOR_SYNC' }
+      return {
+        success: true,
+        workout_id: workout.id,
+        status: nextSyncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'QUEUED_FOR_SYNC'
+      }
+    }
+  }),
+
+  reschedule_planned_workout: tool({
+    description:
+      'Reschedule an existing planned workout to a new date/time. Prefer this over delete + create when moving sessions.',
+    inputSchema: z.object({
+      workout_id: z.string().optional().describe('Planned workout ID if known'),
+      current_date: z
+        .string()
+        .optional()
+        .describe('Current workout date YYYY-MM-DD (used for lookup when workout_id is unknown)'),
+      title_contains: z
+        .string()
+        .optional()
+        .describe('Optional title text used to disambiguate lookup'),
+      current_time_of_day: z
+        .string()
+        .optional()
+        .describe('Optional current time HH:mm used to disambiguate lookup'),
+      new_date: z.string().describe('Target date YYYY-MM-DD'),
+      new_time_of_day: z.string().optional().describe('Target time HH:mm (optional)')
+    }),
+    needsApproval: async () => aiSettings.aiRequireToolApproval,
+    execute: async (args) => {
+      let workoutId = args.workout_id
+
+      if (!workoutId) {
+        if (!args.current_date) {
+          return {
+            success: false,
+            error:
+              'workout_id is required unless you provide current_date for lookup before rescheduling.'
+          }
+        }
+
+        const candidates = await plannedWorkoutRepository.list(userId, {
+          startDate: getStartOfLocalDateUTC(timezone, args.current_date),
+          endDate: getEndOfLocalDateUTC(timezone, args.current_date),
+          limit: 50
+        })
+
+        const titleQuery = args.title_contains?.trim().toLowerCase()
+        const filtered = candidates.filter((candidate) => {
+          if (
+            titleQuery &&
+            !candidate.title.toLowerCase().includes(titleQuery) &&
+            !(candidate.description || '').toLowerCase().includes(titleQuery)
+          ) {
+            return false
+          }
+          if (args.current_time_of_day && candidate.startTime !== args.current_time_of_day) {
+            return false
+          }
+          return true
+        })
+
+        if (filtered.length === 0) {
+          return {
+            success: false,
+            error: 'No matching planned workout found for the provided lookup criteria.'
+          }
+        }
+
+        if (filtered.length > 1) {
+          return {
+            success: false,
+            error: 'Multiple planned workouts matched. Please provide workout_id.',
+            matches: filtered.slice(0, 5).map((w) => ({
+              workout_id: w.id,
+              date: formatDateUTC(w.date),
+              time_of_day: w.startTime,
+              title: w.title
+            }))
+          }
+        }
+
+        workoutId = filtered[0]!.id
+      }
+
+      const existing = await plannedWorkoutRepository.getById(workoutId, userId, {
+        select: { id: true, date: true, startTime: true, title: true, syncStatus: true }
+      })
+      if (!existing) return { success: false, error: 'Planned workout not found' }
+
+      const nextSyncStatus = getPendingSyncStatus((existing as any).syncStatus)
+      const updateData: any = {
+        date: new Date(`${args.new_date}T00:00:00Z`),
+        modifiedLocally: true,
+        syncStatus: nextSyncStatus,
+        syncError: null
+      }
+      if (args.new_time_of_day !== undefined) {
+        updateData.startTime = args.new_time_of_day
+      }
+
+      const updated = await plannedWorkoutRepository.update(existing.id, userId, updateData)
+
+      return {
+        success: true,
+        workout_id: updated.id,
+        title: existing.title,
+        previous_date: formatDateUTC(existing.date),
+        previous_time_of_day: existing.startTime,
+        new_date: formatDateUTC(updated.date),
+        new_time_of_day: updated.startTime,
+        status: nextSyncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'QUEUED_FOR_SYNC',
+        message: 'Planned workout rescheduled.'
+      }
     }
   }),
 
