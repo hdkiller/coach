@@ -13,7 +13,7 @@
         <!-- Workout Details -->
         <div class="space-y-4">
           <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-            Execution Details
+            Workout Details
           </h4>
           <div
             class="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden"
@@ -136,9 +136,10 @@
         </div>
 
         <!-- Description -->
+
         <div v-if="plannedWorkout.description" class="space-y-4">
           <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-            Mission Parameters
+            Workout Description
           </h4>
           <div
             class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800"
@@ -167,7 +168,7 @@
               <h4
                 class="text-[10px] font-black uppercase tracking-widest text-blue-900 dark:text-blue-300 mb-1"
               >
-                Strategy Guidance
+                Coach's Notes
               </h4>
               <p
                 class="text-sm text-blue-800 dark:text-blue-200 font-medium leading-relaxed italic"
@@ -185,7 +186,7 @@
         >
           <div class="flex justify-between items-center mb-6">
             <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-              Session Profile
+              Workout Structure
             </h4>
             <UButton
               size="xs"
@@ -224,7 +225,7 @@
             class="font-black uppercase tracking-widest text-[10px] px-3"
           >
             <UIcon name="i-heroicons-check-circle" class="w-4 h-4 mr-1.5" />
-            Integrity Check Passed
+            Workout Completed
           </UBadge>
         </div>
 
@@ -491,11 +492,7 @@
   </UModal>
 
   <!-- Confirm Mark Complete Modal -->
-  <UModal
-    v-model:open="showMarkCompleteConfirm"
-    title="Mark as Done"
-    description="Are you sure you want to mark this as done without linking an activity?"
-  >
+  <UModal v-model:open="showMarkCompleteConfirm" title="Mark as Done">
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showMarkCompleteConfirm = false">
@@ -509,11 +506,7 @@
   </UModal>
 
   <!-- Delete Confirmation Modal -->
-  <UModal
-    v-model:open="showDeleteConfirm"
-    title="Delete Planned Workout"
-    description="Are you sure you want to delete this planned workout?"
-  >
+  <UModal v-model:open="showDeleteConfirm" title="Delete Planned Workout">
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showDeleteConfirm = false">
@@ -525,12 +518,7 @@
   </UModal>
 
   <!-- Start Time Modal -->
-  <UModal
-    v-if="showTimeModal"
-    v-model:open="showTimeModal"
-    title="Set Start Time"
-    description="Adjust the starting time for this workout."
-  >
+  <UModal v-if="showTimeModal" v-model:open="showTimeModal" title="Set Start Time">
     <template #body>
       <div class="p-6 flex flex-col gap-5">
         <div class="w-full">

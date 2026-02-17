@@ -1,9 +1,5 @@
 <template>
-  <UModal
-    v-model:open="isOpen"
-    title="Workout Overview"
-    description="View detailed statistics for this workout"
-  >
+  <UModal v-model:open="isOpen" title="Workout Overview">
     <template #actions>
       <div class="flex items-center gap-1">
         <UButton
@@ -29,30 +25,35 @@
     <span class="hidden" />
 
     <template #body>
-      <div v-if="workout" class="space-y-6">
+      <div v-if="workout" class="space-y-8">
         <!-- Header Info -->
         <div class="flex items-start justify-between">
           <div>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ workout.title }}</h3>
-            <div class="flex items-center gap-2 mt-1 text-sm text-gray-500 dark:text-gray-400">
-              <div class="flex items-center gap-1">
-                <UIcon :name="getActivityIcon(workout.type)" class="w-4 h-4" />
+            <h3 class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+              {{ workout.title }}
+            </h3>
+            <div
+              class="flex items-center gap-3 mt-1.5 text-[10px] text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest"
+            >
+              <div class="flex items-center gap-1.5">
+                <UIcon :name="getActivityIcon(workout.type)" class="w-3.5 h-3.5 text-primary-500" />
                 <span>{{ workout.type || 'Activity' }}</span>
               </div>
-              <span>•</span>
+              <span class="opacity-30">•</span>
               <span>{{ formatDateTime(workout.date) }}</span>
             </div>
-            <!-- Data Capability Icons moved here -->
-            <div class="flex items-center gap-1.5 mt-2">
+            <!-- Data Capability Icons -->
+            <div class="flex items-center gap-2 mt-3">
               <UTooltip
                 v-for="badge in getDataBadges(workout)"
                 :key="badge.label"
                 :text="badge.label"
               >
-                <UIcon
-                  :name="badge.icon"
-                  class="w-4 h-4 opacity-50 hover:opacity-100 transition-opacity"
-                />
+                <div
+                  class="p-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700"
+                >
+                  <UIcon :name="badge.icon" class="w-3.5 h-3.5 text-gray-400" />
+                </div>
               </UTooltip>
             </div>
           </div>
@@ -78,123 +79,107 @@
               :color="workout.source === 'manual' ? 'warning' : 'neutral'"
               variant="subtle"
               size="xs"
+              class="font-black uppercase tracking-widest text-[9px]"
             >
-              {{ workout.source.toUpperCase() }}
+              {{ workout.source }}
             </UBadge>
           </div>
         </div>
 
         <!-- Clean Stats Grid (Top Level) -->
-        <div class="pt-2 pb-4">
-          <dl class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
-            <div v-if="workout.durationSec">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+        <div
+          class="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm"
+        >
+          <div
+            class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y divide-gray-50 dark:divide-gray-800 border-b border-gray-50 dark:divide-gray-800"
+          >
+            <div v-if="workout.durationSec" class="p-4 bg-gray-50/30 dark:bg-gray-900/30">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >Duration</span
               >
-                Duration
-              </dt>
-              <dd class="mt-1 text-sm font-bold text-gray-900 dark:text-white">
-                {{ formatDuration(workout.durationSec) }}
-              </dd>
+              <span class="text-base font-black text-gray-900 dark:text-white tabular-nums">{{
+                formatDuration(workout.durationSec)
+              }}</span>
             </div>
 
-            <div v-if="workout.tss">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            <div v-if="workout.tss" class="p-4 bg-gray-50/30 dark:bg-gray-900/30">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >TSS</span
               >
-                TSS
-              </dt>
-              <dd class="mt-1 text-sm font-bold text-gray-900 dark:text-white">
-                {{ Math.round(workout.tss) }}
-              </dd>
+              <span
+                class="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums"
+                >{{ Math.round(workout.tss) }}</span
+              >
             </div>
 
-            <div v-if="workout.averageHr">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            <div v-if="workout.averageHr" class="p-4 bg-gray-50/30 dark:bg-gray-900/30 border-t-0">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >Avg HR</span
               >
-                Avg HR
-              </dt>
-              <dd
-                class="mt-1 text-sm font-bold text-gray-900 dark:text-white flex items-baseline gap-1"
+              <span class="text-base font-black text-pink-600 dark:text-pink-400 tabular-nums"
+                >{{ workout.averageHr
+                }}<span class="text-[9px] ml-0.5 opacity-50 uppercase">bpm</span></span
               >
-                {{ workout.averageHr }}
-                <span class="text-[10px] font-normal text-gray-500 uppercase">bpm</span>
-              </dd>
             </div>
 
-            <div v-if="workout.kilojoules">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            <div v-if="workout.kilojoules" class="p-4 bg-gray-50/30 dark:bg-gray-900/30 border-t-0">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >Energy</span
               >
-                Work
-              </dt>
-              <dd
-                class="mt-1 text-sm font-bold text-gray-900 dark:text-white flex items-baseline gap-1"
+              <span class="text-base font-black text-orange-600 dark:text-orange-400 tabular-nums"
+                >{{ workout.kilojoules
+                }}<span class="text-[9px] ml-0.5 opacity-50 uppercase">kJ</span></span
               >
-                {{ workout.kilojoules }}
-                <span class="text-[10px] font-normal text-gray-500 uppercase">kJ</span>
-              </dd>
             </div>
 
-            <div v-if="workout.distanceMeters">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            <div v-if="workout.distanceMeters" class="p-4 bg-gray-50/30 dark:bg-gray-900/30">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >Distance</span
               >
-                Distance
-              </dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
-                {{ (workout.distanceMeters / 1000).toFixed(2) }} km
-              </dd>
+              <span class="text-base font-black text-gray-900 dark:text-white tabular-nums"
+                >{{ (workout.distanceMeters / 1000).toFixed(2)
+                }}<span class="text-[9px] ml-0.5 opacity-50 uppercase">km</span></span
+              >
             </div>
 
-            <div v-if="workout.averageWatts">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            <div v-if="workout.averageWatts" class="p-4 bg-gray-50/30 dark:bg-gray-900/30">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >Avg Power</span
               >
-                Avg Power
-              </dt>
-              <dd
-                class="mt-1 text-sm font-semibold text-gray-900 dark:text-white flex items-baseline gap-1"
+              <span class="text-base font-black text-purple-600 dark:text-purple-400 tabular-nums"
+                >{{ workout.averageWatts
+                }}<span class="text-[9px] ml-0.5 opacity-50 uppercase">W</span></span
               >
-                {{ workout.averageWatts }}
-                <span class="text-[10px] font-normal text-gray-500">W</span>
-              </dd>
             </div>
 
-            <div v-if="workout.normalizedPower">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            <div v-if="workout.normalizedPower" class="p-4 bg-gray-50/30 dark:bg-gray-900/30">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >Norm Power</span
               >
-                NP
-              </dt>
-              <dd
-                class="mt-1 text-sm font-semibold text-gray-900 dark:text-white flex items-baseline gap-1"
+              <span class="text-base font-black text-indigo-600 dark:text-indigo-400 tabular-nums"
+                >{{ workout.normalizedPower
+                }}<span class="text-[9px] ml-0.5 opacity-50 uppercase">W</span></span
               >
-                {{ workout.normalizedPower }}
-                <span class="text-[10px] font-normal text-gray-500">W</span>
-              </dd>
             </div>
 
-            <div v-if="workout.rpe">
-              <dt
-                class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            <div v-if="workout.rpe" class="p-4 bg-gray-50/30 dark:bg-gray-900/30">
+              <span class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1"
+                >RPE</span
               >
-                RPE
-              </dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
-                {{ workout.rpe }}/10
-              </dd>
+              <span class="text-base font-black text-gray-900 dark:text-white tabular-nums"
+                >{{ workout.rpe
+                }}<span class="text-[9px] ml-0.5 opacity-50 uppercase">/10</span></span
+              >
             </div>
-          </dl>
+          </div>
         </div>
 
-        <!-- Planned Workout Section (Preserved) -->
+        <!-- Planned Workout Section -->
         <div
           v-if="workout.plannedWorkout"
-          class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800 relative group"
+          class="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-5 border border-blue-100 dark:border-blue-900/30 relative group"
         >
-          <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
             <UButton
               color="neutral"
               variant="ghost"
@@ -202,30 +187,32 @@
               icon="i-heroicons-link-slash"
               :loading="isUnlinking"
               title="Unlink from Plan"
+              class="font-black uppercase tracking-widest text-[8px]"
               @click="unlinkWorkout"
             />
           </div>
 
-          <div class="flex items-center justify-between mb-3 pr-8">
-            <div class="flex items-center gap-2">
-              <UBadge color="primary" variant="subtle" size="xs">
-                <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
-                <span class="ml-1">Plan</span>
-              </UBadge>
+          <div class="flex items-center justify-between mb-6 pr-8">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-white/50 dark:bg-black/20 rounded-lg">
+                <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-primary-500" />
+              </div>
               <div class="flex flex-col">
                 <NuxtLink
                   :to="`/workouts/planned/${workout.plannedWorkout.id}`"
-                  class="text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline flex items-center gap-1 group/link"
+                  class="text-sm font-black text-blue-900 dark:text-blue-100 uppercase tracking-tight hover:text-primary-500 transition-colors flex items-center gap-2 group/link"
                 >
                   {{ workout.plannedWorkout.title }}
                   <UIcon
                     name="i-heroicons-arrow-top-right-on-square"
-                    class="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity"
+                    class="w-3.5 h-3.5 opacity-0 group-hover/link:opacity-100 transition-opacity"
                   />
                 </NuxtLink>
-                <div class="flex gap-2 text-[10px] text-gray-500">
+                <div
+                  class="flex gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mt-0.5"
+                >
                   <span>{{ formatDateUTC(workout.plannedWorkout.date) }}</span>
-                  <span>•</span>
+                  <span class="opacity-40">•</span>
                   <span>{{ workout.plannedWorkout.type || 'Workout' }}</span>
                 </div>
               </div>
@@ -233,73 +220,92 @@
           </div>
 
           <!-- Planned vs Actual Grid -->
-          <div class="grid grid-cols-3 gap-2 text-xs">
-            <!-- Headers -->
-            <div class="text-gray-500 font-medium">Metric</div>
-            <div class="text-gray-500 font-medium">Planned</div>
-            <div class="text-gray-500 font-medium">Actual</div>
-
-            <!-- Duration -->
-            <div class="text-gray-600 dark:text-gray-400">Duration</div>
-            <div>
-              {{
-                workout.plannedWorkout.durationSec
-                  ? formatDuration(workout.plannedWorkout.durationSec)
-                  : '-'
-              }}
-            </div>
+          <div class="grid grid-cols-1 gap-4">
             <div
-              :class="getComplianceColor(workout.durationSec, workout.plannedWorkout.durationSec)"
+              class="grid grid-cols-3 gap-4 text-[9px] font-black uppercase tracking-widest text-blue-700/50 dark:text-blue-300/30 border-b border-blue-100/50 dark:border-blue-800/50 pb-2 px-1"
             >
-              {{ formatDuration(workout.durationSec) }}
+              <span>Metric</span>
+              <span class="text-center">Prescribed</span>
+              <span class="text-right">Observed</span>
             </div>
 
-            <!-- Distance (if applicable) -->
-            <template v-if="workout.plannedWorkout.distanceMeters || workout.distanceMeters">
-              <div class="text-gray-600 dark:text-gray-400">Distance</div>
-              <div>
-                {{
-                  workout.plannedWorkout.distanceMeters
-                    ? `${(workout.plannedWorkout.distanceMeters / 1000).toFixed(1)} km`
-                    : '-'
-                }}
+            <div class="space-y-3 px-1">
+              <div class="grid grid-cols-3 gap-4 items-center">
+                <span
+                  class="text-[10px] font-black uppercase tracking-widest text-blue-800 dark:text-blue-200"
+                  >Duration</span
+                >
+                <span
+                  class="text-center text-xs font-bold text-blue-700/70 dark:text-blue-300/60 tabular-nums"
+                >
+                  {{
+                    workout.plannedWorkout.durationSec
+                      ? formatDuration(workout.plannedWorkout.durationSec)
+                      : '—'
+                  }}
+                </span>
+                <span
+                  class="text-right text-sm font-black tabular-nums"
+                  :class="
+                    getComplianceColor(workout.durationSec, workout.plannedWorkout.durationSec)
+                  "
+                >
+                  {{ formatDuration(workout.durationSec) }}
+                </span>
               </div>
+
               <div
-                :class="
-                  getComplianceColor(workout.distanceMeters, workout.plannedWorkout.distanceMeters)
-                "
+                v-if="workout.plannedWorkout.distanceMeters || workout.distanceMeters"
+                class="grid grid-cols-3 gap-4 items-center"
               >
-                {{
-                  workout.distanceMeters ? `${(workout.distanceMeters / 1000).toFixed(1)} km` : '-'
-                }}
+                <span
+                  class="text-[10px] font-black uppercase tracking-widest text-blue-800 dark:text-blue-200"
+                  >Distance</span
+                >
+                <span
+                  class="text-center text-xs font-bold text-blue-700/70 dark:text-blue-300/60 tabular-nums"
+                >
+                  {{
+                    workout.plannedWorkout.distanceMeters
+                      ? `${(workout.plannedWorkout.distanceMeters / 1000).toFixed(1)}km`
+                      : '—'
+                  }}
+                </span>
+                <span
+                  class="text-right text-sm font-black tabular-nums"
+                  :class="
+                    getComplianceColor(
+                      workout.distanceMeters,
+                      workout.plannedWorkout.distanceMeters
+                    )
+                  "
+                >
+                  {{
+                    workout.distanceMeters ? `${(workout.distanceMeters / 1000).toFixed(1)}km` : '—'
+                  }}
+                </span>
               </div>
-            </template>
 
-            <!-- TSS (if applicable) -->
-            <template v-if="workout.plannedWorkout.tss || workout.tss">
-              <div class="text-gray-600 dark:text-gray-400">TSS</div>
-              <div>
-                {{ workout.plannedWorkout.tss ? Math.round(workout.plannedWorkout.tss) : '-' }}
+              <div
+                v-if="workout.plannedWorkout.tss || workout.tss"
+                class="grid grid-cols-3 gap-4 items-center"
+              >
+                <span
+                  class="text-[10px] font-black uppercase tracking-widest text-blue-800 dark:text-blue-200"
+                  >Load (TSS)</span
+                >
+                <span
+                  class="text-center text-xs font-bold text-blue-700/70 dark:text-blue-300/60 tabular-nums"
+                >
+                  {{ workout.plannedWorkout.tss ? Math.round(workout.plannedWorkout.tss) : '—' }}
+                </span>
+                <span
+                  class="text-right text-sm font-black tabular-nums"
+                  :class="getComplianceColor(workout.tss, workout.plannedWorkout.tss)"
+                >
+                  {{ workout.tss ? Math.round(workout.tss) : '—' }}
+                </span>
               </div>
-              <div :class="getComplianceColor(workout.tss, workout.plannedWorkout.tss)">
-                {{ workout.tss ? Math.round(workout.tss) : '-' }}
-              </div>
-            </template>
-          </div>
-
-          <!-- Description & Structure (from Plan) -->
-          <div
-            v-if="workout.plannedWorkout.description"
-            class="mt-4 pt-4 border-t border-blue-100 dark:border-blue-800 space-y-4"
-          >
-            <!-- Description -->
-            <div>
-              <h4 class="font-semibold text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1">
-                Plan Description
-              </h4>
-              <p class="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                {{ workout.plannedWorkout.description }}
-              </p>
             </div>
           </div>
         </div>
@@ -307,21 +313,31 @@
         <!-- Collapsible Description -->
         <div v-if="workout.description">
           <UAccordion
-            color="white"
+            color="neutral"
             variant="ghost"
             size="sm"
             :items="[
               {
-                label: 'Description',
-                content: workout.description,
+                label: 'Workout Description',
+                slot: 'body',
                 icon: 'i-heroicons-document-text'
               }
             ]"
+            :ui="{
+              item: { base: 'text-[10px] font-black uppercase tracking-widest' },
+              header: { base: 'hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl px-2' }
+            }"
           >
             <template #body>
-              <p class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap py-2">
-                {{ workout.description }}
-              </p>
+              <div
+                class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 mt-2"
+              >
+                <p
+                  class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed font-medium"
+                >
+                  {{ workout.description }}
+                </p>
+              </div>
             </template>
           </UAccordion>
         </div>
@@ -329,19 +345,29 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-2">
-        <UButton color="primary" @click="viewFullWorkout"> View Full Workout </UButton>
-        <UButton variant="outline" @click="closeModal"> Close </UButton>
+      <div class="flex justify-between gap-3 w-full">
+        <UButton
+          color="neutral"
+          variant="soft"
+          class="font-black uppercase tracking-widest text-[10px] px-4"
+          @click="closeModal"
+        >
+          Dismiss
+        </UButton>
+        <UButton
+          color="primary"
+          variant="solid"
+          class="font-black uppercase tracking-widest text-[10px] px-6"
+          @click="viewFullWorkout"
+        >
+          View Full Details
+        </UButton>
       </div>
     </template>
   </UModal>
 
   <!-- Delete Confirmation Modal -->
-  <UModal
-    v-model:open="showDeleteConfirm"
-    title="Delete Workout"
-    description="Are you sure you want to delete this workout? This action cannot be undone."
-  >
+  <UModal v-model:open="showDeleteConfirm" title="Delete Workout">
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showDeleteConfirm = false">
@@ -353,11 +379,7 @@
   </UModal>
 
   <!-- Unlink Confirmation Modal -->
-  <UModal
-    v-model:open="showUnlinkConfirm"
-    title="Unlink Workout"
-    description="Are you sure you want to unlink this workout from the plan? The planned workout will be marked as pending."
-  >
+  <UModal v-model:open="showUnlinkConfirm" title="Unlink Workout">
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showUnlinkConfirm = false">
