@@ -243,14 +243,16 @@
     </template>
 
     <template #body>
-      <div class="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div class="p-0 sm:p-6 space-y-4 sm:space-y-6">
         <!-- Page Header -->
-        <div v-if="!showWizard">
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Goals</h1>
-          <p class="text-sm text-muted mt-1">
-            Set and track your fitness goals to stay motivated and measure progress. These goals are
-            used by the AI Coach to understand your objectives and ensure your training plans, daily
-            advice, and performance analysis are perfectly aligned with what you want to achieve.
+        <div v-if="!showWizard" class="px-4 sm:px-0">
+          <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+            Goals
+          </h1>
+          <p
+            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+          >
+            Objective Alignment & Strategic Planning
           </p>
         </div>
 

@@ -5,12 +5,16 @@
     </template>
 
     <template #body>
-      <div class="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div class="p-0 sm:p-6 space-y-4 sm:space-y-6">
         <!-- Page Header -->
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">My Plans</h1>
-          <p class="text-sm text-muted mt-1">
-            Manage your training templates and view plan history
+        <div class="px-4 sm:px-0">
+          <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+            Plans
+          </h1>
+          <p
+            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+          >
+            Strategy Repository & Training History
           </p>
         </div>
 

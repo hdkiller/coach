@@ -41,7 +41,19 @@
     </template>
 
     <template #body>
-      <div class="p-4 sm:p-6 space-y-8">
+      <div class="p-0 sm:p-6 space-y-8">
+        <!-- Dashboard Branding -->
+        <div class="px-4 sm:px-0">
+          <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+            Recommendations
+          </h1>
+          <p
+            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+          >
+            AI Guidance & Adaptive Recommendations
+          </p>
+        </div>
+
         <!-- Pinned / Focus Section -->
         <section>
           <div class="flex items-center gap-2 mb-4">
