@@ -101,6 +101,8 @@ const defaultSettings = {
   inverseRhr: false,
   smooth: true,
   showSleepBars: false,
+  showLabels: false,
+  showAxisTitles: true,
   showBand: true,
   opacity: 0.15
 }
@@ -299,6 +301,21 @@ const chartOptions = computed(() => ({
         boxWidth: 6
       }
     },
+    datalabels: {
+      display: (context: any) => {
+        // Only show for HRV dataset (index 1) if enabled
+        return settings.value.showLabels && context.datasetIndex === 1
+      },
+      color: theme.isDark.value ? '#94a3b8' : '#64748b',
+      align: 'top' as const,
+      anchor: 'end' as const,
+      offset: 4,
+      font: {
+        size: 9,
+        weight: 'bold' as const
+      },
+      formatter: (value: any) => Math.round(value)
+    },
     tooltip: {
       backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
       titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
@@ -322,7 +339,7 @@ const chartOptions = computed(() => ({
           const hrv = hrvItem.parsed.y
           const dataIndex = hrvItem.dataIndex
           const datasets = hrvItem.chart.data.datasets
-          const hrvDataset = datasets[0]
+          const hrvDataset = datasets[1] // HRV is now at index 1 due to sleep bars at index 0
           
           const upper = datasets.find(d => d.label === 'Range Upper')?.data[dataIndex]
           const lower = datasets.find(d => d.label === 'Normal Range')?.data[dataIndex]
@@ -359,7 +376,12 @@ const chartOptions = computed(() => ({
       beginAtZero: settings.value.yScale === 'fixed' && !settings.value.hrvMin,
       min: settings.value.yScale === 'fixed' ? (settings.value.hrvMin || 0) : undefined,
       suggestedMax: settings.value.yScale === 'fixed' ? 150 : undefined,
-      title: { display: true, text: 'HRV (ms)', color: '#94a3b8', font: { size: 10, weight: 'bold' } },
+      title: { 
+        display: settings.value.showAxisTitles !== false, 
+        text: 'HRV (ms)', 
+        color: '#94a3b8', 
+        font: { size: 10, weight: 'bold' } 
+      },
       grid: { color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },
       ticks: { color: '#94a3b8' }
     },
@@ -368,7 +390,12 @@ const chartOptions = computed(() => ({
       display: true,
       position: 'right' as const,
       reverse: settings.value.inverseRhr,
-      title: { display: true, text: 'RHR (bpm)', color: '#94a3b8', font: { size: 10, weight: 'bold' } },
+      title: { 
+        display: settings.value.showAxisTitles !== false, 
+        text: 'RHR (bpm)', 
+        color: '#94a3b8', 
+        font: { size: 10, weight: 'bold' } 
+      },
       grid: { drawOnChartArea: false },
       ticks: { color: '#94a3b8' }
     },

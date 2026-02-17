@@ -122,6 +122,22 @@
               <USwitch v-model="settings.showSleepBars" />
             </div>
 
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">Show Data Labels</div>
+                <div class="text-xs text-muted">Show values on top of bars/points.</div>
+              </div>
+              <USwitch v-model="settings.showLabels" />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">Show Axis Titles</div>
+                <div class="text-xs text-muted">Toggle HRV/RHR labels on sides.</div>
+              </div>
+              <USwitch v-model="settings.showAxisTitles" />
+            </div>
+
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Area Opacity</div>
@@ -178,6 +194,8 @@
     inverseRhr: false,
     smooth: true,
     showSleepBars: false,
+    showLabels: false,
+    showAxisTitles: true,
     showBand: true,
     opacity: 0.15,
     showAlcohol: true,
