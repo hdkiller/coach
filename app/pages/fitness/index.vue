@@ -316,12 +316,12 @@
   const activeMetricSettings = ref<{ key: string; title: string } | null>(null)
 
   const defaultChartSettings: any = {
-    recovery: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
-    sleep: { type: 'bar', visible: true, smooth: true, showPoints: false, opacity: 0.8 },
-    hrv: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
-    restingHr: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
-    weight: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 },
-    bp: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5 }
+    recovery: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
+    sleep: { type: 'bar', visible: true, smooth: true, showPoints: false, opacity: 0.8, yScale: 'dynamic', yMin: 0 },
+    hrv: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
+    restingHr: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
+    weight: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
+    bp: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 }
   }
 
   const chartSettings = computed(() => {
@@ -1059,15 +1059,27 @@
     }
 
     if (key === 'recovery') {
-      opts.scales.y.min = 0
-      opts.scales.y.max = 100
+      opts.scales.y.title = { display: true, text: 'Recovery %', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
+      opts.scales.y.suggestedMax = 100
     } else if (key === 'sleep') {
-      opts.scales.y.max = 12
+      opts.scales.y.title = { display: true, text: 'Hours (h)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : 0
+      opts.scales.y.suggestedMax = 12
     } else if (key === 'hrv') {
-      opts.scales.y.beginAtZero = true
+      opts.scales.y.title = { display: true, text: 'Variability (ms)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
+      opts.scales.y.beginAtZero = settings.yScale !== 'fixed'
     } else if (key === 'restingHr') {
+      opts.scales.y.title = { display: true, text: 'Resting HR (bpm)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
       opts.scales.y.beginAtZero = false
     } else if (key === 'weight') {
+      opts.scales.y.title = { display: true, text: 'Mass (kg)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
+      opts.scales.y.beginAtZero = false
+    } else if (key === 'bp') {
+      opts.scales.y.title = { display: true, text: 'Pressure (mmHg)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
       opts.scales.y.beginAtZero = false
     }
 

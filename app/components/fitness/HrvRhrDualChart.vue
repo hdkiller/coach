@@ -14,14 +14,28 @@
           <!-- Mini Summary -->
           <div v-if="latestStats" class="hidden md:flex items-center gap-4 border-r border-gray-200 dark:border-gray-800 pr-4 mr-2">
             <div class="text-center">
-              <div class="text-[10px] font-black text-gray-400 uppercase">Latest HRV</div>
+              <div class="text-[10px] font-black text-gray-400 uppercase">HRV</div>
               <div class="text-sm font-black text-purple-500">{{ latestStats.hrv }}ms</div>
             </div>
             <div class="text-center">
-              <div class="text-[10px] font-black text-gray-400 uppercase">{{ settings.baselineDays }}d Baseline</div>
+              <div class="text-[10px] font-black text-gray-400 uppercase">{{ settings.baselineDays }}d Base</div>
               <div class="text-sm font-black text-gray-600 dark:text-gray-300">{{ latestStats.baseline }}ms</div>
             </div>
-            <UBadge :color="latestStats.statusColor" variant="subtle" size="sm" class="font-black uppercase text-[10px]">
+            <div v-if="latestStats.rhr" class="text-center">
+              <div class="text-[10px] font-black text-gray-400 uppercase">RHR</div>
+              <div class="text-sm font-black text-red-500">{{ latestStats.rhr }}bpm</div>
+            </div>
+            <div v-if="latestStats.sleep" class="text-center">
+              <div class="text-[10px] font-black text-gray-400 uppercase">Sleep</div>
+              <div class="text-sm font-black text-blue-500">{{ latestStats.sleep }}h</div>
+            </div>
+            <UBadge 
+              :color="latestStats.statusColor" 
+              variant="subtle" 
+              size="sm" 
+              class="font-black uppercase text-[10px] cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
+              @click="showStatusModal = true"
+            >
               {{ latestStats.status }}
             </UBadge>
           </div>
@@ -35,6 +49,17 @@
         </div>
       </div>
     </template>
+
+    <!-- Status Explanation Modal -->
+    <FitnessRecoveryStatusModal
+      v-if="latestStats"
+      v-model:open="showStatusModal"
+      :status="latestStats.status"
+      :status-color="latestStats.statusColor"
+      :baseline-days="settings.baselineDays"
+      :hrv="latestStats.hrv"
+      :baseline="latestStats.baseline"
+    />
 
     <div v-if="loading" class="h-[400px] flex items-center justify-center">
       <USkeleton class="h-full w-full" />
@@ -65,11 +90,14 @@ defineEmits(['settings'])
 const userStore = useUserStore()
 const theme = useTheme()
 
+const showStatusModal = ref(false)
+
 const defaultSettings = {
   type: 'line',
   baselineDays: 30,
   stdDevMultiplier: 1.0,
   yScale: 'dynamic',
+  hrvMin: 0,
   inverseRhr: false,
   smooth: true,
   showSleepBars: false,
@@ -244,6 +272,8 @@ const latestStats = computed(() => {
   return {
     hrv: Math.round(latest.hrv),
     baseline: Math.round(mean),
+    rhr: latest.restingHr ? Math.round(latest.restingHr) : null,
+    sleep: latest.sleepHours ? latest.sleepHours.toFixed(1) : null,
     status,
     statusColor
   }
@@ -326,7 +356,8 @@ const chartOptions = computed(() => ({
       type: 'linear' as const,
       display: true,
       position: 'left' as const,
-      beginAtZero: settings.value.yScale === 'fixed',
+      beginAtZero: settings.value.yScale === 'fixed' && !settings.value.hrvMin,
+      min: settings.value.yScale === 'fixed' ? (settings.value.hrvMin || 0) : undefined,
       suggestedMax: settings.value.yScale === 'fixed' ? 150 : undefined,
       title: { display: true, text: 'HRV (ms)', color: '#94a3b8', font: { size: 10, weight: 'bold' } },
       grid: { color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },

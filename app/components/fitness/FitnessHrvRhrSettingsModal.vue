@@ -80,10 +80,24 @@
                 v-model="settings.yScale"
                 :items="[
                   { label: 'Dynamic (Zoom)', value: 'dynamic' },
-                  { label: 'Fixed (0-150)', value: 'fixed' }
+                  { label: 'Fixed (Custom Min)', value: 'fixed' }
                 ]"
                 size="sm"
                 class="w-32"
+              />
+            </div>
+
+            <div v-if="settings.yScale === 'fixed'" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">HRV Axis Min</div>
+                <span class="text-xs font-bold text-primary-500">{{ settings.hrvMin }}ms</span>
+              </div>
+              <USlider
+                v-model="settings.hrvMin"
+                :min="0"
+                :max="100"
+                :step="5"
+                size="sm"
               />
             </div>
 
@@ -160,6 +174,7 @@
     baselineDays: 30,
     stdDevMultiplier: 1.0,
     yScale: 'dynamic',
+    hrvMin: 0,
     inverseRhr: false,
     smooth: true,
     showSleepBars: false,

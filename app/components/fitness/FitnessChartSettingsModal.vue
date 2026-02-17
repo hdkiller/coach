@@ -66,6 +66,39 @@
             </div>
           </div>
 
+          <!-- Scaling Settings -->
+          <div class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4">
+            <h4 class="font-medium text-gray-900 dark:text-white text-sm">Scaling</h4>
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-medium text-gray-900 dark:text-white">Y-Axis Scaling</div>
+              <USelect
+                v-model="settings.yScale"
+                :items="[
+                  { label: 'Dynamic (Zoom)', value: 'dynamic' },
+                  { label: 'Fixed (Custom Min)', value: 'fixed' }
+                ]"
+                size="sm"
+                class="w-32"
+                color="neutral"
+                variant="outline"
+              />
+            </div>
+
+            <div v-if="settings.yScale === 'fixed'" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">Axis Minimum</div>
+                <span class="text-xs font-bold text-primary-500">{{ settings.yMin || 0 }}{{ unitLabel }}</span>
+              </div>
+              <USlider
+                v-model="settings.yMin"
+                :min="0"
+                :max="maxSliderValue"
+                :step="sliderStep"
+                size="sm"
+              />
+            </div>
+          </div>
+
           <!-- Target Line -->
           <div v-if="['weight', 'bp', 'hrv', 'restingHr'].includes(metricKey)" class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4">
             <h4 class="font-medium text-gray-900 dark:text-white text-sm">Goals & Targets</h4>
@@ -152,6 +185,8 @@
     showPoints: false,
     showLabels: false,
     opacity: 0.5,
+    yScale: 'dynamic',
+    yMin: 0,
     show7dAvg: false,
     show30dAvg: false,
     showStdDev: false,
@@ -159,6 +194,29 @@
     showTarget: false,
     targetValue: undefined
   }
+
+  // Helpers for dynamic sliders based on metric
+  const unitLabel = computed(() => {
+    if (props.metricKey === 'recovery') return '%'
+    if (props.metricKey === 'sleep') return 'h'
+    if (props.metricKey === 'hrv') return 'ms'
+    if (props.metricKey === 'restingHr') return 'bpm'
+    if (props.metricKey === 'weight') return 'kg'
+    return ''
+  })
+
+  const maxSliderValue = computed(() => {
+    if (props.metricKey === 'weight') return 150
+    if (props.metricKey === 'hrv') return 120
+    if (props.metricKey === 'restingHr') return 100
+    if (props.metricKey === 'sleep') return 10
+    return 100
+  })
+
+  const sliderStep = computed(() => {
+    if (props.metricKey === 'sleep' || props.metricKey === 'weight') return 0.5
+    return 1
+  })
 
   // Local state for the specific metric's settings
   const settings = ref({
