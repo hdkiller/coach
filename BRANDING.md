@@ -49,22 +49,35 @@ The "Coach Watts Green" is the primary identifier.
   - _Fallback:_ `Inter`, `system-ui`, `sans-serif`.
 - **Style Rules:**
   - **Headings:** Bold with tight tracking (`tracking-tight`).
-  - **Labels:** Small (`text-xs`), Extra Bold, Uppercase with wide tracking (`tracking-widest`).
+  - **Premium Section Labels:** Use bold black uppercase tracked labels:
+    - `text-[10px] font-black uppercase tracking-[0.2em] text-gray-400`
   - **Data Values:** Tabular numbers (`tabular-nums`) to ensure vertical alignment in tables.
 
 ---
 
 ## 4. Design Elements
 
-- **Corner Radius:** `12px` (`rounded-xl`) is the standard for cards and buttons.
-- **Shadows:** Subtle shadows (`shadow-sm`).
-- **Borders:** Thin, high-contrast rings (`ring-1 ring-gray-200` or `ring-gray-800`).
+- **Corner Radius:** `12px` (`rounded-xl`) is the standard for cards and buttons on desktop.
+- **Mobile Edge-to-Edge:** On screens `< 640px` (mobile), cards should transition to `rounded-none`, `shadow-none`, and `border-x-0` to maximize usable space.
+- **Shadows:** Subtle shadows (`shadow-sm`) on desktop; removed on mobile edge-to-edge containers.
+- **Borders:** Thin, high-contrast rings (`ring-1 ring-gray-200` or `ring-gray-800`) or standard borders (`border border-gray-100 dark:border-gray-800`).
 - **Gradients:**
   - _Standard UI Gradient:_ `linear-gradient(135deg, #00DC82 0%, #00C16A 100%)`
 
 ---
 
-## 5. Content & AI Guidelines (for LLMs)
+## 5. Chart & Visualization Standards
+
+To maintain a scientific and premium aesthetic:
+
+- **Theme:** Use Right-aligned Y-axes, `slate-400` for ticks and labels, and theme-aware grid lines with low opacity (0.05).
+- **Stability:** ALWAYS enforce explicit `:height` props on `Line`, `Radar`, `Bar`, and `Doughnut` components to prevent resize loops and layout crashes.
+- **Style:** Prefer line-only trends (no area fills or heavy gradients).
+- **Ghost Data:** Predicted or projected "Ghost" data must use dashed lines and `pointRadius: 0`.
+
+---
+
+## 6. Content & AI Guidelines (for LLMs)
 
 When generating content for Coach Watts (reports, chat responses, or emails), adhere to these formatting rules:
 

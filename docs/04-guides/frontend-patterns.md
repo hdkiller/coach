@@ -55,19 +55,33 @@ When implementing modals using Nuxt UI (`<UModal>`), follow these best practices
   const showModal = ref(false)
 </script>
 
-## Mobile Spacing & Composition ### The "Double Padding" Issue When nesting container components
-(e.g., placing a `UCard` inside a `UModal` or `UDashboardPanel`), default padding tokens can
-compound, significantly reducing usable screen width on mobile devices. **Example of Anti-Pattern:**
+## Mobile Spacing & Composition
+
+### The "Double Padding" Issue
+When nesting container components (e.g., placing a `UCard` inside a `UModal` or `UDashboardPanel`), default padding tokens can compound, significantly reducing usable screen width on mobile devices.
+
+### Edge-to-Edge Pattern (Premium Dashboard)
+To maximize usable space and provide a premium "app-like" feel on mobile, follow the **Edge-to-Edge** pattern for dashboard content.
+
+1.  **Remove Outer Padding:** Set `p-0` on the main container for mobile, restoring it for desktop (`sm:p-6`).
+2.  **Flatten Cards:** Cards should lose their rounding, shadows, and horizontal borders on small screens.
+
+**Implementation Example:**
 ```vue
-<!-- UModal adds p-4, UCard adds p-4. Result: 32px padding on each side (64px lost width). -->
-<UModal>
-  <template #body>
-    <UCard>
-      Content
+<template #body>
+  <div class="max-w-5xl mx-auto w-full p-0 sm:p-6 space-y-4 sm:space-y-8">
+    <!-- Edge-to-Edge Header/Card -->
+    <div class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800">
+      Content here
+    </div>
+
+    <!-- Nuxt UI Card Override -->
+    <UCard :ui="{ root: 'rounded-none sm:rounded-xl shadow-none sm:shadow' }">
+       Standard card content
     </UCard>
-  </template>
-</UModal>
-````
+  </div>
+</template>
+```
 
 ### Best Practices
 
@@ -85,6 +99,29 @@ compound, significantly reducing usable screen width on mobile devices. **Exampl
 3.  **Flat Variants:**
     - For lists of items (like "Questions" in a modal), use standard `div` elements with specific styling rather than heavy `UCard` components if they don't need the full card shell (shadow, ring, heavy padding).
 
+---
+
+## Charts & Data Visualization
+
+### Stability & Performance
+To prevent infinite resize loops (which cause "Layout Shift" and browser hangups), **always** provide a fixed height prop to chart components.
+
+```vue
+<!-- ✅ DO THIS -->
+<Line :data="data" :options="options" :height="300" />
+
+<!-- ❌ AVOID THIS -->
+<Line :data="data" :options="options" class="h-[300px]" />
+```
+
+### Visual Standards
+- **Typography:** Labels and ticks should use premium small caps: `text-[10px] font-black uppercase tracking-[0.2em] text-gray-400`.
+- **Y-Axis:** Prefer right-alignment (`position: 'right'`) to keep data points adjacent to labels.
+- **Grids:** Use high-transparency lines: `rgba(0,0,0,0.05)` (light) or `rgba(255,255,255,0.05)` (dark).
+- **Ghost Trends:** Use `borderDash: [5, 5]` and `pointRadius: 0` for predicted/future data points.
+- **Line Only:** Prefer `fill: false` for trend charts to maintain a clean, high-contrast scientific look.
+
 ```
 
 ```
+````
