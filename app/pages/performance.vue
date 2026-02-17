@@ -28,19 +28,23 @@
     </template>
 
     <template #body>
-      <div class="p-3 sm:p-6 space-y-6 sm:space-y-10">
-        <!-- Page Header -->
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Performance Scores</h1>
-          <p class="text-sm text-muted mt-1">
-            Track your fitness metrics and performance trends across all training dimensions
+      <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
+        <!-- Dashboard Branding -->
+        <div class="px-4 sm:px-0">
+          <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+            Performance
+          </h1>
+          <p
+            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+          >
+            Systemic Integrity & Long-term Progression
           </p>
         </div>
 
         <!-- 1. Activity Highlights (Big Numbers) -->
-        <div class="space-y-3 sm:space-y-4">
-          <div class="flex items-center justify-between px-1">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
               Activity Highlights
             </h2>
             <div class="flex gap-2">
@@ -49,12 +53,16 @@
                 :items="sportOptions"
                 class="w-32 sm:w-36"
                 size="xs"
+                color="neutral"
+                variant="outline"
               />
               <USelect
                 v-model="highlightsPeriod"
                 :items="periodOptions"
                 size="xs"
                 class="w-32 sm:w-36"
+                color="neutral"
+                variant="outline"
               />
             </div>
           </div>
@@ -62,19 +70,19 @@
         </div>
 
         <!-- 2. Athlete Profile Scores -->
-        <div class="space-y-3 sm:space-y-4">
-          <div class="flex items-center justify-between px-1">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
               Athlete Profile
             </h2>
             <UBadge
               v-if="profileData?.scores?.lastUpdated"
               color="neutral"
-              variant="subtle"
+              variant="soft"
               size="sm"
-              class="font-bold"
+              class="font-black uppercase tracking-widest text-[9px]"
             >
-              Updated {{ formatDateLocal(profileData.scores.lastUpdated) }}
+              Sync: {{ formatDateLocal(profileData.scores.lastUpdated) }}
             </UBadge>
           </div>
 
@@ -82,10 +90,7 @@
             <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
           </div>
 
-          <div
-            v-else-if="profileData"
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
-          >
+          <div v-else-if="profileData" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <ScoreCard
               title="Current Fitness"
               :score="profileData.scores?.currentFitness"
@@ -169,143 +174,206 @@
         />
 
         <!-- 3. PMC Chart (Performance Management Chart) -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-              Training Load & Form
-            </h2>
-            <USelect v-model="pmcPeriod" :items="pmcPeriodOptions" class="w-32 sm:w-36" size="sm" />
-          </div>
+        <div class="space-y-4">
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Fitness & Readiness (PMC)
+                </h2>
+                <USelect
+                  v-model="pmcPeriod"
+                  :items="pmcPeriodOptions"
+                  class="w-32 sm:w-36"
+                  size="xs"
+                  color="neutral"
+                  variant="outline"
+                />
+              </div>
+            </template>
 
-          <PMCChart :days="pmcPeriod" />
+            <PMCChart :days="pmcPeriod" />
+          </UCard>
         </div>
 
         <!-- 4. Power Duration Curve -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-              Power Duration Curve
-            </h2>
-            <div class="flex gap-2">
-              <USelect
-                v-model="powerCurveSport"
-                :items="sportOptions"
-                class="w-32 sm:w-36"
-                size="sm"
-              />
-              <USelect
-                v-model="powerCurvePeriod"
-                :items="periodOptions"
-                class="w-32 sm:w-36"
-                size="sm"
-              />
-            </div>
-          </div>
-          <!-- Pass days and sport to the updated component for Performance Page mode -->
-          <PowerCurveChart :days="powerCurvePeriod" :sport="powerCurveSport" />
+        <div class="space-y-4">
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Power Duration Curve
+                </h2>
+                <div class="flex gap-2">
+                  <USelect
+                    v-model="powerCurveSport"
+                    :items="sportOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                  <USelect
+                    v-model="powerCurvePeriod"
+                    :items="periodOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                </div>
+              </div>
+            </template>
+            <!-- Pass days and sport to the updated component for Performance Page mode -->
+            <PowerCurveChart :days="powerCurvePeriod" :sport="powerCurveSport" />
+          </UCard>
         </div>
 
         <!-- 5. Efficiency & Decoupling -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-              Aerobic Efficiency Trend
-            </h2>
-            <div class="flex gap-2">
-              <USelect
-                v-model="efficiencySport"
-                :items="sportOptions"
-                class="w-32 sm:w-36"
-                size="sm"
-              />
-              <USelect
-                v-model="efficiencyPeriod"
-                :items="periodOptions"
-                class="w-32 sm:w-36"
-                size="sm"
-              />
-            </div>
-          </div>
-          <EfficiencyTrendChart :days="efficiencyPeriod" :sport="efficiencySport" />
+        <div class="space-y-4">
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Aerobic Efficiency Trend
+                </h2>
+                <div class="flex gap-2">
+                  <USelect
+                    v-model="efficiencySport"
+                    :items="sportOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                  <USelect
+                    v-model="efficiencyPeriod"
+                    :items="periodOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                </div>
+              </div>
+            </template>
+            <EfficiencyTrendChart :days="efficiencyPeriod" :sport="efficiencySport" />
+          </UCard>
         </div>
 
-        <!-- 6. Readiness vs Performance (Temporarily Hidden) -->
-        <!-- <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-              Readiness & Performance
-            </h2>
-            <USelect
-              v-model="readinessPeriod"
-              :items="periodOptions"
-              class="w-32 sm:w-36"
-              size="sm"
-            />
-          </div>
-          <ReadinessCorrelationChart :days="readinessPeriod" />
-        </div> -->
-
         <!-- 7. FTP Evolution Chart -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">FTP Evolution</h2>
-            <div class="flex gap-2">
-              <USelect v-model="ftpSport" :items="sportOptions" class="w-32 sm:w-36" size="sm" />
-              <USelect
-                v-model="ftpPeriod"
-                :items="ftpPeriodOptions"
-                class="w-32 sm:w-36"
-                size="sm"
-              />
-            </div>
-          </div>
+        <div class="space-y-4">
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Functional Threshold Evolution
+                </h2>
+                <div class="flex gap-2">
+                  <USelect
+                    v-model="ftpSport"
+                    :items="sportOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                  <USelect
+                    v-model="ftpPeriod"
+                    :items="ftpPeriodOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                </div>
+              </div>
+            </template>
 
-          <FTPEvolutionChart :months="ftpPeriod" :sport="ftpSport" />
+            <FTPEvolutionChart :months="ftpPeriod" :sport="ftpSport" />
+          </UCard>
         </div>
 
         <!-- 8. Training Intensity Distribution -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-              Intensity Distribution
-            </h2>
-            <div class="flex gap-2">
-              <USelect
-                v-model="distributionSport"
-                :items="sportOptions"
-                class="w-32 sm:w-36"
-                size="sm"
-              />
-              <USelect
-                v-model="distributionPeriod"
-                :items="distributionPeriodOptions"
-                class="w-32 sm:w-36"
-                size="sm"
-              />
-            </div>
-          </div>
+        <div class="space-y-4">
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Intensity Distribution
+                </h2>
+                <div class="flex gap-2">
+                  <USelect
+                    v-model="distributionSport"
+                    :items="sportOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                  <USelect
+                    v-model="distributionPeriod"
+                    :items="distributionPeriodOptions"
+                    class="w-32 sm:w-36"
+                    size="xs"
+                    color="neutral"
+                    variant="outline"
+                  />
+                </div>
+              </div>
+            </template>
 
-          <UCard>
             <WeeklyZoneChart :weeks="distributionPeriod" :sport="distributionSport" />
           </UCard>
         </div>
 
         <!-- 9. Workout Scores -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Workout Performance</h2>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between px-1">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+              Workout Performance
+            </h2>
             <div class="flex gap-2">
               <USelect
                 v-model="workoutSport"
                 :items="sportOptions"
                 class="w-32 sm:w-36"
-                size="sm"
+                size="xs"
+                color="neutral"
+                variant="outline"
               />
               <USelect
                 v-model="selectedPeriod"
                 :items="periodOptions"
                 class="w-32 sm:w-36"
-                size="sm"
+                size="xs"
+                color="neutral"
+                variant="outline"
               />
             </div>
           </div>
@@ -400,31 +468,53 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <!-- Score Trends (2/3 width) -->
               <div class="lg:col-span-2 space-y-4">
-                <h3
-                  class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1"
+                <UCard
+                  :ui="{
+                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+                    body: 'p-4 sm:p-6'
+                  }"
                 >
-                  Score Trends
-                </h3>
-                <TrendChart :data="workoutData.workouts" type="workout" />
+                  <template #header>
+                    <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                      Performance Trajectory
+                    </h3>
+                  </template>
+                  <div class="h-[300px]">
+                    <ClientOnly>
+                      <TrendChart :data="workoutData.workouts" type="workout" />
+                    </ClientOnly>
+                  </div>
+                </UCard>
               </div>
 
               <!-- Current Balance (1/3 width) -->
               <div class="lg:col-span-1 space-y-4">
-                <h3
-                  class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1"
-                >
-                  Current Balance
-                </h3>
-                <RadarChart
-                  :scores="{
-                    overall: workoutData.summary?.avgOverall,
-                    technical: workoutData.summary?.avgTechnical,
-                    effort: workoutData.summary?.avgEffort,
-                    pacing: workoutData.summary?.avgPacing,
-                    execution: workoutData.summary?.avgExecution
+                <UCard
+                  :ui="{
+                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+                    body: 'p-4 sm:p-6'
                   }"
-                  type="workout"
-                />
+                >
+                  <template #header>
+                    <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                      Execution Balance
+                    </h3>
+                  </template>
+                  <div class="h-[320px]">
+                    <ClientOnly>
+                      <RadarChart
+                        :scores="{
+                          overall: workoutData.summary?.avgOverall,
+                          technical: workoutData.summary?.avgTechnical,
+                          effort: workoutData.summary?.avgEffort,
+                          pacing: workoutData.summary?.avgPacing,
+                          execution: workoutData.summary?.avgExecution
+                        }"
+                        type="workout"
+                      />
+                    </ClientOnly>
+                  </div>
+                </UCard>
               </div>
             </div>
           </div>
@@ -532,31 +622,53 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <!-- Score Trends (2/3 width) -->
               <div class="lg:col-span-2 space-y-4">
-                <h3
-                  class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1"
+                <UCard
+                  :ui="{
+                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+                    body: 'p-4 sm:p-6'
+                  }"
                 >
-                  Score Trends
-                </h3>
-                <TrendChart :data="nutritionData.nutrition" type="nutrition" />
+                  <template #header>
+                    <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                      Fueling Trajectory
+                    </h3>
+                  </template>
+                  <div class="h-[300px]">
+                    <ClientOnly>
+                      <TrendChart :data="nutritionData.nutrition" type="nutrition" />
+                    </ClientOnly>
+                  </div>
+                </UCard>
               </div>
 
               <!-- Current Balance (1/3 width) -->
               <div class="lg:col-span-1 space-y-4">
-                <h3
-                  class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest px-1"
-                >
-                  Current Balance
-                </h3>
-                <RadarChart
-                  :scores="{
-                    overall: nutritionData.summary?.avgOverall,
-                    macroBalance: nutritionData.summary?.avgMacroBalance,
-                    quality: nutritionData.summary?.avgQuality,
-                    adherence: nutritionData.summary?.avgAdherence,
-                    hydration: nutritionData.summary?.avgHydration
+                <UCard
+                  :ui="{
+                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+                    body: 'p-4 sm:p-6'
                   }"
-                  type="nutrition"
-                />
+                >
+                  <template #header>
+                    <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                      Metabolic Balance
+                    </h3>
+                  </template>
+                  <div class="h-[320px]">
+                    <ClientOnly>
+                      <RadarChart
+                        :scores="{
+                          overall: nutritionData.summary?.avgOverall,
+                          macroBalance: nutritionData.summary?.avgMacroBalance,
+                          quality: nutritionData.summary?.avgQuality,
+                          adherence: nutritionData.summary?.avgAdherence,
+                          hydration: nutritionData.summary?.avgHydration
+                        }"
+                        type="nutrition"
+                      />
+                    </ClientOnly>
+                  </div>
+                </UCard>
               </div>
             </div>
           </div>

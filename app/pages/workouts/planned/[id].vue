@@ -62,10 +62,10 @@
     </template>
 
     <template #body>
-      <div class="max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div class="max-w-5xl mx-auto w-full p-0 sm:p-6 space-y-4 sm:space-y-8 pb-24">
         <!-- Loading State -->
-        <div v-if="loading" class="space-y-6">
-          <UCard>
+        <div v-if="loading" class="p-4 sm:p-0 space-y-6">
+          <UCard :ui="{ root: 'rounded-none sm:rounded-xl shadow-none sm:shadow' }">
             <div class="flex items-center justify-between mb-4">
               <div class="space-y-2">
                 <USkeleton class="h-8 w-64" />
@@ -83,101 +83,116 @@
         </div>
 
         <!-- Workout Content -->
-        <div v-else-if="workout" class="space-y-4 sm:space-y-5">
+        <div v-else-if="workout" class="space-y-4 sm:space-y-8">
           <!-- Header Card -->
           <div
-            class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-5 overflow-hidden relative"
+            class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 overflow-hidden relative"
           >
-            <div class="flex items-start gap-4">
+            <div class="flex items-start gap-4 mb-6">
               <div
-                class="w-11 h-11 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/40 flex items-center justify-center flex-shrink-0"
+                class="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/40 flex items-center justify-center flex-shrink-0"
               >
-                <UIcon name="i-heroicons-calendar-days" class="w-5 h-5 text-primary-500" />
+                <UIcon name="i-heroicons-calendar-days" class="w-6 h-6 text-primary-500" />
               </div>
               <div class="min-w-0 flex-1">
-                <h1 class="text-2xl sm:text-[2rem] font-black tracking-tight break-words">
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight break-words uppercase">
                   {{ workout.title }}
                 </h1>
                 <div class="flex flex-wrap items-center gap-2 mt-2">
-                  <UBadge color="neutral" variant="soft" size="sm" class="font-bold">
+                  <UBadge
+                    color="neutral"
+                    variant="soft"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                  >
                     {{ workout.type }}
                   </UBadge>
                   <UBadge
                     :color="workout.completed ? 'success' : 'warning'"
                     variant="soft"
                     size="sm"
-                    class="font-bold"
+                    class="font-black uppercase tracking-widest text-[10px]"
                   >
                     {{ workout.completed ? 'Completed' : 'Planned' }}
                   </UBadge>
-                  <UBadge color="neutral" variant="soft" size="sm" class="font-medium">
-                    {{ formatDateUTC(workout.date, 'EEEE, MMMM d, yyyy') }}
-                  </UBadge>
                   <UBadge
                     color="neutral"
-                    variant="soft"
+                    variant="ghost"
                     size="sm"
-                    class="font-bold cursor-pointer"
+                    class="font-bold uppercase tracking-widest text-[10px]"
+                  >
+                    {{ formatDateUTC(workout.date, 'EEEE, MMMM d, yyyy') }}
+                  </UBadge>
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    class="font-black uppercase tracking-widest text-[10px] py-0"
                     @click="openTimeModal"
                   >
                     <span class="inline-flex items-center gap-1">
                       <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5" />
                       {{ workout.startTime || 'Set Time' }}
-                      <UIcon name="i-heroicons-pencil-square" class="w-3 h-3" />
+                      <UIcon name="i-heroicons-pencil-square" class="w-3 h-3 opacity-50" />
                     </span>
-                  </UBadge>
-                </div>
-                <div v-if="workout.description" class="mt-2.5">
-                  <p
-                    class="text-sm break-words whitespace-pre-wrap text-gray-600 dark:text-gray-300"
-                    :class="{ 'line-clamp-2': !showFullDescription }"
-                  >
-                    {{ workout.description }}
-                  </p>
-                  <UButton
-                    v-if="descriptionTooLong"
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    class="mt-1 -ml-2"
-                    :label="showFullDescription ? 'Show less' : 'Show more'"
-                    @click="showFullDescription = !showFullDescription"
-                  />
+                  </UButton>
                 </div>
               </div>
+            </div>
+
+            <div
+              v-if="workout.description"
+              class="mb-6 p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800"
+            >
+              <p
+                class="text-sm break-words whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed font-medium"
+                :class="{ 'line-clamp-3': !showFullDescription }"
+              >
+                {{ workout.description }}
+              </p>
+              <UButton
+                v-if="descriptionTooLong"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                class="mt-2 font-bold"
+                :label="showFullDescription ? 'Show less' : 'Show more'"
+                @click="showFullDescription = !showFullDescription"
+              />
             </div>
 
             <!-- Training Context -->
             <div
               v-if="workout.trainingWeek"
-              class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"
+              class="pt-4 border-t border-gray-100 dark:border-gray-800"
             >
-              <div class="flex items-center justify-between gap-3">
-                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                  Training Context
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Mission Context
                 </div>
                 <UButton
                   color="neutral"
                   variant="ghost"
                   size="xs"
-                  :label="showTrainingContextDetails ? 'Hide details' : 'Show details'"
+                  class="font-bold"
+                  :label="showTrainingContextDetails ? 'Hide Details' : 'Show Details'"
                   @click="showTrainingContextDetails = !showTrainingContextDetails"
                 />
               </div>
-              <p class="text-xs text-gray-600 dark:text-gray-300 mt-1.5">
+              <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
                 {{ trainingContextSummary }}
               </p>
               <div
                 v-if="showTrainingContextDetails"
-                class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4"
               >
                 <div
                   class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
                 >
-                  <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
-                    Goal / Plan
+                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">
+                    Strategy
                   </div>
-                  <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div class="text-xs font-black text-gray-900 dark:text-white uppercase truncate">
                     {{
                       workout.trainingWeek.block.plan.goal?.title ||
                       workout.trainingWeek.block.plan.name ||
@@ -188,30 +203,30 @@
                 <div
                   class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
                 >
-                  <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">
                     Block
                   </div>
-                  <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div class="text-xs font-black text-gray-900 dark:text-white uppercase truncate">
                     {{ workout.trainingWeek.block.name }}
                   </div>
                 </div>
                 <div
                   class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
                 >
-                  <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">
                     Week
                   </div>
-                  <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                    {{ workout.trainingWeek.weekNumber }}
+                  <div class="text-xs font-black text-gray-900 dark:text-white uppercase truncate">
+                    W{{ workout.trainingWeek.weekNumber }}
                   </div>
                 </div>
                 <div
                   class="p-3 rounded-xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
                 >
-                  <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">
                     Focus
                   </div>
-                  <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                  <div class="text-xs font-black text-gray-900 dark:text-white uppercase truncate">
                     {{ workout.trainingWeek.focus || workout.trainingWeek.block.primaryFocus }}
                   </div>
                 </div>
@@ -220,21 +235,21 @@
           </div>
 
           <!-- Extended Stats Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 sm:gap-4">
             <div
               v-for="kpi in workoutKpis"
               :key="kpi.label"
-              class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden relative group hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+              class="bg-white dark:bg-gray-900 p-5 rounded-none sm:rounded-xl border-x-0 sm:border-x border-y sm:border-y border-gray-100 dark:border-gray-800 shadow-none sm:shadow-sm overflow-hidden relative group hover:border-primary-300 dark:hover:border-primary-700 transition-all"
             >
-              <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
                   <UIcon :name="kpi.icon" class="w-5 h-5" :class="kpi.iconColor" />
-                  <span class="text-xs font-bold uppercase text-gray-500 tracking-wider">{{
+                  <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest">{{
                     kpi.label
                   }}</span>
                 </div>
                 <span
-                  class="text-[10px] font-bold uppercase tracking-wide"
+                  class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
                   :class="kpi.statusColor"
                 >
                   {{ kpi.status }}
@@ -242,13 +257,15 @@
               </div>
 
               <div class="flex items-baseline gap-1 mb-2">
-                <span class="text-2xl font-black text-gray-900 dark:text-white">{{
+                <span class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{{
                   kpi.actual
                 }}</span>
-                <span v-if="kpi.unit" class="text-sm font-bold text-gray-400">{{ kpi.unit }}</span>
+                <span v-if="kpi.unit" class="text-xs font-bold text-gray-400 uppercase">{{
+                  kpi.unit
+                }}</span>
               </div>
 
-              <div class="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+              <div class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                 {{ kpi.detail }}
               </div>
 
@@ -258,29 +275,23 @@
             </div>
           </div>
 
-          <!-- Run/Swim Details -->
-          <div
-            v-if="workout.type === 'Run' || workout.type === 'Swim'"
-            class="grid grid-cols-1 sm:grid-cols-2 gap-4"
-          >
-            <!-- ... existing fields ... -->
-          </div>
-
           <div
             v-if="coachAdviceText"
-            class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 sm:p-6 border border-blue-100 dark:border-blue-800"
+            class="bg-blue-50 dark:bg-blue-900/20 rounded-none sm:rounded-xl p-6 border-y sm:border border-blue-100 dark:border-blue-800/50 shadow-none sm:shadow-sm"
           >
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-4">
               <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                  <div class="p-2 bg-blue-100 dark:bg-blue-800 rounded-full flex-shrink-0">
+                  <div class="p-2 bg-blue-100 dark:bg-blue-800 rounded-xl flex-shrink-0">
                     <UIcon
                       name="i-heroicons-chat-bubble-bottom-center-text"
                       class="w-6 h-6 text-blue-600 dark:text-blue-300"
                     />
                   </div>
-                  <h3 class="font-semibold text-lg text-blue-900 dark:text-blue-100">
-                    Coach's Advice
+                  <h3
+                    class="text-[10px] font-black uppercase tracking-widest text-blue-900 dark:text-blue-100"
+                  >
+                    Coach's Strategic Advice
                   </h3>
                 </div>
 
@@ -294,62 +305,92 @@
                 />
               </div>
 
-              <p class="text-blue-800 dark:text-blue-200 italic break-words">
+              <p
+                class="text-base text-blue-800 dark:text-blue-200 italic break-words leading-relaxed font-medium"
+              >
                 "{{ coachAdviceText }}"
               </p>
             </div>
           </div>
 
           <!-- Workout Visualization -->
-          <component
-            :is="getWorkoutComponent(workout.type)"
-            v-if="workout.structuredWorkout"
-            :workout="workout"
-            :user-ftp="userFtp"
-            :sport-settings="sportSettings"
-            :generating="generating"
-            @add-messages="openMessageModal"
-            @adjust="openAdjustModal"
-            @regenerate="generateStructure"
-          />
+          <div class="space-y-4">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Execution Plan
+            </h2>
+            <component
+              :is="getWorkoutComponent(workout.type)"
+              v-if="workout.structuredWorkout"
+              :workout="workout"
+              :user-ftp="userFtp"
+              :sport-settings="sportSettings"
+              :generating="generating"
+              class="rounded-none sm:rounded-xl"
+              @add-messages="openMessageModal"
+              @adjust="openAdjustModal"
+              @regenerate="generateStructure"
+            />
 
-          <!-- No Structured Data -->
-          <div
-            v-else
-            class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-6"
-          >
-            <div class="text-center py-8">
-              <UIcon name="i-heroicons-chart-bar" class="w-12 h-12 text-muted mx-auto mb-3" />
-              <h3 class="text-lg font-semibold mb-2">No Structured Workout Data</h3>
-              <p class="text-sm text-muted mb-4">
-                This workout doesn't have detailed interval structure yet.
-              </p>
-              <UButton
-                size="sm"
-                color="primary"
-                variant="soft"
-                :loading="generating"
-                :disabled="generating"
-                @click="generateStructure"
-              >
-                {{ generating ? 'Generating Structure...' : 'Generate Workout Structure' }}
-              </UButton>
+            <!-- No Structured Data -->
+            <div
+              v-else
+              class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-12 border-y sm:border border-gray-100 dark:border-gray-800"
+            >
+              <div class="text-center">
+                <div
+                  class="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                  <UIcon name="i-heroicons-chart-bar" class="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 class="text-base font-black uppercase tracking-widest mb-2">
+                  Structure Pending
+                </h3>
+                <p class="text-sm text-gray-500 mb-8 max-w-xs mx-auto">
+                  Detailed interval structure hasn't been generated for this session yet.
+                </p>
+                <UButton
+                  size="sm"
+                  color="primary"
+                  variant="solid"
+                  class="font-black uppercase tracking-widest text-[10px]"
+                  :loading="generating"
+                  :disabled="generating"
+                  @click="generateStructure"
+                >
+                  {{ generating ? 'Generating...' : 'Build Structure' }}
+                </UButton>
+              </div>
             </div>
           </div>
 
           <!-- Coaching Messages Timeline -->
-          <WorkoutMessagesTimeline
-            v-if="workout.structuredWorkout?.messages?.length"
-            :workout="workout.structuredWorkout"
-          />
+          <div v-if="workout.structuredWorkout?.messages?.length" class="space-y-4">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Coaching Cues
+            </h2>
+            <WorkoutMessagesTimeline
+              :workout="workout.structuredWorkout"
+              class="rounded-none sm:rounded-xl shadow-none sm:shadow border-y sm:border border-gray-100 dark:border-gray-800"
+            />
+          </div>
 
           <!-- Nutrition & Fueling Prep -->
-          <NutritionPrepCard
-            v-if="fuelingPlan"
-            :fueling-plan="fuelingPlan"
-            :fuel-state="fuelState"
-            :is-gut-training="workout?.fuelingStrategy === 'HIGH_CARB_TEST' || fuelState === 3"
-          />
+          <div class="space-y-4">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Fueling Logistics
+            </h2>
+            <NutritionPrepCard
+              v-if="fuelingPlan"
+              :fueling-plan="fuelingPlan"
+              :fuel-state="fuelState"
+              :is-gut-training="workout?.fuelingStrategy === 'HIGH_CARB_TEST' || fuelState === 3"
+              :workout-intensity="workout?.workIntensity"
+              :duration-sec="workout?.durationSec"
+              :strategy-override="workout?.fuelingStrategy || null"
+              :nutrition-settings="nutritionSettings"
+              class="rounded-none sm:rounded-xl shadow-none sm:shadow border-y sm:border border-gray-100 dark:border-gray-800"
+            />
+          </div>
         </div>
 
         <!-- Error State -->

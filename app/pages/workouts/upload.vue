@@ -17,20 +17,41 @@
     </template>
 
     <template #body>
-      <div class="max-w-2xl mx-auto p-6 space-y-6">
-        <div class="text-center">
-          <UIcon name="i-heroicons-cloud-arrow-up" class="w-12 h-12 mx-auto text-gray-400" />
-          <h2 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Upload FIT Files</h2>
-          <p class="mt-2 text-sm text-gray-500">
-            Upload your workout files (.fit) manually. We'll analyze them and add them to your
-            history.
+      <div class="max-w-3xl mx-auto p-4 sm:p-8 space-y-8 pb-24">
+        <div class="text-center space-y-4">
+          <div
+            class="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-2xl flex items-center justify-center mx-auto border border-primary-100 dark:border-primary-800"
+          >
+            <UIcon name="i-heroicons-cloud-arrow-up" class="w-8 h-8 text-primary-500" />
+          </div>
+          <div class="space-y-1">
+            <h1 class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+              Manual Ingestion
+            </h1>
+            <p
+              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest italic"
+            >
+              Integrity Center • FIT File Upload
+            </p>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+            Directly upload .FIT files from your device. We'll analyze the biometric streams and
+            sync them to your performance history.
           </p>
         </div>
 
-        <UCard class="relative">
+        <UCard
+          :ui="{
+            root: 'rounded-xl shadow-lg border-gray-100 dark:border-gray-800',
+            body: 'p-0'
+          }"
+          class="overflow-hidden"
+        >
           <div
-            class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-12 transition-colors"
-            :class="{ 'border-primary-500 bg-primary-50 dark:bg-primary-900/10': isDragging }"
+            class="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl m-4 transition-all duration-300"
+            :class="{
+              'border-primary-500 bg-primary-50 dark:bg-primary-900/10 scale-[0.99]': isDragging
+            }"
             @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false"
             @drop.prevent="handleDrop"
@@ -44,43 +65,92 @@
               @change="handleFileSelect"
             />
 
-            <div v-if="selectedFiles.length === 0" class="text-center">
-              <UButton color="primary" variant="soft" class="mb-4" @click="fileInput?.click()">
+            <div v-if="selectedFiles.length === 0" class="text-center p-8">
+              <div class="mb-6 opacity-40">
+                <UIcon name="i-heroicons-document-plus" class="size-12 text-gray-400" />
+              </div>
+              <UButton
+                color="primary"
+                variant="solid"
+                size="lg"
+                class="font-black uppercase tracking-widest text-xs px-8"
+                @click="fileInput?.click()"
+              >
                 Select Files
               </UButton>
-              <p class="text-xs text-gray-500">or drag and drop here</p>
+              <p class="text-xs text-gray-400 mt-4 font-bold uppercase tracking-tighter">
+                or drag and drop here
+              </p>
             </div>
 
-            <div v-else class="w-full">
-              <div class="max-h-60 overflow-y-auto mb-4 space-y-2">
-                <div
-                  v-for="(file, index) in selectedFiles"
-                  :key="index"
-                  class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-md"
-                >
-                  <div class="flex items-center gap-2">
-                    <UIcon name="i-heroicons-document" class="w-5 h-5 text-gray-400" />
-                    <span class="text-sm font-medium truncate max-w-[200px]">{{ file.name }}</span>
-                    <span class="text-xs text-gray-500">({{ formatFileSize(file.size) }})</span>
+            <div v-else class="w-full p-6">
+              <div class="mb-4">
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
+                  Pending Upload Queue
+                </h3>
+                <div class="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                  <div
+                    v-for="(file, index) in selectedFiles"
+                    :key="index"
+                    class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/50 group"
+                  >
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div
+                        class="size-8 rounded-lg bg-white dark:bg-gray-900 flex items-center justify-center shadow-sm border border-gray-100 dark:border-gray-800"
+                      >
+                        <UIcon name="i-heroicons-document-text" class="size-4 text-primary-500" />
+                      </div>
+                      <div class="min-w-0">
+                        <div
+                          class="text-xs font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
+                        >
+                          {{ file.name }}
+                        </div>
+                        <div class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                          {{ formatFileSize(file.size) }}
+                        </div>
+                      </div>
+                    </div>
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      icon="i-heroicons-trash"
+                      size="xs"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity"
+                      @click="removeFile(index)"
+                    />
                   </div>
-                  <UButton
-                    color="neutral"
-                    variant="ghost"
-                    icon="i-heroicons-x-mark"
-                    size="xs"
-                    @click="removeFile(index)"
-                  />
                 </div>
               </div>
 
               <div
-                class="flex items-center justify-between mt-4 border-t pt-4 dark:border-gray-700"
+                class="flex items-center justify-between mt-6 pt-6 border-t border-gray-100 dark:border-gray-800"
               >
-                <span class="text-sm text-gray-500">{{ selectedFiles.length }} files selected</span>
-                <div class="flex gap-2">
-                  <UButton color="neutral" variant="ghost" @click="clearFiles">Clear All</UButton>
-                  <UButton :loading="uploading" color="primary" @click="uploadFiles">
-                    {{ uploading ? 'Uploading...' : 'Upload Workouts' }}
+                <div class="flex flex-col">
+                  <span
+                    class="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none"
+                    >Ready to Process</span
+                  >
+                  <span class="text-xl font-black text-primary-600 leading-tight"
+                    >{{ selectedFiles.length }} Sessions</span
+                  >
+                </div>
+                <div class="flex gap-3">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                    @click="clearFiles"
+                    >Reset</UButton
+                  >
+                  <UButton
+                    :loading="uploading"
+                    color="primary"
+                    variant="solid"
+                    class="font-black uppercase tracking-widest text-[10px] px-6"
+                    @click="uploadFiles"
+                  >
+                    {{ uploading ? 'Uploading...' : 'Commence Ingestion' }}
                   </UButton>
                 </div>
               </div>
@@ -90,48 +160,64 @@
 
         <div
           v-if="uploadResult"
-          class="rounded-md p-4"
+          class="rounded-xl p-6 border transition-all duration-500"
           :class="
             uploadResult.success
-              ? 'bg-green-50 dark:bg-green-900/20'
-              : 'bg-red-50 dark:bg-red-900/20'
+              ? 'bg-green-50 dark:bg-green-950/20 border-green-100 dark:border-green-900/50'
+              : 'bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/50'
           "
         >
-          <div class="flex">
+          <div class="flex gap-4">
             <div class="flex-shrink-0">
-              <UIcon
-                :name="uploadResult.success ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'"
-                class="h-5 w-5"
-                :class="uploadResult.success ? 'text-green-400' : 'text-red-400'"
-              />
-            </div>
-            <div class="ml-3">
-              <h3
-                class="text-sm font-medium"
+              <div
+                class="size-10 rounded-xl flex items-center justify-center"
                 :class="
                   uploadResult.success
-                    ? 'text-green-800 dark:text-green-200'
-                    : 'text-red-800 dark:text-red-200'
+                    ? 'bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-400'
+                    : 'bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-400'
+                "
+              >
+                <UIcon
+                  :name="uploadResult.success ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'"
+                  class="size-6"
+                />
+              </div>
+            </div>
+            <div class="flex-1">
+              <h3
+                class="text-sm font-black uppercase tracking-tight mb-1"
+                :class="
+                  uploadResult.success
+                    ? 'text-green-900 dark:text-green-100'
+                    : 'text-red-900 dark:text-red-100'
                 "
               >
                 {{ uploadResult.message }}
               </h3>
               <div
                 v-if="uploadResult.results && uploadResult.results.errors.length > 0"
-                class="mt-2 text-sm text-red-700 dark:text-red-300"
+                class="mt-2 text-xs font-medium space-y-1"
+                :class="
+                  uploadResult.success
+                    ? 'text-green-700 dark:text-green-300'
+                    : 'text-red-700 dark:text-red-300'
+                "
               >
-                <ul class="list-disc list-inside">
-                  <li v-for="err in uploadResult.results.errors" :key="err">{{ err }}</li>
-                </ul>
+                <div
+                  v-for="err in uploadResult.results.errors"
+                  :key="err"
+                  class="flex items-center gap-2"
+                >
+                  <div class="size-1 rounded-full bg-current" />
+                  {{ err }}
+                </div>
               </div>
               <div
                 v-if="uploadResult.success"
-                class="mt-2 text-sm text-green-700 dark:text-green-300"
+                class="mt-3 text-xs font-medium text-green-700 dark:text-green-300 leading-relaxed"
               >
-                <p>
-                  Processing has started in the background. It may take a minute to appear in your
-                  dashboard.
-                </p>
+                Ingestion pipelines have been initialized. Workouts will appear on your dashboard as
+                analysis completes.
               </div>
             </div>
           </div>
