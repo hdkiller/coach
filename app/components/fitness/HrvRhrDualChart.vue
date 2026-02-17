@@ -67,11 +67,12 @@ const theme = useTheme()
 
 const defaultSettings = {
   type: 'line',
-  baselineDays: 7,
+  baselineDays: 30,
   stdDevMultiplier: 1.0,
   yScale: 'dynamic',
   inverseRhr: false,
   smooth: true,
+  showSleepBars: false,
   showBand: true,
   opacity: 0.15
 }
@@ -120,6 +121,19 @@ const chartData = computed(() => {
   })
 
   const datasets: any[] = [
+    {
+      type: 'bar',
+      label: 'Sleep Duration',
+      data: data.map(w => w.sleepHours || 0),
+      backgroundColor: theme.isDark.value ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)',
+      borderColor: 'transparent',
+      borderWidth: 0,
+      yAxisID: 'y2',
+      zIndex: 0,
+      hidden: !settings.value.showSleepBars,
+      barPercentage: 0.9,
+      categoryPercentage: 0.9
+    },
     {
       type: settings.value.type || 'line',
       label: 'Heart Rate Variability',
@@ -248,7 +262,7 @@ const chartOptions = computed(() => ({
       display: true,
       position: 'bottom' as const,
       labels: {
-        filter: (item: any) => !item.text.includes('Range'),
+        filter: (item: any) => !item.text.includes('Range') && item.text !== 'Sleep Duration',
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' as const },
         usePointStyle: true,
@@ -265,8 +279,11 @@ const chartOptions = computed(() => ({
       callbacks: {
         label: (context: any) => {
           if (context.dataset.label.includes('Range')) return null
-          const unit = context.dataset.yAxisID === 'y' ? 'ms' : ' bpm'
-          return `${context.dataset.label}: ${context.parsed.y.toFixed(0)}${unit}`
+          let unit = ''
+          if (context.dataset.yAxisID === 'y') unit = 'ms'
+          else if (context.dataset.yAxisID === 'y1') unit = ' bpm'
+          else if (context.dataset.yAxisID === 'y2') unit = 'h'
+          return `${context.dataset.label}: ${context.parsed.y.toFixed(context.dataset.yAxisID === 'y2' ? 1 : 0)}${unit}`
         },
         afterBody: (items: any[]) => {
           const hrvItem = items.find(i => i.dataset.label === 'Heart Rate Variability')
@@ -323,6 +340,14 @@ const chartOptions = computed(() => ({
       title: { display: true, text: 'RHR (bpm)', color: '#94a3b8', font: { size: 10, weight: 'bold' } },
       grid: { drawOnChartArea: false },
       ticks: { color: '#94a3b8' }
+    },
+    y2: {
+      type: 'linear' as const,
+      display: false, // Keep it hidden but used for scaling the background bars
+      position: 'right' as const,
+      min: 0,
+      max: 12, // Standard sleep range
+      grid: { display: false }
     }
   }
 }))

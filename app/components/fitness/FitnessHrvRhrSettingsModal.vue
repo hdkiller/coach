@@ -31,7 +31,8 @@
                 :items="[
                   { label: '7 Days', value: 7 },
                   { label: '14 Days', value: 14 },
-                  { label: '30 Days', value: 30 }
+                  { label: '30 Days', value: 30 },
+                  { label: '42 Days', value: 42 }
                 ]"
                 size="sm"
                 class="w-28"
@@ -99,6 +100,14 @@
               <USwitch v-model="settings.smooth" />
             </div>
 
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">Show Sleep Correlation</div>
+                <div class="text-xs text-muted">Show sleep hours as background bars.</div>
+              </div>
+              <USwitch v-model="settings.showSleepBars" />
+            </div>
+
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Area Opacity</div>
@@ -148,11 +157,12 @@
 
   const defaultSettings = {
     type: 'line',
-    baselineDays: 7,
+    baselineDays: 30,
     stdDevMultiplier: 1.0,
     yScale: 'dynamic',
     inverseRhr: false,
     smooth: true,
+    showSleepBars: false,
     showBand: true,
     opacity: 0.15,
     showAlcohol: true,

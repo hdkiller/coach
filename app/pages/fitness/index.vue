@@ -74,41 +74,99 @@
             :hrv-trend="hrvTrend"
           />
 
-                  <!-- Featured Correlation Chart -->
-                  <div v-if="loading || (allWellness.length > 0 && chartSettings.hrv.visible !== false)">
-                    <FitnessHrvRhrDualChart
-                      :wellness-data="filteredWellness"
-                      :loading="loading"
-                      @settings="isHrvRhrSettingsModalOpen = true"
-                    />
-                  </div>
-                    <!-- Secondary Charts Grid -->
-          <div
-            v-if="loading || allWellness.length > 0"
-            class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
-          >
-            <FitnessTrendChart
-              metric-key="recovery"
-              title="Recovery Trajectory"
-              :loading="loading"
-              :data="recoveryTrendData"
-              :options="getChartOptions('recovery', chartSettings.recovery.type)"
-              :settings="chartSettings.recovery"
-              @settings="openChartSettings('recovery', 'Recovery')"
-            />
+                          <!-- Featured Correlation Chart -->
 
-            <FitnessTrendChart
-              metric-key="sleep"
-              title="Sleep Duration"
-              :loading="loading"
-              :data="sleepTrendData"
-              :options="getChartOptions('sleep', chartSettings.sleep.type)"
-              :settings="chartSettings.sleep"
-              @settings="openChartSettings('sleep', 'Sleep')"
-            />
+                          <div v-if="loading || (allWellness.length > 0 && chartSettings.hrvRhrDual?.visible !== false)">
 
-            <FitnessTrendChart
-              metric-key="restingHr"
+                            <FitnessHrvRhrDualChart
+
+                              :wellness-data="filteredWellness"
+
+                              :loading="loading"
+
+                              @settings="isHrvRhrSettingsModalOpen = true"
+
+                            />
+
+                          </div>
+
+                  
+
+                          <!-- Secondary Charts Grid -->
+
+                          <div
+
+                            v-if="loading || allWellness.length > 0"
+
+                            class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
+
+                          >
+
+                            <FitnessTrendChart
+
+                              metric-key="recovery"
+
+                              title="Recovery Trajectory"
+
+                              :loading="loading"
+
+                              :data="recoveryTrendData"
+
+                              :options="getChartOptions('recovery', chartSettings.recovery.type)"
+
+                              :settings="chartSettings.recovery"
+
+                              @settings="openChartSettings('recovery', 'Recovery')"
+
+                            />
+
+                  
+
+                            <FitnessTrendChart
+
+                              metric-key="sleep"
+
+                              title="Sleep Duration"
+
+                              :loading="loading"
+
+                              :data="sleepTrendData"
+
+                              :options="getChartOptions('sleep', chartSettings.sleep.type)"
+
+                              :settings="chartSettings.sleep"
+
+                              @settings="openChartSettings('sleep', 'Sleep')"
+
+                            />
+
+                  
+
+                            <FitnessTrendChart
+
+                              metric-key="hrv"
+
+                              title="Heart Rate Variability"
+
+                              :loading="loading"
+
+                              :data="hrvTrendData"
+
+                              :options="getChartOptions('hrv', chartSettings.hrv.type)"
+
+                              :settings="chartSettings.hrv"
+
+                              @settings="openChartSettings('hrv', 'HRV')"
+
+                            />
+
+                  
+
+                            <FitnessTrendChart
+
+                              metric-key="restingHr"
+
+                  
               title="Resting Heart Rate"
               :loading="loading"
               :data="restingHrTrendData"
