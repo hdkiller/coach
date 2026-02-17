@@ -11,6 +11,16 @@
               <DashboardTriggerMonitorButton />
             </ClientOnly>
 
+            <UButton
+              icon="i-heroicons-adjustments-horizontal"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              @click="isSettingsModalOpen = true"
+            >
+              Customize
+            </UButton>
+
             <USelect
               v-model="selectedPeriod"
               :items="periodOptions"
@@ -26,6 +36,15 @@
 
     <template #body>
       <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
+        <FitnessSettingsModal v-model:open="isSettingsModalOpen" />
+        <FitnessChartSettingsModal
+          v-if="activeMetricSettings"
+          :metric-key="activeMetricSettings.key"
+          :title="activeMetricSettings.title"
+          :open="!!activeMetricSettings"
+          @update:open="activeMetricSettings = null"
+        />
+
         <!-- Dashboard Branding -->
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
@@ -193,114 +212,210 @@
         >
           <!-- Recovery Score Trend -->
           <UCard
+            v-if="chartSettings.recovery.visible !== false"
             :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
           >
             <template #header>
-              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                Recovery Trajectory
-              </h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Recovery Trajectory
+                </h3>
+                <UButton
+                  icon="i-heroicons-cog-6-tooth"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="openChartSettings('recovery', 'Recovery')"
+                />
+              </div>
             </template>
             <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
             <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="recoveryTrendData" :options="lineChartOptions" :height="300" />
+                <component
+                  :is="chartSettings.recovery.type === 'bar' ? Bar : Line"
+                  :key="`chart-recovery-${chartSettings.recovery.type}`"
+                  :data="recoveryTrendData"
+                  :options="getChartOptions('recovery', chartSettings.recovery.type)"
+                  :height="300"
+                />
               </ClientOnly>
             </div>
           </UCard>
 
           <!-- Sleep Hours Trend -->
           <UCard
+            v-if="chartSettings.sleep.visible !== false"
             :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
           >
             <template #header>
-              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                Sleep Duration
-              </h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Sleep Duration
+                </h3>
+                <UButton
+                  icon="i-heroicons-cog-6-tooth"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="openChartSettings('sleep', 'Sleep')"
+                />
+              </div>
             </template>
             <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
             <div v-else class="h-[300px]">
               <ClientOnly>
-                <Bar :data="sleepTrendData" :options="barChartOptions" :height="300" />
+                <component
+                  :is="chartSettings.sleep.type === 'bar' ? Bar : Line"
+                  :key="`chart-sleep-${chartSettings.sleep.type}`"
+                  :data="sleepTrendData"
+                  :options="getChartOptions('sleep', chartSettings.sleep.type)"
+                  :height="300"
+                />
               </ClientOnly>
             </div>
           </UCard>
 
           <!-- HRV Trend -->
           <UCard
+            v-if="chartSettings.hrv.visible !== false"
             :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
           >
             <template #header>
-              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                Biometric Variance (HRV)
-              </h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Biometric Variance (HRV)
+                </h3>
+                <UButton
+                  icon="i-heroicons-cog-6-tooth"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="openChartSettings('hrv', 'HRV')"
+                />
+              </div>
             </template>
             <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
             <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="hrvTrendData" :options="hrvLineChartOptions" :height="300" />
+                <component
+                  :is="chartSettings.hrv.type === 'bar' ? Bar : Line"
+                  :key="`chart-hrv-${chartSettings.hrv.type}`"
+                  :data="hrvTrendData"
+                  :options="getChartOptions('hrv', chartSettings.hrv.type)"
+                  :height="300"
+                />
               </ClientOnly>
             </div>
           </UCard>
 
           <!-- Resting HR Trend -->
           <UCard
+            v-if="chartSettings.restingHr.visible !== false"
             :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
           >
             <template #header>
-              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                Resting Heart Rate
-              </h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Resting Heart Rate
+                </h3>
+                <UButton
+                  icon="i-heroicons-cog-6-tooth"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="openChartSettings('restingHr', 'Resting HR')"
+                />
+              </div>
             </template>
             <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
             <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="restingHrTrendData" :options="hrLineChartOptions" :height="300" />
+                <component
+                  :is="chartSettings.restingHr.type === 'bar' ? Bar : Line"
+                  :key="`chart-restingHr-${chartSettings.restingHr.type}`"
+                  :data="restingHrTrendData"
+                  :options="getChartOptions('restingHr', chartSettings.restingHr.type)"
+                  :height="300"
+                />
               </ClientOnly>
             </div>
           </UCard>
 
           <!-- Weight Trend -->
           <UCard
+            v-if="chartSettings.weight.visible !== false"
             :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
           >
             <template #header>
-              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                Mass Progression
-              </h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Mass Progression
+                </h3>
+                <UButton
+                  icon="i-heroicons-cog-6-tooth"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="openChartSettings('weight', 'Weight')"
+                />
+              </div>
             </template>
             <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
             <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="weightTrendData" :options="weightLineChartOptions" :height="300" />
+                <component
+                  :is="chartSettings.weight.type === 'bar' ? Bar : Line"
+                  :key="`chart-weight-${chartSettings.weight.type}`"
+                  :data="weightTrendData"
+                  :options="getChartOptions('weight', chartSettings.weight.type)"
+                  :height="300"
+                />
               </ClientOnly>
             </div>
           </UCard>
 
           <!-- Blood Pressure Trend -->
           <UCard
+            v-if="chartSettings.bp.visible !== false"
             :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
           >
             <template #header>
-              <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                Blood Pressure
-              </h3>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
+                  Blood Pressure
+                </h3>
+                <UButton
+                  icon="i-heroicons-cog-6-tooth"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="openChartSettings('bp', 'Blood Pressure')"
+                />
+              </div>
             </template>
             <div v-if="loading" class="h-[300px] flex items-center justify-center">
               <USkeleton class="h-full w-full" />
             </div>
             <div v-else class="h-[300px]">
               <ClientOnly>
-                <Line :data="bpTrendData" :options="bpLineChartOptions" :height="300" />
+                <component
+                  :is="chartSettings.bp.type === 'bar' ? Bar : Line"
+                  :key="`chart-bp-${chartSettings.bp.type}`"
+                  :data="bpTrendData"
+                  :options="getChartOptions('bp', chartSettings.bp.type)"
+                  :height="300"
+                />
               </ClientOnly>
             </div>
           </UCard>
@@ -599,10 +714,31 @@
 
   const toast = useToast()
   const theme = useTheme()
+  const userStore = useUserStore()
   const loading = ref(true)
   const allWellness = ref<any[]>([])
   const currentPage = ref(1)
   const itemsPerPage = 20
+
+  const isSettingsModalOpen = ref(false)
+  const activeMetricSettings = ref<{ key: string; title: string } | null>(null)
+
+  const defaultChartSettings: any = {
+    recovery: { type: 'line', visible: true },
+    sleep: { type: 'bar', visible: true },
+    hrv: { type: 'line', visible: true },
+    restingHr: { type: 'line', visible: true },
+    weight: { type: 'line', visible: true },
+    bp: { type: 'line', visible: true }
+  }
+
+  const chartSettings = computed(() => {
+    return userStore.user?.dashboardSettings?.fitnessCharts || defaultChartSettings
+  })
+
+  function openChartSettings(key: string, title: string) {
+    activeMetricSettings.value = { key, title }
+  }
 
   const selectedPeriod = ref<string | number>(30)
   const periodOptions = [
@@ -861,21 +997,47 @@
       new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     )
 
+    const datasets: any[] = [
+      {
+        type: chartSettings.value.recovery?.type || 'line',
+        label: 'Recovery Score',
+        data: recentWellness.map((w) => w.recoveryScore),
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.5)',
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        fill: false
+      }
+    ]
+
+    // Add 7d average if enabled
+    if (chartSettings.value.recovery?.showAverage) {
+      const avgData = recentWellness.map((_, index) => {
+        const start = Math.max(0, index - 6)
+        const window = recentWellness.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr.recoveryScore, 0)
+        return sum / window.length
+      })
+
+      datasets.push({
+        type: 'line',
+        label: '7d Average',
+        data: avgData,
+        borderColor: 'rgba(34, 197, 94, 0.3)',
+        backgroundColor: 'transparent',
+        borderDash: [5, 5],
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.4,
+        fill: false
+      })
+    }
+
     return {
       labels,
-      datasets: [
-        {
-          label: 'Recovery Score',
-          data: recentWellness.map((w) => w.recoveryScore),
-          borderColor: 'rgb(34, 197, 94)',
-          backgroundColor: 'transparent',
-          tension: 0.4,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          fill: false
-        }
-      ]
+      datasets
     }
   })
 
@@ -918,7 +1080,7 @@
           label: 'HRV (rMSSD)',
           data: recentWellness.map((w) => w.hrv),
           borderColor: 'rgb(168, 85, 247)',
-          backgroundColor: 'transparent',
+          backgroundColor: 'rgba(168, 85, 247, 0.5)',
           tension: 0.4,
           borderWidth: 2,
           pointRadius: 0,
@@ -945,7 +1107,7 @@
           label: 'Resting HR (bpm)',
           data: recentWellness.map((w) => w.restingHr),
           borderColor: 'rgb(239, 68, 68)',
-          backgroundColor: 'transparent',
+          backgroundColor: 'rgba(239, 68, 68, 0.5)',
           tension: 0.4,
           borderWidth: 2,
           pointRadius: 0,
@@ -972,7 +1134,7 @@
           label: 'Weight (kg)',
           data: recentWellness.map((w) => w.weight),
           borderColor: 'rgb(249, 115, 22)',
-          backgroundColor: 'transparent',
+          backgroundColor: 'rgba(249, 115, 22, 0.5)',
           tension: 0.4,
           borderWidth: 2,
           pointRadius: 0,
@@ -999,7 +1161,7 @@
           label: 'Systolic',
           data: recentWellness.map((w) => w.systolic),
           borderColor: 'rgb(236, 72, 153)',
-          backgroundColor: 'transparent',
+          backgroundColor: 'rgba(236, 72, 153, 0.5)',
           tension: 0.4,
           borderWidth: 2,
           pointRadius: 0,
@@ -1010,7 +1172,7 @@
           label: 'Diastolic',
           data: recentWellness.map((w) => w.diastolic),
           borderColor: 'rgb(14, 165, 233)',
-          backgroundColor: 'transparent',
+          backgroundColor: 'rgba(14, 165, 233, 0.5)',
           tension: 0.4,
           borderWidth: 2,
           pointRadius: 0,
@@ -1069,67 +1231,67 @@
     }
   }))
 
-  const lineChartOptions = computed(() => {
+  function getChartOptions(key: string, type: 'line' | 'bar') {
     const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
-    opts.plugins.tooltip.callbacks = {
-      label: (context: any) => `Recovery: ${context.parsed.y.toFixed(0)}%`
-    }
-    opts.scales.y.min = 0
-    opts.scales.y.max = 100
-    return opts
-  })
 
-  const barChartOptions = computed(() => {
-    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
-    opts.plugins.tooltip.callbacks = {
-      label: (context: any) => `Sleep: ${context.parsed.y.toFixed(1)}h`
+    // Set common defaults for bars
+    if (type === 'bar') {
+      opts.scales.y.beginAtZero = true
     }
-    opts.scales.y.beginAtZero = true
-    opts.scales.y.max = 12
-    return opts
-  })
 
-  const hrvLineChartOptions = computed(() => {
-    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
-    opts.plugins.tooltip.callbacks = {
-      label: (context: any) => `HRV: ${context.parsed.y.toFixed(0)}ms`
-    }
-    opts.scales.y.beginAtZero = true
-    return opts
-  })
-
-  const hrLineChartOptions = computed(() => {
-    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
-    opts.plugins.tooltip.callbacks = {
-      label: (context: any) => `HR: ${context.parsed.y.toFixed(0)} bpm`
-    }
-    opts.scales.y.beginAtZero = false
-    return opts
-  })
-
-  const weightLineChartOptions = computed(() => {
-    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
-    opts.plugins.tooltip.callbacks = {
-      label: (context: any) => `Weight: ${context.parsed.y.toFixed(1)}kg`
-    }
-    opts.scales.y.beginAtZero = false
-    return opts
-  })
-
-  const bpLineChartOptions = computed(() => {
-    const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
-    opts.plugins.legend = {
-      display: true,
-      position: 'bottom',
-      labels: {
-        color: '#94a3b8',
-        font: { size: 10, weight: 'bold' as const },
-        usePointStyle: true,
-        boxWidth: 6
+    // Metric specific overrides
+    if (key === 'recovery') {
+      const showAvg = chartSettings.value.recovery?.showAverage
+      opts.plugins.legend = {
+        display: !!showAvg,
+        position: 'bottom',
+        labels: {
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          usePointStyle: true,
+          boxWidth: 6
+        }
+      }
+      opts.plugins.tooltip.callbacks = {
+        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(0)}%`
+      }
+      opts.scales.y.min = 0
+      opts.scales.y.max = 100
+    } else if (key === 'sleep') {
+      opts.plugins.tooltip.callbacks = {
+        label: (context: any) => `Sleep: ${context.parsed.y.toFixed(1)}h`
+      }
+      opts.scales.y.max = 12
+    } else if (key === 'hrv') {
+      opts.plugins.tooltip.callbacks = {
+        label: (context: any) => `HRV: ${context.parsed.y.toFixed(0)}ms`
+      }
+      opts.scales.y.beginAtZero = true
+    } else if (key === 'restingHr') {
+      opts.plugins.tooltip.callbacks = {
+        label: (context: any) => `HR: ${context.parsed.y.toFixed(0)} bpm`
+      }
+      opts.scales.y.beginAtZero = false
+    } else if (key === 'weight') {
+      opts.plugins.tooltip.callbacks = {
+        label: (context: any) => `Weight: ${context.parsed.y.toFixed(1)}kg`
+      }
+      opts.scales.y.beginAtZero = false
+    } else if (key === 'bp') {
+      opts.plugins.legend = {
+        display: true,
+        position: 'bottom',
+        labels: {
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          usePointStyle: true,
+          boxWidth: 6
+        }
       }
     }
+
     return opts
-  })
+  }
 
   watch([selectedPeriod], () => {
     currentPage.value = 1
