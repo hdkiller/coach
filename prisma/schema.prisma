@@ -774,6 +774,7 @@ model Wellness {
   feedbackText     String?
   history          Json?
   lastSource       String?
+  tags             String?   // Comma-separated tags (e.g. "Alcohol", "Sick")
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])

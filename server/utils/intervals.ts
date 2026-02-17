@@ -132,6 +132,8 @@ interface IntervalsWellness {
   respiration?: number
   bloodGlucose?: number
   menstrualPhase?: string
+  tags?: string[]
+  alcohol?: number
   [key: string]: any
 }
 
@@ -1476,6 +1478,9 @@ export function normalizeIntervalsWellness(
 
     // Notes
     comments: wellness.comments || null,
+
+    // Tags & Extra
+    tags: Array.isArray(wellness.tags) ? wellness.tags.join(', ') : wellness.tags || null,
 
     // Raw data
     rawJson: wellness
