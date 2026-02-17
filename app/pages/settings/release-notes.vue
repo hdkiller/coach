@@ -41,7 +41,13 @@
     <div v-else-if="error" class="py-12 text-center">
       <UIcon name="i-heroicons-exclamation-circle" class="w-12 h-12 text-red-500 mx-auto mb-4" />
       <p class="text-gray-900 dark:text-white font-bold">Failed to load release notes</p>
-      <UButton label="Try Again" color="neutral" variant="outline" class="mt-4" @click="refresh" />
+      <UButton
+        label="Try Again"
+        color="neutral"
+        variant="outline"
+        class="mt-4"
+        @click="() => refresh()"
+      />
     </div>
 
     <div v-else-if="!data || data.length === 0" class="py-12 text-center">

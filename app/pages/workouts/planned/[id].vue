@@ -117,7 +117,7 @@
                   </UBadge>
                   <UBadge
                     color="neutral"
-                    variant="ghost"
+                    variant="subtle"
                     size="sm"
                     class="font-bold uppercase tracking-widest text-[10px]"
                   >

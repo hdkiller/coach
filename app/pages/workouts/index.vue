@@ -108,7 +108,7 @@
               </div>
               <div v-else class="h-[300px]">
                 <ClientOnly>
-                  <TrendChart :data="workoutTrendsData?.workouts" type="workout" />
+                  <TrendChart :data="workoutTrendsData?.workouts || []" type="workout" />
                 </ClientOnly>
               </div>
             </UCard>
@@ -185,11 +185,11 @@
                 <ClientOnly>
                   <RadarChart
                     :scores="{
-                      overall: workoutTrendsData?.summary?.avgOverall,
-                      technical: workoutTrendsData?.summary?.avgTechnical,
-                      effort: workoutTrendsData?.summary?.avgEffort,
-                      pacing: workoutTrendsData?.summary?.avgPacing,
-                      execution: workoutTrendsData?.summary?.avgExecution
+                      overall: workoutTrendsData?.summary?.avgOverall ?? null,
+                      technical: workoutTrendsData?.summary?.avgTechnical ?? null,
+                      effort: workoutTrendsData?.summary?.avgEffort ?? null,
+                      pacing: workoutTrendsData?.summary?.avgPacing ?? null,
+                      execution: workoutTrendsData?.summary?.avgExecution ?? null
                     }"
                     type="workout"
                     :height="320"
@@ -208,7 +208,7 @@
               </div>
               <ScoreCard
                 title="Overall Quality"
-                :score="workoutTrendsData?.summary?.avgOverall"
+                :score="workoutTrendsData?.summary?.avgOverall ?? null"
                 icon="i-heroicons-star"
                 color="yellow"
                 compact
@@ -216,14 +216,14 @@
                 @click="
                   openWorkoutModal(
                     'Overall Workout Performance',
-                    workoutTrendsData?.summary?.avgOverall,
+                    workoutTrendsData?.summary?.avgOverall ?? null,
                     'yellow'
                   )
                 "
               />
               <ScoreCard
                 title="Technical Precision"
-                :score="workoutTrendsData?.summary?.avgTechnical"
+                :score="workoutTrendsData?.summary?.avgTechnical ?? null"
                 icon="i-heroicons-cog"
                 color="blue"
                 compact
@@ -231,14 +231,14 @@
                 @click="
                   openWorkoutModal(
                     'Technical Execution',
-                    workoutTrendsData?.summary?.avgTechnical,
+                    workoutTrendsData?.summary?.avgTechnical ?? null,
                     'blue'
                   )
                 "
               />
               <ScoreCard
                 title="Effort Discipline"
-                :score="workoutTrendsData?.summary?.avgEffort"
+                :score="workoutTrendsData?.summary?.avgEffort ?? null"
                 icon="i-heroicons-fire"
                 color="red"
                 compact
@@ -246,14 +246,14 @@
                 @click="
                   openWorkoutModal(
                     'Effort Management',
-                    workoutTrendsData?.summary?.avgEffort,
+                    workoutTrendsData?.summary?.avgEffort ?? null,
                     'red'
                   )
                 "
               />
               <ScoreCard
                 title="Execution Accuracy"
-                :score="workoutTrendsData?.summary?.avgExecution"
+                :score="workoutTrendsData?.summary?.avgExecution ?? null"
                 icon="i-heroicons-check-circle"
                 color="purple"
                 compact
@@ -261,7 +261,7 @@
                 @click="
                   openWorkoutModal(
                     'Workout Execution',
-                    workoutTrendsData?.summary?.avgExecution,
+                    workoutTrendsData?.summary?.avgExecution ?? null,
                     'purple'
                   )
                 "
@@ -614,7 +614,7 @@
 
   // Score trends and insights functionality
   const generatingExplanations = ref(false)
-  const selectedPeriod = ref(30)
+  const selectedPeriod = ref<string | number>(30)
 
   // Fetch workout trends data
   const { data: workoutTrendsData, pending: workoutTrendsLoading } = await useFetch(
