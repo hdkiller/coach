@@ -19,13 +19,6 @@
             <h3 class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white">
               {{ title }}
             </h3>
-            <div
-              v-if="compliance === 'HIT'"
-              class="flex items-center gap-1 text-[10px] font-bold text-green-500 uppercase"
-            >
-              <UIcon name="i-heroicons-check-badge" class="w-3 h-3" />
-              Hit
-            </div>
             <div v-if="!isLocked" class="flex items-center gap-1 ml-1">
               <UButton
                 icon="i-heroicons-plus-circle"
@@ -52,15 +45,29 @@
 
         <!-- Targets Chips -->
         <div class="flex flex-wrap gap-2">
-          <div
+          <button
             v-if="targetCarbs > 0"
-            class="flex items-center gap-1.5 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-100 dark:border-yellow-900/50"
+            type="button"
+            class="flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-colors"
+            :class="carbChipClass"
+            title="Explain this carb target"
+            @click="showCarbExplainModal = true"
           >
-            <UIcon name="i-tabler-bread" class="w-3.5 h-3.5 text-yellow-500" />
-            <span class="text-xs font-black text-yellow-700 dark:text-yellow-400"
-              >{{ formatMacro(targetCarbs) }}g</span
-            >
-          </div>
+            <UIcon name="i-tabler-bread" class="w-3.5 h-3.5" :class="carbChipTextClass" />
+            <span class="text-xs font-black" :class="carbChipTextClass">
+              {{ Math.round(actualCarbs) }}/{{ Math.round(targetCarbs) }}g
+            </span>
+            <UIcon
+              v-if="compliance === 'HIT'"
+              name="i-heroicons-check-circle"
+              class="w-3.5 h-3.5 text-green-500"
+            />
+            <UIcon
+              v-else-if="compliance === 'PARTIAL'"
+              name="i-heroicons-clock"
+              class="w-3.5 h-3.5 text-amber-500"
+            />
+          </button>
           <div
             v-if="targetProtein > 0"
             class="flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-900/50"
@@ -267,7 +274,8 @@
               }}</span>
               <span v-if="getItemTime(item)" class="shrink-0">•</span>
               <span class="truncate"
-                >{{ item.amount }}{{ item.unit || 'g' }} • {{ formatKcal(item.calories) }} kcal</span
+                >{{ item.amount }}{{ item.unit || 'g' }} •
+                {{ formatKcal(item.calories) }} kcal</span
               >
             </div>
 
@@ -275,12 +283,14 @@
               <span
                 class="text-[10px] font-black text-yellow-600 dark:text-yellow-400 whitespace-nowrap"
               >
-                {{ formatMacro(item.carbs) }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g C</span>
+                {{ formatMacro(item.carbs)
+                }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g C</span>
               </span>
               <span
                 class="text-[10px] font-black text-blue-600 dark:text-blue-400 whitespace-nowrap"
               >
-                {{ formatMacro(item.protein) }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g P</span>
+                {{ formatMacro(item.protein)
+                }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g P</span>
               </span>
             </div>
           </div>
@@ -288,6 +298,91 @@
       </div>
     </div>
   </div>
+
+  <UModal v-model:open="showCarbExplainModal" :ui="{ content: 'sm:max-w-md' }">
+    <template #content>
+      <div class="p-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-tabler-bread" class="w-5 h-5 text-yellow-500" />
+            <h3 class="text-base font-black uppercase tracking-tight text-gray-900 dark:text-white">
+              Carb Target Breakdown
+            </h3>
+          </div>
+          <span class="text-lg font-black text-yellow-600 dark:text-yellow-400">
+            {{ Math.round(targetCarbs) }}g
+          </span>
+        </div>
+
+        <div
+          class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 space-y-2"
+        >
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">Window target</span>
+            <span class="font-black text-gray-900 dark:text-white"
+              >{{ Math.round(targetCarbs) }}g</span
+            >
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">Logged in this window</span>
+            <span class="font-black text-gray-900 dark:text-white"
+              >{{ Math.round(actualCarbs) }}g</span
+            >
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">Remaining for this window</span>
+            <span class="font-black text-gray-900 dark:text-white"
+              >{{ Math.round(windowRemainingCarbs) }}g</span
+            >
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">Status</span>
+            <span
+              class="font-black uppercase text-xs"
+              :class="
+                compliance === 'HIT'
+                  ? 'text-green-600 dark:text-green-400'
+                  : compliance === 'PARTIAL'
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-gray-500'
+              "
+            >
+              {{ compliance }}
+            </span>
+          </div>
+        </div>
+
+        <div
+          v-if="type === 'INTRA_WORKOUT'"
+          class="bg-primary-50 dark:bg-primary-950/20 p-4 rounded-xl border border-primary-100 dark:border-primary-900"
+        >
+          <p
+            class="text-xs font-bold uppercase tracking-widest text-primary-700 dark:text-primary-300 mb-1"
+          >
+            Why this number
+          </p>
+          <p class="text-sm text-primary-700 dark:text-primary-300 leading-relaxed">
+            This intra target is set from workout duration and intensity to keep energy stable
+            during the session.
+          </p>
+        </div>
+
+        <div
+          class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800"
+        >
+          <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Important</p>
+          <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            Window targets are timing goals. Daily macro totals are tracked separately on the day
+            summary.
+          </p>
+        </div>
+
+        <UButton block color="neutral" variant="soft" @click="showCarbExplainModal = false">
+          Close
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -326,6 +421,23 @@
 
   const start = computed(() => new Date(props.startTime))
   const end = computed(() => new Date(props.endTime))
+  const showCarbExplainModal = ref(false)
+  const actualCarbs = computed(() => props.items.reduce((sum, item) => sum + (item.carbs || 0), 0))
+  const windowRemainingCarbs = computed(() => Math.max(0, props.targetCarbs - actualCarbs.value))
+  const carbChipClass = computed(() => {
+    if (compliance.value === 'HIT') {
+      return 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/50'
+    }
+    if (compliance.value === 'PARTIAL') {
+      return 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/50'
+    }
+    return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/50'
+  })
+  const carbChipTextClass = computed(() => {
+    if (compliance.value === 'HIT') return 'text-green-700 dark:text-green-400'
+    if (compliance.value === 'PARTIAL') return 'text-amber-700 dark:text-amber-400'
+    return 'text-yellow-700 dark:text-yellow-400'
+  })
 
   const strategyLabel = computed(() => {
     if (props.type !== 'INTRA_WORKOUT') return null
@@ -395,10 +507,9 @@
   })
 
   const compliance = computed(() => {
-    const actualCarbs = props.items.reduce((sum, item) => sum + (item.carbs || 0), 0)
     if (props.targetCarbs === 0) return 'NONE'
-    if (actualCarbs >= props.targetCarbs * 0.8) return 'HIT'
-    if (actualCarbs > 0) return 'PARTIAL'
+    if (actualCarbs.value >= props.targetCarbs * 0.8) return 'HIT'
+    if (actualCarbs.value > 0) return 'PARTIAL'
     return 'PENDING'
   })
 

@@ -34,7 +34,9 @@
               <span class="text-lg font-black text-primary-600 dark:text-primary-400"
                 >{{ feed.nextWindow.targetCarbs }}g</span
               >
-              <p class="text-[10px] text-gray-500">Carb Target</p>
+              <p class="text-[10px] text-gray-500">
+                {{ isTimingOnlyWindow ? 'Timing Target (Optional)' : 'Carb Target' }}
+              </p>
             </div>
           </div>
 
@@ -42,6 +44,27 @@
             <UIcon name="i-lucide-clock" class="size-3" />
             <span>{{ formatTimeRange(feed.nextWindow.startTime, feed.nextWindow.endTime) }}</span>
           </div>
+
+          <div
+            v-if="feed.nextWindow.carryoverCredit > 0 || feed.nextWindow.requiredCarbs >= 0"
+            class="mt-2 text-[11px] space-y-1"
+          >
+            <p
+              v-if="feed.nextWindow.carryoverCredit > 0"
+              class="text-emerald-600 dark:text-emerald-400"
+            >
+              Carryover credit applied: -{{ feed.nextWindow.carryoverCredit }}g
+            </p>
+            <p class="text-gray-500 dark:text-gray-400">
+              Required now: {{ Math.max(0, feed.nextWindow.requiredCarbs || 0) }}g
+            </p>
+          </div>
+
+          <p v-if="isTimingOnlyWindow" class="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
+            Daily carb target already reached ({{ feed.dailyCarbStatus.actual }}/{{
+              feed.dailyCarbStatus.target
+            }}g). This window is timing-focused and optional.
+          </p>
         </div>
 
         <!-- Locked / Planned Meal Display -->
@@ -141,6 +164,22 @@
           >
             Get Meal Ideas
           </UButton>
+        </div>
+
+        <div
+          v-else-if="isTimingOnlyWindow || dailyCarbReached"
+          class="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-dashed border-amber-200 dark:border-amber-800"
+        >
+          <div class="flex items-center gap-2 mb-1">
+            <UIcon name="i-lucide-info" class="size-4 text-amber-500" />
+            <span class="text-xs font-bold text-amber-700 dark:text-amber-300"
+              >Daily Target Reached</span
+            >
+          </div>
+          <p class="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+            You are at {{ feed.dailyCarbStatus.actual }}/{{ feed.dailyCarbStatus.target }}g today.
+            Remaining window carbs are optional timing support, not additional required intake.
+          </p>
         </div>
       </div>
 
@@ -253,6 +292,11 @@
     }
     return props.feed?.suggestedIntake
   })
+
+  const dailyCarbReached = computed(() => props.feed?.dailyCarbStatus?.reached === true)
+  const isTimingOnlyWindow = computed(
+    () => props.feed?.nextWindow?.timingOnly === true && dailyCarbReached.value
+  )
 
   function formatWindowType(type: string) {
     return type.replace('_', ' ')

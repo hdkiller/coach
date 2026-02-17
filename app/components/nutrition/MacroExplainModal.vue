@@ -129,18 +129,38 @@
     const items = []
     const s = props.settings || {}
     const w = props.weight || 75
+    const safeWeight = Math.max(1, w)
+    const target = Math.max(0, Number(props.target || 0))
+    const actual = Math.max(0, Number(props.actual || 0))
+    const adjustmentMultiplier = 1 + (s.targetAdjustmentPercent || 0) / 100
+
+    const windows = Array.isArray(props.fuelingPlan?.windows) ? props.fuelingPlan.windows : []
+    const sumWindowMacro = (
+      macroKey: 'targetCarbs' | 'targetProtein' | 'targetFat',
+      types?: string[]
+    ) =>
+      windows
+        .filter((win: any) => !types || types.includes(win.type))
+        .reduce((sum: number, win: any) => sum + Math.max(0, Number(win?.[macroKey] || 0)), 0)
 
     if (props.label === 'Carbs') {
-      const adjustmentMultiplier = 1 + (s.targetAdjustmentPercent || 0) / 100
-
       // Calculate the "Reverse Base" that led to this target
       // This ensures the numbers in the breakdown always lead to the 'target' shown
       const sensitivity = s.fuelingSensitivity || 1.0
-      const weight = props.weight || 75
+      const weight = safeWeight
 
       // target = weight * base * sensitivity * adjustment
       // base = target / (weight * sensitivity * adjustment)
-      const base = props.target / (weight * sensitivity * adjustmentMultiplier)
+      const base = target / (weight * sensitivity * adjustmentMultiplier)
+      const workoutAllocation = sumWindowMacro('targetCarbs', [
+        'PRE_WORKOUT',
+        'INTRA_WORKOUT',
+        'POST_WORKOUT',
+        'TRANSITION'
+      ])
+      const baseAllocation = sumWindowMacro('targetCarbs', ['DAILY_BASE'])
+      const fallbackBaseAllocation = Math.max(0, target - workoutAllocation)
+      const totalAllocation = sumWindowMacro('targetCarbs')
 
       items.push({
         label: 'Metabolic Baseline',
@@ -160,13 +180,59 @@
         })
       }
 
-      const finalGkg = props.target / weight
+      if (totalAllocation > 0) {
+        items.push({
+          label: 'Workout Window Allocation',
+          description: 'Carbs assigned to pre/intra/post workout windows.',
+          value: `${Math.round(workoutAllocation)} g`
+        })
+        if (baseAllocation > 0) {
+          items.push({
+            label: 'Daily Base Allocation',
+            description: 'Carbs reserved for non-workout baseline meals.',
+            value: `${Math.round(baseAllocation)} g`
+          })
+        } else if (fallbackBaseAllocation > 0) {
+          items.push({
+            label: 'Unassigned Daily Balance',
+            description:
+              'No explicit baseline meal slots were saved for this day. This remaining carb budget can be distributed across regular meals.',
+            value: `${Math.round(fallbackBaseAllocation)} g`
+          })
+        }
+      }
+
+      const finalGkg = target / weight
       items.push({
         label: 'Final Target Intensity',
         description: 'Resulting grams per kilogram after all multipliers.',
         value: `${finalGkg.toFixed(2)} g/kg`
       })
+      items.push({
+        label: 'Energy Contribution',
+        description: 'Calories provided by this carb target.',
+        value: `${Math.round(target * 4)} kcal`
+      })
+      items.push({
+        label: 'Progress Today',
+        description: 'Logged intake compared with your daily target.',
+        value:
+          actual >= target
+            ? `${Math.round(actual - target)}g above target`
+            : `${Math.round(target - actual)}g remaining`
+      })
     } else if (props.label === 'Protein') {
+      const workoutAllocation = sumWindowMacro('targetProtein', [
+        'PRE_WORKOUT',
+        'INTRA_WORKOUT',
+        'POST_WORKOUT',
+        'TRANSITION'
+      ])
+      const baseAllocation = sumWindowMacro('targetProtein', ['DAILY_BASE'])
+      const fallbackBaseAllocation = Math.max(0, target - workoutAllocation)
+      const totalAllocation = sumWindowMacro('targetProtein')
+      const finalGkg = target / safeWeight
+
       items.push({
         label: 'Muscle Maintenance',
         description: 'Standard recommendation for endurance athletes to support repair.',
@@ -177,11 +243,105 @@
         description: 'Your current weight used for scale-based calculation.',
         value: `${w} kg`
       })
+      if (totalAllocation > 0) {
+        items.push({
+          label: 'Workout Recovery Allocation',
+          description: 'Protein specifically distributed around training windows.',
+          value: `${Math.round(workoutAllocation)} g`
+        })
+        if (baseAllocation > 0) {
+          items.push({
+            label: 'Baseline Meal Allocation',
+            description: 'Protein distributed across regular meal windows.',
+            value: `${Math.round(baseAllocation)} g`
+          })
+        } else if (fallbackBaseAllocation > 0) {
+          items.push({
+            label: 'Unassigned Daily Balance',
+            description:
+              'No explicit baseline meal slots were saved for this day. This remaining protein budget can be distributed across regular meals.',
+            value: `${Math.round(fallbackBaseAllocation)} g`
+          })
+        }
+      }
+      items.push({
+        label: 'Final Target Intensity',
+        description: 'Resulting grams per kilogram at your current target.',
+        value: `${finalGkg.toFixed(2)} g/kg`
+      })
+      items.push({
+        label: 'Energy Contribution',
+        description: 'Calories provided by this protein target.',
+        value: `${Math.round(target * 4)} kcal`
+      })
+      items.push({
+        label: 'Progress Today',
+        description: 'Logged intake compared with your daily target.',
+        value:
+          actual >= target
+            ? `${Math.round(actual - target)}g above target`
+            : `${Math.round(target - actual)}g remaining`
+      })
     } else if (props.label === 'Fat') {
+      const workoutAllocation = sumWindowMacro('targetFat', [
+        'PRE_WORKOUT',
+        'INTRA_WORKOUT',
+        'POST_WORKOUT',
+        'TRANSITION'
+      ])
+      const baseAllocation = sumWindowMacro('targetFat', ['DAILY_BASE'])
+      const fallbackBaseAllocation = Math.max(0, target - workoutAllocation)
+      const totalAllocation = sumWindowMacro('targetFat')
+      const finalGkg = target / safeWeight
+
       items.push({
         label: 'Hormonal Baseline',
         description: 'Essential fats for hormonal health and vitamin absorption.',
         value: `${s.baseFatPerKg || 1.0} g/kg`
+      })
+      items.push({
+        label: 'Athlete Weight',
+        description: 'Your current weight used for scale-based calculation.',
+        value: `${w} kg`
+      })
+      if (totalAllocation > 0) {
+        items.push({
+          label: 'Workout Window Allocation',
+          description: 'Fat assigned to training-adjacent meals.',
+          value: `${Math.round(workoutAllocation)} g`
+        })
+        if (baseAllocation > 0) {
+          items.push({
+            label: 'Baseline Meal Allocation',
+            description: 'Fat distributed across regular meal windows.',
+            value: `${Math.round(baseAllocation)} g`
+          })
+        } else if (fallbackBaseAllocation > 0) {
+          items.push({
+            label: 'Unassigned Daily Balance',
+            description:
+              'No explicit baseline meal slots were saved for this day. This remaining fat budget can be distributed across regular meals.',
+            value: `${Math.round(fallbackBaseAllocation)} g`
+          })
+        }
+      }
+      items.push({
+        label: 'Final Target Intensity',
+        description: 'Resulting grams per kilogram at your current target.',
+        value: `${finalGkg.toFixed(2)} g/kg`
+      })
+      items.push({
+        label: 'Energy Contribution',
+        description: 'Calories provided by this fat target.',
+        value: `${Math.round(target * 9)} kcal`
+      })
+      items.push({
+        label: 'Progress Today',
+        description: 'Logged intake compared with your daily target.',
+        value:
+          actual >= target
+            ? `${Math.round(actual - target)}g above target`
+            : `${Math.round(target - actual)}g remaining`
       })
     } else if (props.label === 'Calories') {
       const fp = props.fuelingPlan?.dailyTotals || props.settings?.fuelingPlan?.dailyTotals || {}
@@ -249,15 +409,22 @@
 
   const coachTip = computed(() => {
     if (props.label === 'Carbs') {
+      if (props.actual >= props.target) {
+        return 'Daily carb target reached. Extra carbs are optional and should be used only if a timing-specific window still needs support.'
+      }
       return props.fuelState === 3
-        ? "Today is a high-output day. Your carb target is aggressive to ensure you don't 'bonk' and recover fast."
-        : 'Lower intensity today means we prioritize fat oxidation while keeping enough carbs for metabolic health.'
+        ? 'Today is a high-output day. Prioritize carbs around key windows first, then close any remaining daily gap.'
+        : 'Lower intensity day: keep carbs steady and focus on timing around training demands rather than overfeeding late.'
     }
     if (props.label === 'Protein') {
-      return 'Consistency is key. Aim to spread this protein across 4-5 servings to maximize muscle protein synthesis.'
+      return props.actual >= props.target
+        ? 'Protein target is already covered. Keep the rest of the day lighter and prioritize hydration and sleep.'
+        : 'Spread protein across 4-5 servings and prioritize one feeding in the recovery window for best muscle repair.'
     }
     if (props.label === 'Fat') {
-      return 'Focus on quality: avocados, nuts, and olive oil. Avoid heavy fats right before your interval sessions.'
+      return props.actual >= props.target
+        ? 'Fat intake is already high for today. Keep upcoming meals lower-fat to improve digestion and preserve carb timing flexibility.'
+        : 'Use quality fats (olive oil, nuts, avocado) and keep heavy fat away from pre/intra/post workout windows.'
     }
     return 'These targets are dynamic. They adjust automatically whenever your training plan or intensity changes.'
   })
