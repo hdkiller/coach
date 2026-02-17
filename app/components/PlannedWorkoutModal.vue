@@ -11,79 +11,141 @@
     <template #body>
       <div v-if="plannedWorkout" class="space-y-4">
         <!-- Workout Details -->
-        <div>
-          <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400 mb-2">Details</h4>
-          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600 dark:text-gray-400">Title:</span>
-              <span class="text-sm font-medium">{{ plannedWorkout.title }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600 dark:text-gray-400">Type:</span>
-              <span class="text-sm font-medium">{{ plannedWorkout.type || 'N/A' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600 dark:text-gray-400">Date:</span>
-              <span class="text-sm font-medium">{{
-                formatDateUTC(plannedWorkout.date, 'EEEE, MMMM d, yyyy')
-              }}</span>
-            </div>
-            <div
-              class="flex justify-between cursor-pointer hover:text-primary transition-colors group"
-              @click="openTimeModal"
-            >
-              <span class="text-sm text-gray-600 dark:text-gray-400">Time:</span>
-              <div class="flex items-center gap-1">
-                <span class="text-sm font-medium">{{
-                  plannedWorkout.startTime || 'Set Time'
+        <div class="space-y-4">
+          <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+            Execution Details
+          </h4>
+          <div
+            class="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+          >
+            <div class="divide-y divide-gray-50 dark:divide-gray-800">
+              <div class="px-5 py-3.5 flex justify-between items-center group">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Title</span
+                >
+                <span
+                  class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                  >{{ plannedWorkout.title }}</span
+                >
+              </div>
+
+              <div class="px-5 py-3.5 flex justify-between items-center group">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Type</span
+                >
+                <div class="flex items-center gap-2">
+                  <UIcon
+                    :name="getActivityIcon(plannedWorkout.type)"
+                    class="w-4 h-4 text-primary-500"
+                  />
+                  <span
+                    class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                    >{{ plannedWorkout.type || 'Activity' }}</span
+                  >
+                </div>
+              </div>
+
+              <div class="px-5 py-3.5 flex justify-between items-center group">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Scheduled Date</span
+                >
+                <span
+                  class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                  >{{ formatDateUTC(plannedWorkout.date, 'EEEE, MMMM d, yyyy') }}</span
+                >
+              </div>
+
+              <div
+                class="px-5 py-3.5 flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all group"
+                @click="openTimeModal"
+              >
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Start Time</span
+                >
+                <div class="flex items-center gap-2">
+                  <UIcon
+                    name="i-heroicons-pencil"
+                    class="w-3.5 h-3.5 text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                  <span class="text-sm font-black text-gray-900 dark:text-white tabular-nums">{{
+                    plannedWorkout.startTime || 'SET TIME'
+                  }}</span>
+                </div>
+              </div>
+
+              <div
+                v-if="plannedWorkout.durationSec"
+                class="px-5 py-3.5 flex justify-between items-center group"
+              >
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Duration</span
+                >
+                <span
+                  class="text-sm font-black text-gray-900 dark:text-white tabular-nums tracking-tight"
+                  >{{ formatDuration(plannedWorkout.durationSec) }}</span
+                >
+              </div>
+
+              <div
+                v-if="plannedWorkout.distanceMeters"
+                class="px-5 py-3.5 flex justify-between items-center group"
+              >
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Distance</span
+                >
+                <span
+                  class="text-sm font-black text-gray-900 dark:text-white tabular-nums tracking-tight"
+                  >{{ (plannedWorkout.distanceMeters / 1000).toFixed(2)
+                  }}<span class="text-[10px] ml-0.5 text-gray-400 font-bold uppercase"
+                    >km</span
+                  ></span
+                >
+              </div>
+
+              <div
+                v-if="plannedWorkout.tss"
+                class="px-5 py-3.5 flex justify-between items-center group"
+              >
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Intensity (TSS)</span
+                >
+                <span class="text-sm font-black text-green-600 dark:text-green-400 tabular-nums">{{
+                  Math.round(plannedWorkout.tss)
                 }}</span>
-                <UIcon
-                  name="i-heroicons-pencil"
-                  class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+              </div>
+
+              <div class="px-5 py-3 flex justify-between items-center group">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
+                  >Fueling Strategy</span
+                >
+                <USelectMenu
+                  v-model="fuelingStrategy"
+                  :items="fuelingStrategies"
+                  value-key="value"
+                  size="xs"
+                  variant="none"
+                  class="min-w-[120px] text-right"
+                  :ui="{
+                    base: 'text-primary-600 dark:text-primary-400 font-black uppercase tracking-widest text-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1.5 transition-colors'
+                  }"
+                  :loading="updatingStrategy"
                 />
               </div>
-            </div>
-            <div v-if="plannedWorkout.durationSec" class="flex justify-between">
-              <span class="text-sm text-gray-600 dark:text-gray-400">Duration:</span>
-              <span class="text-sm font-medium">{{
-                formatDuration(plannedWorkout.durationSec)
-              }}</span>
-            </div>
-            <div v-if="plannedWorkout.distanceMeters" class="flex justify-between">
-              <span class="text-sm text-gray-600 dark:text-gray-400">Distance:</span>
-              <span class="text-sm font-medium"
-                >{{ (plannedWorkout.distanceMeters / 1000).toFixed(2) }} km</span
-              >
-            </div>
-            <div v-if="plannedWorkout.tss" class="flex justify-between">
-              <span class="text-sm text-gray-600 dark:text-gray-400">TSS:</span>
-              <span class="text-sm font-medium">{{ Math.round(plannedWorkout.tss) }}</span>
-            </div>
-            <div
-              class="flex justify-between items-center pt-2 mt-2 border-t border-gray-100 dark:border-gray-700"
-            >
-              <span class="text-sm text-gray-600 dark:text-gray-400">Fueling Strategy:</span>
-              <USelectMenu
-                v-model="fuelingStrategy"
-                :items="fuelingStrategies"
-                value-key="value"
-                size="xs"
-                variant="none"
-                class="min-w-[120px] text-right"
-                :ui="{
-                  base: 'text-primary-600 dark:text-primary-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 transition-colors'
-                }"
-                :loading="updatingStrategy"
-              />
             </div>
           </div>
         </div>
 
         <!-- Description -->
-        <div v-if="plannedWorkout.description">
-          <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400 mb-2">Description</h4>
-          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+        <div v-if="plannedWorkout.description" class="space-y-4">
+          <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+            Mission Parameters
+          </h4>
+          <div
+            class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800"
+          >
+            <p
+              class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed font-medium"
+            >
               {{ plannedWorkout.description }}
             </p>
           </div>
@@ -92,18 +154,24 @@
         <!-- Coach Instructions -->
         <div
           v-if="plannedWorkout.structuredWorkout?.coachInstructions"
-          class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800"
+          class="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-5 border border-blue-100 dark:border-blue-900/30"
         >
-          <div class="flex items-start gap-3">
-            <div class="p-2 bg-blue-100 dark:bg-blue-800 rounded-full">
+          <div class="flex items-start gap-4">
+            <div class="p-3 bg-white/50 dark:bg-black/20 rounded-xl">
               <UIcon
                 name="i-heroicons-chat-bubble-bottom-center-text"
-                class="w-5 h-5 text-blue-600 dark:text-blue-300"
+                class="w-6 h-6 text-blue-600 dark:text-blue-400"
               />
             </div>
             <div>
-              <h4 class="font-semibold text-sm text-blue-900 dark:text-blue-100">Coach's Advice</h4>
-              <p class="text-sm text-blue-800 dark:text-blue-200 mt-1 italic">
+              <h4
+                class="text-[10px] font-black uppercase tracking-widest text-blue-900 dark:text-blue-300 mb-1"
+              >
+                Strategy Guidance
+              </h4>
+              <p
+                class="text-sm text-blue-800 dark:text-blue-200 font-medium leading-relaxed italic"
+              >
                 "{{ plannedWorkout.structuredWorkout.coachInstructions }}"
               </p>
             </div>
@@ -113,17 +181,18 @@
         <!-- Workout Visualization -->
         <div
           v-if="plannedWorkout.structuredWorkout"
-          class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+          class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800"
         >
-          <div class="flex justify-between items-center mb-2">
-            <h4 class="font-semibold text-sm text-gray-500 dark:text-gray-400">
-              Workout Structure
+          <div class="flex justify-between items-center mb-6">
+            <h4 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+              Session Profile
             </h4>
             <UButton
               size="xs"
               color="neutral"
               variant="ghost"
               icon="i-heroicons-arrow-path"
+              class="font-black uppercase tracking-widest text-[9px]"
               :loading="generating"
               @click="generateStructure"
             >
@@ -141,39 +210,49 @@
         <!-- Coaching Messages Timeline -->
         <div
           v-if="plannedWorkout.structuredWorkout?.messages?.length"
-          class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+          class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800"
         >
           <WorkoutMessagesTimeline :workout="plannedWorkout.structuredWorkout" />
         </div>
 
         <!-- Status Badge -->
-        <div v-if="plannedWorkout.completed" class="flex items-center gap-2">
-          <UBadge color="success" variant="subtle">
-            <UIcon name="i-heroicons-check-circle" class="w-4 h-4" />
-            <span class="ml-1">Completed</span>
+        <div v-if="plannedWorkout.completed" class="flex items-center gap-2 pt-4">
+          <UBadge
+            color="success"
+            variant="soft"
+            size="md"
+            class="font-black uppercase tracking-widest text-[10px] px-3"
+          >
+            <UIcon name="i-heroicons-check-circle" class="w-4 h-4 mr-1.5" />
+            Integrity Check Passed
           </UBadge>
         </div>
 
         <!-- Mark Complete Section -->
-        <div v-if="!plannedWorkout.completed && !showWorkoutSelector" class="flex flex-col gap-2">
+        <div
+          v-if="!plannedWorkout.completed && !showWorkoutSelector"
+          class="flex flex-col gap-3 pt-4"
+        >
           <UButton
             color="success"
             block
+            class="font-black uppercase tracking-widest text-[11px] py-2.5"
             :loading="loading"
             @click="confirmMarkCompleteWithoutActivity"
           >
-            <UIcon name="i-heroicons-check" class="w-4 h-4" />
+            <UIcon name="i-heroicons-check" class="w-4 h-4 mr-2" />
             Mark as Done (No Activity)
           </UButton>
 
           <UButton
             color="primary"
-            variant="outline"
+            variant="soft"
             block
+            class="font-black uppercase tracking-widest text-[11px] py-2.5"
             :loading="loading"
             @click="showWorkoutSelector = true"
           >
-            <UIcon name="i-heroicons-link" class="w-4 h-4" />
+            <UIcon name="i-heroicons-link" class="w-4 h-4 mr-2" />
             Link to Activity
           </UButton>
         </div>
