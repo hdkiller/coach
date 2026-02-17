@@ -38,7 +38,9 @@
         <div
           class="text-3xl font-bold text-amber-600 dark:text-amber-400 tabular-nums tracking-tight"
         >
-          {{ avgScore !== null ? avgScore.toFixed(1) : '-' }}
+          {{
+            avgScore !== null ? (Number.isInteger(avgScore) ? avgScore : avgScore.toFixed(1)) : '-'
+          }}
         </div>
         <div
           class="text-[10px] font-bold text-amber-900/60 dark:text-amber-400/60 uppercase tracking-widest px-1"

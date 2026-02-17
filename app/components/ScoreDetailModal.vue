@@ -202,7 +202,7 @@
 
   const displayScore = computed(() => {
     if (props.score === null || props.score === undefined) return '--'
-    return props.score.toFixed(1)
+    return Number.isInteger(props.score) ? props.score.toString() : props.score.toFixed(1)
   })
 
   const scoreColorClass = computed(() => {

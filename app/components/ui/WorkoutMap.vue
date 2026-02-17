@@ -1,6 +1,6 @@
 <template>
   <div
-    class="h-96 w-full rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800 z-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center"
+    class="h-96 w-full rounded-none sm:rounded-xl overflow-hidden border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 z-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center shadow-none sm:shadow"
   >
     <client-only>
       <div v-if="latLngs.length > 0" class="relative h-full w-full">

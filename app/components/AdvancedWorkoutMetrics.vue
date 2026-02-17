@@ -1,354 +1,475 @@
 <template>
-  <div class="space-y-6">
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+  >
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-8">
-      <div class="text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
-        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Calculating advanced metrics...</p>
-      </div>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-12">
+      <div
+        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
+      />
+      <p class="text-xs font-black uppercase tracking-widest text-gray-500">
+        Executing Scientific Audit...
+      </p>
     </div>
 
     <!-- Data Display -->
-    <div v-else-if="data && data.advanced" class="space-y-6">
+    <div v-else-if="data && data.advanced" class="space-y-10">
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <!-- 1. Aerobic Decoupling (Drift) & EF Decay -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 cursor-pointer hover:border-primary-500/50 transition-all active:scale-[0.98] group"
           :class="getDriftColor(data.advanced.decoupling)"
+          @click="
+            emit('open-metric', {
+              key: 'Aerobic Decoupling',
+              value: data.advanced.decoupling.toFixed(1),
+              unit: '%'
+            })
+          "
         >
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
               Aerobic Decoupling
             </h3>
-            <UPopover mode="hover">
+            <div class="flex items-center gap-2">
+              <UPopover mode="hover">
+                <UIcon
+                  name="i-heroicons-information-circle"
+                  class="w-4 h-4 text-gray-400 cursor-help"
+                />
+                <template #content>
+                  <div
+                    class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                  >
+                    Measures the drift between Power and Heart Rate. &lt; 5% is optimal aerobic
+                    stability. &gt; 5% indicates acute fatigue.
+                  </div>
+                </template>
+              </UPopover>
               <UIcon
-                name="i-heroicons-information-circle"
-                class="w-4 h-4 text-gray-400 cursor-help"
+                name="i-heroicons-magnifying-glass-circle"
+                class="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
               />
-              <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  Measures the drift between Power and Heart Rate. &lt; 5% is good aerobic fitness.
-                  &gt; 5% indicates fatigue.
-                </div>
-              </template>
-            </UPopover>
+            </div>
           </div>
 
           <div v-if="data.advanced.decoupling !== null">
-            <div class="text-3xl font-bold text-gray-900 dark:text-white">
+            <div class="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
               {{ data.advanced.decoupling.toFixed(1) }}%
             </div>
-            <div class="text-xs text-gray-500 mt-2">
+            <div class="text-[9px] font-black uppercase tracking-widest mt-2">
               <span
                 v-if="data.advanced.decoupling < 5"
-                class="text-green-600 dark:text-green-400 font-medium"
-                >Good Endurance</span
+                class="text-emerald-600 dark:text-emerald-400"
+                >High Integrity Finish</span
               >
-              <span v-else class="text-amber-600 dark:text-amber-400 font-medium">High Drift</span>
+              <span v-else class="text-amber-600 dark:text-amber-400"
+                >Significant Metabolic Drift</span
+              >
             </div>
 
             <!-- EF Decay Chart -->
             <div
               v-if="data.chartData && data.chartData.ef && data.chartData.ef.length > 0"
-              class="mt-4 h-24"
+              class="mt-6 h-24 bg-white/50 dark:bg-black/20 rounded-lg p-2"
             >
-              <Line :data="getEfChartData()" :options="getSparklineOptions('Efficiency Factor')" />
+              <Line
+                :data="getEfChartData()"
+                :options="getSparklineOptions('Efficiency Factor')"
+                :height="80"
+              />
             </div>
           </div>
-          <div v-else class="text-gray-400 text-sm italic">
-            Not enough steady data to calculate.
+          <div
+            v-else
+            class="text-gray-400 text-[10px] uppercase font-black tracking-widest italic py-4"
+          >
+            Insufficient steady state telemetry.
           </div>
         </div>
 
         <!-- 2. W' Balance (Anaerobic Battery) -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4 border-purple-500"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-purple-500 cursor-pointer hover:border-purple-500/50 transition-all active:scale-[0.98] group"
+          @click="
+            emit('open-metric', {
+              key: 'W\' Bal Depletion',
+              value: Math.round(data.advanced.wPrime?.minWPrimeBalance / 1000) || 0,
+              unit: 'kJ'
+            })
+          "
         >
-          <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center justify-between mb-6">
             <div class="flex flex-col">
-              <h3
-                class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Anaerobic Battery (W' Bal)
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Anaerobic Capacity (W')
               </h3>
-              <div v-if="data.advanced.ftpUsed" class="text-[10px] text-gray-400 font-medium">
-                USING {{ data.advanced.ftpUsed }}W FTP
+              <div
+                v-if="data.advanced.ftpUsed"
+                class="text-[8px] text-purple-500/70 font-black uppercase tracking-widest mt-0.5"
+              >
+                Model Based on {{ data.advanced.ftpUsed }}W FTP
               </div>
             </div>
-            <UPopover mode="hover">
+            <div class="flex items-center gap-2">
+              <UPopover mode="hover">
+                <UIcon
+                  name="i-heroicons-information-circle"
+                  class="w-4 h-4 text-gray-400 cursor-help"
+                />
+                <template #content>
+                  <div
+                    class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                  >
+                    Your "matchbook". Shows how much anaerobic energy you have left. Drains above
+                    FTP, recharges below.
+                  </div>
+                </template>
+              </UPopover>
               <UIcon
-                name="i-heroicons-information-circle"
-                class="w-4 h-4 text-gray-400 cursor-help"
+                name="i-heroicons-magnifying-glass-circle"
+                class="w-4 h-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity"
               />
-              <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  Your "matchbook". Shows how much anaerobic energy you have left. Drains above FTP,
-                  recharges below.
-                </div>
-              </template>
-            </UPopover>
+            </div>
           </div>
 
           <div v-if="data.advanced.wPrime">
-            <div class="text-3xl font-bold text-gray-900 dark:text-white">
-              {{ Math.round(data.advanced.wPrime.minWPrimeBalance / 1000) }} kJ
+            <div
+              class="text-3xl font-black text-gray-900 dark:text-white tracking-tighter tabular-nums"
+            >
+              {{ Math.round(data.advanced.wPrime.minWPrimeBalance / 1000) }}
+              <span class="text-xs font-bold text-gray-400 uppercase">kJ</span>
             </div>
-            <div class="text-xs text-gray-500 mt-2">Lowest Point (Max Depletion)</div>
+            <div class="text-[9px] font-black text-purple-500 uppercase tracking-widest mt-2">
+              Peak Depletion Event
+            </div>
 
             <!-- W' Balance Chart -->
             <div
               v-if="data.chartData && data.chartData.wPrime && data.chartData.wPrime.length > 0"
-              class="mt-4 h-24"
+              class="mt-6 h-24 bg-white/50 dark:bg-black/20 rounded-lg p-2"
             >
               <Line
                 :data="getWPrimeChartData()"
                 :options="getSparklineOptions('W\' Balance (J)')"
+                :height="80"
               />
             </div>
           </div>
-          <div v-else class="text-gray-400 text-sm italic">Requires Power and FTP data.</div>
+          <div
+            v-else
+            class="text-gray-400 text-[10px] uppercase font-black tracking-widest italic py-4"
+          >
+            Requires Power and FTP telemetry.
+          </div>
         </div>
 
         <!-- 3. Quadrant Analysis (Pedaling Style) -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4 border-orange-500"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-orange-500 cursor-pointer hover:border-orange-500/50 transition-all active:scale-[0.98] group"
+          @click="emit('open-metric', { key: 'Force / Velocity Profile', value: '' })"
         >
-          <div class="flex items-center justify-between mb-2">
-            <div class="flex flex-col">
-              <h3
-                class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Cadence Profile
-              </h3>
-              <div v-if="data.advanced.ftpUsed" class="text-[10px] text-gray-400 font-medium">
-                USING {{ data.advanced.ftpUsed }}W FTP
-              </div>
-            </div>
-            <UPopover mode="hover">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Force / Velocity Profile
+            </h3>
+            <div class="flex items-center gap-2">
+              <UPopover mode="hover">
+                <UIcon
+                  name="i-heroicons-information-circle"
+                  class="w-4 h-4 text-gray-400 cursor-help"
+                />
+                <template #content>
+                  <div
+                    class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                  >
+                    Distribution of pedaling style based on Power and Cadence.
+                  </div>
+                </template>
+              </UPopover>
               <UIcon
-                name="i-heroicons-information-circle"
-                class="w-4 h-4 text-gray-400 cursor-help"
+                name="i-heroicons-magnifying-glass-circle"
+                class="w-4 h-4 text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity"
               />
-              <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  Distribution of pedaling style based on Power and Cadence.
-                </div>
-              </template>
-            </UPopover>
+            </div>
           </div>
 
-          <div v-if="data.advanced.quadrants" class="space-y-3">
+          <div v-if="data.advanced.quadrants" class="space-y-4">
             <!-- Q1: Sprint -->
-            <div class="space-y-1">
-              <div class="flex justify-between text-xs">
-                <span>Sprint (Hi Pwr / Hi Cad)</span>
-                <span class="font-medium"
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                <span class="text-gray-500">Sprint (Hi Force / Hi Vel)</span>
+                <span class="text-gray-900 dark:text-white"
                   >{{ data.advanced.quadrants.distribution.q1.toFixed(1) }}%</span
                 >
               </div>
-              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1">
                 <div
-                  class="bg-red-500 h-1.5 rounded-full"
+                  class="bg-red-500 h-1 rounded-full transition-all duration-1000"
                   :style="{ width: `${data.advanced.quadrants.distribution.q1}%` }"
                 />
               </div>
             </div>
 
             <!-- Q2: Grind -->
-            <div class="space-y-1">
-              <div class="flex justify-between text-xs">
-                <span>Grind (Hi Pwr / Lo Cad)</span>
-                <span class="font-medium"
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                <span class="text-gray-500">Grind (Hi Force / Lo Vel)</span>
+                <span class="text-gray-900 dark:text-white"
                   >{{ data.advanced.quadrants.distribution.q2.toFixed(1) }}%</span
                 >
               </div>
-              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1">
                 <div
-                  class="bg-orange-500 h-1.5 rounded-full"
+                  class="bg-orange-500 h-1 rounded-full transition-all duration-1000"
                   :style="{ width: `${data.advanced.quadrants.distribution.q2}%` }"
                 />
               </div>
             </div>
 
             <!-- Q4: Spin -->
-            <div class="space-y-1">
-              <div class="flex justify-between text-xs">
-                <span>Spin (Lo Pwr / Hi Cad)</span>
-                <span class="font-medium"
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                <span class="text-gray-500">Spin (Lo Force / Hi Vel)</span>
+                <span class="text-gray-900 dark:text-white"
                   >{{ data.advanced.quadrants.distribution.q4.toFixed(1) }}%</span
                 >
               </div>
-              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1">
                 <div
-                  class="bg-yellow-400 h-1.5 rounded-full"
+                  class="bg-yellow-400 h-1 rounded-full transition-all duration-1000"
                   :style="{ width: `${data.advanced.quadrants.distribution.q4}%` }"
                 />
               </div>
             </div>
-            <!-- Q3: Recovery (Optional to show if dominant) -->
-            <div class="text-xs text-gray-400 text-right mt-1">
+            <!-- Q3: Recovery -->
+            <div
+              class="text-[9px] font-black text-gray-400 uppercase tracking-widest text-right pt-2"
+            >
               Recovery/Coast: {{ data.advanced.quadrants.distribution.q3.toFixed(1) }}%
             </div>
           </div>
-          <div v-else class="text-gray-400 text-sm italic">Requires Power and Cadence data.</div>
+          <div
+            v-else
+            class="text-gray-400 text-[10px] uppercase font-black tracking-widest italic py-4"
+          >
+            Requires Power and Velocity telemetry.
+          </div>
         </div>
 
         <!-- 4. Coasting Analysis -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4 border-blue-500"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-blue-500 cursor-pointer hover:border-blue-500/50 transition-all active:scale-[0.98] group"
+          @click="
+            emit('open-metric', {
+              key: 'Coasting Efficiency',
+              value: data.advanced.coasting.percentTime.toFixed(1),
+              unit: '%'
+            })
+          "
         >
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Micro-Rests
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Coasting Efficiency
             </h3>
-            <UPopover mode="hover">
+            <div class="flex items-center gap-2">
+              <UPopover mode="hover">
+                <UIcon
+                  name="i-heroicons-information-circle"
+                  class="w-4 h-4 text-gray-400 cursor-help"
+                />
+                <template #content>
+                  <div
+                    class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                  >
+                    Time spent moving but not pedaling. Higher percentages in group rides or
+                    descents indicate better energy management.
+                  </div>
+                </template>
+              </UPopover>
               <UIcon
-                name="i-heroicons-information-circle"
-                class="w-4 h-4 text-gray-400 cursor-help"
+                name="i-heroicons-magnifying-glass-circle"
+                class="w-4 h-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
               />
-              <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  Time spent moving but not pedaling (0 watts or 0 cadence). Helps analyze
-                  efficiency and recovery.
-                </div>
-              </template>
-            </UPopover>
+            </div>
           </div>
 
           <div v-if="data.advanced.coasting">
-            <div class="flex items-end gap-2">
-              <span class="text-3xl font-bold text-gray-900 dark:text-white">
+            <div class="flex items-baseline gap-2">
+              <span
+                class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+              >
                 {{ formatDuration(data.advanced.coasting.totalTime) }}
               </span>
-              <span class="text-sm text-gray-500 mb-1">
+              <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">
                 ({{ data.advanced.coasting.percentTime.toFixed(1) }}%)
               </span>
             </div>
 
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-3">
+            <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1 mt-4">
               <div
-                class="bg-blue-600 h-2.5 rounded-full"
+                class="bg-blue-600 h-1 rounded-full transition-all duration-1000"
                 :style="{ width: `${Math.min(100, data.advanced.coasting.percentTime)}%` }"
               />
             </div>
 
-            <div class="text-xs text-gray-500 mt-2">
-              {{ data.advanced.coasting.eventCount }} coasting events detected
+            <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-4">
+              {{ data.advanced.coasting.eventCount }} Micro-Rest Events detected
             </div>
           </div>
-          <div v-else class="text-gray-400 text-sm italic">No power/cadence data available.</div>
+          <div
+            v-else
+            class="text-gray-400 text-[10px] uppercase font-black tracking-widest italic py-4"
+          >
+            No Power or Velocity streams detected.
+          </div>
         </div>
 
         <!-- 5. Matches Burnt -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4 border-red-500"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 border-red-500 cursor-pointer hover:border-red-500/50 transition-all active:scale-[0.98] group"
+          @click="
+            emit('open-metric', { key: 'Sustained Surges', value: data.advanced.surges.length })
+          "
         >
-          <div class="flex items-center justify-between mb-2">
-            <div class="flex flex-col">
-              <h3
-                class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Matches Burnt
-              </h3>
-              <div v-if="data.advanced.ftpUsed" class="text-[10px] text-gray-400 font-medium">
-                USING {{ data.advanced.ftpUsed }}W FTP
-              </div>
-            </div>
-            <UPopover mode="hover">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Sustained Surges (>120% FTP)
+            </h3>
+            <div class="flex items-center gap-2">
+              <UPopover mode="hover">
+                <UIcon
+                  name="i-heroicons-information-circle"
+                  class="w-4 h-4 text-gray-400 cursor-help"
+                />
+                <template #content>
+                  <div
+                    class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                  >
+                    "Burning a match": Sustained efforts far above threshold that cause
+                    disproportionate physiological fatigue.
+                  </div>
+                </template>
+              </UPopover>
               <UIcon
-                name="i-heroicons-information-circle"
-                class="w-4 h-4 text-gray-400 cursor-help"
+                name="i-heroicons-magnifying-glass-circle"
+                class="w-4 h-4 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
               />
-              <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  Surges above 120% FTP that require significant recovery. "Burning a match"
-                  depletes your anaerobic battery.
-                </div>
-              </template>
-            </UPopover>
+            </div>
           </div>
 
           <div v-if="data.advanced.surges">
             <div class="flex items-baseline gap-2">
-              <div class="text-3xl font-bold text-gray-900 dark:text-white">
+              <div
+                class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+              >
                 {{ data.advanced.surges.length }}
               </div>
-              <div class="text-sm text-gray-500">surges >120% FTP</div>
+              <div class="text-[10px] font-black text-red-500 uppercase tracking-widest">
+                Matches Burnt
+              </div>
             </div>
 
             <div
               v-if="data.advanced.surges.length > 0"
-              class="mt-3 text-xs text-gray-600 dark:text-gray-400"
+              class="mt-4 text-[9px] font-black text-gray-400 uppercase tracking-widest"
             >
-              Avg Duration:
-              {{
-                Math.round(
-                  data.advanced.surges.reduce((a: any, b: any) => a + b.duration, 0) /
-                    data.advanced.surges.length
-                )
-              }}s
+              Mean Duration:
+              <span class="text-gray-900 dark:text-white tabular-nums"
+                >{{
+                  Math.round(
+                    data.advanced.surges.reduce((a: any, b: any) => a + b.duration, 0) /
+                      data.advanced.surges.length
+                  )
+                }}s</span
+              >
             </div>
           </div>
-          <div v-else class="text-gray-400 text-sm italic">No surge data available.</div>
+          <div
+            v-else
+            class="text-gray-400 text-[10px] uppercase font-black tracking-widest italic py-4"
+          >
+            No surge events identified.
+          </div>
         </div>
 
         <!-- 6. Fatigue Sensitivity (Late Fade) -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-5 border border-gray-100 dark:border-gray-800 border-l-4 cursor-pointer hover:border-primary-500/50 transition-all active:scale-[0.98] group"
           :class="getFadeColor(data.advanced.fatigueSensitivity?.decay)"
+          @click="
+            emit('open-metric', {
+              key: 'Durability (Late Fade)',
+              value: data.advanced.fatigueSensitivity.decay.toFixed(1),
+              unit: '%'
+            })
+          "
         >
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Endurance Fade
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Durability (Late Fade)
             </h3>
-            <UPopover mode="hover">
+            <div class="flex items-center gap-2">
+              <UPopover mode="hover">
+                <UIcon
+                  name="i-heroicons-information-circle"
+                  class="w-4 h-4 text-gray-400 cursor-help"
+                />
+                <template #content>
+                  <div
+                    class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                  >
+                    Efficiency loss comparing the first 20% vs the last 20% of the session. Lower
+                    values indicate better metabolic durability.
+                  </div>
+                </template>
+              </UPopover>
               <UIcon
-                name="i-heroicons-information-circle"
-                class="w-4 h-4 text-gray-400 cursor-help"
+                name="i-heroicons-magnifying-glass-circle"
+                class="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
               />
-              <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  Efficiency loss (Power/HR) comparing the first 20% vs the last 20% of the workout.
-                  Higher decay indicates faster fatigue.
-                </div>
-              </template>
-            </UPopover>
+            </div>
           </div>
 
           <div v-if="data.advanced.fatigueSensitivity">
-            <div class="text-3xl font-bold text-gray-900 dark:text-white">
+            <div
+              class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+            >
               {{ data.advanced.fatigueSensitivity.decay.toFixed(1) }}%
             </div>
-            <div class="text-xs text-gray-500 mt-2">
+            <div class="text-[9px] font-black uppercase tracking-widest mt-2">
               <span
                 v-if="data.advanced.fatigueSensitivity.decay < 5"
-                class="text-green-600 dark:text-green-400 font-medium"
-                >Strong Finish</span
+                class="text-emerald-600 dark:text-emerald-400"
+                >Elite Durability Profile</span
               >
               <span
                 v-else-if="data.advanced.fatigueSensitivity.decay < 10"
-                class="text-amber-600 dark:text-amber-400 font-medium"
-                >Moderate Fatigue</span
+                class="text-amber-600 dark:text-amber-400"
+                >Moderate Systemic Fatigue</span
               >
-              <span v-else class="text-red-600 dark:text-red-400 font-medium"
-                >High Efficiency Loss</span
-              >
+              <span v-else class="text-red-600 dark:text-red-400">Critical Efficiency Loss</span>
             </div>
           </div>
-          <div v-else class="text-gray-400 text-sm italic">
-            Requires Power and HR data for full duration.
+          <div
+            v-else
+            class="text-gray-400 text-[10px] uppercase font-black tracking-widest italic py-4"
+          >
+            Requires Power and HR telemetry over 1hr.
           </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800"
+      >
         <!-- 7. Stability Metrics -->
         <div
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4 border-emerald-500"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-6 border border-gray-100 dark:border-gray-800 border-l-4 border-emerald-500"
         >
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Effort Stability
+          <div class="flex items-center justify-between mb-8">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Execution Discipline (Stability)
             </h3>
             <UPopover mode="hover">
               <UIcon
@@ -356,56 +477,71 @@
                 class="w-4 h-4 text-gray-400 cursor-help"
               />
               <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  Variation in effort (Power/Pace). Lower percentage means more stable and
-                  disciplined delivery.
+                <div
+                  class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                >
+                  Coefficient of Variation in effort. Lower values indicate more stable and
+                  disciplined target adherence.
                 </div>
               </template>
             </UPopover>
           </div>
 
           <div v-if="data.advanced.powerStability || data.advanced.paceStability">
-            <div class="flex items-baseline gap-4">
+            <div class="flex items-baseline gap-10">
               <div v-if="data.advanced.powerStability">
-                <div class="text-3xl font-bold text-gray-900 dark:text-white">
+                <div
+                  class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+                >
                   {{ data.advanced.powerStability.overallCoV.toFixed(1) }}%
                 </div>
-                <div class="text-[10px] text-gray-500 uppercase">Power Variation</div>
+                <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                  Power Variation
+                </div>
               </div>
               <div v-if="data.advanced.paceStability">
-                <div class="text-3xl font-bold text-gray-900 dark:text-white">
+                <div
+                  class="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
+                >
                   {{ data.advanced.paceStability.overallCoV.toFixed(1) }}%
                 </div>
-                <div class="text-[10px] text-gray-500 uppercase">Pace Variation</div>
+                <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                  Pace Variation
+                </div>
               </div>
             </div>
 
-            <div class="mt-4 flex gap-1">
+            <div class="mt-6 flex gap-1.5 h-10">
               <div
                 v-for="i in (
                   data.advanced.powerStability || data.advanced.paceStability
-                ).intervalStability.slice(0, 8)"
+                ).intervalStability.slice(0, 10)"
                 :key="i.index"
-                class="flex-1 h-8 rounded-xs"
-                :class="i.cov < 5 ? 'bg-green-500' : i.cov < 10 ? 'bg-amber-500' : 'bg-red-500'"
+                class="flex-1 rounded-sm shadow-sm transition-all hover:scale-y-110 cursor-help"
+                :class="i.cov < 5 ? 'bg-emerald-500' : i.cov < 10 ? 'bg-amber-500' : 'bg-red-500'"
                 :title="`${i.label}: ${i.cov.toFixed(1)}% variation`"
               />
             </div>
-            <div class="text-[10px] text-gray-400 mt-1">Stability per interval (Work segments)</div>
+            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-3">
+              Work Interval Stability Spectrum
+            </div>
           </div>
-          <div v-else class="text-gray-400 text-sm italic">
-            Not enough steady data to calculate.
+          <div
+            v-else
+            class="text-gray-400 text-[10px] uppercase font-black tracking-widest italic py-4"
+          >
+            Insufficient interval structure data.
           </div>
         </div>
 
         <!-- 8. Recovery Rate Trend -->
         <div
           v-if="data.advanced.recoveryTrend && data.advanced.recoveryTrend.length > 0"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border-l-4 border-green-400"
+          class="bg-gray-50 dark:bg-gray-950 rounded-xl p-6 border border-gray-100 dark:border-gray-800 border-l-4 border-emerald-400"
         >
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              HR Recovery Trend
+          <div class="flex items-center justify-between mb-8">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              HR Recovery (60s Post-Interval)
             </h3>
             <UPopover mode="hover">
               <UIcon
@@ -413,87 +549,113 @@
                 class="w-4 h-4 text-gray-400 cursor-help"
               />
               <template #content>
-                <div class="p-3 text-xs max-w-xs">
-                  How much your heart rate drops in the first 60 seconds after each work interval.
-                  Consistent or improving drops indicate good fitness.
+                <div
+                  class="p-3 text-[10px] uppercase font-bold tracking-widest leading-relaxed max-w-xs"
+                >
+                  Measures autonomic nervous system reactivity. Consistent or improving drops
+                  indicate high systemic fitness.
                 </div>
               </template>
             </UPopover>
           </div>
 
-          <div class="h-40">
-            <Line :data="getRecoveryTrendChartData()" :options="getRecoveryChartOptions()" />
+          <div
+            class="h-40 bg-white/50 dark:bg-black/20 rounded-xl p-3 border border-gray-100 dark:border-gray-800 shadow-inner"
+          >
+            <Line
+              :data="getRecoveryTrendChartData()"
+              :options="getRecoveryChartOptions()"
+              :height="140"
+            />
           </div>
         </div>
       </div>
 
       <!-- Detailed Match Analysis Table -->
-      <div
-        v-if="data.advanced.surges && data.advanced.surges.length > 0"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
-      >
+      <div v-if="data.advanced.surges && data.advanced.surges.length > 0" class="space-y-4">
         <div
-          class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          class="flex justify-between items-center group cursor-pointer"
           @click="showMatches = !showMatches"
         >
           <div class="flex items-center gap-2">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+              Anaerobic Impact Ledger
+            </h3>
             <UIcon
-              :name="showMatches ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'"
-              class="w-5 h-5 text-gray-500"
+              :name="showMatches ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'"
+              class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors"
             />
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Match Analysis Details</h3>
           </div>
         </div>
 
-        <div v-if="showMatches" class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-900">
+        <div
+          v-if="showMatches"
+          class="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800"
+        >
+          <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-950">
               <tr>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
-                  Start Time
+                  Start
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Duration
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
-                  Avg Power
+                  Mean Power
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
                   Max Power
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
-                  Recovery Cost (60s)
+                  Metabolic Cost
                 </th>
               </tr>
             </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="(surge, idx) in data.advanced.surges" :key="idx">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+              <tr
+                v-for="(surge, idx) in data.advanced.surges"
+                :key="idx"
+                class="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors"
+              >
+                <td
+                  class="px-5 py-4 whitespace-nowrap text-xs font-medium text-gray-500 tabular-nums"
+                >
                   {{ formatTime(surge.start_time) }}
                 </td>
                 <td
-                  class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                  class="px-5 py-4 whitespace-nowrap text-xs font-black text-gray-900 dark:text-white tabular-nums"
                 >
-                  {{ surge.duration }}s
+                  {{ surge.duration
+                  }}<span class="text-[9px] ml-0.5 opacity-50 font-bold uppercase">s</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-amber-600 font-bold">
-                  {{ surge.avg_power }}W
+                <td
+                  class="px-5 py-4 whitespace-nowrap text-xs text-amber-600 font-black tabular-nums"
+                >
+                  {{ surge.avg_power
+                  }}<span class="text-[9px] ml-0.5 opacity-50 font-bold uppercase">W</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {{ surge.max_power }}W
+                <td
+                  class="px-5 py-4 whitespace-nowrap text-xs text-gray-900 dark:text-white font-black tabular-nums"
+                >
+                  {{ surge.max_power
+                  }}<span class="text-[9px] ml-0.5 opacity-50 font-bold uppercase">W</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ surge.cost_avg_power }}W avg
+                <td
+                  class="px-5 py-4 whitespace-nowrap text-xs text-gray-500 font-medium tabular-nums"
+                >
+                  {{ surge.cost_avg_power
+                  }}<span class="text-[9px] ml-0.5 opacity-50 font-bold uppercase">W</span> avg
                 </td>
               </tr>
             </tbody>
@@ -533,6 +695,8 @@
     workoutId: string
     publicToken?: string
   }>()
+
+  const emit = defineEmits(['open-metric'])
 
   const loading = ref(true)
   const data = ref<any>(null)

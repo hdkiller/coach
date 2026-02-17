@@ -1,104 +1,143 @@
 <template>
-  <div class="space-y-4">
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 overflow-hidden"
+  >
     <div
-      v-for="workoutExercise in exercises"
+      v-for="(workoutExercise, eIndex) in exercises"
       :key="workoutExercise.id"
-      class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+      :class="[
+        'transition-all',
+        eIndex !== exercises.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''
+      ]"
     >
-      <div
-        class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
-      >
-        <div class="flex items-center gap-3">
-          <UAvatar
-            v-if="workoutExercise.exercise.imageUrl"
-            :src="workoutExercise.exercise.imageUrl"
-            :alt="workoutExercise.exercise.title"
-            size="sm"
-          />
-          <div
-            v-else
-            class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-xs"
-          >
-            {{ workoutExercise.exercise.title.substring(0, 2).toUpperCase() }}
+      <!-- Exercise Header -->
+      <div class="px-5 py-4 flex justify-between items-center group cursor-default">
+        <div class="flex items-center gap-4">
+          <div class="relative">
+            <UAvatar
+              v-if="workoutExercise.exercise.imageUrl"
+              :src="workoutExercise.exercise.imageUrl"
+              :alt="workoutExercise.exercise.title"
+              size="md"
+              class="ring-2 ring-gray-100 dark:ring-gray-800"
+            />
+            <div
+              v-else
+              class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 font-black text-xs uppercase tracking-tighter"
+            >
+              {{ workoutExercise.exercise.title.substring(0, 2).toUpperCase() }}
+            </div>
           </div>
 
           <div>
-            <h3 class="font-semibold text-gray-900 dark:text-white">
+            <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
               {{ workoutExercise.exercise.title }}
             </h3>
-            <p
-              v-if="workoutExercise.exercise.primaryMuscle"
-              class="text-xs text-gray-500 capitalize"
-            >
-              {{ workoutExercise.exercise.primaryMuscle }}
-            </p>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span
+                v-if="workoutExercise.exercise.primaryMuscle"
+                class="text-[9px] font-black uppercase tracking-widest text-primary-500"
+              >
+                {{ workoutExercise.exercise.primaryMuscle }}
+              </span>
+              <span
+                v-if="workoutExercise.notes"
+                class="text-[9px] text-gray-400 font-bold uppercase tracking-widest"
+              >
+                • {{ workoutExercise.notes }}
+              </span>
+            </div>
           </div>
-        </div>
-
-        <div v-if="workoutExercise.notes" class="text-sm text-gray-500 italic">
-          {{ workoutExercise.notes }}
         </div>
       </div>
 
+      <!-- Sets Table -->
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-left">
-          <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700/50">
+          <thead
+            class="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] bg-gray-50/50 dark:bg-gray-950/50"
+          >
             <tr>
-              <th scope="col" class="px-4 py-2 w-10">Set</th>
-              <th scope="col" class="px-4 py-2">Type</th>
-              <th scope="col" class="px-4 py-2 text-right">Weight</th>
-              <th scope="col" class="px-4 py-2 text-right">Reps</th>
-              <th v-if="hasDistance(workoutExercise)" scope="col" class="px-4 py-2 text-right">
-                Distance
+              <th scope="col" class="px-6 py-3 w-16">Set</th>
+              <th scope="col" class="px-6 py-3">Protocol</th>
+              <th scope="col" class="px-6 py-3 text-right">Load</th>
+              <th scope="col" class="px-6 py-3 text-right">Volume</th>
+              <th v-if="hasDistance(workoutExercise)" scope="col" class="px-6 py-3 text-right">
+                Dist
               </th>
-              <th v-if="hasDuration(workoutExercise)" scope="col" class="px-4 py-2 text-right">
-                Duration
+              <th v-if="hasDuration(workoutExercise)" scope="col" class="px-6 py-3 text-right">
+                Time
               </th>
-              <th scope="col" class="px-4 py-2 text-right">RPE</th>
+              <th scope="col" class="px-6 py-3 text-right">Intensity</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-gray-50 dark:divide-gray-800/50">
             <tr
               v-for="(set, index) in workoutExercise.sets"
               :key="set.id"
-              class="border-b dark:border-gray-700 last:border-b-0"
+              class="hover:bg-gray-50/30 dark:hover:bg-gray-800/20 transition-colors"
             >
-              <td class="px-4 py-2 font-medium text-gray-900 dark:text-white">
+              <td class="px-6 py-3.5 font-black text-gray-900 dark:text-white tabular-nums text-xs">
                 {{ Number(index) + 1 }}
               </td>
-              <td class="px-4 py-2">
+              <td class="px-6 py-3.5">
                 <span
                   v-if="set.type !== 'NORMAL'"
-                  class="text-xs font-semibold px-2 py-0.5 rounded"
+                  class="text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest"
                   :class="getSetTypeClass(set.type)"
                 >
                   {{ set.type }}
                 </span>
-                <span v-else class="text-gray-400">-</span>
+                <span v-else class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                  >Standard</span
+                >
               </td>
-              <td class="px-4 py-2 text-right font-medium">
-                <span v-if="set.weight">{{ set.weight }} {{ set.weightUnit || 'kg' }}</span>
-                <span v-else class="text-gray-400">-</span>
+              <td
+                class="px-6 py-3.5 text-right font-black text-gray-900 dark:text-white tabular-nums text-xs"
+              >
+                <span v-if="set.weight"
+                  >{{ set.weight
+                  }}<span class="text-[9px] ml-0.5 text-gray-400 font-bold uppercase">{{
+                    set.weightUnit || 'kg'
+                  }}</span></span
+                >
+                <span v-else class="text-gray-300 dark:text-gray-700">—</span>
               </td>
-              <td class="px-4 py-2 text-right font-medium">
-                <span v-if="set.reps">{{ set.reps }}</span>
-                <span v-else class="text-gray-400">-</span>
+              <td
+                class="px-6 py-3.5 text-right font-black text-gray-900 dark:text-white tabular-nums text-xs"
+              >
+                <span v-if="set.reps"
+                  >{{ set.reps
+                  }}<span class="text-[9px] ml-0.5 text-gray-400 font-bold uppercase"
+                    >reps</span
+                  ></span
+                >
+                <span v-else class="text-gray-300 dark:text-gray-700">—</span>
               </td>
-              <td v-if="hasDistance(workoutExercise)" class="px-4 py-2 text-right">
-                <span v-if="set.distanceMeters">{{ set.distanceMeters }} m</span>
+              <td
+                v-if="hasDistance(workoutExercise)"
+                class="px-6 py-3.5 text-right font-black text-gray-900 dark:text-white tabular-nums text-xs"
+              >
+                <span v-if="set.distanceMeters"
+                  >{{ set.distanceMeters
+                  }}<span class="text-[9px] ml-0.5 text-gray-400 font-bold uppercase">m</span></span
+                >
               </td>
-              <td v-if="hasDuration(workoutExercise)" class="px-4 py-2 text-right">
+              <td
+                v-if="hasDuration(workoutExercise)"
+                class="px-6 py-3.5 text-right font-black text-gray-900 dark:text-white tabular-nums text-xs"
+              >
                 <span v-if="set.durationSec">{{ formatDuration(set.durationSec) }}</span>
               </td>
-              <td class="px-4 py-2 text-right">
+              <td class="px-6 py-3.5 text-right">
                 <span
                   v-if="set.rpe"
-                  class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+                  class="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] font-black tabular-nums tracking-widest"
                   :class="getRpeClass(set.rpe)"
                 >
-                  {{ set.rpe }}
+                  RPE {{ set.rpe }}
                 </span>
-                <span v-else class="text-gray-400">-</span>
+                <span v-else class="text-gray-300 dark:text-gray-700">—</span>
               </td>
             </tr>
           </tbody>
@@ -114,31 +153,31 @@
   }>()
 
   function hasDistance(workoutExercise: any) {
-    return workoutExercise.sets.some((s: any) => s.distanceMeters)
+    return workoutExercise.sets?.some((s: any) => s.distanceMeters)
   }
 
   function hasDuration(workoutExercise: any) {
-    return workoutExercise.sets.some((s: any) => s.durationSec)
+    return workoutExercise.sets?.some((s: any) => s.durationSec)
   }
 
   function getSetTypeClass(type: string) {
     switch (type) {
       case 'WARMUP':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300'
       case 'DROPSET':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
       case 'FAILURE':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+        return 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
     }
   }
 
   function getRpeClass(rpe: number) {
-    if (rpe >= 9) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-    if (rpe >= 7) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-    if (rpe >= 5) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+    if (rpe >= 9) return 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+    if (rpe >= 7) return 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+    if (rpe >= 5) return 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
+    return 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
   }
 
   function formatDuration(seconds: number) {

@@ -1,13 +1,21 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-bold text-gray-900 dark:text-white">Personal Notes</h2>
+  <div
+    class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+  >
+    <div class="flex items-center justify-between mb-8">
+      <h2
+        class="text-base font-black uppercase tracking-widest text-gray-900 dark:text-white flex items-center gap-2"
+      >
+        <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-primary-500" />
+        Personal Session Notes
+      </h2>
       <UButton
         v-if="!isEditing"
         icon="i-heroicons-pencil"
         color="neutral"
         variant="ghost"
         size="sm"
+        class="font-black uppercase tracking-widest text-[10px]"
         @click="startEditing"
       >
         {{ hasNotes ? 'Edit' : 'Add Notes' }}
@@ -17,6 +25,7 @@
           icon="i-heroicons-check"
           color="primary"
           size="sm"
+          class="font-black uppercase tracking-widest text-[10px]"
           :loading="saving"
           :disabled="saving"
           @click="saveNotes"
@@ -28,6 +37,7 @@
           color="neutral"
           variant="ghost"
           size="sm"
+          class="font-black uppercase tracking-widest text-[10px]"
           :disabled="saving"
           @click="cancelEditing"
         >
@@ -37,41 +47,63 @@
     </div>
 
     <!-- Empty State (not editing, no notes) -->
-    <div v-if="!isEditing && !hasNotes" class="text-center py-8">
+    <div
+      v-if="!isEditing && !hasNotes"
+      class="text-center py-12 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800"
+    >
       <div class="text-gray-500 dark:text-gray-400">
-        <span class="i-heroicons-document-text w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p class="text-sm">
-          No notes yet. Click "Add Notes" to add your personal notes and observations.
+        <div
+          class="w-16 h-16 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100 dark:border-gray-800"
+        >
+          <UIcon name="i-heroicons-document-text" class="w-8 h-8 opacity-30" />
+        </div>
+        <p class="text-sm font-black uppercase tracking-widest text-gray-500">
+          Telemetry Log Empty
         </p>
+        <p class="text-xs mt-2 text-gray-400 max-w-xs mx-auto uppercase font-bold tracking-widest">
+          Capture your subjective insights, equipment notes, or metabolic observations.
+        </p>
+        <UButton
+          size="xs"
+          color="primary"
+          variant="soft"
+          class="mt-6 font-black uppercase tracking-widest text-[9px]"
+          @click="startEditing"
+        >
+          Initialize Note
+        </UButton>
       </div>
     </div>
 
     <!-- Display Notes (not editing, has notes) - Rendered HTML -->
-    <div v-if="!isEditing && hasNotes" class="space-y-3">
+    <div v-if="!isEditing && hasNotes" class="space-y-4">
       <div
-        class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-4"
+        class="rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-6"
       >
         <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="prose prose-sm dark:prose-invert max-w-none" v-html="renderedNotes" />
+        <div
+          class="prose prose-sm dark:prose-invert max-w-none font-medium leading-relaxed text-gray-700 dark:text-gray-300"
+          v-html="renderedNotes"
+        />
       </div>
       <div
         v-if="notesUpdatedAt"
-        class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400"
+        class="flex items-center justify-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest pt-2"
       >
-        <span class="i-heroicons-clock w-3 h-3" />
-        <span>Last updated: {{ formatDate(notesUpdatedAt) }}</span>
+        <UIcon name="i-heroicons-clock" class="w-3 h-3" />
+        <span>Log Synchronized • {{ formatDate(notesUpdatedAt) }}</span>
       </div>
     </div>
 
     <!-- Editor (is editing) -->
-    <div v-if="isEditing" class="space-y-3">
+    <div v-if="isEditing" class="space-y-4">
       <div
-        class="rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden bg-white dark:bg-gray-900"
+        class="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950 shadow-inner"
       >
         <!-- Custom Toolbar -->
         <div
           v-if="editor"
-          class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 px-2 py-2 flex flex-wrap gap-1"
+          class="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-3 py-2.5 flex flex-wrap gap-1.5"
         >
           <!-- Bold -->
           <UButton
@@ -79,7 +111,11 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('bold') }"
+            class="hover:bg-primary-50 dark:hover:bg-primary-950"
+            :class="{
+              'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
+                editor.isActive('bold')
+            }"
             @click="editor.chain().focus().toggleBold().run()"
           />
           <!-- Italic -->
@@ -88,50 +124,31 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('italic') }"
+            class="hover:bg-primary-50 dark:hover:bg-primary-950"
+            :class="{
+              'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
+                editor.isActive('italic')
+            }"
             @click="editor.chain().focus().toggleItalic().run()"
           />
-          <!-- Strike -->
-          <UButton
-            icon="i-lucide-strikethrough"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('strike') }"
-            @click="editor.chain().focus().toggleStrike().run()"
-          />
 
-          <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+          <div class="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 align-middle" />
 
-          <!-- Heading 1 -->
-          <UButton
-            icon="i-lucide-heading-1"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('heading', { level: 1 }) }"
-            @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
-          />
-          <!-- Heading 2 -->
+          <!-- Heading -->
           <UButton
             icon="i-lucide-heading-2"
             size="xs"
             color="neutral"
             variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('heading', { level: 2 }) }"
+            class="hover:bg-primary-50 dark:hover:bg-primary-950"
+            :class="{
+              'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
+                editor.isActive('heading', { level: 2 })
+            }"
             @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
           />
-          <!-- Heading 3 -->
-          <UButton
-            icon="i-lucide-heading-3"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('heading', { level: 3 }) }"
-            @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
-          />
 
-          <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+          <div class="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1" />
 
           <!-- Bullet List -->
           <UButton
@@ -139,7 +156,11 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('bulletList') }"
+            class="hover:bg-primary-50 dark:hover:bg-primary-950"
+            :class="{
+              'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
+                editor.isActive('bulletList')
+            }"
             @click="editor.chain().focus().toggleBulletList().run()"
           />
           <!-- Ordered List -->
@@ -148,43 +169,15 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('orderedList') }"
+            class="hover:bg-primary-50 dark:hover:bg-primary-950"
+            :class="{
+              'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400':
+                editor.isActive('orderedList')
+            }"
             @click="editor.chain().focus().toggleOrderedList().run()"
           />
 
-          <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
-
-          <!-- Blockquote -->
-          <UButton
-            icon="i-lucide-quote"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('blockquote') }"
-            @click="editor.chain().focus().toggleBlockquote().run()"
-          />
-          <!-- Code Block -->
-          <UButton
-            icon="i-lucide-code"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': editor.isActive('codeBlock') }"
-            @click="editor.chain().focus().toggleCodeBlock().run()"
-          />
-
-          <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
-
-          <!-- Horizontal Rule -->
-          <UButton
-            icon="i-lucide-minus"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            @click="editor.chain().focus().setHorizontalRule().run()"
-          />
-
-          <div class="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+          <div class="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1" />
 
           <!-- Undo -->
           <UButton
@@ -192,47 +185,34 @@
             size="xs"
             color="neutral"
             variant="ghost"
+            class="hover:bg-primary-50 dark:hover:bg-primary-950"
             :disabled="!editor.can().undo()"
             @click="editor.chain().focus().undo().run()"
-          />
-          <!-- Redo -->
-          <UButton
-            icon="i-lucide-redo"
-            size="xs"
-            color="neutral"
-            variant="ghost"
-            :disabled="!editor.can().redo()"
-            @click="editor.chain().focus().redo().run()"
           />
         </div>
 
         <!-- Editor Content -->
-        <EditorContent :editor="editor" class="px-4 py-3" />
+        <EditorContent :editor="editor" class="px-6 py-4 min-h-[250px]" />
       </div>
-      <div class="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <span class="i-heroicons-information-circle w-4 h-4 mt-0.5 flex-shrink-0" />
+      <div
+        class="flex items-start gap-3 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30"
+      >
+        <UIcon
+          name="i-heroicons-information-circle"
+          class="w-4 h-4 mt-0.5 text-blue-500 flex-shrink-0"
+        />
         <div class="space-y-1">
-          <p>Use the toolbar above for formatting, or keyboard shortcuts:</p>
-          <ul class="list-disc list-inside space-y-0.5 ml-2">
-            <li>
-              <span class="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded"
-                >Cmd/Ctrl+B</span
-              >
-              for bold
-            </li>
-            <li>
-              <span class="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded"
-                >Cmd/Ctrl+I</span
-              >
-              for italic
-            </li>
-            <li>
-              <span class="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded"
-                >Cmd/Ctrl+K</span
-              >
-              for link
-            </li>
-          </ul>
+          <p
+            class="text-[10px] font-black uppercase tracking-widest text-blue-900 dark:text-blue-300"
+          >
+            Format Instructions
+          </p>
+          <p class="text-[10px] font-medium text-blue-800 dark:text-blue-200 leading-relaxed">
+            Use standard markdown or the toolbar above. Keyboard shortcuts supported:
+            <span class="font-black">CMD+B</span> (Bold),
+            <span class="font-black">CMD+I</span> (Italic),
+            <span class="font-black">CMD+ENTER</span> (Save).
+          </p>
         </div>
       </div>
     </div>

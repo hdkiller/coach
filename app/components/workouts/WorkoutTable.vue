@@ -2,45 +2,45 @@
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead class="bg-gray-50 dark:bg-gray-900">
+        <thead class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           <tr>
             <th
-              class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="px-3 sm:px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               Date
             </th>
             <th
-              class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="px-3 sm:px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               Activity
             </th>
             <th
-              class="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="hidden sm:table-cell px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               Type
             </th>
             <th
-              class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="px-3 sm:px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               Duration
             </th>
             <th
-              class="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="hidden md:table-cell px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               Load
             </th>
             <th
-              class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="px-3 sm:px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               Score
             </th>
             <th
-              class="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="hidden lg:table-cell px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               AI Analysis
             </th>
             <th
-              class="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              class="hidden lg:table-cell px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
             >
               Source
             </th>
