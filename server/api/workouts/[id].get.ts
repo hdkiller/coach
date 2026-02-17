@@ -91,10 +91,34 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // Find neighbors (excluding duplicates)
+  const [prevWorkout, nextWorkout] = await Promise.all([
+    prisma.workout.findFirst({
+      where: {
+        userId: (session.user as any).id,
+        date: { lt: workout.date },
+        isDuplicate: false
+      },
+      orderBy: { date: 'desc' },
+      select: { id: true }
+    }),
+    prisma.workout.findFirst({
+      where: {
+        userId: (session.user as any).id,
+        date: { gt: workout.date },
+        isDuplicate: false
+      },
+      orderBy: { date: 'asc' },
+      select: { id: true }
+    })
+  ])
+
   return {
     ...workout,
     llmUsageId: llmUsage?.id,
     feedback: llmUsage?.feedback,
-    feedbackText: llmUsage?.feedbackText
+    feedbackText: llmUsage?.feedbackText,
+    prevWorkoutId: prevWorkout?.id,
+    nextWorkoutId: nextWorkout?.id
   }
 })

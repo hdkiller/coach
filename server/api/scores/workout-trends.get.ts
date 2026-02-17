@@ -158,25 +158,24 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const getAverage = (key: string) => {
+    const workoutsWithScore = workouts.filter((w: any) => typeof w[key] === 'number')
+    if (workoutsWithScore.length === 0) return null
+    return (
+      workoutsWithScore.reduce((sum: number, w: any) => sum + (w[key] || 0), 0) /
+      workoutsWithScore.length
+    )
+  }
+
   return {
     workouts: filledWorkouts,
     summary: {
       total: workouts.length,
-      avgOverall:
-        workouts.reduce((sum: number, w: any) => sum + (w.overallScore || 0), 0) /
-        (workouts.length || 1),
-      avgTechnical:
-        workouts.reduce((sum: number, w: any) => sum + (w.technicalScore || 0), 0) /
-        (workouts.length || 1),
-      avgEffort:
-        workouts.reduce((sum: number, w: any) => sum + (w.effortScore || 0), 0) /
-        (workouts.length || 1),
-      avgPacing:
-        workouts.reduce((sum: number, w: any) => sum + (w.pacingScore || 0), 0) /
-        (workouts.length || 1),
-      avgExecution:
-        workouts.reduce((sum: number, w: any) => sum + (w.executionScore || 0), 0) /
-        (workouts.length || 1)
+      avgOverall: getAverage('overallScore'),
+      avgTechnical: getAverage('technicalScore'),
+      avgEffort: getAverage('effortScore'),
+      avgPacing: getAverage('pacingScore'),
+      avgExecution: getAverage('executionScore')
     }
   }
 })

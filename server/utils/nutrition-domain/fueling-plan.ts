@@ -15,7 +15,7 @@ export function calculateFuelingStrategy(
   workout: WorkoutContext
 ): SerializedFuelingPlan {
   const durationHours = (workout.durationSec || 0) / 3600
-  const intensity = workout.intensityFactor || workout.workIntensity || 0.65
+  const intensity = workout.intensityFactor ?? workout.workIntensity ?? workout.intensity ?? 0.65
   const sensitivity = profile.fuelingSensitivity || 1.0
 
   // Default Windows

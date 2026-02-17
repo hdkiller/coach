@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
       ((nextWindowType === 'POST_WORKOUT' || nextWindowType === 'DAILY_BASE') &&
         looksLikePreWorkout) ||
       // If model provided explicit window binding, enforce it.
-      windowMismatch
+      windowMismatch ||
+      context.dailyCarbStatus?.reached === true
     const mealRec = staleMealRec ? null : mealRecCandidate
 
     // 3. Get Recent Activity (History) - last 3 items
@@ -121,6 +122,7 @@ export default defineEventHandler(async (event) => {
       success: true,
       nextWindow: context.nextFuelingWindow,
       suggestedIntake: context.suggestedIntakeNow,
+      dailyCarbStatus: context.dailyCarbStatus,
       mealRecommendation: mealRec || null,
       recentItems,
       currentTank: context.currentTank

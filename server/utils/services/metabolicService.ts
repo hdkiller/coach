@@ -20,7 +20,9 @@ import {
   mergeFuelingWindows,
   selectRelevantWorkouts,
   synthesizeRefills,
-  ABSORPTION_PROFILES
+  ABSORPTION_PROFILES,
+  getAbsorbedInInterval,
+  getProfileForItem
 } from '../nutrition-domain'
 import { HYDRATION_DEBT_NUDGE_THRESHOLD_ML, MEAL_LINKED_WATER_ML } from '../nutrition/hydration'
 import { getUserNutritionSettings } from '../nutrition/settings'
@@ -300,6 +302,33 @@ export const metabolicService = {
     }
 
     const meals = ['breakfast', 'lunch', 'dinner', 'snacks'] as const
+    const CARRYOVER_LOOKBACK_MIN = 120
+    const WINDOW_CARRYOVER_CAP_RATIO: Record<string, number> = {
+      PRE_WORKOUT: 0.6,
+      INTRA_WORKOUT: 0.3,
+      POST_WORKOUT: 0.4,
+      TRANSITION: 0.5
+    }
+    const CARRYOVER_TYPES = new Set(['PRE_WORKOUT', 'INTRA_WORKOUT', 'POST_WORKOUT', 'TRANSITION'])
+
+    const resolveAbsorptionProfile = (item: any) => {
+      const absorptionType = String(item?.absorptionType || '').toUpperCase()
+      if (absorptionType && absorptionType in ABSORPTION_PROFILES) {
+        return ABSORPTION_PROFILES[absorptionType as keyof typeof ABSORPTION_PROFILES]
+      }
+      return getProfileForItem(item?.name || item?.product_name || item?.title)
+    }
+
+    const estimateAbsorbedFraction = (carbs: number, minsSinceIntake: number, profile: any) => {
+      if (carbs <= 0 || minsSinceIntake <= 0) return 0
+      let absorbed = 0
+      const step = 5
+      for (let t = 0; t < minsSinceIntake; t += step) {
+        absorbed += getAbsorbedInInterval(t, Math.min(t + step, minsSinceIntake), carbs, profile)
+      }
+      return Math.max(0, Math.min(1, absorbed / carbs))
+    }
+
     const loggedItems = meals.flatMap((meal) => {
       const mealItems =
         dayNutrition && Array.isArray((dayNutrition as any)[meal])
@@ -318,6 +347,22 @@ export const metabolicService = {
       })
     })
 
+    const dayActualCarbs = Math.max(0, Number((dayNutrition as any)?.carbs || 0))
+    const inferredTargetFromWindows = windows.reduce(
+      (sum, w: any) => sum + Math.max(0, Number(w.targetCarbs || 0)),
+      0
+    )
+    const dayTargetCarbs = Math.max(
+      0,
+      Number(
+        (dayNutrition as any)?.carbsGoal ||
+          summary?.dailyTotals?.carbs ||
+          inferredTargetFromWindows ||
+          0
+      )
+    )
+    const dayRemainingCarbs = Math.max(0, dayTargetCarbs - dayActualCarbs)
+
     const windowProgress = windows.map((w: any) => {
       const actualCarbs = loggedItems
         .filter((i: any) => i.at && i.at >= w.start && i.at <= w.end)
@@ -332,6 +377,47 @@ export const metabolicService = {
       const targetCarbs = w.targetCarbs || 0
       const plannedCarbs = lockedMeal ? (lockedMeal.mealJson as any).totals.carbs : 0
 
+      const rawUnmetCarbs = Math.max(0, targetCarbs - actualCarbs - plannedCarbs)
+      let carryoverCredit = 0
+
+      if (rawUnmetCarbs > 0 && CARRYOVER_TYPES.has(w.type)) {
+        const windowStartMs = w.start.getTime()
+        const lookbackStartMs = windowStartMs - CARRYOVER_LOOKBACK_MIN * 60 * 1000
+        const capRatio = WINDOW_CARRYOVER_CAP_RATIO[w.type] ?? 0.4
+        const maxCreditForWindow = Math.max(0, targetCarbs * capRatio)
+
+        const weightedRecentCarbs = loggedItems
+          .filter((i: any) => i.at)
+          .map((i: any) => {
+            const carbs = Math.max(0, Number(i.carbs || 0))
+            const atMs = (i.at as Date).getTime()
+            if (carbs <= 0 || atMs >= windowStartMs || atMs < lookbackStartMs) {
+              return 0
+            }
+
+            const minsBeforeWindow = (windowStartMs - atMs) / 60000
+            const recencyWeight = Math.max(
+              0,
+              Math.min(1, (CARRYOVER_LOOKBACK_MIN - minsBeforeWindow) / CARRYOVER_LOOKBACK_MIN)
+            )
+            const profile = resolveAbsorptionProfile(i)
+            const absorbedFraction = estimateAbsorbedFraction(carbs, minsBeforeWindow, profile)
+            const readinessWeight = 0.4 + absorbedFraction * 0.6
+
+            return carbs * recencyWeight * readinessWeight
+          })
+          .reduce((sum: number, value: number) => sum + value, 0)
+
+        carryoverCredit = Math.max(
+          0,
+          Math.min(rawUnmetCarbs, maxCreditForWindow, weightedRecentCarbs)
+        )
+      }
+
+      const effectiveUnmetCarbs = Math.max(0, rawUnmetCarbs - carryoverCredit)
+      const requiredCarbs = Math.max(0, Math.min(effectiveUnmetCarbs, dayRemainingCarbs))
+      const timingOnly = dayRemainingCarbs <= 0 && effectiveUnmetCarbs > 0
+
       return {
         type: w.type,
         startTime: w.start.toISOString(),
@@ -341,14 +427,17 @@ export const metabolicService = {
         actualCarbs,
         plannedCarbs,
         lockedMeal: lockedMeal?.mealJson || null,
-        unmetCarbs: Math.max(0, targetCarbs - actualCarbs - plannedCarbs)
+        unmetCarbs: rawUnmetCarbs,
+        carryoverCredit: Math.round(carryoverCredit),
+        requiredCarbs: Math.round(requiredCarbs),
+        timingOnly
       }
     })
 
     const activeOrNext = windowProgress.find((w) => new Date(w.endTime).getTime() >= now.getTime())
 
     let suggestedIntakeNow: any = null
-    if (activeOrNext && activeOrNext.unmetCarbs > 0) {
+    if (activeOrNext && activeOrNext.requiredCarbs > 0) {
       const minutesToStart = Math.round(
         (new Date(activeOrNext.startTime).getTime() - now.getTime()) / 60000
       )
@@ -361,7 +450,7 @@ export const metabolicService = {
       else if (minutesToStart <= 120) absorptionType = 'BALANCED'
 
       const carbCap = inWindow ? 30 : minutesToStart <= 60 ? 45 : minutesToStart <= 120 ? 60 : 80
-      const carbs = Math.max(10, Math.round(Math.min(activeOrNext.unmetCarbs, carbCap)))
+      const carbs = Math.max(0, Math.round(Math.min(activeOrNext.requiredCarbs, carbCap)))
 
       suggestedIntakeNow = {
         carbs,
@@ -382,6 +471,12 @@ export const metabolicService = {
       },
       nextFuelingWindow: activeOrNext || null,
       windowProgress,
+      dailyCarbStatus: {
+        actual: Math.round(dayActualCarbs),
+        target: Math.round(dayTargetCarbs),
+        remaining: Math.round(dayRemainingCarbs),
+        reached: dayRemainingCarbs <= 0
+      },
       suggestedIntakeNow
     }
   },

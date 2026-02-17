@@ -108,6 +108,7 @@ export interface WorkoutContext {
   tss?: number | null
   intensityFactor?: number | null
   workIntensity?: number | null // 0-1
+  intensity?: number | null // legacy fallback from completed workouts
   type?: string | null
   startTime?: Date | null
   strategyOverride?: string // e.g. 'TRAIN_LOW', 'HIGH_CARB'
