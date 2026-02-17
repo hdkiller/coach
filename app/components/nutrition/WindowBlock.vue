@@ -1,5 +1,6 @@
 <template>
   <div
+    v-bind="attrs"
     class="relative pl-8 pb-10 border-l-2 border-gray-100 dark:border-gray-800 last:border-0 last:pb-0"
   >
     <!-- Timeline Icon -->
@@ -386,6 +387,12 @@
 </template>
 
 <script setup lang="ts">
+  defineOptions({
+    inheritAttrs: false
+  })
+
+  const attrs = useAttrs()
+
   const props = defineProps<{
     type: string
     title: string
