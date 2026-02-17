@@ -20,6 +20,20 @@
       </div>
 
       <div class="flex items-center gap-2">
+        <USelectMenu
+          v-if="canEditStrategy"
+          :model-value="selectedStrategy"
+          :items="fuelingStrategies"
+          value-key="value"
+          size="xs"
+          :loading="updatingStrategy"
+          class="min-w-[132px]"
+          :ui="{
+            base: 'text-[10px] font-black uppercase tracking-widest'
+          }"
+          @update:model-value="onStrategyChange"
+        />
+
         <UButton
           v-if="fuelState > 0"
           color="neutral"
@@ -222,7 +236,9 @@
                 Applied directly from your Fuel State trigger settings.
               </p>
             </div>
-            <p class="text-sm font-black text-gray-900 dark:text-white text-right whitespace-pre-line">
+            <p
+              class="text-sm font-black text-gray-900 dark:text-white text-right whitespace-pre-line"
+            >
               {{ selectedRule }}
             </p>
           </div>
@@ -293,9 +309,34 @@
     durationSec?: number
     strategyOverride?: string | null
     nutritionSettings?: any
+    canEditStrategy?: boolean
+    updatingStrategy?: boolean
+  }>()
+
+  const emit = defineEmits<{
+    'change-fueling-strategy': [value: string]
   }>()
 
   const showFuelStateModal = ref(false)
+
+  const fuelingStrategies = [
+    { label: 'Standard', value: 'STANDARD' },
+    { label: 'Train Low', value: 'TRAIN_LOW' },
+    { label: 'High Carb', value: 'HIGH_CARB' }
+  ]
+
+  const selectedStrategy = computed(() => props.strategyOverride || 'STANDARD')
+
+  function onStrategyChange(value: string | { value?: string } | null) {
+    const nextValue =
+      typeof value === 'string'
+        ? value
+        : value && typeof value.value === 'string'
+          ? value.value
+          : ''
+    if (!nextValue || nextValue === selectedStrategy.value) return
+    emit('change-fueling-strategy', nextValue)
+  }
 
   const intraWindow = computed(() =>
     props.fuelingPlan?.windows?.find((w: any) => w.type === 'INTRA_WORKOUT')

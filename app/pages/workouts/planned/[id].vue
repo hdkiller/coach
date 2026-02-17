@@ -388,7 +388,10 @@
               :duration-sec="workout?.durationSec"
               :strategy-override="workout?.fuelingStrategy || null"
               :nutrition-settings="nutritionSettings"
+              :can-edit-strategy="Boolean(workout?.id)"
+              :updating-strategy="updatingFuelingStrategy"
               class="rounded-none sm:rounded-xl shadow-none sm:shadow border-y sm:border border-gray-100 dark:border-gray-800"
+              @change-fueling-strategy="updateFuelingStrategy"
             />
           </div>
         </div>
@@ -796,6 +799,7 @@
   const nutritionSettings = ref<any>(null)
   const workoutFuelingPlan = ref<any>(null)
   const sportSettings = ref<any>(null)
+  const updatingFuelingStrategy = ref(false)
 
   const fuelingPlan = computed(() => {
     if (workoutFuelingPlan.value?.windows?.length) return workoutFuelingPlan.value
@@ -1546,6 +1550,35 @@
       description: 'Manual workout completion is not yet implemented',
       color: 'info'
     })
+  }
+
+  async function updateFuelingStrategy(strategy: string) {
+    if (!workout.value?.id || !strategy || strategy === workout.value?.fuelingStrategy) return
+
+    updatingFuelingStrategy.value = true
+    try {
+      await $fetch(`/api/planned-workouts/${workout.value.id}`, {
+        method: 'PATCH',
+        body: { fuelingStrategy: strategy }
+      })
+
+      workout.value.fuelingStrategy = strategy
+      await fetchWorkout()
+
+      toast.add({
+        title: 'Strategy Updated',
+        description: `Fueling set to ${strategy.replace('_', ' ')}. AI regenerated this day’s plan.`,
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Update Failed',
+        description: error?.data?.message || 'Failed to update strategy',
+        color: 'error'
+      })
+    } finally {
+      updatingFuelingStrategy.value = false
+    }
   }
 
   function goBack() {
