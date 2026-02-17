@@ -1,5 +1,10 @@
 <template>
-  <UModal v-model:open="isOpen" title="Training Load & Form" class="sm:max-w-4xl">
+  <UModal
+    v-model:open="isOpen"
+    title="Training Load & Form"
+    description="Track your Fitness (CTL), Fatigue (ATL), and Form (TSB) over the selected period."
+    class="sm:max-w-4xl"
+  >
     <template #body>
       <div class="space-y-6">
         <div class="flex items-center justify-between">
