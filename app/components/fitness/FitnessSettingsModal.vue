@@ -50,6 +50,7 @@
   const userStore = useUserStore()
 
   const defaultSettings = {
+    hrvRhrDual: { type: 'line', visible: true },
     recovery: { type: 'line', visible: true },
     sleep: { type: 'bar', visible: true },
     hrv: { type: 'line', visible: true },
@@ -104,9 +105,10 @@
   )
 
   const chartOptions = [
+    { key: 'hrvRhrDual', label: 'HRV & RHR Correlation' },
     { key: 'recovery', label: 'Recovery Trajectory' },
     { key: 'sleep', label: 'Sleep Duration' },
-    { key: 'hrv', label: 'Biometric Variance (HRV)' },
+    { key: 'hrv', label: 'Heart Rate Variability' },
     { key: 'restingHr', label: 'Resting Heart Rate' },
     { key: 'weight', label: 'Mass Progression' },
     { key: 'bp', label: 'Blood Pressure' }
