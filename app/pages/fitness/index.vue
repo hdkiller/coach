@@ -35,642 +35,174 @@
     </template>
 
     <template #body>
-      <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
-        <FitnessSettingsModal v-model:open="isSettingsModalOpen" />
-        <FitnessChartSettingsModal
-          v-if="activeMetricSettings"
-          :metric-key="activeMetricSettings.key"
-          :title="activeMetricSettings.title"
-          :open="!!activeMetricSettings"
-          @update:open="activeMetricSettings = null"
-        />
+      <ClientOnly>
+        <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
+          <FitnessSettingsModal v-model:open="isSettingsModalOpen" />
+          <FitnessHrvRhrSettingsModal v-model:open="isHrvRhrSettingsModalOpen" />
+          <FitnessChartSettingsModal
+            v-if="activeMetricSettings"
+            :metric-key="activeMetricSettings.key"
+            :title="activeMetricSettings.title"
+            :open="!!activeMetricSettings"
+            @update:open="activeMetricSettings = null"
+          />
 
-        <!-- Dashboard Branding -->
-        <div class="px-4 sm:px-0">
-          <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            Fitness
-          </h1>
-          <p
-            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
-          >
-            Wellness Biometrics & Recovery Integrity
-          </p>
-        </div>
-
-        <!-- Summary Stats (Refined with Trends) -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <!-- eFTP Card -->
-          <div
-            class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 sm:p-4 border border-blue-100 dark:border-blue-800/50"
-          >
-            <div class="flex items-center justify-between mb-1">
-              <span
-                class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400"
-                >eFTP</span
-              >
-              <UIcon name="i-heroicons-bolt" class="size-3.5 text-blue-500" />
-            </div>
-            <div class="flex items-baseline gap-1">
-              <div class="text-2xl font-black text-blue-900 dark:text-blue-100 tracking-tight">
-                <USkeleton v-if="loadingFTP" class="h-8 w-12" />
-                <template v-else>{{ ftpData?.summary?.currentFTP || '-' }}</template>
-              </div>
-              <span v-if="!loadingFTP" class="text-xs font-black text-blue-500 uppercase">W</span>
-            </div>
-            <div
-              v-if="!loadingFTP && ftpData?.summary?.improvement !== undefined"
-              class="mt-1 flex items-center gap-1"
+          <!-- Dashboard Branding -->
+          <div class="px-4 sm:px-0">
+            <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+              Fitness
+            </h1>
+            <p
+              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
             >
-              <UIcon
-                :name="
-                  ftpData.summary.improvement >= 0
-                    ? 'i-heroicons-arrow-trending-up'
-                    : 'i-heroicons-arrow-trending-down'
-                "
-                class="size-3"
-                :class="ftpData.summary.improvement >= 0 ? 'text-green-500' : 'text-red-500'"
-              />
-              <span
-                class="text-[10px] font-bold uppercase tracking-tighter"
-                :class="ftpData.summary.improvement >= 0 ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ ftpData.summary.improvement > 0 ? '+' : '' }}{{ ftpData.summary.improvement }}%
-                vs start
-              </span>
-            </div>
+              Wellness Biometrics & Recovery Integrity
+            </p>
           </div>
 
-          <!-- Fitness (CTL) Card -->
+          <!-- Summary Stats -->
+          <FitnessSummaryCards
+            :loading-f-t-p="loadingFTP"
+            :ftp-data="ftpData"
+            :loading-p-m-c="loadingPMC"
+            :pmc-data="pmcData"
+            :ctl-change="ctlChange"
+            :loading-zones="loadingZones"
+            :current-week-tss="currentWeekTss"
+            :avg-weekly-tss="avgWeeklyTss"
+            :loading="loading"
+            :avg-h-r-v="avgHRV"
+            :hrv-trend="hrvTrend"
+          />
+
+                  <!-- Featured Correlation Chart -->
+                  <div v-if="loading || (allWellness.length > 0 && chartSettings.hrv.visible !== false)">
+                    <FitnessHrvRhrDualChart
+                      :wellness-data="filteredWellness"
+                      :loading="loading"
+                      @settings="isHrvRhrSettingsModalOpen = true"
+                    />
+                  </div>
+                    <!-- Secondary Charts Grid -->
           <div
-            class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 sm:p-4 border border-purple-100 dark:border-purple-800/50"
+            v-if="loading || allWellness.length > 0"
+            class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
           >
-            <div class="flex items-center justify-between mb-1">
-              <span
-                class="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400"
-                >Fitness (CTL)</span
-              >
-              <UIcon name="i-heroicons-sparkles" class="size-3.5 text-purple-500" />
-            </div>
-            <div class="flex items-baseline gap-1">
-              <div class="text-2xl font-black text-purple-900 dark:text-purple-100 tracking-tight">
-                <USkeleton v-if="loadingPMC" class="h-8 w-12" />
-                <template v-else>{{ pmcData?.summary?.currentCTL?.toFixed(0) || '-' }}</template>
-              </div>
-              <span v-if="!loadingPMC" class="text-xs font-black text-purple-500 uppercase"
-                >CTL</span
-              >
-            </div>
-            <div v-if="!loadingPMC && ctlChange !== 0" class="mt-1 flex items-center gap-1">
-              <UIcon
-                :name="
-                  ctlChange > 0
-                    ? 'i-heroicons-arrow-trending-up'
-                    : 'i-heroicons-arrow-trending-down'
-                "
-                class="size-3"
-                :class="ctlChange > 0 ? 'text-green-500' : 'text-red-500'"
-              />
-              <span
-                class="text-[10px] font-bold uppercase tracking-tighter"
-                :class="ctlChange > 0 ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ ctlChange > 0 ? '+' : '' }}{{ ctlChange.toFixed(1) }} CTL change
-              </span>
-            </div>
+            <FitnessTrendChart
+              metric-key="recovery"
+              title="Recovery Trajectory"
+              :loading="loading"
+              :data="recoveryTrendData"
+              :options="getChartOptions('recovery', chartSettings.recovery.type)"
+              :settings="chartSettings.recovery"
+              @settings="openChartSettings('recovery', 'Recovery')"
+            />
+
+            <FitnessTrendChart
+              metric-key="sleep"
+              title="Sleep Duration"
+              :loading="loading"
+              :data="sleepTrendData"
+              :options="getChartOptions('sleep', chartSettings.sleep.type)"
+              :settings="chartSettings.sleep"
+              @settings="openChartSettings('sleep', 'Sleep')"
+            />
+
+            <FitnessTrendChart
+              metric-key="restingHr"
+              title="Resting Heart Rate"
+              :loading="loading"
+              :data="restingHrTrendData"
+              :options="getChartOptions('restingHr', chartSettings.restingHr.type)"
+              :settings="chartSettings.restingHr"
+              @settings="openChartSettings('restingHr', 'Resting HR')"
+            />
+
+            <FitnessTrendChart
+              metric-key="weight"
+              title="Mass Progression"
+              :loading="loading"
+              :data="weightTrendData"
+              :options="getChartOptions('weight', chartSettings.weight.type)"
+              :settings="chartSettings.weight"
+              @settings="openChartSettings('weight', 'Weight')"
+            />
+
+            <FitnessTrendChart
+              metric-key="bp"
+              title="Blood Pressure"
+              :loading="loading"
+              :data="bpTrendData"
+              :options="getChartOptions('bp', chartSettings.bp.type)"
+              :settings="chartSettings.bp"
+              @settings="openChartSettings('bp', 'Blood Pressure')"
+            />
           </div>
 
-          <!-- Weekly TSS Card -->
-          <div
-            class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 sm:p-4 border border-emerald-100 dark:border-emerald-800/50"
+          <!-- Filter Area -->
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-3' }"
+            class="bg-gray-50/50 dark:bg-gray-900/40 border-dashed border-gray-200 dark:border-gray-800"
           >
-            <div class="flex items-center justify-between mb-1">
-              <span
-                class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400"
-                >Weekly TSS</span
-              >
-              <UIcon name="i-heroicons-chart-bar" class="size-3.5 text-emerald-500" />
-            </div>
-            <div class="flex items-baseline gap-1">
-              <div
-                class="text-2xl font-black text-emerald-900 dark:text-emerald-100 tracking-tight"
-              >
-                <USkeleton v-if="loadingZones" class="h-8 w-12" />
-                <template v-else>{{ Math.round(currentWeekTss) }}</template>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex items-center gap-3">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0">
+                  Recovery
+                </span>
+                <USelect
+                  v-model="filterRecovery"
+                  :items="recoveryStatusOptions"
+                  placeholder="All Status"
+                  size="sm"
+                  color="neutral"
+                  variant="outline"
+                  class="w-full"
+                />
               </div>
-              <span v-if="!loadingZones" class="text-xs font-black text-emerald-500 uppercase"
-                >/ {{ Math.round(avgWeeklyTss) }}</span
-              >
-            </div>
-            <div
-              v-if="!loadingZones"
-              class="mt-1 text-[10px] font-bold uppercase tracking-tighter text-emerald-600"
-            >
-              Avg: {{ Math.round(avgWeeklyTss) }} TSS/wk
-            </div>
-          </div>
 
-          <!-- HRV Avg Card -->
-          <div
-            class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 sm:p-4 border border-amber-100 dark:border-amber-800/50"
-          >
-            <div class="flex items-center justify-between mb-1">
-              <span
-                class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400"
-                >HRV Avg</span
-              >
-              <UIcon name="i-heroicons-heart" class="size-3.5 text-amber-500" />
-            </div>
-            <div class="flex items-baseline gap-1">
-              <div class="text-2xl font-black text-amber-900 dark:text-amber-100 tracking-tight">
-                <USkeleton v-if="loading" class="h-8 w-12" />
-                <template v-else>{{ avgHRV !== null ? avgHRV.toFixed(0) : '-' }}</template>
+              <div class="flex items-center gap-3">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0">
+                  Sleep
+                </span>
+                <USelect
+                  v-model="filterSleep"
+                  :items="sleepQualityOptions"
+                  placeholder="All Quality"
+                  size="sm"
+                  color="neutral"
+                  variant="outline"
+                  class="w-full"
+                />
               </div>
-              <span v-if="!loading" class="text-xs font-black text-amber-500 uppercase">ms</span>
             </div>
-            <div v-if="!loading && hrvTrend !== 0" class="mt-1 flex items-center gap-1">
-              <UIcon
-                :name="
-                  hrvTrend > 0 ? 'i-heroicons-arrow-trending-up' : 'i-heroicons-arrow-trending-down'
-                "
-                class="size-3"
-                :class="hrvTrend > 0 ? 'text-green-500' : 'text-red-500'"
-              />
-              <span
-                class="text-[10px] font-bold uppercase tracking-tighter"
-                :class="hrvTrend > 0 ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ hrvTrend > 0 ? '+' : '' }}{{ hrvTrend.toFixed(1) }}% vs baseline
-              </span>
-            </div>
-          </div>
+          </UCard>
+
+          <!-- Wellness Table -->
+          <FitnessWellnessTable
+            :wellness="paginatedWellness"
+            :loading="loading"
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :total-items="filteredWellness.length"
+            :items-per-page="itemsPerPage"
+            :visible-pages="visiblePages"
+            @update:page="changePage"
+          />
         </div>
-
-        <!-- Charts Section -->
-        <div
-          v-if="loading || allWellness.length > 0"
-          class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
-        >
-          <!-- Recovery Score Trend -->
-          <UCard
-            v-if="chartSettings.recovery.visible !== false"
-            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Recovery Trajectory
-                </h3>
-                <UButton
-                  icon="i-heroicons-cog-6-tooth"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click="openChartSettings('recovery', 'Recovery')"
-                />
-              </div>
-            </template>
-            <div v-if="loading" class="h-[300px] flex items-center justify-center">
-              <USkeleton class="h-full w-full" />
-            </div>
-            <div v-else class="h-[300px]">
-              <ClientOnly>
-                <component
-                  :is="chartSettings.recovery.type === 'bar' ? Bar : Line"
-                  :key="`chart-recovery-${chartSettings.recovery.type}`"
-                  :data="recoveryTrendData"
-                  :options="getChartOptions('recovery', chartSettings.recovery.type)"
-                  :height="300"
-                />
-              </ClientOnly>
-            </div>
-          </UCard>
-
-          <!-- Sleep Hours Trend -->
-          <UCard
-            v-if="chartSettings.sleep.visible !== false"
-            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Sleep Duration
-                </h3>
-                <UButton
-                  icon="i-heroicons-cog-6-tooth"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click="openChartSettings('sleep', 'Sleep')"
-                />
-              </div>
-            </template>
-            <div v-if="loading" class="h-[300px] flex items-center justify-center">
-              <USkeleton class="h-full w-full" />
-            </div>
-            <div v-else class="h-[300px]">
-              <ClientOnly>
-                <component
-                  :is="chartSettings.sleep.type === 'bar' ? Bar : Line"
-                  :key="`chart-sleep-${chartSettings.sleep.type}`"
-                  :data="sleepTrendData"
-                  :options="getChartOptions('sleep', chartSettings.sleep.type)"
-                  :height="300"
-                />
-              </ClientOnly>
-            </div>
-          </UCard>
-
-          <!-- HRV Trend -->
-          <UCard
-            v-if="chartSettings.hrv.visible !== false"
-            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Biometric Variance (HRV)
-                </h3>
-                <UButton
-                  icon="i-heroicons-cog-6-tooth"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click="openChartSettings('hrv', 'HRV')"
-                />
-              </div>
-            </template>
-            <div v-if="loading" class="h-[300px] flex items-center justify-center">
-              <USkeleton class="h-full w-full" />
-            </div>
-            <div v-else class="h-[300px]">
-              <ClientOnly>
-                <component
-                  :is="chartSettings.hrv.type === 'bar' ? Bar : Line"
-                  :key="`chart-hrv-${chartSettings.hrv.type}`"
-                  :data="hrvTrendData"
-                  :options="getChartOptions('hrv', chartSettings.hrv.type)"
-                  :height="300"
-                />
-              </ClientOnly>
-            </div>
-          </UCard>
-
-          <!-- Resting HR Trend -->
-          <UCard
-            v-if="chartSettings.restingHr.visible !== false"
-            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Resting Heart Rate
-                </h3>
-                <UButton
-                  icon="i-heroicons-cog-6-tooth"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click="openChartSettings('restingHr', 'Resting HR')"
-                />
-              </div>
-            </template>
-            <div v-if="loading" class="h-[300px] flex items-center justify-center">
-              <USkeleton class="h-full w-full" />
-            </div>
-            <div v-else class="h-[300px]">
-              <ClientOnly>
-                <component
-                  :is="chartSettings.restingHr.type === 'bar' ? Bar : Line"
-                  :key="`chart-restingHr-${chartSettings.restingHr.type}`"
-                  :data="restingHrTrendData"
-                  :options="getChartOptions('restingHr', chartSettings.restingHr.type)"
-                  :height="300"
-                />
-              </ClientOnly>
-            </div>
-          </UCard>
-
-          <!-- Weight Trend -->
-          <UCard
-            v-if="chartSettings.weight.visible !== false"
-            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Mass Progression
-                </h3>
-                <UButton
-                  icon="i-heroicons-cog-6-tooth"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click="openChartSettings('weight', 'Weight')"
-                />
-              </div>
-            </template>
-            <div v-if="loading" class="h-[300px] flex items-center justify-center">
-              <USkeleton class="h-full w-full" />
-            </div>
-            <div v-else class="h-[300px]">
-              <ClientOnly>
-                <component
-                  :is="chartSettings.weight.type === 'bar' ? Bar : Line"
-                  :key="`chart-weight-${chartSettings.weight.type}`"
-                  :data="weightTrendData"
-                  :options="getChartOptions('weight', chartSettings.weight.type)"
-                  :height="300"
-                />
-              </ClientOnly>
-            </div>
-          </UCard>
-
-          <!-- Blood Pressure Trend -->
-          <UCard
-            v-if="chartSettings.bp.visible !== false"
-            :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Blood Pressure
-                </h3>
-                <UButton
-                  icon="i-heroicons-cog-6-tooth"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  @click="openChartSettings('bp', 'Blood Pressure')"
-                />
-              </div>
-            </template>
-            <div v-if="loading" class="h-[300px] flex items-center justify-center">
-              <USkeleton class="h-full w-full" />
-            </div>
-            <div v-else class="h-[300px]">
-              <ClientOnly>
-                <component
-                  :is="chartSettings.bp.type === 'bar' ? Bar : Line"
-                  :key="`chart-bp-${chartSettings.bp.type}`"
-                  :data="bpTrendData"
-                  :options="getChartOptions('bp', chartSettings.bp.type)"
-                  :height="300"
-                />
-              </ClientOnly>
-            </div>
-          </UCard>
-        </div>
-
-        <!-- Filter Area -->
-        <UCard
-          :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-3' }"
-          class="bg-gray-50/50 dark:bg-gray-900/40 border-dashed border-gray-200 dark:border-gray-800"
-        >
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="flex items-center gap-3">
-              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
-                >Recovery</span
-              >
-              <USelect
-                v-model="filterRecovery"
-                :items="recoveryStatusOptions"
-                placeholder="All Status"
-                size="sm"
-                color="neutral"
-                variant="outline"
-                class="w-full"
-              />
-            </div>
-
-            <div class="flex items-center gap-3">
-              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
-                >Sleep</span
-              >
-              <USelect
-                v-model="filterSleep"
-                :items="sleepQualityOptions"
-                placeholder="All Quality"
-                size="sm"
-                color="neutral"
-                variant="outline"
-                class="w-full"
-              />
-            </div>
-          </div>
-        </UCard>
-
-        <!-- Wellness Table -->
-        <div
-          class="bg-white dark:bg-gray-900 rounded-xl shadow border border-gray-100 dark:border-gray-800 overflow-hidden"
-        >
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-              <thead class="bg-gray-50 dark:bg-gray-950">
-                <tr>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    Date
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    Recov
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    Readiness
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    Sleep
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    HRV
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    RHR
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    Weight
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    BP
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                  >
-                    Feel
-                  </th>
-                </tr>
-              </thead>
-              <tbody
-                v-if="loading"
-                class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800"
-              >
-                <tr v-for="i in 10" :key="i">
-                  <td v-for="j in 9" :key="j" class="px-6 py-4">
-                    <USkeleton class="h-4 w-full" />
-                  </td>
-                </tr>
-              </tbody>
-              <tbody v-else-if="filteredWellness.length === 0" class="bg-white dark:bg-gray-900">
-                <tr>
-                  <td
-                    colspan="9"
-                    class="p-8 text-center text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest text-xs"
-                  >
-                    No biometric data recorded
-                  </td>
-                </tr>
-              </tbody>
-              <tbody
-                v-else
-                class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800"
-              >
-                <tr
-                  v-for="wellness in paginatedWellness"
-                  :key="wellness.id"
-                  class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  @click="navigateToWellness(wellness.id)"
-                >
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium uppercase tracking-tight"
-                  >
-                    {{ formatDateUTC(wellness.date, 'MMM dd, yyyy') }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span
-                      v-if="wellness.recoveryScore"
-                      :class="getRecoveryBadgeClass(wellness.recoveryScore)"
-                      class="px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-widest"
-                    >
-                      {{ wellness.recoveryScore }}%
-                    </span>
-                    <span v-else class="text-gray-400">-</span>
-                  </td>
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
-                  >
-                    {{ wellness.readiness ? wellness.readiness + '/10' : '-' }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    <div class="font-black tabular-nums">
-                      {{ wellness.sleepHours ? wellness.sleepHours.toFixed(1) + 'h' : '-' }}
-                    </div>
-                    <div
-                      v-if="wellness.sleepScore"
-                      class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter"
-                    >
-                      {{ wellness.sleepScore }}% Qual
-                    </div>
-                  </td>
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
-                  >
-                    {{ wellness.hrv ? Math.round(wellness.hrv) + 'ms' : '-' }}
-                  </td>
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
-                  >
-                    {{ wellness.restingHr ? wellness.restingHr : '-' }}
-                  </td>
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
-                  >
-                    {{ wellness.weight ? wellness.weight.toFixed(1) + 'kg' : '-' }}
-                  </td>
-                  <td
-                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
-                  >
-                    {{
-                      wellness.systolic && wellness.diastolic
-                        ? `${wellness.systolic}/${wellness.diastolic}`
-                        : '-'
-                    }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span
-                      v-if="wellness.mood"
-                      :class="getMoodBadgeClass(wellness.mood)"
-                      class="px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-widest"
-                    >
-                      {{ wellness.mood }}/10
-                    </span>
-                    <span v-else class="text-gray-400">-</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination -->
-          <div
-            v-if="totalPages > 1"
-            class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
-          >
-            <div class="flex items-center justify-between">
-              <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
-                  Math.min(currentPage * itemsPerPage, filteredWellness.length)
-                }}
-                of {{ filteredWellness.length }} entries
-              </div>
-              <div class="flex gap-2">
-                <UButton
-                  :disabled="currentPage === 1"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                  @click="changePage(currentPage - 1)"
-                >
-                  Prev
-                </UButton>
-                <div class="flex gap-1">
-                  <UButton
-                    v-for="page in visiblePages"
-                    :key="page"
-                    size="xs"
-                    :color="page === currentPage ? 'primary' : 'neutral'"
-                    :variant="page === currentPage ? 'solid' : 'ghost'"
-                    class="font-black uppercase tracking-widest text-[10px] min-w-[28px] justify-center"
-                    @click="changePage(page)"
-                  >
-                    {{ page }}
-                  </UButton>
-                </div>
-                <UButton
-                  :disabled="currentPage === totalPages"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                  @click="changePage(currentPage + 1)"
-                >
-                  Next
-                </UButton>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </ClientOnly>
     </template>
   </UDashboardPanel>
 </template>
 
 <script setup lang="ts">
   import { Line, Bar } from 'vue-chartjs'
+  import ChartDataLabels from 'chartjs-plugin-datalabels'
+  import FitnessSettingsModal from '~/components/fitness/FitnessSettingsModal.vue'
+  import FitnessHrvRhrSettingsModal from '~/components/fitness/FitnessHrvRhrSettingsModal.vue'
+  import FitnessChartSettingsModal from '~/components/fitness/FitnessChartSettingsModal.vue'
+  import FitnessSummaryCards from '~/components/fitness/FitnessSummaryCards.vue'
+  import FitnessTrendChart from '~/components/fitness/FitnessTrendChart.vue'
+  import FitnessWellnessTable from '~/components/fitness/FitnessWellnessTable.vue'
+  import FitnessHrvRhrDualChart from '~/components/fitness/HrvRhrDualChart.vue'
   import {
     Chart as ChartJS,
     CategoryScale,
@@ -693,7 +225,8 @@
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
+    ChartDataLabels
   )
 
   definePageMeta({
@@ -721,6 +254,7 @@
   const itemsPerPage = 20
 
   const isSettingsModalOpen = ref(false)
+  const isHrvRhrSettingsModalOpen = ref(false)
   const activeMetricSettings = ref<{ key: string; title: string } | null>(null)
 
   const defaultChartSettings: any = {
@@ -955,38 +489,6 @@
     return filteredWellness.value.slice(start, end)
   })
 
-  // Functions
-  function getRecoveryBadgeClass(score: number) {
-    const baseClass = 'px-2 py-1 rounded text-xs font-semibold'
-    if (score > 80)
-      return `${baseClass} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200`
-    if (score >= 60)
-      return `${baseClass} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`
-    if (score >= 40)
-      return `${baseClass} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200`
-    return `${baseClass} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`
-  }
-
-  function getMoodBadgeClass(mood: number) {
-    const baseClass = 'px-2 py-1 rounded text-xs font-semibold'
-    if (mood >= 8)
-      return `${baseClass} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200`
-    if (mood >= 6)
-      return `${baseClass} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`
-    if (mood >= 4)
-      return `${baseClass} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200`
-    return `${baseClass} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`
-  }
-
-  function changePage(page: number) {
-    currentPage.value = page
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  function navigateToWellness(id: string) {
-    navigateTo(`/fitness/${id}`)
-  }
-
   // Chart data computations
   const recoveryTrendData = computed(() => {
     const recentWellness = [...filteredWellness.value]
@@ -1010,12 +512,13 @@
         borderWidth: 2,
         pointRadius: settings.showPoints ? 3 : 0,
         pointHoverRadius: 6,
-        fill: settings.type === 'line' ? 'origin' : false
+        fill: settings.type === 'line' ? 'origin' : false,
+        spanGaps: true
       }
     ]
 
-    // Add 7d average if enabled
-    if (settings.showAverage) {
+    // 7d Rolling Average
+    if (settings.show7dAvg) {
       const avgData = recentWellness.map((_, index) => {
         const start = Math.max(0, index - 6)
         const window = recentWellness.slice(start, index + 1)
@@ -1025,16 +528,81 @@
 
       datasets.push({
         type: 'line',
-        label: '7d Average',
+        label: '7d Avg',
         data: avgData,
-        borderColor: 'rgba(34, 197, 94, 0.3)',
+        borderColor: 'rgba(34, 197, 94, 0.4)',
         backgroundColor: 'transparent',
         borderDash: [5, 5],
         borderWidth: 2,
         pointRadius: 0,
         tension: settings.smooth ? 0.4 : 0,
-        fill: false
+        fill: false,
+        spanGaps: true
       })
+    }
+
+    // 30d Rolling Average (Baseline)
+    if (settings.show30dAvg || settings.showStdDev) {
+      const avgData = recentWellness.map((_, index) => {
+        const start = Math.max(0, index - 29)
+        const window = recentWellness.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr.recoveryScore, 0)
+        return sum / window.length
+      })
+
+      if (settings.show30dAvg) {
+        datasets.push({
+          type: 'line',
+          label: '30d Avg',
+          data: avgData,
+          borderColor: 'rgba(34, 197, 94, 0.3)',
+          backgroundColor: 'transparent',
+          borderDash: [2, 2],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+      }
+
+      // 1 Standard Deviation Band
+      if (settings.showStdDev) {
+        const stdDevData = recentWellness.map((_, index) => {
+          const start = Math.max(0, index - 29)
+          const window = recentWellness.slice(start, index + 1)
+          const mean = window.reduce((a, b) => a + b.recoveryScore, 0) / window.length
+          const variance = window.reduce((a, b) => a + Math.pow(b.recoveryScore - mean, 2), 0) / window.length
+          return Math.sqrt(variance)
+        })
+
+        const upperBand = avgData.map((avg, i) => avg + stdDevData[i])
+        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - stdDevData[i]))
+
+        datasets.push({
+          type: 'line',
+          label: 'Range Upper',
+          data: upperBand,
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(34, 197, 94, 0.2)',
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+
+        datasets.push({
+          type: 'line',
+          label: 'Normal Range',
+          data: lowerBand,
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(34, 197, 94, 0.2)',
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: '-1',
+          spanGaps: true
+        })
+      }
     }
 
     // Target Line
@@ -1047,7 +615,8 @@
         borderDash: [2, 2],
         borderWidth: 1,
         pointRadius: 0,
-        fill: false
+        fill: false,
+        spanGaps: true
       })
     }
 
@@ -1071,7 +640,8 @@
         borderWidth: 2,
         pointRadius: settings.showPoints ? 3 : 0,
         pointHoverRadius: 6,
-        fill: settings.type === 'line' ? 'origin' : false
+        fill: settings.type === 'line' ? 'origin' : false,
+        spanGaps: true
       }
     ]
 
@@ -1094,12 +664,13 @@
         borderWidth: 2,
         pointRadius: 0,
         tension: settings.smooth ? 0.4 : 0,
-        fill: false
+        fill: false,
+        spanGaps: true
       })
     }
 
     // 30d Rolling Average (Baseline)
-    if (settings.show30dAvg) {
+    if (settings.show30dAvg || settings.showStdDev) {
       const avgData = data.map((_, index) => {
         const start = Math.max(0, index - 29)
         const window = data.slice(start, index + 1)
@@ -1107,35 +678,59 @@
         return sum / window.length
       })
 
-      datasets.push({
-        type: 'line',
-        label: '30d Avg',
-        data: avgData,
-        borderColor: color.replace('rgb', 'rgba').replace(')', ', 0.3)'),
-        backgroundColor: 'transparent',
-        borderDash: [2, 2],
-        borderWidth: 1.5,
-        pointRadius: 0,
-        tension: settings.smooth ? 0.4 : 0,
-        fill: false
-      })
-    }
+      if (settings.show30dAvg) {
+        datasets.push({
+          type: 'line',
+          label: '30d Avg',
+          data: avgData,
+          borderColor: color.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          backgroundColor: 'transparent',
+          borderDash: [2, 2],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+      }
 
-    // Median
-    if (settings.showMedian) {
-      const sorted = [...data].sort((a, b) => a - b)
-      const mid = Math.floor(sorted.length / 2)
-      const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+      // 1 Standard Deviation Band
+      if (settings.showStdDev) {
+        const stdDevData = data.map((_, index) => {
+          const start = Math.max(0, index - 29)
+          const window = data.slice(start, index + 1)
+          const mean = window.reduce((a, b) => a + b, 0) / window.length
+          const variance = window.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / window.length
+          return Math.sqrt(variance)
+        })
 
-      datasets.push({
-        type: 'line',
-        label: 'Median',
-        data: new Array(data.length).fill(median),
-        borderColor: 'rgba(148, 163, 184, 0.4)',
-        borderWidth: 1,
-        pointRadius: 0,
-        fill: false
-      })
+        const upperBand = avgData.map((avg, i) => avg + stdDevData[i])
+        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - stdDevData[i]))
+
+        datasets.push({
+          type: 'line',
+          label: 'Range Upper',
+          data: upperBand,
+          borderColor: 'transparent',
+          backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.2)'),
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+
+        datasets.push({
+          type: 'line',
+          label: 'Normal Range',
+          data: lowerBand,
+          borderColor: 'transparent',
+          backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.2)'),
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: '-1',
+          spanGaps: true
+        })
+      }
     }
 
     if (settings.showTarget && settings.targetValue !== undefined) {
@@ -1147,7 +742,8 @@
         borderDash: [2, 2],
         borderWidth: 1,
         pointRadius: 0,
-        fill: false
+        fill: false,
+        spanGaps: true
       })
     }
 
@@ -1256,7 +852,8 @@
       borderWidth: 2,
       pointRadius: settings.showPoints ? 3 : 0,
       pointHoverRadius: 6,
-      fill: settings.type === 'line' ? 'origin' : false
+      fill: settings.type === 'line' ? 'origin' : false,
+      spanGaps: true
     })
 
     datasets.push({
@@ -1269,7 +866,8 @@
       borderWidth: 2,
       pointRadius: settings.showPoints ? 3 : 0,
       pointHoverRadius: 6,
-      fill: settings.type === 'line' ? 'origin' : false
+      fill: settings.type === 'line' ? 'origin' : false,
+      spanGaps: true
     })
 
     if (settings.showTarget && settings.targetValue !== undefined) {
@@ -1277,11 +875,12 @@
         type: 'line',
         label: 'Target',
         data: new Array(labels.length).fill(settings.targetValue),
-        borderColor: 'rgba(148, 163, 184, 0.5)',
-        borderDash: [5, 5],
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderDash: [2, 2],
         borderWidth: 1,
         pointRadius: 0,
-        fill: false
+        fill: false,
+        spanGaps: true
       })
     }
 
@@ -1343,8 +942,11 @@
     const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
     const settings = chartSettings.value[key] || defaultChartSettings[key] || {}
 
-    // Show legend if any analysis overlays or multi-datasets are active
-    const hasOverlays = settings.show7dAvg || settings.show30dAvg || settings.showMedian || settings.showTarget || key === 'bp'
+        // Show legend if any analysis overlays or multi-datasets are active
+
+        const hasOverlays = settings.show7dAvg || settings.show30dAvg || settings.showStdDev || settings.showMedian || settings.showTarget || key === 'bp'
+
+     || key === 'bp'
 
     opts.plugins.legend = {
       display: !!hasOverlays,
@@ -1357,37 +959,57 @@
       }
     }
 
-    // Set common defaults for bars
-    if (type === 'bar') {
-      opts.scales.y.beginAtZero = true
+    opts.plugins.datalabels = {
+      display: (context: any) => {
+        // Only show for the primary dataset (index 0) and if enabled in settings
+        return settings.showLabels && context.datasetIndex === 0
+      },
+      color: theme.isDark.value ? '#94a3b8' : '#64748b',
+      align: 'top' as const,
+      anchor: 'end' as const,
+      offset: 4,
+      font: {
+        size: 9,
+        weight: 'bold' as const
+      },
+      formatter: (value: any) => {
+        if (value === null || value === undefined) return ''
+        if (key === 'sleep' || key === 'weight') return value.toFixed(1)
+        return Math.round(value)
+      }
     }
 
     // Metric specific overrides
+    const labelFormatter = (context: any) => {
+      const label = context.dataset.label || ''
+      const value = context.parsed.y
+      if (value === null || value === undefined) return ''
+
+      let unit = ''
+      let fixed = 0
+      if (key === 'recovery') unit = '%'
+      else if (key === 'sleep') { unit = 'h'; fixed = 1 }
+      else if (key === 'hrv') unit = 'ms'
+      else if (key === 'restingHr') unit = ' bpm'
+      else if (key === 'weight') { unit = 'kg'; fixed = 1 }
+
+      return `${label}: ${value.toFixed(fixed)}${unit}`
+    }
+
+    opts.plugins.tooltip.callbacks = {
+      label: labelFormatter
+    }
+
     if (key === 'recovery') {
-      opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(0)}%`
-      }
       opts.scales.y.min = 0
       opts.scales.y.max = 100
     } else if (key === 'sleep') {
-      opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(1)}h`
-      }
       opts.scales.y.max = 12
     } else if (key === 'hrv') {
-      opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(0)}ms`
-      }
       opts.scales.y.beginAtZero = true
     } else if (key === 'restingHr') {
-      opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(0)} bpm`
-      }
       opts.scales.y.beginAtZero = false
     } else if (key === 'weight') {
-      opts.plugins.tooltip.callbacks = {
-        label: (context: any) => `${context.dataset.label}: ${context.parsed.y.toFixed(1)}kg`
-      }
       opts.scales.y.beginAtZero = false
     }
 
@@ -1403,21 +1025,8 @@
     fetchWellness()
   })
 
-  function formatWellnessDate(dateStr: string): string {
-    const date = new Date(dateStr)
-    const today = getUserLocalDate()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    const dStr = formatDateUTC(date, 'yyyy-MM-dd')
-    const tStr = formatDateUTC(today, 'yyyy-MM-dd')
-    const yStr = formatDateUTC(yesterday, 'yyyy-MM-dd')
-
-    if (dStr === tStr) return 'today'
-    if (dStr === yStr) return 'yesterday'
-
-    const diffDays = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-    if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`
-    return formatDateUTC(date, 'MMM d')
+  function changePage(page: number) {
+    currentPage.value = page
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 </script>

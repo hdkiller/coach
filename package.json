@@ -34,6 +34,7 @@
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
     "chartjs-plugin-annotation": "^3.1.0",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.2",
     "date-fns": "^4.1.0",
