@@ -606,6 +606,12 @@ export const WorkoutConverter = {
             .replace(/\s*\(\s*\d+(-\d+)?\s*w\s*\)/gi, '')
             .replace(/\s+/g, ' ')
             .trim()
+
+          // Intervals.icu may infer bare "Z2" as power zone; annotate HR explicitly
+          // when this run step is heart-rate targeted.
+          if (heartRate) {
+            name = name.replace(/\bZ([1-7])\b(?!\s*HR\b)/gi, 'Z$1 HR')
+          }
         }
 
         if (name) line += ` ${name}`
