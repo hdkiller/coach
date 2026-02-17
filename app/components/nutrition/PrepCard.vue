@@ -208,7 +208,7 @@
                 State 2 starts above State 1 trigger; State 3 starts above State 2 trigger.
               </p>
             </div>
-            <p class="text-sm font-black text-gray-900 dark:text-white">
+            <p class="text-sm font-black text-gray-900 dark:text-white whitespace-pre-line">
               {{ thresholdsDisplay }}
             </p>
           </div>
@@ -222,7 +222,7 @@
                 Applied directly from your Fuel State trigger settings.
               </p>
             </div>
-            <p class="text-sm font-black text-gray-900 dark:text-white text-right">
+            <p class="text-sm font-black text-gray-900 dark:text-white text-right whitespace-pre-line">
               {{ selectedRule }}
             </p>
           </div>
@@ -343,17 +343,17 @@
 
   const thresholdsDisplay = computed(
     () =>
-      `S1<${resolvedSettings.value.fuelState1Trigger.toFixed(2)} • S2<${resolvedSettings.value.fuelState2Trigger.toFixed(2)} • S3>${resolvedSettings.value.fuelState2Trigger.toFixed(2)}`
+      `S1<${resolvedSettings.value.fuelState1Trigger.toFixed(2)}\nS2<${resolvedSettings.value.fuelState2Trigger.toFixed(2)}\nS3>${resolvedSettings.value.fuelState2Trigger.toFixed(2)}`
   )
 
   const selectedRule = computed(() => {
     const intensity = resolvedIntensity.value
     const s1 = resolvedSettings.value.fuelState1Trigger
     const s2 = resolvedSettings.value.fuelState2Trigger
-    if (intensity > s2) return `IF ${intensity.toFixed(2)} > ${s2.toFixed(2)} → Fuel State 3`
+    if (intensity > s2) return `IF ${intensity.toFixed(2)} > ${s2.toFixed(2)}\n→ Fuel State 3`
     if (intensity > s1)
-      return `IF ${intensity.toFixed(2)} > ${s1.toFixed(2)} and <= ${s2.toFixed(2)} → Fuel State 2`
-    return `IF ${intensity.toFixed(2)} <= ${s1.toFixed(2)} → Fuel State 1`
+      return `IF ${intensity.toFixed(2)} > ${s1.toFixed(2)} and <= ${s2.toFixed(2)}\n→ Fuel State 2`
+    return `IF ${intensity.toFixed(2)} <= ${s1.toFixed(2)}\n→ Fuel State 1`
   })
 
   const workoutContextDisplay = computed(() => {
