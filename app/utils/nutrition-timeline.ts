@@ -47,6 +47,7 @@ export interface TimelineOptions {
   weight: number
   mealPattern?: { name: string; time: string }[]
   timezone: string
+  mergeWindows?: boolean
 }
 
 export function getWorkoutDate(workout: any, timezone: string): number {
@@ -190,72 +191,153 @@ export function mapNutritionToTimeline(
   const dayEnd = fromZonedTime(`${dateStr}T23:59:59`, options.timezone)
   const fuelingPlan = nutritionRecord.fuelingPlan
 
-  let baseTimeline: FuelingTimelineWindow[] = []
+  let baseTimeline: FuelingTimelineWindow[] =
+    fuelingPlan?.windows?.map((w: any) => {
+      // 1. Find associated workout
+      // First priority: Exact ID match
+      let workout = trainingWorkouts.find((work) => w.plannedWorkoutId === work.id)
 
-  if (fuelingPlan?.windows?.length > 0) {
-    // 1. Use the pre-calculated windows from the API
-    baseTimeline = fuelingPlan.windows.map((w: any) => {
-      // Find associated workout by ID or by time overlap
-      const workout = trainingWorkouts.find((work) => {
-        if (w.plannedWorkoutId && w.plannedWorkoutId === work.id) return true
+      // Second priority: Closest proximity for INTRA/TRANSITION windows
+      if (
+        !workout &&
+        (w.type === 'INTRA_WORKOUT' ||
+          w.type === 'TRANSITION' ||
+          w.type === 'PRE_WORKOUT' ||
+          w.type === 'POST_WORKOUT')
+      ) {
+        const wStart = new Date(w.startTime).getTime()
+        const matches = trainingWorkouts
+          .map((work) => ({
+            work,
+            diff: Math.abs(wStart - getWorkoutDate(work, options.timezone))
+          }))
+          .filter((m) => m.diff < 60 * 60 * 1000) // Must be within 1 hour
+          .sort((a, b) => a.diff - b.diff)
 
-        // Fallback: If it's INTRA window, match by proximity
-        if (w.type === 'INTRA_WORKOUT') {
-          const wStart = new Date(w.startTime).getTime()
-          const workStart = getWorkoutDate(work, options.timezone)
-          const diffMin = Math.abs(wStart - workStart) / 60000
-
-          if (diffMin < 120) {
-            return true
-          }
-        }
-        return false
-      })
+        workout = matches[0]?.work
+      }
 
       return {
         ...w,
         startTime: new Date(w.startTime),
         endTime: new Date(w.endTime),
         workout,
+        workouts: workout ? [workout] : [],
         workoutTitle: w.workoutTitle || workout?.title,
-        items: []
+        items: [],
+        workoutIds: workout ? [workout.id] : w.plannedWorkoutId ? [w.plannedWorkoutId] : []
+      }
+    }) || []
+
+  // 1.5. Merge Closely Timed Windows if requested
+  if (options.mergeWindows) {
+    const groups: FuelingTimelineWindow[] = []
+    // Sort by start time to process chronologically
+    baseTimeline.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+
+    baseTimeline.forEach((window) => {
+      // Find an existing group of the same type that is "nearby"
+      const match = groups.find((g) => {
+        if (g.type !== window.type) return false
+
+        const gapStart = Math.abs(window.startTime.getTime() - g.endTime.getTime())
+        const gapEnd = Math.abs(g.startTime.getTime() - window.endTime.getTime())
+        const overlaps = window.startTime < g.endTime && window.endTime > g.startTime
+
+        return overlaps || gapStart < 20 * 60000 || gapEnd < 20 * 60000
+      })
+
+      if (match) {
+        // Merge into existing group
+        match.startTime = new Date(Math.min(match.startTime.getTime(), window.startTime.getTime()))
+        match.endTime = new Date(Math.max(match.endTime.getTime(), window.endTime.getTime()))
+        match.targetCarbs += window.targetCarbs
+        match.targetProtein += window.targetProtein
+        match.targetFat += window.targetFat
+
+        // Aggregate workouts
+        if (window.workouts) {
+          if (!match.workouts) match.workouts = []
+          window.workouts.forEach((w) => {
+            if (!match.workouts!.find((mw) => mw.id === w.id)) match.workouts!.push(w)
+          })
+        }
+
+        // Aggregate workout IDs
+        if (window.workoutIds) {
+          if (!match.workoutIds) match.workoutIds = []
+          window.workoutIds.forEach((id) => {
+            if (!match.workoutIds!.includes(id)) match.workoutIds!.push(id)
+          })
+        }
+
+        // Aggregate Titles (uniquely)
+        if (window.workoutTitle) {
+          const parts = match.workoutTitle?.split(' & ') || []
+          if (!parts.includes(window.workoutTitle)) {
+            parts.push(window.workoutTitle)
+            match.workoutTitle = parts.join(' & ')
+          }
+        }
+      } else {
+        // Start a new group
+        groups.push({ ...window })
       }
     })
+    baseTimeline = groups
   }
 
   // 2. Inject WORKOUT_EVENT markers
   const timelineWithEvents: FuelingTimelineWindow[] = []
   const representedWorkoutIds = new Set<string>()
+  const injectedEventIds = new Set<string>()
+
+  // Collect all workouts that have associated fueling windows
   baseTimeline.forEach((w) => {
-    if (w.plannedWorkoutId) representedWorkoutIds.add(w.plannedWorkoutId)
-    if (w.workout?.id) representedWorkoutIds.add(w.workout.id)
+    if (w.workoutIds) {
+      w.workoutIds.forEach((id) => representedWorkoutIds.add(id))
+    }
   })
 
   baseTimeline.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
 
   baseTimeline.forEach((window) => {
-    if ((window.type === 'INTRA_WORKOUT' || window.type === 'TRANSITION') && window.workout) {
-      const workoutStartTime = new Date(getWorkoutDate(window.workout, options.timezone))
-      timelineWithEvents.push({
-        type: 'WORKOUT_EVENT',
-        startTime: workoutStartTime,
-        endTime: addMinutes(workoutStartTime, (window.workout.durationSec || 3600) / 60),
-        targetCarbs: 0,
-        targetProtein: 0,
-        targetFat: 0,
-        description: window.workout.title,
-        workout: window.workout,
-        items: []
+    // For INTRA/TRANSITION windows, we inject the physical event markers immediately before them
+    if (
+      (window.type === 'INTRA_WORKOUT' || window.type === 'TRANSITION') &&
+      window.workouts?.length
+    ) {
+      // Sort workouts by start time within this window
+      const sortedWorkouts = [...window.workouts].sort(
+        (a, b) => getWorkoutDate(a, options.timezone) - getWorkoutDate(b, options.timezone)
+      )
+
+      sortedWorkouts.forEach((w) => {
+        if (!injectedEventIds.has(w.id)) {
+          const workoutStartTime = new Date(getWorkoutDate(w, options.timezone))
+          timelineWithEvents.push({
+            type: 'WORKOUT_EVENT',
+            startTime: workoutStartTime,
+            endTime: addMinutes(workoutStartTime, (w.durationSec || 3600) / 60),
+            targetCarbs: 0,
+            targetProtein: 0,
+            targetFat: 0,
+            description: w.title,
+            workout: w,
+            workouts: [w],
+            items: []
+          })
+          injectedEventIds.add(w.id)
+        }
       })
     }
     timelineWithEvents.push(window)
   })
 
-  // 3. Inject "orphaned" workouts
+  // 3. Inject "orphaned" workouts (ones with no fueling windows)
   trainingWorkouts.forEach((workout) => {
-    if (!representedWorkoutIds.has(workout.id)) {
+    if (!representedWorkoutIds.has(workout.id) && !injectedEventIds.has(workout.id)) {
       const workoutStart = new Date(getWorkoutDate(workout, options.timezone))
-      const insertIdx = timelineWithEvents.findIndex((w) => w.startTime > workoutStart)
       const eventWindow: FuelingTimelineWindow = {
         type: 'WORKOUT_EVENT',
         startTime: workoutStart,
@@ -265,9 +347,13 @@ export function mapNutritionToTimeline(
         targetFat: 0,
         description: workout.title,
         workout: workout,
+        workouts: [workout],
         items: []
       }
+      injectedEventIds.add(workout.id)
 
+      // Find insertion point
+      const insertIdx = timelineWithEvents.findIndex((w) => w.startTime > workoutStart)
       if (insertIdx === -1) {
         timelineWithEvents.push(eventWindow)
       } else {
@@ -276,64 +362,63 @@ export function mapNutritionToTimeline(
     }
   })
 
-  // 4. Add Daily Base gaps and slot items
+  // 4. Add Daily Base gaps and assign scheduled meals to all windows
   const finalTimeline: FuelingTimelineWindow[] = []
   let lastTime = dayStart
 
+  const assignMealsToWindow = (window: FuelingTimelineWindow) => {
+    const windowMeals = (options.mealPattern || []).filter((m) => {
+      try {
+        const mTime = fromZonedTime(`${dateStr}T${m.time}:00`, options.timezone)
+        return mTime >= window.startTime && mTime < window.endTime
+      } catch (e) {
+        return false
+      }
+    })
+    window.meals = windowMeals.map((m) => m.name)
+  }
+
   timelineWithEvents.forEach((window) => {
     if (window.startTime > lastTime) {
-      const gapMeals = (options.mealPattern || []).filter((m) => {
-        try {
-          const mTime = fromZonedTime(`${dateStr}T${m.time}:00`, options.timezone)
-          return mTime >= lastTime && mTime < window.startTime
-        } catch (e) {
-          return false
-        }
-      })
-
-      const description =
-        gapMeals.length > 0 ? gapMeals.map((m) => m.name).join(' & ') : 'Daily baseline'
-
-      finalTimeline.push({
+      const gapWindow: FuelingTimelineWindow = {
         type: 'DAILY_BASE',
         startTime: lastTime,
         endTime: window.startTime,
         targetCarbs: 0,
         targetProtein: 0,
         targetFat: 0,
-        description,
-        items: [],
-        meals: gapMeals.map((m) => m.name)
-      })
+        description: '',
+        items: []
+      }
+      assignMealsToWindow(gapWindow)
+      gapWindow.description =
+        gapWindow.meals && gapWindow.meals.length > 0
+          ? gapWindow.meals.join(' & ')
+          : 'Daily baseline'
+      finalTimeline.push(gapWindow)
     }
+
+    // Also assign meals to the actual window (PRE/INTRA/POST/EVENT)
+    assignMealsToWindow(window)
     finalTimeline.push(window)
     lastTime = window.endTime
   })
 
   if (lastTime < dayEnd) {
-    const gapMeals = (options.mealPattern || []).filter((m) => {
-      try {
-        const mTime = fromZonedTime(`${dateStr}T${m.time}:00`, options.timezone)
-        return mTime >= lastTime && mTime < dayEnd
-      } catch (e) {
-        return false
-      }
-    })
-
-    const description =
-      gapMeals.length > 0 ? gapMeals.map((m) => m.name).join(' & ') : 'Daily baseline'
-
-    finalTimeline.push({
+    const gapWindow: FuelingTimelineWindow = {
       type: 'DAILY_BASE',
       startTime: lastTime,
       endTime: dayEnd,
       targetCarbs: 0,
       targetProtein: 0,
       targetFat: 0,
-      description,
-      items: [],
-      meals: gapMeals.map((m) => m.name)
-    })
+      description: '',
+      items: []
+    }
+    assignMealsToWindow(gapWindow)
+    gapWindow.description =
+      gapWindow.meals && gapWindow.meals.length > 0 ? gapWindow.meals.join(' & ') : 'Daily baseline'
+    finalTimeline.push(gapWindow)
   }
 
   // 5. Slot logged items

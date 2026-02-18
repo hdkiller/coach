@@ -37,7 +37,18 @@
     ghostPoints?: EnergyPoint[]
     journeyEvents?: AthleteJourneyEvent[]
     viewMode: 'percent' | 'kcal' | 'carbs'
+    settings?: any
   }>()
+
+  const chartSettings = computed(() => ({
+    smooth: true,
+    opacity: 0.1,
+    showMarkers: true,
+    showNowLine: true,
+    showProjected: true,
+    yScale: 'fixed',
+    ...props.settings
+  }))
 
   const categoryIcons: Record<string, string> = {
     GI_DISTRESS: '🤢',
@@ -75,12 +86,12 @@
         borderColor: '#3b82f6',
         borderWidth: 2,
         fill: true,
-        tension: 0.4,
+        tension: chartSettings.value.smooth ? 0.4 : 0,
         // Hexis style: Solid for past, dashed for future
         segment: {
           borderDash: (ctx: any) => {
             const point = props.points[ctx.p1DataIndex]
-            return point?.isFuture ? [5, 5] : undefined
+            return chartSettings.value.showProjected && point?.isFuture ? [5, 5] : undefined
           },
           borderColor: (ctx: any) => {
             const point = props.points[ctx.p1DataIndex]
@@ -92,18 +103,20 @@
           const { ctx, chartArea } = chart
           if (!chartArea) return null
           const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
-          gradient.addColorStop(0, 'rgba(239, 68, 68, 0.05)') // Red bottom
-          gradient.addColorStop(0.3, 'rgba(59, 130, 246, 0.1)') // Blue mid
+          const op = chartSettings.value.opacity ?? 0.1
+          gradient.addColorStop(0, `rgba(239, 68, 68, ${op * 0.5})`) // Red bottom
+          gradient.addColorStop(0.3, `rgba(59, 130, 246, ${op})`) // Blue mid
           return gradient
         },
         pointRadius: (ctx: any) => {
+          if (!chartSettings.value.showMarkers) return 0
           const p = props.points[ctx.dataIndex]
           return p?.eventType ? 6 : 0
         },
         pointHoverRadius: 8,
         pointBackgroundColor: (ctx: any) => {
           const p = props.points[ctx.dataIndex]
-          if (!p?.eventType) return 'transparent'
+          if (!p?.eventType || !chartSettings.value.showMarkers) return 'transparent'
           if (p.eventIcon === 'i-tabler-layers-intersect') return '#8b5cf6' // Purple for mixed/multi
           // Synthetic/Probable meals are purple/dashed
           if (p.event && (p.event.includes('Synthetic') || p.event.includes('Probable')))
@@ -112,6 +125,7 @@
         },
         pointStyle: (ctx: any) => {
           const p = props.points[ctx.dataIndex]
+          if (!chartSettings.value.showMarkers) return 'circle'
           if (p?.eventIcon === 'i-tabler-layers-intersect') return 'triangle'
           if (p?.eventType === 'workout') return 'rectRot'
           if (p?.eventType === 'meal') return 'circle'
@@ -125,7 +139,7 @@
       datasets.push({
         label: 'Symptoms',
         data: props.points.map((p) => {
-          if (!p) return null
+          if (!p || !chartSettings.value.showMarkers) return null
           const event = props.journeyEvents?.find((e) => {
             const eTime = new Date(e.timestamp)
             const pTime = p.timestamp
@@ -137,11 +151,11 @@
           return p.level
         }),
         borderColor: 'transparent',
-        pointRadius: 10,
-        pointHoverRadius: 12,
+        pointRadius: (ctx: any) => (chartSettings.value.showMarkers ? 10 : 0),
+        pointHoverRadius: (ctx: any) => (chartSettings.value.showMarkers ? 12 : 0),
         pointBackgroundColor: (ctx: any) => {
           const val = ctx.dataset.data[ctx.dataIndex]
-          if (val === null) return 'transparent'
+          if (val === null || !chartSettings.value.showMarkers) return 'transparent'
 
           const p = props.points[ctx.dataIndex]
           if (!p) return 'transparent'
@@ -171,7 +185,7 @@
         borderWidth: 1.5,
         borderDash: [3, 3],
         fill: false,
-        tension: 0.4,
+        tension: chartSettings.value.smooth ? 0.4 : 0,
         pointRadius: 0, // Ghost line has no points
         pointHitRadius: 0
       })
@@ -186,24 +200,29 @@
   const chartOptions = computed(() => {
     const isKcal = props.viewMode === 'kcal'
     const isCarbs = props.viewMode === 'carbs'
+    const isFixed = chartSettings.value.yScale === 'fixed'
 
-    let yMin = 0
-    let yMax = 110 // Add padding above 100% for icons
+    let yMin = isFixed ? 0 : undefined
+    let yMax = isFixed ? 110 : undefined // Add padding above 100% for icons
 
-    if (isKcal || isCarbs) {
-      const values = props.points.map((p) => (isKcal ? p.kcalBalance : p.carbBalance))
+    if (!isFixed && (isKcal || isCarbs || props.points.length > 0)) {
+      const values = props.points.map((p) => {
+        if (isKcal) return p.kcalBalance
+        if (isCarbs) return p.carbBalance
+        return p.level
+      })
       const minVal = Math.min(...values)
       const maxVal = Math.max(...values)
       const range = maxVal - minVal
 
-      const step = isKcal ? 100 : 25
+      const step = isKcal ? 100 : isCarbs ? 25 : 10
 
       // Add 20% padding to top and bottom
       yMin = Math.floor((minVal - range * 0.2) / step) * step
       yMax = Math.ceil((maxVal + range * 0.2) / step) * step
 
       // Ensure minimum range
-      const minRange = isKcal ? 1000 : 200
+      const minRange = isKcal ? 1000 : isCarbs ? 200 : 40
       if (yMax - yMin < minRange) {
         const mid = (yMax + yMin) / 2
         yMin = mid - minRange / 2
@@ -290,6 +309,7 @@
           annotations: {
             nowLine: {
               type: 'line' as const,
+              display: chartSettings.value.showNowLine,
               xMin: props.points.findIndex((p) => p.isFuture),
               xMax: props.points.findIndex((p) => p.isFuture),
               borderColor: 'rgba(156, 163, 175, 0.8)',
@@ -306,14 +326,14 @@
             optimalZone: {
               type: 'box' as const,
               yMin: isKcal ? 500 : isCarbs ? 125 : 70,
-              yMax: yMax,
+              yMax: yMax || 110,
               backgroundColor: 'rgba(16, 185, 129, 0.03)',
               borderWidth: 0
             },
             // Highlight danger zone
             dangerZone: {
               type: 'box' as const,
-              yMin: yMin,
+              yMin: yMin || 0,
               yMax: isKcal ? -200 : isCarbs ? -50 : 25,
               backgroundColor: 'rgba(239, 68, 68, 0.05)',
               borderWidth: 0
@@ -335,12 +355,16 @@
           max: yMax,
           grid: { color: 'rgba(148, 163, 184, 0.1)' },
           ticks: {
-            stepSize: isKcal ? Math.ceil((yMax - yMin) / 5 / 100) * 100 : isCarbs ? 50 : 25,
+            stepSize: isKcal
+              ? Math.ceil(((yMax || 1000) - (yMin || 0)) / 5 / 100) * 100
+              : isCarbs
+                ? 50
+                : 25,
             color: '#94a3b8',
             font: { size: 10 },
             callback: (val: any) => {
               if (isKcal || isCarbs) return `${val > 0 ? '+' : ''}${val}${isCarbs ? 'g' : ''}`
-              if (val > 100) return '' // Hide labels above 100% to keep padding clean
+              if (isFixed && val > 100) return '' // Hide labels above 100% to keep padding clean
               return `${val}%`
             }
           }

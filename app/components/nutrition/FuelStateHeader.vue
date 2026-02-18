@@ -2,6 +2,7 @@
   <div class="space-y-6">
     <!-- Fuel State Banner -->
     <div
+      v-if="!hideBanner"
       class="rounded-xl p-4 sm:p-6 shadow-sm border transition-all duration-500"
       :class="[
         fuelState === 3
@@ -132,13 +133,14 @@
         fat: number
       }
       fuelingPlan?: any
+      hideBanner?: boolean
     }>(),
     {
       isLocked: false,
-      goalAdjustment: 0
+      goalAdjustment: 0,
+      hideBanner: false
     }
   )
-
   const isExplainOpen = ref(false)
   const selectedMacro = ref<any>(null)
 
