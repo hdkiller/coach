@@ -22,10 +22,37 @@ function mapStripeStatus(stripeStatus: Stripe.Subscription.Status): Subscription
 }
 
 /**
- * Determine subscription tier from Stripe product ID
+ * Determine subscription tier from Stripe price/product IDs
  */
-function getSubscriptionTier(productId: string): SubscriptionTier {
+function getPriceProductId(priceProduct: Stripe.Price['product']): string | null {
+  if (!priceProduct) return null
+  return typeof priceProduct === 'string' ? priceProduct : priceProduct.id
+}
+
+function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): SubscriptionTier {
   const config = useRuntimeConfig()
+  const priceId = item?.price?.id
+  const productId = getPriceProductId(item?.price?.product)
+
+  const supporterPriceIds = [
+    config.stripeSupporterMonthlyPriceId,
+    config.stripeSupporterAnnualPriceId,
+    config.stripeSupporterMonthlyEurPriceId,
+    config.stripeSupporterAnnualEurPriceId
+  ].filter(Boolean)
+  const proPriceIds = [
+    config.stripeProMonthlyPriceId,
+    config.stripeProAnnualPriceId,
+    config.stripeProMonthlyEurPriceId,
+    config.stripeProAnnualEurPriceId
+  ].filter(Boolean)
+
+  if (priceId && supporterPriceIds.includes(priceId)) {
+    return 'SUPPORTER'
+  }
+  if (priceId && proPriceIds.includes(priceId)) {
+    return 'PRO'
+  }
 
   if (productId === config.stripeSupporterProductId) {
     return 'SUPPORTER'
@@ -45,15 +72,15 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
   const subscriptionId = subscription.id
 
-  // Get the product ID from the first subscription item
-  const productId = subscription.items.data[0]?.price.product as string
-  if (!productId) {
-    console.error('No product ID found in subscription')
+  const firstItem = subscription.items.data[0]
+  const tier = getSubscriptionTier(firstItem)
+  if (!firstItem?.price?.id) {
+    console.error('No Stripe price found in subscription')
     return
   }
 
-  const tier = getSubscriptionTier(productId)
-  console.log(`Resolved tier '${tier}' for product '${productId}'`)
+  const productId = getPriceProductId(firstItem.price.product) || '(unknown-product)'
+  console.log(`Resolved tier '${tier}' for price '${firstItem.price.id}' product '${productId}'`)
 
   const status = mapStripeStatus(subscription.status)
   const periodEndTimestamp = subscription.items.data[0]?.current_period_end

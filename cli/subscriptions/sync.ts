@@ -37,15 +37,25 @@ const syncCommand = new Command('sync')
       process.exit(1)
     }
 
-    // Load price IDs from env (matching nuxt.config.ts)
+    const envPrice = (key: string) =>
+      isProd
+        ? process.env[`STRIPE_PROD_${key}`] || process.env[`STRIPE_${key}`]
+        : process.env[`STRIPE_${key}`]
+
+    // Load price IDs from env
     const priceIds = {
       supporter: [
-        process.env.STRIPE_SUPPORTER_MONTHLY_PRICE_ID,
-        process.env.STRIPE_SUPPORTER_ANNUAL_PRICE_ID
+        envPrice('SUPPORTER_MONTHLY_PRICE_ID'),
+        envPrice('SUPPORTER_ANNUAL_PRICE_ID'),
+        envPrice('SUPPORTER_MONTHLY_EUR_PRICE_ID'),
+        envPrice('SUPPORTER_ANNUAL_EUR_PRICE_ID')
       ].filter(Boolean) as string[],
-      pro: [process.env.STRIPE_PRO_MONTHLY_PRICE_ID, process.env.STRIPE_PRO_ANNUAL_PRICE_ID].filter(
-        Boolean
-      ) as string[]
+      pro: [
+        envPrice('PRO_MONTHLY_PRICE_ID'),
+        envPrice('PRO_ANNUAL_PRICE_ID'),
+        envPrice('PRO_MONTHLY_EUR_PRICE_ID'),
+        envPrice('PRO_ANNUAL_EUR_PRICE_ID')
+      ].filter(Boolean) as string[]
     }
 
     const stripe = new Stripe(stripeSecretKey, {

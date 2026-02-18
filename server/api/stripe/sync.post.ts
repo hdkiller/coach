@@ -19,8 +19,32 @@ function mapStripeStatus(stripeStatus: Stripe.Subscription.Status): Subscription
   }
 }
 
-function getSubscriptionTier(productId: string): SubscriptionTier {
+function getPriceProductId(priceProduct: Stripe.Price['product']): string | null {
+  if (!priceProduct) return null
+  return typeof priceProduct === 'string' ? priceProduct : priceProduct.id
+}
+
+function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): SubscriptionTier {
   const config = useRuntimeConfig()
+
+  const priceId = item?.price?.id
+  const productId = getPriceProductId(item?.price?.product)
+
+  const supporterPriceIds = [
+    config.stripeSupporterMonthlyPriceId,
+    config.stripeSupporterAnnualPriceId,
+    config.stripeSupporterMonthlyEurPriceId,
+    config.stripeSupporterAnnualEurPriceId
+  ].filter(Boolean)
+  const proPriceIds = [
+    config.stripeProMonthlyPriceId,
+    config.stripeProAnnualPriceId,
+    config.stripeProMonthlyEurPriceId,
+    config.stripeProAnnualEurPriceId
+  ].filter(Boolean)
+
+  if (priceId && supporterPriceIds.includes(priceId)) return 'SUPPORTER'
+  if (priceId && proPriceIds.includes(priceId)) return 'PRO'
   if (productId === config.stripeSupporterProductId) return 'SUPPORTER'
   if (productId === config.stripeProProductId) return 'PRO'
   return 'FREE'
@@ -62,8 +86,7 @@ export default defineEventHandler(async (event) => {
   )
 
   if (activeSub) {
-    const productId = activeSub.items.data[0]?.price.product as string
-    const tier = getSubscriptionTier(productId)
+    const tier = getSubscriptionTier(activeSub.items.data[0])
     const status = mapStripeStatus(activeSub.status)
 
     const periodEndTimestamp = activeSub.items.data[0]?.current_period_end
