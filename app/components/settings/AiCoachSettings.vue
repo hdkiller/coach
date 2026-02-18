@@ -73,7 +73,7 @@
           <USwitch
             v-model="localSettings.updateWorkoutNotesEnabled"
             label="Update Workout Notes"
-            description="Allow AI workout summaries to be published into Intervals workout notes"
+            description="Allow AI workout summaries to be captured as notes"
             @update:model-value="handleChange"
           />
         </div>
