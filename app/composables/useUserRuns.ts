@@ -155,6 +155,23 @@ export function useUserRuns() {
         const data = JSON.parse(event.data)
         if (data.type === 'run_update') {
           handleRunUpdate(data)
+        } else if (data.type === 'notification_new') {
+          const notificationStore = useNotificationStore()
+          notificationStore.addNotification(data.notification)
+
+          // Show toast for new notification
+          const toast = useToast()
+          toast.add({
+            title: data.notification.title,
+            description: data.notification.message,
+            icon: data.notification.icon || 'i-heroicons-bell',
+            color: 'primary',
+            onClick: () => {
+              if (data.notification.link) {
+                navigateTo(data.notification.link)
+              }
+            }
+          })
         }
       } catch (e) {
         // Ignore
