@@ -207,7 +207,11 @@
                             : 'bg-primary-600 text-white rounded-tr-none'
                         "
                       >
-                        {{ comment.content }}
+                        <MDC
+                          :value="comment.content"
+                          class="prose prose-sm max-w-none"
+                          :class="!comment.isAdmin ? 'prose-invert' : 'dark:prose-invert'"
+                        />
                       </div>
                     </div>
                   </div>

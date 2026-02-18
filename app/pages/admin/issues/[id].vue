@@ -271,7 +271,11 @@
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-200 dark:border-gray-700'
                       "
                     >
-                      {{ comment.content }}
+                      <MDC
+                        :value="comment.content"
+                        class="prose prose-sm max-w-none"
+                        :class="comment.isAdmin ? 'prose-invert' : 'dark:prose-invert'"
+                      />
                     </div>
                   </div>
                 </div>
