@@ -24,11 +24,10 @@
     { label: 'Gemini 3.0 Pro (Preview)', value: 'gemini-3-pro-preview', family: 'pro' },
     {
       label: 'Gemini 2.5 Flash',
-      value: 'gemini-2.5-flash-preview-09-2025',
+      value: 'gemini-2.5-flash',
       family: 'flash'
     },
-    { label: 'Gemini 2.5 Pro (Latest)', value: 'gemini-pro-latest', family: 'flash' },
-    { label: 'Gemini 2.5 Flash (Legacy)', value: 'gemini-2.5-flash', family: 'flash' }
+    { label: 'Gemini 2.5 Pro (Latest)', value: 'gemini-pro-latest', family: 'flash' }
   ]
 
   const modelsByFamily = computed(() => {

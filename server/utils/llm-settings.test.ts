@@ -25,7 +25,7 @@ vi.mock('./db', () => ({
 describe('LLM Settings Logic', () => {
   describe('buildGoogleProviderOptions', () => {
     it('should configure thinkingBudget for Gemini 2.5 models', () => {
-      const options = buildGoogleProviderOptions('gemini-2.5-flash-preview-09-2025', 'low', 2000)
+      const options = buildGoogleProviderOptions('gemini-2.5-flash', 'low', 2000)
       expect(options).toEqual({
         google: {
           thinkingConfig: {
@@ -37,7 +37,7 @@ describe('LLM Settings Logic', () => {
     })
 
     it('should NOT configure thinkingBudget if budget is 0', () => {
-      const options = buildGoogleProviderOptions('gemini-2.5-flash-preview-09-2025', 'low', 0)
+      const options = buildGoogleProviderOptions('gemini-2.5-flash', 'low', 0)
       expect(options).toEqual({})
     })
 
@@ -105,7 +105,7 @@ describe('LLM Settings Logic', () => {
         id: 'level2',
         level: 'flash',
         model: 'flash',
-        modelId: 'gemini-2.5-flash-preview-09-2025',
+        modelId: 'gemini-2.5-flash',
         thinkingBudget: 1000,
         thinkingLevel: 'low',
         maxSteps: 3
@@ -149,7 +149,7 @@ describe('LLM Settings Logic', () => {
           analysisLevelSettingsId: 'level1',
           operation: 'chat',
           model: 'flash',
-          modelId: 'gemini-2.5-flash-preview-09-2025',
+          modelId: 'gemini-2.5-flash',
           thinkingBudget: 500,
           thinkingLevel: null,
           maxSteps: null
@@ -167,7 +167,7 @@ describe('LLM Settings Logic', () => {
       await refreshLlmSettingsCache()
       const settings = await getLlmOperationSettings('user1', 'chat')
 
-      expect(settings.modelId).toBe('gemini-2.5-flash-preview-09-2025')
+      expect(settings.modelId).toBe('gemini-2.5-flash')
       expect(settings.thinkingBudget).toBe(500)
     })
 
