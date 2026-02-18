@@ -8,6 +8,12 @@ import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate, calculateAge } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
+import {
+  buildAnalysisRequestMetricRules,
+  buildMetricPriorityPromptBlock,
+  resolveMetricPriorityContext,
+  shouldCondenseHeartRateSection
+} from './utils/workout-metric-priority'
 
 // TypeScript interface for the structured analysis
 interface StructuredAnalysis {
@@ -674,6 +680,13 @@ function buildWorkoutAnalysisPrompt(
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
   }
+  const formatPaceFromSecondsPerKm = (secondsPerKm: number | null) => {
+    if (!secondsPerKm || !Number.isFinite(secondsPerKm) || secondsPerKm <= 0) return 'N/A'
+    const total = Math.round(secondsPerKm)
+    const minutes = Math.floor(total / 60)
+    const seconds = total % 60
+    return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
+  }
 
   const dateStr = formatUserDate(workoutData.date, timezone, 'yyyy-MM-dd')
 
@@ -688,6 +701,14 @@ function buildWorkoutAnalysisPrompt(
   const isStrength = ['Gym', 'WeightTraining', 'Strength', 'CrossFit'].some((t) =>
     workoutType.toLowerCase().includes(t.toLowerCase())
   )
+  const isCadenceRelevant = ['run', 'ride', 'bike', 'cycle'].some((t) =>
+    workoutType.toLowerCase().includes(t)
+  )
+  const metricPriorityContext = resolveMetricPriorityContext(
+    sportSettings?.loadPreference,
+    workoutData
+  )
+  const condensedHrSection = shouldCondenseHeartRateSection(metricPriorityContext)
 
   // Set appropriate coach persona and focus based on workout type
 
@@ -712,6 +733,7 @@ function buildWorkoutAnalysisPrompt(
 
     if (sportSettings.loadPreference) {
       zoneDefinitions += `- **Preferred Load Metric**: ${sportSettings.loadPreference}\n`
+      zoneDefinitions += `- **Metric Priority Order**: ${metricPriorityContext.priority.join(' > ')}\n`
     }
 
     if (sportSettings.hrZones && Array.isArray(sportSettings.hrZones)) {
@@ -809,6 +831,7 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
   // Add zone definitions to context
 
   prompt += zoneDefinitions
+  prompt += buildMetricPriorityPromptBlock(metricPriorityContext)
 
   if (workoutData.distance_m) {
     prompt += `- **Distance**: ${(workoutData.distance_m / 1000).toFixed(2)} km\n`
@@ -816,6 +839,32 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
 
   if (workoutData.elevation_gain) {
     prompt += `- **Elevation Gain**: ${workoutData.elevation_gain}m\n`
+  }
+
+  if (
+    metricPriorityContext.primaryMetric === 'PACE' &&
+    metricPriorityContext.availability.hasPace
+  ) {
+    prompt += '\n## Pace & Speed (Primary Metric)\n'
+    const avgPaceSecPerKm =
+      workoutData.distance_m && workoutData.duration_s
+        ? workoutData.duration_s / (workoutData.distance_m / 1000)
+        : null
+    if (avgPaceSecPerKm) {
+      prompt += `- Average Pace: ${formatPaceFromSecondsPerKm(avgPaceSecPerKm)}\n`
+    }
+    if (workoutData.avg_speed_ms) {
+      prompt += `- Average Speed: ${formatMetric(workoutData.avg_speed_ms, 2)} m/s\n`
+    }
+    if (workoutData.pace_variability_seconds) {
+      prompt += `- Pace Variability: ${formatMetric(workoutData.pace_variability_seconds, 1)}s SD\n`
+    }
+    if (workoutData.pace_stability) {
+      prompt += `- Pace Stability (CoV): ${formatMetric(workoutData.pace_stability.overallCoV, 1)}%\n`
+    }
+    if (workoutData.lap_splits?.length) {
+      prompt += `- Lap Splits Available: ${workoutData.lap_splits.length}\n`
+    }
   }
 
   // Only include power metrics for cardio workouts where they're relevant
@@ -845,9 +894,9 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
 
   // Heart rate is relevant for all workout types
   if (workoutData.avg_hr || workoutData.max_hr || workoutData.avg_cadence || isCardio) {
-    prompt += '\n## Heart Rate'
-    // Only include cadence label for cardio workouts
-    if (isCardio) {
+    prompt += condensedHrSection ? '\n## Heart Rate (Secondary Corroboration)' : '\n## Heart Rate'
+    // Cadence label is only for cadence-relevant workouts
+    if (isCadenceRelevant) {
       prompt += ' & Cadence'
     }
     prompt += '\n'
@@ -857,8 +906,8 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
 
     if (workoutData.max_hr) prompt += `- Max HR: ${workoutData.max_hr} bpm\n`
 
-    // Cadence is only relevant for cardio (cycling/running)
-    if (isCardio) {
+    // Cadence is only relevant for cycling/running-like workouts
+    if (isCadenceRelevant && !condensedHrSection) {
       if (workoutData.avg_cadence)
         prompt += `- Average Cadence: ${workoutData.avg_cadence} ${workoutType.toLowerCase().includes('run') ? 'spm' : 'rpm'}\n`
       else prompt += `- Average Cadence: N/A\n`
@@ -1120,7 +1169,10 @@ IMPORTANT:
 - Be specific with numbers
 - Focus on actionable advice
 - Tailor your analysis to the workout type (${workoutType}) - ignore metrics that don't apply
-- Scores should be realistic and track progress over time - don't inflate scores`
+- Scores should be realistic and track progress over time - don't inflate scores
+${buildAnalysisRequestMetricRules(metricPriorityContext)
+  .map((rule) => `- ${rule}`)
+  .join('\n')}`
 
   return prompt
 }
