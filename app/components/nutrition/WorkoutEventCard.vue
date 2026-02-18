@@ -1,27 +1,22 @@
 <template>
-  <div class="relative pl-8 pb-4 border-l-2 border-gray-100 dark:border-gray-800 last:border-0">
-    <!-- Anchor Icon -->
-    <div
-      class="absolute left-[-11px] top-0 w-5 h-5 rounded-full border-2 border-primary-500 bg-primary-500 z-10 flex items-center justify-center shadow-lg"
-    >
-      <UIcon :name="icon" class="w-3 h-3 text-white" />
-    </div>
-
+  <div class="workout-event-card">
     <!-- Workout Block -->
     <div
-      class="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-800 shadow-xl dark:shadow-2xl relative overflow-hidden group cursor-pointer hover:border-primary-500/50 transition-colors"
-      @click="navigateTo(`/workouts/planned/${workout.id}`)"
+      class="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-5 border border-gray-200 dark:border-gray-800 shadow-xl dark:shadow-2xl relative overflow-hidden group transition-colors"
     >
       <!-- Animated background effect -->
       <div
         class="absolute inset-0 bg-gradient-to-br from-primary-500/10 to-transparent opacity-50 dark:opacity-50"
       />
 
-      <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div
+        class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
+        @click="navigateTo(`/workouts/planned/${workout.id}`)"
+      >
         <div class="space-y-1">
           <div class="flex items-center gap-2 flex-wrap">
             <h3
-              class="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors"
+              class="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
             >
               {{ workout.title }}
             </h3>
@@ -41,7 +36,9 @@
           >
             <div class="flex items-center gap-1">
               <UIcon name="i-tabler-clock" class="w-3.5 h-3.5" />
-              <span>{{ formatDuration(workout.durationSec) }}</span>
+              <span>{{
+                formatDuration(workout.durationSec || workout.duration || workout.plannedDuration)
+              }}</span>
             </div>
             <div v-if="workout.tss" class="flex items-center gap-1">
               <UIcon name="i-tabler-bolt" class="w-3.5 h-3.5 text-yellow-500" />
@@ -80,12 +77,12 @@
             <div
               :class="[
                 'text-[10px] font-bold uppercase leading-none',
-                isCompleted
+                isCompleted(workout)
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-primary-600 dark:text-primary-400'
               ]"
             >
-              {{ statusLabel }}
+              {{ getStatusLabel(workout) }}
             </div>
           </div>
         </div>
@@ -97,6 +94,7 @@
 <script setup lang="ts">
   const props = defineProps<{
     workout: any
+    workouts?: any[] // Kept for compatibility
     fuelState?: number
     startTime?: Date | string
     endTime?: Date | string
@@ -134,13 +132,13 @@
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
-  const isCompleted = computed(() => {
-    return props.workout?.completed || props.workout?.completionStatus === 'COMPLETED'
-  })
-
-  const statusLabel = computed(() => {
-    if (isCompleted.value) return 'Completed'
-    if (props.workout?.completionStatus === 'SKIPPED') return 'Skipped'
+  function getStatusLabel(workout: any) {
+    if (workout.completed || workout.completionStatus === 'COMPLETED') return 'Completed'
+    if (workout.completionStatus === 'SKIPPED') return 'Skipped'
     return 'Planned'
-  })
+  }
+
+  function isCompleted(workout: any) {
+    return workout.completed || workout.completionStatus === 'COMPLETED'
+  }
 </script>

@@ -17,7 +17,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
           <div class="flex items-center gap-2">
-            <h3 class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white">
+            <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white">
               {{ title }}
             </h3>
             <div v-if="!isLocked" class="flex items-center gap-1 ml-1">
@@ -81,7 +81,7 @@
 
           <!-- Supplement Pips -->
           <div
-            v-if="supplements?.length"
+            v-if="chartSettings.showSupplements && supplements?.length"
             class="flex gap-1 ml-1 border-l border-gray-200 dark:border-gray-700 pl-2"
           >
             <UTooltip v-for="supp in supplements" :key="supp" :text="supp">
@@ -100,7 +100,12 @@
 
       <!-- Hydration Card (Intra-Workout Only) -->
 
-      <div v-if="type === 'INTRA_WORKOUT' && (targetFluid || targetSodium)" class="space-y-3">
+      <div
+        v-if="
+          !chartSettings.hideHydration && type === 'INTRA_WORKOUT' && (targetFluid || targetSodium)
+        "
+        class="space-y-3"
+      >
         <!-- Fueling Script -->
 
         <div
@@ -217,7 +222,12 @@
 
       <!-- AI Recommendations Tool (If empty and not locked) -->
       <div
-        v-if="items.length === 0 && !isLocked && type !== 'DAILY_BASE'"
+        v-if="
+          items.length === 0 &&
+          !isLocked &&
+          type !== 'DAILY_BASE' &&
+          !(chartSettings.hidePastSuggestions && isPastWindow)
+        "
         class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-dashed border-gray-200 dark:border-gray-700"
       >
         <div class="flex items-center gap-2 mb-2">
@@ -232,67 +242,83 @@
       </div>
 
       <!-- Logged Items -->
-      <div v-if="items.length > 0" class="space-y-2">
-        <div
-          v-for="(item, idx) in items"
-          :key="item.id || `item-${idx}`"
-          class="group flex flex-col gap-1 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm"
-        >
-          <!-- Row 1: Title and Actions -->
-          <div class="flex items-center justify-between gap-4">
-            <div class="text-sm font-bold text-gray-900 dark:text-white min-w-0 flex-1">
-              <span class="truncate block">{{ item.name || item.product_name }}</span>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <UBadge
-                v-if="item.absorptionType"
-                :color="getAbsorptionColor(item.absorptionType)"
-                variant="subtle"
-                size="xs"
-                class="text-[8px] font-black uppercase px-1 py-0 leading-none"
-              >
-                {{ item.absorptionType }}
-              </UBadge>
-              <UButton
-                v-if="!isLocked"
-                icon="i-heroicons-pencil-square"
-                variant="ghost"
-                color="neutral"
-                size="xs"
-                class="opacity-0 group-hover:opacity-100 transition-opacity -my-1"
-                @click="$emit('edit', item)"
-              />
-            </div>
+      <div v-if="mealGroupedItems.length > 0" class="space-y-6">
+        <div v-for="group in mealGroupedItems" :key="group.meal" class="space-y-2">
+          <!-- Meal Sub-heading (Always show if scheduled or window covers multiple meals) -->
+          <div
+            v-if="group.isScheduled || canShowMealSubheadings"
+            class="flex items-center gap-2 mb-3"
+          >
+            <div class="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">
+              {{ group.label }}
+            </span>
+            <div class="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
           </div>
 
-          <!-- Row 2: Secondary Info and Macros -->
-          <div class="flex items-center justify-between gap-2">
+          <div v-if="group.items.length > 0" class="space-y-2">
             <div
-              class="text-[10px] text-gray-500 font-medium uppercase flex items-center gap-1.5 min-w-0"
+              v-for="(item, idx) in group.items"
+              :key="item.id || `${group.meal}-item-${idx}`"
+              class="group flex flex-col gap-1 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm"
             >
-              <span v-if="getItemTime(item)" class="text-primary-500 font-bold shrink-0">{{
-                getItemTime(item)
-              }}</span>
-              <span v-if="getItemTime(item)" class="shrink-0">•</span>
-              <span class="truncate"
-                >{{ item.amount }}{{ item.unit || 'g' }} •
-                {{ formatKcal(item.calories) }} kcal</span
-              >
-            </div>
+              <!-- Row 1: Title and Actions -->
+              <div class="flex items-center justify-between gap-4">
+                <div class="text-sm font-bold text-gray-900 dark:text-white min-w-0 flex-1">
+                  <span class="truncate block">{{ item.name || item.product_name }}</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <UBadge
+                    v-if="item.absorptionType"
+                    :color="getAbsorptionColor(item.absorptionType)"
+                    variant="subtle"
+                    size="xs"
+                    class="text-[8px] font-black uppercase px-1 py-0 leading-none"
+                  >
+                    {{ item.absorptionType }}
+                  </UBadge>
+                  <UButton
+                    v-if="!isLocked"
+                    icon="i-heroicons-pencil-square"
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    class="opacity-0 group-hover:opacity-100 transition-opacity -my-1"
+                    @click="$emit('edit', item)"
+                  />
+                </div>
+              </div>
 
-            <div class="flex items-center gap-3 shrink-0">
-              <span
-                class="text-[10px] font-black text-yellow-600 dark:text-yellow-400 whitespace-nowrap"
-              >
-                {{ formatMacro(item.carbs)
-                }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g C</span>
-              </span>
-              <span
-                class="text-[10px] font-black text-blue-600 dark:text-blue-400 whitespace-nowrap"
-              >
-                {{ formatMacro(item.protein)
-                }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g P</span>
-              </span>
+              <!-- Row 2: Secondary Info and Macros -->
+              <div class="flex items-center justify-between gap-2">
+                <div
+                  class="text-[10px] text-gray-500 font-medium uppercase flex items-center gap-1.5 min-w-0"
+                >
+                  <span v-if="getItemTime(item)" class="text-primary-500 font-bold shrink-0">{{
+                    getItemTime(item)
+                  }}</span>
+                  <span v-if="getItemTime(item)" class="shrink-0">•</span>
+                  <span class="truncate"
+                    >{{ item.amount }}{{ item.unit || 'g' }} •
+                    {{ formatKcal(item.calories) }} kcal</span
+                  >
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                  <span
+                    class="text-[10px] font-black text-yellow-600 dark:text-yellow-400 whitespace-nowrap"
+                  >
+                    {{ formatMacro(item.carbs)
+                    }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g C</span>
+                  </span>
+                  <span
+                    class="text-[10px] font-black text-blue-600 dark:text-blue-400 whitespace-nowrap"
+                  >
+                    {{ formatMacro(item.protein)
+                    }}<span class="text-[8px] ml-0.5 opacity-80 font-bold">g P</span>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -387,11 +413,20 @@
 </template>
 
 <script setup lang="ts">
+  import { computed, ref, useAttrs } from 'vue'
+
   defineOptions({
     inheritAttrs: false
   })
 
   const attrs = useAttrs()
+
+  const MEAL_LABELS: Record<string, string> = {
+    breakfast: 'Breakfast',
+    lunch: 'Lunch',
+    dinner: 'Dinner',
+    snacks: 'Snacks'
+  }
 
   const props = defineProps<{
     type: string
@@ -408,7 +443,52 @@
     meals?: string[]
     isLocked?: boolean
     fuelState?: number
+    settings?: any
   }>()
+
+  const chartSettings = computed(() => ({
+    hideHydration: false,
+    hidePastSuggestions: true,
+    showSupplements: true,
+    ...props.settings
+  }))
+
+  const mealGroupedItems = computed(() => {
+    const groups: Record<string, any[]> = {}
+    const items = props.items || []
+
+    items.forEach((item) => {
+      const meal = item.meal || 'snacks'
+      if (!groups[meal]) groups[meal] = []
+      groups[meal].push(item)
+    })
+
+    // Include scheduled meals from props.meals even if empty
+    const scheduledMeals = (props.meals || []).map((m) => m.toLowerCase())
+
+    // Order: breakfast, lunch, dinner, snacks
+    const order = ['breakfast', 'lunch', 'dinner', 'snacks']
+    return order
+      .filter((meal) => (groups[meal] && groups[meal].length > 0) || scheduledMeals.includes(meal))
+      .map((meal) => ({
+        meal,
+        label: MEAL_LABELS[meal] || 'Snacks',
+        items: groups[meal] || [],
+        isScheduled: scheduledMeals.includes(meal)
+      }))
+  })
+
+  const canShowMealSubheadings = computed(() => {
+    // Only show subheadings if the window covers multiple logical meal types
+    // and it's a daily base window (not a workout-specific window which is usually one thing)
+    return mealGroupedItems.value.length > 1 || props.type === 'DAILY_BASE'
+  })
+
+  const isPastWindow = computed(() => {
+    const now = new Date()
+    const thirtyMinsAgo = new Date(now.getTime() - 30 * 60 * 1000)
+    return end.value < thirtyMinsAgo
+  })
 
   defineEmits(['add', 'addAi', 'edit'])
 
