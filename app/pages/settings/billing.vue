@@ -25,16 +25,39 @@
   const showSuccessMessage = ref(route.query.success === 'true')
   const showCanceledMessage = ref(route.query.canceled === 'true')
   const showPlansModal = ref(false)
+  const celebrationPlayed = ref(false)
+  const prefersReducedMotion = ref(false)
+  const confettiPieces = ref<
+    Array<{
+      id: number
+      left: number
+      driftX: number
+      delay: number
+      duration: number
+      rotation: number
+      scale: number
+      color: string
+    }>
+  >([])
 
   const config = useRuntimeConfig()
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
+  const welcomeName = computed(() => {
+    const name = userStore.user?.name?.trim()
+    return name ? name.split(' ')[0] : 'Athlete'
+  })
 
   // Always refresh user data on mount to ensure latest subscription status.
   // After a successful checkout, also sync with Stripe so the webhook delay
   // doesn't leave the user looking at the upgrade plans.
   onMounted(async () => {
+    if (import.meta.client) {
+      prefersReducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    }
+
     if (showSuccessMessage.value) {
       await pollSubscription()
+      triggerCelebration()
     } else {
       await userStore.fetchUser()
     }
@@ -42,6 +65,8 @@
 
   const polling = ref(false)
   async function pollSubscription(maxAttempts = 5, interval = 3000) {
+    const minPollingMs = 1750
+    const startedAt = Date.now()
     polling.value = true
     let attempts = 0
 
@@ -57,6 +82,10 @@
           userStore.user?.subscriptionTier !== 'FREE' &&
           userStore.user?.subscriptionStatus === 'ACTIVE'
         ) {
+          const elapsed = Date.now() - startedAt
+          if (elapsed < minPollingMs) {
+            await new Promise((resolve) => setTimeout(resolve, minPollingMs - elapsed))
+          }
           polling.value = false
           return
         }
@@ -68,6 +97,10 @@
       if (attempts < maxAttempts) {
         await new Promise((resolve) => setTimeout(resolve, interval))
       }
+    }
+    const elapsed = Date.now() - startedAt
+    if (elapsed < minPollingMs) {
+      await new Promise((resolve) => setTimeout(resolve, minPollingMs - elapsed))
     }
     polling.value = false
   }
@@ -194,6 +227,36 @@
       syncing.value = false
     }
   }
+
+  function dismissSuccessMessage() {
+    showSuccessMessage.value = false
+    confettiPieces.value = []
+  }
+
+  function triggerCelebration() {
+    if (prefersReducedMotion.value) return
+    celebrationPlayed.value = true
+
+    const colors = ['#60a5fa', '#34d399', '#f59e0b', '#f87171', '#a78bfa', '#22d3ee']
+    confettiPieces.value = Array.from({ length: 42 }, (_, index) => ({
+      id: index,
+      left: index % 2 === 0 ? Math.random() * 26 : 74 + Math.random() * 26,
+      driftX: index % 2 === 0 ? 32 + Math.random() * 54 : -32 - Math.random() * 54,
+      delay: Math.random() * 160,
+      duration: 2200 + Math.random() * 300,
+      rotation: Math.random() * 720 - 360,
+      scale: 0.9 + Math.random() * 0.7,
+      color: colors[index % colors.length] as string
+    }))
+
+    if (navigator.vibrate) {
+      navigator.vibrate(35)
+    }
+
+    setTimeout(() => {
+      confettiPieces.value = []
+    }, 2700)
+  }
 </script>
 
 <template>
@@ -222,21 +285,107 @@
 
     <!-- Success/Canceled Alerts -->
     <div class="space-y-4">
+      <UCard v-if="showSuccessMessage" class="relative overflow-hidden border-success/30">
+        <div class="absolute inset-0 pointer-events-none">
+          <div
+            v-for="piece in confettiPieces"
+            :key="piece.id"
+            class="success-confetti-piece"
+            :style="{
+              left: `${piece.left}%`,
+              '--drift-x': `${piece.driftX}px`,
+              '--delay': `${piece.delay}ms`,
+              '--duration': `${piece.duration}ms`,
+              '--rotation': `${piece.rotation}deg`,
+              '--scale': piece.scale,
+              '--color': piece.color
+            }"
+          />
+        </div>
+
+        <div class="relative z-10 space-y-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-2">
+              <UBadge color="success" variant="soft" size="sm">Upgrade complete</UBadge>
+              <h3 class="text-2xl font-bold">
+                Welcome, {{ welcomeName }}. Your AI Coach is now fully unlocked.
+              </h3>
+              <p class="text-sm text-gray-600 dark:text-gray-300">
+                Set your preferences once, then let coaching run automatically.
+              </p>
+            </div>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-x-mark"
+              aria-label="Dismiss success message"
+              @click="dismissSuccessMessage"
+            />
+          </div>
+
+          <div class="grid gap-2 sm:grid-cols-3">
+            <div class="rounded-lg border border-success/20 bg-success/5 p-3">
+              <div class="text-xs uppercase tracking-wide text-success">Automations</div>
+              <div class="text-sm font-semibold">
+                Turn on auto-analysis for workouts, nutrition, and readiness.
+              </div>
+            </div>
+            <div class="rounded-lg border border-success/20 bg-success/5 p-3">
+              <div class="text-xs uppercase tracking-wide text-success">Model Controls</div>
+              <div class="text-sm font-semibold">
+                Pick Quick, Thoughtful, or Experimental reasoning.
+              </div>
+            </div>
+            <div class="rounded-lg border border-success/20 bg-success/5 p-3">
+              <div class="text-xs uppercase tracking-wide text-success">Proactive Coaching</div>
+              <div class="text-sm font-semibold">Enable alerts and forward-looking guidance.</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <UButton
+              to="/settings/ai?success=true"
+              color="primary"
+              icon="i-heroicons-sparkles"
+              trailing-icon="i-heroicons-arrow-right"
+            >
+              Open AI Settings
+            </UButton>
+            <UButton color="neutral" variant="ghost" @click="dismissSuccessMessage">
+              Dismiss
+            </UButton>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-xs uppercase tracking-wide text-gray-500">Quick start checklist</div>
+            <div class="space-y-1 text-sm">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-check-circle" class="h-4 w-4 text-success" />
+                <span>Subscription activated</span>
+              </div>
+              <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                <UIcon name="i-heroicons-circle-stack" class="h-4 w-4" />
+                <span>Review AI settings presets</span>
+              </div>
+              <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                <UIcon name="i-heroicons-cpu-chip" class="h-4 w-4" />
+                <span>Enable one automation to start</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
       <UAlert
-        v-if="showSuccessMessage"
-        :title="polling ? 'Confirming Subscription...' : 'Subscription Activated!'"
-        :icon="polling ? 'i-heroicons-arrow-path' : 'i-heroicons-check-circle'"
-        :color="polling ? 'info' : 'success'"
+        v-if="showSuccessMessage && polling"
+        title="Confirming Subscription..."
+        color="info"
         variant="soft"
-        :close="{ color: polling ? 'info' : 'success', variant: 'link', label: 'Dismiss' }"
-        :description="
-          polling
-            ? 'We are verifying your payment with Stripe. This may take a few seconds...'
-            : 'Your subscription has been successfully activated. Welcome aboard!'
-        "
-        @update:open="showSuccessMessage = false"
+        :close="{ color: 'info', variant: 'link', label: 'Dismiss' }"
+        description="We are verifying your payment with Stripe. This may take a few seconds..."
+        @update:open="dismissSuccessMessage"
       >
-        <template v-if="polling" #icon>
+        <template #icon>
           <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 animate-spin" />
         </template>
       </UAlert>
@@ -258,6 +407,7 @@
       <!-- 2. Subscription Management (Active Sub + Entitlements) -->
       <!-- Show FIRST on mobile, SECOND on desktop (if not premium) -->
       <div
+        v-if="!polling"
         class="grid grid-cols-1 lg:grid-cols-3 gap-6"
         :class="{ 'order-1 lg:order-2': !isPremium, 'order-1': isPremium }"
       >
@@ -497,3 +647,42 @@
     </UModal>
   </div>
 </template>
+
+<style scoped>
+  .success-confetti-piece {
+    --drift-x: 0px;
+    --delay: 0ms;
+    --duration: 1400ms;
+    --rotation: 0deg;
+    --scale: 1;
+    --color: #60a5fa;
+    position: absolute;
+    bottom: -1rem;
+    width: 0.52rem;
+    height: 0.94rem;
+    border-radius: 9999px;
+    background: var(--color);
+    opacity: 0;
+    animation: billing-success-confetti var(--duration) ease-out var(--delay) forwards;
+  }
+
+  @keyframes billing-success-confetti {
+    0% {
+      transform: translateY(0) rotate(0deg) scale(0.85);
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(var(--drift-x), -220px, 0) rotate(var(--rotation)) scale(var(--scale));
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .success-confetti-piece {
+      animation: none;
+    }
+  }
+</style>
