@@ -384,6 +384,13 @@ export const analyzeWorkoutTask = task({
 })
 
 function buildWorkoutAnalysisData(workout: any) {
+  const workoutType = String(workout.type || '')
+  const isRunningWorkout = workoutType.toLowerCase().includes('run')
+  const normalizeRunningCadence = (cadence: number | null | undefined) => {
+    if (!cadence) return cadence
+    return isRunningWorkout && cadence < 120 ? cadence * 2 : cadence
+  }
+
   const data: any = {
     id: workout.id,
     date: workout.date,
@@ -410,22 +417,12 @@ function buildWorkoutAnalysisData(workout: any) {
 
   // Cadence
   if (workout.averageCadence) {
-    // If running, ensure cadence is in steps per minute (SPM).
-    // Most devices export running cadence as "steps per foot" or RPM (e.g. 80-90),
-    // but runners expect total steps per minute (e.g. 160-180).
-    // If we see a running cadence < 120, it's likely RPM and needs to be doubled.
-    if (workout.type === 'Run' && workout.averageCadence < 120) {
-      data.avg_cadence = workout.averageCadence * 2
-    } else {
-      data.avg_cadence = workout.averageCadence
-    }
+    // For running-like workout types (Run, VirtualRun, TrailRun...), convert
+    // "per-foot" cadence exports (<120) into total steps per minute.
+    data.avg_cadence = normalizeRunningCadence(workout.averageCadence)
   }
   if (workout.maxCadence) {
-    if (workout.type === 'Run' && workout.maxCadence < 120) {
-      data.max_cadence = workout.maxCadence * 2
-    } else {
-      data.max_cadence = workout.maxCadence
-    }
+    data.max_cadence = normalizeRunningCadence(workout.maxCadence)
   }
 
   // Speed
@@ -502,8 +499,8 @@ function buildWorkoutAnalysisData(workout: any) {
         intensity: interval.intensity,
         avg_hr: interval.average_heartrate,
         max_hr: interval.max_heartrate,
-        avg_cadence: interval.average_cadence,
-        max_cadence: interval.max_cadence,
+        avg_cadence: normalizeRunningCadence(interval.average_cadence),
+        max_cadence: normalizeRunningCadence(interval.max_cadence),
         avg_speed_ms: interval.average_speed,
         decoupling: interval.decoupling,
         variability: interval.w5s_variability,
