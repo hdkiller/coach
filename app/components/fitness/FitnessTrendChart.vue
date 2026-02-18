@@ -17,7 +17,7 @@
         />
       </div>
     </template>
-    
+
     <div v-if="loading" class="h-[300px] flex items-center justify-center">
       <USkeleton class="h-full w-full" />
     </div>
@@ -28,6 +28,7 @@
           :key="`chart-${metricKey}-${settings.type}`"
           :data="data"
           :options="options"
+          :plugins="plugins"
           :height="300"
         />
       </ClientOnly>
@@ -45,6 +46,7 @@
     data: any
     options: any
     settings: any
+    plugins?: any[]
   }>()
 
   defineEmits(['settings'])
