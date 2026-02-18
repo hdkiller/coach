@@ -214,7 +214,12 @@
             :workout="plannedWorkout.structuredWorkout"
             :preference="preference"
           />
-          <WorkoutChart v-else :workout="plannedWorkout.structuredWorkout" :user-ftp="userFtp" />
+          <WorkoutChart
+            v-else
+            :workout="plannedWorkout.structuredWorkout"
+            :user-ftp="userFtp"
+            :sport-settings="applicableSettings"
+          />
         </div>
 
         <!-- Coaching Messages Timeline -->

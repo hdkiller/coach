@@ -53,12 +53,7 @@
                   <div class="font-semibold">{{ getStepName(step) }}</div>
                   <div class="text-[10px] opacity-80 mt-1">
                     {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
-                    <span v-if="step.power?.range">
-                      {{ Math.round(step.power.range.start * 100) }}-{{
-                        Math.round(step.power.range.end * 100)
-                      }}% FTP
-                    </span>
-                    <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% FTP </span>
+                    <span>{{ formatPowerTarget(step) }}</span>
                   </div>
                   <div v-if="userFtp" class="text-[10px] opacity-80">
                     <span v-if="step.power?.range">
@@ -200,12 +195,7 @@
 
                   <!-- Power % -->
                   <div class="w-18 font-bold flex-shrink-0">
-                    <span v-if="step.power?.range">
-                      {{ Math.round(step.power.range.start * 100) }}-{{
-                        Math.round(step.power.range.end * 100)
-                      }}% FTP
-                    </span>
-                    <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% FTP </span>
+                    <span>{{ formatPowerTarget(step) }}</span>
                   </div>
                 </div>
               </div>
@@ -246,12 +236,7 @@
               </div>
               <div class="text-right">
                 <div class="text-sm font-bold whitespace-nowrap">
-                  <span v-if="step.power?.range">
-                    {{ Math.round(step.power.range.start * 100) }}-{{
-                      Math.round(step.power.range.end * 100)
-                    }}% FTP
-                  </span>
-                  <span v-else> {{ Math.round((step.power?.value || 0) * 100) }}% FTP </span>
+                  <span>{{ formatPowerTarget(step) }}</span>
                 </div>
                 <div class="text-[10px] text-muted">
                   {{ formatDuration(step.durationSeconds || step.duration || 0) }}
@@ -350,6 +335,16 @@
   }>()
 
   const normalizedSteps = computed(() => flattenWorkoutSteps(props.workout?.steps || []))
+
+  const defaultZoneRanges: Array<{ start: number; end: number }> = [
+    { start: 0, end: 0.55 },
+    { start: 0.55, end: 0.75 },
+    { start: 0.75, end: 0.9 },
+    { start: 0.9, end: 1.05 },
+    { start: 1.05, end: 1.2 },
+    { start: 1.2, end: 1.5 },
+    { start: 1.5, end: 2.0 }
+  ]
 
   const totalDuration = computed(() => {
     return normalizedSteps.value.reduce(
@@ -488,7 +483,9 @@
   // Functions
   function normalizeTarget(
     target: any
-  ): { value?: number; range?: { start: number; end: number }; ramp?: boolean } | undefined {
+  ):
+    | { value?: number; range?: { start: number; end: number }; ramp?: boolean; units?: string }
+    | undefined {
     if (target === null || target === undefined) return undefined
 
     if (Array.isArray(target)) {
@@ -512,7 +509,8 @@
             start: Number(target.range.start) || 0,
             end: Number(target.range.end) || 0
           },
-          ramp: target.ramp
+          ramp: target.ramp,
+          units: typeof target.units === 'string' ? target.units : target.range.units
         }
       }
       if (target.start !== undefined && target.end !== undefined) {
@@ -521,15 +519,88 @@
             start: Number(target.start) || 0,
             end: Number(target.end) || 0
           },
-          ramp: target.ramp
+          ramp: target.ramp,
+          units: typeof target.units === 'string' ? target.units : undefined
         }
       }
       if (target.value !== undefined) {
-        return { value: Number(target.value) || 0 }
+        return {
+          value: Number(target.value) || 0,
+          units: typeof target.units === 'string' ? target.units : undefined
+        }
       }
     }
 
     return undefined
+  }
+
+  function resolveZoneRange(zone: number): { start: number; end: number } | null {
+    if (!Number.isFinite(zone)) return null
+    const zoneIndex = Math.max(1, Math.round(zone)) - 1
+
+    const sportZones = props.sportSettings?.powerZones
+    const referenceFtp = Number(props.sportSettings?.ftp || props.userFtp || 0)
+    if (
+      Array.isArray(sportZones) &&
+      sportZones[zoneIndex] &&
+      Number.isFinite(referenceFtp) &&
+      referenceFtp > 0
+    ) {
+      const minW = Number(sportZones[zoneIndex].min)
+      const maxW = Number(sportZones[zoneIndex].max)
+      if (Number.isFinite(minW) && Number.isFinite(maxW) && maxW > 0) {
+        return { start: minW / referenceFtp, end: maxW / referenceFtp }
+      }
+    }
+
+    return defaultZoneRanges[zoneIndex] || null
+  }
+
+  function normalizePowerTarget(target: any):
+    | {
+        value?: number
+        range?: { start: number; end: number }
+        ramp?: boolean
+        units?: string
+        zone?: number
+      }
+    | undefined {
+    const normalized = normalizeTarget(target)
+    if (!normalized) return undefined
+
+    const units = normalized.units?.toLowerCase()
+    if (units !== 'power_zone') return normalized
+
+    if (typeof normalized.value === 'number') {
+      const range = resolveZoneRange(normalized.value)
+      if (range) {
+        const zone = Math.max(1, Math.round(normalized.value))
+        return {
+          value: (range.start + range.end) / 2,
+          zone,
+          units: 'ratio',
+          ramp: false
+        }
+      }
+    }
+
+    if (normalized.range) {
+      const startZone = resolveZoneRange(normalized.range.start)
+      const endZone = resolveZoneRange(normalized.range.end)
+      if (startZone && endZone) {
+        const start = Math.max(1, Math.round(normalized.range.start))
+        const end = Math.max(1, Math.round(normalized.range.end))
+        return {
+          value:
+            (Math.min(startZone.start, endZone.start) + Math.max(startZone.end, endZone.end)) / 2,
+          zone: start === end ? start : undefined,
+          units: 'ratio',
+          ramp: false
+        }
+      }
+    }
+
+    return normalized
   }
 
   function getTargetValue(
@@ -619,7 +690,7 @@
       flattened.push({
         ...step,
         _depth: depth,
-        power: normalizeTarget(step.power) || step.power,
+        power: normalizePowerTarget(step.power) || step.power,
         heartRate: normalizeTarget(step.heartRate) || step.heartRate,
         pace: normalizeTarget(step.pace) || step.pace
       })
@@ -751,6 +822,16 @@
       zoneDistribution.value.find((z) => val <= z.max) ||
       zoneDistribution.value[zoneDistribution.value.length - 1]
     return zone ? zone.color : '#9ca3af'
+  }
+
+  function formatPowerTarget(step: any): string {
+    const power = step?.power
+    if (!power) return 'N/A'
+    if (typeof power.zone === 'number') return `Z${power.zone}`
+    if (power.range) {
+      return `${Math.round(power.range.start * 100)}-${Math.round(power.range.end * 100)}% FTP`
+    }
+    return `${Math.round((power.value || 0) * 100)}% FTP`
   }
 
   function formatDuration(seconds: number): string {
