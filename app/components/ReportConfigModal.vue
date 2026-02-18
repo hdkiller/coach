@@ -23,7 +23,7 @@
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
         Timeframe
       </label>
-      <URadioGroup v-model="config.timeframeType" :options="timeframeTypeOptions" class="mb-3" />
+      <URadioGroup v-model="config.timeframeType" :items="timeframeTypeOptions" class="mb-3" />
 
       <!-- Days Selection -->
       <div v-if="config.timeframeType === 'days'">

@@ -65,7 +65,7 @@
             @submit.prevent="handlePing"
           >
             <UFormField label="Method" name="method" class="w-full sm:w-32">
-              <USelect v-model="method" :options="methods" />
+              <USelect v-model="method" :items="methods" />
             </UFormField>
 
             <UFormField label="Target URL" name="url" class="flex-1 w-full" required>

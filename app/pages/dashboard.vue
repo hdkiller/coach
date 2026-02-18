@@ -9,6 +9,7 @@
           <div class="flex items-center gap-3">
             <ClientOnly>
               <DashboardTriggerMonitorButton />
+              <NotificationDropdown />
             </ClientOnly>
             <DashboardReleaseNotification />
             <UButton

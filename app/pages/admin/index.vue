@@ -43,6 +43,12 @@
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
+        <template #right>
+          <ClientOnly>
+            <DashboardTriggerMonitorButton />
+            <NotificationDropdown />
+          </ClientOnly>
+        </template>
       </UDashboardNavbar>
     </template>
 
