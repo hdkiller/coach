@@ -11,7 +11,7 @@
 
       <div
         class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
-        @click="navigateTo(`/workouts/planned/${workout.id}`)"
+        @click="navigateTo(isCompleted(workout) ? `/workouts/${workout.id}` : `/workouts/planned/${workout.id}`)"
       >
         <div class="space-y-1">
           <div class="flex items-center gap-2 flex-wrap">
@@ -127,18 +127,31 @@
 
   const formatTime = (date?: Date | string) => {
     if (!date) return ''
+    if (typeof date === 'string' && /^\d{2}:\d{2}$/.test(date)) return date
     const d = typeof date === 'string' ? new Date(date) : date
     if (!(d instanceof Date) || isNaN(d.getTime())) return ''
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
 
   function getStatusLabel(workout: any) {
-    if (workout.completed || workout.completionStatus === 'COMPLETED') return 'Completed'
-    if (workout.completionStatus === 'SKIPPED') return 'Skipped'
+    if (
+      workout.completed ||
+      workout.status === 'completed' ||
+      workout.status === 'completed_plan' ||
+      workout.completionStatus === 'COMPLETED'
+    )
+      return 'Completed'
+    if (workout.status === 'missed' || workout.completionStatus === 'SKIPPED') return 'Skipped'
     return 'Planned'
   }
 
   function isCompleted(workout: any) {
-    return workout.completed || workout.completionStatus === 'COMPLETED'
+    return (
+      workout.completed ||
+      workout.status === 'completed' ||
+      workout.status === 'completed_plan' ||
+      workout.completionStatus === 'COMPLETED' ||
+      workout.source === 'completed'
+    )
   }
 </script>

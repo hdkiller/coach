@@ -1,5 +1,6 @@
 <template>
   <div
+    v-bind="attrs"
     class="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 sm:p-6 border border-orange-100 dark:border-orange-800 space-y-4 shadow-sm"
   >
     <div class="flex items-center justify-between">
@@ -301,6 +302,12 @@
 </template>
 
 <script setup lang="ts">
+  defineOptions({
+    inheritAttrs: false
+  })
+
+  const attrs = useAttrs()
+
   const props = defineProps<{
     fuelingPlan: any
     fuelState: number
