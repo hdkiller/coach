@@ -6,7 +6,14 @@
     >
       No performance data available
     </div>
-    <Line v-else :data="chartData" :options="chartOptions" :height="300" />
+    <Line
+      v-else
+      :key="`trend-${type}-${chartSettings.smooth}-${chartSettings.showPoints}-${chartSettings.yScale}`"
+      :data="chartData"
+      :options="chartOptions"
+      :plugins="plugins"
+      :height="300"
+    />
   </div>
 </template>
 
@@ -38,10 +45,21 @@
   const props = defineProps<{
     data: any[]
     type: 'workout' | 'nutrition'
+    settings?: any
+    plugins?: any[]
   }>()
 
   const theme = useTheme()
   const { formatDate: baseFormatDate } = useFormat()
+
+  const chartSettings = computed(() => ({
+    smooth: true,
+    showPoints: false,
+    showLabels: false,
+    yScale: 'dynamic',
+    yMin: 0,
+    ...props.settings
+  }))
 
   const metrics = computed(() => {
     if (props.type === 'workout') {
@@ -120,11 +138,12 @@
       borderColor: metric.color,
       backgroundColor: 'transparent',
       fill: false,
-      tension: 0.4,
+      tension: chartSettings.value.smooth ? 0.4 : 0,
       borderWidth: 2,
       pointRadius: (ctx: any) => {
         const isGhost = props.data[ctx.dataIndex]?.isGhost
-        return isGhost ? 0 : 3
+        if (isGhost) return 0
+        return chartSettings.value.showPoints ? 3 : 0
       },
       pointHoverRadius: 6,
       pointBackgroundColor: metric.color,
@@ -161,7 +180,37 @@
     },
     plugins: {
       legend: {
-        display: false
+        display: true,
+        position: 'bottom' as const,
+        labels: {
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          usePointStyle: true,
+          boxWidth: 6,
+          padding: 15,
+          generateLabels: (chart: any) => {
+            const original = Legend.defaults.labels.generateLabels(chart)
+            return original.map((label: any) => ({
+              ...label,
+              text: label.text.toUpperCase()
+            }))
+          }
+        }
+      },
+      datalabels: {
+        display: (context: any) => {
+          // Only show for primary metric (index 0) if enabled
+          return chartSettings.value.showLabels && context.datasetIndex === 0
+        },
+        color: theme.isDark.value ? '#94a3b8' : '#64748b',
+        align: 'top' as const,
+        anchor: 'end' as const,
+        offset: 4,
+        font: {
+          size: 9,
+          weight: 'bold' as const
+        },
+        formatter: (value: any) => value.toFixed(1)
       },
       tooltip: {
         backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
@@ -202,7 +251,8 @@
         }
       },
       y: {
-        min: 0,
+        beginAtZero: false,
+        min: chartSettings.value.yScale === 'fixed' ? chartSettings.value.yMin || 0 : undefined,
         max: 10.5, // Slight padding for icons/labels
         position: 'right' as const,
         ticks: {
