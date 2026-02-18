@@ -5,6 +5,7 @@ export interface IssueMetadata {
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
   area: string
   issue_id: string
+  github_issue_url?: string
 }
 
 export interface ListIssuesFilters {
@@ -18,40 +19,66 @@ export const issuesRepository = {
    * Fetch a single issue by ID.
    */
   async getById(id: string, userId?: string) {
-    return prisma.bugReport
-      .findUnique({
-        where: { id },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true
+    const report = await prisma.bugReport.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            timezone: true,
+            country: true,
+            dob: true,
+            subscriptionTier: true,
+            subscriptionStatus: true,
+            _count: {
+              select: {
+                workouts: true,
+                plannedWorkouts: true,
+                wellness: true
+              }
+            }
+          }
+        },
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                email: true
+              }
             }
           },
-          comments: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  image: true,
-                  email: true
-                }
-              }
-            },
-            orderBy: { createdAt: 'asc' }
-          },
-          chatRoom: {
-            select: { id: true }
-          }
+          orderBy: { createdAt: 'asc' }
+        },
+        chatRoom: {
+          select: { id: true }
         }
-      })
-      .then((issue) => {
-        if (userId && issue && issue.userId !== userId) return null
-        return issue
-      })
+      }
+    })
+
+    if (!report) return null
+    if (userId && report.userId !== userId) return null
+
+    // Calculate total LLM cost for this user
+    const costAggregate = await prisma.llmUsage.aggregate({
+      where: { userId: report.userId },
+      _sum: {
+        estimatedCost: true
+      }
+    })
+
+    return {
+      ...report,
+      user: {
+        ...report.user,
+        totalLlmCost: costAggregate._sum.estimatedCost || 0
+      }
+    }
   },
 
   /**
