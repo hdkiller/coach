@@ -97,22 +97,16 @@
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Axis Minimum</div>
                 <span class="text-xs font-bold text-primary-500"
-                  >{{ settings.yMin || 0 }}{{ unitLabel }}</span
+                  >{{ settings.yMin || 0 }}{{ unit }}</span
                 >
               </div>
-              <USlider
-                v-model="settings.yMin"
-                :min="0"
-                :max="maxSliderValue"
-                :step="sliderStep"
-                size="sm"
-              />
+              <USlider v-model="settings.yMin" :min="0" :max="max" :step="step" size="sm" />
             </div>
           </div>
 
           <!-- Target Line -->
           <div
-            v-if="['weight', 'bp', 'hrv', 'restingHr'].includes(metricKey)"
+            v-if="showTargetOption"
             class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4"
           >
             <h4 class="font-medium text-gray-900 dark:text-white text-sm">Goals & Targets</h4>
@@ -136,7 +130,10 @@
           </div>
 
           <!-- Analysis Overlays -->
-          <div class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4">
+          <div
+            v-if="showOverlays"
+            class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4"
+          >
             <h4 class="font-medium text-gray-900 dark:text-white text-sm">Analysis Overlays</h4>
 
             <div class="flex items-center justify-between">
@@ -190,17 +187,34 @@
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core'
 
-  const props = defineProps<{
-    metricKey: string
-    title: string
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      metricKey: string
+      title: string
+      groupKey: string // e.g. 'fitnessCharts', 'workoutCharts', etc.
+      unit?: string
+      max?: number
+      step?: number
+      showOverlays?: boolean
+      showTargetOption?: boolean
+      defaultType?: 'line' | 'bar'
+    }>(),
+    {
+      unit: '',
+      max: 100,
+      step: 1,
+      showOverlays: true,
+      showTargetOption: true,
+      defaultType: 'line'
+    }
+  )
 
   const isOpen = defineModel<boolean>('open', { default: false })
   const userStore = useUserStore()
 
   // Default structure for a single chart's settings
   const defaultSettings = {
-    type: props.metricKey === 'sleep' ? 'bar' : 'line',
+    type: props.defaultType,
     smooth: true,
     showPoints: false,
     showLabels: false,
@@ -215,33 +229,10 @@
     targetValue: undefined
   }
 
-  // Helpers for dynamic sliders based on metric
-  const unitLabel = computed(() => {
-    if (props.metricKey === 'recovery') return '%'
-    if (props.metricKey === 'sleep') return 'h'
-    if (props.metricKey === 'hrv') return 'ms'
-    if (props.metricKey === 'restingHr') return 'bpm'
-    if (props.metricKey === 'weight') return 'kg'
-    return ''
-  })
-
-  const maxSliderValue = computed(() => {
-    if (props.metricKey === 'weight') return 150
-    if (props.metricKey === 'hrv') return 120
-    if (props.metricKey === 'restingHr') return 100
-    if (props.metricKey === 'sleep') return 10
-    return 100
-  })
-
-  const sliderStep = computed(() => {
-    if (props.metricKey === 'sleep' || props.metricKey === 'weight') return 0.5
-    return 1
-  })
-
   // Local state for the specific metric's settings
   const settings = ref({
     ...defaultSettings,
-    ...(userStore.user?.dashboardSettings?.fitnessCharts?.[props.metricKey] || {})
+    ...(userStore.user?.dashboardSettings?.[props.groupKey]?.[props.metricKey] || {})
   })
 
   // Sync with store when modal opens
@@ -251,7 +242,7 @@
       if (open) {
         settings.value = {
           ...defaultSettings,
-          ...(userStore.user?.dashboardSettings?.fitnessCharts?.[props.metricKey] || {})
+          ...(userStore.user?.dashboardSettings?.[props.groupKey]?.[props.metricKey] || {})
         }
       }
     }
@@ -259,15 +250,15 @@
 
   // Auto-save changes
   const saveSettings = useDebounceFn(async () => {
-    const currentFitnessCharts = userStore.user?.dashboardSettings?.fitnessCharts || {}
+    const currentGroupSettings = userStore.user?.dashboardSettings?.[props.groupKey] || {}
     const currentDashboardSettings = userStore.user?.dashboardSettings || {}
 
     await userStore.updateDashboardSettings({
       ...currentDashboardSettings,
-      fitnessCharts: {
-        ...currentFitnessCharts,
+      [props.groupKey]: {
+        ...currentGroupSettings,
         [props.metricKey]: {
-          ...currentFitnessCharts[props.metricKey],
+          ...currentGroupSettings[props.metricKey],
           ...settings.value
         }
       }
