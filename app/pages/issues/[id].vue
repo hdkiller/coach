@@ -43,6 +43,8 @@
         return 'error'
       case 'IN_PROGRESS':
         return 'warning'
+      case 'NEED_MORE_INFO':
+        return 'info'
       case 'RESOLVED':
         return 'success'
       case 'CLOSED':

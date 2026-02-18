@@ -26,6 +26,7 @@
     { label: 'All Status', value: 'ALL' },
     { label: 'Open', value: 'OPEN' },
     { label: 'In Progress', value: 'IN_PROGRESS' },
+    { label: 'Need Info', value: 'NEED_MORE_INFO' },
     { label: 'Resolved', value: 'RESOLVED' },
     { label: 'Closed', value: 'CLOSED' }
   ]
@@ -53,7 +54,8 @@
     const all = reports.value || []
     return {
       total: all.length,
-      active: all.filter((r) => ['OPEN', 'IN_PROGRESS'].includes(r.status)).length,
+      active: all.filter((r) => ['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO'].includes(r.status))
+        .length,
       resolved: all.filter((r) => r.status === 'RESOLVED').length
     }
   })
@@ -64,6 +66,8 @@
         return 'error'
       case 'IN_PROGRESS':
         return 'warning'
+      case 'NEED_MORE_INFO':
+        return 'info'
       case 'RESOLVED':
         return 'success'
       case 'CLOSED':
