@@ -106,10 +106,14 @@
         "
         class="space-y-3"
       >
-        <!-- Fueling Script -->
+        <!-- Fueling Script (Hide if target hit or 2+ hours past) -->
 
         <div
-          v-if="targetCarbs > 0"
+          v-if="
+            targetCarbs > 0 &&
+            compliance !== 'HIT' &&
+            !(chartSettings.hidePastSuggestions && isPastWindow)
+          "
           class="bg-amber-50 dark:bg-amber-950/20 rounded-xl p-4 border border-amber-100 dark:border-amber-900/50"
         >
           <div class="flex items-center justify-between mb-2">
@@ -226,6 +230,7 @@
           items.length === 0 &&
           !isLocked &&
           type !== 'DAILY_BASE' &&
+          compliance !== 'HIT' &&
           !(chartSettings.hidePastSuggestions && isPastWindow)
         "
         class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-dashed border-gray-200 dark:border-gray-700"
@@ -486,8 +491,8 @@
 
   const isPastWindow = computed(() => {
     const now = new Date()
-    const thirtyMinsAgo = new Date(now.getTime() - 30 * 60 * 1000)
-    return end.value < thirtyMinsAgo
+    const twoHoursAgo = new Date(now.getTime() - 120 * 60 * 1000)
+    return end.value < twoHoursAgo
   })
 
   defineEmits(['add', 'addAi', 'edit'])
