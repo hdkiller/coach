@@ -1,5 +1,10 @@
 <template>
-  <UModal v-model="isOpen" :ui="{ width: 'sm:max-w-4xl' } as any">
+  <UModal
+    v-model="isOpen"
+    :ui="{ width: 'sm:max-w-4xl' } as any"
+    title="Dialog"
+    description="Dialog content and actions."
+  >
     <UCard>
       <template #header>
         <div class="flex items-center justify-between">

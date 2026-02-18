@@ -3,6 +3,7 @@
     v-model:open="isOpen"
     :title="metricInfo?.label || 'Metric Detail'"
     :ui="{ content: 'sm:max-w-2xl' }"
+    description="Dialog content and actions."
   >
     <template #body>
       <div v-if="metricInfo" class="space-y-6">

@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="isOpen" title="Workout Overview">
+  <UModal v-model:open="isOpen" title="Workout Overview" description="Dialog content and actions.">
     <template #actions>
       <div class="flex items-center gap-1">
         <UButton
@@ -367,7 +367,11 @@
   </UModal>
 
   <!-- Delete Confirmation Modal -->
-  <UModal v-model:open="showDeleteConfirm" title="Delete Workout">
+  <UModal
+    v-model:open="showDeleteConfirm"
+    title="Delete Workout"
+    description="Dialog content and actions."
+  >
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showDeleteConfirm = false">
@@ -379,7 +383,11 @@
   </UModal>
 
   <!-- Unlink Confirmation Modal -->
-  <UModal v-model:open="showUnlinkConfirm" title="Unlink Workout">
+  <UModal
+    v-model:open="showUnlinkConfirm"
+    title="Unlink Workout"
+    description="Dialog content and actions."
+  >
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showUnlinkConfirm = false">

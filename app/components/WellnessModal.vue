@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="isOpen" :description="formattedDate" class="sm:max-w-2xl">
+  <UModal v-model:open="isOpen" :description="formattedDate" class="sm:max-w-2xl" title="Dialog">
     <template #title>
       <div class="flex items-center gap-2">
         <span>Wellness Overview</span>

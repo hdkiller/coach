@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" :title="note?.title || 'Note'">
+  <UModal
+    v-model:open="isOpen"
+    :title="note?.title || 'Note'"
+    description="Dialog content and actions."
+  >
     <template #body>
       <div v-if="note" class="space-y-4">
         <!-- Header Info -->

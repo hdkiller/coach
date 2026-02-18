@@ -4,6 +4,7 @@
     :dismissible="!loading"
     title="Planned Workout"
     :close="loading ? false : undefined"
+    description="Dialog content and actions."
   >
     <!-- Hidden trigger - modal is controlled programmatically -->
     <span class="hidden" />
@@ -506,7 +507,11 @@
   </UModal>
 
   <!-- Confirm Mark Complete Modal -->
-  <UModal v-model:open="showMarkCompleteConfirm" title="Mark as Done">
+  <UModal
+    v-model:open="showMarkCompleteConfirm"
+    title="Mark as Done"
+    description="Dialog content and actions."
+  >
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showMarkCompleteConfirm = false">
@@ -520,7 +525,11 @@
   </UModal>
 
   <!-- Delete Confirmation Modal -->
-  <UModal v-model:open="showDeleteConfirm" title="Delete Planned Workout">
+  <UModal
+    v-model:open="showDeleteConfirm"
+    title="Delete Planned Workout"
+    description="Dialog content and actions."
+  >
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="ghost" @click="showDeleteConfirm = false">
@@ -532,7 +541,12 @@
   </UModal>
 
   <!-- Schedule Modal -->
-  <UModal v-if="showTimeModal" v-model:open="showTimeModal" title="Set Schedule">
+  <UModal
+    v-if="showTimeModal"
+    v-model:open="showTimeModal"
+    title="Set Schedule"
+    description="Dialog content and actions."
+  >
     <template #body>
       <div class="p-6 flex flex-col gap-5">
         <div class="w-full">

@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Bulk Delete Workouts">
+  <UModal
+    v-model:open="isOpen"
+    title="Bulk Delete Workouts"
+    description="Dialog content and actions."
+  >
     <template #body>
       <div class="space-y-4">
         <div v-if="step === 'filter'" class="space-y-4">

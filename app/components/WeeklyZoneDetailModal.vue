@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Weekly Training Zones">
+  <UModal
+    v-model:open="isOpen"
+    title="Weekly Training Zones"
+    description="Dialog content and actions."
+  >
     <template #body>
       <div v-if="weekData" class="space-y-6">
         <!-- Week Info -->

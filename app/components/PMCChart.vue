@@ -154,7 +154,12 @@
     </div>
 
     <!-- Explanation Modal -->
-    <UModal v-model:open="showExplanation" :ui="{ content: 'sm:max-w-lg' }">
+    <UModal
+      v-model:open="showExplanation"
+      :ui="{ content: 'sm:max-w-lg' }"
+      title="Dialog"
+      description="Dialog content and actions."
+    >
       <template #content>
         <div class="p-6 space-y-4">
           <div class="flex items-center gap-3">
