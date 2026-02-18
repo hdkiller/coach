@@ -181,6 +181,7 @@
         v-model:open="isDetailsOpen"
         title="Webhook Details"
         :ui="{ content: 'sm:max-w-2xl' }"
+        description="Dialog content and actions."
       >
         <template #body>
           <div v-if="selectedLog" class="space-y-4">

@@ -350,7 +350,12 @@
           :color="modalData.color"
         />
 
-        <UModal v-model:open="showRelativeEffortExplain" :ui="{ content: 'sm:max-w-lg' }">
+        <UModal
+          v-model:open="showRelativeEffortExplain"
+          :ui="{ content: 'sm:max-w-lg' }"
+          title="Dialog"
+          description="Dialog content and actions."
+        >
           <template #content>
             <div class="p-5 space-y-4">
               <div>
@@ -388,7 +393,12 @@
           </template>
         </UModal>
 
-        <UModal v-model:open="showSummaryMetricModal" :ui="{ content: 'sm:max-w-lg' }">
+        <UModal
+          v-model:open="showSummaryMetricModal"
+          :ui="{ content: 'sm:max-w-lg' }"
+          title="Dialog"
+          description="Dialog content and actions."
+        >
           <template #content>
             <div class="p-5 space-y-4">
               <div>

@@ -164,7 +164,11 @@
         </section>
 
         <!-- Clear Confirmation Modal -->
-        <UModal v-model:open="showClearModal">
+        <UModal
+          v-model:open="showClearModal"
+          title="Dialog"
+          description="Dialog content and actions."
+        >
           <template #content>
             <UCard :ui="{ root: 'divide-y divide-gray-100 dark:divide-gray-800' }">
               <template #header>

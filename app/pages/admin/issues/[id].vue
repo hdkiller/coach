@@ -577,7 +577,11 @@
       </div>
 
       <!-- Metadata Editing Modal -->
-      <UModal v-model:open="isMetadataModalOpen">
+      <UModal
+        v-model:open="isMetadataModalOpen"
+        title="Dialog"
+        description="Dialog content and actions."
+      >
         <template #content>
           <UCard :ui="{ body: 'p-6' }">
             <template #header>

@@ -324,6 +324,7 @@
           v-model:open="showGroceryList"
           title="Strategic Grocery List"
           :ui="{ content: 'sm:max-w-md' }"
+          description="Dialog content and actions."
         >
           <template #content>
             <div class="p-6 space-y-4">

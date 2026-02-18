@@ -90,7 +90,11 @@
   </UDashboardPanel>
 
   <!-- Create App Modal -->
-  <UModal v-model:open="isCreateModalOpen" title="Create New Application">
+  <UModal
+    v-model:open="isCreateModalOpen"
+    title="Create New Application"
+    description="Dialog content and actions."
+  >
     <template #body>
       <UForm
         :schema="createAppSchema"
@@ -136,7 +140,11 @@
   </UModal>
 
   <!-- Success Modal for Client Secret -->
-  <UModal v-model:open="isSuccessModalOpen" title="Application Created Successfully">
+  <UModal
+    v-model:open="isSuccessModalOpen"
+    title="Application Created Successfully"
+    description="Dialog content and actions."
+  >
     <template #body>
       <UAlert
         color="warning"

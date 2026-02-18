@@ -120,7 +120,7 @@
       </div>
     </div>
 
-    <UModal v-model:open="isModalOpen">
+    <UModal v-model:open="isModalOpen" title="Dialog" description="Dialog content and actions.">
       <template #content>
         <div class="flex flex-col">
           <div class="px-4 py-4 sm:px-6 border-b border-gray-200 dark:border-gray-800">

@@ -277,6 +277,7 @@
     v-model:open="isLogsModalOpen"
     title="Recent Webhook Logs"
     :ui="{ content: 'sm:max-w-4xl' }"
+    description="Dialog content and actions."
   >
     <template #body>
       <div class="space-y-4">
@@ -387,7 +388,11 @@
   </UModal>
 
   <!-- Regenerate Secret Modal -->
-  <UModal v-model:open="isRegenerateModalOpen" title="Regenerate Client Secret">
+  <UModal
+    v-model:open="isRegenerateModalOpen"
+    title="Regenerate Client Secret"
+    description="Dialog content and actions."
+  >
     <template #body>
       <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
         Are you sure you want to regenerate the client secret?
@@ -417,6 +422,7 @@
   <UModal
     v-model:open="isRegenerateWebhookModalOpen"
     :title="app?.webhookSecret ? 'Regenerate Webhook Secret' : 'Generate Webhook Secret'"
+    description="Dialog content and actions."
   >
     <template #body>
       <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
@@ -446,7 +452,11 @@
   </UModal>
 
   <!-- Delete Modal -->
-  <UModal v-model:open="isDeleteModalOpen" title="Delete Application">
+  <UModal
+    v-model:open="isDeleteModalOpen"
+    title="Delete Application"
+    description="Dialog content and actions."
+  >
     <template #body>
       <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">
         Are you sure you want to delete <strong>{{ app?.name }}</strong
