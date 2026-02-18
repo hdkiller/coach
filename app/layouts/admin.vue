@@ -232,9 +232,9 @@
       }
     },
     {
-      label: 'Bug Reports',
-      icon: 'i-heroicons-bug-ant',
-      to: '/admin/bug-reports',
+      label: 'Tickets',
+      icon: 'i-heroicons-ticket',
+      to: '/admin/issues',
       onSelect: () => {
         isOpen.value = false
       }
