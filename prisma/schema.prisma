@@ -80,6 +80,7 @@ model User {
   aiProactivityEnabled               Boolean                      @default(false)
   aiAutoAnalyzeReadiness             Boolean                      @default(false)
   aiRequireToolApproval              Boolean                      @default(false)
+  updateWorkoutNotesEnabled          Boolean                      @default(true)
   accounts                           Account[]
   activityRecommendations            ActivityRecommendation[]
   apiKeys                            ApiKey[]
