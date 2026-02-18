@@ -4,7 +4,7 @@
       <UDashboardNavbar>
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" to="/activities">
-            Back to Activities
+            Back
           </UButton>
         </template>
         <template #right>
@@ -56,8 +56,8 @@
 
         <div v-else-if="nutrition" class="space-y-8">
           <!-- 0. THE DATE HEADER -->
-          <UCard class="border-primary-100 dark:border-primary-900 shadow-sm">
-            <div class="flex items-center gap-2 sm:justify-between">
+          <UCard class="border-primary-100 dark:border-primary-900 shadow-sm overflow-hidden">
+            <div class="flex items-center gap-2 sm:justify-between relative z-10">
               <UButton
                 icon="i-heroicons-chevron-left"
                 color="neutral"
@@ -67,25 +67,75 @@
               />
 
               <div
-                class="min-w-0 flex flex-1 items-center justify-center gap-2 sm:justify-start sm:gap-4"
+                class="min-w-0 flex-1 px-2 sm:px-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center"
               >
-                <div
-                  class="hidden sm:block p-2 sm:p-3 bg-primary-50 dark:bg-primary-950/20 rounded-lg sm:rounded-xl"
-                >
-                  <UIcon
-                    name="i-heroicons-calendar-days"
-                    class="w-5 h-5 sm:w-8 sm:h-8 text-primary-500"
-                  />
-                </div>
-                <div class="min-w-0 text-center sm:text-left">
-                  <h1
-                    class="text-lg sm:text-2xl font-black tracking-tight text-gray-900 dark:text-white truncate"
+                <!-- Title Section -->
+                <div class="md:col-span-1">
+                  <div
+                    class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic mb-1"
                   >
-                    {{ formatDatePrimary(nutrition?.date || (route.params.id as string)) }}
+                    {{
+                      formatDateUTC(
+                        nutrition?.date || (route.params.id as string),
+                        'EEEE, MMMM do yyyy'
+                      )
+                    }}
+                  </div>
+                  <h1
+                    class="text-xl sm:text-2xl font-black tracking-tight text-gray-900 dark:text-white uppercase truncate"
+                  >
+                    Fueling Strategy
                   </h1>
-                  <p class="text-sm text-gray-500 font-bold">
-                    {{ formatDateWeekday(nutrition?.date || (route.params.id as string)) }}
+                  <p
+                    class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+                  >
+                    Metabolic status & timing
                   </p>
+                </div>
+
+                <!-- Desktop Fuel State (Consolidated) -->
+                <div
+                  class="hidden md:flex md:col-span-2 items-center justify-between pl-6 border-l border-gray-100 dark:border-gray-800"
+                >
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <h2
+                        class="text-base font-black uppercase tracking-tight"
+                        :class="[
+                          fuelState === 3
+                            ? 'text-red-600 dark:text-red-400'
+                            : fuelState === 2
+                              ? 'text-orange-600 dark:text-orange-400'
+                              : 'text-blue-600 dark:text-blue-400'
+                        ]"
+                      >
+                        Fuel State {{ fuelState }}: {{ stateLabel }}
+                      </h2>
+                      <UTooltip v-if="nutrition.isManualLock" text="Manual Lock Enabled">
+                        <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-gray-400" />
+                      </UTooltip>
+                    </div>
+                    <p class="text-xs text-gray-500 font-medium">
+                      {{ stateDescription }}
+                    </p>
+                  </div>
+
+                  <!-- Goal Profile Offset -->
+                  <div v-if="goalAdjustment !== 0" class="text-right">
+                    <div
+                      class="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1 italic"
+                    >
+                      Goal Offset
+                    </div>
+                    <UBadge
+                      variant="soft"
+                      :color="goalAdjustment < 0 ? 'error' : 'success'"
+                      size="sm"
+                      class="font-black"
+                    >
+                      {{ goalAdjustment > 0 ? '+' : '' }}{{ goalAdjustment }}%
+                    </UBadge>
+                  </div>
                 </div>
               </div>
 
@@ -119,7 +169,52 @@
               protein: nutrition.protein || 0,
               fat: nutrition.fat || 0
             }"
+            :hide-banner="true"
+            class="md:!-mt-4"
           />
+
+          <!-- Mobile-only Banner (Duplicate for mobile logic simplicity) -->
+          <div
+            class="md:hidden rounded-xl p-4 shadow-sm border transition-all duration-500 -mt-4"
+            :class="[
+              fuelState === 3
+                ? 'bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/50'
+                : fuelState === 2
+                  ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-100 dark:border-orange-900/50'
+                  : 'bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900/50'
+            ]"
+          >
+            <div class="flex items-start justify-between">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <h2
+                    class="text-lg font-black uppercase tracking-tight"
+                    :class="[
+                      fuelState === 3
+                        ? 'text-red-600 dark:text-red-400'
+                        : fuelState === 2
+                          ? 'text-orange-600 dark:text-orange-400'
+                          : 'text-blue-600 dark:text-blue-400'
+                    ]"
+                  >
+                    State {{ fuelState }}: {{ stateLabel }}
+                  </h2>
+                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                  {{ stateDescription }}
+                </p>
+              </div>
+              <div v-if="goalAdjustment !== 0" class="text-right">
+                <UBadge
+                  variant="soft"
+                  :color="goalAdjustment < 0 ? 'error' : 'success'"
+                  class="font-black text-[10px]"
+                >
+                  {{ goalAdjustment > 0 ? '+' : '' }}{{ goalAdjustment }}%
+                </UBadge>
+              </div>
+            </div>
+          </div>
 
           <!-- 1.5 LIVE ENERGY CHART -->
           <div
@@ -134,23 +229,34 @@
                   Live Energy Availability
                 </h4>
               </div>
-              <UTabs
-                v-model="energyViewIdx"
-                :items="[
-                  { label: '%', value: '0' },
-                  { label: 'kcal', value: '1' },
-                  { label: 'carbs', value: '2' }
-                ]"
-                size="xs"
-                class="w-32"
-              />
+              <div class="flex items-center gap-2">
+                <UTabs
+                  v-model="energyViewIdx"
+                  :items="[
+                    { label: '%', value: '0' },
+                    { label: 'kcal', value: '1' },
+                    { label: 'carbs', value: '2' }
+                  ]"
+                  size="xs"
+                  class="w-32"
+                />
+                <UButton
+                  icon="i-heroicons-cog-6-tooth"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="isDetailSettingsModalOpen = true"
+                />
+              </div>
             </div>
             <ClientOnly>
               <NutritionLiveEnergyChart
+                :key="`detail-${JSON.stringify(chartSettings.detail)}`"
                 :points="energyPoints"
                 :ghost-points="ghostPoints"
                 :journey-events="journeyEvents"
                 :view-mode="energyViewMode"
+                :settings="chartSettings.detail"
               />
             </ClientOnly>
 
@@ -205,15 +311,24 @@
                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter"
                   >{{ timeline.length }} Active Windows</span
                 >
-                <UButton
-                  icon="i-heroicons-sparkles"
-                  color="primary"
-                  variant="ghost"
-                  size="xs"
-                  @click="openAiModal()"
-                >
-                  Log with AI
-                </UButton>
+                <div class="flex items-center gap-2">
+                  <UButton
+                    icon="i-heroicons-sparkles"
+                    color="primary"
+                    variant="ghost"
+                    size="xs"
+                    @click="openAiModal()"
+                  >
+                    Log with AI
+                  </UButton>
+                  <UButton
+                    icon="i-heroicons-cog-6-tooth"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    @click="isTimelineSettingsModalOpen = true"
+                  />
+                </div>
               </div>
             </div>
             <UAlert
@@ -226,6 +341,7 @@
             <NutritionFuelingTimeline
               :windows="timeline"
               :is-locked="nutrition.isManualLock"
+              :settings="chartSettings.timeline"
               @add="handleAddItem"
               @add-ai="handleAddItemAi"
               @edit="handleEditItem"
@@ -312,6 +428,9 @@
           :initial-context="aiModalContext"
           @updated="fetchData"
         />
+
+        <NutritionDetailSettingsModal v-model:open="isDetailSettingsModalOpen" />
+        <NutritionFuelingTimelineSettingsModal v-model:open="isTimelineSettingsModalOpen" />
       </div>
     </template>
   </UDashboardPanel>
@@ -324,6 +443,8 @@
   } from '~/utils/nutrition-timeline'
   import { ABSORPTION_PROFILES, type AbsorptionType } from '~/utils/nutrition-absorption'
   import { addDays, format } from 'date-fns'
+  import NutritionDetailSettingsModal from '~/components/nutrition/NutritionDetailSettingsModal.vue'
+  import NutritionFuelingTimelineSettingsModal from '~/components/nutrition/FuelingTimelineSettingsModal.vue'
 
   definePageMeta({
     middleware: 'auth'
@@ -347,11 +468,43 @@
 
   const showItemModal = ref(false)
   const showAiModal = ref(false)
+  const isDetailSettingsModalOpen = ref(false)
+  const isTimelineSettingsModalOpen = ref(false)
   const modalMode = ref<'add' | 'edit'>('add')
   const modalInitialData = ref<any>(null)
   const aiModalContext = ref<any>(null)
 
   const energyViewIdx = ref('0') // '0': %, '1': kcal, '2': carbs
+
+  const defaultChartSettings: any = {
+    detail: {
+      smooth: true,
+      yScale: 'fixed',
+      showMarkers: true,
+      showNowLine: true,
+      showProjected: true,
+      opacity: 0.1
+    },
+    timeline: {
+      hideEmptyWindows: false,
+      hideHydration: false,
+      hidePastSuggestions: true,
+      showSupplements: true,
+      mergeWindows: true
+    }
+  }
+
+  const chartSettings = computed(() => {
+    const userSettings = userStore.user?.dashboardSettings?.nutritionCharts || {}
+    const merged: any = {}
+    for (const key in defaultChartSettings) {
+      merged[key] = {
+        ...defaultChartSettings[key],
+        ...(userSettings[key] || {})
+      }
+    }
+    return merged
+  })
 
   useHead({
     title: computed(() => {
@@ -370,6 +523,29 @@
     if (energyViewIdx.value === '0') return 'percent'
     if (energyViewIdx.value === '1') return 'kcal'
     return 'carbs'
+  })
+
+  // State Labels for Header
+  const stateLabel = computed(() => {
+    switch (fuelState.value) {
+      case 3:
+        return 'Performance'
+      case 2:
+        return 'Steady'
+      default:
+        return 'Eco'
+    }
+  })
+
+  const stateDescription = computed(() => {
+    switch (fuelState.value) {
+      case 3:
+        return 'High intensity day. Prioritize carbohydrates.'
+      case 2:
+        return 'Endurance/Tempo day. Balanced fueling.'
+      default:
+        return 'Recovery/Easy day. Focus on fat oxidation.'
+    }
   })
 
   // Computed
@@ -473,7 +649,9 @@
 
           mealPattern: nutritionSettings.value.mealPattern,
 
-          timezone: (useFormat() as any).timezone.value
+          timezone: (useFormat() as any).timezone.value,
+
+          mergeWindows: chartSettings.value.timeline?.mergeWindows ?? true
         }
       )
 
