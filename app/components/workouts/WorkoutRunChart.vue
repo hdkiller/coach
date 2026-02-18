@@ -222,7 +222,8 @@
       sportSettings?: any
     }>(),
     {
-      preference: 'hr'
+      preference: 'hr',
+      sportSettings: undefined
     }
   )
 
@@ -244,11 +245,12 @@
       else if (props.preference === 'power') target = step.power
       else if (props.preference === 'pace') target = step.pace
 
-      if (target) {
-        if (target.value !== undefined) {
-          maxTarget = Math.max(maxTarget, target.value)
-        } else if (target.range) {
-          maxTarget = Math.max(maxTarget, target.range.end)
+      const normalizedTarget = normalizeMetricTarget(target, props.preference)
+      if (normalizedTarget) {
+        if (normalizedTarget.value !== undefined) {
+          maxTarget = Math.max(maxTarget, normalizedTarget.value)
+        } else if (normalizedTarget.range) {
+          maxTarget = Math.max(maxTarget, normalizedTarget.range.end)
         }
       }
     })
@@ -307,6 +309,45 @@
   function getZoneSegmentTooltip(zone: any) {
     const percent = Math.round((zone.duration / totalDuration.value) * 100)
     return `${zone.longName || zone.name}: ${formatDuration(zone.duration)} (${percent}%) (${props.preference === 'hr' ? 'HR' : 'Power'})`
+  }
+
+  function getHeartRateReference(): number {
+    const lthr = Number(props.sportSettings?.lthr)
+    if (Number.isFinite(lthr) && lthr > 0) return lthr
+
+    const maxHr = Number(props.sportSettings?.maxHr)
+    if (Number.isFinite(maxHr) && maxHr > 0) return maxHr
+
+    return 200
+  }
+
+  function toNormalizedHeartRate(value: number): number {
+    if (!Number.isFinite(value) || value <= 0) return 0
+    if (value <= 3) return value
+    return value / getHeartRateReference()
+  }
+
+  function normalizeMetricTarget(
+    target: { value?: number; range?: { start: number; end: number } } | undefined,
+    metric: 'hr' | 'power' | 'pace'
+  ): { value?: number; range?: { start: number; end: number } } | undefined {
+    if (!target) return undefined
+    if (metric !== 'hr') return target
+
+    if (target.range) {
+      return {
+        range: {
+          start: toNormalizedHeartRate(target.range.start),
+          end: toNormalizedHeartRate(target.range.end)
+        }
+      }
+    }
+
+    if (typeof target.value === 'number') {
+      return { value: toNormalizedHeartRate(target.value) }
+    }
+
+    return target
   }
 
   function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
@@ -398,9 +439,16 @@
 
   function getStepIntensityLabel(step: any): string {
     if (step.heartRate?.range) {
-      return `${Math.round(step.heartRate.range.start * 100)}-${Math.round(step.heartRate.range.end * 100)}% LTHR`
+      const start = Number(step.heartRate.range.start)
+      const end = Number(step.heartRate.range.end)
+      if (start > 3 || end > 3) {
+        return `${Math.round(start)}-${Math.round(end)} bpm`
+      }
+      return `${Math.round(start * 100)}-${Math.round(end * 100)}% LTHR`
     } else if (step.heartRate?.value) {
-      return `${Math.round(step.heartRate.value * 100)}% LTHR`
+      const hr = Number(step.heartRate.value)
+      if (hr > 3) return `${Math.round(hr)} bpm`
+      return `${Math.round(hr * 100)}% LTHR`
     } else if (step.power?.range) {
       return `${Math.round(step.power.range.start * 100)}-${Math.round(step.power.range.end * 100)}% FTP`
     } else if (step.power?.value) {
@@ -416,7 +464,7 @@
   }
 
   function getStepIntensity(step: any): number {
-    const hr = getTargetValue(step.heartRate)
+    const hr = getTargetValue(normalizeMetricTarget(step.heartRate, 'hr'))
     const pwr = getTargetValue(step.power)
     const pace = getTargetValue(step.pace)
 
@@ -443,10 +491,12 @@
   }
 
   function getStepRange(step: any) {
-    if (props.preference === 'hr') return step.heartRate?.range
+    if (props.preference === 'hr') return normalizeMetricTarget(step.heartRate, 'hr')?.range
     if (props.preference === 'pace') return step.pace?.range
     if (props.preference === 'power') return step.power?.range
-    return step.heartRate?.range || step.power?.range || step.pace?.range
+    return (
+      normalizeMetricTarget(step.heartRate, 'hr')?.range || step.power?.range || step.pace?.range
+    )
   }
 
   function getStepRangeStyle(step: any) {

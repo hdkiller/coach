@@ -556,6 +556,33 @@
   }
 
   function getStepCadenceMeta(step: any): { value: number; inferred: boolean } {
+    const cadenceRangeStart = Number(step?.cadenceRange?.start)
+    const cadenceRangeEnd = Number(step?.cadenceRange?.end)
+    if (
+      Number.isFinite(cadenceRangeStart) &&
+      cadenceRangeStart > 0 &&
+      Number.isFinite(cadenceRangeEnd) &&
+      cadenceRangeEnd > 0
+    ) {
+      return { value: (cadenceRangeStart + cadenceRangeEnd) / 2, inferred: false }
+    }
+
+    const cadenceObjectValue = Number(step?.cadence?.value)
+    if (Number.isFinite(cadenceObjectValue) && cadenceObjectValue > 0) {
+      return { value: cadenceObjectValue, inferred: false }
+    }
+
+    const cadenceObjectStart = Number(step?.cadence?.start)
+    const cadenceObjectEnd = Number(step?.cadence?.end)
+    if (
+      Number.isFinite(cadenceObjectStart) &&
+      cadenceObjectStart > 0 &&
+      Number.isFinite(cadenceObjectEnd) &&
+      cadenceObjectEnd > 0
+    ) {
+      return { value: (cadenceObjectStart + cadenceObjectEnd) / 2, inferred: false }
+    }
+
     const explicit = Number(step?.cadence)
     if (Number.isFinite(explicit) && explicit > 0) {
       return { value: explicit, inferred: false }
