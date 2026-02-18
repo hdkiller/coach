@@ -217,10 +217,20 @@ export default defineEventHandler(async (event) => {
       (Number(item.waterMl || 0) > 0 && Number(item.carbs || 0) === 0)
 
     if (isHydrationItem) {
-      itemsByDate[targetDateStr]!.hydrationMl += Math.round(Number(item.waterMl || 0))
-      if (typeof normalizedLoggedAt === 'string') {
-        itemsByDate[targetDateStr]!.hydrationLoggedAt = normalizedLoggedAt
+      const hydrationItem = {
+        id: crypto.randomUUID(),
+        name: item.name || 'Water',
+        water_ml: Math.round(Number(item.waterMl || 0)),
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        entryType: 'HYDRATION',
+        logged_at: typeof normalizedLoggedAt === 'string' ? normalizedLoggedAt : undefined,
+        source: 'ai'
       }
+      itemsByDate[targetDateStr]!.items.push(hydrationItem)
+      itemsByDate[targetDateStr]!.mealTypes.add('snacks')
       return
     }
 
@@ -247,7 +257,21 @@ export default defineEventHandler(async (event) => {
         hydrationLoggedAt: null
       }
     }
-    itemsByDate[dateStr]!.hydrationMl = Math.max(itemsByDate[dateStr]!.hydrationMl, inferredFluidMl)
+    
+    // Add as a discrete item instead of just a scalar update
+    itemsByDate[dateStr]!.items.push({
+      id: crypto.randomUUID(),
+      name: 'Water',
+      water_ml: inferredFluidMl,
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      entryType: 'HYDRATION',
+      logged_at: new Date().toISOString(),
+      source: 'ai'
+    })
+    itemsByDate[dateStr]!.mealTypes.add('snacks')
   }
 
   // Process each date group
@@ -351,6 +375,7 @@ export default defineEventHandler(async (event) => {
     let fat = 0
     let fiber = 0
     let sugar = 0
+    let waterMl = 0
 
     for (const meal of mealsList) {
       const mealItems = (targetNutrition[meal as keyof typeof targetNutrition] as any[]) || []
@@ -361,8 +386,12 @@ export default defineEventHandler(async (event) => {
         fat += i.fat || 0
         fiber += i.fiber || 0
         sugar += i.sugar || 0
+        waterMl += i.water_ml || i.waterMl || 0
       }
     }
+
+    // Add meal-linked bonus (this is a scalar-only bonus, not in items)
+    waterMl += mealLinkedBonusMl
 
     await nutritionRepository.update(targetNutrition.id, {
       calories,
@@ -370,7 +399,8 @@ export default defineEventHandler(async (event) => {
       carbs,
       fat,
       fiber,
-      sugar
+      sugar,
+      waterMl
     })
 
     // REACTIVE: Trigger fueling plan update for the log date

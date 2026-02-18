@@ -13,6 +13,7 @@ const ItemSchema = z.object({
   fat: z.coerce.number(),
   fiber: z.coerce.number().optional(),
   sugar: z.coerce.number().optional(),
+  water_ml: z.coerce.number().optional(),
   amount: z.coerce.number().optional(),
   unit: z.string().optional(),
   logged_at: z.string().optional(),
@@ -168,6 +169,7 @@ export default defineEventHandler(async (event) => {
   let fat = 0
   let fiber = 0
   let sugar = 0
+  let waterMl = 0
 
   for (const meal of meals) {
     const items = (updatedNutrition[meal as keyof typeof updatedNutrition] as any[]) || []
@@ -178,7 +180,16 @@ export default defineEventHandler(async (event) => {
       fat += i.fat || 0
       fiber += i.fiber || 0
       sugar += i.sugar || 0
+      waterMl += i.water_ml || i.waterMl || 0
     }
+  }
+
+  // Preserve the MEAL_LINKED_WATER_ML bonus if it was just added, 
+  // but we need to be careful not to double count.
+  // Actually, let's just make recalculateDailyTotals the source of truth if we have items.
+  // But if we have NO hydration items, we should keep the scalar total.
+  if (waterMl === 0 && updatedNutrition.waterMl > 0) {
+    waterMl = updatedNutrition.waterMl
   }
 
   await nutritionRepository.update(updatedNutrition.id, {
@@ -187,7 +198,8 @@ export default defineEventHandler(async (event) => {
     carbs,
     fat,
     fiber,
-    sugar
+    sugar,
+    waterMl
   })
 
   // REACTIVE: Trigger fueling plan update for the entry date

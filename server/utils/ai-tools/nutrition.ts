@@ -73,6 +73,7 @@ const recalculateDailyTotals = (nutrition: any) => {
   let fat = 0
   let fiber = 0
   let sugar = 0
+  let waterMl = 0
 
   for (const meal of meals) {
     const items = (nutrition[meal] as any[]) || []
@@ -83,10 +84,17 @@ const recalculateDailyTotals = (nutrition: any) => {
       fat += item.fat || 0
       fiber += item.fiber || 0
       sugar += item.sugar || 0
+      waterMl += item.water_ml || item.waterMl || 0
     }
   }
 
-  return { calories, protein, carbs, fat, fiber, sugar }
+  // If we have a legacy waterMl on the record but no hydration items, keep the legacy value
+  // This prevents resetting to 0 for days where only the scalar was used.
+  if (waterMl === 0 && nutrition.waterMl > 0) {
+    waterMl = nutrition.waterMl
+  }
+
+  return { calories, protein, carbs, fat, fiber, sugar, waterMl }
 }
 
 export const nutritionTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
@@ -116,6 +124,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           fat: true,
           fiber: true,
           sugar: true,
+          waterMl: true,
           breakfast: true,
           lunch: true,
           dinner: true,
@@ -143,7 +152,8 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             carbs: entry.carbs ? Math.round(entry.carbs) : null,
             fat: entry.fat ? Math.round(entry.fat) : null,
             fiber: entry.fiber ? Math.round(entry.fiber) : null,
-            sugar: entry.sugar ? Math.round(entry.sugar) : null
+            sugar: entry.sugar ? Math.round(entry.sugar) : null,
+            water_ml: entry.waterMl
           },
           meals: {
             breakfast: entry.breakfast,
@@ -157,7 +167,8 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           calories: nutritionEntries.reduce((sum, e) => sum + (e.calories || 0), 0),
           protein: nutritionEntries.reduce((sum, e) => sum + (e.protein || 0), 0),
           carbs: nutritionEntries.reduce((sum, e) => sum + (e.carbs || 0), 0),
-          fat: nutritionEntries.reduce((sum, e) => sum + (e.fat || 0), 0)
+          fat: nutritionEntries.reduce((sum, e) => sum + (e.fat || 0), 0),
+          water_ml: nutritionEntries.reduce((sum, e) => sum + (e.waterMl || 0), 0)
         }
       }
     }
@@ -254,7 +265,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         })
       }
 
-      // Recalculate daily totals
+      // Recalculate daily totals (includes explicit fluid from items)
       const totals = recalculateDailyTotals(nutrition)
 
       // Update totals in DB
@@ -265,10 +276,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         fat: totals.fat,
         fiber: totals.fiber,
         sugar: totals.sugar,
-        waterMl: Math.max(
-          0,
-          (nutrition.waterMl || 0) + MEAL_LINKED_WATER_ML + Math.max(0, explicitFluidMl)
-        )
+        waterMl: totals.waterMl + MEAL_LINKED_WATER_ML
       })
 
       try {
@@ -305,16 +313,17 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   log_hydration_intake: tool({
     description:
-      'Log hydration volume in ml/L/oz and map it against intra-workout hydration target (0.7L/hr) when relevant.',
+      'Log hydration volume in ml/L/oz. Use mode="SET" to overwrite the daily total or mode="ADD" (default) to append.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       volume_ml: z.number().describe('Hydration volume in ml'),
+      mode: z.enum(['ADD', 'SET']).default('ADD').describe('Whether to add to current total or set a new absolute total'),
       logged_at: z
         .string()
         .optional()
         .describe('ISO timestamp or time string (HH:mm) when the fluid was consumed')
     }),
-    execute: async ({ date, volume_ml, logged_at }) => {
+    execute: async ({ date, volume_ml, mode, logged_at }) => {
       const dateUtc = new Date(`${date}T00:00:00Z`)
       let normalizedLoggedAt = logged_at
 
@@ -340,16 +349,83 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
       let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
       if (!nutrition) {
+        const hydrationItem = {
+          id: crypto.randomUUID(),
+          name: 'Water',
+          water_ml: Math.max(0, Math.round(volume_ml)),
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          entryType: 'HYDRATION',
+          logged_at: normalizedLoggedAt,
+          source: 'ai'
+        }
+
         nutrition = await nutritionRepository.create({
           userId,
           date: dateUtc,
-          waterMl: Math.max(0, Math.round(volume_ml))
+          waterMl: Math.max(0, Math.round(volume_ml)),
+          snacks: [hydrationItem]
         })
       } else {
-        nutrition = await nutritionRepository.update(nutrition.id, {
-          waterMl: Math.max(0, (nutrition.waterMl || 0) + Math.round(volume_ml))
-        })
+        if (mode === 'SET') {
+          // Clear existing hydration items from all meals
+          const meals = ['breakfast', 'lunch', 'dinner', 'snacks'] as const
+          const updates: any = {}
+          for (const m of meals) {
+            const items = (nutrition[m] as any[]) || []
+            const filtered = items.filter(i => i.entryType !== 'HYDRATION' && !(i.water_ml > 0 && i.carbs === 0))
+            if (filtered.length !== items.length) {
+              updates[m] = filtered
+            }
+          }
+          
+          const hydrationItem = {
+            id: crypto.randomUUID(),
+            name: 'Water',
+            water_ml: Math.max(0, Math.round(volume_ml)),
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            entryType: 'HYDRATION',
+            logged_at: normalizedLoggedAt,
+            source: 'ai'
+          }
+          
+          updates.snacks = [...(updates.snacks || nutrition.snacks || []), hydrationItem]
+          updates.waterMl = Math.max(0, Math.round(volume_ml))
+          
+          nutrition = await nutritionRepository.update(nutrition.id, updates)
+        } else {
+          // ADD mode: just append a new item
+          const hydrationItem = {
+            id: crypto.randomUUID(),
+            name: 'Water',
+            water_ml: Math.max(0, Math.round(volume_ml)),
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            entryType: 'HYDRATION',
+            logged_at: normalizedLoggedAt,
+            source: 'ai'
+          }
+          
+          const currentSnacks = (nutrition.snacks as any[]) || []
+          nutrition = await nutritionRepository.update(nutrition.id, {
+            snacks: [...currentSnacks, hydrationItem],
+            waterMl: Math.max(0, (nutrition.waterMl || 0) + Math.round(volume_ml))
+          })
+        }
       }
+
+      // Re-calculate to be sure
+      const totals = recalculateDailyTotals(nutrition)
+      nutrition = await nutritionRepository.update(nutrition.id, {
+        waterMl: totals.waterMl
+      })
 
       const dayPlan = await metabolicService.calculateFuelingPlanForDate(userId, dateUtc, {
         persist: false
@@ -383,16 +459,94 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       }
 
       return {
-        message: `Logged ${Math.round(volume_ml)}ml hydration for ${date}.`,
+        message: mode === 'SET' ? `Set total hydration to ${Math.round(volume_ml)}ml for ${date}.` : `Logged ${Math.round(volume_ml)}ml hydration for ${date}.`,
         total_water_ml: nutrition.waterMl || 0,
         intra_workout: intraStatus
       }
     }
   }),
 
+  delete_hydration: tool({
+    description: 'Delete all hydration logs for a specific date or a specific amount.',
+    inputSchema: z.object({
+      date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
+      volume_ml: z.number().optional().describe('Optional: Specific volume in ml to remove. If omitted, ALL hydration for the day is cleared.')
+    }),
+    execute: async ({ date, volume_ml }) => {
+      const dateUtc = new Date(`${date}T00:00:00Z`)
+      let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
+
+      if (!nutrition) {
+        return { message: 'No nutrition log found for this date.' }
+      }
+
+      const meals = ['breakfast', 'lunch', 'dinner', 'snacks'] as const
+      const updates: any = {}
+      let removedCount = 0
+      let removedVolume = 0
+
+      for (const m of meals) {
+        const items = (nutrition[m] as any[]) || []
+        let filtered: any[]
+        
+        if (volume_ml) {
+          // Remove first match of specific volume
+          let found = false
+          filtered = items.filter(i => {
+            const isHydration = i.entryType === 'HYDRATION' || (i.water_ml > 0 && i.carbs === 0)
+            if (!found && isHydration && Math.abs(i.water_ml - volume_ml) < 1) {
+              found = true
+              removedCount++
+              removedVolume += i.water_ml
+              return false
+            }
+            return true
+          })
+        } else {
+          // Remove all hydration
+          filtered = items.filter(i => {
+            const isHydration = i.entryType === 'HYDRATION' || (i.water_ml > 0 && i.carbs === 0)
+            if (isHydration) {
+              removedCount++
+              removedVolume += i.water_ml
+              return false
+            }
+            return true
+          })
+        }
+        
+        if (filtered.length !== items.length) {
+          updates[m] = filtered
+        }
+      }
+
+      if (removedCount === 0 && nutrition.waterMl > 0 && !volume_ml) {
+        // Fallback: if no items but we have a total, just clear the total
+        updates.waterMl = 0
+        removedCount = 1
+        removedVolume = nutrition.waterMl
+      }
+
+      if (removedCount === 0) {
+        return { message: 'No hydration entries found to delete.' }
+      }
+
+      nutrition = await nutritionRepository.update(nutrition.id, updates)
+      const totals = recalculateDailyTotals(nutrition)
+      nutrition = await nutritionRepository.update(nutrition.id, {
+        waterMl: totals.waterMl
+      })
+
+      return {
+        message: volume_ml ? `Removed ${Math.round(removedVolume)}ml hydration entry.` : `Cleared all hydration for ${date}.`,
+        total_water_ml: nutrition.waterMl
+      }
+    }
+  }),
+
   delete_nutrition_item: tool({
     description:
-      'Delete a specific food item from a meal or clear an entire meal. Use when user says "Remove the apple" or "Clear breakfast".',
+      'Delete a specific food item from a meal or clear an entire meal. Use when user says "Remove the apple", "Delete item ID xyz", or "Clear breakfast".',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']).describe('The meal category'),
@@ -400,11 +554,15 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         .string()
         .optional()
         .describe(
-          'Name of the item to remove. If omitted, the ENTIRE meal will be cleared. Matching is case-insensitive.'
-        )
+          'Name of the item to remove. Matching is case-insensitive.'
+        ),
+      item_id: z
+        .string()
+        .optional()
+        .describe('Unique ID of the item to remove. Use this when you have the ID.')
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
-    execute: async ({ date, meal_type, item_name }) => {
+    execute: async ({ date, meal_type, item_name, item_id }) => {
       const dateUtc = new Date(`${date}T00:00:00Z`)
 
       let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
@@ -417,7 +575,15 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       let updatedItems: any[] = []
       let message = ''
 
-      if (item_name) {
+      if (item_id) {
+        // Remove by ID
+        const initialLength = currentItems.length
+        updatedItems = currentItems.filter((item: any) => item.id !== item_id)
+        if (initialLength === updatedItems.length) {
+          return { message: `Could not find item with ID "${item_id}" in ${meal_type}.` }
+        }
+        message = `Removed item with ID "${item_id}" from ${meal_type}.`
+      } else if (item_name) {
         // Remove specific item (filter out matches)
         const initialLength = currentItems.length
         updatedItems = currentItems.filter(
@@ -441,7 +607,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         [meal_type]: updatedItems
       })
 
-      // Recalculate totals
+      // Recalculate totals (now includes waterMl)
       const totals = recalculateDailyTotals(nutrition)
 
       // Update totals in DB
@@ -451,7 +617,8 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         carbs: totals.carbs,
         fat: totals.fat,
         fiber: totals.fiber,
-        sugar: totals.sugar
+        sugar: totals.sugar,
+        waterMl: totals.waterMl
       })
 
       try {
@@ -465,6 +632,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
               date,
               meal_type,
               item_name,
+              item_id,
               calories: totals.calories
             }
           }
@@ -479,7 +647,8 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           calories: updatedNutrition.calories,
           protein: Math.round(updatedNutrition.protein || 0),
           carbs: Math.round(updatedNutrition.carbs || 0),
-          fat: Math.round(updatedNutrition.fat || 0)
+          fat: Math.round(updatedNutrition.fat || 0),
+          water_ml: updatedNutrition.waterMl
         },
         remaining_items: updatedItems
       }
