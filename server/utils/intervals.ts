@@ -575,6 +575,40 @@ export async function fetchIntervalsActivity(
   return activity
 }
 
+export async function updateIntervalsActivityDescription(
+  integration: Integration,
+  activityId: string,
+  description: string
+): Promise<IntervalsActivity> {
+  if (!isIntervalsEventId(activityId)) {
+    throw new Error(`Invalid Intervals activity ID: ${activityId}`)
+  }
+
+  const headers = getIntervalsHeaders(integration)
+  const url = `https://intervals.icu/api/v1/activity/${activityId}`
+
+  const response = await fetchWithRetry(url, {
+    method: 'PUT',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ description })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('[updateIntervalsActivityDescription] ❌ Intervals.icu update failed:', {
+      status: response.status,
+      activityId,
+      errorText
+    })
+    throw new Error(`Intervals API error: ${response.status} ${errorText}`)
+  }
+
+  return await response.json()
+}
+
 export async function fetchIntervalsAthlete(
   accessToken: string,
   athleteId?: string
