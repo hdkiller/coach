@@ -110,6 +110,13 @@
                           />
                           <span class="text-[10px] text-gray-500">Multiple</span>
                         </div>
+                        <UButton
+                          icon="i-heroicons-cog-6-tooth"
+                          color="neutral"
+                          variant="ghost"
+                          size="xs"
+                          @click="openChartSettings('horizon')"
+                        />
                       </div>
                     </div>
                   </template>
@@ -120,9 +127,12 @@
                   <ClientOnly>
                     <NutritionMultiDayEnergyChart
                       v-if="!loadingWave && wavePoints.length"
+                      :key="`horizon-${JSON.stringify(chartSettings.horizon)}`"
                       :points="wavePoints"
                       :journey-events="journeyEvents"
+                      :workouts="waveWorkouts"
                       :highlighted-date="highlightedDate"
+                      :settings="chartSettings.horizon"
                     />
                     <div
                       v-else-if="!loadingWave"
@@ -388,11 +398,15 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <NutritionHorizonSettingsModal v-model:open="isHorizonSettingsModalOpen" />
 </template>
 
 <script setup lang="ts">
   import { format, parseISO, addDays, startOfWeek, subDays, isSameWeek } from 'date-fns'
   import { countPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
+  import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
+  import NutritionHorizonSettingsModal from '~/components/nutrition/NutritionHorizonSettingsModal.vue'
 
   definePageMeta({
     middleware: 'auth',
@@ -425,16 +439,50 @@
   const loadingWave = ref(true)
   const loadingStrategy = ref(true)
   const loadingActiveFeed = ref(true)
+  const userStore = useUserStore()
   const generatingPlan = ref(false)
   const planDashboard = ref<any>(null)
   const wavePoints = ref<any[]>([])
   const journeyEvents = ref<any[]>([])
+  const waveWorkouts = ref<any[]>([])
   const strategy = ref<any>(null)
   const activeFeed = ref<any>(null)
   const upcomingPlan = ref<any>(null)
   const showGroceryList = ref(false)
   const highlightedDate = ref<string | null>(null)
   const missingPlannedStartTimeCount = ref(0)
+
+  const isHorizonSettingsModalOpen = ref(false)
+
+  const defaultChartSettings: any = {
+    horizon: {
+      smooth: true,
+      yScale: 'fixed',
+      showMarkers: true,
+      showNowLine: true,
+      showProjected: true,
+      showWorkoutBars: true,
+      opacity: 0.1
+    }
+  }
+
+  const chartSettings = computed(() => {
+    const userSettings = userStore.user?.dashboardSettings?.nutritionCharts || {}
+    const merged: any = {}
+    for (const key in defaultChartSettings) {
+      merged[key] = {
+        ...defaultChartSettings[key],
+        ...(userSettings[key] || {})
+      }
+    }
+    return merged
+  })
+
+  function openChartSettings(key: string) {
+    if (key === 'horizon') {
+      isHorizonSettingsModalOpen.value = true
+    }
+  }
 
   const showAiHelper = ref(false)
   const aiHelperContext = ref<any>(null)
@@ -530,11 +578,13 @@
       if (waveRes.status === 'fulfilled') {
         wavePoints.value = (waveRes.value as any).points || []
         journeyEvents.value = (waveRes.value as any).journeyEvents || []
+        waveWorkouts.value = (waveRes.value as any).workouts || []
         await refreshMissingStartTimeWarning()
       } else {
         console.error('Failed to load extended wave:', waveRes.reason)
         wavePoints.value = []
         journeyEvents.value = []
+        waveWorkouts.value = []
         missingPlannedStartTimeCount.value = 0
       }
 
