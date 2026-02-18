@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="isOpen">
+  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
     <template #content>
       <UCard>
         <template #header>

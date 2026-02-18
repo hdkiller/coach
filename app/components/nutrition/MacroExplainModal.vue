@@ -1,5 +1,10 @@
 <template>
-  <UModal v-model:open="isOpen" :ui="{ content: 'sm:max-w-md' }">
+  <UModal
+    v-model:open="isOpen"
+    :ui="{ content: 'sm:max-w-md' }"
+    title="Dialog"
+    description="Dialog content and actions."
+  >
     <template #content>
       <div class="p-6 space-y-6">
         <!-- Header -->

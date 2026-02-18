@@ -2,6 +2,7 @@
   <UModal
     :open="modelValue"
     title="Plan Week with AI"
+    description="Dialog content and actions."
     @update:open="$emit('update:modelValue', $event)"
   >
     <template #body>

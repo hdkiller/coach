@@ -1,5 +1,10 @@
 <template>
-  <UModal v-model:open="open" :title="plan?.name || 'Training Plan'" fullscreen>
+  <UModal
+    v-model:open="open"
+    :title="plan?.name || 'Training Plan'"
+    fullscreen
+    description="Dialog content and actions."
+  >
     <template #body>
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="text-center">

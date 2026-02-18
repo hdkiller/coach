@@ -102,7 +102,11 @@
     </UModal>
 
     <!-- Save Template Modal -->
-    <UModal v-model:open="showSaveTemplateModal" title="Save as Template">
+    <UModal
+      v-model:open="showSaveTemplateModal"
+      title="Save as Template"
+      description="Dialog content and actions."
+    >
       <template #body>
         <div class="p-6 space-y-4">
           <p class="text-sm text-muted">Save this plan structure to reuse later.</p>
@@ -132,6 +136,7 @@
       v-model:open="showTimelineEditor"
       title="Edit Plan Structure"
       :ui="{ content: 'sm:max-w-2xl' }"
+      description="Dialog content and actions."
     >
       <template #body>
         <div class="p-4 sm:p-6">

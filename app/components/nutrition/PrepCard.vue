@@ -182,7 +182,12 @@
     </div>
   </div>
 
-  <UModal v-model:open="showFuelStateModal" :ui="{ content: 'sm:max-w-lg' }">
+  <UModal
+    v-model:open="showFuelStateModal"
+    :ui="{ content: 'sm:max-w-lg' }"
+    title="Dialog"
+    description="Dialog content and actions."
+  >
     <template #content>
       <div class="p-6 space-y-5">
         <div class="flex items-start justify-between gap-3">

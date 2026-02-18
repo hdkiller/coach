@@ -50,7 +50,12 @@
     </div>
   </div>
 
-  <UModal v-model:open="isLegendModalOpen" :ui="{ content: 'sm:max-w-md' }">
+  <UModal
+    v-model:open="isLegendModalOpen"
+    :ui="{ content: 'sm:max-w-md' }"
+    title="Dialog"
+    description="Dialog content and actions."
+  >
     <template #content>
       <div v-if="selectedLegend" class="p-6 space-y-5">
         <div class="flex items-center justify-between">

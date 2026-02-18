@@ -254,7 +254,12 @@
     </div>
   </UCard>
 
-  <USlideover v-model:open="drawerOpen" side="right" :title="drawerTitle">
+  <USlideover
+    v-model:open="drawerOpen"
+    side="right"
+    :title="drawerTitle"
+    description="Dialog content and actions."
+  >
     <template #content>
       <div v-if="activeDay" class="space-y-4 p-4">
         <div class="flex items-center justify-between">

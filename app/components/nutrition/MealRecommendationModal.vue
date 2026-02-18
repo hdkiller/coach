@@ -1,5 +1,10 @@
 <template>
-  <UModal v-model:open="isOpen" title="Meal Recommendations" :ui="{ content: 'sm:max-w-2xl' }">
+  <UModal
+    v-model:open="isOpen"
+    title="Meal Recommendations"
+    :ui="{ content: 'sm:max-w-2xl' }"
+    description="Dialog content and actions."
+  >
     <template #header>
       <div class="flex items-center justify-between w-full">
         <div class="flex items-center gap-2">
