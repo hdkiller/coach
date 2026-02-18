@@ -802,6 +802,7 @@ export const metabolicService = {
     })
     const todayKey = formatDateUTC(getUserLocalDate(timezone))
     const allPoints: any[] = []
+    const allWorkoutsInRange: any[] = []
 
     // 1. Get initial state
     const firstDayState = await this.getMetabolicStateForDate(userId, startDate)
@@ -861,6 +862,25 @@ export const metabolicService = {
 
       const dayNutrition = nutritionMap.get(dateStr)
       const dayWorkouts = workoutsByDate.get(dateStr) || []
+
+      dayWorkouts.forEach((w) => {
+        let startTime = w.startTime || w.date
+        if (typeof startTime === 'string' && startTime.includes(':') && !startTime.includes('T')) {
+          startTime = buildZonedDateTimeFromUtcDate(w.date, startTime, timezone, 10, 0)
+        }
+
+        allWorkoutsInRange.push({
+          id: w.id,
+          title: w.title,
+          type: w.type,
+          date: w.date,
+          startTime: startTime,
+          durationSec: w.durationSec || w.plannedDuration || 0,
+          intensity: w.intensity || w.workIntensity || 0.6,
+          source: w.completed !== undefined ? 'planned' : 'completed'
+        })
+      })
+
       const hasLogs = !!(
         dayNutrition &&
         ((Array.isArray(dayNutrition.breakfast) && dayNutrition.breakfast.length > 0) ||
@@ -915,7 +935,8 @@ export const metabolicService = {
 
     return {
       points: allPoints,
-      journeyEvents
+      journeyEvents,
+      workouts: allWorkoutsInRange
     }
   },
 
