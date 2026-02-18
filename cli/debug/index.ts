@@ -32,6 +32,7 @@ import quotasCommand from './quotas'
 import chartCommand from './chart'
 import nutritionPlanDebugCommand from './nutrition-plan'
 import chatLogCommand from './chat'
+import cadenceJitterCommand from './cadence-jitter'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -68,5 +69,6 @@ debugCommand.addCommand(chatLogCommand)
 debugCommand.addCommand(quotasCommand)
 debugCommand.addCommand(chartCommand)
 debugCommand.addCommand(nutritionPlanDebugCommand)
+debugCommand.addCommand(cadenceJitterCommand)
 
 export default debugCommand
