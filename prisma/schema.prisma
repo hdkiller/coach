@@ -111,6 +111,7 @@ model User {
   supportMessages                    SupportMessage[]
   bugReports                         BugReport[]
   bugReportComments                  BugReportComment[]
+  notifications                      UserNotification[]
   syncQueue                          SyncQueue[]
   trainingAvailability               TrainingAvailability[]
   trainingPlans                      TrainingPlan[]
@@ -1487,6 +1488,23 @@ enum BugStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+}
+
+model UserNotification {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  message     String
+  icon        String?
+  link        String?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
 }
 
 model AthleteJourneyEvent {
