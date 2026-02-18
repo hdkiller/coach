@@ -73,6 +73,7 @@ model User {
   stripeCustomerId                   String?                      @unique
   stripeSubscriptionId               String?                      @unique
   subscriptionPeriodEnd              DateTime?
+  subscriptionStartedAt              DateTime?
   subscriptionStatus                 SubscriptionStatus           @default(NONE)
   subscriptionTier                   SubscriptionTier             @default(FREE)
   aiDeepAnalysisEnabled              Boolean                      @default(false)
