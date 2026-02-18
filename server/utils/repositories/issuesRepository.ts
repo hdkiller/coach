@@ -109,6 +109,14 @@ export const issuesRepository = {
               email: true,
               image: true
             }
+          },
+          comments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              isAdmin: true,
+              createdAt: true
+            }
           }
         },
         orderBy: { createdAt: 'desc' },

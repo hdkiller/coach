@@ -55,6 +55,12 @@
                     scope="col"
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                   >
+                    Last Reply
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  >
                     Title
                   </th>
                   <th
@@ -79,7 +85,7 @@
               >
                 <tr v-if="!reports?.reports?.length">
                   <td
-                    colspan="6"
+                    colspan="7"
                     class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
                   >
                     No issues found.
@@ -102,6 +108,25 @@
                       >{{ report.priority || 'MEDIUM' }}</UBadge
                     >
                   </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <template v-if="(report as any).comments?.length">
+                      <UBadge
+                        :color="(report as any).comments[0].isAdmin ? 'neutral' : 'primary'"
+                        variant="soft"
+                        size="xs"
+                        class="flex items-center gap-1 w-fit"
+                      >
+                        <UIcon :name="(report as any).comments[0].isAdmin ? 'i-heroicons-user-circle' : 'i-heroicons-chat-bubble-left'" />
+                        {{ (report as any).comments[0].isAdmin ? 'Support' : 'User' }}
+                      </UBadge>
+                      <p class="text-[10px] text-gray-400 mt-1 italic">
+                        {{ formatRelativeTime((report as any).comments[0].createdAt) }}
+                      </p>
+                    </template>
+                    <template v-else>
+                      <span class="text-[10px] text-gray-400 italic">No replies</span>
+                    </template>
+                  </td>
                   <td
                     class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
                   >
@@ -119,7 +144,8 @@
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {{ formatDateTime(report.createdAt) }}
+                    <p>{{ formatDateTime(report.createdAt) }}</p>
+                    <p class="text-[10px] italic mt-0.5">{{ formatRelativeTime(report.createdAt) }}</p>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <UButton
@@ -176,7 +202,7 @@
     watch: [page, filterStatus]
   })
 
-  const { formatDateTime } = useFormat()
+  const { formatDateTime, formatRelativeTime } = useFormat()
 
   function getStatusColor(status: string) {
     switch (status) {
