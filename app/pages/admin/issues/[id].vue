@@ -16,7 +16,7 @@
     `/api/admin/issues/${id}/comments`
   )
 
-  const statusOptions = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+  const statusOptions = ['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO', 'RESOLVED', 'CLOSED']
   const priorityOptions = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
   const dropdownItems = computed(() => [
@@ -52,6 +52,36 @@
     }
   }
 
+  const isMetadataModalOpen = ref(false)
+  const metadataForm = ref({
+    github_issue_url: ''
+  })
+
+  function openMetadataModal() {
+    metadataForm.value.github_issue_url = (report.value?.metadata as any)?.github_issue_url || ''
+    isMetadataModalOpen.value = true
+  }
+
+  async function saveMetadata() {
+    try {
+      const currentMetadata = (report.value?.metadata as any) || {}
+      await $fetch(`/api/admin/issues/${id}`, {
+        method: 'PUT',
+        body: {
+          metadata: {
+            ...currentMetadata,
+            github_issue_url: metadataForm.value.github_issue_url
+          }
+        }
+      })
+      toast.add({ title: 'Metadata updated', color: 'success' })
+      isMetadataModalOpen.value = false
+      refreshReport()
+    } catch (error) {
+      toast.add({ title: 'Failed to update metadata', color: 'error' })
+    }
+  }
+
   const newComment = ref('')
   const sendingComment = ref(false)
 
@@ -73,12 +103,16 @@
     }
   }
 
+  const { formatDateTime, calculateAge } = useFormat()
+
   function getStatusColor(status: string) {
     switch (status) {
       case 'OPEN':
         return 'error'
       case 'IN_PROGRESS':
         return 'warning'
+      case 'NEED_MORE_INFO':
+        return 'info'
       case 'RESOLVED':
         return 'success'
       case 'CLOSED':
@@ -107,6 +141,13 @@
     if (report.value?.logs) {
       navigator.clipboard.writeText(report.value.logs)
       toast.add({ title: 'Logs copied to clipboard', color: 'success' })
+    }
+  }
+
+  const copyUserId = () => {
+    if (report.value?.user.id) {
+      navigator.clipboard.writeText(report.value.user.id)
+      toast.add({ title: 'User ID copied to clipboard', color: 'success' })
     }
   }
 </script>
@@ -237,16 +278,17 @@
               </div>
 
               <template #footer>
-                <div class="flex gap-3">
+                <div class="flex flex-col gap-3">
                   <UTextarea
                     v-model="newComment"
                     placeholder="Reply to user..."
                     autoresize
-                    :rows="2"
-                    class="flex-1"
+                    :rows="3"
+                    class="w-full"
                     @keydown.meta.enter="addComment"
                   />
-                  <div class="flex flex-col justify-end">
+                  <div class="flex justify-end items-center gap-4">
+                    <p class="text-[10px] text-gray-400">Press Cmd+Enter to send</p>
                     <UButton
                       icon="i-heroicons-paper-airplane"
                       color="primary"
@@ -254,11 +296,10 @@
                       :disabled="!newComment.trim()"
                       @click="addComment"
                     >
-                      Send
+                      Send Message
                     </UButton>
                   </div>
                 </div>
-                <p class="mt-2 text-[10px] text-gray-400 text-right">Press Cmd+Enter to send</p>
               </template>
             </UCard>
 
@@ -354,31 +395,130 @@
 
             <UCard>
               <template #header>
-                <h3 class="text-sm font-semibold">User Info</h3>
-              </template>
-              <div class="flex items-center gap-3">
-                <UAvatar
-                  :src="report?.user.image || undefined"
-                  :alt="report?.user.name || 'User'"
-                  size="lg"
-                />
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                    {{ report?.user.name }}
-                  </p>
-                  <p class="text-xs text-gray-500 truncate">{{ report?.user.email }}</p>
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-semibold">User Info</h3>
+                  <UBadge
+                    v-if="report?.user.subscriptionTier"
+                    :color="report.user.subscriptionTier === 'PRO' ? 'primary' : 'neutral'"
+                    variant="soft"
+                    size="xs"
+                  >
+                    {{ report.user.subscriptionTier }}
+                  </UBadge>
                 </div>
-              </div>
-              <div class="mt-4">
-                <UButton
-                  variant="outline"
-                  color="neutral"
-                  size="xs"
-                  class="w-full justify-center"
-                  :to="`/admin/users?q=${report?.user.email}`"
+              </template>
+              <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                  <UAvatar
+                    :src="report?.user.image || undefined"
+                    :alt="report?.user.name || 'User'"
+                    size="lg"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                      {{ report?.user.name }}
+                    </p>
+                    <p class="text-xs text-gray-500 truncate">{{ report?.user.email }}</p>
+                  </div>
+                </div>
+
+                <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500">User ID</span>
+                    <div class="flex items-center gap-1">
+                      <span class="font-mono text-[10px] text-gray-400"
+                        >{{ report?.user.id.substring(0, 8) }}...</span
+                      >
+                      <UButton
+                        icon="i-heroicons-clipboard-document"
+                        variant="ghost"
+                        color="neutral"
+                        size="xs"
+                        @click="copyUserId"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span class="text-gray-400 uppercase font-black tracking-tighter block"
+                        >Country</span
+                      >
+                      <span class="font-bold">{{ report?.user.country || 'Unknown' }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-400 uppercase font-black tracking-tighter block"
+                        >Age</span
+                      >
+                      <span class="font-bold">{{
+                        report?.user.dob ? calculateAge(report.user.dob) : 'N/A'
+                      }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-400 uppercase font-black tracking-tighter block"
+                        >Timezone</span
+                      >
+                      <span class="font-bold truncate block">{{
+                        report?.user.timezone || 'UTC'
+                      }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-400 uppercase font-black tracking-tighter block"
+                        >Status</span
+                      >
+                      <span class="font-bold">{{ report?.user.subscriptionStatus || 'NONE' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800"
                 >
-                  View User Profile
-                </UButton>
+                  <div class="text-center p-1.5 bg-gray-50 dark:bg-gray-900 rounded">
+                    <p class="text-[9px] font-black text-gray-400 uppercase">Workouts</p>
+                    <p class="text-xs font-bold">
+                      {{ (report?.user as any)._count?.workouts || 0 }}
+                    </p>
+                  </div>
+                  <div class="text-center p-1.5 bg-gray-50 dark:bg-gray-900 rounded">
+                    <p class="text-[9px] font-black text-gray-400 uppercase">Planned</p>
+                    <p class="text-xs font-bold">
+                      {{ (report?.user as any)._count?.plannedWorkouts || 0 }}
+                    </p>
+                  </div>
+                  <div class="text-center p-1.5 bg-gray-50 dark:bg-gray-900 rounded">
+                    <p class="text-[9px] font-black text-gray-400 uppercase">Wellness</p>
+                    <p class="text-xs font-bold">
+                      {{ (report?.user as any)._count?.wellness || 0 }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="pt-2 border-t border-gray-100 dark:border-gray-800">
+                  <div
+                    class="flex justify-between items-center bg-primary-50 dark:bg-primary-950/30 p-2 rounded"
+                  >
+                    <span
+                      class="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase"
+                      >Total LLM Cost</span
+                    >
+                    <span class="text-sm font-black text-primary-700 dark:text-primary-300">
+                      ${{ (report?.user as any).totalLlmCost?.toFixed(4) || '0.0000' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="pt-2">
+                  <UButton
+                    variant="outline"
+                    color="neutral"
+                    size="xs"
+                    class="w-full justify-center"
+                    :to="`/admin/users/${report?.userId}`"
+                  >
+                    View Full Admin Profile
+                  </UButton>
+                </div>
               </div>
             </UCard>
 
@@ -390,14 +530,39 @@
 
             <UCard>
               <template #header>
-                <h3 class="text-sm font-semibold">Internal Metadata</h3>
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-semibold">Internal Metadata</h3>
+                  <UButton
+                    icon="i-heroicons-pencil-square"
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    @click="openMetadataModal"
+                  />
+                </div>
               </template>
               <div class="space-y-2">
                 <div class="flex justify-between text-xs">
                   <span class="text-gray-500">Issue ID</span>
                   <span class="font-mono">{{ report?.id.substring(0, 8) }}...</span>
                 </div>
-                <div class="flex justify-between text-xs">
+                <div v-if="(report?.metadata as any)?.github_issue_url" class="flex flex-col gap-1">
+                  <span class="text-xs text-gray-500">GitHub Issue</span>
+                  <UButton
+                    :href="(report?.metadata as any).github_issue_url"
+                    target="_blank"
+                    icon="i-simple-icons-github"
+                    variant="link"
+                    color="primary"
+                    size="xs"
+                    class="p-0 h-auto justify-start truncate"
+                  >
+                    View on GitHub
+                  </UButton>
+                </div>
+                <div
+                  class="flex justify-between text-xs pt-2 border-t border-gray-100 dark:border-gray-800"
+                >
                   <span class="text-gray-500">Last Updated</span>
                   <span>{{ new Date(report?.updatedAt || '').toLocaleDateString() }}</span>
                 </div>
@@ -406,6 +571,45 @@
           </div>
         </div>
       </div>
+
+      <!-- Metadata Editing Modal -->
+      <UModal v-model:open="isMetadataModalOpen">
+        <template #content>
+          <UCard :ui="{ body: 'p-6' }">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h3 class="text-base font-semibold leading-6">Edit Internal Metadata</h3>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-heroicons-x-mark"
+                  class="-my-1"
+                  @click="isMetadataModalOpen = false"
+                />
+              </div>
+            </template>
+
+            <div class="space-y-4">
+              <UFormField label="GitHub Issue URL" help="Link to the tracking issue on GitHub">
+                <UInput
+                  v-model="metadataForm.github_issue_url"
+                  placeholder="https://github.com/org/repo/issues/123"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+
+            <template #footer>
+              <div class="flex justify-end gap-3">
+                <UButton color="neutral" variant="ghost" @click="isMetadataModalOpen = false">
+                  Cancel
+                </UButton>
+                <UButton color="primary" @click="saveMetadata"> Save Changes </UButton>
+              </div>
+            </template>
+          </UCard>
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>

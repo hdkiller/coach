@@ -119,7 +119,7 @@
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {{ new Date(report.createdAt).toLocaleDateString() }}
+                    {{ formatDateTime(report.createdAt) }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <UButton
@@ -155,7 +155,7 @@
   })
 
   const page = ref(1)
-  const limit = 10
+  const limit = 25
   const filterStatus = ref<string | undefined>()
 
   // Reset page when filter changes
@@ -176,12 +176,16 @@
     watch: [page, filterStatus]
   })
 
+  const { formatDateTime } = useFormat()
+
   function getStatusColor(status: string) {
     switch (status) {
       case 'OPEN':
         return 'error'
       case 'IN_PROGRESS':
         return 'warning'
+      case 'NEED_MORE_INFO':
+        return 'info'
       case 'RESOLVED':
         return 'success'
       case 'CLOSED':
@@ -206,5 +210,5 @@
     }
   }
 
-  const statusOptions = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+  const statusOptions = ['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO', 'RESOLVED', 'CLOSED']
 </script>
