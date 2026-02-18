@@ -1457,6 +1457,8 @@ model BugReport {
   context     Json?
   logs        String?
   status      BugStatus          @default(OPEN)
+  priority    String?            @default("MEDIUM")
+  metadata    Json?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
