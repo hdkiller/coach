@@ -7,8 +7,8 @@
             icon="i-heroicons-arrow-left"
             color="neutral"
             variant="ghost"
-            to="/data"
             class="hidden sm:flex"
+            @click="goBack"
           >
             Back to Data
           </UButton>
@@ -16,8 +16,8 @@
             icon="i-heroicons-arrow-left"
             color="neutral"
             variant="ghost"
-            to="/data"
             class="sm:hidden"
+            @click="goBack"
           />
         </template>
 
@@ -1718,6 +1718,7 @@
   })
 
   const route = useRoute()
+  const router = useRouter()
   const toast = useToast()
   const config = useRuntimeConfig()
 
@@ -1731,6 +1732,10 @@
   const promoting = ref(false)
   const isPromoteModalOpen = ref(false)
   const stomachFeel = ref<number | null>(null)
+
+  function goBack() {
+    router.back()
+  }
 
   const plannedKJ = computed(() => {
     if (!workout.value?.plannedWorkout) return null

@@ -70,6 +70,12 @@
             description="Allow the AI to analyze your nutrition data and provide feedback"
             @update:model-value="handleChange"
           />
+          <USwitch
+            v-model="localSettings.updateWorkoutNotesEnabled"
+            label="Update Workout Notes"
+            description="Allow AI workout summaries to be published into Intervals workout notes"
+            @update:model-value="handleChange"
+          />
         </div>
       </div>
 
@@ -94,6 +100,7 @@
       aiDeepAnalysisEnabled: boolean
       aiContext?: string | null
       nutritionTrackingEnabled: boolean
+      updateWorkoutNotesEnabled: boolean
       nickname?: string | null
     }
   }>()
