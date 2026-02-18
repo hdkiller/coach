@@ -132,7 +132,7 @@
                   >
                     <span class="inline-flex items-center gap-1">
                       <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5" />
-                      {{ workout.startTime || 'Set Time' }}
+                      {{ workout.startTime || 'Set Schedule' }}
                       <UIcon name="i-heroicons-pencil-square" class="w-3 h-3 opacity-50" />
                     </span>
                   </UButton>
@@ -684,11 +684,18 @@
   <UModal
     v-if="showTimeModal"
     v-model:open="showTimeModal"
-    title="Set Start Time"
-    description="Adjust the starting time for this workout."
+    title="Set Schedule"
+    description="Adjust the scheduled date and start time for this workout."
   >
     <template #body>
       <div class="p-6 flex flex-col gap-5">
+        <div class="w-full">
+          <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200"
+            >Scheduled Date</label
+          >
+          <UInput v-model="timeForm.date" type="date" class="w-full" />
+        </div>
+
         <div class="w-full">
           <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200"
             >Start Time</label
@@ -698,7 +705,9 @@
 
         <div class="flex justify-end pt-2 gap-2">
           <UButton variant="ghost" @click="showTimeModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="updatingTime" @click="submitTime">Update Time</UButton>
+          <UButton color="primary" :loading="updatingTime" @click="submitTime"
+            >Update Schedule</UButton
+          >
         </div>
       </div>
     </template>
@@ -783,6 +792,7 @@
     feedback: ''
   })
   const timeForm = reactive({
+    date: '',
     startTime: ''
   })
   const messageForm = reactive({
@@ -1431,6 +1441,7 @@
   }
 
   function openTimeModal() {
+    timeForm.date = workout.value?.date ? formatDateUTC(workout.value.date, 'yyyy-MM-dd') : ''
     timeForm.startTime = workout.value?.startTime || ''
     showTimeModal.value = true
   }
@@ -1439,21 +1450,25 @@
     if (!workout.value?.id) return
     updatingTime.value = true
     try {
-      await $fetch(`/api/planned-workouts/${workout.value.id}`, {
-        method: 'PATCH',
-        body: { startTime: timeForm.startTime }
-      })
-      workout.value.startTime = timeForm.startTime
+      const response = await $fetch<{ workout?: any }>(
+        `/api/planned-workouts/${workout.value.id}`,
+        {
+          method: 'PATCH',
+          body: { date: timeForm.date, startTime: timeForm.startTime }
+        }
+      )
+      workout.value.date = response?.workout?.date || workout.value.date
+      workout.value.startTime = response?.workout?.startTime || timeForm.startTime
       toast.add({
-        title: 'Time Updated',
-        description: 'The workout start time has been updated.',
+        title: 'Schedule Updated',
+        description: 'The workout schedule has been updated.',
         color: 'success'
       })
       showTimeModal.value = false
     } catch (error: any) {
       toast.add({
         title: 'Update Failed',
-        description: error.data?.message || 'Failed to update start time',
+        description: error.data?.message || 'Failed to update schedule',
         color: 'error'
       })
     } finally {

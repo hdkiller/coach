@@ -45,14 +45,23 @@
                 </div>
               </div>
 
-              <div class="px-5 py-3.5 flex justify-between items-center group">
+              <div
+                class="px-5 py-3.5 flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all group"
+                @click="openTimeModal"
+              >
                 <span class="text-[10px] font-black uppercase tracking-widest text-gray-500"
                   >Scheduled Date</span
                 >
-                <span
-                  class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
-                  >{{ formatDateUTC(plannedWorkout.date, 'EEEE, MMMM d, yyyy') }}</span
-                >
+                <div class="flex items-center gap-2">
+                  <UIcon
+                    name="i-heroicons-pencil"
+                    class="w-3.5 h-3.5 text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                  <span
+                    class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                    >{{ formatDateUTC(plannedWorkout.date, 'EEEE, MMMM d, yyyy') }}</span
+                  >
+                </div>
               </div>
 
               <div
@@ -517,10 +526,17 @@
     </template>
   </UModal>
 
-  <!-- Start Time Modal -->
-  <UModal v-if="showTimeModal" v-model:open="showTimeModal" title="Set Start Time">
+  <!-- Schedule Modal -->
+  <UModal v-if="showTimeModal" v-model:open="showTimeModal" title="Set Schedule">
     <template #body>
       <div class="p-6 flex flex-col gap-5">
+        <div class="w-full">
+          <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200"
+            >Scheduled Date</label
+          >
+          <UInput v-model="timeForm.date" type="date" class="w-full" />
+        </div>
+
         <div class="w-full">
           <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-200"
             >Start Time</label
@@ -530,7 +546,9 @@
 
         <div class="flex justify-end pt-2 gap-2">
           <UButton variant="ghost" @click="showTimeModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="updatingTime" @click="submitTime">Update Time</UButton>
+          <UButton color="primary" :loading="updatingTime" @click="submitTime"
+            >Update Schedule</UButton
+          >
         </div>
       </div>
     </template>
@@ -575,6 +593,7 @@
   const showTimeModal = ref(false)
   const updatingTime = ref(false)
   const timeForm = reactive({
+    date: '',
     startTime: ''
   })
 
@@ -871,6 +890,9 @@
   }
 
   function openTimeModal() {
+    timeForm.date = props.plannedWorkout?.date
+      ? formatDateUTC(props.plannedWorkout.date, 'yyyy-MM-dd')
+      : ''
     timeForm.startTime = props.plannedWorkout?.startTime || ''
     showTimeModal.value = true
   }
@@ -881,7 +903,7 @@
     try {
       await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}`, {
         method: 'PATCH',
-        body: { startTime: timeForm.startTime }
+        body: { date: timeForm.date, startTime: timeForm.startTime }
       })
 
       // Update local state (since plannedWorkout is a prop, we need to notify parent or have a local copy)
@@ -889,8 +911,8 @@
       // However, PlannedWorkoutModal uses the prop directly.
       // Many other actions here call emit('completed') to trigger a parent refresh.
       toast.add({
-        title: 'Time Updated',
-        description: 'The workout start time has been updated.',
+        title: 'Schedule Updated',
+        description: 'The workout schedule has been updated.',
         color: 'success'
       })
       showTimeModal.value = false
@@ -898,7 +920,7 @@
     } catch (error: any) {
       toast.add({
         title: 'Update Failed',
-        description: error.data?.message || 'Failed to update start time',
+        description: error.data?.message || 'Failed to update schedule',
         color: 'error'
       })
     } finally {
