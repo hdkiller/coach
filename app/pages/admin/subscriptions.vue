@@ -96,12 +96,43 @@
     return active ? active._count.id : 0
   })
 
+  const impersonating = ref<string | null>(null)
+  const toast = useToast()
+
+  async function impersonateUser(userId: string) {
+    impersonating.value = userId
+    try {
+      await $fetch('/api/admin/impersonate', {
+        method: 'POST',
+        body: { userId }
+      })
+
+      toast.add({
+        title: 'Success',
+        description: 'Redirecting to impersonated user dashboard...',
+        color: 'success'
+      })
+
+      // Force hard reload to ensure cookies are picked up and session is re-evaluated
+      window.location.href = '/dashboard'
+    } catch (error) {
+      toast.add({
+        title: 'Error',
+        description: 'Failed to impersonate user',
+        color: 'error'
+      })
+    } finally {
+      impersonating.value = null
+    }
+  }
+
   const columns = [
     { key: 'name', label: 'User' },
-    { key: 'email', label: 'Email' },
     { key: 'subscriptionTier', label: 'Tier' },
     { key: 'subscriptionStatus', label: 'Status' },
-    { key: 'createdAt', label: 'Joined' }
+    { key: 'subscriptionStartedAt', label: 'Subscribed' },
+    { key: 'createdAt', label: 'Joined' },
+    { key: 'actions', label: '' }
   ]
 </script>
 
@@ -184,7 +215,7 @@
           <!-- Recent Premium Users Table -->
           <UCard :ui="{ body: 'p-0' }">
             <template #header>
-              <h3 class="font-semibold">Recent Premium Signups</h3>
+              <h3 class="font-semibold">Recent Premium Subscriptions</h3>
             </template>
 
             <div class="overflow-x-auto">
@@ -194,10 +225,11 @@
                 >
                   <tr>
                     <th class="px-6 py-3">User</th>
-                    <th class="px-6 py-3">Email</th>
                     <th class="px-6 py-3">Tier</th>
                     <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Subscribed</th>
                     <th class="px-6 py-3">Joined</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -206,8 +238,19 @@
                     :key="user.id"
                     class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
-                    <td class="px-6 py-3 font-medium">{{ user.name || 'N/A' }}</td>
-                    <td class="px-6 py-3 font-mono text-xs text-gray-500">{{ user.email }}</td>
+                    <td class="px-6 py-3">
+                      <div class="flex items-center gap-3">
+                        <UAvatar :src="user.image || undefined" :alt="user.name || ''" size="sm" />
+                        <div>
+                          <div class="font-medium text-gray-900 dark:text-white">
+                            {{ user.name || 'No name' }}
+                          </div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                            {{ user.email }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
                     <td class="px-6 py-3">
                       <UBadge
                         :color="user.subscriptionTier === 'PRO' ? 'primary' : 'info'"
@@ -231,13 +274,43 @@
                         {{ user.subscriptionStatus }}
                       </UBadge>
                     </td>
-                    <td class="px-6 py-3 text-gray-500">
+                    <td class="px-6 py-3 text-gray-500 whitespace-nowrap">
+                      <div v-if="user.subscriptionStartedAt">
+                        {{ format(new Date(user.subscriptionStartedAt), 'MMM d, yyyy') }}
+                        <div class="text-[10px] opacity-60">
+                          {{ format(new Date(user.subscriptionStartedAt), 'HH:mm') }}
+                        </div>
+                      </div>
+                      <span v-else class="text-gray-400 italic">N/A</span>
+                    </td>
+                    <td class="px-6 py-3 text-gray-500 whitespace-nowrap">
                       {{ format(new Date(user.createdAt), 'MMM d, yyyy') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex justify-end gap-2">
+                        <UButton
+                          :to="`/admin/users/${user.id}`"
+                          color="neutral"
+                          variant="ghost"
+                          icon="i-lucide-eye"
+                          size="xs"
+                          aria-label="View Details"
+                        />
+                        <UButton
+                          color="neutral"
+                          variant="ghost"
+                          icon="i-lucide-user-cog"
+                          label="Impersonate"
+                          size="xs"
+                          :loading="impersonating === user.id"
+                          @click="impersonateUser(user.id)"
+                        />
+                      </div>
                     </td>
                   </tr>
                   <tr v-if="!stats?.recentPremiumUsers.length">
-                    <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                      No recent premium signups found.
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                      No recent premium subscriptions found.
                     </td>
                   </tr>
                 </tbody>

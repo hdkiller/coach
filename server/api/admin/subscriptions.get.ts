@@ -20,20 +20,22 @@ export default defineEventHandler(async (event) => {
     where: { subscriptionStatus: { not: 'NONE' } }
   })
 
-  // 3. Recent Premium Users (Last 20)
+  // 3. Recent Premium Users (Last 50)
   const recentPremiumUsers = await prisma.user.findMany({
     where: {
       subscriptionTier: { in: ['SUPPORTER', 'PRO'] }
     },
-    orderBy: { createdAt: 'desc' }, // Order by account creation for now, as we don't track sub start date explicitly
-    take: 20,
+    orderBy: { subscriptionStartedAt: 'desc' },
+    take: 50,
     select: {
       id: true,
       name: true,
       email: true,
+      image: true,
       subscriptionTier: true,
       subscriptionStatus: true,
       subscriptionPeriodEnd: true,
+      subscriptionStartedAt: true,
       createdAt: true
     }
   })
