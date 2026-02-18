@@ -92,6 +92,14 @@ export const profileTools = (userId: string, timezone: string, aiSettings: AiSet
       state: z.string().optional(),
       country: z.string().optional(),
       language: z.string().optional(),
+      sex: z
+        .enum(['Male', 'Female', 'Other', 'M', 'F'])
+        .optional()
+        .describe('Sex assigned at birth / profile sex value'),
+      gender: z
+        .enum(['Male', 'Female', 'Other', 'M', 'F'])
+        .optional()
+        .describe('Alias for sex to support natural user wording'),
       aiPersona: z
         .string()
         .optional()
@@ -103,11 +111,14 @@ export const profileTools = (userId: string, timezone: string, aiSettings: AiSet
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (data) => {
       try {
-        const updated = await userRepository.update(userId, data)
+        const { gender, sex, ...rest } = data
+        const normalizedSex = sex ?? gender
+        const payload = normalizedSex ? { ...rest, sex: normalizedSex } : rest
+        await userRepository.update(userId, payload)
         return {
           success: true,
           message: 'Profile updated successfully.',
-          updated_fields: Object.keys(data)
+          updated_fields: Object.keys(payload)
         }
       } catch (e: any) {
         return { error: `Failed to update profile: ${e.message}` }

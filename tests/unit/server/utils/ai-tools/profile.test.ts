@@ -5,14 +5,16 @@ import { userRepository } from '../../../../../server/utils/repositories/userRep
 // Mock the repository
 vi.mock('../../../../../server/utils/repositories/userRepository', () => ({
   userRepository: {
-    getById: vi.fn()
+    getById: vi.fn(),
+    update: vi.fn()
   }
 }))
 
 describe('profileTools', () => {
   const userId = 'user-123'
   const timezone = 'UTC'
-  const tools = profileTools(userId, timezone)
+  const aiSettings = { aiRequireToolApproval: false } as any
+  const tools = profileTools(userId, timezone, aiSettings)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -64,6 +66,35 @@ describe('profileTools', () => {
 
       expect(userRepository.getById).toHaveBeenCalledWith(userId)
       expect(result).toEqual({ error: 'Profile not found' })
+    })
+  })
+
+  describe('update_user_profile', () => {
+    it('should map gender to sex in update payload', async () => {
+      vi.mocked(userRepository.update).mockResolvedValue({ id: userId, sex: 'Male' } as any)
+
+      const result = await tools.update_user_profile.execute(
+        { gender: 'Male' },
+        { toolCallId: '2', messages: [] }
+      )
+
+      expect(userRepository.update).toHaveBeenCalledWith(userId, { sex: 'Male' })
+      expect(result).toEqual({
+        success: true,
+        message: 'Profile updated successfully.',
+        updated_fields: ['sex']
+      })
+    })
+
+    it('should prefer explicit sex over gender when both are provided', async () => {
+      vi.mocked(userRepository.update).mockResolvedValue({ id: userId, sex: 'Female' } as any)
+
+      await tools.update_user_profile.execute(
+        { sex: 'Female', gender: 'Male' },
+        { toolCallId: '3', messages: [] }
+      )
+
+      expect(userRepository.update).toHaveBeenCalledWith(userId, { sex: 'Female' })
     })
   })
 })
