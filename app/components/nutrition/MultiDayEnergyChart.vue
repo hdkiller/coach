@@ -1,6 +1,6 @@
 <template>
   <div class="h-[300px] w-full relative">
-    <Line :data="chartData" :options="chartOptions" />
+    <Line :data="chartData" :options="chartOptions" :plugins="plugins" />
   </div>
 </template>
 
@@ -35,8 +35,22 @@
   const props = defineProps<{
     points: any[]
     journeyEvents?: AthleteJourneyEvent[]
+    workouts?: any[]
     highlightedDate?: string | null
+    settings?: any
+    plugins?: any[]
   }>()
+
+  const chartSettings = computed(() => ({
+    smooth: true,
+    showMarkers: true,
+    showNowLine: true,
+    showProjected: true,
+    showWorkoutBars: true,
+    opacity: 0.1,
+    yScale: 'fixed', // Default to fixed 0-100 for glycogen
+    ...props.settings
+  }))
 
   const categoryIcons: Record<string, string> = {
     GI_DISTRESS: '🤢',
@@ -71,11 +85,13 @@
           borderColor: '#3b82f6',
           borderWidth: 2,
           fill: true,
-          tension: 0.4,
+          tension: chartSettings.value.smooth ? 0.4 : 0,
           segment: {
             borderDash: (ctx: any) => {
               const point = props.points[ctx.p1DataIndex]
-              return point?.dataType === 'future' ? [5, 5] : undefined
+              return chartSettings.value.showProjected && point?.dataType === 'future'
+                ? [5, 5]
+                : undefined
             },
             borderColor: (ctx: any) => {
               const point = props.points[ctx.p1DataIndex]
@@ -87,18 +103,20 @@
             const { ctx, chartArea } = chart
             if (!chartArea) return null
             const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top)
-            gradient.addColorStop(0, 'rgba(239, 68, 68, 0.05)')
-            gradient.addColorStop(0.3, 'rgba(59, 130, 246, 0.1)')
+            const op = chartSettings.value.opacity ?? 0.1
+            gradient.addColorStop(0, `rgba(239, 68, 68, ${op * 0.5})`)
+            gradient.addColorStop(0.3, `rgba(59, 130, 246, ${op})`)
             return gradient
           },
           pointRadius: (ctx: any) => {
+            if (!chartSettings.value.showMarkers) return 0
             const p = props.points[ctx.dataIndex]
             return p?.eventType ? 6 : 0
           },
           pointHoverRadius: 8,
           pointBackgroundColor: (ctx: any) => {
             const p = props.points[ctx.dataIndex]
-            if (!p?.eventType) return 'transparent'
+            if (!p?.eventType || !chartSettings.value.showMarkers) return 'transparent'
             if (p.eventIcon === 'i-tabler-layers-intersect') return '#8b5cf6'
             if (p.event && (p.event.includes('Synthetic') || p.event.includes('Probable')))
               return '#a855f7'
@@ -106,6 +124,7 @@
           },
           pointStyle: (ctx: any) => {
             const p = props.points[ctx.dataIndex]
+            if (!chartSettings.value.showMarkers) return 'circle'
             if (p?.eventIcon === 'i-tabler-layers-intersect') return 'triangle'
             if (p?.eventType === 'workout') return 'rectRot'
             if (p?.eventType === 'meal') return 'circle'
@@ -115,7 +134,7 @@
         {
           label: 'Symptoms',
           data: props.points.map((p) => {
-            if (!p) return null
+            if (!p || !chartSettings.value.showMarkers) return null
             const event = props.journeyEvents?.find((e) => {
               const eTime = new Date(e.timestamp)
               const pTime = p.timestamp
@@ -124,11 +143,11 @@
             return event ? p.level : null
           }),
           borderColor: 'transparent',
-          pointRadius: 10,
-          pointHoverRadius: 12,
+          pointRadius: (ctx: any) => (chartSettings.value.showMarkers ? 10 : 0),
+          pointHoverRadius: (ctx: any) => (chartSettings.value.showMarkers ? 12 : 0),
           pointBackgroundColor: (ctx: any) => {
             const val = ctx.dataset.data[ctx.dataIndex]
-            if (val === null) return 'transparent'
+            if (val === null || !chartSettings.value.showMarkers) return 'transparent'
 
             const p = props.points[ctx.dataIndex]
             if (!p) return 'transparent'
@@ -162,7 +181,7 @@
         type: 'line' as const,
         xMin: nowIdx >= 0 ? nowIdx : undefined,
         xMax: nowIdx >= 0 ? nowIdx : undefined,
-        display: nowIdx >= 0,
+        display: nowIdx >= 0 && chartSettings.value.showNowLine,
         borderColor: 'rgba(156, 163, 175, 0.8)',
         borderWidth: 1.5,
         label: {
@@ -173,6 +192,69 @@
           font: { size: 9, weight: 'bold' as const }
         }
       }
+    }
+
+    // Add Workout Intensity Bars (Heatmap)
+    if (chartSettings.value.showWorkoutBars && props.workouts?.length) {
+      console.log('[Heatmap] Processing workouts:', props.workouts.length)
+      console.log('[Heatmap] Points count:', props.points.length)
+      if (props.points.length > 0) {
+        console.log(
+          '[Heatmap] Points TS Range:',
+          props.points[0].timestamp,
+          'to',
+          props.points[props.points.length - 1].timestamp
+        )
+      }
+
+      props.workouts.forEach((w, i) => {
+        const startTs = new Date(w.startTime).getTime()
+        const duration = Number(w.durationSec) || 3600
+        const endTs = startTs + duration * 1000
+
+        // Find closest point indices
+        const startIdx = props.points.findIndex((p) => p.timestamp >= startTs)
+        let endIdx = props.points.findIndex((p) => p.timestamp >= endTs)
+
+        // If workout ends after our points, cap it
+        if (endIdx === -1) endIdx = props.points.length - 1
+
+        console.log(`[Heatmap] Workout ${i}: ${w.title}`, {
+          startTs,
+          endTs,
+          startIdx,
+          endIdx,
+          intensity: w.intensity,
+          startTimeStr: w.startTime
+        })
+
+        // If workout starts before our points but ends within, or is fully within
+        if (endIdx >= 0) {
+          const effectiveStartIdx = startIdx === -1 ? 0 : startIdx
+          if (effectiveStartIdx <= endIdx) {
+            const intensity = w.intensity || 0.6
+            // Map intensity (0.4 - 1.0) to red opacity (0.2 - 0.7)
+            const opacity = Math.min(0.8, Math.max(0.1, (intensity - 0.3) * 1.2))
+
+            annotations[`workoutBar${i}`] = {
+              type: 'box' as const,
+              xMin: effectiveStartIdx,
+              xMax: endIdx,
+              yMin: 0,
+              yMax: 100, // Full height to avoid clipping issues
+              backgroundColor: `rgba(239, 68, 68, ${opacity * 0.4})`, // Slightly lower opacity for full height
+              borderColor: 'transparent',
+              borderWidth: 0,
+              drawTime: 'beforeDatasetsDraw', // Background style
+              label: {
+                display: false
+              }
+            }
+          }
+        }
+      })
+    } else if (chartSettings.value.showWorkoutBars) {
+      console.log('[Heatmap] No workouts to show in heatmap')
     }
 
     // Add Highlighted Day Box
@@ -276,8 +358,10 @@
           }
         },
         y: {
-          min: 0,
-          max: 100,
+          min: chartSettings.value.yScale === 'fixed' ? 0 : undefined,
+          max: chartSettings.value.yScale === 'fixed' ? 100 : undefined,
+          suggestedMin: chartSettings.value.yScale === 'dynamic' ? 20 : undefined,
+          suggestedMax: chartSettings.value.yScale === 'dynamic' ? 90 : undefined,
           ticks: { callback: (val: any) => `${val}%` }
         }
       }
