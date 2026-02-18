@@ -140,40 +140,23 @@
         <UModal
           v-model:open="isShareModalOpen"
           title="Share Training Plan"
-          description="Anyone with this link can view your training plan. The link will expire in 30 days."
+          description="Create a read-only link to your training plan and share it directly to social platforms."
         >
           <template #body>
-            <div class="space-y-4">
-              <div v-if="generatingShareLink" class="flex items-center justify-center py-8">
-                <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
-              </div>
-              <div v-else-if="shareLink" class="space-y-4">
-                <UFormField label="Share Link">
-                  <div class="flex gap-2">
-                    <UInput v-model="shareLink" readonly class="flex-1" />
-                    <UButton
-                      icon="i-heroicons-clipboard"
-                      color="neutral"
-                      variant="outline"
-                      @click="copyToClipboard"
-                    >
-                      Copy
-                    </UButton>
-                  </div>
-                </UFormField>
-                <p class="text-xs text-gray-500">
-                  This link provides read-only access to this specific version of your training
-                  plan.
-                </p>
-              </div>
-              <div v-else class="flex flex-col items-center justify-center py-8 text-center">
-                <UIcon name="i-heroicons-link" class="w-8 h-8 text-gray-400 mb-2" />
-                <p class="text-gray-600 mb-4">Click below to generate a shareable link.</p>
-                <UButton color="primary" :loading="generatingShareLink" @click="generateShareLink">
-                  Generate Link
-                </UButton>
-              </div>
-            </div>
+            <ShareAccessPanel
+              :link="shareLink"
+              :loading="generatingShareLink"
+              :expiry-value="shareExpiryValue"
+              resource-label="training plan"
+              :share-title="
+                activePlan?.goal?.title
+                  ? `Training Plan: ${activePlan.goal.title}`
+                  : 'Training plan shared from Coach Wattz'
+              "
+              @update:expiry-value="shareExpiryValue = $event"
+              @generate="generateShareLink"
+              @copy="copyToClipboard"
+            />
           </template>
           <template #footer>
             <UButton
@@ -237,6 +220,7 @@
   // Share state
   const isShareModalOpen = ref(false)
   const shareLink = ref('')
+  const shareExpiryValue = ref('2592000')
   const generatingShareLink = ref(false)
 
   const { data, status, refresh } = await useFetch<any>('/api/plans/active')
@@ -244,17 +228,21 @@
   const userFtp = computed(() => data.value?.userFtp)
   const loading = computed(() => status.value === 'pending')
 
-  const generateShareLink = async () => {
-    if (!activePlan.value?.id) return
+  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
+    if (!activePlan.value?.id || generatingShareLink.value) return
 
     generatingShareLink.value = true
     try {
+      const body: Record<string, any> = {
+        resourceType: 'TRAINING_PLAN',
+        resourceId: activePlan.value.id
+      }
+      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
+      if (options?.forceNew) body.forceNew = true
+
       const response = await $fetch('/api/share/generate', {
         method: 'POST',
-        body: {
-          resourceType: 'TRAINING_PLAN',
-          resourceId: activePlan.value.id
-        }
+        body
       })
       shareLink.value = response.url
     } catch (error) {

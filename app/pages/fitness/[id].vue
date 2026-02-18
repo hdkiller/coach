@@ -597,51 +597,19 @@
   <UModal
     v-model:open="isShareModalOpen"
     title="Share Insight"
-    description="Generate a transient access token to share this wellness record."
+    description="Create a read-only link to this wellness insight and share it directly to social platforms."
   >
     <template #body>
-      <div class="space-y-4">
-        <div v-if="generatingShareLink" class="flex items-center justify-center py-8">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
-        </div>
-        <div v-else-if="shareLink" class="space-y-4">
-          <div
-            class="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700"
-          >
-            <div class="flex gap-2">
-              <UInput v-model="shareLink" readonly class="flex-1" />
-              <UButton
-                icon="i-heroicons-clipboard"
-                color="neutral"
-                variant="solid"
-                @click="copyToClipboard"
-              >
-                Copy
-              </UButton>
-            </div>
-          </div>
-          <p
-            class="text-[10px] font-bold uppercase tracking-widest text-gray-500 text-center italic"
-          >
-            Expires in 30 days • Read-only access
-          </p>
-        </div>
-        <div v-else class="flex flex-col items-center justify-center py-8 text-center">
-          <UIcon name="i-heroicons-link" class="size-12 text-gray-200 dark:text-gray-800 mb-4" />
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-            Create a secure link to share this profile.
-          </p>
-          <UButton
-            color="primary"
-            block
-            :loading="generatingShareLink"
-            class="font-black uppercase tracking-widest text-[10px]"
-            @click="generateShareLink"
-          >
-            Generate Token
-          </UButton>
-        </div>
-      </div>
+      <ShareAccessPanel
+        :link="shareLink"
+        :loading="generatingShareLink"
+        :expiry-value="shareExpiryValue"
+        resource-label="wellness insight"
+        :share-title="`Wellness Insight: ${navTitle}`"
+        @update:expiry-value="shareExpiryValue = $event"
+        @generate="generateShareLink"
+        @copy="copyToClipboard"
+      />
     </template>
     <template #footer>
       <UButton
@@ -676,6 +644,7 @@
   const analyzingWellness = ref(false)
   const isShareModalOpen = ref(false)
   const shareLink = ref('')
+  const shareExpiryValue = ref('2592000')
   const generatingShareLink = ref(false)
 
   const { refresh: refreshRuns } = useUserRuns()
@@ -707,17 +676,21 @@
   }
 
   // Share functionality
-  const generateShareLink = async () => {
-    if (!wellness.value?.id) return
+  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
+    if (!wellness.value?.id || generatingShareLink.value) return
 
     generatingShareLink.value = true
     try {
+      const body: Record<string, any> = {
+        resourceType: 'WELLNESS',
+        resourceId: wellness.value.id
+      }
+      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
+      if (options?.forceNew) body.forceNew = true
+
       const response = await $fetch('/api/share/generate', {
         method: 'POST',
-        body: {
-          resourceType: 'WELLNESS',
-          resourceId: wellness.value.id
-        }
+        body
       })
       shareLink.value = response.url
     } catch (error) {
@@ -742,6 +715,12 @@
       color: 'success'
     })
   }
+
+  watch(isShareModalOpen, (newValue) => {
+    if (newValue && !shareLink.value) {
+      generateShareLink()
+    }
+  })
 
   // Chat functionality
   function chatAboutWellness() {

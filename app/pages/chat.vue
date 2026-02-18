@@ -33,6 +33,7 @@
   const isRoomListOpen = ref(false)
   const input = ref('')
   const chatInputRef = ref<any>(null)
+  const toast = useToast()
 
   // Fetch session
   const { data: session } = await useFetch('/api/auth/session')
@@ -349,6 +350,62 @@
   const currentRoomName = computed(() => {
     return currentRoom.value?.roomName || 'Coach Watts'
   })
+
+  // Share current chat room
+  const isShareModalOpen = ref(false)
+  const shareLink = ref('')
+  const shareExpiryValue = ref('2592000')
+  const generatingShareLink = ref(false)
+
+  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
+    if (!currentRoomId.value || generatingShareLink.value) return
+
+    generatingShareLink.value = true
+    try {
+      const body: Record<string, any> = {
+        resourceType: 'CHAT_ROOM',
+        resourceId: currentRoomId.value
+      }
+      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
+      if (options?.forceNew) body.forceNew = true
+
+      const response = await $fetch<any>('/api/share/generate', {
+        method: 'POST',
+        body
+      })
+      shareLink.value = response.url
+    } catch (error) {
+      console.error('Failed to generate share link:', error)
+      toast.add({
+        title: 'Error',
+        description: 'Failed to generate share link. Please try again.',
+        color: 'error'
+      })
+    } finally {
+      generatingShareLink.value = false
+    }
+  }
+
+  const copyToClipboard = () => {
+    if (!shareLink.value) return
+
+    navigator.clipboard.writeText(shareLink.value)
+    toast.add({
+      title: 'Copied',
+      description: 'Share link copied to clipboard.',
+      color: 'success'
+    })
+  }
+
+  watch(isShareModalOpen, (newValue) => {
+    if (newValue && !shareLink.value) {
+      generateShareLink()
+    }
+  })
+
+  watch(currentRoomId, () => {
+    shareLink.value = ''
+  })
 </script>
 
 <template>
@@ -370,6 +427,18 @@
             <DashboardTriggerMonitorButton />
             <NotificationDropdown />
           </ClientOnly>
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="i-heroicons-share"
+            aria-label="Share Chat"
+            size="sm"
+            class="font-bold"
+            :disabled="!currentRoomId"
+            @click="isShareModalOpen = true"
+          >
+            <span class="hidden sm:inline">Share</span>
+          </UButton>
           <UButton
             to="/settings/ai"
             icon="i-heroicons-cog-6-tooth"
@@ -457,4 +526,26 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <UModal
+    v-model:open="isShareModalOpen"
+    :title="`Share Chat: ${currentRoomName}`"
+    description="Create a read-only link to this chat and share it directly."
+  >
+    <template #body>
+      <ShareAccessPanel
+        :link="shareLink"
+        :loading="generatingShareLink"
+        :expiry-value="shareExpiryValue"
+        resource-label="chat history"
+        :share-title="`AI Chat: ${currentRoomName}`"
+        @update:expiry-value="shareExpiryValue = $event"
+        @generate="generateShareLink"
+        @copy="copyToClipboard"
+      />
+    </template>
+    <template #footer>
+      <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
+    </template>
+  </UModal>
 </template>

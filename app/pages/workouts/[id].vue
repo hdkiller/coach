@@ -902,32 +902,47 @@
                     Analysis Detail
                   </h3>
                 </div>
-                <UButton
-                  v-if="!workout.aiAnalysis"
-                  icon="i-heroicons-sparkles"
-                  color="primary"
-                  variant="solid"
-                  size="sm"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                  :loading="analyzingWorkout"
-                  :disabled="analyzingWorkout"
-                  @click="analyzeWorkout"
-                >
-                  Analyze
-                </UButton>
-                <UButton
-                  v-else
-                  icon="i-heroicons-arrow-path"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                  :loading="analyzingWorkout"
-                  :disabled="analyzingWorkout"
-                  @click="analyzeWorkout"
-                >
-                  Regenerate
-                </UButton>
+                <div class="flex items-center gap-2">
+                  <UButton
+                    v-if="!workout.aiAnalysis"
+                    icon="i-heroicons-sparkles"
+                    color="primary"
+                    variant="solid"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                    :loading="analyzingWorkout"
+                    :disabled="analyzingWorkout"
+                    @click="analyzeWorkout"
+                  >
+                    Analyze
+                  </UButton>
+                  <UButton
+                    v-else
+                    icon="i-heroicons-arrow-path"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                    :loading="analyzingWorkout"
+                    :disabled="analyzingWorkout"
+                    @click="analyzeWorkout"
+                  >
+                    Regenerate
+                  </UButton>
+                  <UButton
+                    v-if="canPublishSummaryToIntervals"
+                    icon="i-heroicons-paper-airplane"
+                    color="primary"
+                    variant="outline"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                    :loading="publishingSummary"
+                    :disabled="publishingSummary || analyzingWorkout"
+                    @click="publishSummaryToIntervals"
+                  >
+                    Publish
+                  </UButton>
+                </div>
               </div>
 
               <!-- Structured Analysis Display -->
@@ -1657,37 +1672,21 @@
   <UModal
     v-model:open="isShareModalOpen"
     title="Share Workout"
-    description="Anyone with this link can view this workout. The link will expire in 30 days."
+    description="Create a read-only link to this workout and share it directly to social platforms."
   >
     <template #body>
-      <div class="space-y-4">
-        <div v-if="generatingShareLink" class="flex items-center justify-center py-8">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
-        </div>
-        <div v-else-if="shareLink" class="space-y-4">
-          <div class="flex gap-2">
-            <UInput v-model="shareLink" readonly class="flex-1" />
-            <UButton
-              icon="i-heroicons-clipboard"
-              color="neutral"
-              variant="outline"
-              @click="copyToClipboard"
-            >
-              Copy
-            </UButton>
-          </div>
-          <p class="text-xs text-gray-500">
-            This link provides read-only access to this specific workout.
-          </p>
-        </div>
-        <div v-else class="flex flex-col items-center justify-center py-8 text-center">
-          <UIcon name="i-heroicons-link" class="w-8 h-8 text-gray-400 mb-2" />
-          <p class="text-gray-600 mb-4">Click below to generate a shareable link.</p>
-          <UButton color="primary" :loading="generatingShareLink" @click="generateShareLink">
-            Generate Link
-          </UButton>
-        </div>
-      </div>
+      <ShareAccessPanel
+        :link="shareLink"
+        :loading="generatingShareLink"
+        :expiry-value="shareExpiryValue"
+        resource-label="workout"
+        :share-title="
+          workout?.title ? `Workout: ${workout.title}` : 'Workout shared from Coach Wattz'
+        "
+        @update:expiry-value="shareExpiryValue = $event"
+        @generate="generateShareLink"
+        @copy="copyToClipboard"
+      />
     </template>
     <template #footer>
       <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
@@ -1727,6 +1726,7 @@
   const error = ref<string | null>(null)
   const analyzingWorkout = ref(false)
   const analyzingAdherence = ref(false)
+  const publishingSummary = ref(false)
   const sharing = ref(false)
   const promoting = ref(false)
   const isPromoteModalOpen = ref(false)
@@ -1791,19 +1791,24 @@
   // Share functionality
   const isShareModalOpen = ref(false)
   const shareLink = ref('')
+  const shareExpiryValue = ref('2592000')
   const generatingShareLink = ref(false)
 
-  const generateShareLink = async () => {
-    if (!workout.value?.id) return
+  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
+    if (!workout.value?.id || generatingShareLink.value) return
 
     generatingShareLink.value = true
     try {
+      const body: Record<string, any> = {
+        resourceType: 'WORKOUT',
+        resourceId: workout.value.id
+      }
+      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
+      if (options?.forceNew) body.forceNew = true
+
       const response = await $fetch('/api/share/generate', {
         method: 'POST',
-        body: {
-          resourceType: 'WORKOUT',
-          resourceId: workout.value.id
-        }
+        body
       })
       shareLink.value = response.url
     } catch (error) {
@@ -1828,6 +1833,12 @@
       color: 'success'
     })
   }
+
+  watch(isShareModalOpen, (newValue) => {
+    if (newValue && !shareLink.value) {
+      generateShareLink()
+    }
+  })
 
   // Set page title and description
   useHead(() => {
@@ -1865,6 +1876,17 @@
   const renderedAnalysis = computed(() => {
     if (!workout.value?.aiAnalysis) return ''
     return marked(workout.value.aiAnalysis)
+  })
+
+  const workoutSummary = computed(() => {
+    const summary = workout.value?.aiAnalysisJson?.executive_summary
+    return typeof summary === 'string' ? summary.trim() : ''
+  })
+
+  const canPublishSummaryToIntervals = computed(() => {
+    return Boolean(
+      workout.value?.source === 'intervals' && workout.value?.externalId && workoutSummary.value
+    )
   })
 
   // Available metrics computed property - only shows non-null values
@@ -2151,6 +2173,36 @@
         description: e.data?.message || 'Failed to start adherence analysis',
         color: 'error'
       })
+    }
+  }
+
+  async function publishSummaryToIntervals() {
+    if (!workout.value || !canPublishSummaryToIntervals.value || publishingSummary.value) return
+
+    publishingSummary.value = true
+    try {
+      await $fetch(`/api/workouts/${workout.value.id}/publish-summary`, {
+        method: 'POST'
+      })
+
+      toast.add({
+        title: 'Published',
+        description: 'Workout summary has been added to Intervals.icu notes',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+
+      await fetchWorkout()
+    } catch (e: any) {
+      console.error('Error publishing workout summary:', e)
+      toast.add({
+        title: 'Publish Failed',
+        description: e.data?.message || e.message || 'Failed to publish workout summary',
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
+      })
+    } finally {
+      publishingSummary.value = false
     }
   }
 

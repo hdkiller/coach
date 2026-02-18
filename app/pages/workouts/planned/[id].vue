@@ -644,37 +644,23 @@
   <UModal
     v-model:open="isShareModalOpen"
     title="Share Workout"
-    description="Anyone with this link can view this planned workout. The link will expire in 30 days."
+    description="Create a read-only link to this planned workout and share it directly to social platforms."
   >
     <template #body>
-      <div class="space-y-4">
-        <div v-if="generatingShareLink" class="flex items-center justify-center py-8">
-          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
-        </div>
-        <div v-else-if="shareLink" class="space-y-4">
-          <div class="flex gap-2">
-            <UInput v-model="shareLink" readonly class="flex-1" />
-            <UButton
-              icon="i-heroicons-clipboard"
-              color="neutral"
-              variant="outline"
-              @click="copyToClipboard"
-            >
-              Copy
-            </UButton>
-          </div>
-          <p class="text-xs text-gray-500">
-            This link provides read-only access to this specific workout.
-          </p>
-        </div>
-        <div v-else class="flex flex-col items-center justify-center py-8 text-center">
-          <UIcon name="i-heroicons-link" class="w-8 h-8 text-gray-400 mb-2" />
-          <p class="text-gray-600 mb-4">Click below to generate a shareable link.</p>
-          <UButton color="primary" :loading="generatingShareLink" @click="generateShareLink">
-            Generate Link
-          </UButton>
-        </div>
-      </div>
+      <ShareAccessPanel
+        :link="shareLink"
+        :loading="generatingShareLink"
+        :expiry-value="shareExpiryValue"
+        resource-label="planned workout"
+        :share-title="
+          workout?.title
+            ? `Planned Workout: ${workout.title}`
+            : 'Planned workout shared from Coach Wattz'
+        "
+        @update:expiry-value="shareExpiryValue = $event"
+        @generate="generateShareLink"
+        @copy="copyToClipboard"
+      />
     </template>
     <template #footer>
       <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
@@ -846,6 +832,7 @@
   // Share functionality
   const isShareModalOpen = ref(false)
   const shareLink = ref('')
+  const shareExpiryValue = ref('2592000')
   const generatingShareLink = ref(false)
   const publishing = ref(false)
 
@@ -1316,17 +1303,21 @@
     }
   }
 
-  const generateShareLink = async () => {
-    if (!workout.value?.id) return
+  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
+    if (!workout.value?.id || generatingShareLink.value) return
 
     generatingShareLink.value = true
     try {
+      const body: Record<string, any> = {
+        resourceType: 'PLANNED_WORKOUT',
+        resourceId: workout.value.id
+      }
+      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
+      if (options?.forceNew) body.forceNew = true
+
       const response = await $fetch('/api/share/generate', {
         method: 'POST',
-        body: {
-          resourceType: 'PLANNED_WORKOUT',
-          resourceId: workout.value.id
-        }
+        body
       })
       shareLink.value = response.url
     } catch (error) {
@@ -1353,10 +1344,8 @@
   }
 
   watch(isShareModalOpen, (newValue) => {
-    if (newValue && workout.value?.shareToken) {
-      // If token exists (would need API to return it), could pre-fill.
-      // For now we regenerate or check if we store it.
-      // The API generates a new token or returns existing one.
+    if (newValue && !shareLink.value) {
+      generateShareLink()
     }
   })
 
