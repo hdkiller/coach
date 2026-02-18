@@ -76,6 +76,17 @@ export default defineEventHandler(async (event) => {
         quantity: 1
       }
     ],
+    // Collect billing address so Stripe Tax can determine the correct local tax rate
+    billing_address_collection: 'required',
+    // Save the collected address back to the customer for renewal invoices
+    customer_update: {
+      address: 'auto',
+      name: 'auto'
+    },
+    // Automatically calculate and collect local taxes (VAT, GST, etc.)
+    automatic_tax: {
+      enabled: true
+    },
     success_url: successUrl || `${baseUrl}/settings/billing?success=true`,
     cancel_url: cancelUrl || `${baseUrl}/settings/billing?canceled=true`,
     metadata: {
