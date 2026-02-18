@@ -116,7 +116,13 @@
                         size="xs"
                         class="flex items-center gap-1 w-fit"
                       >
-                        <UIcon :name="(report as any).comments[0].isAdmin ? 'i-heroicons-user-circle' : 'i-heroicons-chat-bubble-left'" />
+                        <UIcon
+                          :name="
+                            (report as any).comments[0].isAdmin
+                              ? 'i-heroicons-user-circle'
+                              : 'i-heroicons-chat-bubble-left'
+                          "
+                        />
                         {{ (report as any).comments[0].isAdmin ? 'Support' : 'User' }}
                       </UBadge>
                       <p class="text-[10px] text-gray-400 mt-1 italic">
@@ -128,11 +134,12 @@
                     </template>
                   </td>
                   <td
-                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                    class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white max-w-[200px] sm:max-w-[400px]"
                   >
                     <NuxtLink
                       :to="`/admin/issues/${report.id}`"
-                      class="hover:text-primary transition-colors"
+                      class="hover:text-primary transition-colors truncate block"
+                      :title="report.title"
                     >
                       {{ report.title }}
                     </NuxtLink>
@@ -145,7 +152,9 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     <p>{{ formatDateTime(report.createdAt) }}</p>
-                    <p class="text-[10px] italic mt-0.5">{{ formatRelativeTime(report.createdAt) }}</p>
+                    <p class="text-[10px] italic mt-0.5">
+                      {{ formatRelativeTime(report.createdAt) }}
+                    </p>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <UButton
