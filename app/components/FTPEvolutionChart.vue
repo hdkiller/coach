@@ -5,7 +5,7 @@
     </div>
 
     <div v-else-if="error" class="flex items-center justify-center h-full min-h-[400px]">
-      <p class="text-red-600 dark:text-red-400 font-bold uppercase tracking-widest text-[10px]">
+      <p class="text-red-600 dark:text-red-400 font-black uppercase tracking-widest text-[10px]">
         {{ error }}
       </p>
     </div>
@@ -13,14 +13,14 @@
     <div v-else-if="ftpData" class="h-full flex flex-col">
       <div
         v-if="ftpData.data.length === 0"
-        class="flex items-center justify-center h-full min-h-[400px]"
+        class="flex items-center justify-center h-full min-h-[400px] bg-gray-50/50 dark:bg-gray-950/20 rounded-xl border border-dashed border-gray-200 dark:border-gray-800"
       >
         <div class="text-center">
           <UIcon
-            name="i-heroicons-chart-bar-square"
-            class="w-12 h-12 mx-auto mb-4 text-gray-400 opacity-50"
+            name="i-heroicons-bolt-slash"
+            class="w-8 h-8 mx-auto mb-3 text-gray-400 opacity-50"
           />
-          <p class="text-gray-500 font-bold uppercase tracking-widest text-[10px]">
+          <p class="text-gray-500 font-black uppercase tracking-widest text-[10px]">
             No progression data available
           </p>
         </div>
@@ -32,53 +32,60 @@
           <div
             class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800"
           >
-            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
-              Current FTP
+            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">
+              Current
             </div>
             <div
-              class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight"
+              class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tighter"
             >
               {{ ftpData.summary.currentFTP || '-'
-              }}<span class="text-xs ml-1 text-gray-400">W</span>
+              }}<span class="text-xs ml-1 text-gray-400 font-bold uppercase tracking-widest"
+                >W</span
+              >
             </div>
           </div>
 
           <div
             class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800"
           >
-            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
-              Peak FTP
+            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">
+              Peak
             </div>
             <div
-              class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight"
+              class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tighter"
             >
-              {{ ftpData.summary.peakFTP || '-' }}<span class="text-xs ml-1 text-gray-400">W</span>
+              {{ ftpData.summary.peakFTP || '-'
+              }}<span class="text-xs ml-1 text-gray-400 font-bold uppercase tracking-widest"
+                >W</span
+              >
             </div>
           </div>
 
           <div
             class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800"
           >
-            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
-              Starting FTP
+            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">
+              Floor
             </div>
             <div
-              class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight"
+              class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tighter"
             >
               {{ ftpData.summary.startingFTP || '-'
-              }}<span class="text-xs ml-1 text-gray-400">W</span>
+              }}<span class="text-xs ml-1 text-gray-400 font-bold uppercase tracking-widest"
+                >W</span
+              >
             </div>
           </div>
 
           <div
             class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-800"
           >
-            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
-              Improvement
+            <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 italic">
+              Delta
             </div>
             <div
-              class="text-xl sm:text-2xl font-black tracking-tight"
-              :class="ftpData.summary.improvement >= 0 ? 'text-green-500' : 'text-red-500'"
+              class="text-xl sm:text-2xl font-black tracking-tighter"
+              :class="ftpData.summary.improvement >= 0 ? 'text-emerald-500' : 'text-red-500'"
             >
               {{
                 ftpData.summary.improvement !== null
@@ -91,20 +98,28 @@
 
         <!-- Chart -->
         <div class="flex-1 min-h-[300px] relative">
-          <Line :data="chartData" :options="chartOptions" :height="300" />
+          <Line
+            :key="`ftp-evolution-${chartSettings.smooth}-${chartSettings.yScale}`"
+            :data="chartData"
+            :options="chartOptions"
+            :plugins="[ChartDataLabels]"
+            :height="300"
+          />
         </div>
 
         <!-- Info Section -->
         <div
-          class="p-4 bg-primary-50 dark:bg-primary-950/20 rounded-xl border border-primary-100 dark:border-primary-900/50"
+          class="p-4 bg-primary-50 dark:bg-primary-950/10 rounded-xl border border-primary-100 dark:border-primary-900/50"
         >
           <h4
-            class="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 mb-2 flex items-center gap-2"
+            class="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 mb-1 flex items-center gap-2"
           >
-            <UIcon name="i-heroicons-information-circle" class="size-4" />
-            Performance Metric: FTP
+            <UIcon name="i-heroicons-information-circle" class="size-3.5" />
+            Athlete Profile: FTP
           </h4>
-          <p class="text-xs text-primary-800 dark:text-primary-200 leading-relaxed font-medium">
+          <p
+            class="text-[11px] text-primary-800/80 dark:text-primary-200/60 leading-relaxed font-medium"
+          >
             Functional Threshold Power represents the maximum intensity you can maintain for
             approximately one hour. It serves as the baseline for your personalized training zones.
           </p>
@@ -116,6 +131,7 @@
 
 <script setup lang="ts">
   import { Line } from 'vue-chartjs'
+  import ChartDataLabels from 'chartjs-plugin-datalabels'
   import {
     Chart as ChartJS,
     CategoryScale,
@@ -142,12 +158,22 @@
   const props = defineProps<{
     months?: number | string
     sport?: string
+    settings?: any
   }>()
 
   const theme = useTheme()
   const loading = ref(true)
   const error = ref<string | null>(null)
   const ftpData = ref<any>(null)
+
+  const chartSettings = computed(() => ({
+    smooth: false,
+    showPoints: true,
+    showLabels: true,
+    yScale: 'dynamic',
+    yMin: 0,
+    ...props.settings
+  }))
 
   // Fetch FTP evolution data
   async function fetchFTPData() {
@@ -186,15 +212,15 @@
         {
           label: 'FTP (W)',
           data: ftpValues,
-          borderColor: '#3b82f6', // Blue 500
+          borderColor: theme.colors.value.get('blue', 500),
           backgroundColor: 'transparent',
           borderWidth: 3,
-          pointRadius: 4,
+          pointRadius: (ctx: any) => (chartSettings.value.showPoints ? 4 : 0),
           pointHoverRadius: 6,
-          pointBackgroundColor: '#3b82f6',
+          pointBackgroundColor: theme.colors.value.get('blue', 500),
           pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
           pointBorderWidth: 2,
-          tension: 0.4,
+          tension: chartSettings.value.smooth ? 0.4 : 0,
           fill: false
         }
       ]
@@ -211,6 +237,17 @@
     plugins: {
       legend: {
         display: false
+      },
+      datalabels: {
+        display: (context: any) => {
+          return chartSettings.value.showLabels && context.datasetIndex === 0
+        },
+        color: '#94a3b8',
+        align: 'top' as const,
+        anchor: 'end' as const,
+        offset: 8,
+        font: { size: 10, weight: 'bold' as const },
+        formatter: (value: any) => `${value}W`
       },
       tooltip: {
         backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
@@ -241,22 +278,24 @@
         border: { display: false }
       },
       y: {
+        beginAtZero: false,
         position: 'right' as const,
+        min: chartSettings.value.yScale === 'fixed' ? chartSettings.value.yMin || 0 : undefined,
         grid: {
           color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
           drawTicks: false
         },
         ticks: {
           color: '#94a3b8',
-          font: { size: 10, weight: 'bold' as const }
+          font: { size: 10, weight: 'bold' as const },
+          callback: (value: any) => `${value}W`,
+          maxTicksLimit: 6
         },
-        border: { display: false },
-        beginAtZero: false
+        border: { display: false }
       }
     },
     interaction: {
-      mode: 'nearest' as const,
-      axis: 'x' as const,
+      mode: 'index' as const,
       intersect: false
     }
   }))

@@ -1,16 +1,19 @@
 <template>
   <div class="efficiency-trend-chart h-full w-full">
-    <div v-if="loading" class="flex justify-center items-center h-full">
+    <div v-if="loading" class="flex justify-center items-center h-full min-h-[300px]">
       <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
     </div>
 
     <div
       v-else-if="!trendData || !trendData.trends || trendData.trends.length === 0"
-      class="flex items-center justify-center h-full"
+      class="flex items-center justify-center h-full min-h-[300px] bg-gray-50/50 dark:bg-gray-950/20 rounded-xl border border-dashed border-gray-200 dark:border-gray-800"
     >
       <div class="text-center">
-        <UIcon name="i-heroicons-chart-bar" class="size-12 mx-auto mb-4 text-gray-400 opacity-50" />
-        <p class="text-gray-500 font-bold uppercase tracking-widest text-[10px]">
+        <UIcon
+          name="i-heroicons-bolt-slash"
+          class="w-8 h-8 mx-auto mb-3 text-gray-400 opacity-50"
+        />
+        <p class="text-gray-500 font-black uppercase tracking-widest text-[10px]">
           No efficiency data available
         </p>
       </div>
@@ -20,33 +23,35 @@
       <!-- Status Badge -->
       <div class="flex items-center justify-center mb-6">
         <div
-          class="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800"
+          class="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700"
         >
-          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Trend:</span>
+          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic"
+            >Trajectory:</span
+          >
           <span
             class="text-[10px] font-black uppercase tracking-widest"
             :class="[
-              trendDirection === 'up'
+              trendDirection === 'IMPROVING'
                 ? 'text-green-500'
-                : trendDirection === 'down'
+                : trendDirection === 'DECLINING'
                   ? 'text-red-500'
                   : 'text-blue-500'
             ]"
           >
-            {{
-              trendDirection === 'up'
-                ? 'Improving'
-                : trendDirection === 'down'
-                  ? 'Declining'
-                  : 'Stable'
-            }}
+            {{ trendDirection }}
           </span>
         </div>
       </div>
 
       <!-- Chart Area -->
       <div class="flex-1 min-h-[300px] relative">
-        <Line :data="chartData" :options="chartOptions" :height="300" />
+        <Line
+          :key="`efficiency-${chartSettings.smooth}-${chartSettings.yScale}`"
+          :data="chartData"
+          :options="chartOptions"
+          :plugins="[ChartDataLabels]"
+          :height="300"
+        />
       </div>
     </div>
   </div>
@@ -54,6 +59,7 @@
 
 <script setup lang="ts">
   import { Line } from 'vue-chartjs'
+  import ChartDataLabels from 'chartjs-plugin-datalabels'
   import {
     Chart as ChartJS,
     CategoryScale,
@@ -83,11 +89,21 @@
   const props = defineProps<{
     days?: number | string
     sport?: string
+    settings?: any
   }>()
 
   const theme = useTheme()
   const loading = ref(true)
   const trendData = ref<any>(null)
+
+  const chartSettings = computed(() => ({
+    smooth: true,
+    showPoints: true,
+    showLabels: true,
+    yScale: 'dynamic',
+    yMin: 0,
+    ...props.settings
+  }))
 
   // Fetch efficiency trend data
   async function fetchTrendData() {
@@ -119,7 +135,7 @@
 
   // Calculate trend direction (simple linear regression slope or start vs end comparison)
   const trendDirection = computed(() => {
-    if (!trendData.value?.trends || trendData.value.trends.length < 2) return 'stable'
+    if (!trendData.value?.trends || trendData.value.trends.length < 2) return 'STABLE'
 
     const trends = trendData.value.trends
     // Simple moving average comparison (last 3 vs first 3)
@@ -132,9 +148,9 @@
 
     const percentChange = (endAvg - startAvg) / startAvg
 
-    if (percentChange > 0.02) return 'up'
-    if (percentChange < -0.02) return 'down'
-    return 'stable'
+    if (percentChange > 0.02) return 'IMPROVING'
+    if (percentChange < -0.02) return 'DECLINING'
+    return 'STABLE'
   })
 
   // Chart data
@@ -149,12 +165,12 @@
         {
           label: 'Efficiency Factor (NP/HR)',
           data: trends.map((t: any) => t.efficiencyFactor),
-          borderColor: '#8b5cf6', // Violet 500
+          borderColor: theme.colors.value.get('purple', 500),
           backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 0,
+          borderWidth: 3,
+          pointRadius: (ctx: any) => (chartSettings.value.showPoints ? 3 : 0),
           pointHoverRadius: 5,
-          tension: 0.3,
+          tension: chartSettings.value.smooth ? 0.4 : 0,
           fill: false
         }
       ]
@@ -172,6 +188,17 @@
       legend: {
         display: false
       },
+      datalabels: {
+        display: (context: any) => {
+          return chartSettings.value.showLabels && context.datasetIndex === 0
+        },
+        color: '#94a3b8',
+        align: 'top' as const,
+        anchor: 'end' as const,
+        offset: 4,
+        font: { size: 9, weight: 'bold' as const },
+        formatter: (value: any) => value.toFixed(2)
+      },
       tooltip: {
         backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
         titleColor: theme.isDark.value ? '#f3f4f6' : '#111827',
@@ -182,11 +209,10 @@
         titleFont: { size: 12, weight: 'bold' as const },
         bodyFont: { size: 11 },
         displayColors: true,
-        mode: 'index' as const,
-        intersect: false,
+        boxPadding: 4,
         callbacks: {
           label: function (context: any) {
-            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`
+            return `Efficiency: ${context.parsed.y.toFixed(2)}`
           }
         }
       }
@@ -213,6 +239,7 @@
         border: { display: false }
       },
       y: {
+        min: chartSettings.value.yScale === 'fixed' ? chartSettings.value.yMin || 0 : undefined,
         position: 'right' as const,
         grid: {
           color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
@@ -227,8 +254,7 @@
       }
     },
     interaction: {
-      mode: 'nearest' as const,
-      axis: 'x' as const,
+      mode: 'index' as const,
       intersect: false
     }
   }))

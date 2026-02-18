@@ -10,38 +10,29 @@
     </div>
 
     <div v-else class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <UButton
-            v-for="type in ['power', 'hr'] as const"
-            :key="type"
-            size="xs"
-            :color="selectedType === type ? 'primary' : 'neutral'"
-            :variant="selectedType === type ? 'solid' : 'ghost'"
-            class="font-bold uppercase text-[10px]"
-            @click="selectedType = type"
-          >
-            {{ type === 'power' ? 'Power' : 'Heart Rate' }}
-          </UButton>
-        </div>
-        <div
-          class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+      <div class="flex items-center gap-2">
+        <UButton
+          v-for="type in ['power', 'hr'] as const"
+          :key="type"
+          size="xs"
+          :color="selectedType === type ? 'primary' : 'neutral'"
+          :variant="selectedType === type ? 'solid' : 'ghost'"
+          class="font-black uppercase text-[10px] tracking-widest px-3"
+          @click="selectedType = type"
         >
-          Intensity Distribution (Hrs)
-        </div>
+          {{ type === 'power' ? 'Power' : 'Heart Rate' }}
+        </UButton>
       </div>
 
       <div class="h-64 relative">
-        <Bar :data="chartData" :options="chartOptions" :height="256" />
+        <Bar :data="chartData" :options="chartOptions" :plugins="plugins" :height="256" />
       </div>
 
       <!-- Legend -->
-      <div
-        class="flex flex-wrap gap-x-3 gap-y-1 justify-center pt-2 border-t border-gray-100 dark:border-gray-800"
-      >
+      <div class="flex flex-wrap gap-x-4 gap-y-1 justify-center pt-2">
         <div v-for="(label, i) in activeLabels" :key="label" class="flex items-center gap-1.5">
-          <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: ZONE_COLORS[i] }" />
-          <span class="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase">{{
+          <div class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: ZONE_COLORS[i] }" />
+          <span class="text-[9px] text-gray-500 font-black uppercase tracking-tighter">{{
             label.split(' ')[0]
           }}</span>
         </div>
@@ -68,7 +59,15 @@
   const props = defineProps<{
     weeks?: number | string
     sport?: string
+    settings?: any
+    plugins?: any[]
   }>()
+
+  const chartSettings = computed(() => ({
+    yScale: 'dynamic',
+    yMin: 0,
+    ...props.settings
+  }))
 
   const selectedType = ref<'power' | 'hr'>('power')
 
@@ -145,15 +144,18 @@
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: isDark ? '#1f2937' : '#ffffff',
-          titleColor: isDark ? '#ffffff' : '#1f2937',
-          bodyColor: isDark ? '#d1d5db' : '#4b5563',
+          backgroundColor: isDark ? '#111827' : '#ffffff',
+          titleColor: isDark ? '#f3f4f6' : '#111827',
+          bodyColor: isDark ? '#d1d5db' : '#374151',
           borderColor: isDark ? '#374151' : '#e5e7eb',
           borderWidth: 1,
-          padding: 10,
-          cornerRadius: 8,
+          padding: 12,
+          titleFont: { size: 12, weight: 'bold' as const },
+          bodyFont: { size: 11 },
+          displayColors: true,
+          boxPadding: 4,
           callbacks: {
-            label: (context: any) => ` ${context.dataset.label}: ${context.parsed.y}h`
+            label: (context: any) => ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)}h`
           }
         }
       },
@@ -162,23 +164,33 @@
           stacked: true,
           grid: { display: false },
           ticks: {
-            font: { size: 9, weight: 'bold' as const },
-            color: isDark ? '#9ca3af' : '#6b7280'
-          }
+            font: { size: 10, weight: 'bold' as const },
+            color: '#94a3b8'
+          },
+          border: { display: false }
         },
         y: {
           stacked: true,
-          beginAtZero: true,
+          beginAtZero: chartSettings.value.yScale !== 'fixed',
+          min: chartSettings.value.yScale === 'fixed' ? chartSettings.value.yMin || 0 : undefined,
+          position: 'right' as const,
           grid: {
-            color: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
+            color: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+            drawTicks: false
           },
           ticks: {
-            font: { size: 9 },
-            color: isDark ? '#9ca3af' : '#6b7280',
+            font: { size: 10, weight: 'bold' as const },
+            color: '#94a3b8',
             callback: (value: any) => value + 'h'
-          }
+          },
+          border: { display: false }
         }
       }
     }
+  })
+
+  const plugins = computed(() => {
+    const list = props.plugins || []
+    return list
   })
 </script>
