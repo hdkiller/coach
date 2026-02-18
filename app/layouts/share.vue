@@ -1,16 +1,52 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-    <!-- Simple Header -->
-    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <header
+      class="sticky top-0 z-50 bg-white/75 dark:bg-gray-950/75 backdrop-blur border-b border-gray-200 dark:border-gray-800"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-          <NuxtLink to="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <UIcon name="i-lucide-zap" class="w-6 h-6 text-primary-500" />
-            <span class="font-bold text-lg text-gray-900 dark:text-white">Coach Wattz</span>
+          <NuxtLink to="/" class="flex items-center hover:opacity-90 transition-opacity">
+            <img
+              src="/media/coach-watts.webp"
+              alt="Coach Watts"
+              class="h-12 w-auto object-contain"
+            />
           </NuxtLink>
           <div class="flex items-center gap-4">
-            <UButton to="/" color="primary" variant="soft" size="sm"> Try Coach Wattz </UButton>
+            <div class="hidden sm:flex items-center gap-2">
+              <UButton
+                v-if="route.path !== '/login'"
+                to="/login"
+                variant="ghost"
+                color="neutral"
+                size="sm"
+              >
+                Sign In
+              </UButton>
+              <UButton v-if="route.path !== '/join'" to="/join" color="primary" size="sm">
+                Get Started
+              </UButton>
+            </div>
             <ColorModeButton />
+            <UPopover class="sm:hidden">
+              <UButton icon="i-lucide-menu" color="neutral" variant="ghost" />
+              <template #content>
+                <div class="p-3 w-44 flex flex-col gap-2">
+                  <UButton
+                    v-if="route.path !== '/login'"
+                    to="/login"
+                    variant="ghost"
+                    color="neutral"
+                    block
+                  >
+                    Sign In
+                  </UButton>
+                  <UButton v-if="route.path !== '/join'" to="/join" color="primary" block>
+                    Get Started
+                  </UButton>
+                </div>
+              </template>
+            </UPopover>
           </div>
         </div>
       </div>
@@ -38,3 +74,7 @@
     </footer>
   </div>
 </template>
+
+<script setup lang="ts">
+  const route = useRoute()
+</script>
