@@ -57,7 +57,8 @@
           :disabled="!query.trim()"
           @click="onLog"
         >
-          Log with AI
+          <span class="hidden sm:inline">Log with AI</span>
+          <span class="sm:hidden">Log</span>
         </UButton>
       </div>
     </template>

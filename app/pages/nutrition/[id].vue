@@ -319,7 +319,8 @@
                     size="xs"
                     @click="openAiModal()"
                   >
-                    Log with AI
+                    <span class="hidden sm:inline">Log with AI</span>
+                    <span class="sm:hidden">Log</span>
                   </UButton>
                   <UButton
                     icon="i-heroicons-cog-6-tooth"
