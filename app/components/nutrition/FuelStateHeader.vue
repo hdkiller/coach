@@ -53,30 +53,30 @@
     </div>
 
     <!-- Macro Summary Charts -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
       <div
         v-for="macro in macros"
         :key="macro.label"
-        class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden relative group cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+        class="bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden relative group cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
         @click="showMacroExplain(macro)"
       >
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <UIcon :name="macro.icon" class="w-5 h-5" :class="macro.iconColor" />
-            <span class="text-xs font-bold uppercase text-gray-500 tracking-wider">{{
+        <div class="flex items-center justify-between mb-2 sm:mb-3">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <UIcon :name="macro.icon" class="w-4 h-4 sm:w-5 sm:h-5" :class="macro.iconColor" />
+            <span class="text-[10px] sm:text-xs font-bold uppercase text-gray-500 tracking-wider">{{
               macro.label
             }}</span>
           </div>
-          <span class="text-[10px] font-bold" :class="macro.statusColor"
+          <span class="text-[9px] sm:text-[10px] font-bold" :class="macro.statusColor"
             >{{ macro.percentage }}%</span
           >
         </div>
 
-        <div class="flex items-baseline gap-1 mb-2">
-          <span class="text-2xl font-black text-gray-900 dark:text-white">{{
+        <div class="flex items-baseline gap-1 mb-1 sm:mb-2">
+          <span class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{{
             Math.round(macro.actual)
           }}</span>
-          <span class="text-sm font-bold text-gray-400"
+          <span class="text-[10px] sm:text-sm font-bold text-gray-400"
             >/ {{ Math.round(macro.target) }}{{ macro.unit }}</span
           >
         </div>
