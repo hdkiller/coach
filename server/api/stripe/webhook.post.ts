@@ -2,6 +2,7 @@ import type Stripe from 'stripe'
 import type { SubscriptionStatus, SubscriptionTier } from '@prisma/client'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
+import { auditLogRepository } from '../../utils/repositories/auditLogRepository'
 
 /**
  * Map Stripe subscription status to internal status
@@ -85,7 +86,25 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const status = mapStripeStatus(subscription.status)
   const periodEndTimestamp = subscription.items.data[0]?.current_period_end
   const periodEnd = periodEndTimestamp ? new Date(periodEndTimestamp * 1000) : null
+  const startedAt = new Date(subscription.created * 1000)
+
   // Update user in database (Skip if user is a CONTRIBUTOR)
+  // We use updateMany but usually there is only one user per customerId
+  // We want to set subscriptionStartedAt ONLY if it's currently null and they are moving to a premium tier
+  if (tier !== 'FREE' && status === 'ACTIVE') {
+    const users = await prisma.user.findMany({
+      where: { stripeCustomerId: customerId }
+    })
+    for (const user of users) {
+      if (!user.subscriptionStartedAt) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { subscriptionStartedAt: startedAt }
+        })
+      }
+    }
+  }
+
   await prisma.user.updateMany({
     where: {
       stripeCustomerId: customerId,
@@ -191,6 +210,30 @@ export default defineEventHandler(async (event) => {
 
   // Handle the event
   try {
+    // 1. Find user for audit logging
+    const customerId = (stripeEvent.data.object as any).customer as string
+    let userId: string | undefined
+
+    if (customerId) {
+      const user = await prisma.user.findUnique({
+        where: { stripeCustomerId: customerId },
+        select: { id: true }
+      })
+      userId = user?.id
+    }
+
+    // 2. Log to AuditLog
+    await auditLogRepository.log({
+      userId,
+      action: `STRIPE_WEBHOOK_${stripeEvent.type.toUpperCase().replace(/\./g, '_')}`,
+      resourceType: 'SUBSCRIPTION',
+      resourceId: (stripeEvent.data.object as any).id,
+      metadata: {
+        stripeEventType: stripeEvent.type,
+        stripeEventId: stripeEvent.id
+      }
+    })
+
     switch (stripeEvent.type) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(stripeEvent.data.object as Stripe.Checkout.Session)

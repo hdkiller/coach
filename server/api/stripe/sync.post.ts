@@ -91,6 +91,7 @@ export default defineEventHandler(async (event) => {
 
     const periodEndTimestamp = activeSub.items.data[0]?.current_period_end
     const periodEnd = periodEndTimestamp ? new Date(periodEndTimestamp * 1000) : null
+    const startedAt = new Date(activeSub.created * 1000)
 
     console.log(`Syncing subscription for user ${session.user.id}:`, {
       subId: activeSub.id,
@@ -98,13 +99,21 @@ export default defineEventHandler(async (event) => {
       periodEndTimestamp,
       periodEnd
     })
+
+    // Check if we need to update startedAt
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { subscriptionStartedAt: true }
+    })
+
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
         stripeSubscriptionId: activeSub.id,
         subscriptionTier: tier,
         subscriptionStatus: status,
-        subscriptionPeriodEnd: periodEnd
+        subscriptionPeriodEnd: periodEnd,
+        ...(currentUser?.subscriptionStartedAt ? {} : { subscriptionStartedAt: startedAt })
       }
     })
     return { status: 'synced', tier, subscriptionStatus: status }
