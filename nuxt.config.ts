@@ -86,6 +86,7 @@ export default defineNuxtConfig({
 
   modules: [
     '@nuxt/ui',
+    '@stefanobartoletti/nuxt-social-share',
     '@sidebase/nuxt-auth',
     '@nuxtjs/mdc',
     '@pinia/nuxt',
@@ -98,6 +99,10 @@ export default defineNuxtConfig({
   colorMode: {
     preference: 'system',
     fallback: 'light'
+  },
+
+  socialShare: {
+    baseUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3099'
   },
 
   nitro: {

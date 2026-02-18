@@ -28,7 +28,14 @@ defineRouteMeta({
                 ]
               },
               resourceId: { type: 'string' },
-              expiresIn: { type: 'number', description: 'Expiration in seconds' }
+              expiresIn: {
+                type: ['number', 'null'],
+                description: 'Expiration in seconds. Null creates a non-expiring link.'
+              },
+              forceNew: {
+                type: 'boolean',
+                description: 'Force a new token instead of reusing the latest active token.'
+              }
             }
           }
         }
@@ -65,7 +72,7 @@ export default defineEventHandler(async (event) => {
   if (!userId) {
     throw createError({ statusCode: 401, message: 'User ID not found in session' })
   }
-  const { resourceType, resourceId, expiresIn } = await readBody(event)
+  const { resourceType, resourceId, expiresIn, forceNew } = await readBody(event)
 
   if (!resourceType || !resourceId) {
     throw createError({ statusCode: 400, message: 'Missing resourceType or resourceId' })
@@ -112,10 +119,28 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Resource not found or access denied' })
   }
 
-  // Check for existing token
-  let shareToken = await prisma.shareToken.findFirst({
-    where: { userId, resourceType, resourceId }
-  })
+  const defaultExpirySeconds = 30 * 24 * 60 * 60
+  const normalizedExpiresIn =
+    expiresIn === null
+      ? null
+      : typeof expiresIn === 'number' && Number.isFinite(expiresIn) && expiresIn > 0
+        ? Math.floor(expiresIn)
+        : defaultExpirySeconds
+  const now = new Date()
+
+  // Reuse existing active token for this resource.
+  let shareToken = null
+  if (!forceNew) {
+    shareToken = await prisma.shareToken.findFirst({
+      where: {
+        userId,
+        resourceType,
+        resourceId,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  }
 
   if (!shareToken) {
     shareToken = await prisma.shareToken.create({
@@ -123,7 +148,8 @@ export default defineEventHandler(async (event) => {
         userId,
         resourceType,
         resourceId,
-        expiresAt: expiresIn ? new Date(Date.now() + expiresIn * 1000) : null // Default to null (no expiration)
+        expiresAt:
+          normalizedExpiresIn === null ? null : new Date(now.getTime() + normalizedExpiresIn * 1000)
       }
     })
   }

@@ -17,6 +17,7 @@
     "@sentry/node": "^10.32.1",
     "@sentry/nuxt": "^10",
     "@sidebase/nuxt-auth": "^1.1.1",
+    "@stefanobartoletti/nuxt-social-share": "^2.3.1",
     "@tiptap/extension-image": "^3.15.1",
     "@tiptap/extension-link": "^3.15.1",
     "@tiptap/extension-placeholder": "^3.15.1",
