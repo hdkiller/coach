@@ -15,6 +15,7 @@ import backfillMaxWattsCommand from './max-watts'
 import backfillProfileCommand from './profile'
 import backfillOuraCommand from './wellness-oura'
 import backfillChatRoomsCommand from './chat-rooms'
+import backfillWorkoutSummaryNotesCommand from './workout-summary-notes'
 
 const backfill = new Command('backfill')
 
@@ -36,5 +37,6 @@ backfill
   .addCommand(backfillProfileCommand)
   .addCommand(backfillOuraCommand)
   .addCommand(backfillChatRoomsCommand)
+  .addCommand(backfillWorkoutSummaryNotesCommand)
 
 export default backfill

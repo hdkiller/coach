@@ -8,6 +8,7 @@ import { userAnalysisQueue } from './queues'
 import { getUserTimezone, formatUserDate, calculateAge } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
+import { publishWorkoutSummaryToIntervals } from '../server/utils/services/workout-summary-publish'
 import {
   buildAnalysisRequestMetricRules,
   buildMetricPriorityPromptBlock,
@@ -366,6 +367,23 @@ export const analyzeWorkoutTask = task({
       })
 
       logger.log('Analysis saved to database')
+
+      try {
+        const publishResult = await publishWorkoutSummaryToIntervals(workoutId, workout.userId)
+        if (publishResult.published) {
+          logger.log('Published AI summary to Intervals.icu notes', { workoutId })
+        } else {
+          logger.log('Skipped auto-publishing AI summary', {
+            workoutId,
+            reason: publishResult.reason
+          })
+        }
+      } catch (publishError) {
+        logger.warn('Auto-publish to Intervals.icu notes failed', {
+          workoutId,
+          error: publishError
+        })
+      }
 
       return {
         success: true,
