@@ -30,21 +30,12 @@
     </template>
 
     <template #body>
-      <div class="max-w-4xl mx-auto w-full p-4 sm:p-6 pb-24">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"
-            />
-            <p
-              class="mt-4 text-sm text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest"
-            >
-              Loading status...
-            </p>
-          </div>
+      <div class="max-w-4xl mx-auto w-full p-0 sm:p-6 pb-24">
+        <div v-if="loading" class="flex items-center justify-center py-24">
+          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary-500" />
         </div>
 
-        <div v-else-if="error" class="text-center py-12">
+        <div v-else-if="error" class="p-6 text-center">
           <UAlert
             icon="i-heroicons-exclamation-triangle"
             color="error"
@@ -54,9 +45,12 @@
           />
         </div>
 
-        <div v-else-if="nutrition" class="space-y-8">
+        <div v-else-if="nutrition" class="space-y-4 sm:space-y-8">
           <!-- 0. THE DATE HEADER -->
-          <UCard class="border-primary-100 dark:border-primary-900 shadow-sm overflow-hidden">
+          <UCard
+            :ui="{ root: 'rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x' }"
+            class="border-primary-100 dark:border-primary-900 shadow-sm overflow-hidden"
+          >
             <div class="flex items-center gap-2 sm:justify-between relative z-10">
               <UButton
                 icon="i-heroicons-chevron-left"
@@ -70,7 +64,7 @@
                 class="min-w-0 flex-1 px-2 sm:px-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center"
               >
                 <!-- Title Section -->
-                <div class="md:col-span-1">
+                <div class="md:col-span-2">
                   <div
                     class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic mb-1"
                   >
@@ -95,7 +89,7 @@
 
                 <!-- Desktop Fuel State (Consolidated) -->
                 <div
-                  class="hidden md:flex md:col-span-2 items-center justify-between pl-6 border-l border-gray-100 dark:border-gray-800"
+                  class="hidden md:flex md:col-span-1 items-center justify-between pl-6 border-l border-gray-100 dark:border-gray-800"
                 >
                   <div class="space-y-1">
                     <div class="flex items-center gap-2">
@@ -109,24 +103,19 @@
                               : 'text-blue-600 dark:text-blue-400'
                         ]"
                       >
-                        Fuel State {{ fuelState }}: {{ stateLabel }}
+                        {{ stateLabel }}
                       </h2>
                       <UTooltip v-if="nutrition.isManualLock" text="Manual Lock Enabled">
                         <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-gray-400" />
                       </UTooltip>
                     </div>
-                    <p class="text-xs text-gray-500 font-medium">
-                      {{ stateDescription }}
+                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic">
+                      Fuel State {{ fuelState }}
                     </p>
                   </div>
 
                   <!-- Goal Profile Offset -->
                   <div v-if="goalAdjustment !== 0" class="text-right">
-                    <div
-                      class="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1 italic"
-                    >
-                      Goal Offset
-                    </div>
                     <UBadge
                       variant="soft"
                       :color="goalAdjustment < 0 ? 'error' : 'success'"
@@ -170,12 +159,12 @@
               fat: nutrition.fat || 0
             }"
             :hide-banner="true"
-            class="md:!-mt-4"
+            class="px-4 sm:px-0 md:!-mt-4"
           />
 
           <!-- Mobile-only Banner (Duplicate for mobile logic simplicity) -->
           <div
-            class="md:hidden rounded-xl p-4 shadow-sm border transition-all duration-500 -mt-4"
+            class="md:hidden rounded-none sm:rounded-xl p-4 shadow-none sm:shadow border-y sm:border border-gray-100 dark:border-gray-800 transition-all duration-500"
             :class="[
               fuelState === 3
                 ? 'bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/50'
@@ -218,7 +207,7 @@
 
           <!-- 1.5 LIVE ENERGY CHART -->
           <div
-            class="bg-white dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 p-4"
+            class="bg-white dark:bg-gray-900/50 rounded-none sm:rounded-xl border-y sm:border border-gray-100 dark:border-gray-800 p-4 sm:p-6 shadow-none sm:shadow"
           >
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-1.5">
@@ -260,15 +249,17 @@
               />
             </ClientOnly>
 
-            <UAlert
-              v-if="missingPlannedStartTimeCount > 0"
-              class="mt-4"
-              color="warning"
-              variant="soft"
-              icon="i-heroicons-exclamation-triangle"
-              title="Planned activity missing start time"
-              :description="missingStartTimeWarning"
-            />
+            <div class="px-1">
+              <UAlert
+                v-if="missingPlannedStartTimeCount > 0"
+                class="mt-4"
+                color="warning"
+                variant="soft"
+                icon="i-heroicons-exclamation-triangle"
+                title="Planned activity missing start time"
+                :description="missingStartTimeWarning"
+              />
+            </div>
 
             <!-- Legend/Status -->
             <div
@@ -302,7 +293,7 @@
           </div>
 
           <!-- 2. THE TIMELINE (The What & When) -->
-          <div class="space-y-4">
+          <div class="space-y-4 px-4 sm:px-0">
             <div class="flex items-center justify-between">
               <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
                 Fueling Timeline
@@ -338,6 +329,8 @@
               icon="i-heroicons-information-circle"
               :description="`Daily carb target reached (${Math.round(nutrition.carbs || 0)}/${Math.round(nutrition.carbsGoal || 0)}g). Remaining window carbs are timing-focused and optional.`"
             />
+          </div>
+          <div class="sm:px-0">
             <NutritionFuelingTimeline
               :windows="timeline"
               :is-locked="nutrition.isManualLock"
@@ -349,68 +342,76 @@
           </div>
 
           <!-- 3. AI INSIGHTS (Expanded Analysis) -->
-          <UCard
-            v-if="nutrition.aiAnalysisJson"
-            class="mt-8 overflow-hidden border-primary-100 dark:border-primary-900 shadow-lg"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-lg font-black uppercase tracking-tighter flex items-center gap-2">
-                  <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
-                  Coach Analysis
-                </h2>
-                <UButton
-                  variant="ghost"
-                  color="neutral"
-                  icon="i-heroicons-arrow-path"
-                  size="xs"
-                  @click="analyzeNutrition"
-                  >Refresh</UButton
-                >
-              </div>
-            </template>
+          <div class="px-0 sm:px-0">
+            <UCard
+              v-if="nutrition.aiAnalysisJson"
+              :ui="{
+                root: 'rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x',
+                body: 'p-4 sm:p-6'
+              }"
+              class="mt-4 sm:mt-8 overflow-hidden border-primary-100 dark:border-primary-900 shadow-lg"
+            >
+              <template #header>
+                <div class="flex items-center justify-between">
+                  <h2 class="text-lg font-black uppercase tracking-tighter flex items-center gap-2">
+                    <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
+                    Coach Analysis
+                  </h2>
+                  <UButton
+                    variant="ghost"
+                    color="neutral"
+                    icon="i-heroicons-arrow-path"
+                    size="xs"
+                    @click="analyzeNutrition"
+                    >Refresh</UButton
+                  >
+                </div>
+              </template>
 
-            <div class="space-y-6">
-              <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl">
-                <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-                  {{ nutrition.aiAnalysisJson.executive_summary }}
-                </p>
-              </div>
+              <div class="space-y-6">
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl">
+                  <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                    {{ nutrition.aiAnalysisJson.executive_summary }}
+                  </p>
+                </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  v-for="section in nutrition.aiAnalysisJson.sections"
-                  :key="section.title"
-                  class="space-y-2"
-                >
-                  <h4 class="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                    {{ section.title }}
-                  </h4>
-                  <ul class="space-y-1">
-                    <li
-                      v-for="point in section.analysis_points"
-                      :key="point"
-                      class="text-xs flex items-start gap-2"
-                    >
-                      <UIcon
-                        name="i-heroicons-chevron-right"
-                        class="w-3 h-3 mt-0.5 text-primary-500"
-                      />
-                      {{ point }}
-                    </li>
-                  </ul>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    v-for="section in nutrition.aiAnalysisJson.sections"
+                    :key="section.title"
+                    class="space-y-2"
+                  >
+                    <h4 class="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                      {{ section.title }}
+                    </h4>
+                    <ul class="space-y-1">
+                      <li
+                        v-for="point in section.analysis_points"
+                        :key="point"
+                        class="text-xs flex items-start gap-2"
+                      >
+                        <UIcon
+                          name="i-heroicons-chevron-right"
+                          class="w-3 h-3 mt-0.5 text-primary-500"
+                        />
+                        {{ point }}
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          </UCard>
+            </UCard>
+          </div>
 
           <!-- 4. MANUAL NOTES -->
-          <NotesEditor
-            v-model="nutrition.notes"
-            :notes-updated-at="nutrition.notesUpdatedAt"
-            :api-endpoint="`/api/nutrition/${nutrition.id}/notes`"
-            @update:notes-updated-at="nutrition.notesUpdatedAt = $event"
-          />
+          <div class="px-4 sm:px-0">
+            <NotesEditor
+              v-model="nutrition.notes"
+              :notes-updated-at="nutrition.notesUpdatedAt"
+              :api-endpoint="`/api/nutrition/${nutrition.id}/notes`"
+              @update:notes-updated-at="nutrition.notesUpdatedAt = $event"
+            />
+          </div>
         </div>
 
         <NutritionFoodItemModal
