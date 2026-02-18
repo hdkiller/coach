@@ -4,6 +4,7 @@ import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
 import { SubscriptionTier, type User } from '@prisma/client'
 
 export interface QuotaStatus {
+  operation: string
   allowed: boolean
   used: number
   limit: number
@@ -64,6 +65,7 @@ export async function getQuotaStatus(
   }
 
   return {
+    operation,
     allowed: quotaDef.enforcement === 'MEASURE' || used < quotaDef.limit,
     used,
     limit: quotaDef.limit,

@@ -54,12 +54,12 @@
           @save="saveAiSettings"
         />
         <ClientOnly>
-          <SettingsAiUsage />
+          <SettingsAiUsageCharts />
         </ClientOnly>
       </div>
 
       <ClientOnly>
-        <SettingsAiUsageCharts />
+        <SettingsAiQuotas />
       </ClientOnly>
     </div>
 

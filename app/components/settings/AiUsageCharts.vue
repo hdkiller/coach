@@ -97,36 +97,7 @@
             </div>
           </div>
 
-          <!-- Pie Chart Visualization -->
-          <div class="mt-4">
-            <svg viewBox="0 0 200 200" class="w-full max-w-[200px] mx-auto">
-              <circle
-                cx="100"
-                cy="100"
-                r="90"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1"
-                class="text-gray-200 dark:text-gray-700"
-              />
-              <g v-for="(segment, index) in pieSegments" :key="index">
-                <path
-                  :d="segment.path"
-                  :fill="getColor(index)"
-                  :opacity="0.8"
-                  class="hover:opacity-100 transition-opacity cursor-pointer"
-                  @mouseenter="
-                    showTooltip(
-                      $event,
-                      `${formatOperation(segment.label)}: ${segment.value} calls (${segment.percentage}%)`
-                    )
-                  "
-                  @mousemove="moveTooltip($event)"
-                  @mouseleave="hideTooltip"
-                />
-              </g>
-            </svg>
-          </div>
+          <!-- Pie Chart Visualization removed as requested -->
         </div>
       </template>
 
