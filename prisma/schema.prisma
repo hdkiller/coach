@@ -1488,6 +1488,7 @@ model BugReportComment {
 enum BugStatus {
   OPEN
   IN_PROGRESS
+  NEED_MORE_INFO
   RESOLVED
   CLOSED
 }
