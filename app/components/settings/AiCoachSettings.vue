@@ -35,15 +35,7 @@
               'border-primary bg-primary/5': localSettings.aiModelPreference === model.value,
               'opacity-60 grayscale-[0.5]': !isModelAvailable(model)
             }"
-            @click="
-              !isModelAvailable(model)
-                ? upgradeModal.show({
-                    featureTitle: model.label + ' Analysis',
-                    featureDescription: 'Unlock our most advanced AI analysis engines.',
-                    recommendedTier: 'pro'
-                  })
-                : selectModel(model.value)
-            "
+            @click="handleModelClick(model)"
           >
             <input
               type="radio"
@@ -54,10 +46,7 @@
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <div class="font-medium">{{ model.label }}</div>
-                <div
-                  v-if="model.minTier === 'PRO' && !isModelAvailable(model)"
-                  class="flex items-center gap-2"
-                >
+                <div v-if="shouldShowLock(model)" class="flex items-center gap-2">
                   <UBadge color="primary" variant="subtle" size="sm">Pro</UBadge>
                   <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-neutral-500" />
                 </div>
@@ -94,6 +83,7 @@
 
 <script setup lang="ts">
   const props = defineProps<{
+    forceUnlocked?: boolean
     settings: {
       aiPersona: string
       aiModelPreference: string
@@ -148,9 +138,27 @@
   const isContributor = computed(() => userStore.user?.subscriptionStatus === 'CONTRIBUTOR')
 
   function isModelAvailable(model: any) {
+    if (props.forceUnlocked) return true
     if (model.minTier === 'FREE') return true
     if (isContributor.value) return true
     return userStore.hasMinimumTier(model.minTier as any)
+  }
+
+  function shouldShowLock(model: any) {
+    return model.minTier === 'PRO' && !isModelAvailable(model)
+  }
+
+  function handleModelClick(model: any) {
+    if (isModelAvailable(model)) {
+      selectModel(model.value)
+      return
+    }
+
+    upgradeModal.show({
+      featureTitle: model.label + ' Analysis',
+      featureDescription: 'Unlock our most advanced AI analysis engines.',
+      recommendedTier: 'pro'
+    })
   }
 
   function selectModel(value: string) {

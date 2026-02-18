@@ -9,7 +9,10 @@
       </template>
     </UCard>
 
-    <UCard v-if="showUpgradeBanner && !userStore.hasMinimumTier('SUPPORTER')" class="mb-6">
+    <UCard
+      v-if="showUpgradeBanner && !hasSuccessBypass && !userStore.hasMinimumTier('SUPPORTER')"
+      class="mb-6"
+    >
       <div class="flex items-start gap-4">
         <UIcon name="i-heroicons-sparkles" class="w-10 h-10 text-primary shrink-0 mt-1" />
         <div class="flex-1 flex justify-between items-start">
@@ -45,12 +48,18 @@
 
     <!-- Three-column layout for settings, analytics, and charts -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <SettingsAiCoachSettings v-if="aiSettings" :settings="aiSettings" @save="saveAiSettings" />
+      <SettingsAiCoachSettings
+        v-if="aiSettings"
+        :settings="aiSettings"
+        :force-unlocked="hasSuccessBypass"
+        @save="saveAiSettings"
+      />
 
       <div class="flex flex-col gap-6">
         <SettingsAiAutomationSettings
           v-if="aiSettings"
           :settings="aiSettings"
+          :force-unlocked="hasSuccessBypass"
           @save="saveAiSettings"
         />
         <ClientOnly>
@@ -77,6 +86,7 @@
   import { useLocalStorage } from '@vueuse/core'
 
   const toast = useToast()
+  const route = useRoute()
 
   definePageMeta({
     middleware: 'auth'
@@ -94,6 +104,7 @@
 
   const userStore = useUserStore()
   const showUpgradeBanner = useLocalStorage('ai-settings-upgrade-banner', true)
+  const hasSuccessBypass = computed(() => route.query.success === 'true')
 
   // Fetch AI settings
   const { data: aiSettings, refresh: refreshSettings } = await useFetch('/api/settings/ai', {

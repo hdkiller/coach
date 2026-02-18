@@ -15,11 +15,11 @@
             v-model="localSettings.aiAutoAnalyzeReadiness"
             label="Auto-analyze Readiness"
             description="Generate coaching tips for your day automatically"
-            :disabled="!userStore.hasMinimumTier('SUPPORTER')"
+            :disabled="!canUseTier('SUPPORTER')"
             @update:model-value="handleChange"
           />
         </div>
-        <div v-if="!userStore.hasMinimumTier('SUPPORTER')" class="flex items-center gap-2">
+        <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
           <UBadge color="primary" variant="subtle" size="xs">Supporter</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
@@ -45,11 +45,11 @@
             v-model="localSettings.aiAutoAnalyzeWorkouts"
             label="Auto-analyze Workouts"
             description="Generate insights for every workout that syncs"
-            :disabled="!userStore.hasMinimumTier('SUPPORTER')"
+            :disabled="!canUseTier('SUPPORTER')"
             @update:model-value="handleChange"
           />
         </div>
-        <div v-if="!userStore.hasMinimumTier('SUPPORTER')" class="flex items-center gap-2">
+        <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
           <UBadge color="primary" variant="subtle" size="xs">Supporter</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
@@ -75,11 +75,11 @@
             v-model="localSettings.aiAutoAnalyzeNutrition"
             label="Auto-analyze Nutrition"
             description="Evaluate meal quality and compliance automatically"
-            :disabled="!userStore.hasMinimumTier('SUPPORTER')"
+            :disabled="!canUseTier('SUPPORTER')"
             @update:model-value="handleChange"
           />
         </div>
-        <div v-if="!userStore.hasMinimumTier('SUPPORTER')" class="flex items-center gap-2">
+        <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
           <UBadge color="primary" variant="subtle" size="xs">Supporter</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
@@ -105,11 +105,11 @@
             v-model="localSettings.aiDeepAnalysisEnabled"
             label="Thoughtful Analysis"
             description="Use advanced reasoning for more thorough activity breakdowns"
-            :disabled="!userStore.hasMinimumTier('PRO')"
+            :disabled="!canUseTier('PRO')"
             @update:model-value="handleChange"
           />
         </div>
-        <div v-if="!userStore.hasMinimumTier('PRO')" class="flex items-center gap-2">
+        <div v-if="!canUseTier('PRO')" class="flex items-center gap-2">
           <UBadge color="primary" variant="subtle" size="xs">Pro</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
@@ -135,11 +135,11 @@
             v-model="localSettings.aiProactivityEnabled"
             label="Proactive Coaching"
             description="Allow the coach to send you unprompted tips and warnings"
-            :disabled="!userStore.hasMinimumTier('PRO')"
+            :disabled="!canUseTier('PRO')"
             @update:model-value="handleChange"
           />
         </div>
-        <div v-if="!userStore.hasMinimumTier('PRO')" class="flex items-center gap-2">
+        <div v-if="!canUseTier('PRO')" class="flex items-center gap-2">
           <UBadge color="primary" variant="subtle" size="xs">Pro</UBadge>
           <UButton
             icon="i-heroicons-lock-closed"
@@ -183,6 +183,7 @@
 
 <script setup lang="ts">
   const props = defineProps<{
+    forceUnlocked?: boolean
     settings: {
       aiAutoAnalyzeWorkouts: boolean
       aiAutoAnalyzeNutrition: boolean
@@ -202,6 +203,11 @@
   const saving = ref(false)
   const userStore = useUserStore()
   const upgradeModal = useUpgradeModal()
+
+  function canUseTier(tier: 'SUPPORTER' | 'PRO') {
+    if (props.forceUnlocked) return true
+    return userStore.hasMinimumTier(tier)
+  }
 
   function handleChange() {
     // Auto-save on change (optional)
