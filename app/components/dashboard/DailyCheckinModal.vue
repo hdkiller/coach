@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Daily Coach Check-In">
+  <UModal
+    v-model:open="isOpen"
+    title="Daily Coach Check-In"
+    description="Dialog content and actions."
+  >
     <template #body>
       <div class="space-y-4">
         <!-- Header with Refreshing State -->

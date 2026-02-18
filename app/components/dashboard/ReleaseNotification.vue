@@ -55,7 +55,12 @@
     </div>
 
     <!-- Release Modal -->
-    <UModal v-model:open="isReleaseModalOpen" :ui="{ content: 'sm:max-w-2xl' }">
+    <UModal
+      v-model:open="isReleaseModalOpen"
+      :ui="{ content: 'sm:max-w-2xl' }"
+      title="Dialog"
+      description="Dialog content and actions."
+    >
       <template #title>
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-sparkles" class="w-6 h-6 text-primary-500" />

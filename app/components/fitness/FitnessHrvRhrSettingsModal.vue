@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="isOpen">
+  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
     <template #content>
       <UCard>
         <template #header>
@@ -19,8 +19,12 @@
         <div class="space-y-6 max-h-[70vh] overflow-y-auto p-1">
           <!-- Baseline Calculations -->
           <div class="space-y-4">
-            <h4 class="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-widest text-primary-500">Baseline & Logic</h4>
-            
+            <h4
+              class="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-widest text-primary-500"
+            >
+              Baseline & Logic
+            </h4>
+
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Baseline Window</div>
@@ -41,8 +45,12 @@
 
             <div class="space-y-2">
               <div class="flex items-center justify-between">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">Normal Range Width</div>
-                <span class="text-xs font-bold text-primary-500">{{ settings.stdDevMultiplier }}x σ</span>
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Normal Range Width
+                </div>
+                <span class="text-xs font-bold text-primary-500"
+                  >{{ settings.stdDevMultiplier }}x σ</span
+                >
               </div>
               <USlider
                 :model-value="settings.stdDevMultiplier * 10"
@@ -50,7 +58,9 @@
                 :max="20"
                 :step="1"
                 size="sm"
-                @update:model-value="val => settings.stdDevMultiplier = Array.isArray(val) ? val[0] / 10 : val / 10"
+                @update:model-value="
+                  (val) => (settings.stdDevMultiplier = Array.isArray(val) ? val[0] / 10 : val / 10)
+                "
               />
             </div>
           </div>
@@ -59,8 +69,12 @@
 
           <!-- Visualization -->
           <div class="space-y-4">
-            <h4 class="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-widest text-primary-500">Visualization</h4>
-            
+            <h4
+              class="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-widest text-primary-500"
+            >
+              Visualization
+            </h4>
+
             <div class="flex items-center justify-between">
               <div class="text-sm font-medium text-gray-900 dark:text-white">Chart Type</div>
               <USelect
@@ -92,18 +106,14 @@
                 <div class="text-sm font-medium text-gray-900 dark:text-white">HRV Axis Min</div>
                 <span class="text-xs font-bold text-primary-500">{{ settings.hrvMin }}ms</span>
               </div>
-              <USlider
-                v-model="settings.hrvMin"
-                :min="0"
-                :max="100"
-                :step="5"
-                size="sm"
-              />
+              <USlider v-model="settings.hrvMin" :min="0" :max="100" :step="5" size="sm" />
             </div>
 
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">Inverse RHR Axis</div>
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Inverse RHR Axis
+                </div>
                 <div class="text-xs text-muted">Flip RHR so "Up" is "Better".</div>
               </div>
               <USwitch v-model="settings.inverseRhr" />
@@ -116,7 +126,9 @@
 
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">Show Sleep Correlation</div>
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Show Sleep Correlation
+                </div>
                 <div class="text-xs text-muted">Show sleep hours as background bars.</div>
               </div>
               <USwitch v-model="settings.showSleepBars" />
@@ -124,7 +136,9 @@
 
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">Show Data Labels</div>
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Show Data Labels
+                </div>
                 <div class="text-xs text-muted">Show values on top of bars/points.</div>
               </div>
               <USwitch v-model="settings.showLabels" />
@@ -132,7 +146,9 @@
 
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">Show Axis Titles</div>
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Show Axis Titles
+                </div>
                 <div class="text-xs text-muted">Toggle HRV/RHR labels on sides.</div>
               </div>
               <USwitch v-model="settings.showAxisTitles" />
@@ -141,7 +157,9 @@
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Area Opacity</div>
-                <span class="text-xs text-muted">{{ Math.round((settings.opacity || 0) * 100) }}%</span>
+                <span class="text-xs text-muted"
+                  >{{ Math.round((settings.opacity || 0) * 100) }}%</span
+                >
               </div>
               <USlider
                 :model-value="(settings.opacity || 0) * 100"
@@ -149,7 +167,9 @@
                 :max="50"
                 :step="1"
                 size="sm"
-                @update:model-value="val => settings.opacity = Array.isArray(val) ? val[0] / 100 : val / 100"
+                @update:model-value="
+                  (val) => (settings.opacity = Array.isArray(val) ? val[0] / 100 : val / 100)
+                "
               />
             </div>
           </div>
@@ -158,7 +178,11 @@
 
           <!-- Overlays -->
           <div class="space-y-4">
-            <h4 class="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-widest text-primary-500">Contextual Overlays</h4>
+            <h4
+              class="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-widest text-primary-500"
+            >
+              Contextual Overlays
+            </h4>
             <div class="grid grid-cols-2 gap-3">
               <UCheckbox v-model="settings.showAlcohol" label="Alcohol" />
               <UCheckbox v-model="settings.showStrain" label="High Strain" />

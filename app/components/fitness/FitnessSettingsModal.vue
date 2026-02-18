@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="isOpen">
+  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
     <template #content>
       <UCard>
         <template #header>
@@ -21,7 +21,11 @@
             Select which charts you want to display on your fitness dashboard.
           </p>
           <div class="space-y-4">
-            <div v-for="chart in chartOptions" :key="chart.key" class="flex items-center justify-between">
+            <div
+              v-for="chart in chartOptions"
+              :key="chart.key"
+              class="flex items-center justify-between"
+            >
               <div class="text-sm font-medium text-gray-900 dark:text-white">
                 {{ chart.label }}
               </div>

@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Today's Training Recommendation">
+  <UModal
+    v-model:open="isOpen"
+    title="Today's Training Recommendation"
+    description="Dialog content and actions."
+  >
     <template #body>
       <div v-if="recommendation" class="space-y-4">
         <!-- Recommendation Badge -->
