@@ -102,98 +102,125 @@
 
                           >
 
-                            <FitnessTrendChart
+                                      <FitnessTrendChart
 
-                              metric-key="recovery"
+                                        metric-key="recovery"
 
-                              title="Recovery Trajectory"
+                                        title="Recovery Trajectory"
 
-                              :loading="loading"
+                                        :loading="loading"
 
-                              :data="recoveryTrendData"
+                                        :data="recoveryTrendData"
 
-                              :options="getChartOptions('recovery', chartSettings.recovery.type)"
+                                        :options="getChartOptions('recovery')"
 
-                              :settings="chartSettings.recovery"
+                                        :settings="chartSettings.recovery"
 
-                              @settings="openChartSettings('recovery', 'Recovery')"
+                                        @settings="openChartSettings('recovery', 'Recovery')"
 
-                            />
+                                      />
 
-                  
+                            
 
-                            <FitnessTrendChart
+                                      <FitnessTrendChart
 
-                              metric-key="sleep"
+                                        metric-key="sleep"
 
-                              title="Sleep Duration"
+                                        title="Sleep Duration"
 
-                              :loading="loading"
+                                        :loading="loading"
 
-                              :data="sleepTrendData"
+                                        :data="sleepTrendData"
 
-                              :options="getChartOptions('sleep', chartSettings.sleep.type)"
+                                        :options="getChartOptions('sleep')"
 
-                              :settings="chartSettings.sleep"
+                                        :settings="chartSettings.sleep"
 
-                              @settings="openChartSettings('sleep', 'Sleep')"
+                                        @settings="openChartSettings('sleep', 'Sleep')"
 
-                            />
+                                      />
 
-                  
+                            
 
-                            <FitnessTrendChart
+                                      <FitnessTrendChart
 
-                              metric-key="hrv"
+                                        metric-key="hrv"
 
-                              title="Heart Rate Variability"
+                                        title="Heart Rate Variability"
 
-                              :loading="loading"
+                                        :loading="loading"
 
-                              :data="hrvTrendData"
+                                        :data="hrvTrendData"
 
-                              :options="getChartOptions('hrv', chartSettings.hrv.type)"
+                                        :options="getChartOptions('hrv')"
 
-                              :settings="chartSettings.hrv"
+                                        :settings="chartSettings.hrv"
 
-                              @settings="openChartSettings('hrv', 'HRV')"
+                                        @settings="openChartSettings('hrv', 'HRV')"
 
-                            />
+                                      />
 
-                  
+                            
 
-                            <FitnessTrendChart
+                                      <FitnessTrendChart
 
-                              metric-key="restingHr"
+                                        metric-key="restingHr"
 
-                  
-              title="Resting Heart Rate"
-              :loading="loading"
-              :data="restingHrTrendData"
-              :options="getChartOptions('restingHr', chartSettings.restingHr.type)"
-              :settings="chartSettings.restingHr"
-              @settings="openChartSettings('restingHr', 'Resting HR')"
-            />
+                                        title="Resting Heart Rate"
 
-            <FitnessTrendChart
-              metric-key="weight"
-              title="Mass Progression"
-              :loading="loading"
-              :data="weightTrendData"
-              :options="getChartOptions('weight', chartSettings.weight.type)"
-              :settings="chartSettings.weight"
-              @settings="openChartSettings('weight', 'Weight')"
-            />
+                                        :loading="loading"
 
-            <FitnessTrendChart
-              metric-key="bp"
-              title="Blood Pressure"
-              :loading="loading"
-              :data="bpTrendData"
-              :options="getChartOptions('bp', chartSettings.bp.type)"
-              :settings="chartSettings.bp"
-              @settings="openChartSettings('bp', 'Blood Pressure')"
-            />
+                                        :data="restingHrTrendData"
+
+                                        :options="getChartOptions('restingHr')"
+
+                                        :settings="chartSettings.restingHr"
+
+                                        @settings="openChartSettings('restingHr', 'Resting HR')"
+
+                                      />
+
+                            
+
+                                      <FitnessTrendChart
+
+                                        metric-key="weight"
+
+                                        title="Mass Progression"
+
+                                        :loading="loading"
+
+                                        :data="weightTrendData"
+
+                                        :options="getChartOptions('weight')"
+
+                                        :settings="chartSettings.weight"
+
+                                        @settings="openChartSettings('weight', 'Weight')"
+
+                                      />
+
+                            
+
+                                      <FitnessTrendChart
+
+                                        metric-key="bp"
+
+                                        title="Blood Pressure"
+
+                                        :loading="loading"
+
+                                        :data="bpTrendData"
+
+                                        :options="getChartOptions('bp')"
+
+                                        :settings="chartSettings.bp"
+
+                                        @settings="openChartSettings('bp', 'Blood Pressure')"
+
+                                      />
+
+                            
           </div>
 
           <!-- Filter Area -->
@@ -325,7 +352,16 @@
   }
 
   const chartSettings = computed(() => {
-    return userStore.user?.dashboardSettings?.fitnessCharts || defaultChartSettings
+    const userSettings = userStore.user?.dashboardSettings?.fitnessCharts || {}
+    // Ensure every key in defaultChartSettings exists by merging them one by one
+    const merged: any = {}
+    for (const key in defaultChartSettings) {
+      merged[key] = {
+        ...defaultChartSettings[key],
+        ...(userSettings[key] || {})
+      }
+    }
+    return merged
   })
 
   function openChartSettings(key: string, title: string) {
@@ -996,9 +1032,10 @@
     }
   }))
 
-  function getChartOptions(key: string, type: 'line' | 'bar') {
+  function getChartOptions(key: string) {
     const opts = JSON.parse(JSON.stringify(baseChartOptions.value))
-    const settings = chartSettings.value[key] || defaultChartSettings[key] || {}
+    const settings = chartSettings.value[key]
+    const type = settings.type || 'line'
 
         // Show legend if any analysis overlays or multi-datasets are active
 
