@@ -34,14 +34,43 @@
   // doesn't leave the user looking at the upgrade plans.
   onMounted(async () => {
     if (showSuccessMessage.value) {
+      await pollSubscription()
+    } else {
+      await userStore.fetchUser()
+    }
+  })
+
+  const polling = ref(false)
+  async function pollSubscription(maxAttempts = 5, interval = 3000) {
+    polling.value = true
+    let attempts = 0
+
+    while (attempts < maxAttempts) {
       try {
+        // 1. Sync with Stripe
         await $fetch('/api/stripe/sync', { method: 'POST' })
-      } catch {
-        // Sync is best-effort; ignore errors
+        // 2. Fetch updated user store
+        await userStore.fetchUser()
+
+        // 3. Check if upgraded
+        if (
+          userStore.user?.subscriptionTier !== 'FREE' &&
+          userStore.user?.subscriptionStatus === 'ACTIVE'
+        ) {
+          polling.value = false
+          return
+        }
+      } catch (e) {
+        console.warn('Subscription poll attempt failed:', e)
+      }
+
+      attempts++
+      if (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, interval))
       }
     }
-    await userStore.fetchUser()
-  })
+    polling.value = false
+  }
 
   // Computed
   const isPremium = computed(() => {
@@ -195,14 +224,22 @@
     <div class="space-y-4">
       <UAlert
         v-if="showSuccessMessage"
-        title="Subscription Activated!"
-        icon="i-heroicons-check-circle"
-        color="success"
+        :title="polling ? 'Confirming Subscription...' : 'Subscription Activated!'"
+        :icon="polling ? 'i-heroicons-arrow-path' : 'i-heroicons-check-circle'"
+        :color="polling ? 'info' : 'success'"
         variant="soft"
-        :close="{ color: 'success', variant: 'link', label: 'Dismiss' }"
-        description="Your subscription has been successfully activated. Welcome aboard!"
+        :close="{ color: polling ? 'info' : 'success', variant: 'link', label: 'Dismiss' }"
+        :description="
+          polling
+            ? 'We are verifying your payment with Stripe. This may take a few seconds...'
+            : 'Your subscription has been successfully activated. Welcome aboard!'
+        "
         @update:open="showSuccessMessage = false"
-      />
+      >
+        <template v-if="polling" #icon>
+          <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 animate-spin" />
+        </template>
+      </UAlert>
 
       <UAlert
         v-if="showCanceledMessage"
