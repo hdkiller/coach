@@ -5,7 +5,7 @@ import { BugStatus } from '@prisma/client'
 import { createUserNotification } from '../../../utils/notifications'
 
 const updateSchema = z.object({
-  status: z.nativeEnum(BugStatus).optional(),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO', 'RESOLVED', 'CLOSED']).optional(),
   priority: z.string().optional(),
   metadata: z.any().optional()
 })
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     if (result.data.status && report) {
       await createUserNotification(report.userId, {
         title: 'Issue Updated',
-        message: `Your issue "${report.title}" status is now ${report.status}.`,
+        message: `Your issue "${report.title}" status is now ${report.status.replace('_', ' ')}.`,
         icon: 'i-heroicons-bug-ant',
         link: `/issues/${report.id}`
       })
@@ -47,6 +47,11 @@ export default defineEventHandler(async (event) => {
 
     return report
   } catch (error: any) {
-    throw createError({ statusCode: 404, statusMessage: 'Bug report not found' })
+    console.error('[AdminIssuesUpdate] Error:', error)
+    throw createError({
+      statusCode: error.statusCode || 500,
+      statusMessage: error.statusMessage || 'Internal Server Error',
+      message: error.message || 'An unexpected error occurred while updating the bug report'
+    })
   }
 })

@@ -160,7 +160,13 @@ export const issuesRepository = {
    */
   async update(
     id: string,
-    data: { status?: BugStatus; priority?: string; title?: string; description?: string },
+    data: {
+      status?: BugStatus
+      priority?: string
+      title?: string
+      description?: string
+      metadata?: any
+    },
     userId?: string
   ) {
     // If userId is provided, ensure ownership
@@ -171,9 +177,16 @@ export const issuesRepository = {
       if (!existing) return null
     }
 
+    const updateData: any = { ...data }
+
+    // If metadata is provided, we merge it or set it
+    if (data.metadata) {
+      updateData.metadata = data.metadata
+    }
+
     return prisma.bugReport.update({
       where: { id },
-      data
+      data: updateData
     })
   },
 
