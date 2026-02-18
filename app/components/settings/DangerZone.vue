@@ -119,7 +119,11 @@
     </UCard>
 
     <!-- Clear Schedule Confirmation Modal -->
-    <UModal v-model:open="isClearScheduleModalOpen" title="Clear Future Schedule">
+    <UModal
+      v-model:open="isClearScheduleModalOpen"
+      title="Clear Future Schedule"
+      description="Dialog content and actions."
+    >
       <template #body>
         <p>
           Are you sure? This will delete ALL future planned workouts from your schedule AND remove
@@ -140,7 +144,11 @@
     </UModal>
 
     <!-- Clear Past Schedule Confirmation Modal -->
-    <UModal v-model:open="isClearPastScheduleModalOpen" title="Clear Past Schedule">
+    <UModal
+      v-model:open="isClearPastScheduleModalOpen"
+      title="Clear Past Schedule"
+      description="Dialog content and actions."
+    >
       <template #body>
         <p>
           Are you sure? This will delete ALL past planned workouts that were NOT completed. This
@@ -161,7 +169,11 @@
     </UModal>
 
     <!-- Wipe Profiles Confirmation Modal -->
-    <UModal v-model:open="isWipeProfilesModalOpen" title="Wipe Athlete Profiles">
+    <UModal
+      v-model:open="isWipeProfilesModalOpen"
+      title="Wipe Athlete Profiles"
+      description="Dialog content and actions."
+    >
       <template #body>
         <p>
           Are you sure? This will permanently delete all AI athlete profiles and reset your
@@ -182,7 +194,11 @@
     </UModal>
 
     <!-- Wipe AI Analysis Confirmation Modal -->
-    <UModal v-model:open="isWipeAnalysisModalOpen" title="Wipe AI Analysis Data">
+    <UModal
+      v-model:open="isWipeAnalysisModalOpen"
+      title="Wipe AI Analysis Data"
+      description="Dialog content and actions."
+    >
       <template #body>
         <p>
           Are you sure? This will delete all AI-generated workout analyses, recommendations, and
@@ -202,7 +218,11 @@
     </UModal>
 
     <!-- Delete Account Confirmation Modal -->
-    <UModal v-model:open="isDeleteAccountModalOpen" title="Delete Account">
+    <UModal
+      v-model:open="isDeleteAccountModalOpen"
+      title="Delete Account"
+      description="Dialog content and actions."
+    >
       <template #body>
         <p class="text-error font-semibold mb-2">Warning: This action is irreversible.</p>
         <p>All your data including workouts, metrics, and reports will be permanently deleted.</p>

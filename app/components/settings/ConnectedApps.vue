@@ -554,7 +554,11 @@
       </div>
     </UCard>
 
-    <UModal v-model:open="advancedSyncModalOpen" title="Advanced Sync">
+    <UModal
+      v-model:open="advancedSyncModalOpen"
+      title="Advanced Sync"
+      description="Dialog content and actions."
+    >
       <template #body>
         <div class="space-y-4">
           <p>Select how many days of historical data you would like to sync from Intervals.icu.</p>
@@ -587,7 +591,11 @@
       </template>
     </UModal>
 
-    <UModal v-model:open="intervalsSettingsModalOpen" title="Intervals.icu Settings">
+    <UModal
+      v-model:open="intervalsSettingsModalOpen"
+      title="Intervals.icu Settings"
+      description="Dialog content and actions."
+    >
       <template #body>
         <div class="space-y-6 sm:min-w-[400px]">
           <UFormField

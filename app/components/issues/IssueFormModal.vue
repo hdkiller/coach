@@ -65,7 +65,7 @@
 </script>
 
 <template>
-  <UModal v-model:open="isOpen">
+  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
     <template #content>
       <UCard :ui="{ body: 'p-0 sm:p-6' }">
         <template #header>

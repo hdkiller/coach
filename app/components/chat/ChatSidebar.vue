@@ -21,6 +21,7 @@
     :open="isOpen"
     title="Chat History"
     side="left"
+    description="Dialog content and actions."
     @update:open="emit('update:isOpen', $event)"
   >
     <template #content>

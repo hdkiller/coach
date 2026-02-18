@@ -238,7 +238,11 @@
     <div v-else class="text-left py-8 text-sm text-gray-500 px-4">No chat history yet</div>
 
     <!-- Rename Modal -->
-    <UModal v-model:open="isRenameModalOpen" title="Rename Chat">
+    <UModal
+      v-model:open="isRenameModalOpen"
+      title="Rename Chat"
+      description="Dialog content and actions."
+    >
       <template #body>
         <div class="space-y-4">
           <UFormField label="New Name">
@@ -316,7 +320,11 @@
     </UModal>
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="isDeleteModalOpen" title="Delete Chat Room">
+    <UModal
+      v-model:open="isDeleteModalOpen"
+      title="Delete Chat Room"
+      description="Dialog content and actions."
+    >
       <template #body>
         <p class="text-sm text-gray-500 dark:text-gray-400">
           Are you sure you want to delete this chat room? This action will remove it from your chat
