@@ -79,199 +79,79 @@
             />
 
             <!-- Score Trend Chart (Primary Visualization) -->
-            <UCard
-              :ui="{
-                root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                body: 'p-4 sm:p-6'
-              }"
-            >
-              <template #header>
-                <div
-                  class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0"
-                >
-                  <div>
-                    <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                      Performance Trajectory
-                    </h3>
-                    <p class="text-[10px] text-gray-500 uppercase font-medium mt-0.5">
-                      30-day cross-metric integrity trend
-                    </p>
-                  </div>
-                  <div class="flex flex-wrap items-center gap-3">
-                    <div class="flex items-center gap-1.5">
-                      <div class="size-2 rounded-full bg-blue-500" />
-                      <span class="text-[10px] text-gray-500 font-bold uppercase">Trend</span>
-                    </div>
-                  </div>
-                </div>
-              </template>
-              <div v-if="workoutTrendsLoading" class="h-[300px] flex items-center justify-center">
-                <UIcon name="i-heroicons-arrow-path" class="size-8 animate-spin text-primary-500" />
-              </div>
-              <div v-else class="h-[300px]">
-                <ClientOnly>
-                  <TrendChart :data="workoutTrendsData?.workouts || []" type="workout" />
-                </ClientOnly>
-              </div>
-            </UCard>
+            <WorkoutTrajectoryCard
+              :loading="workoutTrendsLoading"
+              :data="workoutTrendsData?.workouts || []"
+              :settings="chartSettings.performance"
+              @settings="
+                openChartSettings('performance', 'Performance Trajectory', {
+                  max: 10,
+                  step: 1,
+                  showOverlays: false
+                })
+              "
+            />
 
             <!-- Training Load & Volume Mix -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UCard
-                :ui="{
-                  root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                  body: 'p-4 sm:p-6'
-                }"
-              >
-                <template #header>
-                  <div class="flex items-start justify-between gap-3">
-                    <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Training Load (30d)
-                    </h3>
-                    <div class="flex items-center gap-2">
-                      <div
-                        class="rounded border border-gray-200 dark:border-gray-700 px-2 py-1 text-[10px] font-bold text-gray-600 dark:text-gray-300"
-                      >
-                        {{ trainingLoadStats.current }} load
-                      </div>
-                      <div
-                        class="rounded border border-gray-200 dark:border-gray-700 px-2 py-1 text-[10px] font-bold text-gray-600 dark:text-gray-300"
-                      >
-                        {{ trainingLoadStats.deltaLabel }}
-                      </div>
-                    </div>
-                  </div>
-                </template>
-                <div v-if="loading" class="h-[200px] flex items-center justify-center">
-                  <USkeleton class="h-full w-full" />
-                </div>
-                <div v-else class="h-[200px]">
-                  <ClientOnly>
-                    <Bar
-                      :data="trainingLoadData"
-                      :options="trainingLoadChartOptions"
-                      :height="200"
-                    />
-                  </ClientOnly>
-                </div>
-              </UCard>
+              <WorkoutTrainingLoadCard
+                :loading="loading"
+                :chart-data="trainingLoadData"
+                :chart-options="trainingLoadChartOptions"
+                :settings="chartSettings.trainingLoad"
+                :stats="trainingLoadStats"
+                @settings="
+                  openChartSettings('trainingLoad', 'Training Load', {
+                    unit: ' pts',
+                    max: 500,
+                    step: 10,
+                    showOverlays: false,
+                    defaultType: 'bar'
+                  })
+                "
+              />
 
-              <UCard
-                :ui="{
-                  root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                  body: 'p-4 sm:p-6'
-                }"
-              >
-                <template #header>
-                  <div class="flex items-start justify-between gap-3">
-                    <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      Weekly Volume Trend
-                    </h3>
-                    <div class="flex items-center gap-2">
-                      <div
-                        class="rounded border border-gray-200 dark:border-gray-700 px-2 py-1 text-[10px] font-bold text-gray-600 dark:text-gray-300"
-                      >
-                        {{ weeklyVolumeStats.currentLabel }}
-                      </div>
-                      <div
-                        class="rounded border border-gray-200 dark:border-gray-700 px-2 py-1 text-[10px] font-bold text-gray-600 dark:text-gray-300"
-                      >
-                        {{ weeklyVolumeStats.deltaLabel }}
-                      </div>
-                    </div>
-                  </div>
-                </template>
-                <div v-if="loading" class="h-[200px] flex items-center justify-center">
-                  <USkeleton class="h-full w-full" />
-                </div>
-                <div v-else class="h-[200px]">
-                  <ClientOnly>
-                    <Bar
-                      :data="weeklyVolumeData"
-                      :options="weeklyVolumeChartOptions"
-                      :height="200"
-                    />
-                  </ClientOnly>
-                </div>
-              </UCard>
+              <WorkoutWeeklyVolumeCard
+                :loading="loading"
+                :chart-data="weeklyVolumeData"
+                :chart-options="weeklyVolumeChartOptions"
+                :settings="chartSettings.weeklyVolume"
+                :stats="weeklyVolumeStats"
+                @settings="
+                  openChartSettings('weeklyVolume', 'Weekly Volume', {
+                    unit: 'h',
+                    max: 50,
+                    step: 1,
+                    showOverlays: false,
+                    defaultType: 'bar'
+                  })
+                "
+              />
             </div>
 
-            <UCard
-              :ui="{
-                root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                body: 'p-4 sm:p-6'
-              }"
-            >
-              <template #header>
-                <div class="flex items-center justify-between gap-3">
-                  <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Relative Effort (8w)
-                  </h3>
-                  <div class="w-32">
-                    <USelect
-                      v-model="relativeEffortBandPreset"
-                      :items="relativeEffortBandOptions"
-                      size="xs"
-                      color="neutral"
-                      variant="outline"
-                    />
-                  </div>
-                </div>
-              </template>
-
-              <div class="space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div class="sm:max-w-[65%]">
-                    <p class="text-xl sm:text-2xl font-black" :class="relativeEffortStatusClass">
-                      {{ relativeEffortStatusTitle }}
-                    </p>
-                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {{ relativeEffortStatusMessage }}
-                    </p>
-                  </div>
-
-                  <div class="grid grid-cols-2 gap-2 sm:w-[270px] shrink-0">
-                    <div
-                      class="rounded border border-gray-200 dark:border-gray-700 px-3 py-2 bg-gray-50/70 dark:bg-gray-800/40 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
-                      role="button"
-                      tabindex="0"
-                      @click="openRelativeEffortExplain('week')"
-                      @keydown.enter.prevent="openRelativeEffortExplain('week')"
-                      @keydown.space.prevent="openRelativeEffortExplain('week')"
-                    >
-                      <p class="text-[10px] uppercase tracking-wider text-gray-500">This Week</p>
-                      <p class="text-lg font-black text-gray-900 dark:text-white">
-                        {{ relativeEffortCurrentScore }}
-                      </p>
-                    </div>
-                    <div
-                      class="rounded border border-gray-200 dark:border-gray-700 px-3 py-2 bg-gray-50/70 dark:bg-gray-800/40 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
-                      role="button"
-                      tabindex="0"
-                      @click="openRelativeEffortExplain('range')"
-                      @keydown.enter.prevent="openRelativeEffortExplain('range')"
-                      @keydown.space.prevent="openRelativeEffortExplain('range')"
-                    >
-                      <p class="text-[10px] uppercase tracking-wider text-gray-500">Expected</p>
-                      <p class="text-lg font-black text-gray-900 dark:text-white">
-                        {{ relativeEffortRangeLabel }}
-                      </p>
-                      <p class="text-[10px] text-gray-500 mt-0.5">{{ relativeEffortBandLabel }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="h-[220px]">
-                  <ClientOnly>
-                    <Line
-                      :data="relativeEffortData"
-                      :options="relativeEffortChartOptions"
-                      :height="220"
-                    />
-                  </ClientOnly>
-                </div>
-              </div>
-            </UCard>
+            <WorkoutRelativeEffortCard
+              v-model:band-preset="relativeEffortBandPreset"
+              :chart-data="relativeEffortData"
+              :chart-options="relativeEffortChartOptions"
+              :settings="chartSettings.relativeEffort"
+              :plugins="[ChartDataLabels]"
+              :status-class="relativeEffortStatusClass"
+              :status-title="relativeEffortStatusTitle"
+              :status-message="relativeEffortStatusMessage"
+              :current-score="relativeEffortCurrentScore"
+              :range-label="relativeEffortRangeLabel"
+              :band-label="relativeEffortBandLabel"
+              :band-options="relativeEffortBandOptions"
+              @settings="
+                openChartSettings('relativeEffort', 'Relative Effort', {
+                  unit: ' pts',
+                  max: 500,
+                  step: 10,
+                  showOverlays: false
+                })
+              "
+              @explain="openRelativeEffortExplain"
+            />
           </div>
 
           <!-- SIDEBAR (Right 1/3) -->
@@ -384,35 +264,16 @@
             </div>
 
             <!-- Activity Distribution -->
-            <UCard
-              :ui="{
-                root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                body: 'p-4'
-              }"
-            >
-              <template #header>
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-heroicons-chart-pie" class="size-4 text-emerald-500" />
-                  <h3
-                    class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider"
-                  >
-                    Volume Distribution
-                  </h3>
-                </div>
-              </template>
-              <div v-if="loading" class="h-[200px] flex items-center justify-center">
-                <UIcon name="i-heroicons-arrow-path" class="size-6 animate-spin text-gray-400" />
-              </div>
-              <div v-else class="h-[200px] flex justify-center">
-                <ClientOnly>
-                  <Doughnut
-                    :data="activityDistributionData"
-                    :options="doughnutChartOptions"
-                    :height="200"
-                  />
-                </ClientOnly>
-              </div>
-            </UCard>
+            <WorkoutDistributionCard
+              :loading="loading"
+              :chart-data="activityDistributionData"
+              :chart-options="doughnutChartOptions"
+              :settings="chartSettings.distribution"
+              :plugins="[ChartDataLabels]"
+              @settings="
+                openChartSettings('distribution', 'Volume Distribution', { showOverlays: false })
+              "
+            />
           </div>
 
           <!-- Workout History Table Area (Moved to last for mobile, full width on desktop) -->
@@ -463,6 +324,21 @@
             />
           </div>
         </div>
+
+        <!-- Chart Settings Modal -->
+        <ChartSettingsModal
+          v-if="activeMetricSettings"
+          :metric-key="activeMetricSettings.key"
+          :title="activeMetricSettings.title"
+          :group-key="'workoutCharts'"
+          :unit="activeMetricSettings.unit"
+          :max="activeMetricSettings.max"
+          :step="activeMetricSettings.step"
+          :show-overlays="activeMetricSettings.showOverlays"
+          :default-type="activeMetricSettings.defaultType"
+          :open="!!activeMetricSettings"
+          @update:open="activeMetricSettings = null"
+        />
 
         <!-- Score Detail Modal -->
         <ScoreDetailModal
@@ -597,6 +473,13 @@
   import TrendChart from '~/components/TrendChart.vue'
   import RadarChart from '~/components/RadarChart.vue'
   import ScoreCard from '~/components/ScoreCard.vue'
+  import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
+  import WorkoutTrajectoryCard from '~/components/workouts/WorkoutTrajectoryCard.vue'
+  import WorkoutTrainingLoadCard from '~/components/workouts/WorkoutTrainingLoadCard.vue'
+  import WorkoutWeeklyVolumeCard from '~/components/workouts/WorkoutWeeklyVolumeCard.vue'
+  import WorkoutRelativeEffortCard from '~/components/workouts/WorkoutRelativeEffortCard.vue'
+  import WorkoutDistributionCard from '~/components/workouts/WorkoutDistributionCard.vue'
+  import ChartDataLabels from 'chartjs-plugin-datalabels'
 
   // Register Chart.js components
   ChartJS.register(
@@ -657,11 +540,52 @@
   const toast = useToast()
   const colorMode = useColorMode()
   const theme = useTheme()
+  const userStore = useUserStore()
   const loading = ref(true)
   const analyzingWorkouts = ref(false)
   const allWorkouts = ref<any[]>([])
   const currentPage = ref(1)
   const itemsPerPage = 20
+
+  const activeMetricSettings = ref<{
+    key: string
+    title: string
+    unit?: string
+    max?: number
+    step?: number
+    showOverlays?: boolean
+    defaultType?: 'line' | 'bar'
+  } | null>(null)
+
+  const defaultChartSettings: any = {
+    performance: { smooth: true, showPoints: false, showLabels: false, yScale: 'dynamic', yMin: 0 },
+    trainingLoad: { type: 'bar', showLabels: false, yScale: 'dynamic', yMin: 0 },
+    weeklyVolume: { type: 'bar', showLabels: false, yScale: 'dynamic', yMin: 0 },
+    relativeEffort: {
+      smooth: true,
+      showPoints: true,
+      showLabels: false,
+      yScale: 'dynamic',
+      yMin: 0
+    },
+    distribution: { showLabels: false }
+  }
+
+  const chartSettings = computed(() => {
+    const userSettings = userStore.user?.dashboardSettings?.workoutCharts || {}
+    const merged: any = {}
+    for (const key in defaultChartSettings) {
+      merged[key] = {
+        ...defaultChartSettings[key],
+        ...(userSettings[key] || {})
+      }
+    }
+    return merged
+  })
+
+  function openChartSettings(key: string, title: string, options: any = {}) {
+    activeMetricSettings.value = { key, title, ...options }
+  }
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
@@ -1678,39 +1602,71 @@
     }
   }))
 
-  const trainingLoadChartOptions = computed(() => ({
-    ...baseComboChartOptions.value,
-    plugins: {
-      ...baseComboChartOptions.value.plugins,
-      tooltip: {
-        ...baseComboChartOptions.value.plugins.tooltip,
-        callbacks: {
-          label: (context: any) => {
-            if (context.dataset.label === '7d Average') {
-              return `7d avg: ${context.parsed.y.toFixed(0)} load`
-            }
-            return `Load: ${context.parsed.y.toFixed(0)}`
-          }
-        }
-      }
-    }
-  }))
+  const trainingLoadChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseComboChartOptions.value))
+    const settings = chartSettings.value.trainingLoad
 
-  const weeklyVolumeChartOptions = computed(() => ({
-    ...baseComboChartOptions.value,
-    plugins: {
-      ...baseComboChartOptions.value.plugins,
-      tooltip: {
-        ...baseComboChartOptions.value.plugins.tooltip,
-        callbacks: {
-          label: (context: any) => {
-            const label = context.dataset.label === '4w Average' ? '4w avg' : 'Volume'
-            return `${label}: ${formatHoursMinutes(context.parsed.y)}`
+    opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+    opts.scales.y.beginAtZero = settings.yScale !== 'fixed'
+
+    opts.plugins.datalabels = {
+      display: (context: any) => {
+        return settings.showLabels && context.datasetIndex === 0
+      },
+      color: theme.isDark.value ? '#94a3b8' : '#64748b',
+      align: 'top' as const,
+      anchor: 'end' as const,
+      offset: 4,
+      font: { size: 9, weight: 'bold' as const },
+      formatter: (value: any) => Math.round(value)
+    }
+
+    opts.plugins.tooltip = {
+      ...opts.plugins.tooltip,
+      callbacks: {
+        label: (context: any) => {
+          if (context.dataset.label === '7d Average') {
+            return `7d avg: ${context.parsed.y.toFixed(0)} load`
           }
+          return `Load: ${context.parsed.y.toFixed(0)}`
         }
       }
     }
-  }))
+
+    return opts
+  })
+
+  const weeklyVolumeChartOptions = computed(() => {
+    const opts = JSON.parse(JSON.stringify(baseComboChartOptions.value))
+    const settings = chartSettings.value.weeklyVolume
+
+    opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+    opts.scales.y.beginAtZero = settings.yScale !== 'fixed'
+
+    opts.plugins.datalabels = {
+      display: (context: any) => {
+        return settings.showLabels && context.datasetIndex === 0
+      },
+      color: theme.isDark.value ? '#94a3b8' : '#64748b',
+      align: 'top' as const,
+      anchor: 'end' as const,
+      offset: 4,
+      font: { size: 9, weight: 'bold' as const },
+      formatter: (value: any) => value.toFixed(1)
+    }
+
+    opts.plugins.tooltip = {
+      ...opts.plugins.tooltip,
+      callbacks: {
+        label: (context: any) => {
+          const label = context.dataset.label === '4w Average' ? '4w avg' : 'Volume'
+          return `${label}: ${formatHoursMinutes(context.parsed.y)}`
+        }
+      }
+    }
+
+    return opts
+  })
 
   const relativeEffortChartOptions = computed(() => ({
     responsive: true,

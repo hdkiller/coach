@@ -175,181 +175,93 @@
 
         <!-- 3. PMC Chart (Performance Management Chart) -->
         <div class="space-y-4">
-          <UCard
-            :ui="{
-              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-              body: 'p-4 sm:p-6'
-            }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Fitness & Readiness (PMC)
-                </h2>
-                <USelect
-                  v-model="pmcPeriod"
-                  :items="pmcPeriodOptions"
-                  class="w-32 sm:w-36"
-                  size="xs"
-                  color="neutral"
-                  variant="outline"
-                />
-              </div>
-            </template>
-
-            <PMCChart :days="pmcPeriod" />
-          </UCard>
+          <PerformancePmcCard
+            v-model:period="pmcPeriod"
+            :period-options="pmcPeriodOptions"
+            :settings="chartSettings.pmc"
+            @settings="
+              openChartSettings('pmc', 'Fitness & Readiness (PMC)', {
+                max: 150,
+                step: 5,
+                showOverlays: false
+              })
+            "
+          />
         </div>
 
         <!-- 4. Power Duration Curve -->
         <div class="space-y-4">
-          <UCard
-            :ui="{
-              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-              body: 'p-4 sm:p-6'
-            }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Power Duration Curve
-                </h2>
-                <div class="flex gap-2">
-                  <USelect
-                    v-model="powerCurveSport"
-                    :items="sportOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                  <USelect
-                    v-model="powerCurvePeriod"
-                    :items="periodOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                </div>
-              </div>
-            </template>
-            <!-- Pass days and sport to the updated component for Performance Page mode -->
-            <PowerCurveChart :days="powerCurvePeriod" :sport="powerCurveSport" />
-          </UCard>
+          <PerformancePowerCurveCard
+            v-model:period="powerCurvePeriod"
+            v-model:sport="powerCurveSport"
+            :period-options="periodOptions"
+            :sport-options="sportOptions"
+            :settings="chartSettings.powerCurve"
+            @settings="
+              openChartSettings('powerCurve', 'Power Duration Curve', {
+                unit: 'W',
+                max: 1500,
+                step: 50,
+                showOverlays: false
+              })
+            "
+          />
         </div>
 
         <!-- 5. Efficiency & Decoupling -->
         <div class="space-y-4">
-          <UCard
-            :ui="{
-              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-              body: 'p-4 sm:p-6'
-            }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Aerobic Efficiency Trend
-                </h2>
-                <div class="flex gap-2">
-                  <USelect
-                    v-model="efficiencySport"
-                    :items="sportOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                  <USelect
-                    v-model="efficiencyPeriod"
-                    :items="periodOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                </div>
-              </div>
-            </template>
-            <EfficiencyTrendChart :days="efficiencyPeriod" :sport="efficiencySport" />
-          </UCard>
+          <PerformanceEfficiencyCard
+            v-model:period="efficiencyPeriod"
+            v-model:sport="efficiencySport"
+            :period-options="periodOptions"
+            :sport-options="sportOptions"
+            :settings="chartSettings.efficiency"
+            @settings="
+              openChartSettings('efficiency', 'Aerobic Efficiency', {
+                max: 5,
+                step: 0.1,
+                showOverlays: false
+              })
+            "
+          />
         </div>
 
         <!-- 7. FTP Evolution Chart -->
         <div class="space-y-4">
-          <UCard
-            :ui="{
-              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-              body: 'p-4 sm:p-6'
-            }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Functional Threshold Evolution
-                </h2>
-                <div class="flex gap-2">
-                  <USelect
-                    v-model="ftpSport"
-                    :items="sportOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                  <USelect
-                    v-model="ftpPeriod"
-                    :items="ftpPeriodOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                </div>
-              </div>
-            </template>
-
-            <FTPEvolutionChart :months="ftpPeriod" :sport="ftpSport" />
-          </UCard>
+          <PerformanceFtpEvolutionCard
+            v-model:period="ftpPeriod"
+            v-model:sport="ftpSport"
+            :period-options="ftpPeriodOptions"
+            :sport-options="sportOptions"
+            :settings="chartSettings.ftp"
+            @settings="
+              openChartSettings('ftp', 'FTP Evolution', {
+                unit: 'W',
+                max: 500,
+                step: 10,
+                showOverlays: false
+              })
+            "
+          />
         </div>
 
         <!-- 8. Training Intensity Distribution -->
         <div class="space-y-4">
-          <UCard
-            :ui="{
-              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-              body: 'p-4 sm:p-6'
-            }"
-          >
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
-                  Intensity Distribution
-                </h2>
-                <div class="flex gap-2">
-                  <USelect
-                    v-model="distributionSport"
-                    :items="sportOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                  <USelect
-                    v-model="distributionPeriod"
-                    :items="distributionPeriodOptions"
-                    class="w-32 sm:w-36"
-                    size="xs"
-                    color="neutral"
-                    variant="outline"
-                  />
-                </div>
-              </div>
-            </template>
-
-            <WeeklyZoneChart :weeks="distributionPeriod" :sport="distributionSport" />
-          </UCard>
+          <PerformanceIntensityDistributionCard
+            v-model:period="distributionPeriod"
+            v-model:sport="distributionSport"
+            :period-options="distributionPeriodOptions"
+            :sport-options="sportOptions"
+            :settings="chartSettings.distribution"
+            @settings="
+              openChartSettings('distribution', 'Intensity Distribution', {
+                unit: 'h',
+                max: 50,
+                step: 1,
+                showOverlays: false
+              })
+            "
+          />
         </div>
 
         <!-- 9. Workout Scores -->
@@ -468,23 +380,19 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <!-- Score Trends (2/3 width) -->
               <div class="lg:col-span-2 space-y-4">
-                <UCard
-                  :ui="{
-                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                    body: 'p-4 sm:p-6'
-                  }"
-                >
-                  <template #header>
-                    <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                      Performance Trajectory
-                    </h3>
-                  </template>
-                  <div class="h-[300px]">
-                    <ClientOnly>
-                      <TrendChart :data="workoutData.workouts" type="workout" />
-                    </ClientOnly>
-                  </div>
-                </UCard>
+                <PerformanceScoreTrajectoryCard
+                  title="Performance Trajectory"
+                  :data="workoutData.workouts"
+                  type="workout"
+                  :settings="chartSettings.performance"
+                  @settings="
+                    openChartSettings('performance', 'Performance Trajectory', {
+                      max: 10,
+                      step: 1,
+                      showOverlays: false
+                    })
+                  "
+                />
               </div>
 
               <!-- Current Balance (1/3 width) -->
@@ -622,23 +530,19 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <!-- Score Trends (2/3 width) -->
               <div class="lg:col-span-2 space-y-4">
-                <UCard
-                  :ui="{
-                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
-                    body: 'p-4 sm:p-6'
-                  }"
-                >
-                  <template #header>
-                    <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                      Fueling Trajectory
-                    </h3>
-                  </template>
-                  <div class="h-[300px]">
-                    <ClientOnly>
-                      <TrendChart :data="nutritionData.nutrition" type="nutrition" />
-                    </ClientOnly>
-                  </div>
-                </UCard>
+                <PerformanceScoreTrajectoryCard
+                  title="Fueling Trajectory"
+                  :data="nutritionData.nutrition"
+                  type="nutrition"
+                  :settings="chartSettings.nutrition"
+                  @settings="
+                    openChartSettings('nutrition', 'Fueling Trajectory', {
+                      max: 10,
+                      step: 1,
+                      showOverlays: false
+                    })
+                  "
+                />
               </div>
 
               <!-- Current Balance (1/3 width) -->
@@ -673,6 +577,20 @@
             </div>
           </div>
         </div>
+
+        <ChartSettingsModal
+          v-if="activeMetricSettings"
+          :metric-key="activeMetricSettings.key"
+          :title="activeMetricSettings.title"
+          :group-key="'performanceCharts'"
+          :unit="activeMetricSettings.unit"
+          :max="activeMetricSettings.max"
+          :step="activeMetricSettings.step"
+          :show-overlays="activeMetricSettings.showOverlays"
+          :default-type="activeMetricSettings.defaultType"
+          :open="!!activeMetricSettings"
+          @update:open="activeMetricSettings = null"
+        />
       </div>
     </template>
   </UDashboardPanel>
@@ -683,8 +601,54 @@
   import PowerCurveChart from '~/components/PowerCurveChart.vue'
   import EfficiencyTrendChart from '~/components/EfficiencyTrendChart.vue'
   import ReadinessCorrelationChart from '~/components/ReadinessCorrelationChart.vue'
+  import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
+  import PerformancePmcCard from '~/components/performance/PerformancePmcCard.vue'
+  import PerformancePowerCurveCard from '~/components/performance/PerformancePowerCurveCard.vue'
+  import PerformanceEfficiencyCard from '~/components/performance/PerformanceEfficiencyCard.vue'
+  import PerformanceFtpEvolutionCard from '~/components/performance/PerformanceFtpEvolutionCard.vue'
+  import PerformanceIntensityDistributionCard from '~/components/performance/PerformanceIntensityDistributionCard.vue'
+  import PerformanceScoreTrajectoryCard from '~/components/performance/PerformanceScoreTrajectoryCard.vue'
+  import ChartDataLabels from 'chartjs-plugin-datalabels'
 
+  const userStore = useUserStore()
+  const theme = useTheme()
   const { formatDate: baseFormatDate } = useFormat()
+
+  const activeMetricSettings = ref<{
+    key: string
+    title: string
+    unit?: string
+    max?: number
+    step?: number
+    showOverlays?: boolean
+    defaultType?: 'line' | 'bar'
+  } | null>(null)
+
+  const defaultChartSettings: any = {
+    pmc: { smooth: true, yScale: 'dynamic', yMin: 0 },
+    powerCurve: { smooth: true, yScale: 'dynamic', yMin: 0 },
+    efficiency: { smooth: true, showPoints: true, yScale: 'dynamic', yMin: 0 },
+    ftp: { type: 'line', smooth: false, showPoints: true, yScale: 'dynamic', yMin: 0 },
+    distribution: { type: 'bar', yScale: 'dynamic', yMin: 0 },
+    performance: { smooth: true, showPoints: false, yScale: 'dynamic', yMin: 0 },
+    nutrition: { smooth: true, showPoints: false, yScale: 'dynamic', yMin: 0 }
+  }
+
+  const chartSettings = computed(() => {
+    const userSettings = userStore.user?.dashboardSettings?.performanceCharts || {}
+    const merged: any = {}
+    for (const key in defaultChartSettings) {
+      merged[key] = {
+        ...defaultChartSettings[key],
+        ...(userSettings[key] || {})
+      }
+    }
+    return merged
+  })
+
+  function openChartSettings(key: string, title: string, options: any = {}) {
+    activeMetricSettings.value = { key, title, ...options }
+  }
 
   definePageMeta({
     middleware: 'auth',
