@@ -24,6 +24,7 @@ defineRouteMeta({
                 aiProactivityEnabled: { type: 'boolean' },
                 aiDeepAnalysisEnabled: { type: 'boolean' },
                 aiContext: { type: 'string', nullable: true },
+                updateWorkoutNotesEnabled: { type: 'boolean' },
                 nickname: { type: 'string', nullable: true }
               }
             }
@@ -58,6 +59,7 @@ export default defineEventHandler(async (event) => {
       aiDeepAnalysisEnabled: true,
       aiContext: true,
       nutritionTrackingEnabled: true,
+      updateWorkoutNotesEnabled: true,
       nickname: true
     }
   })
@@ -80,6 +82,7 @@ export default defineEventHandler(async (event) => {
     aiDeepAnalysisEnabled: user.aiDeepAnalysisEnabled ?? false,
     aiContext: user.aiContext,
     nutritionTrackingEnabled: user.nutritionTrackingEnabled ?? true,
+    updateWorkoutNotesEnabled: user.updateWorkoutNotesEnabled ?? true,
     nickname: user.nickname
   }
 })

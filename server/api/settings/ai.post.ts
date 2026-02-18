@@ -26,6 +26,7 @@ defineRouteMeta({
               aiDeepAnalysisEnabled: { type: 'boolean' },
               aiContext: { type: 'string', nullable: true },
               nutritionTrackingEnabled: { type: 'boolean' },
+              updateWorkoutNotesEnabled: { type: 'boolean' },
               nickname: { type: 'string', nullable: true }
             }
           }
@@ -51,6 +52,7 @@ defineRouteMeta({
                     aiRequireToolApproval: { type: 'boolean' },
                     aiContext: { type: 'string', nullable: true },
                     nutritionTrackingEnabled: { type: 'boolean' },
+                    updateWorkoutNotesEnabled: { type: 'boolean' },
                     nickname: { type: 'string', nullable: true }
                   }
                 }
@@ -86,6 +88,7 @@ export default defineEventHandler(async (event) => {
     aiDeepAnalysisEnabled,
     aiContext,
     nutritionTrackingEnabled,
+    updateWorkoutNotesEnabled,
     nickname
   } = body
 
@@ -120,6 +123,7 @@ export default defineEventHandler(async (event) => {
       ...(aiDeepAnalysisEnabled !== undefined && { aiDeepAnalysisEnabled }),
       ...(aiContext !== undefined && { aiContext }),
       ...(nutritionTrackingEnabled !== undefined && { nutritionTrackingEnabled }),
+      ...(updateWorkoutNotesEnabled !== undefined && { updateWorkoutNotesEnabled }),
       ...(nickname !== undefined && { nickname })
     },
     select: {
@@ -133,6 +137,7 @@ export default defineEventHandler(async (event) => {
       aiDeepAnalysisEnabled: true,
       aiContext: true,
       nutritionTrackingEnabled: true,
+      updateWorkoutNotesEnabled: true,
       nickname: true
     }
   })
