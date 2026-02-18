@@ -48,8 +48,17 @@
         <div v-else-if="nutrition" class="space-y-4 sm:space-y-8">
           <!-- 0. THE DATE HEADER -->
           <UCard
-            :ui="{ root: 'rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x' }"
-            class="border-primary-100 dark:border-primary-900 shadow-sm overflow-hidden"
+            :ui="{
+              root: 'rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x'
+            }"
+            class="shadow-sm overflow-hidden"
+            :class="[
+              fuelState === 3
+                ? 'border-red-200 dark:border-red-900/50'
+                : fuelState === 2
+                  ? 'border-orange-200 dark:border-orange-900/50'
+                  : 'border-blue-200 dark:border-blue-900/50'
+            ]"
           >
             <div class="flex items-center gap-2 sm:justify-between relative z-10">
               <UButton
