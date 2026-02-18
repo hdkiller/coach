@@ -1,10 +1,13 @@
 import { getServerSession } from '../../../utils/session'
-import { prisma } from '../../../utils/db'
+import { issuesRepository } from '../../../utils/repositories/issuesRepository'
 import { z } from 'zod'
 import { BugStatus } from '@prisma/client'
+import { createUserNotification } from '../../../utils/notifications'
 
 const updateSchema = z.object({
-  status: z.nativeEnum(BugStatus)
+  status: z.nativeEnum(BugStatus).optional(),
+  priority: z.string().optional(),
+  metadata: z.any().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -30,18 +33,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const report = await prisma.bugReport.update({
-      where: { id },
-      data: {
-        status: result.data.status
-      }
-    })
+    const report = await issuesRepository.update(id, result.data)
+
+    // Notify user about status change if status was updated
+    if (result.data.status && report) {
+      await createUserNotification(report.userId, {
+        title: 'Issue Updated',
+        message: `Your issue "${report.title}" status is now ${report.status}.`,
+        icon: 'i-heroicons-bug-ant',
+        link: `/issues/${report.id}`
+      })
+    }
 
     return report
   } catch (error: any) {
-    if (error.code === 'P2025') {
-      throw createError({ statusCode: 404, statusMessage: 'Bug report not found' })
-    }
-    throw error
+    throw createError({ statusCode: 404, statusMessage: 'Bug report not found' })
   }
 })

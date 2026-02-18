@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../../utils/session'
-import { prisma } from '../../../../utils/db'
+import { issuesRepository } from '../../../../utils/repositories/issuesRepository'
 import { z } from 'zod'
+import { createUserNotification } from '../../../../utils/notifications'
 
 const commentSchema = z.object({
   content: z.string().min(1).max(2000)
@@ -28,23 +29,19 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const comment = await prisma.bugReportComment.create({
-    data: {
-      bugReportId: id,
-      userId: session.user.id,
-      content: result.data.content,
-      isAdmin: true
-    },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-          image: true
-        }
-      }
-    }
-  })
+  const comment = await issuesRepository.addComment(id, session.user.id, result.data.content, true)
+
+  // Notify user about the new comment
+  const report = await issuesRepository.getById(id)
+
+  if (report) {
+    await createUserNotification(report.userId, {
+      title: 'New Developer Comment',
+      message: `A developer commented on your issue: "${report.title}"`,
+      icon: 'i-heroicons-chat-bubble-left-right',
+      link: `/issues/${id}`
+    })
+  }
 
   return comment
 })
