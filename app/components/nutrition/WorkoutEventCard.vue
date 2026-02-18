@@ -11,9 +11,11 @@
 
       <div
         class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
-        @click="navigateTo(isCompleted(workout) ? `/workouts/${workout.id}` : `/workouts/planned/${workout.id}`)"
+        @click="
+          navigateTo(isCompleted(workout) ? `/workouts/${workout.id}` : `/workouts/planned/${workout.id}`)
+        "
       >
-        <div class="space-y-1">
+        <div class="space-y-1 flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h3
               class="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
@@ -51,38 +53,68 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <div
-            v-if="startTime"
-            class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center min-w-[70px]"
-          >
-            <div
-              class="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase leading-none mb-1"
-            >
-              Start
+        <!-- Right Side: Mini Chart & Status -->
+        <div class="flex items-center gap-4 shrink-0 max-w-full">
+          <!-- Mini Chart -->
+          <div class="w-20 sm:w-32 flex-shrink-0">
+            <!-- Mini Workout Chart (Structured Planned) -->
+            <div v-if="!isCompleted(workout) && workout.structuredWorkout" class="opacity-75">
+              <MiniWorkoutChart
+                :workout="workout.structuredWorkout"
+                :preference="
+                  getPreferredMetric(getActivityZones(workout), {
+                    hasHr: !!workout.structuredWorkout.steps?.some((s: any) => s.heartRate),
+                    hasPower: !!workout.structuredWorkout.steps?.some((s: any) => s.power),
+                    hasPace: !!workout.structuredWorkout.steps?.some((s: any) => s.pace)
+                  })
+                "
+                class="w-full h-6 sm:h-8"
+              />
             </div>
-            <div class="text-[10px] font-bold text-gray-900 dark:text-white uppercase leading-none">
-              {{ formatTime(startTime) }}
+
+            <!-- Mini Zone Chart (Completed Streams) -->
+            <div v-else-if="isCompleted(workout) && workout.hasStreams" class="opacity-75">
+              <MiniZoneChart
+                :workout-id="workout.id"
+                :auto-load="false"
+                :user-zones="getActivityZones(workout)"
+              />
             </div>
           </div>
 
-          <div
-            class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center min-w-[70px]"
-          >
+          <div class="flex items-center gap-2">
             <div
-              class="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase leading-none mb-1"
+              v-if="startTime"
+              class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center min-w-[70px]"
             >
-              Status
+              <div
+                class="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase leading-none mb-1"
+              >
+                Start
+              </div>
+              <div class="text-[10px] font-bold text-gray-900 dark:text-white uppercase leading-none">
+                {{ formatTime(startTime) }}
+              </div>
             </div>
+
             <div
-              :class="[
-                'text-[10px] font-bold uppercase leading-none',
-                isCompleted(workout)
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-primary-600 dark:text-primary-400'
-              ]"
+              class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 text-center min-w-[70px]"
             >
-              {{ getStatusLabel(workout) }}
+              <div
+                class="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase leading-none mb-1"
+              >
+                Status
+              </div>
+              <div
+                :class="[
+                  'text-[10px] font-bold uppercase leading-none',
+                  isCompleted(workout)
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-primary-600 dark:text-primary-400'
+                ]"
+              >
+                {{ getStatusLabel(workout) }}
+              </div>
             </div>
           </div>
         </div>
@@ -92,6 +124,12 @@
 </template>
 
 <script setup lang="ts">
+  import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
+  import MiniZoneChart from '~/components/MiniZoneChart.vue'
+  import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
+
+  const userStore = useUserStore()
+
   const props = defineProps<{
     workout: any
     workouts?: any[] // Kept for compatibility
@@ -108,6 +146,19 @@
     if (type.includes('strength') || type.includes('weight')) return 'i-heroicons-trophy'
     return 'i-heroicons-check-circle'
   })
+
+  function getActivityZones(workout: any) {
+    if (!userStore.profile?.sportSettings) return null
+
+    const settings = getSportSettingsForActivity(userStore.profile.sportSettings, workout.type || '')
+    if (!settings) return null
+
+    return {
+      hrZones: settings.hrZones,
+      powerZones: settings.powerZones,
+      loadPreference: settings.loadPreference
+    }
+  }
 
   const strategyLabel = computed(() => {
     if (props.fuelState === 3) return 'Gut Training: Active'
