@@ -283,18 +283,22 @@
   }>()
 
   const emit = defineEmits(['update:modelValue', 'autodetect'])
-  const { formatUserDate, timezone } = useFormat()
+  const { formatDateUTC } = useFormat()
 
   const localProfile = ref({ ...props.modelValue })
-  const dobValue = ref(
-    props.modelValue.dob ? formatUserDate(props.modelValue.dob, timezone.value, 'yyyy-MM-dd') : ''
-  )
+
+  const toDateInputValue = (date: string | Date | null | undefined) => {
+    if (!date) return ''
+    return formatDateUTC(date, 'yyyy-MM-dd')
+  }
+
+  const dobValue = ref(toDateInputValue(props.modelValue.dob))
 
   watch(
     () => props.modelValue,
     (newVal) => {
       localProfile.value = { ...newVal }
-      dobValue.value = newVal.dob ? formatUserDate(newVal.dob, timezone.value, 'yyyy-MM-dd') : ''
+      dobValue.value = toDateInputValue(newVal.dob)
     },
     { deep: true }
   )
@@ -372,7 +376,7 @@
   function confirmAutodetect() {
     Object.assign(localProfile.value, pendingDiffs.value)
     if (pendingDiffs.value.dob) {
-      dobValue.value = formatUserDate(pendingDiffs.value.dob, timezone.value, 'yyyy-MM-dd')
+      dobValue.value = toDateInputValue(pendingDiffs.value.dob)
     }
     emit('autodetect', pendingDetectedProfile.value)
     showConfirmModal.value = false
