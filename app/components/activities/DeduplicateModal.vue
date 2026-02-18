@@ -4,6 +4,7 @@
     title="Deduplicate Activities"
     :ui="{ content: 'sm:max-w-2xl' }"
     :prevent-close="isLoading"
+    description="Dialog content and actions."
   >
     <template #body>
       <div class="space-y-4">

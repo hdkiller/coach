@@ -1,5 +1,10 @@
 <template>
-  <UModal v-model:open="isOpen" :title="title" :ui="{ content: 'max-w-4xl' }">
+  <UModal
+    v-model:open="isOpen"
+    :title="title"
+    :ui="{ content: 'max-w-4xl' }"
+    description="Dialog content and actions."
+  >
     <template #body>
       <div v-if="loading" class="flex justify-center items-center h-64">
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-gray-400" />
