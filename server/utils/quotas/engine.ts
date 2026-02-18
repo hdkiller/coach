@@ -85,6 +85,7 @@ export async function checkQuota(userId: string, operation: string): Promise<Quo
   if (!status) {
     // If no quota defined, we allow it but log it
     return {
+      operation,
       allowed: true,
       used: 0,
       limit: Infinity,

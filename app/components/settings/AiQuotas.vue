@@ -92,17 +92,23 @@
 </template>
 
 <script setup lang="ts">
+  import type { QuotaStatus } from '~/server/utils/quotas/engine'
+
   const { formatRelativeTime } = useFormat()
 
-  const { data, pending } = useFetch('/api/profile/quotas', {
-    server: false,
-    lazy: true
-  })
+  const { data, pending } = useFetch<{ tier: string; quotas: QuotaStatus[] }>(
+    '/api/profile/quotas',
+    {
+      server: false,
+      lazy: true
+    }
+  )
 
   const sortedQuotas = computed(() => {
-    if (!data.value?.quotas) return []
+    const quotas = data.value?.quotas
+    if (!quotas) return []
     // Sort by usage percentage descending
-    return [...data.value.quotas].sort((a, b) => {
+    return [...quotas].sort((a, b) => {
       const bPct = b.used / b.limit
       const aPct = a.used / a.limit
       return bPct - aPct
