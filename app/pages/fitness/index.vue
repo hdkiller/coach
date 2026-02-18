@@ -74,153 +74,92 @@
             :hrv-trend="hrvTrend"
           />
 
-                          <!-- Featured Correlation Chart -->
-
-                          <div v-if="loading || (allWellness.length > 0 && chartSettings.hrvRhrDual?.visible !== false)">
-
-                            <FitnessHrvRhrDualChart
-
-                              :wellness-data="filteredWellness"
-
-                              :loading="loading"
-
-                              @settings="isHrvRhrSettingsModalOpen = true"
-
-                            />
-
-                          </div>
-
-                  
-
-                          <!-- Secondary Charts Grid -->
-
-                          <div
-
-                            v-if="loading || allWellness.length > 0"
-
-                            class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
-
-                          >
-
-                                      <FitnessTrendChart
-
-                                        metric-key="recovery"
-
-                                        title="Recovery Trajectory"
-
-                                        :loading="loading"
-
-                                        :data="recoveryTrendData"
-
-                                        :options="getChartOptions('recovery')"
-
-                                        :settings="chartSettings.recovery"
-
-                                        @settings="openChartSettings('recovery', 'Recovery')"
-
-                                      />
-
-                            
-
-                                      <FitnessTrendChart
-
-                                        metric-key="sleep"
-
-                                        title="Sleep Duration"
-
-                                        :loading="loading"
-
-                                        :data="sleepTrendData"
-
-                                        :options="getChartOptions('sleep')"
-
-                                        :settings="chartSettings.sleep"
-
-                                        @settings="openChartSettings('sleep', 'Sleep')"
-
-                                      />
-
-                            
-
-                                      <FitnessTrendChart
-
-                                        metric-key="hrv"
-
-                                        title="Heart Rate Variability"
-
-                                        :loading="loading"
-
-                                        :data="hrvTrendData"
-
-                                        :options="getChartOptions('hrv')"
-
-                                        :settings="chartSettings.hrv"
-
-                                        @settings="openChartSettings('hrv', 'HRV')"
-
-                                      />
-
-                            
-
-                                      <FitnessTrendChart
-
-                                        metric-key="restingHr"
-
-                                        title="Resting Heart Rate"
-
-                                        :loading="loading"
-
-                                        :data="restingHrTrendData"
-
-                                        :options="getChartOptions('restingHr')"
-
-                                        :settings="chartSettings.restingHr"
-
-                                        @settings="openChartSettings('restingHr', 'Resting HR')"
-
-                                      />
-
-                            
-
-                                      <FitnessTrendChart
-
-                                        metric-key="weight"
-
-                                        title="Mass Progression"
-
-                                        :loading="loading"
-
-                                        :data="weightTrendData"
-
-                                        :options="getChartOptions('weight')"
-
-                                        :settings="chartSettings.weight"
-
-                                        @settings="openChartSettings('weight', 'Weight')"
-
-                                      />
-
-                            
-
-                                      <FitnessTrendChart
-
-                                        metric-key="bp"
-
-                                        title="Blood Pressure"
-
-                                        :loading="loading"
-
-                                        :data="bpTrendData"
-
-                                        :options="getChartOptions('bp')"
-
-                                        :settings="chartSettings.bp"
-
-                                        @settings="openChartSettings('bp', 'Blood Pressure')"
-
-                                      />
-
-                            
+          <!-- Featured Correlation Chart -->
+
+          <div
+            v-if="
+              loading || (allWellness.length > 0 && chartSettings.hrvRhrDual?.visible !== false)
+            "
+          >
+            <FitnessHrvRhrDualChart
+              :wellness-data="filteredWellness"
+              :loading="loading"
+              :plugins="[ChartDataLabels]"
+              @settings="isHrvRhrSettingsModalOpen = true"
+            />
+          </div>
+
+          <!-- Secondary Charts Grid -->
+
+          <div
+            v-if="loading || allWellness.length > 0"
+            class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
+          >
+            <FitnessTrendChart
+              metric-key="recovery"
+              title="Recovery Trajectory"
+              :loading="loading"
+              :data="recoveryTrendData"
+              :options="getChartOptions('recovery')"
+              :settings="chartSettings.recovery"
+              :plugins="[ChartDataLabels]"
+              @settings="openChartSettings('recovery', 'Recovery')"
+            />
+
+            <FitnessTrendChart
+              metric-key="sleep"
+              title="Sleep Duration"
+              :loading="loading"
+              :data="sleepTrendData"
+              :options="getChartOptions('sleep')"
+              :settings="chartSettings.sleep"
+              :plugins="[ChartDataLabels]"
+              @settings="openChartSettings('sleep', 'Sleep')"
+            />
+
+            <FitnessTrendChart
+              metric-key="hrv"
+              title="Heart Rate Variability"
+              :loading="loading"
+              :data="hrvTrendData"
+              :options="getChartOptions('hrv')"
+              :settings="chartSettings.hrv"
+              :plugins="[ChartDataLabels]"
+              @settings="openChartSettings('hrv', 'HRV')"
+            />
+
+            <FitnessTrendChart
+              metric-key="restingHr"
+              title="Resting Heart Rate"
+              :loading="loading"
+              :data="restingHrTrendData"
+              :options="getChartOptions('restingHr')"
+              :settings="chartSettings.restingHr"
+              :plugins="[ChartDataLabels]"
+              @settings="openChartSettings('restingHr', 'Resting HR')"
+            />
+
+            <FitnessTrendChart
+              metric-key="weight"
+              title="Mass Progression"
+              :loading="loading"
+              :data="weightTrendData"
+              :options="getChartOptions('weight')"
+              :settings="chartSettings.weight"
+              :plugins="[ChartDataLabels]"
+              @settings="openChartSettings('weight', 'Weight')"
+            />
+
+            <FitnessTrendChart
+              metric-key="bp"
+              title="Blood Pressure"
+              :loading="loading"
+              :data="bpTrendData"
+              :options="getChartOptions('bp')"
+              :settings="chartSettings.bp"
+              :plugins="[ChartDataLabels]"
+              @settings="openChartSettings('bp', 'Blood Pressure')"
+            />
           </div>
 
           <!-- Filter Area -->
@@ -230,7 +169,9 @@
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="flex items-center gap-3">
-                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0">
+                <span
+                  class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
+                >
                   Recovery
                 </span>
                 <USelect
@@ -245,7 +186,9 @@
               </div>
 
               <div class="flex items-center gap-3">
-                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0">
+                <span
+                  class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
+                >
                   Sleep
                 </span>
                 <USelect
@@ -310,8 +253,7 @@
     Title,
     Tooltip,
     Legend,
-    Filler,
-    ChartDataLabels
+    Filler
   )
 
   definePageMeta({
@@ -343,12 +285,60 @@
   const activeMetricSettings = ref<{ key: string; title: string } | null>(null)
 
   const defaultChartSettings: any = {
-    recovery: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
-    sleep: { type: 'bar', visible: true, smooth: true, showPoints: false, opacity: 0.8, yScale: 'dynamic', yMin: 0 },
-    hrv: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
-    restingHr: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
-    weight: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 },
-    bp: { type: 'line', visible: true, smooth: true, showPoints: false, opacity: 0.5, yScale: 'dynamic', yMin: 0 }
+    recovery: {
+      type: 'line',
+      visible: true,
+      smooth: true,
+      showPoints: false,
+      opacity: 0.5,
+      yScale: 'dynamic',
+      yMin: 0
+    },
+    sleep: {
+      type: 'bar',
+      visible: true,
+      smooth: true,
+      showPoints: false,
+      opacity: 0.8,
+      yScale: 'dynamic',
+      yMin: 0
+    },
+    hrv: {
+      type: 'line',
+      visible: true,
+      smooth: true,
+      showPoints: false,
+      opacity: 0.5,
+      yScale: 'dynamic',
+      yMin: 0
+    },
+    restingHr: {
+      type: 'line',
+      visible: true,
+      smooth: true,
+      showPoints: false,
+      opacity: 0.5,
+      yScale: 'dynamic',
+      yMin: 0
+    },
+    weight: {
+      type: 'line',
+      visible: true,
+      smooth: true,
+      showPoints: false,
+      opacity: 0.5,
+      yScale: 'dynamic',
+      yMin: 0
+    },
+    bp: {
+      type: 'line',
+      visible: true,
+      smooth: true,
+      showPoints: false,
+      opacity: 0.5,
+      yScale: 'dynamic',
+      yMin: 0
+    }
   }
 
   const chartSettings = computed(() => {
@@ -666,7 +656,8 @@
           const start = Math.max(0, index - 29)
           const window = recentWellness.slice(start, index + 1)
           const mean = window.reduce((a, b) => a + b.recoveryScore, 0) / window.length
-          const variance = window.reduce((a, b) => a + Math.pow(b.recoveryScore - mean, 2), 0) / window.length
+          const variance =
+            window.reduce((a, b) => a + Math.pow(b.recoveryScore - mean, 2), 0) / window.length
           return Math.sqrt(variance)
         })
 
@@ -1037,11 +1028,16 @@
     const settings = chartSettings.value[key]
     const type = settings.type || 'line'
 
-        // Show legend if any analysis overlays or multi-datasets are active
+    // Show legend if any analysis overlays or multi-datasets are active
 
-        const hasOverlays = settings.show7dAvg || settings.show30dAvg || settings.showStdDev || settings.showMedian || settings.showTarget || key === 'bp'
-
-     || key === 'bp'
+    const hasOverlays =
+      settings.show7dAvg ||
+      settings.show30dAvg ||
+      settings.showStdDev ||
+      settings.showMedian ||
+      settings.showTarget ||
+      key === 'bp' ||
+      key === 'bp'
 
     opts.plugins.legend = {
       display: !!hasOverlays,
@@ -1083,10 +1079,15 @@
       let unit = ''
       let fixed = 0
       if (key === 'recovery') unit = '%'
-      else if (key === 'sleep') { unit = 'h'; fixed = 1 }
-      else if (key === 'hrv') unit = 'ms'
+      else if (key === 'sleep') {
+        unit = 'h'
+        fixed = 1
+      } else if (key === 'hrv') unit = 'ms'
       else if (key === 'restingHr') unit = ' bpm'
-      else if (key === 'weight') { unit = 'kg'; fixed = 1 }
+      else if (key === 'weight') {
+        unit = 'kg'
+        fixed = 1
+      }
 
       return `${label}: ${value.toFixed(fixed)}${unit}`
     }
@@ -1096,27 +1097,58 @@
     }
 
     if (key === 'recovery') {
-      opts.scales.y.title = { display: true, text: 'Recovery %', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
-      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
-      opts.scales.y.suggestedMax = 100
+      opts.scales.y.title = {
+        display: true,
+        text: 'Recovery %',
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' }
+      }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.suggestedMax = settings.yScale === 'fixed' ? 100 : undefined
     } else if (key === 'sleep') {
-      opts.scales.y.title = { display: true, text: 'Hours (h)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
-      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : 0
-      opts.scales.y.suggestedMax = 12
+      opts.scales.y.title = {
+        display: true,
+        text: 'Hours (h)',
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' }
+      }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.suggestedMax = settings.yScale === 'fixed' ? 12 : undefined
+      opts.scales.y.beginAtZero = false
     } else if (key === 'hrv') {
-      opts.scales.y.title = { display: true, text: 'Variability (ms)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
-      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
-      opts.scales.y.beginAtZero = settings.yScale !== 'fixed'
+      opts.scales.y.title = {
+        display: true,
+        text: 'Variability (ms)',
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' }
+      }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.beginAtZero = false
     } else if (key === 'restingHr') {
-      opts.scales.y.title = { display: true, text: 'Resting HR (bpm)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
-      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
+      opts.scales.y.title = {
+        display: true,
+        text: 'Resting HR (bpm)',
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' }
+      }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
       opts.scales.y.beginAtZero = false
     } else if (key === 'weight') {
-      opts.scales.y.title = { display: true, text: 'Mass (kg)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
-      opts.scales.y.min = settings.yScale === 'fixed' ? (settings.yMin || 0) : undefined
+      opts.scales.y.title = {
+        display: true,
+        text: 'Mass (kg)',
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' }
+      }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
       opts.scales.y.beginAtZero = false
     } else if (key === 'bp') {
-      opts.scales.y.title = { display: true, text: 'Pressure (mmHg)', color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+      opts.scales.y.title = {
+        display: true,
+        text: 'Pressure (mmHg)',
+        color: '#94a3b8',
+        font: { size: 10, weight: 'bold' }
+      }
       opts.scales.y.beginAtZero = false
     }
 

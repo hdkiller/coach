@@ -89,7 +89,7 @@
           class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/30 rounded-lg p-6 shadow-sm border border-purple-200 dark:border-purple-800/30"
         >
           <div class="flex items-center justify-between mb-2">
-            <span class="i-heroicons-heart-pulse w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <span class="i-lucide-heart-pulse w-6 h-6 text-purple-600 dark:text-purple-400" />
           </div>
           <div class="text-3xl font-bold text-purple-900 dark:text-purple-100">
             {{ Math.round(wellness.hrv) }}
@@ -99,262 +99,185 @@
       </div>
 
       <!-- AI Analysis Section (Read Only) -->
-      <div
+      <UCard
         v-if="wellness.aiAnalysisJson"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }"
       >
-        <div class="flex items-center gap-2 mb-4">
-          <span class="i-heroicons-sparkles w-5 h-5 text-primary-500" />
-          <h2 class="text-lg font-bold text-gray-900 dark:text-white">AI Analysis</h2>
-        </div>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-cpu-chip" class="size-4 text-primary-500" />
+            <h2
+              class="text-base font-black uppercase tracking-widest text-gray-900 dark:text-white"
+            >
+              AI Integrity Audit
+            </h2>
+          </div>
+        </template>
 
-        <!-- Executive Summary -->
-        <div
-          class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800 mb-6"
-        >
-          <h3
-            class="text-base font-semibold text-blue-900 dark:text-blue-100 mb-4 flex items-center gap-2"
-          >
-            <span class="i-heroicons-light-bulb w-5 h-5" />
-            Quick Take
-          </h3>
-          <p class="text-base text-gray-800 dark:text-gray-200 leading-relaxed">
-            {{ wellness.aiAnalysisJson.executive_summary }}
-          </p>
-        </div>
-
-        <!-- Analysis Sections -->
-        <div v-if="wellness.aiAnalysisJson.sections" class="grid grid-cols-1 gap-4">
+        <div class="space-y-6">
+          <!-- Executive Summary -->
           <div
-            v-for="(section, index) in wellness.aiAnalysisJson.sections"
-            :key="index"
-            class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+            class="p-5 bg-primary-50 dark:bg-primary-950/10 rounded-xl border border-primary-100 dark:border-primary-900/50"
+          >
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2 text-primary-600 dark:text-primary-400">
+                <UIcon name="i-heroicons-light-bulb" class="size-5" />
+                <span class="text-xs font-black uppercase tracking-widest">Executive Take</span>
+              </div>
+              <UBadge
+                v-if="wellness.aiAnalysisJson.status"
+                :class="getStatusBadgeClass(wellness.aiAnalysisJson.status)"
+                variant="soft"
+                size="sm"
+              >
+                {{ formatStatus(wellness.aiAnalysisJson.status) }}
+              </UBadge>
+            </div>
+            <p class="text-sm leading-relaxed text-primary-900 dark:text-primary-100 font-medium">
+              {{ wellness.aiAnalysisJson.executive_summary }}
+            </p>
+          </div>
+
+          <!-- Analysis Sections -->
+          <div
+            v-if="wellness.aiAnalysisJson.sections"
+            class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800"
           >
             <div
-              class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
+              v-for="(section, index) in wellness.aiAnalysisJson.sections"
+              :key="index"
+              class="space-y-3"
             >
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ section.title }}
-              </h3>
-              <span :class="getStatusBadgeClass(section.status)">
-                {{ section.status_label || section.status }}
-              </span>
-            </div>
-            <div class="px-6 py-4">
-              <ul class="space-y-2">
-                <li
-                  v-for="(point, pIndex) in section.analysis_points"
-                  :key="pIndex"
-                  class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+              <div class="flex items-center justify-between">
+                <h4 class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  {{ section.title }}
+                </h4>
+                <span
+                  v-if="section.status || section.type"
+                  :class="getStatusBadgeClass(section.status || section.type)"
+                  class="text-[9px] font-bold uppercase tracking-tighter"
                 >
-                  <span
-                    class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500 flex-shrink-0"
-                  />
-                  <span>{{ point }}</span>
-                </li>
-              </ul>
+                  {{ formatStatus(section.status || section.type) }}
+                </span>
+              </div>
+              <div
+                class="p-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-800/50"
+              >
+                <ul v-if="section.analysis_points?.length" class="space-y-2">
+                  <li
+                    v-for="(point, pIndex) in section.analysis_points"
+                    :key="pIndex"
+                    class="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300 leading-normal"
+                  >
+                    <UIcon
+                      name="i-heroicons-chevron-double-right"
+                      class="size-3 mt-0.5 text-primary-500 shrink-0"
+                    />
+                    <span>{{ point }}</span>
+                  </li>
+                </ul>
+                <p v-else class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {{ section.content }}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-
-        <!-- Strengths & Weaknesses -->
-        <div
-          v-if="wellness.aiAnalysisJson.strengths || wellness.aiAnalysisJson.weaknesses"
-          class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6"
-        >
-          <!-- Strengths -->
-          <div
-            v-if="wellness.aiAnalysisJson.strengths && wellness.aiAnalysisJson.strengths.length > 0"
-            class="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 border border-green-200 dark:border-green-800"
-          >
-            <h3
-              class="text-lg font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2"
-            >
-              <span class="i-heroicons-check-circle w-5 h-5" />
-              Strengths
-            </h3>
-            <ul class="space-y-2">
-              <li
-                v-for="(strength, index) in wellness.aiAnalysisJson.strengths"
-                :key="index"
-                class="flex items-start gap-2 text-sm text-green-800 dark:text-green-200"
-              >
-                <span class="i-heroicons-plus-circle w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{{ strength }}</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Weaknesses -->
-          <div
-            v-if="
-              wellness.aiAnalysisJson.weaknesses && wellness.aiAnalysisJson.weaknesses.length > 0
-            "
-            class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-6 border border-orange-200 dark:border-orange-800"
-          >
-            <h3
-              class="text-lg font-semibold text-orange-900 dark:text-orange-100 mb-3 flex items-center gap-2"
-            >
-              <span class="i-heroicons-exclamation-triangle w-5 h-5" />
-              Areas for Improvement
-            </h3>
-            <ul class="space-y-2">
-              <li
-                v-for="(weakness, index) in wellness.aiAnalysisJson.weaknesses"
-                :key="index"
-                class="flex items-start gap-2 text-sm text-orange-800 dark:text-orange-200"
-              >
-                <span class="i-heroicons-arrow-trending-up w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{{ weakness }}</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      </UCard>
 
       <!-- Detailed Metrics Section -->
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700"
-      >
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detailed Metrics</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+      <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-6' }">
+        <template #header>
+          <h3 class="text-base font-black uppercase tracking-widest text-gray-900 dark:text-white">
+            Detailed Biometrics
+          </h3>
+        </template>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-1">
           <!-- Heart Rate -->
-          <div
+          <WellnessMetricRow
             v-if="wellness.restingHr"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Resting Heart Rate</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.restingHr }} bpm</span
-            >
-          </div>
-          <div
+            label="Resting Heart Rate"
+            :value="`${wellness.restingHr} bpm`"
+          />
+          <WellnessMetricRow
             v-if="wellness.avgSleepingHr"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Avg Sleeping HR</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.avgSleepingHr }} bpm</span
-            >
-          </div>
-          <div
+            label="Avg Sleeping HR"
+            :value="`${wellness.avgSleepingHr} bpm`"
+          />
+          <WellnessMetricRow
+            v-if="wellness.hrv"
+            label="HRV (rMSSD)"
+            :value="`${Math.round(wellness.hrv)} ms`"
+          />
+          <WellnessMetricRow
             v-if="wellness.hrvSdnn"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">HRV SDNN</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ Math.round(wellness.hrvSdnn) }} ms</span
-            >
-          </div>
+            label="HRV SDNN"
+            :value="`${Math.round(wellness.hrvSdnn)} ms`"
+          />
+          <WellnessMetricRow
+            v-if="wellness.spO2"
+            label="Blood Oxygen (SpO2)"
+            :value="`${wellness.spO2.toFixed(1)}%`"
+          />
 
           <!-- Sleep -->
-          <div
+          <WellnessMetricRow
+            v-if="wellness.sleepHours"
+            label="Sleep Duration"
+            :value="`${wellness.sleepHours.toFixed(1)}h`"
+          />
+          <WellnessMetricRow
             v-if="wellness.sleepScore"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Sleep Score</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.sleepScore }}%</span
-            >
-          </div>
-          <div
+            label="Sleep Score"
+            :value="`${wellness.sleepScore}%`"
+          />
+          <WellnessMetricRow
             v-if="wellness.sleepQuality"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Sleep Quality</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.sleepQuality }}/10</span
-            >
-          </div>
+            label="Sleep Quality"
+            :value="`${wellness.sleepQuality}/10`"
+          />
 
           <!-- Physical -->
-          <div
+          <WellnessMetricRow
             v-if="wellness.weight"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Weight</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.weight.toFixed(2) }} kg</span
-            >
-          </div>
-          <div
-            v-if="wellness.spO2"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">SpO2</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.spO2.toFixed(1) }}%</span
-            >
-          </div>
-
-          <!-- Training Load -->
-          <div
+            label="Weight"
+            :value="`${wellness.weight.toFixed(2)} kg`"
+          />
+          <WellnessMetricRow
             v-if="wellness.ctl"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">CTL (Fitness)</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white">{{
-              wellness.ctl.toFixed(1)
-            }}</span>
-          </div>
-          <div
+            label="CTL (Fitness)"
+            :value="wellness.ctl.toFixed(1)"
+          />
+          <WellnessMetricRow
             v-if="wellness.atl"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">ATL (Fatigue)</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white">{{
-              wellness.atl.toFixed(1)
-            }}</span>
-          </div>
+            label="ATL (Fatigue)"
+            :value="wellness.atl.toFixed(1)"
+          />
 
           <!-- Subjective -->
-          <div
+          <WellnessMetricRow
             v-if="wellness.soreness"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Soreness</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.soreness }}/10</span
-            >
-          </div>
-          <div
+            label="Soreness"
+            :value="`${wellness.soreness}/10`"
+          />
+          <WellnessMetricRow
             v-if="wellness.fatigue"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Fatigue</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.fatigue }}/10</span
-            >
-          </div>
-          <div
+            label="Fatigue"
+            :value="`${wellness.fatigue}/10`"
+          />
+          <WellnessMetricRow
             v-if="wellness.stress"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Stress</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.stress }}/10</span
-            >
-          </div>
-          <div
-            v-if="wellness.mood"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Mood</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.mood }}/10</span
-            >
-          </div>
-          <div
+            label="Stress"
+            :value="`${wellness.stress}/10`"
+          />
+          <WellnessMetricRow v-if="wellness.mood" label="Mood" :value="`${wellness.mood}/10`" />
+          <WellnessMetricRow
             v-if="wellness.motivation"
-            class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700"
-          >
-            <span class="text-sm text-gray-600 dark:text-gray-400">Motivation</span>
-            <span class="text-sm font-medium text-gray-900 dark:text-white"
-              >{{ wellness.motivation }}/10</span
-            >
-          </div>
+            label="Motivation"
+            :value="`${wellness.motivation}/10`"
+          />
         </div>
-      </div>
+      </UCard>
     </div>
   </div>
 </template>
@@ -395,17 +318,21 @@
     return formatDateTime(date, 'EEEE, MMMM d, yyyy')
   }
 
+  function formatStatus(status: string) {
+    if (!status) return ''
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+  }
+
   function getStatusBadgeClass(status: string) {
-    const baseClass = 'px-3 py-1 rounded-full text-xs font-semibold'
-    if (status === 'optimal')
-      return `${baseClass} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200`
-    if (status === 'good')
-      return `${baseClass} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`
-    if (status === 'caution')
-      return `${baseClass} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200`
-    if (status === 'attention' || status === 'rest_required')
-      return `${baseClass} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`
-    return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200`
+    const baseClass = 'font-black uppercase text-[10px] px-2 py-0.5'
+    const normalized = (status || '').toLowerCase()
+    if (normalized === 'optimal' || normalized === 'ready')
+      return `${baseClass} text-green-700 dark:text-green-400`
+    if (normalized === 'good') return `${baseClass} text-blue-700 dark:text-blue-400`
+    if (normalized === 'caution') return `${baseClass} text-yellow-700 dark:text-yellow-400`
+    if (normalized === 'attention' || normalized === 'rest_required' || normalized === 'rest')
+      return `${baseClass} text-red-700 dark:text-red-400`
+    return `${baseClass} text-gray-700 dark:text-gray-400`
   }
 
   const pageTitle = computed(() =>
