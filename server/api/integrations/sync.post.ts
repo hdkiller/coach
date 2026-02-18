@@ -210,7 +210,8 @@ export default defineEventHandler(async (event) => {
       {
         userId,
         startDate: startDate.toISOString(),
-        endDate: endDate.toISOString()
+        endDate: endDate.toISOString(),
+        manualSync: true
       },
       {
         concurrencyKey: userId,

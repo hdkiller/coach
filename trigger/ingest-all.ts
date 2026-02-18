@@ -24,8 +24,8 @@ import type { IngestionResult } from './types'
 export const ingestAllTask = task({
   id: 'ingest-all',
   maxDuration: 3600, // 1 hour to allow for sequential sub-tasks
-  run: async (payload: { userId: string; startDate: string; endDate: string }) => {
-    const { userId, startDate, endDate } = payload
+  run: async (payload: { userId: string; startDate: string; endDate: string; manualSync?: boolean }) => {
+    const { userId, startDate, endDate, manualSync = false } = payload
 
     logger.log('='.repeat(60))
     logger.log('🔄 BATCH INGESTION STARTING')
@@ -102,7 +102,7 @@ export const ingestAllTask = task({
         case 'intervals':
           tasksTrigger.push({
             task: ingestIntervalsTask,
-            payload: taskPayload
+            payload: { ...taskPayload, manualSync }
           })
           break
         case 'yazio':

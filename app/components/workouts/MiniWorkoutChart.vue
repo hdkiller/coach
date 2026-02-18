@@ -51,9 +51,23 @@
     }
   )
 
+  const normalizedWorkout = computed(() => {
+    const workout = props.workout
+    if (!workout) return null
+    if (typeof workout === 'string') {
+      try {
+        return JSON.parse(workout)
+      } catch {
+        return null
+      }
+    }
+    return workout
+  })
+
   const steps = computed(() => {
-    if (!props.workout?.steps || props.workout.steps.length === 0) return []
-    return flattenWorkoutSteps(props.workout.steps)
+    const rawSteps = normalizedWorkout.value?.steps
+    if (!Array.isArray(rawSteps) || rawSteps.length === 0) return []
+    return flattenWorkoutSteps(rawSteps)
   })
 
   function flattenWorkoutSteps(steps: any[], depth = 0): any[] {
@@ -84,10 +98,7 @@
   }
 
   const totalDuration = computed(() => {
-    return steps.value.reduce(
-      (sum: number, step: any) => sum + (step.durationSeconds || step.duration || 0),
-      0
-    )
+    return steps.value.reduce((sum: number, step: any) => sum + getStepDuration(step), 0)
   })
 
   const showCadenceLine = computed(() => {
@@ -136,7 +147,10 @@
   })
 
   function getStepWidth(step: any) {
-    return ((step.durationSeconds || step.duration || 0) / totalDuration.value) * 100
+    const duration = getStepDuration(step)
+    if (totalDuration.value > 0) return (duration / totalDuration.value) * 100
+    if (steps.value.length > 0) return 100 / steps.value.length
+    return 0
   }
 
   function getStepStyle(step: any) {
@@ -213,7 +227,7 @@
   }
 
   function tooltipText(step: any): string {
-    const base = `${step.name}: ${formatDuration(step.durationSeconds || step.duration || 0)}`
+    const base = `${step.name}: ${formatDuration(getStepDuration(step))}`
     const cadenceMeta = getStepCadenceMeta(step)
     if (cadenceMeta.value > 0) {
       return cadenceMeta.inferred
@@ -318,5 +332,10 @@
     }
 
     return null
+  }
+
+  function getStepDuration(step: any): number {
+    const duration = Number(step?.durationSeconds ?? step?.duration ?? 0)
+    return Number.isFinite(duration) && duration > 0 ? duration : 0
   }
 </script>

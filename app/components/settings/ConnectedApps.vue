@@ -665,6 +665,23 @@
             />
           </UFormField>
 
+          <UFormField
+            label="Configure Sports Auto-sync"
+            description="When you manually sync Intervals.icu, automatically refresh sport-specific thresholds and zones (Configure Sports Auto-detect)."
+          >
+            <UCheckbox
+              :model-value="intervalsSettings?.autoSyncSportSettingsOnManualSync === true"
+              label="Auto-sync sport settings on manual sync"
+              @update:model-value="
+                (checked: any) =>
+                  $emit('updateSetting', 'intervals', 'settings', {
+                    ...intervalsSettings,
+                    autoSyncSportSettingsOnManualSync: !!checked
+                  })
+              "
+            />
+          </UFormField>
+
           <p class="text-xs text-muted">
             Note: Changing these settings only affects future data syncs. Existing records in the
             database will not be updated automatically.

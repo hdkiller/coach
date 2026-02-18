@@ -15,8 +15,9 @@ export const ingestIntervalsTask = task({
     userId: string
     startDate: string
     endDate: string
+    manualSync?: boolean
   }): Promise<IngestionResult> => {
-    const { userId, startDate, endDate } = payload
+    const { userId, startDate, endDate, manualSync = false } = payload
 
     logger.log('Starting Intervals.icu ingestion', { userId, startDate, endDate })
 
@@ -51,6 +52,25 @@ export const ingestIntervalsTask = task({
       const historicalEndLocal = getEndOfDayUTC(timezone, now)
 
       const historicalEnd = end > historicalEndLocal ? historicalEndLocal : end
+
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      const shouldAutoSyncSportSettings =
+        manualSync && settings.autoSyncSportSettingsOnManualSync === true
+
+      if (shouldAutoSyncSportSettings) {
+        logger.log('Auto-syncing Intervals sport settings during manual sync', { userId })
+        try {
+          await IntervalsService.syncProfile(userId)
+        } catch (error) {
+          logger.warn(
+            'Failed to auto-sync Intervals sport settings during manual sync; continuing ingestion',
+            {
+              userId,
+              error: error instanceof Error ? error.message : String(error)
+            }
+          )
+        }
+      }
 
       // Fetch planned workouts (import all categories)
       logger.log('Syncing planned workouts...')
