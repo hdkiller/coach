@@ -580,7 +580,8 @@ export async function updateIntervalsActivityDescription(
   activityId: string,
   description: string
 ): Promise<IntervalsActivity> {
-  if (!isIntervalsEventId(activityId)) {
+  const isIntervalsActivityId = /^i?\d+$/i.test((activityId || '').trim())
+  if (!isIntervalsActivityId) {
     throw new Error(`Invalid Intervals activity ID: ${activityId}`)
   }
 

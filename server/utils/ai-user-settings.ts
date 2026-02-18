@@ -10,6 +10,7 @@ export interface AiSettings {
   aiRequireToolApproval: boolean
   aiContext?: string | null
   nutritionTrackingEnabled: boolean
+  updateWorkoutNotesEnabled: boolean
   nickname?: string | null
 }
 
@@ -22,6 +23,7 @@ const DEFAULT_SETTINGS: AiSettings = {
   aiRequireToolApproval: false,
   aiContext: null,
   nutritionTrackingEnabled: true,
+  updateWorkoutNotesEnabled: true,
   nickname: null
 }
 
@@ -37,6 +39,7 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
       aiRequireToolApproval: true,
       aiContext: true,
       nutritionTrackingEnabled: true,
+      updateWorkoutNotesEnabled: true,
       nickname: true
     }
   })
@@ -56,6 +59,8 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
     aiContext: user.aiContext,
     nutritionTrackingEnabled:
       user.nutritionTrackingEnabled ?? DEFAULT_SETTINGS.nutritionTrackingEnabled,
+    updateWorkoutNotesEnabled:
+      user.updateWorkoutNotesEnabled ?? DEFAULT_SETTINGS.updateWorkoutNotesEnabled,
     nickname: user.nickname
   }
 }
