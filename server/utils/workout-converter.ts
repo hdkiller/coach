@@ -397,6 +397,7 @@ export const WorkoutConverter = {
       const formatValue = (value: number) => {
         if (!Number.isFinite(value)) return ''
         if (kind === 'power') {
+          if (units === 'power_zone') return `Z${Math.round(value)}`
           if (units === 'w' || units === 'watts') return `${Math.round(value)}w`
           if (units?.startsWith('z')) return units.toUpperCase()
           return `${toValuePct(value)}%`
@@ -411,6 +412,7 @@ export const WorkoutConverter = {
 
       const formatRange = (start: number, end: number) => {
         if (kind === 'power') {
+          if (units === 'power_zone') return `Z${Math.round(start)}-${Math.round(end)}`
           if (units === 'w' || units === 'watts') return `${Math.round(start)}-${Math.round(end)}w`
           if (units?.startsWith('z')) return units.toUpperCase()
           const pct = toRangePct(start, end)

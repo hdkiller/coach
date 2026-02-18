@@ -262,6 +262,30 @@ describe('WorkoutConverter', () => {
       expect(result).toContain('- HR Push 5m 165bpm')
     })
 
+    it('preserves power zone targets for Intervals export', () => {
+      const workout = {
+        title: 'Zone Targets',
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 300,
+            power: { value: 1, units: 'power_zone' },
+            name: 'Recovery'
+          },
+          {
+            type: 'Active',
+            durationSeconds: 1800,
+            power: { value: 2, units: 'power_zone' },
+            name: 'Endurance'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- Recovery 5m Z1')
+      expect(result).toContain('- Endurance 30m Z2')
+    })
+
     it('exports explicit heart-rate ranges for steady-state steps', () => {
       const workout = {
         title: 'Run Z2',
