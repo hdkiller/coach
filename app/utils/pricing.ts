@@ -26,7 +26,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Unlimited data history',
       'Manual sync mode',
       'On-demand analysis',
-      'Quick AI Analysis Level'
+      'Quick AI analysis'
     ],
     popular: false
   },
@@ -37,11 +37,10 @@ export const PRICING_PLANS: PricingPlan[] = [
     annualPrice: 89.99,
     description: 'Automated insights for the self-coached athlete.',
     features: [
-      'Everything in Free',
-      'Automatic sync mode',
-      'Always-on analysis',
-      'Priority processing',
-      'Quick AI Analysis Level'
+      'Automatic sync for workouts and health metrics',
+      'Always-on AI analysis after new activities',
+      'Priority processing during peak usage',
+      'Reliable trend tracking and weekly summaries'
     ],
     popular: true
   },
@@ -52,12 +51,11 @@ export const PRICING_PLANS: PricingPlan[] = [
     annualPrice: 119.0,
     description: 'Your full-service Digital Twin and Coach.',
     features: [
-      'Everything in Supporter',
-      'Thoughtful AI Analysis Level',
-      'Advanced strategy & planning',
-      'Proactive AI coaching',
-      'Priority processing',
-      'Deep insights'
+      'Adaptive race strategy and periodized planning',
+      'Thoughtful AI coaching with scenario analysis',
+      'Proactive alerts for readiness and overreaching risk',
+      'Advanced trend intelligence with long-horizon forecasting',
+      'Fast-lane priority processing and response'
     ],
     popular: false
   }
