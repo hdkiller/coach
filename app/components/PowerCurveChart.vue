@@ -235,7 +235,8 @@
           boxWidth: 6,
           padding: 20,
           generateLabels: (chart: any) => {
-            const original = Legend.defaults.labels.generateLabels(chart)
+            const generate = Legend.defaults?.labels?.generateLabels
+            const original = generate ? generate(chart) : []
             return original.map((label: any) => ({
               ...label,
               text: label.text.toUpperCase()

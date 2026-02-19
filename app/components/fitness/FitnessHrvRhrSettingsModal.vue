@@ -59,7 +59,10 @@
                 :step="1"
                 size="sm"
                 @update:model-value="
-                  (val) => (settings.stdDevMultiplier = Array.isArray(val) ? val[0] / 10 : val / 10)
+                  (val) =>
+                    (settings.stdDevMultiplier = Array.isArray(val)
+                      ? (val[0] || 0) / 10
+                      : (val || 0) / 10)
                 "
               />
             </div>
@@ -168,7 +171,8 @@
                 :step="1"
                 size="sm"
                 @update:model-value="
-                  (val) => (settings.opacity = Array.isArray(val) ? val[0] / 100 : val / 100)
+                  (val) =>
+                    (settings.opacity = Array.isArray(val) ? (val[0] || 0) / 100 : (val || 0) / 100)
                 "
               />
             </div>

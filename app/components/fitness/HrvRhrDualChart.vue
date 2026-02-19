@@ -154,6 +154,7 @@
     // Visual Health Indicators (Color coding based on dynamic baseline)
     const pointColors = data.map((w, i) => {
       const s = stats[i]
+      if (!s) return 'rgb(234, 179, 8)'
       if (w.hrv > s.mean + s.stdDev) return 'rgb(34, 197, 94)' // Green (Optimal)
       if (w.hrv < s.mean - s.stdDev) return 'rgb(239, 68, 68)' // Red (Strained)
       return 'rgb(234, 179, 8)' // Yellow (Normal)
@@ -347,7 +348,7 @@
         padding: 12,
         callbacks: {
           label: (context: any) => {
-            if (context.dataset.label.includes('Range')) return null
+            if (context.dataset.label.includes('Range')) return ''
             let unit = ''
             if (context.dataset.yAxisID === 'y') unit = 'ms'
             else if (context.dataset.yAxisID === 'y1') unit = ' bpm'
@@ -360,11 +361,11 @@
 
             const hrv = hrvItem.parsed.y
             const dataIndex = hrvItem.dataIndex
-            const datasets = hrvItem.chart.data.datasets
+            const datasets = hrvItem.chart.data.datasets as any[]
             const hrvDataset = datasets[1] // HRV is now at index 1 due to sleep bars at index 0
 
-            const upper = datasets.find((d) => d.label === 'Range Upper')?.data[dataIndex]
-            const lower = datasets.find((d) => d.label === 'Normal Range')?.data[dataIndex]
+            const upper = datasets.find((d: any) => d.label === 'Range Upper')?.data?.[dataIndex]
+            const lower = datasets.find((d: any) => d.label === 'Normal Range')?.data?.[dataIndex]
 
             const lines = []
 
@@ -389,7 +390,7 @@
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' } }
+        ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' as const } }
       },
       y: {
         type: 'linear' as const,
@@ -402,7 +403,7 @@
           display: settings.value.showAxisTitles !== false,
           text: 'HRV (ms)',
           color: '#94a3b8',
-          font: { size: 10, weight: 'bold' }
+          font: { size: 10, weight: 'bold' as const }
         },
         grid: { color: theme.isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' },
         ticks: { color: '#94a3b8' }
@@ -416,7 +417,7 @@
           display: settings.value.showAxisTitles !== false,
           text: 'RHR (bpm)',
           color: '#94a3b8',
-          font: { size: 10, weight: 'bold' }
+          font: { size: 10, weight: 'bold' as const }
         },
         grid: { drawOnChartArea: false },
         ticks: { color: '#94a3b8' }

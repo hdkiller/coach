@@ -120,7 +120,7 @@
 <script setup lang="ts">
   const props = defineProps<{
     status: string
-    statusColor: string
+    statusColor: 'error' | 'info' | 'success' | 'primary' | 'secondary' | 'warning' | 'neutral'
     baselineDays: number
     hrv: number
     baseline: number

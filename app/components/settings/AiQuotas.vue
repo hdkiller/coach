@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-  import type { QuotaStatus } from '~/server/utils/quotas/engine'
+  import type { QuotaStatus } from '~/../types/quotas'
 
   const { formatRelativeTime } = useFormat()
 
