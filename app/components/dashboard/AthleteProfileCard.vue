@@ -531,6 +531,67 @@
           </div>
         </div>
       </button>
+
+      <!-- Upcoming Events Section -->
+      <div
+        v-if="showUpcomingEventsSection"
+        class="w-full p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
+      >
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <p
+              class="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest"
+            >
+              Upcoming Events
+            </p>
+            <UBadge color="neutral" variant="soft" size="xs">
+              {{ upcomingEvents.length }}
+            </UBadge>
+          </div>
+          <UButton
+            to="/events"
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-right"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <NuxtLink
+            v-for="event in upcomingEvents"
+            :key="event.id"
+            :to="`/events/${event.id}`"
+            class="group flex items-center gap-3 rounded-lg p-2 hover:bg-white/70 dark:hover:bg-gray-700/40 transition-colors"
+          >
+            <div
+              class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-400 shrink-0"
+            >
+              <span class="text-[10px] font-bold uppercase leading-none">{{
+                formatDate(event.date, 'MMM')
+              }}</span>
+              <span class="text-sm font-bold">{{ formatDate(event.date, 'd') }}</span>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                {{ event.title }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ formatEventMeta(event) }}
+              </p>
+            </div>
+
+            <span class="text-xs font-bold text-cyan-700 dark:text-cyan-300 shrink-0">
+              {{ formatDaysUntilEvent(event.date) }}
+            </span>
+            <UIcon
+              name="i-heroicons-chevron-right"
+              class="w-4 h-4 text-gray-300 group-hover:text-primary transition-colors"
+            />
+          </NuxtLink>
+        </div>
+      </div>
     </div>
 
     <DashboardAthleteProfileSettingsModal v-model:open="showSettingsModal" />
@@ -591,6 +652,9 @@
         { key: 'skinTemp', label: 'Skin Temp', visible: false },
         { key: 'vo2max', label: 'VO2 Max', visible: false }
       ]
+    },
+    upcomingEvents: {
+      enabled: true
     }
   }
 
@@ -602,11 +666,17 @@
     return defaultSettings
   })
 
-  const getVisibleMetrics = (sectionKey: keyof typeof defaultSettings) => {
+  type MetricSectionKey = 'profileInfo' | 'trainingLoad' | 'corePerformance' | 'wellness'
+
+  const getVisibleMetrics = (sectionKey: MetricSectionKey) => {
     return (settings.value[sectionKey]?.metrics || defaultSettings[sectionKey].metrics).filter(
       (m: any) => m.visible
     )
   }
+
+  const showUpcomingEventsSection = computed(() => {
+    return (settings.value.upcomingEvents?.enabled ?? true) && upcomingEvents.value.length > 0
+  })
 
   const metricConfigs: Record<string, any> = {
     // Profile Info
@@ -753,6 +823,7 @@
   const ftpHistory = ref<any[]>([])
   const wellnessHistory = ref<any[]>([])
   const weightHistory = ref<any[]>([])
+  const upcomingEvents = ref<any[]>([])
 
   const wKgHistory = computed(() => {
     if (!ftpHistory.value.length || !weightHistory.value.length) return []
@@ -788,7 +859,7 @@
       const startDate = start.toISOString().split('T')[0]
       const endDate = today.toISOString().split('T')[0]
 
-      const [pmc, ftp, wellness, weight] = await Promise.all([
+      const [pmc, ftp, wellness, weight, events] = await Promise.all([
         integrationStore.intervalsConnected
           ? $fetch('/api/performance/pmc', { query: { days: 7 } })
           : Promise.resolve(null),
@@ -796,13 +867,23 @@
           ? $fetch('/api/performance/ftp-evolution')
           : Promise.resolve([]),
         $fetch(`/api/wellness/trend?startDate=${startDate}&endDate=${endDate}`).catch(() => []),
-        $fetch('/api/performance/weight-evolution').catch(() => [])
+        $fetch('/api/performance/weight-evolution').catch(() => []),
+        $fetch('/api/events').catch(() => [])
       ])
 
       pmcData.value = pmc
       ftpHistory.value = (ftp as any)?.data || []
       wellnessHistory.value = Array.isArray(wellness) ? wellness : []
       weightHistory.value = (weight as any)?.data || []
+      upcomingEvents.value = (Array.isArray(events) ? events : [])
+        .filter((event: any) => {
+          const eventDate = new Date(event?.date)
+          if (Number.isNaN(eventDate.getTime())) return false
+          const today = getUserLocalDate()
+          today.setHours(0, 0, 0, 0)
+          return eventDate.getTime() >= today.getTime()
+        })
+        .slice(0, 3)
     } catch (e) {
       console.error('Failed to load history data', e)
     } finally {
@@ -902,5 +983,26 @@
     const diffDays = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
     if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`
     return formatDateUTC(date, 'MMM d')
+  }
+
+  function formatDaysUntilEvent(dateStr: string): string {
+    const eventDate = new Date(dateStr)
+    if (Number.isNaN(eventDate.getTime())) return ''
+
+    const today = getUserLocalDate()
+    today.setHours(0, 0, 0, 0)
+    eventDate.setHours(0, 0, 0, 0)
+
+    const dayDiff = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    if (dayDiff <= 0) return 'Today'
+    if (dayDiff === 1) return '1 day'
+    return `${dayDiff} days`
+  }
+
+  function formatEventMeta(event: any): string {
+    const type = event?.subType || event?.type || 'Event'
+    const location = [event?.city, event?.country].filter(Boolean).join(', ')
+    if (location) return `${type} · ${location}`
+    return type
   }
 </script>

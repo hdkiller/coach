@@ -25,6 +25,30 @@
             Choose metrics to display and drag to reorder. Max 3 metrics per row.
           </p>
 
+          <div class="space-y-3">
+            <h4 class="font-bold text-xs uppercase tracking-wider text-gray-500">Sections</h4>
+            <div
+              class="border rounded-lg border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden"
+            >
+              <div
+                class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+              >
+                <div class="flex items-center gap-3">
+                  <UIcon name="i-heroicons-calendar-days" class="w-4 h-4 text-cyan-500" />
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">
+                      Upcoming Events
+                    </span>
+                    <span class="text-[10px] text-muted font-mono">
+                      Show upcoming events below wellness
+                    </span>
+                  </div>
+                </div>
+                <USwitch v-model="settings.upcomingEvents.enabled" />
+              </div>
+            </div>
+          </div>
+
           <div v-for="section in sections" :key="section.key" class="space-y-3">
             <div class="flex items-center justify-between">
               <h4 class="font-bold text-xs uppercase tracking-wider text-gray-500">
@@ -143,6 +167,9 @@
         { key: 'skinTemp', label: 'Skin Temp', visible: false },
         { key: 'vo2max', label: 'VO2 Max', visible: false }
       ]
+    },
+    upcomingEvents: {
+      enabled: true
     }
   }
 
@@ -316,48 +343,51 @@
     return '?'
   }
 
+  function buildSettings() {
+    const current = userStore.user?.dashboardSettings?.athleteProfile || {}
+    const merged = JSON.parse(JSON.stringify(defaultSettings))
+
+    for (const sectionKey of Object.keys(merged)) {
+      if (sectionKey === 'upcomingEvents') {
+        merged.upcomingEvents.enabled = current?.upcomingEvents?.enabled ?? true
+        continue
+      }
+
+      if (current[sectionKey]) {
+        const userMetrics = current[sectionKey].metrics || []
+        const mergedMetrics = []
+
+        for (const userMetric of userMetrics) {
+          const defaultMetric = merged[sectionKey].metrics.find(
+            (m: any) => m.key === userMetric.key
+          )
+          if (defaultMetric) {
+            mergedMetrics.push({ ...defaultMetric, ...userMetric })
+          }
+        }
+
+        for (const defaultMetric of merged[sectionKey].metrics) {
+          if (!mergedMetrics.find((m: any) => m.key === defaultMetric.key)) {
+            mergedMetrics.push(defaultMetric)
+          }
+        }
+
+        merged[sectionKey].metrics = mergedMetrics
+      }
+    }
+
+    return merged
+  }
+
   // Local state for the form, initialized from store
-  const settings = ref(
-    JSON.parse(JSON.stringify(userStore.user?.dashboardSettings?.athleteProfile || defaultSettings))
-  )
+  const settings = ref(buildSettings())
 
   // Update local state when modal opens
   watch(
     () => isOpen.value,
     (open) => {
       if (open) {
-        // Ensure new metrics are added if we update the list of available metrics in code later
-        const currentSettings = userStore.user?.dashboardSettings?.athleteProfile || defaultSettings
-        const merged = JSON.parse(JSON.stringify(defaultSettings))
-
-        // Merge existing user preferences into the default structure to maintain order and visibility
-        for (const sectionKey of Object.keys(merged)) {
-          if (currentSettings[sectionKey]) {
-            const userMetrics = currentSettings[sectionKey].metrics || []
-            const mergedMetrics = []
-
-            // Add user ordered metrics first if they still exist in defaults
-            for (const userMetric of userMetrics) {
-              const defaultMetric = merged[sectionKey].metrics.find(
-                (m: any) => m.key === userMetric.key
-              )
-              if (defaultMetric) {
-                mergedMetrics.push({ ...defaultMetric, ...userMetric })
-              }
-            }
-
-            // Add any new default metrics that weren't in user's list
-            for (const defaultMetric of merged[sectionKey].metrics) {
-              if (!mergedMetrics.find((m: any) => m.key === defaultMetric.key)) {
-                mergedMetrics.push(defaultMetric)
-              }
-            }
-
-            merged[sectionKey].metrics = mergedMetrics
-          }
-        }
-
-        settings.value = merged
+        settings.value = buildSettings()
       }
     }
   )
