@@ -10,6 +10,7 @@ import {
   INTRA_WORKOUT_TARGET_ML_PER_HOUR,
   MEAL_LINKED_WATER_ML
 } from '../../../utils/nutrition/hydration'
+import { normalizeFluidFields, recalculateNutritionTotals } from '../../../utils/nutrition/totals'
 
 const DEFAULT_MEAL_TIMES: Record<'breakfast' | 'lunch' | 'dinner' | 'snacks', string> = {
   breakfast: '07:00',
@@ -212,12 +213,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const isHydrationItem =
-      item.entryType === 'HYDRATION' ||
-      (Number(item.waterMl || 0) > 0 && Number(item.carbs || 0) === 0)
+    const isHydrationItem = item.entryType === 'HYDRATION'
 
     if (isHydrationItem) {
-      const hydrationItem = {
+      const hydrationItem = normalizeFluidFields({
         id: crypto.randomUUID(),
         name: item.name || 'Water',
         water_ml: Math.round(Number(item.waterMl || 0)),
@@ -228,18 +227,18 @@ export default defineEventHandler(async (event) => {
         entryType: 'HYDRATION',
         logged_at: typeof normalizedLoggedAt === 'string' ? normalizedLoggedAt : undefined,
         source: 'ai'
-      }
+      })
       itemsByDate[targetDateStr]!.items.push(hydrationItem)
       itemsByDate[targetDateStr]!.mealTypes.add('snacks')
       return
     }
 
     // Ensure absorptionType is set
-    const processedItem = {
+    const processedItem = normalizeFluidFields({
       ...item,
       logged_at: normalizedLoggedAt,
       absorptionType: item.absorptionType || 'BALANCED'
-    }
+    })
 
     itemsByDate[targetDateStr]!.items.push(processedItem)
     itemsByDate[targetDateStr]!.mealTypes.add(item.mealType || mealType || 'snacks')
@@ -257,20 +256,22 @@ export default defineEventHandler(async (event) => {
         hydrationLoggedAt: null
       }
     }
-    
+
     // Add as a discrete item instead of just a scalar update
-    itemsByDate[dateStr]!.items.push({
-      id: crypto.randomUUID(),
-      name: 'Water',
-      water_ml: inferredFluidMl,
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-      entryType: 'HYDRATION',
-      logged_at: new Date().toISOString(),
-      source: 'ai'
-    })
+    itemsByDate[dateStr]!.items.push(
+      normalizeFluidFields({
+        id: crypto.randomUUID(),
+        name: 'Water',
+        water_ml: inferredFluidMl,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        entryType: 'HYDRATION',
+        logged_at: new Date().toISOString(),
+        source: 'ai'
+      })
+    )
     itemsByDate[dateStr]!.mealTypes.add('snacks')
   }
 
@@ -368,38 +369,18 @@ export default defineEventHandler(async (event) => {
     }
 
     // Recalculate totals for this record
-    const mealsList = ['breakfast', 'lunch', 'dinner', 'snacks']
-    let calories = 0
-    let protein = 0
-    let carbs = 0
-    let fat = 0
-    let fiber = 0
-    let sugar = 0
-    let waterMl = 0
-
-    for (const meal of mealsList) {
-      const mealItems = (targetNutrition[meal as keyof typeof targetNutrition] as any[]) || []
-      for (const i of mealItems) {
-        calories += i.calories || 0
-        protein += i.protein || 0
-        carbs += i.carbs || 0
-        fat += i.fat || 0
-        fiber += i.fiber || 0
-        sugar += i.sugar || 0
-        waterMl += i.water_ml || i.waterMl || 0
-      }
-    }
+    const totals = recalculateNutritionTotals(targetNutrition)
 
     // Add meal-linked bonus (this is a scalar-only bonus, not in items)
-    waterMl += mealLinkedBonusMl
+    const waterMl = totals.waterMl + mealLinkedBonusMl
 
     await nutritionRepository.update(targetNutrition.id, {
-      calories,
-      protein,
-      carbs,
-      fat,
-      fiber,
-      sugar,
+      calories: totals.calories,
+      protein: totals.protein,
+      carbs: totals.carbs,
+      fat: totals.fat,
+      fiber: totals.fiber,
+      sugar: totals.sugar,
       waterMl
     })
 

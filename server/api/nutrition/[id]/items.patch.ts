@@ -3,6 +3,7 @@ import { nutritionRepository } from '../../../utils/repositories/nutritionReposi
 import { z } from 'zod'
 import { metabolicService } from '../../../utils/services/metabolicService'
 import { MEAL_LINKED_WATER_ML } from '../../../utils/nutrition/hydration'
+import { normalizeFluidFields, recalculateNutritionTotals } from '../../../utils/nutrition/totals'
 
 const ItemSchema = z.object({
   id: z.string().optional(),
@@ -85,11 +86,13 @@ export default defineEventHandler(async (event) => {
 
   if (action === 'add') {
     if (!item) throw createError({ statusCode: 400, message: 'Item is required for add' })
-    updatedItems.push({
-      ...item,
-      id: item.id || crypto.randomUUID(),
-      source: 'manual'
-    })
+    updatedItems.push(
+      normalizeFluidFields({
+        ...item,
+        id: item.id || crypto.randomUUID(),
+        source: 'manual'
+      })
+    )
   } else if (action === 'update') {
     if (!item) throw createError({ statusCode: 400, message: 'Item is required for update' })
 
@@ -130,7 +133,7 @@ export default defineEventHandler(async (event) => {
     // Update the item and ensure it has an ID now
     updatedItems[index] = {
       ...updatedItems[index],
-      ...item,
+      ...normalizeFluidFields(item),
       id: updatedItems[index].id || item.id || crypto.randomUUID()
     }
   } else if (action === 'delete') {
@@ -161,45 +164,16 @@ export default defineEventHandler(async (event) => {
       : {})
   })
 
-  // Recalculate totals
-  const meals = ['breakfast', 'lunch', 'dinner', 'snacks']
-  let calories = 0
-  let protein = 0
-  let carbs = 0
-  let fat = 0
-  let fiber = 0
-  let sugar = 0
-  let waterMl = 0
-
-  for (const meal of meals) {
-    const items = (updatedNutrition[meal as keyof typeof updatedNutrition] as any[]) || []
-    for (const i of items) {
-      calories += i.calories || 0
-      protein += i.protein || 0
-      carbs += i.carbs || 0
-      fat += i.fat || 0
-      fiber += i.fiber || 0
-      sugar += i.sugar || 0
-      waterMl += i.water_ml || i.waterMl || 0
-    }
-  }
-
-  // Preserve the MEAL_LINKED_WATER_ML bonus if it was just added,
-  // but we need to be careful not to double count.
-  // Actually, let's just make recalculateDailyTotals the source of truth if we have items.
-  // But if we have NO hydration items, we should keep the scalar total.
-  if (waterMl === 0 && (updatedNutrition.waterMl || 0) > 0) {
-    waterMl = updatedNutrition.waterMl || 0
-  }
+  const totals = recalculateNutritionTotals(updatedNutrition)
 
   await nutritionRepository.update(updatedNutrition.id, {
-    calories,
-    protein,
-    carbs,
-    fat,
-    fiber,
-    sugar,
-    waterMl
+    calories: totals.calories,
+    protein: totals.protein,
+    carbs: totals.carbs,
+    fat: totals.fat,
+    fiber: totals.fiber,
+    sugar: totals.sugar,
+    waterMl: totals.waterMl
   })
 
   // REACTIVE: Trigger fueling plan update for the entry date

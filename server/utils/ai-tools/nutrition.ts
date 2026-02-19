@@ -21,6 +21,11 @@ import { INTRA_WORKOUT_TARGET_ML_PER_HOUR, MEAL_LINKED_WATER_ML } from '../nutri
 import { mealRecommendationService } from '../services/mealRecommendationService'
 import { nutritionPlanService } from '../services/nutritionPlanService'
 import type { AiSettings } from '../ai-user-settings'
+import {
+  isHydrationLikeItem,
+  normalizeFluidFields,
+  recalculateNutritionTotals
+} from '../nutrition/totals'
 
 const DEFAULT_MEAL_TIMES: Record<'breakfast' | 'lunch' | 'dinner' | 'snacks', string> = {
   breakfast: '07:00',
@@ -62,39 +67,6 @@ function pickMealScheduledTime(
   if (byIndex?.time) return byIndex.time
 
   return DEFAULT_MEAL_TIMES[mealType]
-}
-
-// Helper to calculate totals from all meals
-const recalculateDailyTotals = (nutrition: any) => {
-  const meals = ['breakfast', 'lunch', 'dinner', 'snacks']
-  let calories = 0
-  let protein = 0
-  let carbs = 0
-  let fat = 0
-  let fiber = 0
-  let sugar = 0
-  let waterMl = 0
-
-  for (const meal of meals) {
-    const items = (nutrition[meal] as any[]) || []
-    for (const item of items) {
-      calories += item.calories || 0
-      protein += item.protein || 0
-      carbs += item.carbs || 0
-      fat += item.fat || 0
-      fiber += item.fiber || 0
-      sugar += item.sugar || 0
-      waterMl += item.water_ml || item.waterMl || 0
-    }
-  }
-
-  // If we have a legacy waterMl on the record but no hydration items, keep the legacy value
-  // This prevents resetting to 0 for days where only the scalar was used.
-  if (waterMl === 0 && (nutrition.waterMl || 0) > 0) {
-    waterMl = nutrition.waterMl || 0
-  }
-
-  return { calories, protein, carbs, fat, fiber, sugar, waterMl }
 }
 
 export const nutritionTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
@@ -209,8 +181,6 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       const dateUtc = new Date(`${date}T00:00:00Z`)
       const settings = await getUserNutritionSettings(userId)
 
-      let explicitFluidMl = 0
-
       // Add IDs to items and normalize logged_at
       const itemsWithIds = items.map((item) => {
         let normalizedLoggedAt = item.logged_at
@@ -236,14 +206,12 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           }
         }
 
-        explicitFluidMl += Math.max(0, Math.round(item.water_ml || 0))
-
-        return {
+        return normalizeFluidFields({
           id: crypto.randomUUID(),
           ...item,
           absorptionType: item.absorption_type || 'BALANCED',
           logged_at: normalizedLoggedAt
-        }
+        })
       })
 
       // Get existing record or create new
@@ -266,7 +234,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       }
 
       // Recalculate daily totals (includes explicit fluid from items)
-      const totals = recalculateDailyTotals(nutrition)
+      const totals = recalculateNutritionTotals(nutrition)
 
       // Update totals in DB
       const updatedNutrition = await nutritionRepository.update(nutrition.id, {
@@ -352,7 +320,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
       let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
       if (!nutrition) {
-        const hydrationItem = {
+        const hydrationItem = normalizeFluidFields({
           id: crypto.randomUUID(),
           name: 'Water',
           water_ml: Math.max(0, Math.round(volume_ml)),
@@ -363,7 +331,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           entryType: 'HYDRATION',
           logged_at: normalizedLoggedAt,
           source: 'ai'
-        }
+        })
 
         nutrition = await nutritionRepository.create({
           userId,
@@ -378,15 +346,13 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           const updates: any = {}
           for (const m of meals) {
             const items = (nutrition[m] as any[]) || []
-            const filtered = items.filter(
-              (i) => i.entryType !== 'HYDRATION' && !(i.water_ml > 0 && i.carbs === 0)
-            )
+            const filtered = items.filter((i) => !isHydrationLikeItem(i))
             if (filtered.length !== items.length) {
               updates[m] = filtered
             }
           }
 
-          const hydrationItem = {
+          const hydrationItem = normalizeFluidFields({
             id: crypto.randomUUID(),
             name: 'Water',
             water_ml: Math.max(0, Math.round(volume_ml)),
@@ -397,7 +363,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             entryType: 'HYDRATION',
             logged_at: normalizedLoggedAt,
             source: 'ai'
-          }
+          })
 
           updates.snacks = [...(updates.snacks || nutrition.snacks || []), hydrationItem]
           updates.waterMl = Math.max(0, Math.round(volume_ml))
@@ -405,7 +371,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           nutrition = await nutritionRepository.update(nutrition.id, updates)
         } else {
           // ADD mode: just append a new item
-          const hydrationItem = {
+          const hydrationItem = normalizeFluidFields({
             id: crypto.randomUUID(),
             name: 'Water',
             water_ml: Math.max(0, Math.round(volume_ml)),
@@ -416,7 +382,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             entryType: 'HYDRATION',
             logged_at: normalizedLoggedAt,
             source: 'ai'
-          }
+          })
 
           const currentSnacks = (nutrition.snacks as any[]) || []
           nutrition = await nutritionRepository.update(nutrition.id, {
@@ -427,7 +393,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       }
 
       // Re-calculate to be sure
-      const totals = recalculateDailyTotals(nutrition)
+      const totals = recalculateNutritionTotals(nutrition)
       nutrition = await nutritionRepository.update(nutrition.id, {
         waterMl: totals.waterMl
       })
@@ -506,11 +472,12 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           // Remove first match of specific volume
           let found = false
           filtered = items.filter((i) => {
-            const isHydration = i.entryType === 'HYDRATION' || (i.water_ml > 0 && i.carbs === 0)
-            if (!found && isHydration && Math.abs(i.water_ml - volume_ml) < 1) {
+            const normalized = normalizeFluidFields(i || {})
+            const hydrationMl = normalized.hydrationContributionMl || 0
+            if (!found && isHydrationLikeItem(i) && Math.abs(hydrationMl - volume_ml) < 1) {
               found = true
               removedCount++
-              removedVolume += i.water_ml
+              removedVolume += hydrationMl
               return false
             }
             return true
@@ -518,10 +485,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         } else {
           // Remove all hydration
           filtered = items.filter((i) => {
-            const isHydration = i.entryType === 'HYDRATION' || (i.water_ml > 0 && i.carbs === 0)
-            if (isHydration) {
+            if (isHydrationLikeItem(i)) {
+              const normalized = normalizeFluidFields(i || {})
               removedCount++
-              removedVolume += i.water_ml
+              removedVolume += normalized.hydrationContributionMl || 0
               return false
             }
             return true
@@ -545,7 +512,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       }
 
       nutrition = await nutritionRepository.update(nutrition.id, updates)
-      const totals = recalculateDailyTotals(nutrition)
+      const totals = recalculateNutritionTotals(nutrition)
       nutrition = await nutritionRepository.update(nutrition.id, {
         waterMl: totals.waterMl
       })
@@ -621,7 +588,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       })
 
       // Recalculate totals (now includes waterMl)
-      const totals = recalculateDailyTotals(nutrition)
+      const totals = recalculateNutritionTotals(nutrition)
 
       // Update totals in DB
       const updatedNutrition = await nutritionRepository.update(nutrition.id, {
