@@ -1,5 +1,5 @@
 <template>
-  <div class="pmc-chart h-full w-full">
+  <div class="pmc-chart h-full w-full min-h-[300px]">
     <div v-if="loading" class="flex justify-center items-center h-full min-h-[300px]">
       <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
     </div>

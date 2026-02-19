@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full w-full relative">
+  <div class="h-full w-full relative min-h-[300px]">
     <div
       v-if="!data || data.length === 0"
       class="flex items-center justify-center h-full text-gray-500 font-bold uppercase tracking-widest text-[10px]"

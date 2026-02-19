@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full w-full relative flex items-center justify-center">
+  <div class="h-full w-full relative flex items-center justify-center min-h-[300px]">
     <div
       v-if="!hasScores"
       class="flex items-center justify-center h-full text-gray-500 font-bold uppercase tracking-widest text-[10px]"

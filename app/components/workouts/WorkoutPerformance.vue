@@ -80,7 +80,9 @@
           >
             Score Trends
           </h3>
-          <TrendChart :data="trendsData.workouts" type="workout" />
+          <div class="h-[300px]">
+            <TrendChart :data="trendsData.workouts" type="workout" />
+          </div>
         </div>
 
         <div class="lg:col-span-1 space-y-4">
@@ -89,16 +91,18 @@
           >
             Current Balance
           </h3>
-          <RadarChart
-            :scores="{
-              overall: trendsData.summary?.avgOverall,
-              technical: trendsData.summary?.avgTechnical,
-              effort: trendsData.summary?.avgEffort,
-              pacing: trendsData.summary?.avgPacing,
-              execution: trendsData.summary?.avgExecution
-            }"
-            type="workout"
-          />
+          <div class="h-[320px]">
+            <RadarChart
+              :scores="{
+                overall: trendsData.summary?.avgOverall,
+                technical: trendsData.summary?.avgTechnical,
+                effort: trendsData.summary?.avgEffort,
+                pacing: trendsData.summary?.avgPacing,
+                execution: trendsData.summary?.avgExecution
+              }"
+              type="workout"
+            />
+          </div>
         </div>
       </div>
     </div>
