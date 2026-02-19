@@ -73,7 +73,7 @@
           <UButton variant="ghost" color="neutral" @click="close">
             {{ subscriptionsEnabled ? 'Maybe Later' : 'Close' }}
           </UButton>
-          <UButton variant="link" color="primary" :to="'/pricing'" @click="close">
+          <UButton variant="link" color="primary" :to="'/settings/billing'" @click="close">
             View Full Pricing Details
             <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 ml-1" />
           </UButton>

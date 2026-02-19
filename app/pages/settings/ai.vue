@@ -26,7 +26,7 @@
             </p>
             <div class="mt-3">
               <UButton
-                to="/pricing"
+                to="/settings/billing"
                 color="primary"
                 size="sm"
                 label="View Plans"
