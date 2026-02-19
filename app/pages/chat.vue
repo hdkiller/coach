@@ -62,12 +62,20 @@
         error.message?.toLowerCase().includes('quota exceeded')
       ) {
         upgradeModal.show({
-          title: 'Usage Quota Reached',
-          featureTitle: 'AI Chat Usage',
+          title: 'Unlock More Insights Today',
+          featureTitle: 'Full AI Coach Access',
           featureDescription:
-            'You have reached the usage quota for your current plan. Upgrade to Pro for high-priority access and significantly higher quotas.',
-          recommendedTier: 'pro'
+            'You have utilized your daily training analysis. To continue planning your peak performance without limits, upgrade to Pro for unrestricted access to your Digital Coach.',
+
+          recommendedTier: 'pro',
+          bullets: [
+            'Unlimited Strategic Chat',
+            'Faster AI Responses',
+            'Deep-Context Analysis',
+            'Proactive Readiness Alerts'
+          ]
         })
+
         return
       }
 

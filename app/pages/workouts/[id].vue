@@ -2148,11 +2148,17 @@
 
       if (e.data?.statusCode === 429 || e.status === 429) {
         upgradeModal.show({
-          title: 'Usage Quota Reached',
-          featureTitle: 'Workout Analysis',
+          title: 'Crush Your Training Momentum',
+          featureTitle: 'Strategic Analysis',
           featureDescription:
-            'You have reached the workout analysis quota for your current plan. Upgrade to Supporter or Pro for significantly higher quotas and automatic analysis.',
-          recommendedTier: 'supporter'
+            'Unlock elite-level auditing for every session. Upgrade to Supporter or Pro for always-on automatic analysis and deeper performance insights.',
+          recommendedTier: 'supporter',
+          bullets: [
+            'Always-On Auto Analysis',
+            'Deep Execution Scoring',
+            'Technical Pacing Audit',
+            'Strategic Improvements'
+          ]
         })
         return
       }
