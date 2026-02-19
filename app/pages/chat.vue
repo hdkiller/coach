@@ -39,6 +39,7 @@
   const { data: session } = await useFetch('/api/auth/session')
 
   const { refresh: refreshRuns } = useUserRuns()
+  const upgradeModal = useUpgradeModal()
 
   const route = useRoute()
   const router = useRouter()
@@ -55,6 +56,21 @@
       refreshRuns()
     },
     onError: (error) => {
+      // Handle Quota Exceeded (429)
+      if (
+        error.message?.includes('429') ||
+        error.message?.toLowerCase().includes('quota exceeded')
+      ) {
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'AI Chat Usage',
+          featureDescription:
+            'You have reached the usage quota for your current plan. Upgrade to Pro for high-priority access and significantly higher quotas.',
+          recommendedTier: 'pro'
+        })
+        return
+      }
+
       if (error.message && error.message.includes('No tool invocation found')) {
         console.warn(
           '[Chat] Suppressing expected tool invocation error. Refreshing chat to get response.'

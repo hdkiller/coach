@@ -1721,6 +1721,7 @@
   const router = useRouter()
   const toast = useToast()
   const config = useRuntimeConfig()
+  const upgradeModal = useUpgradeModal()
 
   const workout = ref<any>(null)
   const loading = ref(true)
@@ -2144,6 +2145,18 @@
     } catch (e: any) {
       console.error('Error triggering workout analysis:', e)
       analyzingWorkout.value = false
+
+      if (e.data?.statusCode === 429 || e.status === 429) {
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'Workout Analysis',
+          featureDescription:
+            'You have reached the workout analysis quota for your current plan. Upgrade to Supporter or Pro for significantly higher quotas and automatic analysis.',
+          recommendedTier: 'supporter'
+        })
+        return
+      }
+
       toast.add({
         title: 'Analysis Failed',
         description: e.data?.message || e.message || 'Failed to start workout analysis',
@@ -2173,6 +2186,18 @@
     } catch (e: any) {
       console.error('Error triggering adherence analysis:', e)
       analyzingAdherence.value = false
+
+      if (e.data?.statusCode === 429 || e.status === 429) {
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'Plan Adherence Analysis',
+          featureDescription:
+            'You have reached the analysis quota for your current plan. Upgrade to Supporter or Pro for higher quotas.',
+          recommendedTier: 'supporter'
+        })
+        return
+      }
+
       toast.add({
         title: 'Analysis Failed',
         description: e.data?.message || 'Failed to start adherence analysis',
