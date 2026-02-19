@@ -137,6 +137,74 @@
     }
   })
 
+  const billingTrustSignals = [
+    {
+      icon: 'i-heroicons-shield-check',
+      title: 'Secure billing',
+      description: 'Powered by Stripe with encrypted payment processing.'
+    },
+    {
+      icon: 'i-heroicons-arrows-right-left',
+      title: 'Prorated upgrades',
+      description: 'Move to Pro anytime and only pay the difference.'
+    },
+    {
+      icon: 'i-heroicons-x-circle',
+      title: 'Cancel anytime',
+      description: 'Downgrade in one click and keep your training history.'
+    }
+  ] as const
+
+  const billingComparisonRows = [
+    {
+      feature: 'AI coaching depth',
+      free: 'Quick',
+      supporter: 'Quick + automation',
+      pro: 'Thoughtful + scenario planning'
+    },
+    {
+      feature: 'Analysis timing',
+      free: 'On demand',
+      supporter: 'Always on',
+      pro: 'Always on + proactive alerts'
+    },
+    {
+      feature: 'Planning support',
+      free: 'Basic',
+      supporter: 'Weekly summaries',
+      pro: 'Adaptive race strategy'
+    },
+    {
+      feature: 'Insights horizon',
+      free: 'Recent trends',
+      supporter: 'Weekly trends',
+      pro: 'Long-horizon forecasting'
+    }
+  ] as const
+
+  const billingFaqs = [
+    {
+      question: 'Can I cancel anytime?',
+      answer:
+        'Yes. You can cancel from the billing portal at any time and your plan will remain active through the paid period.'
+    },
+    {
+      question: 'What happens when I downgrade?',
+      answer:
+        'Your account returns to Free features, but your workouts, history, and connected data remain available.'
+    },
+    {
+      question: 'What makes Pro different from Supporter?',
+      answer:
+        'Pro adds deeper coaching intelligence, scenario planning, proactive readiness alerts, and advanced long-horizon insights.'
+    },
+    {
+      question: 'Do upgrades apply immediately?',
+      answer:
+        'Yes. Upgrades are applied right away and Stripe handles prorated billing automatically.'
+    }
+  ] as const
+
   // Methods
   function formatStatus(status: SubscriptionStatus | undefined): string {
     if (!status) return 'None'
@@ -261,7 +329,7 @@
 
 <template>
   <div class="space-y-6">
-    <UCard :ui="{ body: 'hidden' }">
+    <UCard v-if="isPremium || showSuccessMessage" :ui="{ body: 'hidden' }">
       <template #header>
         <div class="flex items-center justify-between">
           <div>
@@ -586,7 +654,7 @@
         class="space-y-4 order-2 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
       >
         <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
-          <h3 class="text-xl font-bold">Subscription Plans</h3>
+          <h3 class="text-2xl font-black uppercase tracking-tight">Subscription Plans</h3>
           <p
             v-if="userStore.user?.subscriptionTier !== 'PRO'"
             class="text-sm text-primary font-medium"
@@ -595,7 +663,80 @@
           </p>
         </div>
 
-        <LandingPricingPlans />
+        <LandingPricingPlans conversion-goal="pro" is-billing-page />
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div
+            v-for="item in billingTrustSignals"
+            :key="item.title"
+            class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-900"
+          >
+            <div class="flex items-start gap-3">
+              <UIcon :name="item.icon" class="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <div class="text-sm font-semibold">{{ item.title }}</div>
+                <p class="text-xs text-gray-600 dark:text-gray-300 mt-1">{{ item.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <details class="billing-details rounded-lg border border-gray-200 dark:border-gray-800">
+          <summary
+            class="billing-summary cursor-pointer list-none px-4 py-3 text-sm font-semibold flex items-center justify-between"
+          >
+            Compare all plan highlights
+            <UIcon name="i-heroicons-chevron-down" class="billing-chevron w-4 h-4 text-gray-500" />
+          </summary>
+          <div class="billing-details-content">
+            <div class="billing-details-inner px-4 pb-4 overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left border-b border-gray-200 dark:border-gray-800">
+                    <th class="py-2 font-semibold">Feature</th>
+                    <th class="py-2 font-semibold">Free</th>
+                    <th class="py-2 font-semibold">Supporter</th>
+                    <th class="py-2 font-semibold text-primary">Pro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="row in billingComparisonRows"
+                    :key="row.feature"
+                    class="border-b border-gray-100 dark:border-gray-900"
+                  >
+                    <td class="py-2 font-medium">{{ row.feature }}</td>
+                    <td class="py-2 text-gray-600 dark:text-gray-300">{{ row.free }}</td>
+                    <td class="py-2 text-gray-600 dark:text-gray-300">{{ row.supporter }}</td>
+                    <td class="py-2 text-primary font-medium">{{ row.pro }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+
+        <UCard :ui="{ body: 'p-4 sm:p-6' }">
+          <template #header>
+            <h4 class="text-base font-semibold">Billing FAQ</h4>
+          </template>
+          <div class="divide-y divide-gray-200 dark:divide-gray-800">
+            <details v-for="item in billingFaqs" :key="item.question" class="billing-faq-item py-3">
+              <summary
+                class="billing-summary cursor-pointer list-none text-sm font-medium flex items-center justify-between gap-2"
+              >
+                <span>{{ item.question }}</span>
+                <UIcon
+                  name="i-heroicons-chevron-down"
+                  class="billing-chevron w-4 h-4 text-gray-500 shrink-0"
+                />
+              </summary>
+              <div class="billing-faq-content">
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ item.answer }}</p>
+              </div>
+            </details>
+          </div>
+        </UCard>
 
         <!-- Maintenance Message when Subscriptions are Disabled -->
         <div v-if="!subscriptionsEnabled" class="mt-4">
@@ -631,7 +772,7 @@
             </div>
           </template>
 
-          <LandingPricingPlans />
+          <LandingPricingPlans conversion-goal="pro" is-billing-page />
 
           <div v-if="!subscriptionsEnabled" class="mt-8">
             <UAlert
@@ -684,5 +825,50 @@
     .success-confetti-piece {
       animation: none;
     }
+
+    .billing-details-content,
+    .billing-faq-content,
+    .billing-chevron,
+    .billing-summary {
+      transition: none !important;
+    }
+  }
+
+  .billing-summary {
+    transition: color 180ms ease;
+  }
+
+  .billing-summary:hover {
+    color: rgb(59 130 246);
+  }
+
+  .billing-details-content,
+  .billing-faq-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0.6;
+    transition:
+      grid-template-rows 220ms ease,
+      opacity 200ms ease;
+  }
+
+  .billing-details[open] .billing-details-content,
+  .billing-faq-item[open] .billing-faq-content {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  .billing-details-inner,
+  .billing-faq-content > p {
+    overflow: hidden;
+  }
+
+  .billing-chevron {
+    transition: transform 200ms ease;
+  }
+
+  .billing-details[open] .billing-chevron,
+  .billing-faq-item[open] .billing-chevron {
+    transform: rotate(180deg);
   }
 </style>
