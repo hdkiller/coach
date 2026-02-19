@@ -9,6 +9,7 @@ import debugMetabolicCommand from './debug-metabolic'
 import fuelingWorkoutCommand from './fueling-workout'
 import compareFuelingCommand from './compare-fueling'
 import seedCatalogCommand from './seed-catalog'
+import dayLogCommand from './day-log'
 
 import offCommand from './off'
 
@@ -24,6 +25,7 @@ nutritionCommand.addCommand(debugMetabolicCommand)
 nutritionCommand.addCommand(fuelingWorkoutCommand)
 nutritionCommand.addCommand(compareFuelingCommand)
 nutritionCommand.addCommand(seedCatalogCommand)
+nutritionCommand.addCommand(dayLogCommand)
 nutritionCommand.addCommand(offCommand)
 
 export default nutritionCommand
