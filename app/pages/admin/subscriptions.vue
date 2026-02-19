@@ -96,6 +96,15 @@
     return active ? active._count.id : 0
   })
 
+  const sortedUsers = computed(() => {
+    if (!stats.value?.recentPremiumUsers) return []
+    return [...stats.value.recentPremiumUsers].sort((a: any, b: any) => {
+      const dateA = a.subscriptionStartedAt ? new Date(a.subscriptionStartedAt).getTime() : 0
+      const dateB = b.subscriptionStartedAt ? new Date(b.subscriptionStartedAt).getTime() : 0
+      return dateB - dateA
+    })
+  })
+
   const impersonating = ref<string | null>(null)
   const toast = useToast()
 
@@ -227,14 +236,17 @@
                     <th class="px-6 py-3">User</th>
                     <th class="px-6 py-3">Tier</th>
                     <th class="px-6 py-3">Status</th>
-                    <th class="px-6 py-3">Subscribed</th>
+                    <th class="px-6 py-3 flex items-center gap-1">
+                      Subscribed
+                      <UIcon name="i-lucide-arrow-down" class="h-3 w-3" />
+                    </th>
                     <th class="px-6 py-3">Joined</th>
                     <th class="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                   <tr
-                    v-for="user in stats?.recentPremiumUsers"
+                    v-for="user in sortedUsers"
                     :key="user.id"
                     class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >

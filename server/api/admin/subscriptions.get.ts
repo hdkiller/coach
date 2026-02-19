@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     where: {
       subscriptionTier: { in: ['SUPPORTER', 'PRO'] }
     },
-    orderBy: { subscriptionStartedAt: 'desc' },
+    orderBy: [{ subscriptionStartedAt: 'desc' }, { id: 'desc' }],
     take: 50,
     select: {
       id: true,
