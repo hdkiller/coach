@@ -98,6 +98,19 @@ export const useReportStore = defineStore('report', () => {
       return result.reportId
     } catch (error: any) {
       generating.value = false
+
+      if (error.statusCode === 429 || error.status === 429) {
+        const upgradeModal = useUpgradeModal()
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'Custom Report Generation',
+          featureDescription:
+            'You have reached the usage quota for generating AI reports on your current plan. Upgrade to Supporter or Pro for significantly higher quotas.',
+          recommendedTier: 'supporter'
+        })
+        throw error
+      }
+
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || error.message || 'Failed to start report generation',

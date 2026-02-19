@@ -205,6 +205,19 @@ export const useUserStore = defineStore('user', () => {
       })
     } catch (error: any) {
       generating.value = false
+
+      if (error.statusCode === 429 || error.status === 429) {
+        const upgradeModal = useUpgradeModal()
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'Athlete Profile Generation',
+          featureDescription:
+            'You have reached the generation quota for athlete profile reports. Upgrade to Supporter or Pro for significantly more updates.',
+          recommendedTier: 'supporter'
+        })
+        return
+      }
+
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to generate profile',

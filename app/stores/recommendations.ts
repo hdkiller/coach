@@ -78,6 +78,19 @@ export const useRecommendationStore = defineStore('recommendation', () => {
       })
     } catch (error: any) {
       generating.value = false
+
+      if (error.statusCode === 429 || error.status === 429) {
+        const upgradeModal = useUpgradeModal()
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: "Today's Training Analysis",
+          featureDescription:
+            'You have reached the usage quota for AI training recommendations. Upgrade to Supporter or Pro for high-priority access and higher quotas.',
+          recommendedTier: 'supporter'
+        })
+        return
+      }
+
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to generate recommendation',
@@ -103,8 +116,21 @@ export const useRecommendationStore = defineStore('recommendation', () => {
           color: 'success'
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       generatingAdHoc.value = false
+
+      if (error.statusCode === 429 || error.status === 429) {
+        const upgradeModal = useUpgradeModal()
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'Ad-hoc Workout Generation',
+          featureDescription:
+            'You have reached the usage quota for on-demand workout generation. Upgrade to Supporter or Pro for higher quotas.',
+          recommendedTier: 'supporter'
+        })
+        return
+      }
+
       toast.add({ title: 'Generation Failed', color: 'error' })
     }
   }
