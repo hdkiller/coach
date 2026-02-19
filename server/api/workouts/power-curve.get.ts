@@ -4,6 +4,50 @@ import { getServerSession } from '../../utils/session'
 import { subDays } from 'date-fns'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
 
+const DURATIONS = [5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600]
+const FRESHNESS_THRESHOLDS = {
+  fresh: 30,
+  aging: 90
+}
+const VALIDATION_PCT = 0.97
+
+type FreshnessState = 'fresh' | 'aging' | 'stale' | 'unknown'
+
+function calculateBestPowerForDuration(powerData: number[], durationSec: number): number {
+  if (!Array.isArray(powerData) || powerData.length < durationSec) return 0
+
+  let maxAvg = 0
+  let rolling = 0
+
+  for (let i = 0; i < powerData.length; i++) {
+    rolling += powerData[i] || 0
+
+    if (i >= durationSec) {
+      rolling -= powerData[i - durationSec] || 0
+    }
+
+    if (i >= durationSec - 1) {
+      const avg = rolling / durationSec
+      if (avg > maxAvg) maxAvg = avg
+    }
+  }
+
+  return Math.round(maxAvg)
+}
+
+function getDaysSince(date: Date | null, now: Date): number | null {
+  if (!date) return null
+  const msInDay = 24 * 60 * 60 * 1000
+  return Math.floor((now.getTime() - date.getTime()) / msInDay)
+}
+
+function getFreshnessState(daysSince: number | null): FreshnessState {
+  if (daysSince === null) return 'unknown'
+  if (daysSince <= FRESHNESS_THRESHOLDS.fresh) return 'fresh'
+  if (daysSince <= FRESHNESS_THRESHOLDS.aging) return 'aging'
+  return 'stale'
+}
+
 defineRouteMeta({
   openAPI: {
     tags: ['Workouts'],
@@ -85,7 +129,14 @@ export default defineEventHandler(async (event) => {
     startDate,
     endDate: now,
     includeDuplicates: false,
-    where: sport ? { type: sport } : undefined
+    where: sport ? { type: sport } : undefined,
+    include: {
+      streams: {
+        select: {
+          watts: true
+        }
+      }
+    }
   })
 
   // 2. Fetch all-time bests (All-Time Curve)
@@ -94,89 +145,93 @@ export default defineEventHandler(async (event) => {
     startDate: allTimeStartDate,
     endDate: now,
     includeDuplicates: false,
-    where: sport ? { type: sport } : undefined
+    where: sport ? { type: sport } : undefined,
+    include: {
+      streams: {
+        select: {
+          watts: true
+        }
+      }
+    }
   })
 
-  // Helper to extract max power for standard durations
-  // Durations in seconds: 1s, 5s, 10s, 30s, 1min, 5min, 10min, 20min, 60min
-  const durations = [1, 5, 10, 30, 60, 300, 600, 1200, 3600]
+  const processWorkoutsToCurve = (
+    workouts: any[],
+    allTimeBestByDuration?: Map<number, number>,
+    fallbackLastValidatingByDuration?: Map<number, Date | null>
+  ) => {
+    const bestByDuration = new Map<number, { watts: number; date: Date | null }>()
+    const lastValidatingByDuration = new Map<number, Date | null>()
 
-  const calculateCurve = (workouts: any[]) => {
-    const curve: Record<number, number> = {}
-    durations.forEach((d) => (curve[d] = 0))
-
-    workouts.forEach((w) => {
-      // Assuming we have 'powerCurve' JSON field or similar in the future
-      // For now, we only have averageWatts (approx 60min) and maxWatts (1s)
-      // This is a PLACEHOLDER until we have real power curve data ingestion
-      // We will simulate a curve based on FTP/Max models if real data is missing
-
-      // Use real data if available in rawJson (from Intervals/Strava streams)
-      if (w.maxWatts !== null && w.maxWatts !== undefined) {
-        curve[1] = Math.max(curve[1] || 0, w.maxWatts)
-        curve[5] = Math.max(curve[5] || 0, w.maxWatts * 0.9) // Estimate
-      }
-      if (w.averageWatts !== null && w.averageWatts !== undefined) {
-        // Rough estimate if we don't have granular data
-        curve[3600] = Math.max(curve[3600] || 0, w.averageWatts)
-      }
-      // ... more sophisticated stream processing would go here
+    DURATIONS.forEach((duration) => {
+      bestByDuration.set(duration, { watts: 0, date: null })
+      lastValidatingByDuration.set(duration, null)
     })
 
-    // For this implementation, let's assume we can fetch pre-calculated curve points
-    // or we'll return a simulated curve based on the athlete's known bests
-    return durations.map((d) => ({
-      duration: d,
-      watts: curve[d]
-    }))
-  }
+    workouts.forEach((workout) => {
+      const watts = workout.streams?.watts
+      if (!Array.isArray(watts) || watts.length === 0) return
 
-  // NOTE: since we don't have full power stream processing yet,
-  // we will return the best 1s (Max) and Average (approx 1h) and interpolated points
-  // In a real scenario, we'd query a `PowerCurve` table.
+      DURATIONS.forEach((duration) => {
+        const best = calculateBestPowerForDuration(watts as number[], duration)
+        if (best <= 0) return
 
-  // Real implementation using the repository's hypothetical 'getPowerCurve' method
-  // If not exists, we'll stick to basic fields
+        const current = bestByDuration.get(duration)
+        if (current && best > current.watts) {
+          bestByDuration.set(duration, { watts: best, date: new Date(workout.date) })
+        }
 
-  const processWorkoutsToCurve = (workouts: any[]) => {
-    let max1s = 0
-    let max5m = 0
-    let max20m = 0
-    let max60m = 0
-
-    workouts.forEach((w) => {
-      const mw = w.maxWatts || w.averageWatts || 0
-      const aw = w.averageWatts || 0
-      const duration = w.durationSec || 0
-
-      if (mw > max1s) max1s = mw
-
-      // If workout is long enough, use average watts as a floor for that duration
-      if (duration >= 3600 && aw > max60m) max60m = aw
-      if (duration >= 1200 && aw > max20m) max20m = aw
-      if (duration >= 300 && aw > max5m) max5m = aw
+        const referenceBest = allTimeBestByDuration?.get(duration) || best
+        const threshold = referenceBest * VALIDATION_PCT
+        if (best >= threshold) {
+          const existing = lastValidatingByDuration.get(duration)
+          const workoutDate = new Date(workout.date)
+          if (!existing || workoutDate > existing) {
+            lastValidatingByDuration.set(duration, workoutDate)
+          }
+        }
+      })
     })
 
-    // If we don't have enough data points, estimate from max1s or max60m
-    if (max60m === 0 && max1s > 0) max60m = max1s * 0.25
-    if (max20m === 0 && max60m > 0) max20m = max60m / 0.9 // Est FTP
-    if (max5m === 0 && max20m > 0) max5m = max20m / 0.8
-    if (max1s === 0 && max60m > 0) max1s = max60m * 4
+    return DURATIONS.map((duration) => {
+      const best = bestByDuration.get(duration)
+      const lastValidatingDate =
+        lastValidatingByDuration.get(duration) ||
+        fallbackLastValidatingByDuration?.get(duration) ||
+        null
+      const daysSince = getDaysSince(lastValidatingDate, now)
 
-    // Return a smoothed curve based on best known points
-    return [
-      { duration: 1, watts: Math.round(max1s) },
-      { duration: 10, watts: Math.round(max1s * 0.85) },
-      { duration: 30, watts: Math.round(max1s * 0.7) },
-      { duration: 60, watts: Math.round(max1s * 0.55) },
-      { duration: 300, watts: Math.round(Math.max(max5m, max1s * 0.4)) },
-      { duration: 1200, watts: Math.round(Math.max(max20m, max1s * 0.3)) },
-      { duration: 3600, watts: Math.round(Math.max(max60m, max1s * 0.25)) }
-    ]
+      return {
+        duration,
+        watts: best?.watts || 0,
+        bestDate: best?.date,
+        lastValidatingDate,
+        daysSince,
+        freshnessState: getFreshnessState(daysSince)
+      }
+    }).filter((point) => point.watts > 0)
   }
+
+  const allTimeCurve = processWorkoutsToCurve(allTimeWorkouts)
+  const allTimeBestByDuration = new Map<number, number>(
+    allTimeCurve.map((point) => [point.duration, point.watts])
+  )
+  const allTimeLastValidatingByDuration = new Map<number, Date | null>(
+    allTimeCurve.map((point) => [point.duration, point.lastValidatingDate || null])
+  )
+
+  const currentCurve = processWorkoutsToCurve(
+    currentWorkouts,
+    allTimeBestByDuration,
+    allTimeLastValidatingByDuration
+  )
 
   return {
-    current: processWorkoutsToCurve(currentWorkouts),
-    allTime: processWorkoutsToCurve(allTimeWorkouts)
+    current: currentCurve,
+    allTime: allTimeCurve,
+    freshness: {
+      thresholdsDays: FRESHNESS_THRESHOLDS,
+      validationPct: VALIDATION_PCT
+    }
   }
 })

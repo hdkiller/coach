@@ -1,9 +1,69 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
-import { userRepository } from '../../utils/repositories/userRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
+
+const FTP_FRESHNESS_THRESHOLDS = {
+  fresh: 30,
+  aging: 90
+}
+
+const FTP_VALIDATION_PCT = 0.97
+
+type FtpFreshnessState = 'fresh' | 'aging' | 'stale' | 'unknown'
+
+function buildSportTypeWhere(sport?: string) {
+  if (!sport) return undefined
+
+  const cyclingTypes = ['Ride', 'VirtualRide', 'MountainBikeRide', 'GravelRide', 'EBikeRide']
+  const runningTypes = ['Run', 'VirtualRun', 'TrailRun']
+
+  if (cyclingTypes.includes(sport)) {
+    return { in: cyclingTypes }
+  }
+
+  if (runningTypes.includes(sport)) {
+    return { in: runningTypes }
+  }
+
+  return sport
+}
+
+function calculateBestPowerForDuration(powerData: number[], durationSec: number): number {
+  if (!Array.isArray(powerData) || powerData.length < durationSec) return 0
+
+  let maxAvg = 0
+  let rolling = 0
+
+  for (let i = 0; i < powerData.length; i++) {
+    rolling += powerData[i] || 0
+
+    if (i >= durationSec) {
+      rolling -= powerData[i - durationSec] || 0
+    }
+
+    if (i >= durationSec - 1) {
+      const avg = rolling / durationSec
+      if (avg > maxAvg) maxAvg = avg
+    }
+  }
+
+  return Math.round(maxAvg)
+}
+
+function getDaysSince(date: Date | null, now: Date): number | null {
+  if (!date) return null
+  const msInDay = 24 * 60 * 60 * 1000
+  return Math.floor((now.getTime() - date.getTime()) / msInDay)
+}
+
+function getFreshnessState(daysSince: number | null): FtpFreshnessState {
+  if (daysSince === null) return 'unknown'
+  if (daysSince <= FTP_FRESHNESS_THRESHOLDS.fresh) return 'fresh'
+  if (daysSince <= FTP_FRESHNESS_THRESHOLDS.aging) return 'aging'
+  return 'stale'
+}
 
 defineRouteMeta({
   openAPI: {
@@ -74,6 +134,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const userId = (session.user as any).id
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
+  const sportTypeWhere = buildSportTypeWhere(sport)
 
   // Get user
   const user = await prisma.user.findUnique({
@@ -108,7 +169,7 @@ export default defineEventHandler(async (event) => {
       ftp: {
         not: null
       },
-      type: sport || undefined
+      type: sportTypeWhere
     },
     select: {
       id: true,
@@ -186,6 +247,93 @@ export default defineEventHandler(async (event) => {
   const improvement =
     startingFTP && currentFTP ? ((currentFTP - startingFTP) / startingFTP) * 100 : null
 
+  // Freshness context: look for efforts that can validate current FTP
+  let ftpFreshness: {
+    state: FtpFreshnessState
+    daysSinceValidation: number | null
+    lastValidatingEffortDate: Date | null
+    message: string
+    thresholdsDays: { fresh: number; aging: number }
+    validationPct: number
+  } = {
+    state: 'unknown',
+    daysSinceValidation: null,
+    lastValidatingEffortDate: null,
+    message: 'No power validation data available.',
+    thresholdsDays: FTP_FRESHNESS_THRESHOLDS,
+    validationPct: FTP_VALIDATION_PCT
+  }
+
+  if (currentFTP) {
+    const ftpValidationLookbackStart = new Date()
+    ftpValidationLookbackStart.setDate(ftpValidationLookbackStart.getDate() - 365)
+
+    const powerWorkouts = await workoutRepository.getForUser(user.id, {
+      startDate: ftpValidationLookbackStart,
+      endDate,
+      includeDuplicates: false,
+      where: sport ? { type: sportTypeWhere } : undefined,
+      include: {
+        streams: {
+          select: {
+            watts: true
+          }
+        }
+      }
+    })
+
+    let lastValidatingEffortDate: Date | null = null
+
+    powerWorkouts.forEach((workout) => {
+      const watts = workout.streams?.watts as number[] | undefined
+
+      const fallbackPower = workout.normalizedPower || workout.averageWatts || 0
+      const durationSec = workout.durationSec || 0
+
+      const stream20m = Array.isArray(watts) ? calculateBestPowerForDuration(watts, 1200) : 0
+      const stream30m = Array.isArray(watts) ? calculateBestPowerForDuration(watts, 1800) : 0
+      const stream60m = Array.isArray(watts) ? calculateBestPowerForDuration(watts, 3600) : 0
+
+      const best20m = Math.max(stream20m, durationSec >= 1200 ? fallbackPower : 0)
+      const best30m = Math.max(stream30m, durationSec >= 1800 ? fallbackPower : 0)
+      const best60m = Math.max(stream60m, durationSec >= 3600 ? fallbackPower : 0)
+
+      if (best20m <= 0 && best30m <= 0 && best60m <= 0) return
+
+      // Estimate FTP-equivalent effort from sustained durations
+      const ftpEquivalent = Math.max(best20m * 0.95, best30m * 0.93, best60m)
+      const threshold = currentFTP * FTP_VALIDATION_PCT
+
+      if (ftpEquivalent >= threshold) {
+        const workoutDate = new Date(workout.date)
+        if (!lastValidatingEffortDate || workoutDate > lastValidatingEffortDate) {
+          lastValidatingEffortDate = workoutDate
+        }
+      }
+    })
+
+    const daysSinceValidation = getDaysSince(lastValidatingEffortDate, endDate)
+    const state = getFreshnessState(daysSinceValidation)
+
+    let message = 'FTP estimate appears current based on recent sustained efforts.'
+    if (state === 'aging') {
+      message = 'FTP estimate is aging; consider a validating threshold effort soon.'
+    } else if (state === 'stale') {
+      message = 'FTP estimate may be stale (no validating effort in >90 days).'
+    } else if (state === 'unknown') {
+      message = 'No sustained power efforts found to validate FTP.'
+    }
+
+    ftpFreshness = {
+      state,
+      daysSinceValidation,
+      lastValidatingEffortDate,
+      message,
+      thresholdsDays: FTP_FRESHNESS_THRESHOLDS,
+      validationPct: FTP_VALIDATION_PCT
+    }
+  }
+
   return {
     data: ftpData,
     summary: {
@@ -194,6 +342,7 @@ export default defineEventHandler(async (event) => {
       peakFTP,
       improvement: improvement ? Math.round(improvement * 10) / 10 : null,
       dataPoints: ftpData.length
-    }
+    },
+    freshness: ftpFreshness
   }
 })
