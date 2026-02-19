@@ -70,6 +70,7 @@ model User {
   lastLoginIp                        String?
   registrationIp                     String?
   registrationCountry                String?
+  trialEndsAt                        DateTime?
   stripeCustomerId                   String?                      @unique
   stripeSubscriptionId               String?                      @unique
   subscriptionPeriodEnd              DateTime?

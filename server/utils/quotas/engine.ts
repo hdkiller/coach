@@ -1,7 +1,7 @@
 import { prisma } from '../db'
 import type { QuotaOperation } from './registry'
 import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
-import { SubscriptionTier, type User } from '@prisma/client'
+import type { SubscriptionTier, type User } from '@prisma/client'
 import type { QuotaStatus } from '../../../types/quotas'
 
 /**
@@ -16,13 +16,17 @@ export async function getQuotaStatus(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { subscriptionTier: true }
+    select: { subscriptionTier: true, trialEndsAt: true }
   })
 
   if (!user) return null
 
-  const tier = user.subscriptionTier
-  const quotaDef = QUOTA_REGISTRY[tier][canonicalOp]
+  // Trial Logic: If user is FREE but has an active trial, they get SUPPORTER quotas
+  const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
+  const effectiveTier: SubscriptionTier =
+    user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
+
+  const quotaDef = QUOTA_REGISTRY[effectiveTier][canonicalOp]
 
   if (!quotaDef) return null
 
@@ -119,13 +123,16 @@ function parseIntervalToMs(interval: string): number {
 export async function getQuotaSummary(userId: string): Promise<QuotaStatus[]> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { subscriptionTier: true }
+    select: { subscriptionTier: true, trialEndsAt: true }
   })
 
   if (!user) return []
 
-  const tier = user.subscriptionTier
-  const ops = Object.keys(QUOTA_REGISTRY[tier]) as QuotaOperation[]
+  const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
+  const effectiveTier: SubscriptionTier =
+    user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
+
+  const ops = Object.keys(QUOTA_REGISTRY[effectiveTier]) as QuotaOperation[]
 
   const results = await Promise.all(ops.map((op) => getQuotaStatus(userId, op)))
   return results.filter((r): r is QuotaStatus => r !== null)
