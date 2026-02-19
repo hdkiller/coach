@@ -50,52 +50,82 @@
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                <USkeleton v-if="loading" class="h-9 w-12 mx-auto" />
-                <template v-else>{{ totalNutrition }}</template>
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Total Days</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <button
+            class="rounded-xl p-3 sm:p-4 border text-left transition-colors bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400"
+              >
+                Total Days
+              </span>
+              <UIcon name="i-heroicons-calendar" class="size-3.5 text-blue-500" />
             </div>
-          </div>
+            <div class="text-2xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+              <USkeleton v-if="loading" class="h-8 w-12" />
+              <template v-else>{{ totalNutrition }}</template>
+            </div>
+          </button>
 
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-                <USkeleton v-if="loading" class="h-9 w-12 mx-auto" />
-                <template v-else>{{ analyzedNutrition }}</template>
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Analyzed</div>
+          <button
+            class="rounded-xl p-3 sm:p-4 border text-left transition-colors bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400"
+              >
+                Analyzed
+              </span>
+              <UIcon name="i-heroicons-sparkles" class="size-3.5 text-emerald-500" />
             </div>
-          </div>
+            <div class="text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+              <USkeleton v-if="loading" class="h-8 w-12" />
+              <template v-else>{{ analyzedNutrition }}</template>
+            </div>
+          </button>
 
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-                <USkeleton v-if="loading" class="h-9 w-12 mx-auto" />
-                <template v-else>{{ avgScore !== null ? avgScore.toFixed(1) : '-' }}</template>
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Score</div>
+          <button
+            class="rounded-xl p-3 sm:p-4 border text-left transition-colors bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400"
+              >
+                Avg Score
+              </span>
+              <UIcon name="i-heroicons-star" class="size-3.5 text-amber-500" />
             </div>
-          </div>
+            <div class="text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+              <USkeleton v-if="loading" class="h-8 w-12" />
+              <template v-else>{{ avgScore !== null ? avgScore.toFixed(1) : '-' }}</template>
+            </div>
+          </button>
 
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
-            <div class="text-center">
-              <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                <USkeleton v-if="loading" class="h-9 w-20 mx-auto" />
-                <template v-else>{{ avgCalories ? Math.round(avgCalories) : '-' }}</template>
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Avg Calories</div>
+          <button
+            class="rounded-xl p-3 sm:p-4 border text-left transition-colors bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/50"
+          >
+            <div class="flex items-center justify-between mb-1">
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400"
+              >
+                Avg Calories
+              </span>
+              <UIcon name="i-heroicons-fire" class="size-3.5 text-purple-500" />
             </div>
-          </div>
+            <div class="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
+              <USkeleton v-if="loading" class="h-8 w-20" />
+              <template v-else>{{ avgCalories ? Math.round(avgCalories) : '-' }}</template>
+            </div>
+          </button>
         </div>
 
         <!-- Nutrition Quality Scores -->
         <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Nutrition Quality</h2>
+          <div class="flex items-center justify-between px-1">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+              Nutrition Quality
+            </h2>
             <USelect
               v-model="selectedPeriod"
               :items="periodOptions"
@@ -216,30 +246,65 @@
             </div>
 
             <!-- Trend Chart and Radar Chart Side by Side -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
               <!-- Score Trends (2/3 width) -->
               <div class="lg:col-span-2">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Score Trends
-                </h3>
-                <TrendChart :data="nutritionTrendsData.nutrition" type="nutrition" />
+                <UCard
+                  :ui="{
+                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+                    body: 'p-4 sm:p-6'
+                  }"
+                >
+                  <template #header>
+                    <div class="flex items-center gap-2">
+                      <UIcon
+                        name="i-heroicons-presentation-chart-line"
+                        class="size-4 text-primary-500"
+                      />
+                      <h3
+                        class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider"
+                      >
+                        Fueling Trajectory
+                      </h3>
+                    </div>
+                  </template>
+                  <div class="h-[300px]">
+                    <TrendChart :data="nutritionTrendsData.nutrition" type="nutrition" />
+                  </div>
+                </UCard>
               </div>
 
               <!-- Current Balance (1/3 width) -->
               <div class="lg:col-span-1">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Current Balance
-                </h3>
-                <RadarChart
-                  :scores="{
-                    overall: nutritionTrendsData.summary?.avgOverall,
-                    macroBalance: nutritionTrendsData.summary?.avgMacroBalance,
-                    quality: nutritionTrendsData.summary?.avgQuality,
-                    adherence: nutritionTrendsData.summary?.avgAdherence,
-                    hydration: nutritionTrendsData.summary?.avgHydration
+                <UCard
+                  :ui="{
+                    root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+                    body: 'p-4 sm:p-6'
                   }"
-                  type="nutrition"
-                />
+                >
+                  <template #header>
+                    <div class="flex items-center gap-2">
+                      <UIcon name="i-heroicons-swatch" class="size-4 text-blue-500" />
+                      <h3
+                        class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider"
+                      >
+                        Metabolic Balance
+                      </h3>
+                    </div>
+                  </template>
+                  <div class="h-[320px]">
+                    <RadarChart
+                      :scores="{
+                        overall: nutritionTrendsData.summary?.avgOverall,
+                        macroBalance: nutritionTrendsData.summary?.avgMacroBalance,
+                        quality: nutritionTrendsData.summary?.avgQuality,
+                        adherence: nutritionTrendsData.summary?.avgAdherence,
+                        hydration: nutritionTrendsData.summary?.avgHydration
+                      }"
+                      type="nutrition"
+                    />
+                  </div>
+                </UCard>
               </div>
             </div>
           </div>
@@ -256,120 +321,182 @@
         />
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
           <!-- Calorie Tracking Chart -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Calorie Tracking
-            </h3>
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-fire" class="size-4 text-orange-500" />
+                <h3
+                  class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider"
+                >
+                  Calorie Tracking
+                </h3>
+              </div>
+            </template>
             <ClientOnly>
               <Line :data="calorieTrackingData" :options="lineChartOptions" />
             </ClientOnly>
-          </div>
+          </UCard>
 
           <!-- Macro Distribution Chart -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Macro Distribution
-            </h3>
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-scale" class="size-4 text-blue-500" />
+                <h3
+                  class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider"
+                >
+                  Macro Distribution
+                </h3>
+              </div>
+            </template>
             <ClientOnly>
               <Doughnut :data="macroDistributionData" :options="doughnutChartOptions" />
             </ClientOnly>
-          </div>
+          </UCard>
 
           <!-- Nutrition Scores Chart -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Nutrition Scores
-            </h3>
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-sparkles" class="size-4 text-purple-500" />
+                <h3
+                  class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider"
+                >
+                  Nutrition Scores
+                </h3>
+              </div>
+            </template>
             <ClientOnly>
               <Line :data="nutritionScoresChartData" :options="lineChartOptions" />
             </ClientOnly>
-          </div>
+          </UCard>
 
           <!-- Hydration Chart -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Hydration Tracking
-            </h3>
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+              body: 'p-4 sm:p-6'
+            }"
+          >
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-beaker" class="size-4 text-cyan-500" />
+                <h3
+                  class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider"
+                >
+                  Hydration Tracking
+                </h3>
+              </div>
+            </template>
             <ClientOnly>
               <Bar :data="hydrationData" :options="barChartOptions" />
             </ClientOnly>
-          </div>
+          </UCard>
         </div>
 
         <!-- Filters -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <UCard
+          :ui="{
+            root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+            body: 'p-3'
+          }"
+          class="bg-gray-50/50 dark:bg-gray-900/40 border-dashed border-gray-200 dark:border-gray-800"
+        >
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Analysis Status
-              </label>
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0">
+                Analysis
+              </span>
               <USelect
                 v-model="filterAnalysis"
                 :items="analysisStatusOptions"
                 placeholder="All Status"
+                size="sm"
+                color="neutral"
+                variant="outline"
                 class="w-full"
               />
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Calorie Goal Status
-              </label>
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0">
+                Calories
+              </span>
               <USelect
                 v-model="filterCalories"
                 :items="calorieStatusOptions"
                 placeholder="All"
+                size="sm"
+                color="neutral"
+                variant="outline"
                 class="w-full"
               />
             </div>
           </div>
-        </div>
+        </UCard>
 
         <!-- Nutrition Table -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead class="bg-gray-50 dark:bg-gray-900">
+              <thead
+                class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800"
+              >
                 <tr>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Date
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Calories
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Protein
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Carbs
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Fat
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Water
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     Score
                   </th>
                   <th
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest"
                   >
                     AI Analysis
                   </th>
@@ -492,14 +619,25 @@
         </div>
 
         <!-- AI Recommendations Section -->
-        <div
+        <UCard
           v-if="!loading && allRecommendations.length > 0"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+          :ui="{
+            root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
+            body: 'p-4 sm:p-6'
+          }"
         >
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            🎯 AI-Generated Nutrition Recommendations
-          </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <template #header>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-sparkles" class="size-4 text-primary-500" />
+              <h3 class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                AI Nutrition Recommendations
+              </h3>
+            </div>
+          </template>
+
+          <p
+            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 italic"
+          >
             Based on your last {{ selectedPeriod }} days of nutrition data
           </p>
 
@@ -551,14 +689,14 @@
                   >
                     {{ rec.description }}
                   </p>
-                  <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 font-bold uppercase">
                     From: {{ rec.metric }}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </UCard>
       </div>
     </template>
   </UDashboardPanel>
