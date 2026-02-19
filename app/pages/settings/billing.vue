@@ -477,7 +477,7 @@
       <div
         v-if="!polling"
         class="grid grid-cols-1 lg:grid-cols-3 gap-6"
-        :class="{ 'order-1 lg:order-2': !isPremium, 'order-1': isPremium }"
+        :class="{ 'order-2 lg:order-2': !isPremium, 'order-1': isPremium }"
       >
         <!-- Detailed Status Card -->
         <UCard class="lg:col-span-2" :ui="{ body: 'p-4 sm:p-6' }">
@@ -651,7 +651,7 @@
       <!-- Show ONLY if NOT premium (or in modal) -->
       <div
         v-if="!isPremium && !showSuccessMessage"
-        class="space-y-4 order-2 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
+        class="space-y-4 order-1 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
       >
         <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
           <h3 class="text-2xl font-black uppercase tracking-tight">Subscription Plans</h3>
