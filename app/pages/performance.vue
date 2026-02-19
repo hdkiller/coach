@@ -202,7 +202,8 @@
                 unit: 'W',
                 max: 1500,
                 step: 50,
-                showOverlays: false
+                showOverlays: false,
+                showFreshnessBandsOption: true
               })
             "
           />
@@ -587,6 +588,7 @@
           :max="activeMetricSettings.max"
           :step="activeMetricSettings.step"
           :show-overlays="activeMetricSettings.showOverlays"
+          :show-freshness-bands-option="activeMetricSettings.showFreshnessBandsOption"
           :default-type="activeMetricSettings.defaultType"
           :open="!!activeMetricSettings"
           @update:open="activeMetricSettings = null"
@@ -621,12 +623,13 @@
     max?: number
     step?: number
     showOverlays?: boolean
+    showFreshnessBandsOption?: boolean
     defaultType?: 'line' | 'bar'
   } | null>(null)
 
   const defaultChartSettings: any = {
     pmc: { smooth: true, yScale: 'dynamic', yMin: 0 },
-    powerCurve: { smooth: true, yScale: 'dynamic', yMin: 0 },
+    powerCurve: { smooth: true, showFreshnessBands: true, yScale: 'dynamic', yMin: 0 },
     efficiency: { smooth: true, showPoints: true, yScale: 'dynamic', yMin: 0 },
     ftp: { type: 'line', smooth: false, showPoints: true, yScale: 'dynamic', yMin: 0 },
     distribution: { type: 'bar', yScale: 'dynamic', yMin: 0 },

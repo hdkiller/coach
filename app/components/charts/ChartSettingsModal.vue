@@ -52,6 +52,16 @@
               <USwitch v-model="settings.showLabels" />
             </div>
 
+            <div v-if="showFreshnessBandsOption" class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Show Freshness Bands
+                </div>
+                <div class="text-xs text-muted">Tint chart sections by freshness age.</div>
+              </div>
+              <USwitch v-model="settings.showFreshnessBands" />
+            </div>
+
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Fill Opacity</div>
@@ -197,6 +207,7 @@
       step?: number
       showOverlays?: boolean
       showTargetOption?: boolean
+      showFreshnessBandsOption?: boolean
       defaultType?: 'line' | 'bar'
     }>(),
     {
@@ -205,6 +216,7 @@
       step: 1,
       showOverlays: true,
       showTargetOption: true,
+      showFreshnessBandsOption: false,
       defaultType: 'line'
     }
   )
@@ -218,6 +230,7 @@
     smooth: true,
     showPoints: false,
     showLabels: false,
+    showFreshnessBands: true,
     opacity: 0.5,
     yScale: 'dynamic',
     yMin: 0,

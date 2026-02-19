@@ -107,6 +107,21 @@
           />
         </div>
 
+        <div v-if="ftpData.freshness" class="rounded-xl border px-4 py-3" :class="freshnessClasses">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-shield-exclamation" class="size-4" />
+            <p class="text-[10px] font-black uppercase tracking-widest">
+              FTP Freshness: {{ ftpData.freshness.state }}
+            </p>
+          </div>
+          <p class="mt-1 text-[11px] leading-relaxed font-medium">
+            {{ ftpData.freshness.message }}
+            <span v-if="typeof ftpData.freshness.daysSinceValidation === 'number'">
+              (Last validating effort: {{ ftpData.freshness.daysSinceValidation }} days ago)
+            </span>
+          </p>
+        </div>
+
         <!-- Info Section -->
         <div
           class="p-4 bg-primary-50 dark:bg-primary-950/10 rounded-xl border border-primary-100 dark:border-primary-900/50"
@@ -212,12 +227,12 @@
         {
           label: 'FTP (W)',
           data: ftpValues,
-          borderColor: theme.colors.value.get('blue', 500),
+          borderColor: freshnessColor.value,
           backgroundColor: 'transparent',
           borderWidth: 3,
           pointRadius: (ctx: any) => (chartSettings.value.showPoints ? 4 : 0),
           pointHoverRadius: 6,
-          pointBackgroundColor: theme.colors.value.get('blue', 500),
+          pointBackgroundColor: freshnessColor.value,
           pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
           pointBorderWidth: 2,
           tension: chartSettings.value.smooth ? 0.4 : 0,
@@ -225,6 +240,28 @@
         }
       ]
     }
+  })
+
+  const freshnessColor = computed(() => {
+    const state = ftpData.value?.freshness?.state
+    if (state === 'fresh') return '#3b82f6'
+    if (state === 'aging') return '#f59e0b'
+    if (state === 'stale') return '#ef4444'
+    return theme.colors.value.get('blue', 500)
+  })
+
+  const freshnessClasses = computed(() => {
+    const state = ftpData.value?.freshness?.state
+    if (state === 'fresh') {
+      return 'bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/20 dark:text-blue-200 dark:border-blue-900/40'
+    }
+    if (state === 'aging') {
+      return 'bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/20 dark:text-amber-200 dark:border-amber-900/40'
+    }
+    if (state === 'stale') {
+      return 'bg-red-50 text-red-900 border-red-200 dark:bg-red-950/20 dark:text-red-200 dark:border-red-900/40'
+    }
+    return 'bg-gray-50 text-gray-900 border-gray-200 dark:bg-gray-900/40 dark:text-gray-200 dark:border-gray-800'
   })
 
   // Chart options

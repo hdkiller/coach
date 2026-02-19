@@ -27,7 +27,7 @@
           :key="`power-curve-${chartSettings.smooth}-${chartSettings.yScale}`"
           :data="chartData"
           :options="chartOptions"
-          :plugins="[ChartDataLabels]"
+          :plugins="[freshnessBandsPlugin, ChartDataLabels]"
           :height="300"
         />
       </ClientOnly>
@@ -81,10 +81,52 @@
   const chartSettings = computed(() => ({
     smooth: true,
     showLabels: true,
+    showFreshnessBands: true,
     yScale: 'dynamic',
     yMin: 0,
     ...props.settings
   }))
+
+  const freshnessBandsPlugin = {
+    id: 'freshnessBands',
+    beforeDatasetsDraw(chart: any) {
+      if (!chartSettings.value.showFreshnessBands) return
+
+      const dataset = chart?.data?.datasets?.[0]
+      const states = dataset?.freshnessStates
+      if (!Array.isArray(states) || states.length === 0) return
+
+      const meta = chart.getDatasetMeta(0)
+      const points = meta?.data || []
+      if (!points.length) return
+
+      const { ctx, chartArea } = chart
+      if (!chartArea) return
+
+      const colorForState = (state: string) => {
+        if (state === 'fresh') return 'rgba(59, 130, 246, 0.08)'
+        if (state === 'aging') return 'rgba(245, 158, 11, 0.08)'
+        if (state === 'stale') return 'rgba(239, 68, 68, 0.08)'
+        return 'rgba(100, 116, 139, 0.06)'
+      }
+
+      ctx.save()
+      for (let i = 0; i < points.length; i++) {
+        const point = points[i]
+        if (!point) continue
+
+        const x = point.x
+        const prevX = points[i - 1]?.x
+        const nextX = points[i + 1]?.x
+        const left = prevX !== undefined ? (prevX + x) / 2 : chartArea.left
+        const right = nextX !== undefined ? (x + nextX) / 2 : chartArea.right
+
+        ctx.fillStyle = colorForState(states[i])
+        ctx.fillRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top)
+      }
+      ctx.restore()
+    }
+  }
 
   // Format duration labels (e.g., 60s -> 1m)
   const formatDurationLabel = (seconds: number) => {
@@ -156,20 +198,72 @@
         })
       }
 
+      const currentByDuration = new Map(
+        powerData.value.current.map((point: any) => [point.duration, point])
+      )
+
+      const getStateRank = (state: string | undefined) => {
+        if (state === 'stale') return 3
+        if (state === 'aging') return 2
+        if (state === 'fresh') return 1
+        return 0
+      }
+
+      const freshnessColorForIndex = (index: number) => {
+        const duration = durations[index]
+        const point = currentByDuration.get(duration)
+        const state = point?.freshnessState
+
+        if (state === 'fresh') return '#3b82f6' // blue
+        if (state === 'aging') return '#f59e0b' // amber
+        if (state === 'stale') return '#ef4444' // red
+        return '#64748b' // slate
+      }
+
+      const segmentColor = (p0Index: number, p1Index: number) => {
+        const p0Duration = durations[p0Index]
+        const p1Duration = durations[p1Index]
+        const p0State = currentByDuration.get(p0Duration)?.freshnessState
+        const p1State = currentByDuration.get(p1Duration)?.freshnessState
+        return getStateRank(p0State) >= getStateRank(p1State)
+          ? freshnessColorForIndex(p0Index)
+          : freshnessColorForIndex(p1Index)
+      }
+
+      const overallWorstIndex = durations.reduce(
+        (worstIdx: number, _duration: number, idx: number) => {
+          return getStateRank(currentByDuration.get(durations[idx])?.freshnessState) >
+            getStateRank(currentByDuration.get(durations[worstIdx])?.freshnessState)
+            ? idx
+            : worstIdx
+        },
+        0
+      )
+
       return {
         labels,
         datasets: [
           {
             label: 'Current Period',
             data: mapData(powerData.value.current),
-            borderColor: theme.colors.value.get('blue', 500),
+            durations,
+            freshnessStates: durations.map(
+              (d: any) => currentByDuration.get(d)?.freshnessState || 'unknown'
+            ),
+            borderColor: freshnessColorForIndex(overallWorstIndex),
             backgroundColor: 'transparent',
             borderWidth: 3,
-            pointRadius: 0,
+            pointRadius: 3,
             pointHoverRadius: 6,
+            pointBackgroundColor: (ctx: any) => freshnessColorForIndex(ctx.dataIndex),
+            pointBorderColor: theme.isDark.value ? '#111827' : '#ffffff',
+            pointBorderWidth: 1.5,
             tension: chartSettings.value.smooth ? 0.4 : 0,
             fill: false,
-            zIndex: 10
+            zIndex: 10,
+            segment: {
+              borderColor: (ctx: any) => segmentColor(ctx.p0DataIndex, ctx.p1DataIndex)
+            }
           },
           {
             label: 'All Time Best',
@@ -273,7 +367,24 @@
         intersect: false,
         callbacks: {
           label: function (context: any) {
-            return `${context.dataset.label}: ${context.parsed.y}W`
+            if (context.datasetIndex !== 0) {
+              return `${context.dataset.label}: ${context.parsed.y}W`
+            }
+
+            const duration = context.dataset?.durations?.[context.dataIndex] || null
+            const point =
+              duration !== null
+                ? powerData.value?.current?.find((p: any) => p.duration === duration)
+                : null
+
+            if (!point) {
+              return `${context.dataset.label}: ${context.parsed.y}W`
+            }
+
+            const freshness = point.freshnessState || 'unknown'
+            const age =
+              typeof point.daysSince === 'number' ? `${point.daysSince}d since validation` : 'n/a'
+            return `${context.dataset.label}: ${context.parsed.y}W (${freshness.toUpperCase()}, ${age})`
           }
         }
       }
