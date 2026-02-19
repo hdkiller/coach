@@ -122,6 +122,23 @@
           </p>
         </div>
 
+        <div
+          v-if="ftpData?.context?.isConfiguredFlat"
+          class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200"
+        >
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-exclamation-triangle" class="size-4" />
+            <p class="text-[10px] font-black uppercase tracking-widest">Configured FTP Plateau</p>
+          </div>
+          <p class="mt-1 text-[11px] leading-relaxed font-medium">
+            Configured FTP has not changed recently
+            <span v-if="typeof ftpData?.context?.daysSinceConfiguredChange === 'number'">
+              (last change {{ ftpData.context.daysSinceConfiguredChange }} days ago)
+            </span>
+            . Use the estimated line for trend context between tests/updates.
+          </p>
+        </div>
+
         <!-- Info Section -->
         <div
           class="p-4 bg-primary-50 dark:bg-primary-950/10 rounded-xl border border-primary-100 dark:border-primary-900/50"
@@ -185,6 +202,7 @@
     smooth: false,
     showPoints: true,
     showLabels: true,
+    showEstimatedFtp: true,
     yScale: 'dynamic',
     yMin: 0,
     ...props.settings
@@ -218,27 +236,57 @@
     }
 
     const data = ftpData.value.data
-    const labels = data.map((d: any) => d.month)
-    const ftpValues = data.map((d: any) => d.ftp)
+    const estimated = ftpData.value.estimatedData || []
+    const labels = [
+      ...new Set([...data.map((d: any) => d.month), ...estimated.map((d: any) => d.month)])
+    ]
+
+    const configuredMap = new Map(data.map((d: any) => [d.month, d.ftp]))
+    const estimatedMap = new Map(estimated.map((d: any) => [d.month, d.estimatedFtp]))
+
+    const datasets: any[] = [
+      {
+        label: 'Configured FTP (W)',
+        data: labels.map((label: string) => configuredMap.get(label) ?? null),
+        borderColor: freshnessColor.value,
+        backgroundColor: 'transparent',
+        borderWidth: 3,
+        pointRadius: (ctx: any) =>
+          chartSettings.value.showPoints && configuredMap.get(labels[ctx.dataIndex]) !== undefined
+            ? 4
+            : 0,
+        pointHoverRadius: 6,
+        pointBackgroundColor: freshnessColor.value,
+        pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
+        pointBorderWidth: 2,
+        tension: chartSettings.value.smooth ? 0.35 : 0,
+        fill: false,
+        spanGaps: true
+      }
+    ]
+
+    if (chartSettings.value.showEstimatedFtp) {
+      datasets.push({
+        label: 'Estimated FTP (W)',
+        data: labels.map((label: string) => estimatedMap.get(label) ?? null),
+        borderColor: theme.isDark.value ? 'rgba(16, 185, 129, 0.95)' : '#10b981',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        pointBackgroundColor: theme.isDark.value ? 'rgba(16, 185, 129, 0.95)' : '#10b981',
+        pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
+        pointBorderWidth: 1.5,
+        tension: chartSettings.value.smooth ? 0.35 : 0,
+        fill: false,
+        spanGaps: true
+      })
+    }
 
     return {
       labels,
-      datasets: [
-        {
-          label: 'FTP (W)',
-          data: ftpValues,
-          borderColor: freshnessColor.value,
-          backgroundColor: 'transparent',
-          borderWidth: 3,
-          pointRadius: (ctx: any) => (chartSettings.value.showPoints ? 4 : 0),
-          pointHoverRadius: 6,
-          pointBackgroundColor: freshnessColor.value,
-          pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
-          pointBorderWidth: 2,
-          tension: chartSettings.value.smooth ? 0.4 : 0,
-          fill: false
-        }
-      ]
+      datasets
     }
   })
 
@@ -273,7 +321,15 @@
     },
     plugins: {
       legend: {
-        display: false
+        display: true,
+        position: 'bottom' as const,
+        labels: {
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          usePointStyle: true,
+          boxWidth: 6,
+          padding: 20
+        }
       },
       datalabels: {
         display: (context: any) => {
@@ -298,7 +354,8 @@
         displayColors: true,
         callbacks: {
           label: function (context: any) {
-            return `FTP: ${context.parsed.y}W`
+            const label = context.dataset?.label || 'FTP'
+            return `${label}: ${context.parsed.y}W`
           }
         }
       }

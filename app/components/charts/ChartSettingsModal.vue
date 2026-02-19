@@ -62,6 +62,16 @@
               <USwitch v-model="settings.showFreshnessBands" />
             </div>
 
+            <div v-if="showEstimatedFtpOption" class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Show Estimated FTP
+                </div>
+                <div class="text-xs text-muted">Overlay effort-derived FTP trend.</div>
+              </div>
+              <USwitch v-model="settings.showEstimatedFtp" />
+            </div>
+
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">Fill Opacity</div>
@@ -208,6 +218,7 @@
       showOverlays?: boolean
       showTargetOption?: boolean
       showFreshnessBandsOption?: boolean
+      showEstimatedFtpOption?: boolean
       defaultType?: 'line' | 'bar'
     }>(),
     {
@@ -217,6 +228,7 @@
       showOverlays: true,
       showTargetOption: true,
       showFreshnessBandsOption: false,
+      showEstimatedFtpOption: false,
       defaultType: 'line'
     }
   )
@@ -231,6 +243,7 @@
     showPoints: false,
     showLabels: false,
     showFreshnessBands: true,
+    showEstimatedFtp: true,
     opacity: 0.5,
     yScale: 'dynamic',
     yMin: 0,

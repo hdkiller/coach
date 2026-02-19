@@ -240,7 +240,8 @@
                 unit: 'W',
                 max: 500,
                 step: 10,
-                showOverlays: false
+                showOverlays: false,
+                showEstimatedFtpOption: true
               })
             "
           />
@@ -589,6 +590,7 @@
           :step="activeMetricSettings.step"
           :show-overlays="activeMetricSettings.showOverlays"
           :show-freshness-bands-option="activeMetricSettings.showFreshnessBandsOption"
+          :show-estimated-ftp-option="activeMetricSettings.showEstimatedFtpOption"
           :default-type="activeMetricSettings.defaultType"
           :open="!!activeMetricSettings"
           @update:open="activeMetricSettings = null"
@@ -624,6 +626,7 @@
     step?: number
     showOverlays?: boolean
     showFreshnessBandsOption?: boolean
+    showEstimatedFtpOption?: boolean
     defaultType?: 'line' | 'bar'
   } | null>(null)
 
@@ -631,7 +634,14 @@
     pmc: { smooth: true, yScale: 'dynamic', yMin: 0 },
     powerCurve: { smooth: true, showFreshnessBands: true, yScale: 'dynamic', yMin: 0 },
     efficiency: { smooth: true, showPoints: true, yScale: 'dynamic', yMin: 0 },
-    ftp: { type: 'line', smooth: false, showPoints: true, yScale: 'dynamic', yMin: 0 },
+    ftp: {
+      type: 'line',
+      smooth: false,
+      showPoints: true,
+      showEstimatedFtp: true,
+      yScale: 'dynamic',
+      yMin: 0
+    },
     distribution: { type: 'bar', yScale: 'dynamic', yMin: 0 },
     performance: { smooth: true, showPoints: false, yScale: 'dynamic', yMin: 0 },
     nutrition: { smooth: true, showPoints: false, yScale: 'dynamic', yMin: 0 }

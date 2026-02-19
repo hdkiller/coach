@@ -65,6 +65,14 @@ function getFreshnessState(daysSince: number | null): FtpFreshnessState {
   return 'stale'
 }
 
+function getMonthKey(date: Date): string {
+  return date.toISOString().slice(0, 7)
+}
+
+function getMonthLabel(date: Date): string {
+  return date.toLocaleString('en-US', { month: 'short', year: 'numeric' })
+}
+
 defineRouteMeta({
   openAPI: {
     tags: ['Performance'],
@@ -227,7 +235,7 @@ export default defineEventHandler(async (event) => {
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .map((item) => ({
       date: item.date,
-      month: item.date.toLocaleString('en-US', { month: 'short', year: 'numeric' }),
+      month: getMonthLabel(item.date),
       ftp: item.ftp,
       title: item.title
     }))
@@ -246,6 +254,86 @@ export default defineEventHandler(async (event) => {
 
   const improvement =
     startingFTP && currentFTP ? ((currentFTP - startingFTP) / startingFTP) * 100 : null
+
+  // Estimated FTP from workout efforts in the selected period
+  const estimationWorkouts = await workoutRepository.getForUser(user.id, {
+    startDate,
+    endDate,
+    includeDuplicates: false,
+    where: sport ? { type: sportTypeWhere } : undefined,
+    include: {
+      streams: {
+        select: {
+          watts: true
+        }
+      }
+    },
+    orderBy: {
+      date: 'asc'
+    }
+  })
+
+  const estimatedByMonth = new Map<
+    string,
+    { date: Date; estimatedFtp: number; sourceWorkoutCount: number }
+  >()
+
+  estimationWorkouts.forEach((workout) => {
+    const watts = workout.streams?.watts as number[] | undefined
+    const fallbackPower = workout.normalizedPower || workout.averageWatts || 0
+    const durationSec = workout.durationSec || 0
+
+    const stream20m = Array.isArray(watts) ? calculateBestPowerForDuration(watts, 1200) : 0
+    const stream30m = Array.isArray(watts) ? calculateBestPowerForDuration(watts, 1800) : 0
+    const stream60m = Array.isArray(watts) ? calculateBestPowerForDuration(watts, 3600) : 0
+
+    const best20m = Math.max(stream20m, durationSec >= 1200 ? fallbackPower : 0)
+    const best30m = Math.max(stream30m, durationSec >= 1800 ? fallbackPower : 0)
+    const best60m = Math.max(stream60m, durationSec >= 3600 ? fallbackPower : 0)
+
+    if (best20m <= 0 && best30m <= 0 && best60m <= 0) return
+
+    const estimatedFtp = Math.round(Math.max(best20m * 0.95, best30m * 0.93, best60m))
+    const monthKey = getMonthKey(new Date(workout.date))
+    const existing = estimatedByMonth.get(monthKey)
+
+    if (!existing) {
+      estimatedByMonth.set(monthKey, {
+        date: new Date(workout.date),
+        estimatedFtp,
+        sourceWorkoutCount: 1
+      })
+      return
+    }
+
+    estimatedByMonth.set(monthKey, {
+      date: new Date(workout.date) > existing.date ? new Date(workout.date) : existing.date,
+      estimatedFtp: Math.max(existing.estimatedFtp, estimatedFtp),
+      sourceWorkoutCount: existing.sourceWorkoutCount + 1
+    })
+  })
+
+  const estimatedData = Array.from(estimatedByMonth.values())
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .map((item) => ({
+      date: item.date,
+      month: getMonthLabel(item.date),
+      estimatedFtp: item.estimatedFtp,
+      sourceWorkoutCount: item.sourceWorkoutCount
+    }))
+
+  const configuredValues = ftpData.map((d) => d.ftp)
+  const uniqueConfiguredValues = [...new Set(configuredValues)]
+  const isConfiguredFlat = uniqueConfiguredValues.length <= 1 && ftpData.length > 1
+  const lastConfiguredChangeDate =
+    ftpData.length > 0
+      ? ftpData.reduce((lastChange, point, index) => {
+          if (index === 0) return point.date
+          const prev = ftpData[index - 1]
+          return prev && prev.ftp !== point.ftp ? point.date : lastChange
+        }, ftpData[0].date)
+      : null
+  const daysSinceConfiguredChange = getDaysSince(lastConfiguredChangeDate, endDate)
 
   // Freshness context: look for efforts that can validate current FTP
   let ftpFreshness: {
@@ -336,12 +424,20 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: ftpData,
+    estimatedData,
     summary: {
       currentFTP,
       startingFTP,
       peakFTP,
       improvement: improvement ? Math.round(improvement * 10) / 10 : null,
       dataPoints: ftpData.length
+    },
+    context: {
+      isConfiguredFlat,
+      uniqueConfiguredValues: uniqueConfiguredValues.length,
+      lastConfiguredChangeDate,
+      daysSinceConfiguredChange,
+      estimatedDataPoints: estimatedData.length
     },
     freshness: ftpFreshness
   }
