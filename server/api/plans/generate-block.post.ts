@@ -1,6 +1,7 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../utils/session'
 import { trainingBlockRepository } from '../../utils/repositories/trainingBlockRepository'
+import { checkQuota } from '../../utils/quotas/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -10,6 +11,9 @@ export default defineEventHandler(async (event) => {
 
   const { blockId } = await readBody(event)
   const userId = (session.user as any).id
+
+  // 0. Check Quota
+  await checkQuota(userId, 'weekly_plan_generation')
 
   if (!blockId) {
     throw createError({ statusCode: 400, message: 'Block ID is required' })

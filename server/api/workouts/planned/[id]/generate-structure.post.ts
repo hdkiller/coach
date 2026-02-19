@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { checkQuota } from '../../../../utils/quotas/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -40,6 +41,9 @@ export default defineEventHandler(async (event) => {
   if (workout.userId !== userId) {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
+
+  // 0. Quota Check
+  await checkQuota(userId, 'generate_structured_workout')
 
   // Subscription Limit Check
   if (workout.user.subscriptionTier === 'FREE') {

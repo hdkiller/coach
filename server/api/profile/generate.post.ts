@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
+import { checkQuota } from '../../utils/quotas/engine'
 
 defineRouteMeta({
   openAPI: {
@@ -40,6 +41,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  await checkQuota(userId, 'athlete_profile_generation')
 
   // Create a report entry for the athlete profile
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)

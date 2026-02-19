@@ -1,12 +1,18 @@
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../utils/session'
+import { checkQuota } from '../../utils/quotas/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
   if (!session?.user) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
+
+  const userId = (session.user as any).id
+
+  // Check Quota
+  await checkQuota(userId, 'weekly_plan_generation')
 
   const { blockId, weekId, instructions, anchorWorkoutIds } = await readBody(event)
 

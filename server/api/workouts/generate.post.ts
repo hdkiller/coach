@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { checkQuota } from '../../utils/quotas/engine'
 
 defineRouteMeta({
   openAPI: {
@@ -38,6 +39,10 @@ export default defineEventHandler(async (event) => {
   const { type, durationMinutes, intensity, notes } = body
 
   const userId = (session.user as any).id
+
+  // 0. Quota Check
+  await checkQuota(userId, 'generate_structured_workout')
+
   const now = new Date()
 
   const handle = await tasks.trigger(

@@ -3,6 +3,7 @@ import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
 import { activityRecommendationRepository } from '../../utils/repositories/activityRecommendationRepository'
+import { checkQuota } from '../../utils/quotas/engine'
 
 defineRouteMeta({
   openAPI: {
@@ -43,6 +44,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const userId = (session.user as any).id
+    await checkQuota(userId, 'activity_recommendation')
 
     const timezone = await getUserTimezone(userId)
     const today = getUserLocalDate(timezone)

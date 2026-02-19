@@ -2,6 +2,7 @@ import { dailyCheckinRepository } from '../../utils/repositories/dailyCheckinRep
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { tasks } from '@trigger.dev/sdk/v3'
 import type { generateDailyCheckinTask } from '../../../trigger/daily-checkin'
+import { checkQuota } from '../../utils/quotas/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -10,6 +11,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = session.user.id
+  // 0. Quota Check
+  await checkQuota(userId, 'daily_checkin')
+
   const timezone = await getUserTimezone(userId)
   const today = getUserLocalDate(timezone)
 

@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { checkQuota } from '../../../utils/quotas/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -9,6 +10,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  await checkQuota(userId, 'wellness_analysis')
+
   const wellnessId = getRouterParam(event, 'id')
 
   if (!wellnessId) {

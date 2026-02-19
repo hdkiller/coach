@@ -24,6 +24,7 @@ import {
   getStartOfLocalDateUTC,
   getEndOfLocalDateUTC
 } from '../../utils/date'
+import { checkQuota } from '../../utils/quotas/engine'
 
 const structuredWorkoutSchema = z
   .object({
@@ -543,6 +544,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
+      // 0. Quota Check
+      await checkQuota(userId, 'generate_structured_workout')
+
       // Create a PlannedWorkout, not a Workout
       const workout = await plannedWorkoutRepository.create({
         userId,
@@ -594,6 +598,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
+      // 0. Quota Check
+      await checkQuota(userId, 'generate_structured_workout')
+
       const existing = await plannedWorkoutRepository.getById(args.workout_id, userId, {
         select: { id: true, syncStatus: true }
       })
@@ -761,6 +768,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       intensity: z.enum(['recovery', 'easy', 'moderate', 'hard', 'very_hard']).optional()
     }),
     execute: async ({ workout_id, instructions, duration_minutes, intensity }) => {
+      // 0. Quota Check
+      await checkQuota(userId, 'generate_structured_workout')
+
       // Trigger adjustment task
       try {
         await adjustStructuredWorkoutTask.trigger(
@@ -791,6 +801,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       workout_id: z.string()
     }),
     execute: async ({ workout_id }) => {
+      // 0. Quota Check
+      await checkQuota(userId, 'generate_structured_workout')
+
       try {
         await generateStructuredWorkoutTask.trigger(
           { plannedWorkoutId: workout_id },
