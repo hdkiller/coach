@@ -36,6 +36,9 @@ backfillWorkoutSummaryNotesCommand
   .description('Backfill Intervals workout notes from AI workout summaries')
   .option('--prod', 'Use production database')
   .option('--dry-run', 'Run without saving changes', false)
+  .option('--estimate-only', 'Only estimate affected workouts; do not publish', false)
+  .option('--days <number>', 'Only include workouts from the last N days')
+  .option('--delay-ms <number>', 'Delay in milliseconds between publish calls', '0')
   .option('--users-limit <number>', 'Maximum users to process', '50')
   .option('--workouts-per-user <number>', 'Most recent workouts per user to scan', '5')
   .option('--email <email>', 'Only process one user by email')
@@ -47,18 +50,31 @@ backfillWorkoutSummaryNotesCommand
   .action(async (options) => {
     const isProd = Boolean(options.prod)
     const isDryRun = Boolean(options.dryRun)
+    const estimateOnly = Boolean(options.estimateOnly)
     const usersLimit = Number.parseInt(options.usersLimit, 10)
     const workoutsPerUser = Number.parseInt(options.workoutsPerUser, 10)
+    const delayMs = Number.parseInt(options.delayMs, 10)
+    const days = options.days ? Number.parseInt(options.days, 10) : null
     const email = options.email as string | undefined
     const skipSettingCheck = Boolean(options.skipSettingCheck)
 
-    if (!Number.isFinite(usersLimit) || usersLimit <= 0) {
-      console.error(chalk.red('Invalid --users-limit. Use a positive number.'))
+    if (!Number.isFinite(usersLimit) || usersLimit < 0) {
+      console.error(chalk.red('Invalid --users-limit. Use a non-negative number (0 = all users).'))
       process.exit(1)
     }
 
     if (!Number.isFinite(workoutsPerUser) || workoutsPerUser <= 0) {
       console.error(chalk.red('Invalid --workouts-per-user. Use a positive number.'))
+      process.exit(1)
+    }
+
+    if (!Number.isFinite(delayMs) || delayMs < 0) {
+      console.error(chalk.red('Invalid --delay-ms. Use 0 or a positive number.'))
+      process.exit(1)
+    }
+
+    if (days !== null && (!Number.isFinite(days) || days <= 0)) {
+      console.error(chalk.red('Invalid --days. Use a positive number.'))
       process.exit(1)
     }
 
@@ -72,7 +88,17 @@ backfillWorkoutSummaryNotesCommand
 
     if (isProd) console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
     else console.log(chalk.blue('Using DEVELOPMENT database.'))
-    if (isDryRun) console.log(chalk.cyan('🔍 DRY RUN mode enabled. No changes will be saved.'))
+    if (estimateOnly) {
+      console.log(chalk.cyan('📊 ESTIMATE ONLY mode enabled. No changes will be made.'))
+    } else if (isDryRun) {
+      console.log(chalk.cyan('🔍 DRY RUN mode enabled. No changes will be saved.'))
+    }
+    if (days !== null) {
+      console.log(chalk.gray(`Filtering workouts to last ${days} day(s).`))
+    }
+    if (!estimateOnly && !isDryRun && delayMs > 0) {
+      console.log(chalk.gray(`Using ${delayMs}ms delay between publish calls.`))
+    }
 
     const pool = new pg.Pool({ connectionString })
     const adapter = new PrismaPg(pool)
@@ -103,7 +129,7 @@ backfillWorkoutSummaryNotesCommand
           ...(hasUpdateNotesSettingColumn ? { updateWorkoutNotesEnabled: true } : {})
         } as any,
         orderBy: { updatedAt: 'desc' },
-        take: email ? 1 : usersLimit
+        ...(email || usersLimit > 0 ? { take: email ? 1 : usersLimit } : {})
       })
 
       if (users.length === 0) {
@@ -113,6 +139,7 @@ backfillWorkoutSummaryNotesCommand
 
       let usersProcessed = 0
       let workoutsScanned = 0
+      let workoutsWouldPublish = 0
       let workoutsPublished = 0
       let workoutsSkipped = 0
       let workoutsErrored = 0
@@ -141,7 +168,8 @@ backfillWorkoutSummaryNotesCommand
             userId: user.id,
             source: 'intervals',
             isDuplicate: false,
-            aiAnalysisJson: { not: Prisma.JsonNull }
+            aiAnalysisJson: { not: Prisma.JsonNull },
+            ...(days !== null ? { date: { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) } } : {})
           },
           orderBy: { date: 'desc' },
           take: workoutsPerUser,
@@ -173,14 +201,22 @@ backfillWorkoutSummaryNotesCommand
           }
 
           const mergedDescription = upsertSummaryBlock(workout.description, summary)
+          workoutsWouldPublish++
+
+          if (estimateOnly) {
+            console.log(chalk.green(`  - [ESTIMATE] Would publish "${workout.title}"`))
+            continue
+          }
 
           if (isDryRun) {
-            workoutsPublished++
             console.log(chalk.green(`  - [DRY RUN] Would publish "${workout.title}"`))
             continue
           }
 
           try {
+            if (delayMs > 0) {
+              await new Promise((resolve) => setTimeout(resolve, delayMs))
+            }
             await updateIntervalsActivityDescription(
               integration,
               workout.externalId,
@@ -204,11 +240,14 @@ backfillWorkoutSummaryNotesCommand
       console.log(chalk.bold('\nSummary'))
       console.log(`Users processed:   ${usersProcessed}`)
       console.log(`Workouts scanned:  ${workoutsScanned}`)
+      console.log(`Would publish:     ${workoutsWouldPublish}`)
       console.log(`Published:         ${workoutsPublished}`)
       console.log(`Skipped:           ${workoutsSkipped}`)
       console.log(`Errors:            ${workoutsErrored}`)
 
-      if (isDryRun) {
+      if (estimateOnly) {
+        console.log(chalk.cyan('\nEstimate complete. Re-run without --estimate-only to apply changes.'))
+      } else if (isDryRun) {
         console.log(chalk.cyan('\nRun without --dry-run to apply changes.'))
       }
     } catch (error: any) {
