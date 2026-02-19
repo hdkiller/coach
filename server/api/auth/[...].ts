@@ -127,6 +127,22 @@ export default NuxtAuthHandler({
     }
   },
   events: {
+    async createUser({ user }: any) {
+      try {
+        const trialDays = 7
+        const trialEndsAt = new Date()
+        trialEndsAt.setDate(trialEndsAt.getDate() + trialDays)
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { trialEndsAt }
+        })
+
+        console.log(`[Auth] New user ${user.id} trial set until ${trialEndsAt.toISOString()}`)
+      } catch (error) {
+        console.error('[Auth] Failed to set user trial period:', error)
+      }
+    },
     async linkAccount({ user, account }: any) {
       if (account.provider === 'intervals') {
         await syncIntervalsIntegration(user, account)

@@ -54,12 +54,21 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
-  const tier = (session.user as any).subscriptionTier || 'FREE'
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { subscriptionTier: true, trialEndsAt: true }
+  })
+
+  if (!user) {
+    throw createError({ statusCode: 404, message: 'User not found' })
+  }
 
   const quotas = await getQuotaSummary(userId)
 
   return {
-    tier,
+    tier: user.subscriptionTier,
+    trialEndsAt: user.trialEndsAt,
     quotas
   }
 })
