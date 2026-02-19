@@ -33,6 +33,7 @@ import chartCommand from './chart'
 import nutritionPlanDebugCommand from './nutrition-plan'
 import chatLogCommand from './chat'
 import cadenceJitterCommand from './cadence-jitter'
+import curveFreshnessCommand from './curve-freshness'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -68,6 +69,7 @@ debugCommand.addCommand(chatHistoryCommand)
 debugCommand.addCommand(chatLogCommand)
 debugCommand.addCommand(quotasCommand)
 debugCommand.addCommand(chartCommand)
+debugCommand.addCommand(curveFreshnessCommand)
 debugCommand.addCommand(nutritionPlanDebugCommand)
 debugCommand.addCommand(cadenceJitterCommand)
 
