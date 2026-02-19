@@ -661,8 +661,8 @@
           return Math.sqrt(variance)
         })
 
-        const upperBand = avgData.map((avg, i) => avg + stdDevData[i])
-        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - stdDevData[i]))
+        const upperBand = avgData.map((avg, i) => avg + (stdDevData[i] || 0))
+        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - (stdDevData[i] || 0)))
 
         datasets.push({
           type: 'line',
@@ -789,8 +789,8 @@
           return Math.sqrt(variance)
         })
 
-        const upperBand = avgData.map((avg, i) => avg + stdDevData[i])
-        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - stdDevData[i]))
+        const upperBand = avgData.map((avg, i) => avg + (stdDevData[i] || 0))
+        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - (stdDevData[i] || 0)))
 
         datasets.push({
           type: 'line',

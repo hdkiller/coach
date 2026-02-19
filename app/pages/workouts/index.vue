@@ -1188,8 +1188,9 @@
     const pos = (sorted.length - 1) * p
     const base = Math.floor(pos)
     const rest = pos - base
-    const next = sorted[base + 1] ?? sorted[base]
-    return sorted[base] + rest * (next - sorted[base])
+    const current = sorted[base] || 0
+    const next = sorted[base + 1] ?? current
+    return current + rest * (next - current)
   }
 
   function formatHoursMinutes(hours: number): string {
@@ -1244,7 +1245,7 @@
       const date = new Date(workout.date)
       const key = toDateKey(date)
       const index = indexByKey.get(key)
-      if (index === undefined) return
+      if (index === undefined || values[index] === undefined) return
       values[index] += workloadScore(workout)
     })
 
@@ -1279,10 +1280,10 @@
       const date = new Date(workout.date)
       const weekStart = toWeekStartMonday(date)
       const index = indexByWeek.get(toDateKey(weekStart))
-      if (index === undefined) return
+      if (index === undefined || !buckets[index]) return
 
-      buckets[index].score += workloadScore(workout)
-      buckets[index].volumeHours += (workout.durationSec || 0) / 3600
+      buckets[index]!.score += workloadScore(workout)
+      buckets[index]!.volumeHours += (workout.durationSec || 0) / 3600
     })
 
     return buckets
