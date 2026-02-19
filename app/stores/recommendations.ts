@@ -82,11 +82,17 @@ export const useRecommendationStore = defineStore('recommendation', () => {
       if (error.statusCode === 429 || error.status === 429) {
         const upgradeModal = useUpgradeModal()
         upgradeModal.show({
-          title: 'Usage Quota Reached',
-          featureTitle: "Today's Training Analysis",
+          title: 'Your Performance Milestone',
+          featureTitle: 'Premium Guidance',
           featureDescription:
-            'You have reached the usage quota for AI training recommendations. Upgrade to Supporter or Pro for high-priority access and higher quotas.',
-          recommendedTier: 'supporter'
+            'You have utilized your daily readiness insights. Upgrade to Supporter or Pro to unlock unrestricted daily coaching and automated training adjustments.',
+          recommendedTier: 'supporter',
+          bullets: [
+            'Daily Readiness Checks',
+            'Automated Plan Scaling',
+            'Priority AI Processing',
+            'Advanced Goal Tracking'
+          ]
         })
         return
       }
