@@ -4,6 +4,9 @@ import {
   updateIntervalsPlannedWorkout,
   createIntervalsPlannedWorkout,
   deleteIntervalsPlannedWorkout,
+  updateIntervalsEvent,
+  createIntervalsEvent,
+  deleteIntervalsEvent,
   isIntervalsEventId
 } from './intervals'
 
@@ -42,7 +45,6 @@ export async function syncPlannedWorkoutToIntervals(
         break
       case 'UPDATE':
         // If externalId is local (non-numeric), we can't update it on Intervals.
-        // TODO: Should we CREATE it instead? For now, skip to avoid 404/429.
         if (!isIntervalsEventId(workoutData.externalId)) {
           return {
             success: true,
@@ -78,7 +80,7 @@ export async function syncPlannedWorkoutToIntervals(
       message: 'Synced to Intervals.icu successfully'
     }
   } catch (error: any) {
-    console.error(`Failed to sync ${operation} to Intervals.icu:`, error.message)
+    console.error(`Failed to sync workout ${operation} to Intervals.icu:`, error.message)
 
     // Queue for retry
     await queueSyncOperation({
@@ -87,6 +89,82 @@ export async function syncPlannedWorkoutToIntervals(
       entityId: workoutData.id,
       operation,
       payload: workoutData,
+      error: error.message
+    })
+
+    return {
+      success: true,
+      synced: false,
+      message: 'Saved locally. Will sync to Intervals.icu automatically.',
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Sync a racing event to Intervals.icu with retry logic
+ */
+export async function syncEventToIntervals(
+  operation: 'CREATE' | 'UPDATE' | 'DELETE',
+  eventData: any,
+  userId: string
+): Promise<{ success: boolean; synced: boolean; message?: string; error?: string; result?: any }> {
+  try {
+    const integration = await prisma.integration.findFirst({
+      where: { userId, provider: 'intervals' }
+    })
+
+    if (!integration) {
+      return {
+        success: true,
+        synced: false,
+        message: 'No Intervals.icu integration found. Saved locally only.'
+      }
+    }
+
+    let result: any
+
+    switch (operation) {
+      case 'CREATE':
+        result = await createIntervalsEvent(integration, eventData)
+        break
+      case 'UPDATE':
+        if (!isIntervalsEventId(eventData.externalId)) {
+          return {
+            success: true,
+            synced: false,
+            message: 'Skipped sync for local-only event.'
+          }
+        }
+        result = await updateIntervalsEvent(integration, eventData.externalId, eventData)
+        break
+      case 'DELETE':
+        if (!isIntervalsEventId(eventData.externalId)) {
+          return {
+            success: true,
+            synced: false,
+            message: 'Local event deleted locally. Skipped sync.'
+          }
+        }
+        result = await deleteIntervalsEvent(integration, eventData.externalId)
+        break
+    }
+
+    return {
+      success: true,
+      synced: true,
+      result,
+      message: 'Synced to Intervals.icu successfully'
+    }
+  } catch (error: any) {
+    console.error(`Failed to sync event ${operation} to Intervals.icu:`, error.message)
+
+    await queueSyncOperation({
+      userId,
+      entityType: 'racing_event',
+      entityId: eventData.id,
+      operation,
+      payload: eventData,
       error: error.message
     })
 
@@ -159,40 +237,38 @@ export async function processSyncQueueItem(queueItem: any): Promise<boolean> {
     // Attempt sync
     const payload = queueItem.payload
 
-    switch (queueItem.operation) {
-      case 'CREATE':
-        await createIntervalsPlannedWorkout(integration, payload)
-        break
-      case 'UPDATE':
-        if (!isIntervalsEventId(payload.externalId)) {
-          await prisma.syncQueue.update({
-            where: { id: queueItem.id },
-            data: {
-              status: 'FAILED',
-              error: 'Invalid Intervals externalId for UPDATE operation',
-              attempts: queueItem.attempts + 1,
-              lastAttempt: new Date()
-            }
-          })
-          return false
-        }
-        await updateIntervalsPlannedWorkout(integration, payload.externalId, payload)
-        break
-      case 'DELETE':
-        if (!isIntervalsEventId(payload.externalId)) {
-          await prisma.syncQueue.update({
-            where: { id: queueItem.id },
-            data: {
-              status: 'FAILED',
-              error: 'Invalid Intervals externalId for DELETE operation',
-              attempts: queueItem.attempts + 1,
-              lastAttempt: new Date()
-            }
-          })
-          return false
-        }
-        await deleteIntervalsPlannedWorkout(integration, payload.externalId)
-        break
+    if (queueItem.entityType === 'planned_workout') {
+      switch (queueItem.operation) {
+        case 'CREATE':
+          await createIntervalsPlannedWorkout(integration, payload)
+          break
+        case 'UPDATE':
+          if (isIntervalsEventId(payload.externalId)) {
+            await updateIntervalsPlannedWorkout(integration, payload.externalId, payload)
+          }
+          break
+        case 'DELETE':
+          if (isIntervalsEventId(payload.externalId)) {
+            await deleteIntervalsPlannedWorkout(integration, payload.externalId)
+          }
+          break
+      }
+    } else if (queueItem.entityType === 'racing_event') {
+      switch (queueItem.operation) {
+        case 'CREATE':
+          await createIntervalsEvent(integration, payload)
+          break
+        case 'UPDATE':
+          if (isIntervalsEventId(payload.externalId)) {
+            await updateIntervalsEvent(integration, payload.externalId, payload)
+          }
+          break
+        case 'DELETE':
+          if (isIntervalsEventId(payload.externalId)) {
+            await deleteIntervalsEvent(integration, payload.externalId)
+          }
+          break
+      }
     }
 
     // Mark as completed
@@ -213,6 +289,14 @@ export async function processSyncQueueItem(queueItem: any): Promise<boolean> {
         data: {
           syncStatus: 'SYNCED',
           lastSyncedAt: new Date(),
+          syncError: null
+        }
+      })
+    } else if (queueItem.entityType === 'racing_event') {
+      await prisma.event.update({
+        where: { id: queueItem.entityId },
+        data: {
+          syncStatus: 'SYNCED',
           syncError: null
         }
       })
@@ -238,14 +322,24 @@ export async function processSyncQueueItem(queueItem: any): Promise<boolean> {
     })
 
     // Update entity with error if permanently failed
-    if (newAttempts >= maxAttempts && queueItem.entityType === 'planned_workout') {
-      await prisma.plannedWorkout.update({
-        where: { id: queueItem.entityId },
-        data: {
-          syncStatus: 'FAILED',
-          syncError: `Failed after ${maxAttempts} attempts: ${error.message}`
-        }
-      })
+    if (newAttempts >= maxAttempts) {
+      if (queueItem.entityType === 'planned_workout') {
+        await prisma.plannedWorkout.update({
+          where: { id: queueItem.entityId },
+          data: {
+            syncStatus: 'FAILED',
+            syncError: `Failed after ${maxAttempts} attempts: ${error.message}`
+          }
+        })
+      } else if (queueItem.entityType === 'racing_event') {
+        await prisma.event.update({
+          where: { id: queueItem.entityId },
+          data: {
+            syncStatus: 'FAILED',
+            syncError: `Failed after ${maxAttempts} attempts: ${error.message}`
+          }
+        })
+      }
     }
 
     return false

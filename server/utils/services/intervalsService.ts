@@ -713,7 +713,8 @@ export const IntervalsService = {
         normalizedPlanned.externalId
       ])
 
-      if (planned.category === 'EVENT') {
+      // Handle Racing Events (EVENT, RACE_A, RACE_B, RACE_C)
+      if (['EVENT', 'RACE_A', 'RACE_B', 'RACE_C'].includes(planned.category)) {
         let startTime = null
         if (planned.start_date_local && planned.start_date_local.includes('T')) {
           const timePart = planned.start_date_local.split('T')[1]
@@ -722,12 +723,19 @@ export const IntervalsService = {
           }
         }
 
+        // Map category back to priority
+        let priority = null
+        if (planned.category === 'RACE_A') priority = 'A'
+        else if (planned.category === 'RACE_B') priority = 'B'
+        else if (planned.category === 'RACE_C') priority = 'C'
+
         const eventData = {
-          title: planned.title,
+          title: normalizedPlanned.title,
           description: planned.description || '',
           date: new Date(planned.start_date_local),
           startTime,
           type: planned.type || 'Other',
+          priority,
           isVirtual: false,
           isPublic: false,
           distance: normalizedPlanned.distanceMeters
@@ -736,7 +744,8 @@ export const IntervalsService = {
           expectedDuration: normalizedPlanned.durationSec
             ? parseFloat((normalizedPlanned.durationSec / 3600).toFixed(1))
             : null,
-          location: planned.location || null
+          location: planned.location || null,
+          syncStatus: 'SYNCED'
         }
 
         await eventRepository.upsertExternal(userId, 'intervals', planned.id.toString(), eventData)

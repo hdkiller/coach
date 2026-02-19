@@ -223,9 +223,10 @@ async function fetchWithRetry(
   }
 }
 
-export async function createIntervalsPlannedWorkout(
+export async function upsertIntervalsEvent(
   integration: Integration,
   data: {
+    id?: string
     date: Date
     title: string
     description?: string
@@ -235,47 +236,37 @@ export async function createIntervalsPlannedWorkout(
     workout_doc?: string
     managedBy?: string
     startTime?: string | null
-  }
+    category?: string
+    priority?: string | null
+  },
+  operation: 'POST' | 'PUT' = 'POST'
 ): Promise<IntervalsPlannedWorkout> {
   const athleteId = getIntervalsAthleteId(integration)
+  const eventId = data.id
 
-  // Map workout types to Intervals.icu format
-  const category = 'WORKOUT'
-  let sport = data.type
-
-  // Handle Gym workouts - use "WeightTraining" (no space) for Intervals.icu
-  if (data.type === 'Gym') {
-    sport = 'WeightTraining'
+  if (operation === 'PUT' && (!eventId || !isIntervalsEventId(eventId))) {
+    throw new Error(`Invalid or missing Intervals event ID for update: ${eventId}`)
   }
 
-  // Format date as ISO datetime string (YYYY-MM-DDTHH:mm:ss) - preserving time
-  // BUT: Intervals.icu treats 'start_date_local' as the athlete's local time.
-  // If we send a full ISO string, it might be interpreted strictly.
-  // For Planned Workouts (which are date-based in our DB), we want to target a specific day.
-  // Ideally we send YYYY-MM-DDT00:00:00.
+  // 1. Determine Category from Category OR Priority
+  let category = data.category || 'WORKOUT'
+  if (data.priority === 'A') category = 'RACE_A'
+  else if (data.priority === 'B') category = 'RACE_B'
+  else if (data.priority === 'C') category = 'RACE_C'
+
+  // 2. Map Sport Type
+  let sport = data.type
+  if (data.type === 'Gym') sport = 'WeightTraining'
+
+  // 3. Format Date (start_date_local)
   const year = data.date.getUTCFullYear()
   const month = String(data.date.getUTCMonth() + 1).padStart(2, '0')
   const day = String(data.date.getUTCDate()).padStart(2, '0')
-  // Use UTC components because our input date is forced to UTC midnight for the correct calendar day.
-  // We want to send this exact date as the local start date to Intervals.
-
-  // Use provided startTime (HH:mm) or default to 06:00:00
   const timeStr = data.startTime ? `${data.startTime}:00` : '06:00:00'
   const dateStr = `${year}-${month}-${day}T${timeStr}`
 
-  const workoutText = data.workout_doc || ''
-  let combinedDescription = ''
-
-  if (workoutText) {
-    // If we have a structured workout doc, it contains everything Intervals.icu needs
-    // We use it as the main description so Intervals.icu can parse the blocks correctly
-    combinedDescription = workoutText
-  } else {
-    // Fallback for non-structured workouts
-    combinedDescription = data.description || ''
-  }
-
-  // Append CoachWatts signature if managed by us
+  // 4. Handle Description/Structure
+  let combinedDescription = data.workout_doc || data.description || ''
   if (data.managedBy === 'COACH_WATTS' && !combinedDescription.includes('[CoachWatts]')) {
     combinedDescription = `${combinedDescription}\n\n[CoachWatts]`.trim()
   }
@@ -288,62 +279,40 @@ export async function createIntervalsPlannedWorkout(
     type: sport
   }
 
-  // If we don't have workout text, we can send duration/tss explicitly
+  // Use explicit duration/tss if provided (and no structured doc)
   if (!data.workout_doc) {
-    eventData.duration = data.durationSec
+    if (data.durationSec) eventData.duration = data.durationSec
+    if (data.tss) eventData.tss = data.tss
+  } else if (data.tss) {
     eventData.tss = data.tss
-  } else {
-    // If we have workout structure, Intervals.icu might calculate TSS itself from the structure.
-    // However, if we have a target TSS estimated, we should probably send it to ensure it appears in calendars correctly.
-    // Intervals.icu usually recalculates based on the structure provided in the description/doc.
-    // But sending tss might act as a target/planned value.
-    if (data.tss) {
-      eventData.tss = data.tss
-    }
   }
 
-  console.log(
-    '[createIntervalsPlannedWorkout] 📤 Sending to Intervals.icu (using description for workout text):',
-    {
-      athleteId,
-      url: `https://intervals.icu/api/v1/athlete/${athleteId}/events`
-    }
-  )
+  const url =
+    operation === 'POST'
+      ? `https://intervals.icu/api/v1/athlete/${athleteId}/events`
+      : `https://intervals.icu/api/v1/athlete/${athleteId}/events/${eventId}`
 
-  const url = `https://intervals.icu/api/v1/athlete/${athleteId}/events`
   const headers = getIntervalsHeaders(integration)
-  const bodyStr = JSON.stringify(eventData)
-
   const response = await fetchWithRetry(url, {
-    method: 'POST',
-    headers: {
-      ...headers,
-      'Content-Type': 'application/json'
-    },
-    body: bodyStr
+    method: operation,
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify(eventData)
   })
 
   if (!response.ok) {
     const errorText = await response.text()
-    console.error('[createIntervalsPlannedWorkout] ❌ Intervals.icu API error:', {
+    console.error(`[upsertIntervalsEvent] ❌ Intervals.icu API error (${operation}):`, {
       status: response.status,
-      statusText: response.statusText,
       errorText,
       eventData
     })
     throw new Error(`Intervals API error: ${response.status} ${errorText}`)
   }
 
-  const result = await response.json()
-  console.log('[createIntervalsPlannedWorkout] ✅ Intervals.icu response:', {
-    id: result.id,
-    name: result.name
-  })
-
-  return result
+  return await response.json()
 }
 
-export async function deleteIntervalsPlannedWorkout(
+export async function deleteIntervalsEvent(
   integration: Integration,
   eventId: string
 ): Promise<void> {
@@ -352,7 +321,6 @@ export async function deleteIntervalsPlannedWorkout(
   }
 
   const athleteId = getIntervalsAthleteId(integration)
-
   const url = `https://intervals.icu/api/v1/athlete/${athleteId}/events/${eventId}`
   const headers = getIntervalsHeaders(integration)
 
@@ -367,7 +335,51 @@ export async function deleteIntervalsPlannedWorkout(
   }
 }
 
+export async function createIntervalsPlannedWorkout(
+  integration: Integration,
+  data: any
+): Promise<IntervalsPlannedWorkout> {
+  return upsertIntervalsEvent(integration, { ...data, category: 'WORKOUT' }, 'POST')
+}
+
 export async function updateIntervalsPlannedWorkout(
+  integration: Integration,
+  eventId: string,
+  data: any
+): Promise<IntervalsPlannedWorkout> {
+  return upsertIntervalsEvent(integration, { ...data, id: eventId, category: 'WORKOUT' }, 'PUT')
+}
+
+export async function deleteIntervalsPlannedWorkout(
+  integration: Integration,
+  eventId: string
+): Promise<void> {
+  return deleteIntervalsEvent(integration, eventId)
+}
+
+/**
+ * RACING EVENTS SYNC (Independent from Planned Workouts)
+ */
+
+export async function createIntervalsEvent(
+  integration: Integration,
+  data: {
+    date: Date
+    title: string
+    description?: string
+    type?: string
+    priority?: string | null
+    startTime?: string | null
+    distance?: number | null
+    expectedDuration?: number | null
+    location?: string | null
+  }
+): Promise<IntervalsPlannedWorkout> {
+  // map CoachWatts priority to Intervals category if needed via upsertIntervalsEvent
+  return upsertIntervalsEvent(integration, data, 'POST')
+}
+
+export async function updateIntervalsEvent(
   integration: Integration,
   eventId: string,
   data: {
@@ -375,103 +387,14 @@ export async function updateIntervalsPlannedWorkout(
     title?: string
     description?: string
     type?: string
-    durationSec?: number
-    tss?: number
-    workout_doc?: string
-    managedBy?: string
+    priority?: string | null
     startTime?: string | null
+    distance?: number | null
+    expectedDuration?: number | null
+    location?: string | null
   }
 ): Promise<IntervalsPlannedWorkout> {
-  if (!isIntervalsEventId(eventId)) {
-    throw new Error(`Invalid Intervals event ID: ${eventId}`)
-  }
-
-  const athleteId = getIntervalsAthleteId(integration)
-
-  // Map workout types to Intervals.icu format
-  let sport = data.type
-  if (data.type === 'Gym') {
-    sport = 'WeightTraining'
-  }
-
-  // Format date if provided
-  let dateStr: string | undefined
-  if (data.date) {
-    const year = data.date.getUTCFullYear()
-    const month = String(data.date.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(data.date.getUTCDate()).padStart(2, '0')
-
-    // Use provided startTime (HH:mm) or default to 00:00:00 (since it's an update, maybe better to preserve?)
-    // Actually, if date is provided but not startTime, we use T00:00:00.
-    // If startTime is provided, we use it.
-    const timeStr = data.startTime ? `${data.startTime}:00` : '00:00:00'
-    dateStr = `${year}-${month}-${day}T${timeStr}`
-  } else if (data.startTime) {
-    // If only startTime is provided, we need the existing date.
-    // However, the interface currently expects data.date to be present if we want to change dateStr.
-    // For now, let's assume if startTime is provided without date, we might not be able to easily update start_date_local
-    // without knowing the current date. But the caller should probably provide both or we should fetch it.
-    // In this API, we usually provide the date.
-  }
-
-  const eventData: any = {}
-  if (dateStr) eventData.start_date_local = dateStr
-  if (data.title) eventData.name = data.title
-
-  // Handle workout doc / description merge
-  if (data.workout_doc || data.description !== undefined) {
-    const workoutText = data.workout_doc || ''
-    let combinedDescription = ''
-
-    if (workoutText) {
-      combinedDescription = workoutText
-    } else {
-      combinedDescription = data.description || ''
-    }
-
-    // Append CoachWatts signature if managed by us
-    if (data.managedBy === 'COACH_WATTS' && !combinedDescription.includes('[CoachWatts]')) {
-      combinedDescription = `${combinedDescription}\n\n[CoachWatts]`.trim()
-    }
-
-    eventData.description = combinedDescription
-
-    // Send duration and tss if provided, even with structure
-    if (data.durationSec) eventData.duration = data.durationSec
-    if (data.tss) eventData.tss = data.tss
-  } else {
-    // Legacy path if just updating metadata
-    if (data.durationSec) eventData.duration = data.durationSec
-    if (data.tss) eventData.tss = data.tss
-  }
-
-  if (sport) eventData.type = sport
-
-  const url = `https://intervals.icu/api/v1/athlete/${athleteId}/events/${eventId}`
-  const headers = getIntervalsHeaders(integration)
-
-  const response = await fetchWithRetry(url, {
-    method: 'PUT',
-    headers: {
-      ...headers,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(eventData)
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error('[updateIntervalsPlannedWorkout] ❌ Intervals.icu update failed:', {
-      status: response.status,
-      athleteId,
-      eventId,
-      errorText,
-      eventData
-    })
-    throw new Error(`Intervals API error: ${response.status} ${errorText}`)
-  }
-
-  return await response.json()
+  return upsertIntervalsEvent(integration, { ...data, id: eventId }, 'PUT')
 }
 
 export async function fetchIntervalsPlannedWorkouts(

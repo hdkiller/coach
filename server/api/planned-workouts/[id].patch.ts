@@ -1,11 +1,10 @@
 import { getServerSession } from '../../utils/session'
 import { syncPlannedWorkoutToIntervals } from '../../utils/intervals-sync'
-import { isIntervalsEventId } from '../../utils/intervals'
+import { isIntervalsEventId, cleanIntervalsDescription } from '../../utils/intervals'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { WorkoutConverter } from '../../utils/workout-converter'
-import { cleanIntervalsDescription } from '../../utils/intervals'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 
 defineRouteMeta({
