@@ -182,9 +182,24 @@
                   </UFormField>
                 </div>
 
-                <UFormField name="isActive">
-                  <UCheckbox v-model="state.isActive" label="Active" />
-                </UFormField>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <UFormField label="Minimum User Age (Days)" name="minUserAgeDays">
+                    <UInput
+                      v-model="state.minUserAgeDays"
+                      type="number"
+                      min="0"
+                      class="w-full"
+                      placeholder="e.g., 7"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">
+                      Only show to users registered for at least this many days
+                    </p>
+                  </UFormField>
+
+                  <UFormField name="isActive" class="flex items-end pb-1">
+                    <UCheckbox v-model="state.isActive" label="Active" />
+                  </UFormField>
+                </div>
               </div>
 
               <div
@@ -235,7 +250,8 @@
     isActive: true,
     expiresAt: undefined as string | undefined,
     targetUrl: undefined as string | undefined,
-    actionLabel: undefined as string | undefined
+    actionLabel: undefined as string | undefined,
+    minUserAgeDays: 0
   })
 
   const schema = z.object({
@@ -248,7 +264,8 @@
       .union([z.string().url(), z.literal('')])
       .optional()
       .nullable(),
-    actionLabel: z.string().optional().nullable()
+    actionLabel: z.string().optional().nullable(),
+    minUserAgeDays: z.number().min(0)
   })
 
   function openCreateModal() {
@@ -260,6 +277,7 @@
     state.expiresAt = undefined
     state.targetUrl = undefined
     state.actionLabel = undefined
+    state.minUserAgeDays = 0
     isModalOpen.value = true
   }
 
@@ -271,6 +289,7 @@
     state.isActive = row.isActive
     state.targetUrl = row.targetUrl
     state.actionLabel = row.actionLabel
+    state.minUserAgeDays = row.minUserAgeDays || 0
     // Format date for datetime-local input (YYYY-MM-DDThh:mm)
     if (row.expiresAt) {
       const d = new Date(row.expiresAt)

@@ -45,10 +45,11 @@ export default defineEventHandler(async (event) => {
 
   let selectedMessage = null
 
-  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
   const userAgeMs = new Date().getTime() - user.createdAt.getTime()
 
   for (const msg of activeMessages) {
+    const minAgeMs = (msg.minUserAgeDays || 0) * 24 * 60 * 60 * 1000
+
     if (msg.type === 'ADVERT') {
       // Logic for ADVERT type:
       // 1. Don't show to subscribers (PRO or SUPPORTER)
@@ -56,8 +57,8 @@ export default defineEventHandler(async (event) => {
         continue
       }
 
-      // 2. Don't show to new users (< 7 days old)
-      if (userAgeMs < ONE_WEEK_MS) {
+      // 2. Don't show to new users (respect minUserAgeDays)
+      if (userAgeMs < minAgeMs) {
         continue
       }
 
@@ -66,6 +67,11 @@ export default defineEventHandler(async (event) => {
       break
     } else {
       // Non-ADVERT messages are shown normally
+      // But we still respect minUserAgeDays if set
+      if (userAgeMs < minAgeMs) {
+        continue
+      }
+
       selectedMessage = msg
       break
     }

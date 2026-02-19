@@ -18,7 +18,8 @@ export default defineEventHandler(async (event) => {
     isActive: z.boolean().optional(),
     targetUrl: z.string().optional().nullable(),
     actionLabel: z.string().optional().nullable(),
-    expiresAt: z.string().nullable().optional()
+    expiresAt: z.string().nullable().optional(),
+    minUserAgeDays: z.number().int().min(0).optional()
   })
 
   const result = schema.safeParse(body)

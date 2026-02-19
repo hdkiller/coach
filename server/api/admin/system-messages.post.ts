@@ -16,7 +16,8 @@ export default defineEventHandler(async (event) => {
     isActive: z.boolean().default(true),
     targetUrl: z.string().optional().nullable(),
     actionLabel: z.string().optional().nullable(),
-    expiresAt: z.string().nullable().optional() // ISO string
+    expiresAt: z.string().nullable().optional(), // ISO string
+    minUserAgeDays: z.number().int().min(0).default(0)
   })
 
   const result = schema.safeParse(body)
@@ -32,7 +33,8 @@ export default defineEventHandler(async (event) => {
       isActive: result.data.isActive,
       targetUrl: result.data.targetUrl,
       actionLabel: result.data.actionLabel,
-      expiresAt: result.data.expiresAt ? new Date(result.data.expiresAt) : null
+      expiresAt: result.data.expiresAt ? new Date(result.data.expiresAt) : null,
+      minUserAgeDays: result.data.minUserAgeDays
     }
   })
 
