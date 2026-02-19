@@ -14,7 +14,7 @@ on:
       trigger-version:
         description: Trigger.dev CLI version to use
         type: string
-        default: "4.3.3"
+        default: "4.4.0"
         required: false
       node-version:
         description: Node.js version to use

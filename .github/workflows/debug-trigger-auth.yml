@@ -48,9 +48,9 @@ jobs:
           echo "Running Trigger.dev CLI whoami..."
           TRIGGER_ACCESS_TOKEN="$CLEAN_TOKEN" \
           TRIGGER_API_URL="$CLEAN_URL" \
-          pnpm dlx trigger.dev@4.3.3 whoami || echo "whoami failed"
+          pnpm dlx trigger.dev@4.4.0 whoami || echo "whoami failed"
 
           echo "Running Trigger.dev CLI list projects..."
           TRIGGER_ACCESS_TOKEN="$CLEAN_TOKEN" \
           TRIGGER_API_URL="$CLEAN_URL" \
-          pnpm dlx trigger.dev@4.3.3 projects list || echo "projects list failed"
+          pnpm dlx trigger.dev@4.4.0 projects list || echo "projects list failed"
