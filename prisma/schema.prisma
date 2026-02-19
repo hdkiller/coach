@@ -396,6 +396,8 @@ model Event {
   priority         String?  @default("B")
   websiteUrl       String?
   startTime        String?
+  syncStatus       String?  @default("SYNCED")
+  syncError        String?
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   goals            Goal[]   @relation("EventToGoal")
 
