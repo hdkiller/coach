@@ -33,7 +33,7 @@ function getPriceProductId(priceProduct: Stripe.Price['product']): string | null
 function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): SubscriptionTier {
   const config = useRuntimeConfig()
   const priceId = item?.price?.id
-  const productId = getPriceProductId(item?.price?.product)
+  const productId = getPriceProductId((item?.price?.product as any) ?? null)
 
   const supporterPriceIds = [
     config.stripeSupporterMonthlyPriceId,
@@ -80,7 +80,8 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     return
   }
 
-  const productId = getPriceProductId(firstItem.price.product) || '(unknown-product)'
+  const productId =
+    getPriceProductId((firstItem.price.product as any) ?? null) || '(unknown-product)'
   console.log(`Resolved tier '${tier}' for price '${firstItem.price.id}' product '${productId}'`)
 
   const status = mapStripeStatus(subscription.status)

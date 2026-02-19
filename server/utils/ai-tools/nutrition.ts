@@ -90,8 +90,8 @@ const recalculateDailyTotals = (nutrition: any) => {
 
   // If we have a legacy waterMl on the record but no hydration items, keep the legacy value
   // This prevents resetting to 0 for days where only the scalar was used.
-  if (waterMl === 0 && nutrition.waterMl > 0) {
-    waterMl = nutrition.waterMl
+  if (waterMl === 0 && (nutrition.waterMl || 0) > 0) {
+    waterMl = nutrition.waterMl || 0
   }
 
   return { calories, protein, carbs, fat, fiber, sugar, waterMl }
@@ -317,7 +317,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       volume_ml: z.number().describe('Hydration volume in ml'),
-      mode: z.enum(['ADD', 'SET']).default('ADD').describe('Whether to add to current total or set a new absolute total'),
+      mode: z
+        .enum(['ADD', 'SET'])
+        .default('ADD')
+        .describe('Whether to add to current total or set a new absolute total'),
       logged_at: z
         .string()
         .optional()
@@ -375,12 +378,14 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           const updates: any = {}
           for (const m of meals) {
             const items = (nutrition[m] as any[]) || []
-            const filtered = items.filter(i => i.entryType !== 'HYDRATION' && !(i.water_ml > 0 && i.carbs === 0))
+            const filtered = items.filter(
+              (i) => i.entryType !== 'HYDRATION' && !(i.water_ml > 0 && i.carbs === 0)
+            )
             if (filtered.length !== items.length) {
               updates[m] = filtered
             }
           }
-          
+
           const hydrationItem = {
             id: crypto.randomUUID(),
             name: 'Water',
@@ -393,10 +398,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             logged_at: normalizedLoggedAt,
             source: 'ai'
           }
-          
+
           updates.snacks = [...(updates.snacks || nutrition.snacks || []), hydrationItem]
           updates.waterMl = Math.max(0, Math.round(volume_ml))
-          
+
           nutrition = await nutritionRepository.update(nutrition.id, updates)
         } else {
           // ADD mode: just append a new item
@@ -412,7 +417,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             logged_at: normalizedLoggedAt,
             source: 'ai'
           }
-          
+
           const currentSnacks = (nutrition.snacks as any[]) || []
           nutrition = await nutritionRepository.update(nutrition.id, {
             snacks: [...currentSnacks, hydrationItem],
@@ -459,7 +464,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       }
 
       return {
-        message: mode === 'SET' ? `Set total hydration to ${Math.round(volume_ml)}ml for ${date}.` : `Logged ${Math.round(volume_ml)}ml hydration for ${date}.`,
+        message:
+          mode === 'SET'
+            ? `Set total hydration to ${Math.round(volume_ml)}ml for ${date}.`
+            : `Logged ${Math.round(volume_ml)}ml hydration for ${date}.`,
         total_water_ml: nutrition.waterMl || 0,
         intra_workout: intraStatus
       }
@@ -470,7 +478,12 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
     description: 'Delete all hydration logs for a specific date or a specific amount.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
-      volume_ml: z.number().optional().describe('Optional: Specific volume in ml to remove. If omitted, ALL hydration for the day is cleared.')
+      volume_ml: z
+        .number()
+        .optional()
+        .describe(
+          'Optional: Specific volume in ml to remove. If omitted, ALL hydration for the day is cleared.'
+        )
     }),
     execute: async ({ date, volume_ml }) => {
       const dateUtc = new Date(`${date}T00:00:00Z`)
@@ -488,11 +501,11 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       for (const m of meals) {
         const items = (nutrition[m] as any[]) || []
         let filtered: any[]
-        
+
         if (volume_ml) {
           // Remove first match of specific volume
           let found = false
-          filtered = items.filter(i => {
+          filtered = items.filter((i) => {
             const isHydration = i.entryType === 'HYDRATION' || (i.water_ml > 0 && i.carbs === 0)
             if (!found && isHydration && Math.abs(i.water_ml - volume_ml) < 1) {
               found = true
@@ -504,7 +517,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           })
         } else {
           // Remove all hydration
-          filtered = items.filter(i => {
+          filtered = items.filter((i) => {
             const isHydration = i.entryType === 'HYDRATION' || (i.water_ml > 0 && i.carbs === 0)
             if (isHydration) {
               removedCount++
@@ -514,17 +527,17 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             return true
           })
         }
-        
+
         if (filtered.length !== items.length) {
           updates[m] = filtered
         }
       }
 
-      if (removedCount === 0 && nutrition.waterMl > 0 && !volume_ml) {
+      if (removedCount === 0 && (nutrition.waterMl || 0) > 0 && !volume_ml) {
         // Fallback: if no items but we have a total, just clear the total
         updates.waterMl = 0
         removedCount = 1
-        removedVolume = nutrition.waterMl
+        removedVolume = nutrition.waterMl || 0
       }
 
       if (removedCount === 0) {
@@ -538,7 +551,9 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       })
 
       return {
-        message: volume_ml ? `Removed ${Math.round(removedVolume)}ml hydration entry.` : `Cleared all hydration for ${date}.`,
+        message: volume_ml
+          ? `Removed ${Math.round(removedVolume)}ml hydration entry.`
+          : `Cleared all hydration for ${date}.`,
         total_water_ml: nutrition.waterMl
       }
     }
@@ -553,9 +568,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       item_name: z
         .string()
         .optional()
-        .describe(
-          'Name of the item to remove. Matching is case-insensitive.'
-        ),
+        .describe('Name of the item to remove. Matching is case-insensitive.'),
       item_id: z
         .string()
         .optional()

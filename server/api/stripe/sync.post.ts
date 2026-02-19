@@ -28,7 +28,7 @@ function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): Subscri
   const config = useRuntimeConfig()
 
   const priceId = item?.price?.id
-  const productId = getPriceProductId(item?.price?.product)
+  const productId = getPriceProductId((item?.price?.product as any) ?? null)
 
   const supporterPriceIds = [
     config.stripeSupporterMonthlyPriceId,

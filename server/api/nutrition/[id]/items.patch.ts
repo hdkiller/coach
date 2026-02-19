@@ -184,12 +184,12 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Preserve the MEAL_LINKED_WATER_ML bonus if it was just added, 
+  // Preserve the MEAL_LINKED_WATER_ML bonus if it was just added,
   // but we need to be careful not to double count.
   // Actually, let's just make recalculateDailyTotals the source of truth if we have items.
   // But if we have NO hydration items, we should keep the scalar total.
-  if (waterMl === 0 && updatedNutrition.waterMl > 0) {
-    waterMl = updatedNutrition.waterMl
+  if (waterMl === 0 && (updatedNutrition.waterMl || 0) > 0) {
+    waterMl = updatedNutrition.waterMl || 0
   }
 
   await nutritionRepository.update(updatedNutrition.id, {
