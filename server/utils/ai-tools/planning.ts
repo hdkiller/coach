@@ -15,6 +15,7 @@ import { tags } from '@trigger.dev/sdk/v3'
 import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
+import { metabolicService } from '../services/metabolicService'
 import type { AiSettings } from '../ai-user-settings'
 import {
   getUserLocalDate,
@@ -906,7 +907,28 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async ({ workout_id }) => {
       try {
+        const existing = await plannedWorkoutRepository.getById(workout_id, userId, {
+          select: { id: true, date: true }
+        })
+        if (!existing) {
+          return { success: false, error: 'Planned workout not found.' }
+        }
+
         await plannedWorkoutRepository.delete(workout_id, userId)
+
+        try {
+          await metabolicService.calculateFuelingPlanForDate(userId, existing.date, {
+            persist: true
+          })
+        } catch (recalcError) {
+          console.error('[PlanningTools] Failed to regenerate fueling plan after planned delete:', {
+            userId,
+            workoutId: workout_id,
+            date: existing.date,
+            error: recalcError
+          })
+        }
+
         return { success: true, message: 'Planned workout deleted.' }
       } catch (e: any) {
         return { success: false, error: e.message || 'Failed to delete planned workout.' }
@@ -925,12 +947,53 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       // Try deleting from both tables or check which one
       // For simplicity, try PlannedWorkout first
       try {
+        const existingPlanned = await plannedWorkoutRepository.getById(args.workout_id, userId, {
+          select: { id: true, date: true }
+        })
+        if (!existingPlanned) throw new Error('Planned workout not found')
+
         await plannedWorkoutRepository.delete(args.workout_id, userId)
+
+        try {
+          await metabolicService.calculateFuelingPlanForDate(userId, existingPlanned.date, {
+            persist: true
+          })
+        } catch (recalcError) {
+          console.error('[PlanningTools] Failed to regenerate fueling plan after planned delete:', {
+            userId,
+            workoutId: args.workout_id,
+            date: existingPlanned.date,
+            error: recalcError
+          })
+        }
+
         return { success: true, message: 'Planned workout deleted.' }
       } catch (e) {
         // If failed, try Workout
         try {
+          const existingWorkout = await workoutRepository.getById(args.workout_id, userId, {
+            select: { id: true, date: true }
+          })
+          if (!existingWorkout) throw new Error('Workout not found')
+
           await workoutRepository.delete(args.workout_id, userId)
+
+          try {
+            await metabolicService.calculateFuelingPlanForDate(userId, existingWorkout.date, {
+              persist: true
+            })
+          } catch (recalcError) {
+            console.error(
+              '[PlanningTools] Failed to regenerate fueling plan after completed workout delete:',
+              {
+                userId,
+                workoutId: args.workout_id,
+                date: existingWorkout.date,
+                error: recalcError
+              }
+            )
+          }
+
           return { success: true, message: 'Completed workout deleted.' }
         } catch (e2: any) {
           return { success: false, error: e2.message || 'Failed to delete workout.' }

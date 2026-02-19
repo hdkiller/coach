@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { planningTools } from '../../../../../server/utils/ai-tools/planning'
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
+import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
+import { metabolicService } from '../../../../../server/utils/services/metabolicService'
 
 vi.mock('../../../../../server/utils/repositories/plannedWorkoutRepository', () => ({
   plannedWorkoutRepository: {
@@ -9,6 +11,19 @@ vi.mock('../../../../../server/utils/repositories/plannedWorkoutRepository', () 
     list: vi.fn(),
     create: vi.fn(),
     delete: vi.fn()
+  }
+}))
+
+vi.mock('../../../../../server/utils/repositories/workoutRepository', () => ({
+  workoutRepository: {
+    getById: vi.fn(),
+    delete: vi.fn()
+  }
+}))
+
+vi.mock('../../../../../server/utils/services/metabolicService', () => ({
+  metabolicService: {
+    calculateFuelingPlanForDate: vi.fn()
   }
 }))
 
@@ -440,6 +455,37 @@ describe('planningTools', () => {
         })
       )
       expect(plannedWorkoutRepository.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('delete_planned_workout', () => {
+    it('regenerates fueling plan after deleting a planned workout', async () => {
+      const workoutDate = new Date('2026-02-19T00:00:00Z')
+      vi.mocked(plannedWorkoutRepository.getById).mockResolvedValueOnce({
+        id: 'pw-del',
+        date: workoutDate
+      } as any)
+      vi.mocked(plannedWorkoutRepository.delete).mockResolvedValueOnce({ id: 'pw-del' } as any)
+      vi.mocked(metabolicService.calculateFuelingPlanForDate).mockResolvedValueOnce({
+        success: true
+      } as any)
+
+      const result = await tools.delete_planned_workout.execute(
+        { workout_id: 'pw-del' },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(plannedWorkoutRepository.getById).toHaveBeenCalledWith('pw-del', userId, {
+        select: { id: true, date: true }
+      })
+      expect(plannedWorkoutRepository.delete).toHaveBeenCalledWith('pw-del', userId)
+      expect(metabolicService.calculateFuelingPlanForDate).toHaveBeenCalledWith(userId, workoutDate, {
+        persist: true
+      })
+      expect(result).toEqual({
+        success: true,
+        message: 'Planned workout deleted.'
+      })
     })
   })
 })
