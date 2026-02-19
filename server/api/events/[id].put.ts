@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { getServerSession } from '../../utils/session'
 import { eventRepository } from '../../utils/repositories/eventRepository'
+import { syncEventToIntervals } from '../../utils/intervals-sync'
+import { prisma } from '../../utils/db'
 
 const eventSchema = z.object({
   title: z.string().min(1),
@@ -40,13 +42,32 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   try {
+    // 1. Fetch integration
+    const integration = await prisma.integration.findFirst({
+      where: { userId, provider: 'intervals' }
+    })
+
+    // 2. Update local event
     const updatedEvent = await eventRepository.update(id, userId, {
       ...result.data,
       priority: result.data.priority || null,
-      date: new Date(result.data.date)
+      date: new Date(result.data.date),
+      syncStatus: integration ? 'PENDING' : 'LOCAL_ONLY'
     })
 
-    return { success: true, event: updatedEvent }
+    let finalEvent = updatedEvent
+
+    // 3. Sync if needed
+    if (integration && updatedEvent.externalId && updatedEvent.source === 'intervals') {
+      const syncResult = await syncEventToIntervals('UPDATE', updatedEvent, userId)
+      if (syncResult.synced) {
+        finalEvent = await eventRepository.update(id, userId, {
+          syncStatus: 'SYNCED'
+        })
+      }
+    }
+
+    return { success: true, event: finalEvent }
   } catch (error: any) {
     if (error.message.includes('Not authorized')) {
       throw createError({ statusCode: 403, message: error.message })

@@ -1,5 +1,8 @@
 import { z } from 'zod'
 import { getServerSession } from '../../utils/session'
+import { eventRepository } from '../../utils/repositories/eventRepository'
+import { syncEventToIntervals } from '../../utils/intervals-sync'
+import { prisma } from '../../utils/db'
 
 const eventSchema = z.object({
   title: z.string().min(1),
@@ -60,13 +63,37 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   try {
+    // 1. Determine initial sync status
+    const integration = await prisma.integration.findFirst({
+      where: { userId, provider: 'intervals' }
+    })
+
+    const initialSyncStatus = integration ? 'PENDING' : 'LOCAL_ONLY'
+
+    // 2. Create local event
     const newEvent = await eventRepository.create(userId, {
       ...result.data,
       priority: result.data.priority || null,
-      date: new Date(result.data.date)
+      date: new Date(result.data.date),
+      syncStatus: initialSyncStatus
     })
 
-    return { success: true, event: newEvent }
+    let finalEvent = newEvent
+
+    // 3. Attempt sync if integration exists
+    if (integration) {
+      const syncResult = await syncEventToIntervals('CREATE', newEvent, userId)
+
+      if (syncResult.synced && syncResult.result?.id) {
+        finalEvent = await eventRepository.update(newEvent.id, userId, {
+          externalId: String(syncResult.result.id),
+          source: 'intervals',
+          syncStatus: 'SYNCED'
+        })
+      }
+    }
+
+    return { success: true, event: finalEvent }
   } catch (error: any) {
     throw createError({ statusCode: 500, message: error.message })
   }
