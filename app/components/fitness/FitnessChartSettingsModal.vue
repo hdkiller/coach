@@ -123,14 +123,26 @@
                 </div>
                 <USwitch v-model="settings.showTarget" />
               </div>
-              <div v-if="settings.showTarget" class="flex items-center gap-3">
-                <UInput
-                  v-model.number="settings.targetValue"
-                  type="number"
-                  size="sm"
-                  placeholder="Target value..."
-                  class="w-full"
-                />
+              <div v-if="settings.showTarget" class="space-y-2">
+                <div class="flex items-center gap-3">
+                  <UInput
+                    v-model.number="settings.targetValue"
+                    type="number"
+                    size="sm"
+                    :placeholder="
+                      metricKey === 'weight' && weightGoal?.targetValue
+                        ? `Goal: ${weightGoal.targetValue}kg`
+                        : 'Target value...'
+                    "
+                    class="w-full"
+                  />
+                </div>
+                <p
+                  v-if="metricKey === 'weight' && weightGoal && !settings.targetValue"
+                  class="text-[10px] text-primary-500 font-bold uppercase tracking-wider italic"
+                >
+                  Automatically using your weight goal: {{ weightGoal.targetValue }}kg
+                </p>
               </div>
             </div>
           </div>
@@ -193,6 +205,7 @@
   const props = defineProps<{
     metricKey: string
     title: string
+    weightGoal?: any
   }>()
 
   const isOpen = defineModel<boolean>('open', { default: false })

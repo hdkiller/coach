@@ -44,6 +44,7 @@
             :metric-key="activeMetricSettings.key"
             :title="activeMetricSettings.title"
             :open="!!activeMetricSettings"
+            :weight-goal="weightGoal"
             @update:open="activeMetricSettings = null"
           />
 
@@ -350,6 +351,11 @@
         ...defaultChartSettings[key],
         ...(userSettings[key] || {})
       }
+
+      // Automatically enable weight target line if a goal exists and not explicitly set
+      if (key === 'weight' && weightGoal.value && userSettings[key]?.showTarget === undefined) {
+        merged[key].showTarget = true
+      }
     }
     return merged
   })
@@ -383,6 +389,8 @@
       }))
     }
   )
+
+  const { data: goalsData } = await useFetch<any>('/api/goals')
 
   const { data: pmcData, pending: loadingPMC } = await useFetch<any>('/api/performance/pmc', {
     query: computed(() => ({ days: selectedPeriod.value }))
@@ -548,6 +556,14 @@
     const withHRV = filteredWellness.value.filter((w) => w.hrv)
     if (withHRV.length === 0) return null
     return withHRV.reduce((sum, w) => sum + w.hrv, 0) / withHRV.length
+  })
+
+  const weightGoal = computed(() => {
+    if (!goalsData.value?.goals) return null
+    return goalsData.value.goals.find(
+      (g: any) =>
+        g.status === 'ACTIVE' && (g.metric === 'weight_kg' || g.type === 'BODY_COMPOSITION')
+    )
   })
 
   const totalPages = computed(() => Math.ceil(filteredWellness.value.length / itemsPerPage))
@@ -818,11 +834,21 @@
       }
     }
 
-    if (settings.showTarget && settings.targetValue !== undefined) {
+    // Determine target value: prioritize manual setting, fallback to weight goal for weight chart
+    let targetValue = settings.targetValue
+    if (
+      key === 'weight' &&
+      (!targetValue || targetValue === 0) &&
+      weightGoal.value?.targetValue !== undefined
+    ) {
+      targetValue = weightGoal.value.targetValue
+    }
+
+    if (settings.showTarget && targetValue !== undefined) {
       datasets.push({
         type: 'line',
         label: 'Target',
-        data: new Array(data.length).fill(settings.targetValue),
+        data: new Array(data.length).fill(targetValue),
         borderColor: 'rgba(255, 255, 255, 0.5)',
         borderDash: [2, 2],
         borderWidth: 1,
@@ -1016,7 +1042,7 @@
         ticks: {
           color: '#94a3b8',
           font: { size: 10, weight: 'bold' as const },
-          maxTicksLimit: 5
+          maxTicksLimit: 6
         },
         border: { display: false }
       }
@@ -1036,7 +1062,6 @@
       settings.showStdDev ||
       settings.showMedian ||
       settings.showTarget ||
-      key === 'bp' ||
       key === 'bp'
 
     opts.plugins.legend = {
@@ -1096,6 +1121,16 @@
       label: labelFormatter
     }
 
+    // Determine target value for scaling: prioritize manual setting, fallback to goal
+    let targetValue = settings.targetValue
+    if (
+      key === 'weight' &&
+      (!targetValue || targetValue === 0) &&
+      weightGoal.value?.targetValue !== undefined
+    ) {
+      targetValue = weightGoal.value.targetValue
+    }
+
     if (key === 'recovery') {
       opts.scales.y.title = {
         display: true,
@@ -1142,6 +1177,22 @@
       }
       opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
       opts.scales.y.beginAtZero = false
+      opts.scales.y.ticks.maxTicksLimit = 8
+      opts.scales.y.grace = '1%'
+
+      // If showing target, ensure it's visible in dynamic scale
+      if (settings.showTarget && targetValue !== undefined && settings.yScale !== 'fixed') {
+        const weights = filteredWellness.value.filter((w) => w.weight).map((w) => w.weight)
+        if (weights.length > 0) {
+          const minWeight = Math.min(...weights)
+          const maxWeight = Math.max(...weights)
+          opts.scales.y.suggestedMin = Math.min(minWeight, targetValue)
+          opts.scales.y.suggestedMax = Math.max(maxWeight, targetValue)
+        } else {
+          opts.scales.y.suggestedMin = targetValue
+          opts.scales.y.suggestedMax = targetValue
+        }
+      }
     } else if (key === 'bp') {
       opts.scales.y.title = {
         display: true,
