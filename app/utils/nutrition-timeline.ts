@@ -34,6 +34,8 @@ export interface FuelingTimelineWindow {
   plannedWorkoutId?: string
   workoutTitle?: string
   workout?: any // The full PlannedWorkout object
+  workouts?: any[] // Array of associated workouts
+  workoutIds?: string[] // Array of associated workout IDs
   fuelState?: number
   supplements?: string[]
   meals?: string[]
