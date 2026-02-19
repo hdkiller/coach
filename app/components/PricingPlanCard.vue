@@ -27,19 +27,30 @@
       <h3 :class="compact ? 'text-lg' : 'text-xl'" class="font-bold">{{ plan.name }}</h3>
       <div :class="compact ? 'mt-2' : 'mt-4'" class="flex items-baseline gap-1">
         <span :class="compact ? 'text-2xl' : 'text-4xl'" class="font-extrabold">
-          {{ formatPrice(plan.monthlyPrice, currency) }}
+          {{
+            formatPrice(
+              interval === 'annual' && plan.annualPrice ? plan.annualPrice : plan.monthlyPrice,
+              currency
+            )
+          }}
         </span>
-        <span class="text-sm text-gray-500 dark:text-gray-400"> / month </span>
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+          / {{ interval === 'annual' ? 'year' : 'month' }}
+        </span>
       </div>
       <p
         :class="compact ? 'mt-1 text-xs' : 'mt-2 text-sm'"
         class="text-gray-500 dark:text-gray-400"
       >
-        {{ plan.description }}
+        <span class="sm:hidden">{{ plan.mobileDescription || plan.description }}</span>
+        <span class="hidden sm:inline">{{ plan.description }}</span>
       </p>
     </template>
 
-    <ul :class="compact ? 'space-y-2' : 'space-y-3'" class="mb-4 flex-grow">
+    <ul
+      :class="[compact ? 'space-y-2 hidden sm:block' : 'space-y-3', 'mb-4 flex-grow']"
+      class="mb-4 flex-grow"
+    >
       <li
         v-for="(feature, fIndex) in displayFeatures"
         :key="fIndex"
@@ -70,7 +81,12 @@
 </template>
 
 <script setup lang="ts">
-  import { formatPrice, type PricingPlan, type SupportedCurrency } from '~/utils/pricing'
+  import {
+    formatPrice,
+    type PricingPlan,
+    type SupportedCurrency,
+    type BillingInterval
+  } from '~/utils/pricing'
 
   interface Props {
     plan: PricingPlan
@@ -78,13 +94,15 @@
     showPopular?: boolean
     highlight?: boolean
     currency?: SupportedCurrency
+    interval?: BillingInterval
   }
 
   const props = withDefaults(defineProps<Props>(), {
     compact: false,
     showPopular: true,
     highlight: false,
-    currency: undefined
+    currency: undefined,
+    interval: 'monthly'
   })
 
   defineEmits<{
