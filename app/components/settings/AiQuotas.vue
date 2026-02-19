@@ -6,9 +6,19 @@
           <UIcon name="i-heroicons-shield-check" class="w-5 h-5 text-primary" />
           <h2 class="text-xl font-semibold">LLM Quotas</h2>
         </div>
-        <UBadge :color="tierColor" variant="soft" class="font-bold">
-          {{ data?.tier || 'FREE' }}
-        </UBadge>
+        <div class="flex items-center gap-2">
+          <UBadge
+            v-if="isTrialActive"
+            color="primary"
+            variant="solid"
+            class="font-black uppercase tracking-widest text-[9px] animate-pulse"
+          >
+            Performance Trial Active
+          </UBadge>
+          <UBadge :color="tierColor" variant="soft" class="font-bold">
+            {{ data?.tier || 'FREE' }}
+          </UBadge>
+        </div>
       </div>
     </template>
 
@@ -59,7 +69,27 @@
     <template #footer>
       <div class="space-y-4">
         <div
-          v-if="data?.tier === 'FREE'"
+          v-if="isTrialActive"
+          class="p-3 rounded-lg bg-primary-50 dark:bg-primary-950/30 border border-primary-500/50"
+        >
+          <div class="flex items-center gap-3">
+            <UIcon name="i-heroicons-bolt" class="w-5 h-5 text-primary-500" />
+            <div class="flex-1">
+              <p
+                class="text-xs font-black uppercase tracking-tight text-primary-900 dark:text-primary-100"
+              >
+                You are on an active Performance Trial
+              </p>
+              <p class="text-[10px] text-primary-700 dark:text-primary-400 leading-tight mt-0.5">
+                Enjoy Supporter-level quotas for unrestricted exploration until
+                {{ trialEndsAtLabel }}.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="data?.tier === 'FREE' && !isTrialActive"
           class="p-3 rounded-lg bg-primary-50 dark:bg-primary-950/30 border border-primary-100 dark:border-primary-900"
         >
           <div class="flex items-center justify-between gap-3">
@@ -94,15 +124,26 @@
 <script setup lang="ts">
   import type { QuotaStatus } from '~/../types/quotas'
 
-  const { formatRelativeTime } = useFormat()
+  const { formatRelativeTime, formatUserDate } = useFormat()
 
-  const { data, pending } = useFetch<{ tier: string; quotas: QuotaStatus[] }>(
-    '/api/profile/quotas',
-    {
-      server: false,
-      lazy: true
-    }
-  )
+  const { data, pending } = useFetch<{
+    tier: string
+    trialEndsAt: string | null
+    quotas: QuotaStatus[]
+  }>('/api/profile/quotas', {
+    server: false,
+    lazy: true
+  })
+
+  const isTrialActive = computed(() => {
+    if (!data.value?.trialEndsAt) return false
+    return new Date(data.value.trialEndsAt) > new Date()
+  })
+
+  const trialEndsAtLabel = computed(() => {
+    if (!data.value?.trialEndsAt) return ''
+    return formatUserDate(data.value.trialEndsAt)
+  })
 
   const sortedQuotas = computed(() => {
     const quotas = data.value?.quotas

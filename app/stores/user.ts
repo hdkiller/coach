@@ -11,6 +11,7 @@ interface User {
   subscriptionTier: SubscriptionTier
   subscriptionStatus: SubscriptionStatus
   subscriptionPeriodEnd: Date | null
+  trialEndsAt: Date | null
   dashboardSettings?: any
 }
 
@@ -129,6 +130,18 @@ export const useUserStore = defineStore('user', () => {
       priorityProcessing: effectiveTier !== 'FREE',
       proactivity: effectiveTier === 'PRO'
     }
+  })
+
+  const isTrialActive = computed(() => {
+    if (!user.value?.trialEndsAt) return false
+    return new Date(user.value.trialEndsAt) > new Date()
+  })
+
+  const trialDaysRemaining = computed(() => {
+    if (!user.value?.trialEndsAt) return 0
+    const end = new Date(user.value.trialEndsAt).getTime()
+    const now = new Date().getTime()
+    return Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)))
   })
 
   // Check if user has a specific entitlement
@@ -251,6 +264,8 @@ export const useUserStore = defineStore('user', () => {
     generating,
     userLoading,
     entitlements,
+    isTrialActive,
+    trialDaysRemaining,
     fetchUser,
     updateDashboardSettings,
     fetchProfile,

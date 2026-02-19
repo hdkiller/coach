@@ -66,6 +66,59 @@
 
         <!-- Dashboard Grid (Connected User) -->
         <div v-else class="p-0 sm:p-6 space-y-4 sm:space-y-8">
+          <div v-if="userStore.isTrialActive" class="px-4 sm:px-0">
+            <div
+              class="relative overflow-hidden bg-primary-600 rounded-xl p-4 sm:p-6 shadow-lg group"
+            >
+              <!-- Decorative Icon -->
+              <div
+                class="absolute -right-4 -bottom-4 opacity-10 transform -rotate-12 group-hover:scale-110 transition-transform duration-700"
+              >
+                <UIcon name="i-heroicons-sparkles" class="w-32 h-32 text-white" />
+              </div>
+
+              <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-start gap-4">
+                  <div class="p-3 bg-white/20 rounded-xl backdrop-blur-sm shrink-0">
+                    <UIcon name="i-heroicons-bolt-solid" class="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 class="text-white font-black uppercase tracking-tight text-lg">
+                      Performance Trial Active
+                    </h3>
+                    <p class="text-white/80 text-sm font-medium leading-relaxed max-w-xl">
+                      Welcome to the lab. You have unrestricted access to Supporter-level AI
+                      coaching and automated analysis for the next
+                      <span class="text-white font-black underline decoration-2 underline-offset-2"
+                        >{{ userStore.trialDaysRemaining }} days</span
+                      >.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <UButton
+                    to="/settings/ai"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                    class="bg-white/10 hover:bg-white/20 text-white font-bold border-none"
+                  >
+                    View Quotas
+                  </UButton>
+                  <UButton
+                    to="/settings/billing"
+                    color="neutral"
+                    variant="solid"
+                    size="sm"
+                    class="bg-white text-primary-600 hover:bg-gray-100 font-bold border-none"
+                  >
+                    Upgrade to Keep
+                  </UButton>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <DashboardSystemMessageCard />
 
           <DashboardMissingDataBanner
