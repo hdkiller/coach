@@ -2,17 +2,7 @@ import { prisma } from '../db'
 import type { QuotaOperation } from './registry'
 import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
 import { SubscriptionTier, type User } from '@prisma/client'
-
-export interface QuotaStatus {
-  operation: string
-  allowed: boolean
-  used: number
-  limit: number
-  remaining: number
-  window: string
-  resetsAt: Date | null
-  enforcement: 'STRICT' | 'MEASURE'
-}
+import type { QuotaStatus } from '../../../types/quotas'
 
 /**
  * Get current usage and limit status for a user and operation
