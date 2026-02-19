@@ -266,6 +266,15 @@
               v-for="(item, idx) in group.items"
               :key="item.id || `${group.meal}-item-${idx}`"
               class="group flex flex-col gap-1 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm"
+              :class="{
+                'cursor-pointer hover:border-primary-200 dark:hover:border-primary-900/50':
+                  !isLocked
+              }"
+              :role="!isLocked ? 'button' : undefined"
+              :tabindex="!isLocked ? 0 : undefined"
+              @click="handleItemEdit(item)"
+              @keydown.enter.prevent="handleItemEdit(item)"
+              @keydown.space.prevent="handleItemEdit(item)"
             >
               <!-- Row 1: Title and Actions -->
               <div class="flex items-center justify-between gap-4">
@@ -289,7 +298,7 @@
                     color="neutral"
                     size="xs"
                     class="opacity-0 group-hover:opacity-100 transition-opacity -my-1"
-                    @click="$emit('edit', item)"
+                    @click.stop="handleItemEdit(item)"
                   />
                 </div>
               </div>
@@ -500,7 +509,7 @@
     return end.value < twoHoursAgo
   })
 
-  defineEmits(['add', 'addAi', 'edit'])
+  const emit = defineEmits(['add', 'addAi', 'edit'])
 
   function formatMacro(val: number | string | undefined) {
     if (val === undefined || val === null) return 0
@@ -680,5 +689,10 @@
     if (s.includes('nitrate')) return 'i-tabler-bottle'
     if (s.includes('bicarbonate')) return 'i-tabler-flask'
     return 'i-heroicons-plus-circle'
+  }
+
+  function handleItemEdit(item: any) {
+    if (props.isLocked) return
+    emit('edit', item)
   }
 </script>

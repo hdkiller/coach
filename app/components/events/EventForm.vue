@@ -314,9 +314,9 @@
   async function onSubmit() {
     loading.value = true
     try {
-      const eventDate = state.date
-        ? getUserDateFromLocal(state.date).toISOString()
-        : new Date().toISOString()
+      const [year, month, day] = state.date.split('-').map(Number)
+      const eventDate = new Date(Date.UTC(year, month - 1, day)).toISOString()
+
       const payload = {
         ...state,
         date: eventDate

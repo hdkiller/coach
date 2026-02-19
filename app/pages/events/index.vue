@@ -12,7 +12,7 @@
               variant="solid"
               icon="i-heroicons-plus"
               size="sm"
-              class="font-bold"
+              class="font-black uppercase tracking-widest text-[10px]"
               @click="openCreateModal"
             >
               <span class="hidden sm:inline">Add Event</span>

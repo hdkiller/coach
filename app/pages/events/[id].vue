@@ -1,34 +1,21 @@
 <template>
   <UDashboardPanel id="event-detail">
     <template #header>
-      <UDashboardNavbar :title="event ? `Event: ${event.title}` : 'Event Details'">
+      <UDashboardNavbar>
         <template #leading>
-          <UButton
-            icon="i-heroicons-arrow-left"
-            color="neutral"
-            variant="ghost"
-            to="/events"
-            class="hidden sm:flex"
-          >
-            Back to Events
+          <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" to="/events">
+            Back
           </UButton>
-          <UButton
-            icon="i-heroicons-arrow-left"
-            color="neutral"
-            variant="ghost"
-            to="/events"
-            class="sm:hidden"
-          />
         </template>
 
         <template #right>
-          <div class="flex gap-2">
+          <div class="flex items-center gap-2">
             <UButton
               icon="i-heroicons-pencil-square"
               color="primary"
-              variant="solid"
+              variant="soft"
               size="sm"
-              class="font-bold"
+              class="font-bold uppercase tracking-tight"
               @click="openEditModal"
             >
               Edit
@@ -36,152 +23,271 @@
             <UButton
               icon="i-heroicons-trash"
               color="error"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              class="font-bold"
               @click="confirmDeleteEvent"
-            >
-              Delete
-            </UButton>
+            />
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+            </ClientOnly>
           </div>
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
-      <div class="p-6">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"
-            />
-            <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading event...</p>
-          </div>
+      <div class="max-w-4xl mx-auto w-full p-0 sm:p-6 pb-24 space-y-4 sm:space-y-8">
+        <div v-if="loading" class="flex items-center justify-center py-24">
+          <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary-500" />
         </div>
 
-        <div v-else-if="error" class="text-center py-12">
-          <div class="text-red-600 dark:text-red-400">
-            <p class="text-lg font-semibold">{{ error }}</p>
-          </div>
+        <div v-else-if="error" class="p-6 text-center">
+          <UAlert
+            icon="i-heroicons-exclamation-triangle"
+            color="error"
+            variant="soft"
+            title="Data Error"
+            :description="error"
+          />
         </div>
 
-        <div v-else-if="event" class="space-y-6">
-          <!-- Header Section -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex-1">
-                <div class="flex items-center gap-3 mb-2">
-                  <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        <div v-else-if="event" class="space-y-4 sm:space-y-8">
+          <!-- 0. THE DATE HEADER -->
+          <UCard
+            :ui="{
+              root: 'rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x'
+            }"
+            class="shadow-sm overflow-hidden border-primary-100 dark:border-primary-900/50"
+          >
+            <div class="flex items-center gap-2 sm:justify-between relative z-10 px-4 py-2">
+              <div class="min-w-0 flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <!-- Title Section -->
+                <div class="md:col-span-2">
+                  <div
+                    class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic mb-1"
+                  >
+                    {{ formatDateUTC(event.date, 'EEEE, MMMM do yyyy') }}
+                  </div>
+                  <h1
+                    class="text-xl sm:text-2xl font-black tracking-tight text-gray-900 dark:text-white uppercase truncate"
+                  >
                     {{ event.title }}
                   </h1>
-                  <span :class="getPriorityBadgeClass(event.priority)">
-                    Priority {{ event.priority }}
-                  </span>
+                  <p
+                    class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
+                  >
+                    {{ event.type || 'General Event' }}
+                    <span v-if="event.subType">/ {{ event.subType }}</span>
+                  </p>
                 </div>
-                <div class="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400">
-                  <div class="flex items-center gap-1">
-                    <span class="i-heroicons-calendar w-4 h-4" />
-                    {{ formatDate(event.date) }}
-                  </div>
-                  <div v-if="event.startTime" class="flex items-center gap-1">
-                    <span class="i-heroicons-clock w-4 h-4" />
-                    {{ event.startTime }}
-                  </div>
-                  <div v-if="event.type" class="flex items-center gap-1">
-                    <span class="i-heroicons-tag w-4 h-4" />
-                    {{ event.type }}
-                    <span v-if="event.subType">({{ event.subType }})</span>
-                  </div>
-                </div>
-              </div>
-              <div v-if="event.websiteUrl">
-                <UButton
-                  :to="event.websiteUrl"
-                  target="_blank"
-                  icon="i-heroicons-link"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                >
-                  Website
-                </UButton>
-              </div>
-            </div>
 
-            <!-- Key Stats Grid -->
-            <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div
-                v-if="event.distance"
-                class="rounded-lg p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
-              >
-                <div class="text-xs text-blue-600 dark:text-blue-400 mb-1">Distance</div>
-                <div class="text-xl font-bold text-blue-900 dark:text-blue-100">
-                  {{ event.distance }} <span class="text-sm font-normal">km</span>
-                </div>
-              </div>
-              <div
-                v-if="event.elevation"
-                class="rounded-lg p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
-              >
-                <div class="text-xs text-green-600 dark:text-green-400 mb-1">Elevation</div>
-                <div class="text-xl font-bold text-green-900 dark:text-green-100">
-                  {{ event.elevation }} <span class="text-sm font-normal">m</span>
-                </div>
-              </div>
-              <div
-                v-if="event.expectedDuration"
-                class="rounded-lg p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
-              >
-                <div class="text-xs text-purple-600 dark:text-purple-400 mb-1">Est. Duration</div>
-                <div class="text-xl font-bold text-purple-900 dark:text-purple-100">
-                  {{ event.expectedDuration }} <span class="text-sm font-normal">h</span>
-                </div>
-              </div>
-              <div
-                class="rounded-lg p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-              >
-                <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">Location</div>
+                <!-- Priority Badge -->
                 <div
-                  class="text-sm font-bold text-gray-900 dark:text-white truncate"
-                  :title="formatLocation(event)"
+                  class="hidden md:flex md:col-span-1 items-center justify-end pl-6 border-l border-gray-100 dark:border-gray-800"
                 >
-                  {{ formatLocation(event) || 'TBD' }}
+                  <div class="space-y-1 text-right">
+                    <span :class="getPriorityBadgeClass(event.priority)">
+                      Priority {{ event.priority }}
+                    </span>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                      Target Event
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
+          </UCard>
 
-            <div v-if="event.description" class="mt-6">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Description</h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                {{ event.description }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Goals Section -->
-          <div
-            v-if="event.goals && event.goals.length > 0"
-            class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
-          >
-            <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Linked Goals</h2>
-            <div class="space-y-3">
-              <div
-                v-for="goal in event.goals"
-                :key="goal.id"
-                class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700"
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <!-- Main Content (2/3) -->
+            <div class="lg:col-span-2 space-y-4 sm:space-y-8">
+              <UCard
+                :ui="{
+                  root: 'rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x',
+                  body: 'p-4 sm:p-6'
+                }"
               >
-                <div>
-                  <div class="font-medium text-gray-900 dark:text-white">{{ goal.title }}</div>
-                  <div class="text-xs text-gray-500 mt-1">
-                    Target: {{ formatDate(goal.targetDate) }}
+                <!-- Key Stats Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div
+                    v-if="event.distance"
+                    class="rounded-xl p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50"
+                  >
+                    <div
+                      class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1"
+                    >
+                      Distance
+                    </div>
+                    <div
+                      class="text-2xl font-black text-blue-900 dark:text-blue-100 tracking-tight"
+                    >
+                      {{ event.distance
+                      }}<span class="text-xs font-bold text-blue-500 uppercase ml-1">km</span>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="event.elevation"
+                    class="rounded-xl p-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50"
+                  >
+                    <div
+                      class="text-[10px] font-black uppercase tracking-widest text-green-600 dark:text-green-400 mb-1"
+                    >
+                      Elevation
+                    </div>
+                    <div
+                      class="text-2xl font-black text-green-900 dark:text-green-100 tracking-tight"
+                    >
+                      {{ event.elevation
+                      }}<span class="text-xs font-bold text-green-500 uppercase ml-1">m</span>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="event.expectedDuration"
+                    class="rounded-xl p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50"
+                  >
+                    <div
+                      class="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-1"
+                    >
+                      Duration
+                    </div>
+                    <div
+                      class="text-2xl font-black text-purple-900 dark:text-purple-100 tracking-tight"
+                    >
+                      {{ event.expectedDuration
+                      }}<span class="text-xs font-bold text-purple-500 uppercase ml-1">h</span>
+                    </div>
+                  </div>
+
+                  <div
+                    class="rounded-xl p-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"
+                  >
+                    <div
+                      class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1"
+                    >
+                      Location
+                    </div>
+                    <div
+                      class="text-sm font-black text-gray-900 dark:text-white uppercase truncate tracking-tight"
+                    >
+                      {{ formatLocation(event) || 'TBD' }}
+                    </div>
                   </div>
                 </div>
-                <UBadge
-                  :color="goal.status === 'COMPLETED' ? 'success' : 'primary'"
-                  variant="subtle"
+
+                <!-- Details & Description -->
+                <div
+                  v-if="event.description || event.startTime || event.websiteUrl"
+                  class="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6"
                 >
-                  {{ goal.status === 'COMPLETED' ? 'Completed' : 'In Progress' }}
-                </UBadge>
+                  <div class="flex flex-wrap gap-6">
+                    <div v-if="event.startTime" class="space-y-1">
+                      <div class="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                        Start Time
+                      </div>
+                      <div
+                        class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5"
+                      >
+                        <UIcon name="i-heroicons-clock" class="w-4 h-4 text-primary-500" />
+                        {{ event.startTime }}
+                      </div>
+                    </div>
+                    <div v-if="event.websiteUrl" class="space-y-1">
+                      <div class="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                        Official Site
+                      </div>
+                      <a
+                        :href="event.websiteUrl"
+                        target="_blank"
+                        class="text-sm font-bold text-primary-600 dark:text-primary-400 flex items-center gap-1.5 hover:underline transition-all"
+                      >
+                        <UIcon name="i-heroicons-link" class="w-4 h-4" />
+                        Visit Website
+                      </a>
+                    </div>
+                  </div>
+
+                  <div v-if="event.description" class="space-y-2">
+                    <h3 class="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                      Description
+                    </h3>
+                    <p
+                      class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed font-medium"
+                    >
+                      {{ event.description }}
+                    </p>
+                  </div>
+                </div>
+              </UCard>
+            </div>
+
+            <!-- Sidebar (1/3) -->
+            <div class="lg:col-span-1 space-y-4 sm:space-y-8">
+              <!-- Linked Goals -->
+              <UCard
+                v-if="event.goals && event.goals.length > 0"
+                :ui="{
+                  root: 'rounded-none sm:rounded-xl shadow-none sm:shadow border-x-0 sm:border-x',
+                  header: 'border-b border-gray-100 dark:border-gray-800',
+                  body: 'p-4 sm:p-6'
+                }"
+              >
+                <template #header>
+                  <h2
+                    class="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2"
+                  >
+                    <UIcon name="i-heroicons-flag" class="w-4 h-4 text-primary-500" />
+                    Linked Goals
+                  </h2>
+                </template>
+
+                <div class="space-y-3">
+                  <div
+                    v-for="goal in event.goals"
+                    :key="goal.id"
+                    class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-500/50 transition-all group"
+                  >
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="min-w-0">
+                        <div
+                          class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight truncate"
+                        >
+                          {{ goal.title }}
+                        </div>
+                        <div
+                          class="text-[9px] text-gray-500 mt-1 font-bold uppercase tracking-widest italic"
+                        >
+                          Target: {{ formatDateUTC(goal.targetDate) }}
+                        </div>
+                      </div>
+                      <UBadge
+                        :color="goal.status === 'COMPLETED' ? 'success' : 'primary'"
+                        variant="soft"
+                        size="xs"
+                        class="font-black uppercase tracking-widest text-[8px]"
+                      >
+                        {{ goal.status === 'COMPLETED' ? 'Done' : 'Active' }}
+                      </UBadge>
+                    </div>
+                  </div>
+                </div>
+              </UCard>
+
+              <!-- Empty State for Sidebar -->
+              <div
+                v-else
+                class="bg-gray-50 dark:bg-gray-900/50 rounded-none sm:rounded-xl p-8 text-center border-y sm:border border-gray-100 dark:border-gray-800"
+              >
+                <UIcon name="i-heroicons-flag" class="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                  No Linked Goals
+                </p>
+                <p
+                  class="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed mt-2 italic px-4"
+                >
+                  Connect this event to a training goal to track specific progress.
+                </p>
               </div>
             </div>
           </div>
@@ -237,7 +343,7 @@
   const route = useRoute()
   const router = useRouter()
   const toast = useToast()
-  const { formatDate: formatUserDate } = useFormat()
+  const { formatDateUTC } = useFormat()
 
   const event = ref<any>(null)
   const loading = ref(true)
@@ -316,10 +422,6 @@
     }
   }
 
-  function formatDate(date: string) {
-    return formatUserDate(date, 'EEEE, MMMM d, yyyy')
-  }
-
   function formatLocation(event: any) {
     const parts = []
     if (event.city) parts.push(event.city)
@@ -329,16 +431,16 @@
   }
 
   function getPriorityBadgeClass(priority: string) {
-    const baseClass = 'px-2 py-0.5 rounded text-xs font-bold ml-2'
+    const baseClass = 'px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest'
     switch (priority) {
       case 'A':
-        return `${baseClass} bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200`
+        return `${baseClass} bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 shadow-sm`
       case 'B':
-        return `${baseClass} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`
+        return `${baseClass} bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 shadow-sm`
       case 'C':
-        return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300`
+        return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700 shadow-sm`
       default:
-        return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300`
+        return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700 shadow-sm`
     }
   }
 
