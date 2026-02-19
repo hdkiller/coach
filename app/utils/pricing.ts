@@ -7,6 +7,7 @@ export interface PricingPlan {
   monthlyPrice: number
   annualPrice: number | null
   description: string
+  mobileDescription?: string
   features: string[]
   popular: boolean
   stripePriceIds?: {
@@ -22,6 +23,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 0,
     annualPrice: null,
     description: "The smartest logbook you've ever used.",
+    mobileDescription: 'Essential activity tracking and analysis.',
     features: [
       'Unlimited data history',
       'Manual sync mode',
@@ -36,6 +38,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 8.99,
     annualPrice: 89.99,
     description: 'Automated insights for the self-coached athlete.',
+    mobileDescription: 'Automated insights and reliable sync.',
     features: [
       'Automatic sync for workouts and health metrics',
       'Always-on AI analysis after new activities',
@@ -50,6 +53,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     monthlyPrice: 14.99,
     annualPrice: 119.0,
     description: 'Your full-service Digital Twin and Coach.',
+    mobileDescription: 'Adaptive planning and elite AI coaching.',
     features: [
       'Adaptive race strategy and periodized planning',
       'Thoughtful AI coaching with scenario analysis',
