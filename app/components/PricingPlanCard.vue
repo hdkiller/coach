@@ -27,7 +27,7 @@
       <h3 :class="compact ? 'text-lg' : 'text-xl'" class="font-bold">{{ plan.name }}</h3>
       <div :class="compact ? 'mt-2' : 'mt-4'" class="flex items-baseline gap-1">
         <span :class="compact ? 'text-2xl' : 'text-4xl'" class="font-extrabold">
-          {{ formatPrice(plan.monthlyPrice) }}
+          {{ formatPrice(plan.monthlyPrice, currency) }}
         </span>
         <span class="text-sm text-gray-500 dark:text-gray-400"> / month </span>
       </div>
@@ -70,19 +70,21 @@
 </template>
 
 <script setup lang="ts">
-  import { formatPrice, type PricingPlan } from '~/utils/pricing'
+  import { formatPrice, type PricingPlan, type SupportedCurrency } from '~/utils/pricing'
 
   interface Props {
     plan: PricingPlan
     compact?: boolean
     showPopular?: boolean
     highlight?: boolean
+    currency?: SupportedCurrency
   }
 
   const props = withDefaults(defineProps<Props>(), {
     compact: false,
     showPopular: true,
-    highlight: false
+    highlight: false,
+    currency: undefined
   })
 
   defineEmits<{
@@ -90,6 +92,8 @@
   }>()
 
   const userStore = useUserStore()
+  const { currency: detectedCurrency } = useCurrency()
+  const currency = computed(() => props.currency || detectedCurrency.value)
   const config = useRuntimeConfig()
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
 

@@ -68,7 +68,7 @@
                 Running low on AI power?
               </p>
               <p class="text-[10px] text-primary-600 dark:text-primary-500 leading-tight">
-                Upgrade your plan to get higher limits and advanced coaching features.
+                Upgrade your plan to get higher quotas and advanced coaching features.
               </p>
             </div>
             <UButton
@@ -76,14 +76,14 @@
               size="xs"
               color="primary"
               variant="solid"
-              label="Increase Limits"
+              label="Increase Quota"
               icon="i-heroicons-arrow-trending-up"
             />
           </div>
         </div>
 
         <p class="text-[11px] text-muted leading-relaxed">
-          Quotas are reset automatically based on the time window shown. If you reach your limit,
+          Quotas are reset automatically based on the time window shown. If you reach your quota,
           you may need to wait for the reset or consider upgrading your plan.
         </p>
       </div>

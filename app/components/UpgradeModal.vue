@@ -1,18 +1,13 @@
 <template>
   <UModal
-    v-model="isOpen"
-    :ui="{ width: 'sm:max-w-4xl' } as any"
-    title="Dialog"
-    description="Dialog content and actions."
+    v-model:open="isOpen"
+    :title="title || 'Upgrade Your Plan'"
+    :ui="{
+      content: 'sm:max-w-xl z-[9999]',
+      overlay: 'z-[9998]'
+    }"
   >
-    <UCard>
-      <template #header>
-        <div class="flex items-center justify-between">
-          <h3 class="text-xl font-bold">{{ title || 'Upgrade Your Plan' }}</h3>
-          <UButton color="neutral" variant="ghost" icon="i-heroicons-x-mark" @click="close" />
-        </div>
-      </template>
-
+    <template #body>
       <div class="space-y-6">
         <!-- Maintenance Message when Subscriptions are Disabled -->
         <div v-if="!subscriptionsEnabled">
@@ -27,19 +22,21 @@
 
         <!-- Feature-specific message -->
         <div
-          v-if="feature"
-          class="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+          v-if="featureTitle || featureDescription"
+          class="bg-primary-50 dark:bg-primary-950/20 border border-primary-100 dark:border-primary-900/50 rounded-xl p-6"
         >
-          <div class="flex items-start gap-3">
-            <UIcon
-              name="i-heroicons-lock-closed"
-              class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
-            />
+          <div class="flex items-start gap-4">
+            <div class="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg shrink-0">
+              <UIcon
+                name="i-heroicons-lock-closed"
+                class="w-6 h-6 text-primary-600 dark:text-primary-400"
+              />
+            </div>
             <div>
-              <h4 class="font-medium text-blue-900 dark:text-blue-100">
+              <h4 class="font-black text-gray-900 dark:text-white uppercase tracking-tight">
                 {{ featureTitle }}
               </h4>
-              <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium leading-relaxed">
                 {{ featureDescription }}
               </p>
             </div>
@@ -47,39 +44,34 @@
         </div>
 
         <!-- Recommended plan (if specified) -->
-        <div v-if="recommendedTier">
-          <h4 class="font-semibold mb-3">Recommended Plan</h4>
-          <PricingPlanCard :plan="recommendedPlan!" :show-popular="false" :highlight="true" />
-        </div>
-
-        <!-- All plans -->
-        <div>
-          <h4 class="font-semibold mb-3">
-            {{ recommendedTier ? 'All Plans' : 'Choose Your Plan' }}
-          </h4>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <PricingPlanCard
-              v-for="plan in availablePlans"
-              :key="plan.key"
-              :plan="plan"
-              :compact="true"
-            />
+        <div v-if="recommendedTier && subscriptionsEnabled">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400"
+              >Recommended Solution</span
+            >
+            <div class="h-px bg-gray-100 dark:bg-gray-800 flex-1" />
           </div>
+          <PricingPlanCard
+            :plan="recommendedPlan!"
+            :show-popular="false"
+            :highlight="true"
+            :currency="currency"
+          />
         </div>
       </div>
+    </template>
 
-      <template #footer>
-        <div class="flex justify-between items-center">
-          <UButton variant="ghost" color="neutral" @click="close">
-            {{ subscriptionsEnabled ? 'Maybe Later' : 'Close' }}
-          </UButton>
-          <UButton variant="link" color="primary" :to="'/settings/billing'" @click="close">
-            View Full Pricing Details
-            <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 ml-1" />
-          </UButton>
-        </div>
-      </template>
-    </UCard>
+    <template #footer>
+      <div class="flex justify-between items-center w-full">
+        <UButton variant="ghost" color="neutral" @click="close">
+          {{ subscriptionsEnabled ? 'Maybe Later' : 'Close' }}
+        </UButton>
+        <UButton variant="link" color="primary" :to="'/settings/billing'" @click="close">
+          View Full Pricing Details
+          <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 ml-1" />
+        </UButton>
+      </div>
+    </template>
   </UModal>
 </template>
 
@@ -88,7 +80,6 @@
 
   interface Props {
     title?: string
-    feature?: string
     featureTitle?: string
     featureDescription?: string
     recommendedTier?: PricingTier
@@ -100,26 +91,15 @@
     featureDescription: 'This feature requires a paid subscription.'
   })
 
-  const isOpen = defineModel<boolean>({ default: false })
+  const isOpen = defineModel<boolean>('open', { default: false })
   const userStore = useUserStore()
+  const { currency } = useCurrency()
   const config = useRuntimeConfig()
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
 
   const recommendedPlan = computed(() => {
     if (!props.recommendedTier) return null
     return PRICING_PLANS.find((p) => p.key === props.recommendedTier)
-  })
-
-  const availablePlans = computed(() => {
-    const currentTier = userStore.user?.subscriptionTier?.toLowerCase()
-
-    // Filter out Free plan and current plan
-    return PRICING_PLANS.filter((p) => {
-      if (p.key === 'free') return false
-      if (p.key === currentTier) return false
-      if (props.recommendedTier && p.key === props.recommendedTier) return false
-      return true
-    })
   })
 
   function close() {
