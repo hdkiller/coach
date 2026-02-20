@@ -13,7 +13,6 @@ import {
   getStartOfLocalDateUTC,
   getEndOfLocalDateUTC
 } from '../../utils/date'
-import { calculateGlycogenState, calculateEnergyTimeline } from '../nutrition-domain'
 import { getProfileForItem } from '../nutrition-domain/absorption'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../services/metabolicService'
@@ -721,17 +720,6 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         dateUtc = getUserLocalDate(timezone)
       }
 
-      const [nutrition, workouts, settings] = await Promise.all([
-        nutritionRepository.getByDate(userId, dateUtc),
-        plannedWorkoutRepository.list(userId, {
-          startDate: dateUtc,
-          endDate: dateUtc
-        }),
-        getUserNutritionSettings(userId)
-      ])
-
-      const safeNutrition = nutrition || { date: dateUtc.toISOString() }
-
       // Logic expects a Date object for 'currentTime' to calculate tank level "right now" vs end of day
       const queryDateStr = formatDateUTC(dateUtc, 'yyyy-MM-dd')
       const todayStr = formatDateUTC(getUserLocalDate(timezone), 'yyyy-MM-dd')
@@ -744,21 +732,22 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         simTime = getEndOfDayUTC(timezone, dateUtc)
       }
 
-      // 3. Run Logic (reusing frontend shared logic)
-      const glycogenState = calculateGlycogenState(
-        safeNutrition,
-        workouts,
-        settings,
-        timezone,
+      // Use canonical chain + timeline path to keep AI tool output aligned with UI/API.
+      const metabolicState = await metabolicService.getMetabolicStateForDate(userId, dateUtc)
+      const timelineResult = await metabolicService.getDailyTimeline(
+        userId,
+        dateUtc,
+        metabolicState.startingGlycogen,
+        metabolicState.startingFluid,
         simTime
       )
-
-      const energyTimeline = calculateEnergyTimeline(safeNutrition, workouts, settings, timezone)
+      const glycogenState = timelineResult.liveStatus
+      const energyTimeline = timelineResult.points
+      const nutrition = timelineResult.dayNutrition
 
       // 4. Summarize
-      const formatTime = (t: string) => t // events already formatted in HH:mm
-
-      const minLevel = Math.min(...energyTimeline.map((p) => p.level))
+      const minLevel =
+        energyTimeline.length > 0 ? Math.min(...energyTimeline.map((p) => p.level)) : 0
       const minPoint = energyTimeline.find((p) => p.level === minLevel)
 
       // Identify periods below 30% (Zone 3 / Red)
@@ -768,16 +757,11 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           ? `${criticalPeriods[0]!.time} - ${criticalPeriods[criticalPeriods.length - 1]!.time}`
           : 'None'
 
-      // Identify workout fueling states
-      const workoutStates = workouts.map((w) => {
-        // approximate start time logic matching timeline
-        // This is complex to match exactly without reusing timeline map logic
-        // For simple chat summary, we can just list them
-        return {
-          title: w.title,
-          intensity: w.workIntensity?.toFixed(2) || 'N/A'
-        }
-      })
+      const workoutsOnDay = new Set(
+        energyTimeline
+          .filter((p) => p.eventType === 'workout' && p.event)
+          .map((p) => p.event as string)
+      ).size
 
       return {
         date: queryDateStr,
@@ -816,7 +800,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             target: Math.round(nutrition?.carbsGoal || 0)
           }
         },
-        workouts_on_day: workoutStates.length
+        workouts_on_day: workoutsOnDay
       }
     }
   }),

@@ -4,6 +4,7 @@ import { prisma } from '../../../../server/utils/db'
 import { nutritionRepository } from '../../../../server/utils/repositories/nutritionRepository'
 import { nutritionTools } from '../../../../server/utils/ai-tools/nutrition'
 import { wellnessTools } from '../../../../server/utils/ai-tools/wellness'
+import { metabolicService } from '../../../../server/utils/services/metabolicService'
 
 // Mock dependencies
 vi.mock('../../../../server/utils/db', () => ({
@@ -46,6 +47,13 @@ vi.mock('../../../../server/utils/repositories/wellnessRepository', () => ({
 vi.mock('../../../../server/utils/training-metrics', () => ({
   generateTrainingContext: vi.fn().mockResolvedValue({ summary: {} }),
   formatTrainingContextForPrompt: vi.fn().mockReturnValue('Mocked Training Context')
+}))
+
+vi.mock('../../../../server/utils/services/metabolicService', () => ({
+  metabolicService: {
+    getMetabolicStateForDate: vi.fn(),
+    getDailyTimeline: vi.fn()
+  }
 }))
 
 describe('Nutrition Timezone Handling', () => {
@@ -139,5 +147,49 @@ describe('Nutrition Timezone Handling', () => {
     })
 
     expect(result.metrics[0].date).toBe('2026-01-29')
+  })
+
+  it('should derive daily fueling status from canonical metabolic chain/timeline', async () => {
+    vi.mocked(metabolicService.getMetabolicStateForDate).mockResolvedValue({
+      startingGlycogen: 3,
+      startingFluid: 120
+    } as any)
+
+    vi.mocked(metabolicService.getDailyTimeline).mockResolvedValue({
+      points: [
+        { time: '08:00', level: 4 },
+        { time: '12:00', level: 2, eventType: 'workout', event: 'Workout A' },
+        { time: '15:00', level: 8, eventType: 'workout', event: 'Workout B' }
+      ],
+      dayNutrition: {
+        calories: 1401,
+        caloriesGoal: 2000,
+        carbs: 155.2,
+        carbsGoal: 250
+      },
+      liveStatus: {
+        percentage: 2,
+        state: 3,
+        advice: 'Low fuel',
+        breakdown: {
+          midnightBaseline: 3,
+          replenishment: { value: 19 },
+          depletion: [{ value: 8 }, { value: 6 }]
+        }
+      }
+    } as any)
+
+    const tools = nutritionTools(userId, timezone, {} as any)
+    const result = await (tools.get_daily_fueling_status.execute as any)({
+      date: '2026-01-29'
+    })
+
+    expect(metabolicService.getMetabolicStateForDate).toHaveBeenCalledOnce()
+    expect(metabolicService.getDailyTimeline).toHaveBeenCalledOnce()
+    expect(result.fuel_tank.level).toBe(2)
+    expect(result.fuel_tank.breakdown.baseline).toBe(3)
+    expect(result.fuel_tank.breakdown.replenished).toBe(19)
+    expect(result.workouts_on_day).toBe(2)
+    expect(result.nutrition_summary.calories.logged).toBe(1401)
   })
 })
