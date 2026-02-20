@@ -341,7 +341,6 @@ export const analyzeNutritionTask = task({
         calories: nutrition.calories
       })
 
-      const timezone = await getUserTimezone(nutrition.userId)
       const aiSettings = await getUserAiSettings(nutrition.userId)
 
       // Check if nutrition tracking is disabled

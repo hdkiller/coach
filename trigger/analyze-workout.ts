@@ -325,7 +325,6 @@ export const analyzeWorkoutTask = task({
         plannedWorkoutId: workout.plannedWorkoutId
       })
 
-      const timezone = await getUserTimezone(workout.userId)
       const aiSettings = await getUserAiSettings(workout.userId)
 
       const user = await prisma.user.findUnique({
