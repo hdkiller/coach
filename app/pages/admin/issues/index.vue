@@ -11,12 +11,12 @@
               <DashboardTriggerMonitorButton />
               <NotificationDropdown />
             </ClientOnly>
-            <USelect
+            <USelectMenu
               v-model="filterStatus"
               placeholder="Filter by Status"
               :items="statusOptions"
-              class="w-40"
-              clearable
+              multiple
+              class="w-48"
             />
             <UButton
               icon="i-heroicons-arrow-path"
@@ -191,7 +191,7 @@
 
   const page = ref(1)
   const limit = 25
-  const filterStatus = ref<string | undefined>()
+  const filterStatus = ref<BugStatus[]>(['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO'])
 
   // Reset page when filter changes
   watch(filterStatus, () => {
@@ -206,7 +206,7 @@
     query: {
       page,
       limit,
-      status: filterStatus
+      status: computed(() => filterStatus.value.join(','))
     },
     watch: [page, filterStatus]
   })

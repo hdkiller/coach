@@ -11,7 +11,14 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || 10
-  const status = query.status as BugStatus | undefined
+  let status = query.status as BugStatus | BugStatus[] | undefined
+
+  // If status is passed as multiple query params, it might already be an array
+  // If it's a comma-separated string, we should split it
+  if (typeof status === 'string' && status.includes(',')) {
+    status = status.split(',') as BugStatus[]
+  }
+
   const search = query.search as string | undefined
 
   const { total, items, totalPages } = await issuesRepository.list({ status, search }, page, limit)

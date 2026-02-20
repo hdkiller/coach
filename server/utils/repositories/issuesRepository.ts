@@ -10,7 +10,7 @@ export interface IssueMetadata {
 
 export interface ListIssuesFilters {
   userId?: string
-  status?: BugStatus
+  status?: BugStatus | BugStatus[]
   search?: string
 }
 
@@ -89,7 +89,13 @@ export const issuesRepository = {
     const where: any = {}
 
     if (filters.userId) where.userId = filters.userId
-    if (filters.status) where.status = filters.status
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        where.status = { in: filters.status }
+      } else {
+        where.status = filters.status
+      }
+    }
     if (filters.search) {
       where.OR = [
         { title: { contains: filters.search, mode: 'insensitive' } },
