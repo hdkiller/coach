@@ -15,6 +15,7 @@ import {
   NO_EXERCISE_DEBT_DECAY_ML_PER_HOUR
 } from '../nutrition/hydration'
 import { extractWorkoutTemperatureC, getEstimatedSweatRateLph } from '../nutrition/sweat-rate'
+import { pickMealScheduledTime } from '../nutrition/meal-pattern'
 
 export function getGramsPerMin(intensity: number): number {
   if (intensity >= 0.9) return 4.5
@@ -33,7 +34,7 @@ function getDateStr(date: any): string {
   return new Date().toISOString().split('T')[0]!
 }
 
-function parseMealDateTime(
+export function parseMealDateTime(
   timeVal: unknown,
   dateStr: string,
   timezone: string
@@ -54,10 +55,31 @@ function parseMealDateTime(
     if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(timeVal)) {
       return fromZonedTime(timeVal.replace(' ', 'T'), timezone)
     }
+
+    // Date-only values carry no time semantics. Return null so callers can apply
+    // meal-pattern fallback times (Breakfast/Lunch/Dinner/Snacks).
+    if (/^\d{4}-\d{2}-\d{2}$/.test(timeVal)) {
+      return null
+    }
   }
 
   const parsed = new Date(timeVal as any)
   return isNaN(parsed.getTime()) ? null : parsed
+}
+
+export function getConfiguredMealTime(mealType: string, settings: any): string | null {
+  const normalized = String(mealType || '')
+    .trim()
+    .toLowerCase()
+
+  if (!['breakfast', 'lunch', 'dinner', 'snacks'].includes(normalized)) {
+    return null
+  }
+
+  return pickMealScheduledTime(
+    normalized as 'breakfast' | 'lunch' | 'dinner' | 'snacks',
+    settings?.mealPattern
+  )
 }
 
 export function calculateGlycogenState(
@@ -85,7 +107,14 @@ export function calculateGlycogenState(
     if (Array.isArray(nutritionRecord[type])) {
       nutritionRecord[type].forEach((item: any) => {
         const timeVal = item.logged_at || item.date
-        const mealTime = parseMealDateTime(timeVal, dateStr, timezone)
+        let mealTime = parseMealDateTime(timeVal, dateStr, timezone)
+
+        if (!mealTime) {
+          const configuredTime = getConfiguredMealTime(type, settings)
+          if (configuredTime) {
+            mealTime = parseMealDateTime(configuredTime, dateStr, timezone)
+          }
+        }
 
         if (mealTime && mealTime <= currentTime) {
           const minsSince = differenceInMinutes(currentTime, mealTime)
@@ -247,7 +276,6 @@ export function calculateEnergyTimeline(
 
   const actualMeals: any[] = []
   const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks']
-  const mealPattern = settings?.mealPattern || []
 
   if (options.crossDayMeals) {
     actualMeals.push(...options.crossDayMeals)
@@ -261,9 +289,9 @@ export function calculateEnergyTimeline(
         let mealTime = parseMealDateTime(timeVal, dateStr, timezone)
 
         if (!mealTime) {
-          const pattern = mealPattern.find((p: any) => p.name.toLowerCase() === type.toLowerCase())
-          if (pattern) {
-            mealTime = fromZonedTime(`${dateStr}T${pattern.time}:00`, timezone)
+          const configuredTime = getConfiguredMealTime(type, settings)
+          if (configuredTime) {
+            mealTime = parseMealDateTime(configuredTime, dateStr, timezone)
           }
         }
 
