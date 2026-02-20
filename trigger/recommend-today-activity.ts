@@ -532,7 +532,7 @@ UPCOMING EVENTS (Next 14 Days):
 ${upcomingEvents
   .map(
     (e) =>
-      `- ${formatDateUTC(e.date, 'EEE MMM dd')}: ${e.title} (${e.type || 'Event'}) - Priority: ${e.priority || 'B'}`
+      `- ${formatDateUTC(e.date, 'EEE MMM dd')}: ${e.title} (${e.subType || e.type || 'Event'}) - Priority: ${e.priority || 'B'}`
   )
   .join('\n')}
 `
@@ -806,7 +806,47 @@ Absorption Profile Matrix for your guidance:
 - DENSE: Protein/Fats/Fiber, Start 45m, Peak 120m.
 - HYPER_LOAD: Large Meal, Start 60m, Peak 180m.
 
-Include this advice in your reasoning.
+Include this advice in your reasoning.${
+      upcomingEvents.some((e) => e.subType === 'Social Ride') ||
+      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('social ride')) ||
+      activeGoals.some((g) => g.eventType === 'Social Ride')
+        ? '\n\n**Social Ride**: Prioritize "Mental Freshness" and "Aerobic Base" over "Intensity". Recommend low-intensity, community-focused rides.'
+        : ''
+    }${
+      upcomingEvents.some((e) => e.subType === 'Cyclotour') ||
+      plannedWorkouts.some(
+        (w) =>
+          w.title?.toLowerCase().includes('cyclotour') ||
+          w.title?.toLowerCase().includes('toertocht')
+      ) ||
+      activeGoals.some((g) => g.eventType === 'Cyclotour')
+        ? '\n\n**Cyclotour (Toertocht)**: Treat these as "Priority B or C" events. They require a mini-taper (2-3 days leading up) and a focused fueling plan due to their long duration, even if they aren\'t competitive races.'
+        : ''
+    }${
+      upcomingEvents.some((e) => e.subType === 'Criterium') ||
+      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('criterium')) ||
+      activeGoals.some((g) => g.eventType === 'Criterium')
+        ? '\n\n**Criterium**: Prioritize anaerobic capacity, high-intensity intervals (VO2 Max), and repeated sprint efforts. Focus on repeatability.'
+        : ''
+    }${
+      upcomingEvents.some((e) => e.subType === 'Time Trial') ||
+      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('time trial')) ||
+      activeGoals.some((g) => g.eventType === 'Time Trial')
+        ? '\n\n**Time Trial**: Focus on sustained threshold power (FTP), steady-state intervals, and pacing discipline.'
+        : ''
+    }${
+      upcomingEvents.some((e) => e.subType === 'Road Race') ||
+      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('road race')) ||
+      activeGoals.some((g) => g.eventType === 'Road Race')
+        ? '\n\n**Road Race**: Emphasize aerobic volume, sweet spot endurance, and the ability to handle repeatable surges.'
+        : ''
+    }${
+      upcomingEvents.some((e) => e.subType === 'Gran Fondo') ||
+      plannedWorkouts.some((w) => w.title?.toLowerCase().includes('gran fondo')) ||
+      activeGoals.some((g) => g.eventType === 'Gran Fondo')
+        ? '\n\n**Gran Fondo**: Prioritize muscular endurance (low cadence work), long climbs, and overall aerobic durability.'
+        : ''
+    }
 
 Provide specific, actionable recommendations with clear reasoning.
 Maintain your **${aiSettings.aiPersona}** persona throughout.`

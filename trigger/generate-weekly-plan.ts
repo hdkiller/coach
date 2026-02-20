@@ -644,7 +644,41 @@ INSTRUCTIONS:
    - Each workout should have a clear objective (recovery, endurance, threshold, VO2, strength, race-specific).
    - Avoid generic filler workouts with no clear purpose.
 9. **CONTEXT**: Consider the "Current Planned Workouts" to understand what the user is replacing or modifying.
-10. **MULTI-SPORT THRESHOLDS**: When planning a specific sport (e.g. Run), refer to the sport-specific FTP/LTHR if provided in the context.
+10. **MULTI-SPORT THRESHOLDS**: When planning a specific sport (e.g. Run), refer to the sport-specific FTP/LTHR if provided in the context.${
+      activeGoals.some((g) => g.eventType === 'Social Ride') ||
+      existingPlannedWorkouts.some((w) => w.title?.toLowerCase().includes('social ride'))
+        ? '\n11. **Social Ride**: Prioritize "Mental Freshness" and "Aerobic Base" over "Intensity". These should be low-intensity, community-focused rides.'
+        : ''
+    }${
+      activeGoals.some((g) => g.eventType === 'Cyclotour') ||
+      existingPlannedWorkouts.some(
+        (w) =>
+          w.title?.toLowerCase().includes('cyclotour') ||
+          w.title?.toLowerCase().includes('toertocht')
+      )
+        ? '\n12. **Cyclotour (Toertocht)**: Treat these as "Priority B or C" events. They require a mini-taper (2-3 days of reduced volume/intensity leading up to the event) and a focused fueling plan due to their long duration, even if they aren\'t competitive races.'
+        : ''
+    }${
+      activeGoals.some((g) => g.eventType === 'Criterium') ||
+      existingPlannedWorkouts.some((w) => w.title?.toLowerCase().includes('criterium'))
+        ? '\n13. **Criterium**: Prioritize anaerobic capacity, high-intensity intervals (VO2 Max), and repeated sprint efforts. Focus on repeatability.'
+        : ''
+    }${
+      activeGoals.some((g) => g.eventType === 'Time Trial') ||
+      existingPlannedWorkouts.some((w) => w.title?.toLowerCase().includes('time trial'))
+        ? '\n14. **Time Trial**: Focus on sustained threshold power (FTP), steady-state intervals, and pacing discipline.'
+        : ''
+    }${
+      activeGoals.some((g) => g.eventType === 'Road Race') ||
+      existingPlannedWorkouts.some((w) => w.title?.toLowerCase().includes('road race'))
+        ? '\n15. **Road Race**: Emphasize aerobic volume, sweet spot endurance, and the ability to handle repeatable surges.'
+        : ''
+    }${
+      activeGoals.some((g) => g.eventType === 'Gran Fondo') ||
+      existingPlannedWorkouts.some((w) => w.title?.toLowerCase().includes('gran fondo'))
+        ? '\n16. **Gran Fondo**: Prioritize muscular endurance (low cadence work), long climbs, and overall aerobic durability.'
+        : ''
+    }
 
 Create a structured, progressive plan for the next ${effectiveDaysToPlan} days.
 Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasoning and descriptions.`
