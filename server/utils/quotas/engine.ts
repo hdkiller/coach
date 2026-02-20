@@ -1,7 +1,7 @@
 import { prisma } from '../db'
 import type { QuotaOperation } from './registry'
 import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
-import type { SubscriptionTier, type User } from '@prisma/client'
+import type { SubscriptionTier, User } from '@prisma/client'
 import type { QuotaStatus } from '../../../types/quotas'
 
 /**

@@ -11,6 +11,8 @@ interface User {
   subscriptionTier: SubscriptionTier
   subscriptionStatus: SubscriptionStatus
   subscriptionPeriodEnd: Date | null
+  pendingSubscriptionTier: SubscriptionTier | null
+  pendingSubscriptionPeriodEnd: Date | null
   trialEndsAt: Date | null
   dashboardSettings?: any
 }

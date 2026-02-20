@@ -94,8 +94,9 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   console.log(`Resolved tier '${tier}' for price '${firstItem.price.id}' product '${productId}'`)
 
   const status = mapStripeStatus(subscription)
-  const periodEndTimestamp = subscription.items.data[0]?.current_period_end
-  const periodEnd = periodEndTimestamp ? new Date(periodEndTimestamp * 1000) : null
+  const periodEnd = (subscription as any).current_period_end
+    ? new Date((subscription as any).current_period_end * 1000)
+    : null
   const startedAt = new Date(subscription.created * 1000)
 
   // Update user in database (Skip if user is a CONTRIBUTOR)

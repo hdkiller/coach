@@ -270,6 +270,7 @@ export const recommendTodayActivityTask = task({
         select: {
           title: true,
           type: true,
+          eventType: true,
           description: true,
           targetDate: true,
           eventDate: true,

@@ -124,7 +124,7 @@
 <script setup lang="ts">
   import type { QuotaStatus } from '~/../types/quotas'
 
-  const { formatRelativeTime, formatUserDate } = useFormat()
+  const { formatRelativeTime, formatUserDate, timezone } = useFormat()
 
   const { data, pending } = useFetch<{
     tier: string
@@ -142,7 +142,7 @@
 
   const trialEndsAtLabel = computed(() => {
     if (!data.value?.trialEndsAt) return ''
-    return formatUserDate(data.value.trialEndsAt)
+    return formatUserDate(data.value.trialEndsAt, timezone.value)
   })
 
   const sortedQuotas = computed(() => {

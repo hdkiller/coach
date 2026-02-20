@@ -98,15 +98,18 @@ export default defineEventHandler(async (event) => {
 
   if (schedules.data.length > 0) {
     const schedule = schedules.data[0]
-    const nextPhase = schedule.phases.find((p) => p.start_date > Date.now() / 1000)
-    if (nextPhase && nextPhase.items.length > 0) {
-      // Create a dummy item to reuse getSubscriptionTier logic
-      const dummyItem = { price: { id: nextPhase.items[0].price } } as any
-      pendingTier = getSubscriptionTier(dummyItem)
-      pendingDate = new Date(nextPhase.start_date * 1000)
-      console.log(
-        `[Sync] Found pending ${pendingTier} change scheduled for ${pendingDate.toISOString()}`
-      )
+    if (schedule) {
+      const nextPhase = schedule.phases.find((p) => p.start_date > Date.now() / 1000)
+      const firstItem = nextPhase?.items?.[0]
+      if (nextPhase && firstItem) {
+        // Create a dummy item to reuse getSubscriptionTier logic
+        const dummyItem = { price: { id: firstItem.price } } as any
+        pendingTier = getSubscriptionTier(dummyItem)
+        pendingDate = new Date(nextPhase.start_date * 1000)
+        console.log(
+          `[Sync] Found pending ${pendingTier} change scheduled for ${pendingDate.toISOString()}`
+        )
+      }
     }
   }
 
@@ -124,9 +127,9 @@ export default defineEventHandler(async (event) => {
 
   // Find the most relevant subscription
   // Priority: Active/Trialing > PastDue/Incomplete
-  const activeSub =
-    sortedSubs.find((sub) => sub.status === 'active' || sub.status === 'trialing') ||
-    sortedSubs.find((sub) => sub.status === 'past_due' || sub.status === 'incomplete')
+  const activeSub = (sortedSubs.find(
+    (sub) => sub.status === 'active' || sub.status === 'trialing'
+  ) || sortedSubs.find((sub) => sub.status === 'past_due' || sub.status === 'incomplete')) as any
 
   if (activeSub) {
     const tier = getSubscriptionTier(activeSub.items.data[0])

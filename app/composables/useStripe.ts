@@ -96,8 +96,7 @@ export function useStripe() {
           title: 'Verification Required',
           description:
             'Your bank requires a quick security confirmation. We are taking you to a secure page to finish this.',
-          color: 'info',
-          timeout: 6000
+          color: 'info'
         })
 
         // Short delay to let the user read the message before the page changes
