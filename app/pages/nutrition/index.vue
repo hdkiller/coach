@@ -410,7 +410,7 @@
   import NutritionHorizonSettingsModal from '~/components/nutrition/NutritionHorizonSettingsModal.vue'
 
   definePageMeta({
-    middleware: 'auth',
+    middleware: ['auth', 'nutrition-enabled'],
     layout: 'default'
   })
 

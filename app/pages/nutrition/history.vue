@@ -732,7 +732,7 @@
   )
 
   definePageMeta({
-    middleware: 'auth',
+    middleware: ['auth', 'nutrition-enabled'],
     layout: 'default'
   })
 

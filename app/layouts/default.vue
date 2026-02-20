@@ -12,17 +12,25 @@
 
   const userStore = useUserStore()
   const { formatDate, getUserLocalDate } = useFormat()
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
 
   // Ensure user data (including subscription) is loaded
   await callOnce(async () => {
     if (data.value?.user) {
-      await userStore.fetchUser()
+      await Promise.all([userStore.fetchUser(), userStore.fetchProfile()])
     }
   })
 
   onMounted(() => {
     if (!userStore.user) {
       userStore.fetchUser()
+    }
+    if (!userStore.profile) {
+      userStore.fetchProfile()
     }
   })
 
@@ -81,14 +89,18 @@
           open.value = false
         }
       },
-      {
-        label: 'Nutrition',
-        icon: 'i-lucide-utensils',
-        to: '/nutrition',
-        onSelect: () => {
-          open.value = false
-        }
-      },
+      ...(nutritionEnabled.value
+        ? [
+            {
+              label: 'Nutrition',
+              icon: 'i-lucide-utensils',
+              to: '/nutrition',
+              onSelect: () => {
+                open.value = false
+              }
+            }
+          ]
+        : []),
       {
         label: 'Performance',
         icon: 'i-lucide-trending-up',
@@ -265,33 +277,35 @@
     const yesterdayStr = formatDateKey(new Date(localToday.getTime() - 86400000))
     const tomorrowStr = formatDateKey(new Date(localToday.getTime() + 86400000))
 
-    searchGroups.push({
-      id: 'nutrition',
-      label: 'Nutrition',
-      items: [
-        {
-          id: 'nutrition-today',
-          label: 'Today',
-          icon: 'i-lucide-utensils',
-          to: `/nutrition/${todayStr}`,
-          onSelect: () => (open.value = false)
-        },
-        {
-          id: 'nutrition-tomorrow',
-          label: 'Tomorrow',
-          icon: 'i-lucide-utensils',
-          to: `/nutrition/${tomorrowStr}`,
-          onSelect: () => (open.value = false)
-        },
-        {
-          id: 'nutrition-yesterday',
-          label: 'Yesterday',
-          icon: 'i-lucide-utensils',
-          to: `/nutrition/${yesterdayStr}`,
-          onSelect: () => (open.value = false)
-        }
-      ]
-    })
+    if (nutritionEnabled.value) {
+      searchGroups.push({
+        id: 'nutrition',
+        label: 'Nutrition',
+        items: [
+          {
+            id: 'nutrition-today',
+            label: 'Today',
+            icon: 'i-lucide-utensils',
+            to: `/nutrition/${todayStr}`,
+            onSelect: () => (open.value = false)
+          },
+          {
+            id: 'nutrition-tomorrow',
+            label: 'Tomorrow',
+            icon: 'i-lucide-utensils',
+            to: `/nutrition/${tomorrowStr}`,
+            onSelect: () => (open.value = false)
+          },
+          {
+            id: 'nutrition-yesterday',
+            label: 'Yesterday',
+            icon: 'i-lucide-utensils',
+            to: `/nutrition/${yesterdayStr}`,
+            onSelect: () => (open.value = false)
+          }
+        ]
+      })
+    }
 
     // 2. Upcoming Workouts (Filter out rest days)
     if (upcomingWorkouts.value?.workouts?.length) {
@@ -361,24 +375,32 @@
         to: '/profile/settings?tab=availability',
         onSelect: () => (open.value = false)
       },
-      {
-        label: 'Profile: Nutrition',
-        icon: 'i-heroicons-fire',
-        to: '/profile/settings?tab=nutrition',
-        onSelect: () => (open.value = false)
-      },
+      ...(nutritionEnabled.value
+        ? [
+            {
+              label: 'Profile: Nutrition',
+              icon: 'i-heroicons-fire',
+              to: '/profile/settings?tab=nutrition',
+              onSelect: () => (open.value = false)
+            }
+          ]
+        : []),
       {
         label: 'Athlete Profile',
         icon: 'i-lucide-user-2',
         to: '/profile/athlete',
         onSelect: () => (open.value = false)
       },
-      {
-        label: 'Nutrition: History',
-        icon: 'i-lucide-history',
-        to: '/nutrition/history',
-        onSelect: () => (open.value = false)
-      },
+      ...(nutritionEnabled.value
+        ? [
+            {
+              label: 'Nutrition: History',
+              icon: 'i-lucide-history',
+              to: '/nutrition/history',
+              onSelect: () => (open.value = false)
+            }
+          ]
+        : []),
       {
         label: 'AI Coach Settings',
         icon: 'i-lucide-sparkles',

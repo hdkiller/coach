@@ -458,7 +458,7 @@
   import NutritionFuelingTimelineSettingsModal from '~/components/nutrition/FuelingTimelineSettingsModal.vue'
 
   definePageMeta({
-    middleware: 'auth'
+    middleware: ['auth', 'nutrition-enabled']
   })
 
   const route = useRoute()
