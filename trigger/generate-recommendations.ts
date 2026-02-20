@@ -9,6 +9,7 @@ import { recommendationRepository } from '../server/utils/repositories/recommend
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { userReportsQueue } from './queues'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 interface RecommendationHistoryItem {
   date: string
@@ -86,6 +87,7 @@ export const generateRecommendationsTask = task({
         }
       }
     })
+    const activeGoals = filterGoalsForContext(user?.goals, timezone)
 
     // 2. Fetch Recent Score Explanations (Trends)
     const trends = await prisma.scoreTrendExplanation.findMany({
@@ -171,7 +173,7 @@ export const generateRecommendationsTask = task({
     }
 
     const goalsContext =
-      user?.goals
+      activeGoals
         .map((g) => {
           let details = `- GOAL: "${g.title}" (${g.type})`
           if (g.description) details += `\n  Context: ${g.description}`

@@ -11,6 +11,7 @@ import { wellnessRepository } from '../server/utils/repositories/wellnessReposit
 import { userReportsQueue } from './queues'
 import { getUserTimezone, getStartOfDaysAgoUTC, getEndOfDayUTC } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 // Analysis schema for structured JSON output
 const analysisSchema = {
@@ -200,7 +201,7 @@ export const generateWeeklyReportTask = task({
       logger.log('Fetching data', { startDate, endDate, timezone })
 
       // Fetch data (excluding duplicate workouts)
-      const [workouts, metrics, user, activeGoals] = await Promise.all([
+      const [workouts, metrics, user, rawActiveGoals] = await Promise.all([
         workoutRepository.getForUser(userId, {
           startDate,
           endDate,
@@ -223,6 +224,7 @@ export const generateWeeklyReportTask = task({
           }
         })
       ])
+      const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, endDate)
 
       logger.log('Data fetched', {
         workoutsCount: workouts.length,

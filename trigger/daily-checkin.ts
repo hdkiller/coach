@@ -10,6 +10,7 @@ import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { userReportsQueue } from './queues'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 import {
   getMoodLabel,
   getStressLabel,
@@ -114,7 +115,7 @@ export const generateDailyCheckinTask = task({
         recentWorkouts,
         user,
         athleteProfile,
-        activeGoals,
+        rawActiveGoals,
         currentFitness,
         pastCheckins,
         futureWorkouts,
@@ -248,6 +249,7 @@ export const generateDailyCheckinTask = task({
 
       const userTimezone = user?.timezone || 'UTC'
       const userAge = calculateAge(user?.dob)
+      const activeGoals = filterGoalsForContext(rawActiveGoals, userTimezone, today)
 
       // Normalize today to represent the user's local calendar day at UTC midnight
       // This ensures PMC calculation aligns with database dates

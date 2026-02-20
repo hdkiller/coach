@@ -17,6 +17,7 @@ import {
   formatUserDate
 } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 const suggestionSchema = {
   type: 'object',
@@ -59,50 +60,53 @@ export const dailyCoachTask = task({
     const todayEnd = getEndOfDayUTC(timezone, todayStart)
 
     // Fetch data
-    const [yesterdayWorkout, todayMetric, user, athleteProfile, activeGoals] = await Promise.all([
-      workoutRepository
-        .getForUser(userId, {
-          startDate: yesterdayStart,
-          endDate: yesterdayEnd,
-          limit: 1,
-          orderBy: { date: 'desc' },
-          includeDuplicates: false
+    const [yesterdayWorkout, todayMetric, user, athleteProfile, rawActiveGoals] = await Promise.all(
+      [
+        workoutRepository
+          .getForUser(userId, {
+            startDate: yesterdayStart,
+            endDate: yesterdayEnd,
+            limit: 1,
+            orderBy: { date: 'desc' },
+            includeDuplicates: false
+          })
+          .then((workouts) => workouts[0]),
+        wellnessRepository.getByDate(userId, todayDateOnly),
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { ftp: true, weight: true, maxHr: true }
+        }),
+
+        // Latest athlete profile
+        prisma.report.findFirst({
+          where: {
+            userId,
+            type: 'ATHLETE_PROFILE',
+            status: 'COMPLETED'
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { analysisJson: true, createdAt: true }
+        }),
+
+        // Active goals
+        prisma.goal.findMany({
+          where: {
+            userId,
+            status: 'ACTIVE'
+          },
+          orderBy: { priority: 'desc' },
+          select: {
+            title: true,
+            type: true,
+            description: true,
+            targetDate: true,
+            eventDate: true,
+            priority: true
+          }
         })
-        .then((workouts) => workouts[0]),
-      wellnessRepository.getByDate(userId, todayDateOnly),
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { ftp: true, weight: true, maxHr: true }
-      }),
-
-      // Latest athlete profile
-      prisma.report.findFirst({
-        where: {
-          userId,
-          type: 'ATHLETE_PROFILE',
-          status: 'COMPLETED'
-        },
-        orderBy: { createdAt: 'desc' },
-        select: { analysisJson: true, createdAt: true }
-      }),
-
-      // Active goals
-      prisma.goal.findMany({
-        where: {
-          userId,
-          status: 'ACTIVE'
-        },
-        orderBy: { priority: 'desc' },
-        select: {
-          title: true,
-          type: true,
-          description: true,
-          targetDate: true,
-          eventDate: true,
-          priority: true
-        }
-      })
-    ])
+      ]
+    )
+    const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayDateOnly)
 
     logger.log('Data fetched', {
       hasYesterdayWorkout: !!yesterdayWorkout,

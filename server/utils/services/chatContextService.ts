@@ -6,6 +6,7 @@ import { nutritionRepository } from '../repositories/nutritionRepository'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { generateTrainingContext, formatTrainingContextForPrompt } from '../training-metrics'
 import { getInjuryLabel } from '../../utils/wellness'
+import { filterGoalsForContext } from '../goal-context'
 
 export async function buildAthleteContext(userId: string): Promise<{
   context: string
@@ -123,6 +124,7 @@ export async function buildAthleteContext(userId: string): Promise<{
   const userTimezone = userProfile?.timezone || 'UTC'
   const nutritionTrackingEnabled = userProfile?.nutritionTrackingEnabled !== false
   const todayDate = getUserLocalDate(userTimezone)
+  const currentGoals = filterGoalsForContext(activeGoals, userTimezone, todayDate)
 
   // 2. Fetch Recent Activity Data (Last 7 Days)
   const sevenDaysAgo = new Date(todayDate)
@@ -383,9 +385,9 @@ export async function buildAthleteContext(userId: string): Promise<{
   }
 
   // Add Current Goals
-  if (activeGoals.length > 0) {
+  if (currentGoals.length > 0) {
     athleteContext += '\n\n## Current Goals\n'
-    for (const goal of activeGoals) {
+    for (const goal of currentGoals) {
       const daysToTarget = goal.targetDate
         ? Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
         : null

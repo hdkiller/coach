@@ -17,6 +17,7 @@ import { metabolicService } from '../server/utils/services/metabolicService'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { userReportsQueue } from './queues'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 import {
   getMoodLabel,
   getStressLabel,
@@ -206,7 +207,7 @@ export const recommendTodayActivityTask = task({
       todayMetric,
       recentWorkouts,
       athleteProfile,
-      activeGoals,
+      rawActiveGoals,
       futureWorkouts,
       currentPlan,
       upcomingEvents,
@@ -357,6 +358,7 @@ export const recommendTodayActivityTask = task({
         ? metabolicService.getMealTargetContext(userId, today, new Date())
         : Promise.resolve(null)
     ])
+    const activeGoals = filterGoalsForContext(rawActiveGoals, userTimezone, today)
 
     // Identify primary workout for linking (DB only allows 1:1) and logic fallback
     const primaryPlannedWorkout = plannedWorkouts[0] || null

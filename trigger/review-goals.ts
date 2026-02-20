@@ -12,6 +12,7 @@ import {
   formatUserDate
 } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 // Goal review schema for structured JSON output
 const goalReviewSchema = {
@@ -244,7 +245,7 @@ export const reviewGoalsTask = task({
       })
 
       // Fetch comprehensive data
-      const [user, activeGoals, recentWorkouts, recentWellness, athleteProfile, recentReports] =
+      const [user, rawActiveGoals, recentWorkouts, recentWellness, athleteProfile, recentReports] =
         await Promise.all([
           prisma.user.findUnique({
             where: { id: userId },
@@ -338,6 +339,7 @@ export const reviewGoalsTask = task({
             }
           })
         ])
+      const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayEnd)
 
       if (!user) {
         throw new Error('User not found')

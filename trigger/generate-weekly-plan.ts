@@ -20,6 +20,7 @@ import {
   calculateAge
 } from '../server/utils/date'
 import { buildWorkoutCleanupQuery } from '../server/utils/plans/cleanup'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 const weeklyPlanSchema = {
   type: 'object',
@@ -236,7 +237,7 @@ export const generateWeeklyPlanTask = task({
       recentWellness,
       currentPlan,
       athleteProfile,
-      activeGoals,
+      rawActiveGoals,
       existingPlannedWorkouts,
       sportSettings
     ] = await Promise.all([
@@ -330,6 +331,7 @@ export const generateWeeklyPlanTask = task({
       // Sport Specific Settings
       sportSettingsRepository.getByUserId(userId)
     ])
+    const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, alignedWeekStart)
 
     // Calculate Age
     const userAge = calculateAge(user?.dob)

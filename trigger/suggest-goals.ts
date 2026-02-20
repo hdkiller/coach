@@ -13,6 +13,7 @@ import {
   formatUserDate
 } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 // Goal suggestions schema for structured JSON output
 const goalSuggestionsSchema = {
@@ -176,7 +177,7 @@ export const suggestGoalsTask = task({
         recentWellness,
         recentNutrition,
         athleteProfile,
-        existingGoals,
+        rawExistingGoals,
         recentReports
       ] = await Promise.all([
         prisma.user.findUnique({
@@ -281,6 +282,7 @@ export const suggestGoalsTask = task({
           }
         })
       ])
+      const existingGoals = filterGoalsForContext(rawExistingGoals, timezone, todayEnd)
 
       if (!user) {
         throw new Error('User not found')

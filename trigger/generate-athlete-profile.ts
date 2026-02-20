@@ -23,6 +23,7 @@ import { getCheckinHistoryContext } from '../server/utils/services/checkin-servi
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { recommendTodayActivityTask } from './recommend-today-activity'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 // Athlete Profile schema for structured JSON output
 const athleteProfileSchema = {
@@ -408,7 +409,7 @@ export const generateAthleteProfileTask = task({
         recentNutrition,
         recentReports,
         recentRecommendations,
-        activeGoals,
+        rawActiveGoals,
         currentPlan,
         sportSettings
       ] = await Promise.all([
@@ -530,6 +531,7 @@ export const generateAthleteProfileTask = task({
         // Fetch Sport Settings
         sportSettingsRepository.getByUserId(userId)
       ])
+      const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayEnd)
 
       const userAge = calculateAge(user?.dob)
 

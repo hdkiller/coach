@@ -6,6 +6,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
 import { getUserTimezone, getStartOfDaysAgoUTC, formatUserDate } from '../server/utils/date'
+import { filterGoalsForContext } from '../server/utils/goal-context'
 
 const adHocWorkoutSchema = {
   type: 'object',
@@ -30,15 +31,7 @@ const adHocWorkoutSchema = {
     },
     reasoning: { type: 'string' }
   },
-  required: [
-    'title',
-    'type',
-    'durationMinutes',
-    'targetTss',
-    'intensity',
-    'objective',
-    'reasoning'
-  ]
+  required: ['title', 'type', 'durationMinutes', 'targetTss', 'intensity', 'objective', 'reasoning']
 }
 
 export const generateAdHocWorkoutTask = task({
@@ -64,7 +57,7 @@ export const generateAdHocWorkoutTask = task({
     })
 
     // Fetch Data
-    const [todayMetric, recentWorkouts, user, athleteProfile, activeGoals, sportSettings] =
+    const [todayMetric, recentWorkouts, user, athleteProfile, rawActiveGoals, sportSettings] =
       await Promise.all([
         wellnessRepository.getByDate(userId, today),
         workoutRepository.getForUser(userId, {
@@ -100,6 +93,7 @@ export const generateAdHocWorkoutTask = task({
         // Fetch settings for requested type or default to Ride
         sportSettingsRepository.getForActivityType(userId, preferences?.type || 'Ride')
       ])
+    const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, today)
 
     // Build Context
     let context = `Athlete: FTP ${user?.ftp || 250}W. Persona: ${user?.aiPersona || 'Supportive'}.`
