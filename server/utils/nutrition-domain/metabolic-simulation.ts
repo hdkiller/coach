@@ -15,6 +15,7 @@ import {
   NO_EXERCISE_DEBT_DECAY_ML_PER_HOUR
 } from '../nutrition/hydration'
 import { extractWorkoutTemperatureC, getEstimatedSweatRateLph } from '../nutrition/sweat-rate'
+import { pickMealScheduledTime } from '../nutrition/meal-pattern'
 
 export function getGramsPerMin(intensity: number): number {
   if (intensity >= 0.9) return 4.5
@@ -33,7 +34,11 @@ function getDateStr(date: any): string {
   return new Date().toISOString().split('T')[0]!
 }
 
-function parseMealDateTime(timeVal: unknown, dateStr: string, timezone: string): Date | null {
+export function parseMealDateTime(
+  timeVal: unknown,
+  dateStr: string,
+  timezone: string
+): Date | null {
   if (!timeVal) return null
 
   if (typeof timeVal === 'string') {
@@ -62,28 +67,19 @@ function parseMealDateTime(timeVal: unknown, dateStr: string, timezone: string):
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
-function getConfiguredMealTime(mealType: string, settings: any): string | null {
-  const pattern = Array.isArray(settings?.mealPattern) ? settings.mealPattern : []
-  if (!pattern.length) return null
+export function getConfiguredMealTime(mealType: string, settings: any): string | null {
+  const normalized = String(mealType || '')
+    .trim()
+    .toLowerCase()
 
-  const normalized = mealType.toLowerCase()
-  const aliases: Record<string, string[]> = {
-    breakfast: ['breakfast'],
-    lunch: ['lunch'],
-    dinner: ['dinner'],
-    snacks: ['snack', 'snacks']
+  if (!['breakfast', 'lunch', 'dinner', 'snacks'].includes(normalized)) {
+    return null
   }
 
-  const names = aliases[normalized] || [normalized]
-  const match = pattern.find((entry: any) => {
-    const name = String(entry?.name || '')
-      .trim()
-      .toLowerCase()
-    return names.includes(name)
-  })
-
-  const time = typeof match?.time === 'string' ? match.time.trim() : ''
-  return time || null
+  return pickMealScheduledTime(
+    normalized as 'breakfast' | 'lunch' | 'dinner' | 'snacks',
+    settings?.mealPattern
+  )
 }
 
 export function calculateGlycogenState(
