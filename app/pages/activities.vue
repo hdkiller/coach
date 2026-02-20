@@ -97,6 +97,7 @@
                 <span>Missed</span>
               </div>
               <div
+                v-if="nutritionEnabled"
                 class="flex items-center gap-3 border-l border-gray-300 dark:border-gray-700 pl-4 ml-1"
               >
                 <div class="flex items-center gap-1">
@@ -447,7 +448,10 @@
                           {{ day.activities.find((a) => a.wellness)?.wellness?.recoveryScore }}% REC
                         </div>
                         <div
-                          v-if="day.activities.find((a) => a.nutrition)?.nutrition?.calories"
+                          v-if="
+                            nutritionEnabled &&
+                            day.activities.find((a) => a.nutrition)?.nutrition?.calories
+                          "
                           class="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-[10px] font-bold text-amber-600 dark:text-amber-400 cursor-pointer"
                           @click="openNutrition(day.date)"
                         >
@@ -946,6 +950,11 @@
 
   const integrationStore = useIntegrationStore()
   const userStore = useUserStore()
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
 
   const defaultCalendarSettings = {
     showMetabolicWave: false,
@@ -1080,12 +1089,12 @@
   const { data: metabolicWaveResponse, status: metabolicWaveStatus } = await useAsyncData(
     'metabolic-wave',
     async () => {
-      if (!calendarSettings.value.showMetabolicWave) return null
+      if (!nutritionEnabled.value || !calendarSettings.value.showMetabolicWave) return null
       return $fetch<any>('/api/nutrition/metabolic-wave', {
         query: calendarRange.value
       })
     },
-    { watch: [currentDate, () => calendarSettings.value.showMetabolicWave] }
+    { watch: [currentDate, nutritionEnabled, () => calendarSettings.value.showMetabolicWave] }
   )
 
   const metabolicWavePoints = computed(() => metabolicWaveResponse.value?.points || [])
@@ -1479,6 +1488,7 @@
   }
 
   function openNutrition(date: Date) {
+    if (!nutritionEnabled.value) return
     const dateStr = formatDateUTC(date, 'yyyy-MM-dd')
     navigateTo(`/nutrition/${dateStr}`)
   }

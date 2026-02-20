@@ -125,6 +125,7 @@
               "
             />
             <ScoreCard
+              v-if="nutritionEnabled"
               title="Nutrition Compliance"
               :score="profileData.scores?.nutritionCompliance"
               :explanation="
@@ -174,7 +175,7 @@
         />
 
         <!-- 3. PMC Chart (Performance Management Chart) -->
-        <div class="space-y-4">
+        <div v-if="nutritionEnabled" class="space-y-4">
           <PerformancePmcCard
             v-model:period="pmcPeriod"
             :period-options="pmcPeriodOptions"
@@ -667,6 +668,11 @@
     middleware: 'auth',
     layout: 'default'
   })
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
 
   useHead({
     title: 'Performance Scores',
@@ -1070,7 +1076,11 @@
 
   // Watch for period changes and refetch
   watch(selectedPeriod, async () => {
-    await Promise.all([refreshNuxtData('workout-trends'), refreshNuxtData('nutrition-trends')])
+    const refreshes = [refreshNuxtData('workout-trends')]
+    if (nutritionEnabled.value) {
+      refreshes.push(refreshNuxtData('nutrition-trends'))
+    }
+    await Promise.all(refreshes)
   })
 
   const formatDateLocal = (date: string) => {

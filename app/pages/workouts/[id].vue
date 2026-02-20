@@ -759,7 +759,7 @@
 
           <!-- Nutrition Debrief -->
           <div
-            v-if="workout.kilojoules || workout.plannedWorkout"
+            v-if="nutritionEnabled && (workout.kilojoules || workout.plannedWorkout)"
             class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-l-4 border-orange-500 border-y sm:border-y sm:border-r border-gray-100 dark:border-gray-800"
           >
             <div class="flex items-center justify-between mb-6">
@@ -1722,6 +1722,12 @@
   const toast = useToast()
   const config = useRuntimeConfig()
   const upgradeModal = useUpgradeModal()
+  const userStore = useUserStore()
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
 
   const workout = ref<any>(null)
   const loading = ref(true)

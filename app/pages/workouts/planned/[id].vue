@@ -375,7 +375,7 @@
           </div>
 
           <!-- Nutrition & Fueling Prep -->
-          <div class="space-y-4">
+          <div v-if="nutritionEnabled" class="space-y-4">
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               Fueling Logistics
             </h2>
@@ -828,6 +828,11 @@
   const { onTaskCompleted } = useUserRunsState()
 
   const userStore = useUserStore()
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
 
   // Share functionality
   const isShareModalOpen = ref(false)
@@ -1361,9 +1366,11 @@
       initialFeedback.value = data.initialFeedback
       initialFeedbackText.value = data.initialFeedbackText
       sportSettings.value = data.sportSettings
+      dayNutrition.value = null
+      nutritionSettings.value = null
 
       // Fetch nutrition for the workout date
-      if (workout.value?.date) {
+      if (nutritionEnabled.value && workout.value?.date) {
         try {
           const dateStr = formatDateUTC(new Date(workout.value.date), 'yyyy-MM-dd')
           const [nData, sData, wFueling] = await Promise.all([
