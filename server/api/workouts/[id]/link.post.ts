@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { metabolicService } from '../../../utils/services/metabolicService'
+import { isNutritionTrackingEnabled } from '../../../utils/nutrition/feature'
 
 defineRouteMeta({
   openAPI: {
@@ -113,7 +114,11 @@ export default defineEventHandler(async (event) => {
 
     // REACTIVE: Trigger fueling plan update for the workout date
     try {
-      await metabolicService.calculateFuelingPlanForDate(userId, workout.date, { persist: true })
+      if (await isNutritionTrackingEnabled(userId)) {
+        await metabolicService.calculateFuelingPlanForDate(userId, workout.date, {
+          persist: true
+        })
+      }
     } catch (err) {
       console.error('[WorkoutLink] Failed to trigger regeneration:', err)
     }

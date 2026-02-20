@@ -121,6 +121,7 @@ export async function buildAthleteContext(userId: string): Promise<{
 
   // Get user timezone
   const userTimezone = userProfile?.timezone || 'UTC'
+  const nutritionTrackingEnabled = userProfile?.nutritionTrackingEnabled !== false
   const todayDate = getUserLocalDate(userTimezone)
 
   // 2. Fetch Recent Activity Data (Last 7 Days)
@@ -152,22 +153,24 @@ export async function buildAthleteContext(userId: string): Promise<{
     }
   })
 
-  // Fetch recent nutrition
-  const recentNutrition = await nutritionRepository.getForUser(userId, {
-    startDate: sevenDaysAgo,
-    orderBy: { date: 'desc' },
-    select: {
-      id: true,
-      date: true,
-      calories: true,
-      protein: true,
-      carbs: true,
-      fat: true,
-      fiber: true,
-      sugar: true,
-      aiAnalysisJson: true
-    }
-  })
+  // Fetch recent nutrition only when nutrition tracking is enabled
+  const recentNutrition = nutritionTrackingEnabled
+    ? await nutritionRepository.getForUser(userId, {
+        startDate: sevenDaysAgo,
+        orderBy: { date: 'desc' },
+        select: {
+          id: true,
+          date: true,
+          calories: true,
+          protein: true,
+          carbs: true,
+          fat: true,
+          fiber: true,
+          sugar: true,
+          aiAnalysisJson: true
+        }
+      })
+    : []
 
   // Fetch recent wellness
   const recentWellness = await wellnessRepository.getForUser(userId, {
@@ -340,7 +343,7 @@ export async function buildAthleteContext(userId: string): Promise<{
       scores.push(`Fitness: ${userProfile.currentFitnessScore}/10`)
     if (userProfile.recoveryCapacityScore)
       scores.push(`Recovery: ${userProfile.recoveryCapacityScore}/10`)
-    if (userProfile.nutritionComplianceScore)
+    if (nutritionTrackingEnabled && userProfile.nutritionComplianceScore)
       scores.push(`Nutrition: ${userProfile.nutritionComplianceScore}/10`)
     if (userProfile.trainingConsistencyScore)
       scores.push(`Consistency: ${userProfile.trainingConsistencyScore}/10`)
@@ -361,7 +364,7 @@ export async function buildAthleteContext(userId: string): Promise<{
         athleteContext += `\n**Structured Insights**: ${JSON.stringify(userProfile.recoveryCapacityExplanationJson)}\n`
       }
     }
-    if (userProfile.nutritionComplianceExplanation) {
+    if (nutritionTrackingEnabled && userProfile.nutritionComplianceExplanation) {
       athleteContext += `\n### Nutrition Insights\n${userProfile.nutritionComplianceExplanation}\n`
       if (userProfile.nutritionComplianceExplanationJson) {
         athleteContext += `\n**Structured Insights**: ${JSON.stringify(userProfile.nutritionComplianceExplanationJson)}\n`
@@ -463,7 +466,7 @@ export async function buildAthleteContext(userId: string): Promise<{
   }
 
   // Recent Nutrition Summary
-  if (userProfile?.nutritionTrackingEnabled) {
+  if (nutritionTrackingEnabled) {
     if (recentNutrition.length > 0) {
       athleteContext += `\n### Nutrition (${recentNutrition.length} days logged)\n`
       for (const nutrition of recentNutrition) {
@@ -670,6 +673,14 @@ export async function buildAthleteContext(userId: string): Promise<{
     })
     .join('\n')
 
+  const telemetryInstruction = nutritionTrackingEnabled
+    ? "- **ALWAYS** use your tools to fetch the athlete's activity, nutrition, and wellness data first. Don't guess."
+    : "- **ALWAYS** use your tools to fetch the athlete's activity and wellness data first. Don't guess."
+
+  const contextBullets = nutritionTrackingEnabled
+    ? '- Recent workouts with details **AND THEIR IDs**\n- Recent nutrition logs\n- Recent wellness metrics'
+    : '- Recent workouts with details **AND THEIR IDs**\n- Recent wellness metrics'
+
   const systemInstruction = `You are Coach Watts. Your coaching style and personality is **${persona}**.
 Address the athlete as **${preferredName}**.
 Adopt this persona fully in your interactions.
@@ -702,7 +713,7 @@ Adopt this persona fully in your interactions.
 ## How You Interact (The Workflow)
 
 **Step 1: Check the Telemetry**
-- **ALWAYS** use your tools to fetch the athlete's activity, nutrition, and wellness data first. Don't guess.
+${telemetryInstruction}
 - Look for the story in the numbers. Did they hit a new Peak Power? Did they bonk?
 
 **Step 2: The Assessment**
@@ -728,9 +739,7 @@ You are an agent with **agency**. You don't just talk; you **act**.
 
 **IMPORTANT: Recent data (last 7 days) is ALREADY PROVIDED in your context!**
 Look at the "Recent Activity Detail" section below - it contains:
-- Recent workouts with details **AND THEIR IDs**
-- Recent nutrition logs
-- Recent wellness metrics
+${contextBullets}
 
 **CRITICAL: Workout IDs are included in the context!**
 - When a user asks about a specific workout (e.g., "tell me about my morning ride"), you can see the workout ID in the context

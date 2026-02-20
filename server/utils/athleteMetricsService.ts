@@ -5,6 +5,7 @@ import { calculatePowerZones, calculateHrZones } from './zones'
 import { roundToTwoDecimals } from './number'
 import { metabolicService } from './services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from './date'
+import { isNutritionTrackingEnabled } from './nutrition/feature'
 
 export const athleteMetricsService = {
   /**
@@ -94,9 +95,11 @@ export const athleteMetricsService = {
     // If weight or FTP changed, the whole fueling plan needs updating
     if (metrics.weight !== undefined || metrics.ftp !== undefined) {
       try {
-        const timezone = await getUserTimezone(userId)
-        const today = getUserLocalDate(timezone)
-        await metabolicService.calculateFuelingPlanForDate(userId, today, { persist: true })
+        if (await isNutritionTrackingEnabled(userId)) {
+          const timezone = await getUserTimezone(userId)
+          const today = getUserLocalDate(timezone)
+          await metabolicService.calculateFuelingPlanForDate(userId, today, { persist: true })
+        }
       } catch (err) {
         console.error('[MetricsService] Failed to update metabolic plan:', err)
       }

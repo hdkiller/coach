@@ -20,6 +20,10 @@ export const getToolsWithContext = (
   settings: AiSettings,
   chatRoomId?: string
 ) => {
+  const conditionalNutritionTools = settings.nutritionTrackingEnabled
+    ? nutritionTools(userId, timezone, settings)
+    : {}
+
   return {
     ...workoutTools(userId, timezone, settings),
     ...planningTools(userId, timezone, settings),
@@ -29,7 +33,7 @@ export const getToolsWithContext = (
     ...supportTools(userId, chatRoomId),
     ...mathTools(),
     ...metricTools(userId, timezone),
-    ...nutritionTools(userId, timezone, settings),
+    ...conditionalNutritionTools,
     ...wellnessTools(userId, timezone),
     ...journeyTools(userId, timezone),
     ...availabilityTools(userId, settings),

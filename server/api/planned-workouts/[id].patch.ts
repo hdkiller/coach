@@ -6,6 +6,7 @@ import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { WorkoutConverter } from '../../utils/workout-converter'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
+import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
 
 defineRouteMeta({
   openAPI: {
@@ -130,7 +131,9 @@ export default defineEventHandler(async (event) => {
     try {
       // If date was changed, use new date, otherwise use workout date
       const targetDate = forcedDate || updated.date
-      await metabolicService.calculateFuelingPlanForDate(userId, targetDate, { persist: true })
+      if (await isNutritionTrackingEnabled(userId)) {
+        await metabolicService.calculateFuelingPlanForDate(userId, targetDate, { persist: true })
+      }
     } catch (err) {
       console.error('[PlannedWorkoutUpdate] Failed to trigger regeneration:', err)
     }

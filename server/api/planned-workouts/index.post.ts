@@ -3,6 +3,7 @@ import { prisma } from '../../utils/db'
 import { createIntervalsPlannedWorkout } from '../../utils/intervals'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
+import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
 
 defineRouteMeta({
   openAPI: {
@@ -132,7 +133,9 @@ export default defineEventHandler(async (event) => {
 
     // REACTIVE: Automatically trigger fueling plan regeneration for the workout date
     try {
-      await metabolicService.calculateFuelingPlanForDate(userId, forcedDate, { persist: true })
+      if (await isNutritionTrackingEnabled(userId)) {
+        await metabolicService.calculateFuelingPlanForDate(userId, forcedDate, { persist: true })
+      }
     } catch (err) {
       console.error('[PlannedWorkoutCreate] Failed to trigger regeneration:', err)
     }
