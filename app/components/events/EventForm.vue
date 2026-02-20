@@ -252,7 +252,9 @@
       { label: 'MTB (XC)', value: 'MTB (XC)' },
       { label: 'MTB (Marathon)', value: 'MTB (Marathon)' },
       { label: 'Gravel', value: 'Gravel' },
-      { label: 'Cyclocross', value: 'Cyclocross' }
+      { label: 'Cyclocross', value: 'Cyclocross' },
+      { label: 'Social Ride', value: 'Social Ride' },
+      { label: 'Cyclotour (Toertocht)', value: 'Cyclotour' }
     ],
     Swim: [
       { label: 'Pool Race', value: 'Pool Race' },
@@ -312,9 +314,14 @@
   }
 
   async function onSubmit() {
+    if (!state.date) return
+
     loading.value = true
     try {
       const [year, month, day] = state.date.split('-').map(Number)
+      if (year === undefined || month === undefined || day === undefined) {
+        throw new Error('Invalid date format')
+      }
       const eventDate = new Date(Date.UTC(year, month - 1, day)).toISOString()
 
       const payload = {

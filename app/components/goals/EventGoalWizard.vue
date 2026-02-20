@@ -546,6 +546,8 @@
     'MTB (Marathon)',
     'Gravel',
     'Cyclocross',
+    'Social Ride',
+    { label: 'Cyclotour (Toertocht)', value: 'Cyclotour' },
     'Running (5k)',
     'Running (10k)',
     'Half Marathon',

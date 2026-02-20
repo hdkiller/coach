@@ -26,7 +26,7 @@ We will introduce a "Create Training Plan" wizard that guides the user through s
 - **Event Name:** (e.g., "Maratona dles Dolomites")
 - **Event Date:** (Date picker)
 - **Event Type:**
-  - _Cycling:_ Road Race, Criterium, Time Trial, Gran Fondo, MTB (XC), MTB (Marathon), Cyclocross, Gravel
+  - _Cycling:_ Road Race, Criterium, Time Trial, Gran Fondo, MTB (XC), MTB (Marathon), Cyclocross, Gravel, Social Ride, Cyclotour (Toertocht)
   - _Running:_ 5k, 10k, Half Marathon, Marathon, Ultra
   - _Triathlon:_ Sprint, Olympic, 70.3, Full Distance
 - **Race Priority:** A (Key Race), B (Preparation Race), C (Training Race)

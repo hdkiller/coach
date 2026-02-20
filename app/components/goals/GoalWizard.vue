@@ -108,7 +108,16 @@
             </label>
             <USelect
               v-model="form.eventType"
-              :items="['Race', 'Gran Fondo', 'Time Trial', 'Triathlon', 'Running Race', 'Other']"
+              :items="[
+                'Race',
+                'Gran Fondo',
+                'Time Trial',
+                'Triathlon',
+                'Running Race',
+                'Social Ride',
+                'Cyclotour',
+                'Other'
+              ]"
               size="lg"
               :ui="{ content: 'min-w-[200px]' }"
             />
