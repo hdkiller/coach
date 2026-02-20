@@ -23,6 +23,7 @@
   const loadingPortal = ref(false)
   const syncing = ref(false)
   const showSuccessMessage = ref(route.query.success === 'true')
+  const showRefreshMessage = ref(route.query.refresh === 'true')
   const showCanceledMessage = ref(route.query.canceled === 'true')
   const showPlansModal = ref(false)
   const celebrationPlayed = ref(false)
@@ -53,17 +54,82 @@
   onMounted(async () => {
     if (import.meta.client) {
       prefersReducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      // Handle "Back" button or switching tabs
+      window.addEventListener('pageshow', handlePageShow)
+      window.addEventListener('focus', handleFocus)
     }
 
-    if (showSuccessMessage.value) {
+    if (showSuccessMessage.value || showRefreshMessage.value) {
       await pollSubscription()
-      triggerCelebration()
+      if (userStore.user?.subscriptionStatus === 'ACTIVE') {
+        triggerCelebration()
+        showSuccessMessage.value = true
+      }
     } else {
-      await userStore.fetchUser()
+      await userStore.fetchUser(true)
     }
   })
 
+  onUnmounted(() => {
+    if (import.meta.client) {
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('focus', handleFocus)
+      stopPastDuePolling()
+    }
+  })
+
+  function handlePageShow(event: PageTransitionEvent) {
+    // If page is restored from browser cache (bfcache)
+    if (event.persisted) {
+      handleSync(true)
+    }
+  }
+
+  function handleFocus() {
+    // Refresh data when user switches back to this tab
+    if (userStore.user?.subscriptionStatus === 'PAST_DUE') {
+      handleSync(true)
+    }
+  }
+
   const polling = ref(false)
+  const pastDuePollingInterval = ref<any>(null)
+
+  // Start polling if user is PAST_DUE
+  watch(
+    () => userStore.user?.subscriptionStatus,
+    (newStatus) => {
+      if (newStatus === 'PAST_DUE') {
+        startPastDuePolling()
+      } else {
+        stopPastDuePolling()
+      }
+    },
+    { immediate: true }
+  )
+
+  function startPastDuePolling() {
+    if (pastDuePollingInterval.value) return
+
+    // Poll every 5 seconds while in PAST_DUE state
+    pastDuePollingInterval.value = setInterval(async () => {
+      try {
+        await $fetch('/api/stripe/sync', { method: 'POST' })
+        await userStore.fetchUser(true)
+      } catch (e) {
+        console.warn('Background status sync failed:', e)
+      }
+    }, 5000)
+  }
+
+  function stopPastDuePolling() {
+    if (pastDuePollingInterval.value) {
+      clearInterval(pastDuePollingInterval.value)
+      pastDuePollingInterval.value = null
+    }
+  }
+
   async function pollSubscription(maxAttempts = 5, interval = 3000) {
     const minPollingMs = 1750
     const startedAt = Date.now()
@@ -75,7 +141,7 @@
         // 1. Sync with Stripe
         await $fetch('/api/stripe/sync', { method: 'POST' })
         // 2. Fetch updated user store
-        await userStore.fetchUser()
+        await userStore.fetchUser(true)
 
         // 3. Check if upgraded
         if (
@@ -272,27 +338,31 @@
     loadingPortal.value = false
   }
 
-  async function handleSync() {
-    syncing.value = true
+  async function handleSync(silent = false) {
+    if (!silent) syncing.value = true
     try {
       await $fetch('/api/stripe/sync', { method: 'POST' })
-      await userStore.fetchUser()
+      await userStore.fetchUser(true)
 
-      const toast = useToast()
-      toast.add({
-        title: 'Subscription Synced',
-        description: 'Your subscription status has been updated from Stripe.',
-        color: 'success'
-      })
+      if (!silent) {
+        const toast = useToast()
+        toast.add({
+          title: 'Subscription Synced',
+          description: 'Your subscription status has been updated from Stripe.',
+          color: 'success'
+        })
+      }
     } catch (e) {
-      const toast = useToast()
-      toast.add({
-        title: 'Sync Failed',
-        description: 'Could not sync subscription status. Please try again later.',
-        color: 'error'
-      })
+      if (!silent) {
+        const toast = useToast()
+        toast.add({
+          title: 'Sync Failed',
+          description: 'Could not sync subscription status. Please try again later.',
+          color: 'error'
+        })
+      }
     } finally {
-      syncing.value = false
+      if (!silent) syncing.value = false
     }
   }
 
@@ -353,6 +423,36 @@
 
     <!-- Success/Canceled Alerts -->
     <div class="space-y-4">
+      <UAlert
+        v-if="userStore.user?.subscriptionStatus === 'PAST_DUE'"
+        title="Action Required"
+        icon="i-heroicons-exclamation-triangle"
+        color="error"
+        variant="subtle"
+        class="border-error-500/50 shadow-lg animate-pulse-subtle"
+        :ui="{
+          title: 'text-error-900 dark:text-error-100 font-bold',
+          description: 'text-error-800 dark:text-error-200'
+        }"
+      >
+        <template #description>
+          Your subscription upgrade or payment requires confirmation. Please visit the secure
+          billing portal to complete the process.
+        </template>
+        <template #actions>
+          <UButton
+            color="error"
+            variant="solid"
+            size="sm"
+            class="font-bold uppercase tracking-wide"
+            :loading="loadingPortal"
+            @click="handleManageSubscription"
+          >
+            Complete Verification
+          </UButton>
+        </template>
+      </UAlert>
+
       <UCard v-if="showSuccessMessage" class="relative overflow-hidden border-success/30">
         <div class="absolute inset-0 pointer-events-none">
           <div
@@ -445,12 +545,12 @@
       </UCard>
 
       <UAlert
-        v-if="showSuccessMessage && polling"
-        title="Confirming Subscription..."
+        v-if="(showSuccessMessage || showRefreshMessage) && polling"
+        title="Verifying Subscription..."
         color="info"
         variant="soft"
         :close="{ color: 'info', variant: 'link', label: 'Dismiss' }"
-        description="We are verifying your payment with Stripe. This may take a few seconds..."
+        description="We are checking the latest status from Stripe. This may take a few seconds..."
         @update:open="dismissSuccessMessage"
       >
         <template #icon>
@@ -506,6 +606,14 @@
                 <p class="text-sm text-neutral-500">
                   {{ getTierDescription(userStore.user?.subscriptionTier) }}
                 </p>
+                <!-- Pending Change Indicator -->
+                <div
+                  v-if="userStore.user?.pendingSubscriptionTier"
+                  class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/5 border border-primary/20 text-xs font-semibold text-primary"
+                >
+                  <UIcon name="i-heroicons-arrow-path" class="w-3 h-3 animate-spin-slow" />
+                  Scheduled switch to {{ formatTier(userStore.user?.pendingSubscriptionTier) }}
+                </div>
               </div>
             </div>
 
@@ -514,19 +622,26 @@
             >
               <div>
                 <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Status</dt>
-                <dd class="mt-1">
+                <dd class="mt-1 flex items-center gap-2">
                   <UBadge
                     :color="getStatusColor(userStore.user?.subscriptionStatus) as any"
                     variant="subtle"
                   >
                     {{ formatStatus(userStore.user?.subscriptionStatus) }}
                   </UBadge>
+                  <UTooltip
+                    v-if="userStore.user?.pendingSubscriptionTier"
+                    text="Your plan change is confirmed and will process automatically."
+                  >
+                    <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400" />
+                  </UTooltip>
                 </dd>
               </div>
               <div v-if="userStore.user?.subscriptionPeriodEnd">
                 <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   {{
-                    userStore.user?.subscriptionStatus === 'CANCELED'
+                    userStore.user?.subscriptionStatus === 'CANCELED' ||
+                    userStore.user?.pendingSubscriptionTier
                       ? 'Access Expires'
                       : 'Next Billing Date'
                   }}
@@ -583,7 +698,7 @@
                 Invoices
               </UButton>
 
-              <UButton color="neutral" variant="ghost" :loading="syncing" @click="handleSync">
+              <UButton color="neutral" variant="ghost" :loading="syncing" @click="handleSync()">
                 <UIcon name="i-heroicons-arrow-path" class="w-4 h-4" />
                 Sync
               </UButton>
@@ -663,7 +778,11 @@
           </p>
         </div>
 
-        <LandingPricingPlans conversion-goal="pro" is-billing-page />
+        <LandingPricingPlans
+          conversion-goal="pro"
+          is-billing-page
+          @close="showPlansModal = false"
+        />
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div
@@ -772,7 +891,11 @@
             </div>
           </template>
 
-          <LandingPricingPlans conversion-goal="pro" is-billing-page />
+          <LandingPricingPlans
+            conversion-goal="pro"
+            is-billing-page
+            @close="showPlansModal = false"
+          />
 
           <div v-if="!subscriptionsEnabled" class="mt-8">
             <UAlert
@@ -870,5 +993,25 @@
   .billing-details[open] .billing-chevron,
   .billing-faq-item[open] .billing-chevron {
     transform: rotate(180deg);
+  }
+
+  @keyframes pulse-subtle {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.92;
+      transform: scale(0.995);
+    }
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
   }
 </style>

@@ -196,6 +196,60 @@
         </div>
       </UCard>
     </div>
+
+    <!-- Downgrade Confirmation Modal -->
+    <UModal
+      v-model:open="showDowngradeModal"
+      title="Confirm Downgrade"
+      description="Review changes to your subscription plan"
+    >
+      <template #content>
+        <UCard :ui="{ body: 'p-6 sm:p-8' }">
+          <template #header>
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                <UIcon
+                  name="i-heroicons-exclamation-triangle"
+                  class="w-6 h-6 text-amber-600 dark:text-amber-400"
+                />
+              </div>
+              <h3 class="text-xl font-bold">Switch to {{ planToChangeTo?.name }}?</h3>
+            </div>
+          </template>
+
+          <div class="space-y-4 py-2">
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+              You are moving to a lower tier. Some features (like Deep AI Analysis) will be
+              restricted once the change is processed.
+            </p>
+            <div
+              class="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700"
+            >
+              <p class="text-xs text-gray-500 leading-relaxed italic">
+                Stripe will automatically calculate any credits for your unused time and apply them
+                to your future bills.
+              </p>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
+              <UButton color="neutral" variant="ghost" @click="showDowngradeModal = false">
+                Keep my current plan
+              </UButton>
+              <UButton
+                color="primary"
+                variant="solid"
+                :loading="loading"
+                @click="planToChangeTo && executePlanChange(planToChangeTo)"
+              >
+                Confirm Change
+              </UButton>
+            </div>
+          </template>
+        </UCard>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -223,9 +277,13 @@
     }
   )
 
+  const emit = defineEmits<{
+    close: []
+  }>()
+
   const { status } = useAuth()
   const userStore = useUserStore()
-  const { createCheckoutSession, openCustomerPortal } = useStripe()
+  const { createCheckoutSession, openCustomerPortal, changePlan } = useStripe()
   const { currency, setCurrency } = useCurrency()
   const config = useRuntimeConfig()
 
@@ -233,6 +291,9 @@
   const loading = ref(false)
   const selectedPlan = ref<string | null>(null)
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
+
+  const showDowngradeModal = ref(false)
+  const planToChangeTo = ref<PricingPlan | null>(null)
 
   const displayedPlans = computed(() => {
     const planByKey = new Map(PRICING_PLANS.map((plan) => [plan.key, plan]))
@@ -360,8 +421,62 @@
     return planLevel < currentLevel ? 'Downgrade to Free' : 'Stay Free'
   }
 
+  async function executePlanChange(plan: PricingPlan) {
+    loading.value = true
+    selectedPlan.value = plan.key
+
+    const priceId = getStripePriceId(plan, billingInterval.value, currency.value)
+    if (priceId) {
+      const currentTier = userStore.user?.subscriptionTier || 'FREE'
+      const tiers = ['FREE', 'SUPPORTER', 'PRO']
+      const currentLevel = tiers.indexOf(currentTier)
+      const planLevel = tiers.indexOf(plan.key.toUpperCase())
+      const direction = planLevel > currentLevel ? 'upgrade' : 'downgrade'
+
+      const success = await changePlan(priceId, direction)
+      if (success) {
+        showDowngradeModal.value = false
+        emit('close')
+
+        if (props.isBillingPage) {
+          // Add refresh param and reload
+          const url = new URL(window.location.href)
+          url.searchParams.set('refresh', 'true')
+          window.location.href = url.toString()
+        } else {
+          navigateTo('/settings/billing?success=true')
+        }
+        return
+      }
+    }
+
+    loading.value = false
+    selectedPlan.value = null
+    showDowngradeModal.value = false
+  }
+
   async function handlePlanSelect(plan: PricingPlan) {
     if (userStore.user?.stripeCustomerId && userStore.user?.subscriptionTier !== 'FREE') {
+      const currentTier = userStore.user?.subscriptionTier || 'FREE'
+      const tiers = ['FREE', 'SUPPORTER', 'PRO']
+      const currentLevel = tiers.indexOf(currentTier)
+      const planLevel = tiers.indexOf(plan.key.toUpperCase())
+
+      // 1. Upgrade Path (Always one-click)
+      if (planLevel > currentLevel) {
+        await executePlanChange(plan)
+        return
+      }
+
+      // 2. Downgrade Path (Confirmed one-click, unless it's FREE)
+      if (planLevel < currentLevel && plan.key !== 'free') {
+        planToChangeTo.value = plan
+        showDowngradeModal.value = true
+        return
+      }
+
+      // 3. Fallback Path (Downgrade to FREE or same-tier maintenance)
+      // We use the Portal for FREE to allow users to see Stripe's cancellation flow
       loading.value = true
       selectedPlan.value = plan.key
       await openCustomerPortal(window.location.href)
