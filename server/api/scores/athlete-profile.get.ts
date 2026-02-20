@@ -64,6 +64,7 @@ export default defineEventHandler(async (event) => {
       ftp: true,
       weight: true,
       maxHr: true,
+      nutritionTrackingEnabled: true,
       currentFitnessScore: true,
       recoveryCapacityScore: true,
       nutritionComplianceScore: true,
@@ -109,7 +110,10 @@ export default defineEventHandler(async (event) => {
         date: r.createdAt,
         currentFitness: json?.athlete_scores?.current_fitness,
         recoveryCapacity: json?.athlete_scores?.recovery_capacity,
-        nutritionCompliance: json?.athlete_scores?.nutrition_compliance,
+        nutritionCompliance:
+          user.nutritionTrackingEnabled === false
+            ? null
+            : json?.athlete_scores?.nutrition_compliance,
         trainingConsistency: json?.athlete_scores?.training_consistency
       }
     })
@@ -131,9 +135,12 @@ export default defineEventHandler(async (event) => {
       recoveryCapacity: user.recoveryCapacityScore,
       recoveryCapacityExplanation: user.recoveryCapacityExplanation,
       recoveryCapacityExplanationJson: user.recoveryCapacityExplanationJson,
-      nutritionCompliance: user.nutritionComplianceScore,
-      nutritionComplianceExplanation: user.nutritionComplianceExplanation,
-      nutritionComplianceExplanationJson: user.nutritionComplianceExplanationJson,
+      nutritionCompliance:
+        user.nutritionTrackingEnabled === false ? null : user.nutritionComplianceScore,
+      nutritionComplianceExplanation:
+        user.nutritionTrackingEnabled === false ? null : user.nutritionComplianceExplanation,
+      nutritionComplianceExplanationJson:
+        user.nutritionTrackingEnabled === false ? null : user.nutritionComplianceExplanationJson,
       trainingConsistency: user.trainingConsistencyScore,
       trainingConsistencyExplanation: user.trainingConsistencyExplanation,
       trainingConsistencyExplanationJson: user.trainingConsistencyExplanationJson,

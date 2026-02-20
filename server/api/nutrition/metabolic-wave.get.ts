@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { metabolicService } from '../../utils/services/metabolicService'
+import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
 
 defineRouteMeta({
   openAPI: {
@@ -34,6 +35,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
+  if (!(await isNutritionTrackingEnabled(userId))) {
+    return {
+      success: true,
+      points: [],
+      journeyEvents: []
+    }
+  }
   const query = getQuery(event)
   const startStr = query.startDate as string
   const endStr = query.endDate as string

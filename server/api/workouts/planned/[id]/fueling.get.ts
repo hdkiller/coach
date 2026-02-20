@@ -27,14 +27,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Planned workout not found' })
   }
 
-  const [user, settings, timezone] = await Promise.all([
+  const [user, timezone] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, ftp: true }
+      select: { weight: true, ftp: true, nutritionTrackingEnabled: true }
     }),
-    getUserNutritionSettings(userId),
     getUserTimezone(userId)
   ])
+
+  if ((user?.nutritionTrackingEnabled ?? true) === false) {
+    return {
+      workoutId,
+      fuelingPlan: null
+    }
+  }
+  const settings = await getUserNutritionSettings(userId)
 
   const profile = {
     weight: user?.weight || 75,

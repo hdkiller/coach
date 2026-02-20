@@ -3,6 +3,7 @@ import { nutritionSettingsRepository } from '../../utils/repositories/nutritionS
 import { getServerSession } from '../../utils/session'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
+import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
 
 const updateSchema = z.object({
   nutritionTrackingEnabled: z.boolean().optional(),
@@ -148,11 +149,17 @@ export default defineEventHandler(async (event) => {
 
   // REACTIVE: Automatically trigger fueling plan regeneration for today
   try {
-    const timezone = await getUserTimezone(userId)
-    const today = getUserLocalDate(timezone)
-    await metabolicService.calculateFuelingPlanForDate(userId, today, {
-      persist: true
-    })
+    const shouldRunNutrition =
+      nutritionTrackingEnabled !== undefined
+        ? nutritionTrackingEnabled
+        : await isNutritionTrackingEnabled(userId)
+    if (shouldRunNutrition) {
+      const timezone = await getUserTimezone(userId)
+      const today = getUserLocalDate(timezone)
+      await metabolicService.calculateFuelingPlanForDate(userId, today, {
+        persist: true
+      })
+    }
   } catch (err) {
     console.error('[NutritionSettings] Failed to trigger plan regeneration:', err)
   }

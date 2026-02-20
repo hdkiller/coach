@@ -64,7 +64,11 @@ export default defineEventHandler(async (event) => {
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
+    where: { email: session.user.email },
+    select: {
+      id: true,
+      nutritionTrackingEnabled: true
+    }
   })
 
   if (!user) {
@@ -72,6 +76,20 @@ export default defineEventHandler(async (event) => {
       statusCode: 404,
       message: 'User not found'
     })
+  }
+
+  if (user.nutritionTrackingEnabled === false) {
+    return {
+      nutrition: [],
+      summary: {
+        total: 0,
+        avgOverall: 0,
+        avgMacroBalance: 0,
+        avgQuality: 0,
+        avgAdherence: 0,
+        avgHydration: 0
+      }
+    }
   }
 
   const timezone = await getUserTimezone(user.id)

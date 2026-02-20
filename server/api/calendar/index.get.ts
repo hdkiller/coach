@@ -96,10 +96,12 @@ export default defineEventHandler(async (event) => {
     select: {
       timezone: true,
       weight: true,
-      ftp: true
+      ftp: true,
+      nutritionTrackingEnabled: true
     }
   })
   const timezone = user?.timezone ?? 'UTC'
+  const nutritionEnabled = user?.nutritionTrackingEnabled ?? true
   const today = getUserLocalDate(timezone)
 
   // Adjust dates to cover the full local days in UTC
@@ -116,54 +118,53 @@ export default defineEventHandler(async (event) => {
     Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())
   )
 
-  // Fetch nutrition data for the date range
-  const nutritionStartTime = Date.now()
-  const nutrition = await nutritionRepository.getForUser(userId, {
-    startDate: calendarStart,
-    endDate: calendarEnd,
-    orderBy: { date: 'asc' },
-    select: {
-      id: true,
-      date: true,
-      calories: true,
-      protein: true,
-      carbs: true,
-      fat: true,
-      caloriesGoal: true,
-      proteinGoal: true,
-      carbsGoal: true,
-      fatGoal: true,
-      fuelingPlan: true,
-      overallScore: true,
-      isManualLock: true,
-      endingGlycogenPercentage: true,
-      endingFluidDeficit: true,
-      breakfast: true,
-      lunch: true,
-      dinner: true,
-      snacks: true
-    }
-  })
-
-  // Create a map of nutrition data by date (YYYY-MM-DD)
+  // Fetch nutrition data for the date range (when feature is enabled)
   const nutritionByDate = new Map()
-  const metabolicStartTime = Date.now()
-  const metabolicStates = await metabolicService.getMetabolicStatesForRange(
-    userId,
-    calendarStart,
-    calendarEnd
-  )
-
-  for (const n of nutrition) {
-    if (!n) continue
-    const dateKey = n.date.toISOString().split('T')[0] as string
-    const state = metabolicStates.get(dateKey) || { startingGlycogen: 85, startingFluid: 0 }
-
-    nutritionByDate.set(dateKey, {
-      ...n,
-      startingGlycogen: state.startingGlycogen,
-      startingFluid: state.startingFluid
+  if (nutritionEnabled) {
+    const nutrition = await nutritionRepository.getForUser(userId, {
+      startDate: calendarStart,
+      endDate: calendarEnd,
+      orderBy: { date: 'asc' },
+      select: {
+        id: true,
+        date: true,
+        calories: true,
+        protein: true,
+        carbs: true,
+        fat: true,
+        caloriesGoal: true,
+        proteinGoal: true,
+        carbsGoal: true,
+        fatGoal: true,
+        fuelingPlan: true,
+        overallScore: true,
+        isManualLock: true,
+        endingGlycogenPercentage: true,
+        endingFluidDeficit: true,
+        breakfast: true,
+        lunch: true,
+        dinner: true,
+        snacks: true
+      }
     })
+
+    const metabolicStates = await metabolicService.getMetabolicStatesForRange(
+      userId,
+      calendarStart,
+      calendarEnd
+    )
+
+    for (const n of nutrition) {
+      if (!n) continue
+      const dateKey = n.date.toISOString().split('T')[0] as string
+      const state = metabolicStates.get(dateKey) || { startingGlycogen: 85, startingFluid: 0 }
+
+      nutritionByDate.set(dateKey, {
+        ...n,
+        startingGlycogen: state.startingGlycogen,
+        startingFluid: state.startingFluid
+      })
+    }
   }
 
   // Fetch wellness data for the date range
@@ -240,87 +241,88 @@ export default defineEventHandler(async (event) => {
     orderBy: { date: 'asc' }
   })
 
-  // PROACTIVE NUTRITION ESTIMATION
-  const estimationStartTime = Date.now()
-  const nutritionSettings = await getUserNutritionSettings(userId)
-  const profile = {
-    weight: user?.weight || 75,
-    ftp: user?.ftp || 250,
-    currentCarbMax: nutritionSettings.currentCarbMax,
-    sodiumTarget: nutritionSettings.sodiumTarget,
-    sweatRate: nutritionSettings.sweatRate ?? undefined,
-    preWorkoutWindow: nutritionSettings.preWorkoutWindow,
-    postWorkoutWindow: nutritionSettings.postWorkoutWindow,
-    fuelingSensitivity: nutritionSettings.fuelingSensitivity,
-    fuelState1Trigger: nutritionSettings.fuelState1Trigger,
-    fuelState1Min: nutritionSettings.fuelState1Min,
-    fuelState1Max: nutritionSettings.fuelState1Max,
-    fuelState2Trigger: nutritionSettings.fuelState2Trigger,
-    fuelState2Min: nutritionSettings.fuelState2Min,
-    fuelState2Max: nutritionSettings.fuelState2Max,
-    fuelState3Min: nutritionSettings.fuelState3Min,
-    fuelState3Max: nutritionSettings.fuelState3Max
-  }
-
-  // Group planned workouts by date to see which days need estimates
-  const plannedByDate = new Map<string, any[]>()
-  for (const p of plannedWorkouts) {
-    const dateKey = p.date.toISOString().split('T')[0]
-    if (dateKey) {
-      if (!plannedByDate.has(dateKey)) {
-        plannedByDate.set(dateKey, [])
-      }
-      plannedByDate.get(dateKey)!.push(p)
+  // PROACTIVE NUTRITION ESTIMATION (only when nutrition is enabled)
+  if (nutritionEnabled) {
+    const nutritionSettings = await getUserNutritionSettings(userId)
+    const profile = {
+      weight: user?.weight || 75,
+      ftp: user?.ftp || 250,
+      currentCarbMax: nutritionSettings.currentCarbMax,
+      sodiumTarget: nutritionSettings.sodiumTarget,
+      sweatRate: nutritionSettings.sweatRate ?? undefined,
+      preWorkoutWindow: nutritionSettings.preWorkoutWindow,
+      postWorkoutWindow: nutritionSettings.postWorkoutWindow,
+      fuelingSensitivity: nutritionSettings.fuelingSensitivity,
+      fuelState1Trigger: nutritionSettings.fuelState1Trigger,
+      fuelState1Min: nutritionSettings.fuelState1Min,
+      fuelState1Max: nutritionSettings.fuelState1Max,
+      fuelState2Trigger: nutritionSettings.fuelState2Trigger,
+      fuelState2Min: nutritionSettings.fuelState2Min,
+      fuelState2Max: nutritionSettings.fuelState2Max,
+      fuelState3Min: nutritionSettings.fuelState3Min,
+      fuelState3Max: nutritionSettings.fuelState3Max
     }
-  }
 
-  for (const [dateKey, dayWorkouts] of plannedByDate.entries()) {
-    const existing = nutritionByDate.get(dateKey)
-
-    // Override if:
-    // 1. No record exists
-    // 2. Record exists but has no fueling plan AND is not manually locked
-    if (!existing || (!existing.fuelingPlan && !existing.isManualLock)) {
-      // Estimate fueling strategy for this day based on planned workouts
-      // We'll use the first workout for simplicity in this preview estimation
-      const primaryWorkout = dayWorkouts[0]
-      if (primaryWorkout) {
-        // Convert HH:mm string to a Date object relative to the workout date
-        let startTimeDate: Date | null = null
-        if (
-          primaryWorkout.startTime &&
-          typeof primaryWorkout.startTime === 'string' &&
-          primaryWorkout.startTime.includes(':')
-        ) {
-          startTimeDate = buildZonedDateTimeFromUtcDate(
-            primaryWorkout.date,
-            primaryWorkout.startTime,
-            timezone,
-            10,
-            0
-          )
+    // Group planned workouts by date to see which days need estimates
+    const plannedByDate = new Map<string, any[]>()
+    for (const p of plannedWorkouts) {
+      const dateKey = p.date.toISOString().split('T')[0]
+      if (dateKey) {
+        if (!plannedByDate.has(dateKey)) {
+          plannedByDate.set(dateKey, [])
         }
+        plannedByDate.get(dateKey)!.push(p)
+      }
+    }
 
-        const estimate = calculateFuelingStrategy(profile, {
-          ...primaryWorkout,
-          startTime: startTimeDate,
-          strategyOverride: primaryWorkout.fuelingStrategy || undefined
-        } as any)
+    for (const [dateKey, dayWorkouts] of plannedByDate.entries()) {
+      const existing = nutritionByDate.get(dateKey)
 
-        nutritionByDate.set(dateKey, {
-          calories: existing?.calories ?? 0,
-          protein: existing?.protein ?? 0,
-          carbs: existing?.carbs ?? 0,
-          fat: existing?.fat ?? 0,
-          caloriesGoal: estimate.dailyTotals.calories,
-          proteinGoal: estimate.dailyTotals.protein,
-          carbsGoal: estimate.dailyTotals.carbs,
-          fatGoal: estimate.dailyTotals.fat,
-          fuelingPlan: estimate,
-          isEstimate: !existing, // Full estimate if no record existed
-          isEstimateGoal: !!existing, // Estimated goal for an existing record
-          overallScore: existing?.overallScore
-        })
+      // Override if:
+      // 1. No record exists
+      // 2. Record exists but has no fueling plan AND is not manually locked
+      if (!existing || (!existing.fuelingPlan && !existing.isManualLock)) {
+        // Estimate fueling strategy for this day based on planned workouts
+        // We'll use the first workout for simplicity in this preview estimation
+        const primaryWorkout = dayWorkouts[0]
+        if (primaryWorkout) {
+          // Convert HH:mm string to a Date object relative to the workout date
+          let startTimeDate: Date | null = null
+          if (
+            primaryWorkout.startTime &&
+            typeof primaryWorkout.startTime === 'string' &&
+            primaryWorkout.startTime.includes(':')
+          ) {
+            startTimeDate = buildZonedDateTimeFromUtcDate(
+              primaryWorkout.date,
+              primaryWorkout.startTime,
+              timezone,
+              10,
+              0
+            )
+          }
+
+          const estimate = calculateFuelingStrategy(profile, {
+            ...primaryWorkout,
+            startTime: startTimeDate,
+            strategyOverride: primaryWorkout.fuelingStrategy || undefined
+          } as any)
+
+          nutritionByDate.set(dateKey, {
+            calories: existing?.calories ?? 0,
+            protein: existing?.protein ?? 0,
+            carbs: existing?.carbs ?? 0,
+            fat: existing?.fat ?? 0,
+            caloriesGoal: estimate.dailyTotals.calories,
+            proteinGoal: estimate.dailyTotals.protein,
+            carbsGoal: estimate.dailyTotals.carbs,
+            fatGoal: estimate.dailyTotals.fat,
+            fuelingPlan: estimate,
+            isEstimate: !existing, // Full estimate if no record existed
+            isEstimateGoal: !!existing, // Estimated goal for an existing record
+            overallScore: existing?.overallScore
+          })
+        }
       }
     }
   }
