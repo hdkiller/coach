@@ -162,11 +162,13 @@ export const recommendTodayActivityTask = task({
         timezone: true,
         lthr: true,
         dob: true,
-        sex: true
+        sex: true,
+        nutritionTrackingEnabled: true
       }
     })
 
     const userTimezone = user?.timezone || 'UTC'
+    const nutritionEnabled = user?.nutritionTrackingEnabled ?? true
     const userAge = calculateAge(user?.dob)
 
     logger.log('Proceeding with recommendation using latest available context.')
@@ -351,7 +353,9 @@ export const recommendTodayActivityTask = task({
       availabilityRepository.getFullSchedule(userId),
 
       // Canonical metabolic meal target context (same engine as nutrition charts)
-      metabolicService.getMealTargetContext(userId, today, new Date())
+      nutritionEnabled
+        ? metabolicService.getMealTargetContext(userId, today, new Date())
+        : Promise.resolve(null)
     ])
 
     // Identify primary workout for linking (DB only allows 1:1) and logic fallback

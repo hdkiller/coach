@@ -5,6 +5,7 @@ import { prisma } from '../server/utils/db'
 import { IntervalsService } from '../server/utils/services/intervalsService'
 import { metabolicService } from '../server/utils/services/metabolicService'
 import { getUserTimezone, getEndOfDayUTC, getUserLocalDate } from '../server/utils/date'
+import { isNutritionTrackingEnabled } from '../server/utils/nutrition/feature'
 import type { IngestionResult } from './types'
 
 export const ingestIntervalsTask = task({
@@ -107,8 +108,10 @@ export const ingestIntervalsTask = task({
       // REACTIVE: Trigger fueling plan update for today
       // This ensures that newly synced workouts/events are immediately reflected.
       try {
-        const today = timezone ? getUserLocalDate(timezone) : new Date()
-        await metabolicService.calculateFuelingPlanForDate(userId, today, { persist: true })
+        if (await isNutritionTrackingEnabled(userId)) {
+          const today = timezone ? getUserLocalDate(timezone) : new Date()
+          await metabolicService.calculateFuelingPlanForDate(userId, today, { persist: true })
+        }
       } catch (err) {
         logger.error('Failed to trigger fueling plan update', { err })
       }
