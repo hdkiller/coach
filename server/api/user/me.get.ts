@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
       subscriptionTier: true,
       subscriptionStatus: true,
       subscriptionPeriodEnd: true,
+      nutritionTrackingEnabled: true,
       dashboardSettings: true
     }
   })

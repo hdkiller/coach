@@ -11,6 +11,7 @@ interface User {
   subscriptionTier: SubscriptionTier
   subscriptionStatus: SubscriptionStatus
   subscriptionPeriodEnd: Date | null
+  nutritionTrackingEnabled?: boolean
   pendingSubscriptionTier: SubscriptionTier | null
   pendingSubscriptionPeriodEnd: Date | null
   trialEndsAt: Date | null
