@@ -2,6 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getUserEntitlements } from '../../utils/entitlements'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 
 defineRouteMeta({
   openAPI: {
@@ -45,8 +46,11 @@ export default defineEventHandler(async (event) => {
   const entitlements = getUserEntitlements(session.user as any)
 
   try {
+    const timezone = await getUserTimezone(userId)
+    const today = getUserLocalDate(timezone)
+
     // Find all nutrition records that need analysis
-    let nutritionToAnalyze = await nutritionRepository.getPendingAnalysis(userId)
+    let nutritionToAnalyze = await nutritionRepository.getPendingAnalysis(userId, today)
 
     // Limit to 10 for FREE users
     if (entitlements.tier === 'FREE') {

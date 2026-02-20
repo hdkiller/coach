@@ -970,6 +970,8 @@
       return `${baseClass} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200`
     if (status === 'FAILED')
       return `${baseClass} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`
+    if (status === 'SKIPPED_EMPTY')
+      return `${baseClass} bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400`
     return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300`
   }
 
@@ -978,6 +980,7 @@
     if (status === 'PROCESSING') return '⟳ Processing'
     if (status === 'PENDING') return '⋯ Pending'
     if (status === 'FAILED') return '✗ Failed'
+    if (status === 'SKIPPED_EMPTY') return '− Empty'
     return '− Not Started'
   }
 

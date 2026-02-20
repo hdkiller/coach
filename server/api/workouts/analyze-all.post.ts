@@ -2,6 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getUserEntitlements } from '../../utils/entitlements'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 
 defineRouteMeta({
   openAPI: {
@@ -45,8 +46,11 @@ export default defineEventHandler(async (event) => {
   const entitlements = getUserEntitlements(session.user as any)
 
   try {
+    const timezone = await getUserTimezone(userId)
+    const today = getUserLocalDate(timezone)
+
     // Find all workouts that need analysis (excluding duplicates)
-    let workoutsToAnalyze = await workoutRepository.getPendingAnalysis(userId)
+    let workoutsToAnalyze = await workoutRepository.getPendingAnalysis(userId, today)
 
     // Limit to 10 for FREE users
     if (entitlements.tier === 'FREE') {
