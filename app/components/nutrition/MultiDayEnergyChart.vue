@@ -329,7 +329,9 @@
               if (p.eventType === 'workout') {
                 lines.push(`Workout: ${p.event || 'Planned Activity'}`)
               } else if (p.eventType === 'meal') {
-                lines.push(`Event: ${p.event || 'Food Logged'}`)
+                const mealLabel =
+                  p.event || (p.dataType === 'future' ? 'Planned Meal' : 'Food Logged')
+                lines.push(`Event: ${mealLabel}`)
                 if (p.eventCarbs) lines.push(`Carbs: ${p.eventCarbs}g`)
               }
 

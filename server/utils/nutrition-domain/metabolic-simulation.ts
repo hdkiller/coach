@@ -501,7 +501,11 @@ export function calculateEnergyTimeline(
     const activeWorkout = workoutEvents.find((w) => currentTime >= w.start && currentTime < w.end)
     const hasEvents = intervalEvents.length > 0
     const primaryType = intervalEvents.find((e) => e.type === 'workout') ? 'workout' : 'meal'
-    const combinedName = intervalEvents.map((e) => e.name).join(' + ')
+    const eventNames = intervalEvents
+      .map((e) => (typeof e.name === 'string' ? e.name.trim() : ''))
+      .filter((name) => name.length > 0)
+    const combinedName =
+      eventNames.join(' + ') || (primaryType === 'meal' ? 'Planned Meal' : 'Planned Workout')
     const totalEventCarbs = intervalEvents.reduce((sum, e) => sum + (e.carbs || 0), 0)
     const totalEventFluid = intervalEvents.reduce((sum, e) => sum + (e.fluid || 0), 0)
 
