@@ -1,9 +1,15 @@
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
+import { prisma } from '../server/utils/db'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { userAnalysisQueue } from './queues'
-import { getUserTimezone, formatUserDate, formatDateUTC } from '../server/utils/date'
+import {
+  getUserTimezone,
+  formatUserDate,
+  formatDateUTC,
+  getUserLocalDate
+} from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 
@@ -264,6 +270,51 @@ export const analyzeNutritionTask = task({
 
       if (!nutrition) {
         throw new Error('Nutrition record not found')
+      }
+
+      const timezone = await getUserTimezone(nutrition.userId)
+      const today = getUserLocalDate(timezone)
+
+      // 1. Skip if future date
+      if (nutrition.date > today) {
+        logger.log('Skipping nutrition analysis for future date', {
+          nutritionId,
+          date: nutrition.date,
+          today
+        })
+        await nutritionRepository.updateStatus(nutritionId, 'NOT_STARTED')
+        return { success: true, skipped: true, reason: 'FUTURE_DATE' }
+      }
+
+      // 2. Check for data presence (nutrition, water, notes)
+      const hasNutritionData =
+        (nutrition.calories || 0) > 0 ||
+        (nutrition.waterMl || 0) > 0 ||
+        (nutrition.breakfast && (nutrition.breakfast as any[]).length > 0) ||
+        (nutrition.lunch && (nutrition.lunch as any[]).length > 0) ||
+        (nutrition.dinner && (nutrition.dinner as any[]).length > 0) ||
+        (nutrition.snacks && (nutrition.snacks as any[]).length > 0) ||
+        nutrition.notes
+
+      if (!hasNutritionData) {
+        // Also check for workouts on this day
+        const workoutCount = await prisma.workout.count({
+          where: {
+            userId: nutrition.userId,
+            date: nutrition.date,
+            isDuplicate: false
+          }
+        })
+
+        if (workoutCount === 0) {
+          logger.log('Skipping nutrition analysis for empty day', {
+            nutritionId,
+            date: nutrition.date
+          })
+          // Use a specific status for empty days so they don't keep getting picked up
+          await nutritionRepository.updateStatus(nutritionId, 'SKIPPED_EMPTY')
+          return { success: true, skipped: true, reason: 'EMPTY_DAY' }
+        }
       }
 
       // Check Quota

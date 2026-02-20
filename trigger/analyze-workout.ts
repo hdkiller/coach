@@ -5,7 +5,12 @@ import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
 import { userAnalysisQueue } from './queues'
-import { getUserTimezone, formatUserDate, calculateAge } from '../server/utils/date'
+import {
+  getUserTimezone,
+  formatUserDate,
+  calculateAge,
+  getUserLocalDate
+} from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { publishWorkoutSummaryToIntervals } from '../server/utils/services/workout-summary-publish'
@@ -265,6 +270,37 @@ export const analyzeWorkoutTask = task({
 
       if (!workout) {
         throw new Error('Workout not found')
+      }
+
+      const timezone = await getUserTimezone(workout.userId)
+      const today = getUserLocalDate(timezone)
+
+      // 1. Skip if future date
+      if (workout.date > today) {
+        logger.log('Skipping workout analysis for future date', {
+          workoutId,
+          date: workout.date,
+          today
+        })
+        await workoutRepository.updateStatus(workoutId, 'NOT_STARTED')
+        return { success: true, skipped: true, reason: 'FUTURE_DATE' }
+      }
+
+      // 2. Check for data presence (duration, distance, watts, HR, or exercises)
+      const hasData =
+        (workout.durationSec || 0) > 0 ||
+        (workout.distanceMeters || 0) > 0 ||
+        (workout.averageWatts || 0) > 0 ||
+        (workout.averageHr || 0) > 0 ||
+        (workout.exercises && workout.exercises.length > 0)
+
+      if (!hasData) {
+        logger.log('Skipping workout analysis for empty session', {
+          workoutId,
+          date: workout.date
+        })
+        await workoutRepository.updateStatus(workoutId, 'SKIPPED_EMPTY')
+        return { success: true, skipped: true, reason: 'EMPTY_SESSION' }
       }
 
       // Check Quota
