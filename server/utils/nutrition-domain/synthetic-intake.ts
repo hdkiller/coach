@@ -31,8 +31,20 @@ export function synthesizeRefills(
 
   for (const window of plan.windows) {
     if (window.targetCarbs > 0) {
+      const windowName =
+        window.type === 'PRE_WORKOUT'
+          ? 'Pre-Workout'
+          : window.type === 'INTRA_WORKOUT'
+            ? 'Intra-Workout'
+            : window.type === 'POST_WORKOUT'
+              ? 'Post-Workout'
+              : window.type === 'TRANSITION'
+                ? 'Transition'
+                : 'Meal'
+
       syntheticMeals.push({
         time: new Date(window.startTime),
+        name: `Synthetic ${windowName}`,
         totalCarbs: window.targetCarbs,
         totalKcal: window.targetCarbs * 4,
         profile:
@@ -57,6 +69,7 @@ export function synthesizeRefills(
     for (const p of pattern) {
       syntheticMeals.push({
         time: buildZonedDateTimeFromUtcDate(date, p.time, timezone),
+        name: `Synthetic ${p.name}`,
         totalCarbs: carbPerMeal,
         totalKcal: carbPerMeal * 4,
         profile: ABSORPTION_PROFILES.BALANCED,
