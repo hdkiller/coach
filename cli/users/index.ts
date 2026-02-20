@@ -11,6 +11,7 @@ import analyzeCommand from './analyze'
 import adminsCommand from './admins'
 import locationCommand from './location'
 import trialsCommand from './trials'
+import quotaCommand from './quota'
 
 const usersCommand = new Command('users').description('User management commands')
 
@@ -21,6 +22,7 @@ usersCommand.addCommand(analyzeCommand)
 usersCommand.addCommand(adminsCommand)
 usersCommand.addCommand(locationCommand)
 usersCommand.addCommand(trialsCommand)
+usersCommand.addCommand(quotaCommand)
 usersCommand
   .command('search')
   .description('Search for users by email or name (partial match)')

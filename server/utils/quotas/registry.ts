@@ -36,7 +36,9 @@ export const QUOTA_REGISTRY: Record<
     activity_recommendation: { limit: 1, window: '24 hours', enforcement: 'STRICT' },
     meal_recommendation: { limit: 3, window: '24 hours', enforcement: 'STRICT' },
     generate_structured_workout: { limit: 5, window: '7 days', enforcement: 'STRICT' },
-    wellness_analysis: { limit: 5, window: '7 days', enforcement: 'STRICT' }
+    wellness_analysis: { limit: 5, window: '7 days', enforcement: 'STRICT' },
+    custom_report_generation: { limit: 1, window: '30 days', enforcement: 'STRICT' },
+    weekly_plan_generation: { limit: 1, window: '7 days', enforcement: 'STRICT' }
   },
   SUPPORTER: {
     chat: { limit: 50, window: '4 hours', enforcement: 'STRICT' },
@@ -48,7 +50,9 @@ export const QUOTA_REGISTRY: Record<
     activity_recommendation: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
     meal_recommendation: { limit: 10, window: '24 hours', enforcement: 'STRICT' },
     generate_structured_workout: { limit: 20, window: '7 days', enforcement: 'STRICT' },
-    wellness_analysis: { limit: 20, window: '7 days', enforcement: 'STRICT' }
+    wellness_analysis: { limit: 20, window: '7 days', enforcement: 'STRICT' },
+    custom_report_generation: { limit: 5, window: '30 days', enforcement: 'STRICT' },
+    weekly_plan_generation: { limit: 2, window: '7 days', enforcement: 'STRICT' }
   },
   PRO: {
     chat: { limit: 500, window: '4 hours', enforcement: 'STRICT' },
@@ -60,7 +64,9 @@ export const QUOTA_REGISTRY: Record<
     activity_recommendation: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
     meal_recommendation: { limit: 50, window: '24 hours', enforcement: 'STRICT' },
     generate_structured_workout: { limit: 100, window: '7 days', enforcement: 'STRICT' },
-    wellness_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' }
+    wellness_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' },
+    custom_report_generation: { limit: 20, window: '30 days', enforcement: 'STRICT' },
+    weekly_plan_generation: { limit: 5, window: '7 days', enforcement: 'STRICT' }
   }
 }
 
@@ -91,7 +97,8 @@ export function mapOperationToQuota(operation: string): QuotaOperation | null {
     'unified_report_generation',
     'activity_recommendation',
     'meal_recommendation',
-    'generate_structured_workout'
+    'generate_structured_workout',
+    'wellness_analysis'
   ]
 
   if (validOps.includes(operation)) return operation as QuotaOperation
