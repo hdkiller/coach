@@ -89,7 +89,7 @@ subscriptionCommand
     const prisma = new PrismaClient({ adapter })
 
     try {
-      console.log(`Clearing Stripe data for ${email}...`)
+      console.log(`Clearing Stripe and subscription data for ${email}...`)
 
       const user = await prisma.user.update({
         where: { email },
@@ -98,12 +98,21 @@ subscriptionCommand
           stripeSubscriptionId: null,
           subscriptionStatus: 'NONE',
           subscriptionTier: 'FREE',
-          subscriptionPeriodEnd: null
+          subscriptionPeriodEnd: null,
+          subscriptionStartedAt: null,
+          trialEndsAt: null,
+          aiAutoAnalyzeNutrition: false,
+          aiAutoAnalyzeWorkouts: false,
+          aiAutoAnalyzeReadiness: false,
+          aiDeepAnalysisEnabled: false,
+          aiProactivityEnabled: false
         }
       })
 
       console.log(
-        chalk.green(`✅ Stripe data cleared for ${user.email}. User is now on FREE tier.`)
+        chalk.green(
+          `✅ All subscription and Stripe data cleared for ${user.email}. User is now on FREE tier.`
+        )
       )
     } catch (e) {
       console.error(chalk.red('Error clearing subscription:'), e)

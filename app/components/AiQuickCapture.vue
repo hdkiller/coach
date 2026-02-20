@@ -126,6 +126,7 @@
           class="w-full"
           :loading="chatStatus === 'streaming'"
           :ui="{
+            base: 'pe-16 sm:pe-20',
             leading:
               chatMessages.length > 0
                 ? 'cursor-pointer hover:text-primary-500 transition-colors'
@@ -159,7 +160,7 @@
                 color="primary"
                 variant="solid"
                 size="sm"
-                class="rounded-xl px-4 font-bold"
+                class="rounded-xl px-2.5 sm:px-4 font-bold"
                 :loading="chatStatus === 'streaming'"
                 @click="handleSubmit"
               />
