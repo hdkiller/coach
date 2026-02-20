@@ -172,7 +172,7 @@
           </div>
 
           <!-- Row 2: Daily Fueling (Full width if enabled) -->
-          <div v-if="userStore.profile?.nutritionTrackingEnabled">
+          <div v-if="nutritionEnabled">
             <DashboardNutritionFuelingCard
               :nutrition="todayNutrition"
               :workouts="todayWorkouts"
@@ -393,6 +393,11 @@
   const recommendationStore = useRecommendationStore()
   const activityStore = useActivityStore()
   const checkinStore = useCheckinStore()
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
@@ -413,7 +418,7 @@
       activityStore.fetchRecentActivity(),
       fetchUpcomingWorkouts(),
       checkinStore.fetchToday(),
-      fetchTodayNutrition()
+      nutritionEnabled.value ? fetchTodayNutrition() : Promise.resolve()
     ])
 
     toast.add({
@@ -437,6 +442,12 @@
   const missingFields = computed(() => userStore.profile?.missingFields || [])
 
   async function fetchTodayNutrition() {
+    if (!nutritionEnabled.value) {
+      todayNutrition.value = null
+      nutritionSettings.value = null
+      loadingNutrition.value = false
+      return
+    }
     loadingNutrition.value = true
     try {
       const dateStr = formatDateUTC(getUserLocalDate(), 'yyyy-MM-dd')
@@ -499,7 +510,7 @@
           activityStore.fetchRecentActivity(),
           fetchUpcomingWorkouts(),
           checkinStore.fetchToday(),
-          fetchTodayNutrition()
+          nutritionEnabled.value ? fetchTodayNutrition() : Promise.resolve()
         ])
       }
     } finally {
@@ -518,7 +529,7 @@
           activityStore.fetchRecentActivity(),
           fetchUpcomingWorkouts(),
           checkinStore.fetchToday(),
-          fetchTodayNutrition()
+          nutritionEnabled.value ? fetchTodayNutrition() : Promise.resolve()
         ])
       }
     }

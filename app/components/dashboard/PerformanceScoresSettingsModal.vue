@@ -64,6 +64,11 @@
 
   const isOpen = defineModel<boolean>('open', { default: false })
   const userStore = useUserStore()
+  const nutritionEnabled = computed(
+    () =>
+      userStore.profile?.nutritionTrackingEnabled !== false &&
+      userStore.user?.nutritionTrackingEnabled !== false
+  )
 
   const defaultSettings = {
     showTrends: true,
@@ -117,7 +122,7 @@
     { deep: true }
   )
 
-  const scoreOptions = [
+  const baseScoreOptions = [
     { key: 'currentFitness', label: 'Current Fitness' },
     { key: 'recoveryCapacity', label: 'Recovery Capacity' },
     { key: 'nutritionCompliance', label: 'Nutrition Quality' },
@@ -127,6 +132,12 @@
     { key: 'tsb', label: 'TSB (Form)' },
     { key: 'avgTss', label: 'Avg TSS' }
   ] as const
+
+  const scoreOptions = computed(() => {
+    return baseScoreOptions.filter((option) =>
+      option.key === 'nutritionCompliance' ? nutritionEnabled.value : true
+    )
+  })
 
   function resetDefaults() {
     settings.value = JSON.parse(JSON.stringify(defaultSettings))
