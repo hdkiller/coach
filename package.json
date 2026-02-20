@@ -129,6 +129,7 @@
     "cli": "tsx ./cli/index.ts",
     "cw:cli": "tsx cli/index.ts",
     "cw:cli:nutrition:day-log": "tsx cli/index.ts nutrition day-log",
+    "cw:cli:nutrition:review-glycogen": "tsx cli/index.ts nutrition review-glycogen",
     "cw:cli:nutrition:debug": "tsx cli/index.ts nutrition debug-metabolic",
     "cw:cli:nutrition:metabolic": "tsx cli/index.ts nutrition metabolic",
     "cw:cli:fueling:debug": "tsx cli/index.ts nutrition chain",

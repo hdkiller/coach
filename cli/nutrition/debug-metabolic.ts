@@ -1,17 +1,53 @@
-import { Command } from 'commander'
+import { Command, Option } from 'commander'
 import { prisma } from '../../server/utils/db'
 import { metabolicService } from '../../server/utils/services/metabolicService'
 import { formatDateUTC } from '../../server/utils/date'
 import chalk from 'chalk'
+import { spawnSync } from 'node:child_process'
 
 const debugMetabolicCommand = new Command('debug-metabolic')
   .description('Debug nutrition metabolic chain hand-offs for a specific date')
   .argument('[email]', 'User email')
   .option('-d, --date <string>', 'Target date (YYYY-MM-DD)')
   .option('-t, --time <string>', 'Simulated current time (HH:mm)')
+  .option('--prod', 'Use production database')
   .option('--recalculate', 'Force recalculate the chain for this date')
+  .addOption(new Option('--_internal-prod').hideHelp())
   .action(async (email, options) => {
+    if (options.prod && !options._internalProd) {
+      const productionUrl = process.env.DATABASE_URL_PROD
+      if (!productionUrl) {
+        console.error(chalk.red('DATABASE_URL_PROD is not defined.'))
+        process.exitCode = 1
+        return
+      }
+
+      const args = ['-s', 'cw:cli', 'nutrition', 'debug-metabolic']
+      if (email) args.push(email)
+      if (options.date) args.push('-d', options.date)
+      if (options.time) args.push('-t', options.time)
+      if (options.recalculate) args.push('--recalculate')
+      args.push('--prod', '--_internal-prod')
+
+      const child = spawnSync('pnpm', args, {
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          DATABASE_URL: productionUrl
+        }
+      })
+
+      process.exitCode = child.status ?? 1
+      return
+    }
+
     try {
+      if (options.prod) {
+        console.log(chalk.yellow('Using PRODUCTION database.'))
+      } else {
+        console.log(chalk.blue('Using DEVELOPMENT database.'))
+      }
+
       let user
       if (email) {
         user = await prisma.user.findUnique({ where: { email } })
