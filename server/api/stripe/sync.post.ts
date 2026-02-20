@@ -4,12 +4,17 @@ import { stripe } from '../../utils/stripe'
 import type { SubscriptionStatus, SubscriptionTier } from '@prisma/client'
 import type Stripe from 'stripe'
 
-function mapStripeStatus(stripeStatus: Stripe.Subscription.Status): SubscriptionStatus {
-  switch (stripeStatus) {
+function mapStripeStatus(subscription: Stripe.Subscription): SubscriptionStatus {
+  if (subscription.cancel_at_period_end) {
+    return 'CANCELED'
+  }
+
+  switch (subscription.status) {
     case 'active':
     case 'trialing':
       return 'ACTIVE'
     case 'past_due':
+    case 'incomplete':
       return 'PAST_DUE'
     case 'canceled':
     case 'unpaid':
@@ -43,6 +48,10 @@ function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): Subscri
     config.stripeProAnnualEurPriceId
   ].filter(Boolean)
 
+  console.log(`[Sync] Resolving tier for priceId: ${priceId}, productId: ${productId}`)
+  console.log(`[Sync] Matches Supporter? ${priceId && supporterPriceIds.includes(priceId)}`)
+  console.log(`[Sync] Matches Pro? ${priceId && proPriceIds.includes(priceId)}`)
+
   if (priceId && supporterPriceIds.includes(priceId)) return 'SUPPORTER'
   if (priceId && proPriceIds.includes(priceId)) return 'PRO'
   if (productId === config.stripeSupporterProductId) return 'SUPPORTER'
@@ -74,29 +83,70 @@ export default defineEventHandler(async (event) => {
   const subscriptions = await stripe.subscriptions.list({
     customer: user.stripeCustomerId,
     status: 'all',
-    expand: ['data.items.data.price']
+    expand: ['data.items.data.price'],
+    limit: 20
   })
 
-  // Find the most "active" subscription (Active > PastDue > Canceled)
-  // And highest Tier (Pro > Supporter)
-  // For simplicity, just take the first 'active' one, or first 'trialing'
+  // Check for Subscription Schedules (Pending Changes)
+  const schedules = await stripe.subscriptionSchedules.list({
+    customer: user.stripeCustomerId,
+    limit: 1
+  })
 
-  const activeSub = subscriptions.data.find(
-    (sub) => sub.status === 'active' || sub.status === 'trialing'
+  let pendingTier: SubscriptionTier | null = null
+  let pendingDate: Date | null = null
+
+  if (schedules.data.length > 0) {
+    const schedule = schedules.data[0]
+    const nextPhase = schedule.phases.find((p) => p.start_date > Date.now() / 1000)
+    if (nextPhase && nextPhase.items.length > 0) {
+      // Create a dummy item to reuse getSubscriptionTier logic
+      const dummyItem = { price: { id: nextPhase.items[0].price } } as any
+      pendingTier = getSubscriptionTier(dummyItem)
+      pendingDate = new Date(nextPhase.start_date * 1000)
+      console.log(
+        `[Sync] Found pending ${pendingTier} change scheduled for ${pendingDate.toISOString()}`
+      )
+    }
+  }
+
+  console.log(
+    `[Sync] Found ${subscriptions.data.length} total subscriptions for user ${session.user.id}`
   )
+  subscriptions.data.forEach((sub) => {
+    console.log(
+      `[Sync] - Sub: ${sub.id}, Status: ${sub.status}, CancelAtEnd: ${sub.cancel_at_period_end}, Created: ${new Date(sub.created * 1000).toISOString()}`
+    )
+  })
+
+  // Sort by created date descending (newest first)
+  const sortedSubs = [...subscriptions.data].sort((a, b) => b.created - a.created)
+
+  // Find the most relevant subscription
+  // Priority: Active/Trialing > PastDue/Incomplete
+  const activeSub =
+    sortedSubs.find((sub) => sub.status === 'active' || sub.status === 'trialing') ||
+    sortedSubs.find((sub) => sub.status === 'past_due' || sub.status === 'incomplete')
 
   if (activeSub) {
     const tier = getSubscriptionTier(activeSub.items.data[0])
-    const status = mapStripeStatus(activeSub.status)
+    const status = mapStripeStatus(activeSub)
 
-    const periodEndTimestamp = activeSub.items.data[0]?.current_period_end
-    const periodEnd = periodEndTimestamp ? new Date(periodEndTimestamp * 1000) : null
+    const firstItem = activeSub.items.data[0]
+    const priceId = firstItem?.price?.id
+    const productId = getPriceProductId((firstItem?.price?.product as any) ?? null)
+    const periodEnd = activeSub.current_period_end
+      ? new Date(activeSub.current_period_end * 1000)
+      : null
     const startedAt = new Date(activeSub.created * 1000)
 
-    console.log(`Syncing subscription for user ${session.user.id}:`, {
-      subId: activeSub.id,
-      status: activeSub.status,
-      periodEndTimestamp,
+    console.log(`[Sync] Found subscription ${activeSub.id} for user ${session.user.id}:`, {
+      stripeStatus: activeSub.status,
+      internalStatus: status,
+      cancelAtPeriodEnd: activeSub.cancel_at_period_end,
+      tier,
+      priceId,
+      productId,
       periodEnd
     })
 
@@ -113,6 +163,8 @@ export default defineEventHandler(async (event) => {
         subscriptionTier: tier,
         subscriptionStatus: status,
         subscriptionPeriodEnd: periodEnd,
+        pendingSubscriptionTier: pendingTier,
+        pendingSubscriptionPeriodEnd: pendingDate,
         ...(currentUser?.subscriptionStartedAt ? {} : { subscriptionStartedAt: startedAt })
       }
     })

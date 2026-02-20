@@ -7,12 +7,17 @@ import { auditLogRepository } from '../../utils/repositories/auditLogRepository'
 /**
  * Map Stripe subscription status to internal status
  */
-function mapStripeStatus(stripeStatus: Stripe.Subscription.Status): SubscriptionStatus {
-  switch (stripeStatus) {
+function mapStripeStatus(subscription: Stripe.Subscription): SubscriptionStatus {
+  if (subscription.cancel_at_period_end) {
+    return 'CANCELED'
+  }
+
+  switch (subscription.status) {
     case 'active':
     case 'trialing':
       return 'ACTIVE'
     case 'past_due':
+    case 'incomplete':
       return 'PAST_DUE'
     case 'canceled':
     case 'unpaid':
@@ -48,6 +53,10 @@ function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): Subscri
     config.stripeProAnnualEurPriceId
   ].filter(Boolean)
 
+  console.log(`[Webhook] Resolving tier for priceId: ${priceId}, productId: ${productId}`)
+  console.log(`[Webhook] Matches Supporter? ${priceId && supporterPriceIds.includes(priceId)}`)
+  console.log(`[Webhook] Matches Pro? ${priceId && proPriceIds.includes(priceId)}`)
+
   if (priceId && supporterPriceIds.includes(priceId)) {
     return 'SUPPORTER'
   }
@@ -55,10 +64,10 @@ function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): Subscri
     return 'PRO'
   }
 
-  if (productId === config.stripeSupporterProductId) {
+  if (productId && productId === config.stripeSupporterProductId) {
     return 'SUPPORTER'
   }
-  if (productId === config.stripeProProductId) {
+  if (productId && productId === config.stripeProProductId) {
     return 'PRO'
   }
 
@@ -84,7 +93,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     getPriceProductId((firstItem.price.product as any) ?? null) || '(unknown-product)'
   console.log(`Resolved tier '${tier}' for price '${firstItem.price.id}' product '${productId}'`)
 
-  const status = mapStripeStatus(subscription.status)
+  const status = mapStripeStatus(subscription)
   const periodEndTimestamp = subscription.items.data[0]?.current_period_end
   const periodEnd = periodEndTimestamp ? new Date(periodEndTimestamp * 1000) : null
   const startedAt = new Date(subscription.created * 1000)

@@ -77,6 +77,8 @@ model User {
   subscriptionStartedAt              DateTime?
   subscriptionStatus                 SubscriptionStatus           @default(NONE)
   subscriptionTier                   SubscriptionTier             @default(FREE)
+  pendingSubscriptionTier            SubscriptionTier?
+  pendingSubscriptionPeriodEnd       DateTime?
   aiDeepAnalysisEnabled              Boolean                      @default(false)
   aiProactivityEnabled               Boolean                      @default(false)
   aiAutoAnalyzeReadiness             Boolean                      @default(false)
