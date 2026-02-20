@@ -160,11 +160,12 @@ export const workoutRepository = {
   /**
    * Get workouts that need AI analysis
    */
-  async getPendingAnalysis(userId: string) {
+  async getPendingAnalysis(userId: string, endDate?: Date) {
     return prisma.workout.findMany({
       where: {
         userId,
         isDuplicate: false,
+        date: endDate ? { lte: endDate } : undefined,
         OR: [
           { aiAnalysisStatus: null },
           { aiAnalysisStatus: 'NOT_STARTED' },

@@ -114,10 +114,11 @@ export const nutritionRepository = {
   /**
    * Get nutrition entries pending analysis
    */
-  async getPendingAnalysis(userId: string) {
+  async getPendingAnalysis(userId: string, endDate?: Date) {
     return prisma.nutrition.findMany({
       where: {
         userId,
+        date: endDate ? { lte: endDate } : undefined,
         OR: [
           { aiAnalysisStatus: null },
           { aiAnalysisStatus: 'NOT_STARTED' },

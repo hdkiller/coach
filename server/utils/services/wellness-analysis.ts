@@ -76,8 +76,6 @@ export async function triggerReadinessCheckIfNeeded(userId: string) {
 }
 
 export async function analyzeWellness(wellnessId: string, userId: string) {
-  // ... existing code ...
-
   // Fetch the wellness record
   const wellness = await prisma.wellness.findUnique({
     where: { id: wellnessId }
@@ -88,6 +86,40 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
   }
 
   try {
+    const timezone = await getUserTimezone(userId)
+    const today = getUserLocalDate(timezone)
+
+    // 1. Skip if future date
+    if (wellness.date > today) {
+      console.log(
+        `[WellnessAnalysis] Skipping analysis for future date ${wellness.date.toISOString()} (today is ${today.toISOString()})`
+      )
+      await prisma.wellness.update({
+        where: { id: wellnessId },
+        data: { aiAnalysisStatus: 'NOT_STARTED' }
+      })
+      return { success: true, skipped: true, reason: 'FUTURE_DATE' }
+    }
+
+    // 2. Check for data presence (HRV, RHR, Sleep, or Readiness)
+    const hasData =
+      wellness.hrv !== null ||
+      wellness.restingHr !== null ||
+      wellness.sleepHours !== null ||
+      wellness.recoveryScore !== null ||
+      wellness.readiness !== null
+
+    if (!hasData) {
+      console.log(
+        `[WellnessAnalysis] Skipping analysis for empty record on ${wellness.date.toISOString()}`
+      )
+      await prisma.wellness.update({
+        where: { id: wellnessId },
+        data: { aiAnalysisStatus: 'SKIPPED_EMPTY' }
+      })
+      return { success: true, skipped: true, reason: 'EMPTY_RECORD' }
+    }
+
     const aiSettings = await getUserAiSettings(userId)
 
     // Fetch 30-day history for context
