@@ -30,7 +30,7 @@ export const getToolsWithContext = (
     ...recommendationTools(userId, timezone),
     ...analysisTools(userId, timezone, settings),
     ...profileTools(userId, timezone, settings),
-    ...supportTools(userId, chatRoomId),
+    ...supportTools(userId, chatRoomId, settings),
     ...mathTools(),
     ...metricTools(userId, timezone),
     ...conditionalNutritionTools,
