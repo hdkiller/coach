@@ -1,13 +1,21 @@
 import { config } from '@vue-email/compiler'
 import { resolve } from 'path'
 import fs from 'fs'
+import { getInternalApiToken } from '../../utils/internal-api-token'
 
 /**
  * Internal API to render Vue email templates to HTML/Text.
  */
 export default defineEventHandler(async (event) => {
-  // TEMPORARY: auth disabled to unblock production email pipeline troubleshooting.
-  // Re-enable token verification after env var alignment is fixed.
+  const internalToken = getInternalApiToken()
+  const incomingToken = getRequestHeader(event, 'x-internal-api-token')
+
+  if (!internalToken || incomingToken !== internalToken) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized'
+    })
+  }
 
   const body = await readBody(event)
 
