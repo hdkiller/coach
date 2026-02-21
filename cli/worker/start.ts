@@ -5,6 +5,7 @@ import chalk from 'chalk'
 import { IntervalsService } from '../../server/utils/services/intervalsService'
 import { WhoopService } from '../../server/utils/services/whoopService'
 import { OuraService } from '../../server/utils/services/ouraService'
+import { ResendService } from '../../server/utils/services/resendService'
 import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webhook-logger'
 import { prisma } from '../../server/utils/db'
 import { webhookQueue, pingQueue } from '../../server/utils/queue'
@@ -336,6 +337,27 @@ export const startCommand = new Command('start')
             return { handled: true }
           } catch (error: any) {
             console.error(chalk.red(`[PolarJob ${job.id}] Failed:`), error)
+            if (logId) await updateWebhookStatus(logId, 'FAILED', error.message || 'Unknown error')
+            throw error
+          }
+        }
+
+        if (provider === 'resend') {
+          const { type, data, createdAt, logId } = job.data
+
+          console.log(
+            chalk.cyan(`[ResendJob ${job.id}]`) +
+              ` Processing Resend event ${type} (LogID: ${logId})`
+          )
+
+          try {
+            const result = await ResendService.processWebhookEvent(type, data, createdAt)
+
+            console.log(chalk.green(`[ResendJob ${job.id}] Completed: ${result.message}`))
+            if (logId) await updateWebhookStatus(logId, 'PROCESSED', result.message)
+            return result
+          } catch (error: any) {
+            console.error(chalk.red(`[ResendJob ${job.id}] Failed:`), error)
             if (logId) await updateWebhookStatus(logId, 'FAILED', error.message || 'Unknown error')
             throw error
           }
