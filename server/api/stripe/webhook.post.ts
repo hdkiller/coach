@@ -3,6 +3,7 @@ import type { SubscriptionStatus, SubscriptionTier } from '@prisma/client'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { auditLogRepository } from '../../utils/repositories/auditLogRepository'
+import { tasks } from '@trigger.dev/sdk/v3'
 
 /**
  * Map Stripe subscription status to internal status
@@ -112,6 +113,23 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
           where: { id: user.id },
           data: { subscriptionStartedAt: startedAt }
         })
+
+        try {
+          await tasks.trigger('send-email', {
+            userId: user.id,
+            templateKey: 'SubscriptionStarted',
+            eventKey: `SUBSCRIPTION_STARTED_${tier}`,
+            audience: 'TRANSACTIONAL',
+            subject: `Welcome to Coach Watts ${tier}!`,
+            props: {
+              name: user.name || 'Athlete',
+              tier,
+              unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://app.coachwatts.com'}/settings/profile`
+            }
+          })
+        } catch (error) {
+          console.error('Failed to trigger subscription email', error)
+        }
       }
     }
   }

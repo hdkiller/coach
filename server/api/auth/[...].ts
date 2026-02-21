@@ -139,8 +139,21 @@ export default NuxtAuthHandler({
         })
 
         console.log(`[Auth] New user ${user.id} trial set until ${trialEndsAt.toISOString()}`)
+
+        // Trigger Welcome Email
+        await tasks.trigger('send-email', {
+          userId: user.id,
+          templateKey: 'Welcome',
+          eventKey: 'USER_SIGNED_UP_FOLLOWUP',
+          audience: 'ENGAGEMENT',
+          subject: 'Welcome to Coach Watts!',
+          props: {
+            name: user.name || 'Athlete',
+            unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://app.coachwatts.com'}/settings/profile`
+          }
+        })
       } catch (error) {
-        console.error('[Auth] Failed to set user trial period:', error)
+        console.error('[Auth] Failed to set user trial period or send welcome email:', error)
       }
     },
     async linkAccount({ user, account }: any) {
