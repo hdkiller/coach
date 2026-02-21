@@ -175,6 +175,11 @@ export function countPlannedWorkoutsWithMissingStartTime(workouts: any[]): numbe
   )
 }
 
+export function getPlannedWorkoutsWithMissingStartTime(workouts: any[]): any[] {
+  if (!Array.isArray(workouts) || workouts.length === 0) return []
+  return workouts.filter(hasMissingPlannedWorkoutStartTime)
+}
+
 /**
  * Maps nutrition record and planned workouts to a unified timeline.
  * Relies on server-provided fuelingPlan for windows and targets.

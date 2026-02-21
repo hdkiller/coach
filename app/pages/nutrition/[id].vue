@@ -260,14 +260,42 @@
 
             <div class="px-1">
               <UAlert
-                v-if="missingPlannedStartTimeCount > 0"
+                v-if="missingPlannedStartActivities.length > 0"
                 class="mt-4"
                 color="warning"
                 variant="soft"
                 icon="i-heroicons-exclamation-triangle"
                 title="Planned activity missing start time"
-                :description="missingStartTimeWarning"
-              />
+              >
+                <template #description>
+                  <span v-if="missingPlannedStartActivities.length === 1">
+                    The following planned activity is missing a start time:
+                    <NuxtLink
+                      :to="`/workouts/planned/${missingPlannedStartActivities[0].id}`"
+                      class="font-bold underline hover:text-warning-600 transition-colors"
+                    >
+                      {{ missingPlannedStartActivities[0].title }}
+                    </NuxtLink>
+                  </span>
+                  <span v-else>
+                    The following {{ missingPlannedStartActivities.length }} planned activities are
+                    missing a start time:
+                    <template
+                      v-for="(activity, index) in missingPlannedStartActivities"
+                      :key="activity.id"
+                    >
+                      <NuxtLink
+                        :to="`/workouts/planned/${activity.id}`"
+                        class="font-bold underline hover:text-warning-600 transition-colors"
+                      >
+                        {{ activity.title }}
+                      </NuxtLink>
+                      <span v-if="index < missingPlannedStartActivities.length - 1">, </span>
+                    </template>
+                  </span>
+                  . They can appear at 00:00 and skew this metabolic horizon.
+                </template>
+              </UAlert>
             </div>
 
             <!-- Legend/Status -->
@@ -450,7 +478,7 @@
 <script setup lang="ts">
   import {
     mapNutritionToTimeline,
-    countPlannedWorkoutsWithMissingStartTime
+    getPlannedWorkoutsWithMissingStartTime
   } from '~/utils/nutrition-timeline'
   import { ABSORPTION_PROFILES, type AbsorptionType } from '~/utils/nutrition-absorption'
   import { addDays, format } from 'date-fns'
@@ -583,8 +611,8 @@
     return nutrition.value?.energyPoints || []
   })
 
-  const missingPlannedStartTimeCount = computed(() =>
-    countPlannedWorkoutsWithMissingStartTime(workouts.value)
+  const missingPlannedStartActivities = computed(() =>
+    getPlannedWorkoutsWithMissingStartTime(workouts.value)
   )
 
   // Metabolic Ghost Line - Fetched from server
@@ -673,9 +701,16 @@
   })
 
   const missingStartTimeWarning = computed(() => {
-    const count = missingPlannedStartTimeCount.value
-    if (!count) return ''
-    return `${count} planned ${count === 1 ? 'activity is' : 'activities are'} missing a start time. They can appear at 00:00 and skew this energy projection.`
+    const activities = missingPlannedStartActivities.value
+    if (!activities.length) return ''
+
+    const count = activities.length
+    if (count === 1) {
+      return `The following planned activity is missing a start time: ${activities[0].title}. They can appear at 00:00 and skew this metabolic horizon.`
+    }
+
+    const titles = activities.map((a) => a.title).join(', ')
+    return `The following ${count} planned activities are missing a start time: ${titles}. They can appear at 00:00 and skew this metabolic horizon.`
   })
 
   // Data Fetching

@@ -143,14 +143,42 @@
                   </ClientOnly>
 
                   <UAlert
-                    v-if="missingPlannedStartTimeCount > 0"
+                    v-if="missingPlannedStartActivities.length > 0"
                     class="mt-4"
                     color="warning"
                     variant="soft"
                     icon="i-heroicons-exclamation-triangle"
                     title="Planned activity missing start time"
-                    :description="missingStartTimeWarning"
-                  />
+                  >
+                    <template #description>
+                      <span v-if="missingPlannedStartActivities.length === 1">
+                        The following planned activity is missing a start time:
+                        <NuxtLink
+                          :to="`/workouts/planned/${missingPlannedStartActivities[0].id}`"
+                          class="font-bold underline hover:text-warning-600 transition-colors"
+                        >
+                          {{ missingPlannedStartActivities[0].title }}
+                        </NuxtLink>
+                      </span>
+                      <span v-else>
+                        The following {{ missingPlannedStartActivities.length }} planned activities
+                        are missing a start time:
+                        <template
+                          v-for="(activity, index) in missingPlannedStartActivities"
+                          :key="activity.id"
+                        >
+                          <NuxtLink
+                            :to="`/workouts/planned/${activity.id}`"
+                            class="font-bold underline hover:text-warning-600 transition-colors"
+                          >
+                            {{ activity.title }}
+                          </NuxtLink>
+                          <span v-if="index < missingPlannedStartActivities.length - 1">, </span>
+                        </template>
+                      </span>
+                      . They can appear at 00:00 and skew this metabolic horizon.
+                    </template>
+                  </UAlert>
                 </UCard>
 
                 <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }">
@@ -405,7 +433,7 @@
 
 <script setup lang="ts">
   import { format, parseISO, addDays, startOfWeek, subDays, isSameWeek } from 'date-fns'
-  import { countPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
+  import { getPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
   import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
   import NutritionHorizonSettingsModal from '~/components/nutrition/NutritionHorizonSettingsModal.vue'
 
@@ -451,7 +479,7 @@
   const upcomingPlan = ref<any>(null)
   const showGroceryList = ref(false)
   const highlightedDate = ref<string | null>(null)
-  const missingPlannedStartTimeCount = ref(0)
+  const missingPlannedStartActivities = ref<any[]>([])
 
   const isHorizonSettingsModalOpen = ref(false)
 
@@ -523,12 +551,6 @@
     () => loadingWave.value || loadingStrategy.value || loadingActiveFeed.value
   )
 
-  const missingStartTimeWarning = computed(() => {
-    const count = missingPlannedStartTimeCount.value
-    if (!count) return ''
-    return `${count} planned ${count === 1 ? 'activity is' : 'activities are'} missing a start time. They can appear at 00:00 and skew this metabolic horizon.`
-  })
-
   function getWaveDateRange() {
     const dateKeys = wavePoints.value
       .map((p: any) => p?.dateKey)
@@ -554,12 +576,10 @@
       const activities = await $fetch<any[]>('/api/calendar', {
         query: { startDate, endDate }
       })
-      missingPlannedStartTimeCount.value = countPlannedWorkoutsWithMissingStartTime(
-        activities || []
-      )
+      missingPlannedStartActivities.value = getPlannedWorkoutsWithMissingStartTime(activities || [])
     } catch (error) {
       console.error('Failed to evaluate planned workouts without start time:', error)
-      missingPlannedStartTimeCount.value = 0
+      missingPlannedStartActivities.value = []
     }
   }
 
@@ -586,7 +606,7 @@
         wavePoints.value = []
         journeyEvents.value = []
         waveWorkouts.value = []
-        missingPlannedStartTimeCount.value = 0
+        missingPlannedStartActivities.value = []
       }
 
       if (strategyRes.status === 'fulfilled') {
