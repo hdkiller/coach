@@ -20,3 +20,10 @@ This file tracks ongoing project state, active blockers, and recent architectura
 - **System Messages**: See `docs/02-features/system-messages.md`.
 - **Chat Development**: See `docs/04-guides/chat-development.md`.
 - **Timezone Handling**: See `docs/04-guides/timezone-handling.md`.
+
+### Critical Prisma Workflow (DO NOT IGNORE)
+
+- **NEVER use `prisma db push`**. It breaks migration history and causes schema drift.
+- **NEVER use `prisma migrate reset`** on the local database unless explicitly told by the user. It destroys data.
+- **Mandatory Migrations**: Whenever you modify `prisma/schema.prisma`, you MUST immediately create a migration file using `npx prisma migrate dev --name <descriptive_name>`. Do not commit schema changes without the corresponding `prisma/migrations` folder update.
+- **Handling Schema Drift**: If `migrate dev` prompts to reset the database due to drift (e.g. "We need to reset the public schema"), **CANCEL IT**. You must resolve the drift manually by generating the SQL, creating a migration folder, and using `npx prisma migrate resolve --applied <name>` followed by `npx prisma migrate deploy`.

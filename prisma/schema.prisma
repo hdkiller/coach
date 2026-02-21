@@ -171,18 +171,18 @@ model SportSettings {
 }
 
 model SystemMessage {
-  id         String                       @id @default(uuid())
-  title      String
-  content    String
-  type       String                       @default("INFO")
-  isActive   Boolean                      @default(true)
-  targetUrl  String?
-  actionLabel String?
-  expiresAt  DateTime?
-  minUserAgeDays Int                      @default(0)
-  createdAt  DateTime                     @default(now())
-  updatedAt  DateTime                     @updatedAt
-  dismissals UserSystemMessageDismissal[]
+  id             String                       @id @default(uuid())
+  title          String
+  content        String
+  type           String                       @default("INFO")
+  isActive       Boolean                      @default(true)
+  targetUrl      String?
+  actionLabel    String?
+  expiresAt      DateTime?
+  minUserAgeDays Int                          @default(0)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+  dismissals     UserSystemMessageDismissal[]
 }
 
 model UserSystemMessageDismissal {
@@ -198,24 +198,24 @@ model UserSystemMessageDismissal {
 }
 
 model OAuthApp {
-  id           String          @id @default(uuid())
-  name         String
-  description  String?
-  homepageUrl  String?
-  logoUrl      String?
-  clientId     String          @unique @default(dbgenerated("gen_random_uuid()"))
-  clientSecret String
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  homepageUrl   String?
+  logoUrl       String?
+  clientId      String          @unique @default(dbgenerated("gen_random_uuid()"))
+  clientSecret  String
   webhookSecret String?
-  redirectUris String[]
-  isTrusted    Boolean         @default(false)
-  isPublic     Boolean         @default(false)
-  ownerId      String
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  owner        User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  codes        OAuthAuthCode[]
-  consents     OAuthConsent[]
-  tokens       OAuthToken[]
+  redirectUris  String[]
+  isTrusted     Boolean         @default(false)
+  isPublic      Boolean         @default(false)
+  ownerId       String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  codes         OAuthAuthCode[]
+  consents      OAuthConsent[]
+  tokens        OAuthToken[]
 
   @@index([ownerId])
 }
@@ -783,7 +783,7 @@ model Wellness {
   feedbackText     String?
   history          Json?
   lastSource       String?
-  tags             String?   // Comma-separated tags (e.g. "Alcohol", "Sick")
+  tags             String? // Comma-separated tags (e.g. "Alcohol", "Sick")
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
@@ -846,43 +846,43 @@ model Nutrition {
 }
 
 model UserNutritionSettings {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
-  bmr                Int?
-  activityLevel      String?
-  baseProteinPerKg   Float    @default(1.6)
-  baseFatPerKg       Float    @default(1.0)
-  currentCarbMax     Int      @default(60)
-  ultimateCarbGoal   Int      @default(90)
-  sweatRate          Float?
-  sodiumTarget       Int      @default(750)
-  preWorkoutWindow   Int      @default(120)
-  postWorkoutWindow  Int      @default(60)
-  carbsPerHourLow    Int      @default(30)
-  carbsPerHourMedium Int      @default(60)
-  carbsPerHourHigh   Int      @default(90)
-  carbScalingFactor  Float    @default(1.0)
-  fuelingSensitivity Float    @default(1.0)
-  fuelState1Trigger  Float    @default(0.60)
-  fuelState1Min      Float    @default(3.0)
-  fuelState1Max      Float    @default(4.5)
-  fuelState2Trigger  Float    @default(0.85)
-  fuelState2Min      Float    @default(5.0)
-  fuelState2Max      Float    @default(7.5)
-  fuelState3Min      Float    @default(8.0)
-  fuelState3Max      Float    @default(12.0)
-  metabolicFloor     Float    @default(0.60)
-  enabledSupplements String[] @default([])
-  goalProfile           String   @default("MAINTAIN")
+  id                      String   @id @default(uuid())
+  userId                  String   @unique
+  bmr                     Int?
+  activityLevel           String?
+  baseProteinPerKg        Float    @default(1.6)
+  baseFatPerKg            Float    @default(1.0)
+  currentCarbMax          Int      @default(60)
+  ultimateCarbGoal        Int      @default(90)
+  sweatRate               Float?
+  sodiumTarget            Int      @default(750)
+  preWorkoutWindow        Int      @default(120)
+  postWorkoutWindow       Int      @default(60)
+  carbsPerHourLow         Int      @default(30)
+  carbsPerHourMedium      Int      @default(60)
+  carbsPerHourHigh        Int      @default(90)
+  carbScalingFactor       Float    @default(1.0)
+  fuelingSensitivity      Float    @default(1.0)
+  fuelState1Trigger       Float    @default(0.60)
+  fuelState1Min           Float    @default(3.0)
+  fuelState1Max           Float    @default(4.5)
+  fuelState2Trigger       Float    @default(0.85)
+  fuelState2Min           Float    @default(5.0)
+  fuelState2Max           Float    @default(7.5)
+  fuelState3Min           Float    @default(8.0)
+  fuelState3Max           Float    @default(12.0)
+  metabolicFloor          Float    @default(0.60)
+  enabledSupplements      String[] @default([])
+  goalProfile             String   @default("MAINTAIN")
   targetAdjustmentPercent Float    @default(0.0)
-  mealPattern           Json?
-  dietaryProfile        String[] @default([])
-  foodAllergies         String[] @default([])
-  foodIntolerances      String[] @default([])
-  lifestyleExclusions   String[] @default([])
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPattern             Json?
+  dietaryProfile          String[] @default([])
+  foodAllergies           String[] @default([])
+  foodIntolerances        String[] @default([])
+  lifestyleExclusions     String[] @default([])
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model YazioProductCache {
@@ -1002,18 +1002,18 @@ model ActivityRecommendation {
 }
 
 model NutritionRecommendation {
-  id           String   @id @default(uuid())
-  userId       String
-  date         DateTime @db.Date
-  scope        String   // 'MEAL' | 'DAY'
-  windowType   String?  // 'PRE_WORKOUT' | 'INTRA_WORKOUT' | 'POST_WORKOUT' | 'DAILY_BASE'
-  status       String   @default("PENDING") // 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
-  contextJson  Json     // target + constraints snapshot
-  resultJson   Json?    // recommendation options
-  runId        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  userId      String
+  date        DateTime @db.Date
+  scope       String // 'MEAL' | 'DAY'
+  windowType  String? // 'PRE_WORKOUT' | 'INTRA_WORKOUT' | 'POST_WORKOUT' | 'DAILY_BASE'
+  status      String   @default("PENDING") // 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+  contextJson Json // target + constraints snapshot
+  resultJson  Json? // recommendation options
+  runId       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
   @@index([status])
@@ -1036,18 +1036,18 @@ model NutritionPlan {
 }
 
 model NutritionPlanMeal {
-  id                     String        @id @default(uuid())
-  planId                 String
-  date                   DateTime      @db.Date
-  windowType             String
-  scheduledAt            DateTime
-  status                 String        @default("PLANNED") // 'PLANNED' | 'DONE' | 'SKIPPED' | 'REPLACED'
-  targetJson             Json          // macro target snapshot
-  mealJson               Json          // selected option, ingredients, portions, absorption type
-  actualNutritionItemId  String?
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  plan                   NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  id                    String        @id @default(uuid())
+  planId                String
+  date                  DateTime      @db.Date
+  windowType            String
+  scheduledAt           DateTime
+  status                String        @default("PLANNED") // 'PLANNED' | 'DONE' | 'SKIPPED' | 'REPLACED'
+  targetJson            Json // macro target snapshot
+  mealJson              Json // selected option, ingredients, portions, absorption type
+  actualNutritionItemId String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  plan                  NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([planId, date, windowType])
   @@index([planId, date])
@@ -1056,12 +1056,12 @@ model NutritionPlanMeal {
 model MealOptionCatalog {
   id             String   @id @default(uuid())
   title          String
-  windowType     String   // 'PRE' | 'INTRA' | 'POST' | 'BASE'
-  absorptionType String   // 'RAPID' | 'BALANCED' | 'COMPLEX'
+  windowType     String // 'PRE' | 'INTRA' | 'POST' | 'BASE'
+  absorptionType String // 'RAPID' | 'BALANCED' | 'COMPLEX'
   dietaryBuckets String[] // 'VEGAN', 'GLUTEN_FREE', etc.
-  baseMacros     Json     // { carbs, protein, fat, kcal }
-  keyIngredient  String   // The primary carb source for scaling
-  ingredients    Json     // List of items with quantity, unit, isScalable
+  baseMacros     Json // { carbs, protein, fat, kcal }
+  keyIngredient  String // The primary carb source for scaling
+  ingredients    Json // List of items with quantity, unit, isScalable
   prepMinutes    Int
   constraintTags String[] // 'low-fodmap', 'no-nuts', etc.
   source         String   @default("SYSTEM") // 'SYSTEM' | 'LLM'
@@ -1156,7 +1156,7 @@ model TrainingAvailability {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   bikeAccess     Boolean  @default(false)
-  slots          Json?    // Detailed slot-specific availability
+  slots          Json? // Detailed slot-specific availability
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, dayOfWeek])
@@ -1413,30 +1413,30 @@ model WebhookLog {
 }
 
 model LlmAnalysisLevelSettings {
-  id               String   @id @default(uuid())
-  level            String   @unique // 'flash', 'pro', 'experimental'
-  model            String   @default("flash") // flash/pro family
-  modelId          String   @default("gemini-2.5-flash") // exact ID
-  thinkingBudget   Int      @default(2000)
-  thinkingLevel    String   @default("low")
-  maxSteps         Int      @default(3)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  overrides        LlmOperationOverride[]
+  id             String                 @id @default(uuid())
+  level          String                 @unique // 'flash', 'pro', 'experimental'
+  model          String                 @default("flash") // flash/pro family
+  modelId        String                 @default("gemini-2.5-flash") // exact ID
+  thinkingBudget Int                    @default(2000)
+  thinkingLevel  String                 @default("low")
+  maxSteps       Int                    @default(3)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  overrides      LlmOperationOverride[]
 }
 
 model LlmOperationOverride {
-  id                       String   @id @default(uuid())
-  analysisLevelSettingsId  String
-  operation                String
-  model                    String?
-  modelId                  String?
-  thinkingBudget           Int?
-  thinkingLevel            String?
-  maxSteps                 Int?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
-  analysisLevelSettings     LlmAnalysisLevelSettings @relation(fields: [analysisLevelSettingsId], references: [id], onDelete: Cascade)
+  id                      String                   @id @default(uuid())
+  analysisLevelSettingsId String
+  operation               String
+  model                   String?
+  modelId                 String?
+  thinkingBudget          Int?
+  thinkingLevel           String?
+  maxSteps                Int?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  analysisLevelSettings   LlmAnalysisLevelSettings @relation(fields: [analysisLevelSettingsId], references: [id], onDelete: Cascade)
 
   @@unique([analysisLevelSettingsId, operation])
 }
@@ -1479,18 +1479,24 @@ model BugReport {
 }
 
 model BugReportComment {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   bugReportId String
   userId      String
   content     String
-  isAdmin     Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isAdmin     Boolean     @default(false)
+  type        CommentType @default(MESSAGE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  bugReport   BugReport   @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([bugReportId])
   @@index([userId])
+}
+
+enum CommentType {
+  NOTE
+  MESSAGE
 }
 
 enum BugStatus {
@@ -1502,16 +1508,16 @@ enum BugStatus {
 }
 
 model UserNotification {
-  id          String   @id @default(uuid())
-  userId      String
-  title       String
-  message     String
-  icon        String?
-  link        String?
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  icon      String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([read])
@@ -1526,7 +1532,7 @@ model AthleteJourneyEvent {
   category           JourneyEventCategory
   severity           Int                  @default(5)
   description        String?
-  metabolicSnapshot  Json?                // Stores E_bal, Fluid_debt, and Carb_rate at the time of the event
+  metabolicSnapshot  Json? // Stores E_bal, Fluid_debt, and Carb_rate at the time of the event
   suspectedTriggerId String?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
