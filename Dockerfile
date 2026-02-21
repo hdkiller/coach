@@ -31,6 +31,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/.output ./.output
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/app/emails ./app/emails
 COPY --from=builder /app/cli ./cli
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/trigger ./trigger
