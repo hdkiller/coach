@@ -1,9 +1,12 @@
 import { task, logger } from '@trigger.dev/sdk/v3'
-import type { EmailAudience } from '@prisma/client'
+import type { EmailAudience, EmailDeliveryStatus } from '@prisma/client'
 import { prisma } from '../server/utils/db'
 import { emailQueue } from './queues'
 import { generateUnsubscribeToken } from '../server/utils/unsubscribe-token'
-import { getEmailTemplateDefinition } from '../server/utils/email-template-registry'
+import {
+  EMAIL_TEMPLATE_REGISTRY,
+  getEmailTemplateDefinition
+} from '../server/utils/email-template-registry'
 
 export const sendEmailTask = task({
   id: 'send-email',
@@ -64,6 +67,44 @@ export const sendEmailTask = task({
         logger.log('EXIT: User has disabled this email category.', {
           templateKey,
           preferenceKey: template.preferenceKey
+        })
+        return
+      }
+    }
+
+    if (template?.cooldownHours && template.cooldownHours > 0) {
+      const throttleKeys = Object.values(EMAIL_TEMPLATE_REGISTRY)
+        .filter((entry) => entry.throttleGroup && entry.throttleGroup === template.throttleGroup)
+        .map((entry) => entry.templateKey)
+      const throttleTemplateKeys = throttleKeys.length > 0 ? throttleKeys : [templateKey]
+      const lookbackFrom = new Date(Date.now() - template.cooldownHours * 60 * 60 * 1000)
+      const activeStatuses: EmailDeliveryStatus[] = [
+        'QUEUED',
+        'SENDING',
+        'SENT',
+        'DELIVERED',
+        'OPENED',
+        'CLICKED'
+      ]
+
+      const recentDelivery = await prisma.emailDelivery.findFirst({
+        where: {
+          userId,
+          templateKey: { in: throttleTemplateKeys },
+          createdAt: { gte: lookbackFrom },
+          status: { in: activeStatuses }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+
+      if (recentDelivery) {
+        logger.log('EXIT: Cooldown active, skipping email', {
+          userId,
+          templateKey,
+          throttleGroup: template.throttleGroup,
+          cooldownHours: template.cooldownHours,
+          recentDeliveryId: recentDelivery.id,
+          recentCreatedAt: recentDelivery.createdAt
         })
         return
       }

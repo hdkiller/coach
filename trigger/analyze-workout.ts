@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateCoachAnalysis, generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
@@ -14,6 +14,7 @@ import {
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { publishWorkoutSummaryToIntervals } from '../server/utils/services/workout-summary-publish'
+import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import {
   buildAnalysisRequestMetricRules,
   buildMetricPriorityPromptBlock,
@@ -432,34 +433,46 @@ export const analyzeWorkoutTask = task({
         })
       }
 
-      // TRIGGER EMAIL (Only if AUTOMATIC and preferences allow)
+      // Trigger enriched workout insight email after AI analysis.
       if (
         source === 'AUTOMATIC' &&
         emailPrefs &&
         emailPrefs.workoutAnalysis &&
         !emailPrefs.globalUnsubscribe
       ) {
-        logger.log('Triggering workout analysis email')
+        logger.log('Triggering enriched workout insight email')
         try {
-          const fullUser = await prisma.user.findUnique({
-            where: { id: workout.userId },
-            select: { name: true, email: true }
+          const planAdherence = await prisma.planAdherence.findUnique({
+            where: { workoutId },
+            select: { overallScore: true, summary: true, analysisStatus: true }
           })
-          if (fullUser) {
-            await tasks.trigger('send-email', {
-              userId: workout.userId,
-              templateKey: 'WorkoutAnalysisReady',
-              eventKey: `WORKOUT_ANALYSIS_READY_${workoutId}`,
-              audience: 'ENGAGEMENT',
-              subject: `Workout Analysis Ready: ${workout.title}`,
-              props: {
-                name: fullUser.name || 'Athlete',
-                workoutTitle: workout.title,
-                overallScore: structuredAnalysis.scores?.overall,
-                unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
-              }
+
+          const recommendationHighlights = (structuredAnalysis.recommendations || [])
+            .slice(0, 3)
+            .map((rec) => {
+              if (rec.title && rec.description) return `${rec.title}: ${rec.description}`
+              return rec.title || rec.description
             })
-          }
+            .filter((value): value is string => Boolean(value))
+
+          const adherenceSummary =
+            planAdherence?.analysisStatus === 'COMPLETED'
+              ? planAdherence.summary || undefined
+              : undefined
+          const adherenceScore =
+            planAdherence?.analysisStatus === 'COMPLETED'
+              ? planAdherence.overallScore || undefined
+              : undefined
+
+          await queueWorkoutInsightEmail({
+            workoutId,
+            triggerType: 'on-analysis-ready',
+            overallScore: structuredAnalysis.scores?.overall,
+            analysisSummary: structuredAnalysis.executive_summary,
+            recommendationHighlights,
+            adherenceSummary,
+            adherenceScore
+          })
         } catch (emailError) {
           logger.warn('Failed to trigger workout analysis email', { workoutId, error: emailError })
         }

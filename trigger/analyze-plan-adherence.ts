@@ -3,6 +3,7 @@ import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
+import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 
 const adherenceSchema = {
   type: 'object',
@@ -155,6 +156,17 @@ export const analyzePlanAdherenceTask = task({
           modelVersion: 'gemini-2.0-flash'
         }
       })
+
+      try {
+        await queueWorkoutInsightEmail({
+          workoutId,
+          triggerType: 'on-adherence-ready',
+          adherenceSummary: analysis.summary,
+          adherenceScore: analysis.overallScore
+        })
+      } catch (emailError) {
+        logger.warn('Failed to trigger adherence insight email', { workoutId, error: emailError })
+      }
 
       return { success: true, workoutId }
     } catch (error: any) {
