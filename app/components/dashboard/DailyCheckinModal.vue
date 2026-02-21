@@ -2,7 +2,7 @@
   <UModal
     v-model:open="isOpen"
     title="Daily Coach Check-In"
-    description="Dialog content and actions."
+    description="Answer a few quick questions so your coach can adapt today's guidance."
   >
     <template #body>
       <div class="space-y-4">
@@ -209,6 +209,7 @@
   const userNotes = ref('')
   const localQuestions = ref<any[]>([])
   const expandedQuestions = ref<Set<string>>(new Set())
+  const upgradeModal = useUpgradeModal()
 
   const {
     message: currentLoadingMessage,
@@ -361,7 +362,20 @@
 
       refreshRuns()
     } catch (e: any) {
-      error.value = e.message
+      const statusCode = e?.statusCode ?? e?.status
+      if (statusCode === 429) {
+        error.value =
+          'You have reached your Daily Coach Check-In quota for your current plan. Try again after your quota resets, or upgrade for more check-ins.'
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'Daily Coach Check-In',
+          featureDescription:
+            'You have reached the usage quota for Daily Coach Check-In on your current plan. Upgrade to Supporter or Pro for higher quotas.',
+          recommendedTier: 'supporter'
+        })
+      } else {
+        error.value = e?.data?.message || e?.message || 'Failed to generate check-in'
+      }
     } finally {
       loading.value = false
     }
