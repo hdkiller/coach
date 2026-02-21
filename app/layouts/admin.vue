@@ -224,6 +224,14 @@
       ]
     },
     {
+      label: 'Emails',
+      icon: 'i-heroicons-envelope',
+      to: '/admin/emails',
+      onSelect: () => {
+        isOpen.value = false
+      }
+    },
+    {
       label: 'System Messages',
       icon: 'i-heroicons-megaphone',
       to: '/admin/system-messages',

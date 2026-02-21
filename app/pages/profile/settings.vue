@@ -81,6 +81,8 @@
             @navigate="(tab) => (activeTab = tab)"
             @saved="refreshProfile"
           />
+
+          <ProfileCommunicationSettings v-if="activeTab === 'communication'" />
         </div>
       </div>
     </template>
@@ -91,6 +93,7 @@
   import ProfileBasicSettings from '~/components/profile/BasicSettings.vue'
   import ProfileSportSettings from '~/components/profile/SportSettings.vue'
   import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
+  import ProfileCommunicationSettings from '~/components/profile/CommunicationSettings.vue'
 
   const { data } = useAuth()
   const user = computed(() => data.value?.user)
@@ -104,7 +107,8 @@
     { id: 'basic', label: 'Basic Settings', icon: 'i-heroicons-user-circle' },
     { id: 'sports', label: 'Sport Settings', icon: 'i-heroicons-trophy' },
     { id: 'availability', label: 'Availability', icon: 'i-lucide-calendar-clock' },
-    { id: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-fire' }
+    { id: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-fire' },
+    { id: 'communication', label: 'Communication', icon: 'i-heroicons-envelope' }
   ]
 
   const route = useRoute()
