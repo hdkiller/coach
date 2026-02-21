@@ -40,9 +40,11 @@ describe('getUserAiSettings', () => {
         aiAutoAnalyzeWorkouts: true,
         aiAutoAnalyzeNutrition: true,
         aiAutoAnalyzeReadiness: true,
+        aiRequireToolApproval: true,
         aiContext: true,
         nickname: true,
-        nutritionTrackingEnabled: true
+        nutritionTrackingEnabled: true,
+        updateWorkoutNotesEnabled: true
       }
     })
 
@@ -52,9 +54,11 @@ describe('getUserAiSettings', () => {
       aiAutoAnalyzeWorkouts: true,
       aiAutoAnalyzeNutrition: true,
       aiAutoAnalyzeReadiness: true,
+      aiRequireToolApproval: false,
       aiContext: 'I have a sore knee.',
       nickname: undefined,
-      nutritionTrackingEnabled: true
+      nutritionTrackingEnabled: true,
+      updateWorkoutNotesEnabled: true
     })
   })
 
@@ -69,9 +73,11 @@ describe('getUserAiSettings', () => {
       aiAutoAnalyzeWorkouts: false,
       aiAutoAnalyzeNutrition: false,
       aiAutoAnalyzeReadiness: false,
+      aiRequireToolApproval: false,
       aiContext: null,
       nickname: null,
-      nutritionTrackingEnabled: true
+      nutritionTrackingEnabled: true,
+      updateWorkoutNotesEnabled: true
     })
   })
 
@@ -90,9 +96,11 @@ describe('getUserAiSettings', () => {
       aiAutoAnalyzeWorkouts: false,
       aiAutoAnalyzeNutrition: false,
       aiAutoAnalyzeReadiness: false,
+      aiRequireToolApproval: false,
       aiContext: undefined,
       nickname: undefined,
-      nutritionTrackingEnabled: true
+      nutritionTrackingEnabled: true,
+      updateWorkoutNotesEnabled: true
     })
   })
 })
