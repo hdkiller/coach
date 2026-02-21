@@ -24,8 +24,13 @@ describe('email templates', () => {
   it('WorkoutAnalysisReady snapshot + unsubscribe footer', async () => {
     const result = await render('WorkoutAnalysisReady.vue', {
       name: 'Alex Athlete',
+      workoutId: 'workout-1',
       workoutTitle: 'Threshold Intervals',
       overallScore: 8,
+      analysisSummary: 'Solid pacing with one late fade.',
+      recommendationHighlights: ['Start first interval 10W lower', 'Fuel earlier in warmup'],
+      adherenceSummary: 'You stayed close to planned duration and intensity.',
+      adherenceScore: 86,
       unsubscribeUrl: 'https://coachwatts.com/unsubscribe?token=test'
     })
 
@@ -50,6 +55,26 @@ describe('email templates', () => {
     const result = await render('SubscriptionStarted.vue', {
       name: 'Alex Athlete',
       tier: 'PRO',
+      unsubscribeUrl: 'https://coachwatts.com/unsubscribe?token=test'
+    })
+
+    expect(result.html).toMatchSnapshot()
+    expect(result.html).toContain('manage your email preferences')
+  })
+
+  it('WorkoutReceived snapshot + unsubscribe footer', async () => {
+    const result = await render('WorkoutReceived.vue', {
+      name: 'Alex Athlete',
+      workoutId: 'workout-1',
+      workoutTitle: 'Progression Run',
+      workoutDate: 'Saturday, Feb 21',
+      workoutType: 'Run',
+      durationMinutes: 48,
+      distanceKm: 10.2,
+      averageHr: 154,
+      averageWatts: 245,
+      tss: 62,
+      workoutUrl: 'https://coachwatts.com/workouts/workout-1',
       unsubscribeUrl: 'https://coachwatts.com/unsubscribe?token=test'
     })
 

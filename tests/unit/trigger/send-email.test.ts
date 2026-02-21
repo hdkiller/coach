@@ -12,7 +12,8 @@ vi.mock('../../../server/utils/db', () => ({
       findFirst: vi.fn()
     },
     emailDelivery: {
-      create: vi.fn()
+      create: vi.fn(),
+      findFirst: vi.fn()
     }
   }
 }))
@@ -68,6 +69,7 @@ describe('sendEmailTask', () => {
 
   it('should skip if email is suppressed', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
+    vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue({ id: 'sup-1' } as any)
 
     const result = await sendEmailTask.run(mockPayload, { ctx: {} } as any)
@@ -78,6 +80,7 @@ describe('sendEmailTask', () => {
 
   it('should queue email if user is found and not suppressed', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
+    vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailDelivery.create).mockResolvedValue({ id: 'delivery-1' } as any)
 
@@ -105,6 +108,7 @@ describe('sendEmailTask', () => {
 
   it('should handle idempotency key collision gracefully', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
+    vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
 
     const dbError = {
@@ -119,5 +123,21 @@ describe('sendEmailTask', () => {
 
     expect(result.skipped).toBe(true)
     expect(result.reason).toBe('Duplicate')
+  })
+
+  it('should skip when cooldown window has recent delivery', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
+    vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue({
+      id: 'delivery-recent',
+      createdAt: new Date()
+    } as any)
+
+    const result = await sendEmailTask.run(
+      { ...mockPayload, templateKey: 'WorkoutAnalysisReady' },
+      { ctx: {} } as any
+    )
+
+    expect(result).toBeUndefined()
+    expect(prisma.emailDelivery.create).not.toHaveBeenCalled()
   })
 })
