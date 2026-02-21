@@ -210,12 +210,11 @@ describe('WorkoutConverter', () => {
 
       const result = WorkoutConverter.toIntervalsICU(workout as any)
 
-      expect(result).toContain('- Mixed 400m 60% LTHR')
+      expect(result).toContain('- Mixed 400mtrs 60% LTHR')
       expect(result).toContain('4x')
-      expect(result).toContain(' - Hard 100m 90% Pace')
+      expect(result).toContain(' - Hard 100mtrs 90% Pace')
       expect(result).toContain(' - Rest 30s')
     })
-
     it('prioritizes Heart Rate when sportSettings loadPreference is hr', () => {
       const workout = {
         title: 'HR Focus',
