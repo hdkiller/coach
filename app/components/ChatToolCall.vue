@@ -89,7 +89,10 @@
     }
 
     const response = props.toolCall.response
-    if (!response) return 'No response'
+    if (!response) {
+      if (props.toolCall.status === 'success') return 'Operation completed'
+      return 'Operation completed'
+    }
 
     if (typeof response === 'string') {
       return response.length > 100 ? response.substring(0, 100) + '...' : response

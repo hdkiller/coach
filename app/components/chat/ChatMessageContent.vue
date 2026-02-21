@@ -93,6 +93,12 @@
   const getPartToolResponse = (part: any) => (part as any).result || (part as any).output
 
   const plannedWorkoutToolNames = new Set([
+    'create_planned_workout',
+    'update_planned_workout',
+    'reschedule_planned_workout',
+    'adjust_planned_workout',
+    'generate_planned_workout_structure',
+    'publish_planned_workout',
     'get_planned_workout_details',
     'get_planned_workout_structure',
     'set_planned_workout_structure',
@@ -113,8 +119,11 @@
     if (!(part.type === 'tool-invocation' || part.type?.startsWith('tool-'))) return false
     const toolName = getPartToolName(part)
     if (!plannedWorkoutToolNames.has(toolName)) return false
+    const args = getPartToolArgs(part)
     const response = getPartToolResponse(part)
-    return hasPlannedWorkoutStructure(response)
+    if (hasPlannedWorkoutStructure(response)) return true
+    if (toolName === 'create_planned_workout' && args?.date) return true
+    return Boolean(response?.workout_id || args?.workout_id)
   }
 
   const isUserMessage = computed(() => props.message?.role === 'user')

@@ -126,6 +126,36 @@
     }
   }
 
+  async function generateRoomNameAi(roomId: string) {
+    try {
+      toast.add({
+        title: 'Generating Name',
+        description: 'Analyzing conversation to suggest a new title...',
+        icon: 'i-heroicons-sparkles',
+        color: 'neutral'
+      })
+
+      await $fetch(`/api/chat/rooms/${roomId}/summarize`, {
+        method: 'POST',
+        body: { forceRename: true }
+      })
+
+      toast.add({
+        title: 'Naming Task Started',
+        description: 'The AI is generating a title in the background. It will update shortly.',
+        icon: 'i-heroicons-check-circle',
+        color: 'success'
+      })
+    } catch (error) {
+      console.error('Failed to trigger AI renaming:', error)
+      toast.add({
+        title: 'Error',
+        description: 'Failed to trigger AI renaming.',
+        color: 'error'
+      })
+    }
+  }
+
   const getDropdownItems = (room: any) => [
     [
       {
@@ -134,8 +164,13 @@
         onSelect: () => confirmRename(room)
       },
       {
-        label: 'Summarize & Optimize',
+        label: 'Generate AI Name',
         icon: 'i-heroicons-sparkles',
+        onSelect: () => generateRoomNameAi(room.roomId)
+      },
+      {
+        label: 'Summarize & Optimize',
+        icon: 'i-heroicons-adjustments-horizontal',
         onSelect: () => summarizeRoom(room.roomId)
       },
       {

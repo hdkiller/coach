@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { computed, onUnmounted, ref, watch } from 'vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
 
@@ -7,17 +8,96 @@
     response: any
     args?: Record<string, any>
   }>()
+  const { formatDateUTC } = useFormat()
+
+  const ACTIVE_RUN_STATUSES = new Set([
+    'EXECUTING',
+    'QUEUED',
+    'WAITING_FOR_DEPLOY',
+    'REATTEMPTING',
+    'FROZEN',
+    'PENDING_VERSION',
+    'DELAYED',
+    'WAITING'
+  ])
+  const FINAL_RUN_STATUSES = new Set([
+    'COMPLETED',
+    'FAILED',
+    'CANCELED',
+    'TIMED_OUT',
+    'CRASHED',
+    'SYSTEM_FAILURE'
+  ])
+  const SYNC_PENDING_STATUSES = new Set(['PENDING', 'QUEUED_FOR_SYNC'])
+  const EXPECTS_STRUCTURE_TOOL_NAMES = new Set([
+    'create_planned_workout',
+    'update_planned_workout',
+    'adjust_planned_workout',
+    'generate_planned_workout_structure',
+    'set_planned_workout_structure',
+    'patch_planned_workout_structure'
+  ])
 
   const isExpanded = ref(false)
   const showSteps = ref(false)
   const showMessages = ref(false)
   const showRaw = ref(false)
 
+  const liveWorkout = ref<any | null>(null)
+  const runStatus = ref<string | null>(null)
+  const runError = ref<string | null>(null)
+  const pollError = ref<string | null>(null)
+  const isPolling = ref(false)
+  const fallbackWorkoutId = ref<string | null>(null)
+
+  const directWorkoutId = computed(() => {
+    const response = props.response || {}
+    return response.workout_id || props.args?.workout_id
+  })
+
+  const workoutId = computed(() => directWorkoutId.value || fallbackWorkoutId.value)
+
+  const runId = computed(() => {
+    const response = props.response || {}
+    return response.run_id || response.taskId || null
+  })
+
+  const expectsStructure = computed(() => {
+    return EXPECTS_STRUCTURE_TOOL_NAMES.has(props.toolName)
+  })
+
+  const runStatusLabel = computed(() => {
+    if (!runStatus.value) return null
+    if (ACTIVE_RUN_STATUSES.has(runStatus.value)) return 'Job running'
+    if (runStatus.value === 'COMPLETED') return 'Job completed'
+    return `Job ${runStatus.value.toLowerCase()}`
+  })
+
   const plannedWorkout = computed(() => {
+    if (liveWorkout.value && typeof liveWorkout.value === 'object') {
+      return {
+        id: liveWorkout.value.id,
+        title: liveWorkout.value.title || 'Planned Workout',
+        date: liveWorkout.value.date,
+        startTime: liveWorkout.value.startTime,
+        type: liveWorkout.value.type || 'Ride',
+        durationSec: liveWorkout.value.durationSec,
+        tss: liveWorkout.value.tss,
+        syncStatus: liveWorkout.value.syncStatus,
+        syncError: liveWorkout.value.syncError,
+        structuredWorkout: liveWorkout.value.structuredWorkout
+      }
+    }
+
     const response = props.response || {}
 
     if (response?.structuredWorkout && typeof response.structuredWorkout === 'object') {
-      return response
+      return {
+        ...response,
+        id: response.workout_id || props.args?.workout_id,
+        startTime: response.start_time || response.startTime,
+        syncStatus: response.status
+      }
     }
 
     const structure = response?.structured_workout || response?.structuredWorkout
@@ -29,6 +109,7 @@
         id: response.workout_id || props.args?.workout_id,
         title: response.title || 'Planned Workout',
         date: response.date,
+        startTime: response.start_time || response.startTime,
         type: response.type || 'Ride',
         durationSec:
           typeof response.durationSec === 'number'
@@ -37,7 +118,24 @@
               ? durationMinutes * 60
               : undefined,
         tss: response.tss,
+        syncStatus: response.status,
         structuredWorkout: structure
+      }
+    }
+
+    if (workoutId.value) {
+      return {
+        id: workoutId.value,
+        title: response.title || 'Planned Workout',
+        date: response.date,
+        startTime: response.start_time || response.startTime,
+        type: response.type || 'Ride',
+        durationSec:
+          typeof response.duration_minutes === 'number'
+            ? response.duration_minutes * 60
+            : undefined,
+        syncStatus: response.status,
+        structuredWorkout: null
       }
     }
 
@@ -102,6 +200,261 @@
     return id ? `/workouts/planned/${id}` : undefined
   })
 
+  const syncStatusLabel = computed(() => {
+    const status = (plannedWorkout.value?.syncStatus || props.response?.status || '').toUpperCase()
+    if (!status) return null
+    if (status === 'SYNCED') return 'Synced to Intervals'
+    if (status === 'LOCAL_ONLY') return 'Local only'
+    if (SYNC_PENDING_STATUSES.has(status)) return 'Waiting for sync'
+    if (status === 'FAILED') return 'Sync failed'
+    return `Sync status: ${status}`
+  })
+
+  const operationStatusText = computed(() => {
+    if (props.response?.success === false) {
+      return props.response?.error || 'Operation failed'
+    }
+
+    const parts: string[] = []
+    if (props.response?.success) {
+      parts.push('Operation successful')
+    }
+
+    if (runStatusLabel.value) {
+      parts.push(runStatusLabel.value)
+    }
+
+    if (syncStatusLabel.value) {
+      parts.push(syncStatusLabel.value)
+    }
+
+    if (runError.value) {
+      parts.push(runError.value)
+    }
+
+    if (!parts.length) {
+      return null
+    }
+
+    return parts.join(' • ')
+  })
+
+  const currentSyncStatus = computed(() =>
+    String(plannedWorkout.value?.syncStatus || props.response?.status || '').toUpperCase()
+  )
+
+  const isOperationComplete = computed(() => {
+    if (props.response?.success === false) return false
+    if (runError.value || pollError.value) return false
+    if (runStatus.value && ACTIVE_RUN_STATUSES.has(runStatus.value)) return false
+    if (SYNC_PENDING_STATUSES.has(currentSyncStatus.value)) return false
+    if (expectsStructure.value && !hasVisualization.value) return false
+    if (runId.value && runStatus.value && !FINAL_RUN_STATUSES.has(runStatus.value)) return false
+    return true
+  })
+
+  const showStatusLine = computed(() => {
+    if (props.response?.success === false) return true
+    if (runError.value || pollError.value) return true
+    if (runStatus.value && ACTIVE_RUN_STATUSES.has(runStatus.value)) return true
+    if (SYNC_PENDING_STATUSES.has(currentSyncStatus.value)) return true
+    return !isOperationComplete.value
+  })
+
+  const isJobRunning = computed(() => {
+    return Boolean(runStatus.value && ACTIVE_RUN_STATUSES.has(runStatus.value))
+  })
+
+  const displayDate = computed(() => {
+    const date = plannedWorkout.value?.date
+    if (!date) return null
+    return formatDateUTC(date, 'MMM d, yyyy')
+  })
+
+  const displayStartTime = computed(() => {
+    if (!isOperationComplete.value) return null
+    const time = plannedWorkout.value?.startTime
+    return time || null
+  })
+
+  const shouldRenderCard = computed(() => {
+    return Boolean(plannedWorkout.value || operationStatusText.value || workoutId.value)
+  })
+
+  const rawPayload = computed(() => {
+    if (liveWorkout.value && typeof liveWorkout.value === 'object') {
+      return liveWorkout.value
+    }
+    return props.response
+  })
+
+  let runPollTimer: ReturnType<typeof setInterval> | null = null
+  let workoutPollTimer: ReturnType<typeof setInterval> | null = null
+
+  const clearRunPolling = () => {
+    if (runPollTimer) {
+      clearInterval(runPollTimer)
+      runPollTimer = null
+    }
+  }
+
+  const clearWorkoutPolling = () => {
+    if (workoutPollTimer) {
+      clearInterval(workoutPollTimer)
+      workoutPollTimer = null
+    }
+  }
+
+  const clearPolling = () => {
+    clearRunPolling()
+    clearWorkoutPolling()
+    isPolling.value = false
+  }
+
+  const fetchWorkout = async () => {
+    if (!workoutId.value) return
+
+    try {
+      const data = await $fetch<{ workout?: any }>(`/api/workouts/planned/${workoutId.value}`)
+      const workout = data?.workout || data
+      if (workout && typeof workout === 'object') {
+        liveWorkout.value = workout
+      }
+      pollError.value = null
+    } catch (error: any) {
+      pollError.value = error?.data?.message || error?.message || 'Failed to refresh workout status'
+    }
+  }
+
+  const resolveWorkoutIdFromCreateArgs = async () => {
+    if (directWorkoutId.value || fallbackWorkoutId.value) return
+    if (props.toolName !== 'create_planned_workout') return
+    const date = String(props.args?.date || '').slice(0, 10)
+    if (!date) return
+
+    try {
+      const data = await $fetch<{ workouts?: any[] }>(
+        `/api/workouts/planned/range?start=${date}&end=${date}`
+      )
+      const workouts = Array.isArray(data?.workouts) ? data.workouts : []
+      if (!workouts.length) return
+
+      const title = String(props.args?.title || '')
+        .trim()
+        .toLowerCase()
+      const type = String(props.args?.type || '')
+        .trim()
+        .toLowerCase()
+      const durationMinutes =
+        typeof props.args?.duration_minutes === 'number' ? props.args.duration_minutes : null
+
+      const byScore = [...workouts]
+        .map((w) => {
+          let score = 0
+          if (
+            title &&
+            String(w.title || '')
+              .trim()
+              .toLowerCase() === title
+          )
+            score += 4
+          else if (
+            title &&
+            String(w.title || '')
+              .trim()
+              .toLowerCase()
+              .includes(title)
+          )
+            score += 2
+          if (
+            type &&
+            String(w.type || '')
+              .trim()
+              .toLowerCase() === type
+          )
+            score += 2
+          if (durationMinutes && typeof w.durationSec === 'number') {
+            const minutes = Math.round(w.durationSec / 60)
+            if (minutes === durationMinutes) score += 2
+          }
+          return { workout: w, score }
+        })
+        .sort((a, b) => b.score - a.score)
+
+      const best = byScore[0]?.workout
+      if (best?.id) {
+        fallbackWorkoutId.value = best.id
+      }
+    } catch {
+      // Ignore and keep generic card state.
+    }
+  }
+
+  const fetchRunStatus = async () => {
+    if (!runId.value) return
+
+    try {
+      const run = await $fetch<{ status?: string; error?: any }>(`/api/runs/${runId.value}`)
+      runStatus.value = run?.status || null
+      runError.value =
+        typeof run?.error === 'string' ? run.error : run?.error?.message || run?.error?.name || null
+    } catch (error: any) {
+      runError.value = error?.data?.message || error?.message || 'Failed to read trigger job status'
+      clearRunPolling()
+    }
+  }
+
+  const startPolling = async () => {
+    clearPolling()
+
+    await resolveWorkoutIdFromCreateArgs()
+
+    const hasRun = Boolean(runId.value)
+    const hasWorkout = Boolean(workoutId.value)
+    if (!hasRun && !hasWorkout) return
+
+    isPolling.value = true
+
+    if (hasWorkout) {
+      await fetchWorkout()
+      workoutPollTimer = setInterval(async () => {
+        await fetchWorkout()
+
+        const syncStatus = String(liveWorkout.value?.syncStatus || '').toUpperCase()
+        const hasStructure = hasVisualization.value
+        const shouldContinueForSync = SYNC_PENDING_STATUSES.has(syncStatus)
+        const shouldContinueForStructure = expectsStructure.value && !hasStructure
+
+        if (!shouldContinueForSync && !shouldContinueForStructure && !hasRun) {
+          clearPolling()
+        }
+      }, 4000)
+    }
+
+    if (hasRun) {
+      await fetchRunStatus()
+      runPollTimer = setInterval(async () => {
+        await fetchRunStatus()
+
+        if (runStatus.value && FINAL_RUN_STATUSES.has(runStatus.value)) {
+          clearRunPolling()
+
+          if (hasWorkout) {
+            await fetchWorkout()
+          }
+
+          const syncStatus = String(liveWorkout.value?.syncStatus || '').toUpperCase()
+          const waitingSync = SYNC_PENDING_STATUSES.has(syncStatus)
+          const waitingStructure = expectsStructure.value && !hasVisualization.value
+          if (!waitingSync && !waitingStructure) {
+            clearWorkoutPolling()
+            isPolling.value = false
+          }
+        }
+      }, 3000)
+    }
+  }
+
   const toggleExpanded = () => {
     isExpanded.value = !isExpanded.value
     if (!isExpanded.value) {
@@ -154,11 +507,31 @@
       return String(obj)
     }
   }
+
+  watch(
+    () => [
+      workoutId.value,
+      runId.value,
+      props.response?.status,
+      props.response?.success,
+      props.toolName,
+      props.args?.date,
+      props.args?.title
+    ],
+    () => {
+      startPolling()
+    },
+    { immediate: true }
+  )
+
+  onUnmounted(() => {
+    clearPolling()
+  })
 </script>
 
 <template>
   <div
-    v-if="hasVisualization"
+    v-if="shouldRenderCard"
     class="my-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 overflow-hidden"
   >
     <button
@@ -166,21 +539,45 @@
       :class="{ 'border-b border-gray-200 dark:border-gray-700': isExpanded }"
       @click="toggleExpanded"
     >
-      <UIcon name="i-heroicons-calendar-days" class="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-500" />
+      <UIcon
+        :name="hasVisualization ? 'i-heroicons-calendar-days' : 'i-heroicons-wrench-screwdriver'"
+        class="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-500"
+      />
 
       <div class="flex-1 min-w-0 text-left">
         <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
-          {{ plannedWorkout?.title || 'Planned Workout' }}
+          {{ plannedWorkout?.title || 'Planned Workout Operation' }}
         </div>
         <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex flex-wrap gap-2">
-          <span v-if="plannedWorkout?.date">{{ plannedWorkout.date }}</span>
+          <span v-if="displayDate">{{ displayDate }}</span>
+          <span v-if="displayStartTime">{{ displayStartTime }}</span>
           <span v-if="plannedWorkout?.type">{{ plannedWorkout.type }}</span>
-          <span>{{ formatDuration(plannedWorkout?.durationSec) }}</span>
+          <span v-if="plannedWorkout?.durationSec">{{
+            formatDuration(plannedWorkout?.durationSec)
+          }}</span>
           <span v-if="plannedWorkout?.tss">TSS {{ Math.round(plannedWorkout.tss) }}</span>
+        </div>
+        <div
+          v-if="showStatusLine && (operationStatusText || isPolling)"
+          class="text-xs mt-1"
+          :class="
+            props.response?.success === false
+              ? 'text-red-500'
+              : 'text-emerald-600 dark:text-emerald-400'
+          "
+        >
+          <span v-if="isJobRunning" class="inline-flex items-center gap-1.5">
+            <UIcon name="i-heroicons-arrow-path" class="w-3 h-3 animate-spin" />
+            {{ operationStatusText || 'Job running' }}
+          </span>
+          <span v-else>
+            {{ operationStatusText || 'Checking status...' }}
+          </span>
         </div>
       </div>
 
       <MiniWorkoutChart
+        v-if="hasVisualization"
         :workout="plannedWorkout?.structuredWorkout"
         :preference="chartPreference"
         :show-cadence="true"
@@ -196,6 +593,7 @@
     <div v-if="isExpanded" class="p-4 space-y-3">
       <div class="flex flex-wrap gap-2">
         <UButton
+          v-if="flattenedSteps.length"
           size="xs"
           color="neutral"
           variant="soft"
@@ -235,6 +633,13 @@
         </UButton>
       </div>
 
+      <div
+        v-if="pollError"
+        class="rounded border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-2 text-xs text-red-700 dark:text-red-300"
+      >
+        {{ pollError }}
+      </div>
+
       <div v-if="showSteps && flattenedSteps.length" class="space-y-2">
         <div
           v-for="(step, index) in flattenedSteps"
@@ -262,7 +667,7 @@
       >
         <pre
           class="text-xs text-gray-600 dark:text-gray-400 overflow-x-auto whitespace-pre-wrap break-words"
-        ><code>{{ formatJson(response) }}</code></pre>
+        ><code>{{ formatJson(rawPayload) }}</code></pre>
       </div>
     </div>
   </div>
