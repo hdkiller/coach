@@ -1732,8 +1732,8 @@
     :workout="workout"
     @updated="fetchWorkout"
     @delete="
-      isEditModalOpen = false
-      isDeleteModalOpen = true
+      isEditModalOpen = false;
+      isDeleteModalOpen = true;
     "
   />
 
