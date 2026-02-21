@@ -22,7 +22,7 @@ export default defineConfig({
   build: {
     extensions: [
       prismaExtension({
-        mode: 'local',
+        mode: 'legacy',
         schema: 'prisma/schema.prisma'
       }),
       esbuildPlugin(
