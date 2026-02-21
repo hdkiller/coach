@@ -543,7 +543,7 @@
             <WellnessMetricRow
               v-if="wellness.weight"
               label="Weight"
-              :value="`${wellness.weight.toFixed(2)} kg`"
+              :value="`${wellness.weight.toFixed(2)} ${userStore.weightUnitLabel}`"
             />
             <WellnessMetricRow
               v-if="wellness.bodyFat"
@@ -563,7 +563,12 @@
             <WellnessMetricRow
               v-if="wellness.skinTemp"
               label="Skin Temperature"
-              :value="`${wellness.skinTemp.toFixed(1)}°C`"
+              :value="
+                formatTemperature(
+                  wellness.skinTemp,
+                  userStore.profile?.temperatureUnits || 'Celsius'
+                )
+              "
             />
             <WellnessMetricRow
               v-if="wellness.menstrualPhase"
@@ -627,6 +632,7 @@
 <script setup lang="ts">
   import SleepAnalysis from '~/components/fitness/SleepAnalysis.vue'
   import JsonViewer from '~/components/JsonViewer.vue'
+  import { formatHeight, formatTemperature } from '~/utils/metrics'
 
   definePageMeta({
     middleware: 'auth',

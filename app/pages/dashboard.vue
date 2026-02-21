@@ -177,7 +177,7 @@
               :nutrition="todayNutrition"
               :workouts="todayWorkouts"
               :settings="nutritionSettings"
-              :weight="userStore.profile?.weight || 75"
+              :weight="userStore.currentWeightKg || 75"
               :loading="loadingNutrition"
               @refresh="fetchTodayNutrition"
             />

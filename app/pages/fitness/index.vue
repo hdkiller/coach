@@ -1110,7 +1110,7 @@
       } else if (key === 'hrv') unit = 'ms'
       else if (key === 'restingHr') unit = ' bpm'
       else if (key === 'weight') {
-        unit = 'kg'
+        unit = ' ' + userStore.weightUnitLabel
         fixed = 1
       }
 
@@ -1171,7 +1171,7 @@
     } else if (key === 'weight') {
       opts.scales.y.title = {
         display: true,
-        text: 'Mass (kg)',
+        text: `Mass (${userStore.weightUnitLabel})`,
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
       }

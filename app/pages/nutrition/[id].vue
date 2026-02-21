@@ -153,7 +153,7 @@
             :is-locked="nutrition.isManualLock"
             :goal-adjustment="goalAdjustment"
             :settings="nutritionSettings"
-            :weight="userStore.profile?.weight || 75"
+            :weight="userStore.currentWeightKg || 75"
             :targets="{
               calories: nutrition.caloriesGoal || 2500,
               carbs: nutrition.carbsGoal || 300,
@@ -684,7 +684,7 @@
 
           baseFatPerKg: nutritionSettings.value.baseFatPerKg || 1.0,
 
-          weight: userStore.profile?.weight || 75,
+          weight: userStore.currentWeightKg || 75,
 
           mealPattern: nutritionSettings.value.mealPattern,
 
