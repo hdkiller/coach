@@ -13,6 +13,7 @@
   const { data, pending, refresh } = await useFetch(`/api/admin/users/${userId}`)
 
   const impersonating = ref(false)
+  const sendingEmailIds = ref<string[]>([])
 
   async function impersonateUser() {
     impersonating.value = true
@@ -37,6 +38,55 @@
       })
     } finally {
       impersonating.value = false
+    }
+  }
+
+  const isSendableEmail = (status: string) => status === 'QUEUED' || status === 'FAILED'
+  const isSendingEmail = (id: string) => sendingEmailIds.value.includes(id)
+
+  const emailStatusColor = (status: string) => {
+    switch (status) {
+      case 'QUEUED':
+        return 'neutral'
+      case 'SENDING':
+        return 'warning'
+      case 'SENT':
+        return 'primary'
+      case 'DELIVERED':
+      case 'OPENED':
+      case 'CLICKED':
+        return 'success'
+      case 'BOUNCED':
+      case 'FAILED':
+      case 'COMPLAINED':
+        return 'error'
+      default:
+        return 'neutral'
+    }
+  }
+
+  async function sendDelivery(deliveryId: string) {
+    if (!deliveryId || isSendingEmail(deliveryId)) return
+
+    sendingEmailIds.value.push(deliveryId)
+    try {
+      await $fetch(`/api/admin/emails/${deliveryId}/send`, {
+        method: 'POST'
+      })
+      toast.add({
+        title: 'Success',
+        description: 'Email sent successfully via Resend',
+        color: 'success'
+      })
+      await refresh()
+    } catch (error: any) {
+      toast.add({
+        title: 'Error',
+        description: error?.message || 'Failed to send email',
+        color: 'error'
+      })
+    } finally {
+      sendingEmailIds.value = sendingEmailIds.value.filter((id) => id !== deliveryId)
     }
   }
 
@@ -138,7 +188,14 @@
                   <dl class="space-y-2 text-sm">
                     <div class="flex justify-between">
                       <dt class="text-gray-500">Email</dt>
-                      <dd class="font-medium">{{ data.profile.email }}</dd>
+                      <dd class="font-medium">
+                        <NuxtLink
+                          :to="`/admin/users/${data.profile.id}`"
+                          class="text-primary hover:underline"
+                        >
+                          {{ data.profile.email }}
+                        </NuxtLink>
+                      </dd>
                     </div>
                     <div class="flex justify-between">
                       <dt class="text-gray-500">Joined</dt>
@@ -311,6 +368,85 @@
                   </tr>
                   <tr v-if="!data.recentWorkouts.length">
                     <td colspan="5" class="py-4 text-center text-gray-500">No workouts recorded</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </UCard>
+
+          <UCard>
+            <template #header>
+              <div class="flex items-center justify-between gap-4">
+                <h3 class="font-semibold">Email Deliveries</h3>
+                <div class="flex items-center gap-3">
+                  <UBadge color="warning" variant="subtle" size="sm">
+                    Pending: {{ data.emailStats.pendingCount }}
+                  </UBadge>
+                  <UButton
+                    :to="`/admin/emails?userId=${data.profile.id}`"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-lucide-external-link"
+                    label="Open Email Admin"
+                  />
+                </div>
+              </div>
+            </template>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead>
+                  <tr class="text-left text-xs uppercase text-gray-500">
+                    <th class="py-2">Queued At</th>
+                    <th class="py-2">Subject</th>
+                    <th class="py-2">Template</th>
+                    <th class="py-2">Status</th>
+                    <th class="py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                  <tr v-for="delivery in data.recentEmailDeliveries" :key="delivery.id">
+                    <td class="py-2 whitespace-nowrap text-gray-500">
+                      {{ new Date(delivery.createdAt).toLocaleString() }}
+                    </td>
+                    <td class="py-2 max-w-[26rem] truncate" :title="delivery.subject">
+                      {{ delivery.subject }}
+                    </td>
+                    <td class="py-2">
+                      <UBadge color="neutral" variant="soft" size="xs">
+                        {{ delivery.templateKey }}
+                      </UBadge>
+                    </td>
+                    <td class="py-2">
+                      <UBadge :color="emailStatusColor(delivery.status)" variant="subtle" size="xs">
+                        {{ delivery.status }}
+                      </UBadge>
+                    </td>
+                    <td class="py-2 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <UButton
+                          v-if="isSendableEmail(delivery.status)"
+                          color="primary"
+                          variant="ghost"
+                          icon="i-heroicons-paper-airplane"
+                          size="xs"
+                          :loading="isSendingEmail(delivery.id)"
+                          @click="sendDelivery(delivery.id)"
+                        />
+                        <UButton
+                          :to="`/admin/emails?userId=${data.profile.id}`"
+                          color="neutral"
+                          variant="ghost"
+                          icon="i-lucide-eye"
+                          size="xs"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="!data.recentEmailDeliveries.length">
+                    <td colspan="5" class="py-4 text-center text-gray-500">
+                      No email deliveries recorded
+                    </td>
                   </tr>
                 </tbody>
               </table>

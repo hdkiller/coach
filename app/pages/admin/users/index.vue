@@ -183,7 +183,12 @@
                             {{ user.name || 'No name' }}
                           </div>
                           <div class="text-xs text-gray-500 dark:text-gray-400">
-                            {{ user.email }}
+                            <NuxtLink
+                              :to="`/admin/users/${user.id}`"
+                              class="text-primary hover:underline"
+                            >
+                              {{ user.email }}
+                            </NuxtLink>
                           </div>
                         </div>
                       </div>

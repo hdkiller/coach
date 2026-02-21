@@ -5,7 +5,7 @@
   const message = ref('')
 
   definePageMeta({
-    layout: 'blank',
+    layout: 'simple',
     auth: false // Publicly accessible
   })
 

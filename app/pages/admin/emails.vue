@@ -6,11 +6,17 @@
     middleware: ['auth', 'admin']
   })
 
+  const route = useRoute()
   const page = ref(1)
   const limit = ref(20)
+  const userIdFilter = computed(() =>
+    typeof route.query.userId === 'string' && route.query.userId.length > 0
+      ? route.query.userId
+      : undefined
+  )
   const { data, refresh, status } = await useFetch('/api/admin/emails', {
-    query: { page, limit },
-    watch: [page]
+    query: { page, limit, userId: userIdFilter },
+    watch: [page, userIdFilter]
   })
 
   const columns = [
@@ -124,7 +130,7 @@
             color="neutral"
             variant="ghost"
             :loading="status === 'pending'"
-            @click="refresh"
+            @click="() => refresh()"
           />
         </template>
       </UDashboardNavbar>
@@ -132,6 +138,27 @@
 
     <template #body>
       <div class="p-6">
+        <UAlert
+          v-if="userIdFilter"
+          icon="i-lucide-filter"
+          color="neutral"
+          variant="soft"
+          class="mb-4"
+          title="Filtered by user"
+          :description="`Showing deliveries for user ${userIdFilter}`"
+        >
+          <template #actions>
+            <UButton
+              to="/admin/emails"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-x"
+              label="Clear"
+            />
+          </template>
+        </UAlert>
+
         <div
           class="bg-white dark:bg-gray-800 rounded-lg shadow ring-1 ring-gray-200 dark:ring-gray-800 overflow-hidden"
         >
@@ -171,7 +198,14 @@
                   <td
                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium"
                   >
-                    {{ row.toEmail }}
+                    <NuxtLink
+                      v-if="row.user?.id"
+                      :to="`/admin/users/${row.user.id}`"
+                      class="text-primary hover:underline"
+                    >
+                      {{ row.toEmail }}
+                    </NuxtLink>
+                    <span v-else>{{ row.toEmail }}</span>
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
                     {{ row.subject }}
@@ -220,13 +254,23 @@
       </div>
 
       <!-- Email Preview Modal -->
-      <UModal v-model:open="isPreviewOpen" :ui="{ width: 'sm:max-w-4xl' }" title="Email Preview">
+      <UModal v-model:open="isPreviewOpen" :ui="{ content: 'sm:max-w-4xl' }" title="Email Preview">
         <template v-if="selectedEmail" #body>
           <div class="flex flex-col space-y-4">
             <div
               class="text-sm text-gray-500 space-y-1 pb-4 border-b border-gray-200 dark:border-gray-800"
             >
-              <div><strong>To:</strong> {{ selectedEmail.toEmail }}</div>
+              <div>
+                <strong>To:</strong>
+                <NuxtLink
+                  v-if="selectedEmail.user?.id"
+                  :to="`/admin/users/${selectedEmail.user.id}`"
+                  class="text-primary hover:underline"
+                >
+                  {{ selectedEmail.toEmail }}
+                </NuxtLink>
+                <span v-else>{{ selectedEmail.toEmail }}</span>
+              </div>
               <div><strong>Subject:</strong> {{ selectedEmail.subject }}</div>
               <div><strong>Template:</strong> {{ selectedEmail.templateKey }}</div>
               <div v-if="selectedEmail.errorMessage" class="text-error-500 font-medium">
