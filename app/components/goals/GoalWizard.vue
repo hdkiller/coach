@@ -50,7 +50,12 @@
             <UIcon name="i-heroicons-tag" class="w-4 h-4 text-muted" />
             Goal Title
           </label>
-          <UInput v-model="form.title" placeholder="e.g. Lose 3kg in 8 weeks" size="lg" autofocus />
+          <UInput
+            v-model="form.title"
+            :placeholder="`e.g. Lose 3${userStore.weightUnitLabel} in 8 weeks`"
+            size="lg"
+            autofocus
+          />
         </div>
 
         <!-- Body Composition Fields -->
@@ -66,7 +71,9 @@
                 :step="0.1"
                 :format-options="{ minimumFractionDigits: 1, maximumFractionDigits: 1 }"
               />
-              <p class="text-xs text-muted mt-1">Current weight in kg</p>
+              <p class="text-xs text-muted mt-1">
+                Current weight in {{ userStore.weightUnitLabel }}
+              </p>
             </div>
             <div>
               <label class="text-sm font-medium mb-2 block">Target Weight</label>
@@ -78,7 +85,7 @@
                 :step="0.1"
                 :format-options="{ minimumFractionDigits: 1, maximumFractionDigits: 1 }"
               />
-              <p class="text-xs text-muted mt-1">Goal weight in kg</p>
+              <p class="text-xs text-muted mt-1">Goal weight in {{ userStore.weightUnitLabel }}</p>
             </div>
           </div>
           <div>
@@ -262,6 +269,7 @@
 
   const emit = defineEmits(['close', 'created', 'updated'])
   const { formatDate, getUserLocalDate, getUserDateFromLocal, timezone } = useFormat()
+  const userStore = useUserStore()
 
   const isEditMode = computed(() => !!props.goal)
   const step = ref(1)
@@ -362,7 +370,7 @@
     // Set defaults based on type
     if (id === 'BODY_COMPOSITION') {
       form.metric = 'weight_kg'
-      form.title = 'Lose 5kg'
+      form.title = `Lose 5${userStore.weightUnitLabel}`
     } else if (id === 'EVENT') {
       form.metric = 'event_date'
       form.title = 'Complete Marathon'
@@ -380,7 +388,7 @@
     // Mock AI suggestion for now
     setTimeout(() => {
       if (selectedType.value === 'BODY_COMPOSITION') {
-        form.title = 'Lose 3kg in 8 weeks'
+        form.title = `Lose 3${userStore.weightUnitLabel} in 8 weeks`
         form.startValue = 99
         form.targetValue = 96
         // Set date 8 weeks from now relative to user local day

@@ -372,8 +372,10 @@
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import MiniZoneChart from '~/components/MiniZoneChart.vue'
   import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
+  import { formatDistance as formatDist } from '~/utils/metrics'
 
   const { formatDateUTC, getUserLocalDate } = useFormat()
+  const userStore = useUserStore()
 
   const props = defineProps<{
     date: Date
@@ -646,13 +648,7 @@
   }
 
   function formatDistance(meters: number): string {
-    const km = meters / 1000
-    if (km >= 10) {
-      return `${Math.round(km)}km`
-    } else if (km >= 1) {
-      return `${km.toFixed(1)}km`
-    }
-    return `${Math.round(meters)}m`
+    return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function getTSBColor(tsb: number | null): string {

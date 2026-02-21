@@ -88,11 +88,33 @@
 
         <div class="grid grid-cols-3 gap-4">
           <UFormField label="Height" name="height" class="col-span-2">
-            <UInput v-model.number="localProfile.height" type="number" class="w-full">
+            <div v-if="localProfile.heightUnits === 'ft/in'" class="flex gap-2">
+              <UInput
+                v-model.number="heightFt"
+                type="number"
+                placeholder="ft"
+                class="w-full"
+                @update:model-value="syncHeightFromFtIn"
+              >
+                <template #trailing>
+                  <span class="text-gray-500 dark:text-gray-400 text-xs">ft</span>
+                </template>
+              </UInput>
+              <UInput
+                v-model.number="heightIn"
+                type="number"
+                placeholder="in"
+                class="w-full"
+                @update:model-value="syncHeightFromFtIn"
+              >
+                <template #trailing>
+                  <span class="text-gray-500 dark:text-gray-400 text-xs">in</span>
+                </template>
+              </UInput>
+            </div>
+            <UInput v-else v-model.number="localProfile.height" type="number" class="w-full">
               <template #trailing>
-                <span class="text-gray-500 dark:text-gray-400 text-xs">{{
-                  localProfile.heightUnits
-                }}</span>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">cm</span>
               </template>
             </UInput>
           </UFormField>
@@ -102,6 +124,7 @@
               :items="['cm', 'ft/in']"
               class="w-full"
               :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
+              @update:model-value="handleHeightUnitChange"
             />
           </UFormField>
         </div>
@@ -123,7 +146,35 @@
         <UFormField label="Language" name="language">
           <USelectMenu
             v-model="localProfile.language"
-            :items="['English', 'Spanish', 'French', 'German']"
+            :items="[
+              'English',
+              'Spanish',
+              'French',
+              'German',
+              'Italian',
+              'Portuguese',
+              'Dutch',
+              'Danish',
+              'Norwegian',
+              'Swedish',
+              'Finnish',
+              'Polish',
+              'Turkish',
+              'Hungarian',
+              'Romanian',
+              'Slovak',
+              'Czech',
+              'Greek',
+              'Bulgarian',
+              'Croatian',
+              'Slovenian',
+              'Estonian',
+              'Latvian',
+              'Lithuanian',
+              'Japanese',
+              'Chinese',
+              'Korean'
+            ]"
             class="w-full"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
           />
@@ -275,6 +326,7 @@
 
 <script setup lang="ts">
   import { countries } from '~/utils/countries'
+  import { cmToFtIn, ftInToCm } from '~/utils/metrics'
 
   const props = defineProps<{
     modelValue: any
@@ -286,6 +338,28 @@
   const { formatDateUTC } = useFormat()
 
   const localProfile = ref({ ...props.modelValue })
+
+  // Imperial Height state
+  const heightFt = ref(0)
+  const heightIn = ref(0)
+
+  function initializeHeightInputs() {
+    if (localProfile.value.height && localProfile.value.heightUnits === 'ft/in') {
+      const { ft, in: inches } = cmToFtIn(localProfile.value.height)
+      heightFt.value = ft
+      heightIn.value = inches
+    }
+  }
+
+  function syncHeightFromFtIn() {
+    localProfile.value.height = ftInToCm(heightFt.value || 0, heightIn.value || 0)
+  }
+
+  function handleHeightUnitChange(newUnits: string) {
+    if (newUnits === 'ft/in') {
+      initializeHeightInputs()
+    }
+  }
 
   const toDateInputValue = (date: string | Date | null | undefined) => {
     if (!date) return ''
@@ -299,6 +373,7 @@
     (newVal) => {
       localProfile.value = { ...newVal }
       dobValue.value = toDateInputValue(newVal.dob)
+      initializeHeightInputs()
     },
     { deep: true }
   )

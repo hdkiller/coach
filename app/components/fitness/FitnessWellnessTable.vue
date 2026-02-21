@@ -127,16 +127,12 @@
             <td
               class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
             >
-              {{ item.weight ? item.weight.toFixed(1) + 'kg' : '-' }}
+              {{ item.weight ? item.weight.toFixed(1) + (userStore.weightUnitLabel || 'kg') : '-' }}
             </td>
             <td
               class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
             >
-              {{
-                item.systolic && item.diastolic
-                  ? `${item.systolic}/${item.diastolic}`
-                  : '-'
-              }}
+              {{ item.systolic && item.diastolic ? `${item.systolic}/${item.diastolic}` : '-' }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
               <span
@@ -219,6 +215,7 @@
   defineEmits(['update:page'])
 
   const { formatDateUTC } = useFormat()
+  const userStore = useUserStore()
 
   function getRecoveryBadgeClass(score: number) {
     const baseClass = 'px-2 py-1 rounded text-xs font-semibold'

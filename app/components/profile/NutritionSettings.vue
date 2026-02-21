@@ -1280,7 +1280,7 @@
 
     const p = props.profile
     // Convert weight to kg if needed
-    const weightKg = p.weightUnits === 'Pounds' ? p.weight * 0.453592 : p.weight
+    const weightKg = p.weightUnits === 'Pounds' ? p.weight * 0.45359237 : p.weight
 
     // Height is already in cm in the profile (as per heightUnits="cm" default)
     const heightCm = p.height

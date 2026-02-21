@@ -246,7 +246,7 @@
       items.push({
         label: 'Athlete Weight',
         description: 'Your current weight used for scale-based calculation.',
-        value: `${w} kg`
+        value: `${w.toFixed(1)} kg`
       })
       if (totalAllocation > 0) {
         items.push({
@@ -307,7 +307,7 @@
       items.push({
         label: 'Athlete Weight',
         description: 'Your current weight used for scale-based calculation.',
-        value: `${w} kg`
+        value: `${w.toFixed(1)} kg`
       })
       if (totalAllocation > 0) {
         items.push({

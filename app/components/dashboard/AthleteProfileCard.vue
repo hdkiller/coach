@@ -183,9 +183,8 @@
                 {{ userStore.profile.age || 'N/A' }} <span class="text-[9px] opacity-70">yrs</span>
               </template>
               <template v-else-if="metric.key === 'height'">
-                {{ userStore.profile.height || 'N/A'
-                }}<span class="text-[9px] opacity-70">{{
-                  userStore.profile.heightUnits || 'cm'
+                <span class="font-bold">{{
+                  formatHeight(userStore.profile.height, userStore.profile.heightUnits)
                 }}</span>
               </template>
             </div>
@@ -330,8 +329,10 @@
                 </template>
                 <template v-else-if="metric.key === 'weight'">
                   <template v-if="userStore.profile.weight"
-                    >{{ userStore.profile.weight.toFixed(2)
-                    }}<span class="text-[9px] opacity-70">kg</span></template
+                    >{{ userStore.profile.weight.toFixed(1)
+                    }}<span class="text-[9px] opacity-70">{{
+                      userStore.weightUnitLabel
+                    }}</span></template
                   >
                   <UButton
                     v-else
@@ -345,8 +346,8 @@
                   />
                 </template>
                 <template v-else-if="metric.key === 'wKg'">
-                  <template v-if="userStore.currentFtp && userStore.profile.weight">
-                    {{ (userStore.currentFtp / userStore.profile.weight).toFixed(2) }}
+                  <template v-if="userStore.currentWkg">
+                    {{ userStore.currentWkg.toFixed(2) }}
                   </template>
                   <UButton
                     v-else
@@ -600,6 +601,7 @@
 
 <script setup lang="ts">
   import { countries } from '~/utils/countries'
+  import { formatHeight } from '~/utils/metrics'
 
   const userStore = useUserStore()
   const integrationStore = useIntegrationStore()

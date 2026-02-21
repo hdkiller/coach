@@ -114,6 +114,7 @@
 <script setup lang="ts">
   import draggable from 'vuedraggable'
   import { useDebounceFn } from '@vueuse/core'
+  import { formatHeight } from '~/utils/metrics'
 
   const isOpen = defineModel<boolean>('open', { default: false })
   const userStore = useUserStore()
@@ -302,7 +303,7 @@
     if (key === 'lthr') return (userStore.currentLthr || '?') + ' bpm'
     if (key === 'age') return (userStore.profile.age || '?') + ' yrs'
     if (key === 'height')
-      return (userStore.profile.height || '?') + (userStore.profile.heightUnits || 'cm')
+      return formatHeight(userStore.profile.height, userStore.profile.heightUnits)
 
     // Training load
     if (key === 'ctl') return (pmcData.value?.summary?.currentCTL ?? 0).toFixed(0)
@@ -311,10 +312,11 @@
 
     // Core performance
     if (key === 'ftp') return (userStore.currentFtp || '?') + 'W'
-    if (key === 'weight') return (userStore.profile.weight?.toFixed(1) || '?') + 'kg'
+    if (key === 'weight')
+      return (userStore.profile.weight?.toFixed(1) || '?') + userStore.weightUnitLabel
     if (key === 'wKg') {
-      if (!userStore.currentFtp || !userStore.profile.weight) return '?'
-      return (userStore.currentFtp / userStore.profile.weight).toFixed(2)
+      if (!userStore.currentWkg) return '?'
+      return userStore.currentWkg.toFixed(2)
     }
     if (key === 'wPrime')
       return userStore.currentWPrime ? (userStore.currentWPrime / 1000).toFixed(1) + 'kJ' : '?'
