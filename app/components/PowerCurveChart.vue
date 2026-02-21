@@ -198,7 +198,7 @@
         })
       }
 
-      const currentByDuration = new Map(
+      const currentByDuration = new Map<number, any>(
         powerData.value.current.map((point: any) => [point.duration, point])
       )
 

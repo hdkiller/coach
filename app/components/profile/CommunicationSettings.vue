@@ -4,7 +4,18 @@
 
   const toast = useToast()
 
-  const days = [
+  const daysEnums = [
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+    'SATURDAY',
+    'SUNDAY'
+  ] as const
+  type Day = (typeof daysEnums)[number]
+
+  const days: { label: string; value: Day }[] = [
     { label: 'Mon', value: 'MONDAY' },
     { label: 'Tue', value: 'TUESDAY' },
     { label: 'Wed', value: 'WEDNESDAY' },
@@ -25,9 +36,7 @@
       .string()
       .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
       .optional(),
-    dailyCoachDays: z.array(
-      z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'])
-    ),
+    dailyCoachDays: z.array(z.enum(daysEnums)),
     marketing: z.boolean(),
     globalUnsubscribe: z.boolean()
   })
@@ -119,7 +128,7 @@
     }
   }
 
-  function toggleDay(dayValue: string) {
+  function toggleDay(dayValue: Day) {
     const index = state.dailyCoachDays.indexOf(dayValue)
     if (index === -1) {
       state.dailyCoachDays.push(dayValue)
@@ -128,7 +137,7 @@
     }
   }
 
-  function isDaySelected(dayValue: string) {
+  function isDaySelected(dayValue: Day) {
     return state.dailyCoachDays.includes(dayValue)
   }
 </script>

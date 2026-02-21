@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { nextTick, onBeforeUnmount, onMounted, onUpdated, ref, withDefaults } from 'vue'
+  import { nextTick, onBeforeUnmount, onMounted, onUpdated, ref } from 'vue'
 
   const props = withDefaults(
     defineProps<{

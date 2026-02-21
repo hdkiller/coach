@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     title="Edit Workout"
     description="Update the technical and descriptive details of your activity."
-    :ui="{ width: 'sm:max-w-2xl', body: 'p-0' }"
+    :ui="{ content: 'sm:max-w-2xl', body: 'p-0' }"
   >
     <template #content>
       <UForm :schema="schema" :state="state" @submit="onSubmit">
@@ -41,7 +41,7 @@
               description="Category for analysis."
             >
               <USelectMenu
-                v-model="state.type"
+                v-model="state.type as any"
                 :items="activityOptions"
                 value-attribute="value"
                 searchable
