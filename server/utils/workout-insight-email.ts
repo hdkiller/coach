@@ -23,6 +23,7 @@ function isRecentWorkout(date: Date) {
 
 export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmailOptions) {
   const { workoutId, triggerType } = options
+  const logContext = { workoutId, triggerType }
 
   const workout = await prisma.workout.findUnique({
     where: { id: workoutId },
@@ -42,6 +43,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   })
 
   if (!workout) {
+    console.info('[WorkoutInsightEmail] Skipped', { ...logContext, reason: 'workout_not_found' })
     return { queued: false, reason: 'workout_not_found' }
   }
 
@@ -61,10 +63,23 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   ])
 
   if (!user) {
+    console.info('[WorkoutInsightEmail] Skipped', {
+      ...logContext,
+      userId: workout.userId,
+      reason: 'user_not_found'
+    })
     return { queued: false, reason: 'user_not_found' }
   }
 
   if (pref?.globalUnsubscribe || pref?.workoutAnalysis === false) {
+    console.info('[WorkoutInsightEmail] Skipped', {
+      ...logContext,
+      userId: workout.userId,
+      hasPreferenceRow: Boolean(pref),
+      globalUnsubscribe: Boolean(pref?.globalUnsubscribe),
+      workoutAnalysisEnabled: pref?.workoutAnalysis ?? null,
+      reason: 'email_preference_disabled'
+    })
     return { queued: false, reason: 'email_preference_disabled' }
   }
 
@@ -92,10 +107,22 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
 
   if (triggerType === 'on-workout-received') {
     if (user.aiAutoAnalyzeWorkouts) {
+      console.info('[WorkoutInsightEmail] Skipped', {
+        ...logContext,
+        userId: workout.userId,
+        aiAutoAnalyzeWorkouts: user.aiAutoAnalyzeWorkouts,
+        reason: 'auto_ai_enabled_wait_for_enhanced_email'
+      })
       return { queued: false, reason: 'auto_ai_enabled_wait_for_enhanced_email' }
     }
 
     if (!isRecentWorkout(workout.date)) {
+      console.info('[WorkoutInsightEmail] Skipped', {
+        ...logContext,
+        userId: workout.userId,
+        workoutDate: workout.date.toISOString(),
+        reason: 'workout_not_recent'
+      })
       return { queued: false, reason: 'workout_not_recent' }
     }
 
@@ -108,10 +135,22 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       props: commonProps
     })
 
+    console.info('[WorkoutInsightEmail] Queued', {
+      ...logContext,
+      userId: workout.userId,
+      templateKey: 'WorkoutReceived',
+      eventKey: `WORKOUT_RECEIVED_${workout.id}`
+    })
     return { queued: true, templateKey: 'WorkoutReceived' }
   }
 
   if (!user.aiAutoAnalyzeWorkouts) {
+    console.info('[WorkoutInsightEmail] Skipped', {
+      ...logContext,
+      userId: workout.userId,
+      aiAutoAnalyzeWorkouts: user.aiAutoAnalyzeWorkouts,
+      reason: 'auto_ai_disabled'
+    })
     return { queued: false, reason: 'auto_ai_disabled' }
   }
 
@@ -131,5 +170,11 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     }
   })
 
+  console.info('[WorkoutInsightEmail] Queued', {
+    ...logContext,
+    userId: workout.userId,
+    templateKey: 'WorkoutAnalysisReady',
+    eventKey: `WORKOUT_INSIGHTS_READY_${workout.id}`
+  })
   return { queued: true, templateKey: 'WorkoutAnalysisReady' }
 }

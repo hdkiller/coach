@@ -483,7 +483,7 @@ export const analyzeWorkoutTask = task({
               ? planAdherence.overallScore || undefined
               : undefined
 
-          await queueWorkoutInsightEmail({
+          const emailResult = await queueWorkoutInsightEmail({
             workoutId,
             triggerType: 'on-analysis-ready',
             overallScore: structuredAnalysis.scores?.overall,
@@ -492,13 +492,20 @@ export const analyzeWorkoutTask = task({
             adherenceSummary,
             adherenceScore
           })
+          logger.log('Workout insight email decision (analysis-ready)', {
+            workoutId,
+            emailResult
+          })
         } catch (emailError) {
           logger.warn('Failed to trigger workout analysis email', { workoutId, error: emailError })
         }
       } else {
-        logger.log('Skipping email trigger: Source is MANUAL or preferences disabled.', {
+        logger.log('Skipping email trigger: source or preferences disallow analysis-ready email.', {
           source,
-          workoutAnalysisEnabled: emailPrefs?.workoutAnalysis
+          userId: workout.userId,
+          hasEmailPreferenceRow: Boolean(emailPrefs),
+          globalUnsubscribe: Boolean(emailPrefs?.globalUnsubscribe),
+          workoutAnalysisEnabled: emailPrefs?.workoutAnalysis ?? null
         })
       }
 

@@ -158,11 +158,15 @@ export const analyzePlanAdherenceTask = task({
       })
 
       try {
-        await queueWorkoutInsightEmail({
+        const emailResult = await queueWorkoutInsightEmail({
           workoutId,
           triggerType: 'on-adherence-ready',
           adherenceSummary: analysis.summary,
           adherenceScore: analysis.overallScore
+        })
+        logger.log('Workout insight email decision (adherence-ready)', {
+          workoutId,
+          emailResult
         })
       } catch (emailError) {
         logger.warn('Failed to trigger adherence insight email', { workoutId, error: emailError })
