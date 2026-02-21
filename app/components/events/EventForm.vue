@@ -183,7 +183,7 @@
         state.startTime = newData.startTime || ''
         state.type = newData.type || 'Run'
         state.subType = newData.subType || ''
-        state.priority = newData.priority || 'NONE'
+        state.priority = newData.priority || ''
         state.city = newData.city || ''
         state.country = newData.country || ''
         state.location = newData.location || ''
@@ -291,7 +291,7 @@
   )
 
   const priorityOptions = [
-    { label: 'None', value: 'NONE' },
+    { label: 'None', value: '' },
     { label: 'A Race (Main Goal)', value: 'A' },
     { label: 'B Race (Preparation)', value: 'B' },
     { label: 'C Race (Training)', value: 'C' }

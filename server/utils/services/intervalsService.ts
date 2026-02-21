@@ -714,7 +714,7 @@ export const IntervalsService = {
       ])
 
       // Handle Racing Events (EVENT, RACE_A, RACE_B, RACE_C)
-      if (['EVENT', 'RACE_A', 'RACE_B', 'RACE_C'].includes(planned.category)) {
+      if (['EVENT', 'RACE_A', 'RACE_B', 'RACE_C'].includes(planned.category || '')) {
         let startTime = null
         if (planned.start_date_local && planned.start_date_local.includes('T')) {
           const timePart = planned.start_date_local.split('T')[1]

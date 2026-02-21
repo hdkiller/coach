@@ -376,7 +376,7 @@ export async function createIntervalsEvent(
   }
 ): Promise<IntervalsPlannedWorkout> {
   // map CoachWatts priority to Intervals category if needed via upsertIntervalsEvent
-  return upsertIntervalsEvent(integration, data, 'POST')
+  return upsertIntervalsEvent(integration, { ...data, type: data.type || 'Other' }, 'POST')
 }
 
 export async function updateIntervalsEvent(
@@ -394,7 +394,20 @@ export async function updateIntervalsEvent(
     location?: string | null
   }
 ): Promise<IntervalsPlannedWorkout> {
-  return upsertIntervalsEvent(integration, { ...data, id: eventId }, 'PUT')
+  // For updates, if fields are missing we should ideally fetch them or handle in upsertIntervalsEvent.
+  // But upsertIntervalsEvent expects date/title/type.
+  // In syncEventToIntervals (intervals-sync.ts), it passes the whole event object for UPDATE.
+  return upsertIntervalsEvent(
+    integration,
+    {
+      ...data,
+      id: eventId,
+      date: data.date || new Date(),
+      title: data.title || 'Updated Event',
+      type: data.type || 'Other'
+    },
+    'PUT'
+  )
 }
 
 export async function fetchIntervalsPlannedWorkouts(
