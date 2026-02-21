@@ -90,6 +90,10 @@ export default defineEventHandler(async (event) => {
 
     return { success: true, data: updated }
   } catch (error: any) {
+    if (error?.statusCode === 409) {
+      throw error
+    }
+
     console.error('Failed to manually send email:', error)
 
     await prisma.emailDelivery.update({

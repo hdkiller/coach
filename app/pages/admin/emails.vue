@@ -31,14 +31,24 @@
   }
 
   const isSending = ref(false)
+  const sendingIds = ref<string[]>([])
   const toast = useToast()
 
-  const sendEmail = async () => {
-    if (!selectedEmail.value) return
+  const isSendable = (row: any) => row.status === 'QUEUED' || row.status === 'FAILED'
+  const isRowSending = (id: string) => sendingIds.value.includes(id)
 
-    isSending.value = true
+  const sendEmailById = async (row: any, options?: { closeModal?: boolean }) => {
+    if (!row?.id || !isSendable(row)) return
+
+    if (!sendingIds.value.includes(row.id)) {
+      sendingIds.value.push(row.id)
+    }
+    if (selectedEmail.value?.id === row.id) {
+      isSending.value = true
+    }
+
     try {
-      await $fetch(`/api/admin/emails/${selectedEmail.value.id}/send`, {
+      await $fetch(`/api/admin/emails/${row.id}/send`, {
         method: 'POST'
       })
 
@@ -47,7 +57,9 @@
         description: 'Email sent successfully via Resend',
         color: 'success'
       })
-      isPreviewOpen.value = false
+      if (options?.closeModal && selectedEmail.value?.id === row.id) {
+        isPreviewOpen.value = false
+      }
       await refresh()
     } catch (err: any) {
       toast.add({
@@ -56,8 +68,16 @@
         color: 'error'
       })
     } finally {
-      isSending.value = false
+      sendingIds.value = sendingIds.value.filter((id) => id !== row.id)
+      if (selectedEmail.value?.id === row.id) {
+        isSending.value = false
+      }
     }
+  }
+
+  const sendSelectedEmail = async () => {
+    if (!selectedEmail.value) return
+    await sendEmailById(selectedEmail.value, { closeModal: true })
   }
 
   const statusColor = (status: string) => {
@@ -165,13 +185,24 @@
                     </UBadge>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <UButton
-                      color="neutral"
-                      variant="ghost"
-                      icon="i-heroicons-eye"
-                      size="sm"
-                      @click="openPreview(row)"
-                    />
+                    <div class="flex items-center justify-end gap-1">
+                      <UButton
+                        v-if="isSendable(row)"
+                        color="primary"
+                        variant="ghost"
+                        icon="i-heroicons-paper-airplane"
+                        size="sm"
+                        :loading="isRowSending(row.id)"
+                        @click="sendEmailById(row)"
+                      />
+                      <UButton
+                        color="neutral"
+                        variant="ghost"
+                        icon="i-heroicons-eye"
+                        size="sm"
+                        @click="openPreview(row)"
+                      />
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -234,7 +265,7 @@
                 color="primary"
                 icon="i-heroicons-paper-airplane"
                 :loading="isSending"
-                @click="sendEmail"
+                @click="sendSelectedEmail"
               >
                 Send Now
               </UButton>
