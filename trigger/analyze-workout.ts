@@ -1,5 +1,5 @@
 import './init'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task, tasks } from '@trigger.dev/sdk/v3'
 import { generateCoachAnalysis, generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
@@ -242,10 +242,10 @@ export const analyzeWorkoutTask = task({
   id: 'analyze-workout',
   maxDuration: 300, // 5 minutes for AI processing
   queue: userAnalysisQueue,
-  run: async (payload: { workoutId: string }) => {
-    const { workoutId } = payload
+  run: async (payload: { workoutId: string; source?: 'AUTOMATIC' | 'MANUAL' }) => {
+    const { workoutId, source = 'MANUAL' } = payload
 
-    logger.log('Starting workout analysis', { workoutId })
+    logger.log('Starting workout analysis', { workoutId, source })
 
     try {
       const workout = await prisma.workout.findUnique({
@@ -275,6 +275,17 @@ export const analyzeWorkoutTask = task({
       const timezone = await getUserTimezone(workout.userId)
       const today = getUserLocalDate(timezone)
 
+      // Fetch user and email preferences
+      const [user, emailPrefs] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: workout.userId },
+          select: { dob: true, sex: true, weight: true, aiAutoAnalyzeWorkouts: true }
+        }),
+        prisma.emailPreference.findUnique({
+          where: { userId_channel: { userId: workout.userId, channel: 'EMAIL' } }
+        })
+      ])
+
       // 1. Skip if future date
       if (workout.date > today) {
         logger.log('Skipping workout analysis for future date', {
@@ -284,6 +295,12 @@ export const analyzeWorkoutTask = task({
         })
         await workoutRepository.updateStatus(workoutId, 'NOT_STARTED')
         return { success: true, skipped: true, reason: 'FUTURE_DATE' }
+      }
+
+      // Logic Check: If AUTOMATIC, ensure aiAutoAnalyzeWorkouts is enabled
+      if (source === 'AUTOMATIC' && !user?.aiAutoAnalyzeWorkouts) {
+        logger.log('EXIT: Auto-analyze workouts disabled for user.')
+        return { success: true, skipped: true, reason: 'AUTO_ANALYZE_DISABLED' }
       }
 
       // 2. Check for data presence (duration, distance, watts, HR, or exercises)
@@ -326,11 +343,6 @@ export const analyzeWorkoutTask = task({
       })
 
       const aiSettings = await getUserAiSettings(workout.userId)
-
-      const user = await prisma.user.findUnique({
-        where: { id: workout.userId },
-        select: { dob: true, sex: true, weight: true }
-      })
       const userAge = calculateAge(user?.dob)
 
       // Fetch Sport Specific Settings
@@ -417,6 +429,44 @@ export const analyzeWorkoutTask = task({
         logger.warn('Auto-publish to Intervals.icu notes failed', {
           workoutId,
           error: publishError
+        })
+      }
+
+      // TRIGGER EMAIL (Only if AUTOMATIC and preferences allow)
+      if (
+        source === 'AUTOMATIC' &&
+        emailPrefs &&
+        emailPrefs.workoutAnalysis &&
+        !emailPrefs.globalUnsubscribe
+      ) {
+        logger.log('Triggering workout analysis email')
+        try {
+          const fullUser = await prisma.user.findUnique({
+            where: { id: workout.userId },
+            select: { name: true, email: true }
+          })
+          if (fullUser) {
+            await tasks.trigger('send-email', {
+              userId: workout.userId,
+              templateKey: 'WorkoutAnalysisReady',
+              eventKey: `WORKOUT_ANALYSIS_READY_${workoutId}`,
+              audience: 'ENGAGEMENT',
+              subject: `Workout Analysis Ready: ${workout.title}`,
+              props: {
+                name: fullUser.name || 'Athlete',
+                workoutTitle: workout.title,
+                overallScore: structuredAnalysis.scores?.overall,
+                unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
+              }
+            })
+          }
+        } catch (emailError) {
+          logger.warn('Failed to trigger workout analysis email', { workoutId, error: emailError })
+        }
+      } else {
+        logger.log('Skipping email trigger: Source is MANUAL or preferences disabled.', {
+          source,
+          workoutAnalysisEnabled: emailPrefs?.workoutAnalysis
         })
       }
 

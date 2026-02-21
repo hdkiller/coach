@@ -215,7 +215,10 @@ export const deduplicateWorkoutsTask = task({
             logger.log(
               `🤖 [Auto-Analyze] Triggering analysis for: ${workout.title} (${workout.date.toISOString()})`
             )
-            await analyzeWorkoutTask.trigger({ workoutId: workout.id })
+            await analyzeWorkoutTask.trigger({
+              workoutId: workout.id,
+              source: 'AUTOMATIC'
+            })
             // Log the action
             await auditLogRepository.log({
               userId: actualUserId,

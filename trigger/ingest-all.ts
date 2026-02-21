@@ -24,7 +24,12 @@ import type { IngestionResult } from './types'
 export const ingestAllTask = task({
   id: 'ingest-all',
   maxDuration: 3600, // 1 hour to allow for sequential sub-tasks
-  run: async (payload: { userId: string; startDate: string; endDate: string; manualSync?: boolean }) => {
+  run: async (payload: {
+    userId: string
+    startDate: string
+    endDate: string
+    manualSync?: boolean
+  }) => {
     const { userId, startDate, endDate, manualSync = false } = payload
 
     logger.log('='.repeat(60))
@@ -386,6 +391,38 @@ export const ingestAllTask = task({
         }
       } catch (err) {
         logger.error('❌ [Auto-Analyze] Failed to trigger nutrition analysis', { err })
+      }
+    }
+
+    // CHAIN: Auto-Analyze Readiness / Daily Recommendation
+    if (anyWellnessUpdated) {
+      try {
+        const aiSettings = await getUserAiSettings(userId)
+        if (aiSettings.aiAutoAnalyzeReadiness) {
+          logger.log('🤖 [Auto-Analyze] Wellness updated: Triggering daily recommendation...')
+
+          await recommendTodayActivityTask.trigger(
+            {
+              userId,
+              date: new Date(),
+              source: 'AUTOMATIC'
+            },
+            {
+              concurrencyKey: userId,
+              tags: [`user:${userId}`]
+            }
+          )
+
+          // Log the action
+          await auditLogRepository.log({
+            userId,
+            action: 'AUTO_ANALYZE_READINESS',
+            resourceType: 'ActivityRecommendation',
+            metadata: { date: new Date().toISOString(), source: 'ingest-all' }
+          })
+        }
+      } catch (err) {
+        logger.error('❌ [Auto-Analyze] Failed to trigger daily recommendation', { err })
       }
     }
 

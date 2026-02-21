@@ -1,5 +1,5 @@
 import './init'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task, tasks } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
@@ -18,6 +18,7 @@ import {
 } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
 
 const suggestionSchema = {
   type: 'object',
@@ -47,10 +48,10 @@ export const dailyCoachTask = task({
   id: 'daily-coach',
   queue: userReportsQueue,
   maxDuration: 300,
-  run: async (payload: { userId: string }) => {
-    const { userId } = payload
+  run: async (payload: { userId: string; source?: 'AUTOMATIC' | 'MANUAL' }) => {
+    const { userId, source = 'MANUAL' } = payload
 
-    logger.log('Starting daily coach analysis', { userId })
+    logger.log('Starting daily coach analysis', { userId, source })
 
     const timezone = await getUserTimezone(userId)
     const todayDateOnly = getUserLocalDate(timezone)
@@ -59,9 +60,9 @@ export const dailyCoachTask = task({
     const todayStart = getStartOfDaysAgoUTC(timezone, 0)
     const todayEnd = getEndOfDayUTC(timezone, todayStart)
 
-    // Fetch data
-    const [yesterdayWorkout, todayMetric, user, athleteProfile, rawActiveGoals] = await Promise.all(
-      [
+    // Fetch data including email preferences
+    const [yesterdayWorkout, todayMetric, user, athleteProfile, rawActiveGoals, emailPrefs] =
+      await Promise.all([
         workoutRepository
           .getForUser(userId, {
             startDate: yesterdayStart,
@@ -74,7 +75,7 @@ export const dailyCoachTask = task({
         wellnessRepository.getByDate(userId, todayDateOnly),
         prisma.user.findUnique({
           where: { id: userId },
-          select: { ftp: true, weight: true, maxHr: true }
+          select: { ftp: true, weight: true, maxHr: true, aiAutoAnalyzeReadiness: true }
         }),
 
         // Latest athlete profile
@@ -103,9 +104,13 @@ export const dailyCoachTask = task({
             eventDate: true,
             priority: true
           }
+        }),
+
+        // Email Preferences
+        prisma.emailPreference.findUnique({
+          where: { userId_channel: { userId, channel: 'EMAIL' } }
         })
-      ]
-    )
+      ])
     const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayDateOnly)
 
     logger.log('Data fetched', {
@@ -114,6 +119,12 @@ export const dailyCoachTask = task({
       hasAthleteProfile: !!athleteProfile,
       activeGoals: activeGoals.length
     })
+
+    // Logic Check: If AUTOMATIC, ensure aiAutoAnalyzeReadiness is enabled
+    if (source === 'AUTOMATIC' && !user?.aiAutoAnalyzeReadiness) {
+      logger.log('EXIT: Auto-analyze readiness disabled for user.')
+      return { success: true, skipped: true, reason: 'AUTO_ANALYZE_DISABLED' }
+    }
 
     // Generate comprehensive training context (Last 30 Days)
     const thirtyDaysAgo = getStartOfDaysAgoUTC(timezone, 30)
@@ -268,6 +279,63 @@ CRITICAL INSTRUCTIONS:
     })
 
     logger.log('Suggestion saved', { reportId: report.id })
+
+    // TRIGGER EMAIL (Only if AUTOMATIC and preferences allow)
+    if (
+      source === 'AUTOMATIC' &&
+      emailPrefs &&
+      emailPrefs.dailyCoach &&
+      !emailPrefs.globalUnsubscribe
+    ) {
+      const todayDayName = formatUserDate(todayDateOnly, timezone, 'EEEE').toUpperCase()
+      const isScheduledDay = emailPrefs.dailyCoachDays.includes(todayDayName)
+      const isWithinPreferredTime = isWithinPreferredEmailTime({
+        timezone,
+        preferredTime: emailPrefs.dailyCoachTime
+      })
+
+      if (isScheduledDay && isWithinPreferredTime) {
+        logger.log(`Triggering daily recommendation email for ${todayDayName}`)
+        try {
+          const fullUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true, email: true }
+          })
+          if (fullUser) {
+            await tasks.trigger('send-email', {
+              userId,
+              templateKey: 'DailyRecommendation',
+              eventKey: `DAILY_SUGGESTION_${report.id}`,
+              audience: 'ENGAGEMENT',
+              subject: `Today's Training: ${suggestion.action.toUpperCase()}`,
+              props: {
+                name: fullUser.name || 'Athlete',
+                date: formatUserDate(todayDateOnly, timezone, 'EEEE, MMM d'),
+                recommendation: suggestion.action.toUpperCase().replace('_', ' '),
+                reasoning: suggestion.reason,
+                unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
+              }
+            })
+          }
+        } catch (emailError) {
+          logger.warn('Failed to trigger daily recommendation email', {
+            reportId: report.id,
+            error: emailError
+          })
+        }
+      } else {
+        logger.log('Skipping email: not in scheduled day/time window.', {
+          todayDayName,
+          scheduledDays: emailPrefs.dailyCoachDays,
+          preferredTime: emailPrefs.dailyCoachTime
+        })
+      }
+    } else {
+      logger.log('Skipping email trigger: Source is MANUAL or preferences disabled.', {
+        source,
+        dailyCoachEnabled: emailPrefs?.dailyCoach
+      })
+    }
 
     return {
       success: true,

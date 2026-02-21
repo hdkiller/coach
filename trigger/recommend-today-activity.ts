@@ -18,6 +18,7 @@ import { checkQuota } from '../server/utils/quotas/engine'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
 import {
   getMoodLabel,
   getStressLabel,
@@ -129,10 +130,11 @@ export const recommendTodayActivityTask = task({
     date: Date
     recommendationId?: string
     userFeedback?: string
+    source?: 'AUTOMATIC' | 'MANUAL'
   }) => {
-    const { userId, date: payloadDate, recommendationId, userFeedback } = payload
+    const { userId, date: payloadDate, recommendationId, userFeedback, source = 'MANUAL' } = payload
 
-    logger.log("Starting today's activity recommendation", { userId, payloadDate })
+    logger.log("Starting today's activity recommendation", { userId, payloadDate, source })
 
     const aiSettings = await getUserAiSettings(userId)
 
@@ -164,7 +166,8 @@ export const recommendTodayActivityTask = task({
         lthr: true,
         dob: true,
         sex: true,
-        nutritionTrackingEnabled: true
+        nutritionTrackingEnabled: true,
+        aiAutoAnalyzeReadiness: true
       }
     })
 
@@ -172,7 +175,18 @@ export const recommendTodayActivityTask = task({
     const nutritionEnabled = user?.nutritionTrackingEnabled ?? true
     const userAge = calculateAge(user?.dob)
 
+    // Fetch Email Preferences
+    const emailPrefs = await prisma.emailPreference.findUnique({
+      where: { userId_channel: { userId, channel: 'EMAIL' } }
+    })
+
     logger.log('Proceeding with recommendation using latest available context.')
+
+    // Logic Check: If AUTOMATIC, ensure aiAutoAnalyzeReadiness is enabled
+    if (source === 'AUTOMATIC' && !user?.aiAutoAnalyzeReadiness) {
+      logger.log('EXIT: Auto-analyze readiness disabled for user.')
+      return { success: true, skipped: true, reason: 'AUTO_ANALYZE_DISABLED' }
+    }
 
     // 3. Calculate Effective Today based on User's Timezone
     // This fixes issues where server time (UTC) might be ahead/behind user's local "Today"
@@ -911,6 +925,63 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
       recommendationId: recommendation.id,
       decision: analysis.recommendation
     })
+
+    // TRIGGER EMAIL (Only if AUTOMATIC and preferences allow)
+    if (
+      source === 'AUTOMATIC' &&
+      emailPrefs &&
+      emailPrefs.dailyCoach &&
+      !emailPrefs.globalUnsubscribe
+    ) {
+      const todayDayName = formatUserDate(today, userTimezone, 'EEEE').toUpperCase()
+      const isScheduledDay = emailPrefs.dailyCoachDays.includes(todayDayName)
+      const isWithinPreferredTime = isWithinPreferredEmailTime({
+        timezone: userTimezone,
+        preferredTime: emailPrefs.dailyCoachTime
+      })
+
+      if (isScheduledDay && isWithinPreferredTime) {
+        logger.log(`Triggering daily recommendation email for ${todayDayName}`)
+        try {
+          const fullUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true, email: true }
+          })
+          if (fullUser) {
+            await tasks.trigger('send-email', {
+              userId,
+              templateKey: 'DailyRecommendation',
+              eventKey: `DAILY_RECOMMENDATION_${recommendation.id}`,
+              audience: 'ENGAGEMENT',
+              subject: `Today's Training: ${analysis.recommendation.toUpperCase().replace('_', ' ')}`,
+              props: {
+                name: fullUser.name || 'Athlete',
+                date: formatUserDate(today, userTimezone, 'EEEE, MMM d'),
+                recommendation: analysis.recommendation.toUpperCase().replace('_', ' '),
+                reasoning: analysis.reasoning,
+                unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
+              }
+            })
+          }
+        } catch (emailError) {
+          logger.warn('Failed to trigger daily recommendation email', {
+            recommendationId: recommendation.id,
+            error: emailError
+          })
+        }
+      } else {
+        logger.log('Skipping email: not in scheduled day/time window.', {
+          todayDayName,
+          scheduledDays: emailPrefs.dailyCoachDays,
+          preferredTime: emailPrefs.dailyCoachTime
+        })
+      }
+    } else {
+      logger.log('Skipping email trigger: Source is MANUAL or preferences disabled.', {
+        source,
+        dailyCoachEnabled: emailPrefs?.dailyCoach
+      })
+    }
 
     return {
       success: true,
