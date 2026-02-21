@@ -160,3 +160,60 @@ export const metricDefinitions: Record<string, MetricDefinition> = {
       'Every "match" burnt takes a toll. If you burn too many early in a race, you\'ll have nothing left for the final sprint.'
   }
 }
+
+/**
+ * Convert CM to feet and inches
+ */
+export function cmToFtIn(cm: number): { ft: number; in: number } {
+  const totalInches = cm / 2.54
+  const ft = Math.floor(totalInches / 12)
+  const inches = Math.round(totalInches % 12)
+  return { ft, in: inches }
+}
+
+/**
+ * Convert feet and inches to CM
+ */
+export function ftInToCm(ft: number, inches: number): number {
+  const totalInches = ft * 12 + inches
+  return Math.round(totalInches * 2.54)
+}
+
+/**
+ * Format height for display based on units
+ */
+export function formatHeight(heightCm: number | null | undefined, units: string): string {
+  if (!heightCm) return 'N/A'
+
+  if (units === 'ft/in') {
+    const { ft, in: inches } = cmToFtIn(heightCm)
+    return `${ft}'${inches}"`
+  }
+
+  return `${heightCm} cm`
+}
+
+/**
+ * Convert meters to Kilometers or Miles
+ */
+export function formatDistance(meters: number | null | undefined, units: string): string {
+  if (meters === null || meters === undefined) return 'N/A'
+  if (units === 'Miles') {
+    const miles = meters / 1609.344
+    return `${miles.toFixed(2)} mi`
+  }
+  const km = meters / 1000
+  return `${km.toFixed(2)} km`
+}
+
+/**
+ * Convert Celsius to Fahrenheit
+ */
+export function formatTemperature(celsius: number | null | undefined, units: string): string {
+  if (celsius === null || celsius === undefined) return 'N/A'
+  if (units === 'Fahrenheit') {
+    const fahrenheit = (celsius * 9) / 5 + 32
+    return `${fahrenheit.toFixed(1)}°F`
+  }
+  return `${celsius.toFixed(1)}°C`
+}

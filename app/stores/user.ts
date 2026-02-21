@@ -195,6 +195,32 @@ export const useUserStore = defineStore('user', () => {
     return defaultSettings?.maxHr || profile.value.maxHr || 0
   })
 
+  const currentWeightKg = computed(() => {
+    if (!profile.value?.weight) return 0
+    if (profile.value.weightUnits === 'Pounds') {
+      return profile.value.weight * 0.45359237
+    }
+    return profile.value.weight
+  })
+
+  const weightUnitLabel = computed(() => {
+    return profile.value?.weightUnits === 'Pounds' ? 'lbs' : 'kg'
+  })
+
+  const distanceUnitLabel = computed(() => {
+    return profile.value?.distanceUnits === 'Miles' ? 'mi' : 'km'
+  })
+
+  const temperatureUnitLabel = computed(() => {
+    return profile.value?.temperatureUnits === 'Fahrenheit' ? '°F' : '°C'
+  })
+
+  const currentWkg = computed(() => {
+    const w = currentWeightKg.value
+    if (!w || !currentFtp.value) return 0
+    return currentFtp.value / w
+  })
+
   const currentWPrime = computed(() => {
     if (!profile.value) return 0
     const defaultSettings = profile.value.sportSettings?.find((s: any) => s.isDefault)
@@ -261,6 +287,11 @@ export const useUserStore = defineStore('user', () => {
     currentFtp,
     currentLthr,
     currentMaxHr,
+    currentWeightKg,
+    weightUnitLabel,
+    distanceUnitLabel,
+    temperatureUnitLabel,
+    currentWkg,
     currentWPrime,
     currentThresholdPace,
     loading,
