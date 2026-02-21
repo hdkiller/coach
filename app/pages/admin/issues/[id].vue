@@ -83,6 +83,7 @@
   }
 
   const newComment = ref('')
+  const newCommentType = ref<'NOTE' | 'MESSAGE'>('MESSAGE')
   const sendingComment = ref(false)
 
   async function addComment() {
@@ -91,7 +92,7 @@
     try {
       await $fetch(`/api/admin/issues/${id}/comments`, {
         method: 'POST',
-        body: { content: newComment.value }
+        body: { content: newComment.value, type: newCommentType.value }
       })
       newComment.value = ''
       await refreshComments()
@@ -259,22 +260,39 @@
                       <UBadge v-if="comment.isAdmin" color="primary" variant="subtle" size="xs"
                         >Admin</UBadge
                       >
+                      <UBadge
+                        v-if="comment.type === 'NOTE'"
+                        color="warning"
+                        variant="subtle"
+                        size="xs"
+                        >Internal Note</UBadge
+                      >
                       <span class="text-[10px] text-gray-500">
                         {{ new Date(comment.createdAt).toLocaleString() }}
                       </span>
                     </div>
                     <div
                       class="px-4 py-2 rounded-2xl text-sm shadow-sm"
-                      :class="
+                      :class="[
                         comment.isAdmin
-                          ? 'bg-primary-600 text-white rounded-tr-none'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-200 dark:border-gray-700'
-                      "
+                          ? 'rounded-tr-none'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-200 dark:border-gray-700',
+                        comment.isAdmin && comment.type === 'MESSAGE'
+                          ? 'bg-primary-600 text-white'
+                          : '',
+                        comment.isAdmin && comment.type === 'NOTE'
+                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 border border-amber-200 dark:border-amber-800'
+                          : ''
+                      ]"
                     >
                       <MDC
                         :value="comment.content"
                         class="prose prose-sm max-w-none"
-                        :class="comment.isAdmin ? 'prose-invert' : 'dark:prose-invert'"
+                        :class="
+                          comment.isAdmin && comment.type === 'MESSAGE'
+                            ? 'prose-invert'
+                            : 'dark:prose-invert'
+                        "
                       />
                     </div>
                   </div>
@@ -285,23 +303,40 @@
                 <div class="flex flex-col gap-3">
                   <UTextarea
                     v-model="newComment"
-                    placeholder="Reply to user..."
+                    :placeholder="
+                      newCommentType === 'NOTE' ? 'Add an internal note...' : 'Reply to user...'
+                    "
                     autoresize
                     :rows="3"
                     class="w-full"
+                    :class="{ 'bg-amber-50/50 dark:bg-amber-900/10': newCommentType === 'NOTE' }"
                     @keydown.meta.enter="addComment"
                   />
-                  <div class="flex justify-end items-center gap-4">
-                    <p class="text-[10px] text-gray-400">Press Cmd+Enter to send</p>
-                    <UButton
-                      icon="i-heroicons-paper-airplane"
+                  <div class="flex justify-between items-center gap-4">
+                    <URadioGroup
+                      v-model="newCommentType"
+                      :items="[
+                        { value: 'MESSAGE', label: 'Message to User' },
+                        { value: 'NOTE', label: 'Internal Note' }
+                      ]"
                       color="primary"
-                      :loading="sendingComment"
-                      :disabled="!newComment.trim()"
-                      @click="addComment"
-                    >
-                      Send Message
-                    </UButton>
+                      class="flex flex-row gap-4"
+                      :ui="{ fieldset: 'flex flex-row gap-4' }"
+                    />
+                    <div class="flex items-center gap-4">
+                      <p class="text-[10px] text-gray-400 hidden sm:block">
+                        Press Cmd+Enter to send
+                      </p>
+                      <UButton
+                        icon="i-heroicons-paper-airplane"
+                        :color="newCommentType === 'NOTE' ? 'warning' : 'primary'"
+                        :loading="sendingComment"
+                        :disabled="!newComment.trim()"
+                        @click="addComment"
+                      >
+                        {{ newCommentType === 'NOTE' ? 'Add Note' : 'Send Message' }}
+                      </UButton>
+                    </div>
                   </div>
                 </div>
               </template>

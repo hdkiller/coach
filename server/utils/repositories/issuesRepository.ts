@@ -43,6 +43,7 @@ export const issuesRepository = {
           }
         },
         comments: {
+          where: userId ? { type: 'MESSAGE' } : undefined, // Only show messages to regular users
           include: {
             user: {
               select: {
@@ -209,13 +210,20 @@ export const issuesRepository = {
   /**
    * Add a comment to an issue.
    */
-  async addComment(issueId: string, userId: string, content: string, isAdmin = false) {
+  async addComment(
+    issueId: string,
+    userId: string,
+    content: string,
+    isAdmin = false,
+    type: 'NOTE' | 'MESSAGE' = 'MESSAGE'
+  ) {
     return prisma.bugReportComment.create({
       data: {
         bugReportId: issueId,
         userId,
         content,
-        isAdmin
+        isAdmin,
+        type
       },
       include: {
         user: {
