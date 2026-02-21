@@ -12,12 +12,12 @@ type UnsubscribeTokenPayload = {
 
 /**
  * Generates a secure, cryptographic unsubscribe token for a user.
- * Encodes the userId and signs it with the NUXT_AUTH_SECRET.
+ * Encodes the userId and signs it with the INTERNAL_API_TOKEN.
  */
 export function generateUnsubscribeToken(userId: string): string {
-  const secret = process.env.NUXT_AUTH_SECRET
+  const secret = process.env.INTERNAL_API_TOKEN
   if (!secret) {
-    throw new Error('NUXT_AUTH_SECRET is not defined')
+    throw new Error('INTERNAL_API_TOKEN is not defined')
   }
 
   const now = Math.floor(Date.now() / 1000)
@@ -45,7 +45,7 @@ export function generateUnsubscribeToken(userId: string): string {
  */
 export function verifyUnsubscribeToken(token: string): string | null {
   try {
-    const secret = process.env.NUXT_AUTH_SECRET
+    const secret = process.env.INTERNAL_API_TOKEN
     if (!secret) return null
 
     const [payloadB64, signature] = token.split('.')

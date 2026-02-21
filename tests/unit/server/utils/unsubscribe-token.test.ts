@@ -6,7 +6,7 @@ import {
 
 describe('unsubscribe-token', () => {
   beforeEach(() => {
-    process.env.NUXT_AUTH_SECRET = 'test-secret'
+    process.env.INTERNAL_API_TOKEN = 'test-secret'
     delete process.env.EMAIL_UNSUBSCRIBE_TOKEN_TTL_SECONDS
   })
 

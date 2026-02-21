@@ -154,7 +154,7 @@ export const sendEmailTask = task({
 
       const internalApiToken = getInternalApiToken()
       if (!internalApiToken) {
-        throw new Error('INTERNAL_API_TOKEN (or fallback NUXT_AUTH_SECRET) is not configured')
+        throw new Error('INTERNAL_API_TOKEN is not configured')
       }
 
       const response = await fetch(renderUrl, {
