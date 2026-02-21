@@ -75,7 +75,7 @@
             >
               <Line
                 :data="getEfChartData()"
-                :options="getSparklineOptions('Efficiency Factor')"
+                :options="getSparklineOptions('Efficiency Factor', 2)"
                 :height="80"
               />
             </div>
@@ -151,7 +151,7 @@
             >
               <Line
                 :data="getWPrimeChartData()"
-                :options="getSparklineOptions('W\' Balance (J)')"
+                :options="getSparklineOptions('W\' Balance (J)', 0)"
                 :height="80"
               />
             </div>
@@ -748,7 +748,7 @@
   }
 
   // Chart Helpers
-  function getSparklineOptions(label: string) {
+  function getSparklineOptions(label: string, precision: number = 0) {
     const isDark = document.documentElement.classList.contains('dark')
 
     return {
@@ -760,7 +760,7 @@
           mode: 'index' as const,
           intersect: false,
           callbacks: {
-            label: (ctx: any) => `${label}: ${Math.round(ctx.parsed.y)}`
+            label: (ctx: any) => `${label}: ${ctx.parsed.y.toFixed(precision)}`
           }
         }
       },
