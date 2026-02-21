@@ -376,7 +376,7 @@ export const WorkoutConverter = {
     const toDistanceToken = (meters?: number) => {
       if (!meters || meters <= 0) return ''
       if (meters % 1000 === 0) return `${meters / 1000}km`
-      return `${meters}mtrs`
+      return `${meters}m`
     }
     const toValuePct = (value: number) => {
       if (!Number.isFinite(value)) return 0

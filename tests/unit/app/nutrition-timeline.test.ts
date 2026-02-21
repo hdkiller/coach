@@ -83,9 +83,12 @@ describe('Nutrition Timeline Utility', () => {
     ]
 
     const timeline = mapNutritionToTimeline(nutritionRecord, workouts, options as any)
-    const workoutWindow = timeline.find((w) => w.workoutTitle === 'Late Night Workout')
+    const workoutWindow = timeline.find(
+      (w) => w.workoutTitle === 'Late Night Workout' || w.description === 'Late Night Workout'
+    )
 
     // Should stay on the 11th
+    expect(workoutWindow).toBeDefined()
     expect(workoutWindow?.startTime.getUTCDate()).toBe(11)
     expect(workoutWindow?.startTime.getUTCMonth()).toBe(1) // February is 1
     expect(workoutWindow?.startTime.getUTCFullYear()).toBe(2026)
