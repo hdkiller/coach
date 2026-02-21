@@ -353,7 +353,7 @@ PAST CHECK-INS (Last 7 days):
 ${pastCheckins
   .map((c) => {
     const qs = c.questions as any[]
-    const dateStr = formatUserDate(c.date, userTimezone, 'yyyy-MM-dd')
+    const dateStr = formatDateUTC(c.date, 'yyyy-MM-dd')
     let output =
       `Date: ${dateStr}\n` +
       qs.map((q) => `- Q: ${q.text} -> A: ${q.answer || 'No Answer'}`).join('\n')
@@ -371,7 +371,7 @@ ${pastCheckins
 Adopt your **${aiSettings.aiPersona}** persona in your tone and questioning style.
 Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
-DATE: ${formatUserDate(today, userTimezone, 'yyyy-MM-dd')}
+DATE: ${formatDateUTC(today, 'yyyy-MM-dd')} (${formatDateUTC(today, 'EEEE')})
 
 ${athleteContext}
 ${goalsContext}
