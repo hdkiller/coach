@@ -127,6 +127,11 @@
   }
 
   const isUserMessage = computed(() => props.message?.role === 'user')
+
+  const toMdcSafeText = (value: unknown) => {
+    if (typeof value !== 'string') return ''
+    return value.replaceAll('{{', '&#123;&#123;').replaceAll('}}', '&#125;&#125;')
+  }
 </script>
 
 <template>
@@ -142,7 +147,7 @@
         <div
           class="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_p]:leading-7 [&_p]:text-pretty"
         >
-          <MDC :value="part.text" :cache-key="`${message.id}-${index}`" />
+          <MDC :value="toMdcSafeText(part.text)" :cache-key="`${message.id}-${index}`" />
         </div>
         <div
           v-if="isUserMessage && message.metadata?.editedAt"
