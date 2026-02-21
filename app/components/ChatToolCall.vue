@@ -65,7 +65,8 @@
       generate_training_plan: 'i-heroicons-sparkles',
       get_current_plan: 'i-heroicons-document-text',
       get_workout_stream: 'i-heroicons-chart-bar-square',
-      create_chart: 'i-heroicons-presentation-chart-line'
+      create_chart: 'i-heroicons-presentation-chart-line',
+      forecast_training_load: 'i-heroicons-chart-bar'
     }
     return iconMap[name] || 'i-heroicons-wrench-screwdriver'
   }

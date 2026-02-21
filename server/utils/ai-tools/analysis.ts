@@ -4,8 +4,59 @@ import { workoutRepository } from '../repositories/workoutRepository'
 import { ingestAllTask } from '../../../trigger/ingest-all'
 import { generateReportTask } from '../../../trigger/generate-report'
 import { prisma } from '../../utils/db'
-import { getStartOfDaysAgoUTC, formatUserDate } from '../../utils/date'
+import { getStartOfDaysAgoUTC, formatDateUTC, formatUserDate } from '../../utils/date'
+import { calculateProjectedPMC, getInitialPMCValues } from '../../utils/training-stress'
 import type { AiSettings } from '../ai-user-settings'
+
+const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+
+const roundToOne = (value: number) => Math.round(value * 10) / 10
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+
+const estimateTssFromWorkoutType = (durationMinutes: number, type?: string | null) => {
+  const normalizedType = (type || '').toLowerCase()
+  const hourlyTss =
+    normalizedType.includes('recovery') || normalizedType.includes('easy')
+      ? 30
+      : normalizedType.includes('vo2') || normalizedType.includes('anaerobic')
+        ? 85
+        : normalizedType.includes('threshold') || normalizedType.includes('tempo')
+          ? 70
+          : 50
+  return roundToOne((durationMinutes / 60) * hourlyTss)
+}
+
+const buildForecastSummary = ({
+  endDate,
+  focusMetric,
+  startCtl,
+  finalCtl,
+  finalTsb,
+  predictionsCount
+}: {
+  endDate: string
+  focusMetric?: 'FTP' | 'PeakPower' | 'CTL' | 'TSB' | null
+  startCtl: number
+  finalCtl: number
+  finalTsb: number
+  predictionsCount: number
+}) => {
+  const focusLineMap: Record<string, string> = {
+    FTP: `Focus metric: FTP trend is supported by a CTL delta of ${roundToOne(finalCtl - startCtl)}.`,
+    PeakPower: `Focus metric: Peak power readiness is tied to fatigue management (TSB ${finalTsb >= 0 ? '+' : ''}${finalTsb}).`,
+    CTL: `Focus metric: CTL is projected to move from ${startCtl} to ${finalCtl}.`,
+    TSB: `Focus metric: TSB is projected at ${finalTsb >= 0 ? '+' : ''}${finalTsb} by ${endDate}.`
+  }
+
+  const trainingPhase =
+    finalTsb >= 5
+      ? 'a fresher phase'
+      : finalTsb >= -10
+        ? 'a balanced build phase'
+        : 'a heavy load phase'
+
+  return `Projected through ${endDate} (${predictionsCount} days): CTL ${finalCtl}, TSB ${finalTsb >= 0 ? '+' : ''}${finalTsb}, indicating ${trainingPhase}. ${focusMetric ? focusLineMap[focusMetric] : ''}`.trim()
+}
 
 export const analysisTools = (userId: string, timezone: string, settings: AiSettings) => ({
   analyze_training_load: tool({
@@ -41,6 +92,172 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
         avg_tss: Math.round(avgTSS),
         // TODO: Implement actual ATL/CTL/TSB calculation or fetch from DB
         metrics: 'Detailed ATL/CTL/TSB requires historical processing.'
+      }
+    }
+  }),
+
+  forecast_training_load: tool({
+    description:
+      'Forecast future CTL, ATL, and TSB over a date range using planned workouts or hypothetical workouts, and optionally highlight FTP/PeakPower outlook.',
+    inputSchema: z.object({
+      start_date: isoDateSchema.describe('Start date (YYYY-MM-DD)'),
+      end_date: isoDateSchema.describe('End date (YYYY-MM-DD)'),
+      planned_workouts: z
+        .array(
+          z.object({
+            date: isoDateSchema.describe('Workout date (YYYY-MM-DD)'),
+            tss: z.number().min(0).optional().describe('Workout TSS (preferred when known)'),
+            type: z
+              .string()
+              .optional()
+              .describe('Workout type (used for TSS estimation if needed)'),
+            duration_minutes: z
+              .number()
+              .positive()
+              .optional()
+              .describe('Duration in minutes (used for TSS estimation)')
+          })
+        )
+        .optional()
+        .describe('Optional hypothetical workouts to simulate instead of current planned workouts'),
+      focus_metric: z
+        .enum(['FTP', 'PeakPower', 'CTL', 'TSB'])
+        .optional()
+        .describe('Optional metric to highlight in the summary')
+    }),
+    execute: async ({ start_date, end_date, planned_workouts, focus_metric }) => {
+      if (start_date > end_date) {
+        return { error: 'start_date must be on or before end_date' }
+      }
+
+      const startDate = new Date(`${start_date}T00:00:00Z`)
+      const endDate = new Date(`${end_date}T00:00:00Z`)
+      const initial = await getInitialPMCValues(userId, startDate)
+
+      const plannedWorkoutsForProjection = planned_workouts?.length
+        ? planned_workouts
+            .map((workout) => {
+              const resolvedTss =
+                workout.tss ??
+                (workout.duration_minutes
+                  ? estimateTssFromWorkoutType(workout.duration_minutes, workout.type)
+                  : 0)
+
+              return {
+                date: new Date(`${workout.date}T00:00:00Z`),
+                tss: resolvedTss
+              }
+            })
+            .filter((workout) => workout.date >= startDate && workout.date <= endDate)
+        : (
+            await prisma.plannedWorkout.findMany({
+              where: {
+                userId,
+                date: { gte: startDate, lte: endDate },
+                completionStatus: { not: 'COMPLETED' },
+                completed: { not: true }
+              },
+              select: {
+                date: true,
+                tss: true
+              },
+              orderBy: { date: 'asc' }
+            })
+          ).map((workout) => ({
+            date: workout.date,
+            tss: workout.tss
+          }))
+
+      const projected = calculateProjectedPMC(
+        startDate,
+        endDate,
+        initial.ctl,
+        initial.atl,
+        plannedWorkoutsForProjection
+      )
+
+      if (projected.length === 0) {
+        return {
+          predictions: [],
+          summary: 'No forecast could be generated for the requested date range.'
+        }
+      }
+
+      const predictions = projected.map((day) => ({
+        date: formatDateUTC(day.date),
+        ctl: roundToOne(day.ctl),
+        atl: roundToOne(day.atl),
+        tsb: roundToOne(day.tsb)
+      }))
+
+      const firstPrediction = predictions[0]!
+      const finalPrediction = predictions[predictions.length - 1]!
+      const ctlDelta = finalPrediction.ctl - firstPrediction.ctl
+
+      const userProfile = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { ftp: true }
+      })
+
+      const strongestRecentWorkout = await prisma.workout.findFirst({
+        where: {
+          userId,
+          isDuplicate: false,
+          maxWatts: { not: null },
+          date: { gte: getStartOfDaysAgoUTC(timezone, 120) }
+        },
+        select: {
+          maxWatts: true
+        },
+        orderBy: {
+          maxWatts: 'desc'
+        }
+      })
+
+      const days = Math.max(1, predictions.length)
+      const freshnessBias = clamp(finalPrediction.tsb / 8, -2, 3)
+      const loadBias = clamp(ctlDelta * 0.45, -6, 10)
+
+      const ftp_forecast =
+        userProfile?.ftp && userProfile.ftp > 0
+          ? {
+              ftp: roundToOne(userProfile.ftp + loadBias + freshnessBias),
+              date: finalPrediction.date,
+              confidence: roundToOne(
+                clamp(
+                  0.45 + Math.min(days, 21) / 60 + Math.min(Math.abs(ctlDelta), 8) / 30,
+                  0.4,
+                  0.9
+                )
+              )
+            }
+          : undefined
+
+      const peak_power_forecast =
+        strongestRecentWorkout?.maxWatts && strongestRecentWorkout.maxWatts > 0
+          ? {
+              peak_power: roundToOne(
+                strongestRecentWorkout.maxWatts *
+                  (1 + clamp(ctlDelta * 0.0015 + finalPrediction.tsb / 500, -0.03, 0.05))
+              ),
+              date: finalPrediction.date,
+              confidence: roundToOne(clamp(0.4 + Math.min(days, 21) / 70, 0.35, 0.85))
+            }
+          : undefined
+
+      return {
+        predictions,
+        summary: buildForecastSummary({
+          endDate: finalPrediction.date,
+          focusMetric: focus_metric,
+          startCtl: firstPrediction.ctl,
+          finalCtl: finalPrediction.ctl,
+          finalTsb: finalPrediction.tsb,
+          predictionsCount: predictions.length
+        }),
+        ...(ftp_forecast ? { ftp_forecast } : {}),
+        ...(peak_power_forecast ? { peak_power_forecast } : {}),
+        focus_metric: focus_metric || 'CTL'
       }
     }
   }),
