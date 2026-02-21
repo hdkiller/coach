@@ -54,3 +54,14 @@ export const userIngestionQueue = queue({
   name: 'user-ingestion',
   concurrencyLimit: 5
 })
+
+/**
+ * Email Queue
+ *
+ * This queue handles outbound email delivery.
+ * It uses a global concurrency limit to respect provider rate limits.
+ */
+export const emailQueue = queue({
+  name: 'email-queue',
+  concurrencyLimit: 10
+})
