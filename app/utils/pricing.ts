@@ -1,5 +1,6 @@
 export type BillingInterval = 'monthly' | 'annual'
 export type PricingTier = 'free' | 'supporter' | 'pro'
+export type SupportedCurrency = 'usd' | 'eur'
 
 export interface PricingPlan {
   key: PricingTier

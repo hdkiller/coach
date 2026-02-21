@@ -174,6 +174,10 @@ export default defineNuxtConfig({
     // Redis / DragonflyDB
     redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
 
+    // Resend
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    resendWebhookSecret: process.env.RESEND_WEBHOOK_SECRET || '',
+
     // Stripe Configuration
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',

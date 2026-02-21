@@ -1,8 +1,25 @@
-export type SupportedCurrency = 'usd' | 'eur'
+import type { SupportedCurrency } from '~/utils/pricing'
 
 const EUROZONE_COUNTRIES = new Set([
-  'AT', 'BE', 'CY', 'DE', 'EE', 'ES', 'FI', 'FR', 'GR', 'IE',
-  'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PT', 'SI', 'SK'
+  'AT',
+  'BE',
+  'CY',
+  'DE',
+  'EE',
+  'ES',
+  'FI',
+  'FR',
+  'GR',
+  'IE',
+  'IT',
+  'LT',
+  'LU',
+  'LV',
+  'MT',
+  'NL',
+  'PT',
+  'SI',
+  'SK'
 ])
 
 export function useCurrency() {

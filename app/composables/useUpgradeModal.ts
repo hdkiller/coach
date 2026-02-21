@@ -5,6 +5,7 @@ interface UpgradeModalOptions {
   feature?: string
   featureTitle?: string
   featureDescription?: string
+  bullets?: string[]
   recommendedTier?: PricingTier
 }
 
