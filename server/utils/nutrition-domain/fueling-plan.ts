@@ -41,21 +41,24 @@ export function calculateFuelingStrategy(
   const adjustmentMultiplier = 1 + (profile.targetAdjustmentPercent || 0) / 100
   dailyCarbTargetGrams *= adjustmentMultiplier
 
+  const baseProtein = profile.baseProteinPerKg || 1.6
+  const baseFat = profile.baseFatPerKg || 1.0
+
   // --- 1b. HANDLE REST DAYS (NO WINDOWS) ---
   if (workout.type === 'Rest' || workout.durationSec === 0) {
     return {
       windows: [],
       dailyTotals: {
         calories: Math.round(
-          dailyCarbTargetGrams * 4 + profile.weight * 1.6 * 4 + profile.weight * 1.0 * 9
+          dailyCarbTargetGrams * 4 + profile.weight * baseProtein * 4 + profile.weight * baseFat * 9
         ),
         carbs: Math.round(dailyCarbTargetGrams),
-        protein: Math.round(profile.weight * 1.6),
-        fat: Math.round(profile.weight * 1.0),
+        protein: Math.round(profile.weight * baseProtein),
+        fat: Math.round(profile.weight * baseFat),
         fluid: 2000,
         sodium: 1000,
         baseCalories: Math.round(
-          dailyCarbTargetGrams * 4 + profile.weight * 1.6 * 4 + profile.weight * 1.0 * 9
+          dailyCarbTargetGrams * 4 + profile.weight * baseProtein * 4 + profile.weight * baseFat * 9
         ),
         activityCalories: 0,
         adjustmentCalories: 0,
@@ -218,8 +221,8 @@ export function calculateFuelingStrategy(
     dailyTotals: {
       calories: breakdown.totalTarget,
       carbs: Math.round(dailyCarbTargetGrams),
-      protein: Math.round(profile.weight * 1.6),
-      fat: Math.round(profile.weight * 1.0),
+      protein: Math.round(profile.weight * baseProtein),
+      fat: Math.round(profile.weight * baseFat),
       fluid: intraFluid + 2000,
       sodium: intraSodium + 1000,
       baseCalories: breakdown.baseCalories,
