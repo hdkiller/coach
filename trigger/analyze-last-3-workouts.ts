@@ -116,9 +116,16 @@ USER PROFILE:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
-- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
+- W/kg: ${
+    user?.ftp && user?.weight
+      ? (
+          user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
+        ).toFixed(2)
+      : 'Unknown'
+  }
 `
 
   if (sportSettings) {
@@ -284,7 +291,15 @@ export const analyzeLast3WorkoutsTask = task({
       // Fetch user profile for context
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { ftp: true, weight: true, maxHr: true, dob: true, sex: true }
+        select: {
+          ftp: true,
+          weight: true,
+          weightUnits: true,
+          maxHr: true,
+          dob: true,
+          sex: true,
+          language: true
+        }
       })
 
       // Fetch Sport Specific Settings (Cycling)

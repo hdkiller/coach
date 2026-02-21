@@ -152,11 +152,15 @@ export const generateDailyCheckinTask = task({
           select: {
             ftp: true,
             weight: true,
+            weightUnits: true,
+            height: true,
+            heightUnits: true,
             timezone: true,
             maxHr: true,
             lthr: true,
             dob: true,
-            sex: true
+            sex: true,
+            language: true
           }
         }),
 
@@ -279,8 +283,9 @@ Training Style: ${profile.training_characteristics?.training_style || 'Unknown'}
 ATHLETE BASIC INFO:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 `
       }
@@ -364,6 +369,7 @@ ${pastCheckins
 
       const prompt = `You are a **${aiSettings.aiPersona}** cycling coach conducting a daily check-in with your athlete.
 Adopt your **${aiSettings.aiPersona}** persona in your tone and questioning style.
+Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 DATE: ${formatUserDate(today, userTimezone, 'yyyy-MM-dd')}
 

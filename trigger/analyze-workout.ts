@@ -280,7 +280,17 @@ export const analyzeWorkoutTask = task({
       const [user, emailPrefs] = await Promise.all([
         prisma.user.findUnique({
           where: { id: workout.userId },
-          select: { dob: true, sex: true, weight: true, aiAutoAnalyzeWorkouts: true }
+          select: {
+            dob: true,
+            sex: true,
+            weight: true,
+            weightUnits: true,
+            height: true,
+            heightUnits: true,
+            language: true,
+            temperatureUnits: true,
+            aiAutoAnalyzeWorkouts: true
+          }
         }),
         prisma.emailPreference.findUnique({
           where: { userId_channel: { userId: workout.userId, channel: 'EMAIL' } }
@@ -366,7 +376,16 @@ export const analyzeWorkoutTask = task({
         timezone,
         aiSettings.aiPersona,
         sportSettings,
-        { age: userAge, sex: user?.sex || null, weight: user?.weight || null },
+        {
+          age: userAge,
+          sex: user?.sex || null,
+          weight: user?.weight || null,
+          weightUnits: user?.weightUnits || null,
+          height: user?.height || null,
+          heightUnits: user?.heightUnits || null,
+          language: user?.language || null,
+          temperatureUnits: user?.temperatureUnits || null
+        },
         workout.plannedWorkout
       )
 
@@ -786,7 +805,16 @@ function buildWorkoutAnalysisPrompt(
 
   sportSettings?: any,
 
-  userProfile?: { age: number | null; sex: string | null; weight: number | null },
+  userProfile?: {
+    age: number | null
+    sex: string | null
+    weight: number | null
+    weightUnits?: string | null
+    height?: number | null
+    heightUnits?: string | null
+    language?: string | null
+    temperatureUnits?: string | null
+  },
 
   plannedWorkout?: any
 ): string {
@@ -869,6 +897,7 @@ function buildWorkoutAnalysisPrompt(
   let prompt = `You are an expert ${coachType} analyzing a workout.
 
 Your persona is: **${persona}**. Adapt your tone and feedback style accordingly.
+Preferred Language: ${userProfile?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 
 
@@ -878,7 +907,9 @@ ATHLETE CONTEXT:
 
 - Sex: ${userProfile?.sex || 'Unknown'}
 
-${userProfile?.weight ? `- Weight: ${userProfile.weight} kg` : ''}
+- Height: ${userProfile?.height || 'Unknown'} ${userProfile?.heightUnits || 'cm'}
+
+${userProfile?.weight ? `- Weight: ${userProfile.weight} ${userProfile.weightUnits === 'Pounds' ? 'lbs' : 'kg'}` : ''}
 
 
 
@@ -1116,7 +1147,7 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
     if (workoutData.trainer !== undefined)
       prompt += `- Indoor Trainer: ${workoutData.trainer ? 'Yes' : 'No'}\n`
     if (workoutData.avg_temp !== undefined)
-      prompt += `- Avg Temperature: ${formatMetric(workoutData.avg_temp, 1)}°C\n`
+      prompt += `- Avg Temperature: ${formatMetric(workoutData.avg_temp, 1)}${userProfile?.temperatureUnits === 'Fahrenheit' ? '°F' : '°C'}\n`
   }
 
   // Add Strength Exercises if available

@@ -75,7 +75,16 @@ export const dailyCoachTask = task({
         wellnessRepository.getByDate(userId, todayDateOnly),
         prisma.user.findUnique({
           where: { id: userId },
-          select: { ftp: true, weight: true, maxHr: true, aiAutoAnalyzeReadiness: true }
+          select: {
+            ftp: true,
+            weight: true,
+            weightUnits: true,
+            height: true,
+            heightUnits: true,
+            maxHr: true,
+            language: true,
+            aiAutoAnalyzeReadiness: true
+          }
         }),
 
         // Latest athlete profile
@@ -153,7 +162,8 @@ Current Focus: ${profile.planning_context?.current_focus || 'General training'}
       athleteContext = `
 USER INFO:
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 `
     }
@@ -192,6 +202,7 @@ ${activeGoals
     // Build prompt with comprehensive context
     const prompt = `You are a **${aiSettings.aiPersona}** cycling coach providing daily workout guidance.
 Adapt your tone and style to match your persona.
+Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 ${athleteContext}
 

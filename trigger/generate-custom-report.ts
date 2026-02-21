@@ -211,12 +211,20 @@ function buildCustomPrompt(
   }
 
   let prompt = `You are an expert coach analyzing custom ${dataTypeLabel.toLowerCase()} data for ${timeframeDesc}.
+Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
-- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- W/kg: ${
+    user?.ftp && user?.weight
+      ? (
+          user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
+        ).toFixed(2)
+      : 'Unknown'
+  }
 `
 
   if (config.dataType === 'workouts' || config.dataType === 'both') {
@@ -278,7 +286,15 @@ export const generateCustomReportTask = task({
       // Fetch user profile
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { ftp: true, weight: true, maxHr: true }
+        select: {
+          ftp: true,
+          weight: true,
+          weightUnits: true,
+          height: true,
+          heightUnits: true,
+          maxHr: true,
+          language: true
+        }
       })
 
       // Determine date range from the report

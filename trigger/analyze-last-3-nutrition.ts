@@ -128,6 +128,7 @@ function buildAnalysisPrompt(nutritionDays: any[], user: any, timezone: string) 
       : 'Unknown'
 
   return `You are a friendly, supportive nutrition coach analyzing your athlete's recent dietary intake.
+Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
@@ -262,7 +263,7 @@ export const analyzeLast3NutritionTask = task({
       // Fetch user profile for context
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { ftp: true, weight: true, maxHr: true }
+        select: { ftp: true, weight: true, maxHr: true, language: true }
       })
 
       // Build the analysis prompt

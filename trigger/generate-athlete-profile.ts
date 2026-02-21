@@ -418,10 +418,14 @@ export const generateAthleteProfileTask = task({
           select: {
             ftp: true,
             weight: true,
+            weightUnits: true,
+            height: true,
+            heightUnits: true,
             maxHr: true,
             dob: true,
             lthr: true,
-            sex: true
+            sex: true,
+            language: true
           }
         }),
         workoutRepository.getForUser(userId, {
@@ -723,10 +727,18 @@ Adapt your analysis tone and insights to match your **${aiSettings.aiPersona}** 
 USER PROFILE:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
-- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- W/kg: ${
+        user?.ftp && user?.weight
+          ? (
+              user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
+            ).toFixed(2)
+          : 'Unknown'
+      }
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
+- Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 ${aiSettings.aiContext ? `USER PROVIDED CONTEXT / ABOUT ME / SPECIAL INSTRUCTIONS:\n${aiSettings.aiContext}\n` : ''}
 

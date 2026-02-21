@@ -136,7 +136,18 @@ export const generateTrainingBlockTask = task({
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { ftp: true, weight: true, maxHr: true, aiPersona: true, dob: true, sex: true }
+      select: {
+        ftp: true,
+        weight: true,
+        weightUnits: true,
+        height: true,
+        heightUnits: true,
+        maxHr: true,
+        aiPersona: true,
+        dob: true,
+        sex: true,
+        language: true
+      }
     })
     const availability = await availabilityRepository.getFullSchedule(userId)
     const availabilitySummary = availabilityRepository.formatForPrompt(availability)
@@ -313,6 +324,7 @@ ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.pl
 
     const prompt = `You are a **${aiSettings.aiPersona}** expert endurance coach designing a specific mesocycle (training block) for an athlete.
 Adapt your tone and structure reasoning to match your **${aiSettings.aiPersona}** persona.
+Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 CURRENT CONTEXT:
 - Date: ${localDate}
@@ -321,8 +333,9 @@ CURRENT CONTEXT:
 ATHLETE PROFILE:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} W
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
 - Coach Persona: ${aiSettings.aiPersona}
 - Allowed Workout Types: ${allowedTypesString} (ONLY schedule these types + Rest/Recovery)
 ${athleteProfileContext}

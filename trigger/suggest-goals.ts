@@ -185,8 +185,12 @@ export const suggestGoalsTask = task({
           select: {
             ftp: true,
             weight: true,
+            weightUnits: true,
+            height: true,
+            heightUnits: true,
             maxHr: true,
             dob: true,
+            language: true,
             currentFitnessScore: true,
             recoveryCapacityScore: true,
             nutritionComplianceScore: true,
@@ -331,11 +335,19 @@ Planning Context: ${profile?.planning_context?.current_focus || 'N/A'}`
       // Build comprehensive prompt
       const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach analyzing an athlete's data to suggest personalized, achievable goals.
 Adapt your suggestions and rationale to match your **${aiSettings.aiPersona}** persona.
+Preferred Language: ${user.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 USER PROFILE:
 - FTP: ${user.ftp || 'Unknown'} watts
-- Weight: ${user.weight || 'Unknown'} kg
-- W/kg: ${user.ftp && user.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- Weight: ${user.weight || 'Unknown'} ${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- Height: ${user.height || 'Unknown'} ${user.heightUnits || 'cm'}
+- W/kg: ${
+        user.ftp && user.weight
+          ? (
+              user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
+            ).toFixed(2)
+          : 'Unknown'
+      }
 - Max HR: ${user.maxHr || 'Unknown'} bpm
 
 ATHLETE PROFILE SCORES (1-10 scale):
@@ -386,7 +398,7 @@ Goal Types:
 
 Be specific with metrics and targets. For example:
 - Instead of "Improve FTP", suggest "Increase FTP from ${user.ftp || 250}W to ${user.ftp ? Math.round(user.ftp * 1.05) : 265}W over 12 weeks"
-- Instead of "Lose weight", suggest "Reduce weight from ${user.weight || 75}kg to ${user.weight ? (user.weight - 3).toFixed(1) : 72}kg over 8 weeks"
+- Instead of "Lose weight", suggest "Reduce weight from ${user.weight || 75}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} to ${user.weight ? (user.weight - 3).toFixed(1) : 72}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} over 8 weeks"
 
 Identify any potential goal conflicts and provide resolution strategies.`
 

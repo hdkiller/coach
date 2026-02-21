@@ -252,8 +252,12 @@ export const reviewGoalsTask = task({
             select: {
               ftp: true,
               weight: true,
+              weightUnits: true,
+              height: true,
+              heightUnits: true,
               maxHr: true,
               dob: true,
+              language: true,
               currentFitnessScore: true,
               recoveryCapacityScore: true,
               nutritionComplianceScore: true,
@@ -426,11 +430,19 @@ Limitations: ${profile?.planning_context?.limitations?.join(', ') || 'N/A'}`
       // Build comprehensive prompt
       const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach reviewing an athlete's current goals for rationality and achievability.
 Adapt your review tone and feedback style to match your **${aiSettings.aiPersona}** persona.
+Preferred Language: ${user.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 USER PROFILE:
 - FTP: ${user.ftp || 'Unknown'} watts
-- Weight: ${user.weight || 'Unknown'} kg
-- W/kg: ${user.ftp && user.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- Weight: ${user.weight || 'Unknown'} ${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- Height: ${user.height || 'Unknown'} ${user.heightUnits || 'cm'}
+- W/kg: ${
+        user.ftp && user.weight
+          ? (
+              user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
+            ).toFixed(2)
+          : 'Unknown'
+      }
 - Max HR: ${user.maxHr || 'Unknown'} bpm
 
 ATHLETE PROFILE SCORES (1-10 scale):

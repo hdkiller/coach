@@ -161,11 +161,15 @@ export const recommendTodayActivityTask = task({
       select: {
         ftp: true,
         weight: true,
+        weightUnits: true,
+        height: true,
+        heightUnits: true,
         maxHr: true,
         timezone: true,
         lthr: true,
         dob: true,
         sex: true,
+        language: true,
         nutritionTrackingEnabled: true,
         aiAutoAnalyzeReadiness: true
       }
@@ -493,8 +497,17 @@ ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.pl
 ATHLETE BASIC INFO:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
+- Preferred Language: ${user?.language || 'English'}
+- W/kg: ${
+        user?.ftp && user?.weight
+          ? (
+              user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
+            ).toFixed(2)
+          : 'Unknown'
+      }
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 Note: No structured athlete profile available yet. Generate one for better recommendations.
 `
@@ -693,6 +706,7 @@ CURRENT CONTEXT:
 - Date: ${localDate}
 - Time: ${localTime}
 - Timezone: ${userTimezone}
+- Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 ${currentStatusContext}
 

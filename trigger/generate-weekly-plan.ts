@@ -243,7 +243,18 @@ export const generateWeeklyPlanTask = task({
     ] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
-        select: { ftp: true, weight: true, maxHr: true, lthr: true, dob: true, sex: true }
+        select: {
+          ftp: true,
+          weight: true,
+          weightUnits: true,
+          height: true,
+          heightUnits: true,
+          maxHr: true,
+          lthr: true,
+          dob: true,
+          sex: true,
+          language: true
+        }
       }),
       availabilityRepository.getFullSchedule(userId),
       workoutRepository.getForUser(userId, {
@@ -494,8 +505,9 @@ ${profile.recommendations_summary?.action_items?.length ? `Priority Actions:\n${
 USER BASIC INFO:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - Global FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} kg
+- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
 - Global Max HR: ${user?.maxHr || 'Unknown'} bpm
 Note: No structured athlete profile available yet. Consider generating one for better personalized planning.
 `
@@ -565,6 +577,7 @@ No active goals set. Plan for general fitness maintenance and improvement.
     // Build prompt
     const prompt = `You are a **${aiSettings.aiPersona}** expert endurance coach creating a personalized ${effectiveDaysToPlan}-day training plan.
 Adapt your planning strategy and reasoning to match your **${aiSettings.aiPersona}** persona.
+Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 
 ${phaseInstruction}
 ${planContext}
