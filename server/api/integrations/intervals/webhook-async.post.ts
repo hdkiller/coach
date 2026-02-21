@@ -51,11 +51,22 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const eventsCount = Array.isArray(body?.events) ? body.events.length : 0
+    const firstEventType = body?.events?.[0]?.type || null
+    const firstAthleteId = body?.events?.[0]?.athlete_id || null
+
     // Enqueue the entire bulk request for the worker to handle logging and splitting
-    await webhookQueue.add('intervals-webhook-bulk', {
+    const job = await webhookQueue.add('intervals-webhook-bulk', {
       provider: 'intervals-bulk',
       payload: body,
       headers
+    })
+
+    console.info('[Intervals Webhook Async] Enqueued bulk job', {
+      jobId: job.id,
+      eventsCount,
+      firstEventType,
+      firstAthleteId
     })
   } catch (error: any) {
     console.error('[Intervals Webhook Async] Failed to queue bulk request:', error)
