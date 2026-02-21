@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "EmailPreference" ADD COLUMN     "dailyCoach" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "dailyCoachDays" TEXT[] DEFAULT ARRAY['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']::TEXT[],
+ADD COLUMN     "dailyCoachTime" TEXT DEFAULT '07:00';

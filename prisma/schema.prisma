@@ -128,6 +128,8 @@ model User {
   nutritionSettings                  UserNutritionSettings?
   nutritionRecommendations           NutritionRecommendation[]
   nutritionPlans                     NutritionPlan[]
+  emailPreferences                   EmailPreference[]
+  emailDeliveries                    EmailDelivery[]
 
   @@index([createdAt])
   @@index([subscriptionTier])
@@ -1557,4 +1559,106 @@ enum JourneyEventCategory {
   CRAMPING
   DIZZINESS
   HUNGER
+}
+
+enum EmailAudience {
+  TRANSACTIONAL
+  ENGAGEMENT
+  MARKETING
+}
+
+enum EmailDeliveryStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  COMPLAINED
+  UNSUBSCRIBED
+  FAILED
+  SUPPRESSED
+}
+
+enum EmailProvider {
+  RESEND
+}
+
+enum EmailPreferenceChannel {
+  EMAIL
+}
+
+model EmailPreference {
+  id                String                 @id @default(uuid())
+  userId            String
+  channel           EmailPreferenceChannel @default(EMAIL)
+  onboarding        Boolean                @default(true)
+  workoutAnalysis   Boolean                @default(true)
+  planUpdates       Boolean                @default(true)
+  billing           Boolean                @default(true) // usually required/limited toggle UX
+  productUpdates    Boolean                @default(true)
+  retentionNudges   Boolean                @default(true)
+  dailyCoach        Boolean                @default(true)
+  dailyCoachTime    String?                @default("07:00") // 24h format HH:mm
+  dailyCoachDays    String[]               @default(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"])
+  marketing         Boolean                @default(false)
+  globalUnsubscribe Boolean                @default(false)
+  consentUpdatedAt  DateTime               @default(now())
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel])
+  @@index([userId])
+}
+
+model EmailDelivery {
+  id                String              @id @default(uuid())
+  userId            String?
+  templateKey       String // e.g. WORKOUT_ANALYSIS_READY_V1 (maps to code component)
+  provider          EmailProvider       @default(RESEND)
+  providerMessageId String?             @unique
+  eventKey          String // e.g. WORKOUT_ANALYSIS_READY
+  audience          EmailAudience
+  status            EmailDeliveryStatus @default(QUEUED)
+  toEmail           String
+  subject           String
+  htmlBody          String?             @db.Text
+  textBody          String?             @db.Text
+  fromEmail         String?
+  replyToEmail      String?
+  idempotencyKey    String?             @unique
+  metadata          Json?
+  errorCode         String?
+  errorMessage      String?
+  queuedAt          DateTime?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+  bouncedAt         DateTime?
+  complainedAt      DateTime?
+  unsubscribedAt    DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([eventKey, createdAt])
+  @@index([status, createdAt])
+  @@index([toEmail, createdAt])
+}
+
+model EmailSuppression {
+  id        String   @id @default(uuid())
+  email     String
+  reason    String // UNSUBSCRIBE, BOUNCE, COMPLAINT, MANUAL
+  source    String? // webhook/manual/system
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, reason, active])
+  @@index([email])
 }
