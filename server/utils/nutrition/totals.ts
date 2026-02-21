@@ -156,9 +156,18 @@ export function recalculateNutritionTotals(nutrition: Record<string, any>): {
     }
   }
 
-  // Backward compatibility for legacy records with scalar-only water.
-  if (waterMl === 0 && toNumber(nutrition.waterMl) > 0) {
-    waterMl = toNumber(nutrition.waterMl)
+  // Backward compatibility and bonus preservation.
+  // If the record total is significantly higher than the item sum (e.g. includes meal bonuses),
+  // we keep the record total unless the item sum is already high.
+  const recordWater = toNumber(nutrition.waterMl)
+  if (waterMl < recordWater && waterMl > 0) {
+    // If the difference is a multiple of 100 (likely bonuses), keep it.
+    const diff = recordWater - waterMl
+    if (diff % 100 === 0) {
+      waterMl = recordWater
+    }
+  } else if (waterMl === 0 && recordWater > 0) {
+    waterMl = recordWater
   }
 
   return { calories, protein, carbs, fat, fiber, sugar, waterMl }

@@ -1362,6 +1362,36 @@ export const metabolicService = {
 
       // Flow any unallocated "Mega-Debt" to the day before
       carryOverDebt = Math.max(0, totalToAllocate - allocated)
+
+      // Pass 2.1: Protein & Fat Distribution
+      // Ensure daily targets match the plan's daily totals
+      const dailyProteinTarget = plan.dailyTotals.protein
+      const dailyFatTarget = plan.dailyTotals.fat
+
+      const workoutProteinSum = day.windows
+        .filter((w: any) => w.type === 'PRE_WORKOUT' || w.type === 'POST_WORKOUT')
+        .reduce((sum: number, w: any) => sum + (w.targetProtein || 0), 0)
+
+      const workoutFatSum = day.windows
+        .filter((w: any) => w.type === 'PRE_WORKOUT' || w.type === 'POST_WORKOUT')
+        .reduce((sum: number, w: any) => sum + (w.targetFat || 0), 0)
+
+      const baseWindows = day.windows.filter(
+        (w) => w.type === 'DAILY_BASE' || w.type === 'TRANSITION'
+      )
+
+      const remainingProtein = Math.max(0, dailyProteinTarget - workoutProteinSum)
+      const baseProteinShare = baseWindows.length > 0 ? remainingProtein / baseWindows.length : 0
+
+      const remainingFat = Math.max(0, dailyFatTarget - workoutFatSum)
+      const baseFatShare = baseWindows.length > 0 ? remainingFat / baseWindows.length : 0
+
+      day.windows.forEach((w: any) => {
+        if (w.type === 'DAILY_BASE' || w.type === 'TRANSITION') {
+          w.targetProtein = Math.round(baseProteinShare)
+          w.targetFat = Math.round(baseFatShare)
+        }
+      })
     }
 
     // Pass 3: Finalize Labels and Advice
