@@ -643,10 +643,7 @@
                   v-if="row.original.distance || row.original.plannedDistance"
                   class="whitespace-nowrap"
                 >
-                  {{
-                    ((row.original.distance || row.original.plannedDistance || 0) / 1000).toFixed(1)
-                  }}
-                  km
+                  {{ formatDistance(row.original.distance || row.original.plannedDistance || 0) }}
                 </span>
                 <span v-else class="text-gray-400">-</span>
               </template>
@@ -942,6 +939,7 @@
   import CalendarMetabolicWave from '~/components/activities/CalendarMetabolicWave.vue'
   import CalendarSettingsModal from '~/components/activities/CalendarSettingsModal.vue'
   import { getDefaultSportSettings, getPreferredMetric } from '~/utils/sportSettings'
+  import { formatDistance as formatDist } from '~/utils/metrics'
 
   definePageMeta({
     middleware: 'auth',
@@ -1356,7 +1354,7 @@
   }
 
   function formatDistance(meters: number): string {
-    return `${Math.round(meters / 1000)}k`
+    return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function getDateKey(date: Date | string): string {

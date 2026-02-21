@@ -1732,8 +1732,8 @@
     :workout="workout"
     @updated="fetchWorkout"
     @delete="
-      isEditModalOpen = false;
-      isDeleteModalOpen = true;
+      isEditModalOpen = false
+      isDeleteModalOpen = true
     "
   />
 
@@ -1813,6 +1813,7 @@
   import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
   import StreamChartModal from '~/components/charts/streams/StreamChartModal.vue'
   import { metricTooltips } from '~/utils/tooltips'
+  import { formatDistance as formatDist, formatTemperature } from '~/utils/metrics'
 
   const { formatDate: baseFormatDate, formatDateTime, formatDateUTC } = useFormat()
 
@@ -2145,7 +2146,10 @@
       metrics.push({
         key: 'temp',
         label: 'Avg Temperature',
-        value: `${workout.value.avgTemp.toFixed(1)}°C`
+        value: formatTemperature(
+          workout.value.avgTemp,
+          userStore.profile?.temperatureUnits || 'Celsius'
+        )
       })
     if (workout.value.trainer !== null && workout.value.trainer !== undefined)
       metrics.push({
@@ -2165,7 +2169,7 @@
     // Define stream metadata
     const streamMetadata: Record<string, { label: string; color: string; unit: string }> = {
       time: { label: 'Time', color: '#9ca3af', unit: 's' },
-      distance: { label: 'Distance', color: '#6b7280', unit: 'm' },
+      distance: { label: 'Distance', color: '#6b7280', unit: userStore.distanceUnitLabel },
       velocity: { label: 'Velocity', color: '#3b82f6', unit: 'm/s' },
       heartrate: { label: 'Heart Rate', color: '#ef4444', unit: 'bpm' },
       cadence: { label: 'Cadence', color: '#f59e0b', unit: 'rpm' },
@@ -2175,7 +2179,7 @@
       grade: { label: 'Grade', color: '#14b8a6', unit: '%' },
       moving: { label: 'Moving', color: '#9ca3af', unit: '' },
       torque: { label: 'Torque', color: '#f97316', unit: 'N-m' },
-      temp: { label: 'Temperature', color: '#06b6d4', unit: '°C' },
+      temp: { label: 'Temperature', color: '#06b6d4', unit: userStore.temperatureUnitLabel },
       respiration: { label: 'Respiration', color: '#ec4899', unit: 'brpm' },
       hrv: { label: 'HRV', color: '#84cc16', unit: 'ms' },
       leftRightBalance: { label: 'L/R Balance', color: '#d946ef', unit: '%' }
@@ -2495,8 +2499,7 @@
   }
 
   function formatDistance(meters: number) {
-    const km = meters / 1000
-    return `${km.toFixed(2)} km`
+    return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
 
   function getSourceBadgeClass(source: string) {

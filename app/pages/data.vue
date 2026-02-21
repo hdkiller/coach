@@ -478,7 +478,7 @@
                   <td
                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 tabular-nums"
                   >
-                    {{ event.distance ? event.distance + ' km' : '-' }}
+                    {{ event.distance ? formatDistance(event.distance * 1000) : '-' }}
                   </td>
                   <td
                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 tabular-nums"
@@ -910,6 +910,8 @@
 </template>
 
 <script setup lang="ts">
+  import { formatDistance as formatDist } from '~/utils/metrics'
+
   definePageMeta({
     middleware: 'auth'
   })
@@ -959,6 +961,10 @@
   const nutritionPage = ref(1)
   const nutritionItemsPerPage = 14
   const nutritionTotalItems = ref(0)
+
+  function formatDistance(meters: number): string {
+    return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
+  }
 
   // Fetch data summary
   async function fetchDataSummary() {
