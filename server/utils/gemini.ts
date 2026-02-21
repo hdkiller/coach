@@ -1,5 +1,5 @@
 import { prisma } from './db'
-import { formatUserDate } from './date'
+import { formatUserDate, formatDateUTC } from './date'
 import { generateText, generateObject, jsonSchema } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import {
