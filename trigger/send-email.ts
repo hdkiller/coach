@@ -7,6 +7,7 @@ import {
   EMAIL_TEMPLATE_REGISTRY,
   getEmailTemplateDefinition
 } from '../server/utils/email-template-registry'
+import { getInternalApiToken } from '../server/utils/internal-api-token'
 
 export const sendEmailTask = task({
   id: 'send-email',
@@ -151,9 +152,9 @@ export const sendEmailTask = task({
       const renderUrl = `${baseUrl}/api/internal/render-email`
       logger.log(`POST ${renderUrl}`, { templateKey })
 
-      const internalApiToken = process.env.INTERNAL_API_TOKEN
+      const internalApiToken = getInternalApiToken()
       if (!internalApiToken) {
-        throw new Error('INTERNAL_API_TOKEN is not configured')
+        throw new Error('INTERNAL_API_TOKEN (or fallback NUXT_AUTH_SECRET) is not configured')
       }
 
       const response = await fetch(renderUrl, {
