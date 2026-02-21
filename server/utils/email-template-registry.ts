@@ -17,6 +17,8 @@ export interface EmailTemplateDefinition {
   preferenceKey: EmailPreferenceKey | null
   requiredProps: string[]
   utmCampaign: string
+  throttleGroup?: string
+  cooldownHours?: number
 }
 
 export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = {
@@ -28,13 +30,23 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     requiredProps: [],
     utmCampaign: 'welcome_onboarding'
   },
+  WorkoutReceived: {
+    templateKey: 'WorkoutReceived',
+    defaultSubject: 'Great work: your workout is synced',
+    audience: 'ENGAGEMENT',
+    preferenceKey: 'workoutAnalysis',
+    requiredProps: ['workoutId', 'workoutTitle'],
+    utmCampaign: 'workout_received'
+  },
   WorkoutAnalysisReady: {
     templateKey: 'WorkoutAnalysisReady',
-    defaultSubject: 'Workout Analysis Ready',
+    defaultSubject: 'Excellent work: your workout analysis is ready',
     audience: 'ENGAGEMENT',
     preferenceKey: 'workoutAnalysis',
     requiredProps: ['workoutTitle'],
-    utmCampaign: 'workout_analysis_ready'
+    utmCampaign: 'workout_analysis_ready',
+    throttleGroup: 'WORKOUT_INSIGHTS',
+    cooldownHours: 12
   },
   DailyRecommendation: {
     templateKey: 'DailyRecommendation',

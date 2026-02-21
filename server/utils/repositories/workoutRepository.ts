@@ -1,5 +1,6 @@
 import { prisma } from '../db'
 import type { Prisma } from '@prisma/client'
+import { queueWorkoutInsightEmail } from '../workout-insight-email'
 
 export const workoutRepository = {
   /**
@@ -189,9 +190,23 @@ export const workoutRepository = {
    * Create a new workout
    */
   async create(data: Prisma.WorkoutUncheckedCreateInput) {
-    return prisma.workout.create({
+    const created = await prisma.workout.create({
       data
     })
+
+    try {
+      await queueWorkoutInsightEmail({
+        workoutId: created.id,
+        triggerType: 'on-workout-received'
+      })
+    } catch (error) {
+      console.error('[WorkoutRepository] Failed to queue workout-received email', {
+        workoutId: created.id,
+        error
+      })
+    }
+
+    return created
   },
 
   /**
@@ -239,6 +254,20 @@ export const workoutRepository = {
       create: createData,
       update: updateData
     })
+
+    if (!existing) {
+      try {
+        await queueWorkoutInsightEmail({
+          workoutId: record.id,
+          triggerType: 'on-workout-received'
+        })
+      } catch (error) {
+        console.error('[WorkoutRepository] Failed to queue workout-received email', {
+          workoutId: record.id,
+          error
+        })
+      }
+    }
 
     return {
       record,
