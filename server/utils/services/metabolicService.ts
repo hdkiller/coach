@@ -104,16 +104,19 @@ export const metabolicService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true }
+      select: { weight: true, weightUnits: true }
     })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
 
     return calculateGlycogenState(
       dayNutrition || {
         date: date.toISOString(),
-        carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+        carbsGoal: settings.fuelState1Min * weightKg
       },
       dayWorkouts,
-      settings,
+      { ...settings, weight: weightKg }, // Inject converted weight
       timezone,
       currentTime,
       startingGlycogen
@@ -151,8 +154,11 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, ftp: true }
+      select: { weight: true, weightUnits: true, ftp: true }
     })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
 
     const dayWorkouts = await this.getRelevantWorkouts(userId, date, timezone)
     const dayNutrition = await nutritionRepository.getByDate(userId, date)
@@ -190,7 +196,7 @@ export const metabolicService = {
       simulationMeals = synthesizeRefills(
         date,
         dayWorkouts,
-        { weight: user?.weight || 75, ftp: user?.ftp || 250, ...settings },
+        { weight: weightKg, ftp: user?.ftp || 250, ...settings },
         timezone
       )
     }
@@ -198,10 +204,10 @@ export const metabolicService = {
     const points = calculateEnergyTimeline(
       dayNutrition || {
         date: date.toISOString(),
-        carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+        carbsGoal: settings.fuelState1Min * weightKg
       },
       dayWorkouts,
-      settings,
+      { ...settings, weight: weightKg }, // Inject converted weight
       timezone,
       undefined,
       {
@@ -225,10 +231,10 @@ export const metabolicService = {
     const summary = calculateGlycogenState(
       dayNutrition || {
         date: date.toISOString(),
-        carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+        carbsGoal: settings.fuelState1Min * weightKg
       },
       dayWorkouts,
-      settings,
+      { ...settings, weight: weightKg }, // Inject converted weight
       timezone,
       currentTime,
       startingGlycogen
@@ -718,6 +724,13 @@ export const metabolicService = {
   async finalizeDay(userId: string, date: Date) {
     const timezone = await getUserTimezone(userId)
     const settings = await getUserNutritionSettings(userId)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weight: true, weightUnits: true }
+    })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
 
     // 1. Get current day's record
     let record = await nutritionRepository.getByDate(userId, date)
@@ -753,10 +766,17 @@ export const metabolicService = {
       includeDuplicates: false
     })
 
-    const timeline = calculateEnergyTimeline(record, workouts, settings, timezone, undefined, {
-      startingGlycogenPercentage: startingGlycogen,
-      startingFluidDeficit: prevEndingFluid
-    })
+    const timeline = calculateEnergyTimeline(
+      record,
+      workouts,
+      { ...settings, weight: weightKg },
+      timezone,
+      undefined,
+      {
+        startingGlycogenPercentage: startingGlycogen,
+        startingFluidDeficit: prevEndingFluid
+      }
+    )
 
     const lastPoint = timeline[timeline.length - 1]
     if (lastPoint) {
@@ -798,8 +818,12 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, ftp: true }
+      select: { weight: true, weightUnits: true, ftp: true }
     })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+
     const todayKey = formatDateUTC(getUserLocalDate(timezone))
     const allPoints: any[] = []
     const allWorkoutsInRange: any[] = []
@@ -893,7 +917,7 @@ export const metabolicService = {
         ? synthesizeRefills(
             date,
             dayWorkouts,
-            { weight: user?.weight || 75, ftp: user?.ftp || 250, ...settings },
+            { weight: weightKg, ftp: user?.ftp || 250, ...settings },
             timezone
           )
         : []
@@ -901,10 +925,10 @@ export const metabolicService = {
       const points = calculateEnergyTimeline(
         dayNutrition || {
           date: date.toISOString(),
-          carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+          carbsGoal: settings.fuelState1Min * weightKg
         },
         dayWorkouts,
-        settings,
+        { ...settings, weight: weightKg }, // Inject converted weight
         timezone,
         undefined,
         {
@@ -1006,9 +1030,16 @@ export const metabolicService = {
       })
     ])
 
-    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weight: true, weightUnits: true, ftp: true }
+    })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+
     const profile = {
-      weight: user?.weight || 75,
+      weight: weightKg,
       ftp: user?.ftp || 250,
       currentCarbMax: settings.currentCarbMax,
       sodiumTarget: settings.sodiumTarget,
@@ -1026,7 +1057,9 @@ export const metabolicService = {
       fuelState3Max: settings.fuelState3Max,
       bmr: settings.bmr ?? 1600,
       activityLevel: settings.activityLevel || 'ACTIVE',
-      targetAdjustmentPercent: settings.targetAdjustmentPercent ?? 0
+      targetAdjustmentPercent: settings.targetAdjustmentPercent ?? 0,
+      baseProteinPerKg: settings.baseProteinPerKg,
+      baseFatPerKg: settings.baseFatPerKg
     }
 
     const contexts: any[] = []
@@ -1190,9 +1223,12 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true }
+      select: { weight: true, weightUnits: true }
     })
-    const weight = user?.weight || 75
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+
+    const weight = weightKg
     const MEAL_CAP = weight * 2.0 // 2.0g/kg per sitting
     const { points: hydrationBaselineProbe } = await this.getWaveRange(
       userId,
@@ -1411,8 +1447,11 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, ftp: true }
+      select: { weight: true, weightUnits: true, ftp: true }
     })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
 
     // 1. Get starting state for the range (recursive but only once)
     const initialDayState = await this.getMetabolicStateForDate(userId, startDate)
@@ -1475,10 +1514,10 @@ export const metabolicService = {
       const points = calculateEnergyTimeline(
         dayNutrition || {
           date: date.toISOString(),
-          carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+          carbsGoal: settings.fuelState1Min * weightKg
         },
         dayWorkouts,
-        settings,
+        { ...settings, weight: weightKg }, // Inject converted weight
         timezone,
         undefined,
         {
@@ -1531,16 +1570,19 @@ export const metabolicService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true }
+      select: { weight: true, weightUnits: true }
     })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
 
     const ghostPoints = calculateEnergyTimeline(
       dayNutrition || {
         date: date.toISOString(),
-        carbsGoal: settings.fuelState1Min * (user?.weight || 75)
+        carbsGoal: settings.fuelState1Min * weightKg
       },
       dayWorkouts,
-      settings,
+      { ...settings, weight: weightKg }, // Inject converted weight
       timezone,
       meal,
       {
@@ -1568,8 +1610,11 @@ export const metabolicService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true }
+      select: { weight: true, weightUnits: true }
     })
+
+    const weightKg =
+      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
 
     const plan = planResult.plan as unknown as NutritionPlanSummary
 

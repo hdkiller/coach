@@ -101,7 +101,32 @@ export default defineEventHandler(async (event) => {
 
     // Re-fetch user to return full updated object
     const finalUser = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        nickname: true,
+        email: true,
+        ftp: true,
+        maxHr: true,
+        lthr: true,
+        weight: true,
+        weightUnits: true,
+        dob: true,
+        language: true,
+        height: true,
+        heightUnits: true,
+        distanceUnits: true,
+        temperatureUnits: true,
+        restingHr: true,
+        visibility: true,
+        sex: true,
+        city: true,
+        state: true,
+        country: true,
+        timezone: true,
+        nutritionTrackingEnabled: true
+      }
     })
 
     // Helper to format date as YYYY-MM-DD

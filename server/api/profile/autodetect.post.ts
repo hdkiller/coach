@@ -15,7 +15,14 @@ export default defineEventHandler(async (event) => {
   try {
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: {
+      select: {
+        id: true,
+        weight: true,
+        weightUnits: true,
+        restingHr: true,
+        maxHr: true,
+        lthr: true,
+        ftp: true,
         integrations: true
       }
     })
@@ -49,9 +56,20 @@ export default defineEventHandler(async (event) => {
     const detected: any = {} // Store the full detected values for preview
 
     // 1. Basic Fields
-    if (intervalsProfile.weight && Math.abs((user.weight || 0) - intervalsProfile.weight) > 0.1) {
-      diff.weight = intervalsProfile.weight
-      detected.weight = intervalsProfile.weight
+    // Intervals.icu strictly uses Kilograms for weight.
+    // If user preference is Pounds, we convert for comparison.
+    const userWeightInKg =
+      user.weightUnits === 'Pounds' && user.weight ? user.weight * 0.45359237 : user.weight || 0
+
+    if (intervalsProfile.weight && Math.abs(userWeightInKg - intervalsProfile.weight) > 0.1) {
+      // Return the weight in the user's preferred unit for the UI diff
+      const detectedWeight =
+        user.weightUnits === 'Pounds'
+          ? intervalsProfile.weight / 0.45359237
+          : intervalsProfile.weight
+
+      diff.weight = Number(detectedWeight.toFixed(2))
+      detected.weight = Number(detectedWeight.toFixed(2))
     }
 
     if (intervalsProfile.restingHR && user.restingHr !== intervalsProfile.restingHR) {

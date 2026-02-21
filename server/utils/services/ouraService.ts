@@ -73,6 +73,12 @@ export const OuraService = {
     const vo2max = vo2maxData[0]
 
     if (sleep || activity || readiness || sleepPeriods.length > 0 || spo2 || stress || vo2max) {
+      // Fetch user preference for unit conversion
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { weightUnits: true }
+      })
+
       // Normalize
       // Use the requested date as the canonical date (UTC midnight)
       const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -92,6 +98,12 @@ export const OuraService = {
       )
 
       if (wellness) {
+        // Oura weight is always KG. Convert if user uses Pounds.
+        if (wellness.weight && user?.weightUnits === 'Pounds') {
+          // multiplier 0.45359237
+          wellness.weight = Math.round((wellness.weight / 0.45359237) * 100) / 100
+        }
+
         await wellnessRepository.upsert(
           userId,
           wellness.date,

@@ -436,7 +436,14 @@ export const IntervalsService = {
     const historicalEndLocal = getEndOfDayUTC(timezone, now)
     const historicalEnd = endDate > historicalEndLocal ? historicalEndLocal : endDate
 
-    const wellnessData = await fetchIntervalsWellness(integration, startDate, historicalEnd)
+    const [user, wellnessData] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { weightUnits: true }
+      }),
+      fetchIntervalsWellness(integration, startDate, historicalEnd)
+    ])
+
     const settings = integration.settings as any
     const readinessScale = settings?.readinessScale || 'STANDARD'
     const sleepScoreScale = settings?.sleepScoreScale || 'STANDARD'
@@ -475,6 +482,11 @@ export const IntervalsService = {
           historicalRawReadiness: baselineRawReadiness
         }
       )
+
+      // Intervals weight is always KG. Convert if user uses Pounds.
+      if (normalizedWellness.weight && user?.weightUnits === 'Pounds') {
+        normalizedWellness.weight = roundToTwoDecimals(normalizedWellness.weight / 0.45359237)
+      }
 
       // If using HRV4TRAINING, update baseline for next iteration
       if (readinessScale === 'HRV4TRAINING' && typeof wellness.readiness === 'number') {
