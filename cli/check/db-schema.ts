@@ -68,6 +68,22 @@ dbSchemaCommand.description('Check the database schema').action(async () => {
     console.error('Error accessing Integration table columns:', error.message)
   }
 
+  try {
+    // Check DailyCheckin table columns
+    console.log('Checking DailyCheckin table columns...')
+    const checkin = await prisma.dailyCheckin.findFirst({
+      select: {
+        id: true,
+        openingRemark: true,
+        feedback: true,
+        userNotes: true
+      }
+    })
+    console.log('DailyCheckin table columns accessible')
+  } catch (error: any) {
+    console.error('Error accessing DailyCheckin table columns:', error.message)
+  }
+
   await prisma.$disconnect()
 })
 
