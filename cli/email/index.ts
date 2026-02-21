@@ -3,6 +3,8 @@ import { sendEmail } from '../../server/utils/email'
 import chalk from 'chalk'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../server/utils/db'
+import { config } from '@vue-email/compiler'
+import { resolve } from 'path'
 
 const emailCommand = new Command('email')
 
@@ -30,6 +32,55 @@ emailCommand
       console.error(chalk.red('Failed to send email:'), error.message)
       process.exit(1)
     }
+    process.exit(0)
+  })
+
+emailCommand
+  .command('send-template')
+  .description('Render and send a Vue email template directly via Resend')
+  .requiredOption('--to <email>', 'Recipient email')
+  .requiredOption(
+    '--template <name>',
+    'Template file name without .vue (e.g. WorkoutAnalysisReady)'
+  )
+  .option('--subject <subject>', 'Override email subject')
+  .option('--props <json>', 'JSON object for template props')
+  .option('--from <email>', 'Sender email (overrides env var)')
+  .action(async (options) => {
+    const emailDir = resolve(process.cwd(), 'app/emails')
+    const templateFile = `${options.template}.vue`
+    let parsedProps: Record<string, any> = {}
+
+    if (options.props) {
+      try {
+        parsedProps = JSON.parse(options.props)
+      } catch (error) {
+        console.error(chalk.red('Invalid --props JSON.'))
+        process.exit(1)
+      }
+    }
+
+    try {
+      console.log(chalk.blue(`Rendering template ${templateFile}...`))
+      const renderer = config(emailDir)
+      const rendered = await renderer.render(templateFile, { props: parsedProps })
+
+      console.log(chalk.blue('Sending email...'))
+      const response = await sendEmail({
+        to: options.to,
+        from: options.from,
+        subject: options.subject || `[Template Test] ${options.template}`,
+        html: rendered.html,
+        text: rendered.text
+      })
+
+      console.log(chalk.green('Template email sent successfully!'))
+      console.log(response)
+    } catch (error: any) {
+      console.error(chalk.red('Failed to send template email:'), error.message)
+      process.exit(1)
+    }
+
     process.exit(0)
   })
 
