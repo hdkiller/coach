@@ -26,16 +26,37 @@
             <ClientOnly>
               <DashboardTriggerMonitorButton />
             </ClientOnly>
-            <UButton
-              icon="i-heroicons-share"
-              color="neutral"
-              variant="outline"
-              size="sm"
-              class="font-bold"
-              @click="isShareModalOpen = true"
+            <UDropdownMenu
+              :items="[
+                [
+                  {
+                    label: 'Edit Workout',
+                    icon: 'i-heroicons-pencil-square',
+                    onSelect: () => (isEditModalOpen = true)
+                  },
+                  {
+                    label: 'Share Workout',
+                    icon: 'i-heroicons-share',
+                    onSelect: () => (isShareModalOpen = true)
+                  }
+                ],
+                [
+                  {
+                    label: 'Delete Workout',
+                    icon: 'i-heroicons-trash',
+                    color: 'error',
+                    onSelect: () => (isDeleteModalOpen = true)
+                  }
+                ]
+              ]"
             >
-              <span class="hidden sm:inline">Share</span>
-            </UButton>
+              <UButton
+                icon="i-heroicons-ellipsis-horizontal"
+                color="neutral"
+                variant="outline"
+                size="sm"
+              />
+            </UDropdownMenu>
             <UButton
               icon="i-heroicons-chat-bubble-left-right"
               color="primary"
@@ -1703,6 +1724,88 @@
     :color="selectedStream.color"
     :unit="selectedStream.unit"
   />
+
+  <!-- Edit Workout Modal -->
+  <WorkoutsEditModal
+    v-if="workout"
+    v-model:open="isEditModalOpen"
+    :workout="workout"
+    @updated="fetchWorkout"
+    @delete="
+      isEditModalOpen = false
+      isDeleteModalOpen = true
+    "
+  />
+
+  <!-- Delete Confirmation Modal -->
+  <UModal
+    v-model:open="isDeleteModalOpen"
+    title="Delete Workout"
+    description="This will permanently remove the activity from your history."
+  >
+    <template #body>
+      <div class="space-y-4">
+        <div
+          class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800"
+        >
+          <div class="flex items-start gap-3">
+            <UIcon
+              name="i-heroicons-exclamation-triangle"
+              class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0"
+            />
+            <div>
+              <h3 class="font-semibold text-red-900 dark:text-red-100">Are you sure?</h3>
+              <p class="text-sm text-red-800 dark:text-red-200 mt-1">
+                This action cannot be undone. All data, analysis, and metrics associated with this
+                workout will be permanently deleted.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="workout?.source !== 'manual' && workout?.source !== 'fit_file'"
+          class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800"
+        >
+          <div class="flex items-start gap-3">
+            <UIcon
+              name="i-heroicons-arrow-path"
+              class="w-6 h-6 text-orange-600 dark:text-orange-400 flex-shrink-0"
+            />
+            <div>
+              <h3
+                class="font-semibold text-orange-900 dark:text-orange-100 uppercase tracking-tight text-xs"
+              >
+                Sync Note
+              </h3>
+              <p class="text-xs text-orange-800 dark:text-orange-200 mt-1 font-medium">
+                This activity was synced from <strong>{{ workout?.source }}</strong
+                >. If you don't delete it there as well, it may be re-imported during the next
+                synchronization.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton
+          label="Cancel"
+          color="neutral"
+          variant="ghost"
+          @click="isDeleteModalOpen = false"
+        />
+        <UButton
+          label="Delete Permanently"
+          color="error"
+          variant="solid"
+          :loading="deleting"
+          @click="deleteWorkout"
+        />
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -1738,6 +1841,9 @@
   const sharing = ref(false)
   const promoting = ref(false)
   const isPromoteModalOpen = ref(false)
+  const isEditModalOpen = ref(false)
+  const isDeleteModalOpen = ref(false)
+  const deleting = ref(false)
   const stomachFeel = ref<number | null>(null)
 
   function goBack() {
@@ -2302,6 +2408,36 @@
       })
     } finally {
       promoting.value = false
+    }
+  }
+
+  async function deleteWorkout() {
+    if (!workout.value || deleting.value) return
+
+    deleting.value = true
+    try {
+      await $fetch(`/api/workouts/${workout.value.id}`, {
+        method: 'DELETE'
+      })
+
+      toast.add({
+        title: 'Workout Deleted',
+        description: 'The activity has been removed.',
+        color: 'success'
+      })
+
+      // Navigate back to activities/history
+      router.push('/activities')
+    } catch (e: any) {
+      console.error('Failed to delete workout:', e)
+      toast.add({
+        title: 'Error',
+        description: e.data?.message || 'Failed to delete workout',
+        color: 'error'
+      })
+    } finally {
+      deleting.value = false
+      isDeleteModalOpen.value = false
     }
   }
 
