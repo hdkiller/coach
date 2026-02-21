@@ -101,26 +101,58 @@ To maximize usable space and provide a premium "app-like" feel on mobile, follow
 
 ---
 
-## Charts & Data Visualization
+## Forms & Inputs
 
-### Stability & Performance
-To prevent infinite resize loops (which cause "Layout Shift" and browser hangups), **always** provide a fixed height prop to chart components.
+Follow these standards to create consistent, high-density, and user-friendly forms across the application.
 
-```vue
-<!-- ✅ DO THIS -->
-<Line :data="data" :options="options" :height="300" />
+### Form Structure
 
-<!-- ❌ AVOID THIS -->
-<Line :data="data" :options="options" class="h-[300px]" />
-```
+1.  **Logical Sections:** Group related fields using a consistent section header pattern.
+    - Use an icon, small caps title (`text-sm font-bold uppercase`), and a subtle bottom border.
+    - Add descriptive text to `UFormField` to explain complex metrics.
 
-### Visual Standards
-- **Typography:** Labels and ticks should use premium small caps: `text-[10px] font-black uppercase tracking-[0.2em] text-gray-400`.
-- **Y-Axis:** Prefer right-alignment (`position: 'right'`) to keep data points adjacent to labels.
-- **Grids:** Use high-transparency lines: `rgba(0,0,0,0.05)` (light) or `rgba(255,255,255,0.05)` (dark).
-- **Ghost Trends:** Use `borderDash: [5, 5]` and `pointRadius: 0` for predicted/future data points.
-- **Line Only:** Prefer `fill: false` for trend charts to maintain a clean, high-contrast scientific look.
+    ```vue
+    <section class="space-y-4">
+      <div class="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
+        <UIcon name="i-heroicons-bolt" class="w-4 h-4 text-primary" />
+        <h4 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+          Section Title
+        </h4>
+      </div>
+      <!-- Fields here -->
+    </section>
+    ```
 
+2.  **Grid Layouts:** Use `grid grid-cols-1 md:grid-cols-2 gap-6` for technical metrics to keep forms compact on desktop while remaining accessible on mobile.
+
+3.  **Scroll Management:** For complex modals with many fields, set a `max-height` (e.g., `max-h-[70vh]`) and `overflow-y-auto` on the form container to ensure action buttons in the footer remain visible.
+
+### Input Standards
+
+1.  **Inline Units:** Numerical fields MUST show their units using the `#trailing` slot of `UInput`.
+    - Format: `text-xs font-bold text-gray-400`.
+    - Examples: `h`, `m`, `s`, `km`, `m`, `TSS`, `kcal`.
+
+    ```vue
+    <UInput v-model.number="value" type="number">
+      <template #trailing>
+        <span class="text-xs font-bold text-gray-400">km</span>
+      </template>
+    </UInput>
+    ```
+
+2.  **Uniform Dimensions:** For related side-by-side inputs (like Duration hours/minutes/seconds), use identical fixed widths (e.g., `class="w-24"`) to maintain visual alignment.
+
+3.  **Smart Estimation:** When a value can be derived from other fields (e.g., Estimating Calories from Duration), provide an "Estimate" button in the `#trailing` slot.
+    - Style: `variant="link" size="xs" font-bold uppercase tracking-widest text-[9px]`.
+
+4.  **Description Field:** Always place the large-form text area (`UTextarea`) at the bottom of its section or the form to provide maximum vertical expansion space.
+
+### Validation Patterns
+
+1.  **Zod Integration:** Use `UForm` with a Zod schema.
+2.  **Explicit Type Casting:** Use `.number` modifier on `v-model` for numeric fields to ensure the form state matches the database schema.
+3.  **Loading States:** Action buttons MUST use the `:loading` prop during API submissions.
 ```
 
 ```
