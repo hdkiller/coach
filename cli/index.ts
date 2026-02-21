@@ -22,6 +22,7 @@ import { ouraCommand } from './integrations/oura'
 import { polarCommand } from './integrations/polar'
 import emailCommand from './email'
 import bugsCommand from './bugs'
+import supportCommand from './support'
 
 const program = new Command()
 
@@ -47,6 +48,7 @@ program.addCommand(ouraCommand)
 program.addCommand(polarCommand)
 program.addCommand(emailCommand)
 program.addCommand(bugsCommand)
+program.addCommand(supportCommand)
 
 program.parse(process.argv)
 
