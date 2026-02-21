@@ -6,10 +6,10 @@ import { calculateLlmCost } from '../server/utils/ai-config'
 
 export const summarizeChatTask = task({
   id: 'summarize-chat',
-  run: async (payload: { roomId: string; userId: string }) => {
-    const { roomId, userId } = payload
+  run: async (payload: { roomId: string; userId: string; forceRename?: boolean }) => {
+    const { roomId, userId, forceRename } = payload
 
-    logger.info(`Starting summarization for room ${roomId}`)
+    logger.info(`Starting processing for room ${roomId}`)
 
     // 0. Fetch Room Data
     const roomData = await prisma.chatRoom.findUnique({
@@ -46,13 +46,20 @@ export const summarizeChatTask = task({
       take: 50 // Process next chunk
     })
 
+    const shouldRename = forceRename || !roomData.name || roomData.name === 'New Chat'
+
     if (messages.length < 5 && !lastId) {
-      logger.info(`Not enough messages to start summarization in room ${roomId}`)
-      return { success: false, reason: 'too_few_messages' }
+      if (!shouldRename) {
+        logger.info(`Not enough messages to start summarization in room ${roomId}`)
+        return { success: false, reason: 'too_few_messages' }
+      }
+      logger.info(
+        `Chat is new or forceRename requested, proceeding with rename (messages: ${messages.length})`
+      )
     }
 
     if (messages.length === 0) {
-      logger.info(`No new messages to summarize in room ${roomId}`)
+      logger.info(`No new messages to process in room ${roomId}`)
       return { success: true, reason: 'up_to_date' }
     }
 
@@ -69,46 +76,54 @@ export const summarizeChatTask = task({
       apiKey: process.env.GEMINI_API_KEY
     })
 
-    const shouldRename = !roomData.name || roomData.name === 'New Chat'
     const existingSummary = metadata.historySummary || ''
+    let summary = existingSummary
+    let summarizedNewMessages = false
 
-    // Generate summary using Flash Lite (ultra-low cost)
-    const { text: summary, usage: summaryUsage } = await generateText({
-      model: google('gemini-flash-lite-latest'),
-      system: `You are an expert at condensing training conversations. 
-      Summarize the chat between an athlete and their AI coach.
-      ${existingSummary ? `IMPORTANT: Here is the PREVIOUS summary of earlier parts of this conversation: "${existingSummary}". Incorporate its key points into the new summary so no vital context is lost.` : ''}
-      Focus on: Key achievements, current injuries/pains, recent workout feedback, and any specific goals discussed. Keep it under 250 words.`,
-      prompt: `NEW MESSAGES IN CONVERSATION:\n${conversationText}`
-    })
+    // Only summarize if we have enough messages or a previous summary history
+    if (messages.length >= 5 || lastId) {
+      logger.info(`Generating summary for ${messages.length} messages`)
+      const { text: newSummary, usage: summaryUsage } = await generateText({
+        model: google('gemini-flash-lite-latest'),
+        system: `You are an expert at condensing training conversations. 
+        Summarize the chat between an athlete and their AI coach.
+        ${existingSummary ? `IMPORTANT: Here is the PREVIOUS summary of earlier parts of this conversation: "${existingSummary}". Incorporate its key points into the new summary so no vital context is lost.` : ''}
+        Focus on: Key achievements, current injuries/pains, recent workout feedback, and any specific goals discussed. Keep it under 250 words.`,
+        prompt: `NEW MESSAGES IN CONVERSATION:\n${conversationText}`
+      })
 
-    // Log Summary Usage
-    await prisma.llmUsage.create({
-      data: {
-        userId,
-        provider: 'google',
-        model: 'gemini-flash-lite-latest',
-        operation: 'summarize-chat',
-        entityType: 'ChatRoom',
-        entityId: roomId,
-        promptTokens: summaryUsage.inputTokens || 0,
-        completionTokens: summaryUsage.outputTokens || 0,
-        totalTokens: (summaryUsage.inputTokens || 0) + (summaryUsage.outputTokens || 0),
-        estimatedCost: calculateLlmCost(
-          'gemini-flash-lite-latest',
-          summaryUsage.inputTokens || 0,
-          summaryUsage.outputTokens || 0
-        ),
-        success: true
-      }
-    })
+      summary = newSummary
+      summarizedNewMessages = true
+
+      // Log Summary Usage
+      await prisma.llmUsage.create({
+        data: {
+          userId,
+          provider: 'google',
+          model: 'gemini-flash-lite-latest',
+          operation: 'summarize-chat',
+          entityType: 'ChatRoom',
+          entityId: roomId,
+          promptTokens: summaryUsage.inputTokens || 0,
+          completionTokens: summaryUsage.outputTokens || 0,
+          totalTokens: (summaryUsage.inputTokens || 0) + (summaryUsage.outputTokens || 0),
+          estimatedCost: calculateLlmCost(
+            'gemini-flash-lite-latest',
+            summaryUsage.inputTokens || 0,
+            summaryUsage.outputTokens || 0
+          ),
+          success: true
+        }
+      })
+    }
 
     let newTitle = null
     if (shouldRename) {
+      logger.info(`Generating title for room ${roomId}`)
       const { text: title, usage: titleUsage } = await generateText({
         model: google('gemini-flash-lite-latest'),
         system:
-          'Generate a 2-4 word catchy title for this conversation. No quotes, just the title.',
+          'Generate a 2-4 word catchy title for this conversation based on the user prompt. No quotes, just the title.',
         prompt: conversationText
       })
       newTitle = title.trim().replace(/^"|"$/g, '')
@@ -136,12 +151,14 @@ export const summarizeChatTask = task({
     }
 
     // 4. Update ChatRoom metadata and name
-    metadata.historySummary = summary
-    const lastMsg = messages[messages.length - 1]
-    if (lastMsg) {
-      metadata.lastSummarizedMessageId = lastMsg.id
+    if (summarizedNewMessages) {
+      metadata.historySummary = summary
+      const lastMsg = messages[messages.length - 1]
+      if (lastMsg) {
+        metadata.lastSummarizedMessageId = lastMsg.id
+      }
+      metadata.summarizedCount = (metadata.summarizedCount || 0) + messages.length
     }
-    metadata.summarizedCount = (metadata.summarizedCount || 0) + messages.length
 
     await prisma.chatRoom.update({
       where: { id: roomId },
@@ -151,7 +168,7 @@ export const summarizeChatTask = task({
       }
     })
 
-    logger.info(`Successfully summarized room ${roomId}`)
-    return { success: true, summary }
+    logger.info(`Successfully processed room ${roomId}`)
+    return { success: true, summary, newTitle }
   }
 })

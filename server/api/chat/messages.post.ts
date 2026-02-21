@@ -156,7 +156,8 @@ export default defineEventHandler(async (event) => {
           metadata: true,
           _count: {
             select: { messages: true }
-          }
+          },
+          name: true
         }
       }
     }
@@ -225,6 +226,9 @@ export default defineEventHandler(async (event) => {
 
   // 3. Proactive Summarization Trigger
   const messageCount = participant.room._count.messages
+  const currentMessageCount =
+    messageCount + (shouldPersistIncomingMessage && !existingMessage ? 1 : 0)
+  const roomName = participant.room.name
   let hasLargeMessage = false
   const estimatedTokens = (messages || []).reduce((acc: number, msg: any) => {
     const tokens = typeof msg.content === 'string' ? msg.content.length / 4 : 0
@@ -236,8 +240,12 @@ export default defineEventHandler(async (event) => {
   // - Message count hits a milestone (every 30)
   // - Total history tokens > 15,000 (roughly 60,000 chars)
   // - Any single message is > 5,000 tokens (likely a massive tool response)
+  const isNewChat = !roomName || roomName === 'New Chat'
   const shouldSummarize =
-    (messageCount > 0 && messageCount % 30 === 0) || estimatedTokens > 15000 || hasLargeMessage
+    (currentMessageCount > 0 && currentMessageCount % 30 === 0) ||
+    estimatedTokens > 15000 ||
+    hasLargeMessage ||
+    (isNewChat && currentMessageCount >= 1)
 
   if (shouldSummarize) {
     // Trigger background summarization
@@ -376,6 +384,7 @@ export default defineEventHandler(async (event) => {
     })()
 
     const historyToolCalls = new Map<string, any>()
+    const currentTurnToolCalls = new Map<string, any>()
     normalizedMessages.forEach((m) => {
       if (m.role === 'assistant' && Array.isArray(m.content)) {
         m.content.forEach((p: any) => {
@@ -407,7 +416,12 @@ export default defineEventHandler(async (event) => {
       stopWhen: stepCountIs(opSettings.maxSteps),
       providerOptions,
       onStepFinish: async ({ toolCalls, toolResults }) => {
-        if (toolCalls) toolCalls.forEach((tc) => historyToolCalls.set(tc.toolCallId, tc))
+        if (toolCalls) {
+          toolCalls.forEach((tc) => {
+            historyToolCalls.set(tc.toolCallId, tc)
+            currentTurnToolCalls.set(tc.toolCallId, tc)
+          })
+        }
         if (toolResults) {
           const detailed = toolResults.map((tr) => {
             const call = historyToolCalls.get(tr.toolCallId)
@@ -448,13 +462,53 @@ export default defineEventHandler(async (event) => {
               }
             })
 
-            const toolCallsUsed = enrichedResults.map((tr: any) => ({
-              toolCallId: tr.toolCallId,
-              name: tr.toolName,
-              args: tr.args,
-              response: tr.result || tr.output,
-              timestamp: new Date().toISOString()
-            }))
+            // Persist tool calls even when a provider returns sparse/empty toolResults on the final step.
+            // This keeps tool cards visible after reload by reconstructing from final/tool-call history.
+            const toolCallMap = new Map<string, any>()
+
+            const registerToolCall = (entry: any) => {
+              if (!entry?.toolCallId) return
+              const existing = toolCallMap.get(entry.toolCallId) || {}
+              toolCallMap.set(entry.toolCallId, {
+                toolCallId: entry.toolCallId,
+                name: entry.name || existing.name,
+                args: entry.args ?? existing.args,
+                response:
+                  entry.response !== undefined
+                    ? entry.response
+                    : existing.response !== undefined
+                      ? existing.response
+                      : null,
+                timestamp: existing.timestamp || entry.timestamp || new Date().toISOString()
+              })
+            }
+
+            ;(finalCalls || []).forEach((tc: any) => {
+              registerToolCall({
+                toolCallId: tc.toolCallId,
+                name: tc.toolName,
+                args: tc.args || tc.input
+              })
+            })
+
+            Array.from(currentTurnToolCalls.values()).forEach((tc: any) => {
+              registerToolCall({
+                toolCallId: tc.toolCallId,
+                name: tc.toolName,
+                args: tc.args || tc.input
+              })
+            })
+
+            enrichedResults.forEach((tr: any) => {
+              registerToolCall({
+                toolCallId: tr.toolCallId,
+                name: tr.toolName,
+                args: tr.args,
+                response: tr.result || tr.output
+              })
+            })
+
+            const toolCallsUsed = Array.from(toolCallMap.values()).filter((tc: any) => tc.name)
 
             const charts = enrichedResults
               .filter(

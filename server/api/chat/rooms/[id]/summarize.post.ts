@@ -29,8 +29,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Room not found or access denied' })
   }
 
+  const body = await readBody(event).catch(() => ({}))
+  const forceRename = !!body?.forceRename
+
   // Trigger task
-  const result = await summarizeChatTask.trigger({ roomId, userId })
+  const result = await summarizeChatTask.trigger({ roomId, userId, forceRename })
 
   return {
     success: true,
