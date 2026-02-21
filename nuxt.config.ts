@@ -93,8 +93,14 @@ export default defineNuxtConfig({
     'nuxt-gtag',
     'nuxt-api-shield',
     '@sentry/nuxt/module',
-    '@nuxt/eslint'
+    '@nuxt/eslint',
+    '@vue-email/nuxt'
   ],
+
+  vueEmail: {
+    baseUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://app.coachwatts.com',
+    emailsDir: 'app/emails'
+  },
 
   colorMode: {
     preference: 'system',

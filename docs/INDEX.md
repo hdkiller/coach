@@ -35,6 +35,10 @@ Detailed documentation for specific application features.
 
 - [**System Messages**](./02-features/system-messages.md) - Admin-managed broadcast alerts and notifications.
 
+### Email & Communication
+
+- [**Email System**](./02-features/email-communication.md) - Centralized, branded messaging for lifecycle and automated coaching events.
+
 ### Analytics & Scoring
 
 - [**Scoring System**](./02-features/analytics/scoring-system.md) - The 1-10 scoring logic for workouts and nutrition.

@@ -18,6 +18,7 @@ This file tracks ongoing project state, active blockers, and recent architectura
 
 - **Nutrition Logic**: See `docs/02-features/nutrition/fueling-logic.md`.
 - **System Messages**: See `docs/02-features/system-messages.md`.
+- **Email System**: See `docs/02-features/email-communication.md`.
 - **Chat Development**: See `docs/04-guides/chat-development.md`.
 - **Timezone Handling**: See `docs/04-guides/timezone-handling.md`.
 
