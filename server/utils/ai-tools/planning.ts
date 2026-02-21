@@ -562,8 +562,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       })
 
       // Trigger structured workout generation
+      let runId: string | undefined
       try {
-        await generateStructuredWorkoutTask.trigger(
+        const handle = await generateStructuredWorkoutTask.trigger(
           {
             plannedWorkoutId: workout.id // Pass plannedWorkoutId
           },
@@ -572,6 +573,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             concurrencyKey: userId
           }
         )
+        runId = handle.id
       } catch (e) {
         console.error('Failed to trigger structured workout generation:', e)
       }
@@ -579,6 +581,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       return {
         success: true,
         workout_id: workout.id,
+        ...(runId ? { run_id: runId } : {}),
         message: 'Planned workout created and structured generation started.'
       }
     }
@@ -626,8 +629,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       const workout = await plannedWorkoutRepository.update(args.workout_id, userId, data)
 
       // Trigger regeneration of structured intervals
+      let runId: string | undefined
       try {
-        await generateStructuredWorkoutTask.trigger(
+        const handle = await generateStructuredWorkoutTask.trigger(
           {
             plannedWorkoutId: workout.id
           },
@@ -636,6 +640,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             concurrencyKey: userId
           }
         )
+        runId = handle.id
       } catch (e) {
         console.error('Failed to trigger structured workout regeneration:', e)
       }
@@ -643,6 +648,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       return {
         success: true,
         workout_id: workout.id,
+        ...(runId ? { run_id: runId } : {}),
         status: nextSyncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'QUEUED_FOR_SYNC'
       }
     }
@@ -773,7 +779,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       // Trigger adjustment task
       try {
-        await adjustStructuredWorkoutTask.trigger(
+        const handle = await adjustStructuredWorkoutTask.trigger(
           {
             plannedWorkoutId: workout_id,
             adjustments: {
@@ -787,7 +793,12 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             concurrencyKey: userId
           }
         )
-        return { success: true, message: 'Workout adjustment started.' }
+        return {
+          success: true,
+          workout_id,
+          run_id: handle.id,
+          message: 'Workout adjustment started.'
+        }
       } catch (e) {
         console.error('Failed to trigger workout adjustment:', e)
         return { success: false, error: 'Failed to start adjustment task.' }
@@ -805,14 +816,19 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       await checkQuota(userId, 'generate_structured_workout')
 
       try {
-        await generateStructuredWorkoutTask.trigger(
+        const handle = await generateStructuredWorkoutTask.trigger(
           { plannedWorkoutId: workout_id },
           {
             tags: [`user:${userId}`, `planned-workout:${workout_id}`],
             concurrencyKey: userId
           }
         )
-        return { success: true, message: 'Structure regeneration started.' }
+        return {
+          success: true,
+          workout_id,
+          run_id: handle.id,
+          message: 'Structure regeneration started.'
+        }
       } catch (e) {
         return { success: false, error: 'Failed to trigger regeneration.' }
       }
