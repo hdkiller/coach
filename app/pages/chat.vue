@@ -34,6 +34,9 @@
   const input = ref('')
   const chatInputRef = ref<any>(null)
   const toast = useToast()
+  const editingMessage = ref<any | null>(null)
+  const editingContent = ref('')
+  const savingEditedMessage = ref(false)
 
   // Fetch session
   const { data: session } = await useFetch('/api/auth/session')
@@ -165,6 +168,89 @@
       '[Chat] No addToolApprovalResponse method found. Chat object keys:',
       Object.keys(chat)
     )
+  }
+
+  const getMessageText = (message: any) => {
+    if (typeof message?.content === 'string') return message.content
+    if (Array.isArray(message?.parts)) {
+      return message.parts
+        .filter((part: any) => part?.type === 'text' && typeof part.text === 'string')
+        .map((part: any) => part.text)
+        .join('')
+    }
+    return ''
+  }
+
+  const openEditMessageInline = (message: any) => {
+    if (
+      !message ||
+      message.role !== 'user' ||
+      chatStatus.value !== 'ready' ||
+      isCurrentRoomReadOnly.value
+    )
+      return
+
+    editingMessage.value = message
+    editingContent.value = getMessageText(message)
+  }
+
+  const cancelEditedMessage = (force = false) => {
+    if (!force && savingEditedMessage.value) return
+    editingMessage.value = null
+    editingContent.value = ''
+  }
+
+  const saveEditedMessage = async () => {
+    if (!editingMessage.value || !currentRoomId.value || savingEditedMessage.value) return
+
+    const content = editingContent.value.trim()
+    if (!content) {
+      toast.add({
+        title: 'Message required',
+        description: 'Edited message cannot be empty.',
+        color: 'error'
+      })
+      return
+    }
+
+    savingEditedMessage.value = true
+
+    try {
+      const response = await $fetch<{ regenerateFromEdit?: boolean }>(
+        `/api/chat/messages/${editingMessage.value.id}`,
+        {
+          method: 'PATCH',
+          body: {
+            roomId: currentRoomId.value,
+            content,
+            regenerateFromEdit: true
+          }
+        }
+      )
+
+      cancelEditedMessage(true)
+      await loadMessages(currentRoomId.value)
+
+      if (response?.regenerateFromEdit) {
+        ;(chat as any).sendMessage({
+          text: content
+        })
+      }
+
+      toast.add({
+        title: 'Message updated',
+        description: 'Your message has been updated and regenerated.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Edit failed',
+        description: error?.data?.message || 'Could not update this message.',
+        color: 'error'
+      })
+    } finally {
+      savingEditedMessage.value = false
+    }
   }
   // Load initial room and messages
   onMounted(async () => {
@@ -534,7 +620,15 @@
             :messages="chatMessages as any"
             :status="chatStatus"
             :loading="loadingMessages"
+            :can-edit-messages="chatStatus === 'ready' && !isCurrentRoomReadOnly"
+            :editing-message-id="editingMessage?.id || null"
+            :editing-content="editingContent"
+            :saving-edited-message="savingEditedMessage"
             @tool-approval="onToolApproval"
+            @edit-message="openEditMessageInline"
+            @update:editing-content="editingContent = $event"
+            @save-edit="saveEditedMessage"
+            @cancel-edit="cancelEditedMessage"
           />
 
           <!-- Input -->
@@ -544,6 +638,7 @@
             :status="chatStatus"
             :error="chat.error"
             :disabled="isCurrentRoomReadOnly"
+            mobile-enter-behavior="newline"
             @submit="onSubmit"
           />
         </div>
