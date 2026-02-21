@@ -38,7 +38,7 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview>Welcome to Coach Watts {{ tier }}!</EPreview>
+    <EPreview>Your {{ tier }} plan is active. Advanced coaching is unlocked.</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;
@@ -86,20 +86,19 @@
               font-weight: 700;
               color: #09090b;
               margin-top: 0;
-              margin-bottom: 24px;
+              margin-bottom: 20px;
               tracking: -0.025em;
             "
-            >Welcome to {{ tier }}!</EHeading
+            >{{ tier }} is active</EHeading
           >
 
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 20px"
+          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 14px"
             >Hi {{ name || 'Athlete' }},</EText
           >
 
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 20px">
-            Thank you for upgrading to <strong style="color: #09090b">{{ tier }}</strong
-            >. Your support helps us keep building the most advanced AI coaching platform for
-            endurance athletes.
+          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 18px">
+            Your upgraded plan is live. You now have access to deeper analysis and faster coaching
+            feedback loops.
           </EText>
 
           <EContainer
@@ -107,7 +106,7 @@
               background-color: #fafafa;
               border-left: 4px solid #00dc82;
               padding: 20px;
-              margin-bottom: 28px;
+              margin-bottom: 24px;
               border-radius: 4px;
               border-top: 1px solid #e4e4e7;
               border-right: 1px solid #e4e4e7;
@@ -122,7 +121,7 @@
                 margin-top: 0;
                 margin-bottom: 12px;
               "
-              >What's unlocked:</EText
+              >What changes now:</EText
             >
             <ul
               style="
@@ -133,16 +132,17 @@
                 padding-left: 20px;
               "
             >
-              <li style="margin-bottom: 6px">Access to advanced reasoning AI models</li>
-              <li style="margin-bottom: 6px">Deep analytics and recovery scoring</li>
-              <li style="margin-bottom: 6px">Priority access to new features</li>
-              <li>Expanded AI chat context and analysis</li>
+              <li style="margin-bottom: 6px">
+                More advanced AI reasoning for analysis and planning
+              </li>
+              <li style="margin-bottom: 6px">Richer workout and readiness insights</li>
+              <li>Priority access to new coaching capabilities</li>
             </ul>
           </EContainer>
 
           <div style="text-align: center">
             <EButton
-              href="https://coachwatts.com/dashboard?utm_source=coachwatts_email&utm_medium=transactional&utm_campaign=subscription_started&utm_content=cta_dashboard"
+              href="https://coachwatts.com/dashboard?utm_source=coachwatts_email&utm_medium=transactional&utm_campaign=subscription_started&utm_content=cta_use_pro_features"
               style="
                 background-color: #00c16a;
                 color: #ffffff;
@@ -153,7 +153,7 @@
                 display: inline-block;
               "
             >
-              Go to Dashboard
+              Start Using Pro Features
             </EButton>
           </div>
         </ESection>

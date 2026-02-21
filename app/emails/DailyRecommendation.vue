@@ -40,7 +40,7 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview>Today's Training: {{ recommendation }}</EPreview>
+    <EPreview>Your training focus for {{ date }} is ready.</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;
@@ -88,29 +88,27 @@
               font-weight: 700;
               color: #09090b;
               margin-top: 0;
-              margin-bottom: 24px;
+              margin-bottom: 18px;
               tracking: -0.025em;
             "
-            >Daily Training Recommendation</EHeading
+            >Your plan for today</EHeading
           >
 
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 20px"
+          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 14px"
             >Hi {{ name || 'Athlete' }},</EText
           >
 
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 24px">
-            Based on your recent data, recovery status, and training plan, here is your suggested
-            activity for <strong>{{ date }}</strong
-            >:
+          <EText style="font-size: 15px; line-height: 1.6; color: #71717a; margin: 0 0 20px">
+            For <strong style="color: #09090b">{{ date }}</strong
+            >, here's the highest-value move based on your latest training and recovery signals.
           </EText>
 
           <EContainer
             style="
               background-color: #fafafa;
               border-radius: 12px;
-              padding: 24px;
-              text-align: center;
-              margin-bottom: 24px;
+              padding: 20px;
+              margin-bottom: 14px;
               border: 1px solid #e4e4e7;
             "
           >
@@ -123,7 +121,7 @@
                 letter-spacing: 0.2em;
                 margin: 0 0 8px;
               "
-              >Today's Session</EText
+              >Do This</EText
             >
             <EText
               style="font-size: 24px; font-weight: 700; color: #00c16a; margin: 0; line-height: 1.2"
@@ -131,22 +129,60 @@
             >
           </EContainer>
 
-          <ESection style="margin-bottom: 32px">
-            <EText style="font-size: 14px; font-weight: 600; color: #09090b; margin-bottom: 8px"
-              >Why this activity?</EText
+          <EContainer
+            style="
+              background-color: #fafafa;
+              border-radius: 12px;
+              padding: 20px;
+              margin-bottom: 14px;
+              border: 1px solid #e4e4e7;
+            "
+          >
+            <EText
+              style="
+                font-size: 10px;
+                font-weight: 900;
+                color: #a1a1aa;
+                text-transform: uppercase;
+                letter-spacing: 0.2em;
+                margin: 0 0 8px;
+              "
+              >Why Now</EText
             >
-            <EText style="font-size: 15px; line-height: 1.6; color: #71717a; margin: 0">{{
+            <EText style="font-size: 15px; line-height: 1.6; color: #52525b; margin: 0">{{
               reasoning
             }}</EText>
-          </ESection>
+          </EContainer>
 
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 32px"
-            >View the full breakdown of your readiness and training metrics in the dashboard.</EText
+          <EContainer
+            style="
+              background-color: #fafafa;
+              border-radius: 12px;
+              padding: 20px;
+              margin-bottom: 28px;
+              border: 1px solid #e4e4e7;
+            "
           >
+            <EText
+              style="
+                font-size: 10px;
+                font-weight: 900;
+                color: #a1a1aa;
+                text-transform: uppercase;
+                letter-spacing: 0.2em;
+                margin: 0 0 8px;
+              "
+              >If Time Is Tight</EText
+            >
+            <EText style="font-size: 15px; line-height: 1.6; color: #52525b; margin: 0"
+              >Do a 20-30 minute easy version and keep your routine alive. Consistency beats perfect
+              execution.</EText
+            >
+          </EContainer>
 
           <div style="text-align: center">
             <EButton
-              href="https://coachwatts.com/dashboard?utm_source=coachwatts_email&utm_medium=engagement&utm_campaign=daily_recommendation&utm_content=cta_open_dashboard"
+              href="https://coachwatts.com/dashboard?utm_source=coachwatts_email&utm_medium=engagement&utm_campaign=daily_recommendation&utm_content=cta_view_today_options"
               style="
                 background-color: #00c16a;
                 color: #ffffff;
@@ -158,7 +194,7 @@
                 width: auto;
               "
             >
-              Open Dashboard
+              See Full Session Options
             </EButton>
           </div>
         </ESection>
