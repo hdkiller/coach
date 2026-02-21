@@ -241,7 +241,7 @@
           <WellnessMetricRow
             v-if="wellness.weight"
             label="Weight"
-            :value="`${wellness.weight.toFixed(2)} kg`"
+            :value="`${wellness.weight.toFixed(2)} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}`"
           />
           <WellnessMetricRow
             v-if="wellness.ctl"

@@ -566,7 +566,9 @@
                   class="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
                 >
                   <div class="text-2xl font-bold text-primary">
-                    {{ report.analysisJson.metrics_summary.total_distance_km.toFixed(1) }}km
+                    {{
+                      formatDistance(report.analysisJson.metrics_summary.total_distance_km * 1000)
+                    }}
                   </div>
                   <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Distance</div>
                 </div>
@@ -668,7 +670,7 @@
                     <span v-if="rw.workout.averageWatts"> {{ rw.workout.averageWatts }}W avg </span>
                     <span v-if="rw.workout.tss"> {{ Math.round(rw.workout.tss) }} TSS </span>
                     <span v-if="rw.workout.distanceMeters">
-                      {{ (rw.workout.distanceMeters / 1000).toFixed(1) }} km
+                      {{ formatDistance(rw.workout.distanceMeters) }}
                     </span>
                   </div>
                 </div>
@@ -753,9 +755,16 @@
 </template>
 
 <script setup lang="ts">
+  import { formatDistance as formatDist } from '~/utils/metrics'
+
   const route = useRoute()
   const { formatDate: baseFormatDate, formatShortDate } = useFormat()
+  const userStore = useUserStore()
   const reportId = route.params.id as string
+
+  function formatDistance(meters: number): string {
+    return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
+  }
 
   interface Report {
     id: string
