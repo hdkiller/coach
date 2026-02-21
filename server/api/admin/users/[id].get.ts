@@ -98,6 +98,30 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  const recentEmailDeliveries = await prisma.emailDelivery.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    select: {
+      id: true,
+      createdAt: true,
+      toEmail: true,
+      subject: true,
+      templateKey: true,
+      status: true,
+      errorMessage: true
+    }
+  })
+
+  const pendingEmailCount = await prisma.emailDelivery.count({
+    where: {
+      userId,
+      status: {
+        in: ['QUEUED', 'SENDING']
+      }
+    }
+  })
+
   return {
     profile: user,
     stats: {
@@ -107,6 +131,10 @@ export default defineEventHandler(async (event) => {
       lastActive: lastWorkout?.date || user.createdAt
     },
     recentWorkouts,
-    recentLlmUsage
+    recentLlmUsage,
+    recentEmailDeliveries,
+    emailStats: {
+      pendingCount: pendingEmailCount
+    }
   }
 })

@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     return sendError(event, createError({ statusCode: 400, statusMessage: 'Missing svix headers' }))
   }
 
-  const wh = new Webhook(webhookSecret)
+  const wh = new Webhook(webhookSecret as string)
   let payload: any
 
   try {

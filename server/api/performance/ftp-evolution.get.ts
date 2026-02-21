@@ -256,7 +256,7 @@ export default defineEventHandler(async (event) => {
     startingFTP && currentFTP ? ((currentFTP - startingFTP) / startingFTP) * 100 : null
 
   // Estimated FTP from workout efforts in the selected period
-  const estimationWorkouts = await workoutRepository.getForUser(user.id, {
+  const estimationWorkouts = (await workoutRepository.getForUser(user.id, {
     startDate,
     endDate,
     includeDuplicates: false,
@@ -271,7 +271,7 @@ export default defineEventHandler(async (event) => {
     orderBy: {
       date: 'asc'
     }
-  })
+  })) as any[]
 
   const estimatedByMonth = new Map<
     string,
@@ -331,7 +331,7 @@ export default defineEventHandler(async (event) => {
           if (index === 0) return point.date
           const prev = ftpData[index - 1]
           return prev && prev.ftp !== point.ftp ? point.date : lastChange
-        }, ftpData[0].date)
+        }, ftpData[0]?.date || new Date())
       : null
   const daysSinceConfiguredChange = getDaysSince(lastConfiguredChangeDate, endDate)
 
@@ -356,7 +356,7 @@ export default defineEventHandler(async (event) => {
     const ftpValidationLookbackStart = new Date()
     ftpValidationLookbackStart.setDate(ftpValidationLookbackStart.getDate() - 365)
 
-    const powerWorkouts = await workoutRepository.getForUser(user.id, {
+    const powerWorkouts = (await workoutRepository.getForUser(user.id, {
       startDate: ftpValidationLookbackStart,
       endDate,
       includeDuplicates: false,
@@ -368,7 +368,7 @@ export default defineEventHandler(async (event) => {
           }
         }
       }
-    })
+    })) as any[]
 
     let lastValidatingEffortDate: Date | null = null
 

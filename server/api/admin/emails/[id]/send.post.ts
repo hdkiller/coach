@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
       subject: delivery.subject,
       html: delivery.htmlBody,
       text: delivery.textBody || undefined,
-      reply_to: delivery.replyToEmail || undefined
+      replyTo: delivery.replyToEmail || undefined
     })
 
     if (response.error) {

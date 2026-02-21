@@ -1,5 +1,5 @@
 import './init'
-import { logger, task } from '@trigger.dev/sdk/v3'
+import { logger, task, tasks } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
