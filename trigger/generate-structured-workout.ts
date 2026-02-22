@@ -345,9 +345,22 @@ function applyZoneHintToCyclingPower(step: any, sportSettings: any, ftp: number)
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
-  maxDuration: 300,
+  maxDuration: 90,
   run: async (payload: { plannedWorkoutId: string }) => {
     const { plannedWorkoutId } = payload
+    const startedAtMs = Date.now()
+    const MAX_DURATION_MS = 90_000
+    const logStage = (stage: string, meta: Record<string, any> = {}) => {
+      const elapsedMs = Date.now() - startedAtMs
+      logger.log(`[GenerateStructuredWorkout] ${stage}`, {
+        plannedWorkoutId,
+        elapsedMs,
+        remainingMs: Math.max(0, MAX_DURATION_MS - elapsedMs),
+        ...meta
+      })
+    }
+
+    logStage('start')
 
     const workout = await (prisma as any).plannedWorkout.findUnique({
       where: { id: plannedWorkoutId },
@@ -383,6 +396,12 @@ export const generateStructuredWorkoutTask = task({
       logger.warn('Workout not found, skipping structured generation', { plannedWorkoutId })
       return { success: false, error: 'Workout not found' }
     }
+    logStage('loaded-workout', {
+      userId: workout.userId,
+      type: workout.type,
+      hasExistingStructure: Boolean(workout.structuredWorkout),
+      durationSec: workout.durationSec
+    })
 
     // Check Quota
     try {
@@ -397,12 +416,19 @@ export const generateStructuredWorkoutTask = task({
       }
       throw quotaError
     }
+    logStage('quota-check-passed')
 
     // Fetch Sport Specific Settings
     const sportSettings = await sportSettingsRepository.getForActivityType(
       workout.userId,
       workout.type || ''
     )
+    logStage('loaded-sport-settings', {
+      hasSettings: Boolean(sportSettings),
+      hasHrZones: Boolean(sportSettings?.hrZones?.length),
+      hasPowerZones: Boolean(sportSettings?.powerZones?.length),
+      loadPreference: sportSettings?.loadPreference || null
+    })
 
     // Build context
     const persona = workout.user.aiPersona || 'Supportive'
@@ -415,6 +441,7 @@ export const generateStructuredWorkoutTask = task({
 
     // Fetch user timezone
     const timezone = await getUserTimezone(workout.userId)
+    logStage('resolved-timezone', { timezone })
 
     // Fetch recent workouts for context
     const recentWorkouts = await workoutRepository.getForUser(workout.userId, {
@@ -429,6 +456,7 @@ export const generateStructuredWorkoutTask = task({
         }
       }
     })
+    logStage('loaded-recent-workouts', { count: recentWorkouts.length })
 
     // Resolve Metrics
     const ftp = sportSettings?.ftp || workout.user.ftp || 250
@@ -456,6 +484,7 @@ export const generateStructuredWorkoutTask = task({
         }
       }
     }
+    logStage('subscription-check-passed', { subscriptionTier: workout.user.subscriptionTier })
 
     // Build zone definitions
     let zoneDefinitions = ''
@@ -591,6 +620,10 @@ export const generateStructuredWorkoutTask = task({
     - Output contains no placeholder or irrelevant sport fields.
     
     OUTPUT JSON format matching the schema.`
+    logStage('prompt-built', {
+      promptChars: prompt.length,
+      targetDurationMinutes: Math.round((workout.durationSec || 3600) / 60)
+    })
 
     const structure = (await generateStructuredAnalysis(prompt, workoutStructureSchema, 'flash', {
       userId: workout.userId,
@@ -598,6 +631,11 @@ export const generateStructuredWorkoutTask = task({
       entityType: 'PlannedWorkout',
       entityId: plannedWorkoutId
     })) as any
+    logStage('ai-structure-generated', {
+      hasSteps: Array.isArray(structure?.steps),
+      stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
+      exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
+    })
 
     const normalizeAndCalculate = (steps: any[], depth = 0, parentStep: any = null) => {
       let distance = 0
@@ -782,6 +820,11 @@ export const generateStructuredWorkoutTask = task({
         totalTSS += (gymDuration / 3600) * 40
       }
     }
+    logStage('structure-normalized', {
+      totalDistance,
+      totalDuration,
+      totalTSS: Math.round(totalTSS * 100) / 100
+    })
 
     const hasSteps = Array.isArray(structure.steps) && structure.steps.length > 0
     const hasExercises = Array.isArray(structure.exercises) && structure.exercises.length > 0
@@ -807,6 +850,11 @@ export const generateStructuredWorkoutTask = task({
     const updatedWorkout = await (prisma as any).plannedWorkout.update({
       where: { id: plannedWorkoutId },
       data: updateData
+    })
+    logStage('workout-updated', {
+      updatedDurationSec: updatedWorkout.durationSec,
+      updatedTss: updatedWorkout.tss,
+      updatedIntensity: updatedWorkout.workIntensity
     })
 
     const isLocal =
@@ -845,6 +893,10 @@ export const generateStructuredWorkoutTask = task({
         },
         workout.userId
       )
+      logStage('intervals-sync-finished', {
+        synced: syncResult.synced,
+        syncError: syncResult.error || null
+      })
 
       if (syncResult.synced) {
         await (prisma as any).plannedWorkout.update({
@@ -859,6 +911,7 @@ export const generateStructuredWorkoutTask = task({
       }
     }
 
+    logStage('completed')
     return { success: true, plannedWorkoutId }
   }
 })
