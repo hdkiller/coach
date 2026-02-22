@@ -267,14 +267,7 @@
 
           <!-- Pagination -->
           <div v-if="reportsData && reportsData.totalPages > 1" class="flex justify-center mt-8">
-            <UPagination
-              v-model="page"
-              :page-count="limit"
-              :total="reportsData.total"
-              :ui="{
-                rounded: 'rounded-full'
-              }"
-            />
+            <UPagination v-model="page" :page-count="limit" :total="reportsData.total" />
           </div>
         </div>
       </div>
