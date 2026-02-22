@@ -29,7 +29,12 @@
     data: reportsData,
     pending,
     refresh
-  } = await useFetch('/api/issues' as any, {
+  } = await useFetch<{
+    items: any[]
+    total: number
+    totalPages: number
+    stats: { total: number; active: number; resolved: number }
+  }>('/api/issues' as any, {
     query: {
       page,
       limit,
@@ -261,13 +266,12 @@
           </div>
 
           <!-- Pagination -->
-          <div v-if="reportsData?.totalPages > 1" class="flex justify-center mt-8">
+          <div v-if="reportsData && reportsData.totalPages > 1" class="flex justify-center mt-8">
             <UPagination
               v-model="page"
               :page-count="limit"
               :total="reportsData.total"
               :ui="{
-                wrapper: 'flex items-center gap-1',
                 rounded: 'rounded-full'
               }"
             />
