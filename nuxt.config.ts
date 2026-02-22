@@ -138,7 +138,9 @@ export default defineNuxtConfig({
     },
     // Ensure unhead is properly bundled/traced
     externals: {
-      inline: ['unhead']
+      // @vue-email/compiler dynamically loads vue-email at runtime.
+      // Inline both so Nitro always ships them in production output.
+      inline: ['unhead', '@vue-email/compiler', 'vue-email']
     },
     // Rate limit storage
     storage: {

@@ -1311,6 +1311,8 @@ export const metabolicService = {
         date,
         dateKey: dateStr,
         carbsGoal: plan.dailyTotals.carbs,
+        proteinGoal: plan.dailyTotals.protein,
+        fatGoal: plan.dailyTotals.fat,
         windows: windowsWithLocks
       })
     }
@@ -1365,8 +1367,8 @@ export const metabolicService = {
 
       // Pass 2.1: Protein & Fat Distribution
       // Ensure daily targets match the plan's daily totals
-      const dailyProteinTarget = plan.dailyTotals.protein
-      const dailyFatTarget = plan.dailyTotals.fat
+      const dailyProteinTarget = day.proteinGoal
+      const dailyFatTarget = day.fatGoal
 
       const workoutProteinSum = day.windows
         .filter((w: any) => w.type === 'PRE_WORKOUT' || w.type === 'POST_WORKOUT')
