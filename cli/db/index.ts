@@ -6,6 +6,7 @@ import syncQueueCommand from './sync-queue'
 import seedCommand from './seed'
 import cleanFitCommand from './clean-fit'
 import { workoutCommand } from './workout'
+import { sqlCommand } from './sql'
 
 const dbCommand = new Command('db').description('Database commands')
 
@@ -16,5 +17,6 @@ dbCommand.addCommand(syncQueueCommand)
 dbCommand.addCommand(seedCommand)
 dbCommand.addCommand(cleanFitCommand)
 dbCommand.addCommand(workoutCommand)
+dbCommand.addCommand(sqlCommand)
 
 export default dbCommand

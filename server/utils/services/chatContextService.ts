@@ -7,6 +7,7 @@ import { wellnessRepository } from '../repositories/wellnessRepository'
 import { generateTrainingContext, formatTrainingContextForPrompt } from '../training-metrics'
 import { getInjuryLabel } from '../../utils/wellness'
 import { filterGoalsForContext } from '../goal-context'
+import { getUserAiSettings } from '../ai-user-settings'
 
 export async function buildAthleteContext(userId: string): Promise<{
   context: string
@@ -15,7 +16,7 @@ export async function buildAthleteContext(userId: string): Promise<{
   history: any[]
 }> {
   // 1. Fetch User Profile, Goals and Sport Settings for Context
-  const [userProfile, activeGoals, sportSettings] = await Promise.all([
+  const [userProfile, activeGoals, sportSettings, aiSettings] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -83,7 +84,8 @@ export async function buildAthleteContext(userId: string): Promise<{
         createdAt: true
       }
     }),
-    sportSettingsRepository.getByUserId(userId)
+    sportSettingsRepository.getByUserId(userId),
+    getUserAiSettings(userId)
   ])
 
   // Fetch Intervals Integration settings for scale preferences
@@ -683,6 +685,29 @@ export async function buildAthleteContext(userId: string): Promise<{
     ? '- Recent workouts with details **AND THEIR IDs**\n- Recent nutrition logs\n- Recent wellness metrics'
     : '- Recent workouts with details **AND THEIR IDs**\n- Recent wellness metrics'
 
+  const toolApprovalInstruction = aiSettings?.aiRequireToolApproval
+    ? `\n**TOOL APPROVAL IS ENABLED (CRITICAL)**: The following tools require explicit user approval before they execute:
+    - \`update_training_availability\`
+    - \`set_planned_workout_structure\`
+    - \`patch_planned_workout_structure\`
+    - \`create_planned_workout\`
+    - \`update_planned_workout\`
+    - \`reschedule_planned_workout\`
+    - \`publish_planned_workout\`
+    - \`delete_planned_workout\`
+    - \`delete_workout\`
+    - \`update_training_plan_blocks\`
+    - \`analyze_workout\`
+    - \`delete_nutrition_item\`
+    - \`update_user_settings\`
+    - \`update_sport_settings\`
+    
+    When using ANY of these tools:
+    - DO NOT say "I have [done the action]" (e.g. "I have added it to your calendar" or "I have deleted the meal").
+    - INSTEAD, say: "I've prepared the [action]. Please click the **Approve** button below to confirm and save it."
+    - If the user replies with text instead of approving, the tool call is cancelled. You must re-run the tool and ask them to approve it again.`
+    : ''
+
   const systemInstruction = `You are Coach Watts. Your coaching style and personality is **${persona}**.
 Address the athlete as **${preferredName}**.
 Adopt this persona fully in your interactions.
@@ -729,6 +754,7 @@ ${telemetryInstruction}
 ## Tool Usage & Agency (CRITICAL)
 
 You are an agent with **agency**. You don't just talk; you **act**.
+${toolApprovalInstruction}
 
 **Rules for Tool Usage:**
 1.  **Chain Your Thoughts**: If you need information, call a tool. If the information is incomplete, call another.

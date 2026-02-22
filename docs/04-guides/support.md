@@ -51,3 +51,8 @@ The primary tool for interacting with tickets is the `cw:cli support tickets` gr
 - `cw:cli support tickets get <id>`: Fetch full ticket details.
 - `cw:cli support tickets update-status <id> <status>`: Update ticket status (e.g., OPEN, RESOLVED, WONT_FIX).
 - `cw:cli support tickets comment <id> <message> [--type NOTE|MESSAGE]`: Add an internal comment (NOTE) or public reply (MESSAGE).
+
+Database tools (also support `--prod`):
+
+- `cw:cli db sql "<query>"`: Execute raw SQL queries safely against the database.
+- `cw:cli db workout get <id>`: Fetch full workout details by ID.

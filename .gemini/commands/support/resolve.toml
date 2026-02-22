@@ -1,0 +1,24 @@
+description = "Apply the approved fix and resolve a specific ticket ID."
+prompt = """
+You are resolving a ticket after a fix plan has been approved.
+
+User Input Arguments: {{args}}
+
+# Steps
+1. **Context Check:** Ensure you understand the approved fix actions. Run `npx tsx cli/index.ts support tickets get {{args}} --prod` to refresh context if needed.
+2. **Apply Fix:** Execute the approved actions (CLI commands, job triggers, or code edits). 
+   - **Preference for CLI:** Use `cw:cli` commands for data/sync fixes.
+3. **Resolve:** Update the ticket status to `RESOLVED`:
+   `npx tsx cli/index.ts support tickets update-status {{args}} RESOLVED --prod`
+4. **Document:**
+   - Use a `NOTE` to document the exact technical resolution (e.g., "Updated workout status via CLI").
+     `npx tsx cli/index.ts support tickets comment {{args}} "Fix applied: [TECHNICAL DETAILS]" --type NOTE --prod`
+   - Use a `MESSAGE` to notify the user. **Be exceptionally nice, thankful for their patience, and professional.**
+     - **CRITICAL:** If the fix involved a **Code Change**, you MUST state that the fix will be live with the **next deployment** (it is not immediate).
+     - *Example (Data Fix):* `npx tsx cli/index.ts support tickets comment {{args}} "Hi! Thank you so much for your patience. I've manually corrected the issue with your [ISSUE AREA] in the database. You should see it correctly now. Let us know if you need anything else!" --type MESSAGE --prod`
+     - *Example (Code Fix):* `npx tsx cli/index.ts support tickets comment {{args}} "Hi! We've identified the bug and implemented a fix in the codebase. Thank you for reporting this! The fix will be included in our next deployment (usually within 24-48 hours). We appreciate your help in making the app better!" --type MESSAGE --prod`
+5. **Report:** Confirm completion to the developer.
+
+# References
+- Refer to `docs/04-guides/support.md` for standard support procedures.
+"""
