@@ -97,21 +97,40 @@ export const polarService = {
     let count = 0
 
     for (const entry of sleepsList) {
-      // Fetch full sleep details
-      const fullSleep = await fetchPolarSleep(integration, entry.url)
-      if (!fullSleep) continue
+      const sleepUrl = typeof entry?.url === 'string' ? entry.url.trim() : ''
+      if (!sleepUrl) {
+        console.warn('[Polar] Skipping sleep entry without details URL', {
+          userId: integration.userId,
+          date: entry?.date,
+          entry
+        })
+        continue
+      }
 
-      const normalized = normalizePolarSleep(fullSleep, integration.userId)
+      try {
+        // Fetch full sleep details
+        const fullSleep = await fetchPolarSleep(integration, sleepUrl)
+        if (!fullSleep) continue
 
-      // Upsert wellness
-      await wellnessRepository.upsert(
-        integration.userId,
-        normalized.date,
-        normalized,
-        normalized,
-        'polar'
-      )
-      count++
+        const normalized = normalizePolarSleep(fullSleep, integration.userId)
+
+        // Upsert wellness
+        await wellnessRepository.upsert(
+          integration.userId,
+          normalized.date,
+          normalized,
+          normalized,
+          'polar'
+        )
+        count++
+      } catch (error) {
+        console.warn('[Polar] Failed to ingest sleep entry', {
+          userId: integration.userId,
+          date: entry?.date,
+          url: sleepUrl,
+          error
+        })
+      }
     }
     return count
   },

@@ -68,7 +68,7 @@ export interface PolarSleepListEntry {
   sleep_start_time: string
   sleep_end_time: string
   device_id: string
-  url: string // Link to full sleep data
+  url?: string // Link to full sleep data (can be missing in some payloads)
 }
 
 export interface PolarSleep {
@@ -243,9 +243,31 @@ export async function listPolarSleeps(integration: Integration): Promise<PolarSl
 
 export async function fetchPolarSleep(
   integration: Integration,
-  url: string
+  url?: string
 ): Promise<PolarSleep | null> {
-  const response = await fetch(url, {
+  if (!url || typeof url !== 'string') {
+    console.warn('[Polar] Missing sleep details URL', { userId: integration.userId })
+    return null
+  }
+
+  const trimmedUrl = url.trim()
+  if (!trimmedUrl) {
+    console.warn('[Polar] Empty sleep details URL', { userId: integration.userId })
+    return null
+  }
+
+  let parsedUrl: URL
+  try {
+    parsedUrl = new URL(trimmedUrl)
+  } catch {
+    console.warn('[Polar] Invalid sleep details URL', {
+      userId: integration.userId,
+      url: trimmedUrl
+    })
+    return null
+  }
+
+  const response = await fetch(parsedUrl, {
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${integration.accessToken}`
