@@ -10,7 +10,7 @@ import type { IngestionResult } from './types'
 
 export const ingestIntervalsTask = task({
   id: 'ingest-intervals',
-  maxDuration: 3600, // 1 hour
+  maxDuration: 14400, // 4 hours
   queue: userIngestionQueue,
   run: async (payload: {
     userId: string

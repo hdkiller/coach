@@ -23,7 +23,7 @@ import type { IngestionResult } from './types'
 
 export const ingestAllTask = task({
   id: 'ingest-all',
-  maxDuration: 3600, // 1 hour to allow for sequential sub-tasks
+  maxDuration: 21600, // 6 hours to allow for sequential sub-tasks (especially historical syncs)
   run: async (payload: {
     userId: string
     startDate: string
