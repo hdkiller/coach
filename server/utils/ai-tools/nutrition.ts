@@ -16,15 +16,11 @@ import {
 import { getProfileForItem } from '../nutrition-domain/absorption'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../services/metabolicService'
-import { INTRA_WORKOUT_TARGET_ML_PER_HOUR, MEAL_LINKED_WATER_ML } from '../nutrition/hydration'
+import { INTRA_WORKOUT_TARGET_ML_PER_HOUR } from '../nutrition/hydration'
 import { mealRecommendationService } from '../services/mealRecommendationService'
 import { nutritionPlanService } from '../services/nutritionPlanService'
 import type { AiSettings } from '../ai-user-settings'
-import {
-  isHydrationLikeItem,
-  normalizeFluidFields,
-  recalculateNutritionTotals
-} from '../nutrition/totals'
+import { normalizeFluidFields, recalculateNutritionTotals } from '../nutrition/totals'
 import { pickMealScheduledTime } from '../nutrition/meal-pattern'
 
 export const nutritionTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
@@ -106,7 +102,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   log_nutrition_meal: tool({
     description:
-      'Log food items to a specific meal (breakfast, lunch, dinner, snacks). Call this when the user says "I ate X" or "Add X to my lunch". For "instant" or "just now" logging (e.g., "I just ate an apple"), you MUST first call `get_current_time` to get the current time, and pass the local time (HH:mm) as `logged_at`. The AI should estimate macros for the items if not provided.',
+      'Log food and drink items to a specific meal (breakfast, lunch, dinner, snacks). Call this when the user says "I ate X", "Add X to my lunch", or when logging beverages consumed with a meal (e.g. "coffee for breakfast", "0.5 liters of liquid"). For "instant" or "just now" logging (e.g., "I just ate an apple"), you MUST first call `get_current_time` to get the current time, and pass the local time (HH:mm) as `logged_at`. The AI should estimate macros for the items if not provided. Water and zero-calorie drinks MUST be logged with 0 calories and 0 macros.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']).describe('The meal category'),
@@ -131,7 +127,9 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           logged_at: z
             .string()
             .optional()
-            .describe('ISO timestamp or time string (e.g. "08:30") when the item was consumed. For "instant" or "just now" logging, obtain the current time using get_current_time and pass it here in HH:mm format.')
+            .describe(
+              'ISO timestamp or time string (e.g. "08:30") when the item was consumed. For "instant" or "just now" logging, obtain the current time using get_current_time and pass it here in HH:mm format.'
+            )
         })
       )
     }),
@@ -202,7 +200,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         fat: totals.fat,
         fiber: totals.fiber,
         sugar: totals.sugar,
-        waterMl: totals.waterMl + MEAL_LINKED_WATER_ML
+        waterMl: totals.waterMl
       })
 
       try {
@@ -239,7 +237,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   log_hydration_intake: tool({
     description:
-      'Log hydration volume in ml/L/oz. Use mode="SET" to overwrite the daily total or mode="ADD" (default) to append.',
+      'Log hydration volume in ml/L/oz. Use mode="SET" to overwrite the daily total or mode="ADD" (default) to append. DO NOT use this for drinks consumed as part of a meal (e.g. breakfast coffee); use log_nutrition_meal for those instead.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       volume_ml: z.number().describe('Hydration volume in ml'),
@@ -304,7 +302,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           const updates: any = {}
           for (const m of meals) {
             const items = (nutrition[m] as any[]) || []
-            const filtered = items.filter((i) => !isHydrationLikeItem(i))
+            const filtered = items.filter((i) => i.entryType !== 'HYDRATION')
             if (filtered.length !== items.length) {
               updates[m] = filtered
             }
@@ -432,7 +430,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           filtered = items.filter((i) => {
             const normalized = normalizeFluidFields(i || {})
             const hydrationMl = normalized.hydrationContributionMl || 0
-            if (!found && isHydrationLikeItem(i) && Math.abs(hydrationMl - volume_ml) < 1) {
+            if (!found && i.entryType === 'HYDRATION' && Math.abs(hydrationMl - volume_ml) < 1) {
               found = true
               removedCount++
               removedVolume += hydrationMl
@@ -443,7 +441,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         } else {
           // Remove all hydration
           filtered = items.filter((i) => {
-            if (isHydrationLikeItem(i)) {
+            if (i.entryType === 'HYDRATION') {
               const normalized = normalizeFluidFields(i || {})
               removedCount++
               removedVolume += normalized.hydrationContributionMl || 0

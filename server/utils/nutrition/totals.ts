@@ -10,15 +10,31 @@ function toNumber(value: unknown): number {
 
 function parseFluidMlFromQuantity(quantity: string): number {
   const normalized = quantity.toLowerCase()
-  const match = normalized.match(/\b(\d+(?:\.\d+)?)\s*(ml|l|oz|fl\s?oz)\b/)
+  const match = normalized.match(
+    /\b(\d+(?:\.\d+)?)\s*(ml|l|oz|fl\s?oz|liter|liters|litre|litres|milliliter|milliliters|millilitre|millilitres|ounce|ounces)\b/
+  )
   if (!match) return 0
 
   const value = toNumber(match[1])
   const unit = match[2]
   if (!value || !unit) return 0
 
-  if (unit === 'ml') return value
-  if (unit === 'l') return value * 1000
+  if (
+    unit === 'ml' ||
+    unit === 'milliliter' ||
+    unit === 'milliliters' ||
+    unit === 'millilitre' ||
+    unit === 'millilitres'
+  )
+    return value
+  if (
+    unit === 'l' ||
+    unit === 'liter' ||
+    unit === 'liters' ||
+    unit === 'litre' ||
+    unit === 'litres'
+  )
+    return value * 1000
   return value * OUNCE_TO_ML
 }
 
@@ -29,9 +45,24 @@ function parseFluidMlFromAmountAndUnit(item: Record<string, any>): number {
     .trim()
 
   if (!amount || !unit) return 0
-  if (unit === 'ml') return amount
-  if (unit === 'l') return amount * 1000
-  if (unit === 'oz' || unit === 'fl oz' || unit === 'floz') return amount * OUNCE_TO_ML
+  if (
+    unit === 'ml' ||
+    unit === 'milliliter' ||
+    unit === 'milliliters' ||
+    unit === 'millilitre' ||
+    unit === 'millilitres'
+  )
+    return amount
+  if (
+    unit === 'l' ||
+    unit === 'liter' ||
+    unit === 'liters' ||
+    unit === 'litre' ||
+    unit === 'litres'
+  )
+    return amount * 1000
+  if (unit === 'oz' || unit === 'fl oz' || unit === 'floz' || unit === 'ounce' || unit === 'ounces')
+    return amount * OUNCE_TO_ML
 
   return 0
 }

@@ -59,7 +59,7 @@ export function extractFluidIntakeMl(text: string): number {
   let totalMl = 0
   const explicitVolumePattern =
     /(\d+(?:\.\d+)?)\s*(ml|milliliters?|millilitres?|l|liters?|litres?|oz|fl\s?oz)\b/gi
-  for (const match of lower.matchAll(explicitVolumePattern)) {
+  for (const match of Array.from(lower.matchAll(explicitVolumePattern))) {
     const value = Number(match[1] || 0)
     const unit = (match[2] || '').toLowerCase()
     if (!value) continue
@@ -70,7 +70,7 @@ export function extractFluidIntakeMl(text: string): number {
   }
 
   const containerPattern = /\b(large|medium|small)?\s*(bottle|glass|cup|flask)\b/gi
-  for (const match of lower.matchAll(containerPattern)) {
+  for (const match of Array.from(lower.matchAll(containerPattern))) {
     const descriptor = `${match[1] || ''} ${match[2] || ''}`.trim()
     totalMl += inferContainerMl(descriptor)
   }
