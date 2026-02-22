@@ -215,7 +215,7 @@ export default defineEventHandler(async (event) => {
     await buildAthleteContext(userId)
 
   // Prepend history summary if it exists in room metadata
-  const roomMetadata = participant.room.metadata as any
+  const roomMetadata = (participant.room.metadata as any) || {}
   let finalSystemInstruction = baseSystemInstruction
   if (roomMetadata?.historySummary) {
     finalSystemInstruction = `## Previous Conversation Summary\n${roomMetadata.historySummary}\n\n${baseSystemInstruction}`
@@ -229,6 +229,13 @@ export default defineEventHandler(async (event) => {
   const currentMessageCount =
     messageCount + (shouldPersistIncomingMessage && !existingMessage ? 1 : 0)
   const roomName = participant.room.name
+  const hasGeneratedTitle = Boolean(roomMetadata?.titleGeneratedAt)
+  const lastSummaryTriggerMessageCount = Number(roomMetadata?.lastSummaryTriggerMessageCount || 0)
+  const messagesSinceLastSummaryTrigger = Math.max(
+    0,
+    currentMessageCount - lastSummaryTriggerMessageCount
+  )
+
   let hasLargeMessage = false
   const estimatedTokens = (messages || []).reduce((acc: number, msg: any) => {
     const tokens = typeof msg.content === 'string' ? msg.content.length / 4 : 0
@@ -236,20 +243,31 @@ export default defineEventHandler(async (event) => {
     return acc + tokens
   }, 0)
 
-  // Trigger if:
-  // - Message count hits a milestone (every 30)
-  // - Total history tokens > 15,000 (roughly 60,000 chars)
-  // - Any single message is > 5,000 tokens (likely a massive tool response)
+  // Trigger strategy:
+  // - Early trigger for room naming once we have minimal context.
+  // - Rolling summary only every N messages (or very large token growth), not every message.
   const isNewChat = !roomName || roomName === 'New Chat'
-  const shouldSummarize =
-    (currentMessageCount > 0 && currentMessageCount % 30 === 0) ||
-    estimatedTokens > 15000 ||
-    hasLargeMessage ||
-    (isNewChat && currentMessageCount >= 1)
+  const shouldTriggerRename = isNewChat && !hasGeneratedTitle && currentMessageCount >= 2
+  const shouldTriggerRollingSummary =
+    currentMessageCount >= 6 &&
+    (messagesSinceLastSummaryTrigger >= 12 ||
+      (estimatedTokens >= 12000 && messagesSinceLastSummaryTrigger >= 4) ||
+      hasLargeMessage)
+  const shouldSummarize = shouldTriggerRename || shouldTriggerRollingSummary
 
   if (shouldSummarize) {
     // Trigger background summarization
     try {
+      const nextMetadata = {
+        ...roomMetadata,
+        lastSummaryTriggerAt: new Date().toISOString(),
+        lastSummaryTriggerMessageCount: currentMessageCount
+      }
+      await prisma.chatRoom.update({
+        where: { id: roomId },
+        data: { metadata: nextMetadata as any }
+      })
+
       const { summarizeChatTask } = await import('../../../trigger/summarize-chat')
       await summarizeChatTask.trigger({ roomId, userId })
     } catch (err) {

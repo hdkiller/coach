@@ -8,6 +8,12 @@ export const summarizeChatTask = task({
   id: 'summarize-chat',
   run: async (payload: { roomId: string; userId: string; forceRename?: boolean }) => {
     const { roomId, userId, forceRename } = payload
+    const TITLE_MIN_MESSAGES = 2
+    const TITLE_MIN_TOKENS = 60
+    const INITIAL_SUMMARY_MIN_MESSAGES = 4
+    const INITIAL_SUMMARY_MIN_TOKENS = 220
+    const INCREMENTAL_SUMMARY_MIN_MESSAGES = 12
+    const INCREMENTAL_SUMMARY_MIN_TOKENS = 1000
 
     logger.info(`Starting processing for room ${roomId}`)
 
@@ -46,9 +52,16 @@ export const summarizeChatTask = task({
       take: 50 // Process next chunk
     })
 
-    const shouldRename = forceRename || !roomData.name || roomData.name === 'New Chat'
+    const hasGeneratedTitle = Boolean(metadata.titleGeneratedAt)
+    const shouldRename =
+      forceRename || ((!roomData.name || roomData.name === 'New Chat') && !hasGeneratedTitle)
 
-    if (messages.length < 5 && !lastId) {
+    const estimatedNewTokens = messages.reduce(
+      (sum, m) => sum + (typeof m.content === 'string' ? Math.ceil(m.content.length / 4) : 0),
+      0
+    )
+
+    if (messages.length < INITIAL_SUMMARY_MIN_MESSAGES && !lastId) {
       if (!shouldRename) {
         logger.info(`Not enough messages to start summarization in room ${roomId}`)
         return { success: false, reason: 'too_few_messages' }
@@ -80,8 +93,17 @@ export const summarizeChatTask = task({
     let summary = existingSummary
     let summarizedNewMessages = false
 
-    // Only summarize if we have enough messages or a previous summary history
-    if (messages.length >= 5 || lastId) {
+    // Summarize when we have meaningful new context.
+    const shouldSummarizeInitially =
+      !lastId &&
+      (messages.length >= INITIAL_SUMMARY_MIN_MESSAGES ||
+        estimatedNewTokens >= INITIAL_SUMMARY_MIN_TOKENS)
+    const shouldSummarizeIncrementally =
+      Boolean(lastId) &&
+      (messages.length >= INCREMENTAL_SUMMARY_MIN_MESSAGES ||
+        estimatedNewTokens >= INCREMENTAL_SUMMARY_MIN_TOKENS)
+
+    if (shouldSummarizeInitially || shouldSummarizeIncrementally) {
       logger.info(`Generating summary for ${messages.length} messages`)
       const { text: newSummary, usage: summaryUsage } = await generateText({
         model: google('gemini-flash-lite-latest'),
@@ -118,7 +140,9 @@ export const summarizeChatTask = task({
     }
 
     let newTitle = null
-    if (shouldRename) {
+    const hasEnoughContextForRename =
+      messages.length >= TITLE_MIN_MESSAGES || estimatedNewTokens >= TITLE_MIN_TOKENS
+    if (shouldRename && hasEnoughContextForRename) {
       logger.info(`Generating title for room ${roomId}`)
       const { text: title, usage: titleUsage } = await generateText({
         model: google('gemini-flash-lite-latest'),
@@ -158,6 +182,16 @@ export const summarizeChatTask = task({
         metadata.lastSummarizedMessageId = lastMsg.id
       }
       metadata.summarizedCount = (metadata.summarizedCount || 0) + messages.length
+      metadata.lastSummarizedAt = new Date().toISOString()
+      metadata.lastSummarizedTokenEstimate = estimatedNewTokens
+    }
+
+    if (newTitle) {
+      const lastMsg = messages[messages.length - 1]
+      metadata.titleGeneratedAt = new Date().toISOString()
+      if (lastMsg) {
+        metadata.titleGeneratedMessageId = lastMsg.id
+      }
     }
 
     await prisma.chatRoom.update({
