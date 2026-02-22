@@ -369,7 +369,7 @@ export async function calculateActivityBreakdown(
   }
 
   // Calculate averages
-  for (const b of breakdown.values()) {
+  for (const b of Array.from(breakdown.values())) {
     b.avgTSS = b.count > 0 ? b.totalTSS / b.count : 0
   }
 

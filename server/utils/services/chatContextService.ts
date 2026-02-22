@@ -197,6 +197,42 @@ export async function buildAthleteContext(userId: string): Promise<{
     }
   })
 
+  // Fetch recent context events (last 14 days)
+  const contextFourteenDaysAgo = new Date(todayDate)
+  contextFourteenDaysAgo.setUTCDate(todayDate.getUTCDate() - 14)
+
+  const [calendarNotes, journeyEvents] = await Promise.all([
+    prisma.calendarNote.findMany({
+      where: {
+        userId,
+        startDate: { gte: contextFourteenDaysAgo }
+      },
+      orderBy: { startDate: 'desc' },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        title: true,
+        description: true,
+        category: true
+      }
+    }),
+    prisma.athleteJourneyEvent.findMany({
+      where: {
+        userId,
+        timestamp: { gte: contextFourteenDaysAgo }
+      },
+      orderBy: { timestamp: 'desc' },
+      select: {
+        id: true,
+        timestamp: true,
+        category: true,
+        description: true,
+        severity: true
+      }
+    })
+  ])
+
   // Fetch planned workouts (next 14 days)
   const fourteenDaysAhead = new Date(todayDate)
   fourteenDaysAhead.setUTCDate(fourteenDaysAhead.getUTCDate() + 14)
@@ -540,6 +576,26 @@ export async function buildAthleteContext(userId: string): Promise<{
     }
   } else {
     athleteContext += '\n### Wellness & Recovery\nNo wellness data in the last 7 days\n'
+  }
+
+  // Add Recent Contextual Events (Last 14 Days)
+  if (calendarNotes.length > 0 || journeyEvents.length > 0) {
+    athleteContext += '\n### Contextual Events & Symptoms (Last 14 Days)\n'
+    athleteContext +=
+      '*These events provide crucial context for physiological changes (e.g. high RHR due to illness)*\n\n'
+
+    // Add Journey Events (Symptoms/Notes)
+    for (const event of journeyEvents) {
+      athleteContext += `- **${formatUserDate(event.timestamp, userTimezone)}** [SYMPTOM]: **${event.category}** (Severity: ${event.severity}/10)\n`
+      if (event.description) athleteContext += `  - *Note*: ${event.description}\n`
+    }
+
+    // Add Calendar Notes (Intervals.icu periods)
+    for (const note of calendarNotes) {
+      const dateStr = formatDateUTC(note.startDate)
+      athleteContext += `- **${dateStr}** [PERIOD]: **${note.title}** (${note.category})\n`
+      if (note.description) athleteContext += `  - *Context*: ${note.description}\n`
+    }
   }
 
   // Training Plan Context
