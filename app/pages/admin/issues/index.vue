@@ -173,7 +173,7 @@
             v-if="(reports?.totalPages ?? 0) > 1"
             class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end"
           >
-            <UPagination v-model:page="page" :items-per-page="limit" :total="reports?.count || 0" />
+            <UPagination v-model="page" :page-count="limit" :total="reports?.count || 0" />
           </div>
         </div>
       </div>
