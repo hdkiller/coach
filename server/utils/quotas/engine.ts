@@ -39,6 +39,7 @@ export async function getQuotaStatus(
     WHERE "userId" = $1
       AND "operation" = $2
       AND "success" = true
+      AND "counted" = true
       AND "createdAt" >= NOW() - CAST($3 AS interval)
   `,
     userId,
