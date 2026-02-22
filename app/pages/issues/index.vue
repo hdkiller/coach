@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { useDebounce } from '@vueuse/core'
   import IssueFormModal from '~/components/issues/IssueFormModal.vue'
 
   definePageMeta({
@@ -15,12 +16,33 @@
     ]
   })
 
-  const { data: reports, pending, refresh } = await useFetch('/api/issues')
-
-  // Filters & Search
+  // State
+  const page = ref(1)
+  const limit = ref(10)
   const filterStatus = ref('ALL')
   const searchQuery = ref('')
+  const debouncedSearch = useDebounce(searchQuery, 500)
   const showReportModal = ref(false)
+
+  // Fetching
+  const {
+    data: reportsData,
+    pending,
+    refresh
+  } = await useFetch('/api/issues' as any, {
+    query: {
+      page,
+      limit,
+      status: computed(() => (filterStatus.value === 'ALL' ? undefined : filterStatus.value)),
+      search: debouncedSearch
+    },
+    watch: [page, filterStatus, debouncedSearch]
+  })
+
+  // Reset page on filter/search change
+  watch([filterStatus, debouncedSearch], () => {
+    page.value = 1
+  })
 
   const statusOptions = [
     { label: 'All Status', value: 'ALL' },
@@ -31,33 +53,11 @@
     { label: 'Closed', value: 'CLOSED' }
   ]
 
-  const filteredReports = computed(() => {
-    if (!reports.value) return []
-    let list = [...reports.value]
+  const filteredReports = computed(() => reportsData.value?.items || [])
 
-    if (filterStatus.value !== 'ALL') {
-      list = list.filter((r) => r.status === filterStatus.value)
-    }
-
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      list = list.filter(
-        (r) => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
-      )
-    }
-
-    return list
-  })
-
-  // Summary stats
+  // Summary stats from API
   const stats = computed(() => {
-    const all = reports.value || []
-    return {
-      total: all.length,
-      active: all.filter((r) => ['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO'].includes(r.status))
-        .length,
-      resolved: all.filter((r) => r.status === 'RESOLVED').length
-    }
+    return reportsData.value?.stats || { total: 0, active: 0, resolved: 0 }
   })
 
   function getStatusColor(status: string) {
@@ -216,47 +216,62 @@
           <p class="text-gray-500 mt-2">Adjust your filters or report a new issue.</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4">
-          <UCard
-            v-for="report in filteredReports"
-            :key="report.id"
-            class="hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer group"
-            @click="navigateTo(`/issues/${report.id}`)"
-          >
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <h3
-                    class="text-lg font-bold text-gray-900 dark:text-white truncate group-hover:text-primary-500 transition-colors"
+        <div v-else class="space-y-4">
+          <div class="grid grid-cols-1 gap-4">
+            <UCard
+              v-for="report in filteredReports"
+              :key="report.id"
+              class="hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer group"
+              @click="navigateTo(`/issues/${report.id}`)"
+            >
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3
+                      class="text-lg font-bold text-gray-900 dark:text-white truncate group-hover:text-primary-500 transition-colors"
+                    >
+                      {{ report.title }}
+                    </h3>
+                    <UBadge :color="getStatusColor(report.status)" variant="subtle" size="xs">
+                      {{ report.status.replace('_', ' ') }}
+                    </UBadge>
+                  </div>
+                  <p class="text-sm text-gray-500 line-clamp-1">
+                    {{ report.description }}
+                  </p>
+                  <div
+                    class="flex items-center gap-4 mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400"
                   >
-                    {{ report.title }}
-                  </h3>
-                  <UBadge :color="getStatusColor(report.status)" variant="subtle" size="xs">
-                    {{ report.status.replace('_', ' ') }}
-                  </UBadge>
+                    <span class="flex items-center gap-1.5">
+                      <UIcon name="i-heroicons-calendar" class="size-3.5" />
+                      {{ formatDate(report.createdAt, 'MMM d, yyyy') }}
+                    </span>
+                    <span v-if="(report as any)._count?.comments" class="flex items-center gap-1.5">
+                      <UIcon name="i-heroicons-chat-bubble-left-right" class="size-3.5" />
+                      {{ (report as any)._count.comments }} Updates
+                    </span>
+                  </div>
                 </div>
-                <p class="text-sm text-gray-500 line-clamp-1">
-                  {{ report.description }}
-                </p>
-                <div
-                  class="flex items-center gap-4 mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400"
-                >
-                  <span class="flex items-center gap-1.5">
-                    <UIcon name="i-heroicons-calendar" class="size-3.5" />
-                    {{ formatDate(report.createdAt, 'MMM d, yyyy') }}
-                  </span>
-                  <span v-if="(report as any)._count?.comments" class="flex items-center gap-1.5">
-                    <UIcon name="i-heroicons-chat-bubble-left-right" class="size-3.5" />
-                    {{ (report as any)._count.comments }} Updates
-                  </span>
-                </div>
+                <UIcon
+                  name="i-heroicons-chevron-right"
+                  class="w-5 h-5 text-gray-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all"
+                />
               </div>
-              <UIcon
-                name="i-heroicons-chevron-right"
-                class="w-5 h-5 text-gray-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all"
-              />
-            </div>
-          </UCard>
+            </UCard>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="reportsData?.totalPages > 1" class="flex justify-center mt-8">
+            <UPagination
+              v-model="page"
+              :page-count="limit"
+              :total="reportsData.total"
+              :ui="{
+                wrapper: 'flex items-center gap-1',
+                rounded: 'rounded-full'
+              }"
+            />
+          </div>
         </div>
       </div>
 
