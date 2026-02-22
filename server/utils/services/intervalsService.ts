@@ -34,6 +34,7 @@ import { getZoneIndex, DEFAULT_HR_ZONES, DEFAULT_POWER_ZONES } from '../training
 import { triggerReadinessCheckIfNeeded } from './wellness-analysis'
 import { deduplicationService } from './deduplicationService'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
+import { roundToTwoDecimals } from '../number'
 
 export const IntervalsService = {
   /**
