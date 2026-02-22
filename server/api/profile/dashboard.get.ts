@@ -29,6 +29,9 @@ export default defineEventHandler(async (event) => {
         restingHr: true,
         lthr: true,
         dob: true,
+        weightUnits: true,
+        height: true,
+        heightUnits: true,
         profileLastUpdated: true,
         nutritionTrackingEnabled: true
       }
@@ -252,6 +255,9 @@ export default defineEventHandler(async (event) => {
         country: user.country,
         age: age,
         weight: recentWeight,
+        weightUnits: user.weightUnits,
+        height: user.height,
+        heightUnits: user.heightUnits,
         ftp: effectiveFtp,
         restingHr: effectiveRestingHr,
         maxHr: effectiveMaxHr,
