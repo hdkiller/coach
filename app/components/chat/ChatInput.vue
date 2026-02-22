@@ -116,6 +116,9 @@
         :error="error"
         :disabled="disabled"
         placeholder="Ask Coach Watts..."
+        :ui="{
+          base: 'max-h-[min(400px,40vh)] overflow-hidden flex flex-col'
+        }"
         @update:model-value="emit('update:modelValue', $event)"
         @submit="emit('submit', $event)"
       >

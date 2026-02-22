@@ -126,6 +126,24 @@
     return Boolean(response?.workout_id || args?.workout_id)
   }
 
+  const shouldRenderToolCall = (part: any) => {
+    if (!props.showTools) return false
+    if (!(part.type === 'tool-invocation' || part.type?.startsWith('tool-'))) return false
+    if (part.type === 'tool-approval-response') return false
+
+    // Already handled by PlannedWorkoutCard
+    if (shouldRenderPlannedWorkoutCard(part)) return false
+
+    // Hide successful chart tool calls if charts are being shown visually
+    const toolName = getPartToolName(part)
+    if (toolName === 'create_chart' && props.showCharts) {
+      const response = getPartToolResponse(part)
+      if (response && response.success) return false
+    }
+
+    return true
+  }
+
   const isUserMessage = computed(() => props.message?.role === 'user')
 
   const toMdcSafeText = (value: unknown) => {
@@ -193,11 +211,7 @@
 
       <!-- Tool Invocation Part -->
       <ChatToolCall
-        v-else-if="
-          showTools &&
-          (part.type === 'tool-invocation' || part.type.startsWith('tool-')) &&
-          part.type !== 'tool-approval-response'
-        "
+        v-else-if="shouldRenderToolCall(part)"
         :tool-call="{
           name: getPartToolName(part),
           args: getPartToolArgs(part),

@@ -81,7 +81,7 @@
               >
                 <ChatMessageContent
                   :message="message"
-                  :show-charts="false"
+                  :show-charts="true"
                   :show-approvals="false"
                 />
               </div>
