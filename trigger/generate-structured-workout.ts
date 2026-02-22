@@ -425,8 +425,8 @@ export const generateStructuredWorkoutTask = task({
     )
     logStage('loaded-sport-settings', {
       hasSettings: Boolean(sportSettings),
-      hasHrZones: Boolean(sportSettings?.hrZones?.length),
-      hasPowerZones: Boolean(sportSettings?.powerZones?.length),
+      hasHrZones: Boolean((sportSettings?.hrZones as any)?.length),
+      hasPowerZones: Boolean((sportSettings?.powerZones as any)?.length),
       loadPreference: sportSettings?.loadPreference || null
     })
 
