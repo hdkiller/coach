@@ -42,12 +42,18 @@ export default defineEventHandler(async (event) => {
 
   try {
     const userId = (session.user as any).id || session.user.email
+    const targetIds = Array.isArray(targetBestWorkoutIds)
+      ? [...targetBestWorkoutIds].map(String).sort()
+      : []
+    const idempotencyKey = `deduplicate-workouts:manual:${userId}:${dryRun ? 'dry' : 'live'}:${targetIds.join(',') || 'all'}`
     const handle = await tasks.trigger(
       'deduplicate-workouts',
       { userId, dryRun, targetBestWorkoutIds },
       {
         concurrencyKey: userId,
-        tags: [`user:${userId}`]
+        tags: [`user:${userId}`],
+        idempotencyKey,
+        idempotencyKeyTTL: '2m'
       }
     )
 

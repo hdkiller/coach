@@ -879,7 +879,14 @@ export const IntervalsService = {
         startDate.setDate(startDate.getDate() - 2)
         await IntervalsService.syncActivities(userId, startDate, endDate)
         // Trigger deduplication and analysis
-        await deduplicateWorkoutsTask.trigger({ userId, dryRun: false }, { concurrencyKey: userId })
+        await deduplicateWorkoutsTask.trigger(
+          { userId, dryRun: false },
+          {
+            concurrencyKey: userId,
+            idempotencyKey: `deduplicate-workouts:auto:${userId}`,
+            idempotencyKeyTTL: '2m'
+          }
+        )
         break
 
       case 'ACTIVITY_UPDATED': {
@@ -902,7 +909,14 @@ export const IntervalsService = {
         }
         await IntervalsService.syncActivities(userId, startDate, endDate)
         // Trigger deduplication and analysis
-        await deduplicateWorkoutsTask.trigger({ userId, dryRun: false }, { concurrencyKey: userId })
+        await deduplicateWorkoutsTask.trigger(
+          { userId, dryRun: false },
+          {
+            concurrencyKey: userId,
+            idempotencyKey: `deduplicate-workouts:auto:${userId}`,
+            idempotencyKeyTTL: '2m'
+          }
+        )
         break
       }
 

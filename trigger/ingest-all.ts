@@ -291,7 +291,9 @@ export const ingestAllTask = task({
           },
           {
             concurrencyKey: userId,
-            tags: [`user:${userId}`]
+            tags: [`user:${userId}`],
+            idempotencyKey: `deduplicate-workouts:auto:${userId}`,
+            idempotencyKeyTTL: '2m'
           }
         )
         logger.log('✅ Triggered deduplicate-workouts')
