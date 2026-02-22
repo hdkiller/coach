@@ -106,7 +106,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   log_nutrition_meal: tool({
     description:
-      'Log food items to a specific meal (breakfast, lunch, dinner, snacks). Call this when the user says "I ate X" or "Add X to my lunch". The AI should estimate macros for the items if not provided.',
+      'Log food items to a specific meal (breakfast, lunch, dinner, snacks). Call this when the user says "I ate X" or "Add X to my lunch". For "instant" or "just now" logging (e.g., "I just ate an apple"), you MUST first call `get_current_time` to get the current time, and pass the local time (HH:mm) as `logged_at`. The AI should estimate macros for the items if not provided.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']).describe('The meal category'),
@@ -131,7 +131,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           logged_at: z
             .string()
             .optional()
-            .describe('ISO timestamp or time string (e.g. "08:30") when the item was consumed')
+            .describe('ISO timestamp or time string (e.g. "08:30") when the item was consumed. For "instant" or "just now" logging, obtain the current time using get_current_time and pass it here in HH:mm format.')
         })
       )
     }),
