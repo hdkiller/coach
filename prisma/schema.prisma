@@ -1347,6 +1347,7 @@ model LlmUsage {
   responseFull     String?
   feedback         String?
   feedbackText     String?
+  counted          Boolean  @default(true)
   user             User?    @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt])
