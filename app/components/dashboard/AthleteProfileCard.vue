@@ -618,8 +618,8 @@
         { key: 'maxHr', label: 'Max HR', visible: true },
         { key: 'restingHr', label: 'Resting HR', visible: true },
         { key: 'lthr', label: 'LTHR', visible: true },
-        { key: 'age', label: 'Age', visible: false },
-        { key: 'height', label: 'Height', visible: false }
+        { key: 'age', label: 'Age', visible: true },
+        { key: 'height', label: 'Height', visible: true }
       ]
     },
     trainingLoad: {
