@@ -127,6 +127,9 @@ ticketsCommand
         return
       }
 
+      // Convert literal escaped \n strings from shell arguments to actual newlines
+      const processedMessage = message.replace(/\\n/g, '\n')
+
       let userId = options.userId
       if (!userId) {
         // 1. Try to find the specific agent from .env
@@ -160,7 +163,7 @@ ticketsCommand
       await prisma.bugReportComment.create({
         data: {
           bugReportId: id,
-          content: message,
+          content: processedMessage,
           userId,
           isAdmin: true,
           type
