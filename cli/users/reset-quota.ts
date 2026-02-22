@@ -52,15 +52,19 @@ const resetQuotaCommand = new Command('reset-quota')
       )
       console.log(`Operation: ${chalk.green(mappedOperation)}`)
 
-      // Delete the usage records for this user and operation
-      const result = await prisma.llmUsage.deleteMany({
+      // Mark records as not counted instead of deleting them
+      const result = await prisma.llmUsage.updateMany({
         where: {
           userId: user.id,
-          operation: mappedOperation
+          operation: mappedOperation,
+          counted: true
+        },
+        data: {
+          counted: false
         }
       })
 
-      console.log(chalk.green(`Successfully deleted ${result.count} usage records.`))
+      console.log(chalk.green(`Successfully marked ${result.count} usage records as not counted.`))
     } catch (e: any) {
       console.error(chalk.red('Error resetting quota:'), e.message)
     } finally {

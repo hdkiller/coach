@@ -83,7 +83,8 @@ const quotaCommand = new Command('quota')
           operation: true,
           success: true,
           createdAt: true,
-          model: true
+          model: true,
+          counted: true
         }
       })
 
@@ -94,11 +95,18 @@ const quotaCommand = new Command('quota')
         const stats: Record<string, any> = {}
         usage.forEach((u) => {
           if (!stats[u.operation]) {
-            stats[u.operation] = { count: 0, successful: 0, failed: 0, lastUsed: u.createdAt }
+            stats[u.operation] = {
+              count: 0,
+              successful: 0,
+              failed: 0,
+              notCounted: 0,
+              lastUsed: u.createdAt
+            }
           }
           stats[u.operation].count++
           if (u.success) stats[u.operation].successful++
           else stats[u.operation].failed++
+          if (!u.counted) stats[u.operation].notCounted++
           if (u.createdAt > stats[u.operation].lastUsed) {
             stats[u.operation].lastUsed = u.createdAt
           }
@@ -109,6 +117,7 @@ const quotaCommand = new Command('quota')
           Total: s.count,
           Success: s.successful,
           Failed: s.failed,
+          'Not Counted': s.notCounted,
           LastUsed: s.lastUsed.toISOString()
         }))
 
@@ -119,6 +128,7 @@ const quotaCommand = new Command('quota')
           usage.slice(0, 5).map((u) => ({
             Operation: u.operation,
             Status: u.success ? 'SUCCESS' : 'FAILED',
+            Counted: u.counted ? 'YES' : 'NO',
             Time: u.createdAt.toISOString(),
             Model: u.model
           }))
