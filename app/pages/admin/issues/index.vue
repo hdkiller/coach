@@ -22,7 +22,13 @@
     data: reports,
     pending,
     refresh
-  } = await useFetch('/api/admin/issues' as any, {
+  } = await useFetch<{
+    count: number
+    reports: any[]
+    page: number
+    limit: number
+    totalPages: number
+  }>('/api/admin/issues' as any, {
     query: {
       page,
       limit,
