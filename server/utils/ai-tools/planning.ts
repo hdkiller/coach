@@ -540,12 +540,21 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       intensity: z
         .string()
         .optional()
-        .describe('Intensity description (e.g. "Zone 2", "Intervals")')
+        .describe('Intensity description (e.g. "Zone 2", "Intervals")'),
+      generate_structure: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          'Set to false to skip structured interval generation (e.g. for rest days, holidays, or simple unstructured events)'
+        )
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
       // 0. Quota Check
-      await checkQuota(userId, 'generate_structured_workout')
+      if (args.generate_structure !== false) {
+        await checkQuota(userId, 'generate_structured_workout')
+      }
 
       // Create a PlannedWorkout, not a Workout
       const workout = await plannedWorkoutRepository.create({
@@ -563,26 +572,31 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       // Trigger structured workout generation
       let runId: string | undefined
-      try {
-        const handle = await generateStructuredWorkoutTask.trigger(
-          {
-            plannedWorkoutId: workout.id // Pass plannedWorkoutId
-          },
-          {
-            tags: [`user:${userId}`, `planned-workout:${workout.id}`],
-            concurrencyKey: userId
-          }
-        )
-        runId = handle.id
-      } catch (e) {
-        console.error('Failed to trigger structured workout generation:', e)
+      if (args.generate_structure !== false) {
+        try {
+          const handle = await generateStructuredWorkoutTask.trigger(
+            {
+              plannedWorkoutId: workout.id // Pass plannedWorkoutId
+            },
+            {
+              tags: [`user:${userId}`, `planned-workout:${workout.id}`],
+              concurrencyKey: userId
+            }
+          )
+          runId = handle.id
+        } catch (e) {
+          console.error('Failed to trigger structured workout generation:', e)
+        }
       }
 
       return {
         success: true,
         workout_id: workout.id,
         ...(runId ? { run_id: runId } : {}),
-        message: 'Planned workout created and structured generation started.'
+        message:
+          args.generate_structure !== false
+            ? 'Planned workout created and structured generation started.'
+            : 'Planned workout created.'
       }
     }
   }),
@@ -597,12 +611,20 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       description: z.string().optional(),
       type: z.string().optional(),
       duration_minutes: z.number().optional(),
-      tss: z.number().optional()
+      tss: z.number().optional(),
+      generate_structure: z
+        .boolean()
+        .optional()
+        .describe(
+          'Set to false to skip structured interval regeneration (e.g. for rest days, holidays, or minor updates)'
+        )
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
       // 0. Quota Check
-      await checkQuota(userId, 'generate_structured_workout')
+      if (args.generate_structure !== false) {
+        await checkQuota(userId, 'generate_structured_workout')
+      }
 
       const existing = await plannedWorkoutRepository.getById(args.workout_id, userId, {
         select: { id: true, syncStatus: true }
@@ -630,19 +652,21 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       // Trigger regeneration of structured intervals
       let runId: string | undefined
-      try {
-        const handle = await generateStructuredWorkoutTask.trigger(
-          {
-            plannedWorkoutId: workout.id
-          },
-          {
-            tags: [`user:${userId}`, `planned-workout:${workout.id}`],
-            concurrencyKey: userId
-          }
-        )
-        runId = handle.id
-      } catch (e) {
-        console.error('Failed to trigger structured workout regeneration:', e)
+      if (args.generate_structure !== false) {
+        try {
+          const handle = await generateStructuredWorkoutTask.trigger(
+            {
+              plannedWorkoutId: workout.id
+            },
+            {
+              tags: [`user:${userId}`, `planned-workout:${workout.id}`],
+              concurrencyKey: userId
+            }
+          )
+          runId = handle.id
+        } catch (e) {
+          console.error('Failed to trigger structured workout regeneration:', e)
+        }
       }
 
       return {

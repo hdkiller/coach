@@ -63,7 +63,7 @@ export const QUOTA_REGISTRY: Record<
     nutrition_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' },
     activity_recommendation: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
     meal_recommendation: { limit: 50, window: '24 hours', enforcement: 'STRICT' },
-    generate_structured_workout: { limit: 100, window: '7 days', enforcement: 'STRICT' },
+    generate_structured_workout: { limit: 250, window: '7 days', enforcement: 'STRICT' },
     wellness_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' },
     custom_report_generation: { limit: 20, window: '30 days', enforcement: 'STRICT' },
     weekly_plan_generation: { limit: 5, window: '7 days', enforcement: 'STRICT' }
