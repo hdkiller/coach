@@ -300,7 +300,7 @@
               </div>
 
               <template #footer>
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-4">
                   <UTextarea
                     v-model="newComment"
                     :placeholder="
@@ -312,31 +312,27 @@
                     :class="{ 'bg-amber-50/50 dark:bg-amber-900/10': newCommentType === 'NOTE' }"
                     @keydown.meta.enter="addComment"
                   />
+                  <URadioGroup
+                    v-model="newCommentType"
+                    :items="[
+                      { value: 'MESSAGE', label: 'Message to User' },
+                      { value: 'NOTE', label: 'Internal Note' }
+                    ]"
+                    color="primary"
+                    class="flex flex-row gap-4"
+                    :ui="{ fieldset: 'flex flex-row gap-4' }"
+                  />
                   <div class="flex justify-between items-center gap-4">
-                    <URadioGroup
-                      v-model="newCommentType"
-                      :items="[
-                        { value: 'MESSAGE', label: 'Message to User' },
-                        { value: 'NOTE', label: 'Internal Note' }
-                      ]"
-                      color="primary"
-                      class="flex flex-row gap-4"
-                      :ui="{ fieldset: 'flex flex-row gap-4' }"
-                    />
-                    <div class="flex items-center gap-4">
-                      <p class="text-[10px] text-gray-400 hidden sm:block">
-                        Press Cmd+Enter to send
-                      </p>
-                      <UButton
-                        icon="i-heroicons-paper-airplane"
-                        :color="newCommentType === 'NOTE' ? 'warning' : 'primary'"
-                        :loading="sendingComment"
-                        :disabled="!newComment.trim()"
-                        @click="addComment"
-                      >
-                        {{ newCommentType === 'NOTE' ? 'Add Note' : 'Send Message' }}
-                      </UButton>
-                    </div>
+                    <p class="text-[10px] text-gray-400 hidden sm:block">Press Cmd+Enter to send</p>
+                    <UButton
+                      icon="i-heroicons-paper-airplane"
+                      :color="newCommentType === 'NOTE' ? 'warning' : 'primary'"
+                      :loading="sendingComment"
+                      :disabled="!newComment.trim()"
+                      @click="addComment"
+                    >
+                      {{ newCommentType === 'NOTE' ? 'Add Note' : 'Send Message' }}
+                    </UButton>
                   </div>
                 </div>
               </template>
