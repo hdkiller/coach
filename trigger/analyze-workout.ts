@@ -275,6 +275,8 @@ export const analyzeWorkoutTask = task({
 
       const timezone = await getUserTimezone(workout.userId)
       const today = getUserLocalDate(timezone)
+      const todayLocalDate = formatUserDate(new Date(), timezone, 'yyyy-MM-dd')
+      const workoutLocalDate = formatUserDate(workout.date, timezone, 'yyyy-MM-dd')
 
       // Fetch user and email preferences
       const [user, emailPrefs] = await Promise.all([
@@ -297,12 +299,16 @@ export const analyzeWorkoutTask = task({
         })
       ])
 
-      // 1. Skip if future date
-      if (workout.date > today) {
+      // 1. Skip only if workout is on a future local calendar day.
+      // Be forgiving with time components to avoid timezone false positives.
+      if (workoutLocalDate > todayLocalDate) {
         logger.log('Skipping workout analysis for future date', {
           workoutId,
           date: workout.date,
-          today
+          today,
+          workoutLocalDate,
+          todayLocalDate,
+          timezone
         })
         await workoutRepository.updateStatus(workoutId, 'NOT_STARTED')
         return { success: true, skipped: true, reason: 'FUTURE_DATE' }
