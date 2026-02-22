@@ -373,11 +373,7 @@
         </div>
 
         <div class="flex justify-end mt-4">
-          <UPagination
-            v-model:page="page"
-            :items-per-page="limit"
-            :total="data?.pagination.total || 0"
-          />
+          <UPagination v-model="page" :page-count="limit" :total="data?.pagination.total || 0" />
         </div>
       </div>
     </template>

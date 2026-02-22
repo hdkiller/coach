@@ -286,7 +286,7 @@
               class="px-6 py-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700"
             >
               <p class="text-sm text-gray-500">Page {{ page }} ({{ total }} users)</p>
-              <UPagination v-model:page="page" :total="total" :items-per-page="pageCount" />
+              <UPagination v-model="page" :total="total" :page-count="pageCount" />
             </div>
           </div>
         </div>

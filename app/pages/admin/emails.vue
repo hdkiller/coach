@@ -248,7 +248,7 @@
             class="px-6 py-4 flex items-center justify-between border-t border-gray-200 dark:border-gray-700"
           >
             <p class="text-sm text-gray-500">Page {{ page }} of {{ data.totalPages }}</p>
-            <UPagination v-model:page="page" :total="data.total" :items-per-page="limit" />
+            <UPagination v-model="page" :total="data.total" :page-count="limit" />
           </div>
         </div>
       </div>
