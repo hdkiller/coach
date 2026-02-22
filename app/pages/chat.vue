@@ -305,12 +305,27 @@
     await loadRooms(false)
 
     // Check for context from query params
+    const roomFromQuery = route.query.room as string
     const workoutId = route.query.workoutId as string
     const isPlanned = route.query.isPlanned === 'true'
     const recommendationId = route.query.recommendationId as string
     const initialMessage = route.query.initialMessage as string
 
-    if (workoutId || recommendationId || initialMessage) {
+    if (roomFromQuery) {
+      const roomExists = rooms.value.some((r) => r.roomId === roomFromQuery)
+      if (roomExists) {
+        await selectRoom(roomFromQuery)
+      } else {
+        useToast().add({
+          title: 'Chat not found',
+          description: 'The requested chat could not be found.',
+          color: 'error'
+        })
+        await createNewChat()
+      }
+      // Clear query params
+      router.replace({ query: {} })
+    } else if (workoutId || recommendationId || initialMessage) {
       // Create new chat
       await createNewChat()
 

@@ -564,8 +564,16 @@
           <p>Select how many days of historical data you would like to sync from Intervals.icu.</p>
           <USelectMenu
             v-model="selectedDays"
-            :items="[30, 90, 180, 365]"
-            placeholder="Select days"
+            :items="[
+              { label: 'Last 30 Days', value: 30 },
+              { label: 'Last 90 Days', value: 90 },
+              { label: 'Last 180 Days', value: 180 },
+              { label: 'Last 365 Days', value: 365 },
+              { label: 'All Time (10 Years)', value: 3650 }
+            ]"
+            value-attribute="value"
+            option-attribute="label"
+            placeholder="Select duration"
           />
         </div>
       </template>
