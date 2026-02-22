@@ -56,7 +56,7 @@ export const QUOTA_REGISTRY: Record<
   },
   PRO: {
     chat: { limit: 500, window: '4 hours', enforcement: 'STRICT' },
-    workout_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' },
+    workout_analysis: { limit: 150, window: '7 days', enforcement: 'STRICT' },
     athlete_profile_generation: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
     daily_checkin: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
     unified_report_generation: { limit: 20, window: '30 days', enforcement: 'STRICT' },

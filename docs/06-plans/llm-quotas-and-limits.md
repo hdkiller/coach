@@ -22,14 +22,14 @@ Quotas are defined as a mapping between a **Subscription Tier** and a specific *
 - `ATHLETE_PROFILE`: Generating or refreshing the athlete profile.
 - `TRAINING_PLAN`: Generating a weekly or block training plan.
 
-### 3.2 Tier Configuration (Proposed)
+### 3.2 Tier Configuration
 
-| Operation          | Window   | Free | Supporter | Pro       |
-| :----------------- | :------- | :--- | :-------- | :-------- |
-| `CHAT_MESSAGE`     | 4 Hours  | 5    | 50        | 250       |
-| `WORKOUT_ANALYSIS` | 7 Days   | 3    | 15        | 50        |
-| `ATHLETE_PROFILE`  | 24 Hours | 1    | 5         | 20        |
-| `NUTRITION_LOG`    | 24 Hours | 1    | 10        | Unlimited |
+| Operation          | Window   | Free | Supporter | Pro |
+| :----------------- | :------- | :--- | :-------- | :-- |
+| `CHAT_MESSAGE`     | 4 Hours  | 5    | 50        | 500 |
+| `WORKOUT_ANALYSIS` | 7 Days   | 10   | 30        | 150 |
+| `ATHLETE_PROFILE`  | 24 Hours | 1    | 5         | 20  |
+| `NUTRITION_LOG`    | 7 Days   | 5    | 20        | 100 |
 
 ## 4. Technical Architecture
 
