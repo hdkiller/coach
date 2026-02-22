@@ -28,6 +28,12 @@
     page: number
     limit: number
     totalPages: number
+    stats: {
+      open: number
+      needMoreInfo: number
+      resolved: number
+      total: number
+    }
   }>('/api/admin/issues' as any, {
     query: {
       page,
@@ -128,12 +134,54 @@
       <div class="p-4 sm:p-6 space-y-6">
         <div v-if="reports" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <UCard :ui="{ body: 'p-4' }">
-            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total</p>
-            <p class="text-2xl font-black">{{ reports.count }}</p>
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-error-50 dark:bg-error-900/20 rounded-lg">
+                <UIcon name="i-heroicons-exclamation-circle" class="size-5 text-error-500" />
+              </div>
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Open</p>
+                <p class="text-xl font-black">{{ reports.stats.open }}</p>
+              </div>
+            </div>
           </UCard>
           <UCard :ui="{ body: 'p-4' }">
-            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Filtered</p>
-            <p class="text-2xl font-black">{{ reports.reports.length }}</p>
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-warning-50 dark:bg-warning-900/20 rounded-lg">
+                <UIcon name="i-heroicons-clock" class="size-5 text-warning-500" />
+              </div>
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Needs Info
+                </p>
+                <p class="text-xl font-black">{{ reports.stats.needMoreInfo }}</p>
+              </div>
+            </div>
+          </UCard>
+          <UCard :ui="{ body: 'p-4' }">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-success-50 dark:bg-success-900/20 rounded-lg">
+                <UIcon name="i-heroicons-check-circle" class="size-5 text-success-500" />
+              </div>
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Resolved
+                </p>
+                <p class="text-xl font-black">{{ reports.stats.resolved }}</p>
+              </div>
+            </div>
+          </UCard>
+          <UCard :ui="{ body: 'p-4' }">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <UIcon name="i-heroicons-funnel" class="size-5 text-gray-500" />
+              </div>
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Filtered
+                </p>
+                <p class="text-xl font-black">{{ reports.count }}</p>
+              </div>
+            </div>
           </UCard>
         </div>
 

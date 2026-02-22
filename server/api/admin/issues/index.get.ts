@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { issuesRepository } from '../../../utils/repositories/issuesRepository'
+import { prisma } from '../../../utils/db'
 import type { BugStatus } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
@@ -21,13 +22,46 @@ export default defineEventHandler(async (event) => {
 
   const search = query.search as string | undefined
 
-  const { total, items, totalPages } = await issuesRepository.list({ status, search }, page, limit)
+  // Compute stats based on the search query but ignore status filter to show full breakdown
+  const whereStats: any = {}
+  if (search) {
+    whereStats.OR = [
+      { title: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } }
+    ]
+  }
+
+  const [listResult, statusCounts] = await Promise.all([
+    issuesRepository.list({ status, search }, page, limit),
+    prisma.bugReport.groupBy({
+      by: ['status'],
+      where: whereStats,
+      _count: true
+    })
+  ])
+
+  // Process stats
+  const stats = {
+    open: 0,
+    needMoreInfo: 0,
+    resolved: 0,
+    total: 0
+  }
+
+  statusCounts.forEach((c) => {
+    const count = c._count
+    stats.total += count
+    if (c.status === 'OPEN') stats.open += count
+    if (c.status === 'NEED_MORE_INFO') stats.needMoreInfo += count
+    if (c.status === 'RESOLVED') stats.resolved += count
+  })
 
   return {
-    count: total,
-    reports: items,
+    count: listResult.total,
+    reports: listResult.items,
     page,
     limit,
-    totalPages
+    totalPages: listResult.totalPages,
+    stats
   }
 })
