@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const page = Number(query.page) || 1
-  const limit = Number(query.limit) || 10
+  const limit = Number(query.limit) || 50
   let status = query.status as BugStatus | BugStatus[] | undefined
 
   // If status is passed as multiple query params, it might already be an array

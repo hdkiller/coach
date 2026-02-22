@@ -1,3 +1,74 @@
+<script setup lang="ts">
+  import type { BugStatus } from '@prisma/client'
+  import { useDebounce } from '@vueuse/core'
+
+  definePageMeta({
+    layout: 'admin',
+    middleware: ['auth', 'admin']
+  })
+
+  const page = ref(1)
+  const limit = ref(50)
+  const filterStatus = ref<BugStatus[]>(['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO'])
+  const searchQuery = ref('')
+  const debouncedSearch = useDebounce(searchQuery, 500)
+
+  // Reset page when filter changes
+  watch([filterStatus, debouncedSearch], () => {
+    page.value = 1
+  })
+
+  const {
+    data: reports,
+    pending,
+    refresh
+  } = await useFetch('/api/admin/issues' as any, {
+    query: {
+      page,
+      limit,
+      status: computed(() => filterStatus.value.join(',')),
+      search: debouncedSearch
+    },
+    watch: [page, filterStatus, debouncedSearch]
+  })
+
+  const { formatDateTime, formatRelativeTime } = useFormat()
+
+  function getStatusColor(status: string) {
+    switch (status) {
+      case 'OPEN':
+        return 'error'
+      case 'IN_PROGRESS':
+        return 'warning'
+      case 'NEED_MORE_INFO':
+        return 'info'
+      case 'RESOLVED':
+        return 'success'
+      case 'CLOSED':
+        return 'neutral'
+      default:
+        return 'neutral'
+    }
+  }
+
+  function getPriorityColor(priority: string) {
+    switch (priority) {
+      case 'URGENT':
+        return 'error'
+      case 'HIGH':
+        return 'warning'
+      case 'MEDIUM':
+        return 'primary'
+      case 'LOW':
+        return 'neutral'
+      default:
+        return 'neutral'
+    }
+  }
+
+  const statusOptions = ['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO', 'RESOLVED', 'CLOSED']
+</script>
+
 <template>
   <UDashboardPanel id="bug-reports">
     <template #header>
@@ -18,6 +89,23 @@
               multiple
               class="w-48"
             />
+            <UInput
+              v-model="searchQuery"
+              icon="i-heroicons-magnifying-glass"
+              placeholder="Search tickets..."
+              size="sm"
+              class="w-64"
+            >
+              <template v-if="searchQuery" #trailing>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-heroicons-x-mark"
+                  size="xs"
+                  @click="searchQuery = ''"
+                />
+              </template>
+            </UInput>
             <UButton
               icon="i-heroicons-arrow-path"
               color="neutral"
@@ -32,6 +120,17 @@
 
     <template #body>
       <div class="p-4 sm:p-6 space-y-6">
+        <div v-if="reports" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <UCard :ui="{ body: 'p-4' }">
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total</p>
+            <p class="text-2xl font-black">{{ reports.count }}</p>
+          </UCard>
+          <UCard :ui="{ body: 'p-4' }">
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Filtered</p>
+            <p class="text-2xl font-black">{{ reports.reports.length }}</p>
+          </UCard>
+        </div>
+
         <div
           class="bg-white dark:bg-gray-800 rounded-lg shadow ring-1 ring-gray-200 dark:ring-gray-800 overflow-hidden"
         >
@@ -170,80 +269,13 @@
           </div>
           <!-- Pagination -->
           <div
-            v-if="(reports?.totalPages ?? 0) > 1"
+            v-if="reports && reports.totalPages > 1"
             class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end"
           >
-            <UPagination v-model="page" :page-count="limit" :total="reports?.count || 0" />
+            <UPagination v-model="page" :page-count="limit" :total="reports.count" />
           </div>
         </div>
       </div>
     </template>
   </UDashboardPanel>
 </template>
-
-<script setup lang="ts">
-  import type { BugStatus } from '@prisma/client'
-
-  definePageMeta({
-    layout: 'admin',
-    middleware: ['auth', 'admin']
-  })
-
-  const page = ref(1)
-  const limit = 25
-  const filterStatus = ref<BugStatus[]>(['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO'])
-
-  // Reset page when filter changes
-  watch(filterStatus, () => {
-    page.value = 1
-  })
-
-  const {
-    data: reports,
-    pending,
-    refresh
-  } = await useFetch('/api/admin/issues', {
-    query: {
-      page,
-      limit,
-      status: computed(() => filterStatus.value.join(','))
-    },
-    watch: [page, filterStatus]
-  })
-
-  const { formatDateTime, formatRelativeTime } = useFormat()
-
-  function getStatusColor(status: string) {
-    switch (status) {
-      case 'OPEN':
-        return 'error'
-      case 'IN_PROGRESS':
-        return 'warning'
-      case 'NEED_MORE_INFO':
-        return 'info'
-      case 'RESOLVED':
-        return 'success'
-      case 'CLOSED':
-        return 'neutral'
-      default:
-        return 'neutral'
-    }
-  }
-
-  function getPriorityColor(priority: string) {
-    switch (priority) {
-      case 'URGENT':
-        return 'error'
-      case 'HIGH':
-        return 'warning'
-      case 'MEDIUM':
-        return 'primary'
-      case 'LOW':
-        return 'neutral'
-      default:
-        return 'neutral'
-    }
-  }
-
-  const statusOptions = ['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO', 'RESOLVED', 'CLOSED']
-</script>
