@@ -151,7 +151,6 @@ export const athleteMetricsService = {
           where: { id: goal.id },
           data: updateData
         })
-        console.log(`[MetricsService] Updated progress for goal: ${goal.title}`, updateData)
       }
     }
   },

@@ -135,12 +135,6 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       props: commonProps
     })
 
-    console.info('[WorkoutInsightEmail] Queued', {
-      ...logContext,
-      userId: workout.userId,
-      templateKey: 'WorkoutReceived',
-      eventKey: `WORKOUT_RECEIVED_${workout.id}`
-    })
     return { queued: true, templateKey: 'WorkoutReceived' }
   }
 
@@ -170,11 +164,5 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     }
   })
 
-  console.info('[WorkoutInsightEmail] Queued', {
-    ...logContext,
-    userId: workout.userId,
-    templateKey: 'WorkoutAnalysisReady',
-    eventKey: `WORKOUT_INSIGHTS_READY_${workout.id}`
-  })
   return { queued: true, templateKey: 'WorkoutAnalysisReady' }
 }

@@ -475,8 +475,6 @@ export async function fetchIntervalsActivity(
   const headers = getIntervalsHeaders(integration)
   const url = `https://intervals.icu/api/v1/activity/${activityId}`
 
-  console.log(`[Intervals Sync] Fetching detailed activity from: ${url}`)
-
   const response = await fetchWithRetry(url, { headers })
 
   if (!response.ok) {
@@ -490,15 +488,11 @@ export async function fetchIntervalsActivity(
   // Also fetch the intervals analysis which is often separate or missing from main payload
   try {
     const intervalsUrl = `https://intervals.icu/api/v1/activity/${activityId}/intervals`
-    console.log(`[Intervals Sync] Fetching intervals analysis from: ${intervalsUrl}`)
     const intervalsResponse = await fetchWithRetry(intervalsUrl, { headers })
 
     if (intervalsResponse.ok) {
       const intervalsData = await intervalsResponse.json()
       if (intervalsData && Array.isArray(intervalsData.icu_intervals)) {
-        console.log(
-          `[Intervals Sync] Merging ${intervalsData.icu_intervals.length} intervals into activity`
-        )
         activity.icu_intervals = intervalsData.icu_intervals
         activity.icu_groups = intervalsData.icu_groups
       }
@@ -1503,10 +1497,6 @@ export async function fetchIntervalsActivityStreams(
             const firstPoint = item.data[0]
             if (Array.isArray(firstPoint) && firstPoint.length >= 2) {
               streams.latlng = { type: 'latlng', data: item.data }
-            } else {
-              console.warn(
-                `[Intervals Sync] Invalid latlng format detected (expected tuples, got scalars). Discarding map data.`
-              )
             }
           }
         } else {

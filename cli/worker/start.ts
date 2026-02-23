@@ -363,12 +363,6 @@ export const startCommand = new Command('start')
           }
         }
 
-        console.log(
-          chalk.cyan(`[WebhookJob ${job.id}]`) +
-            ` Processing ${chalk.magenta(provider)}:${chalk.yellow(type)} for user ${chalk.blue(userId)}
-`
-        )
-
         try {
           if (provider === 'intervals') {
             const result = await IntervalsService.processWebhookEvent(userId, type, event)

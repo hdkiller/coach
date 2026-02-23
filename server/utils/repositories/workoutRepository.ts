@@ -195,16 +195,9 @@ export const workoutRepository = {
     })
 
     try {
-      const emailResult = await queueWorkoutInsightEmail({
+      await queueWorkoutInsightEmail({
         workoutId: created.id,
         triggerType: 'on-workout-received'
-      })
-      console.info('[WorkoutRepository] Workout-received email decision', {
-        workoutId: created.id,
-        userId: created.userId,
-        source: created.source,
-        externalId: created.externalId,
-        emailResult
       })
     } catch (error) {
       console.error('[WorkoutRepository] Failed to queue workout-received email', {
@@ -264,17 +257,9 @@ export const workoutRepository = {
 
     if (!existing) {
       try {
-        const emailResult = await queueWorkoutInsightEmail({
+        await queueWorkoutInsightEmail({
           workoutId: record.id,
           triggerType: 'on-workout-received'
-        })
-        console.info('[WorkoutRepository] Workout-received email decision', {
-          workoutId: record.id,
-          userId,
-          source,
-          externalId,
-          isNew: true,
-          emailResult
         })
       } catch (error) {
         console.error('[WorkoutRepository] Failed to queue workout-received email', {
