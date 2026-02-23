@@ -415,22 +415,38 @@
                   >HRV History</span
                 >
               </div>
-              <div
-                class="h-32 flex items-end justify-between gap-1.5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
-              >
+              <div class="space-y-2">
                 <div
-                  v-for="(day, idx) in trendData"
-                  :key="idx"
-                  class="flex-1 bg-blue-400/30 dark:bg-blue-500/20 rounded-lg hover:bg-blue-400 dark:hover:bg-blue-500 transition-all duration-300 relative group"
-                  :style="{
-                    height: day.hrv ? `${Math.max((day.hrv / maxHRV) * 100, 10)}%` : '4px'
-                  }"
+                  class="h-32 flex items-end justify-between gap-1.5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
                 >
                   <div
-                    class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-10"
+                    v-for="(day, idx) in trendData"
+                    :key="idx"
+                    class="flex-1 bg-blue-400/30 dark:bg-blue-500/20 rounded-lg hover:bg-blue-400 dark:hover:bg-blue-500 transition-all duration-300 relative group"
+                    :style="{
+                      height: day.hrv ? `${Math.max((day.hrv / maxHRV) * 100, 10)}%` : '4px'
+                    }"
                   >
-                    {{ formatDateUTC(day.date, 'MMM d') }}:
-                    {{ day.hrv ? Math.round(day.hrv) + 'ms' : 'N/A' }}
+                    <span
+                      class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                    >
+                      {{ day.hrv ? Math.round(day.hrv) + 'ms' : '—' }}
+                    </span>
+                    <div
+                      class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-10"
+                    >
+                      {{ formatDateUTC(day.date, 'MMM d') }}:
+                      {{ day.hrv ? Math.round(day.hrv) + 'ms' : 'N/A' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between gap-1.5 px-4">
+                  <div
+                    v-for="(day, idx) in trendData"
+                    :key="`hrv-date-${idx}`"
+                    class="flex-1 text-center text-[10px] font-medium text-gray-500 dark:text-gray-400"
+                  >
+                    {{ formatDateUTC(day.date, 'MMM d') }}
                   </div>
                 </div>
               </div>
@@ -444,22 +460,38 @@
                   >Sleep Duration</span
                 >
               </div>
-              <div
-                class="h-32 flex items-end justify-between gap-1.5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
-              >
+              <div class="space-y-2">
                 <div
-                  v-for="(day, idx) in trendData"
-                  :key="idx"
-                  class="flex-1 bg-purple-400/30 dark:bg-purple-500/20 rounded-lg hover:bg-purple-400 dark:hover:bg-purple-500 transition-all duration-300 relative group"
-                  :style="{
-                    height: day.hoursSlept ? `${Math.max((day.hoursSlept / 12) * 100, 10)}%` : '4px'
-                  }"
+                  class="h-32 flex items-end justify-between gap-1.5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
                 >
                   <div
-                    class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-10"
+                    v-for="(day, idx) in trendData"
+                    :key="idx"
+                    class="flex-1 bg-purple-400/30 dark:bg-purple-500/20 rounded-lg hover:bg-purple-400 dark:hover:bg-purple-500 transition-all duration-300 relative group"
+                    :style="{
+                      height: day.hoursSlept ? `${Math.max((day.hoursSlept / 12) * 100, 10)}%` : '4px'
+                    }"
                   >
-                    {{ formatDateUTC(day.date, 'MMM d') }}:
-                    {{ day.hoursSlept ? day.hoursSlept.toFixed(1) + 'h' : 'N/A' }}
+                    <span
+                      class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                    >
+                      {{ day.hoursSlept ? day.hoursSlept.toFixed(1) + 'h' : '—' }}
+                    </span>
+                    <div
+                      class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-10"
+                    >
+                      {{ formatDateUTC(day.date, 'MMM d') }}:
+                      {{ day.hoursSlept ? day.hoursSlept.toFixed(1) + 'h' : 'N/A' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between gap-1.5 px-4">
+                  <div
+                    v-for="(day, idx) in trendData"
+                    :key="`sleep-date-${idx}`"
+                    class="flex-1 text-center text-[10px] font-medium text-gray-500 dark:text-gray-400"
+                  >
+                    {{ formatDateUTC(day.date, 'MMM d') }}
                   </div>
                 </div>
               </div>
@@ -473,24 +505,40 @@
                   >Resting HR</span
                 >
               </div>
-              <div
-                class="h-32 flex items-end justify-between gap-1.5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
-              >
+              <div class="space-y-2">
                 <div
-                  v-for="(day, idx) in trendData"
-                  :key="idx"
-                  class="flex-1 bg-rose-400/30 dark:bg-rose-500/20 rounded-lg hover:bg-rose-400 dark:hover:bg-rose-500 transition-all duration-300 relative group"
-                  :style="{
-                    height: day.restingHr
-                      ? `${Math.max((day.restingHr / maxRHR) * 100, 10)}%`
-                      : '4px'
-                  }"
+                  class="h-32 flex items-end justify-between gap-1.5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl ring-1 ring-inset ring-gray-200 dark:ring-gray-700"
                 >
                   <div
-                    class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-10"
+                    v-for="(day, idx) in trendData"
+                    :key="idx"
+                    class="flex-1 bg-rose-400/30 dark:bg-rose-500/20 rounded-lg hover:bg-rose-400 dark:hover:bg-rose-500 transition-all duration-300 relative group"
+                    :style="{
+                      height: day.restingHr
+                        ? `${Math.max((day.restingHr / maxRHR) * 100, 10)}%`
+                        : '4px'
+                    }"
                   >
-                    {{ formatDateUTC(day.date, 'MMM d') }}:
-                    {{ day.restingHr ? day.restingHr + 'bpm' : 'N/A' }}
+                    <span
+                      class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap"
+                    >
+                      {{ day.restingHr ? day.restingHr + 'bpm' : '—' }}
+                    </span>
+                    <div
+                      class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-xl whitespace-nowrap pointer-events-none z-10"
+                    >
+                      {{ formatDateUTC(day.date, 'MMM d') }}:
+                      {{ day.restingHr ? day.restingHr + 'bpm' : 'N/A' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between gap-1.5 px-4">
+                  <div
+                    v-for="(day, idx) in trendData"
+                    :key="`rhr-date-${idx}`"
+                    class="flex-1 text-center text-[10px] font-medium text-gray-500 dark:text-gray-400"
+                  >
+                    {{ formatDateUTC(day.date, 'MMM d') }}
                   </div>
                 </div>
               </div>
