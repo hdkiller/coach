@@ -16,7 +16,9 @@ vi.mock('../../../../server/utils/db', () => ({
     weeklyTrainingPlan: { findFirst: vi.fn() },
     nutrition: { findMany: vi.fn() },
     wellness: { findMany: vi.fn() },
-    integration: { findUnique: vi.fn() }
+    integration: { findUnique: vi.fn() },
+    calendarNote: { findMany: vi.fn().mockResolvedValue([]) },
+    athleteJourneyEvent: { findMany: vi.fn().mockResolvedValue([]) }
   }
 }))
 
