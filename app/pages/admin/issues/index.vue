@@ -356,11 +356,14 @@
                     >
                       <NuxtLink
                         :to="`/admin/issues/${report.id}`"
-                        class="hover:text-primary transition-colors truncate block"
+                        class="hover:text-primary transition-colors block break-words"
                         :title="report.title"
                       >
                         {{ report.title }}
                       </NuxtLink>
+                      <p class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                        {{ report.id }}
+                      </p>
                     </td>
                     <td
                       class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
@@ -460,6 +463,9 @@
                         >
                           {{ report.title }}
                         </NuxtLink>
+                        <p class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                          ID: {{ report.id }}
+                        </p>
                       </template>
 
                       <div class="flex-1">
@@ -557,6 +563,9 @@
                     >
                       {{ report.title }}
                     </NuxtLink>
+                    <p class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                      ID: {{ report.id }}
+                    </p>
                   </template>
 
                   <div class="flex-1">

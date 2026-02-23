@@ -151,6 +151,13 @@
       toast.add({ title: 'User ID copied to clipboard', color: 'success' })
     }
   }
+
+  const copyIssueId = () => {
+    if (report.value?.id) {
+      navigator.clipboard.writeText(report.value.id)
+      toast.add({ title: 'Ticket ID copied to clipboard', color: 'success' })
+    }
+  }
 </script>
 
 <template>
@@ -194,13 +201,26 @@
             <UCard class="border-primary-100 dark:border-primary-900 shadow-sm overflow-hidden">
               <div class="flex flex-col gap-1">
                 <h1
-                  class="text-2xl font-black tracking-tight text-gray-900 dark:text-white truncate"
+                  class="text-2xl font-black tracking-tight text-gray-900 dark:text-white break-words"
                 >
                   {{ report?.title }}
                 </h1>
-                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">
-                  Reported on {{ new Date(report?.createdAt || '').toLocaleString() }}
-                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">
+                    Reported on {{ new Date(report?.createdAt || '').toLocaleString() }}
+                  </p>
+                  <span class="text-gray-300 dark:text-gray-700">•</span>
+                  <span class="text-[11px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                    ID: {{ report?.id }}
+                  </span>
+                  <UButton
+                    icon="i-heroicons-clipboard-document"
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    @click="copyIssueId"
+                  />
+                </div>
               </div>
             </UCard>
 
@@ -579,7 +599,16 @@
               <div class="space-y-2">
                 <div class="flex justify-between text-xs">
                   <span class="text-gray-500">Issue ID</span>
-                  <span class="font-mono">{{ report?.id.substring(0, 8) }}...</span>
+                  <div class="flex items-center gap-1">
+                    <span class="font-mono text-[11px] break-all">{{ report?.id }}</span>
+                    <UButton
+                      icon="i-heroicons-clipboard-document"
+                      variant="ghost"
+                      color="neutral"
+                      size="xs"
+                      @click="copyIssueId"
+                    />
+                  </div>
                 </div>
                 <div v-if="(report?.metadata as any)?.github_issue_url" class="flex flex-col gap-1">
                   <span class="text-xs text-gray-500">GitHub Issue</span>
