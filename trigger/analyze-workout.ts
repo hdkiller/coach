@@ -15,6 +15,7 @@ import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { publishWorkoutSummaryToIntervals } from '../server/utils/services/workout-summary-publish'
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
+import { createUserNotification } from '../server/utils/notifications'
 import {
   buildAnalysisRequestMetricRules,
   buildMetricPriorityPromptBlock,
@@ -440,6 +441,23 @@ export const analyzeWorkoutTask = task({
       })
 
       logger.log('Analysis saved to database')
+
+      if (source === 'AUTOMATIC') {
+        try {
+          await createUserNotification(workout.userId, {
+            title: 'Workout Analysis Ready',
+            message: `Your workout "${workout.title || 'Untitled workout'}" has a new AI analysis.`,
+            icon: 'i-heroicons-chart-bar-square',
+            link: `/workouts/${workoutId}`
+          })
+        } catch (notificationError) {
+          logger.warn('Failed to create workout analysis notification', {
+            workoutId,
+            userId: workout.userId,
+            error: notificationError
+          })
+        }
+      }
 
       try {
         const publishResult = await publishWorkoutSummaryToIntervals(workoutId, workout.userId)
