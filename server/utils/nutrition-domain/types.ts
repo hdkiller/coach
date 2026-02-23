@@ -98,6 +98,7 @@ export interface CalorieBreakdown {
     calories: number
     intensity: number
     durationHours: number
+    sourceType?: 'actual' | 'estimated'
   }[]
 }
 
@@ -156,6 +157,7 @@ export interface SerializedFuelingPlan {
     workoutCalories?: {
       title: string
       calories: number
+      sourceType?: 'actual' | 'estimated'
     }[]
   }
   notes: string[]

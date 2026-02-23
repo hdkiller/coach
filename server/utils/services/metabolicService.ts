@@ -1084,10 +1084,13 @@ export const metabolicService = {
           title: completed.title || 'Completed Workout',
           durationSec: completed.durationSec || 0,
           type: completed.type || 'Workout',
+          source: completed.source || 'completed',
           date: completed.date,
           startTime: completed.date,
           durationHours: (completed.durationSec || 0) / 3600,
           intensity: completed.intensity || 0.6,
+          calories: completed.calories,
+          kilojoules: completed.kilojoules,
           strategyOverride: completed.plannedWorkout?.fuelingStrategy || undefined
         })
       }
@@ -1102,6 +1105,7 @@ export const metabolicService = {
 
         contexts.push({
           ...work,
+          source: 'planned',
           startTime: startTimeDate,
           durationHours: (work.durationSec || 0) / 3600,
           intensity: work.workIntensity || 0.5,
@@ -1170,7 +1174,11 @@ export const metabolicService = {
         activityCalories: breakdown.activityCalories,
         adjustmentCalories: breakdown.adjustmentCalories,
         fuelState: dominantState,
-        workoutCalories: breakdown.workouts.map((w) => ({ title: w.title, calories: w.calories })),
+        workoutCalories: breakdown.workouts.map((w) => ({
+          title: w.title,
+          calories: w.calories,
+          sourceType: w.sourceType
+        })),
         isRescueProtocol: override?.isRescueProtocol || false
       }
     }

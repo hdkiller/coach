@@ -238,7 +238,11 @@ export function calculateFuelingStrategy(
       activityCalories: breakdown.activityCalories,
       adjustmentCalories: breakdown.adjustmentCalories,
       fuelState: state,
-      workoutCalories: breakdown.workouts.map((w) => ({ title: w.title, calories: w.calories }))
+      workoutCalories: breakdown.workouts.map((w) => ({
+        title: w.title,
+        calories: w.calories,
+        sourceType: w.sourceType
+      }))
     },
     notes
   }
@@ -267,13 +271,21 @@ export function calculateDailyCalorieBreakdown(
     if (w.type !== 'Rest' && w.durationHours > 0) {
       const avgPower = profile.ftp * (w.intensity || 0.5)
       const workoutkJ = avgPower * w.durationHours * 3.6
-      const cost = Math.round(workoutkJ)
+      const estimatedCost = Math.round(workoutkJ)
+      const loggedCalories = Number(w.calories || 0)
+      const loggedKilojoules = Number(w.kilojoules || 0)
+      const isPlannedOnly = String(w.source || '').toLowerCase() === 'planned'
+      const hasActual = !isPlannedOnly && (loggedCalories > 0 || loggedKilojoules > 0)
+      const actualCost = loggedCalories > 0 ? loggedCalories : loggedKilojoules
+      const cost = Math.round(hasActual ? actualCost : estimatedCost)
+
       activityCalories += cost
       workoutDetails.push({
         title: w.title || 'Workout',
         calories: cost,
         intensity: w.intensity,
-        durationHours: w.durationHours
+        durationHours: w.durationHours,
+        sourceType: hasActual ? 'actual' : 'estimated'
       })
     }
   }
