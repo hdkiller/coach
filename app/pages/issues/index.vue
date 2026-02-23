@@ -65,6 +65,8 @@
     return reportsData.value?.stats || { total: 0, active: 0, resolved: 0 }
   })
 
+  const { formatDate, formatRelativeTime } = useFormat()
+
   function getStatusColor(status: string) {
     switch (status) {
       case 'OPEN':
@@ -82,7 +84,20 @@
     }
   }
 
-  const { formatDate } = useFormat()
+  function getPriorityColor(priority: string) {
+    switch (priority) {
+      case 'URGENT':
+        return 'error'
+      case 'HIGH':
+        return 'warning'
+      case 'MEDIUM':
+        return 'primary'
+      case 'LOW':
+        return 'neutral'
+      default:
+        return 'neutral'
+    }
+  }
 </script>
 
 <template>
@@ -113,7 +128,7 @@
     </template>
 
     <template #body>
-      <div class="p-0 sm:p-6 space-y-6 max-w-4xl mx-auto pb-24">
+      <div class="p-0 sm:p-6 space-y-6 pb-24">
         <!-- Branding Header -->
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
@@ -127,7 +142,7 @@
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-0">
           <UCard :ui="{ body: 'p-4' }">
             <div class="flex items-center gap-3">
               <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -172,7 +187,7 @@
         </div>
 
         <!-- Toolbar -->
-        <UDashboardToolbar class="p-0 border-none">
+        <UDashboardToolbar class="p-0 border-none px-4 sm:px-0">
           <template #left>
             <USelect
               v-model="filterStatus"
@@ -205,13 +220,15 @@
         </UDashboardToolbar>
 
         <!-- Tickets Grid -->
-        <div v-if="pending" class="flex flex-col gap-4">
-          <USkeleton v-for="i in 3" :key="i" class="h-20 w-full rounded-xl" />
+        <div v-if="pending" class="px-4 sm:px-0">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <USkeleton v-for="i in 4" :key="i" class="h-48 w-full rounded-xl" />
+          </div>
         </div>
 
         <div
           v-else-if="!filteredReports.length"
-          class="py-24 text-center bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700"
+          class="mx-4 sm:mx-0 py-24 text-center bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700"
         >
           <UIcon
             name="i-heroicons-ticket"
@@ -221,46 +238,86 @@
           <p class="text-gray-500 mt-2">Adjust your filters or report a new issue.</p>
         </div>
 
-        <div v-else class="space-y-4">
-          <div class="grid grid-cols-1 gap-4">
+        <div v-else class="space-y-6 px-4 sm:px-0">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <UCard
               v-for="report in filteredReports"
               :key="report.id"
-              class="hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer group"
+              class="flex flex-col relative group hover:ring-2 hover:ring-primary-500/50 transition-all cursor-pointer"
+              :ui="{
+                body: 'flex-1 flex flex-col p-4 sm:p-5',
+                header: 'p-4 sm:p-5 pb-0 sm:pb-0'
+              }"
               @click="navigateTo(`/issues/${report.id}`)"
             >
-              <div class="flex items-center justify-between gap-4">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <h3
-                      class="text-lg font-bold text-gray-900 dark:text-white truncate group-hover:text-primary-500 transition-colors"
-                    >
-                      {{ report.title }}
-                    </h3>
+              <template #header>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
                     <UBadge :color="getStatusColor(report.status)" variant="subtle" size="xs">
                       {{ report.status.replace('_', ' ') }}
                     </UBadge>
+                    <UBadge
+                      :color="getPriorityColor(report.priority || 'MEDIUM')"
+                      variant="outline"
+                      size="xs"
+                    >
+                      {{ report.priority || 'MEDIUM' }}
+                    </UBadge>
                   </div>
-                  <p class="text-sm text-gray-500 line-clamp-1">
-                    {{ report.description }}
+                  <p class="text-[10px] text-gray-400 italic">
+                    {{ formatRelativeTime(report.createdAt) }}
                   </p>
+                </div>
+                <h3
+                  class="text-base font-bold text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors line-clamp-2"
+                  :title="report.title"
+                >
+                  {{ report.title }}
+                </h3>
+              </template>
+
+              <div class="flex-1">
+                <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-3 mb-4">
+                  {{ report.description }}
+                </p>
+              </div>
+
+              <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+                <div class="flex items-center justify-between">
                   <div
-                    class="flex items-center gap-4 mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400"
+                    class="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-400"
                   >
                     <span class="flex items-center gap-1.5">
                       <UIcon name="i-heroicons-calendar" class="size-3.5" />
                       {{ formatDate(report.createdAt, 'MMM d, yyyy') }}
                     </span>
-                    <span v-if="(report as any)._count?.comments" class="flex items-center gap-1.5">
-                      <UIcon name="i-heroicons-chat-bubble-left-right" class="size-3.5" />
-                      {{ (report as any)._count.comments }} Updates
-                    </span>
+                  </div>
+                  <div class="text-right">
+                    <template v-if="report.comments?.length">
+                      <UBadge
+                        :color="report.comments[0].isAdmin ? 'neutral' : 'primary'"
+                        variant="soft"
+                        size="xs"
+                        class="flex items-center gap-1"
+                      >
+                        <UIcon
+                          :name="
+                            report.comments[0].isAdmin
+                              ? 'i-heroicons-user-circle'
+                              : 'i-heroicons-chat-bubble-left'
+                          "
+                        />
+                        {{ report.comments[0].isAdmin ? 'Support' : 'User' }}
+                      </UBadge>
+                      <p class="text-[10px] text-gray-400 mt-0.5 italic">
+                        {{ formatRelativeTime(report.comments[0].createdAt) }}
+                      </p>
+                    </template>
+                    <template v-else>
+                      <span class="text-[10px] text-gray-400 italic block mt-1">No replies</span>
+                    </template>
                   </div>
                 </div>
-                <UIcon
-                  name="i-heroicons-chevron-right"
-                  class="w-5 h-5 text-gray-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all"
-                />
               </div>
             </UCard>
           </div>
