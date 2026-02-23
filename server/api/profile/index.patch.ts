@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import { profileUpdateSchema } from '../../utils/schemas/profile'
 import { athleteMetricsService } from '../../utils/athleteMetricsService'
+import { LBS_TO_KG } from '../../utils/number'
 
 defineRouteMeta({
   openAPI: {
@@ -61,11 +62,29 @@ export default defineEventHandler(async (event) => {
   const userId = user.id
 
   try {
-    // 1. Update Metrics via Service (Weight, FTP, LTHR, MaxHR)
+    // 1. Convert weight to KG if provided in Pounds
+    // Database is standardized to Kilograms
+    let weightKg = data.weight
+    if (weightKg !== undefined && weightKg !== null) {
+      if (data.weightUnits === 'Pounds') {
+        weightKg = weightKg * LBS_TO_KG
+      } else if (!data.weightUnits) {
+        // If units not provided in this patch, check current user units
+        const currentUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { weightUnits: true }
+        })
+        if (currentUser?.weightUnits === 'Pounds') {
+          weightKg = weightKg * LBS_TO_KG
+        }
+      }
+    }
+
+    // 2. Update Metrics via Service (Weight, FTP, LTHR, MaxHR)
     // This also handles goal syncing and zone recalculation
     const updatedUser = await athleteMetricsService.updateMetrics(userId, {
       ftp: data.ftp,
-      weight: data.weight,
+      weight: weightKg,
       maxHr: data.maxHr,
       lthr: data.lthr
     })

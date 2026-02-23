@@ -484,9 +484,9 @@ export const IntervalsService = {
         }
       )
 
-      // Intervals weight is always KG. Convert if user uses Pounds.
-      if (normalizedWellness.weight && user?.weightUnits === 'Pounds') {
-        normalizedWellness.weight = roundToTwoDecimals(normalizedWellness.weight / 0.45359237)
+      // Intervals weight is always KG. Standardized to KG in DB.
+      if (normalizedWellness.weight) {
+        normalizedWellness.weight = roundToTwoDecimals(normalizedWellness.weight)
       }
 
       // If using HRV4TRAINING, update baseline for next iteration

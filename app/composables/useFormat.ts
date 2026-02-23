@@ -1,5 +1,6 @@
 import { format, toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { formatDistanceToNow } from 'date-fns'
+import { LBS_TO_KG } from '~/utils/metrics'
 
 /**
  * Format a date in UTC without timezone shifting.
@@ -150,6 +151,28 @@ export const useFormat = () => {
     }
   }
 
+  /**
+   * Format weight based on user preference.
+   * Assumes input weight is always in Kilograms.
+   */
+  const formatWeight = (
+    weightKg: number | null | undefined,
+    includeUnit: boolean = true,
+    overrideUnits?: string
+  ) => {
+    if (weightKg === null || weightKg === undefined) return '-'
+
+    const unit = overrideUnits || (data.value?.user as any)?.weightUnits || 'Kilograms'
+    let value = weightKg
+
+    if (unit === 'Pounds') {
+      value = weightKg / LBS_TO_KG
+    }
+
+    const formatted = value.toFixed(1)
+    return includeUnit ? `${formatted} ${unit === 'Pounds' ? 'lbs' : 'kg'}` : formatted
+  }
+
   return {
     formatDate,
     formatDateUTC,
@@ -162,6 +185,7 @@ export const useFormat = () => {
     getUserDateFromLocal,
     calculateAge,
     formatDuration,
+    formatWeight,
     timezone
   }
 }

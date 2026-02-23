@@ -63,7 +63,7 @@
           </span>
           <span v-if="dayWellness.weight != null" class="flex items-center gap-0.5">
             <UIcon name="i-heroicons-scale" class="w-2.5 h-2.5" />
-            <span class="font-medium">{{ Math.round(dayWellness.weight) }}</span>
+            <span class="font-medium">{{ formatWeight(dayWellness.weight, false) }}</span>
           </span>
         </button>
       </div>
@@ -374,7 +374,7 @@
   import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
   import { formatDistance as formatDist } from '~/utils/metrics'
 
-  const { formatDateUTC, getUserLocalDate } = useFormat()
+  const { formatDateUTC, getUserLocalDate, formatWeight } = useFormat()
   const userStore = useUserStore()
 
   const props = defineProps<{

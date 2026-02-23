@@ -328,12 +328,10 @@
                   />
                 </template>
                 <template v-else-if="metric.key === 'weight'">
-                  <template v-if="userStore.profile.weight"
-                    >{{ userStore.profile.weight.toFixed(1)
-                    }}<span class="text-[9px] opacity-70">{{
-                      userStore.weightUnitLabel
-                    }}</span></template
-                  >
+                  <template v-if="userStore.displayWeight">
+                    {{ userStore.displayWeight.toFixed(1) }}
+                    <span class="text-[9px] opacity-70">{{ userStore.weightUnitLabel }}</span>
+                  </template>
                   <UButton
                     v-else
                     to="/profile/settings"
@@ -382,10 +380,14 @@
               />
               <TrendIndicator
                 v-else-if="
-                  metric.key === 'weight' && userStore.profile.weight && weightHistory.length > 0
+                  metric.key === 'weight' && userStore.displayWeight && weightHistory.length > 0
                 "
-                :current="userStore.profile.weight"
-                :previous="weightHistory.map((d: any) => d.weight)"
+                :current="userStore.displayWeight"
+                :previous="
+                  weightHistory.map((d: any) =>
+                    userStore.profile?.weightUnits === 'Pounds' ? d.weight / LBS_TO_KG : d.weight
+                  )
+                "
                 type="neutral"
                 compact
                 icon-only
@@ -601,7 +603,7 @@
 
 <script setup lang="ts">
   import { countries } from '~/utils/countries'
-  import { formatHeight } from '~/utils/metrics'
+  import { formatHeight, LBS_TO_KG } from '~/utils/metrics'
 
   const userStore = useUserStore()
   const integrationStore = useIntegrationStore()

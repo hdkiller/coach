@@ -24,6 +24,7 @@ import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { recommendTodayActivityTask } from './recommend-today-activity'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { LBS_TO_KG } from '../server/utils/number'
 
 // Athlete Profile schema for structured JSON output
 const athleteProfileSchema = {
@@ -729,14 +730,14 @@ USER PROFILE:
 - Sex: ${user?.sex || 'Unknown'}
 - Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
-- W/kg: ${
-        user?.ftp && user?.weight
-          ? (
-              user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
-            ).toFixed(2)
+- Weight: ${
+        user?.weight
+          ? user.weightUnits === 'Pounds'
+            ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
+            : user.weight.toFixed(1) + ' kg'
           : 'Unknown'
       }
+- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 - Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
 

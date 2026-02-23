@@ -263,6 +263,8 @@
 </template>
 
 <script setup lang="ts">
+  import { LBS_TO_KG } from '~/utils/metrics'
+
   const props = defineProps<{
     goal?: any
   }>()
@@ -317,9 +319,20 @@
       form.title = props.goal.title || ''
       form.description = props.goal.description || ''
       form.priority = props.goal.priority || 'MEDIUM'
-      form.startValue = props.goal.startValue
-      form.targetValue = props.goal.targetValue
-      form.currentValue = props.goal.currentValue
+
+      // Database stores weight in KG, convert for display if needed
+      if (props.goal.type === 'BODY_COMPOSITION' && userStore.profile?.weightUnits === 'Pounds') {
+        form.startValue = props.goal.startValue ? props.goal.startValue / LBS_TO_KG : undefined
+        form.targetValue = props.goal.targetValue ? props.goal.targetValue / LBS_TO_KG : undefined
+        form.currentValue = props.goal.currentValue
+          ? props.goal.currentValue / LBS_TO_KG
+          : undefined
+      } else {
+        form.startValue = props.goal.startValue
+        form.targetValue = props.goal.targetValue
+        form.currentValue = props.goal.currentValue
+      }
+
       form.targetDate = props.goal.targetDate
         ? formatUserDate(props.goal.targetDate, timezone.value, 'yyyy-MM-dd')
         : undefined
@@ -423,11 +436,20 @@
         payload.eventDate = getUserDateFromLocal(form.eventDate, '00:00:00').toISOString()
       }
 
-      // Ensure numbers are numbers
+      // Convert to numbers and standardize to KG if needed
       if (payload.startValue) payload.startValue = Number(payload.startValue)
       if (payload.targetValue) payload.targetValue = Number(payload.targetValue)
       if (payload.currentValue) payload.currentValue = Number(payload.currentValue)
       else if (payload.startValue) payload.currentValue = payload.startValue
+
+      if (
+        selectedType.value === 'BODY_COMPOSITION' &&
+        userStore.profile?.weightUnits === 'Pounds'
+      ) {
+        if (payload.startValue) payload.startValue = payload.startValue * LBS_TO_KG
+        if (payload.targetValue) payload.targetValue = payload.targetValue * LBS_TO_KG
+        if (payload.currentValue) payload.currentValue = payload.currentValue * LBS_TO_KG
+      }
 
       if (isEditMode.value && props.goal) {
         // Update existing goal

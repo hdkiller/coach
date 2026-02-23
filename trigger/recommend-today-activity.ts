@@ -18,6 +18,7 @@ import { checkQuota } from '../server/utils/quotas/engine'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { LBS_TO_KG } from '../server/utils/number'
 import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
 import {
   getMoodLabel,
@@ -499,15 +500,15 @@ ATHLETE BASIC INFO:
 - Sex: ${user?.sex || 'Unknown'}
 - Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
-- Preferred Language: ${user?.language || 'English'}
-- W/kg: ${
-        user?.ftp && user?.weight
-          ? (
-              user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
-            ).toFixed(2)
+- Weight: ${
+        user?.weight
+          ? user.weightUnits === 'Pounds'
+            ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
+            : user.weight.toFixed(1) + ' kg'
           : 'Unknown'
       }
+- Preferred Language: ${user?.language || 'English'}
+- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 Note: No structured athlete profile available yet. Generate one for better recommendations.
 `

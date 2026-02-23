@@ -1,5 +1,7 @@
 import { Command } from 'commander'
-import { prisma } from '../../server/utils/db'
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
 import chalk from 'chalk'
 
 const backfillReportTemplatesCommand = new Command('report-templates')
@@ -440,8 +442,21 @@ Be specific with numbers and trends. Highlight patterns, consistency, and opport
 
 backfillReportTemplatesCommand
   .description('Initialize system report templates in the database')
-  .action(async () => {
+  .option('--prod', 'Use production database')
+  .action(async (options) => {
+    const isProd = options.prod
+    const connectionString = isProd ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL
+    if (!connectionString) {
+      console.error(chalk.red('Error: Database connection string is not defined.'))
+      process.exit(1)
+    }
+
+    if (isProd) console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
     console.log(chalk.blue('Seeding report templates...'))
+
+    const pool = new pg.Pool({ connectionString })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
 
     try {
       // Upsert Last 3 Workouts
@@ -664,6 +679,7 @@ backfillReportTemplatesCommand
       process.exit(1)
     } finally {
       await prisma.$disconnect()
+      await pool.end()
     }
   })
 

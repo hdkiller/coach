@@ -62,13 +62,15 @@ export const timeTools = (userId: string, timezone: string) => ({
       return {
         iso: now.toISOString(),
         local_formatted: userTime,
+        local_date: formatDateUTC(todayDate, 'yyyy-MM-dd'),
+        local_time: formatUserDate(now, timezone, 'HH:mm'),
         timezone,
         hour_24: hourOfDay,
         time_of_day: timeOfDay,
         active_workout: activeWorkout,
         context_hint: activeWorkout
-          ? `It is currently ${timeOfDay} for the athlete. They are CURRENTLY in a planned workout: "${activeWorkout.title}" (Ends at ${activeWorkout.endTime}).`
-          : `It is currently ${timeOfDay} for the athlete.`
+          ? `It is currently ${timeOfDay} for the athlete. They are CURRENTLY in a planned workout: "${activeWorkout.title}" (Ends at ${activeWorkout.endTime}). The local date is ${formatDateUTC(todayDate, 'yyyy-MM-dd')}.`
+          : `It is currently ${timeOfDay} for the athlete. The local date is ${formatDateUTC(todayDate, 'yyyy-MM-dd')}.`
       }
     }
   })

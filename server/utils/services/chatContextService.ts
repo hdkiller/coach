@@ -727,9 +727,9 @@ export async function buildAthleteContext(userId: string): Promise<{
   const nextSevenDays = getNextDays(7)
   const dateReference = nextSevenDays
     .map((d, i) => {
-      if (i === 0) return `- **Today (${d.dayName})**: ${d.dateStr}`
-      if (i === 1) return `- **Tomorrow (${d.dayName})**: ${d.dateStr}`
-      return `- **${d.dayName}**: ${d.dateStr}`
+      if (i === 0) return `- **Today (${d.dayName})**: ${d.dateStr} (Use date: ${d.date})`
+      if (i === 1) return `- **Tomorrow (${d.dayName})**: ${d.dateStr} (Use date: ${d.date})`
+      return `- **${d.dayName}**: ${d.dateStr} (Use date: ${d.date})`
     })
     .join('\n')
 

@@ -326,7 +326,7 @@
 
 <script setup lang="ts">
   import { countries } from '~/utils/countries'
-  import { cmToFtIn, ftInToCm } from '~/utils/metrics'
+  import { cmToFtIn, ftInToCm, LBS_TO_KG } from '~/utils/metrics'
 
   const props = defineProps<{
     modelValue: any
@@ -338,6 +338,11 @@
   const { formatDateUTC } = useFormat()
 
   const localProfile = ref({ ...props.modelValue })
+
+  // Initialize weight for display based on units
+  if (localProfile.value.weight && localProfile.value.weightUnits === 'Pounds') {
+    localProfile.value.weight = Number((localProfile.value.weight / LBS_TO_KG).toFixed(1))
+  }
 
   // Imperial Height state
   const heightFt = ref(0)
@@ -360,6 +365,20 @@
       initializeHeightInputs()
     }
   }
+
+  // Handle weight unit conversion when user switches units manually
+  watch(
+    () => localProfile.value.weightUnits,
+    (newUnits, oldUnits) => {
+      if (!localProfile.value.weight || newUnits === oldUnits) return
+
+      if (newUnits === 'Pounds' && oldUnits === 'Kilograms') {
+        localProfile.value.weight = Number((localProfile.value.weight / LBS_TO_KG).toFixed(1))
+      } else if (newUnits === 'Kilograms' && oldUnits === 'Pounds') {
+        localProfile.value.weight = Number((localProfile.value.weight * LBS_TO_KG).toFixed(1))
+      }
+    }
+  )
 
   const toDateInputValue = (date: string | Date | null | undefined) => {
     if (!date) return ''

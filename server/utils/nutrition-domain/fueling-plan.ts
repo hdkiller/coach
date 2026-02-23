@@ -143,7 +143,13 @@ export function calculateFuelingStrategy(
   const preDuration = profile.preWorkoutWindow || 90
   const preStart = new Date(workoutStart.getTime() - preDuration * 60000)
 
-  let preCarbs = profile.weight * 1.0 * sensitivity * adjustmentMultiplier
+  // Scale PRE window based on duration and intensity (Min 0.2g/kg for very short/easy, Max 1.0-2.0g/kg)
+  const durationFactor = Math.min(1.0, durationHours / 1.5) // Max scaling at 1.5h
+  const intensityFactorMultiplier = intensity < 0.7 ? 0.5 : intensity < 0.85 ? 0.8 : 1.0
+  const preBaseMultiplier = 1.0 * durationFactor * intensityFactorMultiplier
+
+  let preCarbs =
+    profile.weight * Math.max(0.3, preBaseMultiplier) * sensitivity * adjustmentMultiplier
   let preProtein = 20
   let preFat = 10
   let preDescription = 'Pre-workout fueling window.'
@@ -180,7 +186,10 @@ export function calculateFuelingStrategy(
   const postDuration = profile.postWorkoutWindow || 60
   const postEnd = new Date(workoutEnd.getTime() + postDuration * 60000)
 
-  let postCarbs = profile.weight * 1.2 * sensitivity * adjustmentMultiplier
+  // Scale POST window based on intensity and duration
+  const postBaseMultiplier = 1.2 * durationFactor * intensityFactorMultiplier
+  let postCarbs =
+    profile.weight * Math.max(0.4, postBaseMultiplier) * sensitivity * adjustmentMultiplier
   let postProtein = 30
   let postFat = 15
   let postDescription = 'Post-workout recovery window.'

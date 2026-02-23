@@ -168,8 +168,7 @@
               >
             </div>
             <div class="text-2xl font-bold text-gray-900 dark:text-gray-50">
-              {{ wellnessData.weight.toFixed(1) }}
-              <span class="text-xs font-medium opacity-70">kg</span>
+              {{ formatWeight(wellnessData.weight) }}
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
@@ -605,7 +604,7 @@
     'update:open': [value: boolean]
   }>()
 
-  const { formatDate, formatDateUTC, timezone } = useFormat()
+  const { formatDate, formatDateUTC, formatWeight, timezone } = useFormat()
   const toast = useToast()
   const { checkWellnessStale } = useDataStatus()
 

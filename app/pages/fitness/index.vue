@@ -232,6 +232,7 @@
   import FitnessTrendChart from '~/components/fitness/FitnessTrendChart.vue'
   import FitnessWellnessTable from '~/components/fitness/FitnessWellnessTable.vue'
   import FitnessHrvRhrDualChart from '~/components/fitness/HrvRhrDualChart.vue'
+  import { LBS_TO_KG } from '~/utils/metrics'
   import {
     Chart as ChartJS,
     CategoryScale,
@@ -930,13 +931,20 @@
       new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     )
 
+    const weights = recentWellness.map((w) => {
+      if (userStore.profile?.weightUnits === 'Pounds' && w.weight) {
+        return w.weight / LBS_TO_KG
+      }
+      return w.weight
+    })
+
     return {
       labels,
       datasets: getChartDataset(
         'weight',
-        recentWellness.map((w) => w.weight),
+        weights,
         'rgb(249, 115, 22)',
-        'Weight (kg)'
+        `Weight (${userStore.weightUnitLabel})`
       )
     }
   })
@@ -1182,7 +1190,14 @@
 
       // If showing target, ensure it's visible in dynamic scale
       if (settings.showTarget && targetValue !== undefined && settings.yScale !== 'fixed') {
-        const weights = filteredWellness.value.filter((w) => w.weight).map((w) => w.weight)
+        const weights = filteredWellness.value
+          .filter((w) => w.weight)
+          .map((w) => {
+            if (userStore.profile?.weightUnits === 'Pounds') {
+              return w.weight / LBS_TO_KG
+            }
+            return w.weight
+          })
         if (weights.length > 0) {
           const minWeight = Math.min(...weights)
           const maxWeight = Math.max(...weights)

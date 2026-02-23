@@ -11,6 +11,7 @@ import { nutritionRepository } from '../server/utils/repositories/nutritionRepos
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { userReportsQueue } from './queues'
 import { getUserTimezone, formatUserDate } from '../server/utils/date'
+import { LBS_TO_KG } from '../server/utils/number'
 
 // Analysis schema for structured JSON output
 const analysisSchema = {
@@ -215,16 +216,16 @@ Preferred Language: ${user?.language || 'English'} (ALL analysis and text respon
 
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
-- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
-- Max HR: ${user?.maxHr || 'Unknown'} bpm
-- W/kg: ${
-    user?.ftp && user?.weight
-      ? (
-          user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
-        ).toFixed(2)
+- Weight: ${
+    user?.weight
+      ? user.weightUnits === 'Pounds'
+        ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
+        : user.weight.toFixed(1) + ' kg'
       : 'Unknown'
   }
+- Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
+- Max HR: ${user?.maxHr || 'Unknown'} bpm
+- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
 `
 
   if (config.dataType === 'workouts' || config.dataType === 'both') {

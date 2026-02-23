@@ -104,11 +104,10 @@ export const metabolicService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true }
+      select: { weight: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     return calculateGlycogenState(
       dayNutrition || {
@@ -154,11 +153,10 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true, ftp: true }
+      select: { weight: true, ftp: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     const dayWorkouts = await this.getRelevantWorkouts(userId, date, timezone)
     const dayNutrition = await nutritionRepository.getByDate(userId, date)
@@ -726,11 +724,10 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true }
+      select: { weight: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     // 1. Get current day's record
     let record = await nutritionRepository.getByDate(userId, date)
@@ -818,11 +815,10 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true, ftp: true }
+      select: { weight: true, ftp: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     const todayKey = formatDateUTC(getUserLocalDate(timezone))
     const allPoints: any[] = []
@@ -1032,11 +1028,10 @@ export const metabolicService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true, ftp: true }
+      select: { weight: true, ftp: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     const profile = {
       weight: weightKg,
@@ -1223,10 +1218,9 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true }
+      select: { weight: true }
     })
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     const weight = weightKg
     const MEAL_CAP = weight * 2.0 // 2.0g/kg per sitting
@@ -1382,6 +1376,7 @@ export const metabolicService = {
         (w) => w.type === 'DAILY_BASE' || w.type === 'TRANSITION'
       )
 
+      // Calculate remaining to be distributed across non-workout meals
       const remainingProtein = Math.max(0, dailyProteinTarget - workoutProteinSum)
       const baseProteinShare = baseWindows.length > 0 ? remainingProtein / baseWindows.length : 0
 
@@ -1390,7 +1385,9 @@ export const metabolicService = {
 
       day.windows.forEach((w: any) => {
         if (w.type === 'DAILY_BASE' || w.type === 'TRANSITION') {
-          w.targetProtein = Math.round(baseProteinShare)
+          // Cap protein per sitting at ~0.5g/kg to keep it realistic, but ensure we hit the goal
+          const perSittingMax = weight * 0.6
+          w.targetProtein = Math.round(Math.min(perSittingMax, baseProteinShare))
           w.targetFat = Math.round(baseFatShare)
         }
       })
@@ -1479,11 +1476,10 @@ export const metabolicService = {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true, ftp: true }
+      select: { weight: true, ftp: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     // 1. Get starting state for the range (recursive but only once)
     const initialDayState = await this.getMetabolicStateForDate(userId, startDate)
@@ -1602,11 +1598,10 @@ export const metabolicService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true }
+      select: { weight: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     const ghostPoints = calculateEnergyTimeline(
       dayNutrition || {
@@ -1642,11 +1637,10 @@ export const metabolicService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, weightUnits: true }
+      select: { weight: true }
     })
 
-    const weightKg =
-      user?.weightUnits === 'Pounds' && user?.weight ? user.weight * 0.45359237 : user?.weight || 75
+    const weightKg = user?.weight || 75
 
     const plan = planResult.plan as unknown as NutritionPlanSummary
 

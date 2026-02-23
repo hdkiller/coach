@@ -241,7 +241,7 @@
           <WellnessMetricRow
             v-if="wellness.weight"
             label="Weight"
-            :value="`${wellness.weight.toFixed(2)} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}`"
+            :value="formatWeight(wellness.weight, true, user?.weightUnits)"
           />
           <WellnessMetricRow
             v-if="wellness.ctl"
@@ -283,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-  const { formatDate: baseFormatDate, formatDateTime } = useFormat()
+  const { formatDate: baseFormatDate, formatDateTime, formatWeight } = useFormat()
 
   // Public share page - accessible to everyone
   definePageMeta({

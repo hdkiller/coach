@@ -1013,6 +1013,8 @@
 </template>
 
 <script setup lang="ts">
+  import { ftInToCm, cmToFtIn, LBS_TO_KG } from '~/utils/metrics'
+
   const props = defineProps<{
     settings?: any
     profile?: any
@@ -1279,8 +1281,8 @@
     }
 
     const p = props.profile
-    // Convert weight to kg if needed
-    const weightKg = p.weightUnits === 'Pounds' ? p.weight * 0.45359237 : p.weight
+    // Use weight directly in kilograms as standardized in DB and provided by API
+    const weightKg = p.weight
 
     // Height is already in cm in the profile (as per heightUnits="cm" default)
     const heightCm = p.height

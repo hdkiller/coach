@@ -543,7 +543,7 @@
             <WellnessMetricRow
               v-if="wellness.weight"
               label="Weight"
-              :value="`${wellness.weight.toFixed(2)} ${userStore.weightUnitLabel}`"
+              :value="formatWeight(wellness.weight)"
             />
             <WellnessMetricRow
               v-if="wellness.bodyFat"
@@ -641,7 +641,8 @@
 
   const route = useRoute()
   const toast = useToast()
-  const { formatDateUTC, timezone } = useFormat()
+  const { formatDateUTC, formatWeight, timezone } = useFormat()
+  const userStore = useUserStore()
   const wellness = ref<any>(null)
   const loading = ref(true)
   const error = ref<string | null>(null)

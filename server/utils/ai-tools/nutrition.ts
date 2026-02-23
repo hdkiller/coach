@@ -102,10 +102,14 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   log_nutrition_meal: tool({
     description:
-      'Log food and drink items to a specific meal (breakfast, lunch, dinner, snacks). Call this when the user says "I ate X", "Add X to my lunch", or when logging beverages consumed with a meal (e.g. "coffee for breakfast", "0.5 liters of liquid"). For "instant" or "just now" logging (e.g., "I just ate an apple"), you MUST first call `get_current_time` to get the current time, and pass the local time (HH:mm) as `logged_at`. The AI should estimate macros for the items if not provided. Water and zero-calorie drinks MUST be logged with 0 calories and 0 macros.',
+      'Log food and drink items to a specific meal (breakfast, lunch, dinner, snacks, or custom slots like "Sport"). Call this when the user says "I ate X", "Add X to my lunch", or when logging beverages consumed with a meal. For "instant" or "just now" logging, you MUST first call `get_current_time` to get the current time, and pass the local time (HH:mm) as `logged_at`. The AI should estimate macros for the items if not provided. Water and zero-calorie drinks MUST be logged with 0 calories and 0 macros.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
-      meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']).describe('The meal category'),
+      meal_type: z
+        .string()
+        .describe(
+          'The meal category (breakfast, lunch, dinner, snacks, or any custom slot name defined by the user)'
+        ),
       items: z.array(
         z.object({
           name: z.string().describe('Name of the food item'),
@@ -137,13 +141,23 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       const dateUtc = new Date(`${date}T00:00:00Z`)
       const settings = await getUserNutritionSettings(userId)
 
+      // Dynamic Mapping: Map custom slots to 'snacks' but preserve intent in item names
+      const standardTypes = ['breakfast', 'lunch', 'dinner', 'snacks']
+      const targetMealType = standardTypes.includes(meal_type.toLowerCase())
+        ? (meal_type.toLowerCase() as 'breakfast' | 'lunch' | 'dinner' | 'snacks')
+        : 'snacks'
+
+      const customSlotPrefix = !standardTypes.includes(meal_type.toLowerCase())
+        ? `[${meal_type}] `
+        : ''
+
       // Add IDs to items and normalize logged_at
       const itemsWithIds = items.map((item) => {
         let normalizedLoggedAt = item.logged_at
 
         // If no time is provided, anchor to configured meal schedule for this meal type.
         if (!normalizedLoggedAt) {
-          normalizedLoggedAt = pickMealScheduledTime(meal_type, settings.mealPattern)
+          normalizedLoggedAt = pickMealScheduledTime(targetMealType, settings.mealPattern)
         }
 
         if (normalizedLoggedAt.includes('T')) {
@@ -165,6 +179,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         return normalizeFluidFields({
           id: crypto.randomUUID(),
           ...item,
+          name: `${customSlotPrefix}${item.name}`,
           absorptionType: item.absorption_type || 'BALANCED',
           logged_at: normalizedLoggedAt
         })
@@ -177,15 +192,15 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         nutrition = await nutritionRepository.create({
           userId,
           date: dateUtc,
-          [meal_type]: itemsWithIds
+          [targetMealType]: itemsWithIds
         })
       } else {
         // Append items to existing meal
-        const currentItems = (nutrition[meal_type] as any[]) || []
+        const currentItems = (nutrition[targetMealType] as any[]) || []
         const updatedItems = [...currentItems, ...itemsWithIds]
 
         nutrition = await nutritionRepository.update(nutrition.id, {
-          [meal_type]: updatedItems
+          [targetMealType]: updatedItems
         })
       }
 

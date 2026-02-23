@@ -11,6 +11,7 @@ import {
   getStartOfDaysAgoUTC,
   calculateAge
 } from '../server/utils/date'
+import { LBS_TO_KG } from '../server/utils/number'
 
 // Reuse the flexible analysis schema (same as workout analysis)
 const analysisSchema = {
@@ -116,16 +117,16 @@ USER PROFILE:
 - Age: ${userAge || 'Unknown'}
 - Sex: ${user?.sex || 'Unknown'}
 - FTP: ${user?.ftp || 'Unknown'} watts
-- Weight: ${user?.weight || 'Unknown'} ${user?.weightUnits === 'Pounds' ? 'lbs' : 'kg'}
-- Max HR: ${user?.maxHr || 'Unknown'} bpm
-- Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
-- W/kg: ${
-    user?.ftp && user?.weight
-      ? (
-          user.ftp / (user.weightUnits === 'Pounds' ? user.weight * 0.45359237 : user.weight)
-        ).toFixed(2)
+- Weight: ${
+    user?.weight
+      ? user.weightUnits === 'Pounds'
+        ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
+        : user.weight.toFixed(1) + ' kg'
       : 'Unknown'
   }
+- Max HR: ${user?.maxHr || 'Unknown'} bpm
+- Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
+- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
 `
 
   if (sportSettings) {

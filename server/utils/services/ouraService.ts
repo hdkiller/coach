@@ -98,10 +98,9 @@ export const OuraService = {
       )
 
       if (wellness) {
-        // Oura weight is always KG. Convert if user uses Pounds.
-        if (wellness.weight && user?.weightUnits === 'Pounds') {
-          // multiplier 0.45359237
-          wellness.weight = Math.round((wellness.weight / 0.45359237) * 100) / 100
+        // Oura weight is always KG. Standardized to KG in DB.
+        if (wellness.weight) {
+          wellness.weight = Math.round(wellness.weight * 100) / 100
         }
 
         await wellnessRepository.upsert(

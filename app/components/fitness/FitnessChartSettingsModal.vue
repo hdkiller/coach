@@ -111,18 +111,18 @@
                   type="number"
                   size="sm"
                   :placeholder="
-                    metricKey === 'weight' && weightGoal?.targetValue
-                      ? `Goal: ${weightGoal.targetValue}${userStore.weightUnitLabel || 'kg'}`
+                    metricKey === 'weight' && displayedWeightGoal
+                      ? `Goal: ${displayedWeightGoal}${userStore.weightUnitLabel || 'kg'}`
                       : 'Target value...'
                   "
                   class="w-full"
                 />
               </div>
               <p
-                v-if="metricKey === 'weight' && weightGoal && !settings.targetValue"
+                v-if="metricKey === 'weight' && displayedWeightGoal && !settings.targetValue"
                 class="text-[10px] text-primary-500 font-bold uppercase tracking-wider italic"
               >
-                Automatically using your weight goal: {{ weightGoal.targetValue
+                Automatically using your weight goal: {{ displayedWeightGoal
                 }}{{ userStore.weightUnitLabel || 'kg' }}
               </p>
             </div>
@@ -182,6 +182,7 @@
 
 <script setup lang="ts">
   import { useDebounceFn } from '@vueuse/core'
+  import { LBS_TO_KG } from '~/utils/metrics'
 
   const props = defineProps<{
     metricKey: string
@@ -191,6 +192,14 @@
 
   const isOpen = defineModel<boolean>('open', { default: false })
   const userStore = useUserStore()
+
+  const displayedWeightGoal = computed(() => {
+    if (!props.weightGoal?.targetValue) return null
+    if (userStore.profile?.weightUnits === 'Pounds') {
+      return Number((props.weightGoal.targetValue / LBS_TO_KG).toFixed(1))
+    }
+    return props.weightGoal.targetValue
+  })
 
   // Default structure for a single chart's settings
   const defaultSettings = {

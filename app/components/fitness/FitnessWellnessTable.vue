@@ -127,7 +127,7 @@
             <td
               class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
             >
-              {{ item.weight ? item.weight.toFixed(1) + (userStore.weightUnitLabel || 'kg') : '-' }}
+              {{ formatWeight(item.weight) }}
             </td>
             <td
               class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 font-bold tabular-nums"
@@ -214,7 +214,7 @@
 
   defineEmits(['update:page'])
 
-  const { formatDateUTC } = useFormat()
+  const { formatDateUTC, formatWeight } = useFormat()
   const userStore = useUserStore()
 
   function getRecoveryBadgeClass(score: number) {

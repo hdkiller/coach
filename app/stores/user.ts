@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import type { SubscriptionTier, SubscriptionStatus } from '@prisma/client'
-
+import { LBS_TO_KG } from '~/utils/metrics'
 interface User {
   id: string
   email: string
@@ -197,8 +197,14 @@ export const useUserStore = defineStore('user', () => {
 
   const currentWeightKg = computed(() => {
     if (!profile.value?.weight) return 0
+    // Database is now standardized to KG
+    return profile.value.weight
+  })
+
+  const displayWeight = computed(() => {
+    if (!profile.value?.weight) return 0
     if (profile.value.weightUnits === 'Pounds') {
-      return profile.value.weight * 0.45359237
+      return profile.value.weight / LBS_TO_KG
     }
     return profile.value.weight
   })
@@ -288,6 +294,7 @@ export const useUserStore = defineStore('user', () => {
     currentLthr,
     currentMaxHr,
     currentWeightKg,
+    displayWeight,
     weightUnitLabel,
     distanceUnitLabel,
     temperatureUnitLabel,
