@@ -337,8 +337,21 @@ function toScheduledLoggedAt(
 
   try {
     return fromZonedTime(`${date}T${scheduled}:00`, timezone).toISOString()
-  } catch {
-    return `${date}T${scheduled}:00.000Z`
+  } catch (error) {
+    console.warn('[Fitbit] Failed timezone conversion for scheduled meal time', {
+      date,
+      mealKey,
+      timezone,
+      scheduled,
+      error
+    })
+
+    const fallback = new Date(`${date}T${scheduled}:00`)
+    if (!Number.isNaN(fallback.getTime())) {
+      return fallback.toISOString()
+    }
+
+    return fromZonedTime(`${date}T${scheduled}:00`, 'UTC').toISOString()
   }
 }
 
@@ -389,8 +402,18 @@ export function mergeFitbitNutritionWithExisting(
         continue
       }
 
+      const incomingLoggedAt =
+        typeof incomingItem.logged_at === 'string' ? incomingItem.logged_at : undefined
+      const existingLoggedAt =
+        typeof existing.logged_at === 'string' ? existing.logged_at : undefined
+      const legacyManualTimeDetected =
+        existing.fitbitTimeDerived == null &&
+        !!existingLoggedAt &&
+        !!incomingLoggedAt &&
+        existingLoggedAt !== incomingLoggedAt
+
       const preserveManualLoggedAt =
-        existing.fitbitTimeDerived === false &&
+        (existing.fitbitTimeDerived === false || legacyManualTimeDetected) &&
         typeof existing.logged_at === 'string' &&
         existing.logged_at.length > 0
 
@@ -409,13 +432,15 @@ export function mergeFitbitNutritionWithExisting(
       }
 
       for (const key of preserveIfMissingKeys) {
-        if ((mergedItem[key] == null || mergedItem[key] === '') && existing[key] != null) {
+        if ((mergedItem[key] === null || mergedItem[key] === undefined) && existing[key] != null) {
           mergedItem[key] = existing[key]
         }
       }
 
-      const preserveManualMeal = existing.fitbitMealDerived === false
       const existingMeal = identity ? existingMealByIdentity.get(identity) : null
+      const legacyManualMealDetected =
+        existing.fitbitMealDerived == null && !!existingMeal && existingMeal !== mealKey
+      const preserveManualMeal = existing.fitbitMealDerived === false || legacyManualMealDetected
       const targetMealKey = preserveManualMeal && existingMeal ? existingMeal : mealKey
 
       if (preserveManualMeal) {

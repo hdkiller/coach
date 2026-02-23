@@ -210,4 +210,49 @@ describe('fitbit nutrition normalization and merge', () => {
       (merged.lunch || []).find((item: any) => item.fitbitLogId === 123)?.fitbitMealDerived
     ).toBe(false)
   })
+
+  it('preserves legacy manual logged_at when fitbitTimeDerived flag is missing', () => {
+    const incoming = {
+      userId: 'user-1',
+      date: new Date('2026-02-20T00:00:00.000Z'),
+      breakfast: [
+        {
+          id: 'fitbit:123',
+          fitbitLogId: 123,
+          logId: 123,
+          name: 'Oatmeal',
+          source: 'fitbit',
+          logged_at: '2026-02-19T22:15:00.000Z'
+        }
+      ],
+      lunch: null,
+      dinner: null,
+      snacks: null
+    }
+
+    const existing = {
+      userId: 'user-1',
+      date: new Date('2026-02-20T00:00:00.000Z'),
+      breakfast: [
+        {
+          id: 'fitbit:123',
+          fitbitLogId: 123,
+          logId: 123,
+          name: 'Oatmeal',
+          source: 'fitbit',
+          logged_at: '2026-02-20T00:45:00.000Z'
+        }
+      ],
+      lunch: null,
+      dinner: null,
+      snacks: null
+    }
+
+    const merged = mergeFitbitNutritionWithExisting(incoming, existing)
+    const breakfastItems = (merged.breakfast || []) as any[]
+    const fitbitItem = breakfastItems.find((item) => item.fitbitLogId === 123)
+
+    expect(fitbitItem?.logged_at).toBe('2026-02-20T00:45:00.000Z')
+    expect(fitbitItem?.fitbitTimeDerived).toBe(false)
+  })
 })

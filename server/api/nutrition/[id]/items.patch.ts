@@ -133,8 +133,15 @@ export default defineEventHandler(async (event) => {
     if (index === -1) throw createError({ statusCode: 404, message: 'Item not found in any meal' })
 
     const isFitbitItem = (updatedItems[index] as any)?.source === 'fitbit'
+    const incomingLoggedAt = typeof item.logged_at === 'string' ? item.logged_at.trim() : ''
+    const existingLoggedAt =
+      typeof (updatedItems[index] as any)?.logged_at === 'string'
+        ? (updatedItems[index] as any).logged_at.trim()
+        : ''
     const manuallyOverrodeTime =
-      typeof item.logged_at === 'string' && item.logged_at.trim().length > 0
+      incomingLoggedAt.length > 0 && incomingLoggedAt !== existingLoggedAt
+    const preserveManualMealOverride =
+      isFitbitItem && (updatedItems[index] as any)?.fitbitMealDerived === false
 
     // Update the item and ensure it has an ID now
     updatedItems[index] = {
@@ -142,6 +149,7 @@ export default defineEventHandler(async (event) => {
       ...normalizeFluidFields(item),
       id: updatedItems[index].id || item.id || crypto.randomUUID(),
       ...(isFitbitItem && manuallyOverrodeTime ? { fitbitTimeDerived: false } : {}),
+      ...(preserveManualMealOverride ? { fitbitMealDerived: false } : {}),
       ...(isFitbitItem && movedFromMeal && movedFromMeal !== mealType
         ? { fitbitMealDerived: false }
         : {})
