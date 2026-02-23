@@ -268,6 +268,9 @@
                     {{ formatRelativeTime(report.createdAt) }}
                   </p>
                 </div>
+                <p class="text-[10px] font-mono text-gray-500 dark:text-gray-400 mb-1 break-all">
+                  ID: {{ report.id }}
+                </p>
                 <h3
                   class="text-base font-bold text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors line-clamp-2"
                   :title="report.title"

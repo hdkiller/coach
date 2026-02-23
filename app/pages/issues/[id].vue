@@ -19,6 +19,17 @@
   const sendingComment = ref(false)
   const showEditModal = ref(false)
 
+  function copyText(value: string, label: string) {
+    if (!value?.trim()) return
+    navigator.clipboard.writeText(value)
+    toast.add({ title: `${label} copied`, color: 'success' })
+  }
+
+  function copyIssueId() {
+    if (!report.value?.id) return
+    copyText(report.value.id, 'Ticket ID')
+  }
+
   async function addComment() {
     if (!newComment.value.trim()) return
     sendingComment.value = true
@@ -106,7 +117,7 @@
             <div class="flex flex-col gap-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <h1
-                  class="text-2xl font-black tracking-tight text-gray-900 dark:text-white truncate"
+                  class="text-2xl font-black tracking-tight text-gray-900 dark:text-white break-words"
                 >
                   {{ report.title }}
                 </h1>
@@ -117,6 +128,18 @@
               <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">
                 Reported on {{ formatDate(report.createdAt, 'PPPP') }}
               </p>
+              <div class="flex items-center gap-1">
+                <span class="text-[11px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                  {{ report.id }}
+                </span>
+                <UButton
+                  icon="i-heroicons-clipboard-document"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  @click="copyIssueId"
+                />
+              </div>
             </div>
           </UCard>
 
@@ -125,9 +148,18 @@
             <div class="lg:col-span-2 space-y-6">
               <UCard>
                 <template #header>
-                  <h3 class="text-xs font-black uppercase tracking-widest text-gray-400">
-                    Initial Description
-                  </h3>
+                  <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-xs font-black uppercase tracking-widest text-gray-400">
+                      Initial Description
+                    </h3>
+                    <UButton
+                      icon="i-heroicons-clipboard-document"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      @click="copyText(report.description, 'Initial description')"
+                    />
+                  </div>
                 </template>
                 <p
                   class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed"
@@ -198,6 +230,13 @@
                         <span class="text-[10px] text-gray-500">
                           {{ formatDate(comment.createdAt, 'MMM d, HH:mm') }}
                         </span>
+                        <UButton
+                          icon="i-heroicons-clipboard-document"
+                          color="neutral"
+                          variant="ghost"
+                          size="xs"
+                          @click="copyText(comment.content, 'Comment')"
+                        />
                       </div>
                       <div
                         class="px-4 py-2 rounded-2xl text-sm shadow-sm"
