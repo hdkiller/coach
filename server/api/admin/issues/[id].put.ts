@@ -7,7 +7,9 @@ import { createUserNotification } from '../../../utils/notifications'
 const updateSchema = z.object({
   status: z.enum(['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO', 'RESOLVED', 'CLOSED']).optional(),
   priority: z.string().optional(),
-  metadata: z.any().optional()
+  metadata: z.any().optional(),
+  title: z.string().min(3).max(100).optional(),
+  description: z.string().min(10).max(2000).optional()
 })
 
 export default defineEventHandler(async (event) => {
