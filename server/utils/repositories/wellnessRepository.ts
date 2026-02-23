@@ -129,6 +129,17 @@ export const wellnessRepository = {
     updateData: Prisma.WellnessUncheckedUpdateInput,
     source: string = 'unknown'
   ) {
+    // Some provider normalizers include a `source` field for traceability,
+    // but Wellness model stores this as `lastSource` (not `source`).
+    const { source: _createSource, ...sanitizedCreateData } = (createData || {}) as Record<
+      string,
+      any
+    >
+    const { source: _updateSource, ...sanitizedUpdateData } = (updateData || {}) as Record<
+      string,
+      any
+    >
+
     // 1. Fetch existing record
     const existing = await prisma.wellness.findUnique({
       where: {
@@ -140,12 +151,12 @@ export const wellnessRepository = {
     })
 
     // 2. If it exists, filter updateData to only include non-null values
-    let finalUpdateData = updateData
+    let finalUpdateData: Prisma.WellnessUncheckedUpdateInput = sanitizedUpdateData
     const changes: Record<string, { old: any; new: any }> = {}
 
     if (existing) {
       finalUpdateData = {}
-      for (const [key, value] of Object.entries(updateData)) {
+      for (const [key, value] of Object.entries(sanitizedUpdateData)) {
         if (value !== null && value !== undefined) {
           // Special handling for rawJson: merge instead of replace if possible
           if (
@@ -188,9 +199,9 @@ export const wellnessRepository = {
     }
 
     if (historyUpdate) {
-      ;(createData as any).history = [historyEntry]
+      ;(sanitizedCreateData as any).history = [historyEntry]
       ;(finalUpdateData as any).history = historyUpdate
-      ;(createData as any).lastSource = source
+      ;(sanitizedCreateData as any).lastSource = source
       ;(finalUpdateData as any).lastSource = source
     }
 
@@ -202,7 +213,7 @@ export const wellnessRepository = {
             date
           }
         },
-        create: createData,
+        create: sanitizedCreateData as Prisma.WellnessUncheckedCreateInput,
         update: finalUpdateData
       }),
       isNew: !existing
