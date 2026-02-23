@@ -18,6 +18,18 @@
   const newComment = ref('')
   const sendingComment = ref(false)
   const showEditModal = ref(false)
+  const deletingIssue = ref(false)
+  const showDeleteIssueModal = ref(false)
+  const editingCommentId = ref<string | null>(null)
+  const editingCommentContent = ref('')
+  const savingComment = ref(false)
+  const deletingCommentId = ref<string | null>(null)
+  const isEditCommentModalOpen = computed({
+    get: () => !!editingCommentId.value,
+    set: (open: boolean) => {
+      if (!open) closeEditCommentModal()
+    }
+  })
 
   function copyText(value: string, label: string) {
     if (!value?.trim()) return
@@ -45,6 +57,64 @@
       toast.add({ title: 'Failed to send message', color: 'error' })
     } finally {
       sendingComment.value = false
+    }
+  }
+
+  function openEditCommentModal(comment: any) {
+    if (comment.isAdmin) return
+    editingCommentId.value = comment.id
+    editingCommentContent.value = comment.content
+  }
+
+  function closeEditCommentModal() {
+    editingCommentId.value = null
+    editingCommentContent.value = ''
+  }
+
+  async function saveCommentEdit() {
+    if (!editingCommentId.value || !editingCommentContent.value.trim()) return
+    savingComment.value = true
+    try {
+      await $fetch(`/api/issues/${id}/comments/${editingCommentId.value}`, {
+        method: 'PATCH',
+        body: { content: editingCommentContent.value }
+      })
+      toast.add({ title: 'Comment updated', color: 'success' })
+      closeEditCommentModal()
+      await refreshReport()
+    } catch {
+      toast.add({ title: 'Failed to update comment', color: 'error' })
+    } finally {
+      savingComment.value = false
+    }
+  }
+
+  async function deleteComment(commentId: string) {
+    deletingCommentId.value = commentId
+    try {
+      await $fetch(`/api/issues/${id}/comments/${commentId}`, {
+        method: 'DELETE'
+      })
+      toast.add({ title: 'Comment deleted', color: 'success' })
+      await refreshReport()
+    } catch {
+      toast.add({ title: 'Failed to delete comment', color: 'error' })
+    } finally {
+      deletingCommentId.value = null
+    }
+  }
+
+  async function deleteIssue() {
+    deletingIssue.value = true
+    try {
+      await $fetch(`/api/issues/${id}`, { method: 'DELETE' })
+      toast.add({ title: 'Issue deleted', color: 'success' })
+      await navigateTo('/issues')
+    } catch {
+      toast.add({ title: 'Failed to delete issue', color: 'error' })
+    } finally {
+      deletingIssue.value = false
+      showDeleteIssueModal.value = false
     }
   }
 
@@ -78,7 +148,7 @@
         <template #right>
           <div class="flex items-center gap-2">
             <UButton
-              v-if="report && report.status !== 'CLOSED' && report.status !== 'RESOLVED'"
+              v-if="report"
               icon="i-heroicons-pencil-square"
               color="neutral"
               variant="outline"
@@ -87,6 +157,17 @@
               @click="showEditModal = true"
             >
               Edit
+            </UButton>
+            <UButton
+              v-if="report"
+              icon="i-heroicons-trash"
+              color="error"
+              variant="ghost"
+              size="sm"
+              :loading="deletingIssue"
+              @click="showDeleteIssueModal = true"
+            >
+              Delete
             </UButton>
             <ClientOnly>
               <DashboardTriggerMonitorButton />
@@ -237,6 +318,23 @@
                           size="xs"
                           @click="copyText(comment.content, 'Comment')"
                         />
+                        <UButton
+                          v-if="!comment.isAdmin"
+                          icon="i-heroicons-pencil-square"
+                          color="neutral"
+                          variant="ghost"
+                          size="xs"
+                          @click="openEditCommentModal(comment)"
+                        />
+                        <UButton
+                          v-if="!comment.isAdmin"
+                          icon="i-heroicons-trash"
+                          color="error"
+                          variant="ghost"
+                          size="xs"
+                          :loading="deletingCommentId === comment.id"
+                          @click="deleteComment(comment.id)"
+                        />
                       </div>
                       <div
                         class="px-4 py-2 rounded-2xl text-sm shadow-sm"
@@ -357,6 +455,54 @@
         :issue="report"
         @success="refreshReport"
       />
+
+      <UModal
+        v-model:open="showDeleteIssueModal"
+        title="Delete issue"
+        description="This will permanently remove the issue and all comments."
+      >
+        <template #body>
+          <div class="space-y-3">
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete <strong>{{ report?.title }}</strong
+              >?
+            </p>
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="showDeleteIssueModal = false">
+                Cancel
+              </UButton>
+              <UButton color="error" :loading="deletingIssue" @click="deleteIssue">
+                Delete
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <UModal
+        v-model:open="isEditCommentModalOpen"
+        title="Edit comment"
+        description="Update your message."
+      >
+        <template #body>
+          <div class="space-y-3">
+            <UTextarea v-model="editingCommentContent" :rows="4" autoresize />
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="closeEditCommentModal">
+                Cancel
+              </UButton>
+              <UButton
+                color="primary"
+                :loading="savingComment"
+                :disabled="!editingCommentContent.trim()"
+                @click="saveCommentEdit"
+              >
+                Save
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>

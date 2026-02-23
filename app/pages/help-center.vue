@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { useClipboard } from '@vueuse/core'
   import IssueFormModal from '~/components/issues/IssueFormModal.vue'
 
   definePageMeta({
@@ -15,7 +16,22 @@
     ]
   })
 
+  const userStore = useUserStore()
+  const { copy } = useClipboard()
+  const toast = useToast()
+
   const showReportModal = ref(false)
+
+  const copyUserId = () => {
+    if (!userStore.user?.id) return
+    copy(userStore.user.id)
+    toast.add({
+      title: 'ID Copied',
+      description: 'Account ID copied to clipboard.',
+      color: 'success',
+      icon: 'i-heroicons-check-circle'
+    })
+  }
 
   const helpLinks = [
     {
@@ -243,6 +259,37 @@
                 </div>
               </UCard>
             </template>
+          </div>
+        </div>
+
+        <!-- Account Diagnostics -->
+        <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+          <h2 class="text-xs font-black uppercase tracking-widest text-gray-400">
+            Account Diagnostics
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <UCard
+              class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
+              @click="copyUserId"
+            >
+              <div class="space-y-2">
+                <UIcon
+                  name="i-heroicons-fingerprint"
+                  class="size-5 text-primary-500 group-hover:scale-110 transition-transform"
+                />
+                <h4 class="font-bold text-sm group-hover:text-primary-500 transition-colors">
+                  Account ID
+                </h4>
+                <div
+                  class="text-[10px] font-mono text-gray-600 dark:text-gray-400 break-all bg-gray-100/50 dark:bg-gray-900/40 p-2 rounded border border-gray-200 dark:border-gray-800"
+                >
+                  {{ userStore.user?.id || 'Loading...' }}
+                </div>
+                <p class="text-[10px] text-gray-400 italic">
+                  Click to copy your unique Account ID.
+                </p>
+              </div>
+            </UCard>
           </div>
         </div>
       </div>
