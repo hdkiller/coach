@@ -201,7 +201,7 @@
   const chartSettings = computed(() => ({
     smooth: false,
     showPoints: true,
-    showLabels: true,
+    showLabels: false,
     showEstimatedFtp: true,
     yScale: 'dynamic',
     yMin: 0,
@@ -333,7 +333,15 @@
       },
       datalabels: {
         display: (context: any) => {
-          return chartSettings.value.showLabels && context.datasetIndex === 0
+          if (!chartSettings.value.showLabels) return false
+          if (context.datasetIndex !== 0) return false
+
+          // If too many points for the current width, hide labels to avoid overlap
+          const numPoints = context.chart.data.labels.length
+          const chartWidth = context.chart.width
+          if (chartWidth > 0 && chartWidth < numPoints * 40) return false
+
+          return true
         },
         color: '#94a3b8',
         align: 'top' as const,
@@ -367,7 +375,9 @@
         },
         ticks: {
           color: '#94a3b8',
-          font: { size: 10, weight: 'bold' as const }
+          font: { size: 10, weight: 'bold' as const },
+          autoSkip: true,
+          maxTicksLimit: 8
         },
         border: { display: false }
       },

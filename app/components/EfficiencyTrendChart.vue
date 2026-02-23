@@ -99,7 +99,7 @@
   const chartSettings = computed(() => ({
     smooth: true,
     showPoints: true,
-    showLabels: true,
+    showLabels: false,
     yScale: 'dynamic',
     yMin: 0,
     ...props.settings
@@ -190,7 +190,15 @@
       },
       datalabels: {
         display: (context: any) => {
-          return chartSettings.value.showLabels && context.datasetIndex === 0
+          if (!chartSettings.value.showLabels) return false
+          if (context.datasetIndex !== 0) return false
+
+          // If too many points for the current width, hide labels to avoid overlap
+          const numPoints = context.chart.data.labels.length
+          const chartWidth = context.chart.width
+          if (chartWidth > 0 && chartWidth < numPoints * 40) return false
+
+          return true
         },
         color: '#94a3b8',
         align: 'top' as const,

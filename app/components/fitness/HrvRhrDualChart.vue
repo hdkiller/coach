@@ -390,7 +390,12 @@
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#94a3b8', font: { size: 10, weight: 'bold' as const } }
+        ticks: {
+          color: '#94a3b8',
+          font: { size: 10, weight: 'bold' as const },
+          maxTicksLimit: 8,
+          autoSkip: true
+        }
       },
       y: {
         type: 'linear' as const,

@@ -1037,7 +1037,8 @@
           color: '#94a3b8',
           font: { size: 10, weight: 'bold' as const },
           maxTicksLimit: 7,
-          maxRotation: 0
+          maxRotation: 0,
+          autoSkip: true
         },
         border: { display: false }
       },
@@ -1085,8 +1086,16 @@
 
     opts.plugins.datalabels = {
       display: (context: any) => {
+        if (!settings.showLabels) return false
         // Only show for the primary dataset (index 0) and if enabled in settings
-        return settings.showLabels && context.datasetIndex === 0
+        if (context.datasetIndex !== 0) return false
+
+        // If too many points for the current width, hide labels to avoid overlap
+        const numPoints = context.chart.data.labels.length
+        const chartWidth = context.chart.width
+        if (chartWidth > 0 && chartWidth < numPoints * 40) return false
+
+        return true
       },
       color: theme.isDark.value ? '#94a3b8' : '#64748b',
       align: 'top' as const,

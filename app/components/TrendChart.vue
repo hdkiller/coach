@@ -200,8 +200,16 @@
       },
       datalabels: {
         display: (context: any) => {
+          if (!chartSettings.value.showLabels) return false
           // Only show for primary metric (index 0) if enabled
-          return chartSettings.value.showLabels && context.datasetIndex === 0
+          if (context.datasetIndex !== 0) return false
+
+          // If too many points for the current width, hide labels to avoid overlap
+          const numPoints = context.chart.data.labels.length
+          const chartWidth = context.chart.width
+          if (chartWidth > 0 && chartWidth < numPoints * 40) return false
+
+          return true
         },
         color: theme.isDark.value ? '#94a3b8' : '#64748b',
         align: 'top' as const,
@@ -245,7 +253,8 @@
             weight: 'bold' as const
           },
           maxTicksLimit: 7,
-          maxRotation: 0
+          maxRotation: 0,
+          autoSkip: true
         },
         border: {
           display: false

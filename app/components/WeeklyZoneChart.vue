@@ -165,7 +165,9 @@
           grid: { display: false },
           ticks: {
             font: { size: 10, weight: 'bold' as const },
-            color: '#94a3b8'
+            color: '#94a3b8',
+            autoSkip: true,
+            maxTicksLimit: 8
           },
           border: { display: false }
         },
