@@ -55,7 +55,21 @@
             class="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0"
           >
             <div class="space-y-0.5">
-              <div class="text-sm font-bold text-gray-700 dark:text-gray-200">{{ item.label }}</div>
+              <div
+                class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5"
+              >
+                <span>{{ item.label }}</span>
+                <UTooltip v-if="item.badgeLabel && item.badgeTooltip" :text="item.badgeTooltip">
+                  <UBadge
+                    size="xs"
+                    variant="subtle"
+                    :color="(item.badgeColor as any) || 'neutral'"
+                    class="font-black uppercase tracking-wide text-[9px] px-1.5 py-0.5 leading-none"
+                  >
+                    {{ item.badgeLabel }}
+                  </UBadge>
+                </UTooltip>
+              </div>
               <div class="text-[10px] text-gray-400 font-medium leading-tight max-w-[220px]">
                 {{ item.description }}
               </div>
@@ -371,17 +385,30 @@
       // Show specific workouts if present
       if (fp.workoutCalories && fp.workoutCalories.length > 0) {
         fp.workoutCalories.forEach((w: any) => {
+          const sourceType = w?.sourceType === 'actual' ? 'actual' : 'estimated'
           items.push({
             label: w.title || 'Training Demand',
-            description: 'Estimated energy cost of this workout.',
-            value: `+${Math.round(w.calories)} kcal`
+            description:
+              sourceType === 'actual'
+                ? 'Actual recorded energy cost of this completed workout.'
+                : 'Estimated energy cost of this workout.',
+            value: `+${Math.round(w.calories)} kcal`,
+            badgeLabel: sourceType === 'actual' ? 'ACTUAL' : 'EST',
+            badgeColor: sourceType === 'actual' ? 'success' : 'neutral',
+            badgeTooltip:
+              sourceType === 'actual'
+                ? 'This value comes from recorded workout energy.'
+                : 'This value is predicted from planned intensity and duration.'
           })
         })
       } else if (fp.activityCalories > 5) {
         items.push({
           label: 'Training Demand',
           description: "Estimated energy cost of today's planned workouts.",
-          value: `+${Math.round(fp.activityCalories)} kcal`
+          value: `+${Math.round(fp.activityCalories)} kcal`,
+          badgeLabel: 'EST',
+          badgeColor: 'neutral',
+          badgeTooltip: 'This value is predicted from planned workouts.'
         })
       }
 
