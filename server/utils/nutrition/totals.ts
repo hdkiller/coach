@@ -1,3 +1,5 @@
+import { MEAL_LINKED_WATER_ML } from './hydration'
+
 type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snacks'
 
 const MEAL_KEYS: MealKey[] = ['breakfast', 'lunch', 'dinner', 'snacks']
@@ -172,9 +174,13 @@ export function recalculateNutritionTotals(nutrition: Record<string, any>): {
   let fiber = 0
   let sugar = 0
   let waterMl = 0
+  let mealsWithItems = 0
 
   for (const meal of MEAL_KEYS) {
     const items = (nutrition[meal] as any[]) || []
+    if (items.length > 0) {
+      mealsWithItems++
+    }
     for (const rawItem of items) {
       const item = normalizeFluidFields(rawItem || {})
       calories += toNumber(item.calories)
@@ -187,19 +193,8 @@ export function recalculateNutritionTotals(nutrition: Record<string, any>): {
     }
   }
 
-  // Backward compatibility and bonus preservation.
-  // If the record total is significantly higher than the item sum (e.g. includes meal bonuses),
-  // we keep the record total unless the item sum is already high.
-  const recordWater = toNumber(nutrition.waterMl)
-  if (waterMl < recordWater && waterMl > 0) {
-    // If the difference is a multiple of 100 (likely bonuses), keep it.
-    const diff = recordWater - waterMl
-    if (diff % 100 === 0) {
-      waterMl = recordWater
-    }
-  } else if (waterMl === 0 && recordWater > 0) {
-    waterMl = recordWater
-  }
+  // Add scalar bonuses for each meal that has entries
+  waterMl += mealsWithItems * MEAL_LINKED_WATER_ML
 
   return { calories, protein, carbs, fat, fiber, sugar, waterMl }
 }

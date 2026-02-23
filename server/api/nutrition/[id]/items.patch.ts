@@ -158,10 +158,7 @@ export default defineEventHandler(async (event) => {
 
   // Update record
   const updatedNutrition = await nutritionRepository.update(nutrition.id, {
-    [mealType]: updatedItems,
-    ...(action === 'add'
-      ? { waterMl: Math.max(0, (nutrition.waterMl || 0) + MEAL_LINKED_WATER_ML) }
-      : {})
+    [mealType]: updatedItems
   })
 
   const totals = recalculateNutritionTotals(updatedNutrition)

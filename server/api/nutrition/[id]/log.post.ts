@@ -279,13 +279,8 @@ export default defineEventHandler(async (event) => {
       targetNutrition = await nutritionRepository.update(targetNutrition.id, updates)
     }
 
-    const mealLinkedBonusMl = grouped.mealTypes.size * MEAL_LINKED_WATER_ML
-    const fluidToAddMl = Math.max(0, Math.round(grouped.hydrationMl + mealLinkedBonusMl))
-    if (fluidToAddMl > 0) {
-      targetNutrition = await nutritionRepository.update(targetNutrition.id, {
-        waterMl: Math.max(0, (targetNutrition.waterMl || 0) + fluidToAddMl)
-      })
-
+    const addedFluidMl = Math.max(0, Math.round(grouped.hydrationMl))
+    if (addedFluidMl > 0) {
       let intraWorkout: any = null
       const loggedAt = grouped.hydrationLoggedAt ? new Date(grouped.hydrationLoggedAt) : new Date()
       const planResult = await metabolicService.calculateFuelingPlanForDate(userId, targetDate, {
@@ -312,16 +307,15 @@ export default defineEventHandler(async (event) => {
         intraWorkout = {
           type: 'INTRA_WORKOUT',
           targetByNowMl,
-          loggedMl: fluidToAddMl,
+          loggedMl: addedFluidMl,
           completionPercent:
-            targetByNowMl > 0 ? Math.round((fluidToAddMl / targetByNowMl) * 100) : 100
+            targetByNowMl > 0 ? Math.round((addedFluidMl / targetByNowMl) * 100) : 100
         }
       }
 
       hydrationUpdates.push({
         date: targetDateStr,
-        fluidMl: fluidToAddMl,
-        mealLinkedBonusMl,
+        fluidMl: addedFluidMl,
         inferredFluidMl: grouped.hydrationMl,
         intraWorkout
       })
@@ -330,9 +324,6 @@ export default defineEventHandler(async (event) => {
     // Recalculate totals for this record
     const totals = recalculateNutritionTotals(targetNutrition)
 
-    // Add meal-linked bonus (this is a scalar-only bonus, not in items)
-    const waterMl = totals.waterMl + mealLinkedBonusMl
-
     await nutritionRepository.update(targetNutrition.id, {
       calories: totals.calories,
       protein: totals.protein,
@@ -340,7 +331,7 @@ export default defineEventHandler(async (event) => {
       fat: totals.fat,
       fiber: totals.fiber,
       sugar: totals.sugar,
-      waterMl
+      waterMl: totals.waterMl
     })
 
     // REACTIVE: Trigger fueling plan update for the log date
