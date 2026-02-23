@@ -35,6 +35,14 @@ export function sendToUser(userId: string, data: any) {
 
 export default defineWebSocketHandler({
   open(peer) {
+    // SECURITY: Clean up any existing state for this peer object if it's being reused
+    // This prevents "orphaned" subscription loops from leaking data between different users
+    // who might be assigned the same memory object for their socket connection.
+    const existingSubs = subscriptions.get(peer)
+    if (existingSubs) {
+      existingSubs.forEach((cancel) => cancel())
+    }
+
     peer.send(JSON.stringify({ type: 'welcome', message: 'Connected to Coach Watts WebSocket' }))
     subscriptions.set(peer, new Set())
     peerContext.set(peer, {})
