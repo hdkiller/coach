@@ -361,7 +361,9 @@
                       >
                         {{ report.title }}
                       </NuxtLink>
-                      <p class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                      <p
+                        class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all"
+                      >
                         {{ report.id }}
                       </p>
                     </td>
@@ -399,7 +401,7 @@
               v-if="reports && reports.totalPages > 1"
               class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end"
             >
-              <UPagination v-model="page" :page-count="limit" :total="reports.count" />
+              <UPagination v-model:page="page" :page-count="limit" :total="reports.count" />
             </div>
           </div>
 
@@ -463,7 +465,9 @@
                         >
                           {{ report.title }}
                         </NuxtLink>
-                        <p class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                        <p
+                          class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all"
+                        >
                           ID: {{ report.id }}
                         </p>
                       </template>
@@ -563,7 +567,9 @@
                     >
                       {{ report.title }}
                     </NuxtLink>
-                    <p class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all">
+                    <p
+                      class="mt-1 text-[10px] font-mono text-gray-500 dark:text-gray-400 break-all"
+                    >
                       ID: {{ report.id }}
                     </p>
                   </template>
@@ -627,7 +633,7 @@
 
             <!-- Pagination inside card mode -->
             <div v-if="reports && reports.totalPages > 1" class="px-6 py-4 flex justify-end mt-4">
-              <UPagination v-model="page" :page-count="limit" :total="reports.count" />
+              <UPagination v-model:page="page" :page-count="limit" :total="reports.count" />
             </div>
           </div>
         </template>

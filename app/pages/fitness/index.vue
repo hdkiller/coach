@@ -93,10 +93,11 @@
           <!-- Secondary Charts Grid -->
 
           <div
-            v-if="loading || allWellness.length > 0"
+            v-if="showSecondaryChartsGrid"
             class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6"
           >
             <FitnessTrendChart
+              v-if="showRecoveryChart"
               metric-key="recovery"
               title="Recovery Trajectory"
               :loading="loading"
@@ -108,6 +109,7 @@
             />
 
             <FitnessTrendChart
+              v-if="showSleepChart"
               metric-key="sleep"
               title="Sleep Duration"
               :loading="loading"
@@ -119,6 +121,7 @@
             />
 
             <FitnessTrendChart
+              v-if="showHrvChart"
               metric-key="hrv"
               title="Heart Rate Variability"
               :loading="loading"
@@ -130,6 +133,7 @@
             />
 
             <FitnessTrendChart
+              v-if="showRestingHrChart"
               metric-key="restingHr"
               title="Resting Heart Rate"
               :loading="loading"
@@ -141,6 +145,7 @@
             />
 
             <FitnessTrendChart
+              v-if="showWeightChart"
               metric-key="weight"
               title="Mass Progression"
               :loading="loading"
@@ -152,6 +157,7 @@
             />
 
             <FitnessTrendChart
+              v-if="showBpChart"
               metric-key="bp"
               title="Blood Pressure"
               :loading="loading"
@@ -1008,6 +1014,47 @@
       datasets
     }
   })
+
+  const hasRecoveryChartData = computed(() => (recoveryTrendData.value?.labels?.length || 0) > 0)
+  const hasSleepChartData = computed(() => (sleepTrendData.value?.labels?.length || 0) > 0)
+  const hasHrvChartData = computed(() => (hrvTrendData.value?.labels?.length || 0) > 0)
+  const hasRestingHrChartData = computed(() => (restingHrTrendData.value?.labels?.length || 0) > 0)
+  const hasWeightChartData = computed(() => (weightTrendData.value?.labels?.length || 0) > 0)
+  const hasBpChartData = computed(() => (bpTrendData.value?.labels?.length || 0) > 0)
+
+  const showRecoveryChart = computed(
+    () =>
+      chartSettings.value.recovery?.visible !== false &&
+      (loading.value || hasRecoveryChartData.value)
+  )
+  const showSleepChart = computed(
+    () => chartSettings.value.sleep?.visible !== false && (loading.value || hasSleepChartData.value)
+  )
+  const showHrvChart = computed(
+    () => chartSettings.value.hrv?.visible !== false && (loading.value || hasHrvChartData.value)
+  )
+  const showRestingHrChart = computed(
+    () =>
+      chartSettings.value.restingHr?.visible !== false &&
+      (loading.value || hasRestingHrChartData.value)
+  )
+  const showWeightChart = computed(
+    () =>
+      chartSettings.value.weight?.visible !== false && (loading.value || hasWeightChartData.value)
+  )
+  const showBpChart = computed(
+    () => chartSettings.value.bp?.visible !== false && (loading.value || hasBpChartData.value)
+  )
+
+  const showSecondaryChartsGrid = computed(
+    () =>
+      showRecoveryChart.value ||
+      showSleepChart.value ||
+      showHrvChart.value ||
+      showRestingHrChart.value ||
+      showWeightChart.value ||
+      showBpChart.value
+  )
 
   // Chart options
   const baseChartOptions = computed(() => ({
