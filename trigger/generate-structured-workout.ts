@@ -630,17 +630,30 @@ export const generateStructuredWorkoutTask = task({
       targetDurationMinutes: Math.round((workout.durationSec || 3600) / 60)
     })
 
-    const structure = (await generateStructuredAnalysis(prompt, workoutStructureSchema, 'flash', {
-      userId: workout.userId,
-      operation: 'generate_structured_workout',
-      entityType: 'PlannedWorkout',
-      entityId: plannedWorkoutId
-    })) as any
-    logStage('ai-structure-generated', {
-      hasSteps: Array.isArray(structure?.steps),
-      stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
-      exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
-    })
+    let structure: any
+    try {
+      const aiStartedAt = Date.now()
+      structure = await generateStructuredAnalysis(prompt, workoutStructureSchema, 'flash', {
+        userId: workout.userId,
+        operation: 'generate_structured_workout',
+        entityType: 'PlannedWorkout',
+        entityId: plannedWorkoutId,
+        disableThinking: true
+      })
+      const aiDurationMs = Date.now() - aiStartedAt
+      logStage('ai-structure-generated', {
+        aiDurationMs,
+        hasSteps: Array.isArray(structure?.steps),
+        stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
+        exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
+      })
+    } catch (aiError: any) {
+      logStage('ai-generation-failed', {
+        error: aiError.message,
+        stack: aiError.stack
+      })
+      throw aiError
+    }
 
     const normalizeAndCalculate = (steps: any[], depth = 0, parentStep: any = null) => {
       let distance = 0

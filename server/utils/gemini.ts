@@ -392,6 +392,7 @@ export interface LlmTrackingContext {
   entityType?: string
   entityId?: string
   onUsageLogged?: (usageId: string) => void | Promise<void>
+  disableThinking?: boolean
 }
 
 /**
@@ -447,11 +448,9 @@ export async function generateCoachAnalysis(
   const startTime = Date.now()
 
   // Configure thinking based on model version and tier settings
-  const providerOptions = buildGoogleProviderOptions(
-    modelName,
-    opSettings.thinkingLevel,
-    opSettings.thinkingBudget
-  )
+  const providerOptions = trackingContext?.disableThinking
+    ? {}
+    : buildGoogleProviderOptions(modelName, opSettings.thinkingLevel, opSettings.thinkingBudget)
 
   try {
     const { text, usage } = await generateText({
@@ -520,11 +519,9 @@ export async function generateStructuredAnalysis<T>(
   const startTime = Date.now()
 
   // Configure thinking based on model version and tier settings
-  const providerOptions = buildGoogleProviderOptions(
-    modelName,
-    opSettings.thinkingLevel,
-    opSettings.thinkingBudget
-  )
+  const providerOptions = trackingContext?.disableThinking
+    ? {}
+    : buildGoogleProviderOptions(modelName, opSettings.thinkingLevel, opSettings.thinkingBudget)
 
   try {
     const { object, usage } = await generateObject({
