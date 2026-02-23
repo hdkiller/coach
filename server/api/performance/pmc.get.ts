@@ -105,7 +105,8 @@ export default defineEventHandler(async (event) => {
     startDate = getStartOfYearUTC(timezone)
   } else {
     // Start date is relative to TODAY, regardless of extended end date (to keep window consistent)
-    startDate.setUTCDate(startDate.getUTCDate() - days)
+    const daysRequested = parseInt(query.days as string) || 90
+    startDate.setUTCDate(startDate.getUTCDate() - daysRequested)
   }
 
   startDate.setUTCHours(0, 0, 0, 0) // Start from beginning of the start day (UTC)

@@ -97,8 +97,8 @@ export default defineEventHandler(async (event) => {
   if (query.days === 'YTD') {
     startDate = getStartOfYearUTC(timezone)
   } else {
-    const days = parseInt(query.days as string) || 30
-    startDate.setUTCDate(startDate.getUTCDate() - days)
+    const daysRequested = parseInt(query.days as string) || 30
+    startDate.setUTCDate(startDate.getUTCDate() - daysRequested)
   }
 
   const workouts = await workoutRepository.getForUser(user.id, {

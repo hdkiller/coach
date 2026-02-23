@@ -163,6 +163,8 @@ export default defineEventHandler(async (event) => {
   if (query.months === 'YTD') {
     const timezone = await getUserTimezone(userId)
     startDate = getStartOfYearUTC(timezone)
+  } else if (query.months === '3650' || query.months === '730' || query.months === 'ALL') {
+    startDate.setFullYear(startDate.getFullYear() - 10)
   } else {
     const months = parseInt(query.months as string) || 12
     startDate.setMonth(startDate.getMonth() - months)

@@ -98,8 +98,8 @@ export default defineEventHandler(async (event) => {
   if (query.days === 'YTD') {
     startDate = getStartOfYearUTC(timezone)
   } else {
-    const days = parseInt(query.days as string) || 14
-    startDate.setUTCDate(startDate.getUTCDate() - days)
+    const daysRequested = parseInt(query.days as string) || 14
+    startDate.setUTCDate(startDate.getUTCDate() - daysRequested)
   }
 
   const nutrition = (await nutritionRepository.getForUser(user.id, {

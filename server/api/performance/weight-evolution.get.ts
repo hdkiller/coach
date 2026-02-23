@@ -77,7 +77,12 @@ export default defineEventHandler(async (event) => {
   const timezone = await getUserTimezone(user.id)
   const endDate = getUserLocalDate(timezone)
   const startDate = getUserLocalDate(timezone)
-  startDate.setUTCMonth(startDate.getUTCMonth() - months)
+
+  if (query.months === '3650' || query.months === '730' || query.months === 'ALL') {
+    startDate.setUTCFullYear(startDate.getUTCFullYear() - 10)
+  } else {
+    startDate.setUTCMonth(startDate.getUTCMonth() - months)
+  }
 
   // Fetch weight history from Wellness table
   const weightHistory = await wellnessRepository.getForUser(user.id, {
