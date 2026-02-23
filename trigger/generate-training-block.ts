@@ -446,8 +446,7 @@ Return valid JSON matching the schema provided.`
         userId,
         operation: 'generate_training_block',
         entityType: 'TrainingBlock',
-        entityId: blockId,
-        has_mini_taper: block.primaryFocus.includes('_WITH_RACE')
+        entityId: blockId
       }
     )
 
@@ -463,6 +462,22 @@ Return valid JSON matching the schema provided.`
     try {
       await prisma.$transaction(
         async (tx) => {
+          // Verify block still exists (it might have been deleted while Gemini was thinking)
+          const currentBlock = await tx.trainingBlock.findUnique({
+            where: { id: blockId },
+            select: { id: true }
+          })
+
+          if (!currentBlock) {
+            logger.warn(
+              '[GenerateBlock] Block was deleted during generation, skipping persistence',
+              {
+                blockId
+              }
+            )
+            return
+          }
+
           // Clear existing
           const existingWeeks = await tx.trainingWeek.findMany({
             where: { blockId },

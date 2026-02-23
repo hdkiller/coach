@@ -395,7 +395,6 @@ export const generateWeeklyPlanTask = task({
       getEndOfDayUTC(timezone, new Date()),
       {
         includeZones: false,
-        includeBreakdown: true,
         timezone
       }
     )
@@ -746,9 +745,27 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
       workoutCount: (plan as any).days?.filter((d: any) => d.workoutType !== 'Rest').length
     }
 
-    const savedPlan = currentPlan
+    // Check if the plan still exists if we intend to update it
+    let finalCurrentPlan = currentPlan
+    if (currentPlan) {
+      const exists = await prisma.weeklyTrainingPlan.findUnique({
+        where: { id: currentPlan.id },
+        select: { id: true }
+      })
+      if (!exists) {
+        logger.warn(
+          'Weekly plan was deleted during generation, will create new instead of updating',
+          {
+            planId: currentPlan.id
+          }
+        )
+        finalCurrentPlan = null
+      }
+    }
+
+    const savedPlan = finalCurrentPlan
       ? await prisma.weeklyTrainingPlan.update({
-          where: { id: currentPlan.id },
+          where: { id: finalCurrentPlan.id },
           data: {
             ...planData,
             updatedAt: new Date()

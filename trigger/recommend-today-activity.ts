@@ -907,6 +907,15 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
     // Update or create the recommendation
     let recommendation
     if (recommendationId) {
+      // Check if recommendation still exists
+      const exists = await activityRecommendationRepository.findById(recommendationId, userId)
+      if (!exists) {
+        logger.warn('Recommendation was deleted during generation, skipping update', {
+          recommendationId
+        })
+        return { success: true, skipped: true, reason: 'RECOMMENDATION_DELETED' }
+      }
+
       // Update the existing pending recommendation
       recommendation = await activityRecommendationRepository.update(recommendationId, userId, {
         recommendation: analysis.recommendation,

@@ -466,6 +466,19 @@ OUTPUT JSON FORMAT:
         }
       )
 
+      // Check if checkin still exists
+      const checkinExists = await prisma.dailyCheckin.findUnique({
+        where: { id: checkinId },
+        select: { id: true }
+      })
+
+      if (!checkinExists) {
+        logger.warn('Daily check-in was deleted during generation, skipping final update', {
+          checkinId
+        })
+        return { success: true, skipped: true }
+      }
+
       // Save questions
       await dailyCheckinRepository.update(checkinId, {
         questions: analysis.questions,

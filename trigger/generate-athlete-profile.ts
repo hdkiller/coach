@@ -835,6 +835,17 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
 
       // Save profile as a report and update user scores
       await prisma.$transaction(async (tx) => {
+        // Verify report still exists
+        const currentReport = await tx.report.findUnique({
+          where: { id: reportId },
+          select: { id: true }
+        })
+
+        if (!currentReport) {
+          logger.warn('Report was deleted during generation, skipping persistence', { reportId })
+          return
+        }
+
         // Update the report with profile data
         await tx.report.update({
           where: { id: reportId },
