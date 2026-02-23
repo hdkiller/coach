@@ -13,6 +13,7 @@ import { workoutRepository } from '../server/utils/repositories/workoutRepositor
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import { checkQuota } from '../server/utils/quotas/engine'
+import { enforceCyclingCadenceVariation, resolveCyclingCadence } from './utils/cadence'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -81,6 +82,19 @@ const workoutStructureSchema = {
                   minimum: 1,
                   maximum: 10,
                   description: 'Step RPE target on a 1-10 scale.'
+                },
+                cadence: {
+                  type: 'integer',
+                  description: 'Target cadence in RPM (single integer)'
+                },
+                cadenceRange: {
+                  type: 'object',
+                  properties: {
+                    start: { type: 'integer', minimum: 1 },
+                    end: { type: 'integer', minimum: 1 }
+                  },
+                  required: ['start', 'end'],
+                  description: 'Target cadence range for this step (e.g. 85-95 RPM).'
                 }
               },
               required: ['type', 'name', 'durationSeconds']
@@ -662,7 +676,7 @@ export const generateStructuredWorkoutTask = task({
 
       if (!Array.isArray(steps)) return { distance, duration, tss }
 
-      steps.forEach((step: any) => {
+      steps.forEach((step: any, stepIndex: number) => {
         // 1. Recover misplaced targets (AI sometimes puts 'value' or 'range' at top level)
         const recoverTarget = (fieldName: string) => {
           if (typeof step[fieldName] === 'string') {
@@ -701,10 +715,7 @@ export const generateStructuredWorkoutTask = task({
           }
           applyZoneHintToCyclingPower(step, sportSettings, ftp)
           if (!step.cadence) {
-            if (step.type === 'Warmup' || step.type === 'Cooldown') step.cadence = 85
-            else if (step.type === 'Rest') step.cadence = 80
-            else if (parentStep?.cadence) step.cadence = parentStep.cadence
-            else step.cadence = 90
+            step.cadence = resolveCyclingCadence(step, parentStep, stepIndex)
           }
           step.stroke = undefined
           step.equipment = undefined
@@ -799,6 +810,9 @@ export const generateStructuredWorkoutTask = task({
     }
 
     const totals = normalizeAndCalculate(structure.steps || [])
+    if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
+      enforceCyclingCadenceVariation(structure)
+    }
     const totalDistance = totals.distance
     let totalDuration = totals.duration
     let totalTSS = totals.tss
