@@ -44,7 +44,19 @@
     return typeof value === 'string' ? value : ''
   })
 
-  const previewRows = computed(() => (props.compact ? 4 : 8))
+  const isPersistedTicket = computed(() => {
+    if (props.toolName === 'ticket_get') return true
+    if (typeof props.response?.ticket?.id === 'string' && props.response.ticket.id.trim()) return true
+    if (typeof props.response?.id === 'string' && props.response.id.trim()) return true
+    return false
+  })
+
+  const ticketLabel = computed(() => {
+    if (props.toolName === 'ticket_comment') return 'Ticket Comment'
+    return isPersistedTicket.value ? 'Ticket' : 'Ticket Draft'
+  })
+
+  const descriptionMaxHeightClass = computed(() => (props.compact ? 'max-h-28' : 'max-h-40'))
 </script>
 
 <template>
@@ -56,7 +68,7 @@
         <p
           class="text-[11px] uppercase tracking-wider font-semibold text-primary-700 dark:text-primary-300"
         >
-          Ticket Draft
+          {{ ticketLabel }}
         </p>
         <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 break-words">
           {{ title }}
@@ -74,13 +86,8 @@
 
     <p
       v-if="description"
-      class="mt-2 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words"
-      :style="{
-        display: '-webkit-box',
-        WebkitLineClamp: previewRows,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden'
-      }"
+      class="mt-2 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words overflow-y-auto pr-1"
+      :class="descriptionMaxHeightClass"
     >
       {{ description }}
     </p>

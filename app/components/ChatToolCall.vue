@@ -114,7 +114,7 @@
       if (props.toolCall.name === 'ticket_comment') {
         return response.success ? 'Ticket comment prepared' : 'Ticket comment update'
       }
-      if (response.success) return 'Ticket draft ready for review'
+      if (response.success) return 'Ticket action completed'
       if (response.ticket?.title) return response.ticket.title
     }
 
