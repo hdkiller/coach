@@ -269,7 +269,7 @@ export default defineEventHandler(async (event) => {
       })
 
       const { summarizeChatTask } = await import('../../../trigger/summarize-chat')
-      await summarizeChatTask.trigger({ roomId, userId })
+      await summarizeChatTask.trigger({ roomId, userId }, { tags: [`user:${userId}`] })
     } catch (err) {
       console.error('[Chat API] Failed to trigger background summarization:', err)
     }

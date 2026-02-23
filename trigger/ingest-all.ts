@@ -176,7 +176,8 @@ export const ingestAllTask = task({
 
       try {
         const run = await (item.task as any).triggerAndWait(item.payload as any, {
-          concurrencyKey: userId
+          concurrencyKey: userId,
+          tags: [`user:${userId}`]
         })
 
         if (run.ok) {
@@ -379,7 +380,10 @@ export const ingestAllTask = task({
               `🤖 [Auto-Analyze] Found ${unanalyzedNutrition.length} unanalyzed nutrition records. Triggering analysis...`
             )
             for (const record of unanalyzedNutrition) {
-              await analyzeNutritionTask.trigger({ nutritionId: record.id })
+              await analyzeNutritionTask.trigger(
+                { nutritionId: record.id },
+                { tags: [`user:${userId}`] }
+              )
               // Log the action
               await auditLogRepository.log({
                 userId,

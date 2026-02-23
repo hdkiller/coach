@@ -884,6 +884,7 @@ export const IntervalsService = {
           { userId, dryRun: false },
           {
             concurrencyKey: userId,
+            tags: [`user:${userId}`],
             idempotencyKey: `deduplicate-workouts:auto:${userId}`,
             idempotencyKeyTTL: '2m'
           }
@@ -914,6 +915,7 @@ export const IntervalsService = {
           { userId, dryRun: false },
           {
             concurrencyKey: userId,
+            tags: [`user:${userId}`],
             idempotencyKey: `deduplicate-workouts:auto:${userId}`,
             idempotencyKeyTTL: '2m'
           }
