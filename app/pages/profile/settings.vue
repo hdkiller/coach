@@ -196,6 +196,8 @@
         body: newProfile
       })
 
+      await userStore.fetchProfile(true)
+
       toast.add({
         title: 'Profile Updated',
         description: 'Your settings have been saved.',

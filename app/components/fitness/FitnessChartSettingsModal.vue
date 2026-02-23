@@ -131,7 +131,7 @@
                     size="sm"
                     :placeholder="
                       metricKey === 'weight' && weightGoal?.targetValue
-                        ? `Goal: ${weightGoal.targetValue}kg`
+                        ? `Goal: ${weightGoal.targetValue}${userStore.weightUnitLabel || 'kg'}`
                         : 'Target value...'
                     "
                     class="w-full"
@@ -141,7 +141,8 @@
                   v-if="metricKey === 'weight' && weightGoal && !settings.targetValue"
                   class="text-[10px] text-primary-500 font-bold uppercase tracking-wider italic"
                 >
-                  Automatically using your weight goal: {{ weightGoal.targetValue }}kg
+                  Automatically using your weight goal: {{ weightGoal.targetValue
+                  }}{{ userStore.weightUnitLabel || 'kg' }}
                 </p>
               </div>
             </div>
@@ -234,7 +235,7 @@
     if (props.metricKey === 'sleep') return 'h'
     if (props.metricKey === 'hrv') return 'ms'
     if (props.metricKey === 'restingHr') return 'bpm'
-    if (props.metricKey === 'weight') return 'kg'
+    if (props.metricKey === 'weight') return userStore.weightUnitLabel || 'kg'
     return ''
   })
 
