@@ -197,6 +197,27 @@ export const issuesRepository = {
     })
   },
 
+  /**
+   * Delete an issue.
+   */
+  async delete(id: string, userId?: string) {
+    if (userId) {
+      const existing = await prisma.bugReport.findFirst({
+        where: { id, userId }
+      })
+      if (!existing) return null
+    } else {
+      const existing = await prisma.bugReport.findUnique({
+        where: { id }
+      })
+      if (!existing) return null
+    }
+
+    return prisma.bugReport.delete({
+      where: { id }
+    })
+  },
+
   async updateMetadata(id: string, metadataUpdate: IssueMetadata) {
     return prisma.bugReport.update({
       where: { id },
@@ -234,6 +255,84 @@ export const issuesRepository = {
           }
         }
       }
+    })
+  },
+
+  /**
+   * Update a comment on an issue.
+   */
+  async updateComment(
+    issueId: string,
+    commentId: string,
+    content: string,
+    options: { userId?: string; isAdmin?: boolean } = {}
+  ) {
+    const where: any = {
+      id: commentId,
+      bugReportId: issueId
+    }
+
+    if (options.userId) {
+      where.userId = options.userId
+      where.isAdmin = false
+    }
+
+    if (options.isAdmin !== undefined) {
+      where.isAdmin = options.isAdmin
+    }
+
+    const existing = await prisma.bugReportComment.findFirst({
+      where
+    })
+
+    if (!existing) return null
+
+    return prisma.bugReportComment.update({
+      where: { id: commentId },
+      data: { content },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            email: true
+          }
+        }
+      }
+    })
+  },
+
+  /**
+   * Delete a comment from an issue.
+   */
+  async deleteComment(
+    issueId: string,
+    commentId: string,
+    options: { userId?: string; isAdmin?: boolean } = {}
+  ) {
+    const where: any = {
+      id: commentId,
+      bugReportId: issueId
+    }
+
+    if (options.userId) {
+      where.userId = options.userId
+      where.isAdmin = false
+    }
+
+    if (options.isAdmin !== undefined) {
+      where.isAdmin = options.isAdmin
+    }
+
+    const existing = await prisma.bugReportComment.findFirst({
+      where
+    })
+
+    if (!existing) return null
+
+    return prisma.bugReportComment.delete({
+      where: { id: commentId }
     })
   },
 
