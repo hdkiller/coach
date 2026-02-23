@@ -1,6 +1,8 @@
 import { getServerSession } from '../../../utils/session'
 import { plannedWorkoutRepository } from '../../../utils/repositories/plannedWorkoutRepository'
 import { workoutRepository } from '../../../utils/repositories/workoutRepository'
+import { metabolicService } from '../../../utils/services/metabolicService'
+import { isNutritionTrackingEnabled } from '../../../utils/nutrition/feature'
 
 defineRouteMeta({
   openAPI: {
@@ -108,6 +110,18 @@ export default defineEventHandler(async (event) => {
       completed: true,
       completionStatus: 'COMPLETED'
     })
+
+    // REACTIVE: Regenerate fueling plan so completed workouts replace predictions immediately.
+    try {
+      if (await isNutritionTrackingEnabled(userId)) {
+        const targetDate = new Date(updatedWorkout?.date || plannedWorkout.date)
+        await metabolicService.calculateFuelingPlanForDate(userId, targetDate, {
+          persist: true
+        })
+      }
+    } catch (err) {
+      console.error('[PlannedWorkoutComplete] Failed to trigger regeneration:', err)
+    }
 
     return {
       success: true,

@@ -1,6 +1,8 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { calculateWorkoutStress } from '../../utils/calculate-workout-stress'
+import { metabolicService } from '../../utils/services/metabolicService'
+import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
 
 defineRouteMeta({
   openAPI: {
@@ -106,6 +108,17 @@ export default defineEventHandler(async (event) => {
           completionStatus: 'COMPLETED'
         }
       })
+    }
+
+    // REACTIVE: New completed/manual workouts must refresh same-day fueling targets.
+    try {
+      if (await isNutritionTrackingEnabled(userId)) {
+        await metabolicService.calculateFuelingPlanForDate(userId, workout.date, {
+          persist: true
+        })
+      }
+    } catch (err) {
+      console.error('[ManualWorkoutCreate] Failed to trigger regeneration:', err)
     }
 
     return {
