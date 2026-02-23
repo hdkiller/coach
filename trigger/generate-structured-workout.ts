@@ -1,6 +1,10 @@
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
-import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils/gemini'
+import {
+  generateStructuredAnalysis,
+  buildWorkoutSummary,
+  buildConciseWorkoutSummary
+} from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
 import { syncPlannedWorkoutToIntervals } from '../server/utils/intervals-sync'
@@ -284,8 +288,8 @@ const workoutStructureSchema = {
 
 function parseSingleZoneFromName(stepName: unknown): number | null {
   if (typeof stepName !== 'string' || stepName.trim().length === 0) return null
-  const matches = [...stepName.matchAll(/\bZ([1-7])\b/gi)]
-  const uniqueZones = [...new Set(matches.map((m) => Number(m[1])))]
+  const matches = Array.from(stepName.matchAll(/\bZ([1-7])\b/gi))
+  const uniqueZones = Array.from(new Set(matches.map((m) => Number(m[1]))))
   return uniqueZones.length === 1 ? uniqueZones[0]! : null
 }
 
@@ -443,9 +447,9 @@ export const generateStructuredWorkoutTask = task({
     const timezone = await getUserTimezone(workout.userId)
     logStage('resolved-timezone', { timezone })
 
-    // Fetch recent workouts for context
+    // Fetch recent workouts for context (Limit to 7 with concise summary to balance context vs speed)
     const recentWorkouts = await workoutRepository.getForUser(workout.userId, {
-      limit: 5,
+      limit: 7,
       orderBy: { date: 'desc' },
       include: {
         streams: {
@@ -541,7 +545,7 @@ export const generateStructuredWorkoutTask = task({
     - Coach Persona: ${persona}
     
     RECENT WORKOUTS:
-    ${buildWorkoutSummary(recentWorkouts, timezone)}
+    ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
 
     CRITICAL: ALWAYS use the user's specific zones defined below for this activity type.
 
@@ -560,18 +564,19 @@ export const generateStructuredWorkoutTask = task({
     INSTRUCTIONS:
     - Create a JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration exactly.
+    - **REPEATS/LOOPS**: For workouts longer than 60 minutes, and especially for interval sets, use the "steps" array with a "reps" property to group repetitive blocks. This keeps the JSON structure manageable.
     - Every workout must have a clear physiological objective (e.g. aerobic endurance, threshold, VO2, neuromuscular, recovery) and each block should support that objective.
     - Sequence intensity logically (warm-up -> quality work -> recovery -> cooldown). Avoid random intensity jumps.
     - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
     - If a step name implies a focus change (e.g. cadence focus), at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
-    - Include specific execution cues in 'coachInstructions' (breathing, pacing, cadence control, form focus).
+    - Include specific execution cues in "coachInstructions" (breathing, pacing, cadence control, form focus).
     - **METRIC PRIORITY**: Respect the user's PREFERRED INTENSITY METRIC (${loadPreference}). 
       - Priority Order: ${loadPreference.split('_').join(' > ')}.
       - Use the FIRST available metric from this list for each step as the primary target object. 
       - NEVER duplicate a workout step just to provide a different intensity metric. One step = one time block.
     - **steps**: All rules below (targets, etc.) apply to BOTH top-level steps AND nested steps inside repeats.
     - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
-    - **coachInstructions**: Provide a personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the '${persona}' persona tone.
+    - **coachInstructions**: Provide a personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the "${persona}" persona tone.
     - **Warmup/Cooldown**: Use the user's default durations (${warmupTime} minutes for Warmup, ${cooldownTime} minutes for Cooldown) unless the workout TITLE or DESCRIPTION explicitly asks for a different specific duration.
     - For aerobic/endurance workouts, create at least 2 distinct main-set sub-blocks with clear purpose (settle, sustain, technique/cadence or control), not one repeated generic block.
     - For Zone 2 workouts, keep primary targets inside the user's provided endurance/aerobic zones whenever available.
