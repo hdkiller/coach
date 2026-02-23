@@ -1005,6 +1005,7 @@
 
   const emit = defineEmits(['close', 'plan-created'])
   const toast = useToast()
+  const upgradeModal = useUpgradeModal()
   const { formatDate, formatDateUTC, getUserLocalDate, timezone, calculateAge } = useFormat()
   const userStore = useUserStore()
 
@@ -1014,6 +1015,30 @@
   const showCreateGoal = ref(false)
   const goals = ref<any[]>([])
   const selectedGoal = ref<any>(null)
+
+  function handleQuotaError(error: any, featureTitle: string, featureDescription: string) {
+    if (
+      error.statusCode === 429 ||
+      error.statusCode === 403 ||
+      error.message?.toLowerCase().includes('quota exceeded') ||
+      error.message?.toLowerCase().includes('upgrade to pro')
+    ) {
+      upgradeModal.show({
+        title: error.statusCode === 403 ? 'Pro Feature' : 'Training Strategy Limit',
+        featureTitle: featureTitle,
+        featureDescription: error.data?.message || featureDescription,
+        recommendedTier: 'pro',
+        bullets: [
+          'Unlimited AI Strategy & Design',
+          'Advanced Training Block Generation',
+          'Strategic Race Planning',
+          'Deep-Context Performance Analysis'
+        ]
+      })
+      return true
+    }
+    return false
+  }
 
   // Step 2 State
   const volumeHours = ref(6) // Default 6 hours
@@ -1320,6 +1345,18 @@
       generatedPlan.value = response.plan
       step.value = 3
     } catch (error: any) {
+      console.error('[PlanWizard] Failed to initialize plan:', error)
+
+      if (
+        handleQuotaError(
+          error,
+          'Plan Initialization',
+          'Upgrade to Pro for unlimited AI-powered training plan generation.'
+        )
+      ) {
+        return
+      }
+
       toast.add({
         title: 'Failed to generate plan',
         description: error.data?.message || 'Unknown error',
@@ -1345,7 +1382,19 @@
 
       emit('plan-created', generatedPlan.value)
       emit('close')
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[PlanWizard] Failed to activate plan:', error)
+
+      if (
+        handleQuotaError(
+          error,
+          'Plan Activation',
+          'Upgrade to Pro for unlimited AI-powered training plan activation.'
+        )
+      ) {
+        return
+      }
+
       toast.add({
         title: 'Activation Failed',
         description: 'Could not activate the plan.',

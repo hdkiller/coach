@@ -1015,6 +1015,7 @@
   const hoveredLinkId = ref<string | null>(null)
   const publishingId = ref<string | null>(null)
   const toast = useToast()
+  const upgradeModal = useUpgradeModal()
 
   // Independent Workouts Logic
   const showIndependentWorkouts = ref(false)
@@ -1025,6 +1026,30 @@
     showTimelineEditor.value = false
 
     emit('refresh')
+  }
+
+  function handleQuotaError(error: any, featureTitle: string, featureDescription: string) {
+    if (
+      error.statusCode === 429 ||
+      error.statusCode === 403 ||
+      error.message?.toLowerCase().includes('quota exceeded') ||
+      error.message?.toLowerCase().includes('upgrade to pro')
+    ) {
+      upgradeModal.show({
+        title: error.statusCode === 403 ? 'Pro Feature' : 'Structured Training Limit',
+        featureTitle: featureTitle,
+        featureDescription: error.data?.message || featureDescription,
+        recommendedTier: 'pro',
+        bullets: [
+          'Unlimited AI Strategy & Design',
+          'Advanced Training Block Generation',
+          'Strategic Race Planning',
+          'Deep-Context Performance Analysis'
+        ]
+      })
+      return true
+    }
+    return false
   }
 
   // Week Tuning Methods
@@ -1497,6 +1522,17 @@
       console.error('[Dashboard] API error for generate-block', error)
       generatingWorkouts.value = false
       generatingBlockId.value = null
+
+      if (
+        handleQuotaError(
+          error,
+          'Phase Initialization',
+          'Upgrade to Pro for unlimited training phase structure designs.'
+        )
+      ) {
+        return
+      }
+
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to trigger generation',
@@ -1521,6 +1557,18 @@
       })
     } catch (error: any) {
       console.error('[Dashboard] Structure generation failed', error)
+
+      if (
+        handleQuotaError(
+          error,
+          'AI-Powered Workout Design',
+          'Upgrade to Pro for unlimited AI-structured workouts and advanced strategic planning.'
+        )
+      ) {
+        generatingStructureForWorkoutId.value = null
+        return
+      }
+
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to generate structure',
@@ -1551,13 +1599,28 @@
       const batchSize = 3
       for (let i = 0; i < pendingWorkouts.length; i += batchSize) {
         const batch = pendingWorkouts.slice(i, i + batchSize)
-        await Promise.all(
+        const results = await Promise.allSettled(
           batch.map((w: any) =>
-            $fetch(`/api/workouts/planned/${w.id}/generate-structure`, { method: 'POST' }).catch(
-              (e) => console.error(`Failed to generate for ${w.id}`, e)
-            )
+            $fetch(`/api/workouts/planned/${w.id}/generate-structure`, { method: 'POST' })
           )
         )
+
+        // Check for quota or other errors in this batch
+        const firstError = results.find((r) => r.status === 'rejected') as any
+        if (firstError) {
+          if (
+            handleQuotaError(
+              firstError.reason,
+              'Batch AI Workout Design',
+              'You have reached your daily limit for generating AI-structured workouts.'
+            )
+          ) {
+            return // Stop completely on quota error
+          }
+          // For other errors, we might want to log and continue or stop.
+          // For now, let's stop this week's batch if any fails.
+          throw firstError.reason
+        }
       }
       refreshRuns()
 
@@ -1566,9 +1629,21 @@
         description: 'Waiting for AI to finish designing workouts...',
         color: 'info'
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Batch generation failed', error)
-      toast.add({ title: 'Batch Generation Failed', color: 'error' })
+      if (
+        !handleQuotaError(
+          error,
+          'Batch AI Workout Design',
+          'Failed to generate workouts for this week.'
+        )
+      ) {
+        toast.add({
+          title: 'Batch Generation Failed',
+          description: error.data?.message || 'Check the console for details.',
+          color: 'error'
+        })
+      }
     } finally {
       generatingAllStructures.value = false
     }
@@ -1596,6 +1671,18 @@
       showAdaptModal.value = false
     } catch (error: any) {
       console.error('[Dashboard] Adaptation failed', error)
+
+      if (
+        handleQuotaError(
+          error,
+          'Dynamic Plan Adaptation',
+          'Upgrade to Pro for unlimited AI-powered plan adjustments.'
+        )
+      ) {
+        adapting.value = null
+        return
+      }
+
       toast.add({
         title: 'Adaptation Failed',
         description: error.data?.message || 'Failed to trigger adaptation',
@@ -1678,6 +1765,18 @@
       })
     } catch (error: any) {
       console.error('[Dashboard] AI planning failed', error)
+
+      if (
+        handleQuotaError(
+          error,
+          'Dynamic Week Planning',
+          'Upgrade to Pro for unlimited goal-driven week redesigns.'
+        )
+      ) {
+        generatingWorkouts.value = false
+        return
+      }
+
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to start AI planning',
