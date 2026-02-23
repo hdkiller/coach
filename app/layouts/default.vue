@@ -244,6 +244,22 @@
           }
         },
         {
+          label: 'Support & Tickets',
+          icon: 'i-lucide-life-buoy',
+          to: '/help-center',
+          onSelect: () => {
+            open.value = false
+          }
+        },
+        {
+          label: 'My Tickets',
+          icon: 'i-lucide-ticket',
+          to: '/issues',
+          onSelect: () => {
+            open.value = false
+          }
+        },
+        {
           label: 'Developer',
           icon: 'i-lucide-code-2',
           to: '/settings/developer',
@@ -411,6 +427,18 @@
         label: 'Connected Apps (Strava, Garmin, Oura...)',
         icon: 'i-lucide-layout-grid',
         to: '/settings/apps',
+        onSelect: () => (open.value = false)
+      },
+      {
+        label: 'Support & Tickets',
+        icon: 'i-lucide-life-buoy',
+        to: '/help-center',
+        onSelect: () => (open.value = false)
+      },
+      {
+        label: 'My Tickets',
+        icon: 'i-lucide-ticket',
+        to: '/issues',
         onSelect: () => (open.value = false)
       },
       {

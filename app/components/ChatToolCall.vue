@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import ChatTicketPreview from '~/components/chat/ChatTicketPreview.vue'
+
   interface ToolCall {
     name: string
     args: Record<string, any>
@@ -14,6 +16,15 @@
 
   const { formatDate } = useFormat()
   const isExpanded = ref(false)
+  const supportToolNames = new Set([
+    'ticket_create',
+    'report_bug',
+    'ticket_update',
+    'ticket_comment',
+    'ticket_get'
+  ])
+
+  const isSupportTicketCall = computed(() => supportToolNames.has(props.toolCall.name))
 
   // Format tool name for display
   const formatToolName = (name: string) => {
@@ -66,7 +77,12 @@
       get_current_plan: 'i-heroicons-document-text',
       get_workout_stream: 'i-heroicons-chart-bar-square',
       create_chart: 'i-heroicons-presentation-chart-line',
-      forecast_training_load: 'i-heroicons-chart-bar'
+      forecast_training_load: 'i-heroicons-chart-bar',
+      ticket_create: 'i-heroicons-ticket',
+      report_bug: 'i-heroicons-bug-ant',
+      ticket_update: 'i-heroicons-pencil-square',
+      ticket_comment: 'i-heroicons-chat-bubble-left-right',
+      ticket_get: 'i-heroicons-clipboard-document-list'
     }
     return iconMap[name] || 'i-heroicons-wrench-screwdriver'
   }
@@ -92,6 +108,14 @@
     if (!response) {
       if (props.toolCall.status === 'success') return 'Operation completed'
       return 'Operation completed'
+    }
+
+    if (isSupportTicketCall.value) {
+      if (props.toolCall.name === 'ticket_comment') {
+        return response.success ? 'Ticket comment prepared' : 'Ticket comment update'
+      }
+      if (response.success) return 'Ticket draft ready for review'
+      if (response.ticket?.title) return response.ticket.title
     }
 
     if (typeof response === 'string') {
@@ -183,7 +207,15 @@
         <div
           class="bg-white dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-800 p-3"
         >
+          <ChatTicketPreview
+            v-if="isSupportTicketCall"
+            :tool-name="toolCall.name"
+            :args="toolCall.args"
+            compact
+            class="mb-3"
+          />
           <pre
+            v-if="!isSupportTicketCall"
             class="text-xs text-gray-600 dark:text-gray-400 overflow-x-auto"
           ><code>{{ formatJson(toolCall.args) }}</code></pre>
         </div>
@@ -209,7 +241,21 @@
               : 'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800'
           "
         >
+          <ChatTicketPreview
+            v-if="isSupportTicketCall && !hasError"
+            :tool-name="toolCall.name"
+            :args="toolCall.args"
+            :response="toolCall.response"
+            class="mb-3"
+          />
+          <p
+            v-if="isSupportTicketCall && hasError"
+            class="text-xs whitespace-pre-wrap break-words text-red-700 dark:text-red-400"
+          >
+            {{ toolCall.error || toolCall.response?.error || 'Ticket action failed.' }}
+          </p>
           <pre
+            v-if="!isSupportTicketCall"
             class="text-xs overflow-x-auto whitespace-pre-wrap break-words"
             :class="
               hasError ? 'text-red-700 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import ChatTicketPreview from '~/components/chat/ChatTicketPreview.vue'
+
   interface Props {
     approvalId: string
     toolCall: {
@@ -12,6 +14,15 @@
   const emit = defineEmits(['approve', 'deny'])
 
   const submitting = ref(false)
+  const showDenyEditor = ref(false)
+  const denyReason = ref('')
+  const supportToolNames = new Set([
+    'ticket_create',
+    'report_bug',
+    'ticket_update',
+    'ticket_comment'
+  ])
+  const isSupportTicketTool = computed(() => supportToolNames.has(props.toolCall.toolName))
 
   // Format tool name for display
   const formatToolName = (name: string) => {
@@ -31,9 +42,38 @@
     emit('approve', { approvalId: props.approvalId, result: 'User confirmed action.' })
   }
 
+  const openDenyEditor = () => {
+    showDenyEditor.value = true
+  }
+
+  const closeDenyEditor = () => {
+    showDenyEditor.value = false
+    denyReason.value = ''
+  }
+
   const handleDeny = async () => {
     submitting.value = true
-    emit('deny', { approvalId: props.approvalId, result: 'User denied action.' })
+    const trimmedReason = denyReason.value.trim()
+    const result = isSupportTicketTool.value
+      ? trimmedReason
+        ? `User declined this ticket draft. Requested changes: ${trimmedReason}`
+        : 'User declined this ticket draft for now. Ask what should be changed, or confirm if they want to cancel.'
+      : trimmedReason
+        ? `User denied action. Reason: ${trimmedReason}`
+        : 'User denied action.'
+
+    emit('deny', {
+      approvalId: props.approvalId,
+      result
+    })
+  }
+
+  const handleDenyClick = () => {
+    if (isSupportTicketTool.value) {
+      openDenyEditor()
+      return
+    }
+    handleDeny()
   }
 </script>
 
@@ -60,7 +100,15 @@
           v-if="toolCall.args && Object.keys(toolCall.args).length > 0"
           class="bg-white dark:bg-black/20 rounded border border-amber-200 dark:border-amber-800/50 p-2 mb-3"
         >
+          <ChatTicketPreview
+            v-if="isSupportTicketTool"
+            :tool-name="toolCall.toolName"
+            :args="toolCall.args"
+            compact
+            class="mb-2"
+          />
           <pre
+            v-if="!isSupportTicketTool"
             class="text-[10px] text-gray-600 dark:text-gray-400 overflow-x-auto"
           ><code>{{ formatJson(toolCall.args) }}</code></pre>
         </div>
@@ -86,6 +134,41 @@
         </div>
 
         <!-- Action Buttons -->
+        <div v-else-if="showDenyEditor" class="space-y-2">
+          <UTextarea
+            v-model="denyReason"
+            size="xs"
+            :rows="3"
+            :placeholder="
+              isSupportTicketTool
+                ? 'Tell the AI what to change in this ticket draft...'
+                : 'Optional reason for denying this action...'
+            "
+            class="w-full"
+          />
+          <div class="flex gap-2">
+            <UButton
+              size="xs"
+              color="error"
+              variant="solid"
+              icon="i-heroicons-paper-airplane"
+              :loading="submitting"
+              @click="handleDeny"
+            >
+              Submit Denial
+            </UButton>
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              :disabled="submitting"
+              @click="closeDenyEditor"
+            >
+              Back
+            </UButton>
+          </div>
+        </div>
+
         <div v-else class="flex gap-2">
           <UButton
             size="xs"
@@ -103,7 +186,7 @@
             variant="ghost"
             icon="i-heroicons-x-mark"
             :loading="submitting"
-            @click="handleDeny"
+            @click="handleDenyClick"
           >
             Deny
           </UButton>

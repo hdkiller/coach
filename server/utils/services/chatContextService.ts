@@ -761,7 +761,8 @@ export async function buildAthleteContext(userId: string): Promise<{
     When using ANY of these tools:
     - DO NOT say "I have [done the action]" (e.g. "I have added it to your calendar" or "I have deleted the meal").
     - INSTEAD, say: "I've prepared the [action]. Please click the **Approve** button below to confirm and save it."
-    - If the user replies with text instead of approving, the tool call is cancelled. You must re-run the tool and ask them to approve it again.`
+    - If the user replies with text instead of approving, the tool call is cancelled. You must re-run the tool and ask them to approve it again.
+    - If the user denies approval, treat it as user intent (not a technical failure). Ask what they want changed or if they want to cancel.`
     : ''
 
   const systemInstruction = `You are Coach Watts. Your coaching style and personality is **${persona}**.

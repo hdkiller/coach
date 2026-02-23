@@ -4,6 +4,7 @@
   import ChatChart from '~/components/ChatChart.vue'
   import ChatToolApproval from '~/components/chat/ChatToolApproval.vue'
   import ChatPlannedWorkoutCard from '~/components/chat/ChatPlannedWorkoutCard.vue'
+  import ChatTicketToolCard from '~/components/chat/ChatTicketToolCard.vue'
 
   const props = withDefaults(
     defineProps<{
@@ -105,6 +106,16 @@
     'patch_planned_workout_structure'
   ])
 
+  const supportTicketToolNames = new Set([
+    'ticket_create',
+    'report_bug',
+    'find_bug_reports',
+    'ticket_get',
+    'ticket_search',
+    'ticket_update',
+    'ticket_comment'
+  ])
+
   const hasPlannedWorkoutStructure = (response: any) => {
     if (!response || typeof response !== 'object') return false
     const structure = response.structuredWorkout || response.structured_workout
@@ -126,6 +137,12 @@
     return Boolean(response?.workout_id || args?.workout_id)
   }
 
+  const shouldRenderSupportTicketCard = (part: any) => {
+    if (!(part.type === 'tool-invocation' || part.type?.startsWith('tool-'))) return false
+    const toolName = getPartToolName(part)
+    return supportTicketToolNames.has(toolName)
+  }
+
   const shouldRenderToolCall = (part: any) => {
     if (!props.showTools) return false
     if (!(part.type === 'tool-invocation' || part.type?.startsWith('tool-'))) return false
@@ -133,6 +150,7 @@
 
     // Already handled by PlannedWorkoutCard
     if (shouldRenderPlannedWorkoutCard(part)) return false
+    if (shouldRenderSupportTicketCard(part)) return false
 
     // Hide successful chart tool calls if charts are being shown visually
     const toolName = getPartToolName(part)
@@ -207,6 +225,23 @@
         :tool-name="getPartToolName(part)"
         :response="getPartToolResponse(part)"
         :args="getPartToolArgs(part)"
+      />
+
+      <!-- Tool Invocation Part -->
+      <ChatTicketToolCard
+        v-else-if="showTools && shouldRenderSupportTicketCard(part)"
+        :tool-name="getPartToolName(part)"
+        :response="getPartToolResponse(part)"
+        :args="getPartToolArgs(part)"
+        :status="
+          (part as any).state === 'result' || (part as any).state === 'output-available'
+            ? 'success'
+            : (part as any).state === 'error' ||
+                (part as any).state === 'output-error' ||
+                (part as any).state === 'output-denied'
+              ? 'error'
+              : 'loading'
+        "
       />
 
       <!-- Tool Invocation Part -->
