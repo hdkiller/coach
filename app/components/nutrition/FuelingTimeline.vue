@@ -23,7 +23,7 @@
                   Physical Effort: {{ w.title }}
                 </h3>
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                  {{ formatTime(w.startTime || w.date) }}
+                  {{ formatDateTime(w.startTime || w.date) }}
                 </p>
               </div>
 
@@ -105,6 +105,14 @@
     if (!(d instanceof Date) || isNaN(d.getTime())) return ''
     const { formatDate } = useFormat()
     return formatDate(d, 'HH:mm')
+  }
+
+  const formatDateTime = (date: Date | string) => {
+    if (!date) return ''
+    const d = typeof date === 'string' ? new Date(date) : date
+    if (!(d instanceof Date) || isNaN(d.getTime())) return ''
+    const { formatDate } = useFormat()
+    return `${formatDate(d, 'EEE, MMM d')} • ${formatDate(d, 'HH:mm')}`
   }
 
   function formatTitle(window: FuelingTimelineWindow) {

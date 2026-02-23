@@ -6,9 +6,10 @@
     >
       No performance data available
     </div>
-    <Line
+    <component
+      :is="chartComponent"
       v-else
-      :key="`trend-${type}-${chartSettings.smooth}-${chartSettings.showPoints}-${chartSettings.yScale}`"
+      :key="`trend-${type}-${chartSettings.type}-${chartSettings.smooth}-${chartSettings.showPoints}-${chartSettings.yScale}`"
       :data="chartData"
       :options="chartOptions"
       :plugins="plugins"
@@ -18,9 +19,10 @@
 </template>
 
 <script setup lang="ts">
-  import { Line } from 'vue-chartjs'
+  import { Bar, Line } from 'vue-chartjs'
   import {
     Chart as ChartJS,
+    BarElement,
     CategoryScale,
     LinearScale,
     PointElement,
@@ -34,6 +36,7 @@
   ChartJS.register(
     CategoryScale,
     LinearScale,
+    BarElement,
     PointElement,
     LineElement,
     Title,
@@ -53,6 +56,7 @@
   const { formatDate: baseFormatDate } = useFormat()
 
   const chartSettings = computed(() => ({
+    type: 'line',
     smooth: true,
     showPoints: false,
     showLabels: false,
@@ -60,6 +64,8 @@
     yMin: 0,
     ...props.settings
   }))
+
+  const chartComponent = computed(() => (chartSettings.value.type === 'bar' ? Bar : Line))
 
   const metrics = computed(() => {
     if (props.type === 'workout') {
@@ -130,36 +136,42 @@
       return { labels: [], datasets: [] }
     }
 
+    const isBar = chartSettings.value.type === 'bar'
     const labels = props.data.map((item) => formatDate(item.date))
 
     const datasets = metrics.value.map((metric) => ({
+      type: isBar ? 'bar' : 'line',
       label: metric.label,
       data: props.data.map((item) => item[metric.key] || 0),
       borderColor: metric.color,
-      backgroundColor: 'transparent',
+      backgroundColor: isBar ? `${metric.color}33` : 'transparent',
       fill: false,
-      tension: chartSettings.value.smooth ? 0.4 : 0,
-      borderWidth: 2,
+      tension: isBar ? 0 : chartSettings.value.smooth ? 0.4 : 0,
+      borderWidth: isBar ? 1 : 2,
+      borderRadius: isBar ? 3 : 0,
       pointRadius: (ctx: any) => {
+        if (isBar) return 0
         const isGhost = props.data[ctx.dataIndex]?.isGhost
         if (isGhost) return 0
         return chartSettings.value.showPoints ? 3 : 0
       },
-      pointHoverRadius: 6,
+      pointHoverRadius: isBar ? 0 : 6,
       pointBackgroundColor: metric.color,
       pointBorderColor: theme.isDark.value ? '#111827' : '#fff',
       pointBorderWidth: 1.5,
       // For ghost data (synthetic/backfilled), show dashed line
-      segment: {
-        borderDash: (ctx: any) => {
-          const point = props.data[ctx.p1DataIndex]
-          return point?.isGhost ? [4, 4] : undefined
-        },
-        borderColor: (ctx: any) => {
-          const point = props.data[ctx.p1DataIndex]
-          return point?.isGhost ? `${metric.color}80` : metric.color
-        }
-      }
+      segment: isBar
+        ? undefined
+        : {
+            borderDash: (ctx: any) => {
+              const point = props.data[ctx.p1DataIndex]
+              return point?.isGhost ? [4, 4] : undefined
+            },
+            borderColor: (ctx: any) => {
+              const point = props.data[ctx.p1DataIndex]
+              return point?.isGhost ? `${metric.color}80` : metric.color
+            }
+          }
     }))
 
     return { labels, datasets }

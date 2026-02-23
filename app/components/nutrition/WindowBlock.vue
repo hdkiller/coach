@@ -40,7 +40,7 @@
             </div>
           </div>
           <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-            {{ formatTime(startTime) }} — {{ formatTime(endTime) }}
+            {{ formatWindowDateTimeRange(startTime, endTime) }}
           </p>
         </div>
 
@@ -583,6 +583,22 @@
     if (!(d instanceof Date) || isNaN(d.getTime())) return ''
     const { formatDate } = useFormat()
     return formatDate(d, 'HH:mm')
+  }
+
+  const formatWindowDateTimeRange = (startTime: Date | string, endTime: Date | string) => {
+    if (!startTime || !endTime) return ''
+    const startDate = typeof startTime === 'string' ? new Date(startTime) : startTime
+    const endDate = typeof endTime === 'string' ? new Date(endTime) : endTime
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return ''
+
+    const { formatDate } = useFormat()
+    const startDay = formatDate(startDate, 'EEE, MMM d')
+    const endDay = formatDate(endDate, 'EEE, MMM d')
+    const startClock = formatDate(startDate, 'HH:mm')
+    const endClock = formatDate(endDate, 'HH:mm')
+
+    if (startDay === endDay) return `${startDay} • ${startClock} — ${endClock}`
+    return `${startDay} ${startClock} — ${endDay} ${endClock}`
   }
 
   const windowIcon = computed(() => {
