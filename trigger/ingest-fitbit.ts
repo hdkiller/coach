@@ -8,8 +8,10 @@ import {
   fetchFitbitFoodLog,
   fetchFitbitFoodGoals,
   fetchFitbitWaterLog,
+  mergeFitbitNutritionWithExisting,
   normalizeFitbitNutrition
 } from '../server/utils/fitbit'
+import { getUserNutritionSettings } from '../server/utils/nutrition/settings'
 import type { IngestionResult } from './types'
 
 export const ingestFitbitTask = task({
@@ -55,6 +57,7 @@ export const ingestFitbitTask = task({
 
     try {
       const timezone = await getUserTimezone(userId)
+      const nutritionSettings = await getUserNutritionSettings(userId)
       logger.log(`User timezone: ${timezone}`)
 
       const start = new Date(startDate)
@@ -133,14 +136,20 @@ export const ingestFitbitTask = task({
             continue
           }
 
-          const nutrition = normalizeFitbitNutrition(foodLog, waterLog, foodGoals, userId, date)
+          const nutrition = normalizeFitbitNutrition(foodLog, waterLog, foodGoals, userId, date, {
+            mealPattern: nutritionSettings.mealPattern,
+            timezone
+          })
+
+          const existingDay = await nutritionRepository.getByDate(userId, nutrition.date)
+          const mergedNutrition = mergeFitbitNutritionWithExisting(nutrition, existingDay)
 
           const result = await nutritionRepository.upsert(
             userId,
-            nutrition.date,
-            nutrition as any,
+            mergedNutrition.date,
+            mergedNutrition as any,
             {
-              ...nutrition,
+              ...mergedNutrition,
               aiAnalysis: null,
               aiAnalysisJson: null,
               aiAnalysisStatus: 'NOT_STARTED',

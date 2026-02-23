@@ -83,6 +83,7 @@ export default defineEventHandler(async (event) => {
   const mealsList = ['breakfast', 'lunch', 'dinner', 'snacks']
   const currentItems = (nutrition[mealType] as any[]) || []
   let updatedItems = [...currentItems]
+  let movedFromMeal: string | null = null
 
   if (action === 'add') {
     if (!item) throw createError({ statusCode: 400, message: 'Item is required for add' })
@@ -119,6 +120,7 @@ export default defineEventHandler(async (event) => {
           // We need to remove it from there and add it to the target mealType
           const [foundItem] = otherItems.splice(otherIndex, 1)
           nutrition = await nutritionRepository.update(nutrition.id, { [m]: otherItems })
+          movedFromMeal = m
 
           // Update the local list and set the index
           index = updatedItems.length
@@ -130,11 +132,19 @@ export default defineEventHandler(async (event) => {
 
     if (index === -1) throw createError({ statusCode: 404, message: 'Item not found in any meal' })
 
+    const isFitbitItem = (updatedItems[index] as any)?.source === 'fitbit'
+    const manuallyOverrodeTime =
+      typeof item.logged_at === 'string' && item.logged_at.trim().length > 0
+
     // Update the item and ensure it has an ID now
     updatedItems[index] = {
       ...updatedItems[index],
       ...normalizeFluidFields(item),
-      id: updatedItems[index].id || item.id || crypto.randomUUID()
+      id: updatedItems[index].id || item.id || crypto.randomUUID(),
+      ...(isFitbitItem && manuallyOverrodeTime ? { fitbitTimeDerived: false } : {}),
+      ...(isFitbitItem && movedFromMeal && movedFromMeal !== mealType
+        ? { fitbitMealDerived: false }
+        : {})
     }
   } else if (action === 'delete') {
     if (!itemId && !item)
