@@ -571,8 +571,8 @@
               { label: 'Last 365 Days', value: 365 },
               { label: 'All Time (10 Years)', value: 3650 }
             ]"
-            value-attribute="value"
-            option-attribute="label"
+            value-key="value"
+            label-key="label"
             placeholder="Select duration"
           />
         </div>

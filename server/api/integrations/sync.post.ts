@@ -82,7 +82,12 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   const body = await readBody(event)
-  const { provider, days } = body
+  let { provider, days } = body
+
+  // Defensive check for 'days' - if it's an object (common from USelectMenu), extract the value
+  if (days && typeof days === 'object' && 'value' in days) {
+    days = days.value
+  }
 
   if (
     !provider ||
