@@ -4,6 +4,8 @@
 
   const props = defineProps<{
     issue?: any
+    apiBase?: string
+    updateMethod?: 'PATCH' | 'PUT'
   }>()
 
   const emit = defineEmits(['success', 'close'])
@@ -25,13 +27,24 @@
 
   const loading = ref(false)
   const toast = useToast()
+  const apiBase = computed(() => props.apiBase || '/api/issues')
+  const updateMethod = computed(() => props.updateMethod || 'PATCH')
+
+  watch(
+    () => isOpen.value,
+    (open) => {
+      if (!open) return
+      state.title = props.issue?.title || ''
+      state.description = props.issue?.description || ''
+    }
+  )
 
   async function onSubmit(event: FormSubmitEvent<Schema>) {
     loading.value = true
     try {
       if (isEditing.value) {
-        await $fetch(`/api/issues/${props.issue.id}`, {
-          method: 'PATCH',
+        await $fetch(`${apiBase.value}/${props.issue.id}`, {
+          method: updateMethod.value,
           body: event.data
         })
         toast.add({ title: 'Issue updated', color: 'success' })
