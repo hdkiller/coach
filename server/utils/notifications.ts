@@ -1,5 +1,5 @@
 import { prisma } from './db'
-import { sendToUser } from '../api/websocket'
+import { sendToUser } from './ws-state'
 
 export interface NotificationData {
   title: string
@@ -24,7 +24,7 @@ export async function createUserNotification(userId: string, data: NotificationD
     })
 
     // Send real-time update via WebSocket
-    sendToUser(userId, {
+    await sendToUser(userId, {
       type: 'notification_new',
       notification: {
         id: notification.id,

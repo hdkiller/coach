@@ -11,27 +11,11 @@ import { getUserTimezone } from '../utils/date'
 import { getUserAiSettings } from '../utils/ai-user-settings'
 import { getLlmOperationSettings } from '../utils/ai-operation-settings'
 import { checkQuota } from '../utils/quotas/engine'
+import { peerContext, sendToUser } from '../utils/ws-state'
+import { generateCoachAnalysis } from '../utils/gemini'
 
 // Map to store active subscriptions cancel functions per peer
 const subscriptions = new Map<any, Set<() => void>>()
-// Map to store peer authentication status
-export const peerContext = new Map<any, { userId?: string }>()
-
-/**
- * Sends a WebSocket message to all active connections for a specific user.
- */
-export function sendToUser(userId: string, data: any) {
-  const message = JSON.stringify(data)
-  for (const [peer, ctx] of peerContext.entries()) {
-    if (ctx.userId === userId) {
-      try {
-        peer.send(message)
-      } catch (e) {
-        console.error(`Failed to send WS message to user ${userId}:`, e)
-      }
-    }
-  }
-}
 
 export default defineWebSocketHandler({
   open(peer) {
