@@ -631,6 +631,7 @@
 
   // Filter options
   const activityTypeOptions = [
+    { label: 'All Sports', value: undefined },
     { label: 'Run', value: 'Run' },
     { label: 'Ride', value: 'Ride' },
     { label: 'Swim', value: 'Swim' },
@@ -638,6 +639,7 @@
   ]
 
   const analysisStatusOptions = [
+    { label: 'All Analysis', value: undefined },
     { label: 'Completed', value: 'COMPLETED' },
     { label: 'Pending', value: 'PENDING' },
     { label: 'Processing', value: 'PROCESSING' },
@@ -645,6 +647,7 @@
   ]
 
   const sourceOptions = [
+    { label: 'All Sources', value: undefined },
     { label: 'Intervals.icu', value: 'intervals' },
     { label: 'Strava', value: 'strava' },
     { label: 'Whoop', value: 'whoop' },
@@ -1752,7 +1755,8 @@
     { label: '14 Days', value: 14 },
     { label: '30 Days', value: 30 },
     { label: '90 Days', value: 90 },
-    { label: 'Year to Date', value: 'YTD' }
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
   ]
 
   // Watch filters and reset to page 1

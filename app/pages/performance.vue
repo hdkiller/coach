@@ -755,7 +755,8 @@
     { label: '14 Days', value: 14 },
     { label: '30 Days', value: 30 },
     { label: '90 Days', value: 90 },
-    { label: 'Year to Date', value: 'YTD' }
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
   ]
 
   const pmcPeriod = ref<number | string>(90)
@@ -764,7 +765,8 @@
     { label: '60 Days', value: 60 },
     { label: '90 Days', value: 90 },
     { label: '180 Days', value: 180 },
-    { label: 'Year to Date', value: 'YTD' }
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
   ]
 
   const ftpPeriod = ref<number | string>(12)
@@ -774,7 +776,8 @@
     { label: '6 Months', value: 6 },
     { label: '12 Months', value: 12 },
     { label: '24 Months', value: 24 },
-    { label: 'Year to Date', value: 'YTD' }
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
   ]
 
   const distributionPeriod = ref<number | string>(12)
@@ -784,7 +787,8 @@
     { label: '8 Weeks', value: 8 },
     { label: '12 Weeks', value: 12 },
     { label: '24 Weeks', value: 24 },
-    { label: 'Year to Date', value: 'YTD' }
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
   ]
 
   const workoutSport = ref<string>('all')
@@ -1124,5 +1128,5 @@
   const formatDateLocal = (date: string) => {
     return baseFormatDate(date)
   }
+  const isPerformanceSettingsModalOpen = ref(false)
 </script>
-const isPerformanceSettingsModalOpen = ref(false)

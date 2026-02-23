@@ -377,7 +377,8 @@
     { label: '14 Days', value: 14 },
     { label: '30 Days', value: 30 },
     { label: '90 Days', value: 90 },
-    { label: 'Year to Date', value: 'YTD' }
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
   ]
 
   // Period-aware fetching for additional metrics
@@ -463,6 +464,7 @@
 
   // Filter options
   const recoveryStatusOptions = [
+    { label: 'All Status', value: undefined },
     { label: 'Excellent (>80)', value: 'excellent' },
     { label: 'Good (60-80)', value: 'good' },
     { label: 'Fair (40-60)', value: 'fair' },
@@ -470,6 +472,7 @@
   ]
 
   const sleepQualityOptions = [
+    { label: 'All Quality', value: undefined },
     { label: 'Excellent (>8h)', value: 'excellent' },
     { label: 'Good (7-8h)', value: 'good' },
     { label: 'Fair (6-7h)', value: 'fair' },

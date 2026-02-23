@@ -767,7 +767,8 @@
     { label: '14 Days', value: 14 },
     { label: '30 Days', value: 30 },
     { label: '90 Days', value: 90 },
-    { label: 'Year to Date', value: 'YTD' }
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
   ]
 
   // Listeners
@@ -829,6 +830,7 @@
 
   // Filter options
   const analysisStatusOptions = [
+    { label: 'All Status', value: undefined },
     { label: 'Completed', value: 'COMPLETED' },
     { label: 'Pending', value: 'PENDING' },
     { label: 'Processing', value: 'PROCESSING' },
@@ -836,6 +838,7 @@
   ]
 
   const calorieStatusOptions = [
+    { label: 'All Calories', value: undefined },
     { label: 'Over Goal', value: 'over' },
     { label: 'Under Goal', value: 'under' },
     { label: 'Met Goal (±50 cal)', value: 'met' }
