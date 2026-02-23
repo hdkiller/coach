@@ -11,6 +11,15 @@
               <DashboardTriggerMonitorButton />
             </ClientOnly>
             <UButton
+              icon="i-heroicons-adjustments-horizontal"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              @click="isPerformanceSettingsModalOpen = true"
+            >
+              Customize
+            </UButton>
+            <UButton
               :loading="generatingExplanations"
               color="primary"
               variant="solid"
@@ -29,6 +38,7 @@
 
     <template #body>
       <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
+        <PerformanceSettingsModal v-model:open="isPerformanceSettingsModalOpen" />
         <!-- Dashboard Branding -->
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
@@ -42,7 +52,7 @@
         </div>
 
         <!-- 1. Activity Highlights (Big Numbers) -->
-        <div class="space-y-4">
+        <div v-if="sectionSettings.highlights?.visible !== false" class="space-y-4">
           <div class="flex items-center justify-between px-4 sm:px-0">
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
               Activity Highlights
@@ -70,7 +80,7 @@
         </div>
 
         <!-- 2. Athlete Profile Scores -->
-        <div class="space-y-4">
+        <div v-if="sectionSettings.athleteProfile?.visible !== false" class="space-y-4">
           <div class="flex items-center justify-between px-4 sm:px-0">
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
               Athlete Profile
@@ -175,7 +185,7 @@
         />
 
         <!-- 3. PMC Chart (Performance Management Chart) -->
-        <div v-if="nutritionEnabled" class="space-y-4">
+        <div v-if="sectionSettings.pmc?.visible !== false && nutritionEnabled" class="space-y-4">
           <PerformancePmcCard
             v-model:period="pmcPeriod"
             :period-options="pmcPeriodOptions"
@@ -191,7 +201,7 @@
         </div>
 
         <!-- 4. Power Duration Curve -->
-        <div class="space-y-4">
+        <div v-if="sectionSettings.powerCurve?.visible !== false" class="space-y-4">
           <PerformancePowerCurveCard
             v-model:period="powerCurvePeriod"
             v-model:sport="powerCurveSport"
@@ -211,7 +221,7 @@
         </div>
 
         <!-- 5. Efficiency & Decoupling -->
-        <div class="space-y-4">
+        <div v-if="sectionSettings.efficiency?.visible !== false" class="space-y-4">
           <PerformanceEfficiencyCard
             v-model:period="efficiencyPeriod"
             v-model:sport="efficiencySport"
@@ -229,7 +239,7 @@
         </div>
 
         <!-- 7. FTP Evolution Chart -->
-        <div class="space-y-4">
+        <div v-if="sectionSettings.ftp?.visible !== false" class="space-y-4">
           <PerformanceFtpEvolutionCard
             v-model:period="ftpPeriod"
             v-model:sport="ftpSport"
@@ -249,7 +259,7 @@
         </div>
 
         <!-- 8. Training Intensity Distribution -->
-        <div class="space-y-4">
+        <div v-if="sectionSettings.distribution?.visible !== false" class="space-y-4">
           <PerformanceIntensityDistributionCard
             v-model:period="distributionPeriod"
             v-model:sport="distributionSport"
@@ -268,7 +278,7 @@
         </div>
 
         <!-- 9. Workout Scores -->
-        <div class="space-y-4">
+        <div v-if="sectionSettings.workoutScores?.visible !== false" class="space-y-4">
           <div class="flex items-center justify-between px-1">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
               Workout Performance
@@ -432,7 +442,10 @@
         </div>
 
         <!-- 10. Nutrition Scores -->
-        <div class="space-y-4">
+        <div
+          v-if="sectionSettings.nutritionScores?.visible !== false && nutritionEnabled"
+          class="space-y-4"
+        >
           <div class="px-1">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
               Nutrition Quality
@@ -607,6 +620,7 @@
   import EfficiencyTrendChart from '~/components/EfficiencyTrendChart.vue'
   import ReadinessCorrelationChart from '~/components/ReadinessCorrelationChart.vue'
   import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
+  import PerformanceSettingsModal from '~/components/performance/PerformanceSettingsModal.vue'
   import PerformancePmcCard from '~/components/performance/PerformancePmcCard.vue'
   import PerformancePowerCurveCard from '~/components/performance/PerformancePowerCurveCard.vue'
   import PerformanceEfficiencyCard from '~/components/performance/PerformanceEfficiencyCard.vue'
@@ -655,6 +669,30 @@
       merged[key] = {
         ...defaultChartSettings[key],
         ...(userSettings[key] || {})
+      }
+    }
+    return merged
+  })
+
+  const defaultSectionSettings = {
+    highlights: { visible: true },
+    athleteProfile: { visible: true },
+    pmc: { visible: true },
+    powerCurve: { visible: true },
+    efficiency: { visible: true },
+    ftp: { visible: true },
+    distribution: { visible: true },
+    workoutScores: { visible: true },
+    nutritionScores: { visible: true }
+  }
+
+  const sectionSettings = computed(() => {
+    const userSections = userStore.user?.dashboardSettings?.performanceSections || {}
+    const merged: any = {}
+    for (const key in defaultSectionSettings) {
+      merged[key] = {
+        ...defaultSectionSettings[key as keyof typeof defaultSectionSettings],
+        ...(userSections[key] || {})
       }
     }
     return merged
@@ -1087,3 +1125,4 @@
     return baseFormatDate(date)
   }
 </script>
+const isPerformanceSettingsModalOpen = ref(false)
