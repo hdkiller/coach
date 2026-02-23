@@ -52,7 +52,7 @@ export const recommendationRepository = {
       where: { userId },
       select: { category: true }
     })
-    return [...new Set(recs.map((r) => r.category).filter(Boolean))] as string[]
+    return Array.from(new Set(recs.map((r) => r.category).filter(Boolean))) as string[]
   },
 
   async update(id: string, userId: string, data: Prisma.RecommendationUpdateInput) {

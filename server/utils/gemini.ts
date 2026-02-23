@@ -766,6 +766,23 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
     .join('\n\n')
 }
 
+/**
+ * Build a very compact summary of workouts for context in planning tasks.
+ */
+export function buildConciseWorkoutSummary(workouts: any[], timezone?: string): string {
+  return workouts
+    .map((w, idx) => {
+      const dateStr = formatDateUTC(w.date, 'MMM d')
+      const duration = Math.round(w.durationSec / 60)
+      const intensity = w.intensity ? ` (IF: ${w.intensity.toFixed(2)})` : ''
+      const tss = w.tss ? ` TSS: ${Math.round(w.tss)}` : ''
+      const power = w.averageWatts ? ` ${w.averageWatts}W` : ''
+
+      return `${idx + 1}. ${dateStr}: ${w.type} - ${w.title} [${duration}m${tss}${intensity}${power}]`
+    })
+    .join('\n')
+}
+
 export function buildMetricsSummary(metrics: any[], timezone?: string): string {
   return metrics
     .map((m) => {

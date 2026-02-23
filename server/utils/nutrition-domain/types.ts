@@ -86,6 +86,8 @@ export interface FuelingProfile {
   activityLevel?: string
   targetAdjustmentPercent?: number
   goalProfile?: string
+  baseProteinPerKg?: number
+  baseFatPerKg?: number
 }
 
 export interface CalorieBreakdown {
