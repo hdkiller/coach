@@ -62,10 +62,28 @@ ticketsCommand
 
       const ticket = await prisma.bugReport.findUnique({
         where: { id },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          title: true,
+          description: true,
+          context: true,
+          logs: true,
+          status: true,
+          priority: true,
+          metadata: true,
+          createdAt: true,
           comments: {
-            include: {
-              user: true
+            select: {
+              id: true,
+              content: true,
+              type: true,
+              createdAt: true,
+              user: {
+                select: {
+                  email: true
+                }
+              }
             },
             orderBy: {
               createdAt: 'asc'
@@ -108,16 +126,7 @@ ticketsCommand
         console.log(chalk.bold('\\nComments:'))
         ticket.comments.forEach((c) => {
           const typeLabel = c.type === 'NOTE' ? chalk.yellow('[NOTE]') : chalk.blue('[MESSAGE]')
-          let acknowledgement = ''
-          if (c.acknowledgedAt) {
-            acknowledgement = chalk.green(` [Viewed ${c.acknowledgedAt.toISOString()}]`)
-          }
-          let reactions = ''
-          if (c.reactions && Object.keys(c.reactions as any).length > 0) {
-            const r = c.reactions as any
-            reactions = ' ' + Object.entries(r).map(([emoji, uids]) => `${emoji}${ (uids as any).length}`).join(' ')
-          }
-          console.log(`${typeLabel} [${c.createdAt.toISOString()}] ${c.user.email}: ${c.content}${acknowledgement}${reactions}`)
+          console.log(`${typeLabel} [${c.createdAt.toISOString()}] ${c.user.email}: ${c.content}`)
         })
       }
 

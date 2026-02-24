@@ -32,7 +32,7 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
   },
   WorkoutReceived: {
     templateKey: 'WorkoutReceived',
-    defaultSubject: 'Great work: your workout is synced',
+    defaultSubject: 'Great shift: your workout is in the books',
     audience: 'ENGAGEMENT',
     preferenceKey: 'workoutAnalysis',
     requiredProps: ['workoutId', 'workoutTitle'],
