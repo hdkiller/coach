@@ -337,6 +337,71 @@ export const issuesRepository = {
   },
 
   /**
+   * Acknowledge a comment.
+   */
+  async acknowledgeComment(commentId: string, userId: string) {
+    return prisma.bugReportComment.update({
+      where: { id: commentId },
+      data: {
+        acknowledgedAt: new Date(),
+        acknowledgedBy: userId
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            email: true
+          }
+        }
+      }
+    })
+  },
+
+  /**
+   * Toggle a reaction on a comment.
+   */
+  async toggleReaction(commentId: string, userId: string, emoji: string) {
+    const comment = await prisma.bugReportComment.findUnique({
+      where: { id: commentId },
+      select: { reactions: true }
+    })
+
+    if (!comment) return null
+
+    let reactions = (comment.reactions as Record<string, string[]>) || {}
+    if (!reactions[emoji]) {
+      reactions[emoji] = []
+    }
+
+    const userIndex = reactions[emoji].indexOf(userId)
+    if (userIndex > -1) {
+      reactions[emoji].splice(userIndex, 1)
+      if (reactions[emoji].length === 0) {
+        delete reactions[emoji]
+      }
+    } else {
+      reactions[emoji].push(userId)
+    }
+
+    return prisma.bugReportComment.update({
+      where: { id: commentId },
+      data: { reactions: reactions as any },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            email: true
+          }
+        }
+      }
+    })
+  },
+
+  /**
    * Run AI triage on an issue (stubbed for now)
    */
   async triage(id: string) {
