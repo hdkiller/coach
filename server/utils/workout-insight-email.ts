@@ -22,13 +22,30 @@ function isRecentWorkout(date: Date) {
   return date >= windowStart
 }
 
+function inferSportCategory(workoutType?: string | null): 'run' | 'ride' | 'other' {
+  if (!workoutType) return 'other'
+  const normalized = workoutType.toLowerCase()
+  if (normalized.includes('run') || normalized.includes('jog') || normalized.includes('trail'))
+    return 'run'
+  if (
+    normalized.includes('ride') ||
+    normalized.includes('cycle') ||
+    normalized.includes('bike') ||
+    normalized.includes('cycling')
+  )
+    return 'ride'
+  return 'other'
+}
+
 function buildQuickTake(options: {
+  sportCategory: 'run' | 'ride' | 'other'
   tss?: number
+  averageCadence?: number
   averageHr?: number
   averageWatts?: number
   maxHr?: number
 }) {
-  const { tss, averageHr, averageWatts, maxHr } = options
+  const { sportCategory, tss, averageCadence, averageHr, averageWatts, maxHr } = options
 
   let quickTakeLabel = 'Session logged'
   let quickTakeBody =
@@ -47,20 +64,49 @@ function buildQuickTake(options: {
     quickTakeBody = 'This was a supportive session that reinforces aerobic base and momentum.'
   }
 
+  if (
+    sportCategory === 'run' &&
+    typeof averageCadence === 'number' &&
+    averageCadence >= 165 &&
+    averageCadence <= 185
+  ) {
+    quickTakeBody +=
+      ' Your run cadence was in an efficient range, which supports smooth turnover and economy.'
+  }
+
+  if (sportCategory === 'ride' && typeof averageCadence === 'number' && averageCadence >= 85) {
+    quickTakeBody +=
+      ' Your ride cadence stayed in a sustainable range, helping steady aerobic output.'
+  }
+
   const efficiencyMessage =
     typeof averageHr === 'number' &&
     typeof averageWatts === 'number' &&
-    averageHr <= 155 &&
-    averageWatts >= 230
-      ? 'Efficiency signal: you produced strong power while keeping heart rate controlled.'
+    ((sportCategory === 'ride' && averageHr <= 150 && averageWatts >= 210) ||
+      (sportCategory === 'run' && averageHr <= 155 && averageWatts >= 230) ||
+      (sportCategory === 'other' && averageHr <= 152 && averageWatts >= 220))
+      ? sportCategory === 'ride'
+        ? 'Efficiency signal: you held strong bike power while keeping heart rate controlled.'
+        : sportCategory === 'run'
+          ? 'Efficiency signal: you sustained strong run power with controlled heart rate.'
+          : 'Efficiency signal: you produced strong power while keeping heart rate controlled.'
       : undefined
 
   const recoveryMessage =
-    typeof maxHr === 'number' && maxHr >= 175
-      ? 'Intensity signal: you touched your top end today. Prioritize recovery tonight.'
+    typeof maxHr === 'number' &&
+    ((sportCategory === 'run' && maxHr >= 178) ||
+      (sportCategory === 'ride' && maxHr >= 172) ||
+      (sportCategory === 'other' && maxHr >= 175))
+      ? sportCategory === 'run'
+        ? 'Intensity signal: you touched the top end on this run. Prioritize recovery tonight.'
+        : sportCategory === 'ride'
+          ? 'Intensity signal: you pushed near your ceiling on the bike. Prioritize recovery tonight.'
+          : 'Intensity signal: you touched your top end today. Prioritize recovery tonight.'
       : undefined
 
-  return { quickTakeLabel, quickTakeBody, efficiencyMessage, recoveryMessage }
+  const cadenceUnit = sportCategory === 'ride' ? 'rpm' : 'spm'
+
+  return { quickTakeLabel, quickTakeBody, efficiencyMessage, recoveryMessage, cadenceUnit }
 }
 
 function formatDistanceLabel(distanceKm?: number) {
@@ -166,12 +212,16 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       ? `That is ${workoutsLast7Days} sessions in the last 7 days. Strong consistency momentum.`
       : undefined
 
-  const { quickTakeLabel, quickTakeBody, efficiencyMessage, recoveryMessage } = buildQuickTake({
-    tss: workout.tss || undefined,
-    averageHr: workout.averageHr || undefined,
-    averageWatts: workout.averageWatts || undefined,
-    maxHr: workout.maxHr || undefined
-  })
+  const sportCategory = inferSportCategory(workout.type)
+  const { quickTakeLabel, quickTakeBody, efficiencyMessage, recoveryMessage, cadenceUnit } =
+    buildQuickTake({
+      sportCategory,
+      tss: workout.tss || undefined,
+      averageCadence: workout.averageCadence || undefined,
+      averageHr: workout.averageHr || undefined,
+      averageWatts: workout.averageWatts || undefined,
+      maxHr: workout.maxHr || undefined
+    })
   const distanceLabel = formatDistanceLabel(distanceKm)
 
   const commonProps = {
@@ -195,6 +245,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     quickTakeBody,
     efficiencyMessage,
     recoveryMessage,
+    cadenceUnit,
     nextStepMessage: 'See how this session impacted your Fitness vs Fatigue trend.',
     workoutUrl: `${baseUrl}/workouts/${workout.id}`,
     unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`
