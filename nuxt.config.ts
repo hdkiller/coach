@@ -27,6 +27,15 @@ const sentryRelease = `${pkg.name}@${pkg.version}+${commitHash}`
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  ignore: [
+    'examples/**',
+    'coverage/**',
+    'backups/**',
+    '.output/**',
+    '.trigger/**',
+    '.nuxt/**',
+    'node_modules/**'
+  ],
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
@@ -228,6 +237,19 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    server: {
+      watch: {
+        ignored: [
+          '**/examples/**',
+          '**/coverage/**',
+          '**/backups/**',
+          '**/.output/**',
+          '**/.trigger/**',
+          '**/.nuxt/**',
+          '**/node_modules/**'
+        ]
+      }
+    },
     optimizeDeps: {
       include: [
         'prosemirror-state',

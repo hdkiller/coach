@@ -118,7 +118,7 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "build": "prisma generate && nuxt build",
-    "dev": "nuxt dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=8192' nuxt dev",
     "dev:trigger": "pnpm prisma:generate && npx trigger.dev@latest dev",
     "generate": "nuxt generate",
     "lint": "eslint .",
