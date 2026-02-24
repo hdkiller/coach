@@ -1698,10 +1698,7 @@
     v-model:open="isEditModalOpen"
     :workout="workout"
     @updated="fetchWorkout"
-    @delete="
-      isEditModalOpen = false
-      isDeleteModalOpen = true
-    "
+    @delete="onDeleteRequested"
   />
 
   <!-- Delete Confirmation Modal -->
@@ -1811,6 +1808,11 @@
   const isPromoteModalOpen = ref(false)
   const isEditModalOpen = ref(false)
   const isDeleteModalOpen = ref(false)
+
+  const onDeleteRequested = () => {
+    isEditModalOpen.value = false
+    isDeleteModalOpen.value = true
+  }
   const isWorkoutSectionsModalOpen = ref(false)
   const deleting = ref(false)
   const stomachFeel = ref<number | null>(null)
