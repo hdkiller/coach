@@ -30,6 +30,7 @@ interface UserEntitlements {
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const profile = ref<any>(null)
+  const dataSyncStatus = ref<any>(null)
   const loading = ref(false)
   const generating = ref(false)
   const userLoading = ref(false)
@@ -167,6 +168,7 @@ export const useUserStore = defineStore('user', () => {
       const fetcher = import.meta.server ? useRequestFetch() : $fetch
       const data = await fetcher('/api/profile/dashboard')
       profile.value = data?.profile || null
+      dataSyncStatus.value = data?.dataSyncStatus || null
     } catch (error: any) {
       if (!(import.meta.server && error.statusCode === 401)) {
         console.error('Error fetching profile:', error)
@@ -307,6 +309,7 @@ export const useUserStore = defineStore('user', () => {
     entitlements,
     isTrialActive,
     trialDaysRemaining,
+    dataSyncStatus,
     fetchUser,
     updateDashboardSettings,
     fetchProfile,
