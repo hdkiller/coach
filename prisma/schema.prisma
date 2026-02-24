@@ -1489,6 +1489,9 @@ model BugReportComment {
   content     String
   isAdmin     Boolean     @default(false)
   type        CommentType @default(MESSAGE)
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  reactions   Json?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   bugReport   BugReport   @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
