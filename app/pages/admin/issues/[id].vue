@@ -184,45 +184,39 @@
     }
   }
 
-  const reactingCommentId = ref<string | null>(null)
-  async function toggleReaction(commentId: string, emoji: string) {
-    reactingCommentId.value = commentId
-    try {
-      const updatedComment = await $fetch<any>(
-        `/api/admin/issues/${id}/comments/${commentId}/reaction`,
-        {
-          method: 'POST',
-          body: { emoji }
-        }
-      )
-      if (comments.value) {
-        const index = comments.value.findIndex((c: any) => c.id === commentId)
-        if (index !== -1) {
-          comments.value[index] = updatedComment
-        }
-      }
-    } catch {
-      toast.add({ title: 'Failed to update reaction', color: 'error' })
-    } finally {
-      reactingCommentId.value = null
-    }
-  }
-
+  const isIssueReactionPopoverOpen = ref(false)
   const reactingIssueId = ref(false)
   async function toggleIssueReaction(emoji: string) {
     reactingIssueId.value = true
+    isIssueReactionPopoverOpen.value = false
     try {
-      const updatedReport = await $fetch<any>(`/api/admin/issues/${id}/reaction`, {
+      await $fetch<any>(`/api/admin/issues/${id}/reaction`, {
         method: 'POST',
         body: { emoji }
       })
-      if (report.value) {
-        report.value.reactions = updatedReport.reactions
-      }
+      await refreshReport()
     } catch {
       toast.add({ title: 'Failed to update reaction', color: 'error' })
     } finally {
       reactingIssueId.value = false
+    }
+  }
+
+  const reactingCommentId = ref<string | null>(null)
+  const openReactionCommentId = ref<string | null>(null)
+  async function toggleReaction(commentId: string, emoji: string) {
+    reactingCommentId.value = commentId
+    openReactionCommentId.value = null
+    try {
+      await $fetch<any>(`/api/admin/issues/${id}/comments/${commentId}/reaction`, {
+        method: 'POST',
+        body: { emoji }
+      })
+      await refreshComments()
+    } catch {
+      toast.add({ title: 'Failed to update reaction', color: 'error' })
+    } finally {
+      reactingCommentId.value = null
     }
   }
 
@@ -415,7 +409,7 @@
                     {{ emoji }} {{ uids.length }}
                   </UButton>
                 </template>
-                <UPopover>
+                <UPopover v-model:open="isIssueReactionPopoverOpen">
                   <template #default>
                     <UButton
                       icon="i-heroicons-face-smile-20-solid"
@@ -423,6 +417,7 @@
                       color="neutral"
                       size="xs"
                       class="rounded-full p-1 opacity-70 hover:opacity-100"
+                      :loading="reactingIssueId"
                     />
                   </template>
                   <template #content>
@@ -570,7 +565,15 @@
                             {{ emoji }} {{ uids.length }}
                           </UButton>
                         </template>
-                        <UPopover>
+                        <UPopover
+                          :open="openReactionCommentId === comment.id"
+                          @update:open="
+                            (val) =>
+                              val
+                                ? (openReactionCommentId = comment.id)
+                                : (openReactionCommentId = null)
+                          "
+                        >
                           <template #default>
                             <UButton
                               icon="i-heroicons-face-smile-20-solid"
@@ -578,6 +581,7 @@
                               color="neutral"
                               size="xs"
                               class="rounded-full p-1 opacity-70 hover:opacity-100"
+                              :loading="reactingCommentId === comment.id"
                             />
                           </template>
                           <template #content>
