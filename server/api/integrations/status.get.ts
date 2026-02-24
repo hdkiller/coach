@@ -63,6 +63,16 @@ export default defineEventHandler(async (event) => {
           errorMessage: true
         }
       },
+      oauthConsents: {
+        include: {
+          app: {
+            select: {
+              name: true,
+              logoUrl: true
+            }
+          }
+        }
+      },
       accounts: {
         where: { provider: 'intervals' },
         select: {
@@ -81,6 +91,18 @@ export default defineEventHandler(async (event) => {
       message: 'User not found'
     })
   }
+
+  // Map OAuth consents to a standard integration format
+  const oauthIntegrations = user.oauthConsents.map((consent) => ({
+    id: consent.id,
+    provider: consent.app.name,
+    isOAuthApp: true,
+    lastSyncAt: consent.updatedAt,
+    syncStatus: 'AUTHORIZED',
+    logoUrl: consent.app.logoUrl
+  }))
+
+  const allIntegrations = [...user.integrations, ...oauthIntegrations]
 
   // Self-healing: If user has an intervals account but no intervals integration, create it
   const hasIntervalsAccount = user.accounts.some((a) => a.provider === 'intervals')
@@ -102,8 +124,8 @@ export default defineEventHandler(async (event) => {
             ingestWorkouts: true
           }
         })
-        // Add the new integration to the list we return
-        user.integrations.push({
+
+        allIntegrations.push({
           id: newIntegration.id,
           provider: newIntegration.provider,
           lastSyncAt: newIntegration.lastSyncAt,
@@ -112,7 +134,8 @@ export default defineEventHandler(async (event) => {
           ingestWorkouts: newIntegration.ingestWorkouts,
           settings: newIntegration.settings,
           errorMessage: newIntegration.errorMessage
-        })
+        } as any)
+
         console.log(`Self-healed missing Intervals.icu integration for user ${user.id}`)
       } catch (error) {
         console.error('Failed to self-heal Intervals.icu integration:', error)
@@ -121,6 +144,6 @@ export default defineEventHandler(async (event) => {
   }
 
   return {
-    integrations: user.integrations
+    integrations: allIntegrations
   }
 })

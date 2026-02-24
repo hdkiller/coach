@@ -1,6 +1,6 @@
 import { getEffectiveUserId } from '../../utils/coaching'
 import { metabolicService } from '../../utils/services/metabolicService'
-import { getUserTimezone, getUserLocalDate } from '../../utils/date'
+import { getUserTimezone, getUserLocalDate, getStartOfLocalDateUTC } from '../../utils/date'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { getProfileForItem, getAbsorbedInInterval } from '../../utils/nutrition-domain/absorption'
 
@@ -72,8 +72,9 @@ export default defineEventHandler(async (event) => {
           if (typeof timeVal === 'string' && /^\d{1,2}:\d{2}$/.test(timeVal)) {
             // It's a HH:mm string, anchor it to the record's date
             const [h, m] = timeVal.split(':').map(Number)
-            loggedAt = new Date(record.date)
-            loggedAt.setUTCHours(h || 0, m || 0, 0, 0)
+            const recordDateStr = new Date(record.date).toISOString().split('T')[0]
+            const baseDate = getStartOfLocalDateUTC(timezone, recordDateStr!)
+            loggedAt = new Date(baseDate.getTime() + ((h || 0) * 3600 + (m || 0) * 60) * 1000)
           } else if (timeVal) {
             loggedAt = new Date(timeVal)
           }

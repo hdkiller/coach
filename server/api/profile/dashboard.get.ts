@@ -62,7 +62,16 @@ export default defineEventHandler(async (event) => {
         weight: true,
         readiness: true,
         sleepHours: true,
-        recoveryScore: true
+        recoveryScore: true,
+        spO2: true,
+        respiration: true,
+        skinTemp: true,
+        vo2max: true,
+        sleepDeepSecs: true,
+        sleepRemSecs: true,
+        sleepLightSecs: true,
+        systolic: true,
+        diastolic: true
       }
     })
 
@@ -78,12 +87,16 @@ export default defineEventHandler(async (event) => {
         restingHr: true,
         hrv: true,
         sleepScore: true,
-        hoursSlept: true
+        hoursSlept: true,
+        spO2: true,
+        sleepDeepSecs: true,
+        sleepRemSecs: true,
+        sleepLightSecs: true
       }
     })
 
     // Determine which record is more recent or use Wellness as primary
-    let wellnessData = null
+    let wellnessData: any = null
     let wellnessDate = null
 
     if (wellness && dailyMetric) {
@@ -100,7 +113,16 @@ export default defineEventHandler(async (event) => {
           weight: null,
           readiness: null,
           sleepHours: dailyMetric.hoursSlept,
-          recoveryScore: dailyMetric.sleepScore
+          recoveryScore: dailyMetric.sleepScore,
+          spO2: dailyMetric.spO2,
+          sleepDeepSecs: dailyMetric.sleepDeepSecs,
+          sleepRemSecs: dailyMetric.sleepRemSecs,
+          sleepLightSecs: dailyMetric.sleepLightSecs,
+          respiration: null,
+          skinTemp: null,
+          vo2max: null,
+          systolic: null,
+          diastolic: null
         }
         wellnessDate = dailyMetric.date
       }
@@ -115,7 +137,16 @@ export default defineEventHandler(async (event) => {
         weight: null,
         readiness: null,
         sleepHours: dailyMetric.hoursSlept,
-        recoveryScore: dailyMetric.sleepScore
+        recoveryScore: dailyMetric.sleepScore,
+        spO2: dailyMetric.spO2,
+        sleepDeepSecs: dailyMetric.sleepDeepSecs,
+        sleepRemSecs: dailyMetric.sleepRemSecs,
+        sleepLightSecs: dailyMetric.sleepLightSecs,
+        respiration: null,
+        skinTemp: null,
+        vo2max: null,
+        systolic: null,
+        diastolic: null
       }
       wellnessDate = dailyMetric.date
     }
@@ -142,6 +173,18 @@ export default defineEventHandler(async (event) => {
     const recentSleep = wellnessData?.sleepHours ?? null
     const recentRecoveryScore = wellnessData?.recoveryScore ?? null
     const latestWellnessDate = wellnessDate
+
+    // Additional wellness fields
+    const recentSpO2 = wellnessData?.spO2 ?? null
+    const recentRespiration = wellnessData?.respiration ?? null
+    const recentSkinTemp = wellnessData?.skinTemp ?? null
+    const recentVo2max = wellnessData?.vo2max ?? null
+    const recentSleepDeep = wellnessData?.sleepDeepSecs ?? null
+    const recentSleepRem = wellnessData?.sleepRemSecs ?? null
+    const recentSleepLight = wellnessData?.sleepLightSecs ?? null
+    const recentSystolic = wellnessData?.systolic ?? null
+    const recentDiastolic = wellnessData?.diastolic ?? null
+    const recentReadiness = wellnessData?.readiness ?? null
 
     // Calculate 7-day HRV average if we have wellness data
     let avgRecentHRV = null
@@ -267,6 +310,16 @@ export default defineEventHandler(async (event) => {
         avgRecentHRV: avgRecentHRV ? Math.round(avgRecentHRV * 10) / 10 : null,
         recentSleep,
         recentRecoveryScore,
+        recentSpO2,
+        recentRespiration,
+        recentSkinTemp,
+        recentVo2max,
+        recentSleepDeep,
+        recentSleepRem,
+        recentSleepLight,
+        recentSystolic,
+        recentDiastolic,
+        recentReadiness,
         latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
         profileLastUpdated: user.profileLastUpdated?.toISOString() ?? null,
         latestWorkoutDate: latestWorkout?.date.toISOString() ?? null,
