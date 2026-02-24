@@ -62,7 +62,16 @@ ticketsCommand
 
       const ticket = await prisma.bugReport.findUnique({
         where: { id },
-        include: { user: true, comments: { include: { user: true } } }
+        include: {
+          comments: {
+            include: {
+              user: true
+            },
+            orderBy: {
+              createdAt: 'asc'
+            }
+          }
+        }
       })
 
       if (!ticket) {
@@ -70,12 +79,21 @@ ticketsCommand
         return
       }
 
+      // Fetch user separately
+      const user = await prisma.user.findUnique({
+        where: { id: ticket.userId }
+      })
+
       console.log(chalk.bold.blue('\\n--- TICKET DETAILS ---'))
       console.log(chalk.bold('ID:'), ticket.id)
       console.log(chalk.bold('Status:'), ticket.status)
       console.log(chalk.bold('Priority:'), ticket.priority || 'N/A')
       console.log(chalk.bold('Created At:'), ticket.createdAt)
-      console.log(chalk.bold('User:'), `${ticket.user.email} (${ticket.userId})`)
+      if (user) {
+        console.log(chalk.bold('User:'), `${user.email} (${ticket.userId})`)
+      } else {
+        console.log(chalk.bold('User:'), `Unknown (${ticket.userId})`)
+      }
       console.log(chalk.bold('Title:'), ticket.title)
       console.log(chalk.bold('Description:\\n'), ticket.description)
 
@@ -90,7 +108,16 @@ ticketsCommand
         console.log(chalk.bold('\\nComments:'))
         ticket.comments.forEach((c) => {
           const typeLabel = c.type === 'NOTE' ? chalk.yellow('[NOTE]') : chalk.blue('[MESSAGE]')
-          console.log(`${typeLabel} [${c.createdAt.toISOString()}] ${c.user.email}: ${c.content}`)
+          let acknowledgement = ''
+          if (c.acknowledgedAt) {
+            acknowledgement = chalk.green(` [Viewed ${c.acknowledgedAt.toISOString()}]`)
+          }
+          let reactions = ''
+          if (c.reactions && Object.keys(c.reactions as any).length > 0) {
+            const r = c.reactions as any
+            reactions = ' ' + Object.entries(r).map(([emoji, uids]) => `${emoji}${ (uids as any).length}`).join(' ')
+          }
+          console.log(`${typeLabel} [${c.createdAt.toISOString()}] ${c.user.email}: ${c.content}${acknowledgement}${reactions}`)
         })
       }
 

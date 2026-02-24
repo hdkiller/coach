@@ -402,6 +402,38 @@ export const issuesRepository = {
   },
 
   /**
+   * Toggle a reaction on a bug report.
+   */
+  async toggleIssueReaction(issueId: string, userId: string, emoji: string) {
+    const report = await prisma.bugReport.findUnique({
+      where: { id: issueId },
+      select: { reactions: true }
+    })
+
+    if (!report) return null
+
+    let reactions = (report.reactions as Record<string, string[]>) || {}
+    if (!reactions[emoji]) {
+      reactions[emoji] = []
+    }
+
+    const userIndex = reactions[emoji].indexOf(userId)
+    if (userIndex > -1) {
+      reactions[emoji].splice(userIndex, 1)
+      if (reactions[emoji].length === 0) {
+        delete reactions[emoji]
+      }
+    } else {
+      reactions[emoji].push(userId)
+    }
+
+    return prisma.bugReport.update({
+      where: { id: issueId },
+      data: { reactions: reactions as any }
+    })
+  },
+
+  /**
    * Run AI triage on an issue (stubbed for now)
    */
   async triage(id: string) {

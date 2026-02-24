@@ -323,9 +323,7 @@
               size="xs"
               class="text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
             >
-              v{{ config.public.version }}+{{ config.public.buildDate }}.{{
-                config.public.commitHash
-              }}
+              {{ buildVersionDisplay }}
             </UButton>
           </div>
         </div>
@@ -386,6 +384,11 @@
   })
 
   const config = useRuntimeConfig()
+  const buildVersionDisplay = computed(
+    () =>
+      (config.public.buildVersion as string) ||
+      `v${config.public.version}+${config.public.buildDate}.${config.public.commitHash}`
+  )
   const toast = useToast()
 
   const integrationStore = useIntegrationStore()

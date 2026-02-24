@@ -118,6 +118,41 @@
     }
   }
 
+  const acknowledgingCommentId = ref<string | null>(null)
+  async function acknowledgeComment(commentId: string) {
+    acknowledgingCommentId.value = commentId
+    try {
+      await $fetch(`/api/issues/${id}/comments/${commentId}/acknowledge`, {
+        method: 'POST'
+      })
+      toast.add({ title: 'Comment acknowledged', color: 'success' })
+      await refreshReport()
+    } catch {
+      toast.add({ title: 'Failed to acknowledge comment', color: 'error' })
+    } finally {
+      acknowledgingCommentId.value = null
+    }
+  }
+
+  const reactingCommentId = ref<string | null>(null)
+  async function toggleReaction(commentId: string, emoji: string) {
+    reactingCommentId.value = commentId
+    try {
+      await $fetch(`/api/issues/${id}/comments/${commentId}/reaction`, {
+        method: 'POST',
+        body: { emoji }
+      })
+      await refreshReport()
+    } catch {
+      toast.add({ title: 'Failed to update reaction', color: 'error' })
+    } finally {
+      reactingCommentId.value = null
+    }
+  }
+
+  const commonEmojis = ['👍', '❤️', '👀', '🚀']
+  const userId = computed(() => (useAuth() as any).data.value?.user?.id)
+
   function getStatusColor(status: string) {
     switch (status) {
       case 'OPEN':
@@ -349,6 +384,66 @@
                           class="prose prose-sm max-w-none"
                           :class="!comment.isAdmin ? 'prose-invert' : 'dark:prose-invert'"
                         />
+                      </div>
+                      <div v-if="comment.isAdmin" class="mt-1 flex items-center justify-between">
+                        <div v-if="comment.acknowledgedAt" class="flex items-center gap-1">
+                          <UIcon name="i-heroicons-check-circle" class="size-3 text-success" />
+                          <span class="text-[9px] text-gray-500 italic">
+                            Viewed {{ formatDate(comment.acknowledgedAt, 'MMM d, HH:mm') }}
+                          </span>
+                        </div>
+                        <UButton
+                          v-else
+                          label="Mark as Viewed"
+                          variant="ghost"
+                          color="neutral"
+                          size="xs"
+                          :loading="acknowledgingCommentId === comment.id"
+                          class="text-[9px] px-1 h-auto font-black uppercase tracking-tighter"
+                          @click="acknowledgeComment(comment.id)"
+                        />
+
+                        <!-- Reactions -->
+                        <div class="flex items-center gap-1">
+                          <template v-if="comment.reactions">
+                            <UButton
+                              v-for="(uids, emoji) in (comment.reactions as any)"
+                              :key="emoji"
+                              variant="subtle"
+                              :color="uids.includes(userId) ? 'primary' : 'neutral'"
+                              size="xs"
+                              class="px-1.5 py-0.5 h-6 min-w-8 rounded-full text-[10px]"
+                              @click="toggleReaction(comment.id, String(emoji))"
+                            >
+                              {{ emoji }} {{ uids.length }}
+                            </UButton>
+                          </template>
+                          <UPopover>
+                            <template #default>
+                              <UButton
+                                icon="i-heroicons-face-smile"
+                                variant="ghost"
+                                color="neutral"
+                                size="xs"
+                                class="rounded-full p-1 opacity-50 hover:opacity-100"
+                              />
+                            </template>
+                            <template #content>
+                              <div class="p-1 flex gap-1">
+                                <UButton
+                                  v-for="emoji in commonEmojis"
+                                  :key="emoji"
+                                  variant="ghost"
+                                  color="neutral"
+                                  size="sm"
+                                  @click="toggleReaction(comment.id, emoji)"
+                                >
+                                  {{ emoji }}
+                                </UButton>
+                              </div>
+                            </template>
+                          </UPopover>
+                        </div>
                       </div>
                     </div>
                   </div>
