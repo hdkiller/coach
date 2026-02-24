@@ -1699,7 +1699,7 @@
     :workout="workout"
     @updated="fetchWorkout"
     @delete="
-      isEditModalOpen = false
+      isEditModalOpen = false;
       isDeleteModalOpen = true
     "
   />
