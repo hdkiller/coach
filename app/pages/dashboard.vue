@@ -23,7 +23,7 @@
               <span class="hidden sm:inline">Upload</span>
             </UButton>
             <UButton
-              v-if="integrationStore?.intervalsConnected"
+              v-if="isOnboarded"
               :loading="integrationStore.syncingData"
               :disabled="integrationStore.syncingData"
               color="neutral"
@@ -60,7 +60,7 @@
         </div>
 
         <!-- Onboarding View (New User) -->
-        <div v-else-if="!integrationStore?.intervalsConnected" class="p-4 sm:p-6 max-w-6xl mx-auto">
+        <div v-else-if="!isOnboarded" class="p-4 sm:p-6 max-w-6xl mx-auto">
           <DashboardOnboardingView />
         </div>
 
@@ -402,6 +402,24 @@
       userStore.user?.nutritionTrackingEnabled !== false
   )
 
+  const isOnboarded = computed(() => {
+    // 1. Check if Intervals is connected (current behavior)
+    if (integrationStore.intervalsConnected) return true
+
+    // 2. Check if ANY integration is connected (Authorized Application)
+    if ((integrationStore.integrationStatus?.integrations?.length || 0) > 0) return true
+
+    // 3. Check if user has ANY data (Workouts, Nutrition, or Wellness)
+    if (
+      userStore.dataSyncStatus?.workouts ||
+      userStore.dataSyncStatus?.nutrition ||
+      userStore.dataSyncStatus?.wellness
+    )
+      return true
+
+    return false
+  })
+
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
   const { onTaskCompleted } = useUserRunsState()
@@ -505,10 +523,10 @@
   // Initial data fetch
   onMounted(async () => {
     try {
-      await integrationStore.fetchStatus()
-      if (integrationStore.intervalsConnected) {
+      await Promise.all([integrationStore.fetchStatus(), userStore.fetchProfile()])
+
+      if (isOnboarded.value) {
         await Promise.all([
-          userStore.fetchProfile(),
           recommendationStore.fetchTodayRecommendation(),
           activityStore.fetchRecentActivity(),
           fetchUpcomingWorkouts(),
@@ -521,22 +539,19 @@
     }
   })
 
-  // Watch for connection changes
-  watch(
-    () => integrationStore.intervalsConnected,
-    async (connected) => {
-      if (connected) {
-        await Promise.all([
-          userStore.fetchProfile(),
-          recommendationStore.fetchTodayRecommendation(),
-          activityStore.fetchRecentActivity(),
-          fetchUpcomingWorkouts(),
-          checkinStore.fetchToday(),
-          nutritionEnabled.value ? fetchTodayNutrition() : Promise.resolve()
-        ])
-      }
+  // Watch for onboarding status changes
+  watch(isOnboarded, async (onboarded) => {
+    if (onboarded) {
+      await Promise.all([
+        userStore.fetchProfile(),
+        recommendationStore.fetchTodayRecommendation(),
+        activityStore.fetchRecentActivity(),
+        fetchUpcomingWorkouts(),
+        checkinStore.fetchToday(),
+        nutritionEnabled.value ? fetchTodayNutrition() : Promise.resolve()
+      ])
     }
-  )
+  })
 
   // Recommendation state
   const showRecommendationModal = ref(false)
