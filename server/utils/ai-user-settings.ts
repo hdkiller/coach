@@ -8,6 +8,8 @@ export interface AiSettings {
   aiAutoAnalyzeNutrition: boolean
   aiAutoAnalyzeReadiness: boolean
   aiRequireToolApproval: boolean
+  aiProactivityEnabled: boolean
+  aiConversationalEngagement: boolean
   aiContext?: string | null
   nutritionTrackingEnabled: boolean
   updateWorkoutNotesEnabled: boolean
@@ -21,6 +23,8 @@ const DEFAULT_SETTINGS: AiSettings = {
   aiAutoAnalyzeNutrition: false,
   aiAutoAnalyzeReadiness: false,
   aiRequireToolApproval: false,
+  aiProactivityEnabled: false,
+  aiConversationalEngagement: true,
   aiContext: null,
   nutritionTrackingEnabled: true,
   updateWorkoutNotesEnabled: true,
@@ -37,6 +41,8 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
       aiAutoAnalyzeNutrition: true,
       aiAutoAnalyzeReadiness: true,
       aiRequireToolApproval: true,
+      aiProactivityEnabled: true,
+      aiConversationalEngagement: true,
       aiContext: true,
       nutritionTrackingEnabled: true,
       updateWorkoutNotesEnabled: true,
@@ -56,6 +62,9 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
     aiAutoAnalyzeNutrition: user.aiAutoAnalyzeNutrition ?? DEFAULT_SETTINGS.aiAutoAnalyzeNutrition,
     aiAutoAnalyzeReadiness: user.aiAutoAnalyzeReadiness ?? DEFAULT_SETTINGS.aiAutoAnalyzeReadiness,
     aiRequireToolApproval: user.aiRequireToolApproval ?? DEFAULT_SETTINGS.aiRequireToolApproval,
+    aiProactivityEnabled: user.aiProactivityEnabled ?? DEFAULT_SETTINGS.aiProactivityEnabled,
+    aiConversationalEngagement:
+      user.aiConversationalEngagement ?? DEFAULT_SETTINGS.aiConversationalEngagement,
     aiContext: user.aiContext,
     nutritionTrackingEnabled:
       user.nutritionTrackingEnabled ?? DEFAULT_SETTINGS.nutritionTrackingEnabled,
