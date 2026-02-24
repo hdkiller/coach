@@ -66,6 +66,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
