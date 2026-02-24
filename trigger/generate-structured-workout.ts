@@ -391,7 +391,8 @@ export const generateStructuredWorkoutTask = task({
             name: true,
             maxHr: true,
             subscriptionTier: true,
-            isAdmin: true
+            isAdmin: true,
+            aiContext: true
           }
         },
         trainingWeek: {
@@ -480,6 +481,7 @@ export const generateStructuredWorkoutTask = task({
     const ftp = sportSettings?.ftp || workout.user.ftp || 250
     const lthr = sportSettings?.lthr || workout.user.lthr || 160
     const maxHr = sportSettings?.maxHr || workout.user.maxHr || 190
+    const aiContext = workout.user.aiContext || ''
 
     // Subscription Limit Check
     // Free users cannot generate structured workouts more than 4 weeks (28 days) in the future
@@ -557,6 +559,7 @@ export const generateStructuredWorkoutTask = task({
     - Phase: ${phase}
     - Focus: ${focus}
     - Coach Persona: ${persona}
+    ${aiContext ? `- User Preferences/Context: ${aiContext}` : ''}
     
     RECENT WORKOUTS:
     ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
@@ -599,7 +602,8 @@ export const generateStructuredWorkoutTask = task({
     - MANDATORY: Use % of FTP for power targets (e.g. 0.95 = 95%) for EVERY step.
     - Set 'power.units' to "%" unless there is an explicit reason to use "w".
     - For ramps (Warmup/Cooldown), use "range" with "start" and "end" values (e.g. start: 0.50, end: 0.75 for warmup).
-    - MANDATORY: Include target "cadence" (RPM) for EVERY step (including Warmup/Rest). Use 85-95 for active, 80 for rest.
+    - MANDATORY: Include target "cadence" (RPM) for EVERY step (including Warmup/Rest). 
+      * Use 85-95 for active, 80 for rest UNLESS specific user preferences are provided in the CONTEXT above (e.g. "70-85rpm").
     - For cadence-focus steps, cadence MUST differ from surrounding steady steps (e.g. steady 85-90, focus 95-100) and power should be adjusted if needed.
     - For aerobic rides, avoid repeated identical 20+ minute blocks unless deliberate repeats are requested.
     - If HR zones are available, include at least one HR guardrail in coachInstructions (e.g. cap near top of aerobic zone).
