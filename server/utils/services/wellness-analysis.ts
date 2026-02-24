@@ -120,7 +120,13 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
       return { success: true, skipped: true, reason: 'EMPTY_RECORD' }
     }
 
-    const aiSettings = await getUserAiSettings(userId)
+    const [user, aiSettings] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { language: true }
+      }),
+      getUserAiSettings(userId)
+    ])
 
     // Fetch 30-day history for context
     const endDate = wellness.date
@@ -216,6 +222,8 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
         Analyze this athlete's daily wellness data as an expert **${aiSettings.aiPersona}** coach.
 
         Adapt your tone and recommendations to match your **${aiSettings.aiPersona}** persona.
+
+        Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, summaries, and recommendations MUST be written in this language)
 
     
 

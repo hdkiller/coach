@@ -31,6 +31,7 @@ export async function fetchReportContext(userId: string, inputConfig: any) {
         aiModelPreference: true,
         dob: true,
         sex: true,
+        language: true,
         nutritionTrackingEnabled: true
       }
     })
