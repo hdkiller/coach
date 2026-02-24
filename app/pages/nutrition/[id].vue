@@ -21,6 +21,18 @@
             >
               Regenerate Plan
             </UButton>
+            <UButton
+              v-if="nutrition"
+              icon="i-heroicons-chat-bubble-left-right"
+              color="primary"
+              variant="solid"
+              size="sm"
+              class="font-bold"
+              @click="chatAboutNutrition"
+            >
+              <span class="hidden sm:inline">Chat about this</span>
+              <span class="sm:hidden">Chat</span>
+            </UButton>
             <ClientOnly>
               <DashboardTriggerMonitorButton />
             </ClientOnly>
@@ -800,6 +812,16 @@
     } catch (error) {
       toast.add({ title: 'Error', description: 'Failed to trigger analysis.', color: 'error' })
     }
+  }
+
+  function chatAboutNutrition() {
+    if (!nutrition.value) return
+    navigateTo({
+      path: '/chat',
+      query: {
+        initialMessage: `Please analyze my nutrition and fueling strategy for ${nutrition.value.date} (nutrition ID: ${nutrition.value.id}).`
+      }
+    })
   }
 
   async function handleQuickLog() {
