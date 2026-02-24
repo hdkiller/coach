@@ -1,4 +1,75 @@
 import pkg from './package.json'
+import { createHash } from 'node:crypto'
+
+const TERMS = [
+  'negative-split',
+  'tempo',
+  'threshold',
+  'vo2max',
+  'aerobic',
+  'lactate',
+  'cadence',
+  'drafting',
+  'bonk',
+  'hydration',
+  'endurance',
+  'ultra',
+  'interval',
+  'fartlek',
+  'base',
+  'peak',
+  'recovery',
+  'zone2',
+  'taper',
+  'hillrepeat'
+]
+
+const ANIMALS = [
+  'falcon',
+  'cheetah',
+  'wolf',
+  'gazelle',
+  'ibex',
+  'husky',
+  'orca',
+  'condor',
+  'marlin',
+  'albatross',
+  'caribou',
+  'puma',
+  'camel'
+]
+
+const sanitizeSlugPart = (input: string) =>
+  input
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+const makeSeededRng = (seed: string) => {
+  let state = createHash('sha256').update(seed).digest().readUInt32BE(0) >>> 0
+  return (min: number, max: number) => {
+    state = (1664525 * state + 1013904223) >>> 0
+    const range = max - min + 1
+    return min + (state % range)
+  }
+}
+
+const pickDeterministic = (list: string[], rng: (min: number, max: number) => number) =>
+  sanitizeSlugPart(list[rng(0, list.length - 1)])
+
+const getBuildCodename = (seed: string) => {
+  if (process.env.NUXT_PUBLIC_BUILD_CODENAME) {
+    return sanitizeSlugPart(process.env.NUXT_PUBLIC_BUILD_CODENAME)
+  }
+
+  const rng = makeSeededRng(seed)
+  const term = pickDeterministic(TERMS, rng)
+  const animal = pickDeterministic(ANIMALS, rng)
+  return `${term}-${animal}`
+}
 
 const getGitCommitHash = () => {
   if (process.env.NUXT_PUBLIC_COMMIT_HASH) {
@@ -22,6 +93,11 @@ const getGitCommitHash = () => {
 const commitHash = getGitCommitHash()
 const date = new Date()
 const buildDate = date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+const buildCodenameSeed =
+  process.env.NUXT_PUBLIC_BUILD_CODENAME_SEED ||
+  (commitHash !== 'unknown' ? `${pkg.version}:${commitHash}` : `${pkg.version}:${buildDate}`)
+const buildCodename = getBuildCodename(buildCodenameSeed)
+const buildVersion = `v${pkg.version}+${buildDate}.${commitHash}.${buildCodename}`
 
 const sentryRelease = `${pkg.name}@${pkg.version}+${commitHash}`
 
@@ -204,6 +280,8 @@ export default defineNuxtConfig({
       version: pkg.version,
       commitHash,
       buildDate,
+      buildCodename,
+      buildVersion,
       sentryRelease,
       authBypassEnabled: !!process.env.AUTH_BYPASS_USER,
       authBypassUser: process.env.AUTH_BYPASS_USER || '',
