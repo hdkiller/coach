@@ -57,7 +57,7 @@
           name="weight"
           help="Foundation for relative macro targets (g/kg). Managed in Basic Settings."
         >
-          <UInput :model-value="props.profile?.weight" type="number" disabled class="w-full">
+          <UInput :model-value="displayWeight" type="number" disabled class="w-full">
             <template #trailing>
               <span class="text-gray-500 dark:text-gray-400 text-xs">{{
                 props.profile?.weightUnits === 'Pounds' ? 'lbs' : 'kg'
@@ -1218,6 +1218,15 @@
   const isProfileDataMissing = computed(() => {
     const p = props.profile
     return !p?.weight || !p?.height || !p?.dob || !p?.sex
+  })
+
+  const displayWeight = computed(() => {
+    const weightKg = props.profile?.weight
+    if (weightKg === undefined || weightKg === null) return undefined
+    if (props.profile?.weightUnits === 'Pounds') {
+      return Number((weightKg / LBS_TO_KG).toFixed(1))
+    }
+    return weightKg
   })
 
   const tdee = computed(() => {
