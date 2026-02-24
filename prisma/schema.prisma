@@ -83,6 +83,7 @@ model User {
   aiProactivityEnabled               Boolean                      @default(false)
   aiAutoAnalyzeReadiness             Boolean                      @default(false)
   aiRequireToolApproval              Boolean                      @default(false)
+  aiConversationalEngagement         Boolean                      @default(true)
   updateWorkoutNotesEnabled          Boolean                      @default(true)
   accounts                           Account[]
   activityRecommendations            ActivityRecommendation[]
