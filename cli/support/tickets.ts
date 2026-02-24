@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import { PrismaClient, BugStatus } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
+import { sendToUser } from '../../server/utils/ws-state'
 
 export const ticketsCommand = new Command('tickets').description(
   'Manage support tickets (Bug Reports)'
@@ -17,6 +18,37 @@ const getPrisma = (isProd: boolean) => {
   const pool = new pg.Pool({ connectionString })
   const adapter = new PrismaPg(pool)
   return { prisma: new PrismaClient({ adapter }), pool }
+}
+
+async function createUserNotificationWithClient(
+  prisma: PrismaClient,
+  userId: string,
+  data: { title: string; message: string; icon?: string; link?: string }
+) {
+  const notification = await prisma.userNotification.create({
+    data: {
+      userId,
+      title: data.title,
+      message: data.message,
+      icon: data.icon,
+      link: data.link
+    }
+  })
+
+  await sendToUser(userId, {
+    type: 'notification_new',
+    notification: {
+      id: notification.id,
+      title: notification.title,
+      message: notification.message,
+      icon: notification.icon,
+      link: notification.link,
+      createdAt: notification.createdAt,
+      read: notification.read
+    }
+  })
+
+  return notification
 }
 
 ticketsCommand
@@ -98,6 +130,14 @@ ticketsCommand
         where: { id },
         data: { status: status as BugStatus }
       })
+
+      await createUserNotificationWithClient(prisma, ticket.userId, {
+        title: 'Issue Updated',
+        message: `Your issue "${ticket.title}" status is now ${ticket.status.replace(/_/g, ' ')}.`,
+        icon: 'i-heroicons-bug-ant',
+        link: `/issues/${ticket.id}`
+      })
+
       console.log(chalk.green(`Successfully updated ticket ${id} to status ${status}`))
     } catch (error) {
       console.error(chalk.red('Error updating ticket:'), error)
@@ -169,6 +209,23 @@ ticketsCommand
           type
         }
       })
+
+      if (type === 'MESSAGE') {
+        const report = await prisma.bugReport.findUnique({
+          where: { id },
+          select: { id: true, userId: true, title: true }
+        })
+
+        if (report) {
+          await createUserNotificationWithClient(prisma, report.userId, {
+            title: 'New Developer Comment',
+            message: `A developer commented on your issue: "${report.title}"`,
+            icon: 'i-heroicons-chat-bubble-left-right',
+            link: `/issues/${report.id}`
+          })
+        }
+      }
+
       console.log(chalk.green(`Successfully added ${type} to ticket ${id}`))
     } catch (error) {
       console.error(chalk.red('Error adding comment:'), error)
