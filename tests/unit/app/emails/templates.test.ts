@@ -93,4 +93,26 @@ describe('email templates', () => {
     expect(result.html).toMatchSnapshot()
     expect(result.html).toContain('manage your email preferences')
   })
+
+  it('WorkoutReceived supports ride cadence unit rendering', async () => {
+    const result = await render('WorkoutReceived.vue', {
+      name: 'Alex Athlete',
+      workoutId: 'workout-ride-1',
+      workoutTitle: 'Sweet Spot Ride',
+      workoutDate: 'Sunday, Feb 22',
+      workoutType: 'Ride',
+      durationMinutes: 75,
+      distanceKm: 39.6,
+      averageCadence: 92,
+      cadenceUnit: 'rpm',
+      averageHr: 146,
+      averageWatts: 228,
+      tss: 88,
+      workoutUrl: 'https://coachwatts.com/workouts/workout-ride-1',
+      unsubscribeUrl: 'https://coachwatts.com/unsubscribe?token=test'
+    })
+
+    expect(result.html).toContain('Avg Cadence:</strong> 92 rpm')
+    expect(result.html).not.toContain('Avg Cadence:</strong> 92 spm')
+  })
 })
