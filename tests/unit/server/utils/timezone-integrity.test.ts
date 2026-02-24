@@ -93,7 +93,7 @@ describe('Timezone Integrity across Utilities', () => {
   })
 
   describe('buildWorkoutSummary (Gemini)', () => {
-    it('should format L/R balance as Left/Right with correct dominance', () => {
+    it('should format L/R balance as Left/Right when lrBalance stores Right%', () => {
       const workouts = [
         {
           date: new Date('2026-02-10T15:00:00Z'),
@@ -106,8 +106,8 @@ describe('Timezone Integrity across Utilities', () => {
 
       const summary = buildWorkoutSummary(workouts, timezone)
 
-      expect(summary).toContain('**L/R Balance (Left%/Right%)**: 53.0/47.0')
-      expect(summary).toContain('**L/R Dominance**: Left')
+      expect(summary).toContain('**L/R Balance (Left%/Right%)**: 47.0/53.0')
+      expect(summary).toContain('**L/R Dominance**: Right')
     })
   })
 

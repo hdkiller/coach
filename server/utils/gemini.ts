@@ -641,11 +641,11 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
 
       // Balance
       if (w.lrBalance !== null && w.lrBalance !== undefined) {
-        const leftPct = w.lrBalance
-        const rightPct = 100 - leftPct
+        const rightPct = w.lrBalance
+        const leftPct = 100 - rightPct
         lines.push(`- **L/R Balance (Left%/Right%)**: ${leftPct.toFixed(1)}/${rightPct.toFixed(1)}`)
         lines.push(
-          `- **L/R Dominance**: ${leftPct > 50 ? 'Left' : leftPct < 50 ? 'Right' : 'Even'}`
+          `- **L/R Dominance**: ${rightPct > 50 ? 'Right' : rightPct < 50 ? 'Left' : 'Even'}`
         )
       }
 
