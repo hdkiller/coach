@@ -26,6 +26,15 @@
             <ClientOnly>
               <DashboardTriggerMonitorButton />
             </ClientOnly>
+            <UButton
+              icon="i-heroicons-adjustments-horizontal"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              @click="isWorkoutSectionsModalOpen = true"
+            >
+              <span class="hidden sm:inline">Customize</span>
+            </UButton>
             <UDropdownMenu
               :items="[
                 [
@@ -74,116 +83,15 @@
 
       <UDashboardToolbar>
         <div class="flex gap-2 overflow-x-auto">
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('header')">
-            <UIcon name="i-lucide-file-text" class="w-4 h-4 mr-2" />
-            Overview
-          </UButton>
           <UButton
-            v-if="shouldShowExercises(workout)"
+            v-for="section in workoutNavSections"
+            :key="section.key"
             variant="ghost"
             color="neutral"
-            @click="scrollToSection('exercises')"
+            @click="scrollToSection(section.anchorId)"
           >
-            <UIcon name="i-lucide-dumbbell" class="w-4 h-4 mr-2" />
-            Exercises
-          </UButton>
-          <UButton
-            v-if="workout?.overallScore || workout?.technicalScore"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('scores')"
-          >
-            <UIcon name="i-lucide-award" class="w-4 h-4 mr-2" />
-            Scores
-          </UButton>
-          <UButton
-            v-if="hasTrainingMetrics(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('training-impact')"
-          >
-            <UIcon name="i-lucide-activity-square" class="w-4 h-4 mr-2" />
-            Training Impact
-          </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('analysis')">
-            <UIcon name="i-lucide-sparkles" class="w-4 h-4 mr-2" />
-            AI Analysis
-          </UButton>
-          <UButton
-            v-if="shouldShowDetailedPacing(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('power-curve')"
-          >
-            <UIcon name="i-lucide-zap" class="w-4 h-4 mr-2" />
-            Power Curve
-          </UButton>
-          <UButton
-            v-if="shouldShowIntervals(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('intervals')"
-          >
-            <UIcon name="i-lucide-timer" class="w-4 h-4 mr-2" />
-            Intervals
-          </UButton>
-          <UButton
-            v-if="shouldShowDetailedPacing(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('advanced')"
-          >
-            <UIcon name="i-lucide-microscope" class="w-4 h-4 mr-2" />
-            Advanced
-          </UButton>
-          <UButton
-            v-if="shouldShowMap(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('map')"
-          >
-            <UIcon name="i-lucide-map" class="w-4 h-4 mr-2" />
-            Map
-          </UButton>
-          <UButton
-            v-if="shouldShowDetailedPacing(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('pacing')"
-          >
-            <UIcon name="i-lucide-activity" class="w-4 h-4 mr-2" />
-            Pacing
-          </UButton>
-          <UButton
-            v-if="shouldShowDetailedPacing(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('timeline')"
-          >
-            <UIcon name="i-lucide-chart-line" class="w-4 h-4 mr-2" />
-            Timeline
-          </UButton>
-          <UButton
-            v-if="shouldShowPacing(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('zones')"
-          >
-            <UIcon name="i-lucide-layers" class="w-4 h-4 mr-2" />
-            Zones
-          </UButton>
-          <UButton
-            v-if="hasEfficiencyMetrics(workout)"
-            variant="ghost"
-            color="neutral"
-            @click="scrollToSection('efficiency')"
-          >
-            <UIcon name="i-lucide-gauge" class="w-4 h-4 mr-2" />
-            Efficiency
-          </UButton>
-          <UButton variant="ghost" color="neutral" @click="scrollToSection('metrics')">
-            <UIcon name="i-lucide-bar-chart-3" class="w-4 h-4 mr-2" />
-            Metrics
+            <UIcon :name="section.icon" class="w-4 h-4 mr-2" />
+            {{ section.label }}
           </UButton>
         </div>
       </UDashboardToolbar>
@@ -230,10 +138,14 @@
           />
         </div>
 
-        <div v-else-if="workout" class="space-y-4 sm:space-y-8">
+        <div v-else-if="workout" class="flex flex-col gap-4 sm:gap-8">
           <!-- Header Section: Workout Info (2/3) + Performance Scores (1/3) -->
           <div id="header" class="scroll-mt-20" />
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div
+            v-if="isSectionEnabled('overview')"
+            class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
+            :style="sectionStyle('overview')"
+          >
             <!-- Workout Info Card - 2/3 -->
             <div class="lg:col-span-2">
               <div
@@ -566,7 +478,12 @@
           </div>
 
           <!-- Training Impact Section (TSS, CTL, ATL, TSB) -->
-          <div id="training-impact" class="scroll-mt-20 space-y-4">
+          <div
+            v-if="isSectionEnabled('training-impact')"
+            id="training-impact"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('training-impact')"
+          >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               Systemic Impact & Load
             </h2>
@@ -771,7 +688,12 @@
           </div>
 
           <!-- Exercises Section -->
-          <div v-if="shouldShowExercises(workout)" id="exercises" class="scroll-mt-20 space-y-4">
+          <div
+            v-if="isSectionEnabled('exercises')"
+            id="exercises"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('exercises')"
+          >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               Exercises
             </h2>
@@ -780,8 +702,10 @@
 
           <!-- Nutrition Debrief -->
           <div
-            v-if="nutritionEnabled && (workout.kilojoules || workout.plannedWorkout)"
-            class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-l-4 border-orange-500 border-y sm:border-y sm:border-r border-gray-100 dark:border-gray-800"
+            v-if="isSectionEnabled('nutrition')"
+            id="nutrition"
+            class="scroll-mt-20 bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-l-4 border-orange-500 border-y sm:border-y sm:border-r border-gray-100 dark:border-gray-800"
+            :style="sectionStyle('nutrition')"
           >
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
@@ -896,7 +820,12 @@
           </div>
 
           <!-- AI Analysis Section -->
-          <div id="analysis" class="scroll-mt-20 space-y-4">
+          <div
+            v-if="isSectionEnabled('analysis')"
+            id="analysis"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('analysis')"
+          >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               AI Analysis
             </h2>
@@ -1197,114 +1126,136 @@
             </div>
           </div>
 
-          <!-- Technical Visualizations -->
-          <div id="visualizations" class="space-y-4 sm:space-y-8">
-            <!-- Power Curve Section -->
-            <div
-              v-if="shouldShowDetailedPacing(workout)"
-              id="power-curve"
-              class="scroll-mt-20 space-y-4"
-            >
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Power Curve
-              </h2>
-              <PowerCurveChart :workout-id="workout.id" />
-            </div>
+          <!-- Power Curve Section -->
+          <div
+            v-if="isSectionEnabled('power-curve')"
+            id="power-curve"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('power-curve')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Power Curve
+            </h2>
+            <PowerCurveChart :workout-id="workout.id" />
+          </div>
 
-            <!-- Interval Analysis Section -->
-            <div v-if="shouldShowIntervals(workout)" id="intervals" class="scroll-mt-20 space-y-4">
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Interval Breakdown
-              </h2>
-              <IntervalsAnalysis :workout-id="workout.id" />
-            </div>
+          <!-- Interval Analysis Section -->
+          <div
+            v-if="isSectionEnabled('intervals')"
+            id="intervals"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('intervals')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Interval Breakdown
+            </h2>
+            <IntervalsAnalysis :workout-id="workout.id" />
+          </div>
 
-            <!-- Advanced Analytics Section -->
-            <div
-              v-if="shouldShowDetailedPacing(workout)"
-              id="advanced"
-              class="scroll-mt-20 space-y-4"
-            >
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Advanced Metrics
-              </h2>
-              <AdvancedWorkoutMetrics :workout-id="workout.id" @open-metric="handleOpenMetric" />
-            </div>
+          <!-- Advanced Analytics Section -->
+          <div
+            v-if="isSectionEnabled('advanced')"
+            id="advanced"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('advanced')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Advanced Metrics
+            </h2>
+            <AdvancedWorkoutMetrics :workout-id="workout.id" @open-metric="handleOpenMetric" />
+          </div>
 
-            <!-- Route Map Section -->
-            <div v-if="shouldShowMap(workout)" id="map" class="scroll-mt-20 space-y-4">
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Session Route
-              </h2>
-              <UiWorkoutMap
-                :coordinates="workout.streams.latlng"
-                :interactive="true"
-                :provider="workout.source"
-                :device-name="workout.deviceName"
-              />
-            </div>
+          <!-- Route Map Section -->
+          <div
+            v-if="isSectionEnabled('map')"
+            id="map"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('map')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Session Route
+            </h2>
+            <UiWorkoutMap
+              :coordinates="workout.streams.latlng"
+              :interactive="true"
+              :provider="workout.source"
+              :device-name="workout.deviceName"
+            />
+          </div>
 
-            <!-- Pacing Analysis -->
-            <div
-              v-if="shouldShowDetailedPacing(workout)"
-              id="pacing"
-              class="scroll-mt-20 space-y-4"
-            >
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Pacing Analysis
-              </h2>
-              <PacingAnalysis :workout-id="workout.id" @open-metric="handleOpenMetric" />
-            </div>
+          <!-- Pacing Analysis -->
+          <div
+            v-if="isSectionEnabled('pacing')"
+            id="pacing"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('pacing')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Pacing Analysis
+            </h2>
+            <PacingAnalysis :workout-id="workout.id" @open-metric="handleOpenMetric" />
+          </div>
 
-            <!-- Timeline -->
-            <div
-              v-if="shouldShowDetailedPacing(workout)"
-              id="timeline"
-              class="scroll-mt-20 space-y-4"
-            >
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Workout Timeline
-              </h2>
-              <WorkoutTimeline :workout-id="workout.id" />
-            </div>
+          <!-- Timeline -->
+          <div
+            v-if="isSectionEnabled('timeline')"
+            id="timeline"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('timeline')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Workout Timeline
+            </h2>
+            <WorkoutTimeline :workout-id="workout.id" />
+          </div>
 
-            <!-- Zones -->
-            <div v-if="shouldShowPacing(workout)" id="zones" class="scroll-mt-20 space-y-4">
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Zone Distribution
-              </h2>
-              <ZoneChart
-                :workout-id="workout.id"
-                :activity-type="workout.type"
-                :stream-data="workout.streams"
-              />
-            </div>
+          <!-- Zones -->
+          <div
+            v-if="isSectionEnabled('zones')"
+            id="zones"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('zones')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Zone Distribution
+            </h2>
+            <ZoneChart
+              :workout-id="workout.id"
+              :activity-type="workout.type"
+              :stream-data="workout.streams"
+            />
+          </div>
 
-            <!-- Efficiency -->
-            <div
-              v-if="hasEfficiencyMetrics(workout)"
-              id="efficiency"
-              class="scroll-mt-20 space-y-4"
-            >
-              <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-                Efficiency Metrics
-              </h2>
-              <EfficiencyMetricsCard
-                :metrics="{
-                  variabilityIndex: workout.variabilityIndex,
-                  efficiencyFactor: workout.efficiencyFactor,
-                  decoupling: workout.decoupling,
-                  powerHrRatio: workout.powerHrRatio,
-                  polarizationIndex: workout.polarizationIndex,
-                  lrBalance: workout.lrBalance
-                }"
-                @open-metric="handleOpenMetric"
-              />
-            </div>
+          <!-- Efficiency -->
+          <div
+            v-if="isSectionEnabled('efficiency')"
+            id="efficiency"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('efficiency')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Efficiency Metrics
+            </h2>
+            <EfficiencyMetricsCard
+              :metrics="{
+                variabilityIndex: workout.variabilityIndex,
+                efficiencyFactor: workout.efficiencyFactor,
+                decoupling: workout.decoupling,
+                powerHrRatio: workout.powerHrRatio,
+                polarizationIndex: workout.polarizationIndex,
+                lrBalance: workout.lrBalance
+              }"
+              @open-metric="handleOpenMetric"
+            />
           </div>
 
           <!-- Personal Notes -->
-          <div class="px-0 sm:px-0">
+          <div
+            v-if="isSectionEnabled('notes')"
+            id="notes"
+            class="scroll-mt-20 px-0 sm:px-0"
+            :style="sectionStyle('notes')"
+          >
             <NotesEditor
               v-model="workout.notes"
               :notes-updated-at="workout.notesUpdatedAt"
@@ -1315,7 +1266,12 @@
           </div>
 
           <!-- Detailed Metrics Section -->
-          <div v-if="availableMetrics.length > 0" id="metrics" class="scroll-mt-20 space-y-4">
+          <div
+            v-if="isSectionEnabled('metrics')"
+            id="metrics"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('metrics')"
+          >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               Activity Metrics
             </h2>
@@ -1355,7 +1311,12 @@
           </div>
 
           <!-- Data Streams Section -->
-          <div v-if="availableStreams.length > 0" id="streams" class="scroll-mt-20 space-y-4">
+          <div
+            v-if="isSectionEnabled('streams')"
+            id="streams"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('streams')"
+          >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               Data Streams
             </h2>
@@ -1385,9 +1346,10 @@
 
           <!-- Duplicate Workout Section -->
           <div
-            v-if="workout.isDuplicate || workout.duplicates?.length || workout.plannedWorkout"
+            v-if="isSectionEnabled('duplicates')"
             id="duplicates"
             class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('duplicates')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               Version Control
@@ -1643,6 +1605,11 @@
     :streams="workout?.streams"
   />
 
+  <WorkoutsWorkoutSectionsSettingsModal
+    v-model:open="isWorkoutSectionsModalOpen"
+    :sections="workoutSectionsModalOptions"
+  />
+
   <!-- Promote Workout Confirmation Modal -->
   <UModal
     v-model:open="isPromoteModalOpen"
@@ -1732,8 +1699,8 @@
     :workout="workout"
     @updated="fetchWorkout"
     @delete="
-      isEditModalOpen = false;
-      isDeleteModalOpen = true;
+      isEditModalOpen = false
+      isDeleteModalOpen = true
     "
   />
 
@@ -1844,8 +1811,65 @@
   const isPromoteModalOpen = ref(false)
   const isEditModalOpen = ref(false)
   const isDeleteModalOpen = ref(false)
+  const isWorkoutSectionsModalOpen = ref(false)
   const deleting = ref(false)
   const stomachFeel = ref<number | null>(null)
+
+  type WorkoutSectionKey =
+    | 'overview'
+    | 'training-impact'
+    | 'exercises'
+    | 'nutrition'
+    | 'analysis'
+    | 'power-curve'
+    | 'intervals'
+    | 'advanced'
+    | 'map'
+    | 'pacing'
+    | 'timeline'
+    | 'zones'
+    | 'efficiency'
+    | 'notes'
+    | 'metrics'
+    | 'streams'
+    | 'duplicates'
+
+  type WorkoutSectionSettings = Record<WorkoutSectionKey, { visible: boolean; order: number }>
+
+  const workoutSectionCatalog: Array<{
+    key: WorkoutSectionKey
+    label: string
+    icon: string
+    anchorId: string
+  }> = [
+    { key: 'overview', label: 'Overview', icon: 'i-lucide-file-text', anchorId: 'header' },
+    {
+      key: 'training-impact',
+      label: 'Training Impact',
+      icon: 'i-lucide-activity-square',
+      anchorId: 'training-impact'
+    },
+    { key: 'exercises', label: 'Exercises', icon: 'i-lucide-dumbbell', anchorId: 'exercises' },
+    { key: 'nutrition', label: 'Nutrition', icon: 'i-lucide-beaker', anchorId: 'nutrition' },
+    { key: 'analysis', label: 'AI Analysis', icon: 'i-lucide-sparkles', anchorId: 'analysis' },
+    { key: 'power-curve', label: 'Power Curve', icon: 'i-lucide-zap', anchorId: 'power-curve' },
+    { key: 'intervals', label: 'Intervals', icon: 'i-lucide-timer', anchorId: 'intervals' },
+    { key: 'advanced', label: 'Advanced', icon: 'i-lucide-microscope', anchorId: 'advanced' },
+    { key: 'map', label: 'Map', icon: 'i-lucide-map', anchorId: 'map' },
+    { key: 'pacing', label: 'Pacing', icon: 'i-lucide-activity', anchorId: 'pacing' },
+    { key: 'timeline', label: 'Timeline', icon: 'i-lucide-chart-line', anchorId: 'timeline' },
+    { key: 'zones', label: 'Zones', icon: 'i-lucide-layers', anchorId: 'zones' },
+    { key: 'efficiency', label: 'Efficiency', icon: 'i-lucide-gauge', anchorId: 'efficiency' },
+    { key: 'notes', label: 'Notes', icon: 'i-lucide-notebook-pen', anchorId: 'notes' },
+    { key: 'metrics', label: 'Metrics', icon: 'i-lucide-bar-chart-3', anchorId: 'metrics' },
+    { key: 'streams', label: 'Streams', icon: 'i-lucide-radio', anchorId: 'streams' },
+    { key: 'duplicates', label: 'Versions', icon: 'i-lucide-copy', anchorId: 'duplicates' }
+  ]
+
+  const workoutSectionDefaults = workoutSectionCatalog.reduce((acc, section, index) => {
+    acc[section.key] = { visible: true, order: index }
+    return acc
+  }, {} as WorkoutSectionSettings)
 
   function goBack() {
     router.back()
@@ -2201,6 +2225,85 @@
     }
     return streams
   })
+
+  const workoutSectionAvailability = computed<Record<WorkoutSectionKey, boolean>>(() => {
+    const currentWorkout = workout.value
+
+    return {
+      overview: Boolean(currentWorkout),
+      'training-impact': hasTrainingMetrics(currentWorkout),
+      exercises: shouldShowExercises(currentWorkout),
+      nutrition: Boolean(
+        nutritionEnabled.value && (currentWorkout?.kilojoules || currentWorkout?.plannedWorkout)
+      ),
+      analysis: Boolean(currentWorkout),
+      'power-curve': shouldShowDetailedPacing(currentWorkout),
+      intervals: shouldShowIntervals(currentWorkout),
+      advanced: shouldShowDetailedPacing(currentWorkout),
+      map: shouldShowMap(currentWorkout),
+      pacing: shouldShowDetailedPacing(currentWorkout),
+      timeline: shouldShowDetailedPacing(currentWorkout),
+      zones: shouldShowPacing(currentWorkout),
+      efficiency: hasEfficiencyMetrics(currentWorkout),
+      notes: Boolean(currentWorkout),
+      metrics: availableMetrics.value.length > 0,
+      streams: availableStreams.value.length > 0,
+      duplicates: Boolean(
+        currentWorkout?.isDuplicate ||
+        currentWorkout?.duplicates?.length ||
+        currentWorkout?.plannedWorkout
+      )
+    }
+  })
+
+  const workoutSectionSettings = computed<WorkoutSectionSettings>(() => {
+    const saved =
+      (userStore.user?.dashboardSettings?.workoutDetailSections as
+        | Partial<WorkoutSectionSettings>
+        | undefined) || {}
+
+    return workoutSectionCatalog.reduce((acc, section) => {
+      const fallback = workoutSectionDefaults[section.key]
+      const sectionSettings = saved[section.key]
+      acc[section.key] = {
+        visible: sectionSettings?.visible ?? fallback.visible,
+        order: typeof sectionSettings?.order === 'number' ? sectionSettings.order : fallback.order
+      }
+      return acc
+    }, {} as WorkoutSectionSettings)
+  })
+
+  const workoutSectionsModalOptions = computed(() =>
+    workoutSectionCatalog.map((section) => ({
+      key: section.key,
+      label: section.label,
+      icon: section.icon,
+      available: workoutSectionAvailability.value[section.key],
+      defaultVisible: workoutSectionDefaults[section.key].visible
+    }))
+  )
+
+  const workoutNavSections = computed(() =>
+    workoutSectionCatalog
+      .filter((section) => isSectionEnabled(section.key))
+      .sort(
+        (a, b) =>
+          workoutSectionSettings.value[a.key].order - workoutSectionSettings.value[b.key].order
+      )
+  )
+
+  function isSectionEnabled(sectionKey: WorkoutSectionKey) {
+    return (
+      workoutSectionSettings.value[sectionKey].visible &&
+      workoutSectionAvailability.value[sectionKey]
+    )
+  }
+
+  function sectionStyle(sectionKey: WorkoutSectionKey) {
+    return {
+      order: workoutSectionSettings.value[sectionKey].order
+    }
+  }
 
   // Fetch workout data
   async function fetchWorkout() {
