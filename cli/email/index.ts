@@ -9,8 +9,10 @@ import pg from 'pg'
 import { config } from '@vue-email/compiler'
 import { resolve } from 'path'
 import { EMAIL_TEMPLATE_REGISTRY } from '../../server/utils/email-template-registry'
+import { buildInterestingCopy } from '../../server/utils/workout-insight-email'
 
 const emailCommand = new Command('email')
+console.log('--- Loading cli/email/index.ts ---')
 
 emailCommand.description('Email management tools')
 
@@ -65,9 +67,19 @@ emailCommand
     }
 
     try {
-      console.log(chalk.blue(`Rendering template ${templateFile}...`))
-      const renderer = config(emailDir)
-      const rendered = await renderer.render(templateFile, { props: parsedProps })
+      console.log(chalk.blue(`Rendering template ${options.template} via internal API...`))
+      const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const internalApiToken = process.env.INTERNAL_API_TOKEN
+      if (!internalApiToken) throw new Error('INTERNAL_API_TOKEN is missing')
+
+      const renderRes = await fetch(`${baseUrl}/api/internal/render-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-api-token': internalApiToken },
+        body: JSON.stringify({ templateKey: options.template, props: parsedProps })
+      })
+
+      if (!renderRes.ok) throw new Error(`Render API failed: ${await renderRes.text()}`)
+      const rendered: any = await renderRes.json()
 
       console.log(chalk.blue('Sending email...'))
       const response = await sendEmail({
@@ -214,6 +226,7 @@ emailCommand
         const tss7d = recentTssRows.reduce((sum, row) => {
           return row.date >= start7d ? sum + (row.tss || 0) : sum
         }, 0)
+        const workoutsLast7Days = recentTssRows.filter((row) => row.date >= start7d).length
         const weeklyTssBaseline28d = tss28d > 0 ? Math.round(tss28d / 4) : 0
         const loadDeltaPct =
           weeklyTssBaseline28d > 0
@@ -230,75 +243,55 @@ emailCommand
         const athleteName = workout.user?.name || 'Athlete'
         const workoutUrl = `${options.siteUrl.replace(/\/$/, '')}/workouts/${workout.id}`
 
+        const distanceLabel = distanceKm ? `${distanceKm} km` : null
+        const { heroTitle, introLine, previewLine } = buildInterestingCopy({
+          workoutId: workout.id,
+          sportCategory,
+          workoutTitle: workout.title || 'Workout',
+          firstName: athleteName.split(' ')[0],
+          distanceLabel,
+          tss: workout.tss || undefined,
+          loadDeltaPct: loadDeltaPct === null ? undefined : loadDeltaPct,
+          workoutsLast7Days
+        })
+
         const subject = options.subject || `[Test] Workout Synced: ${workout.title}`
 
-        const html = `<!doctype html>
-<html>
-  <body style="margin:0;padding:24px;background:#f4f4f5;font-family:Arial,sans-serif;color:#09090b;">
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-      <tr>
-        <td align="center">
-          <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;background:#ffffff;border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;">
-            <tr>
-              <td style="padding:28px 32px 20px;">
-                <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;">Workout synced and ready to review.</h1>
-                <p style="margin:0 0 12px;color:#52525b;">Hi ${athleteName},</p>
-                <p style="margin:0 0 18px;color:#52525b;">Your session <strong>${workout.title}</strong> was synced successfully.</p>
-                <p style="margin:0 0 18px;color:#52525b;">Open it now to review execution details while the session is still fresh.</p>
+        const emailDir = resolve(process.cwd(), 'app/emails')
+        const renderer = config(emailDir)
+        const rendered = await renderer.render('WorkoutReceived.vue', {
+          props: {
+            name: athleteName,
+            workoutId: workout.id,
+            workoutTitle: workout.title || 'Workout',
+            workoutDate: dateText,
+            workoutType: workout.type || undefined,
+            durationMinutes: workout.durationSec ? Math.round(workout.durationSec / 60) : undefined,
+            distanceKm: distanceKm || undefined,
+            elevationGain: workout.elevationGain || undefined,
+            averageCadence: workout.averageCadence || undefined,
+            cadenceUnit,
+            averageHr: workout.averageHr || undefined,
+            maxHr: workout.maxHr || undefined,
+            averageWatts: workout.averageWatts || undefined,
+            normalizedPower: workout.normalizedPower || undefined,
+            tss: workout.tss ? Math.round(workout.tss) : undefined,
+            tss7d: tss7d ? Math.round(tss7d) : undefined,
+            weeklyTssBaseline28d: weeklyTssBaseline28d || undefined,
+            loadDeltaPct: loadDeltaPct === null ? undefined : loadDeltaPct,
+            kilojoules: workout.kilojoules || undefined,
+            calories: workout.calories || undefined,
+            workoutUrl,
+            unsubscribeUrl: `${options.siteUrl.replace(/\/$/, '')}/profile/settings?tab=communication`,
+            shareUrl: `${options.siteUrl.replace(/\/$/, '')}/share/workouts/${workout.id}`,
+            heroTitle,
+            introLine,
+            previewLine
+          }
+        })
 
-                <div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
-                  <p style="margin:0 0 8px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#71717a;font-weight:700;">Session Snapshot</p>
-                  <p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Date:</strong> ${dateText}</p>
-                  <p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Type:</strong> ${workout.type || 'Workout'}</p>
-                  <p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Duration:</strong> ${durationText}</p>
-                  ${distanceKm ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Distance:</strong> ${distanceKm} km</p>` : ''}
-                  ${workout.elevationGain ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Elevation Gain:</strong> ${workout.elevationGain} m</p>` : ''}
-                  ${workout.averageHr ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Avg HR:</strong> ${workout.averageHr} bpm</p>` : ''}
-                  ${workout.maxHr ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Max HR:</strong> ${workout.maxHr} bpm</p>` : ''}
-                  ${workout.averageCadence ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Avg Cadence:</strong> ${workout.averageCadence} ${cadenceUnit}</p>` : ''}
-                  ${workout.averageWatts ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Avg Power:</strong> ${workout.averageWatts} W</p>` : ''}
-                  ${workout.normalizedPower ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Normalized Power:</strong> ${workout.normalizedPower} W</p>` : ''}
-                  ${workout.tss ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">TSS:</strong> ${Math.round(workout.tss)}</p>` : ''}
-                  ${workout.kilojoules ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">kJ:</strong> ${workout.kilojoules} kJ</p>` : ''}
-                  ${workout.calories ? `<p style="margin:0;color:#52525b;"><strong style="color:#09090b;">Calories:</strong> ${workout.calories} kcal</p>` : ''}
-                </div>
-
-                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
-                  <p style="margin:0 0 8px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#92400e;font-weight:700;">Load Context</p>
-                  <p style="margin:0;color:#92400e;">Last 7d load: <strong>${Math.round(tss7d)}</strong> TSS • 4-week weekly baseline: <strong>${weeklyTssBaseline28d}</strong>${typeof loadDeltaPct === 'number' ? ` • Delta: <strong>${loadDeltaPct}%</strong>` : ''}</p>
-                </div>
-
-                <p style="margin:0 0 18px;color:#3f3f46;"><strong>What's next?</strong> See how this session impacted your Fitness vs Fatigue trend.</p>
-                <a href="${workoutUrl}" style="display:inline-block;background:#00c16a;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:10px;">View Full Analysis & Splits</a>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`
-
-        const text = [
-          'Workout synced and ready to review.',
-          '',
-          `Hi ${athleteName},`,
-          '',
-          `${workout.title} was synced successfully.`,
-          `Date: ${dateText}`,
-          `Type: ${workout.type || 'Workout'}`,
-          `Duration: ${durationText}`,
-          distanceKm ? `Distance: ${distanceKm} km` : null,
-          workout.averageHr ? `Avg HR: ${workout.averageHr} bpm` : null,
-          workout.averageWatts ? `Avg Power: ${workout.averageWatts} W` : null,
-          workout.tss ? `TSS: ${Math.round(workout.tss)}` : null,
-          '',
-          `Load context: 7d=${Math.round(tss7d)} TSS, baseline=${weeklyTssBaseline28d}${typeof loadDeltaPct === 'number' ? `, delta=${loadDeltaPct}%` : ''}`,
-          '',
-          `Open workout details: ${workoutUrl}`
-        ]
-          .filter(Boolean)
-          .join('\n')
+        const html = rendered.html
+        const text = rendered.text
 
         console.log(chalk.blue(`Sending test email for workout ${workout.id} to ${options.to}...`))
         const response = await sendEmail({

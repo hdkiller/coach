@@ -304,21 +304,59 @@ function buildSportLens(options: {
   }
 }
 
-function buildInterestingCopy(options: {
+export function buildInterestingCopy(options: {
   workoutId: string
   sportCategory: 'run' | 'ride' | 'other'
   workoutTitle: string
   firstName: string
   distanceLabel?: string | null
+  tss?: number
+  loadDeltaPct?: number
+  workoutsLast7Days?: number
 }) {
-  const { workoutId, sportCategory, workoutTitle, firstName, distanceLabel } = options
+  const {
+    workoutId,
+    sportCategory,
+    workoutTitle,
+    firstName,
+    distanceLabel,
+    tss,
+    loadDeltaPct,
+    workoutsLast7Days
+  } = options
   const key = `${workoutId}:${sportCategory}`
 
-  const heroTitle = pickVariant(key, [
+  let heroTitle = pickVariant(key, [
     'Workout synced and momentum building.',
     'Session logged. Progress in motion.',
     'Another strong brick in your training wall.'
   ])
+
+  if (typeof workoutsLast7Days === 'number' && workoutsLast7Days >= 4) {
+    heroTitle = pickVariant(`${key}:hero-consistency`, [
+      `${workoutsLast7Days} sessions in 7 days. Your momentum is building.`,
+      `Consistency unlocked. Another solid brick in the wall.`,
+      `Showing up is half the battle. Session captured.`
+    ])
+  } else if (typeof tss === 'number' && tss >= 100) {
+    heroTitle = pickVariant(`${key}:hero-load`, [
+      `Big Engine session logged: ${Math.round(tss)} TSS.`,
+      `Solid effort. Productive stress mapped.`,
+      `Massive shift today. Recovery starts now.`
+    ])
+  } else if (distanceLabel) {
+    heroTitle = pickVariant(`${key}:hero-distance`, [
+      `Great shift. ${distanceLabel} in the books.`,
+      `Session secured. ${distanceLabel} completed.`,
+      `That's ${distanceLabel} added to your timeline.`
+    ])
+  } else if (typeof loadDeltaPct === 'number' && loadDeltaPct > 10) {
+    heroTitle = pickVariant(`${key}:hero-delta`, [
+      `Solid effort. Pushing ${loadDeltaPct}% above your recent baseline.`,
+      `Progressive load secured. Pushing the baseline up.`,
+      `Productive stimulus logged. Great shift.`
+    ])
+  }
 
   const introLine = pickVariant(`${key}:intro`, [
     `Solid work today. ${workoutTitle} is now on your timeline and ready to review.`,
@@ -507,7 +545,10 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       sportCategory,
       workoutTitle: workout.title || 'Workout',
       firstName,
-      distanceLabel
+      distanceLabel,
+      tss: workout.tss || undefined,
+      loadDeltaPct,
+      workoutsLast7Days
     })
 
   const commonProps = {
@@ -547,7 +588,8 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     ctaLabel,
     nextStepMessage,
     workoutUrl: `${baseUrl}/workouts/${workout.id}`,
-    unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`
+    unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`,
+    shareUrl: `${baseUrl}/share/workouts/${workout.id}`
   }
 
   if (triggerType === 'on-workout-received') {
