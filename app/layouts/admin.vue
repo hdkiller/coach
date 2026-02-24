@@ -78,6 +78,22 @@
           onSelect: () => {
             isOpen.value = false
           }
+        },
+        {
+          label: 'Emails',
+          icon: 'i-lucide-mail',
+          to: '/admin/stats/email',
+          onSelect: () => {
+            isOpen.value = false
+          }
+        },
+        {
+          label: 'Tickets',
+          icon: 'i-heroicons-ticket',
+          to: '/admin/stats/tickets',
+          onSelect: () => {
+            isOpen.value = false
+          }
         }
       ]
     },

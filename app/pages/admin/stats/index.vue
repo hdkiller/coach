@@ -133,6 +133,16 @@
               </div>
             </UCard>
           </NuxtLink>
+          <NuxtLink to="/admin/stats/tickets" class="block">
+            <UCard
+              class="h-full hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+            >
+              <div class="flex flex-col items-center justify-center py-2 gap-2">
+                <UIcon name="i-heroicons-ticket" class="w-8 h-8 text-rose-500" />
+                <span class="font-semibold text-sm">Tickets</span>
+              </div>
+            </UCard>
+          </NuxtLink>
           <NuxtLink to="/admin/stats/developers" class="block">
             <UCard
               class="h-full hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
