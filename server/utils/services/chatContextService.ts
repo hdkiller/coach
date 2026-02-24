@@ -819,6 +819,7 @@ ${toolApprovalInstruction}
 3.  **Parse & Report**: When a tool returns data, **analyze it** and report back to the user. Don't just dump the JSON.
 4.  **Handle Errors Gracefully**: If a tool fails, tell the user what happened and propose a workaround.
 5.  **Multi-Step Reasoning**: You can call multiple tools in a row (e.g. \`get_available_slots\` -> \`get_planned_workouts\` -> \`reschedule_planned_workout\`).
+6.  **Workout Notes Safety**: For \`update_workout_notes\`, APPEND is the default behavior. Only use REPLACE when the user explicitly asks to overwrite existing notes.
 
 ## Your Tools & Data Access
 

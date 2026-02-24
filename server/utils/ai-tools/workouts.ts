@@ -221,26 +221,117 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
 
   update_workout_notes: tool({
     description:
-      'Update the personal notes/memos for a specific workout. Use this when the user wants to add, correct, or update their personal thoughts about a session.',
+      'Update the personal notes/memos for a specific workout. Defaults to APPEND mode to preserve existing notes. Use REPLACE only when explicitly requested by the user.',
     inputSchema: z.object({
       workout_id: z.string().describe('The ID of the workout to update notes for'),
-      notes: z.string().describe('The new notes content (Markdown supported)')
+      notes: z.string().describe('The notes content to add or set (Markdown supported)'),
+      mode: z
+        .enum(['APPEND', 'REPLACE'])
+        .optional()
+        .describe('APPEND (default) adds to existing notes. REPLACE overwrites all existing notes.')
     }),
-    execute: async ({ workout_id, notes }) => {
+    needsApproval: async () => true,
+    execute: async ({ workout_id, notes, mode = 'APPEND' }) => {
       const workout = await workoutRepository.getById(workout_id, userId)
       if (!workout) return { error: 'Workout not found' }
 
       try {
+        const incomingNotes = notes.trim()
+        const existingNotes = (workout.notes || '').trim()
+        const nextNotes =
+          mode === 'REPLACE'
+            ? incomingNotes
+            : existingNotes
+              ? `${existingNotes}\n\n${incomingNotes}`
+              : incomingNotes
+
         await workoutRepository.update(workout_id, {
-          notes,
+          notes: nextNotes,
           notesUpdatedAt: new Date()
         })
         return {
           success: true,
-          message: 'Workout notes have been updated successfully.'
+          message:
+            mode === 'REPLACE'
+              ? 'Workout notes were replaced successfully.'
+              : 'Workout notes were appended successfully.'
         }
       } catch (e: any) {
         return { error: `Failed to update notes: ${e.message}` }
+      }
+    }
+  }),
+
+  update_workout: tool({
+    description:
+      'Update a completed workout metadata (rename/retag/date/description/metrics). Use this when the user asks to rename or retag an existing activity.',
+    inputSchema: z.object({
+      workout_id: z.string().describe('The ID of the workout to update'),
+      title: z.string().optional().describe('New workout title'),
+      type: z.string().optional().describe('New workout type/sport'),
+      date: z.string().optional().describe('New workout date/time (ISO string or YYYY-MM-DD)'),
+      description: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('Workout description. Use null to clear.'),
+      duration_seconds: z.number().optional().describe('Duration in seconds'),
+      distance_meters: z.number().nullable().optional().describe('Distance in meters'),
+      training_load: z.number().nullable().optional().describe('Training load value'),
+      tss: z.number().nullable().optional().describe('Training Stress Score')
+    }),
+    needsApproval: async () => true,
+    execute: async ({
+      workout_id,
+      title,
+      type,
+      date,
+      description,
+      duration_seconds,
+      distance_meters,
+      training_load,
+      tss
+    }) => {
+      const workout = await workoutRepository.getById(workout_id, userId)
+      if (!workout) return { error: 'Workout not found' }
+
+      try {
+        const updateData: Record<string, any> = {}
+        if (title !== undefined) updateData.title = title
+        if (type !== undefined) updateData.type = type
+        if (description !== undefined) updateData.description = description
+        if (duration_seconds !== undefined) updateData.durationSec = duration_seconds
+        if (distance_meters !== undefined) updateData.distanceMeters = distance_meters
+        if (training_load !== undefined) updateData.trainingLoad = training_load
+        if (tss !== undefined) updateData.tss = tss
+
+        if (date !== undefined) {
+          const parsedDate = new Date(date)
+          if (Number.isNaN(parsedDate.getTime())) {
+            return { error: 'Invalid date format. Use ISO date/time or YYYY-MM-DD.' }
+          }
+          updateData.date = parsedDate
+        }
+
+        if (Object.keys(updateData).length === 0) {
+          return { error: 'No fields provided to update.' }
+        }
+
+        const updatedWorkout = await workoutRepository.update(workout_id, updateData)
+        return {
+          success: true,
+          message: 'Workout updated successfully.',
+          workout: {
+            id: updatedWorkout.id,
+            title: updatedWorkout.title,
+            type: updatedWorkout.type,
+            date: formatUserDate(updatedWorkout.date, timezone),
+            duration: updatedWorkout.durationSec,
+            tss: updatedWorkout.tss
+          }
+        }
+      } catch (e: any) {
+        return { error: `Failed to update workout: ${e.message}` }
       }
     }
   }),
