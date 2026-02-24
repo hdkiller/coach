@@ -189,6 +189,7 @@
       aiAutoAnalyzeNutrition: boolean
       aiAutoAnalyzeReadiness: boolean
       aiProactivityEnabled: boolean
+      aiConversationalEngagement: boolean
       aiDeepAnalysisEnabled: boolean
       aiRequireToolApproval: boolean
       [key: string]: any // Allow other props to pass through without type error if mixed

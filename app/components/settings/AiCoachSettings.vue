@@ -57,6 +57,20 @@
         </div>
       </div>
 
+      <!-- Communication Preferences -->
+      <div>
+        <label class="block text-sm font-medium mb-2">Communication</label>
+        <p class="text-sm text-muted mb-3">Control how the AI coach interacts with you in chat</p>
+        <div class="space-y-3">
+          <USwitch
+            v-model="localSettings.aiConversationalEngagement"
+            label="Conversational Engagement"
+            description="Allow the coach to ask proactive follow-up questions to keep the session moving"
+            @update:model-value="handleChange"
+          />
+        </div>
+      </div>
+
       <!-- Data & Privacy Settings -->
       <div>
         <label class="block text-sm font-medium mb-2">Data & Privacy</label>
@@ -97,6 +111,7 @@
       aiAutoAnalyzeNutrition: boolean
       aiAutoAnalyzeReadiness: boolean
       aiProactivityEnabled: boolean
+      aiConversationalEngagement: boolean
       aiDeepAnalysisEnabled: boolean
       aiContext?: string | null
       nutritionTrackingEnabled: boolean
