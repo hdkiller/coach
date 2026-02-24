@@ -1,5 +1,6 @@
 <template>
   <UCard
+    v-if="isOnboarded"
     class="lg:col-span-2 overflow-hidden flex flex-col h-full"
     :ui="{
       root: 'rounded-none sm:rounded-lg shadow-none sm:shadow',
@@ -70,7 +71,27 @@
 
 <script setup lang="ts">
   const activityStore = useActivityStore()
+  const integrationStore = useIntegrationStore()
+  const userStore = useUserStore()
   const { formatDate, formatDateUTC, getUserLocalDate } = useFormat()
+
+  const isOnboarded = computed(() => {
+    // 1. Check if Intervals is connected (current behavior)
+    if (integrationStore.intervalsConnected) return true
+
+    // 2. Check if ANY integration is connected (Authorized Application)
+    if ((integrationStore.integrationStatus?.integrations?.length || 0) > 0) return true
+
+    // 3. Check if user has ANY data (Workouts, Nutrition, or Wellness)
+    if (
+      userStore.dataSyncStatus?.workouts ||
+      userStore.dataSyncStatus?.nutrition ||
+      userStore.dataSyncStatus?.wellness
+    )
+      return true
+
+    return false
+  })
 
   function navigateActivity(item: any) {
     if (item.link) {
