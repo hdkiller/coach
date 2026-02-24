@@ -16,6 +16,7 @@ This file tracks ongoing project state, active blockers, and recent architectura
 
 ### Feature Pointers
 
+- **CLI Reference**: See `docs/04-guides/cli-reference.md`. **IMPORTANT**: Maintain this document whenever the CLI is updated or new issues/commands are found.
 - **Nutrition Logic**: See `docs/02-features/nutrition/fueling-logic.md`.
 - **System Messages**: See `docs/02-features/system-messages.md`.
 - **Email System**: See `docs/02-features/email-communication.md`.
