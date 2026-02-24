@@ -341,7 +341,13 @@ export const analyzeNutritionTask = task({
         calories: nutrition.calories
       })
 
-      const aiSettings = await getUserAiSettings(nutrition.userId)
+      const [user, aiSettings] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: nutrition.userId },
+          select: { language: true }
+        }),
+        getUserAiSettings(nutrition.userId)
+      ])
 
       // Check if nutrition tracking is disabled
       if (!aiSettings.nutritionTrackingEnabled) {
@@ -367,7 +373,12 @@ export const analyzeNutritionTask = task({
       const nutritionData = buildNutritionAnalysisData(nutrition)
 
       // Generate the prompt
-      const prompt = buildNutritionAnalysisPrompt(nutritionData, timezone, aiSettings.aiPersona)
+      const prompt = buildNutritionAnalysisPrompt(
+        nutritionData,
+        timezone,
+        aiSettings.aiPersona,
+        user?.language || 'English'
+      )
 
       logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
 
@@ -461,7 +472,8 @@ function buildNutritionAnalysisData(nutrition: any) {
 function buildNutritionAnalysisPrompt(
   nutritionData: any,
   timezone: string,
-  persona: string = 'Supportive'
+  persona: string = 'Supportive',
+  language: string = 'English'
 ): string {
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
@@ -471,6 +483,7 @@ function buildNutritionAnalysisPrompt(
 
   let prompt = `You are an expert nutrition coach analyzing a day's food intake.
 Your persona is: **${persona}**. Adapt your tone and feedback style accordingly.
+Preferred Language: ${language} (CRITICAL: ALL analysis, summaries, and text responses MUST be written in this language)
 
 ## Nutrition Summary for ${dateStr}
 

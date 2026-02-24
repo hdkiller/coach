@@ -707,7 +707,7 @@ CURRENT CONTEXT:
 - Date: ${localDate}
 - Time: ${localTime}
 - Timezone: ${userTimezone}
-- Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
+- Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, reasoning, and text responses MUST be written in this language)
 
 ${currentStatusContext}
 

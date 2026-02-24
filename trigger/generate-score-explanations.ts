@@ -56,19 +56,22 @@ async function generateUnifiedNutritionAnalysis(
   // Fetch recent nutrition data for context
   const startDate = getStartOfDaysAgoUTC(timezone, period)
 
-  const nutrition = await nutritionRepository.getForUser(userId, {
-    startDate,
-    limit: 15, // Increased context slightly for batching
-    orderBy: { date: 'desc' },
-    select: {
-      date: true,
-      calories: true,
-      protein: true,
-      carbs: true,
-      fat: true,
-      waterMl: true
-    }
-  })
+  const [nutrition, user] = await Promise.all([
+    nutritionRepository.getForUser(userId, {
+      startDate,
+      limit: 15, // Increased context slightly for batching
+      orderBy: { date: 'desc' },
+      select: {
+        date: true,
+        calories: true,
+        protein: true,
+        carbs: true,
+        fat: true,
+        waterMl: true
+      }
+    }),
+    prisma.user.findUnique({ where: { id: userId }, select: { language: true } })
+  ])
 
   const prompt = `Analyze these nutrition trends for an endurance athlete over the last ${period} days.
 
@@ -79,6 +82,7 @@ SUMMARY STATS:
 - Quality: ${summary.avgQuality?.toFixed(1)}/10
 - Adherence: ${summary.avgAdherence?.toFixed(1)}/10
 - Hydration: ${summary.avgHydration?.toFixed(1)}/10
+- Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis and text responses MUST be in this language)
 
 RECENT LOGS:
 ${nutrition
@@ -160,27 +164,30 @@ async function generateUnifiedWorkoutAnalysis(
   // Fetch recent workout data for context
   const startDate = getStartOfDaysAgoUTC(timezone, period)
 
-  const workouts = await workoutRepository.getForUser(userId, {
-    startDate,
-    limit: 15,
-    orderBy: { date: 'desc' },
-    select: {
-      date: true,
-      title: true,
-      type: true,
-      durationSec: true,
-      tss: true,
-      averageWatts: true,
-      averageHr: true,
-      rpe: true,
-      feel: true,
-      overallScore: true,
-      technicalScore: true,
-      effortScore: true,
-      pacingScore: true,
-      executionScore: true
-    }
-  })
+  const [workouts, user] = await Promise.all([
+    workoutRepository.getForUser(userId, {
+      startDate,
+      limit: 15,
+      orderBy: { date: 'desc' },
+      select: {
+        date: true,
+        title: true,
+        type: true,
+        durationSec: true,
+        tss: true,
+        averageWatts: true,
+        averageHr: true,
+        rpe: true,
+        feel: true,
+        overallScore: true,
+        technicalScore: true,
+        effortScore: true,
+        pacingScore: true,
+        executionScore: true
+      }
+    }),
+    prisma.user.findUnique({ where: { id: userId }, select: { language: true } })
+  ])
 
   const prompt = `Analyze these workout trends for an endurance athlete over the last ${period} days.
 
@@ -191,6 +198,7 @@ SUMMARY STATS:
 - Effort: ${summary.avgEffort?.toFixed(1)}/10
 - Pacing: ${summary.avgPacing?.toFixed(1)}/10
 - Execution: ${summary.avgExecution?.toFixed(1)}/10
+- Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis and text responses MUST be in this language)
 
 RECENT WORKOUTS:
 ${workouts

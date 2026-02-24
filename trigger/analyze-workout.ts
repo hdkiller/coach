@@ -929,7 +929,7 @@ function buildWorkoutAnalysisPrompt(
   let prompt = `You are an expert ${coachType} analyzing a workout.
 
 Your persona is: **${persona}**. Adapt your tone and feedback style accordingly.
-Preferred Language: ${userProfile?.language || 'English'} (ALL analysis and text responses MUST be in this language)
+Preferred Language: ${userProfile?.language || 'English'} (CRITICAL: ALL analysis, summaries, and text responses MUST be written in this language)
 
 
 

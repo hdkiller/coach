@@ -392,7 +392,8 @@ export const generateStructuredWorkoutTask = task({
             maxHr: true,
             subscriptionTier: true,
             isAdmin: true,
-            aiContext: true
+            aiContext: true,
+            language: true
           }
         },
         trainingWeek: {
@@ -553,6 +554,7 @@ export const generateStructuredWorkoutTask = task({
     USER LTHR: ${lthr} bpm
     TYPE: ${workout.type}
     PREFERRED INTENSITY METRIC: ${loadPreference}
+    PREFERRED LANGUAGE: ${workout.user.language || 'English'} (CRITICAL: ALL text fields like "description" and "coachInstructions" MUST be written in this language)
     
     CONTEXT:
     - Goal: ${goal}

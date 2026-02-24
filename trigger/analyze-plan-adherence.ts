@@ -46,7 +46,7 @@ export const analyzePlanAdherenceTask = task({
       prisma.workout.findUnique({
         where: { id: workoutId },
         include: {
-          user: { select: { ftp: true, aiPersona: true } }
+          user: { select: { ftp: true, aiPersona: true, language: true } }
         }
       }),
       prisma.plannedWorkout.findUnique({
@@ -123,6 +123,7 @@ export const analyzePlanAdherenceTask = task({
       
       USER CONTEXT:
       - FTP: ${workout.user.ftp || 'N/A'}W
+      - Preferred Language: ${workout.user.language || 'English'} (CRITICAL: ALL analysis, reasoning, summaries, and feedback MUST be written in this language)
       
       INSTRUCTIONS:
       1. Calculate an overall adherence score (0-100) based on how well the execution matched the plan.

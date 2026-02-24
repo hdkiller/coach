@@ -739,7 +739,7 @@ USER PROFILE:
       }
 - W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
-- Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
+- Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, summaries, reasoning, and scores explanations MUST be written in this language)
 
 ${aiSettings.aiContext ? `USER PROVIDED CONTEXT / ABOUT ME / SPECIAL INSTRUCTIONS:\n${aiSettings.aiContext}\n` : ''}
 

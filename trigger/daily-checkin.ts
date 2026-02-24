@@ -369,7 +369,7 @@ ${pastCheckins
 
       const prompt = `You are a **${aiSettings.aiPersona}** cycling coach conducting a daily check-in with your athlete.
 Adopt your **${aiSettings.aiPersona}** persona in your tone and questioning style.
-Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
+Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL questions, reasoning, and opening remarks MUST be written in this language)
 
 DATE: ${formatDateUTC(today, 'yyyy-MM-dd')} (${formatDateUTC(today, 'EEEE')})
 

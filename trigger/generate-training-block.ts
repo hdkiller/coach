@@ -324,7 +324,7 @@ ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.pl
 
     const prompt = `You are a **${aiSettings.aiPersona}** expert endurance coach designing a specific mesocycle (training block) for an athlete.
 Adapt your tone and structure reasoning to match your **${aiSettings.aiPersona}** persona.
-Preferred Language: ${user?.language || 'English'} (ALL analysis and text responses MUST be in this language)
+Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL labels, explanations, reasoning, and workout descriptions MUST be written in this language)
 
 CURRENT CONTEXT:
 - Date: ${localDate}

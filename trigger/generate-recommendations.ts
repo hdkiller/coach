@@ -64,6 +64,7 @@ export const generateRecommendationsTask = task({
       where: { id: userId },
       select: {
         name: true,
+        language: true,
         goals: {
           where: { status: 'ACTIVE' },
           select: {
@@ -207,6 +208,7 @@ export const generateRecommendationsTask = task({
     // 5. Construct Prompt
     const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach. Synthesize the following data to generate or refine high-impact, actionable recommendations for the athlete.
 Adapt your tone and feedback style to fully embody your **${aiSettings.aiPersona}** persona.
+Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, reasoning, and text responses MUST be written in this language)
 
 ATHLETE PROFILE:
 - Name: ${user?.name || 'Athlete'}
