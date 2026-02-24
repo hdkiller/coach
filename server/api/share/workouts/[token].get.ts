@@ -49,29 +49,30 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Find the share token
+  let workoutId: string | null = null
+
+  // 1. Try to find a dedicated share token first
   const shareToken = await prisma.shareToken.findUnique({
     where: { token }
   })
 
-  if (!shareToken || shareToken.resourceType !== 'WORKOUT') {
-    throw createError({
-      statusCode: 404,
-      message: 'Workout not found or link is invalid'
-    })
-  }
-
-  // Check for expiration
-  if (shareToken.expiresAt && new Date() > new Date(shareToken.expiresAt)) {
-    throw createError({
-      statusCode: 404,
-      message: 'Share link has expired'
-    })
+  if (shareToken && shareToken.resourceType === 'WORKOUT') {
+    // Check for expiration
+    if (shareToken.expiresAt && new Date() > new Date(shareToken.expiresAt)) {
+      throw createError({
+        statusCode: 404,
+        message: 'Share link has expired'
+      })
+    }
+    workoutId = shareToken.resourceId
+  } else {
+    // 2. Fallback: Treat the token as a direct workout ID
+    workoutId = token
   }
 
   const workout = await prisma.workout.findUnique({
     where: {
-      id: shareToken.resourceId
+      id: workoutId
     },
     include: {
       streams: true,
@@ -91,7 +92,16 @@ export default defineEventHandler(async (event) => {
   if (!workout) {
     throw createError({
       statusCode: 404,
-      message: 'Workout not found'
+      message: 'Workout not found or link is invalid'
+    })
+  }
+
+  // 3. Security Check: If accessed via direct workout ID, it MUST not be private
+  // (ShareTokens override this as they are explicit invitation links)
+  if (!shareToken && workout.isPrivate) {
+    throw createError({
+      statusCode: 404, // 404 to avoid leaking existence of private workouts
+      message: 'Workout not found or link is invalid'
     })
   }
 

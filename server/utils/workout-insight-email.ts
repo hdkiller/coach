@@ -1,6 +1,6 @@
 import { prisma } from './db'
 import { queueEmail } from './email-service'
-import { formatUserDate } from './date'
+import { formatUserDate, getStartOfDaysAgoUTC } from './date'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
 
 const RECENT_WORKOUT_WINDOW_HOURS = 48
@@ -45,8 +45,21 @@ function buildQuickTake(options: {
   averageHr?: number
   averageWatts?: number
   maxHr?: number
+  ftp?: number
+  lthr?: number
+  userMaxHr?: number
 }) {
-  const { sportCategory, tss, averageCadence, averageHr, averageWatts, maxHr } = options
+  const {
+    sportCategory,
+    tss,
+    averageCadence,
+    averageHr,
+    averageWatts,
+    maxHr,
+    ftp,
+    lthr,
+    userMaxHr
+  } = options
 
   let quickTakeLabel = 'Session logged'
   let quickTakeBody =
@@ -80,12 +93,16 @@ function buildQuickTake(options: {
       ' Your ride cadence stayed in a sustainable range, helping steady aerobic output.'
   }
 
+  // Efficiency signal: High relative power for low relative HR
+  const relPower =
+    typeof averageWatts === 'number' && typeof ftp === 'number' && ftp > 0
+      ? averageWatts / ftp
+      : null
+  const relHr =
+    typeof averageHr === 'number' && typeof lthr === 'number' && lthr > 0 ? averageHr / lthr : null
+
   const efficiencyMessage =
-    typeof averageHr === 'number' &&
-    typeof averageWatts === 'number' &&
-    ((sportCategory === 'ride' && averageHr <= 150 && averageWatts >= 210) ||
-      (sportCategory === 'run' && averageHr <= 155 && averageWatts >= 230) ||
-      (sportCategory === 'other' && averageHr <= 152 && averageWatts >= 220))
+    relPower && relHr && relPower >= 0.7 && relHr <= 0.85
       ? sportCategory === 'ride'
         ? 'Efficiency signal: you held strong bike power while keeping heart rate controlled.'
         : sportCategory === 'run'
@@ -93,11 +110,16 @@ function buildQuickTake(options: {
           : 'Efficiency signal: you produced strong power while keeping heart rate controlled.'
       : undefined
 
+  // Intensity signal: Touching high % of max HR or LTHR
+  const maxRelHr =
+    typeof maxHr === 'number' && typeof userMaxHr === 'number' && userMaxHr > 0
+      ? maxHr / userMaxHr
+      : null
+  const maxRelLthr =
+    typeof maxHr === 'number' && typeof lthr === 'number' && lthr > 0 ? maxHr / lthr : null
+
   const recoveryMessage =
-    typeof maxHr === 'number' &&
-    ((sportCategory === 'run' && maxHr >= 178) ||
-      (sportCategory === 'ride' && maxHr >= 172) ||
-      (sportCategory === 'other' && maxHr >= 175))
+    (maxRelHr && maxRelHr >= 0.95) || (maxRelLthr && maxRelLthr >= 1.05)
       ? sportCategory === 'run'
         ? 'Intensity signal: you touched the top end on this run. Prioritize recovery tonight.'
         : sportCategory === 'ride'
@@ -469,10 +491,8 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       ? Math.round((workout.distanceMeters / 1000) * 10) / 10
       : undefined
 
-  const consistencyWindowStart = new Date(workout.date)
-  consistencyWindowStart.setDate(consistencyWindowStart.getDate() - CONSISTENCY_WINDOW_DAYS + 1)
-  const tssWindowStart = new Date(workout.date)
-  tssWindowStart.setDate(tssWindowStart.getDate() - 27)
+  const consistencyWindowStart = getStartOfDaysAgoUTC(timezone, 6, workout.date)
+  const tssWindowStart = getStartOfDaysAgoUTC(timezone, 27, workout.date)
 
   const [workoutsLast7Days, windowWorkouts, sportSettings] = await Promise.all([
     prisma.workout.count({
@@ -509,9 +529,8 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
 
   const sportCategory = inferSportCategory(workout.type)
   const tss28d = windowWorkouts.reduce((sum, entry) => sum + (entry.tss || 0), 0)
+  const start7d = getStartOfDaysAgoUTC(timezone, 6, workout.date)
   const tss7d = windowWorkouts.reduce((sum, entry) => {
-    const start7d = new Date(workout.date)
-    start7d.setDate(start7d.getDate() - 6)
     return entry.date >= start7d ? sum + (entry.tss || 0) : sum
   }, 0)
   const weeklyTssBaseline28d = tss28d > 0 ? Math.round((tss28d / 4) * 10) / 10 : undefined
@@ -526,7 +545,10 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       averageCadence: workout.averageCadence || undefined,
       averageHr: workout.averageHr || undefined,
       averageWatts: workout.averageWatts || undefined,
-      maxHr: workout.maxHr || undefined
+      maxHr: workout.maxHr || undefined,
+      ftp: sportSettings?.ftp || undefined,
+      lthr: sportSettings?.lthr || undefined,
+      userMaxHr: sportSettings?.maxHr || undefined
     })
   const { sportLensLabel, sportLensBody } = buildSportLens({
     sportCategory,
@@ -589,7 +611,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     nextStepMessage,
     workoutUrl: `${baseUrl}/workouts/${workout.id}`,
     unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`,
-    shareUrl: `${baseUrl}/share/workouts/${workout.id}`
+    shareUrl: `${baseUrl}/workouts/${workout.id}?share=true`
   }
 
   if (triggerType === 'on-workout-received') {
