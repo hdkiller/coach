@@ -274,7 +274,7 @@
             >
               <div class="space-y-2">
                 <UIcon
-                  name="i-heroicons-fingerprint"
+                  name="i-heroicons-identification"
                   class="size-5 text-primary-500 group-hover:scale-110 transition-transform"
                 />
                 <h4 class="font-bold text-sm group-hover:text-primary-500 transition-colors">

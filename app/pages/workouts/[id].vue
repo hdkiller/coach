@@ -1669,7 +1669,7 @@
         :expiry-value="shareExpiryValue"
         resource-label="workout"
         :share-title="
-          workout?.title ? `Workout: ${workout.title}` : 'Workout shared from Coach Wattz'
+          workout?.title ? `Workout: ${workout.title}` : 'Workout shared from Coach Watts'
         "
         @update:expiry-value="shareExpiryValue = $event"
         @generate="generateShareLink"
@@ -1699,7 +1699,7 @@
     :workout="workout"
     @updated="fetchWorkout"
     @delete="
-      isEditModalOpen = false;
+      isEditModalOpen = false
       isDeleteModalOpen = true
     "
   />
@@ -1995,7 +1995,7 @@
     const workoutType = workout.value.type ? ` - ${workout.value.type}` : ''
     const workoutDate = baseFormatDate(workout.value.date)
 
-    const title = `${workout.value.title} | Coach Wattz`
+    const title = `${workout.value.title} | Coach Watts`
 
     const descriptionParts = [
       `${workout.value.title}${workoutType}`,
