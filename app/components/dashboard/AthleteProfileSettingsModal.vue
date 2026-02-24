@@ -313,7 +313,7 @@
     // Core performance
     if (key === 'ftp') return (userStore.currentFtp || '?') + 'W'
     if (key === 'weight')
-      return (userStore.profile.weight?.toFixed(1) || '?') + userStore.weightUnitLabel
+      return (userStore.displayWeight?.toFixed(1) || '?') + userStore.weightUnitLabel
     if (key === 'wKg') {
       if (!userStore.currentWkg) return '?'
       return userStore.currentWkg.toFixed(2)

@@ -597,6 +597,13 @@
     )
   })
 
+  const toDisplayWeight = (weightKg: number) => {
+    if (userStore.profile?.weightUnits === 'Pounds') {
+      return weightKg / LBS_TO_KG
+    }
+    return weightKg
+  }
+
   const totalPages = computed(() => Math.ceil(filteredWellness.value.length / itemsPerPage))
   const visiblePages = computed(() => {
     const pages = []
@@ -912,7 +919,7 @@
       (!targetValue || targetValue === 0) &&
       weightGoal.value?.targetValue !== undefined
     ) {
-      targetValue = weightGoal.value.targetValue
+      targetValue = toDisplayWeight(weightGoal.value.targetValue)
     }
 
     if (settings.showTarget && targetValue !== undefined) {
@@ -1266,7 +1273,7 @@
       (!targetValue || targetValue === 0) &&
       weightGoal.value?.targetValue !== undefined
     ) {
-      targetValue = weightGoal.value.targetValue
+      targetValue = toDisplayWeight(weightGoal.value.targetValue)
     }
 
     if (key === 'recovery' || key === 'readinessEstimate') {
