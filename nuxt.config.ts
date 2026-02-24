@@ -31,10 +31,6 @@ export default defineNuxtConfig({
     'examples/**',
     'coverage/**',
     'backups/**',
-    '.output/**',
-    '.trigger/**',
-    '.nuxt/**',
-    'node_modules/**'
   ],
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
