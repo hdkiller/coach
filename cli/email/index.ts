@@ -283,7 +283,7 @@ emailCommand
             calories: workout.calories || undefined,
             workoutUrl,
             unsubscribeUrl: `${options.siteUrl.replace(/\/$/, '')}/profile/settings?tab=communication`,
-            shareUrl: `${options.siteUrl.replace(/\/$/, '')}/share/workouts/${workout.id}`,
+            shareUrl: `${options.siteUrl.replace(/\/$/, '')}/workouts/${workout.id}?share=true`,
             heroTitle,
             introLine,
             previewLine
