@@ -5,9 +5,7 @@
         <div>
           <h2 class="text-xl font-bold uppercase tracking-tight">Version History</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            Current version: v{{ config.public.version }}+{{ config.public.buildDate }}.{{
-              config.public.commitHash
-            }}
+            Current version: {{ buildVersionDisplay }}
           </p>
         </div>
       </div>
@@ -25,6 +23,11 @@
 
 <script setup lang="ts">
   const config = useRuntimeConfig()
+  const buildVersionDisplay = computed(
+    () =>
+      (config.public.buildVersion as string) ||
+      `v${config.public.version}+${config.public.buildDate}.${config.public.commitHash}`
+  )
   const { data, pending, error } = useFetch('/api/changelog')
 
   useHead({
