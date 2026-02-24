@@ -363,27 +363,61 @@ export const issuesRepository = {
    * Toggle a reaction on a comment.
    */
   async toggleReaction(commentId: string, userId: string, emoji: string) {
+    console.log(
+      `[issuesRepository] toggleReaction START: commentId=${commentId}, userId=${userId}, emoji=${emoji}`
+    )
+    if (!userId) {
+      console.error(`[issuesRepository] toggleReaction ERROR: userId is missing`)
+      return null
+    }
+
     const comment = await prisma.bugReportComment.findUnique({
       where: { id: commentId },
       select: { reactions: true }
     })
 
-    if (!comment) return null
+    if (!comment) {
+      console.log(`[issuesRepository] toggleReaction ERROR: comment not found`)
+      return null
+    }
 
     let reactions = (comment.reactions as Record<string, string[]>) || {}
+    console.log(
+      `[issuesRepository] toggleReaction: current reactions for comment ${commentId}=`,
+      JSON.stringify(reactions)
+    )
+
     if (!reactions[emoji]) {
+      reactions[emoji] = []
+    }
+
+    // Ensure it's an array (Prisma Json can be anything)
+    if (!Array.isArray(reactions[emoji])) {
+      console.log(
+        `[issuesRepository] toggleReaction: reactions[${emoji}] was not an array, resetting`
+      )
       reactions[emoji] = []
     }
 
     const userIndex = reactions[emoji].indexOf(userId)
     if (userIndex > -1) {
+      console.log(
+        `[issuesRepository] toggleReaction: removing userId ${userId} from emoji ${emoji}`
+      )
       reactions[emoji].splice(userIndex, 1)
       if (reactions[emoji].length === 0) {
-        delete reactions[emoji]
+        const { [emoji]: _, ...remaining } = reactions
+        reactions = remaining
       }
     } else {
+      console.log(`[issuesRepository] toggleReaction: adding userId ${userId} to emoji ${emoji}`)
       reactions[emoji].push(userId)
     }
+
+    console.log(
+      `[issuesRepository] toggleReaction: final reactions for comment ${commentId}=`,
+      JSON.stringify(reactions)
+    )
 
     return prisma.bugReportComment.update({
       where: { id: commentId },
@@ -405,27 +439,63 @@ export const issuesRepository = {
    * Toggle a reaction on a bug report.
    */
   async toggleIssueReaction(issueId: string, userId: string, emoji: string) {
+    console.log(
+      `[issuesRepository] toggleIssueReaction START: issueId=${issueId}, userId=${userId}, emoji=${emoji}`
+    )
+    if (!userId) {
+      console.error(`[issuesRepository] toggleIssueReaction ERROR: userId is missing`)
+      return null
+    }
+
     const report = await prisma.bugReport.findUnique({
       where: { id: issueId },
       select: { reactions: true }
     })
 
-    if (!report) return null
+    if (!report) {
+      console.log(`[issuesRepository] toggleIssueReaction ERROR: report not found`)
+      return null
+    }
 
     let reactions = (report.reactions as Record<string, string[]>) || {}
+    console.log(
+      `[issuesRepository] toggleIssueReaction: current reactions for report ${issueId}=`,
+      JSON.stringify(reactions)
+    )
+
     if (!reactions[emoji]) {
+      reactions[emoji] = []
+    }
+
+    // Ensure it's an array
+    if (!Array.isArray(reactions[emoji])) {
+      console.log(
+        `[issuesRepository] toggleIssueReaction: reactions[${emoji}] was not an array, resetting`
+      )
       reactions[emoji] = []
     }
 
     const userIndex = reactions[emoji].indexOf(userId)
     if (userIndex > -1) {
+      console.log(
+        `[issuesRepository] toggleIssueReaction: removing userId ${userId} from emoji ${emoji}`
+      )
       reactions[emoji].splice(userIndex, 1)
       if (reactions[emoji].length === 0) {
-        delete reactions[emoji]
+        const { [emoji]: _, ...remaining } = reactions
+        reactions = remaining
       }
     } else {
+      console.log(
+        `[issuesRepository] toggleIssueReaction: adding userId ${userId} to emoji ${emoji}`
+      )
       reactions[emoji].push(userId)
     }
+
+    console.log(
+      `[issuesRepository] toggleIssueReaction: final reactions for report ${issueId}=`,
+      JSON.stringify(reactions)
+    )
 
     return prisma.bugReport.update({
       where: { id: issueId },
