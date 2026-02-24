@@ -35,6 +35,7 @@ import { triggerReadinessCheckIfNeeded } from './wellness-analysis'
 import { deduplicationService } from './deduplicationService'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { roundToTwoDecimals } from '../number'
+import { summarizePowerFromWatts } from '../power-metrics'
 
 export const IntervalsService = {
   /**
@@ -411,6 +412,47 @@ export const IntervalsService = {
         updatedAt: new Date()
       }
     })
+
+    // If Intervals summary omitted power metrics (common on some running activities),
+    // backfill from the stored watts stream so downstream AI/context has usable values.
+    const streamPowerSummary = summarizePowerFromWatts(wattsData)
+    if (streamPowerSummary) {
+      const workout = await prisma.workout.findUnique({
+        where: { id: workoutId },
+        select: {
+          averageWatts: true,
+          maxWatts: true,
+          normalizedPower: true
+        }
+      })
+
+      if (workout) {
+        const updateData: {
+          averageWatts?: number
+          maxWatts?: number
+          normalizedPower?: number
+        } = {}
+
+        if (!workout.averageWatts || workout.averageWatts <= 0) {
+          updateData.averageWatts = streamPowerSummary.averageWatts
+        }
+
+        if (!workout.maxWatts || workout.maxWatts <= 0) {
+          updateData.maxWatts = streamPowerSummary.maxWatts
+        }
+
+        if (!workout.normalizedPower || workout.normalizedPower <= 0) {
+          updateData.normalizedPower = streamPowerSummary.normalizedPower
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await prisma.workout.update({
+            where: { id: workoutId },
+            data: updateData
+          })
+        }
+      }
+    }
 
     return workoutStream
   },
