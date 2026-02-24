@@ -1,1 +1,2 @@
--- AlterTable\nALTER TABLE "SystemMessage" ADD COLUMN "minUserAgeDays" INTEGER NOT NULL DEFAULT 0;
+-- AlterTable
+ALTER TABLE "SystemMessage" ADD COLUMN "minUserAgeDays" INTEGER NOT NULL DEFAULT 0;
