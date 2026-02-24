@@ -64,6 +64,15 @@
             0 2px 4px -1px rgba(0, 0, 0, 0.06);
         "
       >
+        <!-- Top Gradient Accent -->
+        <ESection
+          style="
+            background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
+            height: 4px;
+            width: 100%;
+          "
+        ></ESection>
+
         <!-- Header -->
         <ESection style="padding: 32px 40px 0; text-align: center">
           <ELink :href="siteUrl">
@@ -72,7 +81,7 @@
               width="64"
               height="64"
               alt="Coach Watts"
-              style="margin: 0 auto; border-radius: 16px; display: block"
+              style="margin: 0 auto; border-radius: 12px; display: block"
             />
           </ELink>
         </ESection>

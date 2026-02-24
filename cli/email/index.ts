@@ -88,6 +88,243 @@ emailCommand
     process.exit(0)
   })
 
+function inferSportCategory(type?: string | null): 'run' | 'ride' | 'other' {
+  if (!type) return 'other'
+  const normalized = type.toLowerCase()
+  if (normalized.includes('run') || normalized.includes('jog') || normalized.includes('trail'))
+    return 'run'
+  if (
+    normalized.includes('ride') ||
+    normalized.includes('cycle') ||
+    normalized.includes('bike') ||
+    normalized.includes('cycling')
+  )
+    return 'ride'
+  return 'other'
+}
+
+function formatDurationShort(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes} min`
+}
+
+function formatWorkoutDate(date: Date) {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+emailCommand
+  .command('send-workout-received-test')
+  .description('Send a WorkoutReceived-style test email from an existing workout ID')
+  .requiredOption('--workout-id <id>', 'Workout ID')
+  .requiredOption('--to <email>', 'Recipient email')
+  .option('--subject <subject>', 'Override email subject')
+  .option('--from <email>', 'Sender email (overrides env var)')
+  .option('--prod', 'Use DATABASE_URL_PROD instead of default DATABASE_URL')
+  .option('--site-url <url>', 'Workout link base URL', 'https://coachwatts.com')
+  .action(
+    async (options: {
+      workoutId: string
+      to: string
+      subject?: string
+      from?: string
+      prod?: boolean
+      siteUrl: string
+    }) => {
+      const targetDatabaseUrl = options.prod
+        ? process.env.DATABASE_URL_PROD
+        : process.env.DATABASE_URL
+      if (!targetDatabaseUrl) {
+        console.error(
+          chalk.red(options.prod ? 'DATABASE_URL_PROD is not set' : 'DATABASE_URL is not set')
+        )
+        process.exit(1)
+      }
+
+      let db: PrismaClient = prisma as unknown as PrismaClient
+      let pool: pg.Pool | null = null
+
+      if (options.prod) {
+        console.log(chalk.yellow('Using PRODUCTION database (DATABASE_URL_PROD)'))
+        pool = new pg.Pool({ connectionString: targetDatabaseUrl })
+        const adapter = new PrismaPg(pool)
+        db = new PrismaClient({ adapter })
+      } else {
+        console.log(chalk.blue('Using default database (DATABASE_URL)'))
+      }
+
+      try {
+        const workout = await db.workout.findUnique({
+          where: { id: options.workoutId },
+          select: {
+            id: true,
+            userId: true,
+            title: true,
+            date: true,
+            type: true,
+            durationSec: true,
+            distanceMeters: true,
+            elevationGain: true,
+            averageCadence: true,
+            averageHr: true,
+            maxHr: true,
+            averageWatts: true,
+            normalizedPower: true,
+            tss: true,
+            kilojoules: true,
+            calories: true,
+            user: {
+              select: {
+                name: true
+              }
+            }
+          }
+        })
+
+        if (!workout) {
+          console.error(chalk.red(`Workout not found: ${options.workoutId}`))
+          process.exit(1)
+        }
+
+        const tssWindowStart = new Date(workout.date)
+        tssWindowStart.setDate(tssWindowStart.getDate() - 27)
+        const recentTssRows = await db.workout.findMany({
+          where: {
+            userId: workout.userId,
+            isDuplicate: false,
+            date: {
+              gte: tssWindowStart,
+              lte: workout.date
+            }
+          },
+          select: {
+            date: true,
+            tss: true
+          }
+        })
+
+        const tss28d = recentTssRows.reduce((sum, row) => sum + (row.tss || 0), 0)
+        const start7d = new Date(workout.date)
+        start7d.setDate(start7d.getDate() - 6)
+        const tss7d = recentTssRows.reduce((sum, row) => {
+          return row.date >= start7d ? sum + (row.tss || 0) : sum
+        }, 0)
+        const weeklyTssBaseline28d = tss28d > 0 ? Math.round(tss28d / 4) : 0
+        const loadDeltaPct =
+          weeklyTssBaseline28d > 0
+            ? Math.round(((tss7d - weeklyTssBaseline28d) / weeklyTssBaseline28d) * 100)
+            : null
+
+        const sportCategory = inferSportCategory(workout.type)
+        const cadenceUnit = sportCategory === 'ride' ? 'rpm' : 'spm'
+        const distanceKm = workout.distanceMeters
+          ? Math.round((workout.distanceMeters / 1000) * 10) / 10
+          : null
+        const durationText = formatDurationShort(workout.durationSec)
+        const dateText = formatWorkoutDate(workout.date)
+        const athleteName = workout.user?.name || 'Athlete'
+        const workoutUrl = `${options.siteUrl.replace(/\/$/, '')}/workouts/${workout.id}`
+
+        const subject = options.subject || `[Test] Workout Synced: ${workout.title}`
+
+        const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:24px;background:#f4f4f5;font-family:Arial,sans-serif;color:#09090b;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+      <tr>
+        <td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;background:#ffffff;border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;">
+            <tr>
+              <td style="padding:28px 32px 20px;">
+                <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;">Workout synced and ready to review.</h1>
+                <p style="margin:0 0 12px;color:#52525b;">Hi ${athleteName},</p>
+                <p style="margin:0 0 18px;color:#52525b;">Your session <strong>${workout.title}</strong> was synced successfully.</p>
+                <p style="margin:0 0 18px;color:#52525b;">Open it now to review execution details while the session is still fresh.</p>
+
+                <div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+                  <p style="margin:0 0 8px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#71717a;font-weight:700;">Session Snapshot</p>
+                  <p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Date:</strong> ${dateText}</p>
+                  <p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Type:</strong> ${workout.type || 'Workout'}</p>
+                  <p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Duration:</strong> ${durationText}</p>
+                  ${distanceKm ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Distance:</strong> ${distanceKm} km</p>` : ''}
+                  ${workout.elevationGain ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Elevation Gain:</strong> ${workout.elevationGain} m</p>` : ''}
+                  ${workout.averageHr ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Avg HR:</strong> ${workout.averageHr} bpm</p>` : ''}
+                  ${workout.maxHr ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Max HR:</strong> ${workout.maxHr} bpm</p>` : ''}
+                  ${workout.averageCadence ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Avg Cadence:</strong> ${workout.averageCadence} ${cadenceUnit}</p>` : ''}
+                  ${workout.averageWatts ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Avg Power:</strong> ${workout.averageWatts} W</p>` : ''}
+                  ${workout.normalizedPower ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">Normalized Power:</strong> ${workout.normalizedPower} W</p>` : ''}
+                  ${workout.tss ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">TSS:</strong> ${Math.round(workout.tss)}</p>` : ''}
+                  ${workout.kilojoules ? `<p style="margin:0 0 6px;color:#52525b;"><strong style="color:#09090b;">kJ:</strong> ${workout.kilojoules} kJ</p>` : ''}
+                  ${workout.calories ? `<p style="margin:0;color:#52525b;"><strong style="color:#09090b;">Calories:</strong> ${workout.calories} kcal</p>` : ''}
+                </div>
+
+                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+                  <p style="margin:0 0 8px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#92400e;font-weight:700;">Load Context</p>
+                  <p style="margin:0;color:#92400e;">Last 7d load: <strong>${Math.round(tss7d)}</strong> TSS • 4-week weekly baseline: <strong>${weeklyTssBaseline28d}</strong>${typeof loadDeltaPct === 'number' ? ` • Delta: <strong>${loadDeltaPct}%</strong>` : ''}</p>
+                </div>
+
+                <p style="margin:0 0 18px;color:#3f3f46;"><strong>What's next?</strong> See how this session impacted your Fitness vs Fatigue trend.</p>
+                <a href="${workoutUrl}" style="display:inline-block;background:#00c16a;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:10px;">View Full Analysis & Splits</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
+
+        const text = [
+          'Workout synced and ready to review.',
+          '',
+          `Hi ${athleteName},`,
+          '',
+          `${workout.title} was synced successfully.`,
+          `Date: ${dateText}`,
+          `Type: ${workout.type || 'Workout'}`,
+          `Duration: ${durationText}`,
+          distanceKm ? `Distance: ${distanceKm} km` : null,
+          workout.averageHr ? `Avg HR: ${workout.averageHr} bpm` : null,
+          workout.averageWatts ? `Avg Power: ${workout.averageWatts} W` : null,
+          workout.tss ? `TSS: ${Math.round(workout.tss)}` : null,
+          '',
+          `Load context: 7d=${Math.round(tss7d)} TSS, baseline=${weeklyTssBaseline28d}${typeof loadDeltaPct === 'number' ? `, delta=${loadDeltaPct}%` : ''}`,
+          '',
+          `Open workout details: ${workoutUrl}`
+        ]
+          .filter(Boolean)
+          .join('\n')
+
+        console.log(chalk.blue(`Sending test email for workout ${workout.id} to ${options.to}...`))
+        const response = await sendEmail({
+          to: options.to,
+          from: options.from,
+          subject,
+          html,
+          text
+        })
+
+        console.log(chalk.green('WorkoutReceived test email sent successfully!'))
+        console.log(response)
+      } catch (error: any) {
+        console.error(chalk.red('Failed to send workout test email:'), error.message)
+        process.exit(1)
+      } finally {
+        if (pool) {
+          await db.$disconnect()
+          await pool.end()
+        }
+      }
+
+      process.exit(0)
+    }
+  )
+
 emailCommand
   .command('troubleshoot-workout')
   .description('Diagnose why workout insight emails were (or were not) queued for a workout')

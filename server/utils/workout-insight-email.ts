@@ -1,6 +1,7 @@
 import { prisma } from './db'
 import { queueEmail } from './email-service'
 import { formatUserDate } from './date'
+import { sportSettingsRepository } from './repositories/sportSettingsRepository'
 
 const RECENT_WORKOUT_WINDOW_HOURS = 48
 const CONSISTENCY_WINDOW_DAYS = 7
@@ -119,6 +120,241 @@ function getFirstName(name?: string | null) {
   return name.trim().split(/\s+/)[0] || 'Athlete'
 }
 
+function hashString(input: string) {
+  let hash = 0
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) % 2147483647
+  }
+  return Math.abs(hash)
+}
+
+function pickVariant<T>(key: string, variants: T[]) {
+  if (!variants.length) {
+    throw new Error('pickVariant requires at least one variant')
+  }
+  return variants[hashString(key) % variants.length]
+}
+
+function buildLoadContext(tss7d?: number, weeklyTssBaseline28d?: number) {
+  if (
+    typeof tss7d !== 'number' ||
+    typeof weeklyTssBaseline28d !== 'number' ||
+    weeklyTssBaseline28d <= 0
+  ) {
+    return {
+      loadContextLabel: 'Load Context',
+      loadContextBody:
+        'Keep stacking consistent sessions to establish your personal load baseline.',
+      loadDeltaPct: undefined as number | undefined
+    }
+  }
+
+  const loadDeltaPct = Math.round(((tss7d - weeklyTssBaseline28d) / weeklyTssBaseline28d) * 100)
+
+  if (loadDeltaPct >= 20) {
+    return {
+      loadContextLabel: 'Aggressive Load Week',
+      loadContextBody:
+        'Your recent load is well above your 4-week baseline. Great for adaptation when recovery is handled well.',
+      loadDeltaPct
+    }
+  }
+
+  if (loadDeltaPct >= 6) {
+    return {
+      loadContextLabel: 'Progressive Week',
+      loadContextBody:
+        'You are training above your recent baseline in a productive range that supports progression.',
+      loadDeltaPct
+    }
+  }
+
+  if (loadDeltaPct >= -10) {
+    return {
+      loadContextLabel: 'Balanced Week',
+      loadContextBody:
+        'Your recent load is close to baseline, which is strong for maintaining momentum and consistency.',
+      loadDeltaPct
+    }
+  }
+
+  return {
+    loadContextLabel: 'Recovery-Leaning Week',
+    loadContextBody:
+      'Your recent load is below baseline, which can help consolidate gains before the next build.',
+    loadDeltaPct
+  }
+}
+
+function buildSportLens(options: {
+  sportCategory: 'run' | 'ride' | 'other'
+  averageCadence?: number
+  averageHr?: number
+  averageWatts?: number
+  sportFtp?: number
+  sportLthr?: number
+  sportMaxHr?: number
+}) {
+  const {
+    sportCategory,
+    averageCadence,
+    averageHr,
+    averageWatts,
+    sportFtp,
+    sportLthr,
+    sportMaxHr
+  } = options
+
+  if (sportCategory === 'ride') {
+    if (typeof averageWatts === 'number' && typeof sportFtp === 'number' && sportFtp > 0) {
+      const ftpPct = Math.round((averageWatts / sportFtp) * 100)
+      if (ftpPct < 75) {
+        return {
+          sportLensLabel: 'Ride Lens',
+          sportLensBody: `Average power sat around ${ftpPct}% of FTP, indicating mostly endurance-zone work.`
+        }
+      }
+      if (ftpPct <= 89) {
+        return {
+          sportLensLabel: 'Ride Lens',
+          sportLensBody: `Average power sat around ${ftpPct}% of FTP, a strong tempo-oriented stimulus.`
+        }
+      }
+      if (ftpPct <= 105) {
+        return {
+          sportLensLabel: 'Ride Lens',
+          sportLensBody: `Average power sat around ${ftpPct}% of FTP, right in threshold-development territory.`
+        }
+      }
+      return {
+        sportLensLabel: 'Ride Lens',
+        sportLensBody: `Average power sat around ${ftpPct}% of FTP, signaling a high-intensity effort.`
+      }
+    }
+
+    if (typeof averageCadence === 'number') {
+      if (averageCadence >= 90) {
+        return {
+          sportLensLabel: 'Ride Lens',
+          sportLensBody:
+            'Cadence was high and fluid, which is often helpful for aerobic sustainability and leg freshness.'
+        }
+      }
+      if (averageCadence <= 75) {
+        return {
+          sportLensLabel: 'Ride Lens',
+          sportLensBody:
+            'Cadence trended lower, which can build muscular endurance, especially on climbs or torque-focused work.'
+        }
+      }
+    }
+  }
+
+  if (sportCategory === 'run') {
+    if (typeof averageHr === 'number' && typeof sportLthr === 'number' && sportLthr > 0) {
+      const lthrPct = Math.round((averageHr / sportLthr) * 100)
+      if (lthrPct < 85) {
+        return {
+          sportLensLabel: 'Run Lens',
+          sportLensBody: `Average HR was about ${lthrPct}% of LTHR, aligning with aerobic-base development.`
+        }
+      }
+      if (lthrPct <= 95) {
+        return {
+          sportLensLabel: 'Run Lens',
+          sportLensBody: `Average HR was about ${lthrPct}% of LTHR, a steady effort that builds durable race fitness.`
+        }
+      }
+      return {
+        sportLensLabel: 'Run Lens',
+        sportLensBody: `Average HR was about ${lthrPct}% of LTHR, indicating threshold-oriented stress.`
+      }
+    }
+
+    if (typeof averageCadence === 'number') {
+      if (averageCadence >= 165 && averageCadence <= 185) {
+        return {
+          sportLensLabel: 'Run Lens',
+          sportLensBody:
+            'Cadence landed in a generally efficient range, which supports smoother turnover and economy.'
+        }
+      }
+      if (averageCadence < 160) {
+        return {
+          sportLensLabel: 'Run Lens',
+          sportLensBody:
+            'Cadence was on the lower side; adding gentle turnover drills can help improve running economy.'
+        }
+      }
+    }
+  }
+
+  if (typeof averageHr === 'number' && typeof sportMaxHr === 'number' && sportMaxHr > 0) {
+    const maxHrPct = Math.round((averageHr / sportMaxHr) * 100)
+    return {
+      sportLensLabel: 'Session Lens',
+      sportLensBody: `Average HR was about ${maxHrPct}% of max HR, giving useful context for session intensity.`
+    }
+  }
+
+  return {
+    sportLensLabel: 'Session Lens',
+    sportLensBody:
+      'This session adds another meaningful data point to your trendline and helps sharpen your training signal.'
+  }
+}
+
+function buildInterestingCopy(options: {
+  workoutId: string
+  sportCategory: 'run' | 'ride' | 'other'
+  workoutTitle: string
+  firstName: string
+  distanceLabel?: string | null
+}) {
+  const { workoutId, sportCategory, workoutTitle, firstName, distanceLabel } = options
+  const key = `${workoutId}:${sportCategory}`
+
+  const heroTitle = pickVariant(key, [
+    'Workout synced and momentum building.',
+    'Session logged. Progress in motion.',
+    'Another strong brick in your training wall.'
+  ])
+
+  const introLine = pickVariant(`${key}:intro`, [
+    `Solid work today. ${workoutTitle} is now on your timeline and ready to review.`,
+    `Nice execution. ${workoutTitle} has been captured and added to your training history.`,
+    `Strong session. ${workoutTitle} is in, and your trends just got sharper.`
+  ])
+
+  const ctaLabel = pickVariant(`${key}:cta`, [
+    'View Full Analysis & Splits',
+    'Open Workout Details',
+    'Review This Session'
+  ])
+
+  const nextStepMessage = pickVariant(`${key}:next`, [
+    'See how this session impacted your Fitness vs Fatigue trend.',
+    'Open your detail page to inspect execution patterns while the session is fresh.',
+    'Review your charts and timeline now to lock in learnings for the next workout.'
+  ])
+
+  const subject = distanceLabel
+    ? pickVariant(`${key}:subject-distance`, [
+        `Great shift, ${firstName}. ${distanceLabel} in the books.`,
+        `${firstName}, ${distanceLabel} logged. Your trendline just moved.`,
+        `${distanceLabel} complete, ${firstName}. Session synced and ready.`
+      ])
+    : pickVariant(`${key}:subject-title`, [
+        `Great shift, ${firstName}. ${workoutTitle} is in the books.`,
+        `${firstName}, ${workoutTitle} is synced and ready to review.`,
+        `${workoutTitle} logged, ${firstName}. Momentum stays on.`
+      ])
+
+  const previewLine = `${workoutTitle} is synced. Open for insights, load context, and sport-specific cues.`
+
+  return { heroTitle, introLine, ctaLabel, nextStepMessage, subject, previewLine }
+}
+
 export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmailOptions) {
   const { workoutId, triggerType } = options
   const logContext = { workoutId, triggerType }
@@ -138,7 +374,9 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       averageHr: true,
       maxHr: true,
       averageWatts: true,
+      normalizedPower: true,
       tss: true,
+      kilojoules: true,
       calories: true,
       overallScore: true
     }
@@ -195,17 +433,36 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
 
   const consistencyWindowStart = new Date(workout.date)
   consistencyWindowStart.setDate(consistencyWindowStart.getDate() - CONSISTENCY_WINDOW_DAYS + 1)
+  const tssWindowStart = new Date(workout.date)
+  tssWindowStart.setDate(tssWindowStart.getDate() - 27)
 
-  const workoutsLast7Days = await prisma.workout.count({
-    where: {
-      userId: workout.userId,
-      isDuplicate: false,
-      date: {
-        gte: consistencyWindowStart,
-        lte: workout.date
+  const [workoutsLast7Days, windowWorkouts, sportSettings] = await Promise.all([
+    prisma.workout.count({
+      where: {
+        userId: workout.userId,
+        isDuplicate: false,
+        date: {
+          gte: consistencyWindowStart,
+          lte: workout.date
+        }
       }
-    }
-  })
+    }),
+    prisma.workout.findMany({
+      where: {
+        userId: workout.userId,
+        isDuplicate: false,
+        date: {
+          gte: tssWindowStart,
+          lte: workout.date
+        }
+      },
+      select: {
+        date: true,
+        tss: true
+      }
+    }),
+    sportSettingsRepository.getForActivityType(workout.userId, workout.type || '')
+  ])
 
   const consistencyMessage =
     workoutsLast7Days >= 3
@@ -213,6 +470,17 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       : undefined
 
   const sportCategory = inferSportCategory(workout.type)
+  const tss28d = windowWorkouts.reduce((sum, entry) => sum + (entry.tss || 0), 0)
+  const tss7d = windowWorkouts.reduce((sum, entry) => {
+    const start7d = new Date(workout.date)
+    start7d.setDate(start7d.getDate() - 6)
+    return entry.date >= start7d ? sum + (entry.tss || 0) : sum
+  }, 0)
+  const weeklyTssBaseline28d = tss28d > 0 ? Math.round((tss28d / 4) * 10) / 10 : undefined
+  const { loadContextLabel, loadContextBody, loadDeltaPct } = buildLoadContext(
+    tss7d > 0 ? Math.round(tss7d) : undefined,
+    weeklyTssBaseline28d
+  )
   const { quickTakeLabel, quickTakeBody, efficiencyMessage, recoveryMessage, cadenceUnit } =
     buildQuickTake({
       sportCategory,
@@ -222,7 +490,25 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       averageWatts: workout.averageWatts || undefined,
       maxHr: workout.maxHr || undefined
     })
+  const { sportLensLabel, sportLensBody } = buildSportLens({
+    sportCategory,
+    averageCadence: workout.averageCadence || undefined,
+    averageHr: workout.averageHr || undefined,
+    averageWatts: workout.averageWatts || undefined,
+    sportFtp: sportSettings?.ftp || undefined,
+    sportLthr: sportSettings?.lthr || undefined,
+    sportMaxHr: sportSettings?.maxHr || undefined
+  })
   const distanceLabel = formatDistanceLabel(distanceKm)
+  const firstName = getFirstName(user.name)
+  const { heroTitle, introLine, ctaLabel, nextStepMessage, subject, previewLine } =
+    buildInterestingCopy({
+      workoutId: workout.id,
+      sportCategory,
+      workoutTitle: workout.title || 'Workout',
+      firstName,
+      distanceLabel
+    })
 
   const commonProps = {
     name: user.name || 'Athlete',
@@ -237,16 +523,29 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     averageHr: workout.averageHr || undefined,
     maxHr: workout.maxHr || undefined,
     averageWatts: workout.averageWatts || undefined,
+    normalizedPower: workout.normalizedPower || undefined,
     tss: workout.tss || undefined,
+    kilojoules: workout.kilojoules || undefined,
     calories: workout.calories || undefined,
+    tss7d: tss7d > 0 ? Math.round(tss7d) : undefined,
+    weeklyTssBaseline28d,
+    loadContextLabel,
+    loadContextBody,
+    loadDeltaPct,
     workoutsLast7Days,
     consistencyMessage,
+    heroTitle,
+    introLine,
+    previewLine,
     quickTakeLabel,
     quickTakeBody,
     efficiencyMessage,
     recoveryMessage,
+    sportLensLabel,
+    sportLensBody,
     cadenceUnit,
-    nextStepMessage: 'See how this session impacted your Fitness vs Fatigue trend.',
+    ctaLabel,
+    nextStepMessage,
     workoutUrl: `${baseUrl}/workouts/${workout.id}`,
     unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`
   }
@@ -277,9 +576,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       templateKey: 'WorkoutReceived',
       eventKey: `WORKOUT_RECEIVED_${workout.id}`,
       idempotencyKey,
-      subject: distanceLabel
-        ? `Great shift, ${getFirstName(user.name)}. ${distanceLabel} in the books.`
-        : `Great shift, ${getFirstName(user.name)}. ${workout.title || 'Your workout'} is in the books.`,
+      subject,
       props: commonProps
     })
 
