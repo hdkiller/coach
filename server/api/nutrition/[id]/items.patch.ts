@@ -5,20 +5,38 @@ import { metabolicService } from '../../../utils/services/metabolicService'
 import { MEAL_LINKED_WATER_ML } from '../../../utils/nutrition/hydration'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../../../utils/nutrition/totals'
 
+const ABSORPTION_TYPES = ['RAPID', 'FAST', 'BALANCED', 'DENSE', 'HYPER_LOAD'] as const
+const LEGACY_ABSORPTION_TYPE_MAP: Record<string, (typeof ABSORPTION_TYPES)[number]> = {
+  SIMPLE: 'RAPID',
+  INTERMEDIATE: 'FAST',
+  COMPLEX: 'BALANCED'
+}
+
+function normalizeAbsorptionType(value: unknown) {
+  if (value == null || value === '') return undefined
+  const normalized = String(value).toUpperCase()
+  return LEGACY_ABSORPTION_TYPE_MAP[normalized] || normalized
+}
+
+function coerceNumberOrZero(value: unknown) {
+  if (value == null || value === '') return 0
+  return value
+}
+
 const ItemSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
-  calories: z.coerce.number(),
-  protein: z.coerce.number(),
-  carbs: z.coerce.number(),
-  fat: z.coerce.number(),
+  calories: z.preprocess(coerceNumberOrZero, z.coerce.number()),
+  protein: z.preprocess(coerceNumberOrZero, z.coerce.number()),
+  carbs: z.preprocess(coerceNumberOrZero, z.coerce.number()),
+  fat: z.preprocess(coerceNumberOrZero, z.coerce.number()),
   fiber: z.coerce.number().optional(),
   sugar: z.coerce.number().optional(),
   water_ml: z.coerce.number().optional(),
   amount: z.coerce.number().optional(),
   unit: z.string().optional(),
   logged_at: z.string().optional(),
-  absorptionType: z.enum(['RAPID', 'FAST', 'BALANCED', 'DENSE', 'HYPER_LOAD']).optional()
+  absorptionType: z.preprocess(normalizeAbsorptionType, z.enum(ABSORPTION_TYPES).optional())
 })
 
 const PatchSchema = z.object({

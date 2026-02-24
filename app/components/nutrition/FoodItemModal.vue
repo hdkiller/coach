@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
   import { z } from 'zod'
-  import { ABSORPTION_PROFILES, getProfileForItem } from '~/utils/nutrition-absorption'
+  import { ABSORPTION_PROFILES } from '~/utils/nutrition-absorption'
 
   const props = defineProps<{
     nutritionId?: string
@@ -105,6 +105,13 @@
   const isOpen = defineModel<boolean>('open', { default: false })
   const loading = ref(false)
   const isEditing = computed(() => props.mode === 'edit')
+  const toast = useToast()
+
+  const LEGACY_ABSORPTION_TYPE_MAP: Record<string, string> = {
+    SIMPLE: 'RAPID',
+    INTERMEDIATE: 'FAST',
+    COMPLEX: 'BALANCED'
+  }
 
   const mealTypes = [
     { label: 'Breakfast', value: 'breakfast' },
@@ -117,6 +124,7 @@
     label: p.label,
     value: p.id
   }))
+  const validAbsorptionTypes = new Set(absorptionTypes.map((type) => type.value))
 
   const schema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -146,6 +154,13 @@
 
   const currentItemId = ref<string | null>(null)
 
+  function normalizeAbsorptionType(absorptionType?: string) {
+    if (!absorptionType) return 'BALANCED'
+    const normalized = String(absorptionType).toUpperCase()
+    const mapped = LEGACY_ABSORPTION_TYPE_MAP[normalized] || normalized
+    return validAbsorptionTypes.has(mapped) ? mapped : 'BALANCED'
+  }
+
   watch(isOpen, (newValue) => {
     if (newValue) {
       const { formatDate, getUserLocalTime } = useFormat()
@@ -153,7 +168,12 @@
         currentItemId.value = props.initialData.id
         state.value = {
           ...props.initialData,
-          mealType: props.initialData.mealType || props.initialData.meal || 'breakfast'
+          mealType: props.initialData.mealType || props.initialData.meal || 'breakfast',
+          calories: Number(props.initialData.calories ?? 0) || 0,
+          carbs: Number(props.initialData.carbs ?? 0) || 0,
+          protein: Number(props.initialData.protein ?? 0) || 0,
+          fat: Number(props.initialData.fat ?? 0) || 0,
+          absorptionType: normalizeAbsorptionType(props.initialData.absorptionType)
         }
         if (state.value.logged_at && state.value.logged_at.includes('T')) {
           state.value.logged_at = formatDate(state.value.logged_at, 'HH:mm')
@@ -169,7 +189,8 @@
           fat: 0,
           amount: 1,
           unit: 'serving',
-          logged_at: getUserLocalTime()
+          logged_at: getUserLocalTime(),
+          absorptionType: 'BALANCED'
         }
       }
     }
@@ -180,9 +201,15 @@
     try {
       const { getUserDateFromLocal } = useFormat()
       const payload = { ...state.value }
+      payload.calories = Number(payload.calories ?? 0) || 0
+      payload.carbs = Number(payload.carbs ?? 0) || 0
+      payload.protein = Number(payload.protein ?? 0) || 0
+      payload.fat = Number(payload.fat ?? 0) || 0
+      payload.absorptionType = normalizeAbsorptionType(payload.absorptionType)
 
-      if (payload.logged_at && /^\d{2}:\d{2}$/.test(payload.logged_at)) {
-        const dateObj = getUserDateFromLocal(props.date, payload.logged_at)
+      if (payload.logged_at && /^\d{2}:\d{2}(:\d{2})?$/.test(payload.logged_at)) {
+        const localTime = payload.logged_at.slice(0, 5)
+        const dateObj = getUserDateFromLocal(props.date, localTime)
         if (!isNaN(dateObj.getTime())) {
           payload.logged_at = dateObj.toISOString()
         }
@@ -203,6 +230,12 @@
       emit('updated')
     } catch (e) {
       console.error('Save error:', e)
+      toast.add({
+        title: 'Save Failed',
+        description:
+          (e as any)?.data?.message || (e as any)?.message || 'Could not save this food entry.',
+        color: 'error'
+      })
     } finally {
       loading.value = false
     }
