@@ -109,6 +109,18 @@
             />
 
             <FitnessTrendChart
+              v-if="showReadinessEstimateChart"
+              metric-key="readinessEstimate"
+              title="Readiness Estimate (HRV + RHR)"
+              :loading="loading"
+              :data="readinessEstimateTrendData"
+              :options="getChartOptions('readinessEstimate')"
+              :settings="chartSettings.readinessEstimate"
+              :plugins="[ChartDataLabels]"
+              @settings="openChartSettings('readinessEstimate', 'Readiness Estimate')"
+            />
+
+            <FitnessTrendChart
               v-if="showSleepChart"
               metric-key="sleep"
               title="Sleep Duration"
@@ -294,6 +306,15 @@
 
   const defaultChartSettings: any = {
     recovery: {
+      type: 'line',
+      visible: true,
+      smooth: true,
+      showPoints: false,
+      opacity: 0.5,
+      yScale: 'dynamic',
+      yMin: 0
+    },
+    readinessEstimate: {
       type: 'line',
       visible: true,
       smooth: true,
@@ -737,6 +758,46 @@
     }
   })
 
+  const readinessEstimateTrendData = computed(() => {
+    const recentWellness = [...filteredWellness.value]
+      .filter((w) => w.hrv && w.restingHr)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const labels = recentWellness.map((w) =>
+      new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    )
+
+    const estimates = recentWellness.map((entry, index) => {
+      const start = Math.max(0, index - 29)
+      const window = recentWellness.slice(start, index + 1)
+      const hrvWindow = window.map((w) => w.hrv).filter((v) => typeof v === 'number' && v > 0)
+      const rhrWindow = window.map((w) => w.restingHr).filter((v) => typeof v === 'number' && v > 0)
+
+      const hrvBaseline = hrvWindow.length
+        ? hrvWindow.reduce((sum, v) => sum + v, 0) / hrvWindow.length
+        : entry.hrv
+      const rhrBaseline = rhrWindow.length
+        ? rhrWindow.reduce((sum, v) => sum + v, 0) / rhrWindow.length
+        : entry.restingHr
+
+      const hrvDeltaPct = ((entry.hrv - hrvBaseline) / hrvBaseline) * 100
+      const rhrDeltaPct = ((entry.restingHr - rhrBaseline) / rhrBaseline) * 100
+
+      const score = 50 + hrvDeltaPct * 1.2 - rhrDeltaPct
+      return Math.max(0, Math.min(100, Math.round(score * 10) / 10))
+    })
+
+    return {
+      labels,
+      datasets: getChartDataset(
+        'readinessEstimate',
+        estimates,
+        'rgb(16, 185, 129)',
+        'Readiness Estimate'
+      )
+    }
+  })
+
   // Helper to build datasets based on per-chart settings
   function getChartDataset(key: string, data: any[], color: string, label: string) {
     const settings = chartSettings.value[key] || defaultChartSettings[key] || {}
@@ -1019,6 +1080,9 @@
   })
 
   const hasRecoveryChartData = computed(() => (recoveryTrendData.value?.labels?.length || 0) > 0)
+  const hasReadinessEstimateChartData = computed(
+    () => (readinessEstimateTrendData.value?.labels?.length || 0) > 0
+  )
   const hasSleepChartData = computed(() => (sleepTrendData.value?.labels?.length || 0) > 0)
   const hasHrvChartData = computed(() => (hrvTrendData.value?.labels?.length || 0) > 0)
   const hasRestingHrChartData = computed(() => (restingHrTrendData.value?.labels?.length || 0) > 0)
@@ -1029,6 +1093,11 @@
     () =>
       chartSettings.value.recovery?.visible !== false &&
       (loading.value || hasRecoveryChartData.value)
+  )
+  const showReadinessEstimateChart = computed(
+    () =>
+      chartSettings.value.readinessEstimate?.visible !== false &&
+      (loading.value || hasReadinessEstimateChartData.value)
   )
   const showSleepChart = computed(
     () => chartSettings.value.sleep?.visible !== false && (loading.value || hasSleepChartData.value)
@@ -1052,6 +1121,7 @@
   const showSecondaryChartsGrid = computed(
     () =>
       showRecoveryChart.value ||
+      showReadinessEstimateChart.value ||
       showSleepChart.value ||
       showHrvChart.value ||
       showRestingHrChart.value ||
@@ -1171,6 +1241,7 @@
       let unit = ''
       let fixed = 0
       if (key === 'recovery') unit = '%'
+      else if (key === 'readinessEstimate') unit = '%'
       else if (key === 'sleep') {
         unit = 'h'
         fixed = 1
@@ -1198,10 +1269,10 @@
       targetValue = weightGoal.value.targetValue
     }
 
-    if (key === 'recovery') {
+    if (key === 'recovery' || key === 'readinessEstimate') {
       opts.scales.y.title = {
         display: true,
-        text: 'Recovery %',
+        text: key === 'recovery' ? 'Recovery %' : 'Readiness Estimate %',
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
       }

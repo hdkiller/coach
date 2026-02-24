@@ -221,6 +221,7 @@
   // Helpers for dynamic sliders based on metric
   const unitLabel = computed(() => {
     if (props.metricKey === 'recovery') return '%'
+    if (props.metricKey === 'readinessEstimate') return '%'
     if (props.metricKey === 'sleep') return 'h'
     if (props.metricKey === 'hrv') return 'ms'
     if (props.metricKey === 'restingHr') return 'bpm'
