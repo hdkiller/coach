@@ -122,11 +122,19 @@
   async function acknowledgeComment(commentId: string) {
     acknowledgingCommentId.value = commentId
     try {
-      await $fetch(`/api/issues/${id}/comments/${commentId}/acknowledge`, {
-        method: 'POST'
-      })
+      const updatedComment = await $fetch<any>(
+        `/api/issues/${id}/comments/${commentId}/acknowledge`,
+        {
+          method: 'POST'
+        }
+      )
+      if (report.value) {
+        const index = report.value.comments.findIndex((c: any) => c.id === commentId)
+        if (index !== -1) {
+          report.value.comments[index] = updatedComment
+        }
+      }
       toast.add({ title: 'Comment acknowledged', color: 'success' })
-      await refreshReport()
     } catch {
       toast.add({ title: 'Failed to acknowledge comment', color: 'error' })
     } finally {
@@ -138,15 +146,38 @@
   async function toggleReaction(commentId: string, emoji: string) {
     reactingCommentId.value = commentId
     try {
-      await $fetch(`/api/issues/${id}/comments/${commentId}/reaction`, {
+      const updatedComment = await $fetch<any>(`/api/issues/${id}/comments/${commentId}/reaction`, {
         method: 'POST',
         body: { emoji }
       })
-      await refreshReport()
+      if (report.value) {
+        const index = report.value.comments.findIndex((c: any) => c.id === commentId)
+        if (index !== -1) {
+          report.value.comments[index] = updatedComment
+        }
+      }
     } catch {
       toast.add({ title: 'Failed to update reaction', color: 'error' })
     } finally {
       reactingCommentId.value = null
+    }
+  }
+
+  const reactingIssueId = ref(false)
+  async function toggleIssueReaction(emoji: string) {
+    reactingIssueId.value = true
+    try {
+      const updatedReport = await $fetch<any>(`/api/issues/${id}/reaction`, {
+        method: 'POST',
+        body: { emoji }
+      })
+      if (report.value) {
+        report.value.reactions = updatedReport.reactions
+      }
+    } catch {
+      toast.add({ title: 'Failed to update reaction', color: 'error' })
+    } finally {
+      reactingIssueId.value = false
     }
   }
 
@@ -282,6 +313,49 @@
                 >
                   {{ report.description }}
                 </p>
+                <!-- Issue Reactions -->
+                <div
+                  class="mt-4 flex items-center gap-1 border-t border-gray-100 dark:border-gray-800 pt-3"
+                >
+                  <template v-if="report.reactions">
+                    <UButton
+                      v-for="(uids, emoji) in report.reactions as any"
+                      :key="emoji"
+                      variant="subtle"
+                      :color="uids.includes(userId) ? 'primary' : 'neutral'"
+                      size="xs"
+                      class="px-1.5 py-0.5 h-6 min-w-8 rounded-full text-[10px]"
+                      @click="toggleIssueReaction(String(emoji))"
+                    >
+                      {{ emoji }} {{ uids.length }}
+                    </UButton>
+                  </template>
+                  <UPopover>
+                    <template #default>
+                      <UButton
+                        icon="i-heroicons-face-smile-20-solid"
+                        variant="ghost"
+                        color="neutral"
+                        size="xs"
+                        class="rounded-full p-1 opacity-70 hover:opacity-100"
+                      />
+                    </template>
+                    <template #content>
+                      <div class="p-1 flex gap-1">
+                        <UButton
+                          v-for="emoji in commonEmojis"
+                          :key="emoji"
+                          variant="ghost"
+                          color="neutral"
+                          size="sm"
+                          @click="toggleIssueReaction(emoji)"
+                        >
+                          {{ emoji }}
+                        </UButton>
+                      </div>
+                    </template>
+                  </UPopover>
+                </div>
               </UCard>
 
               <!-- Communication Thread -->
@@ -385,29 +459,32 @@
                           :class="!comment.isAdmin ? 'prose-invert' : 'dark:prose-invert'"
                         />
                       </div>
-                      <div v-if="comment.isAdmin" class="mt-1 flex items-center justify-between">
-                        <div v-if="comment.acknowledgedAt" class="flex items-center gap-1">
-                          <UIcon name="i-heroicons-check-circle" class="size-3 text-success" />
-                          <span class="text-[9px] text-gray-500 italic">
-                            Viewed {{ formatDate(comment.acknowledgedAt, 'MMM d, HH:mm') }}
-                          </span>
+                      <div class="mt-1 flex items-center justify-between">
+                        <div v-if="comment.isAdmin">
+                          <div v-if="comment.acknowledgedAt" class="flex items-center gap-1">
+                            <UIcon name="i-heroicons-check-circle" class="size-3 text-success" />
+                            <span class="text-[9px] text-gray-500 italic">
+                              Viewed {{ formatDate(comment.acknowledgedAt, 'MMM d, HH:mm') }}
+                            </span>
+                          </div>
+                          <UButton
+                            v-else
+                            label="Mark as Viewed"
+                            variant="ghost"
+                            color="neutral"
+                            size="xs"
+                            :loading="acknowledgingCommentId === comment.id"
+                            class="text-[9px] px-1 h-auto font-black uppercase tracking-tighter"
+                            @click="acknowledgeComment(comment.id)"
+                          />
                         </div>
-                        <UButton
-                          v-else
-                          label="Mark as Viewed"
-                          variant="ghost"
-                          color="neutral"
-                          size="xs"
-                          :loading="acknowledgingCommentId === comment.id"
-                          class="text-[9px] px-1 h-auto font-black uppercase tracking-tighter"
-                          @click="acknowledgeComment(comment.id)"
-                        />
+                        <div v-else />
 
                         <!-- Reactions -->
                         <div class="flex items-center gap-1">
                           <template v-if="comment.reactions">
                             <UButton
-                              v-for="(uids, emoji) in (comment.reactions as any)"
+                              v-for="(uids, emoji) in comment.reactions as any"
                               :key="emoji"
                               variant="subtle"
                               :color="uids.includes(userId) ? 'primary' : 'neutral'"
@@ -421,11 +498,11 @@
                           <UPopover>
                             <template #default>
                               <UButton
-                                icon="i-heroicons-face-smile"
+                                icon="i-heroicons-face-smile-20-solid"
                                 variant="ghost"
                                 color="neutral"
                                 size="xs"
-                                class="rounded-full p-1 opacity-50 hover:opacity-100"
+                                class="rounded-full p-1 opacity-70 hover:opacity-100"
                               />
                             </template>
                             <template #content>
