@@ -657,7 +657,8 @@ function buildWorkoutAnalysisData(workout: any) {
       data.intervals = raw.icu_intervals.slice(0, 10).map((interval: any) => ({
         type: interval.type,
         label: interval.label,
-        duration_s: interval.elapsed_time,
+        // Prefer moving time for pace analysis (elapsed_time can include pauses/stops and distort run interval pace).
+        duration_s: interval.moving_time ?? interval.elapsed_time,
         distance_m: interval.distance,
         avg_power: interval.average_watts,
         max_power: interval.max_watts,
