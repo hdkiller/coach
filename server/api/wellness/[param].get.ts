@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const param = getRouterParam(event, 'param')
+  const param = getRouterParam(event, 'param') || getRouterParam(event, 'id')
   if (!param) {
     throw createError({
       statusCode: 400,

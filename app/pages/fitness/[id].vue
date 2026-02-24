@@ -23,6 +23,18 @@
             </UButton>
 
             <UButton
+              v-if="wellness"
+              icon="i-heroicons-pencil-square"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="font-black uppercase tracking-widest text-[10px]"
+              @click="isEditModalOpen = true"
+            >
+              <span class="hidden sm:inline">Edit</span>
+            </UButton>
+
+            <UButton
               icon="i-heroicons-chat-bubble-left-right"
               color="primary"
               variant="solid"
@@ -627,6 +639,12 @@
       />
     </template>
   </UModal>
+
+  <FitnessWellnessEditModal
+    v-model:open="isEditModalOpen"
+    :wellness="wellness"
+    @updated="fetchWellness"
+  />
 </template>
 
 <script setup lang="ts">
@@ -649,6 +667,7 @@
 
   // Feature states
   const analyzingWellness = ref(false)
+  const isEditModalOpen = ref(false)
   const isShareModalOpen = ref(false)
   const shareLink = ref('')
   const shareExpiryValue = ref('2592000')
