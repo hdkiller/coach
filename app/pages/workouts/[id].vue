@@ -35,6 +35,16 @@
             >
               <span class="hidden sm:inline">Customize</span>
             </UButton>
+            <UButton
+              icon="i-heroicons-share"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="hidden sm:flex"
+              @click="isShareModalOpen = true"
+            >
+              <span>Share</span>
+            </UButton>
             <UDropdownMenu
               :items="[
                 [
@@ -46,6 +56,7 @@
                   {
                     label: 'Share Workout',
                     icon: 'i-heroicons-share',
+                    class: 'sm:hidden',
                     onSelect: () => (isShareModalOpen = true)
                   }
                 ],
@@ -2793,5 +2804,9 @@
   // Load data on mount
   onMounted(() => {
     fetchWorkout()
+
+    if (route.query.share === 'true') {
+      isShareModalOpen.value = true
+    }
   })
 </script>
