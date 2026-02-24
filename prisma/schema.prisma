@@ -733,6 +733,9 @@ model DailyMetric {
   recoveryScore Int?
   strainScore   Float?
   spO2          Float?
+  sleepDeepSecs  Int?
+  sleepRemSecs   Int?
+  sleepLightSecs Int?
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
@@ -750,6 +753,9 @@ model Wellness {
   sleepHours       Float?
   sleepScore       Int?
   sleepQuality     Int?
+  sleepDeepSecs    Int?
+  sleepRemSecs     Int?
+  sleepLightSecs   Int?
   readiness        Int?
   recoveryScore    Int?
   soreness         Int?
