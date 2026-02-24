@@ -848,7 +848,16 @@
   async function fetchNutrition() {
     loading.value = true
     try {
-      const response: any = await $fetch('/api/nutrition')
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+        now.getDate()
+      ).padStart(2, '0')}`
+      const response: any = await $fetch('/api/nutrition', {
+        query: {
+          limit: 3650,
+          endDate: today
+        }
+      })
       allNutrition.value = response.nutrition || []
     } catch (error) {
       console.error('Error fetching nutrition:', error)

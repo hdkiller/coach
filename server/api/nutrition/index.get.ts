@@ -13,6 +13,16 @@ defineRouteMeta({
         name: 'limit',
         in: 'query',
         schema: { type: 'integer', default: 30 }
+      },
+      {
+        name: 'startDate',
+        in: 'query',
+        schema: { type: 'string', format: 'date' }
+      },
+      {
+        name: 'endDate',
+        in: 'query',
+        schema: { type: 'string', format: 'date' }
       }
     ],
     responses: {
@@ -55,10 +65,30 @@ export default defineEventHandler(async (event) => {
   const userId = user.id
 
   const query = getQuery(event)
-  const limit = query.limit ? parseInt(query.limit as string) : 30
+  const limitRaw = Array.isArray(query.limit) ? query.limit[0] : query.limit
+  const limit = limitRaw ? parseInt(limitRaw as string, 10) : 30
+  const startDateRaw = Array.isArray(query.startDate) ? query.startDate[0] : query.startDate
+  const endDateRaw = Array.isArray(query.endDate) ? query.endDate[0] : query.endDate
+
+  const parseDateQuery = (value: unknown, field: 'startDate' | 'endDate') => {
+    if (!value || typeof value !== 'string') return undefined
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      throw createError({
+        statusCode: 400,
+        message: `Invalid ${field}. Expected an ISO date string (YYYY-MM-DD).`
+      })
+    }
+    return parsed
+  }
+
+  const startDate = parseDateQuery(startDateRaw, 'startDate')
+  const endDate = parseDateQuery(endDateRaw, 'endDate')
 
   try {
     const nutrition = await nutritionRepository.getForUser(userId, {
+      startDate,
+      endDate,
       limit,
       orderBy: { date: 'desc' }
     })
