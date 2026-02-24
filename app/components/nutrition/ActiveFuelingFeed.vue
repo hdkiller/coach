@@ -271,7 +271,7 @@
 </template>
 
 <script setup lang="ts">
-  import { format, formatDistanceToNow, parseISO } from 'date-fns'
+  import { formatDistanceToNow } from 'date-fns'
 
   const props = defineProps<{
     feed: any
@@ -303,7 +303,8 @@
   }
 
   function formatTimeRange(start: string, end: string) {
-    return `${format(new Date(start), 'HH:mm')} - ${format(new Date(end), 'HH:mm')}`
+    const { formatDate } = useFormat()
+    return `${formatDate(new Date(start), 'HH:mm')} - ${formatDate(new Date(end), 'HH:mm')}`
   }
 
   function formatRelativeTime(date: string | Date) {

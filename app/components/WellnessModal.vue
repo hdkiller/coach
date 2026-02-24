@@ -469,7 +469,9 @@
                     :key="idx"
                     class="flex-1 bg-purple-400/30 dark:bg-purple-500/20 rounded-lg hover:bg-purple-400 dark:hover:bg-purple-500 transition-all duration-300 relative group"
                     :style="{
-                      height: day.hoursSlept ? `${Math.max((day.hoursSlept / 12) * 100, 10)}%` : '4px'
+                      height: day.hoursSlept
+                        ? `${Math.max((day.hoursSlept / 12) * 100, 10)}%`
+                        : '4px'
                     }"
                   >
                     <span
@@ -802,12 +804,12 @@
   // Computed properties for trends
   const maxHRV = computed(() => {
     const values = trendData.value.filter((d) => d.hrv != null).map((d) => d.hrv)
-    return values.length > 0 ? Math.max(...values) : 100
+    return values.length > 0 ? Math.max(...values) * 1.2 : 100
   })
 
   const maxRHR = computed(() => {
     const values = trendData.value.filter((d) => d.restingHr != null).map((d) => d.restingHr)
-    return values.length > 0 ? Math.max(...values) : 100
+    return values.length > 0 ? Math.max(...values) * 1.2 : 100
   })
 
   function formatStatus(status: string) {

@@ -533,6 +533,73 @@
             </div>
           </div>
         </div>
+
+        <!-- Sleep Stages Breakdown -->
+        <div
+          v-if="
+            userStore.profile.recentSleepDeep ||
+            userStore.profile.recentSleepRem ||
+            userStore.profile.recentSleepLight
+          "
+          class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sleep Stages</p>
+            <p class="text-[10px] font-medium text-gray-500">
+              {{ formatSleepTime(userStore.profile.recentSleep * 3600) }} total
+            </p>
+          </div>
+          <div class="h-2 w-full rounded-full overflow-hidden flex bg-gray-100 dark:bg-gray-800">
+            <UTooltip
+              v-if="userStore.profile.recentSleepDeep"
+              :text="`Deep: ${formatSleepTime(userStore.profile.recentSleepDeep)}`"
+              class="h-full bg-indigo-600"
+              :style="{
+                width:
+                  (userStore.profile.recentSleepDeep / (userStore.profile.recentSleep * 3600)) *
+                    100 +
+                  '%'
+              }"
+            />
+            <UTooltip
+              v-if="userStore.profile.recentSleepRem"
+              :text="`REM: ${formatSleepTime(userStore.profile.recentSleepRem)}`"
+              class="h-full bg-purple-500"
+              :style="{
+                width:
+                  (userStore.profile.recentSleepRem / (userStore.profile.recentSleep * 3600)) *
+                    100 +
+                  '%'
+              }"
+            />
+            <UTooltip
+              v-if="userStore.profile.recentSleepLight"
+              :text="`Light: ${formatSleepTime(userStore.profile.recentSleepLight)}`"
+              class="h-full bg-blue-400"
+              :style="{
+                width:
+                  (userStore.profile.recentSleepLight / (userStore.profile.recentSleep * 3600)) *
+                    100 +
+                  '%'
+              }"
+            />
+            <!-- Awake time is usually the remainder -->
+          </div>
+          <div class="flex items-center gap-4 mt-2">
+            <div class="flex items-center gap-1.5">
+              <div class="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+              <span class="text-[10px] text-gray-500">Deep</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span class="text-[10px] text-gray-500">REM</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-1.5 h-1.5 rounded-full bg-blue-400" />
+              <span class="text-[10px] text-gray-500">Light</span>
+            </div>
+          </div>
+        </div>
       </button>
 
       <!-- Upcoming Events Section -->
@@ -1008,5 +1075,12 @@
     const location = [event?.city, event?.country].filter(Boolean).join(', ')
     if (location) return `${type} · ${location}`
     return type
+  }
+
+  function formatSleepTime(seconds: number): string {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    if (h > 0) return `${h}h ${m}m`
+    return `${m}m`
   }
 </script>

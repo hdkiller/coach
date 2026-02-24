@@ -80,6 +80,31 @@
         </p>
       </div>
 
+      <!-- Authorized Apps -->
+      <div
+        v-if="integrationStore.oauthAppCount > 0"
+        class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+      >
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-shield-check" class="w-4 h-4 text-primary" />
+            <span class="text-sm font-medium">Authorized Apps</span>
+          </div>
+          <UBadge color="success" variant="subtle" size="sm">
+            {{ integrationStore.oauthAppCount }} active
+          </UBadge>
+        </div>
+        <p class="text-xs text-muted mt-1 ml-6">
+          via
+          {{
+            integrationStore.integrationStatus?.integrations
+              ?.filter((i) => i.isOAuthApp)
+              .map((i) => i.provider)
+              .join(', ')
+          }}
+        </p>
+      </div>
+
       <!-- Last Sync Info -->
       <div
         v-if="integrationStore.lastSyncTime"
