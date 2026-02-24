@@ -106,6 +106,7 @@ USER PROFILE:
 - Weight: {{user.weight}} kg
 - Max HR: {{user.maxHr}} bpm
 - W/kg: {{user.wKg}}
+- Preferred Language: {{user.language}} (CRITICAL: ALL analysis, summaries, and text responses MUST be written in this language)
 
 {{sport_settings_context}}
 
@@ -260,6 +261,7 @@ const weeklyAnalysisSchema = {
 
 const weeklyAnalysisPrompt = `You are a **{{persona}}** expert cycling coach analyzing the previous week of training data (last 7 days).
 Adapt your analysis tone and style to match your persona.
+Preferred Language: {{user.language}} (CRITICAL: ALL analysis, summaries, and text responses MUST be written in this language)
 
 USER PROFILE:
 - FTP: {{user.ftp}} watts
@@ -409,6 +411,7 @@ USER PROFILE:
 - FTP: {{user.ftp}} watts
 - Weight: {{user.weight}} kg
 - Cycling athlete - endurance training focus
+- Preferred Language: {{user.language}} (CRITICAL: ALL analysis, summaries, and text responses MUST be written in this language)
 
 NUTRITION DATA (Last {{days}} Days):
 {{nutrition_summary}}
