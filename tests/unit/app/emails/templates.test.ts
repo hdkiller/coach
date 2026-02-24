@@ -71,9 +71,21 @@ describe('email templates', () => {
       workoutType: 'Run',
       durationMinutes: 48,
       distanceKm: 10.2,
+      elevationGain: 132,
       averageHr: 154,
+      maxHr: 172,
+      averageCadence: 168,
       averageWatts: 245,
       tss: 62,
+      calories: 740,
+      workoutsLast7Days: 3,
+      consistencyMessage: 'That is 3 sessions in the last 7 days. Strong consistency momentum.',
+      quickTakeLabel: 'Productive',
+      quickTakeBody:
+        'This load is in a productive range and supports fitness gains without excessive strain.',
+      efficiencyMessage:
+        'Efficiency signal: you produced strong power while keeping heart rate controlled.',
+      nextStepMessage: 'See how this session impacted your Fitness vs Fatigue trend.',
       workoutUrl: 'https://coachwatts.com/workouts/workout-1',
       unsubscribeUrl: 'https://coachwatts.com/unsubscribe?token=test'
     })
