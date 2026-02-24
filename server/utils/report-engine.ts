@@ -47,6 +47,9 @@ export async function fetchReportContext(userId: string, inputConfig: any) {
     context.persona = context.user.aiPersona || 'Supportive'
   }
 
+  context.current_date = formatUserDate(new Date(), timezone, 'yyyy-MM-dd')
+  context.current_day_of_week = formatUserDate(new Date(), timezone, 'EEEE')
+
   // Iterate through sources and fetch data
   if (inputConfig.sources && Array.isArray(inputConfig.sources)) {
     for (const source of inputConfig.sources) {
@@ -188,7 +191,7 @@ export function buildNutritionSummary(nutritionDays: any[], timezone: string) {
 export function renderPrompt(template: string, context: any): string {
   if (!template) return ''
 
-  return template.replace(/\{\{(.+?)\}\\/g, (match, path) => {
+  return template.replace(/\{\{(.+?)\}\}/g, (match, path) => {
     const parts = path.trim().split('.')
     let val = context
     for (const part of parts) {
