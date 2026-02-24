@@ -24,6 +24,7 @@
     distanceKm?: number
     elevationGain?: number
     averageCadence?: number
+    cadenceUnit?: string
     averageHr?: number
     maxHr?: number
     averageWatts?: number
@@ -188,7 +189,8 @@
               <strong style="color: #09090b">Max HR:</strong> {{ maxHr }} bpm
             </EText>
             <EText v-if="averageCadence" style="font-size: 14px; margin: 0 0 8px; color: #52525b">
-              <strong style="color: #09090b">Avg Cadence:</strong> {{ averageCadence }} spm
+              <strong style="color: #09090b">Avg Cadence:</strong>
+              {{ averageCadence }} {{ cadenceUnit || 'spm' }}
             </EText>
             <EText v-if="averageWatts" style="font-size: 14px; margin: 0 0 8px; color: #52525b">
               <strong style="color: #09090b">Avg Power:</strong> {{ averageWatts }} W
