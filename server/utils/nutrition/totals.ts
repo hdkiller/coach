@@ -193,8 +193,20 @@ export function recalculateNutritionTotals(nutrition: Record<string, any>): {
     }
   }
 
-  // Add scalar bonuses for each meal that has entries
-  waterMl += mealsWithItems * MEAL_LINKED_WATER_ML
+  // Add scalar bonuses for each meal that has entries but NO explicit hydration items.
+  // This avoids double counting when a user explicitly logs water/coffee with their meal.
+  let mealsWithoutExplicitHydration = 0
+  for (const meal of MEAL_KEYS) {
+    const items = (nutrition[meal] as any[]) || []
+    if (items.length > 0) {
+      const hasExplicitHydration = items.some((item) => isHydrationLikeItem(item))
+      if (!hasExplicitHydration) {
+        mealsWithoutExplicitHydration++
+      }
+    }
+  }
+
+  waterMl += mealsWithoutExplicitHydration * MEAL_LINKED_WATER_ML
 
   return { calories, protein, carbs, fat, fiber, sugar, waterMl }
 }

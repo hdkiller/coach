@@ -303,7 +303,7 @@ export function calculateEnergyTimeline(
             totalKcal:
               item.calories ||
               (item.carbs || 0) * 4 + (item.protein || 0) * 4 + (item.fat || 0) * 9,
-            totalFluid: item.waterMl || 0,
+            totalFluid: item.fluidMl || item.waterMl || 0,
             profile: item.absorptionType
               ? ABSORPTION_PROFILES[item.absorptionType as AbsorptionType] ||
                 getProfileForItem(item.name || item.product_name || '')
