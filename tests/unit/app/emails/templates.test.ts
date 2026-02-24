@@ -67,6 +67,10 @@ describe('email templates', () => {
       name: 'Alex Athlete',
       workoutId: 'workout-1',
       workoutTitle: 'Progression Run',
+      previewLine:
+        'Progression Run is synced. Open for insights, load context, and sport-specific cues.',
+      heroTitle: 'Workout synced and momentum building.',
+      introLine: 'Solid work today. Progression Run is now on your timeline and ready to review.',
       workoutDate: 'Saturday, Feb 21',
       workoutType: 'Run',
       durationMinutes: 48,
@@ -76,7 +80,18 @@ describe('email templates', () => {
       maxHr: 172,
       averageCadence: 168,
       averageWatts: 245,
+      normalizedPower: 258,
       tss: 62,
+      tss7d: 238,
+      weeklyTssBaseline28d: 212,
+      loadContextLabel: 'Progressive Week',
+      loadContextBody:
+        'You are training above your recent baseline in a productive range that supports progression.',
+      loadDeltaPct: 12,
+      sportLensLabel: 'Run Lens',
+      sportLensBody:
+        'Average HR was about 91% of LTHR, a steady effort that builds durable race fitness.',
+      kilojoules: 690,
       calories: 740,
       workoutsLast7Days: 3,
       consistencyMessage: 'That is 3 sessions in the last 7 days. Strong consistency momentum.',
@@ -85,6 +100,7 @@ describe('email templates', () => {
         'This load is in a productive range and supports fitness gains without excessive strain.',
       efficiencyMessage:
         'Efficiency signal: you produced strong power while keeping heart rate controlled.',
+      ctaLabel: 'View Full Analysis & Splits',
       nextStepMessage: 'See how this session impacted your Fitness vs Fatigue trend.',
       workoutUrl: 'https://coachwatts.com/workouts/workout-1',
       unsubscribeUrl: 'https://coachwatts.com/unsubscribe?token=test'

@@ -49,14 +49,29 @@ Use this endpoint to sync daily health indicators. Coach Watts uses these to adj
 
 ### Payload Schema
 
-| Field        | Type        | Description                                           |
-| :----------- | :---------- | :---------------------------------------------------- |
-| `date`       | **String**  | **Required.** YYYY-MM-DD or ISO 8601.                 |
-| `hrv`        | **Number**  | Heart Rate Variability (ms).                          |
-| `restingHr`  | **Integer** | Resting Heart Rate (bpm).                             |
-| `sleepHours` | **Number**  | Total sleep duration in hours.                        |
-| `weight`     | **Number**  | Body weight in kilograms (kg).                        |
-| `rawJson`    | **Object**  | (Optional) Your raw payload for historical reference. |
+| Field         | Type        | Description                                           |
+| :------------ | :---------- | :---------------------------------------------------- |
+| `date`        | **String**  | **Required.** YYYY-MM-DD or ISO 8601.                 |
+| `hrv`         | **Number**  | Heart Rate Variability (ms).                          |
+| `restingHr`   | **Integer** | Resting Heart Rate (bpm).                             |
+| `sleepHours`  | **Number**  | Total sleep duration in hours.                        |
+| `sleepSecs`   | **Integer** | Total sleep duration in seconds.                      |
+| `weight`      | **Number**  | Body weight in kilograms (kg).                        |
+| `spO2`        | **Number**  | Blood oxygen saturation (%).                          |
+| `skinTemp`    | **Number**  | Skin temperature deviation (Celsius).                 |
+| `respiration` | **Number**  | Respiratory rate (breaths per minute).                |
+| `vo2max`      | **Number**  | Estimated VO2 Max.                                    |
+| `rawJson`     | **Object**  | (Optional) Your raw payload for historical reference. |
+
+### Sleep Stages
+
+For higher resolution sleep analysis, you can provide the duration of individual sleep stages in seconds:
+
+| Field            | Type        | Description                         |
+| :--------------- | :---------- | :---------------------------------- |
+| `sleepDeepSecs`  | **Integer** | Duration of Deep sleep in seconds.  |
+| `sleepRemSecs`   | **Integer** | Duration of REM sleep in seconds.   |
+| `sleepLightSecs` | **Integer** | Duration of Light sleep in seconds. |
 
 ### Example
 
@@ -65,8 +80,15 @@ Use this endpoint to sync daily health indicators. Coach Watts uses these to adj
   "date": "2026-02-15",
   "hrv": 72,
   "restingHr": 48,
-  "sleepHours": 8.2,
+  "sleepSecs": 29520,
+  "sleepDeepSecs": 7200,
+  "sleepRemSecs": 5400,
+  "sleepLightSecs": 16920,
   "weight": 74.5,
+  "spO2": 98.5,
+  "skinTemp": -0.2,
+  "respiration": 14.5,
+  "vo2max": 54.2,
   "rawJson": { "original_source": "Oura" }
 }
 ```
