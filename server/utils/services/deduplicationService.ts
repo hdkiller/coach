@@ -213,6 +213,8 @@ export const deduplicationService = {
       score += 25 // High trust for Hevy as it has structured exercises
     } else if (workout.source === 'intervals') {
       score += 15 // Increased trust for Intervals.icu as it often aggregates well
+    } else if (workout.source === 'garmin') {
+      score += 15 // High trust for Garmin as it's the primary recording device
     } else if (workout.source === 'strava') {
       score += 10
     } else if (workout.source === 'whoop') {

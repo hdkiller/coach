@@ -40,6 +40,8 @@
       :hevy-connected="hevyConnected"
       :polar-connected="polarConnected"
       :polar-ingest-workouts="polarIngestWorkouts"
+      :garmin-connected="garminConnected"
+      :garmin-ingest-workouts="garminIngestWorkouts"
       :telegram-connected="telegramConnected"
       :syncing-providers="syncingProviders"
       :intervals-settings="intervalsSettings"
@@ -178,7 +180,7 @@
       {
         name: 'description',
         content:
-          'Manage your connected apps and integrations (Intervals.icu, WHOOP, Withings, Strava, Yazio, Fitbit).'
+          'Manage your connected apps and integrations (Intervals.icu, Garmin Connect, WHOOP, Withings, Strava, Yazio, Fitbit).'
       }
     ]
   })
@@ -267,6 +269,16 @@
   const polarIngestWorkouts = computed(
     () =>
       integrationStatus.value?.integrations?.find((i: any) => i.provider === 'polar')
+        ?.ingestWorkouts ?? false
+  )
+
+  const garminConnected = computed(
+    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'garmin') ?? false
+  )
+
+  const garminIngestWorkouts = computed(
+    () =>
+      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'garmin')
         ?.ingestWorkouts ?? false
   )
 
@@ -500,6 +512,7 @@
       route.query.strava_success ||
       route.query.fitbit_success ||
       route.query.polar_success ||
+      route.query.garmin_success ||
       route.query.connected === 'yazio'
     ) {
       if (route.query.whoop_success) {
@@ -544,6 +557,13 @@
           color: 'success'
         })
         refreshIntegrations()
+      } else if (route.query.garmin_success) {
+        toast.add({
+          title: 'Connected!',
+          description: 'Successfully connected to Garmin Connect',
+          color: 'success'
+        })
+        refreshIntegrations()
       } else if (route.query.connected === 'yazio') {
         toast.add({
           title: 'Connected!',
@@ -559,6 +579,7 @@
       route.query.withings_error ||
       route.query.strava_error ||
       route.query.fitbit_error ||
+      route.query.garmin_error ||
       route.query.polar_error
     ) {
       const errorMsg = (route.query.whoop_error ||
@@ -566,6 +587,7 @@
         route.query.withings_error ||
         route.query.strava_error ||
         route.query.fitbit_error ||
+        route.query.garmin_error ||
         route.query.polar_error) as string
       const provider = route.query.whoop_error
         ? 'WHOOP'
@@ -577,7 +599,9 @@
               ? 'Fitbit'
               : route.query.polar_error
                 ? 'Polar'
-                : 'Strava'
+                : route.query.garmin_error
+                  ? 'Garmin'
+                  : 'Strava'
       const description =
         errorMsg === 'no_code'
           ? 'Authorization was cancelled or no code was received'

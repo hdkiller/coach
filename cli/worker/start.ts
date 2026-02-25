@@ -3,6 +3,7 @@ import { Worker } from 'bullmq'
 import IORedis from 'ioredis'
 import chalk from 'chalk'
 import { IntervalsService } from '../../server/utils/services/intervalsService'
+import { GarminService } from '../../server/utils/services/garminService'
 import { WhoopService } from '../../server/utils/services/whoopService'
 import { OuraService } from '../../server/utils/services/ouraService'
 import { processStravaWebhookEvent } from '../../server/utils/services/stravaService'
@@ -414,6 +415,39 @@ export const startCommand = new Command('start')
             return result
           } catch (error: any) {
             console.error(chalk.red(`[ResendJob ${job.id}] Failed:`), error)
+            if (logId) await updateWebhookStatus(logId, 'FAILED', error.message || 'Unknown error')
+            throw error
+          }
+        }
+
+        if (provider === 'garmin') {
+          const { payload, headers } = job.data
+          let { logId } = job.data
+
+          // Log if not already logged (e.g. from async endpoint)
+          if (!logId) {
+            const log = await logWebhookRequest({
+              provider: 'garmin',
+              eventType: 'PUSH',
+              payload,
+              headers,
+              status: 'PENDING'
+            })
+            logId = log?.id
+          }
+
+          console.log(
+            chalk.cyan(`[GarminJob ${job.id}]`) + ` Processing Garmin event PUSH (LogID: ${logId})`
+          )
+
+          try {
+            const result = await GarminService.processWebhookEvent(payload)
+
+            console.log(chalk.green(`[GarminJob ${job.id}] Completed: ${result.message}`))
+            if (logId) await updateWebhookStatus(logId, 'PROCESSED', result.message)
+            return result
+          } catch (error: any) {
+            console.error(chalk.red(`[GarminJob ${job.id}] Failed:`), error)
             if (logId) await updateWebhookStatus(logId, 'FAILED', error.message || 'Unknown error')
             throw error
           }

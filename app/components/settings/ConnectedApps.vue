@@ -371,22 +371,43 @@
         </div>
         <div>
           <h3 class="font-semibold">Garmin</h3>
-          <p class="text-sm text-muted">Activities and health metrics via Intervals.icu</p>
+          <p class="text-sm text-muted">Direct sync for activities and health metrics</p>
         </div>
       </div>
 
       <div
         class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
       >
-        <UButton
-          v-if="!intervalsConnected"
-          color="primary"
-          variant="soft"
-          size="xs"
-          @click="signIn('intervals')"
-        >
-          Connect Intervals
-        </UButton>
+        <div v-if="!garminConnected">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="navigateTo('/api/integrations/garmin/authorize', { external: true })"
+          >
+            Connect
+          </UButton>
+        </div>
+        <div v-else class="flex items-center gap-2">
+          <UButton
+            color="success"
+            variant="solid"
+            size="sm"
+            class="font-bold"
+            icon="i-heroicons-arrow-path"
+            :loading="syncingProviders.has('garmin')"
+            @click="$emit('sync', 'garmin')"
+          >
+            Sync Now
+          </UButton>
+          <UDropdownMenu :items="garminActions">
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="sm"
+              icon="i-heroicons-ellipsis-vertical"
+            />
+          </UDropdownMenu>
+        </div>
       </div>
     </UCard>
 
@@ -731,6 +752,8 @@
     hevyConnected: boolean
     polarConnected: boolean
     polarIngestWorkouts: boolean
+    garminConnected: boolean
+    garminIngestWorkouts: boolean
     telegramConnected: boolean
     syncingProviders: Set<string>
     intervalsSettings: any
@@ -891,6 +914,26 @@
         icon: 'i-heroicons-trash',
         color: 'error' as const,
         onSelect: () => emit('disconnect', 'polar')
+      }
+    ]
+  ])
+
+  const garminActions = computed(() => [
+    [
+      {
+        label: 'Ingest Workouts',
+        type: 'checkbox' as const,
+        checked: props.garminIngestWorkouts,
+        onUpdateChecked: (checked: boolean) =>
+          emit('updateSetting', 'garmin', 'ingestWorkouts', checked)
+      }
+    ],
+    [
+      {
+        label: 'Disconnect',
+        icon: 'i-heroicons-trash',
+        color: 'error' as const,
+        onSelect: () => emit('disconnect', 'garmin')
       }
     ]
   ])

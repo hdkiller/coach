@@ -10,6 +10,7 @@ import { ingestYazioTask } from './ingest-yazio'
 import { ingestFitbitTask } from './ingest-fitbit'
 import { ingestHevyTask } from './ingest-hevy'
 import { ingestPolarTask } from './ingest-polar'
+import { ingestGarminTask } from './ingest-garmin'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { processSyncQueueTask } from './process-sync-queue'
 import { deduplicateWorkoutsTask } from './deduplicate-workouts'
@@ -134,6 +135,12 @@ export const ingestAllTask = task({
             payload: { userId, startDate, endDate }
           })
           break
+        case 'garmin':
+          tasksTrigger.push({
+            task: ingestGarminTask,
+            payload: { userId, startDate, endDate }
+          })
+          break
         default:
           logger.warn(`Unknown provider: ${integration.provider}`)
       }
@@ -169,6 +176,7 @@ export const ingestAllTask = task({
         if (item.task.id === 'ingest-fitbit' && i.provider === 'fitbit') return true
         if (item.task.id === ingestHevyTask.id && i.provider === 'hevy') return true
         if (item.task.id === ingestPolarTask.id && i.provider === 'polar') return true
+        if (item.task.id === ingestGarminTask.id && i.provider === 'garmin') return true
         return false
       })
 

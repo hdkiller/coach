@@ -26,6 +26,7 @@ defineRouteMeta({
                   'fitbit',
                   'oura',
                   'polar',
+                  'garmin',
                   'all'
                 ]
               },
@@ -82,7 +83,8 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   const body = await readBody(event)
-  let { provider, days } = body
+  const { provider } = body
+  let { days } = body
 
   // Defensive check for 'days' - if it's an object (common from USelectMenu), extract the value
   if (days && typeof days === 'object' && 'value' in days) {
@@ -101,13 +103,14 @@ export default defineEventHandler(async (event) => {
       'fitbit',
       'oura',
       'polar',
+      'garmin',
       'all'
     ].includes(provider)
   ) {
     throw createError({
       statusCode: 400,
       message:
-        'Invalid provider. Must be "intervals", "whoop", "withings", "yazio", "strava", "hevy", "fitbit", "oura", "polar", or "all"'
+        'Invalid provider. Must be "intervals", "whoop", "withings", "yazio", "strava", "hevy", "fitbit", "oura", "polar", "garmin", or "all"'
     })
   }
 
@@ -207,7 +210,9 @@ export default defineEventHandler(async (event) => {
                     ? 'ingest-oura'
                     : provider === 'polar'
                       ? 'ingest-polar'
-                      : 'ingest-hevy'
+                      : provider === 'garmin'
+                        ? 'ingest-garmin'
+                        : 'ingest-hevy'
 
   try {
     const handle = await tasks.trigger(
