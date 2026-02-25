@@ -2,7 +2,7 @@
   <UModal
     v-model:open="isOpen"
     :title="note?.title || 'Note'"
-    description="Dialog content and actions."
+    description="View details of this calendar note, including categories, dates, and coach descriptions."
   >
     <template #body>
       <div v-if="note" class="space-y-4">

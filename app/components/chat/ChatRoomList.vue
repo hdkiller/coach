@@ -276,7 +276,7 @@
     <UModal
       v-model:open="isRenameModalOpen"
       title="Rename Chat"
-      description="Dialog content and actions."
+      description="Provide a new descriptive name for this conversation."
     >
       <template #body>
         <div class="space-y-4">
@@ -358,7 +358,7 @@
     <UModal
       v-model:open="isDeleteModalOpen"
       title="Delete Chat Room"
-      description="Dialog content and actions."
+      description="Confirm if you want to permanently delete this chat room and its message history."
     >
       <template #body>
         <p class="text-sm text-gray-500 dark:text-gray-400">

@@ -105,7 +105,7 @@
     <UModal
       v-model:open="showSaveTemplateModal"
       title="Save as Template"
-      description="Dialog content and actions."
+      description="Save the current training plan structure as a reusable template for future season planning."
     >
       <template #body>
         <div class="p-6 space-y-4">
@@ -136,7 +136,7 @@
       v-model:open="showTimelineEditor"
       title="Edit Plan Structure"
       :ui="{ content: 'sm:max-w-2xl' }"
-      description="Dialog content and actions."
+      description="Modify the blocks and timeline structure of your active training plan."
     >
       <template #body>
         <div class="p-4 sm:p-6">

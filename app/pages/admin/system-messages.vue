@@ -120,7 +120,11 @@
       </div>
     </div>
 
-    <UModal v-model:open="isModalOpen" title="Dialog" description="Dialog content and actions.">
+    <UModal
+      v-model:open="isOpen"
+      :title="isEditing ? 'Edit System Message' : 'Create System Message'"
+      description="Manage system-wide messages that are displayed to all users or specific groups."
+    >
       <template #content>
         <div class="flex flex-col">
           <div class="px-4 py-4 sm:px-6 border-b border-gray-200 dark:border-gray-800">

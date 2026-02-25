@@ -166,8 +166,8 @@
         <!-- Clear Confirmation Modal -->
         <UModal
           v-model:open="showClearModal"
-          title="Dialog"
-          description="Dialog content and actions."
+          title="Clear All Recommendations"
+          description="Confirmation of destructive action to remove all training recommendations from your dashboard."
         >
           <template #content>
             <UCard :ui="{ root: 'divide-y divide-gray-100 dark:divide-gray-800' }">

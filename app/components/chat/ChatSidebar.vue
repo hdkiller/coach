@@ -21,7 +21,7 @@
     :open="isOpen"
     title="Chat History"
     side="left"
-    description="Dialog content and actions."
+    description="Access and manage your previous AI coach conversations and training advice."
     @update:open="emit('update:isOpen', $event)"
   >
     <template #content>

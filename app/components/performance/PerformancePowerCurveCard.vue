@@ -63,7 +63,7 @@
       v-model:open="showExplanation"
       :ui="{ content: 'sm:max-w-lg' }"
       title="Dialog"
-      description="Dialog content and actions."
+      description="Learn how the power duration curve tracks your best sustainable efforts and identifies stale data points."
     >
       <template #content>
         <div class="p-6 space-y-4">

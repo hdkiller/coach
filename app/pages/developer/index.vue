@@ -93,7 +93,7 @@
   <UModal
     v-model:open="isCreateModalOpen"
     title="Create New Application"
-    description="Dialog content and actions."
+    description="Provide the details for your new OAuth application to integrate with Coach Watts."
   >
     <template #body>
       <UForm
@@ -143,7 +143,7 @@
   <UModal
     v-model:open="isSuccessModalOpen"
     title="Application Created Successfully"
-    description="Dialog content and actions."
+    description="Your new application has been created. Please save your client credentials securely."
   >
     <template #body>
       <UAlert

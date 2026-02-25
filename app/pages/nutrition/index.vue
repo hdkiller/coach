@@ -349,10 +349,10 @@
         </UTabs>
 
         <UModal
-          v-model:open="showGroceryList"
+          v-model:open="isGroceryListModalOpen"
           title="Strategic Grocery List"
-          :ui="{ content: 'sm:max-w-md' }"
-          description="Dialog content and actions."
+          description="A detailed list of grocery items needed for your planned meals and training fueling."
+          :ui="{ content: 'sm:max-w-2xl' }"
         >
           <template #content>
             <div class="p-6 space-y-4">

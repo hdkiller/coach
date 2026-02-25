@@ -258,7 +258,7 @@
     v-model:open="drawerOpen"
     side="right"
     :title="drawerTitle"
-    description="Dialog content and actions."
+    description="Detailed overview of your fueling script, training sessions, and planned meals for the selected day."
   >
     <template #content>
       <div v-if="activeDay" class="space-y-4 p-4">

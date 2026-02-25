@@ -874,8 +874,8 @@
     <UModal
       v-model:open="showPlansModal"
       :ui="{ content: 'sm:max-w-5xl' }"
-      title="Dialog"
-      description="Dialog content and actions."
+      title="Coach Watts Subscription Plans"
+      description="Explore our tiered subscription options and find the plan that best fits your training needs."
     >
       <template #content>
         <UCard :ui="{ body: 'p-6 sm:p-8' }">

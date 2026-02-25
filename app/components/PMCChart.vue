@@ -157,8 +157,8 @@
     <UModal
       v-model:open="showExplanation"
       :ui="{ content: 'sm:max-w-lg' }"
-      title="Dialog"
-      description="Dialog content and actions."
+      title="Performance Metric Insight"
+      description="Scientific explanation of training load metrics and their impact on your fitness, fatigue, and form."
     >
       <template #content>
         <div class="p-6 space-y-4">

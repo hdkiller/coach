@@ -577,7 +577,7 @@
     <UModal
       v-model:open="advancedSyncModalOpen"
       title="Advanced Sync"
-      description="Dialog content and actions."
+      description="Select the historical range for data synchronization."
     >
       <template #body>
         <div class="space-y-4">
@@ -622,7 +622,7 @@
     <UModal
       v-model:open="intervalsSettingsModalOpen"
       title="Intervals.icu Settings"
-      description="Dialog content and actions."
+      description="Configure data mapping and synchronization preferences for Intervals.icu."
     >
       <template #body>
         <div class="space-y-6 sm:min-w-[400px]">

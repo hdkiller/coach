@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Recovery Status Interpretation"
+    description="Reference guide for interpreting your recovery status based on heart rate metrics and rolling baselines."
+  >
     <template #content>
       <UCard>
         <template #header>

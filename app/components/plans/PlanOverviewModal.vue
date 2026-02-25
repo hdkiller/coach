@@ -3,7 +3,7 @@
     v-model:open="open"
     :title="plan?.name || 'Training Plan'"
     fullscreen
-    description="Dialog content and actions."
+    description="Comprehensive view of all blocks, weeks, and workouts within the entire training plan."
   >
     <template #body>
       <div v-if="loading" class="flex items-center justify-center py-12">

@@ -179,9 +179,12 @@
 
       <UModal
         v-model:open="isDetailsOpen"
-        title="Webhook Details"
-        :ui="{ content: 'sm:max-w-2xl' }"
-        description="Dialog content and actions."
+        title="Webhook Trace Details"
+        description="Deep dive into the incoming webhook payload, headers, and processing results."
+        :ui="{
+          content: 'sm:max-w-4xl'
+        }"
+        @update:open="selectedLog = null"
       >
         <template #body>
           <div v-if="selectedLog" class="space-y-4">

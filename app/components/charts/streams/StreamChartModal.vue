@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     :title="title"
     :ui="{ content: 'max-w-4xl' }"
-    description="Dialog content and actions."
+    description="Detailed view of the specific data stream for this workout, including averages and peaks."
   >
     <template #body>
       <div v-if="loading" class="flex justify-center items-center h-64">

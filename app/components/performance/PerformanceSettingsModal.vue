@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Dashboard Layout Configuration"
+    description="Enable or disable specific sections of the performance dashboard to tailor it to your focus areas."
+  >
     <template #content>
       <UCard>
         <template #header>

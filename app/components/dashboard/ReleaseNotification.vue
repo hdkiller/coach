@@ -58,8 +58,8 @@
     <UModal
       v-model:open="isReleaseModalOpen"
       :ui="{ content: 'sm:max-w-2xl' }"
-      title="Dialog"
-      description="Dialog content and actions."
+      title="What's New in Coach Watts"
+      description="Summary of the latest features, improvements, and fixes in this release."
     >
       <template #title>
         <div class="flex items-center gap-2">

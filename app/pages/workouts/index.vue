@@ -353,8 +353,8 @@
         <UModal
           v-model:open="showRelativeEffortExplain"
           :ui="{ content: 'sm:max-w-lg' }"
-          title="Dialog"
-          description="Dialog content and actions."
+          title="Relative Effort Explained"
+          description="Learn how relative effort is calculated based on your historical training volume and intensity."
         >
           <template #content>
             <div class="p-5 space-y-4">
@@ -396,8 +396,8 @@
         <UModal
           v-model:open="showSummaryMetricModal"
           :ui="{ content: 'sm:max-w-lg' }"
-          title="Dialog"
-          description="Dialog content and actions."
+          title="Metric Comparison Detail"
+          description="Detailed comparison of your training metrics between the current and previous periods."
         >
           <template #content>
             <div class="p-5 space-y-4">

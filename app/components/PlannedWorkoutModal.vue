@@ -4,7 +4,7 @@
     :dismissible="!loading"
     title="Planned Workout"
     :close="loading ? false : undefined"
-    description="Dialog content and actions."
+    description="View and manage details for your scheduled training sessions."
   >
     <!-- Hidden trigger - modal is controlled programmatically -->
     <span class="hidden" />
@@ -510,7 +510,7 @@
   <UModal
     v-model:open="showMarkCompleteConfirm"
     title="Mark as Done"
-    description="Dialog content and actions."
+    description="Confirm that you have completed this workout, even without a linked activity file."
   >
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -528,7 +528,7 @@
   <UModal
     v-model:open="showDeleteConfirm"
     title="Delete Planned Workout"
-    description="Dialog content and actions."
+    description="Confirm if you want to permanently remove this planned workout from your training schedule."
   >
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -545,7 +545,7 @@
     v-if="showTimeModal"
     v-model:open="showTimeModal"
     title="Set Schedule"
-    description="Dialog content and actions."
+    description="Adjust the scheduled date and start time for this planned workout."
   >
     <template #body>
       <div class="p-6 flex flex-col gap-5">

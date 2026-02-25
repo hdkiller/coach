@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     title="Meal Recommendations"
     :ui="{ content: 'sm:max-w-2xl' }"
-    description="Dialog content and actions."
+    description="Nutritional recommendations based on your planned activity and metabolic state."
   >
     <template #header>
       <div class="flex items-center justify-between w-full">

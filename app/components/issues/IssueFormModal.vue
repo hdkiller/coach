@@ -78,7 +78,11 @@
 </script>
 
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Report Issue"
+    description="Fill out the form below to report a bug or request a feature."
+  >
     <template #content>
       <UCard :ui="{ body: 'p-0 sm:p-6' }">
         <template #header>

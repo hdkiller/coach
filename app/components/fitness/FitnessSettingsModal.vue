@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Fitness Settings"
+    description="Configure your fitness tracking and data display preferences."
+  >
     <template #content>
       <UCard>
         <template #header>

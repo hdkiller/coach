@@ -925,8 +925,8 @@
       <!-- Metadata Editing Modal -->
       <UModal
         v-model:open="isMetadataModalOpen"
-        title="Dialog"
-        description="Dialog content and actions."
+        title="Internal Metadata"
+        description="Update internal tracking metadata for this issue, such as associated GitHub issue URLs."
       >
         <template #content>
           <UCard :ui="{ body: 'p-6' }">
@@ -981,8 +981,8 @@
 
       <UModal
         v-model:open="showDeleteIssueModal"
-        title="Delete issue"
-        description="This will permanently remove the issue and all comments."
+        title="Delete Issue"
+        description="This will permanently remove the issue and all associated comments."
       >
         <template #body>
           <div class="space-y-3">
@@ -1004,8 +1004,8 @@
 
       <UModal
         v-model:open="isEditCommentModalOpen"
-        title="Edit comment"
-        description="Update comment content."
+        title="Edit Comment"
+        description="Modify the content of your existing comment."
       >
         <template #body>
           <div class="space-y-3">

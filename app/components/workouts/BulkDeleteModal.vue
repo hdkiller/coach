@@ -2,7 +2,7 @@
   <UModal
     v-model:open="isOpen"
     title="Bulk Delete Workouts"
-    description="Dialog content and actions."
+    description="Permanently delete multiple selected items."
   >
     <template #body>
       <div class="space-y-4">

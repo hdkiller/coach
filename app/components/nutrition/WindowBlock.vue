@@ -343,8 +343,8 @@
   <UModal
     v-model:open="showCarbExplainModal"
     :ui="{ content: 'sm:max-w-md' }"
-    title="Dialog"
-    description="Dialog content and actions."
+    title="Carbohydrate Target Details"
+    description="Explanation of your carbohydrate targets and current compliance status for this fueling window."
   >
     <template #content>
       <div class="p-6 space-y-5">

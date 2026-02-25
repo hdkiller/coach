@@ -53,8 +53,8 @@
   <UModal
     v-model:open="isLegendModalOpen"
     :ui="{ content: 'sm:max-w-md' }"
-    title="Dialog"
-    description="Dialog content and actions."
+    title="Fueling State Analysis"
+    description="Explanation of the different fueling states and how to strategically fuel for your training demand."
   >
     <template #content>
       <div v-if="selectedLegend" class="p-6 space-y-5">

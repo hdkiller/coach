@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Calendar Configuration"
+    description="Configure the appearance and data layers of your activity calendar, such as metabolic waves and fuel states."
+  >
     <template #content>
       <UCard>
         <template #header>

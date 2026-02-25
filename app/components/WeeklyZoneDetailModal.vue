@@ -2,7 +2,7 @@
   <UModal
     v-model:open="isOpen"
     title="Weekly Training Zones"
-    description="Dialog content and actions."
+    description="Detailed breakdown of training zones and duration for the selected week."
   >
     <template #body>
       <div v-if="weekData" class="space-y-6">

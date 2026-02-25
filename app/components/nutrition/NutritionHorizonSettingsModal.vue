@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Metabolic Horizon Settings"
+    description="Adjust how your metabolic horizon and glycogen projections are calculated."
+  >
     <template #content>
       <UCard>
         <template #header>

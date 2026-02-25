@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Nutrition Timeline Settings"
+    description="Customize the visibility and layout of your daily fueling timeline."
+  >
     <template #content>
       <UCard>
         <template #header>

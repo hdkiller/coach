@@ -10,7 +10,6 @@
     EBody,
     ESection,
     EImg,
-    EHr,
     ELink,
     EFont
   } from 'vue-email'
@@ -21,6 +20,10 @@
   }>()
   const siteUrl = 'https://coachwatts.com'
   const logoUrl = 'https://coachwatts.com/icon.png'
+  const connectSourceUrl =
+    'https://coachwatts.com/settings/apps?utm_source=coachwatts_email&utm_medium=lifecycle&utm_campaign=welcome_onboarding&utm_content=cta_connect_first_source'
+  const discordUrl =
+    'https://discord.gg/dPYkzg49T9?utm_source=coachwatts_email&utm_medium=lifecycle&utm_campaign=welcome_onboarding&utm_content=join_discord'
 </script>
 
 <template>
@@ -38,7 +41,7 @@
       />
     </EHead>
     <EPreview
-      >Welcome to Coach Watts! Connect your training data to unlock AI-powered insights.</EPreview
+      >Step 1 complete. Connect your first data source and join the Coach Watts community.</EPreview
     >
     <EBody
       style="
@@ -126,7 +129,7 @@
               style="
                 font-size: 10px;
                 font-weight: 900;
-                color: #a1a1aa;
+                color: #71717a;
                 margin: 0 0 6px;
                 letter-spacing: 0.2em;
                 text-transform: uppercase;
@@ -134,7 +137,8 @@
               >Next Step</EText
             >
             <EText style="font-size: 15px; color: #52525b; font-weight: 600; margin: 0"
-              >Connect a training source to unlock your dashboard.</EText
+              >Connect your first training source to unlock your dashboard (takes about 2
+              minutes).</EText
             >
           </EContainer>
 
@@ -171,8 +175,9 @@
 
           <div style="text-align: center; margin-bottom: 18px">
             <EButton
-              href="https://coachwatts.com/settings/apps?utm_source=coachwatts_email&utm_medium=lifecycle&utm_campaign=welcome_onboarding&utm_content=cta_connect_first_source"
+              :href="connectSourceUrl"
               style="
+                background-color: #00c16a;
                 background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
                 color: #ffffff;
                 padding: 14px 28px;
@@ -183,9 +188,42 @@
                 text-align: center;
               "
             >
-              Connect My First Source
+              Connect Your First Data Source
             </EButton>
           </div>
+          <EText style="font-size: 13px; color: #71717a; line-height: 1.6; margin: 0 0 22px">
+            If the button does not work, copy and paste this link:
+            <ELink :href="connectSourceUrl" style="color: #00c16a; text-decoration: underline">
+              {{ connectSourceUrl }}
+            </ELink>
+          </EText>
+
+          <EContainer
+            style="
+              background-color: #fafafa;
+              border: 1px solid #e4e4e7;
+              border-radius: 12px;
+              padding: 16px;
+            "
+          >
+            <EText
+              style="
+                font-size: 10px;
+                font-weight: 900;
+                color: #71717a;
+                margin: 0 0 6px;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+              "
+              >Community</EText
+            >
+            <EText style="font-size: 15px; line-height: 1.6; color: #52525b; margin: 0">
+              Questions or feedback? Join our Discord community and connect with other athletes:
+              <ELink :href="discordUrl" style="color: #00c16a; text-decoration: underline">
+                Join Coach Watts on Discord
+              </ELink>
+            </EText>
+          </EContainer>
         </ESection>
 
         <!-- Footer -->

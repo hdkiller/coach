@@ -2,7 +2,7 @@
   <UModal
     :open="modelValue"
     title="Plan Week with AI"
-    description="Dialog content and actions."
+    description="Provide instructions to the AI to help design your training week, including locked workouts and specific focus areas."
     @update:open="$emit('update:modelValue', $event)"
   >
     <template #body>

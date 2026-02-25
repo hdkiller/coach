@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Workout Overview" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Workout Overview"
+    description="A quick summary of your workout performance and metrics."
+  >
     <template #actions>
       <div class="flex items-center gap-1">
         <UButton
@@ -370,7 +374,7 @@
   <UModal
     v-model:open="showDeleteConfirm"
     title="Delete Workout"
-    description="Dialog content and actions."
+    description="Confirm if you want to permanently remove this activity from your history."
   >
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -386,7 +390,7 @@
   <UModal
     v-model:open="showUnlinkConfirm"
     title="Unlink Workout"
-    description="Dialog content and actions."
+    description="Confirm if you want to remove the link between this activity and its assigned training plan workout."
   >
     <template #footer>
       <div class="flex justify-end gap-2">

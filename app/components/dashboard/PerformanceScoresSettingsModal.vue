@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Performance Metric Customization"
+    description="Customize which performance metrics are displayed on your dashboard and toggle trend indicators."
+  >
     <template #content>
       <UCard>
         <template #header>

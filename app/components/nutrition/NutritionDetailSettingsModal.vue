@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Nutrition Chart Settings"
+    description="Configure the visual appearance and scaling behavior of your performance nutrition charts."
+  >
     <template #content>
       <UCard>
         <template #header>

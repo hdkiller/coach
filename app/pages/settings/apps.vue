@@ -139,7 +139,7 @@
     <UModal
       v-model:open="isRevokeModalOpen"
       title="Revoke Access"
-      description="Dialog content and actions."
+      description="Revoke the authorization for this application to access your Coach Watts data."
     >
       <template #body>
         <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">

@@ -122,7 +122,7 @@
     <UModal
       v-model:open="isClearScheduleModalOpen"
       title="Clear Future Schedule"
-      description="Dialog content and actions."
+      description="Confirm the removal of upcoming training sessions."
     >
       <template #body>
         <p>
@@ -147,7 +147,7 @@
     <UModal
       v-model:open="isClearPastScheduleModalOpen"
       title="Clear Past Schedule"
-      description="Dialog content and actions."
+      description="Confirm the removal of non-completed past training sessions."
     >
       <template #body>
         <p>
@@ -172,7 +172,7 @@
     <UModal
       v-model:open="isWipeProfilesModalOpen"
       title="Wipe Athlete Profiles"
-      description="Dialog content and actions."
+      description="Confirm the irreversible deletion of AI athlete profiles and scores."
     >
       <template #body>
         <p>
@@ -197,7 +197,7 @@
     <UModal
       v-model:open="isWipeAnalysisModalOpen"
       title="Wipe AI Analysis Data"
-      description="Dialog content and actions."
+      description="Confirm the removal of AI-generated insights and reports."
     >
       <template #body>
         <p>
@@ -221,7 +221,7 @@
     <UModal
       v-model:open="isDeleteAccountModalOpen"
       title="Delete Account"
-      description="Dialog content and actions."
+      description="Dangerous: This will permanently delete your entire account and all data."
     >
       <template #body>
         <p class="text-error font-semibold mb-2">Warning: This action is irreversible.</p>

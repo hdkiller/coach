@@ -2,8 +2,8 @@
   <UModal
     v-model:open="isOpen"
     :ui="{ content: 'sm:max-w-md' }"
-    title="Dialog"
-    description="Dialog content and actions."
+    title="Fuel Tank Analysis"
+    description="Technical breakdown of your current glycogen levels based on recent nutrition and training depletion."
   >
     <template #content>
       <div class="p-6 space-y-6">

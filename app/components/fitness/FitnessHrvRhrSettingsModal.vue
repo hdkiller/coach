@@ -1,5 +1,9 @@
 <template>
-  <UModal v-model:open="isOpen" title="Dialog" description="Dialog content and actions.">
+  <UModal
+    v-model:open="isOpen"
+    title="Biometric Baseline Settings"
+    description="Fine-tune the baseline calculations and visual scaling for your heart rate variability and resting heart rate charts."
+  >
     <template #content>
       <UCard>
         <template #header>
