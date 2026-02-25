@@ -37,6 +37,32 @@ import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
 
+function parseIntervalsActivityDate(activity: any): Date | null {
+  const rawDate = activity?.start_date || activity?.start_date_local
+  if (!rawDate) return null
+  const parsed = new Date(rawDate)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function hasDateForActivityUpsert(activity: any): boolean {
+  return !!parseIntervalsActivityDate(activity)
+}
+
+function toRoundedOrNull(value: any): number | null {
+  return typeof value === 'number' ? Math.round(value) : null
+}
+
+function toNumberOrNull(value: any): number | null {
+  return typeof value === 'number' ? value : null
+}
+
+function normalizeIntensityValue(activity: any): number | null {
+  let val = activity?.icu_intensity ?? activity?.intensity
+  if (typeof val !== 'number') return null
+  if (val > 5) val = val / 100
+  return Math.round(val * 10000) / 10000
+}
+
 export const IntervalsService = {
   /**
    * Get athlete profile from Intervals.icu
@@ -934,24 +960,194 @@ export const IntervalsService = {
         break
 
       case 'ACTIVITY_UPDATED': {
-        const activityDateStr =
-          intervalEvent.activity?.start_date_local || intervalEvent.activity?.start_date
-        if (activityDateStr) {
-          const actDate = new Date(activityDateStr)
-          // Fetch user's timezone to calculate correct day range
-          const timezone = await getUserTimezone(userId)
-          // Sync wider range (previous day to next day in local time)
-          const localActDate = getStartOfDayUTC(timezone, actDate)
+        const activity = intervalEvent.activity
+        const activityId = activity?.id ? String(activity.id) : null
+        const activityDate = parseIntervalsActivityDate(activity)
 
-          startDate = new Date(localActDate)
-          startDate.setDate(startDate.getDate() - 1)
-          endDate = new Date(localActDate)
-          endDate.setDate(endDate.getDate() + 1)
+        // Fast path: payload contains enough data to upsert the workout directly.
+        if (activityId && activity && hasDateForActivityUpsert(activity)) {
+          const normalized = normalizeIntervalsWorkout(activity, userId)
+
+          // Link to Planned Workout if paired in Intervals.icu
+          if (activity.paired_event_id) {
+            const pairedExternalId = String(activity.paired_event_id)
+            const plannedWorkout = await prisma.plannedWorkout.findUnique({
+              where: {
+                userId_externalId: {
+                  userId,
+                  externalId: pairedExternalId
+                }
+              },
+              select: { id: true }
+            })
+
+            if (plannedWorkout) {
+              ;(normalized as any).plannedWorkoutId = plannedWorkout.id
+              await prisma.plannedWorkout.update({
+                where: { id: plannedWorkout.id },
+                data: {
+                  completed: true,
+                  completionStatus: 'COMPLETED'
+                }
+              })
+            }
+          }
+
+          const { record } = await workoutRepository.upsert(
+            userId,
+            'intervals',
+            normalized.externalId,
+            normalized,
+            normalized
+          )
+
+          try {
+            const tssResult = await normalizeTSS(record.id, userId)
+            if (tssResult.tss !== null) {
+              await calculateWorkoutStress(record.id, userId)
+            }
+          } catch (error) {
+            console.error(`[IntervalsService] Failed to normalize TSS for workout ${record.id}`, error)
+          }
+
+          if (Array.isArray(activity.stream_types) && activity.stream_types.length > 0) {
+            try {
+              await IntervalsService.syncActivityStream(userId, record.id, activityId)
+            } catch (error) {
+              console.error(`[IntervalsService] Failed to sync stream for workout ${record.id}`, error)
+            }
+          }
+        } else if (activityId && activity) {
+          // Delta path: apply only fields present in payload, avoiding full range sync.
+          const existing = await workoutRepository.getByExternalId(userId, 'intervals', activityId)
+
+          if (existing) {
+            const deltaData: any = {}
+            const patchDate = parseIntervalsActivityDate(activity)
+            if (patchDate) deltaData.date = patchDate
+
+            if (typeof activity.name === 'string') deltaData.title = activity.name
+            if (activity.description !== undefined) deltaData.description = activity.description || null
+            if (typeof activity.type === 'string') deltaData.type = activity.type
+
+            const moving = toNumberOrNull(activity.moving_time)
+            const elapsed = toNumberOrNull(activity.elapsed_time)
+            const duration = toNumberOrNull(activity.duration)
+            if (moving !== null || elapsed !== null || duration !== null) {
+              deltaData.durationSec = Math.round(moving || elapsed || duration || 0)
+            }
+
+            if (toNumberOrNull(activity.distance) !== null) deltaData.distanceMeters = activity.distance
+            if (toNumberOrNull(activity.total_elevation_gain) !== null) {
+              deltaData.elevationGain = Math.round(activity.total_elevation_gain)
+            }
+
+            const avgWatts = activity.icu_average_watts ?? activity.average_watts
+            if (toNumberOrNull(avgWatts) !== null) deltaData.averageWatts = toRoundedOrNull(avgWatts)
+
+            const maxWatts =
+              activity.max_watts ??
+              activity.icu_pm_p_max ??
+              activity.icu_rolling_p_max ??
+              activity.p_max
+            if (toNumberOrNull(maxWatts) !== null) deltaData.maxWatts = toRoundedOrNull(maxWatts)
+
+            if (toNumberOrNull(activity.normalized_power) !== null) {
+              deltaData.normalizedPower = toRoundedOrNull(activity.normalized_power)
+            }
+            if (toNumberOrNull(activity.icu_weighted_avg_watts) !== null) {
+              deltaData.weightedAvgWatts = toRoundedOrNull(activity.icu_weighted_avg_watts)
+            }
+
+            if (toNumberOrNull(activity.average_heartrate) !== null) {
+              deltaData.averageHr = toRoundedOrNull(activity.average_heartrate)
+            }
+            if (toNumberOrNull(activity.max_heartrate) !== null) {
+              deltaData.maxHr = toRoundedOrNull(activity.max_heartrate)
+            }
+
+            if (toNumberOrNull(activity.average_cadence) !== null) {
+              deltaData.averageCadence = toRoundedOrNull(activity.average_cadence)
+            }
+            if (toNumberOrNull(activity.max_cadence) !== null) {
+              deltaData.maxCadence = toRoundedOrNull(activity.max_cadence)
+            }
+
+            if (toNumberOrNull(activity.average_speed) !== null) {
+              deltaData.averageSpeed = activity.average_speed
+            }
+
+            if (toNumberOrNull(activity.tss) !== null) deltaData.tss = activity.tss
+            if (toNumberOrNull(activity.icu_training_load) !== null) {
+              deltaData.trainingLoad = activity.icu_training_load
+            }
+            if (toNumberOrNull(activity.icu_hrss) !== null) deltaData.hrLoad = activity.icu_hrss
+            if (toNumberOrNull(activity.trimp) !== null) deltaData.trimp = toRoundedOrNull(activity.trimp)
+
+            const intensity = normalizeIntensityValue(activity)
+            if (intensity !== null) deltaData.intensity = intensity
+
+            if (toNumberOrNull(activity.icu_joules) !== null) {
+              deltaData.kilojoules = Math.round(activity.icu_joules / 1000)
+            }
+
+            if (toNumberOrNull(activity.icu_ctl) !== null) deltaData.ctl = activity.icu_ctl
+            if (toNumberOrNull(activity.icu_atl) !== null) deltaData.atl = activity.icu_atl
+            if (toNumberOrNull(activity.perceived_exertion) !== null) {
+              deltaData.rpe = toRoundedOrNull(activity.perceived_exertion)
+            } else if (toNumberOrNull(activity.icu_rpe) !== null) {
+              deltaData.rpe = toRoundedOrNull(activity.icu_rpe)
+            }
+            if (toNumberOrNull(activity.session_rpe) !== null) {
+              deltaData.sessionRpe = toRoundedOrNull(activity.session_rpe)
+            }
+            if (toNumberOrNull(activity.feel) !== null) deltaData.feel = 6 - Math.round(activity.feel)
+            if (toNumberOrNull(activity.calories) !== null) {
+              deltaData.calories = toRoundedOrNull(activity.calories)
+            }
+            if (toNumberOrNull(activity.elapsed_time) !== null) {
+              deltaData.elapsedTimeSec = toRoundedOrNull(activity.elapsed_time)
+            }
+
+            deltaData.rawJson = {
+              ...((existing.rawJson as any) || {}),
+              ...(activity || {})
+            }
+
+            if (Object.keys(deltaData).length > 0) {
+              await workoutRepository.update(existing.id, deltaData)
+            }
+          } else {
+            // No local record and no complete payload => fallback to range sync.
+            if (activityDate) {
+              const timezone = await getUserTimezone(userId)
+              const localActDate = getStartOfDayUTC(timezone, activityDate)
+              startDate = new Date(localActDate)
+              startDate.setDate(startDate.getDate() - 1)
+              endDate = new Date(localActDate)
+              endDate.setDate(endDate.getDate() + 1)
+            } else {
+              startDate = new Date()
+              startDate.setDate(startDate.getDate() - 2)
+            }
+            await IntervalsService.syncActivities(userId, startDate, endDate)
+          }
         } else {
-          startDate = new Date()
-          startDate.setDate(startDate.getDate() - 2)
+          // Fallback path if payload has no activity object.
+          if (activityDate) {
+            const timezone = await getUserTimezone(userId)
+            const localActDate = getStartOfDayUTC(timezone, activityDate)
+            startDate = new Date(localActDate)
+            startDate.setDate(startDate.getDate() - 1)
+            endDate = new Date(localActDate)
+            endDate.setDate(endDate.getDate() + 1)
+          } else {
+            startDate = new Date()
+            startDate.setDate(startDate.getDate() - 2)
+          }
+          await IntervalsService.syncActivities(userId, startDate, endDate)
         }
-        await IntervalsService.syncActivities(userId, startDate, endDate)
+
         // Trigger deduplication and analysis
         await deduplicateWorkoutsTask.trigger(
           { userId, dryRun: false },
