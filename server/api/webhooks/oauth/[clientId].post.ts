@@ -1,6 +1,5 @@
 import { logWebhookRequest } from '../../../utils/webhook-logger'
 import { prisma } from '../../../utils/db'
-import { webhookQueue } from '../../../utils/queue'
 
 defineRouteMeta({
   openAPI: {
@@ -48,48 +47,26 @@ export default defineEventHandler(async (event) => {
 
   // 3. Log the request
   const log = await logWebhookRequest({
-    provider: `oauth:${app.name}`,
+    provider: `oauth-generic`,
     eventType: 'RAW_PUSH',
     payload: body,
     headers,
     query,
-    status: 'PROCESSED'
-    // We store the secret match info in the metadata/error field or just let it be part of the payload/headers
+    status: 'PENDING'
   })
-
-  // Update log with match status in metadata if we want to be explicit
 
   if (log) {
     await prisma.webhookLog.update({
       where: { id: log.id },
-
       data: {
         error: secretMatched
           ? 'SECRET_MATCHED'
           : providedSecret
             ? 'SECRET_MISMATCH'
-            : 'NO_SECRET_PROVIDED'
+            : 'NO_SECRET_PROVIDED',
+        // Also store metadata for generic worker
+        eventType: `oauth:${app.name}`
       }
-    })
-
-    // 4. Add to queue for background processing
-
-    await webhookQueue.add('oauth-webhook', {
-      provider: 'oauth-generic',
-
-      appName: app.name,
-
-      clientId: app.clientId,
-
-      payload: body,
-
-      headers,
-
-      query,
-
-      logId: log.id,
-
-      secretMatched
     })
   }
 

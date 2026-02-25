@@ -1,11 +1,11 @@
-import { webhookQueue } from '../../../utils/queue'
+import { logWebhookRequest } from '../../../utils/webhook-logger'
 
 defineRouteMeta({
   openAPI: {
     tags: ['Integrations'],
     summary: 'Whoop async webhook',
     description:
-      'Handles incoming webhook notifications from Whoop asynchronously via Redis queue.',
+      'Handles incoming webhook notifications from Whoop. Data is stored in SQL and processed asynchronously.',
     requestBody: {
       content: {
         'application/json': {
@@ -27,14 +27,16 @@ export default defineEventHandler(async (event) => {
   const headers = getRequestHeaders(event)
 
   try {
-    // Enqueue the request for the worker to handle
-    await webhookQueue.add('whoop-webhook', {
+    // Log the request to SQL with status PENDING for the worker to pick up
+    await logWebhookRequest({
       provider: 'whoop',
+      eventType: body?.type || 'UNKNOWN',
       payload: body,
-      headers
+      headers,
+      status: 'PENDING'
     })
   } catch (error: any) {
-    console.error('[Whoop Webhook Async] Failed to queue request:', error)
+    console.error('[Whoop Webhook Async] Failed to log request:', error)
     throw createError({
       statusCode: 500,
       statusMessage: 'Internal Server Error'

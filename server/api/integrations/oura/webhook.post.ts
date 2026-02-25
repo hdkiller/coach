@@ -1,5 +1,4 @@
-import { logWebhookRequest, updateWebhookStatus } from '../../../utils/webhook-logger'
-import { webhookQueue } from '../../../utils/queue'
+import { logWebhookRequest } from '../../../utils/webhook-logger'
 import crypto from 'node:crypto'
 
 defineRouteMeta({
@@ -103,52 +102,14 @@ export default defineEventHandler(async (event) => {
 
   const { event_type, data_type, user_id } = body
 
-  // 3. Log Receipt
-  const log = await logWebhookRequest({
+  // 3. Log Receipt - set status to PENDING for the worker to pick up
+  await logWebhookRequest({
     provider: 'oura',
     eventType: event_type || 'UNKNOWN',
     payload: body,
     headers,
     status: 'PENDING'
   })
-
-  // 4. Find User (if needed for queuing, usually we rely on externalUserId in the worker, but better to check existence here)
-  if (!user_id) {
-    console.warn('[Oura Webhook] Missing user_id in payload')
-    if (log) await updateWebhookStatus(log.id, 'FAILED', 'Missing user_id')
-    return 'OK'
-  }
-
-  const integration = await prisma.integration.findFirst({
-    where: {
-      provider: 'oura',
-      externalUserId: user_id.toString()
-    }
-  })
-
-  if (!integration) {
-    console.warn(`[Oura Webhook] No integration found for user_id: ${user_id}`)
-    if (log) await updateWebhookStatus(log.id, 'IGNORED', 'User not found')
-    return 'OK'
-  }
-
-  // 5. Enqueue Job
-  try {
-    await webhookQueue.add('oura-webhook', {
-      provider: 'oura',
-      type: event_type,
-      dataType: data_type, // Oura distinguishes data types (sleep, workout, etc.)
-      userId: integration.userId,
-      payload: body,
-      logId: log?.id
-    })
-    if (log) await updateWebhookStatus(log.id, 'QUEUED')
-    console.log(`[Oura Webhook] Queued event ${event_type} for user ${integration.userId}`)
-  } catch (err: any) {
-    console.error('[Oura Webhook] Failed to enqueue job:', err)
-    if (log) await updateWebhookStatus(log.id, 'FAILED', 'Queue error')
-    throw createError({ statusCode: 500, statusMessage: 'Internal Server Error' })
-  }
 
   return 'OK'
 })

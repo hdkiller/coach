@@ -260,3 +260,12 @@ Refer to the comprehensive [Chat Development Guide](docs/04-guides/chat-developm
 ### Documentation
 
 - **Mandatory Reading**: Before modifying chat logic, read the relevant files in `vercel-ai-docs/`, specifically `07-reference/01-ai-sdk-core/31-ui-message.mdx` and `04-ai-sdk-ui/03-chatbot-tool-usage.mdx`.
+
+## 14. External Integrations
+
+### Garmin Connect
+
+- **Pull API Range**: The Garmin Pull API enforces a strict **24-hour (86400s)** maximum range. Clamping must be handled in background tasks.
+- **Pull API Buffer**: Always use a **1-minute safety buffer** for the `endTimestamp` (e.g., `now - 60`) to avoid `InvalidPullTokenException` errors caused by requesting data too close to the current time.
+- **Rate Limits**: Pull API is limited to roughly 1 request per minute per user per endpoint. Use `idempotencyKey` and `concurrencyKey` in Trigger.dev to avoid hitting these limits.
+- **Sleep & HRV**: These types may return `InvalidPullTokenException` if the user has not consented to "Health" data sharing in their Garmin Connect app, even if "Wellness" (Dailies) is enabled. Handle these errors gracefully as partial failures.

@@ -1,6 +1,5 @@
 import { Resend } from 'resend'
 import { Webhook } from 'svix'
-import { webhookQueue } from '../../utils/queue'
 import { logWebhookRequest } from '../../utils/webhook-logger'
 
 export default defineEventHandler(async (event) => {
@@ -44,22 +43,13 @@ export default defineEventHandler(async (event) => {
     return sendError(event, createError({ statusCode: 400, statusMessage: 'Invalid signature' }))
   }
 
-  // Log to database
-  const log = await logWebhookRequest({
+  // Log to database - set status to PENDING for the worker to pick up
+  await logWebhookRequest({
     provider: 'resend',
     eventType: payload.type || 'UNKNOWN',
     payload,
     headers,
-    status: 'QUEUED'
-  })
-
-  // Add to BullMQ queue
-  await webhookQueue.add('resend-webhook', {
-    provider: 'resend',
-    type: payload.type,
-    data: payload.data,
-    createdAt: payload.created_at,
-    logId: log?.id
+    status: 'PENDING'
   })
 
   return { success: true }

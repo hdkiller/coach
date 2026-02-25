@@ -1,5 +1,4 @@
-import { logWebhookRequest, updateWebhookStatus } from '../../../utils/webhook-logger'
-import { webhookQueue } from '../../../utils/queue'
+import { logWebhookRequest } from '../../../utils/webhook-logger'
 import crypto from 'node:crypto'
 
 defineRouteMeta({
@@ -78,51 +77,14 @@ export default defineEventHandler(async (event) => {
 
   const { user_id, type } = body
 
-  // 3. Log Receipt
-  const log = await logWebhookRequest({
+  // 3. Log Receipt - set status to PENDING for the worker to pick up
+  await logWebhookRequest({
     provider: 'whoop',
     eventType: type || 'UNKNOWN',
     payload: body,
     headers,
     status: 'PENDING'
   })
-
-  // 4. Find User
-  if (!user_id) {
-    console.warn('[Whoop Webhook] Missing user_id in payload')
-    if (log) await updateWebhookStatus(log.id, 'FAILED', 'Missing user_id')
-    return 'OK' // Return OK to acknowledge receipt even if invalid payload content
-  }
-
-  const integration = await prisma.integration.findFirst({
-    where: {
-      provider: 'whoop',
-      externalUserId: user_id.toString()
-    }
-  })
-
-  if (!integration) {
-    console.warn(`[Whoop Webhook] No integration found for user_id: ${user_id}`)
-    if (log) await updateWebhookStatus(log.id, 'IGNORED', 'User not found')
-    return 'OK'
-  }
-
-  // 5. Enqueue Job
-  try {
-    await webhookQueue.add('whoop-webhook', {
-      provider: 'whoop',
-      type,
-      userId: integration.userId,
-      payload: body,
-      logId: log?.id
-    })
-    if (log) await updateWebhookStatus(log.id, 'QUEUED')
-    console.log(`[Whoop Webhook] Queued event ${type} for user ${integration.userId}`)
-  } catch (err: any) {
-    console.error('[Whoop Webhook] Failed to enqueue job:', err)
-    if (log) await updateWebhookStatus(log.id, 'FAILED', 'Queue error')
-    throw createError({ statusCode: 500, statusMessage: 'Internal Server Error' })
-  }
 
   return 'OK'
 })

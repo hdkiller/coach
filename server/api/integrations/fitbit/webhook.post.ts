@@ -1,5 +1,4 @@
-import { logWebhookRequest, updateWebhookStatus } from '../../../utils/webhook-logger'
-import { webhookQueue } from '../../../utils/queue'
+import { logWebhookRequest } from '../../../utils/webhook-logger'
 import crypto from 'node:crypto'
 
 defineRouteMeta({
@@ -98,31 +97,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid JSON' })
   }
 
-  // Log Receipt
-  // Body is an array of updates
-  const log = await logWebhookRequest({
+  // Log Receipt - set status to PENDING for the worker to pick up
+  await logWebhookRequest({
     provider: 'fitbit',
     eventType: body[0]?.collectionType || 'UNKNOWN',
     payload: body,
     headers,
     status: 'PENDING'
   })
-
-  // Queue Job
-  try {
-    await webhookQueue.add('fitbit-webhook', {
-      provider: 'fitbit',
-      payload: body,
-      logId: log?.id
-    })
-
-    if (log) await updateWebhookStatus(log.id, 'QUEUED')
-    console.log(`[Fitbit Webhook] Queued ${body.length} updates`)
-  } catch (err: any) {
-    console.error('[Fitbit Webhook] Failed to enqueue job:', err)
-    if (log) await updateWebhookStatus(log.id, 'FAILED', 'Queue error')
-    throw createError({ statusCode: 500 })
-  }
 
   setResponseStatus(event, 204)
   return

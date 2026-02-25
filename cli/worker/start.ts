@@ -60,7 +60,7 @@ export const startCommand = new Command('start')
         const { provider, type, userId, event, logId } = job.data
 
         // Handle bulk ingest jobs from the async API endpoint
-        if (provider === 'intervals-bulk') {
+        if (provider === 'intervals' || provider === 'intervals-bulk') {
           const { payload, headers } = job.data
           const events = payload.events || []
 
@@ -489,7 +489,55 @@ export const startCommand = new Command('start')
       console.error(chalk.red.bold('Webhook Worker error:'), err)
     })
 
-    // --- Ping Worker ---
+    // --- Webhook Log Poller ---
+    // This loop checks for PENDING webhooks in SQL and moves them to BullMQ
+    const pollWebhooks = async () => {
+      try {
+        const pendingLogs = await prisma.webhookLog.findMany({
+          where: { status: 'PENDING' },
+          orderBy: { createdAt: 'asc' },
+          take: 50
+        })
+
+        if (pendingLogs.length > 0) {
+          console.log(chalk.gray(`[Poller] Found ${pendingLogs.length} pending webhooks in SQL`))
+
+          for (const log of pendingLogs) {
+            let queueJobName = `${log.provider}-webhook`
+            let provider = log.provider
+
+            if (provider === 'intervals-bulk' || provider === 'intervals') {
+              queueJobName = 'intervals-webhook-bulk'
+              provider = 'intervals-bulk' // Force bulk handler for both
+            } else if (provider === 'oauth-generic') {
+              queueJobName = 'oauth-webhook'
+            }
+
+            await webhookQueue.add(queueJobName, {
+              provider,
+              type: log.eventType,
+              payload: log.payload,
+              headers: log.headers,
+              logId: log.id,
+              // Oauth specific fields if any were stored in error or similar
+              appName: log.eventType?.startsWith('oauth:')
+                ? log.eventType.split(':')[1]
+                : 'unknown',
+              secretMatched: log.error === 'SECRET_MATCHED'
+            })
+
+            await prisma.webhookLog.update({
+              where: { id: log.id },
+              data: { status: 'QUEUED' }
+            })
+          }
+        }
+      } catch (err) {
+        console.error(chalk.red('[Poller] Error polling webhooks:'), err)
+      }
+    }
+
+    const pollerInterval = setInterval(pollWebhooks, 5000) // Poll every 5 seconds
     const pingWorker = new Worker(
       'pingQueue',
       async (job: Job) => {
@@ -550,10 +598,11 @@ export const startCommand = new Command('start')
     const shutdown = async (signal: string) => {
       console.log(
         chalk.yellow(`
-Received ${signal}. Shutting down workers...
+      Received ${signal}. Shutting down workers...
 `)
       )
       clearInterval(statsInterval)
+      clearInterval(pollerInterval)
 
       try {
         await Promise.all([webhookWorker.close(), pingWorker.close()])

@@ -1,5 +1,4 @@
-import { logWebhookRequest, updateWebhookStatus } from '../../../utils/webhook-logger'
-import { webhookQueue } from '../../../utils/queue'
+import { logWebhookRequest } from '../../../utils/webhook-logger'
 
 defineRouteMeta({
   openAPI: {
@@ -43,8 +42,8 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const headers = getRequestHeaders(event)
 
-    // Log receipt
-    const log = await logWebhookRequest({
+    // Log receipt - set status to PENDING for the worker to pick up
+    await logWebhookRequest({
       provider: 'strava',
       eventType: body?.object_type ? `${body.object_type}:${body.aspect_type}` : 'UNKNOWN',
       payload: body,
@@ -52,27 +51,7 @@ export default defineEventHandler(async (event) => {
       status: 'PENDING'
     })
 
-    try {
-      if (!body || !body.owner_id) {
-        console.warn('[Strava Webhook] Missing owner_id in payload')
-        if (log) await updateWebhookStatus(log.id, 'FAILED', 'Missing owner_id')
-        return 'OK'
-      }
-
-      // Enqueue in the background worker queue
-      await webhookQueue.add('strava-webhook', {
-        provider: 'strava',
-        payload: body,
-        headers,
-        logId: log?.id
-      })
-
-      return 'OK'
-    } catch (error: any) {
-      console.error('[Strava Webhook] Error enqueuing job:', error)
-      if (log) await updateWebhookStatus(log.id, 'FAILED', error.message)
-      return 'OK' // Still return 200 to Strava
-    }
+    return 'OK'
   }
 
   throw createError({

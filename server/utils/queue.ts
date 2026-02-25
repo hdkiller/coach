@@ -3,19 +3,13 @@ import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
 
 // Connection configuration for DragonflyDB/Redis
-// Log to see what we are getting
 const envUrl = process.env.REDIS_URL
-
-if (!envUrl) {
-  // Only warn if we are clearly missing it, but we fallback gracefully for local defaults
-  // console.warn('[Queue] WARNING: REDIS_URL not set, using default redis://localhost:6379')
-}
-
 const connectionString = envUrl || 'redis://localhost:6379'
 
-// Create a Redis connection instance
+// Create a Redis connection instance with lazyConnect to prevent automatic connection during build
 const connection = new IORedis(connectionString, {
-  maxRetriesPerRequest: null // Required by BullMQ
+  maxRetriesPerRequest: null, // Required by BullMQ
+  lazyConnect: true
 })
 
 // Redis Connection Logging
@@ -30,8 +24,11 @@ connection.on('connect', () => {
 })
 
 connection.on('error', (err) => {
-  // Always log as a warning to keep the app running without crashing
-  console.warn('[Queue] Redis connection warning:', err.message)
+  // During build we might get connection errors if Redis isn't running, but we don't want to crash
+  // We only log if it's not a build environment or if it's a real error during runtime
+  if (!process.env.NITRO_BUILD) {
+    console.warn('[Queue] Redis connection warning:', err.message)
+  }
 })
 
 export const webhookQueue = new Queue('webhookQueue', { connection })
