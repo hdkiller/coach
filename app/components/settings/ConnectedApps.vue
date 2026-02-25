@@ -4,12 +4,12 @@
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
         <div
-          class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
+          class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
         >
           <img
             src="/images/logos/intervals.png"
             alt="Intervals.icu Logo"
-            class="w-8 h-8 object-contain"
+            class="w-full h-full object-cover"
           />
         </div>
         <div>
@@ -69,7 +69,7 @@
           <img
             src="/images/logos/whoop_square.svg"
             alt="WHOOP Logo"
-            class="w-8 h-8 object-contain"
+            class="w-full h-full object-cover"
           />
         </div>
         <div>
@@ -116,7 +116,7 @@
         <div
           class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
         >
-          <img src="/images/logos/oura.svg" alt="Oura Logo" class="w-8 h-8 object-contain" />
+          <img src="/images/logos/oura.svg" alt="Oura Logo" class="w-full h-full object-cover" />
         </div>
         <div>
           <h3 class="font-semibold">Oura</h3>
@@ -165,7 +165,7 @@
           <img
             src="/images/logos/withings.png"
             alt="Withings Logo"
-            class="w-8 h-8 object-contain"
+            class="w-full h-full object-cover"
           />
         </div>
         <div>
@@ -215,7 +215,7 @@
           <img
             src="/images/logos/yazio_square.webp"
             alt="Yazio Logo"
-            class="w-8 h-8 object-contain"
+            class="w-full h-full object-cover"
           />
         </div>
         <div>
@@ -312,7 +312,11 @@
         <div
           class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
         >
-          <img src="/images/logos/hevy-icon.png" alt="Hevy Logo" class="w-8 h-8 object-contain" />
+          <img
+            src="/images/logos/hevy-icon.png"
+            alt="Hevy Logo"
+            class="w-full h-full object-cover"
+          />
         </div>
         <div>
           <h3 class="font-semibold">Hevy</h3>
@@ -415,7 +419,7 @@
           <img
             src="/images/logos/polar_logo_square.png"
             alt="Polar Logo"
-            class="w-8 h-8 object-contain"
+            class="w-full h-full object-cover"
           />
         </div>
         <div>
