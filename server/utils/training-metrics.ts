@@ -520,7 +520,11 @@ export async function generateTrainingContext(
 
   // Fetch latest wellness for current load metrics (often more up to date than workouts)
   const latestWellness = await prisma.wellness.findFirst({
-    where: { userId },
+    where: {
+      userId,
+      ctl: { not: null },
+      atl: { not: null }
+    },
     orderBy: { date: 'desc' },
     select: {
       date: true,
@@ -530,27 +534,25 @@ export async function generateTrainingContext(
   })
 
   // Get latest load values (comparing workout and wellness)
-  const latestWorkout = workouts[0] // Already sorted by date desc
+  const latestWorkout = workouts.find((w) => w.ctl !== null && w.atl !== null) || null
 
   let currentCTL: number | null = null
   let currentATL: number | null = null
   let currentLoadSource: 'workout' | 'wellness' | null = null
   let currentLoadDate: Date | null = null
 
-  // Logic to pick the most recent data source
-  if (latestWellness && latestWorkout) {
-    if (latestWellness.date >= latestWorkout.date) {
-      currentCTL = latestWellness.ctl
-      currentATL = latestWellness.atl
-      currentLoadSource = 'wellness'
-      currentLoadDate = latestWellness.date
-    } else {
-      currentCTL = latestWorkout.ctl
-      currentATL = latestWorkout.atl
-      currentLoadSource = 'workout'
-      currentLoadDate = latestWorkout.date
-    }
-  } else if (latestWellness) {
+  // Keep selection logic consistent with dashboard summary:
+  // Prefer wellness if it's from the same day or newer.
+  const toDay = (d: Date | null | undefined) => {
+    if (!d) return ''
+    const parts = new Date(d).toISOString().split('T')
+    return parts[0] || ''
+  }
+
+  const workoutDay = toDay(latestWorkout?.date)
+  const wellnessDay = toDay(latestWellness?.date)
+
+  if (latestWellness && (wellnessDay >= workoutDay || !latestWorkout)) {
     currentCTL = latestWellness.ctl
     currentATL = latestWellness.atl
     currentLoadSource = 'wellness'

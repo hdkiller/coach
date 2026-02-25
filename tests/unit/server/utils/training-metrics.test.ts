@@ -327,6 +327,40 @@ describe('Training Metrics Utils', () => {
       expect(context.loadTrend.currentATL).toBe(50)
       expect(context.loadTrend.currentTSB).toBe(20)
     })
+
+    it('should prefer wellness metrics when workout and wellness are on the same day', async () => {
+      const startDate = new Date('2026-02-10T00:00:00Z')
+      const endDate = new Date('2026-02-25T23:59:59Z')
+
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([
+        {
+          id: 'w1',
+          date: new Date('2026-02-25T18:00:00Z'),
+          durationSec: 3600,
+          distanceMeters: 25000,
+          tss: 92,
+          ctl: 53.2,
+          atl: 31.5,
+          type: 'Ride',
+          intensity: 0.85
+        }
+      ] as any)
+
+      vi.mocked(prisma.wellness.findFirst).mockResolvedValue({
+        date: new Date('2026-02-25T00:00:00Z'),
+        ctl: 53.2,
+        atl: 42.5
+      } as any)
+
+      const context = await generateTrainingContext('user1', startDate, endDate, {
+        includeZones: false,
+        timezone: 'UTC'
+      })
+
+      expect(context.loadTrend.currentCTL).toBe(53.2)
+      expect(context.loadTrend.currentATL).toBe(42.5)
+      expect(context.loadTrend.currentTSB).toBeCloseTo(10.7, 5)
+    })
   })
 
   describe('formatTrainingContextForPrompt', () => {
