@@ -364,23 +364,42 @@
       })
     } else if (props.label === 'Calories') {
       const fp = props.fuelingPlan?.dailyTotals || props.settings?.fuelingPlan?.dailyTotals || {}
+      const bmrBase = Math.round(s.bmr || 1600)
+      const baseCaloriesMode =
+        fp.baseCaloriesMode ||
+        (s.baseCaloriesMode === 'MANUAL_NON_EXERCISE' ? 'MANUAL_NON_EXERCISE' : 'AUTO')
+      const activityMultipliers: Record<string, number> = {
+        SEDENTARY: 1.2,
+        LIGHTLY_ACTIVE: 1.375,
+        ACTIVE: 1.55,
+        MODERATELY_ACTIVE: 1.725,
+        VERY_ACTIVE: 1.9,
+        EXTRA_ACTIVE: 2.1
+      }
+      const fallbackBaseCalories =
+        baseCaloriesMode === 'MANUAL_NON_EXERCISE'
+          ? Number(s.nonExerciseBaseCalories || 0)
+          : bmrBase * (activityMultipliers[s.activityLevel || 'ACTIVE'] || 1.55)
+      const baseCalories = Math.round(fp.baseCalories || fallbackBaseCalories)
 
-      const bmrAdjustmentMultiplier =
-        (props.settings?.activityLevel || s.activityLevel) === 'SEDENTARY' ? 1.2 : 1.375
-      const bmrBase = s.bmr || 1600
-      const lifestyleAddition = Math.round(bmrBase * (bmrAdjustmentMultiplier - 1))
-
-      items.push({
-        label: 'Basal Metabolic Rate (BMR)',
-        description: 'Energy required for basic life functions at rest.',
-        value: `${Math.round(bmrBase)} kcal`
-      })
-
-      items.push({
-        label: 'Lifestyle Activity',
-        description: `Energy for non-exercise movement (${Math.round((bmrAdjustmentMultiplier - 1) * 100)}% multiplier).`,
-        value: `+${lifestyleAddition} kcal`
-      })
+      if (baseCaloriesMode === 'MANUAL_NON_EXERCISE') {
+        items.push({
+          label: 'Manual Non-Exercise Baseline',
+          description: 'Your explicit daily calorie baseline for days without structured training.',
+          value: `${baseCalories} kcal`
+        })
+      } else {
+        items.push({
+          label: 'Base Calories (Auto)',
+          description: 'Computed from BMR and your selected activity level.',
+          value: `${baseCalories} kcal`
+        })
+        items.push({
+          label: 'Basal Metabolic Rate (BMR)',
+          description: 'Energy required for basic life functions at rest.',
+          value: `${bmrBase} kcal`
+        })
+      }
 
       // Show specific workouts if present
       if (fp.workoutCalories && fp.workoutCalories.length > 0) {
@@ -413,17 +432,16 @@
       }
 
       // Adjustment (Handle missing granular data explicitly)
-      const bmrMultiplied = Math.round(bmrBase * bmrAdjustmentMultiplier)
       let adjustmentValue = fp.adjustmentCalories
 
       if (adjustmentValue === undefined) {
         // Fallback: estimate based on percent if missing from plan
         if (s.targetAdjustmentPercent) {
-          const subtotal = bmrMultiplied + (fp.activityCalories || 0)
+          const subtotal = baseCalories + (fp.activityCalories || 0)
           adjustmentValue = Math.round(subtotal * (s.targetAdjustmentPercent / 100))
         } else {
           // If no targetAdjustmentPercent, calculate the difference to reach the target
-          adjustmentValue = props.target - bmrMultiplied - (fp.activityCalories || 0)
+          adjustmentValue = props.target - baseCalories - (fp.activityCalories || 0)
         }
       }
 

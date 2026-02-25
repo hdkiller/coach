@@ -107,9 +107,46 @@
         </UFormField>
 
         <UFormField
+          label="Base Calories Method"
+          name="baseCaloriesMode"
+          help="Choose how your non-exercise daily calorie baseline is defined."
+        >
+          <USelectMenu
+            v-model="localSettings.baseCaloriesMode"
+            :items="baseCaloriesModes"
+            value-key="value"
+            class="w-full"
+            :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
+          />
+        </UFormField>
+
+        <UFormField
+          v-if="localSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'"
+          label="Daily Calories Without Structured Exercise"
+          name="nonExerciseBaseCalories"
+          help="Your known maintenance calories on a day with no structured training (for example: 1900 kcal)."
+        >
+          <UInput
+            v-model.number="localSettings.nonExerciseBaseCalories"
+            type="number"
+            :min="800"
+            :max="6000"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
           label="Estimated TDEE"
           name="tdee"
-          help="Total Daily Energy Expenditure (BMR × Activity)"
+          :help="
+            localSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
+              ? 'Using your manual non-exercise baseline.'
+              : 'Total Daily Energy Expenditure (BMR × Activity)'
+          "
         >
           <UInput
             :model-value="tdee"
@@ -1026,6 +1063,8 @@
     nutritionTrackingEnabled: props.profile?.nutritionTrackingEnabled ?? true,
     bmr: 1600,
     activityLevel: 'MODERATELY_ACTIVE',
+    baseCaloriesMode: 'AUTO',
+    nonExerciseBaseCalories: null as number | null,
     currentCarbMax: 60,
     ultimateCarbGoal: 90,
     sweatRate: 0.8,
@@ -1071,6 +1110,11 @@
     { label: 'Moderately Active', value: 'MODERATELY_ACTIVE' },
     { label: 'Very Active', value: 'VERY_ACTIVE' },
     { label: 'Extra Active', value: 'EXTRA_ACTIVE' }
+  ]
+
+  const baseCaloriesModes = [
+    { label: 'Auto (BMR × Activity)', value: 'AUTO' },
+    { label: 'Manual (No Exercise Baseline)', value: 'MANUAL_NON_EXERCISE' }
   ]
 
   const goalProfiles = [
@@ -1230,6 +1274,9 @@
   })
 
   const tdee = computed(() => {
+    if (localSettings.value.baseCaloriesMode === 'MANUAL_NON_EXERCISE') {
+      return Math.round(localSettings.value.nonExerciseBaseCalories || 0)
+    }
     const pal = palMultipliers[localSettings.value.activityLevel] || 1.2
     return Math.round(localSettings.value.bmr * pal)
   })
@@ -1260,6 +1307,16 @@
         localSettings.value.targetAdjustmentPercent = -15
       } else if (newProfile === 'GAIN') {
         localSettings.value.targetAdjustmentPercent = 10
+      }
+    }
+  )
+
+  watch(
+    () => localSettings.value.baseCaloriesMode,
+    (mode) => {
+      if (mode === 'MANUAL_NON_EXERCISE' && !localSettings.value.nonExerciseBaseCalories) {
+        const pal = palMultipliers[localSettings.value.activityLevel] || 1.2
+        localSettings.value.nonExerciseBaseCalories = Math.round(localSettings.value.bmr * pal)
       }
     }
   )
