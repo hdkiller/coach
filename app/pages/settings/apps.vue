@@ -409,9 +409,13 @@
                     ? 'Hevy'
                     : provider === 'polar'
                       ? 'Polar'
-                      : provider === 'telegram'
-                        ? 'Telegram'
-                        : 'Strava'
+                      : provider === 'garmin'
+                        ? 'Garmin'
+                        : provider === 'oura'
+                          ? 'Oura'
+                          : provider === 'telegram'
+                            ? 'Telegram'
+                            : 'Strava'
 
       toast.add({
         title: 'Sync Started',
@@ -459,9 +463,15 @@
                   ? 'Fitbit'
                   : provider === 'polar'
                     ? 'Polar'
-                    : provider === 'telegram'
-                      ? 'Telegram'
-                      : 'Strava'
+                    : provider === 'garmin'
+                      ? 'Garmin'
+                      : provider === 'oura'
+                        ? 'Oura'
+                        : provider === 'hevy'
+                          ? 'Hevy'
+                          : provider === 'telegram'
+                            ? 'Telegram'
+                            : 'Strava'
 
       toast.add({
         title: 'Disconnected',
@@ -489,9 +499,32 @@
         }
       })
 
+      const providerName =
+        provider === 'intervals'
+          ? 'Intervals.icu'
+          : provider === 'whoop'
+            ? 'WHOOP'
+            : provider === 'withings'
+              ? 'Withings'
+              : provider === 'yazio'
+                ? 'Yazio'
+                : provider === 'fitbit'
+                  ? 'Fitbit'
+                  : provider === 'polar'
+                    ? 'Polar'
+                    : provider === 'garmin'
+                      ? 'Garmin'
+                      : provider === 'oura'
+                        ? 'Oura'
+                        : provider === 'hevy'
+                          ? 'Hevy'
+                          : provider === 'telegram'
+                            ? 'Telegram'
+                            : 'Strava'
+
       toast.add({
         title: 'Settings Updated',
-        description: `Successfully updated ${provider} settings`,
+        description: `Successfully updated ${providerName} settings`,
         color: 'success'
       })
 

@@ -1,3 +1,4 @@
+import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { GarminService } from '../../../utils/services/garminService'
@@ -80,11 +81,23 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // Start historical backfill
+  // Start historical backfill after a short delay via Trigger.dev
+  // We use a delay to ensure Garmin's Push API registration is fully propagated
+  // to avoid "User not registered with consumer" (403) errors.
   try {
-    await GarminService.startBackfill(session.user.id)
+    await tasks.trigger(
+      'garmin-backfill',
+      { userId: session.user.id, delaySeconds: 30 },
+      {
+        concurrencyKey: session.user.id,
+        tags: [`user:${session.user.id}`],
+        idempotencyKey: `garmin-backfill:${session.user.id}`,
+        idempotencyKeyTTL: '1h'
+      }
+    )
+    console.log(`[GarminCallback] Queued garmin-backfill for user ${session.user.id}`)
   } catch (e) {
-    console.error('[GarminCallback] Backfill request failed', e)
+    console.error('[GarminCallback] Failed to trigger backfill task', e)
   }
 
   // Clear cookie

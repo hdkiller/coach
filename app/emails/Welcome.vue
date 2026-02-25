@@ -37,9 +37,9 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview v-if="'Step 1 complete. Connect your first data source.'">{{
-      'Step 1 complete. Connect your first data source.'
-    }}</EPreview>
+    <EPreview
+      >Welcome to Coach Watts! Connect your training data to unlock AI-powered insights.</EPreview
+    >
     <EBody
       style="
         background-color: #f4f4f5;
@@ -101,11 +101,16 @@
               margin-bottom: 20px;
               letter-spacing: -0.025em;
             "
-            >You're in. Let's make your next training day smarter.</EHeading
+            >You're in. Ready to train smarter?</EHeading
           >
 
           <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 14px"
             >Hi {{ name || 'Athlete' }},</EText
+          >
+
+          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 16px"
+            >Welcome to Coach Watts. Your account is ready, and we're excited to help you optimize
+            your training with AI-driven insights tailored specifically for you.</EText
           >
 
           <EContainer
@@ -114,7 +119,7 @@
               border: 1px solid #e4e4e7;
               border-radius: 12px;
               padding: 16px;
-              margin-bottom: 20px;
+              margin-bottom: 24px;
             "
           >
             <EText
@@ -126,25 +131,15 @@
                 letter-spacing: 0.2em;
                 text-transform: uppercase;
               "
-              >Progress</EText
+              >Next Step</EText
             >
-            <EText style="font-size: 15px; color: #52525b; margin: 0"
-              >Step 1 of 3 complete: your account is ready.</EText
+            <EText style="font-size: 15px; color: #52525b; font-weight: 600; margin: 0"
+              >Connect a training source to unlock your dashboard.</EText
             >
           </EContainer>
 
-          <!-- Top Gradient Accent -->
-          <ESection
-            style="
-              background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
-              height: 4px;
-              width: 100%;
-            "
-          ></ESection>
-
-          <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 16px"
-            >Next step: connect at least one training source so Coach Watts can start personalized
-            guidance.</EText
+          <EText style="font-size: 16px; font-weight: 600; color: #09090b; margin-bottom: 12px"
+            >Why connect your data?</EText
           >
 
           <ul
@@ -156,9 +151,22 @@
               padding-left: 20px;
             "
           >
-            <li style="margin-bottom: 8px">Import your recent workouts automatically.</li>
-            <li style="margin-bottom: 8px">Get your first AI workout analysis.</li>
-            <li>Unlock daily training recommendations based on your data.</li>
+            <li style="margin-bottom: 8px">
+              <strong style="color: #09090b">Automated Tracking:</strong> No more manual entry. Your
+              workouts sync instantly.
+            </li>
+            <li style="margin-bottom: 8px">
+              <strong style="color: #09090b">Deep AI Analysis:</strong> Get expert-level feedback on
+              every session.
+            </li>
+            <li style="margin-bottom: 8px">
+              <strong style="color: #09090b">Personalized Guidance:</strong> Recommendations that
+              adapt to your fatigue and goals.
+            </li>
+            <li>
+              <strong style="color: #09090b">Smart Predictions:</strong> See how your fitness
+              evolves over time.
+            </li>
           </ul>
 
           <div style="text-align: center; margin-bottom: 18px">
@@ -175,7 +183,7 @@
                 text-align: center;
               "
             >
-              Connect Your First Data Source
+              Connect My First Source
             </EButton>
           </div>
         </ESection>

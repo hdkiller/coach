@@ -85,20 +85,22 @@ export const GarminService = {
     const now = Math.floor(Date.now() / 1000) - 60
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60
 
-    // Request backfill for all major types
-    const results = await Promise.allSettled([
-      requestGarminBackfill(integration, 'activities', thirtyDaysAgo, now),
-      requestGarminBackfill(integration, 'dailies', thirtyDaysAgo, now),
-      requestGarminBackfill(integration, 'sleeps', thirtyDaysAgo, now),
-      requestGarminBackfill(integration, 'hrv', thirtyDaysAgo, now)
-    ])
+    // Request backfill for all major types sequentially to respect rate limits
+    const types: Array<'activities' | 'dailies' | 'sleeps' | 'hrv'> = [
+      'activities',
+      'dailies',
+      'sleeps',
+      'hrv'
+    ]
 
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        const types = ['activities', 'dailies', 'sleeps', 'hrv']
-        console.error(`[GarminService] Backfill failed for ${types[index]}:`, result.reason)
+    for (const type of types) {
+      try {
+        await requestGarminBackfill(integration, type, thirtyDaysAgo, now)
+        console.log(`[GarminService] Backfill requested for ${type}`)
+      } catch (error) {
+        console.error(`[GarminService] Backfill failed for ${type}:`, error)
       }
-    })
+    }
   },
 
   /**

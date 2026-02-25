@@ -280,7 +280,7 @@
           </div>
         </div>
         <div v-else class="text-xs text-gray-500 italic text-center py-1">
-          Connect Intervals.icu for training load data
+          No training load data yet. Upload workouts with TSS to see CTL/ATL/TSB.
         </div>
       </button>
 
@@ -523,8 +523,8 @@
                   <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'skinTemp'">
-                  <template v-if="userStore.profile.recentSkinTemp">
-                    {{ userStore.profile.recentSkinTemp }}
+                  <template v-if="userStore.profile.recentSkinTemp != null">
+                    {{ userStore.profile.recentSkinTemp.toFixed(2) }}
                     <span class="text-[9px] opacity-70">°C</span>
                   </template>
                   <template v-else>N/A</template>
@@ -569,36 +569,42 @@
             <UTooltip
               v-if="userStore.profile.recentSleepDeep"
               :text="`Deep: ${formatSleepTime(userStore.profile.recentSleepDeep)}`"
-              class="h-full bg-indigo-600"
+              class="h-full shrink-0"
               :style="{
                 width:
                   (userStore.profile.recentSleepDeep / (userStore.profile.recentSleep * 3600)) *
                     100 +
                   '%'
               }"
-            />
+            >
+              <div class="h-full w-full bg-indigo-600" />
+            </UTooltip>
             <UTooltip
               v-if="userStore.profile.recentSleepRem"
               :text="`REM: ${formatSleepTime(userStore.profile.recentSleepRem)}`"
-              class="h-full bg-purple-500"
+              class="h-full shrink-0"
               :style="{
                 width:
                   (userStore.profile.recentSleepRem / (userStore.profile.recentSleep * 3600)) *
                     100 +
                   '%'
               }"
-            />
+            >
+              <div class="h-full w-full bg-purple-500" />
+            </UTooltip>
             <UTooltip
               v-if="userStore.profile.recentSleepLight"
               :text="`Light: ${formatSleepTime(userStore.profile.recentSleepLight)}`"
-              class="h-full bg-blue-400"
+              class="h-full shrink-0"
               :style="{
                 width:
                   (userStore.profile.recentSleepLight / (userStore.profile.recentSleep * 3600)) *
                     100 +
                   '%'
               }"
-            />
+            >
+              <div class="h-full w-full bg-blue-400" />
+            </UTooltip>
             <!-- Awake time is usually the remainder -->
           </div>
           <div class="flex items-center gap-4 mt-2">
@@ -971,9 +977,7 @@
       const endDate = today.toISOString().split('T')[0]
 
       const [pmc, ftp, wellness, weight, events] = await Promise.all([
-        integrationStore.intervalsConnected
-          ? $fetch('/api/performance/pmc', { query: { days: 7 } })
-          : Promise.resolve(null),
+        $fetch('/api/performance/pmc', { query: { days: 7 } }).catch(() => null),
         integrationStore.intervalsConnected
           ? $fetch('/api/performance/ftp-evolution')
           : Promise.resolve([]),

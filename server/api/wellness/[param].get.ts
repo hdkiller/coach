@@ -45,6 +45,10 @@ export default defineEventHandler(async (event) => {
 
   const userId = (session.user as any).id
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param)
+  const toSleepHours = (
+    sleepHours: number | null | undefined,
+    sleepSecs: number | null | undefined
+  ) => sleepHours ?? (sleepSecs != null ? Math.round((sleepSecs / 3600) * 10) / 10 : null)
 
   let wellnessData: any = null
   let targetDate: Date
@@ -116,6 +120,9 @@ export default defineEventHandler(async (event) => {
     return null
   }
 
+  // Some providers send sleepSecs only. Normalize for UI consumers expecting sleepHours.
+  wellnessData.sleepHours = toSleepHours(wellnessData.sleepHours, wellnessData.sleepSecs)
+
   // --- Trend Calculation Logic ---
   const endDate = targetDate
   const startDate = new Date(targetDate)
@@ -130,6 +137,7 @@ export default defineEventHandler(async (event) => {
         hrv: true,
         restingHr: true,
         sleepHours: true,
+        sleepSecs: true,
         sleepScore: true,
         recoveryScore: true,
         readiness: true
@@ -178,7 +186,7 @@ export default defineEventHandler(async (event) => {
       ...existing,
       hrv: w.hrv ?? existing.hrv,
       restingHr: w.restingHr ?? existing.restingHr,
-      sleepHours: w.sleepHours ?? existing.sleepHours,
+      sleepHours: toSleepHours(w.sleepHours, w.sleepSecs) ?? existing.sleepHours,
       sleepScore: w.sleepScore ?? existing.sleepScore,
       recoveryScore: w.recoveryScore ?? existing.recoveryScore,
       readiness: w.readiness ?? existing.readiness

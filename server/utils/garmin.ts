@@ -69,6 +69,44 @@ async function ensureValidToken(integration: Integration): Promise<Integration> 
 }
 
 /**
+ * Generic fetch with retry logic
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 3,
+  backoff = 2000
+): Promise<Response> {
+  try {
+    const response = await fetch(url, options)
+
+    // Handle rate limiting (429)
+    if (response.status === 429 && retries > 0) {
+      const retryAfter = response.headers.get('Retry-After')
+      const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : backoff
+
+      console.warn(
+        `[Garmin API] 429 Too Many Requests. Retrying in ${waitTime}ms... (${retries} retries left)`
+      )
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
+
+      return fetchWithRetry(url, options, retries - 1, backoff * 2)
+    }
+
+    return response
+  } catch (error) {
+    if (retries > 0) {
+      console.warn(
+        `[Garmin API] Network error: ${error}. Retrying in ${backoff}ms... (${retries} retries left)`
+      )
+      await new Promise((resolve) => setTimeout(resolve, backoff))
+      return fetchWithRetry(url, options, retries - 1, backoff * 2)
+    }
+    throw error
+  }
+}
+
+/**
  * Generic fetch for Garmin API
  */
 export async function fetchGarminData(
@@ -82,7 +120,7 @@ export async function fetchGarminData(
   Object.entries(params).forEach(([key, value]) => targetUrl.searchParams.append(key, value))
 
   try {
-    const response = await fetch(targetUrl.toString(), {
+    const response = await fetchWithRetry(targetUrl.toString(), {
       headers: {
         Authorization: `Bearer ${validIntegration.accessToken}`
       }
@@ -204,7 +242,7 @@ export async function fetchGarminActivityFile(
   // The documentation says: GET https://apis.garmin.com/wellness-api/rest/activityFile?id=XXX
   const url = `https://apis.garmin.com/wellness-api/rest/activityFile?id=${fileId}`
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     headers: {
       Authorization: `Bearer ${validIntegration.accessToken}`
     }
@@ -236,7 +274,7 @@ export async function requestGarminBackfill(
   targetUrl.searchParams.append('summaryStartTimeInSeconds', startTimestamp.toString())
   targetUrl.searchParams.append('summaryEndTimeInSeconds', endTimestamp.toString())
 
-  const response = await fetch(targetUrl.toString(), {
+  const response = await fetchWithRetry(targetUrl.toString(), {
     headers: {
       Authorization: `Bearer ${validIntegration.accessToken}`
     }
