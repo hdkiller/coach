@@ -36,10 +36,11 @@
   const helpLinks = [
     {
       title: 'Documentation',
-      description: 'Coming soon.',
+      description:
+        'Learn how to use Coach Watts, setup integrations, and understand your training data.',
       icon: 'i-heroicons-book-open',
-      to: '#',
-      disabled: true
+      to: '/documentation',
+      disabled: false
     },
     {
       title: 'Community Discord',
@@ -239,9 +240,8 @@
             <template v-for="link in helpLinks" :key="link.title">
               <UCard
                 v-if="!link.disabled"
-                :to="link.to"
-                :target="link.external ? '_blank' : undefined"
                 class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
+                @click="navigateTo(link.to, { external: link.external })"
               >
                 <div class="space-y-2">
                   <UIcon :name="link.icon" class="size-5 text-primary-500" />
