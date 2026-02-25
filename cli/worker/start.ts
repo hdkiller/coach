@@ -64,11 +64,6 @@ export const startCommand = new Command('start')
           const { payload, headers } = job.data
           const events = payload.events || []
 
-          console.log(
-            chalk.cyan(`[BulkJob ${job.id}]`) +
-              ` Processing bulk webhook payload with ${chalk.yellow(events.length)} events`
-          )
-
           // Log raw request receipt in worker instead of API
           const log = await logWebhookRequest({
             provider: 'intervals',
@@ -456,7 +451,6 @@ export const startCommand = new Command('start')
         try {
           if (provider === 'intervals') {
             const result = await IntervalsService.processWebhookEvent(userId, type, event)
-            console.log(chalk.green(`[WebhookJob ${job.id}] Completed: ${result.message}`))
 
             if (logId) {
               await updateWebhookStatus(logId, 'PROCESSED')
