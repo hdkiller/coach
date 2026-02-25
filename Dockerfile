@@ -47,9 +47,5 @@ RUN chmod +x ./start.sh
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Container health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "const http=require('http');const req=http.get('http://localhost:3000/',res=>{process.exit(res.statusCode>=500?1:0)});req.on('error',()=>process.exit(1));req.setTimeout(5000,()=>{req.destroy();process.exit(1)});"
-
 # Default command
 CMD ["./start.sh"]
