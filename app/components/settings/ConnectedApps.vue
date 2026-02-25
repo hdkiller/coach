@@ -359,14 +359,9 @@
           class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
         >
           <img
-            src="/images/logos/Garmin-Tag-black-high-res.png"
+            src="/images/logos/Garmin_Connect_app_1024x1024.png"
             alt="Garmin Logo"
-            class="w-8 h-8 object-contain dark:hidden"
-          />
-          <img
-            src="/images/logos/Garmin-Tag-white-high-res.png"
-            alt="Garmin Logo"
-            class="w-8 h-8 object-contain hidden dark:block"
+            class="w-8 h-8 object-contain"
           />
         </div>
         <div>
