@@ -366,7 +366,7 @@
               style="
                 background-color: #f8fafc;
                 border-radius: 12px;
-                padding: 24px;
+                padding: 24px 24px 32px;
                 margin-top: 32px;
                 text-align: center;
                 border: 1px dashed #cbd5e1;
@@ -399,6 +399,7 @@
                   display: inline-block;
                   border: 1px solid #cbd5e1;
                   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                  margin-bottom: 8px;
                 "
               >
                 Share This Workout
