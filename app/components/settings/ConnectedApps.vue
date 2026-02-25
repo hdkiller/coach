@@ -361,7 +361,7 @@
           <img
             src="/images/logos/Garmin_Connect_app_1024x1024.png"
             alt="Garmin Logo"
-            class="w-8 h-8 object-contain"
+            class="w-full h-full object-cover"
           />
         </div>
         <div>
