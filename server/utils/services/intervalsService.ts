@@ -20,7 +20,7 @@ import { sportSettingsRepository } from '../repositories/sportSettingsRepository
 import { athleteMetricsService } from '../athleteMetricsService'
 import { normalizeTSS } from '../normalize-tss'
 import { calculateWorkoutStress } from '../calculate-workout-stress'
-import { getUserTimezone, getEndOfDayUTC, getStartOfDayUTC } from '../date'
+import { getUserTimezone, getEndOfDayUTC } from '../date'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from '../../../trigger/queues'
 import {
@@ -934,35 +934,21 @@ export const IntervalsService = {
    * Process a single webhook event.
    */
   async processWebhookEvent(userId: string, type: string, intervalEvent: any) {
-    // Determine sync range
-    let startDate: Date
-    let endDate: Date = new Date()
-    // Cap endDate at end of today (service will handle historical cap logic too)
-    endDate.setHours(23, 59, 59, 999)
-
     switch (type) {
       case 'ACTIVITY_UPLOADED':
       case 'ACTIVITY_ANALYZED':
-        // Sync last 2 days
-        startDate = new Date()
-        startDate.setDate(startDate.getDate() - 2)
-        await IntervalsService.syncActivities(userId, startDate, endDate)
-        // Trigger deduplication and analysis
-        await deduplicateWorkoutsTask.trigger(
-          { userId, dryRun: false },
-          {
-            concurrencyKey: userId,
-            tags: [`user:${userId}`],
-            idempotencyKey: `deduplicate-workouts:auto:${userId}`,
-            idempotencyKeyTTL: '2m'
-          }
-        )
-        break
-
       case 'ACTIVITY_UPDATED': {
         const activity = intervalEvent.activity
         const activityId = activity?.id ? String(activity.id) : null
         const activityDate = parseIntervalsActivityDate(activity)
+
+        if (!activity || !activityId) {
+          // Delta-only worker mode: do not run range pulls on webhook events.
+          console.warn(
+            `[IntervalsService] ${type} payload missing activity details; skipping without full sync`
+          )
+          break
+        }
 
         // Fast path: payload contains enough data to upsert the workout directly.
         if (activityId && activity && hasDateForActivityUpsert(activity)) {
@@ -1118,34 +1104,36 @@ export const IntervalsService = {
               await workoutRepository.update(existing.id, deltaData)
             }
           } else {
-            // No local record and no complete payload => fallback to range sync.
+            // Delta-only worker mode: create a minimal local record when date exists.
             if (activityDate) {
-              const timezone = await getUserTimezone(userId)
-              const localActDate = getStartOfDayUTC(timezone, activityDate)
-              startDate = new Date(localActDate)
-              startDate.setDate(startDate.getDate() - 1)
-              endDate = new Date(localActDate)
-              endDate.setDate(endDate.getDate() + 1)
+              const normalized = normalizeIntervalsWorkout(
+                {
+                  ...activity,
+                  id: activityId,
+                  start_date: activity.start_date || activity.start_date_local,
+                  start_date_local: activity.start_date_local || activity.start_date,
+                  name: activity.name || 'Unnamed Activity',
+                  type: activity.type || 'Other',
+                  moving_time: Number(activity.moving_time || activity.elapsed_time || activity.duration || 0),
+                  elapsed_time: Number(activity.elapsed_time || activity.moving_time || activity.duration || 0),
+                  duration: Number(activity.duration || activity.moving_time || activity.elapsed_time || 0)
+                } as any,
+                userId
+              )
+
+              await workoutRepository.upsert(
+                userId,
+                'intervals',
+                normalized.externalId,
+                normalized,
+                normalized
+              )
             } else {
-              startDate = new Date()
-              startDate.setDate(startDate.getDate() - 2)
+              console.warn(
+                `[IntervalsService] ${type} has unknown activity date for ${activityId}; skipping without full sync`
+              )
             }
-            await IntervalsService.syncActivities(userId, startDate, endDate)
           }
-        } else {
-          // Fallback path if payload has no activity object.
-          if (activityDate) {
-            const timezone = await getUserTimezone(userId)
-            const localActDate = getStartOfDayUTC(timezone, activityDate)
-            startDate = new Date(localActDate)
-            startDate.setDate(startDate.getDate() - 1)
-            endDate = new Date(localActDate)
-            endDate.setDate(endDate.getDate() + 1)
-          } else {
-            startDate = new Date()
-            startDate.setDate(startDate.getDate() - 2)
-          }
-          await IntervalsService.syncActivities(userId, startDate, endDate)
         }
 
         // Trigger deduplication and analysis
@@ -1162,25 +1150,12 @@ export const IntervalsService = {
       }
 
       case 'WELLNESS_UPDATED':
-        startDate = new Date()
-        startDate.setDate(startDate.getDate() - 2)
-        await IntervalsService.syncWellness(userId, startDate, endDate)
-        // Trigger auto-analysis/recommendation if needed
+        // Delta-only worker mode: do not run range pulls on webhook events.
         await triggerReadinessCheckIfNeeded(userId)
         break
 
       case 'FITNESS_UPDATED': {
-        const records = intervalEvent.records || []
-        if (records.length > 0) {
-          const dates = records.map((r: any) => new Date(r.id).getTime())
-          startDate = new Date(Math.min(...dates))
-          endDate = new Date(Math.max(...dates))
-        } else {
-          startDate = new Date()
-          startDate.setDate(startDate.getDate() - 2)
-        }
-        await IntervalsService.syncWellness(userId, startDate, endDate)
-        // Trigger auto-analysis/recommendation if needed
+        // Delta-only worker mode: do not run range pulls on webhook events.
         await triggerReadinessCheckIfNeeded(userId)
         break
       }
@@ -1190,10 +1165,6 @@ export const IntervalsService = {
         if (deletedActivityId) {
           await IntervalsService.deleteActivity(userId, deletedActivityId.toString())
         }
-        // Sync a brief range to ensure metrics (CTL/ATL) are updated
-        startDate = new Date()
-        startDate.setDate(startDate.getDate() - 1)
-        await IntervalsService.syncActivities(userId, startDate, endDate)
         break
       }
 
@@ -1204,12 +1175,7 @@ export const IntervalsService = {
           await IntervalsService.deletePlannedWorkouts(userId, deletedIds)
         }
 
-        // Sync wider range for calendar
-        startDate = new Date()
-        startDate.setDate(startDate.getDate() - 3)
-        endDate = new Date()
-        endDate.setDate(endDate.getDate() + 28)
-        await IntervalsService.syncPlannedWorkouts(userId, startDate, endDate)
+        // Delta-only worker mode: do not run full calendar pulls on webhook events.
         break
       }
 
