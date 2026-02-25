@@ -6,6 +6,7 @@
 import { prisma } from './db'
 import { calculateCTL, calculateATL, getStressScore } from './training-stress'
 import { userRepository } from './repositories/userRepository'
+import { normalizeTSS } from './normalize-tss'
 
 /**
  * Calculate and update CTL/ATL for a new or updated workout
@@ -75,7 +76,11 @@ export async function calculateWorkoutStress(
         include: { streams: true }
       })
 
-      if (workoutWithStreams?.streams?.watts && Array.isArray(workoutWithStreams.streams.watts)) {
+      if (
+        workoutWithStreams?.streams?.watts &&
+        Array.isArray(workoutWithStreams.streams.watts) &&
+        workoutWithStreams.streams.watts.length > 0
+      ) {
         // Simple TSS calculation: (sec * NP * IF) / (FTP * 3600) * 100
         // Need NP first. For now, let's use Average Power as a rough proxy if NP is missing
         // or re-implement simple NP calculation here
@@ -111,6 +116,24 @@ export async function calculateWorkoutStress(
       }
     } else {
       console.log(`[calculateWorkoutStress] User ${userId} has no FTP set, cannot calculate TSS`)
+    }
+
+    // If still zero, try full normalization pipeline (HR stream, TRIMP, duration estimate).
+    if (tss === 0) {
+      try {
+        const normalized = await normalizeTSS(workoutId, userId, false)
+        if (normalized.tss !== null && normalized.tss > 0) {
+          tss = normalized.tss
+          console.log(
+            `[calculateWorkoutStress] Applied normalizeTSS fallback: ${tss} (source=${normalized.source}, method=${normalized.method})`
+          )
+        }
+      } catch (error) {
+        console.error(
+          `[calculateWorkoutStress] normalizeTSS fallback failed for workout ${workoutId}:`,
+          error
+        )
+      }
     }
   }
 

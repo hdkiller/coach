@@ -142,6 +142,35 @@ function getFirstName(name?: string | null) {
   return name.trim().split(/\s+/)[0] || 'Athlete'
 }
 
+export function normalizeSubjectSpacing(subject: string) {
+  if (!subject) return subject
+
+  let normalized = ''
+  for (let i = 0; i < subject.length; i += 1) {
+    const current = subject[i]
+    const next = subject[i + 1]
+
+    normalized += current
+
+    if (!next) continue
+    if (!/[,.!?;:]/.test(current)) continue
+    if (next === ' ') continue
+
+    // Keep numeric punctuation untouched (e.g., 66.7, 1,000).
+    const beforeToken = subject.slice(0, i).match(/([A-Za-z0-9]+)$/)?.[1] || ''
+    const afterToken = subject.slice(i + 1).match(/^([A-Za-z0-9]+)/)?.[1] || ''
+    const isNumericPunctuation =
+      (current === '.' || current === ',') &&
+      /^\d+$/.test(beforeToken) &&
+      /^\d+$/.test(afterToken)
+    if (isNumericPunctuation) continue
+
+    normalized += ' '
+  }
+
+  return normalized.replace(/\s{2,}/g, ' ').trim()
+}
+
 function hashString(input: string) {
   let hash = 0
   for (let i = 0; i < input.length; i += 1) {
@@ -398,7 +427,8 @@ export function buildInterestingCopy(options: {
     'Review your charts and timeline now to lock in learnings for the next workout.'
   ])
 
-  const subject = distanceLabel
+  const subject = normalizeSubjectSpacing(
+    distanceLabel
     ? pickVariant(`${key}:subject-distance`, [
         `Great shift, ${firstName}. ${distanceLabel} in the books.`,
         `${firstName}, ${distanceLabel} logged. Your trendline just moved.`,
@@ -409,6 +439,7 @@ export function buildInterestingCopy(options: {
         `${firstName}, ${workoutTitle} is synced and ready to review.`,
         `${workoutTitle} logged, ${firstName}. Momentum stays on.`
       ])
+  )
 
   const previewLine = `${workoutTitle} is synced. Open for insights, load context, and sport-specific cues.`
 
