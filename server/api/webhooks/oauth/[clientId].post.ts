@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   const providedSecret = (headers['x-webhook-secret'] as string) || (query.secret as string)
   const secretMatched = app.webhookSecret && providedSecret === app.webhookSecret
 
-  // 3. Log the request
+  // 3. Log the request - set status to PENDING for the worker poller to pick up
   const log = await logWebhookRequest({
     provider: `oauth-generic`,
     eventType: 'RAW_PUSH',

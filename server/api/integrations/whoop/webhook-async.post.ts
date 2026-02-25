@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const headers = getRequestHeaders(event)
 
   try {
-    // Log the request to SQL with status PENDING for the worker to pick up
+    // Log the request to SQL with status PENDING for the worker poller to pick up
     await logWebhookRequest({
       provider: 'whoop',
       eventType: body?.type || 'UNKNOWN',

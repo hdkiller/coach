@@ -31,5 +31,24 @@ connection.on('error', (err) => {
   }
 })
 
-export const webhookQueue = new Queue('webhookQueue', { connection })
-export const pingQueue = new Queue('pingQueue', { connection })
+// Lazy queue initialization
+let webhookQueueInstance: Queue | null = null
+let pingQueueInstance: Queue | null = null
+
+export const webhookQueue = new Proxy({} as Queue, {
+  get(target, prop, receiver) {
+    if (!webhookQueueInstance) {
+      webhookQueueInstance = new Queue('webhookQueue', { connection })
+    }
+    return Reflect.get(webhookQueueInstance, prop, receiver)
+  }
+})
+
+export const pingQueue = new Proxy({} as Queue, {
+  get(target, prop, receiver) {
+    if (!pingQueueInstance) {
+      pingQueueInstance = new Queue('pingQueue', { connection })
+    }
+    return Reflect.get(pingQueueInstance, prop, receiver)
+  }
+})

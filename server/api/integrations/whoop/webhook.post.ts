@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
 
   const { user_id, type } = body
 
-  // 3. Log Receipt - set status to PENDING for the worker to pick up
+  // 3. Log Receipt - set status to PENDING for the worker poller to pick up
   await logWebhookRequest({
     provider: 'whoop',
     eventType: type || 'UNKNOWN',

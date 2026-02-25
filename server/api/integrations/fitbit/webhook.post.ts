@@ -97,7 +97,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid JSON' })
   }
 
-  // Log Receipt - set status to PENDING for the worker to pick up
+  // Log Receipt - set status to PENDING for the worker poller to pick up
   await logWebhookRequest({
     provider: 'fitbit',
     eventType: body[0]?.collectionType || 'UNKNOWN',

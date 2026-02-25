@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     return sendError(event, createError({ statusCode: 400, statusMessage: 'Invalid signature' }))
   }
 
-  // Log to database - set status to PENDING for the worker to pick up
+  // Log to database - set status to PENDING for the worker poller to pick up
   await logWebhookRequest({
     provider: 'resend',
     eventType: payload.type || 'UNKNOWN',

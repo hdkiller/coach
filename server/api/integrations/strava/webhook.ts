@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const headers = getRequestHeaders(event)
 
-    // Log receipt - set status to PENDING for the worker to pick up
+    // Log receipt - set status to PENDING for the worker poller to pick up
     await logWebhookRequest({
       provider: 'strava',
       eventType: body?.object_type ? `${body.object_type}:${body.aspect_type}` : 'UNKNOWN',
