@@ -265,7 +265,7 @@
           <img
             src="/images/logos/fitbit_square.png"
             alt="Fitbit Logo"
-            class="w-8 h-8 object-contain"
+            class="w-full h-full object-cover"
           />
         </div>
         <div>
@@ -466,7 +466,11 @@
         <div
           class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
         >
-          <img src="/images/logos/strava.svg" alt="Strava Logo" class="w-8 h-8 object-contain" />
+          <img
+            src="/images/logos/strava.svg"
+            alt="Strava Logo"
+            class="w-full h-full object-cover"
+          />
         </div>
         <div>
           <h3 class="font-semibold">Strava</h3>
