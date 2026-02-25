@@ -160,9 +160,7 @@ export function normalizeSubjectSpacing(subject: string) {
     const beforeToken = subject.slice(0, i).match(/([A-Za-z0-9]+)$/)?.[1] || ''
     const afterToken = subject.slice(i + 1).match(/^([A-Za-z0-9]+)/)?.[1] || ''
     const isNumericPunctuation =
-      (current === '.' || current === ',') &&
-      /^\d+$/.test(beforeToken) &&
-      /^\d+$/.test(afterToken)
+      (current === '.' || current === ',') && /^\d+$/.test(beforeToken) && /^\d+$/.test(afterToken)
     if (isNumericPunctuation) continue
 
     normalized += ' '
@@ -429,16 +427,16 @@ export function buildInterestingCopy(options: {
 
   const subject = normalizeSubjectSpacing(
     distanceLabel
-    ? pickVariant(`${key}:subject-distance`, [
-        `Great shift, ${firstName}. ${distanceLabel} in the books.`,
-        `${firstName}, ${distanceLabel} logged. Your trendline just moved.`,
-        `${distanceLabel} complete, ${firstName}. Session synced and ready.`
-      ])
-    : pickVariant(`${key}:subject-title`, [
-        `Great shift, ${firstName}. ${workoutTitle} is in the books.`,
-        `${firstName}, ${workoutTitle} is synced and ready to review.`,
-        `${workoutTitle} logged, ${firstName}. Momentum stays on.`
-      ])
+      ? pickVariant(`${key}:subject-distance`, [
+          `Great shift, ${firstName}. ${distanceLabel} in the books.`,
+          `${firstName}, ${distanceLabel} logged. Your trendline just moved.`,
+          `${distanceLabel} complete, ${firstName}. Session synced and ready.`
+        ])
+      : pickVariant(`${key}:subject-title`, [
+          `Great shift, ${firstName}. ${workoutTitle} is in the books.`,
+          `${firstName}, ${workoutTitle} is synced and ready to review.`,
+          `${workoutTitle} logged, ${firstName}. Momentum stays on.`
+        ])
   )
 
   const previewLine = `${workoutTitle} is synced. Open for insights, load context, and sport-specific cues.`
@@ -642,7 +640,8 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     nextStepMessage,
     workoutUrl: `${baseUrl}/workouts/${workout.id}`,
     unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`,
-    shareUrl: `${baseUrl}/workouts/${workout.id}?share=true`
+    shareUrl: `${baseUrl}/workouts/${workout.id}?share=true`,
+    chatUrl: `${baseUrl}/chat?workoutId=${workout.id}`
   }
 
   if (triggerType === 'on-workout-received') {

@@ -56,6 +56,7 @@
     workoutUrl?: string
     unsubscribeUrl?: string
     shareUrl?: string
+    chatUrl?: string
   }>()
 
   const logoUrl = 'https://coachwatts.com/icon.png'
@@ -403,6 +404,24 @@
                 "
               >
                 Share This Workout
+              </EButton>
+              <EButton
+                v-if="chatUrl"
+                :href="chatUrl"
+                style="
+                  background-color: #0f172a;
+                  color: #ffffff;
+                  padding: 10px 20px;
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-weight: 600;
+                  text-decoration: none;
+                  display: inline-block;
+                  margin-bottom: 8px;
+                  margin-left: 8px;
+                "
+              >
+                Chat with Coach
               </EButton>
             </EContainer>
           </template>

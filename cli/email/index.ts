@@ -284,6 +284,7 @@ emailCommand
             workoutUrl,
             unsubscribeUrl: `${options.siteUrl.replace(/\/$/, '')}/profile/settings?tab=communication`,
             shareUrl: `${options.siteUrl.replace(/\/$/, '')}/workouts/${workout.id}?share=true`,
+            chatUrl: `${options.siteUrl.replace(/\/$/, '')}/chat?workoutId=${workout.id}`,
             heroTitle,
             introLine,
             previewLine
