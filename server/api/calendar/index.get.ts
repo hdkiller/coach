@@ -263,10 +263,9 @@ export default defineEventHandler(async (event) => {
       fuelState3Max: nutritionSettings.fuelState3Max,
       bmr: nutritionSettings.bmr ?? 1600,
       activityLevel: nutritionSettings.activityLevel || 'ACTIVE',
-      baseCaloriesMode:
-        nutritionSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
-          ? 'MANUAL_NON_EXERCISE'
-          : 'AUTO',
+      baseCaloriesMode: (nutritionSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
+        ? 'MANUAL_NON_EXERCISE'
+        : 'AUTO') as 'AUTO' | 'MANUAL_NON_EXERCISE',
       nonExerciseBaseCalories: nutritionSettings.nonExerciseBaseCalories ?? undefined,
       targetAdjustmentPercent: nutritionSettings.targetAdjustmentPercent ?? 0,
       baseProteinPerKg: nutritionSettings.baseProteinPerKg,

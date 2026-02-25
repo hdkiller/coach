@@ -1052,8 +1052,9 @@ export const metabolicService = {
       fuelState3Max: settings.fuelState3Max,
       bmr: settings.bmr ?? 1600,
       activityLevel: settings.activityLevel || 'ACTIVE',
-      baseCaloriesMode:
-        settings.baseCaloriesMode === 'MANUAL_NON_EXERCISE' ? 'MANUAL_NON_EXERCISE' : 'AUTO',
+      baseCaloriesMode: (settings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
+        ? 'MANUAL_NON_EXERCISE'
+        : 'AUTO') as 'AUTO' | 'MANUAL_NON_EXERCISE',
       nonExerciseBaseCalories: settings.nonExerciseBaseCalories ?? undefined,
       targetAdjustmentPercent: settings.targetAdjustmentPercent ?? 0,
       baseProteinPerKg: settings.baseProteinPerKg,
@@ -1385,7 +1386,7 @@ export const metabolicService = {
         .reduce((sum: number, w: any) => sum + (w.targetFat || 0), 0)
 
       const baseWindows = day.windows.filter(
-        (w) => w.type === 'DAILY_BASE' || w.type === 'TRANSITION'
+        (w: any) => w.type === 'DAILY_BASE' || w.type === 'TRANSITION'
       )
 
       // Calculate remaining to be distributed across non-workout meals

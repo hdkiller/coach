@@ -245,7 +245,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           carbs: Math.round(updatedNutrition.carbs || 0),
           fat: Math.round(updatedNutrition.fat || 0)
         },
-        current_meal_items: updatedNutrition[meal_type]
+        current_meal_items: (updatedNutrition as any)[meal_type]
       }
     }
   }),
