@@ -11,22 +11,34 @@ export const GarminService = {
    * Process a single webhook payload (Push API).
    */
   async processWebhookEvent(payload: any) {
-    // Garmin Push API sends lists of records (activities, sleeps, etc.)
-    // Each record contains a 'userId' (which is our externalUserId)
+    console.log('[GarminService] Processing webhook payload:', Object.keys(payload))
+
+    // Garmin Push API sends lists of records. Identify what we received.
+    const dailies = payload.dailies || []
+    const sleeps = payload.sleeps || []
+    const hrv = payload.hrv || []
+    const activities = payload.activities || payload.manuallyUpdatedActivities || []
+    const bodyComps = payload.bodyComposition || []
+    const pulseOx = payload.pulseOx || []
+    const respiration = payload.respiration || []
+    const stress = payload.stress || []
+    const userMetrics = payload.userMetrics || []
+    const moveIQ = payload.moveIQActivities || []
+
+    // Resolve User ID from the first record that has one
     const externalUserId =
-      payload.dailies?.[0]?.userId ||
-      payload.sleeps?.[0]?.userId ||
-      payload.hrv?.[0]?.userId ||
-      payload.activities?.[0]?.userId ||
-      payload.manuallyUpdatedActivities?.[0]?.userId ||
-      payload.stress?.[0]?.userId ||
-      payload.userMetrics?.[0]?.userId ||
-      payload.pulseOx?.[0]?.userId ||
-      payload.respiration?.[0]?.userId ||
-      payload.bodyComposition?.[0]?.userId
+      dailies[0]?.userId ||
+      sleeps[0]?.userId ||
+      hrv[0]?.userId ||
+      activities[0]?.userId ||
+      bodyComps[0]?.userId ||
+      pulseOx[0]?.userId ||
+      respiration[0]?.userId ||
+      stress[0]?.userId ||
+      userMetrics[0]?.userId
 
     if (!externalUserId) {
-      return { handled: false, message: 'Missing externalUserId in payload' }
+      return { handled: false, message: 'No userId found in payload' }
     }
 
     const integration = await prisma.integration.findFirst({
@@ -37,25 +49,27 @@ export const GarminService = {
       return { handled: false, message: `No integration found for Garmin ID: ${externalUserId}` }
     }
 
-    // Trigger the background ingestion task for the last 24 hours to ensure consistency
-    const now = Math.floor(Date.now() / 1000)
-    const yesterday = now - 86400
+    const userId = integration.userId
 
-    await tasks.trigger(
-      'ingest-garmin',
-      {
-        userId: integration.userId,
-        startTimestamp: yesterday,
-        endTimestamp: now
-      },
-      {
-        concurrencyKey: integration.userId,
-        tags: [`user:${integration.userId}`, 'source:garmin'],
-        idempotencyKey: `garmin-webhook:${externalUserId}:${now - (now % 60)}` // Once per minute max per user
+    // Process all metrics immediately in the worker
+    try {
+      if (dailies.length > 0) await this.processWellness(userId, dailies)
+      if (sleeps.length > 0) await this.processSleep(userId, sleeps)
+      if (hrv.length > 0) await this.processHRV(userId, hrv)
+      if (activities.length > 0) await this.processActivities(userId, activities, integration)
+
+      // Handle additional health types
+      if (bodyComps.length > 0) await this.processBodyComp(userId, bodyComps)
+      if (userMetrics.length > 0) await this.processUserMetrics(userId, userMetrics)
+
+      return {
+        handled: true,
+        message: `Processed: ${activities.length} activities, ${dailies.length} dailies, ${sleeps.length} sleeps, ${hrv.length} hrv`
       }
-    )
-
-    return { handled: true, message: `Triggered ingestion for user ${integration.userId}` }
+    } catch (error: any) {
+      console.error('[GarminService] Error processing webhook:', error)
+      throw error
+    }
   },
 
   /**
@@ -148,6 +162,45 @@ export const GarminService = {
       }
 
       await wellnessRepository.upsert(userId, utcDate, hrvData, hrvData, 'garmin')
+    }
+  },
+
+  /**
+   * Process Garmin Body Composition (Weight)
+   */
+  async processBodyComp(userId: string, data: any[]) {
+    for (const record of data) {
+      const date = new Date(record.measurementTimeInSeconds * 1000)
+      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+
+      const weightData: any = {
+        userId,
+        date: utcDate,
+        weight: record.weightInGrams ? record.weightInGrams / 1000 : null,
+        bodyFat: record.bodyFatInPercent || null,
+        rawJson: record
+      }
+
+      await wellnessRepository.upsert(userId, utcDate, weightData, weightData, 'garmin')
+    }
+  },
+
+  /**
+   * Process Garmin User Metrics (VO2 Max, etc.)
+   */
+  async processUserMetrics(userId: string, data: any[]) {
+    for (const record of data) {
+      const date = new Date(record.calendarDate)
+      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+
+      const metricsData: any = {
+        userId,
+        date: utcDate,
+        vo2Max: record.vo2Max || record.vo2MaxCycling || null,
+        rawJson: record
+      }
+
+      await wellnessRepository.upsert(userId, utcDate, metricsData, metricsData, 'garmin')
     }
   },
 
