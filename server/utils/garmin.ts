@@ -56,10 +56,16 @@ export async function refreshGarminToken(integration: Integration): Promise<Inte
  * Ensures a valid token, refreshing if necessary
  */
 async function ensureValidToken(integration: Integration): Promise<Integration> {
-  if (!integration.expiresAt || new Date() >= new Date(integration.expiresAt.getTime() - 300000)) {
-    return await refreshGarminToken(integration)
+  // Re-fetch to get the latest token from DB in case another parallel request refreshed it
+  const latest = await prisma.integration.findUnique({
+    where: { id: integration.id }
+  })
+  if (!latest) return integration
+
+  if (!latest.expiresAt || new Date() >= new Date(latest.expiresAt.getTime() - 300000)) {
+    return await refreshGarminToken(latest)
   }
-  return integration
+  return latest
 }
 
 /**
@@ -75,27 +81,38 @@ export async function fetchGarminData(
   const targetUrl = new URL(url)
   Object.entries(params).forEach(([key, value]) => targetUrl.searchParams.append(key, value))
 
-  const response = await fetch(targetUrl.toString(), {
-    headers: {
-      Authorization: `Bearer ${validIntegration.accessToken}`
-    }
-  })
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}))
-    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
-
-    console.error(`[DEBUG] Garmin API Request Failed:`, {
-      url: targetUrl.toString(),
-      status: response.status,
-      statusText: response.statusText,
-      errorBody
+  try {
+    const response = await fetch(targetUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${validIntegration.accessToken}`
+      }
     })
 
-    throw new Error(`Garmin API error (${response.status}): ${errorMessage}`)
-  }
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}))
+      const errorMessage =
+        errorBody.errorMessage || errorBody.error?.message || response.statusText || 'Unknown error'
 
-  return await response.json()
+      console.error(`[DEBUG] Garmin API Request Failed:`, {
+        url: targetUrl.toString(),
+        status: response.status,
+        statusText: response.statusText,
+        errorBody,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+
+      throw new Error(`Garmin API error (${response.status}): ${errorMessage}`)
+    }
+
+    return await response.json()
+  } catch (error: any) {
+    console.error(`[DEBUG] Garmin fetch exception:`, {
+      url: targetUrl.toString(),
+      message: error.message,
+      stack: error.stack
+    })
+    throw error
+  }
 }
 
 /**

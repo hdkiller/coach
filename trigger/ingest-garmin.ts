@@ -33,6 +33,7 @@ export const ingestGarminTask = task({
     }
 
     // Determine time range. Prefer timestamps, fall back to ISO strings, then to last 24h
+    const now = Math.floor(Date.now() / 1000)
     let startTimestamp = payload.startTimestamp
     let endTimestamp = payload.endTimestamp
 
@@ -45,12 +46,25 @@ export const ingestGarminTask = task({
 
     // Default to last 24 hours if nothing provided
     if (!startTimestamp) {
-      endTimestamp = Math.floor(Date.now() / 1000)
+      endTimestamp = endTimestamp || now - 60
       startTimestamp = endTimestamp - 86400
     }
     if (!endTimestamp) {
-      endTimestamp = Math.floor(Date.now() / 1000)
+      endTimestamp = now - 60
     }
+
+    // Ensure endTimestamp is not in the future (with a small buffer)
+    if (endTimestamp > now - 60) {
+      endTimestamp = now - 60
+    }
+
+    console.log(`[DEBUG] Garmin ingestion timestamps:`, {
+      startTimestamp,
+      endTimestamp,
+      diff: endTimestamp - startTimestamp,
+      isStartNan: isNaN(startTimestamp!),
+      isEndNan: isNaN(endTimestamp!)
+    })
 
     // Garmin Pull API enforces a strict 24-hour (86400s) maximum range.
     // If the requested range is larger, we clamp it to the last 24 hours of the range.
