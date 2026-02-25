@@ -459,3 +459,85 @@ export async function fetchStravaActivityStreams(
 
   return await response.json()
 }
+
+/**
+ * Create a Strava push subscription
+ */
+export async function createStravaSubscription(callbackUrl: string, verifyToken: string) {
+  const clientId = process.env.STRAVA_CLIENT_ID
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Strava credentials not configured')
+  }
+
+  const formData = new URLSearchParams()
+  formData.append('client_id', clientId)
+  formData.append('client_secret', clientSecret)
+  formData.append('callback_url', callbackUrl)
+  formData.append('verify_token', verifyToken)
+
+  const response = await fetch('https://www.strava.com/api/v3/push_subscriptions', {
+    method: 'POST',
+    body: formData
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to create Strava subscription: ${response.status} ${errorText}`)
+  }
+
+  return await response.json()
+}
+
+/**
+ * View current Strava push subscriptions
+ */
+export async function listStravaSubscriptions() {
+  const clientId = process.env.STRAVA_CLIENT_ID
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Strava credentials not configured')
+  }
+
+  const url = new URL('https://www.strava.com/api/v3/push_subscriptions')
+  url.searchParams.set('client_id', clientId)
+  url.searchParams.set('client_secret', clientSecret)
+
+  const response = await fetch(url.toString())
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to list Strava subscriptions: ${response.status} ${errorText}`)
+  }
+
+  return await response.json()
+}
+
+/**
+ * Delete a Strava push subscription
+ */
+export async function deleteStravaSubscription(id: number) {
+  const clientId = process.env.STRAVA_CLIENT_ID
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Strava credentials not configured')
+  }
+
+  const url = new URL(`https://www.strava.com/api/v3/push_subscriptions/${id}`)
+  url.searchParams.set('client_id', clientId)
+  url.searchParams.set('client_secret', clientSecret)
+
+  const response = await fetch(url.toString(), {
+    method: 'DELETE'
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to delete Strava subscription: ${response.status} ${errorText}`)
+  }
+
+  return true
+}

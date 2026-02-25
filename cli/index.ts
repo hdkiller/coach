@@ -20,6 +20,7 @@ import monitorCommand from './monitor'
 import telegramCommand from './telegram'
 import { ouraCommand } from './integrations/oura'
 import { polarCommand } from './integrations/polar'
+import { stravaCommand } from './integrations/strava'
 import emailCommand from './email'
 import bugsCommand from './bugs'
 import supportCommand from './support'
@@ -46,6 +47,7 @@ program.addCommand(monitorCommand)
 program.addCommand(telegramCommand)
 program.addCommand(ouraCommand)
 program.addCommand(polarCommand)
+program.addCommand(stravaCommand)
 program.addCommand(emailCommand)
 program.addCommand(bugsCommand)
 program.addCommand(supportCommand)

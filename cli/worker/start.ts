@@ -5,6 +5,7 @@ import chalk from 'chalk'
 import { IntervalsService } from '../../server/utils/services/intervalsService'
 import { WhoopService } from '../../server/utils/services/whoopService'
 import { OuraService } from '../../server/utils/services/ouraService'
+import { processStravaWebhookEvent } from '../../server/utils/services/stravaService'
 import { ResendService } from '../../server/utils/services/resendService'
 import { logWebhookRequest, updateWebhookStatus } from '../../server/utils/webhook-logger'
 import { prisma } from '../../server/utils/db'
@@ -337,6 +338,61 @@ export const startCommand = new Command('start')
             return { handled: true }
           } catch (error: any) {
             console.error(chalk.red(`[PolarJob ${job.id}] Failed:`), error)
+            if (logId) await updateWebhookStatus(logId, 'FAILED', error.message || 'Unknown error')
+            throw error
+          }
+        }
+
+        if (provider === 'strava') {
+          const { type, payload, headers } = job.data
+          let { userId, logId } = job.data
+
+          if (!logId) {
+            const log = await logWebhookRequest({
+              provider: 'strava',
+              eventType: payload?.object_type
+                ? `${payload.object_type}:${payload.aspect_type}`
+                : type || 'UNKNOWN',
+              payload,
+              headers,
+              status: 'PENDING'
+            })
+            logId = log?.id
+          }
+
+          console.log(
+            chalk.cyan(`[StravaJob ${job.id}]`) +
+              ` Processing Strava event ${type || payload?.object_type + ':' + payload?.aspect_type} (LogID: ${logId})`
+          )
+
+          if (!userId) {
+            const externalUserId = payload?.owner_id
+            if (externalUserId) {
+              const integration = await prisma.integration.findFirst({
+                where: {
+                  provider: 'strava',
+                  externalUserId: externalUserId.toString()
+                }
+              })
+              userId = integration?.userId
+            }
+          }
+
+          if (!userId) {
+            console.warn(`[StravaJob ${job.id}] No user found for strava payload`)
+            if (logId) await updateWebhookStatus(logId, 'IGNORED', 'User not found')
+            return { handled: false, message: 'User not found' }
+          }
+
+          try {
+            const eventType = type || `${payload.object_type}:${payload.aspect_type}`
+            const result = await processStravaWebhookEvent(userId, eventType, payload)
+
+            console.log(chalk.green(`[StravaJob ${job.id}] Completed: ${result.message}`))
+            if (logId) await updateWebhookStatus(logId, 'PROCESSED', result.message)
+            return result
+          } catch (error: any) {
+            console.error(chalk.red(`[StravaJob ${job.id}] Failed:`), error)
             if (logId) await updateWebhookStatus(logId, 'FAILED', error.message || 'Unknown error')
             throw error
           }
