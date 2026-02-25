@@ -16,6 +16,7 @@ interface User {
   pendingSubscriptionPeriodEnd: Date | null
   trialEndsAt: Date | null
   dashboardSettings?: any
+  isAdmin?: boolean
 }
 
 interface UserEntitlements {

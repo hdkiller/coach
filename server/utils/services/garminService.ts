@@ -68,16 +68,23 @@ export const GarminService = {
 
     if (!integration) return
 
-    const now = Math.floor(Date.now() / 1000)
+    const now = Math.floor(Date.now() / 1000) - 60
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60
 
     // Request backfill for all major types
-    await Promise.all([
+    const results = await Promise.allSettled([
       requestGarminBackfill(integration, 'activities', thirtyDaysAgo, now),
       requestGarminBackfill(integration, 'dailies', thirtyDaysAgo, now),
       requestGarminBackfill(integration, 'sleeps', thirtyDaysAgo, now),
       requestGarminBackfill(integration, 'hrv', thirtyDaysAgo, now)
     ])
+
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const types = ['activities', 'dailies', 'sleeps', 'hrv']
+        console.error(`[GarminService] Backfill failed for ${types[index]}:`, result.reason)
+      }
+    })
   },
 
   /**

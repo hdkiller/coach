@@ -24,7 +24,8 @@ export default defineEventHandler(async (event) => {
       subscriptionStatus: true,
       subscriptionPeriodEnd: true,
       nutritionTrackingEnabled: true,
-      dashboardSettings: true
+      dashboardSettings: true,
+      isAdmin: true
     }
   })
 

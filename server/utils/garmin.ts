@@ -195,7 +195,11 @@ export async function requestGarminBackfill(
 
   if (!response.ok) {
     if (response.status === 409) return { success: true, message: 'Already requested' }
-    throw new Error(`Garmin Backfill API error: ${response.statusText}`)
+
+    const errorBody = await response.json().catch(() => ({}))
+    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+
+    throw new Error(`Garmin Backfill API error (${response.status}): ${errorMessage}`)
   }
 
   return { success: true }

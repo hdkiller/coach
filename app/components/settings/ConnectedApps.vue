@@ -357,7 +357,7 @@
     </UCard>
 
     <!-- Garmin -->
-    <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
+    <UCard v-if="isAdmin" :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
         <div
           class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
@@ -758,6 +758,7 @@
     garminConnected: boolean
     garminIngestWorkouts: boolean
     telegramConnected: boolean
+    isAdmin: boolean
     syncingProviders: Set<string>
     intervalsSettings: any
   }>()

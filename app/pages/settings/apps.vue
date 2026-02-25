@@ -45,6 +45,7 @@
       :telegram-connected="telegramConnected"
       :syncing-providers="syncingProviders"
       :intervals-settings="intervalsSettings"
+      :is-admin="userStore.user?.isAdmin ?? false"
       @disconnect="disconnectIntegration"
       @sync="syncIntegration"
       @sync-profile="syncProfile"
@@ -165,6 +166,7 @@
   const toast = useToast()
   const router = useRouter()
   const route = useRoute()
+  const userStore = useUserStore()
 
   const intervalsStravaWarningDismissed = useCookie<boolean>('intervals-strava-warning-dismissed', {
     maxAge: 60 * 60 * 24 * 365
