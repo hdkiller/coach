@@ -57,6 +57,13 @@ export const metricDefinitions: Record<string, MetricDefinition> = {
     coachingTip:
       'This is your "Gross Efficiency". While it varies by intensity, tracking it over time at a specific heart rate (like Zone 2) is a pure measure of aerobic engine growth.'
   },
+  'Polarization Index': {
+    label: 'Polarization Index',
+    description:
+      'A score describing how your effort is distributed across intensity bands, with higher values indicating a more polarized profile (more easy and hard work, less in-between).',
+    coachingTip:
+      'Use this in context with the session goal. Endurance days should trend lower intensity concentration, while race-specific blocks may intentionally increase polarization.'
+  },
   'Norm Power': {
     label: 'Normalized Power (NP)',
     description:

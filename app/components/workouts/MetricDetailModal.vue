@@ -1,12 +1,12 @@
 <template>
   <UModal
     v-model:open="isOpen"
-    :title="metricInfo?.label || 'Metric Detail'"
+    :title="metricInfo.label"
     :ui="{ content: 'sm:max-w-2xl' }"
-    description="Dialog content and actions."
+    :description="modalDescription"
   >
     <template #body>
-      <div v-if="metricInfo" class="space-y-6">
+      <div class="space-y-6">
         <!-- Header: Value & Rating -->
         <div class="flex items-center justify-between">
           <div class="flex flex-col">
@@ -79,7 +79,7 @@
                 :data-points="streamData"
                 :labels="timeData"
                 :color="chartColor"
-                :y-axis-label="unit"
+                :y-axis-label="chartUnit"
               />
             </ClientOnly>
           </div>
@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
   import { metricDefinitions } from '~/utils/metrics'
+  import { metricTooltips } from '~/utils/tooltips'
   import BaseStreamChart from '../charts/streams/BaseStreamChart.vue'
 
   const props = defineProps<{
@@ -123,10 +124,53 @@
     set: (val) => emit('update:modelValue', val)
   })
 
-  const metricInfo = computed(() => metricDefinitions[props.metricKey])
+  const metricAliases: Record<string, string> = {
+    'Average Power': 'Avg Power',
+    'Normalized Power': 'Norm Power',
+    Decoupling: 'Aerobic Decoupling',
+    'CTL (Fitness)': 'Fitness (CTL)',
+    'ATL (Fatigue)': 'Fatigue (ATL)',
+    'TSB (Form)': 'Form (TSB)',
+    'IF (Intensity Factor)': 'Intensity Factor'
+  }
+
+  const normalizedMetricKey = computed(() => props.metricKey.trim().toLowerCase())
+
+  const isPowerHrRatioMetric = computed(
+    () =>
+      normalizedMetricKey.value === 'power/hr ratio' ||
+      normalizedMetricKey.value === 'power hr ratio'
+  )
+
+  const metricInfo = computed(() => {
+    const direct = metricDefinitions[props.metricKey]
+    if (direct) return direct
+
+    const aliasKey = metricAliases[props.metricKey]
+    if (aliasKey && metricDefinitions[aliasKey]) {
+      return {
+        ...metricDefinitions[aliasKey],
+        label: props.metricKey
+      }
+    }
+
+    const fallbackDescription =
+      metricTooltips[props.metricKey] || (aliasKey ? metricTooltips[aliasKey] : undefined)
+
+    return {
+      label: props.metricKey || 'Metric Detail',
+      description: fallbackDescription || 'Additional context for this metric is not available yet.'
+    }
+  })
+
+  const modalDescription = computed(
+    () => `${metricInfo.value.label} explanation and session chart.`
+  )
 
   const streamKey = computed(() => {
-    const key = props.metricKey.toLowerCase()
+    if (isPowerHrRatioMetric.value) return null
+
+    const key = normalizedMetricKey.value
     if (key.includes('hr')) return 'heartrate'
     if (key.includes('power') || key === 'np' || key === 'tss' || key.includes('load'))
       return 'watts'
@@ -135,19 +179,57 @@
     return null
   })
 
-  const hasStreamData = computed(() => !!streamKey.value)
+  const hasStreamData = computed(() => {
+    if (isPowerHrRatioMetric.value) {
+      const watts = props.streams?.watts
+      const heartrate = props.streams?.heartrate
+      return (
+        Array.isArray(watts) && Array.isArray(heartrate) && watts.length > 0 && heartrate.length > 0
+      )
+    }
+
+    return !!streamKey.value
+  })
 
   const streamData = computed(() => {
-    if (!streamKey.value || !props.streams) return []
+    if (!props.streams) return []
+
+    if (isPowerHrRatioMetric.value) {
+      const watts = Array.isArray(props.streams.watts) ? props.streams.watts : []
+      const heartrate = Array.isArray(props.streams.heartrate) ? props.streams.heartrate : []
+      const len = Math.min(watts.length, heartrate.length)
+      if (len === 0) return []
+
+      return Array.from({ length: len }, (_, index) => {
+        const power = Number(watts[index])
+        const hr = Number(heartrate[index])
+        if (!Number.isFinite(power) || !Number.isFinite(hr) || hr <= 0) return 0
+        return Number((power / hr).toFixed(3))
+      })
+    }
+
+    if (!streamKey.value) return []
     return props.streams[streamKey.value] || []
   })
 
   const timeData = computed(() => {
     if (!props.streams?.time) return []
+
+    if (isPowerHrRatioMetric.value) {
+      return props.streams.time.slice(0, streamData.value.length)
+    }
+
     return props.streams.time
   })
 
+  const chartUnit = computed(() => {
+    if (props.unit) return props.unit
+    if (isPowerHrRatioMetric.value) return 'W/bpm'
+    return ''
+  })
+
   const chartColor = computed(() => {
+    if (isPowerHrRatioMetric.value) return '#f97316' // orange
     if (streamKey.value === 'heartrate') return '#ef4444' // pink/red
     if (streamKey.value === 'watts') return '#8b5cf6' // purple
     if (streamKey.value === 'velocity') return '#3b82f6' // blue
