@@ -419,7 +419,15 @@
           userStore.profile.recentHRV ||
           userStore.profile.restingHr ||
           userStore.profile.recentSleep ||
-          userStore.profile.recentRecoveryScore
+          userStore.profile.recentRecoveryScore ||
+          userStore.profile.recentBodyFat != null ||
+          userStore.profile.recentReadiness != null ||
+          userStore.profile.recentSpO2 != null ||
+          userStore.profile.recentRespiration != null ||
+          userStore.profile.recentSkinTemp != null ||
+          userStore.profile.recentVo2max != null ||
+          userStore.profile.recentSystolic != null ||
+          userStore.profile.recentDiastolic != null
         "
         class="group w-full text-left p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500/50 transition-all duration-200"
         @click="$emit('open-wellness')"
@@ -465,6 +473,13 @@
                 <template v-else-if="metric.key === 'rhr'">
                   <template v-if="userStore.profile.restingHr">
                     {{ userStore.profile.restingHr }} <span class="text-[9px] opacity-70">bpm</span>
+                  </template>
+                  <template v-else>N/A</template>
+                </template>
+                <template v-else-if="metric.key === 'bodyFat'">
+                  <template v-if="userStore.profile.recentBodyFat != null">
+                    {{ userStore.profile.recentBodyFat.toFixed(1) }}
+                    <span class="text-[9px] opacity-70">%</span>
                   </template>
                   <template v-else>N/A</template>
                 </template>
@@ -731,6 +746,7 @@
         { key: 'sleep', label: 'Sleep', visible: true },
         { key: 'hrv', label: 'HRV', visible: true },
         { key: 'rhr', label: 'RHR', visible: true },
+        { key: 'bodyFat', label: 'Body Fat %', visible: false },
         { key: 'recovery', label: 'Recovery %', visible: false },
         { key: 'readiness', label: 'Readiness', visible: false },
         { key: 'fatigue', label: 'Fatigue', visible: false },
@@ -855,6 +871,11 @@
       icon: 'i-heroicons-heart',
       iconColor: 'text-indigo-500',
       label: 'RHR'
+    },
+    bodyFat: {
+      icon: 'i-heroicons-scale',
+      iconColor: 'text-indigo-500',
+      label: 'BF%'
     },
     recovery: {
       icon: 'i-heroicons-bolt',
@@ -1002,6 +1023,7 @@
     if (key === 'sleep') return userStore.profile.recentSleep
     if (key === 'hrv') return userStore.profile.recentHRV
     if (key === 'rhr') return userStore.profile.restingHr
+    if (key === 'bodyFat') return userStore.profile.recentBodyFat
     if (key === 'recovery') return userStore.profile.recentRecoveryScore
     if (key === 'readiness') return userStore.profile.recentReadiness
     if (key === 'fatigue') return userStore.profile.recentFatigue
@@ -1023,6 +1045,8 @@
       return wellnessHistory.value.map((d: any) => d.hrv).filter((v: any) => v != null)
     if (key === 'rhr')
       return wellnessHistory.value.map((d: any) => d.restingHr).filter((v: any) => v != null)
+    if (key === 'bodyFat')
+      return wellnessHistory.value.map((d: any) => d.bodyFat).filter((v: any) => v != null)
     if (key === 'recovery')
       return wellnessHistory.value.map((d: any) => d.recoveryScore).filter((v: any) => v != null)
     if (key === 'readiness')

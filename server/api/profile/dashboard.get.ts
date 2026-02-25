@@ -48,52 +48,98 @@ export default defineEventHandler(async (event) => {
     const sportSettings = await sportSettingsRepository.getByUserId(user.id)
     const defaultProfile = sportSettings.find((s) => s.isDefault)
 
-    // Query the most recent wellness data available with actual values
-    const wellness = await prisma.wellness.findFirst({
-      where: {
-        userId: user.id,
-        restingHr: { not: null }
-      },
-      orderBy: { date: 'desc' },
-      select: {
-        date: true,
-        restingHr: true,
-        hrv: true,
-        weight: true,
-        readiness: true,
-        sleepHours: true,
-        recoveryScore: true,
-        spO2: true,
-        respiration: true,
-        skinTemp: true,
-        vo2max: true,
-        sleepDeepSecs: true,
-        sleepRemSecs: true,
-        sleepLightSecs: true,
-        systolic: true,
-        diastolic: true
-      }
-    })
-
-    // Also check DailyMetric as fallback
-    const dailyMetric = await prisma.dailyMetric.findFirst({
-      where: {
-        userId: user.id,
-        restingHr: { not: null }
-      },
-      orderBy: { date: 'desc' },
-      select: {
-        date: true,
-        restingHr: true,
-        hrv: true,
-        sleepScore: true,
-        hoursSlept: true,
-        spO2: true,
-        sleepDeepSecs: true,
-        sleepRemSecs: true,
-        sleepLightSecs: true
-      }
-    })
+    const [wellness, dailyMetric, latestWeightWellness, latestBodyFatWellness] = await Promise.all([
+      // Query most recent wellness record with any meaningful values (not only resting HR)
+      prisma.wellness.findFirst({
+        where: {
+          userId: user.id,
+          OR: [
+            { restingHr: { not: null } },
+            { hrv: { not: null } },
+            { weight: { not: null } },
+            { bodyFat: { not: null } },
+            { readiness: { not: null } },
+            { sleepHours: { not: null } },
+            { sleepSecs: { not: null } },
+            { recoveryScore: { not: null } },
+            { spO2: { not: null } },
+            { respiration: { not: null } },
+            { skinTemp: { not: null } },
+            { vo2max: { not: null } },
+            { sleepDeepSecs: { not: null } },
+            { sleepRemSecs: { not: null } },
+            { sleepLightSecs: { not: null } },
+            { systolic: { not: null } },
+            { diastolic: { not: null } }
+          ]
+        },
+        orderBy: { date: 'desc' },
+        select: {
+          date: true,
+          restingHr: true,
+          hrv: true,
+          weight: true,
+          bodyFat: true,
+          readiness: true,
+          sleepHours: true,
+          sleepSecs: true,
+          recoveryScore: true,
+          spO2: true,
+          respiration: true,
+          skinTemp: true,
+          vo2max: true,
+          sleepDeepSecs: true,
+          sleepRemSecs: true,
+          sleepLightSecs: true,
+          systolic: true,
+          diastolic: true
+        }
+      }),
+      // Also check DailyMetric as fallback
+      prisma.dailyMetric.findFirst({
+        where: {
+          userId: user.id,
+          OR: [
+            { restingHr: { not: null } },
+            { hrv: { not: null } },
+            { sleepScore: { not: null } },
+            { hoursSlept: { not: null } },
+            { spO2: { not: null } },
+            { sleepDeepSecs: { not: null } },
+            { sleepRemSecs: { not: null } },
+            { sleepLightSecs: { not: null } }
+          ]
+        },
+        orderBy: { date: 'desc' },
+        select: {
+          date: true,
+          restingHr: true,
+          hrv: true,
+          sleepScore: true,
+          hoursSlept: true,
+          spO2: true,
+          sleepDeepSecs: true,
+          sleepRemSecs: true,
+          sleepLightSecs: true
+        }
+      }),
+      prisma.wellness.findFirst({
+        where: {
+          userId: user.id,
+          weight: { not: null }
+        },
+        orderBy: { date: 'desc' },
+        select: { weight: true }
+      }),
+      prisma.wellness.findFirst({
+        where: {
+          userId: user.id,
+          bodyFat: { not: null }
+        },
+        orderBy: { date: 'desc' },
+        select: { bodyFat: true }
+      })
+    ])
 
     // Determine which record is more recent or use Wellness as primary
     let wellnessData: any = null
@@ -111,8 +157,10 @@ export default defineEventHandler(async (event) => {
           restingHr: dailyMetric.restingHr,
           hrv: dailyMetric.hrv,
           weight: null,
+          bodyFat: null,
           readiness: null,
           sleepHours: dailyMetric.hoursSlept,
+          sleepSecs: null,
           recoveryScore: dailyMetric.sleepScore,
           spO2: dailyMetric.spO2,
           sleepDeepSecs: dailyMetric.sleepDeepSecs,
@@ -135,8 +183,10 @@ export default defineEventHandler(async (event) => {
         restingHr: dailyMetric.restingHr,
         hrv: dailyMetric.hrv,
         weight: null,
+        bodyFat: null,
         readiness: null,
         sleepHours: dailyMetric.hoursSlept,
+        sleepSecs: null,
         recoveryScore: dailyMetric.sleepScore,
         spO2: dailyMetric.spO2,
         sleepDeepSecs: dailyMetric.sleepDeepSecs,
@@ -169,8 +219,13 @@ export default defineEventHandler(async (event) => {
     // Use the wellness data we found
     const recentRestingHR = wellnessData?.restingHr ?? null
     const recentHRV = wellnessData?.hrv ?? null
-    const recentWeight = wellnessData?.weight ?? user.weight
-    const recentSleep = wellnessData?.sleepHours ?? null
+    const recentWeight = latestWeightWellness?.weight ?? user.weight
+    const recentBodyFat = latestBodyFatWellness?.bodyFat ?? null
+    const recentSleep =
+      wellnessData?.sleepHours ??
+      (wellnessData?.sleepSecs != null
+        ? Math.round((wellnessData.sleepSecs / 3600) * 10) / 10
+        : null)
     const recentRecoveryScore = wellnessData?.recoveryScore ?? null
     const latestWellnessDate = wellnessDate
 
@@ -266,7 +321,7 @@ export default defineEventHandler(async (event) => {
     const effectiveRestingHr = recentRestingHR || defaultProfile?.restingHr || user.restingHr
 
     if (!effectiveFtp) missingFields.push('Functional Threshold Power (FTP)')
-    if (!user.weight) missingFields.push('Weight')
+    if (!recentWeight) missingFields.push('Weight')
     if (!effectiveMaxHr || !effectiveRestingHr) missingFields.push('Heart Rate Settings (HRR)')
 
     // Check if default profile has zones configured
@@ -309,6 +364,7 @@ export default defineEventHandler(async (event) => {
         lthr: defaultProfile?.lthr || user.lthr,
         avgRecentHRV: avgRecentHRV ? Math.round(avgRecentHRV * 10) / 10 : null,
         recentSleep,
+        recentBodyFat,
         recentRecoveryScore,
         recentSpO2,
         recentRespiration,

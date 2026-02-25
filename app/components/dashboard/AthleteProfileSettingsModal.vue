@@ -157,6 +157,7 @@
         { key: 'sleep', label: 'Sleep', visible: true },
         { key: 'hrv', label: 'HRV', visible: true },
         { key: 'rhr', label: 'RHR', visible: true },
+        { key: 'bodyFat', label: 'Body Fat %', visible: false },
         { key: 'recovery', label: 'Recovery %', visible: false },
         { key: 'readiness', label: 'Readiness', visible: false },
         { key: 'fatigue', label: 'Fatigue', visible: false },
@@ -251,6 +252,10 @@
       icon: 'i-heroicons-heart',
       iconColor: 'text-indigo-500'
     },
+    bodyFat: {
+      icon: 'i-heroicons-scale',
+      iconColor: 'text-indigo-500'
+    },
     recovery: {
       icon: 'i-heroicons-bolt',
       iconColor: 'text-indigo-500'
@@ -328,6 +333,10 @@
     if (key === 'hrv')
       return userStore.profile.recentHRV ? Math.round(userStore.profile.recentHRV) + 'ms' : '?'
     if (key === 'rhr') return (userStore.profile.restingHr || '?') + ' bpm'
+    if (key === 'bodyFat')
+      return userStore.profile.recentBodyFat != null
+        ? userStore.profile.recentBodyFat.toFixed(1) + '%'
+        : '?'
     if (key === 'recovery') return (userStore.profile.recentRecoveryScore || '?') + '%'
     if (key === 'readiness') return userStore.profile.recentReadiness || '?'
     if (key === 'fatigue') return userStore.profile.recentFatigue || '?'
