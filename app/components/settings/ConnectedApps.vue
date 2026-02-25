@@ -165,7 +165,7 @@
           <img
             src="/images/logos/withings.png"
             alt="Withings Logo"
-            class="w-full h-full object-cover"
+            class="w-8 h-8 object-contain"
           />
         </div>
         <div>
@@ -312,11 +312,7 @@
         <div
           class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
         >
-          <img
-            src="/images/logos/hevy-icon.png"
-            alt="Hevy Logo"
-            class="w-full h-full object-cover"
-          />
+          <img src="/images/logos/hevy-icon.png" alt="Hevy Logo" class="w-8 h-8 object-contain" />
         </div>
         <div>
           <h3 class="font-semibold">Hevy</h3>
@@ -419,7 +415,7 @@
           <img
             src="/images/logos/polar_logo_square.png"
             alt="Polar Logo"
-            class="w-full h-full object-cover"
+            class="w-8 h-8 object-contain"
           />
         </div>
         <div>
