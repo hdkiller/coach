@@ -35,10 +35,12 @@ import chatLogCommand from './chat'
 import cadenceJitterCommand from './cadence-jitter'
 import curveFreshnessCommand from './curve-freshness'
 import garminIngestCommand from './garmin-ingest'
+import garminWebhookCommand from './webhook-garmin'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
 debugCommand.addCommand(webhookCommand)
+webhookCommand.addCommand(garminWebhookCommand)
 debugCommand.addCommand(testWebhookCommand)
 debugCommand.addCommand(triggerCommand)
 debugCommand.addCommand(profileCommand)
