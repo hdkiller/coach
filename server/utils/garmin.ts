@@ -121,12 +121,16 @@ export async function fetchGarminData(
 export async function fetchGarminDailies(
   integration: Integration,
   startTimestamp: number,
-  endTimestamp: number
+  endTimestamp: number,
+  token?: string
 ) {
-  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/dailies', {
+  const params: Record<string, string> = {
     uploadStartTimeInSeconds: startTimestamp.toString(),
     uploadEndTimeInSeconds: endTimestamp.toString()
-  })
+  }
+  if (token) params.token = token
+
+  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/dailies', params)
 }
 
 /**
@@ -135,12 +139,16 @@ export async function fetchGarminDailies(
 export async function fetchGarminSleeps(
   integration: Integration,
   startTimestamp: number,
-  endTimestamp: number
+  endTimestamp: number,
+  token?: string
 ) {
-  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/sleeps', {
+  const params: Record<string, string> = {
     uploadStartTimeInSeconds: startTimestamp.toString(),
     uploadEndTimeInSeconds: endTimestamp.toString()
-  })
+  }
+  if (token) params.token = token
+
+  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/sleeps', params)
 }
 
 /**
@@ -149,12 +157,16 @@ export async function fetchGarminSleeps(
 export async function fetchGarminHRV(
   integration: Integration,
   startTimestamp: number,
-  endTimestamp: number
+  endTimestamp: number,
+  token?: string
 ) {
-  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/hrv', {
+  const params: Record<string, string> = {
     uploadStartTimeInSeconds: startTimestamp.toString(),
     uploadEndTimeInSeconds: endTimestamp.toString()
-  })
+  }
+  if (token) params.token = token
+
+  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/hrv', params)
 }
 
 /**
@@ -163,12 +175,20 @@ export async function fetchGarminHRV(
 export async function fetchGarminActivities(
   integration: Integration,
   startTimestamp: number,
-  endTimestamp: number
+  endTimestamp: number,
+  token?: string
 ) {
-  return fetchGarminData(integration, 'https://apis.garmin.com/wellness-api/rest/activities', {
+  const params: Record<string, string> = {
     uploadStartTimeInSeconds: startTimestamp.toString(),
     uploadEndTimeInSeconds: endTimestamp.toString()
-  })
+  }
+  if (token) params.token = token
+
+  return fetchGarminData(
+    integration,
+    'https://apis.garmin.com/wellness-api/rest/activities',
+    params
+  )
 }
 
 /**
