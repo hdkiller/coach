@@ -84,6 +84,14 @@ export async function fetchGarminData(
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}))
     const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+
+    console.error(`[DEBUG] Garmin API Request Failed:`, {
+      url: targetUrl.toString(),
+      status: response.status,
+      statusText: response.statusText,
+      errorBody
+    })
+
     throw new Error(`Garmin API error (${response.status}): ${errorMessage}`)
   }
 

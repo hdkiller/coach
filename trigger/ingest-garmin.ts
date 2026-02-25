@@ -76,7 +76,11 @@ export const ingestGarminTask = task({
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
           const types = ['dailies', 'sleeps', 'hrv', 'activities']
-          logger.error(`Failed to fetch Garmin ${types[index]}`, { error: result.reason })
+          const type = types[index]
+          const error = result.reason
+
+          console.error(`[DEBUG] Garmin fetch failed for ${type}:`, error)
+          logger.error(`Failed to fetch Garmin ${type}`, { error })
         }
       })
 
@@ -95,6 +99,7 @@ export const ingestGarminTask = task({
 
       // If all failed, we should still consider it an error
       if (results.every((r) => r.status === 'rejected')) {
+        console.error('[DEBUG] All Garmin API requests failed for user:', userId)
         throw new Error('All Garmin API requests failed')
       }
 
