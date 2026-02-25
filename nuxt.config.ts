@@ -103,11 +103,7 @@ const sentryRelease = `${pkg.name}@${pkg.version}+${commitHash}`
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  ignore: [
-    'examples/**',
-    'coverage/**',
-    'backups/**',
-  ],
+  ignore: ['examples/**', 'coverage/**', 'backups/**'],
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
@@ -167,6 +163,7 @@ export default defineNuxtConfig({
 
   modules: [
     '@nuxt/ui',
+    '@nuxt/content',
     '@stefanobartoletti/nuxt-social-share',
     '@sidebase/nuxt-auth',
     '@nuxtjs/mdc',
