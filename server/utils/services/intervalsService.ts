@@ -937,6 +937,7 @@ export const IntervalsService = {
     switch (type) {
       case 'ACTIVITY_UPLOADED':
       case 'ACTIVITY_ANALYZED':
+      case 'ACTIVITY_ACHIEVEMENTS':
       case 'ACTIVITY_UPDATED': {
         const activity = intervalEvent.activity
         const activityId = activity?.id ? String(activity.id) : null
@@ -1149,6 +1150,23 @@ export const IntervalsService = {
         break
       }
 
+      case 'APP_SCOPE_CHANGED': {
+        const deauthorized = Boolean(intervalEvent?.deauthorized)
+        if (deauthorized) {
+          await prisma.integration.updateMany({
+            where: {
+              userId,
+              provider: 'intervals'
+            },
+            data: {
+              syncStatus: 'FAILED',
+              errorMessage: 'Intervals authorization changed/deauthorized. Reconnect integration.'
+            }
+          })
+        }
+        break
+      }
+
       case 'WELLNESS_UPDATED':
         // Delta-only worker mode: do not run range pulls on webhook events.
         await triggerReadinessCheckIfNeeded(userId)
@@ -1169,13 +1187,142 @@ export const IntervalsService = {
       }
 
       case 'CALENDAR_UPDATED': {
+        const changedEvents = Array.isArray(intervalEvent.events) ? intervalEvent.events : []
         const deletedEvents = intervalEvent.deleted_events || []
         if (deletedEvents.length > 0) {
           const deletedIds = deletedEvents.map((id: any) => id.toString())
           await IntervalsService.deletePlannedWorkouts(userId, deletedIds)
         }
 
-        // Delta-only worker mode: do not run full calendar pulls on webhook events.
+        if (changedEvents.length > 0) {
+          const externalIds = changedEvents
+            .map((e: any) => (e?.id != null ? String(e.id) : null))
+            .filter((id: string | null): id is string => !!id)
+
+          const existingWorkouts = await prisma.plannedWorkout.findMany({
+            where: {
+              userId,
+              externalId: { in: externalIds }
+            },
+            select: { externalId: true, structuredWorkout: true }
+          })
+          const existingMap = new Map(existingWorkouts.map((w) => [w.externalId, w.structuredWorkout]))
+
+          for (const planned of changedEvents) {
+            if (!planned?.id) continue
+            if (planned.name === 'Weekly') continue
+
+            const category = planned.category || ''
+            const workoutType = planned.type || ''
+
+            if (
+              [
+                'NOTE',
+                'TARGET',
+                'HOLIDAY',
+                'SICK',
+                'INJURED',
+                'SEASON_START',
+                'FITNESS_DAYS',
+                'SET_EFTP',
+                'SET_FITNESS'
+              ].includes(category) ||
+              ['Note', 'Holiday'].includes(workoutType)
+            ) {
+              const normalizedNote = normalizeIntervalsCalendarNote(planned, userId)
+
+              await calendarNoteRepository.upsert(
+                userId,
+                'intervals',
+                normalizedNote.externalId,
+                normalizedNote
+              )
+
+              await prisma.plannedWorkout.deleteMany({
+                where: { userId, externalId: normalizedNote.externalId }
+              })
+              await prisma.event.deleteMany({
+                where: { userId, source: 'intervals', externalId: normalizedNote.externalId }
+              })
+              continue
+            }
+
+            const normalizedPlanned = normalizeIntervalsPlannedWorkout(planned, userId)
+
+            const existingStruct = existingMap.get(normalizedPlanned.externalId) as any
+            const newStruct = normalizedPlanned.structuredWorkout as any
+
+            // Preserve local parsed exercises when webhook payload has only text/steps.
+            if (existingStruct?.exercises?.length > 0) {
+              if (!newStruct || !newStruct.exercises?.length) {
+                if (!normalizedPlanned.structuredWorkout) normalizedPlanned.structuredWorkout = {}
+                const target = normalizedPlanned.structuredWorkout as any
+                target.exercises = existingStruct.exercises
+                if (existingStruct.coachInstructions && !target.coachInstructions) {
+                  target.coachInstructions = existingStruct.coachInstructions
+                }
+              }
+            }
+
+            await prisma.plannedWorkout.upsert({
+              where: {
+                userId_externalId: {
+                  userId,
+                  externalId: normalizedPlanned.externalId
+                }
+              },
+              update: normalizedPlanned,
+              create: normalizedPlanned
+            })
+
+            await calendarNoteRepository.deleteExternal(userId, 'intervals', [
+              normalizedPlanned.externalId
+            ])
+
+            if (['EVENT', 'RACE_A', 'RACE_B', 'RACE_C'].includes(category)) {
+              let startTime = null
+              if (planned.start_date_local && planned.start_date_local.includes('T')) {
+                const timePart = planned.start_date_local.split('T')[1]
+                if (timePart && timePart.length >= 5) {
+                  startTime = timePart.substring(0, 5)
+                }
+              }
+
+              let priority = null
+              if (category === 'RACE_A') priority = 'A'
+              else if (category === 'RACE_B') priority = 'B'
+              else if (category === 'RACE_C') priority = 'C'
+
+              const eventData = {
+                title: normalizedPlanned.title,
+                description: planned.description || '',
+                date: new Date(planned.start_date_local),
+                startTime,
+                type: planned.type || 'Other',
+                priority,
+                isVirtual: false,
+                isPublic: false,
+                distance: normalizedPlanned.distanceMeters
+                  ? Math.round(normalizedPlanned.distanceMeters / 1000)
+                  : null,
+                expectedDuration: normalizedPlanned.durationSec
+                  ? parseFloat((normalizedPlanned.durationSec / 3600).toFixed(1))
+                  : null,
+                location: planned.location || null,
+                syncStatus: 'SYNCED'
+              }
+
+              await eventRepository.upsertExternal(
+                userId,
+                'intervals',
+                planned.id.toString(),
+                eventData
+              )
+            }
+          }
+        }
+
+        // Delta-only worker mode: no full calendar pulls from webhook events.
         break
       }
 
