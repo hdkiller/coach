@@ -859,6 +859,8 @@ model UserNutritionSettings {
   userId                  String   @unique
   bmr                     Int?
   activityLevel           String?
+  baseCaloriesMode        String   @default("AUTO")
+  nonExerciseBaseCalories Int?
   baseProteinPerKg        Float    @default(1.6)
   baseFatPerKg            Float    @default(1.0)
   currentCarbMax          Int      @default(60)

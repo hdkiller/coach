@@ -7,6 +7,8 @@ export const DEFAULT_NUTRITION_SETTINGS: Omit<
 > = {
   bmr: 1600,
   activityLevel: 'ACTIVE',
+  baseCaloriesMode: 'AUTO',
+  nonExerciseBaseCalories: null,
   baseProteinPerKg: 1.6,
   baseFatPerKg: 1.0,
   currentCarbMax: 60,

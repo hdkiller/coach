@@ -84,6 +84,8 @@ export interface FuelingProfile {
   fuelState3Max?: number
   bmr?: number
   activityLevel?: string
+  baseCaloriesMode?: 'AUTO' | 'MANUAL_NON_EXERCISE'
+  nonExerciseBaseCalories?: number
   targetAdjustmentPercent?: number
   goalProfile?: string
   baseProteinPerKg?: number
@@ -92,6 +94,7 @@ export interface FuelingProfile {
 
 export interface CalorieBreakdown {
   baseCalories: number
+  baseCaloriesMode: 'AUTO' | 'MANUAL_NON_EXERCISE'
   activityCalories: number
   adjustmentCalories: number
   totalTarget: number
@@ -153,6 +156,7 @@ export interface SerializedFuelingPlan {
     fluid: number
     sodium: number
     baseCalories: number
+    baseCaloriesMode?: 'AUTO' | 'MANUAL_NON_EXERCISE'
     activityCalories: number
     adjustmentCalories: number
     fuelState: number
