@@ -98,6 +98,7 @@
   const { data } = useAuth()
   const user = computed(() => data.value?.user)
   const toast = useToast()
+  const userStore = useUserStore()
 
   definePageMeta({
     middleware: 'auth'

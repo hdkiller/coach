@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import ChatMessageContent from '~/components/chat/ChatMessageContent.vue'
   import ChatWelcomeTips from '~/components/chat/ChatWelcomeTips.vue'
 
@@ -21,6 +21,10 @@
     'cancel-edit'
   ])
   const toast = useToast()
+  const messageListRef = ref<HTMLElement | null>(null)
+  const isTouchDevice = ref(false)
+  const revealedActionsMessageId = ref<string | null>(null)
+  let touchMediaQuery: MediaQueryList | null = null
 
   // Filter out tool messages (responses) as they are internal state or handled via UI
   const filteredMessages = computed(() => {
@@ -48,12 +52,62 @@
   }
 
   const isEditingMessage = (message: any) => props.editingMessageId === message?.id
+  const isActionsVisible = (message: any) =>
+    !!message?.id && (isTouchDevice.value ? revealedActionsMessageId.value === message.id : true)
 
   const editorRows = () => {
     const text = props.editingContent || ''
     const lines = text.split('\n').length
     return Math.min(10, Math.max(3, lines))
   }
+
+  const updateTouchMode = () => {
+    if (!import.meta.client) return
+    isTouchDevice.value = window.matchMedia('(hover: none), (pointer: coarse)').matches
+    if (!isTouchDevice.value) revealedActionsMessageId.value = null
+  }
+
+  const handleMessageTap = (message: any) => {
+    if (
+      !isTouchDevice.value ||
+      !props.canEditMessages ||
+      !message ||
+      message.role !== 'user' ||
+      isEditingMessage(message)
+    )
+      return
+
+    revealedActionsMessageId.value =
+      revealedActionsMessageId.value === message.id ? null : message.id
+  }
+
+  const handleDocumentPointerDown = (event: Event) => {
+    if (!isTouchDevice.value) return
+    if (!messageListRef.value) return
+    if (messageListRef.value.contains(event.target as Node)) return
+    revealedActionsMessageId.value = null
+  }
+
+  onMounted(() => {
+    if (!import.meta.client) return
+    updateTouchMode()
+    touchMediaQuery = window.matchMedia('(hover: none), (pointer: coarse)')
+    touchMediaQuery.addEventListener('change', updateTouchMode)
+    document.addEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+  })
+
+  onBeforeUnmount(() => {
+    if (!import.meta.client) return
+    touchMediaQuery?.removeEventListener('change', updateTouchMode)
+    document.removeEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+  })
+
+  watch(
+    () => props.editingMessageId,
+    () => {
+      revealedActionsMessageId.value = null
+    }
+  )
 
   const copyMessage = async (message: any) => {
     if (!import.meta.client) return
@@ -70,7 +124,7 @@
 </script>
 
 <template>
-  <div class="flex-1 overflow-y-auto">
+  <div ref="messageListRef" class="flex-1 overflow-y-auto">
     <UContainer class="h-full">
       <div v-if="loading" class="space-y-6 py-8">
         <div v-for="i in 3" :key="i" class="flex flex-col space-y-4">
@@ -100,7 +154,7 @@
               container:
                 'relative w-fit flex items-center ltr:justify-end ms-auto max-w-[75%] gap-2 !pb-0',
               actions:
-                'opacity-0 group-hover/message:opacity-100 absolute right-full mr-1 top-1/2 -translate-y-1/2 bottom-auto z-20 flex items-center gap-1 transition-opacity'
+                'opacity-100 sm:opacity-0 sm:group-hover/message:opacity-100 absolute right-full mr-1 top-1/2 -translate-y-1/2 bottom-auto z-20 flex items-center gap-1 transition-opacity'
             }
           }"
           :assistant="{
@@ -143,6 +197,7 @@
               v-else
               :message="message"
               :all-messages="messages"
+              @click="handleMessageTap(message)"
               @tool-approval="handleToolApproval"
             />
           </template>
@@ -150,24 +205,35 @@
             <template
               v-if="message.role === 'user' && canEditMessages && !isEditingMessage(message)"
             >
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                square
-                aria-label="Copy message"
-                icon="i-heroicons-clipboard-document"
-                @click="copyMessage(message)"
-              />
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                square
-                aria-label="Edit message"
-                icon="i-heroicons-pencil-square"
-                @click="handleEditMessage(message)"
-              />
+              <div
+                :class="
+                  isTouchDevice
+                    ? isActionsVisible(message)
+                      ? '!opacity-100 !pointer-events-auto'
+                      : '!opacity-0 !pointer-events-none'
+                    : ''
+                "
+                class="flex items-center gap-1 transition-opacity"
+              >
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  aria-label="Copy message"
+                  icon="i-heroicons-clipboard-document"
+                  @click="copyMessage(message)"
+                />
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  aria-label="Edit message"
+                  icon="i-heroicons-pencil-square"
+                  @click="handleEditMessage(message)"
+                />
+              </div>
             </template>
           </template>
         </UChatMessages>
