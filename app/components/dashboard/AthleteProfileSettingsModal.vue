@@ -157,7 +157,7 @@
         { key: 'sleep', label: 'Sleep', visible: true },
         { key: 'hrv', label: 'HRV', visible: true },
         { key: 'rhr', label: 'RHR', visible: true },
-        { key: 'bodyFat', label: 'Body Fat %', visible: false },
+        { key: 'bodyFat', label: 'Body Fat %', visible: true },
         { key: 'recovery', label: 'Recovery %', visible: false },
         { key: 'readiness', label: 'Readiness', visible: false },
         { key: 'fatigue', label: 'Fatigue', visible: false },

@@ -7,11 +7,11 @@
         Detailed Sleep Analysis
       </h3>
       <UBadge
-        v-if="sleep.score.score_state === 'SCORED'"
-        :color="getScoreColor(sleep.score.sleep_performance_percentage) as any"
+        v-if="performancePercentage !== null"
+        :color="getScoreColor(performancePercentage) as any"
         variant="subtle"
       >
-        {{ sleep.score.sleep_performance_percentage }}% Performance
+        {{ performancePercentage }}% Performance
       </UBadge>
     </div>
 
@@ -52,28 +52,28 @@
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-rose-400" />
           <span
-            >Awake ({{ formatDuration(sleep.score.stage_summary.total_awake_time_milli) }})</span
+            >Awake ({{ formatDuration(durations.awake) }})</span
           >
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-blue-300" />
           <span
             >Light ({{
-              formatDuration(sleep.score.stage_summary.total_light_sleep_time_milli)
+              formatDuration(durations.light)
             }})</span
           >
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-teal-400" />
           <span
-            >REM ({{ formatDuration(sleep.score.stage_summary.total_rem_sleep_time_milli) }})</span
+            >REM ({{ formatDuration(durations.rem) }})</span
           >
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full bg-indigo-500" />
           <span
             >Deep ({{
-              formatDuration(sleep.score.stage_summary.total_slow_wave_sleep_time_milli)
+              formatDuration(durations.sws)
             }})</span
           >
         </div>
@@ -87,44 +87,48 @@
       >
         <div class="text-xs text-gray-500 mb-1">Efficiency</div>
         <div class="text-xl font-bold text-gray-900 dark:text-white">
-          {{ sleep.score.sleep_efficiency_percentage.toFixed(0) }}%
+          {{ efficiencyPercentage.toFixed(0) }}%
         </div>
         <div class="text-xs text-gray-400 mt-1">Time asleep / Time in bed</div>
       </div>
 
       <div
+        v-if="consistencyPercentage !== null"
         class="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800"
       >
         <div class="text-xs text-gray-500 mb-1">Consistency</div>
         <div class="text-xl font-bold text-gray-900 dark:text-white">
-          {{ sleep.score.sleep_consistency_percentage }}%
+          {{ consistencyPercentage }}%
         </div>
         <div class="text-xs text-gray-400 mt-1">Bedtime regularity</div>
       </div>
 
       <div
+        v-if="respiratoryRate !== null"
         class="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800"
       >
         <div class="text-xs text-gray-500 mb-1">Respiratory Rate</div>
         <div class="text-xl font-bold text-gray-900 dark:text-white">
-          {{ sleep.score.respiratory_rate.toFixed(1) }}
+          {{ respiratoryRate.toFixed(1) }}
         </div>
         <div class="text-xs text-gray-400 mt-1">Breaths per min</div>
       </div>
 
       <div
+        v-if="disturbances !== null"
         class="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800"
       >
         <div class="text-xs text-gray-500 mb-1">Disturbances</div>
         <div class="text-xl font-bold text-gray-900 dark:text-white">
-          {{ sleep.score.stage_summary.disturbance_count }}
+          {{ disturbances }}
         </div>
         <div class="text-xs text-gray-400 mt-1">Wake events</div>
       </div>
     </div>
 
-    <!-- Sleep Need vs Actual -->
+    <!-- Sleep Need vs Actual (Whoop specific feature) -->
     <div
+      v-if="sleepNeeded !== null"
       class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-100 dark:border-gray-700"
     >
       <div class="flex justify-between items-end mb-2">
@@ -132,35 +136,23 @@
         <div class="text-right">
           <span
             class="text-lg font-bold"
-            :class="getScoreTextColor(sleep.score.sleep_performance_percentage)"
+            :class="getScoreTextColor(performancePercentage || 0)"
           >
             {{ formatDuration(totalSleepTime) }}
           </span>
           <span class="text-sm text-gray-500">
             /
-            {{
-              formatDuration(
-                sleep.score.sleep_needed.baseline_milli +
-                  sleep.score.sleep_needed.need_from_recent_strain_milli +
-                  sleep.score.sleep_needed.need_from_sleep_debt_milli
-              )
-            }}
+            {{ formatDuration(sleepNeeded) }}
             needed</span
           >
         </div>
       </div>
       <UProgress
-        :model-value="sleep.score.sleep_performance_percentage"
-        :color="getScoreColor(sleep.score.sleep_performance_percentage) as any"
+        v-if="performancePercentage !== null"
+        :model-value="performancePercentage"
+        :color="getScoreColor(performancePercentage) as any"
         size="lg"
       />
-      <div class="mt-2 flex justify-between text-xs text-gray-500">
-        <span
-          >Strain:
-          {{ formatDuration(sleep.score.sleep_needed.need_from_recent_strain_milli) }}</span
-        >
-        <span>Debt: {{ formatDuration(sleep.score.sleep_needed.need_from_sleep_debt_milli) }}</span>
-      </div>
     </div>
   </div>
 </template>
@@ -170,27 +162,73 @@
     sleep: any
   }>()
 
-  const totalSleepTime = computed(() => {
-    const summary = props.sleep.score.stage_summary
-    return (
-      summary.total_light_sleep_time_milli +
-      summary.total_slow_wave_sleep_time_milli +
-      summary.total_rem_sleep_time_milli
-    )
+  // Unified durations normalized to milliseconds
+  const durations = computed(() => {
+    const s = props.sleep
+    
+    // Whoop format check
+    if (s?.score?.stage_summary) {
+      const sum = s.score.stage_summary
+      return {
+        awake: sum.total_awake_time_milli || 0,
+        light: sum.total_light_sleep_time_milli || 0,
+        rem: sum.total_rem_sleep_time_milli || 0,
+        sws: sum.total_slow_wave_sleep_time_milli || 0,
+        totalInBed: sum.total_in_bed_time_milli || 0
+      }
+    }
+
+    // Generic format (assuming props.sleep IS the normalized object from Wellness)
+    return {
+      awake: (s.awakeSecs || 0) * 1000,
+      light: (s.lightSecs || 0) * 1000,
+      rem: (s.remSecs || 0) * 1000,
+      sws: (s.deepSecs || 0) * 1000,
+      totalInBed: (s.totalSecs || 0) * 1000
+    }
   })
 
-  const totalInBedTime = computed(() => props.sleep.score.stage_summary.total_in_bed_time_milli)
+  const totalSleepTime = computed(() => {
+    return durations.value.light + durations.value.rem + durations.value.sws
+  })
 
   const percentages = computed(() => {
-    const summary = props.sleep.score.stage_summary
-    const total = totalInBedTime.value || 1 // Avoid division by zero
+    const total = durations.value.totalInBed || 1 // Avoid division by zero
 
     return {
-      awake: (summary.total_awake_time_milli / total) * 100,
-      light: (summary.total_light_sleep_time_milli / total) * 100,
-      rem: (summary.total_rem_sleep_time_milli / total) * 100,
-      sws: (summary.total_slow_wave_sleep_time_milli / total) * 100
+      awake: (durations.value.awake / total) * 100,
+      light: (durations.value.light / total) * 100,
+      rem: (durations.value.rem / total) * 100,
+      sws: (durations.value.sws / total) * 100
     }
+  })
+
+  const performancePercentage = computed(() => {
+    if (props.sleep?.score?.sleep_performance_percentage !== undefined) {
+      return props.sleep.score.sleep_performance_percentage
+    }
+    return null
+  })
+
+  const efficiencyPercentage = computed(() => {
+    if (props.sleep?.score?.sleep_efficiency_percentage !== undefined) {
+      return props.sleep.score.sleep_efficiency_percentage
+    }
+    // Calculate from durations
+    if (durations.value.totalInBed > 0) {
+      return (totalSleepTime.value / durations.value.totalInBed) * 100
+    }
+    return 0
+  })
+
+  const consistencyPercentage = computed(() => props.sleep?.score?.sleep_consistency_percentage || null)
+  const respiratoryRate = computed(() => props.sleep?.score?.respiratory_rate || null)
+  const disturbances = computed(() => props.sleep?.score?.stage_summary?.disturbance_count || null)
+  
+  const sleepNeeded = computed(() => {
+    const sn = props.sleep?.score?.sleep_needed
+    if (!sn) return null
+    return (sn.baseline_milli || 0) + (sn.need_from_recent_strain_milli || 0) + (sn.need_from_sleep_debt_milli || 0)
   })
 
   function formatDuration(ms: number) {
@@ -200,9 +238,9 @@
   }
 
   function getScoreColor(score: number): string {
-    if (score >= 85) return 'success' // green
-    if (score >= 70) return 'primary' // blue/primary
-    return 'error' // red
+    if (score >= 85) return 'success'
+    if (score >= 70) return 'primary'
+    return 'error'
   }
 
   function getScoreTextColor(score: number): string {
@@ -211,3 +249,4 @@
     return 'text-red-600 dark:text-red-400'
   }
 </script>
+

@@ -682,7 +682,20 @@
   })
 
   const sleepData = computed(() => {
-    return wellness.value?.rawJson?.sleep || null
+    if (wellness.value?.rawJson?.sleep) return wellness.value.rawJson.sleep
+    
+    // Fallback to generic fields
+    if (wellness.value?.sleepSecs || wellness.value?.sleepDeepSecs) {
+      return {
+        totalSecs: wellness.value.sleepSecs,
+        deepSecs: wellness.value.sleepDeepSecs,
+        remSecs: wellness.value.sleepRemSecs,
+        lightSecs: wellness.value.sleepLightSecs,
+        awakeSecs: Math.max(0, (wellness.value.sleepSecs || 0) - ((wellness.value.sleepDeepSecs || 0) + (wellness.value.sleepRemSecs || 0) + (wellness.value.sleepLightSecs || 0)))
+      }
+    }
+
+    return null
   })
 
   // Fetch wellness data

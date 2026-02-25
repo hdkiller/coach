@@ -14,6 +14,7 @@ const foodItemSchema = z.object({
   fiber: z.number().optional(),
   sugar: z.number().optional(),
   logged_at: z.string(), // Required: Exact time of consumption (ISO string)
+  meal: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'OTHER']).optional(),
   absorptionType: z.enum(['RAPID', 'FAST', 'BALANCED', 'DENSE', 'HYPER_LOAD']).optional(),
   quantity: z.string().optional()
 })
@@ -185,16 +186,24 @@ export default defineEventHandler(async (event) => {
       absorptionType: item.absorptionType || 'BALANCED'
     }
 
-    // Assign to bucket based on proximity to user windows
-    // This is a simple "closest time" logic
-    const diffs = [
-      { key: 'breakfast', diff: Math.abs(itemMinutes - breakfastTime) },
-      { key: 'lunch', diff: Math.abs(itemMinutes - lunchTime) },
-      { key: 'dinner', diff: Math.abs(itemMinutes - dinnerTime) },
-      { key: 'snacks', diff: Math.abs(itemMinutes - snackTime) }
-    ]
+    // Assign to bucket based on explicit 'meal' field or proximity to user windows
+    let bestBucket = 'snacks'
+    if (item.meal) {
+      const m = item.meal.toLowerCase()
+      if (m === 'breakfast') bestBucket = 'breakfast'
+      else if (m === 'lunch') bestBucket = 'lunch'
+      else if (m === 'dinner') bestBucket = 'dinner'
+      else if (m === 'snack' || m === 'other') bestBucket = 'snacks'
+    } else {
+      const diffs = [
+        { key: 'breakfast', diff: Math.abs(itemMinutes - breakfastTime) },
+        { key: 'lunch', diff: Math.abs(itemMinutes - lunchTime) },
+        { key: 'dinner', diff: Math.abs(itemMinutes - dinnerTime) },
+        { key: 'snacks', diff: Math.abs(itemMinutes - snackTime) }
+      ]
+      bestBucket = diffs.sort((a, b) => a.diff - b.diff)[0]!.key
+    }
 
-    const bestBucket = diffs.sort((a, b) => a.diff - b.diff)[0]!.key
     mealGroups[bestBucket].push(enrichedItem)
 
     // Add to calculated totals

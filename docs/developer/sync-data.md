@@ -57,10 +57,13 @@ Use this endpoint to sync daily health indicators. Coach Watts uses these to adj
 | `sleepHours`  | **Number**  | Total sleep duration in hours.                        |
 | `sleepSecs`   | **Integer** | Total sleep duration in seconds.                      |
 | `weight`      | **Number**  | Body weight in kilograms (kg).                        |
+| `bodyFat`     | **Number**  | Body fat percentage (%).                              |
 | `spO2`        | **Number**  | Blood oxygen saturation (%).                          |
 | `skinTemp`    | **Number**  | Skin temperature deviation (Celsius).                 |
 | `respiration` | **Number**  | Respiratory rate (breaths per minute).                |
 | `vo2max`      | **Number**  | Estimated VO2 Max.                                    |
+| `systolic`    | **Integer** | Systolic blood pressure (mmHg).                       |
+| `diastolic`   | **Integer** | Diastolic blood pressure (mmHg).                      |
 | `rawJson`     | **Object**  | (Optional) Your raw payload for historical reference. |
 
 ### Sleep Stages
@@ -108,12 +111,16 @@ Instead of categorizing items into "Breakfast" or "Dinner," send a flat list of 
 
 ### Payload Schema
 
-| Field     | Type        | Description                                    |
-| :-------- | :---------- | :--------------------------------------------- |
-| `date`    | **String**  | **Required.** YYYY-MM-DD or ISO 8601.          |
-| `items`   | **Array**   | List of food items (see below).                |
-| `waterMl` | **Integer** | Total fluid intake for the day in milliliters. |
-| `rawJson` | **Object**  | (Optional) Your raw payload for reference.     |
+| Field      | Type        | Description                                    |
+| :--------- | :---------- | :--------------------------------------------- |
+| `date`     | **String**  | **Required.** YYYY-MM-DD or ISO 8601.          |
+| `items`    | **Array**   | List of food items (see below).                |
+| `calories` | **Integer** | (Optional) Override for total daily calories.  |
+| `carbs`    | **Number**  | (Optional) Override for total daily carbs.     |
+| `protein`  | **Number**  | (Optional) Override for total daily protein.   |
+| `fat`      | **Number**  | (Optional) Override for total daily fat.       |
+| `waterMl`  | **Integer** | Total fluid intake for the day in milliliters. |
+| `rawJson`  | **Object**  | (Optional) Your raw payload for reference.     |
 
 #### Food Item Object
 
@@ -121,9 +128,11 @@ Instead of categorizing items into "Breakfast" or "Dinner," send a flat list of 
 | :--------------- | :--------- | :-------------------------------------------------------------- |
 | `name`           | **String** | **Required.** Name of the food/meal.                            |
 | `logged_at`      | **String** | **Required.** ISO 8601 timestamp of consumption.                |
+| `calories`       | **Number** | Energy content in kcal.                                         |
 | `carbs`          | **Number** | Carbohydrates in grams.                                         |
 | `protein`        | **Number** | Protein in grams.                                               |
 | `fat`            | **Number** | Fat in grams.                                                   |
+| `meal`           | **String** | (Optional) `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK`, `OTHER`.    |
 | `absorptionType` | **Enum**   | `RAPID`, `FAST`, `BALANCED`, `DENSE`. (Defaults to `BALANCED`). |
 
 ### Example
