@@ -5,6 +5,8 @@ import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
 
+const SETTINGS_RECALC_DAYS = 14
+
 const updateSchema = z.object({
   nutritionTrackingEnabled: z.boolean().optional(),
   bmr: z.number().min(500).max(5000).optional(),
@@ -18,6 +20,8 @@ const updateSchema = z.object({
       'EXTRA_ACTIVE'
     ])
     .optional(),
+  baseCaloriesMode: z.enum(['AUTO', 'MANUAL_NON_EXERCISE']).optional(),
+  nonExerciseBaseCalories: z.number().min(800).max(6000).optional().nullable(),
   currentCarbMax: z.number().min(0).max(150),
   ultimateCarbGoal: z.number().min(0).max(150),
   baseProteinPerKg: z.number().min(0.5).max(3.0).optional(),
@@ -68,10 +72,30 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (
+    result.data.baseCaloriesMode === 'MANUAL_NON_EXERCISE' &&
+    (result.data.nonExerciseBaseCalories === null ||
+      result.data.nonExerciseBaseCalories === undefined)
+  ) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid input',
+      data: [
+        {
+          path: ['nonExerciseBaseCalories'],
+          message:
+            'nonExerciseBaseCalories is required when baseCaloriesMode is MANUAL_NON_EXERCISE'
+        }
+      ]
+    })
+  }
+
   const {
     nutritionTrackingEnabled,
     bmr,
     activityLevel,
+    baseCaloriesMode,
+    nonExerciseBaseCalories,
     currentCarbMax,
     ultimateCarbGoal,
     baseProteinPerKg,
@@ -115,6 +139,8 @@ export default defineEventHandler(async (event) => {
   const settings = await nutritionSettingsRepository.upsert(userId, {
     bmr,
     activityLevel,
+    baseCaloriesMode,
+    nonExerciseBaseCalories,
     currentCarbMax,
     ultimateCarbGoal,
     baseProteinPerKg,
@@ -156,9 +182,16 @@ export default defineEventHandler(async (event) => {
     if (shouldRunNutrition) {
       const timezone = await getUserTimezone(userId)
       const today = getUserLocalDate(timezone)
-      await metabolicService.calculateFuelingPlanForDate(userId, today, {
-        persist: true
-      })
+
+      // Refresh today's plan plus upcoming days so saved settings are reflected consistently.
+      // calculateFuelingPlanForDate already skips records with manual lock enabled.
+      for (let offset = 0; offset < SETTINGS_RECALC_DAYS; offset++) {
+        const targetDate = new Date(today)
+        targetDate.setUTCDate(today.getUTCDate() + offset)
+        await metabolicService.calculateFuelingPlanForDate(userId, targetDate, {
+          persist: true
+        })
+      }
     }
   } catch (err) {
     console.error('[NutritionSettings] Failed to trigger plan regeneration:', err)

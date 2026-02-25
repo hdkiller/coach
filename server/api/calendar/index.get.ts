@@ -260,7 +260,17 @@ export default defineEventHandler(async (event) => {
       fuelState2Min: nutritionSettings.fuelState2Min,
       fuelState2Max: nutritionSettings.fuelState2Max,
       fuelState3Min: nutritionSettings.fuelState3Min,
-      fuelState3Max: nutritionSettings.fuelState3Max
+      fuelState3Max: nutritionSettings.fuelState3Max,
+      bmr: nutritionSettings.bmr ?? 1600,
+      activityLevel: nutritionSettings.activityLevel || 'ACTIVE',
+      baseCaloriesMode:
+        nutritionSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
+          ? 'MANUAL_NON_EXERCISE'
+          : 'AUTO',
+      nonExerciseBaseCalories: nutritionSettings.nonExerciseBaseCalories ?? undefined,
+      targetAdjustmentPercent: nutritionSettings.targetAdjustmentPercent ?? 0,
+      baseProteinPerKg: nutritionSettings.baseProteinPerKg,
+      baseFatPerKg: nutritionSettings.baseFatPerKg
     }
 
     // Group planned workouts by date to see which days need estimates

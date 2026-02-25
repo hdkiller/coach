@@ -1052,6 +1052,9 @@ export const metabolicService = {
       fuelState3Max: settings.fuelState3Max,
       bmr: settings.bmr ?? 1600,
       activityLevel: settings.activityLevel || 'ACTIVE',
+      baseCaloriesMode:
+        settings.baseCaloriesMode === 'MANUAL_NON_EXERCISE' ? 'MANUAL_NON_EXERCISE' : 'AUTO',
+      nonExerciseBaseCalories: settings.nonExerciseBaseCalories ?? undefined,
       targetAdjustmentPercent: settings.targetAdjustmentPercent ?? 0,
       baseProteinPerKg: settings.baseProteinPerKg,
       baseFatPerKg: settings.baseFatPerKg
@@ -1171,6 +1174,7 @@ export const metabolicService = {
         fluid: totalFluid,
         sodium: totalSodium,
         baseCalories: breakdown.baseCalories,
+        baseCaloriesMode: breakdown.baseCaloriesMode,
         activityCalories: breakdown.activityCalories,
         adjustmentCalories: breakdown.adjustmentCalories,
         fuelState: dominantState,
