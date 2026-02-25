@@ -123,6 +123,7 @@ export const IntervalsService = {
 
   /**
    * Sync activities for a user within a given date range.
+   * Chunks the range into 90-day batches to avoid timeouts and handle large histories.
    */
   async syncActivities(userId: string, startDate: Date, endDate: Date) {
     const integration = await prisma.integration.findUnique({
@@ -151,7 +152,43 @@ export const IntervalsService = {
     const historicalEndLocal = getEndOfDayUTC(timezone, now)
     const historicalEnd = endDate > historicalEndLocal ? historicalEndLocal : endDate
 
-    const allActivities = await fetchIntervalsWorkouts(integration, startDate, historicalEnd)
+    let totalUpsertedCount = 0
+    let currentEnd = new Date(historicalEnd)
+
+    // Process in 90-day chunks, going backwards from newest to oldest
+    while (currentEnd >= startDate) {
+      const currentStart = new Date(currentEnd)
+      currentStart.setDate(currentStart.getDate() - 90)
+      const effectiveStart = currentStart < startDate ? startDate : currentStart
+
+      console.log(
+        `[Intervals Sync] Fetching activity chunk: ${effectiveStart.toISOString().split('T')[0]} to ${currentEnd.toISOString().split('T')[0]}`
+      )
+
+      const chunkUpserted = await IntervalsService._syncActivitiesBatch(
+        userId,
+        integration,
+        effectiveStart,
+        currentEnd
+      )
+      totalUpsertedCount += chunkUpserted
+
+      // Move to the day before currentStart
+      currentEnd = new Date(effectiveStart)
+      currentEnd.setDate(currentEnd.getDate() - 1)
+
+      // Break if we processed the very first day
+      if (effectiveStart <= startDate) break
+    }
+
+    return totalUpsertedCount
+  },
+
+  /**
+   * Internal helper to sync a batch of activities.
+   */
+  async _syncActivitiesBatch(userId: string, integration: any, startDate: Date, endDate: Date) {
+    const allActivities = await fetchIntervalsWorkouts(integration, startDate, endDate)
 
     // Filter out incomplete Strava activities and Notes/Holidays
     const activities = allActivities.filter((activity) => {
@@ -485,6 +522,7 @@ export const IntervalsService = {
 
   /**
    * Sync wellness data for a user within a given date range.
+   * Chunks the range into yearly batches to handle large histories safely.
    */
   async syncWellness(userId: string, startDate: Date, endDate: Date) {
     const integration = await prisma.integration.findUnique({
@@ -505,23 +543,20 @@ export const IntervalsService = {
     const historicalEndLocal = getEndOfDayUTC(timezone, now)
     const historicalEnd = endDate > historicalEndLocal ? historicalEndLocal : endDate
 
-    const [user, wellnessData] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { weightUnits: true }
-      }),
-      fetchIntervalsWellness(integration, startDate, historicalEnd)
-    ])
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { weightUnits: true }
+    })
 
     const settings = integration.settings as any
     const readinessScale = settings?.readinessScale || 'STANDARD'
     const sleepScoreScale = settings?.sleepScoreScale || 'STANDARD'
 
-    // Fetch historical data for normalization if using HRV4TRAINING
+    // Fetch initial historical data for normalization if using HRV4TRAINING
     let baselineRawReadiness: number[] = []
     if (readinessScale === 'HRV4TRAINING') {
       const recentWellness = await wellnessRepository.getForUser(userId, {
-        limit: 60, // Get a bit more for a better baseline
+        limit: 60,
         orderBy: { date: 'desc' }
       })
       baselineRawReadiness = recentWellness
@@ -529,65 +564,87 @@ export const IntervalsService = {
         .filter((v) => typeof v === 'number')
     }
 
-    let upsertedCount = 0
-    // Sort wellness data by date ascending to ensure baseline updates correctly during backfills
-    const sortedWellness = [...wellnessData].sort((a, b) => a.id.localeCompare(b.id))
+    let totalUpsertedCount = 0
+    let currentEnd = new Date(historicalEnd)
 
-    for (const wellness of sortedWellness) {
-      // Force wellness date to UTC midnight (Intervals.icu returns 'YYYY-MM-DD' as id)
-      // This prevents timezone-based shifting when converting to Date object
-      const rawDate = new Date(wellness.id)
-      const wellnessDate = new Date(
-        Date.UTC(rawDate.getUTCFullYear(), rawDate.getUTCMonth(), rawDate.getUTCDate())
+    // Process in 365-day chunks, going backwards from newest to oldest
+    while (currentEnd >= startDate) {
+      const currentStart = new Date(currentEnd)
+      currentStart.setDate(currentStart.getDate() - 365)
+      const effectiveStart = currentStart < startDate ? startDate : currentStart
+
+      console.log(
+        `[Intervals Sync] Fetching wellness chunk: ${effectiveStart.toISOString().split('T')[0]} to ${currentEnd.toISOString().split('T')[0]}`
       )
 
-      const normalizedWellness = normalizeIntervalsWellness(
-        wellness,
-        userId,
-        wellnessDate,
-        readinessScale,
-        sleepScoreScale,
-        {
-          historicalRawReadiness: baselineRawReadiness
+      const wellnessData = await fetchIntervalsWellness(integration, effectiveStart, currentEnd)
+
+      let chunkUpsertedCount = 0
+      // Sort wellness data by date ascending to ensure baseline updates correctly during backfills
+      const sortedWellness = [...wellnessData].sort((a, b) => a.id.localeCompare(b.id))
+
+      for (const wellness of sortedWellness) {
+        // Force wellness date to UTC midnight (Intervals.icu returns 'YYYY-MM-DD' as id)
+        const rawDate = new Date(wellness.id)
+        const wellnessDate = new Date(
+          Date.UTC(rawDate.getUTCFullYear(), rawDate.getUTCMonth(), rawDate.getUTCDate())
+        )
+
+        const normalizedWellness = normalizeIntervalsWellness(
+          wellness,
+          userId,
+          wellnessDate,
+          readinessScale,
+          sleepScoreScale,
+          {
+            historicalRawReadiness: baselineRawReadiness
+          }
+        )
+
+        if (normalizedWellness.weight) {
+          normalizedWellness.weight = roundToTwoDecimals(normalizedWellness.weight)
         }
-      )
 
-      // Intervals weight is always KG. Standardized to KG in DB.
-      if (normalizedWellness.weight) {
-        normalizedWellness.weight = roundToTwoDecimals(normalizedWellness.weight)
-      }
+        // If using HRV4TRAINING, update baseline for next iteration
+        if (readinessScale === 'HRV4TRAINING' && typeof wellness.readiness === 'number') {
+          baselineRawReadiness.push(wellness.readiness)
+          if (baselineRawReadiness.length > 60) {
+            baselineRawReadiness.shift()
+          }
+        }
 
-      // If using HRV4TRAINING, update baseline for next iteration
-      if (readinessScale === 'HRV4TRAINING' && typeof wellness.readiness === 'number') {
-        baselineRawReadiness.push(wellness.readiness)
-        // Keep baseline to last 60 entries
-        if (baselineRawReadiness.length > 60) {
-          baselineRawReadiness.shift()
+        const { isNew } = await wellnessRepository.upsert(
+          userId,
+          wellnessDate,
+          normalizedWellness,
+          normalizedWellness,
+          'intervals'
+        )
+        if (isNew) {
+          chunkUpsertedCount++
+        }
+
+        // Also update the User profile weight if this is a recent measurement
+        const isRecent = new Date().getTime() - wellnessDate.getTime() < 7 * 24 * 60 * 60 * 1000
+        if (isRecent && normalizedWellness.weight) {
+          await athleteMetricsService.updateMetrics(userId, {
+            weight: normalizedWellness.weight,
+            date: wellnessDate
+          })
         }
       }
 
-      const { isNew } = await wellnessRepository.upsert(
-        userId,
-        wellnessDate,
-        normalizedWellness,
-        normalizedWellness,
-        'intervals'
-      )
-      if (isNew) {
-        upsertedCount++
-      }
+      totalUpsertedCount += chunkUpsertedCount
 
-      // Also update the User profile weight if this is a recent measurement
-      const isRecent = new Date().getTime() - wellnessDate.getTime() < 7 * 24 * 60 * 60 * 1000
-      if (isRecent && normalizedWellness.weight) {
-        await athleteMetricsService.updateMetrics(userId, {
-          weight: normalizedWellness.weight,
-          date: wellnessDate
-        })
-      }
+      // Move to the day before currentStart
+      currentEnd = new Date(effectiveStart)
+      currentEnd.setDate(currentEnd.getDate() - 1)
+
+      // Break if we processed the very first day
+      if (effectiveStart <= startDate) break
     }
 
-    return upsertedCount
+    return totalUpsertedCount
   },
 
   /**
@@ -994,14 +1051,20 @@ export const IntervalsService = {
               await calculateWorkoutStress(record.id, userId)
             }
           } catch (error) {
-            console.error(`[IntervalsService] Failed to normalize TSS for workout ${record.id}`, error)
+            console.error(
+              `[IntervalsService] Failed to normalize TSS for workout ${record.id}`,
+              error
+            )
           }
 
           if (Array.isArray(activity.stream_types) && activity.stream_types.length > 0) {
             try {
               await IntervalsService.syncActivityStream(userId, record.id, activityId)
             } catch (error) {
-              console.error(`[IntervalsService] Failed to sync stream for workout ${record.id}`, error)
+              console.error(
+                `[IntervalsService] Failed to sync stream for workout ${record.id}`,
+                error
+              )
             }
           }
         } else if (activityId && activity) {
@@ -1014,7 +1077,8 @@ export const IntervalsService = {
             if (patchDate) deltaData.date = patchDate
 
             if (typeof activity.name === 'string') deltaData.title = activity.name
-            if (activity.description !== undefined) deltaData.description = activity.description || null
+            if (activity.description !== undefined)
+              deltaData.description = activity.description || null
             if (typeof activity.type === 'string') deltaData.type = activity.type
 
             const moving = toNumberOrNull(activity.moving_time)
@@ -1024,13 +1088,15 @@ export const IntervalsService = {
               deltaData.durationSec = Math.round(moving || elapsed || duration || 0)
             }
 
-            if (toNumberOrNull(activity.distance) !== null) deltaData.distanceMeters = activity.distance
+            if (toNumberOrNull(activity.distance) !== null)
+              deltaData.distanceMeters = activity.distance
             if (toNumberOrNull(activity.total_elevation_gain) !== null) {
               deltaData.elevationGain = Math.round(activity.total_elevation_gain)
             }
 
             const avgWatts = activity.icu_average_watts ?? activity.average_watts
-            if (toNumberOrNull(avgWatts) !== null) deltaData.averageWatts = toRoundedOrNull(avgWatts)
+            if (toNumberOrNull(avgWatts) !== null)
+              deltaData.averageWatts = toRoundedOrNull(avgWatts)
 
             const maxWatts =
               activity.max_watts ??
@@ -1069,7 +1135,8 @@ export const IntervalsService = {
               deltaData.trainingLoad = activity.icu_training_load
             }
             if (toNumberOrNull(activity.icu_hrss) !== null) deltaData.hrLoad = activity.icu_hrss
-            if (toNumberOrNull(activity.trimp) !== null) deltaData.trimp = toRoundedOrNull(activity.trimp)
+            if (toNumberOrNull(activity.trimp) !== null)
+              deltaData.trimp = toRoundedOrNull(activity.trimp)
 
             const intensity = normalizeIntensityValue(activity)
             if (intensity !== null) deltaData.intensity = intensity
@@ -1088,7 +1155,8 @@ export const IntervalsService = {
             if (toNumberOrNull(activity.session_rpe) !== null) {
               deltaData.sessionRpe = toRoundedOrNull(activity.session_rpe)
             }
-            if (toNumberOrNull(activity.feel) !== null) deltaData.feel = 6 - Math.round(activity.feel)
+            if (toNumberOrNull(activity.feel) !== null)
+              deltaData.feel = 6 - Math.round(activity.feel)
             if (toNumberOrNull(activity.calories) !== null) {
               deltaData.calories = toRoundedOrNull(activity.calories)
             }
@@ -1115,9 +1183,15 @@ export const IntervalsService = {
                   start_date_local: activity.start_date_local || activity.start_date,
                   name: activity.name || 'Unnamed Activity',
                   type: activity.type || 'Other',
-                  moving_time: Number(activity.moving_time || activity.elapsed_time || activity.duration || 0),
-                  elapsed_time: Number(activity.elapsed_time || activity.moving_time || activity.duration || 0),
-                  duration: Number(activity.duration || activity.moving_time || activity.elapsed_time || 0)
+                  moving_time: Number(
+                    activity.moving_time || activity.elapsed_time || activity.duration || 0
+                  ),
+                  elapsed_time: Number(
+                    activity.elapsed_time || activity.moving_time || activity.duration || 0
+                  ),
+                  duration: Number(
+                    activity.duration || activity.moving_time || activity.elapsed_time || 0
+                  )
                 } as any,
                 userId
               )
@@ -1206,7 +1280,9 @@ export const IntervalsService = {
             },
             select: { externalId: true, structuredWorkout: true }
           })
-          const existingMap = new Map(existingWorkouts.map((w) => [w.externalId, w.structuredWorkout]))
+          const existingMap = new Map(
+            existingWorkouts.map((w) => [w.externalId, w.structuredWorkout])
+          )
 
           for (const planned of changedEvents) {
             if (!planned?.id) continue

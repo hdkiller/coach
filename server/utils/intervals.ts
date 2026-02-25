@@ -789,34 +789,32 @@ export async function fetchIntervalsWellness(
 ): Promise<IntervalsWellness[]> {
   const athleteId = getIntervalsAthleteId(integration)
 
-  const wellness: IntervalsWellness[] = []
+  const oldestStr = startDate.toISOString().split('T')[0]
+  const newestStr = endDate.toISOString().split('T')[0]
 
-  // Fetch wellness data for each day in the range
-  const currentDate = new Date(startDate)
-  while (currentDate <= endDate) {
-    const dateStr = currentDate.toISOString().split('T')[0]
-    const url = `https://intervals.icu/api/v1/athlete/${athleteId}/wellness/${dateStr}`
+  const url = new URL(`https://intervals.icu/api/v1/athlete/${athleteId}/wellness`)
+  if (oldestStr) url.searchParams.set('oldest', oldestStr)
+  if (newestStr) url.searchParams.set('newest', newestStr)
 
-    const headers = getIntervalsHeaders(integration)
+  const headers = getIntervalsHeaders(integration)
 
-    try {
-      const response = await fetchWithRetry(url, {
-        headers
-      })
+  console.log(`[Intervals Sync] Fetching wellness data from: ${url.toString()}`)
 
-      if (response.ok) {
-        const data = await response.json()
-        wellness.push({ id: dateStr, ...data })
-      }
-    } catch (error) {
-      // Continue on error for individual days
-      console.error(`Error fetching wellness for ${dateStr}:`, error)
-    }
+  const response = await fetchWithRetry(url.toString(), {
+    headers
+  })
 
-    currentDate.setUTCDate(currentDate.getDate() + 1)
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error(`[Intervals Sync] ❌ Wellness API error ${response.status}: ${errorText}`)
+    throw new Error(`Intervals API error: ${response.status} ${response.statusText}`)
   }
 
-  return wellness
+  const data = await response.json()
+
+  // Intervals returns an array of wellness objects.
+  // Each has an 'id' field which is the date string 'YYYY-MM-DD'.
+  return Array.isArray(data) ? data : []
 }
 
 export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: string) {
