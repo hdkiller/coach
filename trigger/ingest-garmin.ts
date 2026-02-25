@@ -52,6 +52,20 @@ export const ingestGarminTask = task({
       endTimestamp = Math.floor(Date.now() / 1000)
     }
 
+    // Garmin Pull API enforces a strict 24-hour (86400s) maximum range.
+    // If the requested range is larger, we clamp it to the last 24 hours of the range.
+    if (endTimestamp - startTimestamp > 86400) {
+      logger.warn(
+        `Garmin requested range too large (${endTimestamp - startTimestamp}s). Clamping to 24 hours.`,
+        {
+          originalStart: startTimestamp,
+          clampedStart: endTimestamp - 86400,
+          end: endTimestamp
+        }
+      )
+      startTimestamp = endTimestamp - 86400
+    }
+
     logger.log(`Starting Garmin ingestion for user ${userId}`, { startTimestamp, endTimestamp })
 
     await prisma.integration.update({

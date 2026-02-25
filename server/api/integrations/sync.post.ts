@@ -153,8 +153,17 @@ export default defineEventHandler(async (event) => {
     // For Yazio: last 5 days (to avoid rate limiting - older data is kept as-is)
     // For Strava: last 7 days (to respect API rate limits - 200 req/15min, 2000/day)
     // For Fitbit: last 7 days (nutrition history)
+    // For Garmin: last 1 day (Pull API maximum range is 24 hours)
     let daysBack =
-      provider === 'yazio' ? 5 : provider === 'strava' ? 7 : provider === 'fitbit' ? 7 : 90
+      provider === 'yazio'
+        ? 5
+        : provider === 'strava'
+          ? 7
+          : provider === 'fitbit'
+            ? 7
+            : provider === 'garmin'
+              ? 1
+              : 90
 
     // Logic for Intervals.icu:
     // If it's the first sync (initialSyncCompleted is false), fetch 90 days history
