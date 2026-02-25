@@ -60,12 +60,25 @@ export const ingestGarminTask = task({
     })
 
     try {
-      const [dailies, sleeps, hrv, activities] = await Promise.all([
+      const results = await Promise.allSettled([
         fetchGarminDailies(integration, startTimestamp, endTimestamp),
         fetchGarminSleeps(integration, startTimestamp, endTimestamp),
         fetchGarminHRV(integration, startTimestamp, endTimestamp),
         fetchGarminActivities(integration, startTimestamp, endTimestamp)
       ])
+
+      const dailies = results[0].status === 'fulfilled' ? results[0].value : []
+      const sleeps = results[1].status === 'fulfilled' ? results[1].value : []
+      const hrv = results[2].status === 'fulfilled' ? results[2].value : []
+      const activities = results[3].status === 'fulfilled' ? results[3].value : []
+
+      // Log errors for failed requests
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const types = ['dailies', 'sleeps', 'hrv', 'activities']
+          logger.error(`Failed to fetch Garmin ${types[index]}`, { error: result.reason })
+        }
+      })
 
       logger.log(`Fetched Garmin data`, {
         dailies: dailies.length,
@@ -74,17 +87,25 @@ export const ingestGarminTask = task({
         activities: activities.length
       })
 
-      await GarminService.processWellness(userId, dailies)
-      await GarminService.processSleep(userId, sleeps)
-      await GarminService.processHRV(userId, hrv)
-      await GarminService.processActivities(userId, activities, integration)
+      if (dailies.length > 0) await GarminService.processWellness(userId, dailies)
+      if (sleeps.length > 0) await GarminService.processSleep(userId, sleeps)
+      if (hrv.length > 0) await GarminService.processHRV(userId, hrv)
+      if (activities.length > 0)
+        await GarminService.processActivities(userId, activities, integration)
+
+      // If all failed, we should still consider it an error
+      if (results.every((r) => r.status === 'rejected')) {
+        throw new Error('All Garmin API requests failed')
+      }
 
       await prisma.integration.update({
         where: { id: integration.id },
         data: {
           syncStatus: 'SUCCESS',
           lastSyncAt: new Date(),
-          errorMessage: null
+          errorMessage: results.some((r) => r.status === 'rejected')
+            ? 'Some data types failed to sync. Check logs for details.'
+            : null
         }
       })
 

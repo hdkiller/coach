@@ -82,7 +82,9 @@ export async function fetchGarminData(
   })
 
   if (!response.ok) {
-    throw new Error(`Garmin API error: ${response.statusText}`)
+    const errorBody = await response.json().catch(() => ({}))
+    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    throw new Error(`Garmin API error (${response.status}): ${errorMessage}`)
   }
 
   return await response.json()
@@ -164,7 +166,9 @@ export async function fetchGarminActivityFile(
   })
 
   if (!response.ok) {
-    throw new Error(`Garmin File API error: ${response.statusText}`)
+    const errorBody = await response.json().catch(() => ({}))
+    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    throw new Error(`Garmin File API error (${response.status}): ${errorMessage}`)
   }
 
   const arrayBuffer = await response.arrayBuffer()
