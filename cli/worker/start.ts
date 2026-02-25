@@ -60,7 +60,7 @@ export const startCommand = new Command('start')
         const { provider, type, userId, event, logId } = job.data
 
         // Handle bulk ingest jobs from the async API endpoint
-        if (provider === 'intervals' || provider === 'intervals-bulk') {
+        if (provider === 'intervals-bulk') {
           const { payload, headers } = job.data
           const events = payload.events || []
 
