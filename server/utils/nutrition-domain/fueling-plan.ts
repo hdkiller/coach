@@ -21,6 +21,8 @@ export function calculateFuelingStrategy(
   // Default Windows
   const windows: SerializedFuelingWindow[] = []
   const notes: string[] = []
+  const baseCaloriesMode =
+    profile.baseCaloriesMode === 'MANUAL_NON_EXERCISE' ? 'MANUAL_NON_EXERCISE' : 'AUTO'
 
   // --- 1. DETERMINE FUEL STATE & DAILY BASELINE ---
   let state = 1
@@ -60,6 +62,7 @@ export function calculateFuelingStrategy(
         baseCalories: Math.round(
           dailyCarbTargetGrams * 4 + profile.weight * baseProtein * 4 + profile.weight * baseFat * 9
         ),
+        baseCaloriesMode,
         activityCalories: 0,
         adjustmentCalories: 0,
         fuelState: 1
@@ -235,6 +238,7 @@ export function calculateFuelingStrategy(
       fluid: intraFluid + 2000,
       sodium: intraSodium + 1000,
       baseCalories: breakdown.baseCalories,
+      baseCaloriesMode: breakdown.baseCaloriesMode,
       activityCalories: breakdown.activityCalories,
       adjustmentCalories: breakdown.adjustmentCalories,
       fuelState: state,
@@ -261,8 +265,15 @@ export function calculateDailyCalorieBreakdown(
     EXTRA_ACTIVE: 2.1
   }
 
+  const baseCaloriesMode =
+    profile.baseCaloriesMode === 'MANUAL_NON_EXERCISE' ? 'MANUAL_NON_EXERCISE' : 'AUTO'
   const multiplier = ACTIVITY_MULTIPLIERS[profile.activityLevel || 'ACTIVE'] || 1.55
-  const baseCalories = Math.round((profile.bmr || 1600) * multiplier)
+  const autoBaseCalories = Math.round((profile.bmr || 1600) * multiplier)
+  const manualBaseCalories = Math.round(profile.nonExerciseBaseCalories || 0)
+  const baseCalories =
+    baseCaloriesMode === 'MANUAL_NON_EXERCISE' && manualBaseCalories > 0
+      ? manualBaseCalories
+      : autoBaseCalories
 
   let activityCalories = 0
   const workoutDetails: CalorieBreakdown['workouts'] = []
@@ -298,6 +309,7 @@ export function calculateDailyCalorieBreakdown(
 
   return {
     baseCalories,
+    baseCaloriesMode,
     activityCalories,
     adjustmentCalories,
     totalTarget,
