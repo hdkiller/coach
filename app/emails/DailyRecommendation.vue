@@ -41,9 +41,7 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview v-if="'`Your training focus for ${date} is ready.`'">{{
-      '`Your training focus for ${date} is ready.`'
-    }}</EPreview>
+    <EPreview>{{ `Your training focus for ${date} is ready.` }}</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;

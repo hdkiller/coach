@@ -39,9 +39,7 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview v-if="'`Your ${tier} plan is active. Advanced coaching is unlocked.`'">{{
-      '`Your ${tier} plan is active. Advanced coaching is unlocked.`'
-    }}</EPreview>
+    <EPreview>{{ `Your ${tier} plan is active. Advanced coaching is unlocked.` }}</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;

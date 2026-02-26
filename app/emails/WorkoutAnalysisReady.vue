@@ -52,9 +52,7 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview v-if="'`Excellent work. Your analysis is ready for ${workoutTitle}.`'">{{
-      '`Excellent work. Your analysis is ready for ${workoutTitle}.`'
-    }}</EPreview>
+    <EPreview>{{ `Excellent work. Your analysis is ready for ${workoutTitle}.` }}</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;
