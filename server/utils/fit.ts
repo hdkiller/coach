@@ -57,7 +57,103 @@ interface FitStreams {
   latlng: [number, number][]
   grade: number[]
   moving: boolean[]
+  leftRightBalance: number[]
+  targetPower: number[]
   [key: string]: any[]
+}
+
+function summarizeObjectKeys(items: any[], limit = 80): Array<{ key: string; count: number }> {
+  const counts = new Map<string, number>()
+  for (const item of items || []) {
+    if (!item || typeof item !== 'object') continue
+    for (const key of Object.keys(item)) {
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+  }
+  return [...counts.entries()]
+    .map(([key, count]) => ({ key, count }))
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key))
+    .slice(0, limit)
+}
+
+/**
+ * Extract non-stream FIT metadata for debugging/UI feature expansion.
+ * This is intentionally compact and avoids storing full record payloads.
+ */
+export function extractFitExtrasMeta(fitData: FitData) {
+  const sessions = Array.isArray(fitData?.sessions) ? fitData.sessions : []
+  const laps = Array.isArray(fitData?.laps) ? fitData.laps : []
+  const events = Array.isArray(fitData?.events) ? fitData.events : []
+  const records = Array.isArray(fitData?.records) ? fitData.records : []
+  const deviceInfos = Array.isArray((fitData as any)?.device_infos)
+    ? (fitData as any).device_infos
+    : []
+
+  const session = sessions[0] || null
+  const lap0 = laps[0] || null
+  const eventTypeCounts = new Map<string, number>()
+  for (const event of events) {
+    const key = String(event?.event || event?.event_type || 'unknown')
+    eventTypeCounts.set(key, (eventTypeCounts.get(key) || 0) + 1)
+  }
+
+  return {
+    parsedAt: new Date().toISOString(),
+    protocolVersion: fitData?.protocolVersion ?? null,
+    profileVersion: fitData?.profileVersion ?? null,
+    counts: {
+      sessions: sessions.length,
+      laps: laps.length,
+      events: events.length,
+      records: records.length,
+      deviceInfos: deviceInfos.length
+    },
+    deviceInfos: deviceInfos.slice(0, 12).map((d: any) => ({
+      manufacturer: d?.manufacturer ?? null,
+      product: d?.product ?? null,
+      productName: d?.product_name || d?.productName || null,
+      serialNumber: d?.serial_number || d?.serialNumber || null,
+      softwareVersion: d?.software_version || d?.softwareVersion || null,
+      batteryStatus: d?.battery_status || d?.batteryStatus || null
+    })),
+    sessionSummary: session
+      ? {
+          sport: session?.sport ?? null,
+          subSport: session?.sub_sport ?? session?.subSport ?? null,
+          startTime: session?.start_time ?? null,
+          totalElapsedTime: session?.total_elapsed_time ?? null,
+          totalTimerTime: session?.total_timer_time ?? null,
+          totalDistance: session?.total_distance ?? null,
+          totalAscent: session?.total_ascent ?? null,
+          totalDescent: session?.total_descent ?? null,
+          totalCalories: session?.total_calories ?? null,
+          avgSpeed: session?.avg_speed ?? null,
+          maxSpeed: session?.max_speed ?? null,
+          avgHeartRate: session?.avg_heart_rate ?? null,
+          maxHeartRate: session?.max_heart_rate ?? null,
+          avgPower: session?.avg_power ?? null,
+          maxPower: session?.max_power ?? null,
+          normalizedPower: session?.normalized_power ?? null,
+          trainingStressScore: session?.training_stress_score ?? null
+        }
+      : null,
+    lapPreview: lap0
+      ? {
+          startTime: lap0?.start_time ?? null,
+          totalElapsedTime: lap0?.total_elapsed_time ?? null,
+          totalTimerTime: lap0?.total_timer_time ?? null,
+          totalDistance: lap0?.total_distance ?? null,
+          totalCalories: lap0?.total_calories ?? null,
+          avgSpeed: lap0?.avg_speed ?? null,
+          avgHeartRate: lap0?.avg_heart_rate ?? null,
+          avgPower: lap0?.avg_power ?? null
+        }
+      : null,
+    eventTypeCounts: [...eventTypeCounts.entries()]
+      .map(([event, count]) => ({ event, count }))
+      .sort((a, b) => b.count - a.count || a.event.localeCompare(b.event)),
+    topRecordKeys: summarizeObjectKeys(records, 80)
+  }
 }
 
 /**
@@ -74,7 +170,9 @@ export function extractFitStreams(records: any[]) {
     altitude: [],
     latlng: [],
     grade: [],
-    moving: []
+    moving: [],
+    leftRightBalance: [],
+    targetPower: []
   }
 
   records.forEach((record: any) => {
@@ -92,6 +190,9 @@ export function extractFitStreams(records: any[]) {
     if (record.power !== undefined) streams.watts.push(record.power)
     if (record.altitude !== undefined) streams.altitude.push(record.altitude)
     if (record.grade !== undefined) streams.grade.push(record.grade)
+    if (record.left_right_balance !== undefined)
+      streams.leftRightBalance.push(record.left_right_balance)
+    if (record.target_power !== undefined) streams.targetPower.push(record.target_power)
 
     // GPS
     if (record.position_lat && record.position_long) {

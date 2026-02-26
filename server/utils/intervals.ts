@@ -96,6 +96,8 @@ interface IntervalsActivity {
 
   // Linked Event
   paired_event_id?: string | number
+  device_name?: string
+  deviceName?: string
 
   [key: string]: any
 }
@@ -906,7 +908,7 @@ export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: s
     elapsedTimeSec: activity.elapsed_time || null,
 
     // Device & Metadata
-    deviceName: null, // Intervals.icu doesn't provide device info
+    deviceName: activity.device_name || activity.deviceName || null,
     commute: false, // Intervals.icu doesn't track commute flag
     isPrivate: false, // Intervals.icu doesn't provide privacy flag
     gearId: null, // Intervals.icu doesn't provide gear info
