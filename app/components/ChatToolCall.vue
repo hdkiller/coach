@@ -41,6 +41,7 @@
 
   // Check if response has error
   const hasError = computed(() => {
+    if (isCancelled.value) return false
     if (props.toolCall.status === 'error') return true
     if (props.toolCall.error) return true
     return (
@@ -50,11 +51,27 @@
     )
   })
 
+  // Check if call was cancelled by user
+  const isCancelled = computed(() => {
+    const errorMsg = props.toolCall.error || props.toolCall.response?.error || ''
+    const responseMsg =
+      typeof props.toolCall.response === 'string'
+        ? props.toolCall.response
+        : props.toolCall.response?.message || ''
+
+    return (
+      errorMsg.toLowerCase().includes('cancelled') ||
+      errorMsg.toLowerCase().includes('declined') ||
+      responseMsg.toLowerCase().includes('cancelled') ||
+      responseMsg.toLowerCase().includes('declined')
+    )
+  })
+
   const isLoading = computed(() => {
     if (props.toolCall.status) {
       return props.toolCall.status === 'loading'
     }
-    return !props.toolCall.response && !hasError.value
+    return !props.toolCall.response && !hasError.value && !isCancelled.value
   })
 
   // Get icon for tool
@@ -99,6 +116,12 @@
   // Truncate response for preview
   const responsePreview = computed(() => {
     if (isLoading.value) return 'Executing tool...'
+
+    if (isCancelled.value) {
+      return (
+        props.toolCall.error || props.toolCall.response?.error || 'Action cancelled for refinement'
+      )
+    }
 
     if (hasError.value) {
       return props.toolCall.error || props.toolCall.response?.error || 'Failed to execute tool'
@@ -158,7 +181,13 @@
         :name="isLoading ? 'i-heroicons-arrow-path' : getToolIcon(toolCall.name)"
         class="w-5 h-5 flex-shrink-0 mt-0.5"
         :class="[
-          hasError ? 'text-red-500' : isLoading ? 'text-gray-400 animate-spin' : 'text-blue-500'
+          hasError
+            ? 'text-red-500'
+            : isCancelled
+              ? 'text-amber-500'
+              : isLoading
+                ? 'text-gray-400 animate-spin'
+                : 'text-blue-500'
         ]"
       />
 
@@ -168,7 +197,11 @@
           <span
             class="font-medium text-sm truncate"
             :class="
-              hasError ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'
+              hasError
+                ? 'text-red-600 dark:text-red-400'
+                : isCancelled
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-gray-900 dark:text-gray-100'
             "
           >
             {{ formatToolName(toolCall.name) }}
@@ -222,43 +255,62 @@
       </div>
 
       <!-- Response -->
-      <div v-if="toolCall.response">
+      <div v-if="toolCall.response || isCancelled">
         <h4
           class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2"
         >
           <UIcon
-            :name="hasError ? 'i-heroicons-exclamation-circle' : 'i-heroicons-arrow-left-circle'"
+            :name="
+              hasError
+                ? 'i-heroicons-exclamation-circle'
+                : isCancelled
+                  ? 'i-heroicons-minus-circle'
+                  : 'i-heroicons-arrow-left-circle'
+            "
             class="w-4 h-4"
-            :class="hasError ? 'text-red-500' : ''"
+            :class="hasError ? 'text-red-500' : isCancelled ? 'text-amber-500' : ''"
           />
-          {{ hasError ? 'Error' : 'Response' }}
+          {{ hasError ? 'Error' : isCancelled ? 'Cancelled' : 'Response' }}
         </h4>
         <div
           class="rounded border p-3 max-h-96 overflow-y-auto"
           :class="
             hasError
               ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900'
-              : 'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800'
+              : isCancelled
+                ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900'
+                : 'bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800'
           "
         >
           <ChatTicketPreview
-            v-if="isSupportTicketCall && !hasError"
+            v-if="isSupportTicketCall && !hasError && !isCancelled"
             :tool-name="toolCall.name"
             :args="toolCall.args"
             :response="toolCall.response"
             class="mb-3"
           />
           <p
-            v-if="isSupportTicketCall && hasError"
-            class="text-xs whitespace-pre-wrap break-words text-red-700 dark:text-red-400"
+            v-if="isSupportTicketCall && (hasError || isCancelled)"
+            class="text-xs whitespace-pre-wrap break-words"
+            :class="
+              hasError ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'
+            "
           >
-            {{ toolCall.error || toolCall.response?.error || 'Ticket action failed.' }}
+            {{
+              toolCall.error ||
+              toolCall.response?.error ||
+              (isCancelled ? 'Action cancelled for refinement.' : 'Ticket action failed.')
+            }}
           </p>
           <pre
             v-if="!isSupportTicketCall"
             class="text-xs overflow-x-auto whitespace-pre-wrap break-words"
             :class="
-              hasError ? 'text-red-700 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'
+              hasError
+                ? 'text-red-700 dark:text-red-400'
+                : isCancelled
+                  ? 'text-amber-700 dark:text-amber-400'
+                  : 'text-gray-600 dark:text-gray-400'
             "
           ><code>{{ formatJson(toolCall.response) }}</code></pre>
         </div>

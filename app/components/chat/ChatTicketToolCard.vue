@@ -14,12 +14,26 @@
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
 
-  const hasError = computed(
-    () =>
+  const hasError = computed(() => {
+    if (isCancelled.value) return false
+    return (
       props.status === 'error' ||
       !!props.response?.error ||
       !!props.response?.message?.toLowerCase?.().includes('failed')
-  )
+    )
+  })
+
+  const isCancelled = computed(() => {
+    const errorMsg = props.response?.error || ''
+    const responseMsg = props.response?.message || ''
+
+    return (
+      errorMsg.toLowerCase().includes('cancelled') ||
+      errorMsg.toLowerCase().includes('declined') ||
+      responseMsg.toLowerCase().includes('cancelled') ||
+      responseMsg.toLowerCase().includes('declined')
+    )
+  })
 
   const hasPreviewData = computed(() => {
     if (typeof props.args?.title === 'string' && props.args.title.trim()) return true
@@ -39,6 +53,7 @@
 
   const summaryText = computed(() => {
     if (props.status === 'loading') return 'Preparing ticket action...'
+    if (isCancelled.value) return props.response?.error || 'Action cancelled for refinement'
     if (hasError.value) return props.response?.error || 'Ticket action failed'
     if (typeof props.response?.message === 'string' && props.response.message.trim()) {
       return props.response.message
@@ -54,21 +69,33 @@
     :class="
       hasError
         ? 'border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20'
-        : 'border-primary-200 dark:border-primary-800 bg-primary-50/40 dark:bg-primary-950/20'
+        : isCancelled
+          ? 'border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20'
+          : 'border-primary-200 dark:border-primary-800 bg-primary-50/40 dark:bg-primary-950/20'
     "
   >
     <div class="px-4 py-3 space-y-3">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <UIcon
-            :name="hasError ? 'i-heroicons-exclamation-circle' : 'i-heroicons-ticket'"
+            :name="
+              hasError
+                ? 'i-heroicons-exclamation-circle'
+                : isCancelled
+                  ? 'i-heroicons-minus-circle'
+                  : 'i-heroicons-ticket'
+            "
             class="size-5 shrink-0"
-            :class="hasError ? 'text-red-500' : 'text-primary-500'"
+            :class="hasError ? 'text-red-500' : isCancelled ? 'text-amber-500' : 'text-primary-500'"
           />
           <p
             class="text-sm font-semibold truncate"
             :class="
-              hasError ? 'text-red-800 dark:text-red-300' : 'text-gray-900 dark:text-gray-100'
+              hasError
+                ? 'text-red-800 dark:text-red-300'
+                : isCancelled
+                  ? 'text-amber-800 dark:text-amber-300'
+                  : 'text-gray-900 dark:text-gray-100'
             "
           >
             {{ formatToolName(toolName) }}
@@ -76,11 +103,19 @@
         </div>
         <UBadge
           v-if="status"
-          :color="hasError ? 'error' : status === 'success' ? 'success' : 'neutral'"
+          :color="
+            hasError
+              ? 'error'
+              : isCancelled
+                ? 'warning'
+                : status === 'success'
+                  ? 'success'
+                  : 'neutral'
+          "
           variant="soft"
           size="sm"
         >
-          {{ status }}
+          {{ isCancelled ? 'cancelled' : status }}
         </UBadge>
       </div>
 
@@ -96,7 +131,13 @@
 
       <p
         class="text-xs whitespace-pre-wrap break-words"
-        :class="hasError ? 'text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-gray-300'"
+        :class="
+          hasError
+            ? 'text-red-700 dark:text-red-300'
+            : isCancelled
+              ? 'text-amber-700 dark:text-amber-300'
+              : 'text-gray-600 dark:text-gray-300'
+        "
       >
         {{ summaryText }}
       </p>

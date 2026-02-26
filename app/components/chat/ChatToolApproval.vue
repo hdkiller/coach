@@ -56,11 +56,11 @@
     const trimmedReason = denyReason.value.trim()
     const result = isSupportTicketTool.value
       ? trimmedReason
-        ? `User declined this ticket draft. Requested changes: ${trimmedReason}`
-        : 'User declined this ticket draft for now. Ask what should be changed, or confirm if they want to cancel.'
+        ? `User cancelled this ticket draft for refinement. Requested changes: ${trimmedReason}`
+        : 'User cancelled this ticket draft for now. Ask what should be changed, or confirm if they want to cancel.'
       : trimmedReason
-        ? `User denied action. Reason: ${trimmedReason}`
-        : 'User denied action.'
+        ? `User cancelled action. Reason: ${trimmedReason}`
+        : 'User cancelled action.'
 
     emit('deny', {
       approvalId: props.approvalId,
@@ -108,7 +108,7 @@
             class="mb-2"
           />
           <pre
-            v-if="!isSupportTicketTool"
+            v-if="!isSupportTicketCall"
             class="text-[10px] text-gray-600 dark:text-gray-400 overflow-x-auto"
           ><code>{{ formatJson(toolCall.args) }}</code></pre>
         </div>
@@ -117,19 +117,21 @@
         <div v-if="result" class="flex items-center gap-2">
           <UIcon
             :name="
-              result.includes('confirmed') || result.includes('Approved')
+              result.toLowerCase().includes('confirmed') ||
+              result.toLowerCase().includes('approved')
                 ? 'i-heroicons-check-circle'
-                : 'i-heroicons-x-circle'
+                : 'i-heroicons-minus-circle'
             "
             :class="
-              result.includes('confirmed') || result.includes('Approved')
+              result.toLowerCase().includes('confirmed') ||
+              result.toLowerCase().includes('approved')
                 ? 'text-green-500'
-                : 'text-red-500'
+                : 'text-amber-500'
             "
             class="w-5 h-5"
           />
           <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
-            {{ result.includes('confirmed') ? 'Approved' : result }}
+            {{ result.toLowerCase().includes('confirmed') ? 'Approved' : result }}
           </span>
         </div>
 
@@ -142,20 +144,20 @@
             :placeholder="
               isSupportTicketTool
                 ? 'Tell the AI what to change in this ticket draft...'
-                : 'Optional reason for denying this action...'
+                : 'Optional reason for cancelling this action...'
             "
             class="w-full"
           />
           <div class="flex gap-2">
             <UButton
               size="xs"
-              color="error"
+              color="neutral"
               variant="solid"
               icon="i-heroicons-paper-airplane"
               :loading="submitting"
               @click="handleDeny"
             >
-              Submit Denial
+              Cancel Action
             </UButton>
             <UButton
               size="xs"
@@ -182,13 +184,13 @@
           </UButton>
           <UButton
             size="xs"
-            color="error"
+            color="neutral"
             variant="ghost"
             icon="i-heroicons-x-mark"
             :loading="submitting"
             @click="handleDenyClick"
           >
-            Deny
+            Cancel
           </UButton>
         </div>
       </div>

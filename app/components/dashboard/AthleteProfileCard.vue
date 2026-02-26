@@ -555,14 +555,15 @@
           v-if="
             userStore.profile.recentSleepDeep ||
             userStore.profile.recentSleepRem ||
-            userStore.profile.recentSleepLight
+            userStore.profile.recentSleepLight ||
+            userStore.profile.recentSleepAwake
           "
           class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800"
         >
           <div class="flex items-center justify-between mb-2">
             <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sleep Stages</p>
             <p class="text-[10px] font-medium text-gray-500">
-              {{ formatSleepTime(userStore.profile.recentSleep * 3600) }} total
+              {{ formatSleepTime(sleepStageTotalSecs) }} total
             </p>
           </div>
           <div class="h-2 w-full rounded-full overflow-hidden flex bg-gray-100 dark:bg-gray-800">
@@ -571,10 +572,7 @@
               :text="`Deep: ${formatSleepTime(userStore.profile.recentSleepDeep)}`"
               class="h-full shrink-0"
               :style="{
-                width:
-                  (userStore.profile.recentSleepDeep / (userStore.profile.recentSleep * 3600)) *
-                    100 +
-                  '%'
+                width: (userStore.profile.recentSleepDeep / sleepStageTotalSecs) * 100 + '%'
               }"
             >
               <div class="h-full w-full bg-indigo-600" />
@@ -584,10 +582,7 @@
               :text="`REM: ${formatSleepTime(userStore.profile.recentSleepRem)}`"
               class="h-full shrink-0"
               :style="{
-                width:
-                  (userStore.profile.recentSleepRem / (userStore.profile.recentSleep * 3600)) *
-                    100 +
-                  '%'
+                width: (userStore.profile.recentSleepRem / sleepStageTotalSecs) * 100 + '%'
               }"
             >
               <div class="h-full w-full bg-purple-500" />
@@ -597,15 +592,21 @@
               :text="`Light: ${formatSleepTime(userStore.profile.recentSleepLight)}`"
               class="h-full shrink-0"
               :style="{
-                width:
-                  (userStore.profile.recentSleepLight / (userStore.profile.recentSleep * 3600)) *
-                    100 +
-                  '%'
+                width: (userStore.profile.recentSleepLight / sleepStageTotalSecs) * 100 + '%'
               }"
             >
               <div class="h-full w-full bg-blue-400" />
             </UTooltip>
-            <!-- Awake time is usually the remainder -->
+            <UTooltip
+              v-if="userStore.profile.recentSleepAwake"
+              :text="`Awake: ${formatSleepTime(userStore.profile.recentSleepAwake)}`"
+              class="h-full shrink-0"
+              :style="{
+                width: (userStore.profile.recentSleepAwake / sleepStageTotalSecs) * 100 + '%'
+              }"
+            >
+              <div class="h-full w-full bg-rose-400" />
+            </UTooltip>
           </div>
           <div class="flex items-center gap-4 mt-2">
             <div class="flex items-center gap-1.5">
@@ -619,6 +620,10 @@
             <div class="flex items-center gap-1.5">
               <div class="w-1.5 h-1.5 rounded-full bg-blue-400" />
               <span class="text-[10px] text-gray-500">Light</span>
+            </div>
+            <div v-if="userStore.profile.recentSleepAwake" class="flex items-center gap-1.5">
+              <div class="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              <span class="text-[10px] text-gray-500">Awake</span>
             </div>
           </div>
         </div>
@@ -964,6 +969,16 @@
   )
 
   const wellnessStatus = computed(() => checkWellnessStale(userStore.profile?.latestWellnessDate))
+  const sleepStageTotalSecs = computed(() => {
+    const fromSleepHours = (userStore.profile?.recentSleep || 0) * 3600
+    const fromStages =
+      (userStore.profile?.recentSleepDeep || 0) +
+      (userStore.profile?.recentSleepRem || 0) +
+      (userStore.profile?.recentSleepLight || 0) +
+      (userStore.profile?.recentSleepAwake || 0)
+
+    return Math.max(1, Math.round(Math.max(fromSleepHours, fromStages)))
+  })
 
   async function fetchHistoryData() {
     // Attempt to fetch even if not connected, as some data might exist
