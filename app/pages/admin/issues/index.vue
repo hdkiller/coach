@@ -113,6 +113,30 @@
     }
   }
 
+  function getSubscriptionTierColor(tier: string) {
+    switch (tier) {
+      case 'PRO':
+        return 'primary'
+      case 'SUPPORTER':
+        return 'info'
+      default:
+        return 'neutral'
+    }
+  }
+
+  function getSubscriptionStatusColor(status: string) {
+    switch (status) {
+      case 'ACTIVE':
+        return 'success'
+      case 'CANCELED':
+        return 'warning'
+      case 'PAST_DUE':
+        return 'error'
+      default:
+        return 'neutral'
+    }
+  }
+
   const statusOptions = ['OPEN', 'IN_PROGRESS', 'NEED_MORE_INFO', 'RESOLVED', 'CLOSED']
 </script>
 
@@ -371,7 +395,16 @@
                       class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
                     >
                       <div class="flex flex-col">
-                        <span class="text-gray-900 dark:text-white">{{ report.user.name }}</span>
+                        <div class="flex items-center gap-1.5">
+                          <span class="text-gray-900 dark:text-white">{{ report.user.name }}</span>
+                          <UBadge
+                            :color="getSubscriptionTierColor(report.user.subscriptionTier)"
+                            size="xs"
+                            class="scale-75 origin-left"
+                          >
+                            {{ report.user.subscriptionTier || 'FREE' }}
+                          </UBadge>
+                        </div>
                         <span class="text-xs">{{ report.user.email }}</span>
                       </div>
                     </td>
@@ -418,9 +451,33 @@
                       size="sm"
                     />
                     <div>
-                      <h3 class="text-sm font-bold text-gray-900 dark:text-white">
-                        {{ group.user.name || 'Unknown User' }}
-                      </h3>
+                      <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+                          {{ group.user.name || 'Unknown User' }}
+                        </h3>
+                        <div class="flex items-center gap-1">
+                          <UBadge
+                            :color="getSubscriptionTierColor(group.user.subscriptionTier)"
+                            size="xs"
+                            class="scale-90 origin-left"
+                          >
+                            {{ group.user.subscriptionTier || 'FREE' }}
+                          </UBadge>
+                          <UBadge
+                            v-if="
+                              group.user.subscriptionTier &&
+                              group.user.subscriptionTier !== 'FREE' &&
+                              group.user.subscriptionStatus
+                            "
+                            :color="getSubscriptionStatusColor(group.user.subscriptionStatus)"
+                            variant="subtle"
+                            size="xs"
+                            class="scale-90 origin-left"
+                          >
+                            {{ group.user.subscriptionStatus }}
+                          </UBadge>
+                        </div>
+                      </div>
                       <p class="text-xs text-gray-500">{{ group.user.email }}</p>
                     </div>
                     <UBadge color="neutral" variant="subtle" size="xs" class="ml-auto">
@@ -489,10 +546,19 @@
                               size="xs"
                             />
                             <div class="flex flex-col">
-                              <span
-                                class="text-xs font-medium text-gray-900 dark:text-white truncate max-w-[120px]"
-                                >{{ report.user.name }}</span
-                              >
+                              <div class="flex items-center gap-1.5">
+                                <span
+                                  class="text-xs font-medium text-gray-900 dark:text-white truncate max-w-[120px]"
+                                  >{{ report.user.name }}</span
+                                >
+                                <UBadge
+                                  :color="getSubscriptionTierColor(report.user.subscriptionTier)"
+                                  size="xs"
+                                  class="scale-75 origin-left"
+                                >
+                                  {{ report.user.subscriptionTier || 'FREE' }}
+                                </UBadge>
+                              </div>
                               <span class="text-[10px] text-gray-500 truncate max-w-[120px]">{{
                                 report.user.email
                               }}</span>
@@ -589,10 +655,19 @@
                           size="xs"
                         />
                         <div class="flex flex-col">
-                          <span
-                            class="text-xs font-medium text-gray-900 dark:text-white truncate max-w-[120px]"
-                            >{{ report.user.name }}</span
-                          >
+                          <div class="flex items-center gap-1.5">
+                            <span
+                              class="text-xs font-medium text-gray-900 dark:text-white truncate max-w-[120px]"
+                              >{{ report.user.name }}</span
+                            >
+                            <UBadge
+                              :color="getSubscriptionTierColor(report.user.subscriptionTier)"
+                              size="xs"
+                              class="scale-75 origin-left"
+                            >
+                              {{ report.user.subscriptionTier || 'FREE' }}
+                            </UBadge>
+                          </div>
                           <span class="text-[10px] text-gray-500 truncate max-w-[120px]">{{
                             report.user.email
                           }}</span>

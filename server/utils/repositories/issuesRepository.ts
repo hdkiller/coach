@@ -114,7 +114,9 @@ export const issuesRepository = {
               id: true,
               name: true,
               email: true,
-              image: true
+              image: true,
+              subscriptionTier: true,
+              subscriptionStatus: true
             }
           },
           comments: {
