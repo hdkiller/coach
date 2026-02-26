@@ -736,9 +736,9 @@
 
     try {
       // 1. Fetch Nutrition record
-      const nData = await $fetch<any>(`/api/nutrition/${id}`, {
+      const nData = (await $fetch(`/api/nutrition/${id}`, {
         query: { currentTime: new Date().toISOString() }
-      })
+      })) as any
 
       nutrition.value = nData
       journeyEvents.value = nData.journeyEvents || []
@@ -746,9 +746,9 @@
       const dateStr = nData.date
 
       // 2. Fetch all training activities for this date
-      const wData = await $fetch<any[]>('/api/calendar', {
+      const wData = (await ($fetch as any)('/api/calendar', {
         query: { startDate: dateStr, endDate: dateStr }
-      })
+      })) as any[]
 
       // Filter out non-training items like wellness/nutrition placeholders and notes from the workouts array
       workouts.value = (wData || []).filter(
@@ -760,7 +760,7 @@
 
       // 3. Fetch Nutrition Settings
 
-      const sData = await $fetch<any>('/api/profile/nutrition')
+      const sData = (await $fetch('/api/profile/nutrition')) as any
 
       nutritionSettings.value = sData.settings
     } catch (error: any) {

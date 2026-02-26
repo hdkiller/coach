@@ -312,7 +312,7 @@
   const fetchTemplates = async () => {
     loadingTemplates.value = true
     try {
-      templates.value = await $fetch('/api/reports/templates')
+      templates.value = await ($fetch as any)('/api/reports/templates')
     } catch (error) {
       console.error('Error fetching templates:', error)
     } finally {

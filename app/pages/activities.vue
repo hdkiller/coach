@@ -1120,14 +1120,14 @@
 
       streamsLoading.value = true
       try {
-        const streams = await $fetch<any[]>('/api/workouts/streams', {
+        const streams = (await ($fetch as any)('/api/workouts/streams', {
           method: 'POST',
           body: {
             workoutIds: ids,
             keys: ['hrZoneTimes', 'powerZoneTimes', 'heartrate', 'watts', 'time'],
             points: 150
           }
-        })
+        })) as any[]
 
         // Create map
         const map: Record<string, any> = {}

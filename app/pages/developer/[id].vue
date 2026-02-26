@@ -573,7 +573,7 @@
   async function fetchLogs() {
     loadingLogs.value = true
     try {
-      logs.value = await $fetch(`/api/developer/apps/${appId}/webhook-logs`)
+      logs.value = await ($fetch as any)(`/api/developer/apps/${appId}/webhook-logs`)
     } catch (error: any) {
       toast.add({
         title: 'Error',

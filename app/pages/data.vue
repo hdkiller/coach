@@ -1037,7 +1037,7 @@
   // Fetch racing events
   async function fetchEvents() {
     try {
-      events.value = await $fetch('/api/events')
+      events.value = await ($fetch as any)('/api/events')
     } catch (error) {
       console.error('Error fetching events:', error)
     }

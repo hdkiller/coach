@@ -188,7 +188,7 @@
   })
 
   // Integration status
-  const { data: integrationStatus, refresh: refreshIntegrations } = useFetch(
+  const { data: integrationStatus, refresh: refreshIntegrations } = useFetch<any>(
     '/api/integrations/status',
     {
       lazy: true,

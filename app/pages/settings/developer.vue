@@ -402,7 +402,7 @@
   async function fetchKeys() {
     loading.value = true
     try {
-      apiKeys.value = await $fetch('/api/settings/api-keys')
+      apiKeys.value = await ($fetch as any)('/api/settings/api-keys')
     } catch (error) {
       console.error('Failed to fetch keys:', error)
       toast.add({ title: 'Error', description: 'Failed to load API keys', color: 'error' })

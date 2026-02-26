@@ -349,7 +349,7 @@
         </UTabs>
 
         <UModal
-          v-model:open="isGroceryListModalOpen"
+          v-model:open="showGroceryList"
           title="Strategic Grocery List"
           description="A detailed list of grocery items needed for your planned meals and training fueling."
           :ui="{ content: 'sm:max-w-2xl' }"
@@ -573,9 +573,9 @@
   async function refreshMissingStartTimeWarning() {
     try {
       const { startDate, endDate } = getWaveDateRange()
-      const activities = await $fetch<any[]>('/api/calendar', {
+      const activities = (await ($fetch as any)('/api/calendar', {
         query: { startDate, endDate }
-      })
+      })) as any[]
       missingPlannedStartActivities.value = getPlannedWorkoutsWithMissingStartTime(activities || [])
     } catch (error) {
       console.error('Failed to evaluate planned workouts without start time:', error)

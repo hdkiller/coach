@@ -1373,11 +1373,11 @@
       if (nutritionEnabled.value && workout.value?.date) {
         try {
           const dateStr = formatDateUTC(new Date(workout.value.date), 'yyyy-MM-dd')
-          const [nData, sData, wFueling] = await Promise.all([
+          const [nData, sData, wFueling] = (await Promise.all([
             $fetch<any>(`/api/nutrition/${dateStr}`),
             $fetch<any>('/api/profile/nutrition'),
             $fetch<any>(`/api/workouts/planned/${workout.value.id}/fueling`)
-          ])
+          ])) as [any, any, any]
 
           if (nData) {
             dayNutrition.value = nData

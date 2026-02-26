@@ -263,7 +263,7 @@
   async function loadRooms(selectFirst = true) {
     try {
       if (selectFirst) loadingRooms.value = true
-      const loadedRooms = await $fetch<any[]>('/api/chat/rooms')
+      const loadedRooms = (await ($fetch as any)('/api/chat/rooms')) as any[]
       rooms.value = loadedRooms
 
       // Select first room if we don't have a current one
@@ -280,7 +280,7 @@
   async function loadMessages(roomId: string) {
     try {
       loadingMessages.value = true
-      const loadedMessages = await $fetch<any[]>(`/api/chat/messages?roomId=${roomId}`)
+      const loadedMessages = (await ($fetch as any)(`/api/chat/messages?roomId=${roomId}`)) as any[]
 
       // Transform DB messages to AI SDK format (UIMessage)
       const transformedMessages = loadedMessages.map((msg) => ({
