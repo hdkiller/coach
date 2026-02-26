@@ -40,6 +40,9 @@ const patchSchema = z.object({
   menstrualPhase: z.string().nullable().optional(),
   respiration: z.number().nullable().optional(),
   skinTemp: z.number().nullable().optional(),
+  restingCaloriesBurned: z.number().int().nullable().optional(),
+  activeCaloriesBurned: z.number().int().nullable().optional(),
+  totalCaloriesBurned: z.number().int().nullable().optional(),
   systolic: z.number().int().nullable().optional(),
   vo2max: z.number().nullable().optional(),
   tags: z.string().nullable().optional()

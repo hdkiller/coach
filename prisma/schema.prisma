@@ -786,6 +786,9 @@ model Wellness {
   skinTemp         Float?
   systolic         Int?
   vo2max           Float?
+  restingCaloriesBurned Int?
+  activeCaloriesBurned  Int?
+  totalCaloriesBurned   Int?
   aiAnalysis       String?
   aiAnalysisJson   Json?
   aiAnalysisStatus String?   @default("NOT_STARTED")

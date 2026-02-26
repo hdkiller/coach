@@ -26,6 +26,9 @@ const wellnessUploadSchema = z.object({
   respiration: z.number().optional(),
   spO2: z.number().optional(),
   vo2max: z.number().optional(),
+  restingCaloriesBurned: z.number().int().optional(),
+  activeCaloriesBurned: z.number().int().optional(),
+  totalCaloriesBurned: z.number().int().optional(),
   systolic: z.number().int().optional(),
   diastolic: z.number().int().optional(),
   lactate: z.number().optional(),
@@ -109,6 +112,18 @@ defineRouteMeta({
               respiration: { type: 'number', description: 'Respiratory rate (breaths per min)' },
               spO2: { type: 'number', description: 'Blood oxygen saturation (%)' },
               vo2max: { type: 'number', description: 'Estimated VO2 Max' },
+              restingCaloriesBurned: {
+                type: 'integer',
+                description: 'Resting calories burned for the day (kcal)'
+              },
+              activeCaloriesBurned: {
+                type: 'integer',
+                description: 'Active calories burned for the day (kcal)'
+              },
+              totalCaloriesBurned: {
+                type: 'integer',
+                description: 'Total calories burned for the day (kcal)'
+              },
               systolic: { type: 'integer', description: 'Systolic blood pressure' },
               diastolic: { type: 'integer', description: 'Diastolic blood pressure' },
               ctl: { type: 'number', description: 'Chronic Training Load (Fitness)' },
