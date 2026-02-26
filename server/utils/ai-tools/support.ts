@@ -267,7 +267,7 @@ export const supportTools = (userId: string, chatRoomId?: string, aiSettings?: A
 
         return {
           success: true,
-          message: 'Comment added to ticket.',
+          message: 'Ticket comment prepared for submission.',
           comment: {
             id: comment.id,
             ticketId: comment.bugReportId,

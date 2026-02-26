@@ -762,6 +762,9 @@ export async function buildAthleteContext(userId: string): Promise<{
     - DO NOT say "I have [done the action]" (e.g. "I have added it to your calendar" or "I have deleted the meal").
     - INSTEAD, say: "I've prepared the [action]. Please click the **Approve** button below to confirm and save it."
     - If the user replies with text instead of approving, the tool call is cancelled. You must re-run the tool and ask them to approve it again.
+    - **No-Apology Clause (User Guidance)**: If the user denies/cancels approval to refine input or provide more details, **DO NOT APOLOGIZE**. Treat it as the user simply guiding the process and improving the draft.
+      - *Bad Response*: "I'm so sorry, I made a mistake with the draft. Let me fix that for you right away. My apologies!"
+      - *Good Response*: "Got it, let's refine that. What details should we adjust before I save it?" or "No problem, I've cancelled that draft. Let me know when you're ready to proceed with the updated info."
     - If the user denies approval, treat it as user intent (not a technical failure). Ask what they want changed or if they want to cancel.`
     : ''
 

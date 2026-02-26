@@ -211,7 +211,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         )
         return {
           success: true,
-          message: 'Workout re-analysis has been queued and will be ready in a few moments.'
+          message: 'Workout re-analysis has been prepared and is ready to be queued.'
         }
       } catch (e: any) {
         return { error: `Failed to trigger analysis: ${e.message}` }
@@ -253,8 +253,8 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
           success: true,
           message:
             mode === 'REPLACE'
-              ? 'Workout notes were replaced successfully.'
-              : 'Workout notes were appended successfully.'
+              ? 'Workout notes update prepared (REPLACE).'
+              : 'Workout notes update prepared (APPEND).'
         }
       } catch (e: any) {
         return { error: `Failed to update notes: ${e.message}` }
@@ -320,7 +320,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         const updatedWorkout = await workoutRepository.update(workout_id, updateData)
         return {
           success: true,
-          message: 'Workout updated successfully.',
+          message: 'Workout update prepared successfully.',
           workout: {
             id: updatedWorkout.id,
             title: updatedWorkout.title,
