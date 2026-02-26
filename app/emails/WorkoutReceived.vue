@@ -53,6 +53,9 @@
     recoveryMessage?: string
     ctaLabel?: string
     nextStepMessage?: string
+    streamInsightBullets?: string[]
+    streamInsightWhatItMeans?: string
+    streamInsightNextSuggestion?: string
     workoutUrl?: string
     unsubscribeUrl?: string
     shareUrl?: string
@@ -360,6 +363,51 @@
           >
             {{ nextStepMessage || 'See how this session impacted your Fitness vs Fatigue trend.' }}
           </EText>
+
+          <EContainer
+            v-if="streamInsightBullets && streamInsightBullets.length > 0"
+            style="
+              background-color: #f8fafc;
+              border-radius: 12px;
+              padding: 20px;
+              margin-bottom: 24px;
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <EText
+              style="
+                font-size: 10px;
+                font-weight: 900;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.2em;
+                margin: 0 0 10px;
+              "
+            >
+              Stream Insights
+            </EText>
+
+            <EText
+              v-for="(insight, idx) in streamInsightBullets"
+              :key="idx"
+              style="font-size: 14px; line-height: 1.6; color: #1f2937; margin: 0 0 8px"
+            >
+              - {{ insight }}
+            </EText>
+
+            <EText
+              v-if="streamInsightWhatItMeans"
+              style="font-size: 14px; line-height: 1.6; color: #111827; margin: 10px 0 6px"
+            >
+              {{ streamInsightWhatItMeans }}
+            </EText>
+            <EText
+              v-if="streamInsightNextSuggestion"
+              style="font-size: 14px; line-height: 1.6; color: #0f766e; margin: 0"
+            >
+              {{ streamInsightNextSuggestion }}
+            </EText>
+          </EContainer>
 
           <!-- Public Share Block -->
           <template v-if="shareUrl">

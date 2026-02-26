@@ -1209,6 +1209,18 @@
 
       const dayStr = formatDateUTC(day, 'yyyy-MM-dd')
       const dayActivities = (activities.value || []).filter((a) => {
+        if (a.source === 'note') {
+          const noteStart = formatDateUTC(a.date, 'yyyy-MM-dd')
+          const noteEnd = a.displayEndDate
+            ? formatDateUTC(a.displayEndDate, 'yyyy-MM-dd')
+            : a.endDate
+              ? formatDateUTC(a.endDate, 'yyyy-MM-dd')
+              : null
+
+          if (!noteEnd) return noteStart === dayStr
+          return dayStr >= noteStart && dayStr <= noteEnd
+        }
+
         const dateStr =
           a.source === 'planned' || a.source === 'wellness' || a.source === 'nutrition'
             ? formatDateUTC(a.date, 'yyyy-MM-dd')

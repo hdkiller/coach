@@ -21,7 +21,7 @@
             </span>
           </div>
           <div class="text-sm text-gray-500">
-            {{ formatDateRange(note.startDate, note.endDate) }}
+            {{ formatDateRange(note.startDate, note.endDate, note.displayEndDate) }}
           </div>
         </div>
 
@@ -57,15 +57,16 @@
 
   const { formatDateTime, formatDateUTC } = useFormat()
 
-  function formatDateRange(start: string, end?: string) {
+  function formatDateRange(start: string, end?: string, displayEnd?: string | null) {
     if (!start) return ''
     const startDate = new Date(start)
+    const normalizedEnd = displayEnd || end
 
-    if (!end) {
+    if (!normalizedEnd) {
       return formatDateUTC(startDate, 'MMMM do, yyyy')
     }
 
-    const endDate = new Date(end)
+    const endDate = new Date(normalizedEnd)
 
     // If same day
     if (formatDateUTC(startDate, 'yyyy-MM-dd') === formatDateUTC(endDate, 'yyyy-MM-dd')) {
