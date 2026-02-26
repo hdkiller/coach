@@ -69,3 +69,4 @@ coverage
 
 .gemini/
 /tmp
+/.tmp
