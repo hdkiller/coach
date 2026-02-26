@@ -1,5 +1,5 @@
 <template>
-  <div class="h-64 w-full">
+  <div :class="['w-full', heightClass]">
     <Line :data="chartData" :options="chartOptions" />
   </div>
 </template>
@@ -36,7 +36,10 @@
     labels: any[]
     color?: string
     yAxisLabel?: string
+    heightClass?: string
   }>()
+
+  const heightClass = computed(() => props.heightClass || 'h-64')
 
   const chartData = computed(() => ({
     labels: props.labels,
