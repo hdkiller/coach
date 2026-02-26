@@ -37,6 +37,8 @@
     color?: string
     yAxisLabel?: string
     heightClass?: string
+    xAxisLabel?: string
+    xAxisType?: 'linear' | 'category'
   }>()
 
   const heightClass = computed(() => props.heightClass || 'h-64')
@@ -75,11 +77,11 @@
     },
     scales: {
       x: {
-        type: 'linear' as const, // We use index/seconds for now, could be time
+        type: (props.xAxisType || 'linear') as 'linear' | 'category',
         display: true,
         title: {
           display: true,
-          text: 'Time (s)'
+          text: props.xAxisLabel || 'Time (s)'
         }
       },
       y: {
