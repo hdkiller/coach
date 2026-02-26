@@ -455,10 +455,19 @@ export default defineEventHandler(async (event) => {
       },
       onFinish: async (event) => {
         const { text, toolResults: finalStepResults, usage, toolCalls: finalCalls } = event
+        const hasMeaningfulText = typeof text === 'string' && text.trim().length > 0
+        const hasToolActivity =
+          (finalStepResults?.length || 0) > 0 ||
+          (finalCalls?.length || 0) > 0 ||
+          allToolResults.length > 0
+        const shouldFallbackForEmptyResponse = !hasMeaningfulText && !hasToolActivity
+        const finalText = shouldFallbackForEmptyResponse
+          ? 'I hit a response issue while processing that. Please retry your last message.'
+          : text || ' '
         let aiMessage: any
         try {
           aiMessage = await prisma.chatMessage.create({
-            data: { content: text || ' ', roomId, senderId: 'ai_agent', seen: {} }
+            data: { content: finalText, roomId, senderId: 'ai_agent', seen: {} }
           })
           // Update room activity for sorting
           await prisma.chatRoom.update({
@@ -583,12 +592,16 @@ export default defineEventHandler(async (event) => {
                   estimatedCost,
                   durationMs: 0,
                   retryCount: 0,
-                  success: true,
+                  success: !shouldFallbackForEmptyResponse,
+                  errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
+                  errorMessage: shouldFallbackForEmptyResponse
+                    ? 'LLM response finished with empty text and no tool activity.'
+                    : null,
                   promptPreview:
                     typeof content === 'string'
                       ? content.substring(0, 500)
                       : JSON.stringify(content).substring(0, 500),
-                  responsePreview: (text || '').substring(0, 500)
+                  responsePreview: finalText.substring(0, 500)
                 }
               })
             } catch (e) {
