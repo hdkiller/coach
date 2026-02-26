@@ -1,4 +1,5 @@
 import { getServerSession } from '../../../utils/session'
+import { getCalendarNoteDisplayEndDate } from '../../../utils/calendar-notes'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -29,5 +30,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return note
+  const displayEndDate = getCalendarNoteDisplayEndDate(note)
+
+  return {
+    ...note,
+    displayEndDate: displayEndDate?.toISOString() || null
+  }
 })

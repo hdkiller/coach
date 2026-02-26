@@ -14,6 +14,7 @@ import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { calculateFuelingStrategy } from '../../utils/nutrition-domain'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../../utils/services/metabolicService'
+import { getCalendarNoteDisplayEndDate } from '../../utils/calendar-notes'
 
 defineRouteMeta({
   openAPI: {
@@ -483,6 +484,7 @@ export default defineEventHandler(async (event) => {
 
   // Process Calendar Notes
   for (const n of calendarNotes) {
+    const displayEndDate = getCalendarNoteDisplayEndDate(n)
     const dateKey = n.startDate.toISOString().split('T')[0]
     if (!activitiesByDate.has(dateKey)) {
       activitiesByDate.set(dateKey, [])
@@ -492,6 +494,7 @@ export default defineEventHandler(async (event) => {
       title: n.title,
       date: n.startDate.toISOString(),
       endDate: n.endDate?.toISOString(),
+      displayEndDate: displayEndDate?.toISOString() || null,
       isWeeklyNote: n.isWeeklyNote,
       type: n.type || 'Note',
       category: n.category,
