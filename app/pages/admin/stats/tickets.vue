@@ -83,13 +83,13 @@
   }
 
   const statusBreakdownData = computed(() => {
-    if (!stats.value?.totals) return { labels: [], datasets: [] }
+    if (!stats.value || !stats.value.totals) return { labels: [], datasets: [] }
     const labels = Object.keys(stats.value.totals)
     return {
       labels,
       datasets: [
         {
-          data: labels.map((l) => (stats.value.totals as any)[l]),
+          data: labels.map((l) => (stats.value!.totals as any)[l]),
           backgroundColor: labels.map((l) => statusColors[l] || '#cbd5e1')
         }
       ]
@@ -97,13 +97,13 @@
   })
 
   const priorityBreakdownData = computed(() => {
-    if (!stats.value?.priorities) return { labels: [], datasets: [] }
+    if (!stats.value || !stats.value.priorities) return { labels: [], datasets: [] }
     const labels = Object.keys(stats.value.priorities)
     return {
       labels,
       datasets: [
         {
-          data: labels.map((l) => (stats.value.priorities as any)[l]),
+          data: labels.map((l) => (stats.value!.priorities as any)[l]),
           backgroundColor: labels.map((l) => priorityColors[l] || '#cbd5e1')
         }
       ]

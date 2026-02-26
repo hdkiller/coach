@@ -121,8 +121,8 @@
     </div>
 
     <UModal
-      v-model:open="isOpen"
-      :title="isEditing ? 'Edit System Message' : 'Create System Message'"
+      v-model:open="isModalOpen"
+      :title="editingId ? 'Edit System Message' : 'Create System Message'"
       description="Manage system-wide messages that are displayed to all users or specific groups."
     >
       <template #content>

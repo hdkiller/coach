@@ -19,6 +19,12 @@
     title: page.value.title,
     description: page.value.description
   })
+
+  function scrollToTop() {
+    if (import.meta.client) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 </script>
 
 <template>
@@ -54,12 +60,7 @@
           Back to Index
         </UButton>
 
-        <UButton
-          variant="link"
-          color="neutral"
-          icon="i-lucide-arrow-up"
-          @click="() => window.scrollTo({ top: 0, behavior: 'smooth' })"
-        >
+        <UButton variant="link" color="neutral" icon="i-lucide-arrow-up" @click="scrollToTop">
           Back to top
         </UButton>
       </div>
