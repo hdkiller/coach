@@ -75,6 +75,7 @@ For higher resolution sleep analysis, you can provide the duration of individual
 | `sleepDeepSecs`  | **Integer** | Duration of Deep sleep in seconds.  |
 | `sleepRemSecs`   | **Integer** | Duration of REM sleep in seconds.   |
 | `sleepLightSecs` | **Integer** | Duration of Light sleep in seconds. |
+| `sleepAwakeSecs` | **Integer** | Duration of Awake time in seconds.  |
 
 ### Example
 
@@ -87,6 +88,7 @@ For higher resolution sleep analysis, you can provide the duration of individual
   "sleepDeepSecs": 7200,
   "sleepRemSecs": 5400,
   "sleepLightSecs": 16920,
+  "sleepAwakeSecs": 1800,
   "weight": 74.5,
   "spO2": 98.5,
   "skinTemp": -0.2,
@@ -126,7 +128,7 @@ Instead of categorizing items into "Breakfast" or "Dinner," send a flat list of 
 
 | Field            | Type       | Description                                                     |
 | :--------------- | :--------- | :-------------------------------------------------------------- |
-| `name`           | **String** | **Required.** Name of the food/meal.                            |
+| `name`           | **String** | (Optional) Name of the food/meal. Defaults to `Unknown item`.   |
 | `logged_at`      | **String** | **Required.** ISO 8601 timestamp of consumption.                |
 | `calories`       | **Number** | Energy content in kcal.                                         |
 | `carbs`          | **Number** | Carbohydrates in grams.                                         |

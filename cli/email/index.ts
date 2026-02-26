@@ -12,7 +12,6 @@ import { EMAIL_TEMPLATE_REGISTRY } from '../../server/utils/email-template-regis
 import { buildInterestingCopy } from '../../server/utils/workout-insight-email'
 
 const emailCommand = new Command('email')
-console.log('--- Loading cli/email/index.ts ---')
 
 emailCommand.description('Email management tools')
 
