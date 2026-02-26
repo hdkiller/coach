@@ -53,7 +53,9 @@ vi.mock('../../../../../server/utils/calculate-workout-stress', () => ({
 vi.mock('../../../../../server/utils/date', () => ({
   getUserTimezone: vi.fn().mockResolvedValue('UTC'),
   getEndOfDayUTC: vi.fn((_: string, d: Date) => d),
-  getStartOfDayUTC: vi.fn((_: string, d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())))
+  getStartOfDayUTC: vi.fn(
+    (_: string, d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+  )
 }))
 
 vi.mock('../../../../../server/utils/services/wellness-analysis', () => ({
@@ -88,7 +90,9 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
     })
 
     const syncSpy = vi.spyOn(IntervalsService, 'syncActivities').mockResolvedValue(0)
-    const streamSpy = vi.spyOn(IntervalsService, 'syncActivityStream').mockResolvedValue(null as any)
+    const streamSpy = vi
+      .spyOn(IntervalsService, 'syncActivityStream')
+      .mockResolvedValue(null as any)
 
     const event = {
       activity: {
@@ -151,7 +155,7 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
     syncSpy.mockRestore()
   })
 
-  it('falls back to sync when payload is thin and workout does not exist locally', async () => {
+  it('skips full sync when payload is thin and workout does not exist locally', async () => {
     vi.mocked(workoutRepository.getByExternalId).mockResolvedValue(null)
 
     const syncSpy = vi.spyOn(IntervalsService, 'syncActivities').mockResolvedValue(0)
@@ -167,7 +171,7 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
 
     expect(workoutRepository.upsert).not.toHaveBeenCalled()
     expect(workoutRepository.update).not.toHaveBeenCalled()
-    expect(syncSpy).toHaveBeenCalledTimes(1)
+    expect(syncSpy).not.toHaveBeenCalled()
     expect(deduplicateWorkoutsTask.trigger).toHaveBeenCalledTimes(1)
 
     syncSpy.mockRestore()
