@@ -58,7 +58,7 @@ const makeSeededRng = (seed: string) => {
 }
 
 const pickDeterministic = (list: string[], rng: (min: number, max: number) => number) =>
-  sanitizeSlugPart(list[rng(0, list.length - 1)])
+  sanitizeSlugPart(list[rng(0, list.length - 1)] as string)
 
 const getBuildCodename = (seed: string) => {
   if (process.env.NUXT_PUBLIC_BUILD_CODENAME) {

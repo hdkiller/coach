@@ -147,7 +147,7 @@ export function normalizeSubjectSpacing(subject: string) {
 
   let normalized = ''
   for (let i = 0; i < subject.length; i += 1) {
-    const current = subject[i]
+    const current = subject[i] as string
     const next = subject[i + 1]
 
     normalized += current
@@ -426,7 +426,7 @@ export function buildInterestingCopy(options: {
   ])
 
   const subject = normalizeSubjectSpacing(
-    distanceLabel
+    (distanceLabel
       ? pickVariant(`${key}:subject-distance`, [
           `Great shift, ${firstName}. ${distanceLabel} in the books.`,
           `${firstName}, ${distanceLabel} logged. Your trendline just moved.`,
@@ -436,7 +436,7 @@ export function buildInterestingCopy(options: {
           `Great shift, ${firstName}. ${workoutTitle} is in the books.`,
           `${firstName}, ${workoutTitle} is synced and ready to review.`,
           `${workoutTitle} logged, ${firstName}. Momentum stays on.`
-        ])
+        ])) as string
   )
 
   const previewLine = `${workoutTitle} is synced. Open for insights, load context, and sport-specific cues.`
