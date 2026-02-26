@@ -43,7 +43,8 @@
               <USelectMenu
                 v-model="state.type as any"
                 :items="activityOptions"
-                value-attribute="value"
+                value-key="value"
+                label-key="label"
                 searchable
                 placeholder="Select type"
                 size="lg"
@@ -327,7 +328,7 @@
 
   const state = reactive({
     title: '',
-    type: '',
+    type: '' as string | { label?: string; value?: string } | null,
     date: '',
     startTime: '',
     description: '',
@@ -362,6 +363,15 @@
     { label: 'Generic Workout', value: 'Workout' },
     { label: 'Other', value: 'Other' }
   ]
+
+  watch(
+    () => state.type,
+    (nextType) => {
+      if (nextType && typeof nextType === 'object' && typeof nextType.value === 'string') {
+        state.type = nextType.value
+      }
+    }
+  )
 
   // Initialize state from props
   watch(
@@ -450,6 +460,8 @@
   async function onSubmit() {
     if (!props.workout?.id) return
 
+    const normalizedType = typeof state.type === 'string' ? state.type : (state.type?.value ?? '')
+
     const totalSeconds =
       Number(durationHours.value) * 3600 +
       Number(durationMinutes.value) * 60 +
@@ -475,7 +487,7 @@
         method: 'PATCH',
         body: {
           title: state.title,
-          type: state.type,
+          type: normalizedType,
           date: utcDate.toISOString(),
           description: state.description,
           durationSec: totalSeconds,
