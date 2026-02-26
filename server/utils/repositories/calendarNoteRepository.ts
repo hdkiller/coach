@@ -33,10 +33,19 @@ export const calendarNoteRepository = {
       userId
     }
 
-    if (options.startDate || options.endDate) {
-      where.startDate = {}
-      if (options.startDate) where.startDate.gte = options.startDate
-      if (options.endDate) where.startDate.lte = options.endDate
+    if (options.startDate && options.endDate) {
+      // Overlap query for ranged notes:
+      // note.start <= rangeEnd AND (note.end IS NULL OR note.end >= rangeStart)
+      where.AND = [
+        { startDate: { lte: options.endDate } },
+        {
+          OR: [{ endDate: null }, { endDate: { gte: options.startDate } }]
+        }
+      ]
+    } else if (options.startDate) {
+      where.OR = [{ endDate: null }, { endDate: { gte: options.startDate } }]
+    } else if (options.endDate) {
+      where.startDate = { lte: options.endDate }
     }
 
     return prisma.calendarNote.findMany({
