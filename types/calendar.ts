@@ -17,6 +17,7 @@ export interface CalendarActivity {
   category?: string
   isWeeklyNote?: boolean
   endDate?: string // ISO date string for range end
+  displayEndDate?: string | null
 
   // Completed specific
   rpe?: number

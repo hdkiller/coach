@@ -192,7 +192,7 @@ function pickVariant<T>(key: string, variants: T[]) {
   if (!variants.length) {
     throw new Error('pickVariant requires at least one variant')
   }
-  return variants[hashString(key) % variants.length]
+  return variants[hashString(key) % variants.length] as T
 }
 
 function pickCopyVariant(options: {

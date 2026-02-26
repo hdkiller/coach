@@ -40,7 +40,7 @@ function asNumberArray(value: unknown): number[] | null {
       ? (value as any).data
       : null
   if (!raw || raw.length === 0) return null
-  if (!raw.every((entry) => typeof entry === 'number' && Number.isFinite(entry))) return null
+  if (!raw.every((entry: number) => typeof entry === 'number' && Number.isFinite(entry))) return null
   return raw as number[]
 }
 
