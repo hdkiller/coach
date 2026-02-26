@@ -72,12 +72,12 @@
               {{ getMetricLabel(metric) }}
             </span>
             <div
-              v-if="hoverIndex !== null && streamData[metric]"
+              v-if="hoverIndex !== null && getMetricStreamValues(metric).length > 0"
               class="text-[10px] font-black tabular-nums"
             >
               <span class="text-gray-400">{{ formatTime(streamData.time[hoverIndex]) }} •</span>
               <span class="text-primary-500 ml-1">{{
-                Math.round(streamData[metric][hoverIndex])
+                formatMetricValue(metric, getMetricStreamValues(metric)[hoverIndex])
               }}</span>
               <span class="text-[8px] text-gray-400 ml-0.5">{{
                 availableMetrics.find((m) => m.key === metric)?.unit
@@ -177,6 +177,48 @@
     if (streamData.value.grade && streamData.value.grade.length > 0) {
       metrics.push({ key: 'grade', label: 'Grade', color: 'rgb(107, 114, 128)', unit: '%' })
     }
+    if (streamData.value.distance && streamData.value.distance.length > 0) {
+      metrics.push({ key: 'distance', label: 'Distance', color: 'rgb(75, 85, 99)', unit: 'm' })
+    }
+    if (streamData.value.moving && streamData.value.moving.length > 0) {
+      metrics.push({ key: 'moving', label: 'Moving', color: 'rgb(148, 163, 184)', unit: '' })
+    }
+    if (streamData.value.torque && streamData.value.torque.length > 0) {
+      metrics.push({ key: 'torque', label: 'Torque', color: 'rgb(249, 115, 22)', unit: 'N-m' })
+    }
+    if (streamData.value.temp && streamData.value.temp.length > 0) {
+      metrics.push({ key: 'temp', label: 'Temperature', color: 'rgb(6, 182, 212)', unit: 'deg' })
+    }
+    if (streamData.value.respiration && streamData.value.respiration.length > 0) {
+      metrics.push({
+        key: 'respiration',
+        label: 'Respiration',
+        color: 'rgb(236, 72, 153)',
+        unit: 'brpm'
+      })
+    }
+    if (streamData.value.hrv && streamData.value.hrv.length > 0) {
+      metrics.push({ key: 'hrv', label: 'HRV', color: 'rgb(132, 204, 22)', unit: 'ms' })
+    }
+    if (streamData.value.leftRightBalance && streamData.value.leftRightBalance.length > 0) {
+      metrics.push({
+        key: 'leftRightBalance',
+        label: 'L/R Balance',
+        color: 'rgb(217, 70, 239)',
+        unit: '%'
+      })
+    }
+    if (
+      (streamData.value.target_power && streamData.value.target_power.length > 0) ||
+      (streamData.value.targetPower && streamData.value.targetPower.length > 0)
+    ) {
+      metrics.push({
+        key: 'targetPower',
+        label: 'Target Power',
+        color: 'rgb(16, 185, 129)',
+        unit: 'W'
+      })
+    }
 
     return metrics
   })
@@ -249,8 +291,26 @@
     return `${minutes}:${String(secs).padStart(2, '0')}`
   }
 
+  function formatMetricValue(metricKey: string, value: any): string {
+    if (value === null || value === undefined) return '-'
+    if (metricKey === 'moving') return value ? '1' : '0'
+
+    const numeric = Number(value)
+    if (Number.isNaN(numeric)) return '-'
+    return Math.round(numeric).toString()
+  }
+
+  function getMetricStreamValues(metricKey: string): any[] {
+    if (!streamData.value) return []
+    if (metricKey === 'targetPower') {
+      return streamData.value.target_power || streamData.value.targetPower || []
+    }
+    return streamData.value[metricKey] || []
+  }
+
   function getChartData(metricKey: string) {
-    if (!streamData.value || !streamData.value[metricKey]) {
+    const values = getMetricStreamValues(metricKey)
+    if (!streamData.value || !values || values.length === 0) {
       return { labels: [], datasets: [] }
     }
 
@@ -258,8 +318,6 @@
     if (!metric) return { labels: [], datasets: [] }
 
     const time = streamData.value.time || []
-    const values = streamData.value[metricKey] || []
-
     return {
       labels: time.map((t: number) => formatTime(t)),
       datasets: [

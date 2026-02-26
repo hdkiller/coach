@@ -1295,19 +1295,37 @@
                 class="flex justify-between py-2.5 border-b border-gray-100 dark:border-gray-800 group cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/50 px-2 -mx-2 transition-colors"
                 @click="handleOpenMetric({ key: metric.label, value: metric.value })"
               >
-                <UTooltip
-                  :popper="{ placement: 'top' }"
-                  :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
-                  arrow
-                >
-                  <span
-                    class="text-[10px] font-black uppercase tracking-widest text-gray-500 border-b border-dashed border-gray-300 dark:border-gray-700 cursor-help group-hover:text-primary-500 group-hover:border-primary-300 transition-colors"
-                    >{{ metric.label }}</span
+                <div class="flex items-center gap-2">
+                  <UTooltip
+                    v-if="metricTooltips[metric.label]"
+                    :popper="{ placement: 'top' }"
+                    :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
+                    arrow
                   >
-                  <template #content>
-                    <div class="text-left text-sm">{{ metricTooltips[metric.label] }}</div>
-                  </template>
-                </UTooltip>
+                    <span
+                      class="text-[10px] font-black uppercase tracking-widest text-gray-500 border-b border-dashed border-gray-300 dark:border-gray-700 cursor-help group-hover:text-primary-500 group-hover:border-primary-300 transition-colors"
+                      >{{ metric.label }}</span
+                    >
+                    <template #content>
+                      <div class="text-left text-sm">{{ metricTooltips[metric.label] }}</div>
+                    </template>
+                  </UTooltip>
+                  <span
+                    v-else
+                    class="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-primary-500 transition-colors"
+                  >
+                    {{ metric.label }}
+                  </span>
+                  <UBadge
+                    v-if="metric.source === 'fit'"
+                    color="neutral"
+                    variant="soft"
+                    size="xs"
+                    class="uppercase tracking-widest font-black text-[8px]"
+                  >
+                    FIT
+                  </UBadge>
+                </div>
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-black text-gray-900 dark:text-white tabular-nums">{{
                     metric.value
@@ -1352,6 +1370,17 @@
               >
                 {{ stream.label }}
               </UBadge>
+              <UButton
+                v-if="hasExtrasMeta"
+                icon="i-heroicons-code-bracket-square"
+                color="neutral"
+                variant="soft"
+                size="sm"
+                class="uppercase font-black tracking-widest text-[9px] px-2.5 py-1"
+                @click="isExtrasMetaModalOpen = true"
+              >
+                View extrasMeta
+              </UButton>
             </div>
           </div>
 
@@ -1703,6 +1732,34 @@
     :unit="selectedStream.unit"
   />
 
+  <!-- Extras Meta Modal -->
+  <UModal
+    v-model:open="isExtrasMetaModalOpen"
+    title="Workout extrasMeta"
+    description="Compact FIT metadata captured during stream ingestion."
+    :ui="{ content: 'max-w-5xl' }"
+  >
+    <template #body>
+      <JsonViewer
+        v-if="extrasMetaData"
+        title="FIT extrasMeta"
+        :data="extrasMetaData"
+        :deep="2"
+        :default-open="true"
+        filename="fit-extras-meta.json"
+      />
+      <div v-else class="text-sm text-gray-500 py-4">No extrasMeta available for this workout.</div>
+    </template>
+    <template #footer>
+      <UButton
+        label="Close"
+        color="neutral"
+        variant="ghost"
+        @click="isExtrasMetaModalOpen = false"
+      />
+    </template>
+  </UModal>
+
   <!-- Edit Workout Modal -->
   <WorkoutsEditModal
     v-if="workout"
@@ -1926,6 +1983,7 @@
 
   // Stream Modal State
   const isStreamModalOpen = ref(false)
+  const isExtrasMetaModalOpen = ref(false)
   const selectedStream = ref<{ key: string; label: string; color: string; unit: string } | null>(
     null
   )
@@ -2045,11 +2103,19 @@
     )
   })
 
+  const fitSessionSummary = computed<Record<string, any> | null>(() => {
+    const sessionSummary = extrasMetaData.value?.sessionSummary
+    if (!sessionSummary || typeof sessionSummary !== 'object' || Array.isArray(sessionSummary)) {
+      return null
+    }
+    return sessionSummary as Record<string, any>
+  })
+
   // Available metrics computed property - only shows non-null values
   const availableMetrics = computed(() => {
     if (!workout.value) return []
 
-    const metrics: Array<{ key: string; label: string; value: string }> = []
+    const metrics: Array<{ key: string; label: string; value: string; source?: 'fit' }> = []
 
     // Power metrics
     if (workout.value.averageWatts)
@@ -2195,6 +2261,104 @@
         value: workout.value.trainer ? 'Yes' : 'No'
       })
 
+    const sessionSummary = fitSessionSummary.value
+    if (sessionSummary) {
+      if (sessionSummary.totalElapsedTime !== null && sessionSummary.totalElapsedTime !== undefined)
+        metrics.push({
+          key: 'fitTotalElapsedTime',
+          label: 'Elapsed Time',
+          value: formatDuration(Math.round(sessionSummary.totalElapsedTime)),
+          source: 'fit'
+        })
+
+      if (sessionSummary.totalTimerTime !== null && sessionSummary.totalTimerTime !== undefined)
+        metrics.push({
+          key: 'fitTotalTimerTime',
+          label: 'Timer Time',
+          value: formatDuration(Math.round(sessionSummary.totalTimerTime)),
+          source: 'fit'
+        })
+
+      if (sessionSummary.totalDistance !== null && sessionSummary.totalDistance !== undefined)
+        metrics.push({
+          key: 'fitTotalDistance',
+          label: 'Total Distance',
+          value: formatDistance(sessionSummary.totalDistance),
+          source: 'fit'
+        })
+
+      if (sessionSummary.totalAscent !== null && sessionSummary.totalAscent !== undefined)
+        metrics.push({
+          key: 'fitTotalAscent',
+          label: 'Total Ascent',
+          value: `${Math.round(sessionSummary.totalAscent)} m`,
+          source: 'fit'
+        })
+
+      if (sessionSummary.totalDescent !== null && sessionSummary.totalDescent !== undefined)
+        metrics.push({
+          key: 'fitTotalDescent',
+          label: 'Total Descent',
+          value: `${Math.round(sessionSummary.totalDescent)} m`,
+          source: 'fit'
+        })
+
+      if (sessionSummary.totalCalories !== null && sessionSummary.totalCalories !== undefined)
+        metrics.push({
+          key: 'fitTotalCalories',
+          label: 'Total Calories',
+          value: `${Math.round(sessionSummary.totalCalories)} kcal`,
+          source: 'fit'
+        })
+
+      if (
+        (workout.value.averageWatts === null || workout.value.averageWatts === undefined) &&
+        sessionSummary.avgPower !== null &&
+        sessionSummary.avgPower !== undefined
+      )
+        metrics.push({
+          key: 'fitAvgPower',
+          label: 'Average Power',
+          value: `${Math.round(sessionSummary.avgPower)}W`,
+          source: 'fit'
+        })
+
+      if (
+        (workout.value.maxWatts === null || workout.value.maxWatts === undefined) &&
+        sessionSummary.maxPower !== null &&
+        sessionSummary.maxPower !== undefined
+      )
+        metrics.push({
+          key: 'fitMaxPower',
+          label: 'Max Power',
+          value: `${Math.round(sessionSummary.maxPower)}W`,
+          source: 'fit'
+        })
+
+      if (
+        (workout.value.maxHr === null || workout.value.maxHr === undefined) &&
+        sessionSummary.maxHeartRate !== null &&
+        sessionSummary.maxHeartRate !== undefined
+      )
+        metrics.push({
+          key: 'fitMaxHr',
+          label: 'Max HR',
+          value: `${Math.round(sessionSummary.maxHeartRate)} bpm`,
+          source: 'fit'
+        })
+
+      if (
+        sessionSummary.trainingStressScore !== null &&
+        sessionSummary.trainingStressScore !== undefined
+      )
+        metrics.push({
+          key: 'fitTss',
+          label: 'Training Stress Score',
+          value: Number(sessionSummary.trainingStressScore).toFixed(1),
+          source: 'fit'
+        })
+    }
+
     return metrics
   })
 
@@ -2219,7 +2383,8 @@
       temp: { label: 'Temperature', color: '#06b6d4', unit: userStore.temperatureUnitLabel },
       respiration: { label: 'Respiration', color: '#ec4899', unit: 'brpm' },
       hrv: { label: 'HRV', color: '#84cc16', unit: 'ms' },
-      leftRightBalance: { label: 'L/R Balance', color: '#d946ef', unit: '%' }
+      leftRightBalance: { label: 'L/R Balance', color: '#d946ef', unit: '%' },
+      targetPower: { label: 'Target Power', color: '#10b981', unit: 'W' }
     }
 
     const streamKeys = Object.keys(streamMetadata)
@@ -2237,6 +2402,16 @@
       }
     }
     return streams
+  })
+
+  const extrasMetaData = computed<Record<string, any> | null>(() => {
+    const value = workout.value?.streams?.extrasMeta
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    return value as Record<string, any>
+  })
+
+  const hasExtrasMeta = computed(() => {
+    return Boolean(extrasMetaData.value && Object.keys(extrasMetaData.value).length > 0)
   })
 
   const workoutSectionAvailability = computed<Record<WorkoutSectionKey, boolean>>(() => {
@@ -2260,7 +2435,7 @@
       efficiency: hasEfficiencyMetrics(currentWorkout),
       notes: Boolean(currentWorkout),
       metrics: availableMetrics.value.length > 0,
-      streams: availableStreams.value.length > 0,
+      streams: availableStreams.value.length > 0 || hasExtrasMeta.value,
       duplicates: Boolean(
         currentWorkout?.isDuplicate ||
         currentWorkout?.duplicates?.length ||
