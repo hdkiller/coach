@@ -11,6 +11,10 @@ const patchSchema = z.object({
   avgSleepingHr: z.number().int().nullable().optional(),
   sleepSecs: z.number().int().nullable().optional(),
   sleepHours: z.number().nullable().optional(),
+  sleepDeepSecs: z.number().int().nullable().optional(),
+  sleepRemSecs: z.number().int().nullable().optional(),
+  sleepLightSecs: z.number().int().nullable().optional(),
+  sleepAwakeSecs: z.number().int().nullable().optional(),
   sleepScore: z.number().int().nullable().optional(),
   sleepQuality: z.number().int().nullable().optional(),
   readiness: z.number().int().nullable().optional(),
@@ -128,7 +132,10 @@ export default defineEventHandler(async (event) => {
     if (!isSame) {
       updateData[key] = nextValue
       changes[key] = {
-        old: key === 'date' && currentValue instanceof Date ? currentValue.toISOString() : currentValue,
+        old:
+          key === 'date' && currentValue instanceof Date
+            ? currentValue.toISOString()
+            : currentValue,
         new: key === 'date' && nextValue instanceof Date ? nextValue.toISOString() : nextValue
       }
     }

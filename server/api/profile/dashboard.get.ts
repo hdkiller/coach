@@ -69,6 +69,7 @@ export default defineEventHandler(async (event) => {
             { sleepDeepSecs: { not: null } },
             { sleepRemSecs: { not: null } },
             { sleepLightSecs: { not: null } },
+            { sleepAwakeSecs: { not: null } },
             { systolic: { not: null } },
             { diastolic: { not: null } }
           ]
@@ -91,6 +92,7 @@ export default defineEventHandler(async (event) => {
           sleepDeepSecs: true,
           sleepRemSecs: true,
           sleepLightSecs: true,
+          sleepAwakeSecs: true,
           systolic: true,
           diastolic: true
         }
@@ -107,7 +109,8 @@ export default defineEventHandler(async (event) => {
             { spO2: { not: null } },
             { sleepDeepSecs: { not: null } },
             { sleepRemSecs: { not: null } },
-            { sleepLightSecs: { not: null } }
+            { sleepLightSecs: { not: null } },
+            { sleepAwakeSecs: { not: null } }
           ]
         },
         orderBy: { date: 'desc' },
@@ -120,7 +123,8 @@ export default defineEventHandler(async (event) => {
           spO2: true,
           sleepDeepSecs: true,
           sleepRemSecs: true,
-          sleepLightSecs: true
+          sleepLightSecs: true,
+          sleepAwakeSecs: true
         }
       }),
       prisma.wellness.findFirst({
@@ -166,6 +170,7 @@ export default defineEventHandler(async (event) => {
           sleepDeepSecs: dailyMetric.sleepDeepSecs,
           sleepRemSecs: dailyMetric.sleepRemSecs,
           sleepLightSecs: dailyMetric.sleepLightSecs,
+          sleepAwakeSecs: dailyMetric.sleepAwakeSecs,
           respiration: null,
           skinTemp: null,
           vo2max: null,
@@ -192,6 +197,7 @@ export default defineEventHandler(async (event) => {
         sleepDeepSecs: dailyMetric.sleepDeepSecs,
         sleepRemSecs: dailyMetric.sleepRemSecs,
         sleepLightSecs: dailyMetric.sleepLightSecs,
+        sleepAwakeSecs: dailyMetric.sleepAwakeSecs,
         respiration: null,
         skinTemp: null,
         vo2max: null,
@@ -237,6 +243,7 @@ export default defineEventHandler(async (event) => {
     const recentSleepDeep = wellnessData?.sleepDeepSecs ?? null
     const recentSleepRem = wellnessData?.sleepRemSecs ?? null
     const recentSleepLight = wellnessData?.sleepLightSecs ?? null
+    const recentSleepAwake = wellnessData?.sleepAwakeSecs ?? null
     const recentSystolic = wellnessData?.systolic ?? null
     const recentDiastolic = wellnessData?.diastolic ?? null
     const recentReadiness = wellnessData?.readiness ?? null
@@ -373,6 +380,7 @@ export default defineEventHandler(async (event) => {
         recentSleepDeep,
         recentSleepRem,
         recentSleepLight,
+        recentSleepAwake,
         recentSystolic,
         recentDiastolic,
         recentReadiness,

@@ -6,7 +6,7 @@ import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { getUserTimezone, getStartOfLocalDateUTC } from '../../utils/date'
 
 const foodItemSchema = z.object({
-  name: z.string(),
+  name: z.string().optional(),
   calories: z.number().optional(),
   carbs: z.number().optional(),
   protein: z.number().optional(),
@@ -70,9 +70,12 @@ defineRouteMeta({
         schemas: {
           FoodItem: {
             type: 'object',
-            required: ['name', 'logged_at'],
+            required: ['logged_at'],
             properties: {
-              name: { type: 'string' },
+              name: {
+                type: 'string',
+                description: 'Optional item name. Defaults to "Unknown item".'
+              },
               calories: { type: 'number' },
               carbs: { type: 'number' },
               protein: { type: 'number' },
@@ -181,6 +184,7 @@ export default defineEventHandler(async (event) => {
     // Enrich item with source and ID
     const enrichedItem = {
       ...item,
+      name: item.name?.trim() || 'Unknown item',
       id: crypto.randomUUID(),
       source,
       absorptionType: item.absorptionType || 'BALANCED'

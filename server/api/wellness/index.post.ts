@@ -15,6 +15,7 @@ const wellnessUploadSchema = z.object({
   sleepDeepSecs: z.number().int().optional(),
   sleepRemSecs: z.number().int().optional(),
   sleepLightSecs: z.number().int().optional(),
+  sleepAwakeSecs: z.number().int().optional(),
   readiness: z.number().int().optional(),
   recoveryScore: z.number().int().optional(),
   weight: z.number().optional(),
@@ -95,6 +96,10 @@ defineRouteMeta({
               sleepDeepSecs: { type: 'integer', description: 'Deep sleep duration in seconds' },
               sleepRemSecs: { type: 'integer', description: 'REM sleep duration in seconds' },
               sleepLightSecs: { type: 'integer', description: 'Light sleep duration in seconds' },
+              sleepAwakeSecs: {
+                type: 'integer',
+                description: 'Awake duration during sleep session in seconds'
+              },
               readiness: { type: 'integer', description: 'Overall readiness score (1-100)' },
               recoveryScore: { type: 'integer', description: 'Recovery score (1-100)' },
               weight: { type: 'number', description: 'Body weight (kg)' },
