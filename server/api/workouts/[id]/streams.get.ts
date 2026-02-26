@@ -202,7 +202,9 @@ export default defineEventHandler(async (event) => {
           'altitude',
           'distance',
           'grade_smooth',
-          'latlng'
+          'latlng',
+          'leftRightBalance',
+          'targetPower'
         ]
 
         const processedStream = { ...workoutStream, pacingStrategy: strategy }
@@ -251,7 +253,9 @@ export default defineEventHandler(async (event) => {
           'altitude',
           'distance',
           'grade_smooth',
-          'latlng'
+          'latlng',
+          'leftRightBalance',
+          'targetPower'
         ]
 
         streamKeys.forEach((key) => {
