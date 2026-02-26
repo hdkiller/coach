@@ -108,7 +108,7 @@
             class="mb-2"
           />
           <pre
-            v-if="!isSupportTicketCall"
+            v-if="!isSupportTicketTool"
             class="text-[10px] text-gray-600 dark:text-gray-400 overflow-x-auto"
           ><code>{{ formatJson(toolCall.args) }}</code></pre>
         </div>

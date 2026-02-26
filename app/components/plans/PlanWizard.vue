@@ -1122,7 +1122,7 @@
         end.setDate(end.getDate() + weeks * 7)
       }
 
-      const workouts: any[] = await $fetch('/api/planned-workouts', {
+      const workouts: any[] = await ($fetch as any)('/api/planned-workouts', {
         query: {
           startDate: start.toISOString(),
           endDate: end.toISOString(),

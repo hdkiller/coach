@@ -647,7 +647,7 @@
     eventSource.value = 'calendar'
     loadingEvents.value = true
     try {
-      const data: any[] = await $fetch('/api/events')
+      const data = (await ($fetch as any)('/api/events')) as any[]
       userEvents.value = data
     } catch (error) {
       console.error('Failed to fetch events', error)

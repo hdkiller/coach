@@ -4,7 +4,7 @@
   })
 
   // Recursive function to map content navigation to UNavigationMenu items
-  function mapNavigation(items: any[]) {
+  function mapNavigation(items: any[]): any[] {
     if (!items) return []
     return items.map((item) => ({
       label: item.title || item.path.split('/').pop(),

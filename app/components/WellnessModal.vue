@@ -730,9 +730,9 @@
       // Fetch 7-day trend data
       const startDate = formatDateUTC(subDays(date, 6), 'yyyy-MM-dd')
       const endDate = dateStr
-      const trendResponse = await $fetch<any[]>(
+      const trendResponse = (await ($fetch as any)(
         `/api/wellness/trend?startDate=${startDate}&endDate=${endDate}`
-      )
+      )) as any[]
       trendData.value = trendResponse.map((d: any) => ({
         ...d,
         date: new Date(d.date)

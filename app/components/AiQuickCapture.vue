@@ -314,9 +314,9 @@
       // 1. Create a room if we don't have one for this "session"
       if (!currentRoomId.value) {
         loadingMessages.value = true
-        const room = await $fetch<any>('/api/chat/rooms', {
+        const room = (await $fetch('/api/chat/rooms', {
           method: 'POST'
-        })
+        })) as any
         currentRoomId.value = room.roomId
 
         // 2. Initialize Chat SDK

@@ -100,7 +100,7 @@
   async function fetchWorkouts() {
     if (!props.startDate || !props.endDate) return
     try {
-      const data: any[] = await $fetch('/api/planned-workouts', {
+      const data: any[] = await ($fetch as any)('/api/planned-workouts', {
         query: {
           startDate: props.startDate,
           endDate: props.endDate,

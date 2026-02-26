@@ -61,7 +61,7 @@
 
   onMounted(async () => {
     try {
-      const data = await $fetch<any>('/api/profile/email-preferences')
+      const data = (await $fetch('/api/profile/email-preferences')) as any
       if (data) {
         state.workoutAnalysis = data.workoutAnalysis ?? true
         state.planUpdates = data.planUpdates ?? true

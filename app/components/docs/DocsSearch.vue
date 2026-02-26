@@ -7,7 +7,7 @@
     `docs-search-${query.value}`,
     () => {
       if (!query.value) return Promise.resolve([])
-      return searchContent('content', query)
+      return queryCollection('content').all()
     },
     {
       watch: [query]
@@ -15,17 +15,18 @@
   )
 
   const groups = computed(() => {
-    if (!results.value?.length) return []
+    const items = (results.value as any[]) || []
+    if (!items.length) return []
 
     return [
       {
         id: 'docs',
         label: 'Documentation Results',
-        items: results.value.map((item) => ({
+        items: items.map((item) => ({
           id: item.id,
           label: item.title,
           suffix: item.description,
-          to: item.id,
+          to: item.path,
           icon: 'i-lucide-file-text'
         }))
       }
@@ -63,7 +64,7 @@
           v-model:search-query="query"
           placeholder="Search documentation..."
           :groups="groups"
-          :fuse="{ ignoreLocation: true, threshold: 0.3 }"
+          :fuse="{}"
           class="h-[400px]"
           @update:model-value="onSelect"
         />

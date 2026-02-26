@@ -141,7 +141,7 @@
 
         return {
           ...section,
-          visible: section.locked ? true : merged.visible,
+          visible: Boolean(section.locked ? true : merged.visible),
           order: typeof merged.order === 'number' ? merged.order : index
         }
       })
@@ -187,7 +187,7 @@
   function resetDefaults() {
     items.value = props.sections.map((section, index) => ({
       ...section,
-      visible: section.defaultVisible !== false,
+      visible: Boolean(section.defaultVisible !== false),
       order: index
     }))
   }

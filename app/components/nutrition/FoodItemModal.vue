@@ -158,6 +158,7 @@
     if (!absorptionType) return 'BALANCED'
     const normalized = String(absorptionType).toUpperCase()
     const mapped = LEGACY_ABSORPTION_TYPE_MAP[normalized] || normalized
+    // @ts-expect-error - validAbsorptionTypes handles validation
     return validAbsorptionTypes.has(mapped) ? mapped : 'BALANCED'
   }
 
