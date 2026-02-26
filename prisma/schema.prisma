@@ -736,6 +736,7 @@ model DailyMetric {
   sleepDeepSecs  Int?
   sleepRemSecs   Int?
   sleepLightSecs Int?
+  sleepAwakeSecs Int?
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
@@ -756,6 +757,7 @@ model Wellness {
   sleepDeepSecs    Int?
   sleepRemSecs     Int?
   sleepLightSecs   Int?
+  sleepAwakeSecs   Int?
   readiness        Int?
   recoveryScore    Int?
   soreness         Int?
