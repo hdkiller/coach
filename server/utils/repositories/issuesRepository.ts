@@ -373,7 +373,7 @@ export const issuesRepository = {
 
     const comment = await prisma.bugReportComment.findUnique({
       where: { id: commentId },
-      select: { reactions: true }
+      select: { reactions: true, userId: true, acknowledgedAt: true }
     })
 
     if (!comment) {
@@ -419,9 +419,20 @@ export const issuesRepository = {
       JSON.stringify(reactions)
     )
 
+    const updateData: any = { reactions: reactions as any }
+
+    // UX Improvement: Automatically acknowledge comment if recipient reacts
+    if (comment.userId !== userId && !comment.acknowledgedAt) {
+      console.log(
+        `[issuesRepository] toggleReaction: automatically acknowledging comment ${commentId} for user ${userId}`
+      )
+      updateData.acknowledgedAt = new Date()
+      updateData.acknowledgedBy = userId
+    }
+
     return prisma.bugReportComment.update({
       where: { id: commentId },
-      data: { reactions: reactions as any },
+      data: updateData,
       include: {
         user: {
           select: {
