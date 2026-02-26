@@ -2,9 +2,20 @@ import { prisma } from './db'
 import { queueEmail } from './email-service'
 import { formatUserDate, getStartOfDaysAgoUTC } from './date'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
+import { buildWorkoutStreamInsights } from './workout-email-stream-insights'
 
 const RECENT_WORKOUT_WINDOW_HOURS = 48
 const CONSISTENCY_WINDOW_DAYS = 7
+const COPY_VARIANT_LOOKBACK = 20
+
+const COPY_SLOTS = ['heroTitle', 'introLine', 'ctaLabel', 'nextStepMessage', 'subject'] as const
+type CopySlot = (typeof COPY_SLOTS)[number]
+
+type WorkoutReceivedCopyVariantIds = Record<CopySlot, string>
+type CopyVariant = {
+  id: string
+  text: string
+}
 
 type TriggerType = 'on-workout-received' | 'on-analysis-ready' | 'on-adherence-ready'
 
@@ -182,6 +193,41 @@ function pickVariant<T>(key: string, variants: T[]) {
     throw new Error('pickVariant requires at least one variant')
   }
   return variants[hashString(key) % variants.length]
+}
+
+function pickCopyVariant(options: {
+  key: string
+  slot: CopySlot
+  variants: CopyVariant[]
+  recentVariantIds?: Partial<Record<CopySlot, Set<string>>>
+}) {
+  const { key, slot, variants, recentVariantIds } = options
+  const recentlyUsed = recentVariantIds?.[slot] || new Set<string>()
+  const available = variants.filter((variant) => !recentlyUsed.has(variant.id))
+  const pool = available.length > 0 ? available : variants
+  return pickVariant(key, pool)
+}
+
+function parseRecentCopyVariantIds(rows: Array<{ metadata: unknown }>) {
+  const recentBySlot: Partial<Record<CopySlot, Set<string>>> = {}
+  for (const slot of COPY_SLOTS) {
+    recentBySlot[slot] = new Set<string>()
+  }
+
+  for (const row of rows) {
+    const metadata = row.metadata as Record<string, unknown> | null
+    const ids = metadata?.copyVariantIds as Partial<Record<CopySlot, unknown>> | undefined
+    if (!ids || typeof ids !== 'object') continue
+
+    for (const slot of COPY_SLOTS) {
+      const value = ids[slot]
+      if (typeof value === 'string' && value) {
+        recentBySlot[slot]?.add(value)
+      }
+    }
+  }
+
+  return recentBySlot
 }
 
 function buildLoadContext(tss7d?: number, weeklyTssBaseline28d?: number) {
@@ -362,6 +408,7 @@ export function buildInterestingCopy(options: {
   tss?: number
   loadDeltaPct?: number
   workoutsLast7Days?: number
+  recentVariantIds?: Partial<Record<CopySlot, Set<string>>>
 }) {
   const {
     workoutId,
@@ -371,77 +418,186 @@ export function buildInterestingCopy(options: {
     distanceLabel,
     tss,
     loadDeltaPct,
-    workoutsLast7Days
+    workoutsLast7Days,
+    recentVariantIds
   } = options
   const key = `${workoutId}:${sportCategory}`
 
-  let heroTitle = pickVariant(key, [
-    'Workout synced and momentum building.',
-    'Session logged. Progress in motion.',
-    'Another strong brick in your training wall.'
-  ])
+  let heroVariant = pickCopyVariant({
+    key,
+    slot: 'heroTitle',
+    recentVariantIds,
+    variants: [
+      { id: 'hero_default_1', text: 'Workout synced and momentum building.' },
+      { id: 'hero_default_2', text: 'Session logged. Progress in motion.' },
+      { id: 'hero_default_3', text: 'Another strong brick in your training wall.' }
+    ]
+  })
 
   if (typeof workoutsLast7Days === 'number' && workoutsLast7Days >= 4) {
-    heroTitle = pickVariant(`${key}:hero-consistency`, [
-      `${workoutsLast7Days} sessions in 7 days. Your momentum is building.`,
-      `Consistency unlocked. Another solid brick in the wall.`,
-      `Showing up is half the battle. Session captured.`
-    ])
+    heroVariant = pickCopyVariant({
+      key: `${key}:hero-consistency`,
+      slot: 'heroTitle',
+      recentVariantIds,
+      variants: [
+        {
+          id: 'hero_consistency_1',
+          text: `${workoutsLast7Days} sessions in 7 days. Your momentum is building.`
+        },
+        {
+          id: 'hero_consistency_2',
+          text: 'Consistency unlocked. Another solid brick in the wall.'
+        },
+        { id: 'hero_consistency_3', text: 'Showing up is half the battle. Session captured.' }
+      ]
+    })
   } else if (typeof tss === 'number' && tss >= 100) {
-    heroTitle = pickVariant(`${key}:hero-load`, [
-      `Big Engine session logged: ${Math.round(tss)} TSS.`,
-      `Solid effort. Productive stress mapped.`,
-      `Massive shift today. Recovery starts now.`
-    ])
+    heroVariant = pickCopyVariant({
+      key: `${key}:hero-load`,
+      slot: 'heroTitle',
+      recentVariantIds,
+      variants: [
+        { id: 'hero_load_1', text: `Big Engine session logged: ${Math.round(tss)} TSS.` },
+        { id: 'hero_load_2', text: 'Solid effort. Productive stress mapped.' },
+        { id: 'hero_load_3', text: 'Massive shift today. Recovery starts now.' }
+      ]
+    })
   } else if (distanceLabel) {
-    heroTitle = pickVariant(`${key}:hero-distance`, [
-      `Great shift. ${distanceLabel} in the books.`,
-      `Session secured. ${distanceLabel} completed.`,
-      `That's ${distanceLabel} added to your timeline.`
-    ])
+    heroVariant = pickCopyVariant({
+      key: `${key}:hero-distance`,
+      slot: 'heroTitle',
+      recentVariantIds,
+      variants: [
+        { id: 'hero_distance_1', text: `Great shift. ${distanceLabel} in the books.` },
+        { id: 'hero_distance_2', text: `Session secured. ${distanceLabel} completed.` },
+        { id: 'hero_distance_3', text: `That's ${distanceLabel} added to your timeline.` }
+      ]
+    })
   } else if (typeof loadDeltaPct === 'number' && loadDeltaPct > 10) {
-    heroTitle = pickVariant(`${key}:hero-delta`, [
-      `Solid effort. Pushing ${loadDeltaPct}% above your recent baseline.`,
-      `Progressive load secured. Pushing the baseline up.`,
-      `Productive stimulus logged. Great shift.`
-    ])
+    heroVariant = pickCopyVariant({
+      key: `${key}:hero-delta`,
+      slot: 'heroTitle',
+      recentVariantIds,
+      variants: [
+        {
+          id: 'hero_delta_1',
+          text: `Solid effort. Pushing ${loadDeltaPct}% above your recent baseline.`
+        },
+        { id: 'hero_delta_2', text: 'Progressive load secured. Pushing the baseline up.' },
+        { id: 'hero_delta_3', text: 'Productive stimulus logged. Great shift.' }
+      ]
+    })
   }
 
-  const introLine = pickVariant(`${key}:intro`, [
-    `Solid work today. ${workoutTitle} is now on your timeline and ready to review.`,
-    `Nice execution. ${workoutTitle} has been captured and added to your training history.`,
-    `Strong session. ${workoutTitle} is in, and your trends just got sharper.`
-  ])
+  const introVariant = pickCopyVariant({
+    key: `${key}:intro`,
+    slot: 'introLine',
+    recentVariantIds,
+    variants: [
+      {
+        id: 'intro_1',
+        text: `Solid work today. ${workoutTitle} is now on your timeline and ready to review.`
+      },
+      {
+        id: 'intro_2',
+        text: `Nice execution. ${workoutTitle} has been captured and added to your training history.`
+      },
+      {
+        id: 'intro_3',
+        text: `Strong session. ${workoutTitle} is in, and your trends just got sharper.`
+      }
+    ]
+  })
 
-  const ctaLabel = pickVariant(`${key}:cta`, [
-    'View Full Analysis & Splits',
-    'Open Workout Details',
-    'Review This Session'
-  ])
+  const ctaVariant = pickCopyVariant({
+    key: `${key}:cta`,
+    slot: 'ctaLabel',
+    recentVariantIds,
+    variants: [
+      { id: 'cta_1', text: 'View Full Analysis & Splits' },
+      { id: 'cta_2', text: 'Open Workout Details' },
+      { id: 'cta_3', text: 'Review This Session' }
+    ]
+  })
 
-  const nextStepMessage = pickVariant(`${key}:next`, [
-    'See how this session impacted your Fitness vs Fatigue trend.',
-    'Open your detail page to inspect execution patterns while the session is fresh.',
-    'Review your charts and timeline now to lock in learnings for the next workout.'
-  ])
+  const nextVariant = pickCopyVariant({
+    key: `${key}:next`,
+    slot: 'nextStepMessage',
+    recentVariantIds,
+    variants: [
+      { id: 'next_1', text: 'See how this session impacted your Fitness vs Fatigue trend.' },
+      {
+        id: 'next_2',
+        text: 'Open your detail page to inspect execution patterns while the session is fresh.'
+      },
+      {
+        id: 'next_3',
+        text: 'Review your charts and timeline now to lock in learnings for the next workout.'
+      }
+    ]
+  })
 
-  const subject = normalizeSubjectSpacing(
-    (distanceLabel
-      ? pickVariant(`${key}:subject-distance`, [
-          `Great shift, ${firstName}. ${distanceLabel} in the books.`,
-          `${firstName}, ${distanceLabel} logged. Your trendline just moved.`,
-          `${distanceLabel} complete, ${firstName}. Session synced and ready.`
-        ])
-      : pickVariant(`${key}:subject-title`, [
-          `Great shift, ${firstName}. ${workoutTitle} is in the books.`,
-          `${firstName}, ${workoutTitle} is synced and ready to review.`,
-          `${workoutTitle} logged, ${firstName}. Momentum stays on.`
-        ])) as string
-  )
+  const subjectVariant = distanceLabel
+    ? pickCopyVariant({
+        key: `${key}:subject-distance`,
+        slot: 'subject',
+        recentVariantIds,
+        variants: [
+          {
+            id: 'subject_distance_1',
+            text: `Great shift, ${firstName}. ${distanceLabel} in the books.`
+          },
+          {
+            id: 'subject_distance_2',
+            text: `${firstName}, ${distanceLabel} logged. Your trendline just moved.`
+          },
+          {
+            id: 'subject_distance_3',
+            text: `${distanceLabel} complete, ${firstName}. Session synced and ready.`
+          }
+        ]
+      })
+    : pickCopyVariant({
+        key: `${key}:subject-title`,
+        slot: 'subject',
+        recentVariantIds,
+        variants: [
+          {
+            id: 'subject_title_1',
+            text: `Great shift, ${firstName}. ${workoutTitle} is in the books.`
+          },
+          {
+            id: 'subject_title_2',
+            text: `${firstName}, ${workoutTitle} is synced and ready to review.`
+          },
+          {
+            id: 'subject_title_3',
+            text: `${workoutTitle} logged, ${firstName}. Momentum stays on.`
+          }
+        ]
+      })
+
+  const subject = normalizeSubjectSpacing(subjectVariant.text)
 
   const previewLine = `${workoutTitle} is synced. Open for insights, load context, and sport-specific cues.`
 
-  return { heroTitle, introLine, ctaLabel, nextStepMessage, subject, previewLine }
+  const copyVariantIds: WorkoutReceivedCopyVariantIds = {
+    heroTitle: heroVariant.id,
+    introLine: introVariant.id,
+    ctaLabel: ctaVariant.id,
+    nextStepMessage: nextVariant.id,
+    subject: subjectVariant.id
+  }
+
+  return {
+    heroTitle: heroVariant.text,
+    introLine: introVariant.text,
+    ctaLabel: ctaVariant.text,
+    nextStepMessage: nextVariant.text,
+    subject,
+    previewLine,
+    copyVariantIds
+  }
 }
 
 export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmailOptions) {
@@ -457,6 +613,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       date: true,
       type: true,
       durationSec: true,
+      elapsedTimeSec: true,
       distanceMeters: true,
       elevationGain: true,
       averageCadence: true,
@@ -467,7 +624,22 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       tss: true,
       kilojoules: true,
       calories: true,
-      overallScore: true
+      overallScore: true,
+      decoupling: true,
+      wPrime: true,
+      wBalDepletion: true,
+      streams: {
+        select: {
+          time: true,
+          watts: true,
+          heartrate: true,
+          cadence: true,
+          distance: true,
+          grade: true,
+          moving: true,
+          surges: true
+        }
+      }
     }
   })
 
@@ -523,7 +695,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   const consistencyWindowStart = getStartOfDaysAgoUTC(timezone, 6, workout.date)
   const tssWindowStart = getStartOfDaysAgoUTC(timezone, 27, workout.date)
 
-  const [workoutsLast7Days, windowWorkouts, sportSettings] = await Promise.all([
+  const [workoutsLast7Days, windowWorkouts, sportSettings, recentDeliveries] = await Promise.all([
     prisma.workout.count({
       where: {
         userId: workout.userId,
@@ -548,7 +720,18 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
         tss: true
       }
     }),
-    sportSettingsRepository.getForActivityType(workout.userId, workout.type || '')
+    sportSettingsRepository.getForActivityType(workout.userId, workout.type || ''),
+    prisma.emailDelivery.findMany({
+      where: {
+        userId: workout.userId,
+        templateKey: 'WorkoutReceived'
+      },
+      orderBy: { createdAt: 'desc' },
+      take: COPY_VARIANT_LOOKBACK,
+      select: {
+        metadata: true
+      }
+    })
   ])
 
   const consistencyMessage =
@@ -588,9 +771,30 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     sportLthr: sportSettings?.lthr || undefined,
     sportMaxHr: sportSettings?.maxHr || undefined
   })
+  const streamInsights = buildWorkoutStreamInsights({
+    durationSec: workout.durationSec,
+    elapsedTimeSec: workout.elapsedTimeSec,
+    decouplingPct: workout.decoupling,
+    ftp: sportSettings?.ftp || undefined,
+    wPrime: workout.wPrime || sportSettings?.wPrime || undefined,
+    wBalDepletion: workout.wBalDepletion,
+    streams: workout.streams
+      ? {
+          time: workout.streams.time,
+          watts: workout.streams.watts,
+          heartrate: workout.streams.heartrate,
+          cadence: workout.streams.cadence,
+          distance: workout.streams.distance,
+          grade: workout.streams.grade,
+          moving: workout.streams.moving,
+          surges: workout.streams.surges
+        }
+      : undefined
+  })
   const distanceLabel = formatDistanceLabel(distanceKm)
   const firstName = getFirstName(user.name)
-  const { heroTitle, introLine, ctaLabel, nextStepMessage, subject, previewLine } =
+  const recentVariantIds = parseRecentCopyVariantIds(recentDeliveries)
+  const { heroTitle, introLine, ctaLabel, nextStepMessage, subject, previewLine, copyVariantIds } =
     buildInterestingCopy({
       workoutId: workout.id,
       sportCategory,
@@ -599,7 +803,8 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       distanceLabel,
       tss: workout.tss || undefined,
       loadDeltaPct,
-      workoutsLast7Days
+      workoutsLast7Days,
+      recentVariantIds
     })
 
   const commonProps = {
@@ -638,6 +843,10 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     cadenceUnit,
     ctaLabel,
     nextStepMessage,
+    copyVariantIds,
+    streamInsightBullets: streamInsights.bullets.length > 0 ? streamInsights.bullets : undefined,
+    streamInsightWhatItMeans: streamInsights.whatItMeans,
+    streamInsightNextSuggestion: streamInsights.nextWorkoutSuggestion,
     workoutUrl: `${baseUrl}/workouts/${workout.id}`,
     unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`,
     shareUrl: `${baseUrl}/workouts/${workout.id}?share=true`,
