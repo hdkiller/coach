@@ -7,7 +7,8 @@ import {
   parseFitFile,
   normalizeFitSession,
   extractFitStreams,
-  reconstructSessionFromRecords
+  reconstructSessionFromRecords,
+  extractFitExtrasMeta
 } from '../server/utils/fit'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
 import {
@@ -61,6 +62,7 @@ export const ingestFitFile = task({
       // Extract streams
       logger.log('Extracting and saving streams...')
       const streams = extractFitStreams(fitData.records)
+      const extrasMeta = extractFitExtrasMeta(fitData)
 
       // Calculate derived metrics from streams if not present in session
       // For Zwift workouts, TSS and normalized power might be missing
@@ -135,6 +137,7 @@ export const ingestFitFile = task({
         create: {
           workoutId: upsertedWorkout.id,
           ...streams,
+          extrasMeta,
           lapSplits,
           paceVariability,
           avgPacePerKm,
@@ -143,6 +146,7 @@ export const ingestFitFile = task({
         },
         update: {
           ...streams,
+          extrasMeta,
           lapSplits,
           paceVariability,
           avgPacePerKm,

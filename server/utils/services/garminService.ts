@@ -3,8 +3,32 @@ import { prisma } from '../db'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { fetchGarminActivityFile, requestGarminBackfill } from '../garmin'
-import { parseFitFile, extractFitStreams } from '../fit'
+import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
+import crypto from 'crypto'
+
+function normalizeDeviceName(name: unknown): string | null {
+  if (typeof name !== 'string') return null
+  const trimmed = name.trim()
+  if (!trimmed) return null
+  if (trimmed.toLowerCase() === 'unknown') return null
+  return trimmed
+}
+
+function inferDeviceNameFromFitData(fitData: any): string | null {
+  const infos = Array.isArray(fitData?.device_infos) ? fitData.device_infos : []
+  for (const info of infos) {
+    const candidate =
+      normalizeDeviceName(info?.product_name) ||
+      normalizeDeviceName(info?.productName) ||
+      normalizeDeviceName(info?.name) ||
+      normalizeDeviceName(info?.device_name) ||
+      normalizeDeviceName(info?.deviceName)
+
+    if (candidate) return candidate
+  }
+  return null
+}
 
 export const GarminService = {
   /**
@@ -212,28 +236,54 @@ export const GarminService = {
   async processActivities(userId: string, data: any[], integration: any) {
     for (const record of data) {
       const startDate = new Date(record.startTimeInSeconds * 1000)
+      const externalId = record.summaryId
+        ? String(record.summaryId)
+        : String(record.activityId || '')
+
+      if (!externalId) {
+        console.warn('[GarminService] Skipping activity without summaryId/activityId', {
+          userId,
+          record
+        })
+        continue
+      }
 
       const workoutData: any = {
         userId,
-        externalId: record.summaryId,
+        externalId,
         source: 'garmin',
         date: startDate,
         title: record.activityName || `Garmin ${record.activityType}`,
         type: this.mapActivityType(record.activityType),
         durationSec: record.durationInSeconds,
+        elapsedTimeSec: record.durationInSeconds || null,
         distanceMeters: record.distanceInMeters || null,
+        elevationGain: record.totalElevationGainInMeters
+          ? Math.round(record.totalElevationGainInMeters)
+          : null,
+        averageCadence: record.averageBikeCadenceInRoundsPerMinute
+          ? Math.round(record.averageBikeCadenceInRoundsPerMinute)
+          : null,
+        maxCadence: record.maxBikeCadenceInRoundsPerMinute
+          ? Math.round(record.maxBikeCadenceInRoundsPerMinute)
+          : null,
+        averageSpeed: record.averageSpeedInMetersPerSecond || null,
         averageHr: record.averageHeartRateInBeatsPerMinute || null,
         maxHr: record.maxHeartRateInBeatsPerMinute || null,
+        calories: record.activeKilocalories ? Math.round(record.activeKilocalories) : null,
         kilojoules: record.activeKilocalories
           ? Math.round(record.activeKilocalories * 4.184)
           : null,
+        deviceName: normalizeDeviceName(record.deviceName),
+        isPrivate: null,
+        commute: null,
         rawJson: record
       }
 
       const upserted = await workoutRepository.upsert(
         userId,
         'garmin',
-        record.summaryId,
+        externalId,
         workoutData,
         workoutData
       )
@@ -244,25 +294,63 @@ export const GarminService = {
           where: { workoutId: upserted.record.id },
           select: { id: true }
         })
+        const existingFitFile = await prisma.fitFile.findUnique({
+          where: { workoutId: upserted.record.id },
+          select: { id: true }
+        })
 
-        if (!existingStream) {
+        if (!existingStream || !existingFitFile) {
           try {
-            const buffer = await fetchGarminActivityFile(integration, record.summaryId)
+            const buffer = await fetchGarminActivityFile(integration, externalId)
+            const hash = crypto.createHash('sha256').update(buffer).digest('hex')
+
+            // Persist raw FIT payload so we can re-process/backfill parsing later.
+            await prisma.fitFile.upsert({
+              where: { workoutId: upserted.record.id },
+              create: {
+                userId,
+                workoutId: upserted.record.id,
+                filename: `garmin_${externalId}.fit`,
+                fileData: buffer,
+                hash
+              },
+              update: {
+                filename: `garmin_${externalId}.fit`,
+                fileData: buffer,
+                hash
+              }
+            })
+
             const fitData = await parseFitFile(buffer)
             const streams = extractFitStreams(fitData.records)
+            const extrasMeta = extractFitExtrasMeta(fitData)
+            const fitDeviceName = inferDeviceNameFromFitData(fitData)
 
-            if (streams) {
+            if (!upserted.record.deviceName && fitDeviceName) {
+              await prisma.workout.update({
+                where: { id: upserted.record.id },
+                data: { deviceName: fitDeviceName }
+              })
+            }
+
+            if (!existingStream && streams) {
               await prisma.workoutStream.upsert({
                 where: { workoutId: upserted.record.id },
                 create: {
                   workoutId: upserted.record.id,
-                  ...streams
+                  ...streams,
+                  extrasMeta
                 },
-                update: streams
+                update: { ...streams, extrasMeta }
+              })
+            } else if (existingStream) {
+              await prisma.workoutStream.update({
+                where: { workoutId: upserted.record.id },
+                data: { extrasMeta }
               })
             }
           } catch (e) {
-            console.error(`[GarminService] Failed to ingest streams for ${record.summaryId}`, e)
+            console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
           }
         }
       }
