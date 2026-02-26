@@ -309,7 +309,7 @@
     try {
       if (!silent) loading.value = true
       error.value = null
-      const data = await $fetch<any>('/api/checkin/today')
+      const data = (await $fetch('/api/checkin/today')) as any
       if (data) {
         checkin.value = data
 
@@ -342,10 +342,10 @@
     try {
       loading.value = true
       error.value = null
-      const data = await $fetch<any>('/api/checkin/generate', {
+      const data = (await $fetch('/api/checkin/generate', {
         method: 'POST',
         body: { force }
-      })
+      })) as any
       checkin.value = data
 
       if (data.status === 'COMPLETED') {

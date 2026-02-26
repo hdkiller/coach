@@ -140,7 +140,7 @@
     const labels = props.data.map((item) => formatDate(item.date))
 
     const datasets = metrics.value.map((metric) => ({
-      type: isBar ? 'bar' : 'line',
+      type: (isBar ? 'bar' : 'line') as 'bar' | 'line',
       label: metric.label,
       data: props.data.map((item) => item[metric.key] || 0),
       borderColor: metric.color,
@@ -174,7 +174,7 @@
           }
     }))
 
-    return { labels, datasets }
+    return { labels, datasets } as any
   })
 
   const chartOptions = computed(() => ({

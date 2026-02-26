@@ -98,8 +98,8 @@
           via
           {{
             integrationStore.integrationStatus?.integrations
-              ?.filter((i) => i.isOAuthApp)
-              .map((i) => i.provider)
+              ?.filter((i: any) => i.isOAuthApp)
+              .map((i: any) => i.provider)
               .join(', ')
           }}
         </p>

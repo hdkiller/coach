@@ -100,14 +100,14 @@
 
       if (!streams) {
         // Fetch necessary keys with low resolution fallback to keep payload small
-        streams = await $fetch<any[]>('/api/workouts/streams', {
+        streams = (await $fetch('/api/workouts/streams', {
           method: 'POST',
           body: {
             workoutIds: props.workoutIds,
             keys: ['hrZoneTimes', 'powerZoneTimes', 'heartrate', 'watts', 'time'],
             points: 150
           }
-        }).catch(() => [])
+        }).catch(() => [])) as any[]
       }
 
       // Aggregate zone data

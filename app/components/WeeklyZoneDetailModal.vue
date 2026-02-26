@@ -306,14 +306,14 @@
       let streams = props.streams
 
       if (!streams) {
-        streams = await $fetch<any[]>('/api/workouts/streams', {
+        streams = (await $fetch('/api/workouts/streams', {
           method: 'POST',
           body: {
             workoutIds: props.weekData.workoutIds,
             keys: ['hrZoneTimes', 'powerZoneTimes', 'heartrate', 'watts', 'time'],
             points: 150
           }
-        }).catch(() => [])
+        }).catch(() => [])) as any[]
       }
 
       // Aggregate Actuals

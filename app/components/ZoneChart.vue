@@ -568,7 +568,7 @@
           ? `/api/share/workouts/${props.publicToken}/streams`
           : `/api/workouts/${props.workoutId}/streams`
 
-        localStreamData.value = await $fetch<any>(url)
+        localStreamData.value = (await $fetch(url)) as any
       }
 
       if (props.workoutId && !userZones.value) {
@@ -586,7 +586,7 @@
           }
         } else {
           // Fetch full profile
-          const profile = await $fetch<any>('/api/profile').catch(() => null)
+          const profile = (await $fetch('/api/profile').catch(() => null)) as any
           if (profile?.profile) {
             const sportSettings = profile.profile.sportSettings || []
             let activeProfile = sportSettings.find((s: any) => s.isDefault)

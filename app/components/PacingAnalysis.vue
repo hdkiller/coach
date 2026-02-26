@@ -354,12 +354,13 @@
   }
 
   const {
-    data: streams,
+    data: streamsData,
     pending: loading,
     error: fetchError
-  } = await useFetch<PacingStreams>(endpoint, {
+  } = await useFetch(endpoint, {
     lazy: true
   })
+  const streams = streamsData as Ref<PacingStreams | null>
 
   const error = computed(() => {
     if (fetchError.value) {
