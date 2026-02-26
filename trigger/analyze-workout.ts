@@ -628,7 +628,7 @@ function buildWorkoutAnalysisData(workout: any) {
   if (workout.trainer !== null && workout.trainer !== undefined) data.trainer = workout.trainer
 
   // L/R Balance
-  if (workout.lrBalance) data.lr_balance = workout.lrBalance
+  if (workout.lrBalance !== null && workout.lrBalance !== undefined) data.lr_balance = workout.lrBalance
 
   // Exercises (for Strength/Hevy workouts)
   if (workout.exercises && workout.exercises.length > 0) {
@@ -1100,7 +1100,7 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
       workoutData.efficiency_factor ||
       workoutData.decoupling !== undefined ||
       workoutData.power_hr_ratio ||
-      workoutData.lr_balance)
+      (workoutData.lr_balance !== undefined && workoutData.lr_balance !== null))
   ) {
     prompt += '\n## Performance Indicators\n'
     if (workoutData.variability_index) {
@@ -1118,8 +1118,8 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
       prompt += `- Power/HR Ratio: ${formatMetric(workoutData.power_hr_ratio, 2)}\n`
     }
     if (workoutData.lr_balance !== undefined && workoutData.lr_balance !== null) {
-      const leftPct = workoutData.lr_balance
-      const rightPct = 100 - leftPct
+      const rightPct = workoutData.lr_balance
+      const leftPct = 100 - rightPct
       const dominantSide = leftPct > rightPct ? 'Left' : rightPct > leftPct ? 'Right' : 'Neither'
       prompt += `- L/R Balance (Left%/Right%): ${formatMetric(leftPct, 1)}/${formatMetric(rightPct, 1)}\n`
       prompt += `  - Interpretation: first value is LEFT leg share, second is RIGHT leg share\n`
