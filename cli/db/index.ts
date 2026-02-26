@@ -5,6 +5,7 @@ import migrateZonesCommand from './migrate-zones'
 import syncQueueCommand from './sync-queue'
 import seedCommand from './seed'
 import cleanFitCommand from './clean-fit'
+import fitFileInspectCommand from './fitfile-inspect'
 import { workoutCommand } from './workout'
 import { sqlCommand } from './sql'
 
@@ -16,6 +17,7 @@ dbCommand.addCommand(migrateZonesCommand)
 dbCommand.addCommand(syncQueueCommand)
 dbCommand.addCommand(seedCommand)
 dbCommand.addCommand(cleanFitCommand)
+dbCommand.addCommand(fitFileInspectCommand)
 dbCommand.addCommand(workoutCommand)
 dbCommand.addCommand(sqlCommand)
 
