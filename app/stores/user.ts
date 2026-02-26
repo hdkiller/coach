@@ -45,7 +45,7 @@ export const useUserStore = defineStore('user', () => {
 
     userLoading.value = true
     try {
-      const fetcher = import.meta.server ? useRequestFetch() : $fetch
+      const fetcher = import.meta.server ? (useRequestFetch() as any) : ($fetch as any)
       const data = await fetcher('/api/user/me')
       user.value = data as User
     } catch (error: any) {
@@ -166,7 +166,7 @@ export const useUserStore = defineStore('user', () => {
 
     loading.value = true
     try {
-      const fetcher = import.meta.server ? useRequestFetch() : $fetch
+      const fetcher = import.meta.server ? (useRequestFetch() as any) : ($fetch as any)
       const data = await fetcher('/api/profile/dashboard')
       profile.value = data?.profile || null
       dataSyncStatus.value = data?.dataSyncStatus || null

@@ -19,8 +19,8 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     if (!integrationStore.intervalsConnected) return
     loadingWorkout.value = true
     try {
-      const data = await $fetch<any[]>('/api/workouts/planned/today')
-      todayWorkouts.value = (data || []).sort((a, b) => {
+      const data = (await ($fetch as any)('/api/workouts/planned/today')) as any[]
+      todayWorkouts.value = (data || []).sort((a: any, b: any) => {
         const getTime = (workout: any) => {
           if (workout.startTime) return workout.startTime
           // For completed workouts, extract time from date
