@@ -5,7 +5,8 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
 ## Key Features
 
 - **Branded Templates**: Custom Vue-based templates using `@vue-email/nuxt`, following the official style guide (Public Sans, Action Green).
-- **Admin Approval Gate**: All outbound emails are initially queued for manual review in the `/admin/emails` dashboard before dispatch.
+- **Automated Dispatch (Default)**: Outbound emails are automatically dispatched via Resend after being rendered and recorded in the database.
+- **Optional Approval Gate**: Manual review can be re-enabled globally by setting `DISABLE_EMAILS=true` in the environment. In this mode, emails are held in `QUEUED` status for manual approval in the `/admin/emails` dashboard.
 - **User Preference Center**: Granular opt-in/opt-out controls in user settings (Training Insights, Product, Marketing, etc.).
 - **Automated Triggers**: Seamless integration with system events like signup, subscription updates, and AI workout analysis.
 - **Automatic Training Recommendations**: Daily coaching briefs sent based on user-configurable schedules and automated sync events.
@@ -19,8 +20,8 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
     - Generates a secure cryptographic unsubscribe token.
     - Calls an internal Nuxt API (`/api/internal/render-email`) to render the Vue template to HTML.
 3.  **Queuing**: The delivery record is saved to the `EmailDelivery` table with a `QUEUED` status.
-4.  **Admin Review**: Admins preview the rendered HTML and metadata in the dashboard and click "Send Now."
-5.  **Dispatch**: The email is sent via Resend API.
+4.  **Dispatch**: Unless `DISABLE_EMAILS=true` is set, the system automatically transitions the status to `SENDING` and dispatches the email via Resend API.
+5.  **Admin Review (Optional)**: If automatic dispatch is disabled, admins preview the rendered HTML and metadata in the dashboard and click "Send Now" to manually trigger sending.
 6.  **Webhook Ingestion**: Resend webhooks notify the system of delivery, open, and click events, which are processed by the `ResendService` in the background worker.
 
 ## Campaigns & Automated Flows
