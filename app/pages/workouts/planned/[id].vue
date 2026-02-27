@@ -580,6 +580,22 @@
           :loading="publishing"
           @click="publishWorkout"
         />
+        <UButton
+          v-if="garminConnected"
+          label="Publish Garmin Training"
+          color="neutral"
+          variant="outline"
+          :loading="publishingGarminTraining"
+          @click="publishWorkoutToGarmin('training')"
+        />
+        <UButton
+          v-if="garminConnected"
+          label="Publish Garmin Course"
+          color="neutral"
+          variant="outline"
+          :loading="publishingGarminCourse"
+          @click="publishWorkoutToGarmin('course')"
+        />
       </div>
     </template>
   </UModal>
@@ -859,6 +875,9 @@
   const shareExpiryValue = ref('2592000')
   const generatingShareLink = ref(false)
   const publishing = ref(false)
+  const publishingGarminTraining = ref(false)
+  const publishingGarminCourse = ref(false)
+  const garminConnected = ref(false)
 
   // Eject logic
   const showEjectModal = ref(false)
@@ -1189,6 +1208,59 @@
     }
   }
 
+  async function fetchIntegrationStatus() {
+    try {
+      const data: any = await $fetch('/api/integrations/status')
+      const integrations = Array.isArray(data?.integrations) ? data.integrations : []
+      garminConnected.value = integrations.some(
+        (integration: any) => integration.provider === 'garmin'
+      )
+    } catch (error) {
+      console.error('Failed to fetch integration status', error)
+      garminConnected.value = false
+    }
+  }
+
+  async function publishWorkoutToGarmin(destination: 'training' | 'course') {
+    if (!workout.value?.id || !garminConnected.value) return
+
+    const isTraining = destination === 'training'
+    if (isTraining) publishingGarminTraining.value = true
+    else publishingGarminCourse.value = true
+
+    try {
+      const response: any = await $fetch(
+        `/api/workouts/planned/${workout.value.id}/publish-garmin`,
+        {
+          method: 'POST',
+          body: { destination }
+        }
+      )
+
+      if (response?.success) {
+        showPublishModal.value = false
+        toast.add({
+          title: 'Published',
+          description:
+            destination === 'training'
+              ? 'Workout published to Garmin Training API successfully.'
+              : 'Workout route published to Garmin Courses API successfully.',
+          color: 'success'
+        })
+      }
+    } catch (error: any) {
+      console.error('Failed to publish workout to Garmin:', error)
+      toast.add({
+        title: 'Publish Failed',
+        description: error.data?.message || 'Failed to publish workout to Garmin',
+        color: 'error'
+      })
+    } finally {
+      if (isTraining) publishingGarminTraining.value = false
+      else publishingGarminCourse.value = false
+    }
+  }
+
   async function ejectWorkout() {
     if (!workout.value?.id) return
     ejecting.value = true
@@ -1334,7 +1406,7 @@
       })
       showStructureModal.value = false
       // Refresh workout data
-      await fetchWorkout()
+      await Promise.all([fetchWorkout(), fetchIntegrationStatus()])
     } catch (error: any) {
       toast.add({
         title: 'Update Failed',
@@ -1700,5 +1772,6 @@
 
   onMounted(() => {
     fetchWorkout()
+    fetchIntegrationStatus()
   })
 </script>
