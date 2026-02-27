@@ -63,6 +63,7 @@
         size="xs"
         target="_blank"
         class="group/log"
+        @click="trackAiLogView()"
       >
         <template #leading>
           <UIcon name="i-heroicons-document-text" class="w-4 h-4 group-hover/log:hidden" />
@@ -104,6 +105,8 @@
   const feedbackText = ref(props.initialFeedbackText || '')
   const isModalOpen = ref(false)
   const loading = ref<string | null>(null)
+  const { trackAiFeedback, trackAiLogView } = useAnalytics()
+  const { gtag } = useGtag()
 
   async function submitFeedback(type: 'THUMBS_UP' | 'THUMBS_DOWN', text?: string) {
     if (!props.llmUsageId) return
@@ -119,6 +122,9 @@
         }
       })
       feedback.value = type
+
+      // Track feedback submission
+      trackAiFeedback(type === 'THUMBS_UP' ? 'positive' : 'negative', 'ai_response')
     } catch (e) {
       console.error('Failed to submit feedback', e)
     } finally {

@@ -321,6 +321,7 @@
   const checkinStore = useCheckinStore()
   const { checkProfileStale } = useDataStatus()
   const toast = useToast()
+  const { trackRecommendationRequest, trackRecommendationAccept } = useAnalytics()
 
   const isOnboarded = computed(() => {
     // 1. Check if Intervals is connected (current behavior)
@@ -372,6 +373,11 @@
     accepting.value = true
     await recommendationStore.acceptRecommendation(recommendationStore.todayRecommendation.id)
     accepting.value = false
+
+    trackRecommendationAccept(
+      recommendationStore.todayRecommendation.id,
+      recommendationStore.todayRecommendation.recommendation
+    )
   }
 
   async function checkProfileAndGenerate(feedback?: string) {
@@ -400,6 +406,8 @@
         console.error('Profile generation failed, proceeding with recommendation anyway', e)
       }
     }
+
+    trackRecommendationRequest(!!feedback, !!feedback)
 
     await recommendationStore.generateTodayRecommendation(feedback)
   }

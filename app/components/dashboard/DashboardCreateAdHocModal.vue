@@ -82,6 +82,7 @@
   }>()
 
   const emit = defineEmits(['update:open', 'submit'])
+  const { trackAdhocWorkoutCreate } = useAnalytics()
 
   const isOpen = computed({
     get: () => props.open,
@@ -105,6 +106,7 @@
   const intensityOptions = ['Recovery', 'Endurance', 'Tempo', 'Threshold', 'VO2Max', 'Anaerobic']
 
   function submit() {
+    trackAdhocWorkoutCreate(form.type)
     emit('submit', { ...form })
   }
 </script>

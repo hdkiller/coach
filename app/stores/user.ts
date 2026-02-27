@@ -244,6 +244,8 @@ export const useUserStore = defineStore('user', () => {
   })
 
   async function generateProfile() {
+    const { trackAthleteProfileGenerate } = useAnalytics()
+    trackAthleteProfileGenerate()
     generating.value = true
     try {
       await $fetch('/api/profile/generate', { method: 'POST' })

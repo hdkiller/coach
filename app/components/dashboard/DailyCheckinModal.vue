@@ -210,6 +210,7 @@
   const localQuestions = ref<any[]>([])
   const expandedQuestions = ref<Set<string>>(new Set())
   const upgradeModal = useUpgradeModal()
+  const { trackDailyCheckinStart, trackDailyCheckinComplete } = useAnalytics()
 
   const {
     message: currentLoadingMessage,
@@ -403,6 +404,7 @@
         }
       })
       await useCheckinStore().fetchToday()
+      trackDailyCheckinComplete()
       emit('update:open', false)
       // Maybe toast success?
     } catch (e: any) {
@@ -416,6 +418,7 @@
     () => props.open,
     (isOpen) => {
       if (isOpen) {
+        trackDailyCheckinStart()
         fetchToday()
       } else {
         pausePoll()
