@@ -77,23 +77,32 @@ export const useIntegrationStore = defineStore('integration', () => {
         body: { provider: 'all' }
       })
 
-      showDashboardProgressToast(toast, {
-        title: 'Data Sync Started',
-        description:
-          'Syncing data from all connected integrations. You can monitor progress in the dashboard.',
-        color: 'success',
-        icon: 'i-heroicons-arrow-path'
-      })
+      showDashboardProgressToast(
+        toast,
+        {
+          title: 'Data Sync Started',
+          description:
+            'Syncing data from all connected integrations. You can monitor progress in the dashboard.',
+          color: 'success',
+          icon: 'i-heroicons-arrow-path'
+        },
+        'integration.sync.start'
+      )
     } catch (error: any) {
       console.error('Error syncing data:', error)
       syncingData.value = false
 
-      showDashboardProgressToast(toast, {
-        title: 'Sync Failed',
-        description: error.data?.message || 'Failed to sync data. Please try again.',
-        color: 'error',
-        icon: 'i-heroicons-exclamation-circle'
-      })
+      showDashboardProgressToast(
+        toast,
+        {
+          title: 'Sync Failed',
+          description: error.data?.message || 'Failed to sync data. Please try again.',
+          color: 'error',
+          icon: 'i-heroicons-exclamation-circle',
+          duration: 3000
+        },
+        'integration.sync.failed'
+      )
     }
   }
 

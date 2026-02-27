@@ -69,14 +69,18 @@ export const useRecommendationStore = defineStore('recommendation', () => {
       })
       refreshRuns()
 
-      showDashboardProgressToast(toast, {
-        title: userFeedback ? 'Regenerating Recommendation' : 'Analysis Started',
-        description: userFeedback
-          ? 'Updating plan based on your feedback...'
-          : 'Analyzing your recovery and planned workout...',
-        color: 'success',
-        icon: 'i-heroicons-arrow-path'
-      })
+      showDashboardProgressToast(
+        toast,
+        {
+          title: userFeedback ? 'Regenerating Recommendation' : 'Analysis Started',
+          description: userFeedback
+            ? 'Updating plan based on your feedback...'
+            : 'Analyzing your recovery and planned workout...',
+          color: 'success',
+          icon: 'i-heroicons-arrow-path'
+        },
+        userFeedback ? 'recommendation.regenerate.start' : 'recommendation.analysis.start'
+      )
     } catch (error: any) {
       generating.value = false
 
@@ -148,12 +152,17 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     await fetchTodayRecommendation()
     generating.value = false
     currentRecommendationId.value = null
-    showDashboardProgressToast(toast, {
-      title: 'Analysis Complete',
-      description: 'Your training recommendation is ready!',
-      color: 'success',
-      icon: 'i-heroicons-check-circle'
-    })
+    showDashboardProgressToast(
+      toast,
+      {
+        title: 'Analysis Complete',
+        description: 'Your training recommendation is ready!',
+        color: 'success',
+        icon: 'i-heroicons-check-circle',
+        duration: 2500
+      },
+      'recommendation.analysis.complete'
+    )
   })
 
   onTaskCompleted('generate-ad-hoc-workout', async (run) => {

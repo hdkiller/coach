@@ -249,12 +249,16 @@ export const useUserStore = defineStore('user', () => {
       await $fetch('/api/profile/generate', { method: 'POST' })
       refreshRuns()
 
-      showDashboardProgressToast(toast, {
-        title: 'Profile Generation Started',
-        description: 'Creating your comprehensive athlete profile. This may take a minute...',
-        color: 'success',
-        icon: 'i-heroicons-check-circle'
-      })
+      showDashboardProgressToast(
+        toast,
+        {
+          title: 'Profile Generation Started',
+          description: 'Creating your comprehensive athlete profile. This may take a minute...',
+          color: 'success',
+          icon: 'i-heroicons-check-circle'
+        },
+        'user.profile.start'
+      )
     } catch (error: any) {
       generating.value = false
 
@@ -305,12 +309,17 @@ export const useUserStore = defineStore('user', () => {
       return
     }
 
-    showDashboardProgressToast(toast, {
-      title: 'Profile Ready',
-      description: 'Your athlete profile has been generated',
-      color: 'success',
-      icon: 'i-heroicons-check-badge'
-    })
+    showDashboardProgressToast(
+      toast,
+      {
+        title: 'Profile Ready',
+        description: 'Your athlete profile has been generated',
+        color: 'success',
+        icon: 'i-heroicons-check-badge',
+        duration: 2500
+      },
+      'user.profile.complete'
+    )
   })
 
   return {
