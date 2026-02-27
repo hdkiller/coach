@@ -9,6 +9,8 @@ import {
 } from '../server/utils/email-template-registry'
 import { getInternalApiToken } from '../server/utils/internal-api-token'
 
+import { EmailDeliveryService } from '../server/utils/services/emailDeliveryService'
+
 export const sendEmailTask = task({
   id: 'send-email',
   queue: emailQueue,
@@ -184,8 +186,9 @@ export const sendEmailTask = task({
 
     // 5. Save to Database as QUEUED
     logger.log('Step 4: Saving delivery record to database...')
+    let delivery
     try {
-      const delivery = await prisma.emailDelivery.create({
+      delivery = await prisma.emailDelivery.create({
         data: {
           userId: user.id,
           toEmail: user.email,
@@ -201,12 +204,7 @@ export const sendEmailTask = task({
         }
       })
 
-      logger.log('--- EMAIL TASK SUCCESS ---', { deliveryId: delivery.id, recipient: user.email })
-
-      return {
-        success: true,
-        deliveryId: delivery.id
-      }
+      logger.log('Saved delivery record', { deliveryId: delivery.id })
     } catch (dbError: any) {
       if (dbError.code === 'P2002' && dbError.meta?.target?.includes('idempotencyKey')) {
         logger.log('EXIT: Duplicate detected (idempotencyKey collision)', { idempotencyKey })
@@ -214,6 +212,48 @@ export const sendEmailTask = task({
       }
       logger.error('CRITICAL: Database save failed', { error: dbError.message, code: dbError.code })
       throw dbError
+    }
+
+    // 6. Automated Dispatch (Default behavior)
+    // If DISABLE_EMAILS is set to 'true', we keep the current logic (stay in QUEUED)
+    const disableEmails = process.env.DISABLE_EMAILS === 'true'
+
+    if (disableEmails) {
+      logger.log('--- EMAIL TASK QUEUED (MANUAL APPROVAL REQUIRED) ---', {
+        deliveryId: delivery.id,
+        reason: 'DISABLE_EMAILS is enabled'
+      })
+      return {
+        success: true,
+        deliveryId: delivery.id,
+        status: 'QUEUED'
+      }
+    }
+
+    logger.log('Step 5: Dispatching email automatically...')
+    try {
+      const sent = await EmailDeliveryService.dispatch(delivery.id)
+      logger.log('--- EMAIL TASK DISPATCH SUCCESS ---', {
+        deliveryId: sent.id,
+        recipient: user.email
+      })
+      return {
+        success: true,
+        deliveryId: sent.id,
+        status: 'SENT'
+      }
+    } catch (dispatchError: any) {
+      logger.error('--- EMAIL TASK DISPATCH FAILED ---', {
+        deliveryId: delivery.id,
+        error: dispatchError.message
+      })
+      // We don't throw here to avoid retrying the create logic,
+      // but the dispatch status is now FAILED in DB.
+      return {
+        success: false,
+        deliveryId: delivery.id,
+        error: dispatchError.message
+      }
     }
   }
 })
