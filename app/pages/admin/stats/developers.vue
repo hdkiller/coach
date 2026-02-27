@@ -220,7 +220,10 @@
                   class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <td class="py-3 px-4">
-                    <div class="flex items-center gap-3">
+                    <NuxtLink
+                      :to="`/admin/oauth/apps/${app.id}`"
+                      class="flex items-center gap-3 group"
+                    >
                       <UAvatar
                         :src="app.logoUrl ?? undefined"
                         :alt="app.name"
@@ -228,15 +231,23 @@
                         :icon="!app.logoUrl ? 'i-lucide-box' : undefined"
                       />
                       <div>
-                        <div class="font-medium text-gray-900 dark:text-white">{{ app.name }}</div>
+                        <div
+                          class="font-medium text-gray-900 dark:text-white group-hover:text-primary transition-colors"
+                        >
+                          {{ app.name }}
+                        </div>
                         <div class="text-xs text-gray-500 truncate max-w-[200px]">
                           {{ app.description || 'No description' }}
                         </div>
                       </div>
-                    </div>
+                    </NuxtLink>
                   </td>
                   <td class="py-3 px-4 text-sm">
-                    <div class="text-gray-900 dark:text-white">{{ app.owner.name }}</div>
+                    <NuxtLink
+                      :to="`/admin/users/${app.ownerId}`"
+                      class="text-gray-900 dark:text-white hover:text-primary transition-colors"
+                      >{{ app.owner.name }}</NuxtLink
+                    >
                     <div class="text-xs text-gray-500">{{ app.owner.email }}</div>
                   </td>
                   <td class="py-3 px-4 text-sm text-gray-500 whitespace-nowrap">
@@ -266,7 +277,16 @@
                     {{ app._count.consents }}
                   </td>
                   <td class="py-3 px-4 text-right text-sm text-gray-500">
-                    {{ app._count.tokens }}
+                    <div class="flex items-center justify-end gap-3">
+                      <span>{{ app._count.tokens }}</span>
+                      <UButton
+                        :to="`/admin/oauth/apps/${app.id}`"
+                        color="neutral"
+                        variant="ghost"
+                        icon="i-lucide-eye"
+                        size="xs"
+                      />
+                    </div>
                   </td>
                 </tr>
                 <tr v-if="!stats?.oauthApps.list.length">
