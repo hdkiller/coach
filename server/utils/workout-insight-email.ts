@@ -4,9 +4,11 @@ import { formatUserDate, getStartOfDaysAgoUTC } from './date'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
 import { buildWorkoutStreamInsights } from './workout-email-stream-insights'
 
-const RECENT_WORKOUT_WINDOW_HOURS = 48
-const CONSISTENCY_WINDOW_DAYS = 7
+const WORKOUT_RECEIVED_LOOKBACK_HOURS = 24
+const WORKOUT_RECEIVED_MIN_DURATION_SEC = 10 * 60
+const WORKOUT_RECEIVED_COOLDOWN_MINUTES = 15
 const COPY_VARIANT_LOOKBACK = 20
+const WORKOUT_RECEIVED_ACTIVE_STATUSES = ['QUEUED', 'SENDING', 'SENT', 'DELIVERED', 'OPENED', 'CLICKED'] as const
 
 const COPY_SLOTS = ['heroTitle', 'introLine', 'ctaLabel', 'nextStepMessage', 'subject'] as const
 type CopySlot = (typeof COPY_SLOTS)[number]
@@ -29,9 +31,53 @@ type QueueWorkoutInsightEmailOptions = {
   overallScore?: number
 }
 
-function isRecentWorkout(date: Date) {
-  const windowStart = new Date(Date.now() - RECENT_WORKOUT_WINDOW_HOURS * 60 * 60 * 1000)
-  return date >= windowStart
+function roundDateDownToFiveMinutes(date: Date) {
+  const bucketMs = 5 * 60 * 1000
+  return new Date(Math.floor(date.getTime() / bucketMs) * bucketMs)
+}
+
+function roundDistanceKmToTenth(distanceKm?: number) {
+  if (typeof distanceKm !== 'number' || distanceKm <= 0) return null
+  return Math.round(distanceKm * 10) / 10
+}
+
+export function buildWorkoutReceivedActivityFingerprint(input: {
+  userId: string
+  workoutType?: string | null
+  workoutDate: Date
+  durationSec: number
+  distanceKm?: number
+}) {
+  const normalizedWorkoutType = (input.workoutType || 'unknown').trim().toLowerCase()
+  const roundedStart = roundDateDownToFiveMinutes(input.workoutDate).toISOString()
+  const roundedDurationMinutes = Math.max(1, Math.round(input.durationSec / 60))
+  const roundedDistance = roundDistanceKmToTenth(input.distanceKm)
+
+  return [
+    input.userId,
+    normalizedWorkoutType,
+    roundedStart,
+    `dur:${roundedDurationMinutes}`,
+    `dist:${roundedDistance === null ? 'na' : roundedDistance}`
+  ].join('|')
+}
+
+export function evaluateWorkoutReceivedEligibility(input: {
+  durationSec: number
+  workoutDate: Date
+  now?: Date
+}) {
+  if (input.durationSec < WORKOUT_RECEIVED_MIN_DURATION_SEC) {
+    return { eligible: false as const, reason: 'duration_below_10_minutes' as const }
+  }
+
+  const now = input.now || new Date()
+  const oldestAllowedDate = new Date(now.getTime() - WORKOUT_RECEIVED_LOOKBACK_HOURS * 60 * 60 * 1000)
+  if (input.workoutDate < oldestAllowedDate) {
+    return { eligible: false as const, reason: 'workout_older_than_24_hours' as const }
+  }
+
+  return { eligible: true as const }
 }
 
 function inferSportCategory(workoutType?: string | null): 'run' | 'ride' | 'other' {
@@ -686,11 +732,19 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
 
   const timezone = user.timezone || 'UTC'
   const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'
-  const idempotencyKey = `workout-insights:${workout.id}`
   const distanceKm =
     workout.distanceMeters && workout.distanceMeters > 0
       ? Math.round((workout.distanceMeters / 1000) * 10) / 10
       : undefined
+  const workoutReceivedFingerprint = buildWorkoutReceivedActivityFingerprint({
+    userId: workout.userId,
+    workoutType: workout.type,
+    workoutDate: workout.date,
+    durationSec: workout.durationSec,
+    distanceKm
+  })
+  const workoutReceivedIdempotencyKey = `workout-received:${workoutReceivedFingerprint}`
+  const workoutAnalysisIdempotencyKey = `workout-analysis:${workout.id}`
 
   const consistencyWindowStart = getStartOfDaysAgoUTC(timezone, 6, workout.date)
   const tssWindowStart = getStartOfDaysAgoUTC(timezone, 27, workout.date)
@@ -864,23 +918,71 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       return { queued: false, reason: 'auto_ai_enabled_wait_for_enhanced_email' }
     }
 
-    if (!isRecentWorkout(workout.date)) {
+    const eligibility = evaluateWorkoutReceivedEligibility({
+      durationSec: workout.durationSec,
+      workoutDate: workout.date
+    })
+    if (!eligibility.eligible) {
       console.info('[WorkoutInsightEmail] Skipped', {
         ...logContext,
         userId: workout.userId,
+        durationSec: workout.durationSec,
         workoutDate: workout.date.toISOString(),
-        reason: 'workout_not_recent'
+        reason: eligibility.reason
       })
-      return { queued: false, reason: 'workout_not_recent' }
+      return { queued: false, reason: eligibility.reason }
+    }
+
+    const cooldownWindowStart = new Date(Date.now() - WORKOUT_RECEIVED_COOLDOWN_MINUTES * 60 * 1000)
+    const recentWorkoutReceived = await prisma.emailDelivery.findFirst({
+      where: {
+        userId: workout.userId,
+        templateKey: 'WorkoutReceived',
+        createdAt: { gte: cooldownWindowStart },
+        status: { in: [...WORKOUT_RECEIVED_ACTIVE_STATUSES] }
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true }
+    })
+    if (recentWorkoutReceived) {
+      console.info('[WorkoutInsightEmail] Skipped', {
+        ...logContext,
+        userId: workout.userId,
+        reason: 'workout_received_cooldown_active',
+        cooldownMinutes: WORKOUT_RECEIVED_COOLDOWN_MINUTES,
+        recentDeliveryId: recentWorkoutReceived.id,
+        recentCreatedAt: recentWorkoutReceived.createdAt.toISOString()
+      })
+      return { queued: false, reason: 'workout_received_cooldown_active' }
+    }
+
+    const duplicateActivityDelivery = await prisma.emailDelivery.findUnique({
+      where: { idempotencyKey: workoutReceivedIdempotencyKey },
+      select: { id: true, createdAt: true, status: true }
+    })
+    if (duplicateActivityDelivery) {
+      console.info('[WorkoutInsightEmail] Skipped', {
+        ...logContext,
+        userId: workout.userId,
+        reason: 'workout_received_activity_already_emailed',
+        activityFingerprint: workoutReceivedFingerprint,
+        duplicateDeliveryId: duplicateActivityDelivery.id,
+        duplicateCreatedAt: duplicateActivityDelivery.createdAt.toISOString(),
+        duplicateStatus: duplicateActivityDelivery.status
+      })
+      return { queued: false, reason: 'workout_received_activity_already_emailed' }
     }
 
     await queueEmail({
       userId: workout.userId,
       templateKey: 'WorkoutReceived',
       eventKey: `WORKOUT_RECEIVED_${workout.id}`,
-      idempotencyKey,
+      idempotencyKey: workoutReceivedIdempotencyKey,
       subject,
-      props: commonProps
+      props: {
+        ...commonProps,
+        activityFingerprint: workoutReceivedFingerprint
+      }
     })
 
     return { queued: true, templateKey: 'WorkoutReceived' }
@@ -900,7 +1002,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
     userId: workout.userId,
     templateKey: 'WorkoutAnalysisReady',
     eventKey: `WORKOUT_INSIGHTS_READY_${workout.id}`,
-    idempotencyKey,
+    idempotencyKey: workoutAnalysisIdempotencyKey,
     subject: `Excellent work: analysis ready for ${workout.title || 'your workout'}`,
     props: {
       ...commonProps,

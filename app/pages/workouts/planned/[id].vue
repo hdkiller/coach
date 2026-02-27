@@ -588,14 +588,6 @@
           :loading="publishingGarminTraining"
           @click="publishWorkoutToGarmin('training')"
         />
-        <UButton
-          v-if="garminConnected"
-          label="Publish Garmin Course"
-          color="neutral"
-          variant="outline"
-          :loading="publishingGarminCourse"
-          @click="publishWorkoutToGarmin('course')"
-        />
       </div>
     </template>
   </UModal>

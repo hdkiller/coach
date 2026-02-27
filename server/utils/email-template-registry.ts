@@ -36,7 +36,9 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     audience: 'ENGAGEMENT',
     preferenceKey: 'workoutAnalysis',
     requiredProps: ['workoutId', 'workoutTitle'],
-    utmCampaign: 'workout_received'
+    utmCampaign: 'workout_received',
+    throttleGroup: 'WORKOUT_RECEIVED',
+    cooldownHours: 0.25
   },
   WorkoutAnalysisReady: {
     templateKey: 'WorkoutAnalysisReady',
