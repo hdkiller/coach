@@ -382,12 +382,17 @@
     )
 
     if (profileStatus.isStale) {
-      showDashboardProgressToast(toast, {
-        title: 'Updating Profile First',
-        description: 'Your athlete profile is outdated. Updating it for better recommendations...',
-        color: 'info',
-        icon: 'i-heroicons-user-circle'
-      })
+      showDashboardProgressToast(
+        toast,
+        {
+          title: 'Updating Profile First',
+          description:
+            'Your athlete profile is outdated. Updating it for better recommendations...',
+          color: 'info',
+          icon: 'i-heroicons-user-circle'
+        },
+        'dashboard.profile.precheck.stale'
+      )
 
       try {
         await userStore.generateProfile()

@@ -443,12 +443,17 @@
       nutritionEnabled.value ? fetchTodayNutrition() : Promise.resolve()
     ])
 
-    showDashboardProgressToast(toast, {
-      title: 'Sync Complete',
-      description: 'Your data has been updated successfully!',
-      color: 'success',
-      icon: 'i-heroicons-check-circle'
-    })
+    showDashboardProgressToast(
+      toast,
+      {
+        title: 'Sync Complete',
+        description: 'Your data has been updated successfully!',
+        color: 'success',
+        icon: 'i-heroicons-check-circle',
+        duration: 2500
+      },
+      'dashboard.sync.complete'
+    )
   })
 
   const showWelcome = useLocalStorage('dashboard-welcome-banner', true)
