@@ -6,6 +6,7 @@ interface GarminTokenResponse {
   expires_in: number
   refresh_token: string
   token_type: string
+  scope?: string
 }
 
 /**
@@ -314,4 +315,33 @@ export async function deRegisterGarminUser(integration: Integration) {
   const errorBody = await response.json().catch(() => ({}))
   const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
   throw new Error(`Garmin de-registration API error (${response.status}): ${errorMessage}`)
+}
+
+/**
+ * Fetch current user permissions granted to this app.
+ */
+export async function fetchGarminUserPermissions(integration: Integration): Promise<string[]> {
+  const validIntegration = await ensureValidToken(integration)
+  const url = 'https://apis.garmin.com/wellness-api/rest/user/permissions'
+
+  const response = await fetchWithRetry(url, {
+    headers: {
+      Authorization: `Bearer ${validIntegration.accessToken}`
+    }
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}))
+    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    throw new Error(`Garmin permissions API error (${response.status}): ${errorMessage}`)
+  }
+
+  const data = await response.json()
+  if (Array.isArray(data)) {
+    return data.filter((x) => typeof x === 'string')
+  }
+  if (Array.isArray(data?.permissions)) {
+    return data.permissions.filter((x: unknown) => typeof x === 'string')
+  }
+  return []
 }
