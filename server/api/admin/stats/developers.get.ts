@@ -45,6 +45,48 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  // 4. Detailed OAuth Apps List
+  const oauthAppsList = await prisma.oAuthApp.findMany({
+    include: {
+      owner: {
+        select: {
+          name: true,
+          email: true
+        }
+      },
+      _count: {
+        select: {
+          consents: true,
+          tokens: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  })
+
+  // 5. Daily Authorizations (Consents) per App
+  const dailyAuthorizationsRaw = await prisma.$queryRaw<
+    { date: string; appId: string; appName: string; count: bigint }[]
+  >`
+    SELECT 
+      DATE(c."createdAt") as date, 
+      c."appId", 
+      a."name" as "appName",
+      COUNT(*) as count
+    FROM "OAuthConsent" c
+    JOIN "OAuthApp" a ON c."appId" = a."id"
+    WHERE c."createdAt" >= ${thirtyDaysAgo}
+    GROUP BY DATE(c."createdAt"), c."appId", a."name"
+    ORDER BY date ASC
+  `
+
+  const dailyAuthorizations = dailyAuthorizationsRaw.map((row) => ({
+    date: new Date(row.date).toISOString().split('T')[0],
+    appId: row.appId,
+    appName: row.appName,
+    count: Number(row.count)
+  }))
+
   return {
     apiKeys: {
       total: totalApiKeys,
@@ -54,11 +96,13 @@ export default defineEventHandler(async (event) => {
     oauthApps: {
       total: totalOAuthApps,
       public: publicOAuthApps,
-      uniqueDevelopers: developersCount
+      uniqueDevelopers: developersCount,
+      list: oauthAppsList
     },
     oauthTokens: {
       total: totalOAuthTokens,
       activeLast30Days: activeOAuthTokens
-    }
+    },
+    dailyAuthorizations
   }
 })
