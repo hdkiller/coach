@@ -167,6 +167,7 @@
   const router = useRouter()
   const route = useRoute()
   const userStore = useUserStore()
+  const { trackIntegrationConnectSuccess } = useAnalytics()
 
   const intervalsStravaWarningDismissed = useCookie<boolean>('intervals-strava-warning-dismissed', {
     maxAge: 60 * 60 * 24 * 365
@@ -551,6 +552,7 @@
       route.query.connected === 'yazio'
     ) {
       if (route.query.whoop_success) {
+        trackIntegrationConnectSuccess('whoop')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to WHOOP',
@@ -558,6 +560,7 @@
         })
         refreshIntegrations()
       } else if (route.query.oura_success) {
+        trackIntegrationConnectSuccess('oura')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Oura',
@@ -565,6 +568,7 @@
         })
         refreshIntegrations()
       } else if (route.query.withings_success) {
+        trackIntegrationConnectSuccess('withings')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Withings',
@@ -572,6 +576,7 @@
         })
         refreshIntegrations()
       } else if (route.query.strava_success) {
+        trackIntegrationConnectSuccess('strava')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Strava',
@@ -579,6 +584,7 @@
         })
         refreshIntegrations()
       } else if (route.query.fitbit_success) {
+        trackIntegrationConnectSuccess('fitbit')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Fitbit',
@@ -586,6 +592,7 @@
         })
         refreshIntegrations()
       } else if (route.query.polar_success) {
+        trackIntegrationConnectSuccess('polar')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Polar',
@@ -593,6 +600,7 @@
         })
         refreshIntegrations()
       } else if (route.query.garmin_success) {
+        trackIntegrationConnectSuccess('garmin')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Garmin Connect',
@@ -600,6 +608,7 @@
         })
         refreshIntegrations()
       } else if (route.query.connected === 'yazio') {
+        trackIntegrationConnectSuccess('yazio')
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Yazio',

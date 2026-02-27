@@ -15,7 +15,15 @@
   }>()
 
   const { formatDate } = useFormat()
+  const { trackChatToolExpand } = useAnalytics()
   const isExpanded = ref(false)
+
+  watch(isExpanded, (expanded) => {
+    if (expanded) {
+      trackChatToolExpand(props.toolCall.name)
+    }
+  })
+
   const supportToolNames = new Set([
     'ticket_create',
     'report_bug',

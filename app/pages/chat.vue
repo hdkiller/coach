@@ -43,6 +43,7 @@
 
   const { refresh: refreshRuns } = useUserRuns()
   const upgradeModal = useUpgradeModal()
+  const { trackChatSessionStart, trackChatError } = useAnalytics()
 
   const route = useRoute()
   const router = useRouter()
@@ -59,6 +60,9 @@
       refreshRuns()
     },
     onError: (error) => {
+      // Track chat error
+      trackChatError(error.message || 'unknown')
+
       // Handle Quota Exceeded (429)
       if (
         error.message?.includes('429') ||
@@ -142,6 +146,12 @@
     //   content: submittedText
     // }
     // console.log('[Chat Frontend DEBUG] Calling chat.sendMessage with:', messagePayload)
+
+    // Track session start if it's the first message in this room
+    if (chat.messages.length === 0 && currentRoomId.value) {
+      trackChatSessionStart(currentRoomId.value)
+    }
+
     ;(chat as any).sendMessage({
       text: submittedText
     })
@@ -387,6 +397,9 @@
 
       // Add to rooms list
       rooms.value.unshift(newRoom)
+
+      // Track session start
+      trackChatSessionStart(newRoom.roomId)
 
       // Switch to new room
       await selectRoom(newRoom.roomId)

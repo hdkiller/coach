@@ -22,7 +22,16 @@
         class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
       >
         <div v-if="!intervalsConnected" class="flex flex-col items-end gap-2">
-          <UButton color="neutral" variant="outline" @click="signIn('intervals')">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('intervals')
+                signIn('intervals')
+              }
+            "
+          >
             Connect
           </UButton>
           <UButton
@@ -30,7 +39,12 @@
             variant="link"
             size="xs"
             :padded="false"
-            @click="navigateTo('/connect-intervals')"
+            @click="
+              () => {
+                trackIntegrationConnectStart('intervals')
+                navigateTo('/connect-intervals')
+              }
+            "
           >
             Connect manually (API Key)
           </UButton>
@@ -81,7 +95,16 @@
       <div class="flex flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
         <div class="flex items-center justify-end gap-2">
           <div v-if="!whoopConnected">
-            <UButton color="neutral" variant="outline" @click="navigateTo('/connect-whoop')">
+            <UButton
+              color="neutral"
+              variant="outline"
+              @click="
+                () => {
+                  trackIntegrationConnectStart('whoop')
+                  navigateTo('/connect-whoop')
+                }
+              "
+            >
               Connect
             </UButton>
           </div>
@@ -127,7 +150,16 @@
       <div class="flex flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
         <div class="flex items-center justify-end gap-2">
           <div v-if="!ouraConnected">
-            <UButton color="neutral" variant="outline" @click="navigateTo('/connect-oura')">
+            <UButton
+              color="neutral"
+              variant="outline"
+              @click="
+                () => {
+                  trackIntegrationConnectStart('oura')
+                  navigateTo('/connect-oura')
+                }
+              "
+            >
               Connect
             </UButton>
           </div>
@@ -178,7 +210,16 @@
         class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
       >
         <div v-if="!withingsConnected">
-          <UButton color="neutral" variant="outline" @click="navigateTo('/connect-withings')">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('withings')
+                navigateTo('/connect-withings')
+              }
+            "
+          >
             Connect
           </UButton>
         </div>
@@ -228,7 +269,16 @@
         class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
       >
         <div v-if="!yazioConnected">
-          <UButton color="neutral" variant="outline" @click="navigateTo('/connect-yazio')">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('yazio')
+                navigateTo('/connect-yazio')
+              }
+            "
+          >
             Connect
           </UButton>
         </div>
@@ -278,7 +328,16 @@
         class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
       >
         <div v-if="!fitbitConnected">
-          <UButton color="neutral" variant="outline" @click="navigateTo('/connect-fitbit')">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('fitbit')
+                navigateTo('/connect-fitbit')
+              }
+            "
+          >
             Connect
           </UButton>
         </div>
@@ -324,7 +383,16 @@
         class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
       >
         <div v-if="!hevyConnected">
-          <UButton color="neutral" variant="outline" @click="navigateTo('/connect-hevy')">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('hevy')
+                navigateTo('/connect-hevy')
+              }
+            "
+          >
             Connect
           </UButton>
         </div>
@@ -377,7 +445,12 @@
           <UButton
             color="neutral"
             variant="outline"
-            @click="navigateTo('/api/integrations/garmin/authorize', { external: true })"
+            @click="
+              () => {
+                trackIntegrationConnectStart('garmin')
+                navigateTo('/api/integrations/garmin/authorize', { external: true })
+              }
+            "
           >
             Connect
           </UButton>
@@ -431,7 +504,12 @@
           <UButton
             color="neutral"
             variant="outline"
-            @click="navigateTo('/api/integrations/polar/authorize', { external: true })"
+            @click="
+              () => {
+                trackIntegrationConnectStart('polar')
+                navigateTo('/api/integrations/polar/authorize', { external: true })
+              }
+            "
           >
             Connect
           </UButton>
@@ -494,7 +572,12 @@
               color="neutral"
               variant="outline"
               :disabled="isStravaDisabled"
-              @click="navigateTo('/connect-strava')"
+              @click="
+                () => {
+                  trackIntegrationConnectStart('strava')
+                  navigateTo('/connect-strava')
+                }
+              "
             >
               Connect
             </UButton>
@@ -546,7 +629,12 @@
             color="neutral"
             variant="outline"
             icon="i-heroicons-paper-airplane"
-            @click="$emit('connect-telegram')"
+            @click="
+              () => {
+                trackIntegrationConnectStart('telegram')
+                $emit('connect-telegram')
+              }
+            "
           >
             Connect Bot
           </UButton>
@@ -760,6 +848,7 @@
   }>()
 
   const { signIn } = useAuth()
+  const { trackIntegrationConnectStart } = useAnalytics()
   const advancedSyncModalOpen = ref(false)
   const intervalsSettingsModalOpen = ref(false)
   const selectedDays = ref<number | undefined>()

@@ -3,10 +3,16 @@
     <template #header>
       <div class="flex items-center justify-between">
         <h3 class="font-semibold">Data Sync</h3>
-        <UBadge color="success" variant="subtle">
-          <UIcon name="i-heroicons-check-circle" class="w-3 h-3" />
-          Connected
-        </UBadge>
+        <UButton
+          size="xs"
+          variant="ghost"
+          color="neutral"
+          icon="i-heroicons-arrow-path"
+          :loading="integrationStore.syncingData"
+          @click="handleSyncAll"
+        >
+          Sync All
+        </UButton>
       </div>
     </template>
 
@@ -123,4 +129,10 @@
 <script setup lang="ts">
   const integrationStore = useIntegrationStore()
   const { formatRelativeTime } = useFormat()
+  const { trackManualSyncAll } = useAnalytics()
+
+  const handleSyncAll = async () => {
+    trackManualSyncAll()
+    await integrationStore.syncAllData()
+  }
 </script>
