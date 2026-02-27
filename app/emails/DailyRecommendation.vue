@@ -21,6 +21,7 @@
     recommendation: string
     reasoning: string
     unsubscribeUrl?: string
+    utmQuery?: string
   }>()
 
   const logoUrl = 'https://coachwatts.com/icon.png'
@@ -80,7 +81,7 @@
 
         <!-- Header -->
         <ESection style="padding: 32px 40px 0; text-align: center">
-          <ELink :href="siteUrl">
+          <ELink :href="siteUrl + (utmQuery || '')">
             <EImg
               :src="logoUrl"
               width="64"
@@ -194,7 +195,9 @@
 
           <div style="text-align: center; margin-bottom: 18px">
             <EButton
-              href="https://coachwatts.com/dashboard?utm_source=coachwatts_email&utm_medium=engagement&utm_campaign=daily_recommendation&utm_content=cta_view_today_options"
+              :href="
+                siteUrl + '/dashboard' + (utmQuery || '') + '&utm_content=cta_view_today_options'
+              "
               style="
                 background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
                 color: #ffffff;

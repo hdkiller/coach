@@ -17,13 +17,12 @@
   defineProps<{
     name?: string
     unsubscribeUrl?: string
+    utmQuery?: string
   }>()
   const siteUrl = 'https://coachwatts.com'
   const logoUrl = 'https://coachwatts.com/icon.png'
-  const connectSourceUrl =
-    'https://coachwatts.com/settings/apps?utm_source=coachwatts_email&utm_medium=lifecycle&utm_campaign=welcome_onboarding&utm_content=cta_connect_first_source'
-  const discordUrl =
-    'https://discord.gg/dPYkzg49T9?utm_source=coachwatts_email&utm_medium=lifecycle&utm_campaign=welcome_onboarding&utm_content=join_discord'
+  const connectSourceUrl = 'https://coachwatts.com/settings/apps'
+  const discordUrl = 'https://discord.gg/dPYkzg49T9'
 </script>
 
 <template>
@@ -81,7 +80,7 @@
 
         <!-- Header -->
         <ESection style="padding: 32px 40px 0; text-align: center">
-          <ELink :href="siteUrl">
+          <ELink :href="siteUrl + (utmQuery || '')">
             <EImg
               :src="logoUrl"
               width="64"
@@ -175,7 +174,7 @@
 
           <div style="text-align: center; margin-bottom: 18px">
             <EButton
-              :href="connectSourceUrl"
+              :href="connectSourceUrl + (utmQuery || '') + '&utm_content=cta_connect_first_source'"
               style="
                 background-color: #00c16a;
                 background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
@@ -193,8 +192,11 @@
           </div>
           <EText style="font-size: 13px; color: #71717a; line-height: 1.6; margin: 0 0 22px">
             If the button does not work, copy and paste this link:
-            <ELink :href="connectSourceUrl" style="color: #00c16a; text-decoration: underline">
-              {{ connectSourceUrl }}
+            <ELink
+              :href="connectSourceUrl + (utmQuery || '') + '&utm_content=cta_connect_first_source'"
+              style="color: #00c16a; text-decoration: underline"
+            >
+              {{ connectSourceUrl + (utmQuery || '') + '&utm_content=cta_connect_first_source' }}
             </ELink>
           </EText>
 
@@ -219,7 +221,10 @@
             >
             <EText style="font-size: 15px; line-height: 1.6; color: #52525b; margin: 0">
               Questions or feedback? Join our Discord community and connect with other athletes:
-              <ELink :href="discordUrl" style="color: #00c16a; text-decoration: underline">
+              <ELink
+                :href="discordUrl + (utmQuery || '') + '&utm_content=join_discord'"
+                style="color: #00c16a; text-decoration: underline"
+              >
                 Join Coach Watts on Discord
               </ELink>
             </EText>

@@ -60,6 +60,7 @@
     unsubscribeUrl?: string
     shareUrl?: string
     chatUrl?: string
+    utmQuery?: string
   }>()
 
   const logoUrl = 'https://coachwatts.com/icon.png'
@@ -119,7 +120,7 @@
 
         <!-- Header -->
         <ESection style="padding: 32px 40px 0; text-align: center">
-          <ELink :href="siteUrl">
+          <ELink :href="siteUrl + (utmQuery || '')">
             <EImg
               :src="logoUrl"
               width="64"
@@ -336,7 +337,11 @@
 
           <div style="text-align: center; margin-bottom: 24px">
             <EButton
-              :href="workoutUrl || siteUrl + '/workouts/' + workoutId"
+              :href="
+                (workoutUrl || siteUrl + '/workouts/' + workoutId) +
+                (utmQuery || '') +
+                '&utm_content=cta_view_analysis'
+              "
               style="
                 background: linear-gradient(135deg, #00dc82 0%, #00c16a 100%);
                 color: #ffffff;
@@ -455,7 +460,7 @@
               </EButton>
               <EButton
                 v-if="chatUrl"
-                :href="chatUrl"
+                :href="chatUrl + (utmQuery || '') + '&utm_content=cta_chat'"
                 style="
                   background-color: #0f172a;
                   color: #ffffff;
