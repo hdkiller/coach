@@ -18,6 +18,7 @@ import backfillChatRoomsCommand from './chat-rooms'
 import backfillWorkoutSummaryNotesCommand from './workout-summary-notes'
 import backfillPowerSummaryFromStreamsCommand from './power-summary-from-streams'
 import backfillFitExtrasMetaCommand from './fit-extras-meta'
+import backfillElevationGainCommand from './elevation-gain'
 
 const backfill = new Command('backfill')
 
@@ -42,5 +43,6 @@ backfill
   .addCommand(backfillWorkoutSummaryNotesCommand)
   .addCommand(backfillPowerSummaryFromStreamsCommand)
   .addCommand(backfillFitExtrasMetaCommand)
+  .addCommand(backfillElevationGainCommand)
 
 export default backfill

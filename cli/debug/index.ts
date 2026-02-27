@@ -36,6 +36,7 @@ import cadenceJitterCommand from './cadence-jitter'
 import curveFreshnessCommand from './curve-freshness'
 import garminIngestCommand from './garmin-ingest'
 import garminWebhookCommand from './webhook-garmin'
+import elevationAnomaliesCommand from './elevation-anomalies'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -76,5 +77,6 @@ debugCommand.addCommand(curveFreshnessCommand)
 debugCommand.addCommand(nutritionPlanDebugCommand)
 debugCommand.addCommand(cadenceJitterCommand)
 debugCommand.addCommand(garminIngestCommand)
+debugCommand.addCommand(elevationAnomaliesCommand)
 
 export default debugCommand
