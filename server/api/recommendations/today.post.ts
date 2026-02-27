@@ -44,7 +44,19 @@ export default defineEventHandler(async (event) => {
     }
 
     const userId = (session.user as any).id
-    await checkQuota(userId, 'activity_recommendation')
+
+    // 0. Quota Check
+    try {
+      await checkQuota(userId, 'activity_recommendation')
+    } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw createError({
+          statusCode: 429,
+          message: error.message || 'Quota exceeded for activity recommendation.'
+        })
+      }
+      throw error
+    }
 
     const timezone = await getUserTimezone(userId)
     const today = getUserLocalDate(timezone)

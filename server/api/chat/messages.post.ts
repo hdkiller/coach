@@ -24,7 +24,17 @@ export default defineEventHandler(async (event) => {
   }
 
   // 0. Check Quota
-  await checkQuota(userId, 'chat')
+  try {
+    await checkQuota(userId, 'chat')
+  } catch (error: any) {
+    if (error.statusCode === 429) {
+      throw createError({
+        statusCode: 429,
+        message: error.message || 'Chat quota exceeded. Please wait or upgrade your plan.'
+      })
+    }
+    throw error
+  }
 
   const body = await readBody(event)
   const { roomId, messages, files, replyMessage } = body

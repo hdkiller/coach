@@ -41,7 +41,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
-  await checkQuota(userId, 'athlete_profile_generation')
+
+  // 0. Quota Check
+  try {
+    await checkQuota(userId, 'athlete_profile_generation')
+  } catch (error: any) {
+    if (error.statusCode === 429) {
+      throw createError({
+        statusCode: 429,
+        message: error.message || 'Quota exceeded for athlete profile generation.'
+      })
+    }
+    throw error
+  }
 
   // Create a report entry for the athlete profile
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)

@@ -13,7 +13,17 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   // 0. Check Quota
-  await checkQuota(userId, 'weekly_plan_generation')
+  try {
+    await checkQuota(userId, 'weekly_plan_generation')
+  } catch (error: any) {
+    if (error.statusCode === 429) {
+      throw createError({
+        statusCode: 429,
+        message: error.message || 'Quota exceeded for weekly plan generation.'
+      })
+    }
+    throw error
+  }
 
   if (!blockId) {
     throw createError({ statusCode: 400, message: 'Block ID is required' })

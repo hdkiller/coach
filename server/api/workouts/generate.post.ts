@@ -41,7 +41,17 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   // 0. Quota Check
-  await checkQuota(userId, 'generate_structured_workout')
+  try {
+    await checkQuota(userId, 'generate_structured_workout')
+  } catch (error: any) {
+    if (error.statusCode === 429) {
+      throw createError({
+        statusCode: 429,
+        message: error.message || 'Quota exceeded for workout generation.'
+      })
+    }
+    throw error
+  }
 
   const now = new Date()
 

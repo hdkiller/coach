@@ -12,7 +12,17 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   // Check Quota
-  await checkQuota(userId, 'weekly_plan_generation')
+  try {
+    await checkQuota(userId, 'weekly_plan_generation')
+  } catch (error: any) {
+    if (error.statusCode === 429) {
+      throw createError({
+        statusCode: 429,
+        message: error.message || 'Quota exceeded for weekly plan generation.'
+      })
+    }
+    throw error
+  }
 
   const { blockId, weekId, instructions, anchorWorkoutIds } = await readBody(event)
 
