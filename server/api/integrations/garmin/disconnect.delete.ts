@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { deRegisterGarminUser } from '../../../utils/garmin'
 
 defineRouteMeta({
   openAPI: {
@@ -32,6 +33,15 @@ export default defineEventHandler(async (event) => {
       statusCode: 404,
       message: 'Garmin integration not found'
     })
+  }
+
+  try {
+    await deRegisterGarminUser(integration)
+  } catch (error) {
+    console.error(
+      'Failed to de-register Garmin user token (continuing with local deletion):',
+      error
+    )
   }
 
   await prisma.integration.delete({
