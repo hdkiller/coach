@@ -313,10 +313,12 @@ CRITICAL INSTRUCTIONS:
             select: { name: true, email: true }
           })
           if (fullUser) {
+            const recommendationDateKey = todayDateOnly.toISOString().slice(0, 10)
             await tasks.trigger('send-email', {
               userId,
               templateKey: 'DailyRecommendation',
               eventKey: `DAILY_SUGGESTION_${report.id}`,
+              idempotencyKey: `daily-recommendation:${userId}:${recommendationDateKey}`,
               audience: 'ENGAGEMENT',
               subject: `Today's Training: ${suggestion.action.toUpperCase()}`,
               props: {

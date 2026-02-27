@@ -972,10 +972,12 @@ Maintain your **${aiSettings.aiPersona}** persona throughout.`
             select: { name: true, email: true }
           })
           if (fullUser) {
+            const recommendationDateKey = today.toISOString().slice(0, 10)
             await tasks.trigger('send-email', {
               userId,
               templateKey: 'DailyRecommendation',
               eventKey: `DAILY_RECOMMENDATION_${recommendation.id}`,
+              idempotencyKey: `daily-recommendation:${userId}:${recommendationDateKey}`,
               audience: 'ENGAGEMENT',
               subject: `Today's Training: ${analysis.recommendation.toUpperCase().replace('_', ' ')}`,
               props: {
