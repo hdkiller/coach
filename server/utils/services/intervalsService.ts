@@ -10,7 +10,9 @@ import {
   normalizeIntervalsPlannedWorkout,
   normalizeIntervalsCalendarNote,
   fetchIntervalsActivityStreams,
-  fetchIntervalsAthlete
+  fetchIntervalsAthlete,
+  hasInvalidIntervalsElevationMetadata,
+  computeElevationGainFromAltitudeStream
 } from '../intervals'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { wellnessRepository } from '../repositories/wellnessRepository'
@@ -479,13 +481,16 @@ export const IntervalsService = {
     // If Intervals summary omitted power metrics (common on some running activities),
     // backfill from the stored watts stream so downstream AI/context has usable values.
     const streamPowerSummary = summarizePowerFromWatts(wattsData)
-    if (streamPowerSummary) {
+    const streamElevationGain = computeElevationGainFromAltitudeStream(altitudeData)
+
+    if (streamPowerSummary || streamElevationGain !== null) {
       const workout = await prisma.workout.findUnique({
         where: { id: workoutId },
         select: {
           averageWatts: true,
           maxWatts: true,
-          normalizedPower: true
+          normalizedPower: true,
+          elevationGain: true
         }
       })
 
@@ -494,18 +499,26 @@ export const IntervalsService = {
           averageWatts?: number
           maxWatts?: number
           normalizedPower?: number
+          elevationGain?: number
         } = {}
 
-        if (!workout.averageWatts || workout.averageWatts <= 0) {
-          updateData.averageWatts = streamPowerSummary.averageWatts
+        if (streamPowerSummary) {
+          if (!workout.averageWatts || workout.averageWatts <= 0) {
+            updateData.averageWatts = streamPowerSummary.averageWatts
+          }
+
+          if (!workout.maxWatts || workout.maxWatts <= 0) {
+            updateData.maxWatts = streamPowerSummary.maxWatts
+          }
+
+          if (!workout.normalizedPower || workout.normalizedPower <= 0) {
+            updateData.normalizedPower = streamPowerSummary.normalizedPower
+          }
         }
 
-        if (!workout.maxWatts || workout.maxWatts <= 0) {
-          updateData.maxWatts = streamPowerSummary.maxWatts
-        }
-
-        if (!workout.normalizedPower || workout.normalizedPower <= 0) {
-          updateData.normalizedPower = streamPowerSummary.normalizedPower
+        // Prefer stream-derived elevation when valid altitude samples exist.
+        if (streamElevationGain !== null && workout.elevationGain !== streamElevationGain) {
+          updateData.elevationGain = streamElevationGain
         }
 
         if (Object.keys(updateData).length > 0) {
@@ -1091,7 +1104,9 @@ export const IntervalsService = {
             if (toNumberOrNull(activity.distance) !== null)
               deltaData.distanceMeters = activity.distance
             if (toNumberOrNull(activity.total_elevation_gain) !== null) {
-              deltaData.elevationGain = Math.round(activity.total_elevation_gain)
+              deltaData.elevationGain = hasInvalidIntervalsElevationMetadata(activity)
+                ? null
+                : Math.round(activity.total_elevation_gain)
             }
 
             const avgWatts = activity.icu_average_watts ?? activity.average_watts

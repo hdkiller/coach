@@ -819,11 +819,57 @@ export async function fetchIntervalsWellness(
   return Array.isArray(data) ? data : []
 }
 
+function parseFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
+}
+
+export function hasInvalidIntervalsElevationMetadata(
+  activity: Record<string, any> | null
+): boolean {
+  if (!activity || typeof activity !== 'object') return false
+  const minAltitude = parseFiniteNumber(activity.min_altitude)
+  const maxAltitude = parseFiniteNumber(activity.max_altitude)
+
+  // Intervals/Garmin uses -500 as an invalid altitude sentinel.
+  if (minAltitude === -500 || maxAltitude === -500) return true
+  if (minAltitude !== null && maxAltitude !== null && maxAltitude < minAltitude) return true
+  return false
+}
+
+export function computeElevationGainFromAltitudeStream(
+  altitude: Array<number | null | undefined> | null | undefined
+): number | null {
+  if (!altitude || altitude.length < 2) return null
+
+  const cleaned: number[] = []
+  for (const sample of altitude) {
+    if (typeof sample !== 'number' || !Number.isFinite(sample) || sample === -500) continue
+    cleaned.push(sample)
+  }
+
+  if (cleaned.length < 2) return null
+
+  let gain = 0
+  for (let i = 1; i < cleaned.length; i++) {
+    const delta = cleaned[i]! - cleaned[i - 1]!
+    if (delta > 0) gain += delta
+  }
+
+  return Math.round(gain)
+}
+
 export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: string) {
   const moving_time = activity.moving_time || 0
   const elapsed_time = activity.elapsed_time || 0
   const duration = activity.duration || 0
   const durationSec = moving_time || elapsed_time || duration
+  const hasInvalidElevationMetadata = hasInvalidIntervalsElevationMetadata(activity as any)
+  const metadataElevationGain = parseFiniteNumber(activity.total_elevation_gain)
 
   return {
     userId,
@@ -837,7 +883,11 @@ export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: s
     type: activity.type,
     durationSec,
     distanceMeters: activity.distance || null,
-    elevationGain: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
+    // Guard against broken upstream altitude metadata (e.g. min/max altitude = -500 sentinel).
+    elevationGain:
+      !hasInvalidElevationMetadata && metadataElevationGain !== null
+        ? Math.round(metadataElevationGain)
+        : null,
 
     // Power metrics
     averageWatts: activity.icu_average_watts || activity.average_watts || null,
