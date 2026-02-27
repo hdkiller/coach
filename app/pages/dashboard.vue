@@ -365,6 +365,7 @@
     getWorkoutColorClass,
     getWorkoutBorderColorClass
   } from '~/utils/activity-types'
+  import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
 
   const { formatDate, formatDateUTC, getUserLocalDate } = useFormat()
 
@@ -442,7 +443,7 @@
       nutritionEnabled.value ? fetchTodayNutrition() : Promise.resolve()
     ])
 
-    toast.add({
+    showDashboardProgressToast(toast, {
       title: 'Sync Complete',
       description: 'Your data has been updated successfully!',
       color: 'success',

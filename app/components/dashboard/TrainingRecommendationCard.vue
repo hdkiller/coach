@@ -308,6 +308,7 @@
   import DashboardCreateAdHocModal from '~/components/dashboard/DashboardCreateAdHocModal.vue'
   import DashboardRefineRecommendationModal from '~/components/dashboard/DashboardRefineRecommendationModal.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
+  import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
   import {
     getWorkoutIcon,
     getWorkoutColorClass,
@@ -381,7 +382,7 @@
     )
 
     if (profileStatus.isStale) {
-      toast.add({
+      showDashboardProgressToast(toast, {
         title: 'Updating Profile First',
         description: 'Your athlete profile is outdated. Updating it for better recommendations...',
         color: 'info',

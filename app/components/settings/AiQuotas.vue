@@ -34,7 +34,9 @@
               {{ (quota.operation || 'Unknown').replace(/_/g, ' ') }}
             </span>
             <span class="text-xs text-muted">
-              {{ quota.used }} / {{ quota.limit }} (per {{ quota.window }})
+              {{ quota.used }} / {{ quota.limit }} ({{
+                quota.window === 'calendar day' ? 'per day' : 'per ' + quota.window
+              }})
             </span>
           </div>
 
@@ -52,7 +54,13 @@
             class="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold"
           >
             <span>{{ quota.remaining }} remaining</span>
-            <span v-if="quota.resetsAt">Resets {{ formatRelativeTime(quota.resetsAt) }}</span>
+            <span v-if="quota.resetsAt">
+              {{
+                quota.window === 'calendar day'
+                  ? 'Resets at Midnight'
+                  : 'Resets ' + formatRelativeTime(quota.resetsAt)
+              }}
+            </span>
           </div>
         </div>
 
