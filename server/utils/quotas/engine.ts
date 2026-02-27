@@ -3,6 +3,7 @@ import type { QuotaOperation } from './registry'
 import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
 import type { SubscriptionTier, User } from '@prisma/client'
 import type { QuotaStatus } from '../../../types/quotas'
+import { getUserTimezone, getStartOfDayUTC, getEndOfDayUTC } from '../date'
 
 /**
  * Get current usage and limit status for a user and operation
@@ -16,7 +17,7 @@ export async function getQuotaStatus(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { subscriptionTier: true, trialEndsAt: true }
+    select: { subscriptionTier: true, trialEndsAt: true, timezone: true }
   })
 
   if (!user) return null
@@ -30,32 +31,56 @@ export async function getQuotaStatus(
 
   if (!quotaDef) return null
 
+  const timezone = user.timezone || 'UTC'
+  const isCalendarReset = quotaDef.resetType === 'CALENDAR'
+
   // Calculate usage within the window
-  // Using raw query for flexible interval support
-  const usageCount: any[] = await prisma.$queryRawUnsafe(
-    `
-    SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
-    FROM "LlmUsage"
-    WHERE "userId" = $1
-      AND "operation" = $2
-      AND "success" = true
-      AND "counted" = true
-      AND "createdAt" >= NOW() - CAST($3 AS interval)
-  `,
-    userId,
-    operation,
-    quotaDef.window
-  )
+  let usageCount: any[]
+
+  if (isCalendarReset) {
+    const startOfToday = getStartOfDayUTC(timezone)
+    usageCount = await prisma.$queryRawUnsafe(
+      `
+      SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
+      FROM "LlmUsage"
+      WHERE "userId" = $1
+        AND "operation" = $2
+        AND "success" = true
+        AND "counted" = true
+        AND "createdAt" >= $3
+    `,
+      userId,
+      operation,
+      startOfToday
+    )
+  } else {
+    // Using raw query for flexible interval support
+    usageCount = await prisma.$queryRawUnsafe(
+      `
+      SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
+      FROM "LlmUsage"
+      WHERE "userId" = $1
+        AND "operation" = $2
+        AND "success" = true
+        AND "counted" = true
+        AND "createdAt" >= NOW() - CAST($3 AS interval)
+    `,
+      userId,
+      operation,
+      quotaDef.window
+    )
+  }
 
   const used = usageCount[0]?.count || 0
   const remaining = Math.max(0, quotaDef.limit - used)
 
-  // Estimate reset time based on the oldest record in the window
+  // Estimate reset time
   let resetsAt = null
-  if (used > 0 && usageCount[0]?.firstUsedAt) {
+  if (isCalendarReset) {
+    // For calendar reset, it resets at midnight tonight in user's timezone
+    resetsAt = getEndOfDayUTC(timezone)
+  } else if (used > 0 && usageCount[0]?.firstUsedAt) {
     const firstUsedAt = new Date(usageCount[0].firstUsedAt)
-    // This is an approximation. Real reset happens record-by-record in a rolling window.
-    // For simplicity, we show when the NEXT slot might open up if they are capped.
     resetsAt = new Date(firstUsedAt.getTime() + parseIntervalToMs(quotaDef.window))
   }
 
@@ -65,7 +90,7 @@ export async function getQuotaStatus(
     used,
     limit: quotaDef.limit,
     remaining,
-    window: quotaDef.window,
+    window: isCalendarReset ? 'calendar day' : quotaDef.window,
     resetsAt,
     enforcement: quotaDef.enforcement
   }

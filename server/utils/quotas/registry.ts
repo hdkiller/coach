@@ -15,11 +15,13 @@ export type QuotaOperation =
   | 'wellness_analysis'
 
 export type EnforcementType = 'STRICT' | 'MEASURE'
+export type ResetType = 'ROLLING' | 'CALENDAR'
 
 export interface QuotaDefinition {
   limit: number
   window: string // postgres interval string: '4 hours', '7 days', etc.
   enforcement: EnforcementType
+  resetType?: ResetType
 }
 
 export const QUOTA_REGISTRY: Record<
@@ -28,15 +30,20 @@ export const QUOTA_REGISTRY: Record<
 > = {
   FREE: {
     chat: { limit: 5, window: '4 hours', enforcement: 'STRICT' },
-    workout_analysis: { limit: 10, window: '7 days', enforcement: 'STRICT' },
+    workout_analysis: { limit: 3, window: '7 days', enforcement: 'STRICT' },
     athlete_profile_generation: { limit: 1, window: '24 hours', enforcement: 'STRICT' },
-    daily_checkin: { limit: 2, window: '24 hours', enforcement: 'STRICT' },
+    daily_checkin: { limit: 1, window: '1 day', enforcement: 'STRICT', resetType: 'CALENDAR' },
     unified_report_generation: { limit: 1, window: '30 days', enforcement: 'STRICT' },
-    nutrition_analysis: { limit: 5, window: '7 days', enforcement: 'STRICT' },
-    activity_recommendation: { limit: 2, window: '24 hours', enforcement: 'STRICT' },
+    nutrition_analysis: { limit: 3, window: '7 days', enforcement: 'STRICT' },
+    activity_recommendation: {
+      limit: 1,
+      window: '1 day',
+      enforcement: 'STRICT',
+      resetType: 'CALENDAR'
+    },
     meal_recommendation: { limit: 3, window: '24 hours', enforcement: 'STRICT' },
     generate_structured_workout: { limit: 5, window: '7 days', enforcement: 'STRICT' },
-    wellness_analysis: { limit: 5, window: '7 days', enforcement: 'STRICT' },
+    wellness_analysis: { limit: 3, window: '7 days', enforcement: 'STRICT' },
     custom_report_generation: { limit: 1, window: '30 days', enforcement: 'STRICT' },
     weekly_plan_generation: { limit: 1, window: '7 days', enforcement: 'STRICT' }
   },
@@ -44,10 +51,15 @@ export const QUOTA_REGISTRY: Record<
     chat: { limit: 50, window: '4 hours', enforcement: 'STRICT' },
     workout_analysis: { limit: 30, window: '7 days', enforcement: 'STRICT' },
     athlete_profile_generation: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
-    daily_checkin: { limit: 2, window: '24 hours', enforcement: 'STRICT' },
+    daily_checkin: { limit: 2, window: '1 day', enforcement: 'STRICT', resetType: 'CALENDAR' },
     unified_report_generation: { limit: 5, window: '30 days', enforcement: 'STRICT' },
     nutrition_analysis: { limit: 20, window: '7 days', enforcement: 'STRICT' },
-    activity_recommendation: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
+    activity_recommendation: {
+      limit: 5,
+      window: '1 day',
+      enforcement: 'STRICT',
+      resetType: 'CALENDAR'
+    },
     meal_recommendation: { limit: 10, window: '24 hours', enforcement: 'STRICT' },
     generate_structured_workout: { limit: 20, window: '7 days', enforcement: 'STRICT' },
     wellness_analysis: { limit: 20, window: '7 days', enforcement: 'STRICT' },
@@ -58,10 +70,15 @@ export const QUOTA_REGISTRY: Record<
     chat: { limit: 500, window: '4 hours', enforcement: 'STRICT' },
     workout_analysis: { limit: 150, window: '7 days', enforcement: 'STRICT' },
     athlete_profile_generation: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
-    daily_checkin: { limit: 5, window: '24 hours', enforcement: 'STRICT' },
+    daily_checkin: { limit: 5, window: '1 day', enforcement: 'STRICT', resetType: 'CALENDAR' },
     unified_report_generation: { limit: 20, window: '30 days', enforcement: 'STRICT' },
     nutrition_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' },
-    activity_recommendation: { limit: 20, window: '24 hours', enforcement: 'STRICT' },
+    activity_recommendation: {
+      limit: 20,
+      window: '1 day',
+      enforcement: 'STRICT',
+      resetType: 'CALENDAR'
+    },
     meal_recommendation: { limit: 50, window: '24 hours', enforcement: 'STRICT' },
     generate_structured_workout: { limit: 250, window: '7 days', enforcement: 'STRICT' },
     wellness_analysis: { limit: 100, window: '7 days', enforcement: 'STRICT' },
