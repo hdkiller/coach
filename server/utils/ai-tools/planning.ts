@@ -15,6 +15,7 @@ import { tags } from '@trigger.dev/sdk/v3'
 import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
+import { plannedWorkoutPublishRepository } from '../repositories/plannedWorkoutPublishRepository'
 import { metabolicService } from '../services/metabolicService'
 import type { AiSettings } from '../ai-user-settings'
 import {
@@ -881,7 +882,18 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       if (!integration) return { error: 'Intervals.icu integration not found' }
 
-      const isLocal = workout.syncStatus === 'LOCAL_ONLY' || !isIntervalsEventId(workout.externalId)
+      const provider = 'intervals'
+      const existingTarget = await plannedWorkoutPublishRepository.getByProvider(
+        workout_id,
+        provider
+      )
+      const existingExternalId =
+        existingTarget?.externalId && isIntervalsEventId(existingTarget.externalId)
+          ? existingTarget.externalId
+          : isIntervalsEventId(workout.externalId)
+            ? workout.externalId
+            : null
+      const isLocal = !existingExternalId
 
       // Fetch sport settings to check preferences
       const sportSettings = await sportSettingsRepository.getForActivityType(
@@ -925,9 +937,15 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             syncStatus: 'SYNCED',
             lastSyncedAt: new Date()
           })
+          await plannedWorkoutPublishRepository.upsert(workout_id, provider, {
+            externalId: String(intervalsWorkout.id),
+            status: 'SYNCED',
+            error: null,
+            lastSyncedAt: new Date()
+          })
           return { success: true, message: 'Workout published to Intervals.icu.' }
         } else {
-          await updateIntervalsPlannedWorkout(integration, workout.externalId, {
+          await updateIntervalsPlannedWorkout(integration, existingExternalId!, {
             date: workout.date,
             startTime: workout.startTime,
             title: workout.title,
@@ -943,9 +961,19 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             syncStatus: 'SYNCED',
             lastSyncedAt: new Date()
           })
+          await plannedWorkoutPublishRepository.upsert(workout_id, provider, {
+            externalId: existingExternalId!,
+            status: 'SYNCED',
+            error: null,
+            lastSyncedAt: new Date()
+          })
           return { success: true, message: 'Workout updated on Intervals.icu.' }
         }
       } catch (e: any) {
+        await plannedWorkoutPublishRepository.upsert(workout_id, provider, {
+          status: 'FAILED',
+          error: e.message || 'Failed to publish.'
+        })
         return { success: false, error: e.message || 'Failed to publish.' }
       }
     }

@@ -8,6 +8,7 @@ import {
 import { WorkoutConverter } from '../../../../utils/workout-converter'
 import { getServerSession } from '../../../../utils/session'
 import { sportSettingsRepository } from '../../../../utils/repositories/sportSettingsRepository'
+import { plannedWorkoutPublishRepository } from '../../../../utils/repositories/plannedWorkoutPublishRepository'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -51,8 +52,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Intervals.icu integration not found' })
   }
 
-  // Check if already published/synced
-  const isLocal = workout.syncStatus === 'LOCAL_ONLY' || !isIntervalsEventId(workout.externalId)
+  const provider = 'intervals'
+  const existingTarget = await plannedWorkoutPublishRepository.getByProvider(id, provider)
+  const existingExternalId =
+    existingTarget?.externalId && isIntervalsEventId(existingTarget.externalId)
+      ? existingTarget.externalId
+      : isIntervalsEventId(workout.externalId)
+        ? workout.externalId
+        : null
+
+  // Check if already published/synced for Intervals
+  const isLocal = !existingExternalId
 
   // Fetch sport settings to check preferences
   const sportSettings = await sportSettingsRepository.getForActivityType(userId, intervalsType)
@@ -98,24 +108,31 @@ export default defineEventHandler(async (event) => {
       message = 'Workout published successfully'
 
       // Update local record with new external ID
+      const syncedAt = new Date()
       await prisma.plannedWorkout.update({
         where: { id },
         data: {
           externalId: String(intervalsWorkout.id),
           syncStatus: 'SYNCED',
-          lastSyncedAt: new Date()
+          lastSyncedAt: syncedAt
         }
+      })
+      await plannedWorkoutPublishRepository.upsert(id, provider, {
+        externalId: String(intervalsWorkout.id),
+        status: 'SYNCED',
+        error: null,
+        lastSyncedAt: syncedAt
       })
     } else {
       // UPDATE
       console.log('[Publish] Updating existing workout on Intervals.icu:', {
         localId: workout.id,
-        externalId: workout.externalId
+        externalId: existingExternalId
       })
       try {
         const intervalsWorkout = await updateIntervalsPlannedWorkout(
           integration,
-          workout.externalId,
+          existingExternalId!,
           {
             date: workout.date,
             title: workout.title,
@@ -132,12 +149,19 @@ export default defineEventHandler(async (event) => {
         message = 'Workout updated on Intervals.icu'
 
         // Update local sync status
+        const syncedAt = new Date()
         await prisma.plannedWorkout.update({
           where: { id },
           data: {
             syncStatus: 'SYNCED',
-            lastSyncedAt: new Date()
+            lastSyncedAt: syncedAt
           }
+        })
+        await plannedWorkoutPublishRepository.upsert(id, provider, {
+          externalId: existingExternalId!,
+          status: 'SYNCED',
+          error: null,
+          lastSyncedAt: syncedAt
         })
       } catch (updateError: any) {
         // If the event was deleted on Intervals.icu (404), we should recreate it
@@ -164,13 +188,20 @@ export default defineEventHandler(async (event) => {
           message = 'Workout recreated on Intervals.icu'
 
           // Update local record with new external ID
+          const syncedAt = new Date()
           await prisma.plannedWorkout.update({
             where: { id },
             data: {
               externalId: String(intervalsWorkout.id),
               syncStatus: 'SYNCED',
-              lastSyncedAt: new Date()
+              lastSyncedAt: syncedAt
             }
+          })
+          await plannedWorkoutPublishRepository.upsert(id, provider, {
+            externalId: String(intervalsWorkout.id),
+            status: 'SYNCED',
+            error: null,
+            lastSyncedAt: syncedAt
           })
         } else {
           // Re-throw other errors
@@ -189,6 +220,10 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error: any) {
     console.error('Error publishing/updating workout:', error)
+    await plannedWorkoutPublishRepository.upsert(id, provider, {
+      status: 'FAILED',
+      error: error.message || 'Failed to sync workout with Intervals.icu'
+    })
 
     if (error.code === 'P2002') {
       throw createError({ statusCode: 409, message: 'A workout with this ID already exists' })
