@@ -57,62 +57,57 @@
 
     <div>
       <div>
-        <h2 class="text-2xl font-bold">Authorized Applications</h2>
+        <h2 class="text-2xl font-bold">Applications that can connect to Coach Watts</h2>
         <p class="text-neutral-500">
-          Third-party applications that have access to your Coach Watts account.
+          Discover Third-party applications that can access your Coach Watts account.
         </p>
       </div>
 
-      <div v-if="pendingConsents" class="space-y-4 mt-6">
-        <USkeleton v-for="i in 2" :key="i" class="h-24 w-full" />
+      <div v-if="pendingApplications" class="space-y-4 mt-6">
+        <USkeleton v-for="i in 2" :key="`public-app-skeleton-${i}`" class="h-24 w-full" />
       </div>
 
       <div
-        v-else-if="consents && consents.length === 0"
+        v-else-if="mergedApps.length === 0"
         class="py-12 text-center border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl mt-6"
       >
         <UIcon
-          name="i-heroicons-shield-check"
+          name="i-heroicons-cube"
           class="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3"
         />
         <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">
-          You haven't authorized any applications yet.
+          No applications are available yet.
         </p>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <UCard v-for="consent in consents" :key="consent.id">
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-              <UAvatar
-                :src="consent.app.logoUrl || undefined"
-                :alt="consent.app.name"
-                size="lg"
-                icon="i-heroicons-cube"
-              />
-              <div class="min-w-0">
-                <h3 class="font-bold text-gray-900 dark:text-white truncate">
-                  {{ consent.app.name }}
-                </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                  Authorized on {{ formatDate(consent.createdAt) }}
-                </p>
-              </div>
-            </div>
-            <UButton
-              label="Revoke"
-              color="error"
-              variant="ghost"
-              icon="i-heroicons-trash"
-              size="xs"
-              class="font-bold flex-shrink-0"
-              @click="confirmRevoke(consent)"
+        <UCard
+          v-for="app in mergedApps"
+          :key="app.id"
+          :ui="{ body: 'flex flex-col h-full justify-between gap-4' }"
+        >
+          <div class="flex items-start gap-4 min-w-0">
+            <UAvatar
+              :src="app.logoUrl || undefined"
+              :alt="app.name"
+              size="lg"
+              icon="i-heroicons-cube"
             />
+            <div class="min-w-0">
+              <h3 class="font-semibold truncate">{{ app.name }}</h3>
+              <p
+                v-if="app.isConnected && app.consent"
+                class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium"
+              >
+                Authorized on {{ formatDate(app.consent.createdAt) }}
+              </p>
+              <p v-else class="text-sm text-muted mt-1 line-clamp-2">
+                {{ app.description || 'No description provided.' }}
+              </p>
+            </div>
           </div>
 
-          <USeparator class="my-4" />
-
-          <div>
+          <div v-if="app.isConnected && app.consent" class="mt-1">
             <p
               class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2"
             >
@@ -120,7 +115,7 @@
             </p>
             <div class="flex flex-wrap gap-1.5">
               <UBadge
-                v-for="scope in consent.scopes"
+                v-for="scope in app.consent.scopes"
                 :key="scope"
                 color="neutral"
                 variant="subtle"
@@ -130,6 +125,42 @@
                 {{ formatScope(scope) }}
               </UBadge>
             </div>
+          </div>
+
+          <div
+            class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
+          >
+            <template v-if="app.isConnected && app.consent">
+              <UButton
+                v-if="app.homepageUrl"
+                label="Website"
+                color="success"
+                variant="solid"
+                size="sm"
+                class="font-bold"
+                icon="i-heroicons-arrow-top-right-on-square"
+                :to="app.homepageUrl"
+                target="_blank"
+              />
+              <UButton
+                label="Disconnect"
+                color="error"
+                variant="outline"
+                icon="i-heroicons-trash"
+                size="sm"
+                class="font-bold flex-shrink-0"
+                @click="confirmRevoke(app.consent)"
+              />
+            </template>
+            <UButton
+              v-else-if="app.homepageUrl"
+              label="Visit Website"
+              color="neutral"
+              variant="outline"
+              icon="i-heroicons-arrow-top-right-on-square"
+              :to="app.homepageUrl"
+              target="_blank"
+            />
           </div>
         </UCard>
       </div>
@@ -292,6 +323,14 @@
 
   const syncingProviders = ref(new Set<string>())
 
+  const { data: publicApps, pending: pendingPublicApps } = await useFetch<any[]>(
+    '/api/oauth/public-apps',
+    {
+      lazy: true,
+      server: false
+    }
+  )
+
   // Authorized Apps Logic
   const {
     data: consents,
@@ -305,6 +344,48 @@
   const isRevokeModalOpen = ref(false)
   const revoking = ref(false)
   const selectedConsent = ref<any>(null)
+
+  const consentsByAppId = computed(() => {
+    return new Map((consents.value || []).map((consent: any) => [consent.app.id, consent]))
+  })
+
+  const mergedApps = computed(() => {
+    const consentMap = consentsByAppId.value
+    const byId = new Map<string, any>()
+
+    for (const app of publicApps.value || []) {
+      const consent = consentMap.get(app.id) || null
+      byId.set(app.id, {
+        id: app.id,
+        name: app.name,
+        description: app.description,
+        logoUrl: app.logoUrl,
+        homepageUrl: app.homepageUrl,
+        isConnected: Boolean(consent),
+        consent
+      })
+    }
+
+    for (const consent of consents.value || []) {
+      if (byId.has(consent.app.id)) continue
+      byId.set(consent.app.id, {
+        id: consent.app.id,
+        name: consent.app.name,
+        description: consent.app.description,
+        logoUrl: consent.app.logoUrl,
+        homepageUrl: consent.app.homepageUrl,
+        isConnected: true,
+        consent
+      })
+    }
+
+    return Array.from(byId.values()).sort((a, b) => {
+      if (a.isConnected !== b.isConnected) return a.isConnected ? -1 : 1
+      return String(a.name || '').localeCompare(String(b.name || ''))
+    })
+  })
+
+  const pendingApplications = computed(() => pendingPublicApps.value || pendingConsents.value)
 
   function confirmRevoke(consent: any) {
     selectedConsent.value = consent
