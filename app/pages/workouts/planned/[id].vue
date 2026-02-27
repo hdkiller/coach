@@ -765,6 +765,7 @@
   const router = useRouter()
   const toast = useToast()
   const { formatDateUTC, getUserLocalDate, timezone } = useFormat()
+  const { trackWorkoutViewDetail } = useAnalytics()
 
   const loading = ref(true)
   const generating = ref(false)
@@ -1763,6 +1764,7 @@
   }))
 
   onMounted(() => {
+    trackWorkoutViewDetail('planned')
     fetchWorkout()
     fetchIntegrationStatus()
   })

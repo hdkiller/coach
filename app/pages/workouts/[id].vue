@@ -1848,6 +1848,7 @@
   import { formatDistance as formatDist, formatTemperature } from '~/utils/metrics'
 
   const { formatDate: baseFormatDate, formatDateTime, formatDateUTC } = useFormat()
+  const { trackWorkoutViewDetail } = useAnalytics()
 
   definePageMeta({
     middleware: 'auth'
@@ -2978,6 +2979,7 @@
 
   // Load data on mount
   onMounted(() => {
+    trackWorkoutViewDetail('completed')
     fetchWorkout()
 
     if (route.query.share === 'true') {
