@@ -439,7 +439,13 @@ export const startCommand = new Command('start')
             const result = await GarminService.processWebhookEvent(payload)
 
             console.log(chalk.green(`[GarminJob ${job.id}] Completed: ${result.message}`))
-            if (logId) await updateWebhookStatus(logId, 'PROCESSED', result.message)
+            if (logId) {
+              await updateWebhookStatus(
+                logId,
+                result.handled ? 'PROCESSED' : 'IGNORED',
+                result.message
+              )
+            }
             return result
           } catch (error: any) {
             console.error(chalk.red(`[GarminJob ${job.id}] Failed:`), error)

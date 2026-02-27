@@ -37,6 +37,11 @@ export const GarminService = {
   async processWebhookEvent(payload: any) {
     console.log('[GarminService] Processing webhook payload:', Object.keys(payload))
 
+    const deregistrations = Array.isArray(payload?.deregistrations) ? payload.deregistrations : []
+    const userPermissionsChange = Array.isArray(payload?.userPermissionsChange)
+      ? payload.userPermissionsChange
+      : []
+
     // Garmin Push API sends lists of records. Identify what we received.
     const dailies = payload.dailies || []
     const sleeps = payload.sleeps || []
@@ -48,6 +53,37 @@ export const GarminService = {
     const stress = payload.stress || []
     const userMetrics = payload.userMetrics || []
     const moveIQ = payload.moveIQActivities || []
+    const hasSummaryData =
+      dailies.length > 0 ||
+      sleeps.length > 0 ||
+      hrv.length > 0 ||
+      activities.length > 0 ||
+      bodyComps.length > 0 ||
+      pulseOx.length > 0 ||
+      respiration.length > 0 ||
+      stress.length > 0 ||
+      userMetrics.length > 0 ||
+      moveIQ.length > 0
+
+    let deregisteredCount = 0
+    let permissionUpdatedCount = 0
+
+    if (deregistrations.length > 0) {
+      deregisteredCount = await this.processDeregistrations(deregistrations)
+    }
+    if (userPermissionsChange.length > 0) {
+      permissionUpdatedCount = await this.processUserPermissionChanges(userPermissionsChange)
+    }
+
+    if (!hasSummaryData) {
+      if (deregistrations.length > 0 || userPermissionsChange.length > 0) {
+        return {
+          handled: true,
+          message: `Processed Garmin admin events: ${deregisteredCount} deregistrations, ${permissionUpdatedCount} permission updates`
+        }
+      }
+      return { handled: false, message: 'No recognized Garmin summary/admin event in payload' }
+    }
 
     // Resolve User ID from the first record that has one
     const externalUserId =
@@ -94,6 +130,59 @@ export const GarminService = {
       console.error('[GarminService] Error processing webhook:', error)
       throw error
     }
+  },
+
+  async processDeregistrations(records: any[]) {
+    const userIds = Array.from(
+      new Set(
+        records
+          .map((record) => (typeof record?.userId === 'string' ? record.userId.trim() : ''))
+          .filter(Boolean)
+      )
+    )
+
+    if (userIds.length === 0) return 0
+
+    const result = await prisma.integration.deleteMany({
+      where: {
+        provider: 'garmin',
+        externalUserId: { in: userIds }
+      }
+    })
+
+    return result.count
+  },
+
+  async processUserPermissionChanges(records: any[]) {
+    let updatedCount = 0
+
+    for (const record of records) {
+      const userId = typeof record?.userId === 'string' ? record.userId.trim() : ''
+      if (!userId) continue
+
+      const permissions = Array.isArray(record?.permissions)
+        ? record.permissions.filter((permission: unknown) => typeof permission === 'string')
+        : []
+      const scope = permissions.length > 0 ? permissions.join(' ') : null
+      const permissionsRemoved = permissions.length === 0
+
+      const result = await prisma.integration.updateMany({
+        where: {
+          provider: 'garmin',
+          externalUserId: userId
+        },
+        data: {
+          scope,
+          errorMessage: permissionsRemoved
+            ? 'Garmin permissions were removed by the user in Garmin Connect.'
+            : null
+        }
+      })
+
+      updatedCount += result.count
+    }
+
+    return updatedCount
   },
 
   /**

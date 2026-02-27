@@ -291,3 +291,27 @@ export async function requestGarminBackfill(
 
   return { success: true }
 }
+
+/**
+ * De-register a Garmin user token from partner access.
+ */
+export async function deRegisterGarminUser(integration: Integration) {
+  const validIntegration = await ensureValidToken(integration)
+  const url = 'https://apis.garmin.com/wellness-api/rest/user/registration'
+
+  const response = await fetchWithRetry(url, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${validIntegration.accessToken}`
+    }
+  })
+
+  // 204 is success. 401/404 can happen when already revoked/de-registered.
+  if (response.ok || response.status === 401 || response.status === 404) {
+    return { success: true, status: response.status }
+  }
+
+  const errorBody = await response.json().catch(() => ({}))
+  const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+  throw new Error(`Garmin de-registration API error (${response.status}): ${errorMessage}`)
+}
