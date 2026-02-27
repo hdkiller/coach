@@ -4,6 +4,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   const { gtag } = useGtag()
   const { data } = useAuth()
+  const userStore = useUserStore()
 
   // Watch for changes in the user session
   watch(
@@ -14,16 +15,23 @@ export default defineNuxtPlugin((nuxtApp) => {
         gtag('set', {
           user_id: user.id
         })
-
-        // You can also set other user properties here
-        // gtag('set', 'user_properties', {
-        //   user_email: user.email,
-        //   is_admin: (user as any).isAdmin
-        // })
       } else {
         // Clear user_id on logout
         gtag('set', {
           user_id: undefined
+        })
+      }
+    },
+    { immediate: true }
+  )
+
+  // Watch for subscription tier changes
+  watch(
+    () => userStore.entitlements?.tier,
+    (tier) => {
+      if (tier) {
+        gtag('set', {
+          subscription_tier: tier
         })
       }
     },
