@@ -154,6 +154,7 @@
   const { currency, setCurrency } = useCurrency()
   const { createCheckoutSession, openCustomerPortal } = useStripe()
   const config = useRuntimeConfig()
+  const { trackCheckoutStart, trackBillingPortalView } = useAnalytics()
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
 
   const billingInterval = ref<BillingInterval>('monthly')
@@ -166,6 +167,7 @@
   async function handlePlanSelect(plan: PricingPlan) {
     // If user already has a subscription, open portal to manage/change
     if (userStore.user?.stripeCustomerId && userStore.user?.subscriptionTier !== 'FREE') {
+      trackBillingPortalView()
       await openCustomerPortal(window.location.href)
       return
     }
@@ -175,6 +177,10 @@
       console.error('No Stripe price ID found for plan:', plan.key, billingInterval.value)
       return
     }
+
+    // Track begin checkout
+    const priceValue = billingInterval.value === 'monthly' ? plan.monthlyPrice : plan.annualPrice
+    trackCheckoutStart(priceId, plan.name, billingInterval.value, priceValue || 0, currency.value)
 
     await createCheckoutSession(priceId, {
       successUrl: `${window.location.origin}/settings/billing?success=true`,
