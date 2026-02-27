@@ -168,6 +168,16 @@
     if (typeof value !== 'string') return ''
     return value.replaceAll('{{', '&#123;&#123;').replaceAll('}}', '&#125;&#125;')
   }
+
+  const isImageFile = (part: any) =>
+    part?.type === 'file' &&
+    typeof part.mediaType === 'string' &&
+    part.mediaType.startsWith('image/')
+
+  const isAudioFile = (part: any) =>
+    part?.type === 'file' &&
+    typeof part.mediaType === 'string' &&
+    part.mediaType.startsWith('audio/')
 </script>
 
 <template>
@@ -191,6 +201,44 @@
         >
           Edited
         </div>
+      </div>
+
+      <div v-else-if="part.type === 'file'" class="space-y-2">
+        <a
+          v-if="isImageFile(part)"
+          :href="part.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="block overflow-hidden rounded-2xl border border-gray-200 bg-white/60 transition hover:opacity-95 dark:border-gray-800 dark:bg-gray-900/60"
+        >
+          <img
+            :src="part.url"
+            :alt="part.filename || 'Uploaded image'"
+            class="max-h-80 w-full object-cover"
+          />
+        </a>
+
+        <div
+          v-else-if="isAudioFile(part)"
+          class="rounded-2xl border border-gray-200 bg-white/70 p-3 dark:border-gray-800 dark:bg-gray-900/60"
+        >
+          <audio controls preload="metadata" class="w-full">
+            <source :src="part.url" :type="part.mediaType" />
+          </audio>
+        </div>
+
+        <a
+          :href="part.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+        >
+          <UIcon
+            :name="isImageFile(part) ? 'i-heroicons-photo' : 'i-heroicons-paper-clip'"
+            class="h-4 w-4"
+          />
+          <span>{{ part.filename || 'Open attachment' }}</span>
+        </a>
       </div>
 
       <!-- Tool Approval Request -->

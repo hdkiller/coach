@@ -127,16 +127,38 @@
   )
 
   // Form submission handler
-  const onSubmit = (e?: Event | string) => {
-    if (e && typeof e === 'object' && 'preventDefault' in e) e.preventDefault()
+  const onSubmit = (
+    payload?:
+      | Event
+      | string
+      | {
+          text?: string
+          attachments?: Array<{
+            url: string
+            mediaType: string
+            filename?: string
+          }>
+        }
+  ) => {
+    if (payload && typeof payload === 'object' && 'preventDefault' in payload)
+      payload.preventDefault()
 
-    const submittedText = typeof e === 'string' ? e : input.value
+    const submittedText =
+      typeof payload === 'string'
+        ? payload
+        : payload && 'text' in payload
+          ? payload.text || ''
+          : input.value
+    const attachments =
+      payload && typeof payload === 'object' && 'attachments' in payload
+        ? payload.attachments || []
+        : []
 
     // console.log('[Chat Frontend DEBUG] onSubmit called')
     // console.log('[Chat Frontend DEBUG] submittedText:', submittedText)
     // console.log('[Chat Frontend DEBUG] currentRoomId:', currentRoomId.value)
 
-    if (!submittedText?.trim() || !currentRoomId.value) {
+    if ((!submittedText?.trim() && attachments.length === 0) || !currentRoomId.value) {
       // console.warn('[Chat Frontend DEBUG] Aborting submit: input empty or no roomId')
       return
     }
@@ -152,9 +174,29 @@
       trackChatSessionStart(currentRoomId.value)
     }
 
-    ;(chat as any).sendMessage({
-      text: submittedText
+    const parts = []
+    if (submittedText?.trim()) {
+      parts.push({ type: 'text', text: submittedText })
+    }
+    attachments.forEach((attachment) => {
+      if (!attachment?.url || !attachment?.mediaType) return
+      parts.push({
+        type: 'file',
+        url: attachment.url,
+        mediaType: attachment.mediaType,
+        filename: attachment.filename
+      })
     })
+    ;(chat as any).sendMessage(
+      parts.length > 0
+        ? {
+            role: 'user',
+            parts
+          }
+        : {
+            text: submittedText
+          }
+    )
     input.value = ''
   }
 
@@ -298,7 +340,7 @@
         role: msg.role, // Use role from API response (already mapped)
         content: msg.content,
         parts: msg.parts || [{ type: 'text', text: msg.content }],
-        createdAt: new Date(msg.createdAt),
+        createdAt: new Date(msg.createdAt || msg.metadata?.createdAt || Date.now()),
         metadata: msg.metadata
       }))
 
