@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
 
 export const useRecommendationStore = defineStore('recommendation', () => {
   const todayRecommendation = ref<any>(null)
@@ -68,7 +69,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
       })
       refreshRuns()
 
-      toast.add({
+      showDashboardProgressToast(toast, {
         title: userFeedback ? 'Regenerating Recommendation' : 'Analysis Started',
         description: userFeedback
           ? 'Updating plan based on your feedback...'
@@ -147,7 +148,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     await fetchTodayRecommendation()
     generating.value = false
     currentRecommendationId.value = null
-    toast.add({
+    showDashboardProgressToast(toast, {
       title: 'Analysis Complete',
       description: 'Your training recommendation is ready!',
       color: 'success',

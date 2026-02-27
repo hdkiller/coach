@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { SubscriptionTier, SubscriptionStatus } from '@prisma/client'
 import { LBS_TO_KG } from '~/utils/metrics'
+import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
 interface User {
   id: string
   email: string
@@ -248,7 +249,7 @@ export const useUserStore = defineStore('user', () => {
       await $fetch('/api/profile/generate', { method: 'POST' })
       refreshRuns()
 
-      toast.add({
+      showDashboardProgressToast(toast, {
         title: 'Profile Generation Started',
         description: 'Creating your comprehensive athlete profile. This may take a minute...',
         color: 'success',
@@ -304,7 +305,7 @@ export const useUserStore = defineStore('user', () => {
       return
     }
 
-    toast.add({
+    showDashboardProgressToast(toast, {
       title: 'Profile Ready',
       description: 'Your athlete profile has been generated',
       color: 'success',

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
 
 interface IntegrationStatus {
   provider: string
@@ -76,7 +77,7 @@ export const useIntegrationStore = defineStore('integration', () => {
         body: { provider: 'all' }
       })
 
-      toast.add({
+      showDashboardProgressToast(toast, {
         title: 'Data Sync Started',
         description:
           'Syncing data from all connected integrations. You can monitor progress in the dashboard.',
@@ -87,7 +88,7 @@ export const useIntegrationStore = defineStore('integration', () => {
       console.error('Error syncing data:', error)
       syncingData.value = false
 
-      toast.add({
+      showDashboardProgressToast(toast, {
         title: 'Sync Failed',
         description: error.data?.message || 'Failed to sync data. Please try again.',
         color: 'error',
