@@ -1,3 +1,109 @@
+Here's a friendly update from Coach Watts, outlining all the exciting new features and improvements in our latest release, v0.5.21!
+
+---
+
+## 🚀 What's New & Exciting!
+
+We've been hard at work adding some fantastic new capabilities to help you train smarter and get even more out of Coach Watts!
+
+- **Garmin Workout Publishing!** 🎉
+  You can now publish your planned workouts directly from Coach Watts to Garmin Connect! Get your structured workouts seamlessly onto your device, ready to go.
+- **Deeper Garmin Integration** 🔌
+  We've completely re-engineered our Garmin connection for better reliability, real-time updates, and smarter handling of disconnects. Syncing your activities and wellness data is smoother than ever.
+- **All-Time Performance & Trends** 📈
+  Want to see your progress from day one? You can now select "All-Time" for your performance data and trends across the dashboard, giving you a full historical overview.
+- **Visualize Target Power & More FIT Data** 📊
+  Your workout views now display target power and richer data from your FIT files, giving you deeper insights into your sessions.
+- **Historical Metric Comparison** ⏳
+  Dive into your metric details and compare them against your historical data to see how you're progressing over time.
+- **Expanded Wellness Tracking** 🍎
+  We've added calorie tracking fields, awake sleep stage visualization, and body fat metrics to your profile and wellness views. Plus, you can now easily edit your wellness data!
+- **Customizable Dashboard Sections** ✨
+  Tailor your dashboard! You can now customize the visibility and ordering of sections to make your training hub truly yours.
+- **Chat for Nutrition Analysis** 💬
+  Get instant insights! Our AI coach can now analyze your nutrition data directly through chat, helping you refine your fueling strategy.
+- **Readiness Estimate Chart** 🔋
+  A new chart helps you visualize your readiness estimates, giving you a clearer picture of when you're primed for peak performance.
+- **Advanced Calendar Notes** 🗓️
+  Add notes to your calendar with specific start and end dates, perfect for planning recovery periods, travel, or other multi-day events.
+- **Support for External Apps** 🔗
+  Easily see which public applications you've connected to Coach Watts and their status right in your app settings.
+- **Workout Sharing & Deep Linking** 🤝
+  Share your amazing workouts! We've added a share button and deep-linking to workout detail pages, making it easy to show off your progress.
+- **Conversational AI Engagement Toggle** 🤖
+  You can now enable or disable conversational engagement for our AI coach in your settings, customizing how you interact.
+- **Enhanced Workout Notification Emails** 📧
+  Our workout notification emails have a fresh new look, provide even more insightful data, and now include a handy "Chat with Coach" button!
+- **Polarization Index & Power/HR Ratio** ❤️‍🔥
+  Get even more detailed metrics with the addition of Polarization Index and an enhanced view for your Power/Heart Rate ratio.
+- **Improved Hydration Tracking** 💧
+  We've refined our hydration tracking logic for more accurate insights into your fluid intake.
+- **Better Support Ticket Management** ✍️
+  You can now delete issues, edit comments, and find new diagnostic tools in your account. Plus, we've improved the UI for reactions and acknowledgments.
+- **New Public Documentation** 📚
+  We've launched public documentation pages and integrated a help center to make finding answers even easier.
+
+---
+
+## 💎 Improvements & Refinements
+
+We're always tweaking things behind the scenes to make your experience smoother and more powerful!
+
+- **Smarter AI Quotas** 🤖
+  Your AI quotas now reset reliably every calendar day, and we've added clearer upgrade prompts when you're nearing your limits. We've also increased the free tier limits for activity recommendations and daily check-ins!
+- **Clearer Progress Notifications** ✅
+  You'll see improved and more traceable progress notifications throughout the app, keeping you informed about background tasks.
+- **Optimized Syncing for Integrations** ⚡️
+  We've standardized and optimized how we sync data with all your connected apps like Intervals.icu and Strava, leading to faster and more reliable data ingestion. Garmin backfilling is also more robust!
+- **Workout Chart Clarity** 📊
+  Workout charts now feature improved intensity labeling and better metric preference logic for an even clearer display.
+- **Timezone Handling & Language Preferences** 🌍
+  We've standardized timezone handling across AI prompts and summaries, and added user language preferences for nutrition analysis and reports.
+- **Athlete Profile Display** 👤
+  Your athlete profile card now shows age and height, offering a more complete picture at a glance.
+- **Unified Weight Units (Internal)** ⚖️
+  While you'll still see your preferred units, we've standardized internal weight units to kilograms for consistency and accuracy across the system.
+- **Enhanced Chat Interactions** 💬
+  The chat interface has been refined for better interactions, especially on touch devices, and AI support ticket UX has been improved.
+- **Responsive Charts** 📱
+  Charts are now more mobile-responsive with optimized label visibility and axis scaling.
+- **Refined Email Templates** 📧
+  Our email templates have been cleaned up and enhanced for better readability and a more consistent experience.
+- **Better Elevation Gain Calculations** ⛰️
+  More accurate elevation gain calculations are now implemented, drawing from altitude streams and metadata.
+- **Robust Background Tasks** 🛡️
+  We've added idempotency keys and existence checks to our background tasks to prevent race conditions and ensure reliability for features like daily recommendations and workout analysis.
+
+---
+
+## 🛠️ Fixes
+
+We've squashed some bugs to ensure a smoother experience for everyone!
+
+- **Corrected Weight Display** ⚖️
+  Resolved issues with weight display conversion in nutrition settings, profile, and fitness dashboard to ensure accuracy.
+- **Left/Right Balance Handling** ⚖️
+  Fixed null checks for Left/Right Balance and corrected dominance logic in analysis.
+- **Nutrition Tracking Logic** 🍎
+  Improved hydration tracking and corrected how meal-linked water bonus is calculated.
+- **Garmin Pull API Range** ⏱️
+  Enforced a 24-hour range limit for the Garmin Pull API to prevent errors.
+- **Issue List Pagination & Filters** 📄
+  Restored and improved pagination, search, and filtering functionality in the admin issues list.
+- **Cross-User Data Leakage Prevention** 🔒
+  Implemented safeguards to prevent cross-user data leakage in websocket notifications.
+- **Future Workout Dates** 🗓️
+  Correctly handle future workout dates in planning and analysis.
+- **Wellness Data Sanitization** 🧼
+  Sanitized wellness input data to prevent source field conflicts.
+
+---
+
+We hope you enjoy these updates! Your feedback helps us continue to build the best cycling coaching app.
+
+Happy training!
+The Coach Watts Team 🚴‍♀️
+
 Hey Team Coach Watts! 👋
 
 Get ready to supercharge your training and nutrition! We've just rolled out a massive update (v0.5.20) packed with exciting new features, powerful improvements, and some crucial fixes to make your experience smoother and more insightful than ever.
