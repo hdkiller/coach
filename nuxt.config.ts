@@ -294,7 +294,8 @@ export default defineNuxtConfig({
       stripeProAnnualEurPriceId: process.env.STRIPE_PRO_ANNUAL_EUR_PRICE_ID || '',
       subscriptionsEnabled: process.env.NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED !== 'false',
       gtag: {
-        id: 'GTM-WJK5K3HK'
+        id: process.env.NUXT_PUBLIC_GTAG_ID,
+        enabled: !!process.env.NUXT_PUBLIC_GTAG_ID
       }
     }
   },
