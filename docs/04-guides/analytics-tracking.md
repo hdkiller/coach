@@ -164,6 +164,16 @@ function trackUpgradeClick() {
 }
 ```
 
+### Email UTM Serialization
+
+Tracking for all outbound emails is centralized in `trigger/send-email.ts`. It utilizes metadata from `EMAIL_TEMPLATE_REGISTRY` to construct a standardized `utmQuery` string:
+
+- `utm_source`: Always `coachwatts_email`.
+- `utm_medium`: Sourced from `template.utmMedium`.
+- `utm_campaign`: Sourced from `template.utmCampaign`.
+
+Templates receive this as a `utmQuery` prop and append it to links along with optional `utm_content` parameters.
+
 ### Privacy & Compliance
 
 - **Data Isolation**: We do not send PII (email, name) to Google Analytics. Only the opaque `user_id` is sent.

@@ -17,6 +17,7 @@ export interface EmailTemplateDefinition {
   preferenceKey: EmailPreferenceKey | null
   requiredProps: string[]
   utmCampaign: string
+  utmMedium: string
   throttleGroup?: string
   cooldownHours?: number
 }
@@ -28,7 +29,8 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     audience: 'ENGAGEMENT',
     preferenceKey: 'onboarding',
     requiredProps: [],
-    utmCampaign: 'welcome_onboarding'
+    utmCampaign: 'welcome_onboarding',
+    utmMedium: 'lifecycle'
   },
   WorkoutReceived: {
     templateKey: 'WorkoutReceived',
@@ -37,6 +39,7 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     preferenceKey: 'workoutAnalysis',
     requiredProps: ['workoutId', 'workoutTitle'],
     utmCampaign: 'workout_received',
+    utmMedium: 'engagement',
     throttleGroup: 'WORKOUT_RECEIVED',
     cooldownHours: 0.25
   },
@@ -47,6 +50,7 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     preferenceKey: 'workoutAnalysis',
     requiredProps: ['workoutTitle'],
     utmCampaign: 'workout_analysis_ready',
+    utmMedium: 'engagement',
     throttleGroup: 'WORKOUT_INSIGHTS',
     cooldownHours: 12
   },
@@ -57,6 +61,7 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     preferenceKey: 'dailyCoach',
     requiredProps: ['date', 'recommendation', 'reasoning'],
     utmCampaign: 'daily_recommendation',
+    utmMedium: 'engagement',
     throttleGroup: 'DAILY_RECOMMENDATION',
     cooldownHours: 1
   },
@@ -66,7 +71,8 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     audience: 'TRANSACTIONAL',
     preferenceKey: null,
     requiredProps: ['tier'],
-    utmCampaign: 'subscription_started'
+    utmCampaign: 'subscription_started',
+    utmMedium: 'transactional'
   }
 }
 

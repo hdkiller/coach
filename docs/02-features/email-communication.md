@@ -19,6 +19,7 @@ The Coach Watts Email Communication System is a centralized, compliant, and bran
     - Verifies user preferences and suppression status.
     - Generates a secure cryptographic unsubscribe token.
     - Calls an internal Nuxt API (`/api/internal/render-email`) to render the Vue template to HTML.
+    - **UTM Injection**: Automatically constructs a standard `utmQuery` string based on the registry's `utmCampaign` and `utmMedium` metadata and injects it into the template's props.
 3.  **Queuing**: The delivery record is saved to the `EmailDelivery` table with a `QUEUED` status.
 4.  **Dispatch**: Unless `DISABLE_EMAILS=true` is set, the system automatically transitions the status to `SENDING` and dispatches the email via Resend API.
 5.  **Admin Review (Optional)**: If automatic dispatch is disabled, admins preview the rendered HTML and metadata in the dashboard and click "Send Now" to manually trigger sending.
@@ -77,7 +78,10 @@ Users can manage their experience in **Settings > Profile > Communication**:
   - `lifecycle` for onboarding sequences.
 - `utm_campaign` from the template registry, snake_case:
   - `welcome_onboarding`
+  - `workout_received`
   - `workout_analysis_ready`
   - `daily_recommendation`
   - `subscription_started`
 - `utm_content` for CTA-level attribution (for example `cta_connect_apps`, `cta_view_analysis`).
+
+**Implementation Note**: Tracking is centralized in the `send-email` task orchestrator. Templates simply append the provided `utmQuery` prop to their links, ensuring all outbound communication follows these conventions without hardcoded strings.

@@ -128,14 +128,26 @@ export const sendEmailTask = task({
     const unsubToken = generateUnsubscribeToken(userId)
     const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${unsubToken}`
 
-    // Inject into props for the template to use in the footer
-    const finalProps = {
+    // Construct UTM Query String
+    let utmQuery = ''
+    if (template) {
+      const params = new URLSearchParams({
+        utm_source: 'coachwatts_email',
+        utm_medium: template.utmMedium,
+        utm_campaign: template.utmCampaign
+      })
+      utmQuery = `?${params.toString()}`
+    }
+
+    // Inject into props for the template to use
+    const finalProps: Record<string, any> = {
       ...props,
-      unsubscribeUrl
+      unsubscribeUrl,
+      utmQuery
     }
 
     if (template) {
-      const missingProps = template.requiredProps.filter((key) => finalProps[key] == null)
+      const missingProps = template.requiredProps.filter((key: string) => finalProps[key] == null)
       if (missingProps.length > 0) {
         logger.error('EXIT: Missing required template props', {
           templateKey,
