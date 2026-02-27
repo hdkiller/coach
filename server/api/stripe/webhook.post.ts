@@ -124,7 +124,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
             props: {
               name: user.name || 'Athlete',
               tier,
-              unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://app.coachwatts.com'}/settings/profile`
+              unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
             }
           })
         } catch (error) {

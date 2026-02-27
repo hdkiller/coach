@@ -56,7 +56,9 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     audience: 'ENGAGEMENT',
     preferenceKey: 'dailyCoach',
     requiredProps: ['date', 'recommendation', 'reasoning'],
-    utmCampaign: 'daily_recommendation'
+    utmCampaign: 'daily_recommendation',
+    throttleGroup: 'DAILY_RECOMMENDATION',
+    cooldownHours: 1
   },
   SubscriptionStarted: {
     templateKey: 'SubscriptionStarted',

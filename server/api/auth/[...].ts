@@ -149,7 +149,7 @@ export default NuxtAuthHandler({
           subject: 'Welcome to Coach Watts!',
           props: {
             name: user.name || 'Athlete',
-            unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://app.coachwatts.com'}/settings/profile`
+            unsubscribeUrl: `${process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'}/profile/settings?tab=communication`
           }
         })
       } catch (error) {
