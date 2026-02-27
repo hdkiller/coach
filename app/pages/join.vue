@@ -177,6 +177,7 @@
   const { signIn } = useAuth()
   const route = useRoute()
   const toast = useToast()
+  const { trackSignUp } = useAnalytics()
 
   definePageMeta({
     layout: 'home',
@@ -204,6 +205,7 @@
   const loading = ref(false)
 
   async function handleGoogleLogin() {
+    trackSignUp('google')
     loading.value = true
     try {
       await signIn('google', { callbackUrl })

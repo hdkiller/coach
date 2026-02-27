@@ -152,6 +152,7 @@
   const { signIn } = useAuth()
   const route = useRoute()
   const toast = useToast()
+  const { trackLogin } = useAnalytics()
 
   definePageMeta({
     layout: 'home',
@@ -180,6 +181,7 @@
   const loadingIntervals = ref(false)
 
   async function handleGoogleLogin() {
+    trackLogin('google')
     loading.value = true
     try {
       await signIn('google', { callbackUrl })
@@ -194,6 +196,7 @@
   }
 
   async function handleIntervalsLogin() {
+    trackLogin('intervals')
     loadingIntervals.value = true
     try {
       await signIn('intervals', { callbackUrl })
