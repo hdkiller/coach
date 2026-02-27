@@ -692,6 +692,7 @@ model PlannedWorkout {
   startTime         String?
   recommendations   ActivityRecommendation[]
   planAdherences    PlanAdherence[]
+  publishTargets    PlannedWorkoutPublishTarget[]
   trainingWeek      TrainingWeek?            @relation(fields: [trainingWeekId], references: [id])
   user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   completedWorkouts Workout[]
@@ -699,6 +700,24 @@ model PlannedWorkout {
   @@unique([userId, externalId])
   @@index([userId, date])
   @@index([userId, syncStatus])
+}
+
+model PlannedWorkoutPublishTarget {
+  id              String        @id @default(uuid())
+  plannedWorkoutId String
+  provider        String
+  externalId      String?
+  scheduleId      String?
+  status          String        @default("PENDING")
+  error           String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  plannedWorkout  PlannedWorkout @relation(fields: [plannedWorkoutId], references: [id], onDelete: Cascade)
+
+  @@unique([plannedWorkoutId, provider])
+  @@index([provider, externalId])
+  @@index([status])
 }
 
 model CalendarNote {
