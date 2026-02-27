@@ -279,9 +279,31 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // Listen for completion
-  onTaskCompleted('generate-athlete-profile', async () => {
+  onTaskCompleted('generate-athlete-profile', async (run) => {
     await fetchProfile(true)
     generating.value = false
+
+    const output = run.output as any
+    if (output?.success === false) {
+      if (output.reason === 'QUOTA_EXCEEDED') {
+        const upgradeModal = useUpgradeModal()
+        upgradeModal.show({
+          title: 'Usage Quota Reached',
+          featureTitle: 'Athlete Profile Generation',
+          featureDescription:
+            'You have reached the generation quota for athlete profile reports. Upgrade to Supporter or Pro for significantly more updates.',
+          recommendedTier: 'supporter'
+        })
+      } else {
+        toast.add({
+          title: 'Generation Failed',
+          description: output.error || 'The AI could not generate your athlete profile.',
+          color: 'error'
+        })
+      }
+      return
+    }
+
     toast.add({
       title: 'Profile Ready',
       description: 'Your athlete profile has been generated',

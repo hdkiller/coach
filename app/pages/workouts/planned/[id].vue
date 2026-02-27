@@ -826,6 +826,25 @@
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
   const { onTaskCompleted } = useUserRunsState()
+  const upgradeModal = useUpgradeModal()
+
+  function handleQuotaError(error: any, featureTitle: string, featureDescription: string) {
+    if (
+      error.statusCode === 429 ||
+      error.statusCode === 403 ||
+      error.message?.toLowerCase().includes('quota exceeded') ||
+      error.message?.toLowerCase().includes('upgrade to pro')
+    ) {
+      upgradeModal.show({
+        title: error.statusCode === 403 ? 'Pro Feature' : 'Usage Limit Reached',
+        featureTitle: featureTitle,
+        featureDescription: error.data?.message || featureDescription,
+        recommendedTier: 'pro'
+      })
+      return true
+    }
+    return false
+  }
 
   const userStore = useUserStore()
   const nutritionEnabled = computed(
@@ -948,6 +967,25 @@
   onTaskCompleted('generate-structured-workout', async (run) => {
     await fetchWorkout()
     generating.value = false
+
+    const output = run.output as any
+    if (output?.success === false) {
+      if (output.reason === 'QUOTA_EXCEEDED') {
+        handleQuotaError(
+          { statusCode: 429, message: 'Quota exceeded' },
+          'Structured Workout Generation',
+          'You have reached your limit for structured workout generation.'
+        )
+      } else {
+        toast.add({
+          title: 'Generation Failed',
+          description: output.error || 'The AI could not generate the structure.',
+          color: 'error'
+        })
+      }
+      return
+    }
+
     toast.add({
       title: 'Structure Generated',
       description: 'Workout structure is ready.',
@@ -1545,6 +1583,17 @@
     } catch (error: any) {
       generating.value = false
       console.error('Error generating workout structure:', error)
+
+      if (
+        handleQuotaError(
+          error,
+          'Structured Workout Generation',
+          'Upgrade to Pro for significantly higher generation limits.'
+        )
+      ) {
+        return
+      }
+
       toast.add({
         title: 'Generation Failed',
         description: error.data?.message || 'Failed to generate structure',
