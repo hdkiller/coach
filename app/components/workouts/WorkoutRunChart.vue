@@ -437,27 +437,63 @@
     return undefined
   }
 
-  function getStepIntensityLabel(step: any): string {
-    if (step.heartRate?.range) {
-      const start = Number(step.heartRate.range.start)
-      const end = Number(step.heartRate.range.end)
-      if (start > 3 || end > 3) {
-        return `${Math.round(start)}-${Math.round(end)} bpm`
+  function formatTargetLabel(
+    target: { value?: number; range?: { start: number; end: number } } | undefined,
+    metric: 'hr' | 'power' | 'pace'
+  ): string | null {
+    if (!target) return null
+
+    if (metric === 'hr') {
+      const normalized = normalizeMetricTarget(target, 'hr')
+      if (!normalized) return null
+
+      if (normalized.range) {
+        return `${Math.round(normalized.range.start * 100)}-${Math.round(normalized.range.end * 100)}% LTHR`
       }
-      return `${Math.round(start * 100)}-${Math.round(end * 100)}% LTHR`
-    } else if (step.heartRate?.value) {
-      const hr = Number(step.heartRate.value)
-      if (hr > 3) return `${Math.round(hr)} bpm`
-      return `${Math.round(hr * 100)}% LTHR`
-    } else if (step.power?.range) {
-      return `${Math.round(step.power.range.start * 100)}-${Math.round(step.power.range.end * 100)}% FTP`
-    } else if (step.power?.value) {
-      return `${Math.round(step.power.value * 100)}% FTP`
-    } else if (step.pace?.range) {
-      return `${Math.round(step.pace.range.start * 100)}-${Math.round(step.pace.range.end * 100)}% Pace`
-    } else if (step.pace?.value) {
-      return `${Math.round(step.pace.value * 100)}% Pace`
+      if (typeof normalized.value === 'number') {
+        return `${Math.round(normalized.value * 100)}% LTHR`
+      }
+      return null
     }
+
+    if (metric === 'power') {
+      if (target.range) {
+        return `${Math.round(target.range.start * 100)}-${Math.round(target.range.end * 100)}% FTP`
+      }
+      if (typeof target.value === 'number') {
+        return `${Math.round(target.value * 100)}% FTP`
+      }
+      return null
+    }
+
+    if (target.range) {
+      return `${Math.round(target.range.start * 100)}-${Math.round(target.range.end * 100)}% Pace`
+    }
+    if (typeof target.value === 'number') {
+      return `${Math.round(target.value * 100)}% Pace`
+    }
+    return null
+  }
+
+  function getStepIntensityLabel(step: any): string {
+    const targetByMetric: Record<'hr' | 'power' | 'pace', any> = {
+      hr: step.heartRate,
+      power: step.power,
+      pace: step.pace
+    }
+
+    const orderedMetrics: ('hr' | 'power' | 'pace')[] =
+      props.preference === 'power'
+        ? ['power', 'hr', 'pace']
+        : props.preference === 'pace'
+          ? ['pace', 'hr', 'power']
+          : ['hr', 'power', 'pace']
+
+    for (const metric of orderedMetrics) {
+      const label = formatTargetLabel(targetByMetric[metric], metric)
+      if (label) return label
+    }
+
     const preferenceUnit =
       props.preference === 'hr' ? 'LTHR' : props.preference === 'pace' ? 'Pace' : 'FTP'
     return `${Math.round(getInferredIntensity(step) * 100)}% ${preferenceUnit}`

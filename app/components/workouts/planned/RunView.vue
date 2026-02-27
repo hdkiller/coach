@@ -42,13 +42,18 @@
     <!-- Structure Chart -->
     <div v-if="hasStructure" class="mb-6">
       <h4 class="text-sm font-semibold text-muted mb-3">Structure Profile</h4>
-      <WorkoutRunChart :workout="workout.structuredWorkout" :sport-settings="sportSettings" />
+      <WorkoutRunChart
+        :workout="workout.structuredWorkout"
+        :sport-settings="sportSettings"
+        :preference="chartPreference"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import WorkoutRunChart from '~/components/workouts/WorkoutRunChart.vue'
+  import { getPreferredMetric } from '~/utils/sportSettings'
 
   const props = defineProps<{
     workout: any
@@ -59,6 +64,37 @@
   defineEmits(['adjust', 'regenerate'])
 
   const hasStructure = computed(() => !!props.workout.structuredWorkout?.steps?.length)
+
+  function collectMetricAvailability(steps: any[]): {
+    hasHr: boolean
+    hasPower: boolean
+    hasPace: boolean
+  } {
+    let hasHr = false
+    let hasPower = false
+    let hasPace = false
+
+    const visit = (nodes: any[]) => {
+      nodes.forEach((step: any) => {
+        if (step?.heartRate) hasHr = true
+        if (step?.power) hasPower = true
+        if (step?.pace) hasPace = true
+
+        if (Array.isArray(step?.steps) && step.steps.length > 0) {
+          visit(step.steps)
+        }
+      })
+    }
+
+    visit(Array.isArray(steps) ? steps : [])
+    return { hasHr, hasPower, hasPace }
+  }
+
+  const chartPreference = computed<'hr' | 'power' | 'pace'>(() => {
+    const steps = props.workout.structuredWorkout?.steps || []
+    const availability = collectMetricAvailability(steps)
+    return getPreferredMetric(props.sportSettings, availability)
+  })
 
   const totalDistance = computed(() => {
     if (!props.workout.structuredWorkout?.steps) return 0
