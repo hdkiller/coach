@@ -5,15 +5,16 @@ export default defineNuxtPlugin((nuxtApp) => {
   const { gtag } = useGtag()
   const { data } = useAuth()
   const userStore = useUserStore()
+  const colorMode = useColorMode()
 
   // Watch for changes in the user session
   watch(
     () => data.value?.user,
     (user) => {
-      if (user?.id) {
+      if ((user as any)?.id) {
         // Set the user_id for all subsequent events
         gtag('set', {
-          user_id: user.id
+          user_id: (user as any).id
         })
       } else {
         // Clear user_id on logout
@@ -34,6 +35,17 @@ export default defineNuxtPlugin((nuxtApp) => {
           subscription_tier: tier
         })
       }
+    },
+    { immediate: true }
+  )
+
+  // Watch for theme changes
+  watch(
+    () => colorMode.value,
+    (theme) => {
+      gtag('set', {
+        client_theme: theme
+      })
     },
     { immediate: true }
   )
