@@ -164,7 +164,7 @@ export class ChatService {
       await prisma.llmUsage.create({
         data: {
           userId: data.userId,
-          provider: 'google',
+          provider: 'gemini',
           model: data.modelName,
           modelType: data.modelType === 'flash' ? 'flash' : 'pro',
           operation: 'chat',

@@ -378,7 +378,7 @@ async function handleChatMessage(
           await prisma.llmUsage.create({
             data: {
               userId,
-              provider: 'google',
+              provider: 'gemini',
               model: modelName,
               modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
               operation: 'chat_ws',

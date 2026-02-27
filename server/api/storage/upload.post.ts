@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from '#auth'
+import { uploadPublicAsset } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   // 1. Check Auth

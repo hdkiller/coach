@@ -60,15 +60,37 @@ export default defineEventHandler(async (event) => {
   // Vercel AI SDK sends the full conversation history in 'messages'
   // The last message is the new user input
   const lastMessage = truncatedMessages?.[truncatedMessages.length - 1]
+  const messageParts = Array.isArray(lastMessage?.parts)
+    ? lastMessage.parts
+    : typeof lastMessage?.content === 'string'
+      ? [{ type: 'text', text: lastMessage.content }]
+      : Array.isArray(lastMessage?.content)
+        ? lastMessage.content
+        : []
 
-  let content = lastMessage?.content
-  // Handle cases where content might be in parts only (common in newer SDK versions)
-  if (!content && Array.isArray(lastMessage?.parts)) {
-    content = lastMessage.parts
-      .filter((p: any) => p.type === 'text')
-      .map((p: any) => p.text)
-      .join('')
-  }
+  const attachedFiles = [
+    ...messageParts
+      .filter((part: any) => part?.type === 'file' && part?.url && part?.mediaType)
+      .map((part: any) => ({
+        url: part.url,
+        mediaType: part.mediaType,
+        filename: part.filename
+      })),
+    ...(Array.isArray(files) ? files : [])
+  ].filter(
+    (file: any, index: number, array: any[]) =>
+      file?.url &&
+      file?.mediaType &&
+      index === array.findIndex((candidate) => candidate?.url === file.url)
+  )
+
+  const content =
+    typeof lastMessage?.content === 'string'
+      ? lastMessage.content
+      : messageParts
+          .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
+          .map((p: any) => p.text)
+          .join('')
 
   const hasToolApprovalResponse = truncatedMessages.some((msg: any) => {
     if (msg.role !== 'tool') return false
@@ -147,7 +169,7 @@ export default defineEventHandler(async (event) => {
   const isToolContinuationTurn =
     lastMessage?.role === 'tool' || hasToolApprovalResponse || isAssistantApprovalContinuation
 
-  if (!roomId || (!content && !isToolContinuationTurn)) {
+  if (!roomId || (!content && attachedFiles.length === 0 && !isToolContinuationTurn)) {
     throw createError({ statusCode: 400, message: 'Room ID and content required' })
   }
 
@@ -201,7 +223,7 @@ export default defineEventHandler(async (event) => {
           content: typeof content === 'string' ? content : '',
           roomId,
           senderId: lastMessage.role === 'tool' ? 'system_tool' : userId,
-          files: files || undefined,
+          files: attachedFiles.length > 0 ? attachedFiles : undefined,
           replyToId: replyMessage?._id || undefined,
           seen: { [userId]: new Date() },
           metadata
@@ -588,7 +610,7 @@ export default defineEventHandler(async (event) => {
               await prisma.llmUsage.create({
                 data: {
                   userId,
-                  provider: 'google',
+                  provider: 'gemini',
                   model: modelName,
                   modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
                   operation: 'chat',

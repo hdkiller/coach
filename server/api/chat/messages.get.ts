@@ -84,6 +84,7 @@ export default defineEventHandler(async (event) => {
       content: true,
       senderId: true,
       createdAt: true,
+      files: true,
       metadata: true
     }
   })
@@ -100,6 +101,17 @@ export default defineEventHandler(async (event) => {
     if (role !== 'assistant') {
       const parts: any[] = []
       if (msg.content) parts.push({ type: 'text', text: msg.content })
+      if (Array.isArray(msg.files)) {
+        msg.files.forEach((file: any) => {
+          if (!file?.url || !file?.mediaType) return
+          parts.push({
+            type: 'file',
+            url: file.url,
+            mediaType: file.mediaType,
+            filename: file.filename
+          })
+        })
+      }
 
       // Add tool responses if this is a tool message
       if (metadata.toolResponse && Array.isArray(metadata.toolResponse)) {
@@ -111,6 +123,7 @@ export default defineEventHandler(async (event) => {
         role,
         parts: parts.length > 0 ? parts : undefined,
         content: msg.content || '',
+        createdAt: msg.createdAt,
         metadata: {
           ...metadata,
           createdAt: msg.createdAt,
@@ -135,6 +148,7 @@ export default defineEventHandler(async (event) => {
         role: 'assistant',
         parts: [{ type: 'text', text: msg.content || ' ' }],
         content: msg.content || '',
+        createdAt: msg.createdAt,
         metadata: {
           ...metadata,
           createdAt: msg.createdAt,
@@ -206,6 +220,7 @@ export default defineEventHandler(async (event) => {
       parts,
 
       content: msg.content || ' ',
+      createdAt: msg.createdAt,
 
       metadata: {
         ...metadata,
