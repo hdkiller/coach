@@ -67,6 +67,11 @@
     () => !hasTextContent.value && attachments.value.length > 0
   )
   const showInlineMic = computed(() => !hasTextContent.value && attachments.value.length === 0)
+  const placeholderText = computed(() =>
+    isLikelyMobile()
+      ? 'Ask Coach Watts or add a photo...'
+      : 'Ask Coach Watts, add a meal photo, or dictate a note...'
+  )
   const canUseDesktopWebcam = computed(() => {
     if (!import.meta.client) return false
     return !isLikelyMobile() && !!navigator.mediaDevices?.getUserMedia
@@ -715,7 +720,7 @@
 <template>
   <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-800">
     <UContainer
-      class="space-y-3 px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:px-4 sm:py-4 sm:pb-4"
+      class="space-y-3 px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:px-4 sm:py-4 sm:pb-4"
     >
       <input
         ref="imageInputRef"
@@ -796,7 +801,7 @@
         :model-value="modelValue"
         :error="error"
         :disabled="composerDisabled"
-        placeholder="Ask Coach Watts, add a meal photo, or dictate a note..."
+        :placeholder="placeholderText"
         :ui="{
           root: 'w-full',
           base: 'max-h-[min(400px,40vh)] overflow-hidden flex flex-col ps-9',
