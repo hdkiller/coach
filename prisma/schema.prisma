@@ -87,6 +87,10 @@ model User {
   aiRequireToolApproval              Boolean                      @default(false)
   aiConversationalEngagement         Boolean                      @default(true)
   updateWorkoutNotesEnabled          Boolean                      @default(true)
+  aiTtsStyle                         String?                      @default("coach")
+  aiTtsVoiceName                     String?                      @default("Kore")
+  aiTtsSpeed                         String?                      @default("normal")
+  aiTtsAutoReadMessages              Boolean                      @default(false)
   accounts                           Account[]
   activityRecommendations            ActivityRecommendation[]
   apiKeys                            ApiKey[]
