@@ -3,10 +3,10 @@
     <UContainer>
       <div class="mx-auto max-w-2xl text-center mb-16">
         <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-          Support
+          {{ t('title') }}
         </h1>
         <p class="mt-4 text-lg text-gray-600 dark:text-gray-300">
-          We're here to help. Choose the channel that works best for you.
+          {{ t('subtitle') }}
         </p>
       </div>
 
@@ -16,14 +16,11 @@
           <template #header>
             <div class="flex items-center gap-3">
               <UIcon name="i-simple-icons-discord" class="w-8 h-8 text-[#5865F2]" />
-              <h2 class="text-xl font-semibold">Community Support</h2>
+              <h2 class="text-xl font-semibold">{{ t('community.title') }}</h2>
             </div>
           </template>
 
-          <p class="text-gray-600 dark:text-gray-300 mb-6">
-            Join our Discord server to ask questions, share feedback, and connect with other users.
-            This is the fastest way to get help.
-          </p>
+          <p class="text-gray-600 dark:text-gray-300 mb-6">{{ t('community.desc') }}</p>
 
           <template #footer>
             <UButton
@@ -34,7 +31,7 @@
               block
               icon="i-simple-icons-discord"
             >
-              Join our Discord
+              {{ t('community.btn') }}
             </UButton>
           </template>
         </UCard>
@@ -44,14 +41,11 @@
           <template #header>
             <div class="flex items-center gap-3">
               <UIcon name="i-simple-icons-github" class="w-8 h-8 text-gray-900 dark:text-white" />
-              <h2 class="text-xl font-semibold">GitHub Issues</h2>
+              <h2 class="text-xl font-semibold">{{ t('github.title') }}</h2>
             </div>
           </template>
 
-          <p class="text-gray-600 dark:text-gray-300 mb-6">
-            Found a bug or have a feature request? Open an issue on our GitHub repository to track
-            its progress and contribute.
-          </p>
+          <p class="text-gray-600 dark:text-gray-300 mb-6">{{ t('github.desc') }}</p>
 
           <template #footer>
             <UButton
@@ -62,7 +56,7 @@
               block
               icon="i-simple-icons-github"
             >
-              Open an Issue
+              {{ t('github.btn') }}
             </UButton>
           </template>
         </UCard>
@@ -72,14 +66,11 @@
           <template #header>
             <div class="flex items-center gap-3">
               <UIcon name="i-heroicons-envelope" class="w-8 h-8 text-primary-500" />
-              <h2 class="text-xl font-semibold">Email Support</h2>
+              <h2 class="text-xl font-semibold">{{ t('email.title') }}</h2>
             </div>
           </template>
 
-          <p class="text-gray-600 dark:text-gray-300 mb-6">
-            Have a specific issue or need private assistance? Send us an email and we'll get back to
-            you as soon as possible.
-          </p>
+          <p class="text-gray-600 dark:text-gray-300 mb-6">{{ t('email.desc') }}</p>
 
           <template #footer>
             <UButton
@@ -89,7 +80,7 @@
               block
               icon="i-heroicons-envelope"
             >
-              Contact Support
+              {{ t('email.btn') }}
             </UButton>
           </template>
         </UCard>
@@ -101,16 +92,20 @@
           <template #header>
             <div class="flex items-center gap-3">
               <UIcon name="i-heroicons-chat-bubble-left-right" class="w-8 h-8 text-primary-500" />
-              <h2 class="text-xl font-semibold">Send us a Message</h2>
+              <h2 class="text-xl font-semibold">{{ t('form.title') }}</h2>
             </div>
           </template>
 
           <UForm :state="form" class="grid grid-cols-1 md:grid-cols-2 gap-6" @submit="sendMessage">
             <template v-if="!isAuthenticated">
-              <UFormField label="Name" name="name" required class="col-span-1">
-                <UInput v-model="form.name" placeholder="Your Name" class="w-full" />
+              <UFormField :label="t('form.name')" name="name" required class="col-span-1">
+                <UInput
+                  v-model="form.name"
+                  :placeholder="t('form.name_placeholder')"
+                  class="w-full"
+                />
               </UFormField>
-              <UFormField label="Email" name="email" required class="col-span-1">
+              <UFormField :label="t('form.email')" name="email" required class="col-span-1">
                 <UInput
                   v-model="form.email"
                   type="email"
@@ -122,27 +117,41 @@
             <template v-else>
               <div class="col-span-1 md:col-span-2">
                 <p class="text-sm text-gray-500">
-                  Sending as <strong>{{ user?.name || user?.email }}</strong>
+                  {{ t('form.sending_as') }} <strong>{{ user?.name || user?.email }}</strong>
                 </p>
               </div>
             </template>
 
-            <UFormField label="Subject" name="subject" required class="col-span-1 md:col-span-2">
-              <UInput v-model="form.subject" placeholder="What is this about?" class="w-full" />
+            <UFormField
+              :label="t('form.subject')"
+              name="subject"
+              required
+              class="col-span-1 md:col-span-2"
+            >
+              <UInput
+                v-model="form.subject"
+                :placeholder="t('form.subject_placeholder')"
+                class="w-full"
+              />
             </UFormField>
 
-            <UFormField label="Message" name="message" required class="col-span-1 md:col-span-2">
+            <UFormField
+              :label="t('form.message')"
+              name="message"
+              required
+              class="col-span-1 md:col-span-2"
+            >
               <UTextarea
                 v-model="form.message"
                 :rows="5"
-                placeholder="Describe your issue or feedback..."
+                :placeholder="t('form.message_placeholder')"
                 class="w-full"
               />
             </UFormField>
 
             <div class="col-span-1 md:col-span-2 flex justify-end">
               <UButton type="submit" :loading="loading" color="primary" size="lg">
-                Send Message
+                {{ t('form.submit') }}
               </UButton>
             </div>
           </UForm>
@@ -153,6 +162,12 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('support')
+  function translate(key: string): string {
+    return (t.value as (key: string) => string)(key)
+  }
   const { status, data: session } = useAuth()
   const isAuthenticated = computed(() => status.value === 'authenticated')
   const user = computed(() => session.value?.user)
@@ -166,18 +181,13 @@
     message: ''
   })
 
-  // Pre-fill if auth (optional, backend handles it but nice for UI if we wanted to show fields)
-  // But we hide fields if auth, so no need to pre-fill form model necessarily if backend takes from session.
-  // However, if we want to allow user to edit, we should pre-fill.
-  // For simplicity, I hid the fields if authenticated.
-
   async function sendMessage() {
     if (!isAuthenticated.value && (!form.name || !form.email)) {
-      toast.add({ title: 'Name and Email are required', color: 'error' })
+      toast.add({ title: translate('toast.missing_fields'), color: 'error' })
       return
     }
     if (!form.subject || !form.message) {
-      toast.add({ title: 'Subject and Message are required', color: 'error' })
+      toast.add({ title: translate('toast.missing_content'), color: 'error' })
       return
     }
 
@@ -187,17 +197,16 @@
         method: 'POST',
         body: form
       })
-      toast.add({ title: 'Message sent successfully!', color: 'success' })
+      toast.add({ title: translate('toast.success'), color: 'success' })
       form.subject = ''
       form.message = ''
-      // Keep name/email if guest for convenience? Or clear?
       if (!isAuthenticated.value) {
         form.name = ''
         form.email = ''
       }
     } catch (error: any) {
       toast.add({
-        title: 'Failed to send message',
+        title: translate('toast.error'),
         description: error.message || 'Unknown error',
         color: 'error'
       })

@@ -27,11 +27,11 @@
             </div>
 
             <h2 class="text-3xl font-bold leading-tight mb-2 tracking-tight">
-              Initialize Your <br />
-              <span class="text-primary typing-effect">Digital Twin</span>
+              {{ t('join.title') }} <br />
+              <span class="text-primary typing-effect">{{ t('join.subtitle') }}</span>
             </h2>
             <p class="text-gray-400 text-sm font-medium uppercase tracking-wider mb-8">
-              Start your evolution today
+              {{ t('join.tagline') }}
             </p>
 
             <!-- Chat Simulation -->
@@ -41,7 +41,7 @@
                 <div
                   class="bg-gray-800 rounded-2xl rounded-tr-sm px-4 py-2 text-sm text-gray-200 max-w-[85%] border border-gray-700"
                 >
-                  My legs feel super heavy today. Should I push through?
+                  {{ t('join.user_message') }}
                 </div>
               </div>
 
@@ -92,7 +92,7 @@
                 />
               </div>
               <div class="text-xs text-gray-300">
-                <span class="text-primary font-bold">2,412</span> athletes active today
+                <span class="text-primary font-bold">2,412</span> {{ t('join.active_suffix') }}
               </div>
             </div>
             <div class="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
@@ -102,10 +102,10 @@
                 />
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
               </span>
-              <span class="typing-text">🔥 12 athletes hit a PB in the last hour</span>
+              <span class="typing-text">{{ t('join.pb_message') }}</span>
             </div>
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mt-3">
-              Works with your favorite fitness trackers
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mt-3">
+              {{ t('join.works_with') }}
             </p>
           </div>
         </div>
@@ -115,9 +115,9 @@
         >
           <div class="max-w-md mx-auto w-full">
             <div class="mb-10">
-              <h1 class="text-3xl font-bold text-white mb-3">Get Started</h1>
+              <h1 class="text-3xl font-bold text-white mb-3">{{ t('join.form_title') }}</h1>
               <p class="text-gray-400 text-lg">
-                Create your Coach Watts account. No credit card required.
+                {{ t('join.form_subtitle') }}
               </p>
             </div>
 
@@ -132,7 +132,7 @@
                 :loading="loading"
                 @click="handleGoogleLogin"
               >
-                Create Account with Google
+                {{ t('join.google') }}
               </UButton>
 
               <div class="relative">
@@ -140,29 +140,29 @@
                   <span class="w-full border-t border-gray-800" />
                 </div>
                 <div class="relative flex justify-center text-sm">
-                  <span class="bg-gray-900 px-2 text-gray-500">Only Google Login supported</span>
+                  <span class="bg-gray-900 px-2 text-gray-500">{{ t('join.only_google') }}</span>
                 </div>
               </div>
             </div>
 
             <div class="mt-10 text-center space-y-4">
               <p class="text-sm text-gray-400">
-                Already have an account?
+                {{ t('join.already_account') }}
                 <NuxtLink
                   to="/login"
                   class="text-primary hover:underline underline-offset-4 font-semibold"
-                  >Log in
+                  >{{ t('join.login') }}
                 </NuxtLink>
               </p>
 
               <p class="text-xs text-gray-500 pt-4">
-                By continuing, you agree to our
+                {{ t('join.terms_agree') }}
+                <NuxtLink to="#" class="text-primary hover:underline underline-offset-4">{{
+                  t('join.terms')
+                }}</NuxtLink>
+                {{ t('join.and') }}
                 <NuxtLink to="#" class="text-primary hover:underline underline-offset-4"
-                  >Terms of Service</NuxtLink
-                >
-                and
-                <NuxtLink to="#" class="text-primary hover:underline underline-offset-4"
-                  >Privacy Policy </NuxtLink
+                  >{{ t('join.privacy') }} </NuxtLink
                 >.
               </p>
             </div>
@@ -174,6 +174,9 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('auth')
   const { signIn } = useAuth()
   const route = useRoute()
   const toast = useToast()

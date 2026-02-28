@@ -29,11 +29,11 @@
             </div>
 
             <h2 class="text-3xl font-bold leading-tight mb-4">
-              Your Digital Twin <br />
-              <span class="text-primary">Awaits</span>
+              {{ t('login.marketing_twin') }} <br />
+              <span class="text-primary">{{ t('login.marketing_awaits') }}</span>
             </h2>
             <p class="text-gray-300 text-lg leading-relaxed">
-              Access your personalized athlete profile, daily AI coaching, and recovery analytics.
+              {{ t('login.marketing_desc') }}
             </p>
           </div>
 
@@ -63,7 +63,7 @@
                 +2k
               </div>
             </div>
-            <p class="text-sm font-medium text-gray-400">Join 2,000+ athletes training smarter.</p>
+            <p class="text-sm font-medium text-gray-400">{{ t('login.join_count') }}</p>
           </div>
         </div>
 
@@ -73,9 +73,11 @@
         >
           <div class="max-w-md mx-auto w-full">
             <div class="mb-10">
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">Welcome Back</h1>
+              <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                {{ t('login.form_title') }}
+              </h1>
               <p class="text-gray-500 dark:text-gray-400 text-lg">
-                Sign in to access your dashboard.
+                {{ t('login.form_subtitle') }}
               </p>
             </div>
 
@@ -90,7 +92,7 @@
                 :loading="loading"
                 @click="handleGoogleLogin"
               >
-                Continue with Google
+                {{ t('login.google') }}
               </UButton>
 
               <UButton
@@ -105,7 +107,7 @@
                 <template #leading>
                   <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-5 h-5" />
                 </template>
-                Continue with Intervals.icu
+                {{ t('login.intervals') }}
               </UButton>
 
               <div class="relative">
@@ -113,31 +115,32 @@
                   <span class="w-full border-t border-gray-200 dark:border-gray-700" />
                 </div>
                 <div class="relative flex justify-center text-sm">
-                  <span class="bg-white dark:bg-gray-900 px-2 text-gray-500"
-                    >Secure OAuth Login</span
-                  >
+                  <span class="bg-white dark:bg-gray-900 px-2 text-gray-500">{{
+                    t('login.secure_oauth')
+                  }}</span>
                 </div>
               </div>
             </div>
 
             <div class="mt-10 text-center space-y-4">
               <p class="text-sm text-gray-600 dark:text-gray-400">
-                New athlete?
+                {{ t('login.new_athlete') }}
                 <NuxtLink
                   to="/join"
                   class="text-primary hover:underline underline-offset-4 font-semibold"
-                  >Create an account</NuxtLink
+                  >{{ t('login.create_account') }}</NuxtLink
                 >
               </p>
 
               <p class="text-xs text-gray-400 dark:text-gray-500 pt-4">
-                By continuing, you agree to our
-                <NuxtLink to="#" class="text-primary hover:underline underline-offset-4"
-                  >Terms of Service</NuxtLink
-                >
-                and
-                <NuxtLink to="#" class="text-primary hover:underline underline-offset-4"
-                  >Privacy Policy</NuxtLink
+                {{ t('login.terms_agree') }}
+                <NuxtLink to="#" class="text-primary hover:underline underline-offset-4">{{
+                  t('login.terms')
+                }}</NuxtLink>
+                {{ t('login.and') }}
+                <NuxtLink to="#" class="text-primary hover:underline underline-offset-4">{{
+                  t('login.privacy')
+                }}</NuxtLink
                 >.
               </p>
             </div>
@@ -149,6 +152,9 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('auth')
   const { signIn } = useAuth()
   const route = useRoute()
   const toast = useToast()
