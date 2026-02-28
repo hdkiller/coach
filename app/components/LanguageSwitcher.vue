@@ -16,7 +16,6 @@
   <ULocaleSelect
     v-model="selectedLanguage"
     :locales="locales"
-    :content="{ class: 'min-w-[8.5rem]' }"
     :ui="{ item: 'cursor-pointer' }"
     class="min-w-[8.5rem]"
     size="sm"
