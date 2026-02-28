@@ -25,6 +25,9 @@
     "@tiptap/extension-text-align": "^3.15.1",
     "@tiptap/starter-kit": "^3.15.1",
     "@tiptap/vue-3": "^3.15.1",
+    "@tolgee/format-icu": "^6.3.0",
+    "@tolgee/vue": "^6.3.0",
+    "@tolgee/web": "^6.3.0",
     "@trigger.dev/sdk": "4.4.1",
     "@types/uuid": "^11.0.0",
     "@vue-email/compiler": "^0.8.14",
@@ -87,6 +90,7 @@
     "@release-it/conventional-changelog": "^10.0.4",
     "@tiptap/core": "^3.15.1",
     "@tiptap/pm": "^3.15.1",
+    "@tolgee/cli": "^2.16.1",
     "@trigger.dev/build": "4.4.1",
     "@types/bcrypt": "^6.0.0",
     "@types/geoip-lite": "^1.4.4",
@@ -146,7 +150,9 @@
     "db:deploy": "prisma migrate deploy",
     "db:dump": "scripts/dump-db.sh",
     "db:dump:prod": "scripts/dump-db.sh DATABASE_URL_PROD",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "i18n:pull": "node -e \"require('dotenv').config(); require('child_process').spawn('tolgee', ['pull'], { stdio: 'inherit', shell: true })\"",
+    "i18n:push": "node -e \"require('dotenv').config(); require('child_process').spawn('tolgee', ['push'], { stdio: 'inherit', shell: true })\""
   },
   "type": "module",
   "version": "0.5.21",

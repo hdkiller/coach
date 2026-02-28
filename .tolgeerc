@@ -1,0 +1,20 @@
+{
+  "projectId": 28787,
+  "push": {
+    "files": [
+      {
+        "path": "app/i18n/en",
+        "template": "{namespace}.json",
+        "language": "en"
+      },
+      {
+        "path": "app/i18n/hu",
+        "template": "{namespace}.json",
+        "language": "hu"
+      }
+    ]
+  },
+  "pull": {
+    "path": "app/i18n/{languageTag}/{namespace}.json"
+  }
+}

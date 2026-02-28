@@ -293,6 +293,10 @@ export default defineNuxtConfig({
       stripeProMonthlyEurPriceId: process.env.STRIPE_PRO_MONTHLY_EUR_PRICE_ID || '',
       stripeProAnnualEurPriceId: process.env.STRIPE_PRO_ANNUAL_EUR_PRICE_ID || '',
       subscriptionsEnabled: process.env.NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED !== 'false',
+      tolgee: {
+        apiUrl: process.env.TOLGEE_API_URL,
+        apiKey: process.env.TOLGEE_API_KEY
+      },
       gtag: {
         id: process.env.NUXT_PUBLIC_GTAG_ID,
         enabled: !!process.env.NUXT_PUBLIC_GTAG_ID
@@ -305,7 +309,7 @@ export default defineNuxtConfig({
   },
 
   build: {
-    transpile: ['@vue-leaflet/vue-leaflet']
+    transpile: ['@vue-leaflet/vue-leaflet', '@tolgee/vue', '@tolgee/web', '@tolgee/format-icu']
   },
 
   vite: {
