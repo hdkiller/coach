@@ -28,7 +28,11 @@ defineRouteMeta({
               aiContext: { type: 'string', nullable: true },
               nutritionTrackingEnabled: { type: 'boolean' },
               updateWorkoutNotesEnabled: { type: 'boolean' },
-              nickname: { type: 'string', nullable: true }
+              nickname: { type: 'string', nullable: true },
+              aiTtsStyle: { type: 'string', enum: ['coach', 'calm', 'direct', 'energetic'] },
+              aiTtsVoiceName: { type: 'string' },
+              aiTtsSpeed: { type: 'string', enum: ['slow', 'normal', 'fast'] },
+              aiTtsAutoReadMessages: { type: 'boolean' }
             }
           }
         }
@@ -54,7 +58,11 @@ defineRouteMeta({
                     aiContext: { type: 'string', nullable: true },
                     nutritionTrackingEnabled: { type: 'boolean' },
                     updateWorkoutNotesEnabled: { type: 'boolean' },
-                    nickname: { type: 'string', nullable: true }
+                    nickname: { type: 'string', nullable: true },
+                    aiTtsStyle: { type: 'string' },
+                    aiTtsVoiceName: { type: 'string' },
+                    aiTtsSpeed: { type: 'string' },
+                    aiTtsAutoReadMessages: { type: 'boolean' }
                   }
                 }
               }
@@ -91,12 +99,50 @@ export default defineEventHandler(async (event) => {
     aiContext,
     nutritionTrackingEnabled,
     updateWorkoutNotesEnabled,
-    nickname
+    nickname,
+    aiTtsStyle,
+    aiTtsVoiceName,
+    aiTtsSpeed,
+    aiTtsAutoReadMessages
   } = body
 
   // Validate inputs
   const validPersonas = ['Analytical', 'Supportive', 'Drill Sergeant', 'Motivational']
   const validModels = ['flash', 'pro', 'experimental']
+  const validTtsStyles = ['coach', 'calm', 'direct', 'energetic']
+  const validTtsSpeeds = ['slow', 'normal', 'fast']
+  const validTtsVoices = [
+    'Zephyr',
+    'Puck',
+    'Charon',
+    'Kore',
+    'Fenrir',
+    'Leda',
+    'Orus',
+    'Aoede',
+    'Callirrhoe',
+    'Autonoe',
+    'Enceladus',
+    'Iapetus',
+    'Umbriel',
+    'Algieba',
+    'Despina',
+    'Erinome',
+    'Algenib',
+    'Rasalgethi',
+    'Laomedeia',
+    'Achernar',
+    'Alnilam',
+    'Schedar',
+    'Gacrux',
+    'Pulcherrima',
+    'Achird',
+    'Zubenelgenubi',
+    'Vindemiatrix',
+    'Sadachbia',
+    'Sadaltager',
+    'Sulafat'
+  ]
 
   if (aiPersona && !validPersonas.includes(aiPersona)) {
     throw createError({
@@ -109,6 +155,27 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       message: 'Invalid AI model preference'
+    })
+  }
+
+  if (aiTtsStyle && !validTtsStyles.includes(aiTtsStyle)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid AI TTS style'
+    })
+  }
+
+  if (aiTtsSpeed && !validTtsSpeeds.includes(aiTtsSpeed)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid AI TTS speed'
+    })
+  }
+
+  if (aiTtsVoiceName && !validTtsVoices.includes(aiTtsVoiceName)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid AI TTS voice'
     })
   }
 
@@ -127,7 +194,11 @@ export default defineEventHandler(async (event) => {
       ...(aiContext !== undefined && { aiContext }),
       ...(nutritionTrackingEnabled !== undefined && { nutritionTrackingEnabled }),
       ...(updateWorkoutNotesEnabled !== undefined && { updateWorkoutNotesEnabled }),
-      ...(nickname !== undefined && { nickname })
+      ...(nickname !== undefined && { nickname }),
+      ...(aiTtsStyle !== undefined && { aiTtsStyle }),
+      ...(aiTtsVoiceName !== undefined && { aiTtsVoiceName }),
+      ...(aiTtsSpeed !== undefined && { aiTtsSpeed }),
+      ...(aiTtsAutoReadMessages !== undefined && { aiTtsAutoReadMessages })
     },
     select: {
       aiPersona: true,
@@ -142,7 +213,11 @@ export default defineEventHandler(async (event) => {
       aiContext: true,
       nutritionTrackingEnabled: true,
       updateWorkoutNotesEnabled: true,
-      nickname: true
+      nickname: true,
+      aiTtsStyle: true,
+      aiTtsVoiceName: true,
+      aiTtsSpeed: true,
+      aiTtsAutoReadMessages: true
     }
   })
 

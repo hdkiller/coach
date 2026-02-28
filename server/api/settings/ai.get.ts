@@ -26,7 +26,11 @@ defineRouteMeta({
                 aiDeepAnalysisEnabled: { type: 'boolean' },
                 aiContext: { type: 'string', nullable: true },
                 updateWorkoutNotesEnabled: { type: 'boolean' },
-                nickname: { type: 'string', nullable: true }
+                nickname: { type: 'string', nullable: true },
+                aiTtsStyle: { type: 'string' },
+                aiTtsVoiceName: { type: 'string' },
+                aiTtsSpeed: { type: 'string' },
+                aiTtsAutoReadMessages: { type: 'boolean' }
               }
             }
           }
@@ -62,7 +66,11 @@ export default defineEventHandler(async (event) => {
       aiContext: true,
       nutritionTrackingEnabled: true,
       updateWorkoutNotesEnabled: true,
-      nickname: true
+      nickname: true,
+      aiTtsStyle: true,
+      aiTtsVoiceName: true,
+      aiTtsSpeed: true,
+      aiTtsAutoReadMessages: true
     }
   })
 
@@ -86,6 +94,10 @@ export default defineEventHandler(async (event) => {
     aiContext: user.aiContext,
     nutritionTrackingEnabled: user.nutritionTrackingEnabled ?? true,
     updateWorkoutNotesEnabled: user.updateWorkoutNotesEnabled ?? true,
-    nickname: user.nickname
+    nickname: user.nickname,
+    aiTtsStyle: user.aiTtsStyle || 'coach',
+    aiTtsVoiceName: user.aiTtsVoiceName || 'Kore',
+    aiTtsSpeed: user.aiTtsSpeed || 'normal',
+    aiTtsAutoReadMessages: user.aiTtsAutoReadMessages ?? false
   }
 })
