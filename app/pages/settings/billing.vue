@@ -662,7 +662,8 @@
           </div>
 
           <template #footer>
-            <div class="flex flex-wrap gap-3">
+            <div class="space-y-3">
+              <div class="flex flex-wrap gap-3">
               <UButton
                 v-if="
                   userStore.user?.stripeCustomerId && userStore.user?.subscriptionTier !== 'FREE'
@@ -709,6 +710,23 @@
               >
                 Subscribe to a plan below to manage billing.
               </p>
+              </div>
+
+              <div
+                v-if="userStore.user?.stripeCustomerId"
+                class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-neutral-500"
+              >
+                <span>Need invoices, payment methods, or subscription changes?</span>
+                <UButton
+                  color="primary"
+                  variant="link"
+                  class="px-0"
+                  :loading="loadingPortal"
+                  @click="handleManageSubscription"
+                >
+                  Open Stripe billing portal
+                </UButton>
+              </div>
             </div>
           </template>
         </UCard>
