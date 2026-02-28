@@ -22,6 +22,7 @@ export const sendTelegramMessage = async (
     })
   } catch (error: any) {
     console.error('[Telegram] Send failed:', error.data || error.message)
+    throw error
   }
 }
 

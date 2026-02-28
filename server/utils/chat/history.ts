@@ -1,3 +1,5 @@
+import { convertToModelMessages } from 'ai'
+
 /**
  * Truncates message history to stay within a reasonable context window.
  * Ensures that tool calls and their results are kept together.
@@ -49,4 +51,223 @@ export function estimateTokenCount(messages: any[]): number {
     }
   }
   return count
+}
+
+function normalizeStoredToolCalls(metadata: any, messageId?: string) {
+  const toolCallMap = new Map<string, any>()
+
+  const register = (entry: any, fallbackId: string) => {
+    const toolCallId = entry?.toolCallId || fallbackId
+    if (!toolCallId) return
+
+    const existing = toolCallMap.get(toolCallId) || {}
+    const response =
+      entry?.response !== undefined
+        ? entry.response
+        : entry?.result !== undefined
+          ? entry.result
+          : entry?.output !== undefined
+            ? entry.output
+            : existing.response
+
+    toolCallMap.set(toolCallId, {
+      toolCallId,
+      name: entry?.name || entry?.toolName || existing.name,
+      args: entry?.args ?? entry?.input ?? existing.args ?? {},
+      response
+    })
+  }
+
+  if (Array.isArray(metadata?.toolCalls)) {
+    metadata.toolCalls.forEach((toolCall: any, index: number) => {
+      register(toolCall, `call-${messageId || 'message'}-${index}`)
+    })
+  }
+
+  if (Array.isArray(metadata?.toolResults)) {
+    metadata.toolResults.forEach((toolResult: any, index: number) => {
+      register(toolResult, `result-${messageId || 'message'}-${index}`)
+    })
+  }
+
+  return Array.from(toolCallMap.values()).filter((toolCall) => toolCall.name)
+}
+
+export function expandStoredChatMessage(message: any) {
+  const metadata = (message.metadata as any) || {}
+  const role =
+    message.senderId === 'ai_agent'
+      ? 'assistant'
+      : message.senderId === 'system_tool'
+        ? 'tool'
+        : 'user'
+
+  if (role !== 'assistant') {
+    const parts: any[] = []
+
+    if (message.content) {
+      parts.push({ type: 'text', text: message.content })
+    }
+
+    if (Array.isArray(message.files)) {
+      message.files.forEach((file: any) => {
+        if (!file?.url || !file?.mediaType) return
+        parts.push({
+          type: 'file',
+          url: file.url,
+          mediaType: file.mediaType,
+          filename: file.filename
+        })
+      })
+    }
+
+    if (Array.isArray(metadata.toolResponse)) {
+      metadata.toolResponse.forEach((part: any) => parts.push(part))
+    }
+
+    return {
+      id: message.id,
+      role,
+      parts: parts.length > 0 ? parts : undefined,
+      content: message.content || '',
+      createdAt: message.createdAt,
+      metadata: {
+        ...metadata,
+        createdAt: message.createdAt,
+        senderId: message.senderId
+      }
+    }
+  }
+
+  const parts: any[] = []
+
+  if (Array.isArray(metadata.toolApprovals)) {
+    metadata.toolApprovals.forEach((approval: any) => {
+      parts.push({
+        type: `tool-${approval.name}`,
+        toolCallId: approval.toolCallId,
+        state: 'approval-requested',
+        input: approval.args || {},
+        approval: {
+          id: approval.approvalId || approval.toolCallId
+        }
+      })
+    })
+  }
+
+  normalizeStoredToolCalls(metadata, message.id).forEach((toolCall: any) => {
+    parts.push({
+      type: `tool-${toolCall.name}`,
+      toolCallId: toolCall.toolCallId,
+      state: 'output-available',
+      input: toolCall.args || {},
+      output: toolCall.response
+    })
+  })
+
+  if (message.content) {
+    parts.push({ type: 'text', text: message.content })
+  }
+
+  if (parts.length === 0) {
+    parts.push({ type: 'text', text: ' ' })
+  }
+
+  return {
+    id: message.id,
+    role: 'assistant',
+    parts,
+    content: message.content || ' ',
+    createdAt: message.createdAt,
+    metadata: {
+      ...metadata,
+      createdAt: message.createdAt,
+      senderId: message.senderId
+    }
+  }
+}
+
+export function expandStoredChatMessages(messages: any[]) {
+  return messages.map((message) => expandStoredChatMessage(message))
+}
+
+export async function buildModelMessagesFromStoredChatMessages(messages: any[], tools: any) {
+  const historyMessages = expandStoredChatMessages(messages)
+  const coreMessages = await convertToModelMessages(historyMessages, { tools: tools as any })
+
+  const merged: any[] = []
+  for (const msg of coreMessages) {
+    const last = merged[merged.length - 1]
+    if (last && last.role === msg.role) {
+      if (msg.role === 'tool') {
+        last.content = [...(last.content as any[]), ...(msg.content as any[])]
+      } else if (typeof last.content === 'string' && typeof msg.content === 'string') {
+        last.content = `${last.content}\n\n${msg.content}`
+      } else {
+        const lastParts = Array.isArray(last.content)
+          ? last.content
+          : [{ type: 'text', text: last.content }]
+        const nextParts = Array.isArray(msg.content)
+          ? msg.content
+          : [{ type: 'text', text: msg.content }]
+        last.content = [...lastParts, ...nextParts]
+      }
+      continue
+    }
+
+    merged.push(msg)
+  }
+
+  const normalized: any[] = []
+  for (const msg of merged) {
+    if (Array.isArray(msg.content)) {
+      msg.content = msg.content.filter((part: any) => part.type !== 'text' || part.text?.trim())
+      if (msg.content.length === 0) {
+        if (msg.role === 'assistant') {
+          msg.content = [{ type: 'text', text: ' ' }]
+        } else {
+          continue
+        }
+      }
+    } else if (typeof msg.content === 'string' && !msg.content.trim()) {
+      if (msg.role === 'assistant') {
+        msg.content = ' '
+      } else {
+        continue
+      }
+    }
+
+    normalized.push(msg)
+  }
+
+  return normalized
+}
+
+export function buildPersistedToolCalls(toolCalls: any[] = [], toolResults: any[] = []) {
+  const toolCallMap = new Map<string, any>()
+
+  const register = (entry: any) => {
+    if (!entry?.toolCallId) return
+
+    const existing = toolCallMap.get(entry.toolCallId) || {}
+    toolCallMap.set(entry.toolCallId, {
+      toolCallId: entry.toolCallId,
+      name: entry.name || entry.toolName || existing.name,
+      args: entry.args ?? entry.input ?? existing.args ?? {},
+      response:
+        entry.response !== undefined
+          ? entry.response
+          : entry.result !== undefined
+            ? entry.result
+            : entry.output !== undefined
+              ? entry.output
+              : existing.response,
+      timestamp: existing.timestamp || entry.timestamp || new Date().toISOString()
+    })
+  }
+
+  toolCalls.forEach((toolCall: any) => register(toolCall))
+  toolResults.forEach((toolResult: any) => register(toolResult))
+
+  return Array.from(toolCallMap.values()).filter((toolCall) => toolCall.name)
 }

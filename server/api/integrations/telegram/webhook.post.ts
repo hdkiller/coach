@@ -2,6 +2,10 @@ import { prisma } from '../../../utils/db'
 import { chatService } from '../../../utils/services/chatService'
 import { sendTelegramMessage, sendTelegramAction } from '../../../utils/telegram'
 import { generateText } from 'ai'
+import {
+  buildModelMessagesFromStoredChatMessages,
+  buildPersistedToolCalls
+} from '../../../utils/chat/history'
 
 export default defineEventHandler(async (event) => {
   const secretToken = getHeader(event, 'x-telegram-bot-api-secret-token')
@@ -11,6 +15,8 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const message = body.message
+  let webhookStatus = 'PROCESSED'
+  let webhookError: string | null = null
 
   if (!message || !message.text) return { status: 'ignored' }
 
@@ -184,19 +190,25 @@ export default defineEventHandler(async (event) => {
 
   // Prepare AI
   try {
+    const startTime = Date.now()
     const { google, modelName, tools, systemInstruction } = await chatService.prepareAI(userId)
 
     // Build History (Last 20 messages)
     const history = await prisma.chatMessage.findMany({
       where: { roomId },
       orderBy: { createdAt: 'desc' },
-      take: 20
+      take: 25,
+      select: {
+        id: true,
+        content: true,
+        senderId: true,
+        createdAt: true,
+        files: true,
+        metadata: true
+      }
     })
 
-    const coreMessages = history.reverse().map((m) => ({
-      role: m.senderId === 'ai_agent' ? 'assistant' : 'user',
-      content: m.content
-    }))
+    const coreMessages = await buildModelMessagesFromStoredChatMessages(history.reverse(), tools)
 
     // Generate Response
     let result
@@ -227,7 +239,13 @@ export default defineEventHandler(async (event) => {
       throw llmError // Re-throw to be caught by outer block
     }
 
-    const responseText = result.text
+    const toolCallsUsed = buildPersistedToolCalls(result.toolCalls, result.toolResults)
+    const hasMeaningfulText = typeof result.text === 'string' && result.text.trim().length > 0
+    const responseText = hasMeaningfulText
+      ? result.text
+      : toolCallsUsed.length > 0
+        ? 'I processed that, but the reply text came back empty. Please retry or ask me to summarize the result.'
+        : 'I hit a response issue while processing that. Please retry your last message.'
 
     // Save AI Message
     const aiMsg = await chatService.saveAiMessage({
@@ -235,8 +253,9 @@ export default defineEventHandler(async (event) => {
       content: responseText,
       metadata: {
         source: 'telegram',
-        toolCalls: result.toolCalls,
-        toolResults: result.toolResults
+        toolCalls: toolCallsUsed,
+        toolsUsed: toolCallsUsed.map((toolCall: any) => toolCall.name),
+        toolCallCount: toolCallsUsed.length
       }
     })
 
@@ -249,19 +268,21 @@ export default defineEventHandler(async (event) => {
       response: responseText,
       usage: result.usage,
       messageId: aiMsg.id,
-      durationMs: 0 // Will fix in next step
+      durationMs: Date.now() - startTime
     } as any)
 
     // Send Response
     await sendTelegramMessage(chatId, responseText)
   } catch (error: any) {
     console.error('[Telegram] Chat Error:', error)
+    webhookStatus = 'FAILED'
+    webhookError = error?.message || String(error)
 
-    // Only send error message to user, logging is handled in inner try-catch or here if needed
-    // But we probably want to log it if it wasn't an LLM error (e.g. preparation error)
-    // For now, the plan focused on LLM errors.
-
-    await sendTelegramMessage(chatId, 'I blew a gasket. 💥 Try again in a bit.')
+    try {
+      await sendTelegramMessage(chatId, 'I blew a gasket. 💥 Try again in a bit.')
+    } catch (deliveryError: any) {
+      webhookError = `${webhookError} | delivery failed: ${deliveryError?.message || String(deliveryError)}`
+    }
   }
 
   // Log Webhook
@@ -271,7 +292,8 @@ export default defineEventHandler(async (event) => {
         provider: 'telegram',
         eventType: text.startsWith('/') ? 'command' : 'message',
         payload: body as any,
-        status: 'PROCESSED',
+        status: webhookStatus,
+        error: webhookError,
         processedAt: new Date()
       }
     })
