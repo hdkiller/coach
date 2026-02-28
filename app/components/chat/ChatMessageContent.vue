@@ -3,6 +3,7 @@
   import ChatToolCall from '~/components/ChatToolCall.vue'
   import ChatChart from '~/components/ChatChart.vue'
   import ChatToolApproval from '~/components/chat/ChatToolApproval.vue'
+  import ChatDomainToolCard from '~/components/chat/ChatDomainToolCard.vue'
   import ChatPlannedWorkoutCard from '~/components/chat/ChatPlannedWorkoutCard.vue'
   import ChatTicketToolCard from '~/components/chat/ChatTicketToolCard.vue'
 
@@ -159,6 +160,24 @@
       if (response && response.success) return false
     }
 
+    if (shouldRenderDomainToolCard(part)) return false
+
+    return true
+  }
+
+  const shouldRenderDomainToolCard = (part: any) => {
+    if (!props.showTools) return false
+    if (!(part.type === 'tool-invocation' || part.type?.startsWith('tool-'))) return false
+    if (part.type === 'tool-approval-response') return false
+    if (shouldRenderPlannedWorkoutCard(part)) return false
+    if (shouldRenderSupportTicketCard(part)) return false
+
+    const toolName = getPartToolName(part)
+    if (toolName === 'create_chart' && props.showCharts) {
+      const response = getPartToolResponse(part)
+      if (response && response.success) return false
+    }
+
     return true
   }
 
@@ -298,6 +317,23 @@
       <!-- Tool Invocation Part -->
       <ChatTicketToolCard
         v-else-if="showTools && shouldRenderSupportTicketCard(part)"
+        :tool-name="getPartToolName(part)"
+        :response="getPartToolResponse(part)"
+        :args="getPartToolArgs(part)"
+        :status="
+          (part as any).state === 'result' || (part as any).state === 'output-available'
+            ? 'success'
+            : (part as any).state === 'error' ||
+                (part as any).state === 'output-error' ||
+                (part as any).state === 'output-denied'
+              ? 'error'
+              : 'loading'
+        "
+      />
+
+      <!-- Tool Invocation Part -->
+      <ChatDomainToolCard
+        v-else-if="showTools && shouldRenderDomainToolCard(part)"
         :tool-name="getPartToolName(part)"
         :response="getPartToolResponse(part)"
         :args="getPartToolArgs(part)"
