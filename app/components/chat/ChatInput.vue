@@ -42,13 +42,20 @@
   const isWebcamModalOpen = ref(false)
   const isOpeningWebcam = ref(false)
   const isCapturingWebcam = ref(false)
+  const webcamMode = ref<'photo' | 'video'>('photo')
+  const isRecordingWebcamVideo = ref(false)
+  const webcamRecordingElapsedMs = ref(0)
   const toast = useToast()
   let attachedTextarea: HTMLTextAreaElement | null = null
   let mediaRecorder: MediaRecorder | null = null
   let mediaStream: MediaStream | null = null
   let webcamStream: MediaStream | null = null
+  let webcamRecorder: MediaRecorder | null = null
+  let webcamVideoChunks: Blob[] = []
   let recordingStartedAt = 0
   let recordingInterval: ReturnType<typeof setInterval> | null = null
+  let webcamRecordingInterval: ReturnType<typeof setInterval> | null = null
+  let webcamRecordingStopTimeout: ReturnType<typeof setTimeout> | null = null
 
   const composerDisabled = computed(
     () =>
@@ -68,25 +75,35 @@
       ...(canUseDesktopWebcam.value
         ? [
             {
-              label: 'Use webcam',
-              icon: 'i-heroicons-video-camera',
+              label: 'Take photo',
+              icon: 'i-heroicons-camera',
               disabled: composerDisabled.value,
-              onSelect: () => openDesktopWebcam()
+              onSelect: () => openDesktopWebcam('photo')
+            },
+            {
+              label: 'Record video',
+              icon: 'i-heroicons-film',
+              disabled: composerDisabled.value,
+              onSelect: () => openDesktopWebcam('video')
             }
           ]
         : []),
       {
-        label: 'Take picture',
-        icon: 'i-heroicons-camera',
+        label: canUseDesktopWebcam.value ? 'Add photos & files' : 'Take picture',
+        icon: canUseDesktopWebcam.value ? 'i-heroicons-folder-open' : 'i-heroicons-camera',
         disabled: composerDisabled.value,
-        onSelect: () => openCamera()
+        onSelect: () => (canUseDesktopWebcam.value ? openLibrary() : openCamera())
       },
-      {
-        label: 'Upload file',
-        icon: 'i-heroicons-photo',
-        disabled: composerDisabled.value,
-        onSelect: () => openLibrary()
-      }
+      ...(canUseDesktopWebcam.value
+        ? []
+        : [
+            {
+              label: 'Add photos & files',
+              icon: 'i-heroicons-folder-open',
+              disabled: composerDisabled.value,
+              onSelect: () => openLibrary()
+            }
+          ])
     ]
   ])
 
@@ -116,6 +133,9 @@
   const resetImageInput = (input: HTMLInputElement | null) => {
     if (input) input.value = ''
   }
+
+  const isImageAttachment = (attachment: ChatAttachment) => attachment.mediaType.startsWith('image/')
+  const isVideoAttachment = (attachment: ChatAttachment) => attachment.mediaType.startsWith('video/')
 
   const readFileAsDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -223,22 +243,26 @@
     await uploadImageFiles(files)
   }
 
-  const uploadImageFiles = async (files: File[]) => {
+  const uploadMediaFiles = async (files: File[]) => {
     if (!files.length) return
 
-    const imageFiles = files.filter((file) => file.type.startsWith('image/'))
-    if (imageFiles.length !== files.length) {
+    const supportedFiles = files.filter(
+      (file) => file.type.startsWith('image/') || file.type.startsWith('video/')
+    )
+    if (supportedFiles.length !== files.length) {
       toast.add({
         title: 'Unsupported file',
-        description: 'Only image uploads are supported in chat.',
+        description: 'Only image and video uploads are supported in chat.',
         color: 'error'
       })
     }
 
-    for (const file of imageFiles.slice(0, 4)) {
+    for (const file of supportedFiles.slice(0, 4)) {
       uploadingCount.value += 1
       try {
-        const normalizedFile = await normalizeImageForUpload(file)
+        const normalizedFile = file.type.startsWith('image/')
+          ? await normalizeImageForUpload(file)
+          : file
         const formData = new FormData()
         formData.append('file', normalizedFile)
 
@@ -266,6 +290,10 @@
     }
   }
 
+  const uploadImageFiles = async (files: File[]) => {
+    await uploadMediaFiles(files)
+  }
+
   const handlePaste = async (event: ClipboardEvent) => {
     if (composerDisabled.value) return
 
@@ -288,6 +316,19 @@
   const openCamera = () => cameraInputRef.value?.click()
 
   const stopWebcam = () => {
+    webcamRecorder?.stream?.getTracks?.().forEach(() => {})
+    webcamRecorder = null
+    webcamVideoChunks = []
+    if (webcamRecordingInterval) {
+      clearInterval(webcamRecordingInterval)
+      webcamRecordingInterval = null
+    }
+    if (webcamRecordingStopTimeout) {
+      clearTimeout(webcamRecordingStopTimeout)
+      webcamRecordingStopTimeout = null
+    }
+    webcamRecordingElapsedMs.value = 0
+    isRecordingWebcamVideo.value = false
     webcamStream?.getTracks().forEach((track) => track.stop())
     webcamStream = null
     if (webcamVideoRef.value) {
@@ -297,7 +338,7 @@
     isCapturingWebcam.value = false
   }
 
-  const openDesktopWebcam = async () => {
+  const openDesktopWebcam = async (mode: 'photo' | 'video') => {
     if (!import.meta.client || !navigator.mediaDevices?.getUserMedia) {
       toast.add({
         title: 'Webcam unavailable',
@@ -307,6 +348,7 @@
       return
     }
 
+    webcamMode.value = mode
     isWebcamModalOpen.value = true
     isOpeningWebcam.value = true
 
@@ -318,7 +360,7 @@
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
-        audio: false
+        audio: mode === 'video'
       })
 
       await nextTick()
@@ -373,6 +415,96 @@
       })
     } finally {
       isCapturingWebcam.value = false
+    }
+  }
+
+  const stopDesktopVideoRecording = async () => {
+    if (!webcamRecorder || webcamRecorder.state === 'inactive') return
+    webcamRecorder.stop()
+  }
+
+  const startDesktopVideoRecording = async () => {
+    if (!import.meta.client || !webcamStream) return
+    if (typeof MediaRecorder === 'undefined') {
+      toast.add({
+        title: 'Video recording unavailable',
+        description: 'This browser does not support video recording.',
+        color: 'error'
+      })
+      return
+    }
+
+    try {
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+        ? 'video/webm;codecs=vp9,opus'
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+          ? 'video/webm;codecs=vp8,opus'
+          : MediaRecorder.isTypeSupported('video/webm')
+            ? 'video/webm'
+            : ''
+
+      webcamRecorder = mimeType
+        ? new MediaRecorder(webcamStream, { mimeType })
+        : new MediaRecorder(webcamStream)
+      webcamVideoChunks = []
+
+      webcamRecorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) webcamVideoChunks.push(event.data)
+      })
+
+      webcamRecorder.addEventListener('stop', async () => {
+        const outputType = webcamRecorder?.mimeType || 'video/webm'
+        const blob = new Blob(webcamVideoChunks, { type: outputType })
+        webcamRecorder = null
+
+        if (webcamRecordingInterval) {
+          clearInterval(webcamRecordingInterval)
+          webcamRecordingInterval = null
+        }
+        if (webcamRecordingStopTimeout) {
+          clearTimeout(webcamRecordingStopTimeout)
+          webcamRecordingStopTimeout = null
+        }
+
+        isRecordingWebcamVideo.value = false
+        webcamRecordingElapsedMs.value = 0
+
+        if (!blob.size) return
+
+        try {
+          const extension = outputType.includes('mp4') ? 'mp4' : 'webm'
+          const file = new File([blob], `webcam-video-${Date.now()}.${extension}`, {
+            type: outputType
+          })
+          await uploadMediaFiles([file])
+          isWebcamModalOpen.value = false
+        } catch (error: any) {
+          toast.add({
+            title: 'Upload failed',
+            description: error?.message || 'Could not upload webcam video.',
+            color: 'error'
+          })
+        }
+      })
+
+      webcamRecorder.start()
+      isRecordingWebcamVideo.value = true
+      webcamRecordingElapsedMs.value = 0
+      const startedAt = Date.now()
+      webcamRecordingInterval = setInterval(() => {
+        webcamRecordingElapsedMs.value = Math.min(10000, Date.now() - startedAt)
+      }, 100)
+      webcamRecordingStopTimeout = setTimeout(() => {
+        void stopDesktopVideoRecording()
+      }, 10000)
+    } catch (error) {
+      webcamRecorder = null
+      isRecordingWebcamVideo.value = false
+      toast.add({
+        title: 'Recording failed',
+        description: 'Could not start webcam video recording.',
+        color: 'error'
+      })
     }
   }
 
@@ -495,6 +627,24 @@
     return `${minutes}:${seconds}`
   })
 
+  const webcamRecordingLabel = computed(() => {
+    const totalSeconds = Math.floor(webcamRecordingElapsedMs.value / 1000)
+    const tenths = Math.floor((webcamRecordingElapsedMs.value % 1000) / 100)
+    return `${String(totalSeconds).padStart(2, '0')}.${tenths}s`
+  })
+  const webcamRecordingProgress = computed(() =>
+    Math.max(0, 100 - (webcamRecordingElapsedMs.value / 10000) * 100)
+  )
+
+  const webcamModalTitle = computed(() =>
+    webcamMode.value === 'video' ? 'Record Video' : 'Take Photo'
+  )
+  const webcamModalDescription = computed(() =>
+    webcamMode.value === 'video'
+      ? 'Record a short webcam video up to 10 seconds and add it to the chat.'
+      : 'Capture a photo from your desktop webcam and add it to the chat.'
+  )
+
   const handleSubmit = (event?: Event) => {
     event?.preventDefault?.()
 
@@ -560,7 +710,7 @@
       <input
         ref="imageInputRef"
         type="file"
-        accept="image/*"
+        accept="image/*,video/*"
         multiple
         class="hidden"
         @change="uploadFiles(($event.target as HTMLInputElement)?.files || null, imageInputRef)"
@@ -581,10 +731,24 @@
           class="relative w-24 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
         >
           <img
+            v-if="isImageAttachment(attachment)"
             :src="attachment.url"
             :alt="attachment.filename || 'Attachment preview'"
             class="h-24 w-full object-cover"
           />
+          <video
+            v-else-if="isVideoAttachment(attachment)"
+            :src="attachment.url"
+            class="h-24 w-full bg-black object-cover"
+            muted
+            playsinline
+          />
+          <div
+            v-else
+            class="flex h-24 w-full items-center justify-center bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+          >
+            <UIcon name="i-heroicons-paper-clip" class="h-6 w-6" />
+          </div>
           <button
             type="button"
             class="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white"
@@ -603,6 +767,9 @@
         <span v-if="uploadingCount > 0">Uploading image...</span>
         <span v-else-if="isRecording">Recording voice note...</span>
         <span v-else-if="isTranscribing">Gemini is transcribing your voice note...</span>
+        <span v-else-if="isRecordingWebcamVideo">
+          Recording webcam video {{ webcamRecordingLabel }}
+        </span>
       </div>
 
       <UChatPrompt
@@ -636,8 +803,8 @@
         </template>
 
         <UButton
-          :color="showInlineMic ? 'primary' : 'neutral'"
-          :variant="showInlineMic ? 'solid' : 'ghost'"
+          :color="isRecording ? 'error' : showInlineMic ? 'primary' : 'neutral'"
+          :variant="isRecording ? 'solid' : showInlineMic ? 'solid' : 'ghost'"
           size="md"
           square
           :icon="isRecording ? 'i-heroicons-stop-circle' : 'i-heroicons-microphone'"
@@ -659,8 +826,8 @@
 
   <UModal
     v-model:open="isWebcamModalOpen"
-    title="Take Photo"
-    description="Capture a photo from your desktop webcam and add it to the chat."
+    :title="webcamModalTitle"
+    :description="webcamModalDescription"
   >
     <template #body>
       <div class="space-y-4">
@@ -679,6 +846,15 @@
         <p v-if="isOpeningWebcam" class="text-sm text-gray-500 dark:text-gray-400">
           Starting webcam...
         </p>
+        <div
+          v-if="webcamMode === 'video'"
+          class="overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800"
+        >
+          <div
+            class="h-2 bg-primary transition-[width] duration-100 ease-linear"
+            :style="{ width: `${webcamRecordingProgress}%` }"
+          />
+        </div>
       </div>
     </template>
 
@@ -688,16 +864,36 @@
           color="neutral"
           variant="ghost"
           label="Cancel"
+          :disabled="isCapturingWebcam || isRecordingWebcamVideo"
           @click="isWebcamModalOpen = false"
         />
         <UButton
+          v-if="webcamMode === 'photo'"
           color="primary"
           variant="solid"
           icon="i-heroicons-camera"
           label="Capture"
-          :loading="isCapturingWebcam"
+          :loading="isCapturingWebcam || isOpeningWebcam"
           :disabled="isOpeningWebcam"
           @click="captureDesktopPhoto"
+        />
+        <UButton
+          v-else-if="!isRecordingWebcamVideo"
+          color="primary"
+          variant="solid"
+          icon="i-heroicons-video-camera"
+          label="Start Recording"
+          :loading="isOpeningWebcam"
+          :disabled="isOpeningWebcam"
+          @click="startDesktopVideoRecording"
+        />
+        <UButton
+          v-else
+          color="error"
+          variant="solid"
+          icon="i-heroicons-stop-circle"
+          label="Stop Recording"
+          @click="stopDesktopVideoRecording"
         />
       </div>
     </template>

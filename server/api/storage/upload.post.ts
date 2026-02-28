@@ -2,6 +2,11 @@ import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from '#auth'
 import { uploadPublicAsset } from '../../utils/storage'
 
+function normalizeMediaType(mediaType?: string) {
+  if (!mediaType) return ''
+  return mediaType.split(';')[0]?.trim().toLowerCase() || ''
+}
+
 export default defineEventHandler(async (event) => {
   // 1. Check Auth
   const session = await getServerSession(event)
@@ -32,19 +37,30 @@ export default defineEventHandler(async (event) => {
     'image/heif',
     'image/avif',
     'image/bmp',
-    'image/tiff'
+    'image/tiff',
+    'video/webm',
+    'video/mp4',
+    'video/ogg',
+    'video/quicktime'
   ]
-  if (!file.type || !validTypes.includes(file.type)) {
+  const mediaType = normalizeMediaType(file.type)
+
+  if (!mediaType || !validTypes.includes(mediaType)) {
     throw createError({
       statusCode: 400,
-      message: `Invalid file type: ${file.type}. Only images are allowed.`
+      message: `Invalid file type: ${file.type}. Only supported image and video files are allowed.`
     })
   }
 
-  // Max size check (e.g. 5MB)
-  const MAX_SIZE = 15 * 1024 * 1024
+  const isVideo = mediaType.startsWith('video/')
+  const MAX_SIZE = isVideo ? 40 * 1024 * 1024 : 15 * 1024 * 1024
   if (file.data.length > MAX_SIZE) {
-    throw createError({ statusCode: 400, message: 'File too large. Max 15MB.' })
+    throw createError({
+      statusCode: 400,
+      message: isVideo
+        ? 'File too large. Max 40MB for video.'
+        : 'File too large. Max 15MB.'
+    })
   }
 
   // 4. Generate unique filename to prevent collisions
@@ -55,7 +71,7 @@ export default defineEventHandler(async (event) => {
 
   // 5. Upload
   try {
-    const url = await uploadPublicAsset(file.data, uniqueFilename, file.type)
+    const url = await uploadPublicAsset(file.data, uniqueFilename, mediaType)
 
     return {
       success: true,

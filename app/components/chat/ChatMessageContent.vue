@@ -178,6 +178,11 @@
     part?.type === 'file' &&
     typeof part.mediaType === 'string' &&
     part.mediaType.startsWith('audio/')
+
+  const isVideoFile = (part: any) =>
+    part?.type === 'file' &&
+    typeof part.mediaType === 'string' &&
+    part.mediaType.startsWith('video/')
 </script>
 
 <template>
@@ -227,6 +232,15 @@
           </audio>
         </div>
 
+        <div
+          v-else-if="isVideoFile(part)"
+          class="overflow-hidden rounded-2xl border border-gray-200 bg-white/70 dark:border-gray-800 dark:bg-gray-900/60"
+        >
+          <video controls preload="metadata" class="aspect-video w-full bg-black object-cover">
+            <source :src="part.url" :type="part.mediaType" />
+          </video>
+        </div>
+
         <a
           :href="part.url"
           target="_blank"
@@ -234,7 +248,13 @@
           class="inline-flex items-center gap-2 text-sm text-primary hover:underline"
         >
           <UIcon
-            :name="isImageFile(part) ? 'i-heroicons-photo' : 'i-heroicons-paper-clip'"
+            :name="
+              isImageFile(part)
+                ? 'i-heroicons-photo'
+                : isVideoFile(part)
+                  ? 'i-heroicons-film'
+                  : 'i-heroicons-paper-clip'
+            "
             class="h-4 w-4"
           />
           <span>{{ part.filename || 'Open attachment' }}</span>
