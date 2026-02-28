@@ -4,10 +4,13 @@ import 'dotenv/config'
 
 const devCommand = new Command('dev')
   .description('Run Telegram bot in development mode (polling)')
-  .action(async () => {
+  .option('-p, --port <number>', 'Local port to forward to', '3000')
+  .action(async (options) => {
     const TOKEN = process.env.TELEGRAM_BOT_TOKEN_DEV || process.env.TELEGRAM_BOT_TOKEN
     const SECRET = process.env.TELEGRAM_WEBHOOK_SECRET
-    const LOCAL_URL = 'http://localhost:3000/api/integrations/telegram/webhook'
+    const port = options.port || process.env.PORT || '3000'
+    const LOCAL_URL =
+      process.env.LOCAL_URL || `http://localhost:${port}/api/integrations/telegram/webhook`
 
     if (!TOKEN) {
       console.error(chalk.red('❌ TELEGRAM_BOT_TOKEN_DEV is not set in .env'))
