@@ -589,65 +589,71 @@
 </script>
 
 <template>
-  <UDashboardPanel id="chat" :ui="{ body: 'p-0' }">
+  <UDashboardPanel
+    id="chat"
+    class="h-[100dvh] overflow-hidden"
+    :ui="{ body: 'p-0 min-h-0 overflow-hidden' }"
+  >
     <!-- ... header remains same ... -->
     <template #header>
-      <UDashboardNavbar :title="currentRoomName">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-          <UButton
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-clock"
-            @click="isRoomListOpen = true"
-          />
-        </template>
-        <template #right>
-          <ClientOnly>
-            <DashboardTriggerMonitorButton />
-            <NotificationDropdown />
-          </ClientOnly>
-          <UButton
-            color="neutral"
-            variant="outline"
-            icon="i-heroicons-share"
-            aria-label="Share Chat"
-            size="sm"
-            class="font-bold"
-            :disabled="!currentRoomId"
-            @click="isShareModalOpen = true"
-          >
-            <span class="hidden sm:inline">Share</span>
-          </UButton>
-          <UButton
-            to="/settings/ai"
-            icon="i-heroicons-cog-6-tooth"
-            color="neutral"
-            variant="outline"
-            size="sm"
-            class="font-bold"
-            aria-label="AI Settings"
-          >
-            <span class="hidden sm:inline">Settings</span>
-          </UButton>
-          <UButton
-            color="primary"
-            variant="solid"
-            icon="i-heroicons-chat-bubble-left-right"
-            aria-label="New Chat"
-            size="sm"
-            class="font-bold"
-            @click="createNewChat"
-          >
-            <span class="hidden sm:inline">New Chat</span>
-            <span class="sm:hidden">Chat</span>
-          </UButton>
-        </template>
-      </UDashboardNavbar>
+      <div class="sticky top-0 z-20">
+        <UDashboardNavbar :title="currentRoomName">
+          <template #leading>
+            <UDashboardSidebarCollapse />
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-clock"
+              @click="isRoomListOpen = true"
+            />
+          </template>
+          <template #right>
+            <ClientOnly>
+              <DashboardTriggerMonitorButton />
+              <NotificationDropdown />
+            </ClientOnly>
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-heroicons-share"
+              aria-label="Share Chat"
+              size="sm"
+              class="font-bold"
+              :disabled="!currentRoomId"
+              @click="isShareModalOpen = true"
+            >
+              <span class="hidden sm:inline">Share</span>
+            </UButton>
+            <UButton
+              to="/settings/ai"
+              icon="i-heroicons-cog-6-tooth"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="font-bold"
+              aria-label="AI Settings"
+            >
+              <span class="hidden sm:inline">Settings</span>
+            </UButton>
+            <UButton
+              color="primary"
+              variant="solid"
+              icon="i-heroicons-chat-bubble-left-right"
+              aria-label="New Chat"
+              size="sm"
+              class="font-bold"
+              @click="createNewChat"
+            >
+              <span class="hidden sm:inline">New Chat</span>
+              <span class="sm:hidden">Chat</span>
+            </UButton>
+          </template>
+        </UDashboardNavbar>
+      </div>
     </template>
 
     <template #body>
-      <div class="flex h-full">
+      <div class="flex h-full min-h-0 overscroll-none">
         <!-- Sidebar and Mobile Drawer -->
         <ChatSidebar
           v-model:is-open="isRoomListOpen"
@@ -660,7 +666,7 @@
         />
 
         <!-- Chat Area -->
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div class="flex-1 flex min-w-0 min-h-0 flex-col overflow-hidden">
           <!-- Read-only Banner -->
           <div
             v-if="isCurrentRoomReadOnly"
