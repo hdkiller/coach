@@ -151,8 +151,8 @@
     "db:dump": "scripts/dump-db.sh",
     "db:dump:prod": "scripts/dump-db.sh DATABASE_URL_PROD",
     "prepare": "husky || true",
-    "i18n:pull": "node -e \"require('dotenv').config(); require('child_process').spawn('tolgee', ['pull'], { stdio: 'inherit', shell: true })\"",
-    "i18n:push": "node -e \"require('dotenv').config(); require('child_process').spawn('tolgee', ['push'], { stdio: 'inherit', shell: true })\""
+    "i18n:pull": "node -e \"require('dotenv').config(); require('child_process').spawn('tolgee', ['pull', '--api-url', process.env.TOLGEE_API_URL], { stdio: 'inherit', shell: true })\"",
+    "i18n:push": "node -e \"require('dotenv').config(); require('child_process').spawn('tolgee', ['push', '--api-url', process.env.TOLGEE_API_URL], { stdio: 'inherit', shell: true })\""
   },
   "type": "module",
   "version": "0.5.21",
