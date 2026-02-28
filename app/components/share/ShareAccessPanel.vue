@@ -5,7 +5,7 @@
     </div>
 
     <div v-else-if="link" class="space-y-4">
-      <UFormField label="Link expiry">
+      <UFormField v-if="isGeneratedMode" label="Link expiry">
         <USelect
           :model-value="expiryValue"
           :items="expiryOptions"
@@ -25,8 +25,13 @@
       </UFormField>
 
       <p class="text-xs text-gray-500 dark:text-gray-400">
-        Anyone with this link can view this {{ resourceLabel }}. Links are read-only and use the
-        expiry you selected when generated.
+        <template v-if="isGeneratedMode">
+          Anyone with this link can view this {{ resourceLabel }}. Links are read-only and use the
+          expiry you selected when generated.
+        </template>
+        <template v-else>
+          Anyone with this link can open the Coach Watts site and learn more about the product.
+        </template>
       </p>
 
       <div class="space-y-2">
@@ -34,16 +39,16 @@
           Share directly
         </p>
         <div class="flex flex-wrap gap-2">
-          <SocialShare
-            v-for="network in networks"
-            :key="network"
-            :network="network"
-            :url="link"
-            :title="shareTitle"
-            :styled="true"
-            :label="true"
-            class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
-          />
+          <div v-for="network in networks" :key="network" @click="emitNetworkClick(network)">
+            <SocialShare
+              :network="network"
+              :url="link"
+              :title="shareTitle"
+              :styled="true"
+              :label="true"
+              class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -76,6 +81,7 @@
     resourceLabel: string
     shareTitle: string
     expiryValue: string
+    mode?: 'generated' | 'static'
   }
 
   const props = defineProps<Props>()
@@ -83,6 +89,7 @@
   const emit = defineEmits<{
     generate: [payload?: { expiresIn?: number | null; forceNew?: boolean }]
     copy: []
+    networkClick: [network: string]
     'update:expiryValue': [value: string]
   }>()
 
@@ -95,6 +102,7 @@
   ]
 
   const networks = ['x', 'facebook', 'linkedin', 'reddit', 'whatsapp', 'telegram', 'email']
+  const isGeneratedMode = computed(() => props.mode !== 'static')
 
   const parseExpiryValue = (value: string): number | null => {
     if (value === 'never') return null
@@ -106,7 +114,7 @@
     const nextValue = String(value)
     emit('update:expiryValue', nextValue)
 
-    if (props.link) {
+    if (props.link && isGeneratedMode.value) {
       emit('generate', {
         expiresIn: parseExpiryValue(nextValue),
         forceNew: true
@@ -121,4 +129,5 @@
     })
 
   const emitCopy = () => emit('copy')
+  const emitNetworkClick = (network: string) => emit('networkClick', network)
 </script>
