@@ -70,3 +70,4 @@ coverage
 .gemini/
 /tmp
 /.tmp
+/gcs.env

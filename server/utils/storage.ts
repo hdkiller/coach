@@ -1,6 +1,6 @@
 import { Storage } from '@google-cloud/storage'
 
-const BUCKET_NAME = 'coach-wattz-public-assets'
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'coach-wattz-public-assets'
 
 // Initialize storage client
 const getStorage = () => {
