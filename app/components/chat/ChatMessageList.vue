@@ -573,7 +573,7 @@
               container:
                 'relative w-fit flex items-center ltr:justify-end ms-auto max-w-[75%] gap-2 !pb-0',
               actions:
-                'opacity-100 sm:opacity-0 sm:group-hover/message:opacity-100 absolute right-full mr-1 top-1/2 -translate-y-1/2 bottom-auto z-20 flex items-center gap-1 transition-opacity'
+                'static mt-2 flex items-center justify-end gap-1 opacity-100 sm:absolute sm:right-full sm:mr-1 sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 sm:bottom-auto sm:z-20 sm:opacity-0 sm:group-hover/message:opacity-100 transition-opacity'
             }
           }"
           :assistant="{
@@ -583,7 +583,7 @@
               content: 'rounded-[1.2rem] px-4 py-3',
               container: 'relative flex items-start rtl:justify-end !pb-0',
               actions:
-                'opacity-100 sm:opacity-0 sm:group-hover/message:opacity-100 absolute left-full ml-1 top-1/2 -translate-y-1/2 bottom-auto z-20 flex items-center gap-1 transition-opacity'
+                'static mt-2 flex items-center gap-1 opacity-100 sm:absolute sm:left-full sm:ml-1 sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 sm:bottom-auto sm:z-20 sm:opacity-0 sm:group-hover/message:opacity-100 transition-opacity'
             }
           }"
         >
