@@ -125,7 +125,7 @@ export const IntervalsService = {
 
   /**
    * Sync activities for a user within a given date range.
-   * Chunks the range into 90-day batches to avoid timeouts and handle large histories.
+   * Chunks the range into 14-day batches to reduce long-running ingestion work.
    */
   async syncActivities(userId: string, startDate: Date, endDate: Date) {
     const integration = await prisma.integration.findUnique({
@@ -157,10 +157,10 @@ export const IntervalsService = {
     let totalUpsertedCount = 0
     let currentEnd = new Date(historicalEnd)
 
-    // Process in 90-day chunks, going backwards from newest to oldest
+    // Process in 14-day chunks, going backwards from newest to oldest
     while (currentEnd >= startDate) {
       const currentStart = new Date(currentEnd)
-      currentStart.setDate(currentStart.getDate() - 90)
+      currentStart.setDate(currentStart.getDate() - 14)
       const effectiveStart = currentStart < startDate ? startDate : currentStart
 
       console.log(
