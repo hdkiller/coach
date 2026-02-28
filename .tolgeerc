@@ -1,5 +1,7 @@
 {
-  "projectId": 28787,
+  "projectId": 2,
+  "apiUrl": "https://tolgee.shadow.hdkiller.com/",
+  "apiKey": "tgpak_gjpxc3tcnyzggmlcnvrwcn3nnrxtqmlsorrgqnlrojyto",
   "push": {
     "files": [
       {
