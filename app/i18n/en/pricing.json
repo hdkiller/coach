@@ -1,0 +1,63 @@
+{
+  "label": "PRICING",
+  "headline": "Plans for Every Athlete",
+  "description": "From casual tracking to professional AI coaching. Start free and upgrade as you grow.",
+  "guarantee": "All plans include a 14-day money-back guarantee. No credit card required for the free plan.",
+
+  "plan.free.name": "Free",
+  "plan.free.description": "The smartest logbook you've ever used.",
+  "plan.free.feature_1": "Unlimited data history",
+  "plan.free.feature_2": "Manual sync mode",
+  "plan.free.feature_3": "On-demand analysis",
+  "plan.free.feature_4": "Quick AI analysis",
+
+  "plan.supporter.name": "Supporter",
+  "plan.supporter.description": "Automated insights for the self-coached athlete.",
+  "plan.supporter.feature_1": "Automatic sync for workouts and health metrics",
+  "plan.supporter.feature_2": "Always-on AI analysis after new activities",
+  "plan.supporter.feature_3": "Priority processing during peak usage",
+  "plan.supporter.feature_4": "Reliable trend tracking and weekly summaries",
+
+  "plan.pro.name": "Pro",
+  "plan.pro.description": "Your full-service Digital Twin and Coach.",
+  "plan.pro.feature_1": "Adaptive race strategy and periodized planning",
+  "plan.pro.feature_2": "Thoughtful AI coaching with scenario analysis",
+  "plan.pro.feature_3": "Proactive alerts for readiness and overreaching risk",
+  "plan.pro.feature_4": "Advanced trend intelligence with long-horizon forecasting",
+  "plan.pro.feature_5": "Fast-lane priority processing and response",
+
+  "billing.monthly": "Monthly",
+  "billing.annual": "Annual",
+  "billing.save_pct": "Save {pct}%",
+  "billing.billed_monthly": "Billed monthly",
+  "billing.billed_annually": "{price}/mo billed annually",
+  "billing.per_month": "/ month",
+  "billing.per_year": "/ year",
+
+  "badge.most_popular": "Most popular",
+  "badge.best_value": "Best value",
+  "badge.smart_start": "Smart start",
+  "badge.current_plan": "Current Plan",
+
+  "btn.sign_up": "Sign Up",
+  "btn.get_supporter": "Get Supporter",
+  "btn.get_pro": "Get Pro",
+  "btn.upgrade_pro": "Upgrade to Pro",
+  "btn.switch_pro": "Switch to Pro",
+  "btn.choose_supporter": "Choose Supporter",
+  "btn.switch_supporter": "Switch to Supporter",
+  "btn.downgrade_free": "Downgrade to Free",
+  "btn.stay_free": "Stay Free",
+  "btn.current_plan": "Current Plan",
+  "btn.unavailable": "Temporarily Unavailable",
+
+  "cancel_anytime": "Cancel anytime. Instant downgrade to Free.",
+
+  "modal.title": "Confirm Downgrade",
+  "modal.description": "Review changes to your subscription plan",
+  "modal.switch_to": "Switch to {name}?",
+  "modal.warning": "You are moving to a lower tier. Some features (like Deep AI Analysis) will be restricted once the change is processed.",
+  "modal.stripe_note": "Stripe will automatically calculate any credits for your unused time and apply them to your future bills.",
+  "modal.keep_plan": "Keep my current plan",
+  "modal.confirm_change": "Confirm Change"
+}

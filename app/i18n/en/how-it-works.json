@@ -1,0 +1,17 @@
+{
+  "label": "THE PROCESS",
+  "headline": "From Raw Data to Gold Medal Strategy",
+  "description": "We don't just show you charts. We ingest your entire digital physiology, analyze the hidden patterns, and build a coaching strategy that includes training and fueling.",
+  "step1_title": "Connect Data",
+  "step1_desc": "Connect your training and nutrition apps. We combine Strava, Whoop, Garmin, Yazio, and more into one performance timeline.",
+  "step2_title": "Model Readiness",
+  "step2_desc": "Our AI models fatigue, recovery, and fuel availability so you can see what standard charts miss.",
+  "step2_status": "Status: Deep Fatigue Detected",
+  "step3_title": "Plan Fueling",
+  "step3_desc": "Get pre, intra, and post-workout fueling targets with carbs, fluids, and sodium based on your actual training load.",
+  "step3_status1": "Fuel: Optimized",
+  "step3_status2": "Recovery: Balanced",
+  "step4_title": "Execute Daily",
+  "step4_desc": "Receive specific actions for training and nutrition. Know whether to push, recover, or refuel before your next key session.",
+  "step4_quote": "\"Fuel low for threshold work. Add 60g carbs 90min pre-ride.\""
+}

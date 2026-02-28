@@ -1,0 +1,32 @@
+{
+  "title": "Támogatás",
+  "subtitle": "Segítségére vagyunk. Válassza az Önnek legmegfelelőbb csatornát.",
+
+  "community.title": "Közösségi Támogatás",
+  "community.desc": "Csatlakozzon Discord szerverünkhöz, hogy kérdéseket tegyen fel, visszajelzést adjon, és kapcsolatba lépjen más felhasználókkal. Ez a leggyorsabb módja a segítség kérésének.",
+  "community.btn": "Csatlakozás a Discordhoz",
+
+  "github.title": "GitHub Issues",
+  "github.desc": "Hibát talált vagy funkcióigénye van? Nyisson egy issue-t GitHub tárolónkban, hogy nyomon kövesse annak folyamatát és hozzájáruljon.",
+  "github.btn": "Issue megnyitása",
+
+  "email.title": "E-mail Támogatás",
+  "email.desc": "Konkrét problémája van, vagy privát segítségre van szüksége? Küldjön e-mailt, és a lehető leghamarabb válaszolunk.",
+  "email.btn": "Kapcsolat felvétele",
+
+  "form.title": "Küldjön nekünk üzenetet",
+  "form.sending_as": "Küldés mint",
+  "form.name": "Név",
+  "form.name_placeholder": "Az Ön neve",
+  "form.email": "E-mail",
+  "form.subject": "Tárgy",
+  "form.subject_placeholder": "Miről szól?",
+  "form.message": "Üzenet",
+  "form.message_placeholder": "Írja le a problémáját vagy visszajelzését...",
+  "form.submit": "Üzenet küldése",
+
+  "toast.missing_fields": "Név és E-mail megadása kötelező",
+  "toast.missing_content": "Tárgy és Üzenet megadása kötelező",
+  "toast.success": "Az üzenet sikeresen elküldve!",
+  "toast.error": "Az üzenet küldése sikertelen"
+}
