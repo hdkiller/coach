@@ -8,12 +8,12 @@
           <NuxtLink to="#architecture" class="inline-flex items-center gap-4">
             <span
               class="rounded-full bg-primary-500/10 px-3 py-1 text-sm font-semibold leading-6 text-primary-400 ring-1 ring-inset ring-primary-500/20"
-              >Transparent Intelligence</span
+              >{{ t('badge') }}</span
             >
             <span
               class="inline-flex items-center space-x-2 text-sm font-medium leading-6 text-gray-300"
             >
-              <span>View the Architecture</span>
+              <span>{{ t('badge_link') }}</span>
               <UIcon name="i-heroicons-chevron-right" class="h-5 w-5 text-gray-500" />
             </span>
           </NuxtLink>
@@ -21,17 +21,16 @@
         <h1
           class="mt-7 text-balance text-5xl font-bold tracking-tight text-white sm:text-6xl xl:text-[4rem] leading-[1.08]"
         >
-          Unlock Your True Potential. <br />
-          <span class="mt-2 block text-primary-500 leading-[1.14] tracking-[0.01em]"
-            >Stop Guessing. Start Winning.</span
-          >
+          {{ t('headline_1') }} <br />
+          <span class="mt-2 block text-primary-500 leading-[1.14] tracking-[0.01em]">{{
+            t('headline_2')
+          }}</span>
         </h1>
         <p class="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
-          Train by watts. Fuel by physiology.
+          {{ t('tagline') }}
         </p>
         <p class="mt-5 max-w-2xl text-xl leading-8 text-gray-300">
-          The AI Endurance Coach that adapts training, recovery, and fueling every day. We turn your
-          workouts and nutrition logs into clear performance decisions.
+          {{ t('description') }}
         </p>
         <div class="mt-8 flex flex-wrap items-center gap-3">
           <UButton
@@ -41,7 +40,7 @@
             variant="solid"
             class="hero-cta hero-cta-pulse px-8 py-3 text-base font-semibold shadow-[0_0_0_1px_rgba(0,220,130,0.4),0_18px_38px_-14px_rgba(0,220,130,0.45)] hover:bg-primary-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400"
           >
-            Claim Your Digital Twin (Free)
+            {{ t('cta_primary') }}
           </UButton>
           <UButton
             to="#how-it-works"
@@ -51,7 +50,7 @@
             trailing-icon="i-heroicons-arrow-right-20-solid"
             class="border-gray-500/70 text-white hover:border-primary-400 hover:text-primary-300"
           >
-            See How It Works
+            {{ t('cta_secondary') }}
           </UButton>
         </div>
       </div>
@@ -119,10 +118,12 @@
                         >
                           <UIcon name="i-heroicons-sparkles" class="w-5 h-5" />
                         </div>
-                        <span class="text-sm font-medium text-gray-200">Daily Insight</span>
+                        <span class="text-sm font-medium text-gray-200">{{
+                          t('card_insight')
+                        }}</span>
                         <span class="ml-1 inline-flex items-center gap-1.5 text-xs text-[#00DC82]">
                           <span class="live-dot h-2.5 w-2.5 rounded-full bg-[#00DC82]" />
-                          Live
+                          {{ t('card_live') }}
                         </span>
                       </div>
 
@@ -144,7 +145,7 @@
                     <div
                       class="relative rounded-xl border border-white/10 bg-white/[0.04] p-4 transition-colors backdrop-blur-[12px] group/fitness"
                     >
-                      <div class="text-xs text-gray-500 mb-1">FITNESS SCORE</div>
+                      <div class="text-xs text-gray-500 mb-1">{{ t('card_fitness') }}</div>
                       <div class="text-2xl font-bold text-white flex items-end gap-2">
                         {{ activeScenario.fitness }}
                         <span class="text-xs text-green-400 mb-1 flex items-center">
@@ -190,7 +191,7 @@
                     <div
                       class="rounded-xl border border-white/10 bg-white/[0.04] p-4 transition-colors backdrop-blur-[12px]"
                     >
-                      <div class="text-xs text-gray-500 mb-1">RECOVERY</div>
+                      <div class="text-xs text-gray-500 mb-1">{{ t('card_recovery') }}</div>
                       <div class="text-2xl font-bold text-white flex items-end gap-2">
                         {{ activeScenario.recovery }}%
                         <span class="text-xs text-rose-400 mb-1 font-semibold">{{
@@ -259,6 +260,9 @@
 
 <script setup lang="ts">
   import { motion } from 'motion-v'
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('hero')
 
   interface DashboardScenario {
     insight: string

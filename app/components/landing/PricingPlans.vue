@@ -11,7 +11,7 @@
           "
           @click="billingInterval = 'monthly'"
         >
-          Monthly
+          {{ t('billing.monthly') }}
         </button>
         <button
           class="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
@@ -22,11 +22,11 @@
           "
           @click="billingInterval = 'annual'"
         >
-          Annual
+          {{ t('billing.annual') }}
           <span
             class="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full"
           >
-            Save 33%
+            {{ t('billing.save_pct', { pct: 33 }) }}
           </span>
         </button>
       </div>
@@ -96,11 +96,11 @@
           v-if="isCurrentPlan(plan)"
           class="absolute top-0 left-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg uppercase tracking-wide"
         >
-          Current Plan
+          {{ t('badge.current_plan') }}
         </div>
 
         <template #header>
-          <h3 class="text-xl font-bold">{{ plan.name }}</h3>
+          <h3 class="text-xl font-bold">{{ t(`plan.${plan.key}.name`) }}</h3>
 
           <div class="mt-4">
             <div class="flex items-baseline gap-1">
@@ -116,7 +116,11 @@
               </span>
               <span class="text-sm text-gray-500 dark:text-gray-400">
                 {{
-                  plan.key === 'free' ? '' : `/ ${billingInterval === 'annual' ? 'year' : 'month'}`
+                  plan.key === 'free'
+                    ? ''
+                    : billingInterval === 'annual'
+                      ? t('billing.per_year')
+                      : t('billing.per_month')
                 }}
               </span>
             </div>
@@ -124,7 +128,11 @@
             <div class="mt-2 min-h-[2.75rem] flex flex-col justify-center gap-1">
               <template v-if="billingInterval === 'annual' && plan.annualPrice">
                 <div class="text-xs text-gray-600 dark:text-gray-300">
-                  {{ formatPrice(getEffectiveMonthly(plan), currency) }}/mo billed annually
+                  {{
+                    t('billing.billed_annually', {
+                      price: formatPrice(getEffectiveMonthly(plan), currency)
+                    })
+                  }}
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-500 line-through">
@@ -138,18 +146,20 @@
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
                     "
                   >
-                    Save {{ calculateAnnualSavings(plan) }}%
+                    {{ t('billing.save_pct', { pct: calculateAnnualSavings(plan) }) }}
                   </span>
                 </div>
               </template>
               <template v-else-if="plan.key !== 'free'">
-                <div class="text-xs text-gray-600 dark:text-gray-300">Billed monthly</div>
+                <div class="text-xs text-gray-600 dark:text-gray-300">
+                  {{ t('billing.billed_monthly') }}
+                </div>
               </template>
             </div>
           </div>
 
           <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 min-h-[3.5rem]">
-            {{ plan.description }}
+            {{ t(`plan.${plan.key}.description`) }}
           </p>
         </template>
 
@@ -164,7 +174,7 @@
               class="w-5 h-5 flex-shrink-0"
               :class="isPrimaryPlan(plan) ? 'text-primary' : 'text-gray-500 dark:text-gray-400'"
             />
-            <span>{{ feature }}</span>
+            <span>{{ t(`plan.${plan.key}.feature_${fIndex + 1}`) }}</span>
           </li>
         </ul>
 
@@ -184,14 +194,14 @@
             {{
               subscriptionsEnabled || plan.key === 'free' || status !== 'authenticated'
                 ? getButtonLabel(plan)
-                : 'Temporarily Unavailable'
+                : t('btn.unavailable')
             }}
           </UButton>
           <p
             class="text-[11px] text-center text-gray-500 dark:text-gray-400 min-h-[1rem]"
             :class="plan.key === 'free' && !isCurrentPlan(plan) ? 'opacity-0' : ''"
           >
-            Cancel anytime. Instant downgrade to Free.
+            {{ t('cancel_anytime') }}
           </p>
         </div>
       </UCard>
@@ -200,8 +210,8 @@
     <!-- Downgrade Confirmation Modal -->
     <UModal
       v-model:open="showDowngradeModal"
-      title="Confirm Downgrade"
-      description="Review changes to your subscription plan"
+      :title="t('modal.title')"
+      :description="t('modal.description')"
     >
       <template #content>
         <UCard :ui="{ body: 'p-6 sm:p-8' }">
@@ -213,21 +223,25 @@
                   class="w-6 h-6 text-amber-600 dark:text-amber-400"
                 />
               </div>
-              <h3 class="text-xl font-bold">Switch to {{ planToChangeTo?.name }}?</h3>
+              <h3 class="text-xl font-bold">
+                {{
+                  t('modal.switch_to', {
+                    name: planToChangeTo ? t(`plan.${planToChangeTo.key}.name`) : ''
+                  })
+                }}
+              </h3>
             </div>
           </template>
 
           <div class="space-y-4 py-2">
             <p class="text-sm text-gray-600 dark:text-gray-300">
-              You are moving to a lower tier. Some features (like Deep AI Analysis) will be
-              restricted once the change is processed.
+              {{ t('modal.warning') }}
             </p>
             <div
               class="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700"
             >
               <p class="text-xs text-gray-500 leading-relaxed italic">
-                Stripe will automatically calculate any credits for your unused time and apply them
-                to your future bills.
+                {{ t('modal.stripe_note') }}
               </p>
             </div>
           </div>
@@ -235,7 +249,7 @@
           <template #footer>
             <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
               <UButton color="neutral" variant="ghost" @click="showDowngradeModal = false">
-                Keep my current plan
+                {{ t('modal.keep_plan') }}
               </UButton>
               <UButton
                 color="primary"
@@ -243,7 +257,7 @@
                 :loading="loading"
                 @click="planToChangeTo && executePlanChange(planToChangeTo)"
               >
-                Confirm Change
+                {{ t('modal.confirm_change') }}
               </UButton>
             </div>
           </template>
@@ -254,6 +268,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import {
     PRICING_PLANS,
     calculateAnnualSavings,
@@ -263,6 +278,11 @@
     type PricingPlan,
     type PricingTier
   } from '~/utils/pricing'
+
+  const { t } = useTranslate('pricing')
+  function translate(key: string): string {
+    return (t.value as (key: string) => string)(key)
+  }
 
   type ConversionGoal = Exclude<PricingTier, 'free'>
 
@@ -321,11 +341,13 @@
 
   function getPlanBadge(plan: PricingPlan): string | null {
     if (isPrimaryPlan(plan)) {
-      return props.conversionGoal === 'pro' ? 'Best value' : 'Most popular'
+      return props.conversionGoal === 'pro'
+        ? translate('badge.best_value')
+        : translate('badge.most_popular')
     }
 
     if (isAnchorPlan(plan)) {
-      return 'Smart start'
+      return translate('badge.smart_start')
     }
 
     return null
@@ -396,13 +418,11 @@
   }
 
   function getButtonLabel(plan: PricingPlan): string {
-    if (isCurrentPlan(plan)) {
-      return 'Current Plan'
-    }
+    if (isCurrentPlan(plan)) return translate('btn.current_plan')
 
     if (status.value !== 'authenticated') {
-      if (plan.key === 'free') return 'Sign Up'
-      return plan.key === 'pro' ? 'Get Pro' : 'Get Supporter'
+      if (plan.key === 'free') return translate('btn.sign_up')
+      return plan.key === 'pro' ? translate('btn.get_pro') : translate('btn.get_supporter')
     }
 
     const currentTier = userStore.user?.subscriptionTier || 'FREE'
@@ -411,14 +431,16 @@
     const planLevel = tiers.indexOf(plan.key.toUpperCase())
 
     if (plan.key === 'pro') {
-      return planLevel > currentLevel ? 'Upgrade to Pro' : 'Switch to Pro'
+      return planLevel > currentLevel ? translate('btn.upgrade_pro') : translate('btn.switch_pro')
     }
 
     if (plan.key === 'supporter') {
-      return planLevel >= currentLevel ? 'Choose Supporter' : 'Switch to Supporter'
+      return planLevel >= currentLevel
+        ? translate('btn.choose_supporter')
+        : translate('btn.switch_supporter')
     }
 
-    return planLevel < currentLevel ? 'Downgrade to Free' : 'Stay Free'
+    return planLevel < currentLevel ? translate('btn.downgrade_free') : translate('btn.stay_free')
   }
 
   async function executePlanChange(plan: PricingPlan) {

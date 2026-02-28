@@ -7,14 +7,13 @@
     <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
       <div class="mx-auto max-w-3xl text-center">
         <h2 class="text-base font-semibold leading-7 text-emerald-400 font-mono">
-          NUTRITION INTELLIGENCE
+          {{ t('label') }}
         </h2>
         <p class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          Stop counting calories. Start fueling for the work ahead.
+          {{ t('headline') }}
         </p>
         <p class="mt-6 text-lg leading-8 text-gray-300">
-          Coach Watts combines your training load, meal logs, and planned sessions to estimate fuel
-          availability and tell you what to eat, when to eat, and why it matters for performance.
+          {{ t('description') }}
         </p>
       </div>
 
@@ -24,15 +23,10 @@
             <div class="rounded-lg bg-emerald-500/20 p-2 text-emerald-400">
               <UIcon name="i-heroicons-battery-100" class="h-5 w-5" />
             </div>
-            <h3 class="text-lg font-semibold text-white">Fuel Tank</h3>
+            <h3 class="text-lg font-semibold text-white">{{ t('card1_title') }}</h3>
           </div>
-          <p class="mt-4 text-sm leading-6 text-gray-300">
-            A live glycogen estimate for your current day. Use it to understand your readiness for
-            high-intensity work and avoid under-fueling before key sessions.
-          </p>
-          <p class="mt-3 text-xs text-gray-400">
-            What you get: current level, trend, and next action.
-          </p>
+          <p class="mt-4 text-sm leading-6 text-gray-300">{{ t('card1_desc') }}</p>
+          <p class="mt-3 text-xs text-gray-400">{{ t('card1_cue') }}</p>
         </article>
 
         <article class="rounded-2xl border border-blue-500/20 bg-gray-900/80 p-6 backdrop-blur">
@@ -40,15 +34,10 @@
             <div class="rounded-lg bg-blue-500/20 p-2 text-blue-400">
               <UIcon name="i-heroicons-chart-bar-square" class="h-5 w-5" />
             </div>
-            <h3 class="text-lg font-semibold text-white">Metabolic Horizon</h3>
+            <h3 class="text-lg font-semibold text-white">{{ t('card2_title') }}</h3>
           </div>
-          <p class="mt-4 text-sm leading-6 text-gray-300">
-            A rolling projection across upcoming days. It highlights when your plan may accumulate
-            fatigue so you can correct fueling before performance drops.
-          </p>
-          <p class="mt-3 text-xs text-gray-400">
-            What you get: trendline, risk windows, and confidence cues.
-          </p>
+          <p class="mt-4 text-sm leading-6 text-gray-300">{{ t('card2_desc') }}</p>
+          <p class="mt-3 text-xs text-gray-400">{{ t('card2_cue') }}</p>
         </article>
 
         <article class="rounded-2xl border border-amber-500/20 bg-gray-900/80 p-6 backdrop-blur">
@@ -56,15 +45,10 @@
             <div class="rounded-lg bg-amber-500/20 p-2 text-amber-400">
               <UIcon name="i-heroicons-clock" class="h-5 w-5" />
             </div>
-            <h3 class="text-lg font-semibold text-white">Fueling Windows</h3>
+            <h3 class="text-lg font-semibold text-white">{{ t('card3_title') }}</h3>
           </div>
-          <p class="mt-4 text-sm leading-6 text-gray-300">
-            Pre, intra, and post-workout targets for carbs, hydration, and sodium based on your
-            planned training and current state.
-          </p>
-          <p class="mt-3 text-xs text-gray-400">
-            What you get: practical targets you can execute without guesswork.
-          </p>
+          <p class="mt-4 text-sm leading-6 text-gray-300">{{ t('card3_desc') }}</p>
+          <p class="mt-3 text-xs text-gray-400">{{ t('card3_cue') }}</p>
         </article>
       </div>
 
@@ -72,13 +56,11 @@
         <div class="rounded-3xl border border-gray-800 bg-gray-900/80 p-6 lg:col-span-3">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="text-sm font-semibold text-white">Live Fuel Demo</p>
-              <p class="text-xs text-gray-400">
-                Example timeline: same workout, different fueling strategies.
-              </p>
+              <p class="text-sm font-semibold text-white">{{ t('demo_title') }}</p>
+              <p class="text-xs text-gray-400">{{ t('demo_subtitle') }}</p>
             </div>
             <UBadge color="neutral" variant="subtle" size="sm">
-              Scenario: {{ activeScenario.name }}
+              {{ t('scenario_label', { name: t('scenario.' + activeScenario.id + '.name') }) }}
             </UBadge>
           </div>
 
@@ -91,7 +73,7 @@
               :variant="selectedScenarioId === scenario.id ? 'solid' : 'outline'"
               @click="selectedScenarioId = scenario.id"
             >
-              {{ scenario.name }}
+              {{ t('scenario.' + scenario.id + '.name') }}
             </UButton>
           </div>
 
@@ -124,7 +106,7 @@
 
               <line
                 v-for="marker in eventMarkers"
-                :key="marker.label"
+                :key="marker.labelKey"
                 :x1="marker.x"
                 :x2="marker.x"
                 y1="5"
@@ -150,57 +132,58 @@
           </div>
 
           <div class="mt-4 flex flex-wrap gap-3 text-xs text-gray-300">
-            <span class="rounded-full border border-gray-700 bg-gray-900/80 px-2.5 py-1"
-              >Threshold line: 35%</span
-            >
+            <span class="rounded-full border border-gray-700 bg-gray-900/80 px-2.5 py-1">{{
+              t('threshold_label')
+            }}</span>
             <span
               v-for="marker in eventMarkers"
-              :key="`${marker.label}-legend`"
+              :key="`${marker.labelKey}-legend`"
               class="rounded-full border border-gray-700 bg-gray-900/80 px-2.5 py-1"
             >
-              {{ marker.label }}
+              {{ t(marker.labelKey) }}
             </span>
           </div>
         </div>
 
         <div class="rounded-3xl border border-gray-800 bg-gray-900/80 p-6 lg:col-span-2">
-          <p class="text-sm font-semibold text-white">Projected Session Outcome</p>
-          <p class="mt-1 text-xs text-gray-400">Based on the selected fueling strategy.</p>
+          <p class="text-sm font-semibold text-white">{{ t('outcome_title') }}</p>
+          <p class="mt-1 text-xs text-gray-400">{{ t('outcome_subtitle') }}</p>
 
           <div class="mt-6 space-y-3">
             <div class="rounded-xl border border-gray-800 bg-gray-950/80 p-4">
-              <p class="text-xs uppercase tracking-wide text-gray-400">Start Workout At</p>
+              <p class="text-xs uppercase tracking-wide text-gray-400">{{ t('start_workout') }}</p>
               <p class="mt-1 text-2xl font-bold text-white">{{ activeScenario.startWorkout }}%</p>
             </div>
             <div class="rounded-xl border border-gray-800 bg-gray-950/80 p-4">
-              <p class="text-xs uppercase tracking-wide text-gray-400">End Workout At</p>
+              <p class="text-xs uppercase tracking-wide text-gray-400">{{ t('end_workout') }}</p>
               <p class="mt-1 text-2xl font-bold text-white">{{ activeScenario.endWorkout }}%</p>
             </div>
             <div class="rounded-xl border border-gray-800 bg-gray-950/80 p-4">
-              <p class="text-xs uppercase tracking-wide text-gray-400">Expected Session Quality</p>
+              <p class="text-xs uppercase tracking-wide text-gray-400">
+                {{ t('expected_quality') }}
+              </p>
               <p class="mt-1 text-lg font-semibold text-emerald-300">
-                {{ activeScenario.quality }}
+                {{ t('scenario.' + activeScenario.id + '.quality') }}
               </p>
             </div>
           </div>
 
           <p class="mt-5 text-sm leading-6 text-gray-300">
-            {{ activeScenario.note }}
+            {{ t('scenario.' + activeScenario.id + '.note') }}
           </p>
 
           <div class="mt-6 flex flex-wrap gap-3">
-            <UButton to="/join" color="primary" size="lg">Build My Fueling Plan</UButton>
-            <UButton to="#how-it-works" color="neutral" variant="ghost" size="lg">
-              See Full Coaching Flow
-            </UButton>
+            <UButton to="/join" color="primary" size="lg">{{ t('cta_primary') }}</UButton>
+            <UButton to="#how-it-works" color="neutral" variant="ghost" size="lg">{{
+              t('cta_secondary')
+            }}</UButton>
           </div>
         </div>
       </div>
 
       <div class="mt-8">
         <p class="text-xs text-gray-400">
-          Fuel estimates are model-based and improve with consistent logs and completed sessions.
-          They are not direct lab measurements.
+          {{ t('disclaimer') }}
         </p>
       </div>
     </div>
@@ -208,6 +191,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('nutrition')
+
   type Scenario = {
     id: string
     name: string
@@ -284,9 +271,9 @@
   const eventMarkers = computed(() => {
     const points = chartPoints.value
     return [
-      { label: 'Pre-Workout Window', x: points[2]?.x ?? 40 },
-      { label: 'Workout Start', x: points[3]?.x ?? 58 },
-      { label: 'Workout End', x: points[5]?.x ?? 96 }
+      { labelKey: 'nutrition.marker.pre_workout', x: points[2]?.x ?? 40 },
+      { labelKey: 'nutrition.marker.workout_start', x: points[3]?.x ?? 58 },
+      { labelKey: 'nutrition.marker.workout_end', x: points[5]?.x ?? 96 }
     ]
   })
 </script>

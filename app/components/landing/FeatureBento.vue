@@ -4,12 +4,12 @@
       <h2
         class="text-base font-semibold leading-7 text-primary-600 dark:text-primary-400 font-mono"
       >
-        UNFAIR ADVANTAGE
+        {{ t('label') }}
       </h2>
       <p
         class="mt-2 max-w-lg text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl"
       >
-        Why our athletes consistently outperform their past selves.
+        {{ t('headline') }}
       </p>
 
       <div class="mt-10 grid grid-cols-1 gap-4 sm:mt-16 lg:grid-cols-6 lg:grid-rows-2">
@@ -25,13 +25,12 @@
               <p
                 class="mt-2 text-lg font-medium tracking-tight text-gray-950 dark:text-white max-lg:text-center"
               >
-                Plans That Adapt When Life Happens
+                {{ t('feat1_title') }}
               </p>
               <p
                 class="mt-2 max-w-lg text-sm/6 text-gray-600 dark:text-gray-400 max-lg:text-center"
               >
-                Plans that adapt to your sleep score. If you slept 4 hours, we won't ask for a VO2
-                Max session.
+                {{ t('feat1_desc') }}
               </p>
             </div>
             <div
@@ -45,22 +44,22 @@
                   <div
                     class="flex items-center justify-between text-xs text-gray-400 border-b border-gray-800 pb-2"
                   >
-                    <span>TODAY'S PLAN</span>
-                    <span class="text-yellow-500 animate-pulse">ADAPTED (POOR SLEEP)</span>
+                    <span>{{ t('today_plan') }}</span>
+                    <span class="text-yellow-500 animate-pulse">{{ t('adapted') }}</span>
                   </div>
                   <div
                     class="p-3 bg-gray-800 rounded border-l-4 border-green-500 transition-all duration-300 hover:bg-gray-750"
                   >
-                    <div class="text-white font-bold">Endurance Ride (Z2)</div>
-                    <div class="text-xs text-gray-400">1h 30m • 140-160W</div>
+                    <div class="text-white font-bold">{{ t('session1_title') }}</div>
+                    <div class="text-xs text-gray-400">{{ t('session1_detail') }}</div>
                   </div>
                   <div
                     class="p-3 bg-gray-800/50 rounded border-l-4 border-gray-700 opacity-50 relative overflow-hidden"
                   >
                     <div class="text-gray-400 line-through decoration-red-500/50">
-                      VO2 Max Intervals
+                      {{ t('session2_title') }}
                     </div>
-                    <div class="text-xs text-gray-500">Cancelled due to recovery</div>
+                    <div class="text-xs text-gray-500">{{ t('session2_cancelled') }}</div>
                     <!-- Strike animation line -->
                     <div
                       class="absolute top-1/2 left-0 w-full h-px bg-red-500/50 transform -translate-y-1/2 scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left"
@@ -87,13 +86,12 @@
               <p
                 class="mt-2 text-lg font-medium tracking-tight text-gray-950 dark:text-white max-lg:text-center"
               >
-                Readiness-Aware Coaching
+                {{ t('feat2_title') }}
               </p>
               <p
                 class="mt-2 max-w-lg text-sm/6 text-gray-600 dark:text-gray-400 max-lg:text-center"
               >
-                Every day starts with a readiness check. We adapt session intent based on fatigue,
-                recovery, and recent load so you train hard on the right days.
+                {{ t('feat2_desc') }}
               </p>
             </div>
             <div
@@ -134,13 +132,12 @@
               <p
                 class="mt-2 text-lg font-medium tracking-tight text-gray-950 dark:text-white max-lg:text-center"
               >
-                Know Your Fuel State
+                {{ t('feat3_title') }}
               </p>
               <p
                 class="mt-2 max-w-lg text-sm/6 text-gray-600 dark:text-gray-400 max-lg:text-center"
               >
-                Track glycogen trends, see metabolic horizon risk, and get actionable fueling
-                targets before and after key sessions.
+                {{ t('feat3_desc') }}
               </p>
             </div>
             <div
@@ -154,7 +151,7 @@
                 <div
                   class="absolute -bottom-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100"
                 >
-                  FUEL LIVE
+                  {{ t('feat3_badge') }}
                 </div>
               </div>
             </div>
@@ -176,12 +173,12 @@
               <p
                 class="mt-2 text-lg font-medium tracking-tight text-gray-950 dark:text-white max-lg:text-center"
               >
-                24/7 Coaching Brain
+                {{ t('feat4_title') }}
               </p>
               <p
                 class="mt-2 max-w-lg text-sm/6 text-gray-600 dark:text-gray-400 max-lg:text-center"
               >
-                Ask anything.
+                {{ t('feat4_desc') }}
               </p>
             </div>
             <div
@@ -204,3 +201,8 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+  const { t } = useTranslate('bento')
+</script>

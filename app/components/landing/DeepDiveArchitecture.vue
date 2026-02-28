@@ -4,26 +4,20 @@
       <!-- Section Header -->
       <div class="mx-auto max-w-2xl text-center mb-16">
         <h2 class="text-base font-semibold leading-7 text-primary-400 font-mono">
-          STATE OF THE ART
+          {{ t('label') }}
         </h2>
         <p class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          The Brain Behind the Performance
+          {{ t('headline') }}
         </p>
-        <p class="mt-6 text-lg leading-8 text-gray-300">
-          We don't just count steps. Coach Watts uses a multi-layered AI pipeline to construct a
-          "Digital Twin" of your physiology.
-        </p>
+        <p class="mt-6 text-lg leading-8 text-gray-300">{{ t('description') }}</p>
       </div>
 
       <div class="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-8 items-start">
         <!-- Left: Text Explanation -->
         <div class="lg:pr-8 lg:pt-4">
           <div class="lg:max-w-lg">
-            <h3 class="text-2xl font-bold tracking-tight text-white">Context is King.</h3>
-            <p class="mt-4 text-base leading-7 text-gray-300">
-              Most platforms analyze a workout in isolation. Coach Watts analyzes it in the context
-              of your entire history, your nutrition, and your recovery.
-            </p>
+            <h3 class="text-2xl font-bold tracking-tight text-white">{{ t('context_title') }}</h3>
+            <p class="mt-4 text-base leading-7 text-gray-300">{{ t('context_desc') }}</p>
             <dl class="mt-10 max-w-xl space-y-8 text-base leading-7 text-gray-300 lg:max-w-none">
               <div class="relative pl-9">
                 <dt class="inline font-semibold text-white">
@@ -31,12 +25,9 @@
                     name="i-heroicons-arrow-down-tray"
                     class="absolute left-1 top-1 h-5 w-5 text-primary-500"
                   />
-                  Unified Data View
+                  {{ t('feat1_title') }}
                 </dt>
-                <dd class="inline">
-                  We unite data from all your connected sources into a single, comprehensive view.
-                  This solves the "fragmented data" problem.
-                </dd>
+                <dd class="inline">{{ t('feat1_desc') }}</dd>
               </div>
 
               <div class="relative pl-9">
@@ -45,13 +36,9 @@
                     name="i-heroicons-cpu-chip"
                     class="absolute left-1 top-1 h-5 w-5 text-primary-500"
                   />
-                  Smart Workout Analysis
+                  {{ t('feat2_title') }}
                 </dt>
-                <dd class="inline">
-                  Every new workout is analyzed by our AI Coach to extract qualitative insights
-                  (e.g., "The athlete struggled with power in the third interval due to potential
-                  fatigue").
-                </dd>
+                <dd class="inline">{{ t('feat2_desc') }}</dd>
               </div>
 
               <div class="relative pl-9">
@@ -60,13 +47,9 @@
                     name="i-heroicons-user-circle"
                     class="absolute left-1 top-1 h-5 w-5 text-primary-500"
                   />
-                  Your Digital Twin
+                  {{ t('feat3_title') }}
                 </dt>
-                <dd class="inline">
-                  These event insights feed into a persistent "Athlete Profile." This living profile
-                  evolves daily, tracking fatigue resistance, recovery patterns, and mental
-                  resilience.
-                </dd>
+                <dd class="inline">{{ t('feat3_desc') }}</dd>
               </div>
 
               <div class="relative pl-9">
@@ -75,14 +58,9 @@
                     name="i-heroicons-chat-bubble-bottom-center-text"
                     class="absolute left-1 top-1 h-5 w-5 text-primary-500"
                   />
-                  4. Holistic Coaching
+                  {{ t('feat4_title') }}
                 </dt>
-                <dd class="inline">
-                  When the Daily Coach runs, it reads the <i>Athlete Profile</i>, not just the raw
-                  data. This allows it to say "Your recovery is low, and
-                  <i>historically you get sick when training in this state</i>" rather than just
-                  "HRV is low."
-                </dd>
+                <dd class="inline">{{ t('feat4_desc') }}</dd>
               </div>
             </dl>
           </div>
@@ -98,17 +76,17 @@
                 <div
                   class="px-3 py-1 bg-gray-900 border border-gray-600 rounded text-xs text-gray-400"
                 >
-                  Workouts
+                  {{ t('data_workouts') }}
                 </div>
                 <div
                   class="px-3 py-1 bg-gray-900 border border-gray-600 rounded text-xs text-gray-400"
                 >
-                  Wellness
+                  {{ t('data_wellness') }}
                 </div>
                 <div
                   class="px-3 py-1 bg-gray-900 border border-gray-600 rounded text-xs text-gray-400"
                 >
-                  Nutrition
+                  {{ t('data_nutrition') }}
                 </div>
               </div>
 
@@ -118,8 +96,8 @@
 
               <!-- Ingestion Engine -->
               <div class="p-4 bg-gray-900 border border-primary-500/30 rounded-lg text-center">
-                <div class="text-primary-400 font-mono text-sm mb-1">DATA ENGINE</div>
-                <div class="text-xs text-gray-500">Unification & Security</div>
+                <div class="text-primary-400 font-mono text-sm mb-1">{{ t('engine') }}</div>
+                <div class="text-xs text-gray-500">{{ t('engine_sub') }}</div>
               </div>
 
               <div class="h-8 flex justify-center">
@@ -129,14 +107,14 @@
               <!-- Analysis Layer -->
               <div class="grid grid-cols-2 gap-4">
                 <div class="p-3 bg-gray-900 border border-gray-700 rounded text-center">
-                  <div class="text-gray-300 font-mono text-xs">WORKOUT ANALYSIS</div>
+                  <div class="text-gray-300 font-mono text-xs">{{ t('workout_analysis') }}</div>
                 </div>
                 <div class="p-3 bg-gray-900 border border-gray-700 rounded text-center">
-                  <div class="text-gray-300 font-mono text-xs">NUTRITION ANALYSIS</div>
+                  <div class="text-gray-300 font-mono text-xs">{{ t('nutrition_analysis') }}</div>
                 </div>
               </div>
 
-              <div class="h-8 flex justify-center text-gray-600 text-xs">Updating State...</div>
+              <div class="h-8 flex justify-center text-gray-600 text-xs">{{ t('updating') }}</div>
 
               <!-- The Digital Twin -->
               <div
@@ -145,11 +123,11 @@
                 <div class="absolute inset-0 bg-primary-500/5" />
                 <div class="relative z-10">
                   <UIcon name="i-heroicons-user" class="w-12 h-12 text-primary-500 mx-auto mb-2" />
-                  <div class="text-white font-bold text-lg">DIGITAL ATHLETE TWIN</div>
+                  <div class="text-white font-bold text-lg">{{ t('twin_title') }}</div>
                   <div class="text-xs text-gray-400 mt-2 space-y-1">
-                    <p>Fitness: 8.5/10</p>
-                    <p>Fatigue: High</p>
-                    <p>Trend: Peaking</p>
+                    <p>{{ t('twin_fitness') }}</p>
+                    <p>{{ t('twin_fatigue') }}</p>
+                    <p>{{ t('twin_trend') }}</p>
                   </div>
                 </div>
               </div>
@@ -166,10 +144,7 @@
                   >
                     <UIcon name="i-heroicons-chat-bubble-left" class="text-white w-5 h-5" />
                   </div>
-                  <div class="text-sm text-gray-300">
-                    "Based on your profile, you respond best to rest when HRV drops below 40ms.
-                    Let's take today off."
-                  </div>
+                  <div class="text-sm text-gray-300">{{ t('coach_output') }}</div>
                 </div>
               </div>
             </div>
@@ -179,3 +154,8 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+  const { t } = useTranslate('architecture')
+</script>

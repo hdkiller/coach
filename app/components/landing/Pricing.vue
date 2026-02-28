@@ -5,13 +5,13 @@
         <h2
           class="text-base font-semibold leading-7 text-primary-600 dark:text-primary-400 font-mono"
         >
-          PRICING
+          {{ t('label') }}
         </h2>
         <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-          Plans for Every Athlete
+          {{ t('headline') }}
         </p>
         <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          From casual tracking to professional AI coaching. Start free and upgrade as you grow.
+          {{ t('description') }}
         </p>
       </div>
 
@@ -19,10 +19,7 @@
         <LandingPricingPlans />
 
         <div v-if="subscriptionsEnabled" class="mx-auto mt-16 max-w-2xl lg:text-center">
-          <p class="text-sm text-gray-500">
-            All plans include a 14-day money-back guarantee. No credit card required for the free
-            plan.
-          </p>
+          <p class="text-sm text-gray-500">{{ t('guarantee') }}</p>
         </div>
       </div>
     </div>
@@ -30,6 +27,9 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('pricing')
   const config = useRuntimeConfig()
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
 </script>

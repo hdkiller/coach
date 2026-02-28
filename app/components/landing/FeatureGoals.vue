@@ -5,14 +5,13 @@
         <h2
           class="text-base font-semibold leading-7 text-primary-600 dark:text-primary-400 font-mono"
         >
-          GOALS
+          {{ t('label') }}
         </h2>
         <p class="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-          Set Goals. Crush Them. Don't Just Train. Train with Purpose.
+          {{ t('headline') }}
         </p>
         <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          Whether it's a podium finish, a power target, or weight loss, Coach Watts keeps you on
-          track with personalized adaptive coaching.
+          {{ t('description') }}
         </p>
       </div>
 
@@ -29,15 +28,15 @@
             >
               <UIcon name="i-heroicons-calendar" class="w-6 h-6" />
             </div>
-            <h3 class="font-semibold text-gray-900 dark:text-white">Event Prep</h3>
+            <h3 class="font-semibold text-gray-900 dark:text-white">{{ t('event_title') }}</h3>
           </div>
           <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
             "Gran Fondo New York" <br />
-            <span class="text-xs text-gray-500">Peak for race day with periodized blocks.</span>
+            <span class="text-xs text-gray-500">{{ t('event_sub') }}</span>
           </p>
           <div class="mt-4 flex gap-2">
-            <UBadge color="neutral" variant="subtle" size="xs">Due Oct 12</UBadge>
-            <UBadge color="primary" variant="subtle" size="xs">High Priority</UBadge>
+            <UBadge color="neutral" variant="subtle" size="xs">{{ t('event_badge') }}</UBadge>
+            <UBadge color="primary" variant="subtle" size="xs">{{ t('event_priority') }}</UBadge>
           </div>
         </div>
 
@@ -51,14 +50,14 @@
             >
               <UIcon name="i-heroicons-bolt" class="w-6 h-6" />
             </div>
-            <h3 class="font-semibold text-gray-900 dark:text-white">Performance</h3>
+            <h3 class="font-semibold text-gray-900 dark:text-white">{{ t('perf_title') }}</h3>
           </div>
           <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
             "Increase FTP to 300W" <br />
-            <span class="text-xs text-gray-500">Structured intervals to boost threshold.</span>
+            <span class="text-xs text-gray-500">{{ t('perf_sub') }}</span>
           </p>
           <div class="mt-4 flex gap-2">
-            <UBadge color="neutral" variant="subtle" size="xs">Target: 300W</UBadge>
+            <UBadge color="neutral" variant="subtle" size="xs">{{ t('perf_badge') }}</UBadge>
             <div class="w-16 h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden mt-0.5">
               <div class="h-full bg-amber-500 w-3/4" />
             </div>
@@ -75,16 +74,14 @@
             >
               <UIcon name="i-heroicons-scale" class="w-6 h-6" />
             </div>
-            <h3 class="font-semibold text-gray-900 dark:text-white">Weight</h3>
+            <h3 class="font-semibold text-gray-900 dark:text-white">{{ t('weight_title') }}</h3>
           </div>
           <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
             "Reach 70kg Race Weight" <br />
-            <span class="text-xs text-gray-500"
-              >Fuel targets adapt to training load, not just calories.</span
-            >
+            <span class="text-xs text-gray-500">{{ t('weight_sub') }}</span>
           </p>
           <div class="mt-4 flex gap-2">
-            <UBadge color="neutral" variant="subtle" size="xs">-2.5kg to go</UBadge>
+            <UBadge color="neutral" variant="subtle" size="xs">{{ t('weight_badge') }}</UBadge>
           </div>
         </div>
 
@@ -98,11 +95,13 @@
             >
               <UIcon name="i-heroicons-arrow-path" class="w-6 h-6" />
             </div>
-            <h3 class="font-semibold text-gray-900 dark:text-white">Consistency</h3>
+            <h3 class="font-semibold text-gray-900 dark:text-white">
+              {{ t('consistency_title') }}
+            </h3>
           </div>
           <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
             "Ride 5 days/week" <br />
-            <span class="text-xs text-gray-500">Build habits that stick.</span>
+            <span class="text-xs text-gray-500">{{ t('consistency_sub') }}</span>
           </p>
           <div class="mt-4 flex gap-1">
             <div class="w-3 h-3 rounded-full bg-green-500" />
@@ -115,10 +114,15 @@
       </div>
 
       <div class="mt-12 flex justify-center">
-        <UButton to="/login" size="lg" icon="i-heroicons-arrow-right" trailing
-          >Start Tracking Goals</UButton
-        >
+        <UButton to="/login" size="lg" icon="i-heroicons-arrow-right" trailing>{{
+          t('cta')
+        }}</UButton>
       </div>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+  const { t } = useTranslate('goals')
+</script>

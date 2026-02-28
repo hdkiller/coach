@@ -12,14 +12,13 @@
 
     <div class="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
       <div class="mx-auto max-w-2xl text-center">
-        <h2 class="text-base font-semibold leading-7 text-primary-400 font-mono">THE PROCESS</h2>
+        <h2 class="text-base font-semibold leading-7 text-primary-400 font-mono">
+          {{ t('label') }}
+        </h2>
         <p class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          From Raw Data to Gold Medal Strategy
+          {{ t('headline') }}
         </p>
-        <p class="mt-6 text-lg leading-8 text-gray-400">
-          We don't just show you charts. We ingest your entire digital physiology, analyze the
-          hidden patterns, and build a coaching strategy that includes training and fueling.
-        </p>
+        <p class="mt-6 text-lg leading-8 text-gray-400">{{ t('description') }}</p>
       </div>
 
       <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
@@ -49,15 +48,12 @@
               class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
             >
               <span class="font-mono text-xl font-black text-primary-500">01_</span>
-              Connect Data
+              {{ t('step1_title') }}
             </dt>
             <dd
               class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
             >
-              <p class="flex-auto">
-                Connect your training and nutrition apps. We combine Strava, Whoop, Garmin, Yazio,
-                and more into one performance timeline.
-              </p>
+              <p class="flex-auto">{{ t('step1_desc') }}</p>
 
               <!-- Visual Hint -->
               <div class="meta-row mt-5 flex -space-x-2 overflow-hidden">
@@ -94,15 +90,12 @@
               class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
             >
               <span class="font-mono text-xl font-black text-primary-500">02_</span>
-              Model Readiness
+              {{ t('step2_title') }}
             </dt>
             <dd
               class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
             >
-              <p class="flex-auto">
-                Our AI models fatigue, recovery, and fuel availability so you can see what standard
-                charts miss.
-              </p>
+              <p class="flex-auto">{{ t('step2_desc') }}</p>
               <div class="meta-row mt-5 flex items-center gap-2">
                 <span class="relative flex h-3 w-3">
                   <span
@@ -110,7 +103,7 @@
                   />
                   <span class="relative inline-flex rounded-full h-3 w-3 bg-[#ef4444]" />
                 </span>
-                <span class="status-pill status-pill-red">Status: Deep Fatigue Detected</span>
+                <span class="status-pill status-pill-red">{{ t('step2_status') }}</span>
               </div>
             </dd>
           </div>
@@ -131,19 +124,15 @@
               class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
             >
               <span class="font-mono text-xl font-black text-primary-500">03_</span>
-              Plan Fueling
+              {{ t('step3_title') }}
             </dt>
             <dd
               class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
             >
-              <p class="flex-auto">
-                Get pre, intra, and post-workout fueling targets with carbs, fluids, and sodium
-                based on your actual training load.
-              </p>
-              <!-- Score Hint -->
+              <p class="flex-auto">{{ t('step3_desc') }}</p>
               <div class="meta-row mt-5 flex flex-wrap gap-2">
-                <span class="status-pill status-pill-green">Fuel: Optimized</span>
-                <span class="status-pill status-pill-yellow">Recovery: Balanced</span>
+                <span class="status-pill status-pill-green">{{ t('step3_status1') }}</span>
+                <span class="status-pill status-pill-yellow">{{ t('step3_status2') }}</span>
               </div>
             </dd>
           </div>
@@ -164,23 +153,18 @@
               class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
             >
               <span class="font-mono text-xl font-black text-primary-500">04_</span>
-              Execute Daily
+              {{ t('step4_title') }}
             </dt>
             <dd
               class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
             >
-              <p class="flex-auto">
-                Receive specific actions for training and nutrition. Know whether to push, recover,
-                or refuel before your next key session.
-              </p>
+              <p class="flex-auto">{{ t('step4_desc') }}</p>
 
               <div
                 class="meta-row ai-quote mt-5 flex items-center gap-3 rounded-lg border-l-2 border-primary-500 bg-gray-800 p-3 text-xs italic text-gray-300"
               >
                 <UIcon name="i-heroicons-cpu-chip" class="w-5 h-5 text-primary-500 shrink-0" />
-                <span class="typing-quote"
-                  >"Fuel low for threshold work. Add 60g carbs 90min pre-ride."</span
-                >
+                <span class="typing-quote">{{ t('step4_quote') }}</span>
               </div>
             </dd>
           </div>
@@ -191,6 +175,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('how-it-works')
+
   const sectionRef = ref<HTMLElement | null>(null)
   const flowProgress = ref(0)
 
