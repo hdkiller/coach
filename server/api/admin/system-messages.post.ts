@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const schema = z.object({
     title: z.string().min(1),
     content: z.string().min(1),
-    type: z.enum(['INFO', 'WARNING', 'ERROR', 'SUCCESS', 'ADVERT']).default('INFO'),
+    type: z.enum(['INFO', 'WARNING', 'ERROR', 'SUCCESS', 'ADVERT', 'SHARE']).default('INFO'),
     isActive: z.boolean().default(true),
     targetUrl: z.string().optional().nullable(),
     actionLabel: z.string().optional().nullable(),

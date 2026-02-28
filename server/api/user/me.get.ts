@@ -23,6 +23,9 @@ export default defineEventHandler(async (event) => {
       subscriptionTier: true,
       subscriptionStatus: true,
       subscriptionPeriodEnd: true,
+      trialEndsAt: true,
+      shareRewardClaimedAt: true,
+      shareRewardDaysGranted: true,
       nutritionTrackingEnabled: true,
       dashboardSettings: true,
       isAdmin: true

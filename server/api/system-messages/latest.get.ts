@@ -35,7 +35,8 @@ export default defineEventHandler(async (event) => {
     where: { id: userId },
     select: {
       createdAt: true,
-      subscriptionTier: true
+      subscriptionTier: true,
+      shareRewardClaimedAt: true
     }
   })
 
@@ -43,31 +44,31 @@ export default defineEventHandler(async (event) => {
     return { message: null }
   }
 
+  const targetedGrowthTypes = new Set(['ADVERT', 'SHARE'])
   let selectedMessage = null
 
   const userAgeMs = new Date().getTime() - user.createdAt.getTime()
 
   for (const msg of activeMessages) {
     const minAgeMs = (msg.minUserAgeDays || 0) * 24 * 60 * 60 * 1000
+    const isTargetedGrowthType = targetedGrowthTypes.has(msg.type)
 
-    if (msg.type === 'ADVERT') {
-      // Logic for ADVERT type:
-      // 1. Don't show to subscribers (PRO or SUPPORTER)
+    if (isTargetedGrowthType) {
       if (user.subscriptionTier !== 'FREE') {
         continue
       }
 
-      // 2. Don't show to new users (respect minUserAgeDays)
       if (userAgeMs < minAgeMs) {
         continue
       }
 
-      // If checks pass, show the advert
+      if (msg.type === 'SHARE' && user.shareRewardClaimedAt) {
+        continue
+      }
+
       selectedMessage = msg
       break
     } else {
-      // Non-ADVERT messages are shown normally
-      // But we still respect minUserAgeDays if set
       if (userAgeMs < minAgeMs) {
         continue
       }
