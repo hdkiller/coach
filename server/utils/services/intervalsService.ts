@@ -297,6 +297,8 @@ export const IntervalsService = {
    * Sync activity stream data including pacing metrics.
    */
   async syncActivityStream(userId: string, workoutId: string, activityId: string) {
+    await heartbeats.yield()
+
     // Get Intervals integration
     const integration = await prisma.integration.findFirst({
       where: {
@@ -311,6 +313,7 @@ export const IntervalsService = {
 
     // Fetch streams from Intervals.icu API
     const streams = await fetchIntervalsActivityStreams(integration, activityId)
+    await heartbeats.yield()
 
     // Check if we got any stream data
     if (
@@ -360,6 +363,7 @@ export const IntervalsService = {
       if (hrZones.length === 0) hrZones = (user?.hrZones as any[]) || DEFAULT_HR_ZONES
       if (powerZones.length === 0) powerZones = (user?.powerZones as any[]) || DEFAULT_POWER_ZONES
     }
+    await heartbeats.yield()
 
     const hrZoneTimes: number[] | null =
       heartrateData && hrZones.length > 0 ? new Array(hrZones.length).fill(0) : null
@@ -376,6 +380,7 @@ export const IntervalsService = {
         }
       }
     }
+    await heartbeats.yield()
 
     const powerZoneTimes: number[] | null =
       wattsData && powerZones.length > 0 ? new Array(powerZones.length).fill(0) : null
@@ -392,6 +397,7 @@ export const IntervalsService = {
         }
       }
     }
+    await heartbeats.yield()
 
     // Calculate pacing metrics
     let lapSplits = null
@@ -426,6 +432,7 @@ export const IntervalsService = {
         surges = detectSurges(velocityData, timeData)
       }
     }
+    await heartbeats.yield()
 
     // Store in database
     const workoutStream = await prisma.workoutStream.upsert({
@@ -481,11 +488,13 @@ export const IntervalsService = {
         updatedAt: new Date()
       }
     })
+    await heartbeats.yield()
 
     // If Intervals summary omitted power metrics (common on some running activities),
     // backfill from the stored watts stream so downstream AI/context has usable values.
     const streamPowerSummary = summarizePowerFromWatts(wattsData)
     const streamElevationGain = computeElevationGainFromAltitudeStream(altitudeData)
+    await heartbeats.yield()
 
     if (streamPowerSummary || streamElevationGain !== null) {
       const workout = await prisma.workout.findUnique({
@@ -530,6 +539,7 @@ export const IntervalsService = {
             where: { id: workoutId },
             data: updateData
           })
+          await heartbeats.yield()
         }
       }
     }
