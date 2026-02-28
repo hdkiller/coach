@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, computed, watch, getCurrentScope, onScopeDispose } from 'vue'
 
 export interface TriggerRun {
   id: string
@@ -30,6 +30,26 @@ export const ACTIVE_STATUSES = [
   'PENDING_VERSION',
   'DELAYED'
 ]
+
+function cleanupUserRunsConnection() {
+  if (ws) {
+    ws.close()
+    ws = null
+  }
+
+  isConnected.value = false
+  initPromise = null
+
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+
+  if (pingInterval) {
+    clearInterval(pingInterval)
+    pingInterval = null
+  }
+}
 
 export function useUserRuns() {
   const { data: session } = useAuth()
@@ -263,26 +283,29 @@ export function useUserRuns() {
     )
   }
 
-  onMounted(() => {
+  if (import.meta.client) {
     activeSubscribers++
     if (hasUserSession.value) {
-      init()
+      void init()
     }
-  })
 
-  onUnmounted(() => {
-    activeSubscribers--
-    if (activeSubscribers === 0) {
-      if (ws) {
-        ws.close()
-        ws = null
+    let disposed = false
+    const dispose = () => {
+      if (disposed) return
+      disposed = true
+      activeSubscribers = Math.max(0, activeSubscribers - 1)
+
+      if (activeSubscribers === 0) {
+        cleanupUserRunsConnection()
       }
-      isConnected.value = false
-      initPromise = null
-      stopPolling()
-      stopPing()
     }
-  })
+
+    // Pinia setup stores and plugins have an effect scope even when they do not
+    // have a component instance, so scope disposal is the safe cleanup primitive here.
+    if (getCurrentScope()) {
+      onScopeDispose(dispose)
+    }
+  }
 
   return {
     runs,
