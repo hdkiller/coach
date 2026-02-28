@@ -16,6 +16,8 @@ interface User {
   pendingSubscriptionTier: SubscriptionTier | null
   pendingSubscriptionPeriodEnd: Date | null
   trialEndsAt: Date | null
+  shareRewardClaimedAt: Date | null
+  shareRewardDaysGranted: number | null
   dashboardSettings?: any
   isAdmin?: boolean
 }

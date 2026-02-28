@@ -143,6 +143,38 @@ export function useAnalytics() {
       gtag('event', 'login', {
         method
       })
+    },
+
+    trackSharePromptView: (messageType: string) => {
+      gtag('event', 'share_prompt_view', {
+        message_type: messageType
+      })
+    },
+
+    trackShareModalOpen: () => {
+      gtag('event', 'share_modal_open')
+    },
+
+    trackShareLinkCopy: () => {
+      gtag('event', 'share_link_copy')
+    },
+
+    trackShareNetworkClick: (network: string) => {
+      gtag('event', 'share_network_click', {
+        network
+      })
+    },
+
+    trackShareRewardClaim: (daysGranted: number) => {
+      gtag('event', 'share_reward_claim', {
+        days_granted: daysGranted
+      })
+    },
+
+    trackShareRewardClaimRejected: (reason: string) => {
+      gtag('event', 'share_reward_claim_rejected', {
+        reason
+      })
     }
   }
 }
