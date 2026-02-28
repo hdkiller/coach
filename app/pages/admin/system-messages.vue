@@ -175,7 +175,7 @@
                   <UFormField label="Type" name="type" required>
                     <USelect
                       v-model="state.type"
-                      :items="['INFO', 'WARNING', 'ERROR', 'SUCCESS', 'ADVERT']"
+                      :items="['INFO', 'WARNING', 'ERROR', 'SUCCESS', 'ADVERT', 'SHARE']"
                       class="w-full"
                     />
                   </UFormField>
@@ -250,7 +250,7 @@
   const state = reactive({
     title: '',
     content: '',
-    type: 'INFO' as 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS' | 'ADVERT',
+    type: 'INFO' as 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS' | 'ADVERT' | 'SHARE',
     isActive: true,
     expiresAt: undefined as string | undefined,
     targetUrl: undefined as string | undefined,
@@ -261,7 +261,7 @@
   const schema = z.object({
     title: z.string().min(1),
     content: z.string().min(1),
-    type: z.enum(['INFO', 'WARNING', 'ERROR', 'SUCCESS', 'ADVERT']),
+    type: z.enum(['INFO', 'WARNING', 'ERROR', 'SUCCESS', 'ADVERT', 'SHARE']),
     isActive: z.boolean(),
     expiresAt: z.string().optional(),
     targetUrl: z
@@ -324,6 +324,8 @@
         return 'green'
       case 'ADVERT':
         return 'yellow'
+      case 'SHARE':
+        return 'primary'
       default:
         return 'gray'
     }
