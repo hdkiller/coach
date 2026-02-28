@@ -1,22 +1,13 @@
 {
   "projectId": 2,
-  "apiUrl": "https://tolgee.shadow.hdkiller.com/",
-  "apiKey": "tgpak_gjpxc3tcnyzggmlcnvrwcn3nnrxtqmlsorrgqnlrojyto",
   "push": {
     "files": [
-      {
-        "path": "app/i18n/en",
-        "template": "{namespace}.json",
-        "language": "en"
-      },
-      {
-        "path": "app/i18n/hu",
-        "template": "{namespace}.json",
-        "language": "hu"
-      }
+      { "path": "app/i18n/en", "language": "en", "template": "{namespace}.json" },
+      { "path": "app/i18n/hu", "language": "hu", "template": "{namespace}.json" }
     ]
   },
   "pull": {
-    "path": "app/i18n/{languageTag}/{namespace}.json"
+    "path": "app/i18n",
+    "fileStructureTemplate": "{languageTag}/{namespace}.json"
   }
 }
