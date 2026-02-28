@@ -48,6 +48,23 @@
   const composerDisabled = computed(
     () => props.disabled || uploadingCount.value > 0 || isTranscribing.value
   )
+  const showInlineMic = computed(() => !props.modelValue.trim() && attachments.value.length === 0)
+  const attachmentMenuItems = computed(() => [
+    [
+      {
+        label: 'Take picture',
+        icon: 'i-heroicons-camera',
+        disabled: composerDisabled.value,
+        onSelect: () => openCamera()
+      },
+      {
+        label: 'Upload file',
+        icon: 'i-heroicons-photo',
+        disabled: composerDisabled.value,
+        onSelect: () => openLibrary()
+      }
+    ]
+  ])
 
   const isLikelyMobile = () => {
     if (!import.meta.client) return false
@@ -74,6 +91,65 @@
 
   const resetImageInput = (input: HTMLInputElement | null) => {
     if (input) input.value = ''
+  }
+
+  const readFileAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result || ''))
+      reader.onerror = () => reject(reader.error || new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+
+  const loadImageElement = (src: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = () => reject(new Error('Failed to load image'))
+      image.src = src
+    })
+
+  const normalizeImageForUpload = async (file: File) => {
+    if (!import.meta.client) return file
+    if (
+      file.type === 'image/gif' ||
+      file.type === 'image/svg+xml' ||
+      (file.type === 'image/webp' && file.size <= 4 * 1024 * 1024) ||
+      (file.type === 'image/jpeg' && file.size <= 4 * 1024 * 1024) ||
+      (file.type === 'image/png' && file.size <= 4 * 1024 * 1024)
+    ) {
+      return file
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      const image = await loadImageElement(dataUrl)
+      const maxDimension = 1600
+      const width = image.naturalWidth || image.width
+      const height = image.naturalHeight || image.height
+      const scale = Math.min(1, maxDimension / Math.max(width, height))
+      const targetWidth = Math.max(1, Math.round(width * scale))
+      const targetHeight = Math.max(1, Math.round(height * scale))
+
+      const canvas = document.createElement('canvas')
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+
+      const context = canvas.getContext('2d')
+      if (!context) return file
+
+      context.drawImage(image, 0, 0, targetWidth, targetHeight)
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/jpeg', 0.86)
+      })
+      if (!blob) return file
+
+      const normalizedName = file.name.replace(/\.[^.]+$/, '') || 'upload'
+      return new File([blob], `${normalizedName}.jpg`, { type: 'image/jpeg' })
+    } catch {
+      return file
+    }
   }
 
   const handleTextareaKeydown = (event: KeyboardEvent) => {
@@ -138,8 +214,9 @@
     for (const file of imageFiles.slice(0, 4)) {
       uploadingCount.value += 1
       try {
+        const normalizedFile = await normalizeImageForUpload(file)
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', normalizedFile)
 
         const response = await $fetch<{ url: string }>('/api/storage/upload', {
           method: 'POST',
@@ -149,9 +226,9 @@
         attachments.value.push({
           id: crypto.randomUUID(),
           url: response.url,
-          mediaType: file.type,
-          filename: file.name,
-          size: file.size
+          mediaType: normalizedFile.type || file.type,
+          filename: normalizedFile.name || file.name,
+          size: normalizedFile.size || file.size
         })
       } catch (error: any) {
         toast.add({
@@ -359,7 +436,9 @@
 
 <template>
   <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-800">
-    <UContainer class="space-y-3 py-2 sm:py-4 px-2 sm:px-4">
+    <UContainer
+      class="space-y-3 px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:px-4 sm:py-4 sm:pb-4"
+    >
       <input
         ref="imageInputRef"
         type="file"
@@ -442,6 +521,7 @@
 
       <UChatPrompt
         ref="promptRef"
+        class="min-w-0"
         :model-value="modelValue"
         :error="error"
         :disabled="composerDisabled"
@@ -452,7 +532,30 @@
         @update:model-value="emit('update:modelValue', $event)"
         @submit="handleSubmit"
       >
-        <UChatPromptSubmit :status="status" :disabled="composerDisabled" />
+        <UDropdownMenu :items="attachmentMenuItems" :content="{ side: 'top', align: 'start' }">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="md"
+            square
+            icon="i-heroicons-plus"
+            class="shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            :disabled="composerDisabled"
+            aria-label="Add attachment"
+          />
+        </UDropdownMenu>
+        <UButton
+          :color="showInlineMic ? 'primary' : 'neutral'"
+          :variant="showInlineMic ? 'solid' : 'ghost'"
+          size="md"
+          square
+          :icon="isRecording ? 'i-heroicons-stop-circle' : 'i-heroicons-microphone'"
+          class="shrink-0"
+          :disabled="props.disabled || isTranscribing"
+          :aria-label="isRecording ? 'Stop dictation' : 'Start dictation'"
+          @click="toggleRecording"
+        />
+        <UChatPromptSubmit v-if="!showInlineMic" :status="status" :disabled="composerDisabled" />
       </UChatPrompt>
     </UContainer>
   </div>
