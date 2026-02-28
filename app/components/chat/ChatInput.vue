@@ -838,12 +838,14 @@
         />
         <UChatPromptSubmit
           v-if="hasAttachmentOnlyMessage"
+          class="ml-1"
           :status="status"
           :disabled="composerDisabled"
           :on-click="handleSubmit"
         />
         <UChatPromptSubmit
           v-else-if="!showInlineMic"
+          class="ml-1"
           :status="status"
           :disabled="composerDisabled"
         />
