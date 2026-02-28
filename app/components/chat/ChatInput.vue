@@ -481,39 +481,7 @@
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-        <UButton
-          color="neutral"
-          variant="ghost"
-          size="xs"
-          icon="i-heroicons-photo"
-          :disabled="composerDisabled"
-          @click="openLibrary"
-        >
-          Photo
-        </UButton>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          size="xs"
-          icon="i-heroicons-camera"
-          :disabled="composerDisabled"
-          @click="openCamera"
-        >
-          Camera
-        </UButton>
-        <UButton
-          :color="isRecording ? 'error' : 'neutral'"
-          variant="ghost"
-          size="xs"
-          :icon="isRecording ? 'i-heroicons-stop-circle' : 'i-heroicons-microphone'"
-          :disabled="props.disabled || isTranscribing"
-          @click="toggleRecording"
-        >
-          {{
-            isRecording ? `Stop ${recordingLabel}` : isTranscribing ? 'Transcribing...' : 'Dictate'
-          }}
-        </UButton>
+      <div class="min-h-5 flex items-center text-xs text-gray-500 dark:text-gray-400">
         <span v-if="uploadingCount > 0">Uploading image...</span>
         <span v-else-if="isRecording">Recording voice note...</span>
         <span v-else-if="isTranscribing">Gemini is transcribing your voice note...</span>
@@ -527,23 +495,28 @@
         :disabled="composerDisabled"
         placeholder="Ask Coach Watts, add a meal photo, or dictate a note..."
         :ui="{
-          base: 'max-h-[min(400px,40vh)] overflow-hidden flex flex-col'
+          root: 'w-full',
+          base: 'max-h-[min(400px,40vh)] overflow-hidden flex flex-col ps-9',
+          leading: 'inset-y-0 ps-0 flex items-center'
         }"
         @update:model-value="emit('update:modelValue', $event)"
         @submit="handleSubmit"
       >
-        <UDropdownMenu :items="attachmentMenuItems" :content="{ side: 'top', align: 'start' }">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            size="md"
-            square
-            icon="i-heroicons-plus"
-            class="shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            :disabled="composerDisabled"
-            aria-label="Add attachment"
-          />
-        </UDropdownMenu>
+        <template #leading>
+          <UDropdownMenu :items="attachmentMenuItems" :content="{ side: 'top', align: 'start' }">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="md"
+              square
+              icon="i-heroicons-plus"
+              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              :disabled="composerDisabled"
+              aria-label="Add attachment"
+            />
+          </UDropdownMenu>
+        </template>
+
         <UButton
           :color="showInlineMic ? 'primary' : 'neutral'"
           :variant="showInlineMic ? 'solid' : 'ghost'"
