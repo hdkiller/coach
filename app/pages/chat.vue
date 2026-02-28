@@ -1,5 +1,13 @@
 <script setup lang="ts">
-  import { ref, computed, onMounted, defineAsyncComponent, watch, nextTick } from 'vue'
+  import {
+    ref,
+    computed,
+    onMounted,
+    onBeforeUnmount,
+    defineAsyncComponent,
+    watch,
+    nextTick
+  } from 'vue'
   import { Chat } from '@ai-sdk/vue'
   import { DefaultChatTransport } from 'ai'
   import ChatSidebar from '~/components/chat/ChatSidebar.vue'
@@ -37,6 +45,10 @@
   const editingMessage = ref<any | null>(null)
   const editingContent = ref('')
   const savingEditedMessage = ref(false)
+  const chatViewportHeight = ref('100dvh')
+  let visualViewportListener: (() => void) | null = null
+  let previousDocumentOverflow = ''
+  let previousBodyOverflow = ''
 
   // Fetch session
   const { data: session } = await useFetch('/api/auth/session')
@@ -306,10 +318,42 @@
   }
   // Load initial room and messages
   onMounted(async () => {
+    if (import.meta.client) {
+      previousDocumentOverflow = document.documentElement.style.overflow
+      previousBodyOverflow = document.body.style.overflow
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+
+      const updateViewportHeight = () => {
+        const viewportHeight = window.visualViewport?.height || window.innerHeight
+        chatViewportHeight.value = `${Math.round(viewportHeight)}px`
+      }
+
+      updateViewportHeight()
+      window.visualViewport?.addEventListener('resize', updateViewportHeight)
+      window.visualViewport?.addEventListener('scroll', updateViewportHeight)
+      window.addEventListener('resize', updateViewportHeight)
+      visualViewportListener = updateViewportHeight
+    }
+
     await loadChat()
     nextTick(() => {
       chatInputRef.value?.focus()
     })
+  })
+
+  onBeforeUnmount(() => {
+    if (!import.meta.client) return
+
+    document.documentElement.style.overflow = previousDocumentOverflow
+    document.body.style.overflow = previousBodyOverflow
+
+    if (visualViewportListener) {
+      window.visualViewport?.removeEventListener('resize', visualViewportListener)
+      window.visualViewport?.removeEventListener('scroll', visualViewportListener)
+      window.removeEventListener('resize', visualViewportListener)
+      visualViewportListener = null
+    }
   })
 
   async function loadRooms(selectFirst = true) {
@@ -591,7 +635,8 @@
 <template>
   <UDashboardPanel
     id="chat"
-    class="h-[100dvh] overflow-hidden"
+    class="overflow-hidden"
+    :style="{ height: chatViewportHeight }"
     :ui="{ body: 'p-0 min-h-0 overflow-hidden' }"
   >
     <!-- ... header remains same ... -->
