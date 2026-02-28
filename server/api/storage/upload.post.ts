@@ -22,7 +22,18 @@ export default defineEventHandler(async (event) => {
   }
 
   // 3. Validation (Basic)
-  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif']
+  const validTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/svg+xml',
+    'image/gif',
+    'image/heic',
+    'image/heif',
+    'image/avif',
+    'image/bmp',
+    'image/tiff'
+  ]
   if (!file.type || !validTypes.includes(file.type)) {
     throw createError({
       statusCode: 400,
@@ -31,9 +42,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Max size check (e.g. 5MB)
-  const MAX_SIZE = 5 * 1024 * 1024
+  const MAX_SIZE = 15 * 1024 * 1024
   if (file.data.length > MAX_SIZE) {
-    throw createError({ statusCode: 400, message: 'File too large. Max 5MB.' })
+    throw createError({ statusCode: 400, message: 'File too large. Max 15MB.' })
   }
 
   // 4. Generate unique filename to prevent collisions
