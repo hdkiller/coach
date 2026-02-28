@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref } from 'vue'
+  import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref, watch } from 'vue'
 
   type ChatAttachment = {
     id: string
@@ -32,25 +32,49 @@
   const promptRef = ref<any>(null)
   const imageInputRef = ref<HTMLInputElement | null>(null)
   const cameraInputRef = ref<HTMLInputElement | null>(null)
+  const webcamVideoRef = ref<HTMLVideoElement | null>(null)
   const audioChunks = ref<Blob[]>([])
   const attachments = ref<ChatAttachment[]>([])
   const uploadingCount = ref(0)
   const isRecording = ref(false)
   const isTranscribing = ref(false)
   const recordingElapsedMs = ref(0)
+  const isWebcamModalOpen = ref(false)
+  const isOpeningWebcam = ref(false)
+  const isCapturingWebcam = ref(false)
   const toast = useToast()
   let attachedTextarea: HTMLTextAreaElement | null = null
   let mediaRecorder: MediaRecorder | null = null
   let mediaStream: MediaStream | null = null
+  let webcamStream: MediaStream | null = null
   let recordingStartedAt = 0
   let recordingInterval: ReturnType<typeof setInterval> | null = null
 
   const composerDisabled = computed(
-    () => props.disabled || uploadingCount.value > 0 || isTranscribing.value
+    () =>
+      props.disabled || uploadingCount.value > 0 || isTranscribing.value || isOpeningWebcam.value
   )
-  const showInlineMic = computed(() => !props.modelValue.trim() && attachments.value.length === 0)
+  const hasTextContent = computed(() => !!props.modelValue.trim())
+  const hasAttachmentOnlyMessage = computed(
+    () => !hasTextContent.value && attachments.value.length > 0
+  )
+  const showInlineMic = computed(() => !hasTextContent.value && attachments.value.length === 0)
+  const canUseDesktopWebcam = computed(() => {
+    if (!import.meta.client) return false
+    return !isLikelyMobile() && !!navigator.mediaDevices?.getUserMedia
+  })
   const attachmentMenuItems = computed(() => [
     [
+      ...(canUseDesktopWebcam.value
+        ? [
+            {
+              label: 'Use webcam',
+              icon: 'i-heroicons-video-camera',
+              disabled: composerDisabled.value,
+              onSelect: () => openDesktopWebcam()
+            }
+          ]
+        : []),
       {
         label: 'Take picture',
         icon: 'i-heroicons-camera',
@@ -263,6 +287,95 @@
   const openLibrary = () => imageInputRef.value?.click()
   const openCamera = () => cameraInputRef.value?.click()
 
+  const stopWebcam = () => {
+    webcamStream?.getTracks().forEach((track) => track.stop())
+    webcamStream = null
+    if (webcamVideoRef.value) {
+      webcamVideoRef.value.srcObject = null
+    }
+    isOpeningWebcam.value = false
+    isCapturingWebcam.value = false
+  }
+
+  const openDesktopWebcam = async () => {
+    if (!import.meta.client || !navigator.mediaDevices?.getUserMedia) {
+      toast.add({
+        title: 'Webcam unavailable',
+        description: 'This browser does not support webcam capture.',
+        color: 'error'
+      })
+      return
+    }
+
+    isWebcamModalOpen.value = true
+    isOpeningWebcam.value = true
+
+    try {
+      stopWebcam()
+      webcamStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      })
+
+      await nextTick()
+
+      if (webcamVideoRef.value) {
+        webcamVideoRef.value.srcObject = webcamStream
+        await webcamVideoRef.value.play()
+      }
+    } catch (error) {
+      stopWebcam()
+      isWebcamModalOpen.value = false
+      toast.add({
+        title: 'Webcam access denied',
+        description: 'Allow camera access to take a desktop photo.',
+        color: 'error'
+      })
+    } finally {
+      isOpeningWebcam.value = false
+    }
+  }
+
+  const captureDesktopPhoto = async () => {
+    if (!import.meta.client || !webcamVideoRef.value || !webcamStream) return
+
+    isCapturingWebcam.value = true
+    try {
+      const video = webcamVideoRef.value
+      const width = video.videoWidth || 1280
+      const height = video.videoHeight || 720
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('Canvas unavailable')
+
+      context.drawImage(video, 0, 0, width, height)
+
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.9)
+      )
+      if (!blob) throw new Error('Could not create photo')
+
+      const file = new File([blob], `webcam-${Date.now()}.jpg`, { type: 'image/jpeg' })
+      await uploadImageFiles([file])
+      isWebcamModalOpen.value = false
+    } catch (error: any) {
+      toast.add({
+        title: 'Capture failed',
+        description: error?.message || 'Could not capture webcam photo.',
+        color: 'error'
+      })
+    } finally {
+      isCapturingWebcam.value = false
+    }
+  }
+
   const cleanupRecorder = () => {
     mediaRecorder = null
     audioChunks.value = []
@@ -418,6 +531,11 @@
       attachedTextarea = null
     }
     cleanupRecorder()
+    stopWebcam()
+  })
+
+  watch(isWebcamModalOpen, (open) => {
+    if (!open) stopWebcam()
   })
 
   defineExpose({
@@ -528,8 +646,60 @@
           :aria-label="isRecording ? 'Stop dictation' : 'Start dictation'"
           @click="toggleRecording"
         />
-        <UChatPromptSubmit v-if="!showInlineMic" :status="status" :disabled="composerDisabled" />
+        <UChatPromptSubmit
+          v-if="hasAttachmentOnlyMessage"
+          :status="status"
+          :disabled="composerDisabled"
+          :on-click="handleSubmit"
+        />
+        <UChatPromptSubmit v-else-if="!showInlineMic" :status="status" :disabled="composerDisabled" />
       </UChatPrompt>
     </UContainer>
   </div>
+
+  <UModal
+    v-model:open="isWebcamModalOpen"
+    title="Take Photo"
+    description="Capture a photo from your desktop webcam and add it to the chat."
+  >
+    <template #body>
+      <div class="space-y-4">
+        <div
+          class="overflow-hidden rounded-2xl border border-gray-200 bg-gray-950 dark:border-gray-800"
+        >
+          <video
+            ref="webcamVideoRef"
+            autoplay
+            playsinline
+            muted
+            class="aspect-video w-full object-cover"
+          />
+        </div>
+
+        <p v-if="isOpeningWebcam" class="text-sm text-gray-500 dark:text-gray-400">
+          Starting webcam...
+        </p>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full items-center justify-end gap-2">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          label="Cancel"
+          @click="isWebcamModalOpen = false"
+        />
+        <UButton
+          color="primary"
+          variant="solid"
+          icon="i-heroicons-camera"
+          label="Capture"
+          :loading="isCapturingWebcam"
+          :disabled="isOpeningWebcam"
+          @click="captureDesktopPhoto"
+        />
+      </div>
+    </template>
+  </UModal>
 </template>
