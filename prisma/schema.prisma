@@ -71,6 +71,8 @@ model User {
   registrationIp                     String?
   registrationCountry                String?
   trialEndsAt                        DateTime?
+  shareRewardClaimedAt               DateTime?
+  shareRewardDaysGranted             Int?                         @default(0)
   stripeCustomerId                   String?                      @unique
   stripeSubscriptionId               String?                      @unique
   subscriptionPeriodEnd              DateTime?
