@@ -13,13 +13,14 @@ Coach Watts works best when it has a complete picture of your training and recov
 - **[Oura](/documentation/athletes/integrations/oura)**: Detailed recovery and sleep analysis.
 - **[Whoop](/documentation/athletes/integrations/whoop)**: Strain and recovery monitoring.
 - **[Withings](/documentation/athletes/integrations/withings)**: Body weight and composition syncing.
-- **[Fitbit & Polar](/documentation/athletes/integrations/other-services)**: Additional device support.
+- **[Fitbit](/documentation/athletes/integrations/fitbit)**: Steps, activity, and sleep.
+- **[Polar](/documentation/athletes/integrations/polar)**: Training and physical data.
 
 ### Training Platforms
 
 - **[Strava](/documentation/athletes/integrations/strava)**: The primary source for workout ingestion.
 - **[Intervals.icu](/documentation/athletes/integrations/intervals-icu)**: Power analysis and training load.
-- **[Hevy](/documentation/athletes/integrations/other-services)**: Strength training and PRs.
+- **[Hevy](/documentation/athletes/integrations/hevy)**: Strength training and PRs.
 
 ### Nutrition
 
