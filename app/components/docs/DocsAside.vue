@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  const route = useRoute()
   const { data: navigation } = await useAsyncData('docs-navigation', () => {
     return queryCollectionNavigation('content')
   })
@@ -6,28 +7,36 @@
   // Recursive function to map content navigation to UNavigationMenu items
   function mapNavigation(items: any[]): any[] {
     if (!items) return []
-    return items.map((item) => ({
-      label: item.title || item.path.split('/').pop(),
-      to: item.path,
-      children:
-        item.children && item.children.length > 0 ? mapNavigation(item.children) : undefined,
-      defaultOpen: true
-    }))
+    return items.map((item) => {
+      const hasChildren = item.children && item.children.length > 0
+      return {
+        label: item.title || item.path.split('/').pop(),
+        to: item.path,
+        children: hasChildren ? mapNavigation(item.children) : undefined,
+        defaultOpen: true,
+        // If it's a folder, we might want to ensure it's expanded if we are inside it
+        active: route.path === item.path || route.path.startsWith(item.path + '/')
+      }
+    })
   }
 
   const menuItems = computed(() => {
     if (!navigation.value || navigation.value.length === 0) return []
 
-    // Attempt to find the root /documentation item if it exists
+    // 1. Find the root /documentation node
     const docsNav = navigation.value.find((n) => n.path === '/documentation')
+    const rootItems = docsNav?.children || navigation.value
 
-    // If we found a root /documentation item, use its children
-    if (docsNav && docsNav.children) {
-      return mapNavigation(docsNav.children)
+    // 2. Find which top-level section we are in (Athletes, Developers, etc.)
+    const activeSection = rootItems.find((section) => route.path.startsWith(section.path))
+
+    // 3. If we're in a section, show its children as the sidebar root
+    if (activeSection && activeSection.children) {
+      return mapNavigation(activeSection.children)
     }
 
-    // Otherwise, return the top-level items (which are likely /athletes and /developers)
-    return mapNavigation(navigation.value)
+    // 4. Otherwise show the top-level sections
+    return mapNavigation(rootItems)
   })
 </script>
 

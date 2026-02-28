@@ -9,6 +9,7 @@ Welcome to the Coach Watts athlete guides. This section is designed to help you 
 
 - **Getting Started**: A step-by-step guide to setting up your account.
 - **Features**: Deep dives into AI coaching, training plans, and nutrition tracking.
+- **[Integrations](/documentation/athletes/integrations)**: Connect Strava, Garmin, Oura, Telegram, and more.
 - **Guides**: Detailed information on how we handle your data and calculate metrics.
 
 Select a topic from the sidebar to begin.
