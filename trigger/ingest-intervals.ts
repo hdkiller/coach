@@ -1,5 +1,5 @@
 import './init'
-import { logger, task, tasks } from '@trigger.dev/sdk/v3'
+import { heartbeats, logger, task, tasks } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
 import { IntervalsService } from '../server/utils/services/intervalsService'
@@ -73,6 +73,8 @@ export const ingestIntervalsTask = task({
         }
       }
 
+      await heartbeats.yield()
+
       // Fetch planned workouts (import all categories)
       logger.log('Syncing planned workouts...')
       const {
@@ -84,10 +86,14 @@ export const ingestIntervalsTask = task({
         `Upserted ${plannedWorkoutsUpserted} planned workouts, ${eventsUpserted} racing events, and ${notesUpserted} calendar notes`
       )
 
+      await heartbeats.yield()
+
       // Fetch activities
       logger.log('Syncing activities...')
       const workoutsUpserted = await IntervalsService.syncActivities(userId, start, historicalEnd)
       logger.log(`Upserted ${workoutsUpserted} workouts`)
+
+      await heartbeats.yield()
 
       // Fetch wellness data
       logger.log('Syncing wellness data...')
