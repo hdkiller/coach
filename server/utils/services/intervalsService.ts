@@ -23,7 +23,7 @@ import { athleteMetricsService } from '../athleteMetricsService'
 import { normalizeTSS } from '../normalize-tss'
 import { calculateWorkoutStress } from '../calculate-workout-stress'
 import { getUserTimezone, getEndOfDayUTC } from '../date'
-import { tasks } from '@trigger.dev/sdk/v3'
+import { heartbeats, tasks } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from '../../../trigger/queues'
 import {
   calculateLapSplits,
@@ -159,6 +159,8 @@ export const IntervalsService = {
 
     // Process in 14-day chunks, going backwards from newest to oldest
     while (currentEnd >= startDate) {
+      await heartbeats.yield()
+
       const currentStart = new Date(currentEnd)
       currentStart.setDate(currentStart.getDate() - 14)
       const effectiveStart = currentStart < startDate ? startDate : currentStart
@@ -210,6 +212,8 @@ export const IntervalsService = {
     let upsertedCount = 0
 
     for (const summaryActivity of activities) {
+      await heartbeats.yield()
+
       // Fetch detailed activity data to get icu_intervals and other granular fields
       let activity = summaryActivity
       try {
@@ -582,6 +586,8 @@ export const IntervalsService = {
 
     // Process in 365-day chunks, going backwards from newest to oldest
     while (currentEnd >= startDate) {
+      await heartbeats.yield()
+
       const currentStart = new Date(currentEnd)
       currentStart.setDate(currentStart.getDate() - 365)
       const effectiveStart = currentStart < startDate ? startDate : currentStart
@@ -597,6 +603,8 @@ export const IntervalsService = {
       const sortedWellness = [...wellnessData].sort((a, b) => a.id.localeCompare(b.id))
 
       for (const wellness of sortedWellness) {
+        await heartbeats.yield()
+
         // Force wellness date to UTC midnight (Intervals.icu returns 'YYYY-MM-DD' as id)
         const rawDate = new Date(wellness.id)
         const wellnessDate = new Date(
@@ -782,6 +790,8 @@ export const IntervalsService = {
     let notesUpserted = 0
 
     for (const planned of plannedWorkouts) {
+      await heartbeats.yield()
+
       // Skip "Weekly" notes which are internal system notes
       if (planned.name === 'Weekly') {
         continue
