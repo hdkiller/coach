@@ -83,36 +83,43 @@
                     <UIcon name="i-heroicons-bolt-solid" class="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 class="text-white font-black uppercase tracking-tight text-lg">
-                      Performance Trial Active
-                    </h3>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="text-white font-black tracking-tight text-lg">
+                        {{ trialAccessTitle }}
+                      </h3>
+                      <UBadge
+                        color="neutral"
+                        variant="subtle"
+                        size="xs"
+                        class="bg-white/12 text-white ring-white/20"
+                      >
+                        Trial
+                      </UBadge>
+                    </div>
                     <p class="text-white/80 text-sm font-medium leading-relaxed max-w-xl">
-                      Welcome to the lab. You have unrestricted access to Supporter-level AI
-                      coaching and automated analysis for the next
-                      <span class="text-white font-black underline decoration-2 underline-offset-2"
-                        >{{ userStore.trialDaysRemaining }} days</span
-                      >.
+                      Unlock faster improvement with AI coaching and automated performance insights
+                      during your trial.
                     </p>
                   </div>
                 </div>
-                <div class="flex items-center gap-3 shrink-0">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
                   <UButton
                     to="/settings/ai"
                     color="neutral"
                     variant="subtle"
                     size="sm"
-                    class="bg-white/10 hover:bg-white/20 text-white font-bold border-none"
+                    class="justify-center bg-white/10 hover:bg-white/20 text-white font-bold border-none"
                   >
-                    View Quotas
+                    View Usage
                   </UButton>
                   <UButton
                     to="/settings/billing"
                     color="neutral"
                     variant="solid"
                     size="sm"
-                    class="bg-white text-primary-600 hover:bg-gray-100 font-bold border-none"
+                    class="justify-center bg-white text-primary-600 hover:bg-gray-100 font-bold border-none"
                   >
-                    Upgrade to Keep
+                    Keep Full Access
                   </UButton>
                 </div>
               </div>
@@ -314,6 +321,8 @@
             <DashboardDataSyncStatusCard v-if="integrationStore.syncingData" />
           </div>
 
+          <DashboardShareFooterCard />
+
           <!-- App Info Footer -->
           <div class="flex justify-center pt-8 pb-4">
             <UButton
@@ -397,6 +406,11 @@
   const recommendationStore = useRecommendationStore()
   const activityStore = useActivityStore()
   const checkinStore = useCheckinStore()
+  const trialAccessTitle = computed(() => {
+    const daysRemaining = userStore.trialDaysRemaining
+    if (!daysRemaining) return '6 Days of Full Access Remaining'
+    return `${daysRemaining} ${daysRemaining === 1 ? 'Day' : 'Days'} of Full Access Remaining`
+  })
   const nutritionEnabled = computed(
     () =>
       userStore.profile?.nutritionTrackingEnabled !== false &&
