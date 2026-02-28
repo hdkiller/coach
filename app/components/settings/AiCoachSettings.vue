@@ -14,12 +14,22 @@
         <p class="text-sm text-muted mb-3">
           Choose the tone and style of feedback from your AI coach
         </p>
-        <USelect
-          v-model="localSettings.aiPersona"
-          :items="personaOptions"
-          size="lg"
-          @update:model-value="handleChange"
-        />
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <USelect
+            v-model="localSettings.aiPersona"
+            :items="personaOptions"
+            size="lg"
+            class="min-w-0 flex-1"
+            @update:model-value="handleChange"
+          />
+          <UButton
+            color="neutral"
+            variant="soft"
+            icon="i-heroicons-speaker-wave"
+            label="Voice settings"
+            @click="isVoiceSettingsOpen = true"
+          />
+        </div>
       </div>
 
       <!-- Analysis Levels Selection -->
@@ -99,6 +109,14 @@
       </div>
     </div>
   </UCard>
+
+  <SettingsAiVoiceSettingsModal
+    v-model:open="isVoiceSettingsOpen"
+    v-model:gemini-voice-name="localSettings.aiTtsVoiceName"
+    v-model:voice-style="localSettings.aiTtsStyle"
+    v-model:voice-speed="localSettings.aiTtsSpeed"
+    v-model:auto-read-messages="localSettings.aiTtsAutoReadMessages"
+  />
 </template>
 
 <script setup lang="ts">
@@ -117,6 +135,10 @@
       nutritionTrackingEnabled: boolean
       updateWorkoutNotesEnabled: boolean
       nickname?: string | null
+      aiTtsStyle: 'coach' | 'calm' | 'direct' | 'energetic'
+      aiTtsVoiceName: string
+      aiTtsSpeed: 'slow' | 'normal' | 'fast'
+      aiTtsAutoReadMessages: boolean
     }
   }>()
 
@@ -126,6 +148,7 @@
 
   const localSettings = ref({ ...props.settings })
   const saving = ref(false)
+  const isVoiceSettingsOpen = ref(false)
   const userStore = useUserStore()
   const upgradeModal = useUpgradeModal()
 

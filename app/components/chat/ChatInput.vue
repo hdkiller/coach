@@ -32,6 +32,7 @@
   const promptRef = ref<any>(null)
   const imageInputRef = ref<HTMLInputElement | null>(null)
   const cameraInputRef = ref<HTMLInputElement | null>(null)
+  const videoInputRef = ref<HTMLInputElement | null>(null)
   const webcamVideoRef = ref<HTMLVideoElement | null>(null)
   const audioChunks = ref<Blob[]>([])
   const attachments = ref<ChatAttachment[]>([])
@@ -89,7 +90,7 @@
           ]
         : []),
       {
-        label: canUseDesktopWebcam.value ? 'Add photos & files' : 'Take picture',
+        label: canUseDesktopWebcam.value ? 'Add photos & files' : 'Take photo',
         icon: canUseDesktopWebcam.value ? 'i-heroicons-folder-open' : 'i-heroicons-camera',
         disabled: composerDisabled.value,
         onSelect: () => (canUseDesktopWebcam.value ? openLibrary() : openCamera())
@@ -97,6 +98,12 @@
       ...(canUseDesktopWebcam.value
         ? []
         : [
+            {
+              label: 'Record video',
+              icon: 'i-heroicons-film',
+              disabled: composerDisabled.value,
+              onSelect: () => openMobileVideo()
+            },
             {
               label: 'Add photos & files',
               icon: 'i-heroicons-folder-open',
@@ -134,8 +141,10 @@
     if (input) input.value = ''
   }
 
-  const isImageAttachment = (attachment: ChatAttachment) => attachment.mediaType.startsWith('image/')
-  const isVideoAttachment = (attachment: ChatAttachment) => attachment.mediaType.startsWith('video/')
+  const isImageAttachment = (attachment: ChatAttachment) =>
+    attachment.mediaType.startsWith('image/')
+  const isVideoAttachment = (attachment: ChatAttachment) =>
+    attachment.mediaType.startsWith('video/')
 
   const readFileAsDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -314,6 +323,7 @@
 
   const openLibrary = () => imageInputRef.value?.click()
   const openCamera = () => cameraInputRef.value?.click()
+  const openMobileVideo = () => videoInputRef.value?.click()
 
   const stopWebcam = () => {
     webcamRecorder?.stream?.getTracks?.().forEach(() => {})
@@ -723,6 +733,14 @@
         class="hidden"
         @change="uploadFiles(($event.target as HTMLInputElement)?.files || null, cameraInputRef)"
       />
+      <input
+        ref="videoInputRef"
+        type="file"
+        accept="video/*"
+        capture="environment"
+        class="hidden"
+        @change="uploadFiles(($event.target as HTMLInputElement)?.files || null, videoInputRef)"
+      />
 
       <div v-if="attachments.length > 0" class="flex flex-wrap gap-3">
         <div
@@ -764,7 +782,7 @@
       </div>
 
       <div class="min-h-5 flex items-center text-xs text-gray-500 dark:text-gray-400">
-        <span v-if="uploadingCount > 0">Uploading image...</span>
+        <span v-if="uploadingCount > 0">Uploading attachment...</span>
         <span v-else-if="isRecording">Recording voice note...</span>
         <span v-else-if="isTranscribing">Gemini is transcribing your voice note...</span>
         <span v-else-if="isRecordingWebcamVideo">
@@ -819,7 +837,11 @@
           :disabled="composerDisabled"
           :on-click="handleSubmit"
         />
-        <UChatPromptSubmit v-else-if="!showInlineMic" :status="status" :disabled="composerDisabled" />
+        <UChatPromptSubmit
+          v-else-if="!showInlineMic"
+          :status="status"
+          :disabled="composerDisabled"
+        />
       </UChatPrompt>
     </UContainer>
   </div>

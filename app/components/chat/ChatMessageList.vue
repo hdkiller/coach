@@ -24,12 +24,147 @@
   const messageListRef = ref<HTMLElement | null>(null)
   const isTouchDevice = ref(false)
   const revealedActionsMessageId = ref<string | null>(null)
+  const ttsLoadingMessageId = ref<string | null>(null)
+  const ttsPlayingMessageId = ref<string | null>(null)
+  const isVoiceSettingsOpen = ref(false)
+  const defaultVoicePreset = ref<'coach' | 'calm' | 'direct' | 'energetic'>('coach')
+  const geminiVoiceName = ref<
+    | 'Zephyr'
+    | 'Puck'
+    | 'Charon'
+    | 'Kore'
+    | 'Fenrir'
+    | 'Leda'
+    | 'Orus'
+    | 'Aoede'
+    | 'Callirrhoe'
+    | 'Autonoe'
+    | 'Enceladus'
+    | 'Iapetus'
+    | 'Umbriel'
+    | 'Algieba'
+    | 'Despina'
+    | 'Erinome'
+    | 'Algenib'
+    | 'Rasalgethi'
+    | 'Laomedeia'
+    | 'Achernar'
+    | 'Alnilam'
+    | 'Schedar'
+    | 'Gacrux'
+    | 'Pulcherrima'
+    | 'Achird'
+    | 'Zubenelgenubi'
+    | 'Vindemiatrix'
+    | 'Sadachbia'
+    | 'Sadaltager'
+    | 'Sulafat'
+  >('Kore')
+  const voiceSpeed = ref<'slow' | 'normal' | 'fast'>('normal')
+  const autoReadMessages = ref(false)
+  const didHydrateTtsPrefs = ref(false)
+  const pendingAutoReadMessageKey = ref<string | null>(null)
+  const lastHandledAssistantMessageKey = ref<string | null>(null)
   let touchMediaQuery: MediaQueryList | null = null
+  let activeAudio: HTMLAudioElement | null = null
+  let activeAudioUrl: string | null = null
+  let activeTtsRequestId = 0
+  let activeTtsAbortController: AbortController | null = null
+  let saveTtsSettingsTimeout: ReturnType<typeof setTimeout> | null = null
+
+  const ttsPresets = [
+    {
+      key: 'coach',
+      label: 'Coach voice',
+      icon: 'i-heroicons-speaker-wave',
+      description: 'Confident, supportive, steady.'
+    },
+    {
+      key: 'calm',
+      label: 'Calm voice',
+      icon: 'i-heroicons-heart',
+      description: 'Warm, relaxed, reassuring.'
+    },
+    {
+      key: 'direct',
+      label: 'Direct voice',
+      icon: 'i-heroicons-bolt',
+      description: 'Concise, clear, matter-of-fact.'
+    },
+    {
+      key: 'energetic',
+      label: 'Energetic voice',
+      icon: 'i-heroicons-fire',
+      description: 'Upbeat, lively, motivating.'
+    }
+  ] as const
+  type TtsPresetKey = (typeof ttsPresets)[number]['key']
+  const geminiVoices = [
+    { name: 'Zephyr', descriptor: 'Bright' },
+    { name: 'Puck', descriptor: 'Upbeat' },
+    { name: 'Charon', descriptor: 'Informative' },
+    { name: 'Kore', descriptor: 'Firm' },
+    { name: 'Fenrir', descriptor: 'Excitable' },
+    { name: 'Leda', descriptor: 'Youthful' },
+    { name: 'Orus', descriptor: 'Firm' },
+    { name: 'Aoede', descriptor: 'Breezy' },
+    { name: 'Callirrhoe', descriptor: 'Easy-going' },
+    { name: 'Autonoe', descriptor: 'Bright' },
+    { name: 'Enceladus', descriptor: 'Breathy' },
+    { name: 'Iapetus', descriptor: 'Clear' },
+    { name: 'Umbriel', descriptor: 'Easy-going' },
+    { name: 'Algieba', descriptor: 'Smooth' },
+    { name: 'Despina', descriptor: 'Smooth' },
+    { name: 'Erinome', descriptor: 'Clear' },
+    { name: 'Algenib', descriptor: 'Gravelly' },
+    { name: 'Rasalgethi', descriptor: 'Informative' },
+    { name: 'Laomedeia', descriptor: 'Upbeat' },
+    { name: 'Achernar', descriptor: 'Soft' },
+    { name: 'Alnilam', descriptor: 'Firm' },
+    { name: 'Schedar', descriptor: 'Even' },
+    { name: 'Gacrux', descriptor: 'Mature' },
+    { name: 'Pulcherrima', descriptor: 'Forward' },
+    { name: 'Achird', descriptor: 'Friendly' },
+    { name: 'Zubenelgenubi', descriptor: 'Casual' },
+    { name: 'Vindemiatrix', descriptor: 'Gentle' },
+    { name: 'Sadachbia', descriptor: 'Lively' },
+    { name: 'Sadaltager', descriptor: 'Knowledgeable' },
+    { name: 'Sulafat', descriptor: 'Warm' }
+  ] as const
+  type GeminiVoiceName = (typeof geminiVoices)[number]['name']
+  const speedOptions = [
+    { key: 'slow', label: 'Slower', description: 'More relaxed pacing.' },
+    { key: 'normal', label: 'Normal', description: 'Balanced pacing.' },
+    { key: 'fast', label: 'Faster', description: 'More compact delivery.' }
+  ] as const
+  type TtsSpeedKey = (typeof speedOptions)[number]['key']
 
   // Filter out tool messages (responses) as they are internal state or handled via UI
   const filteredMessages = computed(() => {
     return props.messages.filter((m) => m.role !== 'tool')
   })
+  const latestSpeakableAssistantMessage = computed(() => {
+    for (let index = filteredMessages.value.length - 1; index >= 0; index -= 1) {
+      const message = filteredMessages.value[index]
+      if (message?.role === 'assistant' && getSpeakableText(message)) {
+        return message
+      }
+    }
+
+    return null
+  })
+  const selectedVoicePreset = computed(
+    () => ttsPresets.find((preset) => preset.key === defaultVoicePreset.value) || ttsPresets[0]
+  )
+  const selectedGeminiVoice = computed(
+    () => geminiVoices.find((voice) => voice.name === geminiVoiceName.value) || geminiVoices[0]
+  )
+  const geminiVoiceItems = computed(() =>
+    geminiVoices.map((voice) => ({
+      ...voice,
+      label: `${voice.name} (${voice.descriptor})`
+    }))
+  )
 
   const handleToolApproval = (response: any) => {
     emit('tool-approval', response)
@@ -67,6 +202,209 @@
     if (!isTouchDevice.value) revealedActionsMessageId.value = null
   }
 
+  const stopPlayback = () => {
+    activeTtsRequestId += 1
+    activeTtsAbortController?.abort()
+    activeTtsAbortController = null
+
+    if (activeAudio) {
+      activeAudio.pause()
+      activeAudio = null
+    }
+
+    if (activeAudioUrl && import.meta.client) {
+      URL.revokeObjectURL(activeAudioUrl)
+      activeAudioUrl = null
+    }
+
+    ttsPlayingMessageId.value = null
+    ttsLoadingMessageId.value = null
+  }
+
+  const normalizeSpeechText = (value: string) => {
+    return value
+      .replace(/```[\s\S]*?```/g, ' code block omitted. ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^\s*[-*+]\s+/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }
+
+  const getSpeakableText = (message: any) => {
+    const parts = message?.parts?.length
+      ? message.parts
+      : typeof message?.content === 'string'
+        ? [{ type: 'text', text: message.content }]
+        : []
+
+    const text = parts
+      .filter((part: any) => part?.type === 'text' && typeof part.text === 'string')
+      .map((part: any) => part.text.trim())
+      .filter(Boolean)
+      .join('\n\n')
+
+    return normalizeSpeechText(text)
+  }
+
+  const canSpeakMessage = (message: any) => {
+    return message?.role === 'assistant' && !!getSpeakableText(message)
+  }
+
+  const getMessageTtsKey = (message: any) => {
+    return String(message?.id || message?.createdAt || getSpeakableText(message).slice(0, 120))
+  }
+
+  const isTtsLoading = (message: any) => ttsLoadingMessageId.value === getMessageTtsKey(message)
+  const isTtsPlaying = (message: any) => ttsPlayingMessageId.value === getMessageTtsKey(message)
+
+  const playAssistantMessage = async (
+    message: any,
+    preset: TtsPresetKey = defaultVoicePreset.value,
+    speed: TtsSpeedKey = voiceSpeed.value
+  ) => {
+    if (!import.meta.client) return
+
+    if (isTtsPlaying(message)) {
+      stopPlayback()
+      return
+    }
+
+    const text = getSpeakableText(message)
+    if (!text) return
+
+    const messageKey = getMessageTtsKey(message)
+    stopPlayback()
+    ttsLoadingMessageId.value = messageKey
+    const requestId = activeTtsRequestId
+    const abortController = new AbortController()
+    activeTtsAbortController = abortController
+
+    try {
+      const audioBlob = await $fetch('/api/chat/tts', {
+        method: 'POST',
+        body: {
+          text,
+          preset,
+          voiceName: geminiVoiceName.value,
+          speed,
+          messageId: typeof message?.id === 'string' ? message.id : undefined
+        },
+        signal: abortController.signal,
+        responseType: 'blob'
+      })
+
+      if (requestId !== activeTtsRequestId || abortController.signal.aborted) {
+        return
+      }
+
+      const audio = new Audio(URL.createObjectURL(audioBlob))
+      activeAudio = audio
+      activeAudioUrl = audio.src
+      ttsPlayingMessageId.value = messageKey
+
+      audio.addEventListener(
+        'ended',
+        () => {
+          stopPlayback()
+        },
+        { once: true }
+      )
+      audio.addEventListener(
+        'error',
+        () => {
+          stopPlayback()
+          toast.add({
+            title: 'Audio failed',
+            description: 'Could not play the generated speech.',
+            color: 'error'
+          })
+        },
+        { once: true }
+      )
+
+      await audio.play()
+    } catch (error: any) {
+      if (abortController.signal.aborted) {
+        return
+      }
+
+      stopPlayback()
+      toast.add({
+        title: 'Speech failed',
+        description: error?.data?.message || error?.message || 'Could not generate speech.',
+        color: 'error'
+      })
+    } finally {
+      if (activeTtsAbortController === abortController) {
+        activeTtsAbortController = null
+      }
+      if (ttsLoadingMessageId.value === messageKey) {
+        ttsLoadingMessageId.value = null
+      }
+    }
+  }
+
+  const openVoiceSettings = () => {
+    isVoiceSettingsOpen.value = true
+  }
+
+  const saveTtsSettings = async () => {
+    if (!didHydrateTtsPrefs.value) return
+
+    try {
+      await $fetch('/api/settings/ai', {
+        method: 'POST',
+        body: {
+          aiTtsStyle: defaultVoicePreset.value,
+          aiTtsVoiceName: geminiVoiceName.value,
+          aiTtsSpeed: voiceSpeed.value,
+          aiTtsAutoReadMessages: autoReadMessages.value
+        }
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Voice settings failed to save',
+        description: error?.data?.message || error?.message || 'Could not save voice settings.',
+        color: 'error'
+      })
+    }
+  }
+
+  const queueSaveTtsSettings = () => {
+    if (saveTtsSettingsTimeout) {
+      clearTimeout(saveTtsSettingsTimeout)
+    }
+
+    saveTtsSettingsTimeout = setTimeout(() => {
+      void saveTtsSettings()
+    }, 250)
+  }
+
+  const getTtsMenuItems = (message: any) => [
+    [
+      {
+        label: 'Read new messages',
+        type: 'checkbox' as const,
+        checked: autoReadMessages.value,
+        disabled: isTtsLoading(message),
+        onUpdateChecked: (checked: boolean) => {
+          autoReadMessages.value = !!checked
+        }
+      }
+    ],
+    [
+      {
+        label: 'Voice settings',
+        icon: 'i-heroicons-adjustments-horizontal',
+        disabled: isTtsLoading(message),
+        onSelect: () => openVoiceSettings()
+      }
+    ]
+  ]
+
   const handleMessageTap = (message: any) => {
     if (
       !isTouchDevice.value ||
@@ -94,18 +432,99 @@
     touchMediaQuery = window.matchMedia('(hover: none), (pointer: coarse)')
     touchMediaQuery.addEventListener('change', updateTouchMode)
     document.addEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+
+    lastHandledAssistantMessageKey.value = latestSpeakableAssistantMessage.value
+      ? getMessageTtsKey(latestSpeakableAssistantMessage.value)
+      : null
+
+    void (async () => {
+      try {
+        const settings = await $fetch<{
+          aiTtsStyle?: TtsPresetKey
+          aiTtsVoiceName?: GeminiVoiceName
+          aiTtsSpeed?: TtsSpeedKey
+          aiTtsAutoReadMessages?: boolean
+        }>('/api/settings/ai')
+
+        if (
+          settings.aiTtsStyle &&
+          ttsPresets.some((preset) => preset.key === settings.aiTtsStyle)
+        ) {
+          defaultVoicePreset.value = settings.aiTtsStyle
+        }
+        if (
+          settings.aiTtsVoiceName &&
+          geminiVoices.some((voice) => voice.name === settings.aiTtsVoiceName)
+        ) {
+          geminiVoiceName.value = settings.aiTtsVoiceName
+        }
+        if (
+          settings.aiTtsSpeed &&
+          speedOptions.some((option) => option.key === settings.aiTtsSpeed)
+        ) {
+          voiceSpeed.value = settings.aiTtsSpeed
+        }
+        if (typeof settings.aiTtsAutoReadMessages === 'boolean') {
+          autoReadMessages.value = settings.aiTtsAutoReadMessages
+        }
+      } catch (error) {
+        console.error('[Chat TTS] Failed to load voice settings:', error)
+      } finally {
+        didHydrateTtsPrefs.value = true
+      }
+    })()
   })
 
   onBeforeUnmount(() => {
     if (!import.meta.client) return
     touchMediaQuery?.removeEventListener('change', updateTouchMode)
     document.removeEventListener('pointerdown', handleDocumentPointerDown, { capture: true })
+    if (saveTtsSettingsTimeout) {
+      clearTimeout(saveTtsSettingsTimeout)
+      saveTtsSettingsTimeout = null
+    }
+    stopPlayback()
   })
 
   watch(
     () => props.editingMessageId,
     () => {
       revealedActionsMessageId.value = null
+    }
+  )
+
+  watch([defaultVoicePreset, geminiVoiceName, voiceSpeed, autoReadMessages], () => {
+    if (!import.meta.client || !didHydrateTtsPrefs.value) return
+    queueSaveTtsSettings()
+  })
+
+  watch(
+    latestSpeakableAssistantMessage,
+    (message) => {
+      if (!didHydrateTtsPrefs.value || !message) return
+
+      const messageKey = getMessageTtsKey(message)
+      if (messageKey === lastHandledAssistantMessageKey.value) return
+
+      lastHandledAssistantMessageKey.value = messageKey
+      pendingAutoReadMessageKey.value = autoReadMessages.value ? messageKey : null
+    },
+    { immediate: false }
+  )
+
+  watch(
+    [() => props.status, latestSpeakableAssistantMessage, autoReadMessages],
+    ([status, message, autoRead]) => {
+      if (!didHydrateTtsPrefs.value || !autoRead || !message) return
+
+      const messageKey = getMessageTtsKey(message)
+      if (pendingAutoReadMessageKey.value !== messageKey) return
+
+      const normalizedStatus = typeof status === 'string' ? status : ''
+      if (normalizedStatus === 'submitted' || normalizedStatus === 'streaming') return
+
+      pendingAutoReadMessageKey.value = null
+      void playAssistantMessage(message, defaultVoicePreset.value, voiceSpeed.value)
     }
   )
 
@@ -162,7 +581,9 @@
             variant: 'naked',
             ui: {
               content: 'rounded-[1.2rem] px-4 py-3',
-              container: 'relative flex items-start rtl:justify-end !pb-0'
+              container: 'relative flex items-start rtl:justify-end !pb-0',
+              actions:
+                'opacity-100 sm:opacity-0 sm:group-hover/message:opacity-100 absolute left-full ml-1 top-1/2 -translate-y-1/2 bottom-auto z-20 flex items-center gap-1 transition-opacity'
             }
           }"
         >
@@ -202,8 +623,40 @@
             />
           </template>
           <template #actions="{ message }">
+            <template v-if="canSpeakMessage(message)">
+              <div class="flex items-center gap-1 transition-opacity">
+                <UButton
+                  color="neutral"
+                  :variant="isTtsPlaying(message) ? 'solid' : 'ghost'"
+                  size="xs"
+                  square
+                  :loading="isTtsLoading(message)"
+                  :aria-label="
+                    isTtsPlaying(message)
+                      ? 'Stop reading aloud'
+                      : `Read aloud with ${selectedGeminiVoice.name}, ${selectedVoicePreset.label}, at ${voiceSpeed} speed`
+                  "
+                  :icon="isTtsPlaying(message) ? 'i-heroicons-stop' : 'i-heroicons-speaker-wave'"
+                  @click="playAssistantMessage(message, defaultVoicePreset)"
+                />
+                <UDropdownMenu
+                  :items="getTtsMenuItems(message)"
+                  :content="{ side: 'bottom', align: 'start' }"
+                >
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    square
+                    aria-label="Choose voice style"
+                    icon="i-heroicons-chevron-down"
+                    :disabled="isTtsLoading(message)"
+                  />
+                </UDropdownMenu>
+              </div>
+            </template>
             <template
-              v-if="message.role === 'user' && canEditMessages && !isEditingMessage(message)"
+              v-else-if="message.role === 'user' && canEditMessages && !isEditingMessage(message)"
             >
               <div
                 :class="
@@ -240,4 +693,12 @@
       </div>
     </UContainer>
   </div>
+
+  <SettingsAiVoiceSettingsModal
+    v-model:open="isVoiceSettingsOpen"
+    v-model:gemini-voice-name="geminiVoiceName"
+    v-model:voice-style="defaultVoicePreset"
+    v-model:voice-speed="voiceSpeed"
+    v-model:auto-read-messages="autoReadMessages"
+  />
 </template>
