@@ -39,6 +39,12 @@ export const MODEL_LIST = [
 ] as const
 
 export const PRICING = {
+  'gemini-2.5-flash-preview-tts': {
+    threshold: 1_000_000_000,
+    base: { input: 0.5, output: 10.0, cacheInput: 0.05 },
+    premium: { input: 0.5, output: 10.0, cacheInput: 0.05 },
+    cacheStorage: 1.0
+  },
   'gemini-3-flash-preview': {
     // Mapped to Gemini 3.0 Flash
     threshold: 1_000_000_000,

@@ -14,6 +14,10 @@ export interface AiSettings {
   nutritionTrackingEnabled: boolean
   updateWorkoutNotesEnabled: boolean
   nickname?: string | null
+  aiTtsStyle: 'coach' | 'calm' | 'direct' | 'energetic'
+  aiTtsVoiceName: string
+  aiTtsSpeed: 'slow' | 'normal' | 'fast'
+  aiTtsAutoReadMessages: boolean
 }
 
 const DEFAULT_SETTINGS: AiSettings = {
@@ -28,7 +32,11 @@ const DEFAULT_SETTINGS: AiSettings = {
   aiContext: null,
   nutritionTrackingEnabled: true,
   updateWorkoutNotesEnabled: true,
-  nickname: null
+  nickname: null,
+  aiTtsStyle: 'coach',
+  aiTtsVoiceName: 'Kore',
+  aiTtsSpeed: 'normal',
+  aiTtsAutoReadMessages: false
 }
 
 export async function getUserAiSettings(userId: string): Promise<AiSettings> {
@@ -46,7 +54,11 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
       aiContext: true,
       nutritionTrackingEnabled: true,
       updateWorkoutNotesEnabled: true,
-      nickname: true
+      nickname: true,
+      aiTtsStyle: true,
+      aiTtsVoiceName: true,
+      aiTtsSpeed: true,
+      aiTtsAutoReadMessages: true
     }
   })
 
@@ -70,6 +82,10 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
       user.nutritionTrackingEnabled ?? DEFAULT_SETTINGS.nutritionTrackingEnabled,
     updateWorkoutNotesEnabled:
       user.updateWorkoutNotesEnabled ?? DEFAULT_SETTINGS.updateWorkoutNotesEnabled,
-    nickname: user.nickname
+    nickname: user.nickname,
+    aiTtsStyle: (user.aiTtsStyle as AiSettings['aiTtsStyle']) || DEFAULT_SETTINGS.aiTtsStyle,
+    aiTtsVoiceName: user.aiTtsVoiceName || DEFAULT_SETTINGS.aiTtsVoiceName,
+    aiTtsSpeed: (user.aiTtsSpeed as AiSettings['aiTtsSpeed']) || DEFAULT_SETTINGS.aiTtsSpeed,
+    aiTtsAutoReadMessages: user.aiTtsAutoReadMessages ?? DEFAULT_SETTINGS.aiTtsAutoReadMessages
   }
 }
