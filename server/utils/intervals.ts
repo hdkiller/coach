@@ -162,7 +162,62 @@ interface IntervalsPlannedWorkout {
   [key: string]: any
 }
 
-// ... existing code ...
+const INTERVALS_MAX_REQUESTS_PER_SECOND = 10
+const INTERVALS_MAX_REQUESTS_PER_TEN_SECONDS = 100
+const INTERVALS_REQUEST_WINDOW_MS = 1000
+const INTERVALS_REQUEST_WINDOW_LONG_MS = 10_000
+
+const intervalsRequestTimestamps: number[] = []
+let intervalsRateLimitQueue: Promise<void> = Promise.resolve()
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function pruneIntervalsRequestTimestamps(now: number) {
+  while (
+    intervalsRequestTimestamps.length > 0 &&
+    now - intervalsRequestTimestamps[0]! >= INTERVALS_REQUEST_WINDOW_LONG_MS
+  ) {
+    intervalsRequestTimestamps.shift()
+  }
+}
+
+async function waitForIntervalsRateLimitSlot(): Promise<void> {
+  const scheduled = intervalsRateLimitQueue.then(async () => {
+    while (true) {
+      const now = Date.now()
+      pruneIntervalsRequestTimestamps(now)
+
+      const requestsInLastSecond = intervalsRequestTimestamps.filter(
+        (timestamp) => now - timestamp < INTERVALS_REQUEST_WINDOW_MS
+      )
+      const requestsInLastTenSeconds = intervalsRequestTimestamps.length
+
+      let waitMs = 0
+
+      if (requestsInLastSecond.length >= INTERVALS_MAX_REQUESTS_PER_SECOND) {
+        const oldestInShortWindow = requestsInLastSecond[0]!
+        waitMs = Math.max(waitMs, INTERVALS_REQUEST_WINDOW_MS - (now - oldestInShortWindow) + 5)
+      }
+
+      if (requestsInLastTenSeconds >= INTERVALS_MAX_REQUESTS_PER_TEN_SECONDS) {
+        const oldestInLongWindow = intervalsRequestTimestamps[0]!
+        waitMs = Math.max(waitMs, INTERVALS_REQUEST_WINDOW_LONG_MS - (now - oldestInLongWindow) + 5)
+      }
+
+      if (waitMs <= 0) {
+        intervalsRequestTimestamps.push(Date.now())
+        return
+      }
+
+      await sleep(waitMs)
+    }
+  })
+
+  intervalsRateLimitQueue = scheduled.catch(() => {})
+  await scheduled
+}
 
 export function normalizeIntervalsCalendarNote(event: IntervalsPlannedWorkout, userId: string) {
   // Parse the local date string (YYYY-MM-DDTHH:mm:ss) and force to UTC midnight
@@ -195,19 +250,21 @@ async function fetchWithRetry(
   url: string,
   options: RequestInit,
   retries = 3,
-  backoff = 1000
+  backoff = 3000
 ): Promise<Response> {
   try {
+    await waitForIntervalsRateLimitSlot()
     const response = await fetch(url, options)
 
     if (response.status === 429 && retries > 0) {
       const retryAfter = response.headers.get('Retry-After')
-      const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : backoff
+      const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : NaN
+      const waitTime = Number.isFinite(retryAfterMs) ? retryAfterMs : backoff
 
       console.warn(
         `[Intervals API] 429 Too Many Requests. Retrying in ${waitTime}ms... (${retries} retries left)`
       )
-      await new Promise((resolve) => setTimeout(resolve, waitTime))
+      await sleep(waitTime)
 
       return fetchWithRetry(url, options, retries - 1, backoff * 2)
     }
@@ -218,7 +275,7 @@ async function fetchWithRetry(
       console.warn(
         `[Intervals API] Network error: ${error}. Retrying in ${backoff}ms... (${retries} retries left)`
       )
-      await new Promise((resolve) => setTimeout(resolve, backoff))
+      await sleep(backoff)
       return fetchWithRetry(url, options, retries - 1, backoff * 2)
     }
     throw error
