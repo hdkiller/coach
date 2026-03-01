@@ -1,5 +1,4 @@
 import type { Integration } from '@prisma/client'
-import { prisma } from './db'
 
 interface OuraTokenResponse {
   access_token: string
@@ -47,6 +46,7 @@ export async function refreshOuraToken(integration: Integration): Promise<Integr
 
   const tokenData: OuraTokenResponse = await response.json()
   const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+  const { prisma } = await import('./db')
 
   // Update the integration in the database
   const updatedIntegration = await prisma.integration.update({
@@ -255,6 +255,10 @@ export function normalizeOuraWellness(
   const sleepSecs = dailySleep?.total_sleep_duration || mainSleep?.total_sleep_duration
   const sleepHours = sleepSecs ? Math.round((sleepSecs / 3600) * 10) / 10 : null
   const sleepScore = dailySleep?.score
+  const sleepDeepSecs = mainSleep?.deep_sleep_duration ?? null
+  const sleepRemSecs = mainSleep?.rem_sleep_duration ?? null
+  const sleepLightSecs = mainSleep?.light_sleep_duration ?? null
+  const sleepAwakeSecs = mainSleep?.awake_time ?? null
 
   // Readiness Metrics
   const readinessScore = dailyReadiness?.score
@@ -294,6 +298,10 @@ export function normalizeOuraWellness(
     sleepHours,
     sleepScore: sleepScore || null,
     sleepQuality: null,
+    sleepDeepSecs,
+    sleepRemSecs,
+    sleepLightSecs,
+    sleepAwakeSecs,
     readiness: readinessScore ? Math.round(readinessScore / 10) : null, // Normalize to 1-10
     recoveryScore: recoveryScore,
     soreness: null,
