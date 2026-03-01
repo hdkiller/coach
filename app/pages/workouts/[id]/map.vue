@@ -600,19 +600,30 @@
     if (!hoverSplit.value || !workout.value?.streams?.time) return null
 
     // Find the range in the stream for this lap
-    // Lap split time is CUMULATIVE duration at end of lap
     const splits = lapSplits.value
-    const idx = splits.findIndex((s) => s.lap === hoverSplit.value.lap)
+    const currentIdx = splits.findIndex((s) => s.lap === hoverSplit.value.lap)
+    if (currentIdx === -1) return null
 
-    const startTime = idx === 0 ? 0 : splits[idx - 1].time
-    const endTime = hoverSplit.value.time
+    // Calculate cumulative start and end times
+    // Each split.time is the DURATION of that split
+    let startTime = 0
+    for (let i = 0; i < currentIdx; i++) {
+      startTime += splits[i].time
+    }
+    const endTime = startTime + hoverSplit.value.time
 
     // Map these times back to indices in the streams
     const timeStream = workout.value.streams.time
-    const startIndex = timeStream.findIndex((t: number) => t >= startTime)
-    const endIndex = timeStream.findIndex((t: number) => t >= endTime)
 
-    return [startIndex, endIndex >= 0 ? endIndex : timeStream.length - 1] as [number, number]
+    // Find index for startTime
+    let startIdx = timeStream.findIndex((t: number) => t >= startTime)
+    if (startIdx === -1) startIdx = 0
+
+    // Find index for endTime
+    let endIdx = timeStream.findIndex((t: number) => t >= endTime)
+    if (endIdx === -1) endIdx = timeStream.length - 1
+
+    return [startIdx, endIdx] as [number, number]
   })
 
   function onChartZoom(range: [number, number]) {

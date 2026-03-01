@@ -178,7 +178,7 @@
     if (props.datasets && props.datasets.length > 0) {
       return {
         labels: props.labels,
-        datasets: props.datasets.map((ds) => ({
+        datasets: props.datasets.map((ds, idx) => ({
           label: ds.label,
           data: ds.data,
           borderColor: ds.color,
@@ -187,7 +187,8 @@
           pointRadius: 0,
           pointHoverRadius: 4,
           fill: false, // Don't fill when multiple lines
-          tension: 0.1
+          tension: 0.1,
+          yAxisID: `y${idx}`
         }))
       }
     }
@@ -280,8 +281,25 @@
           text: props.xAxisLabel || 'Time'
         }
       },
+      ...Object.fromEntries(
+        (props.datasets || []).map((ds, idx) => [
+          `y${idx}`,
+          {
+            type: 'linear',
+            display: idx === 0, // Only show first axis ticks/grid to keep UI clean
+            position: 'left',
+            grid: {
+              drawOnChartArea: idx === 0
+            },
+            ticks: {
+              display: idx === 0
+            }
+          }
+        ])
+      ),
+      // Fallback/Standard Y axis for single-stream mode
       y: {
-        display: true,
+        display: !props.datasets?.length,
         afterFit: (axis: any) => {
           if (props.fixedYAxisWidth && !props.datasets?.length) {
             axis.width = props.fixedYAxisWidth
