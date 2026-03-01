@@ -1,6 +1,10 @@
 import { getServerSession } from '../../utils/session'
 import { syncPlannedWorkoutToIntervals } from '../../utils/intervals-sync'
-import { isIntervalsEventId, cleanIntervalsDescription } from '../../utils/intervals'
+import {
+  isIntervalsEventId,
+  cleanIntervalsDescription,
+  normalizeIntervalsSportType
+} from '../../utils/intervals'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { getUserLocalDate, getUserTimezone } from '../../utils/date'
@@ -145,7 +149,7 @@ export default defineEventHandler(async (event) => {
     let workoutDoc = ''
 
     if (updated.structuredWorkout) {
-      const intervalsType = (updated.type === 'Active Recovery' ? 'Ride' : updated.type) || 'Ride'
+      const intervalsType = normalizeIntervalsSportType(updated.type)
       const sportSettings = await sportSettingsRepository.getForActivityType(userId, intervalsType)
       const user = await prisma.user.findUnique({
         where: { id: userId },

@@ -3,7 +3,8 @@ import {
   createIntervalsPlannedWorkout,
   updateIntervalsPlannedWorkout,
   cleanIntervalsDescription,
-  isIntervalsEventId
+  isIntervalsEventId,
+  normalizeIntervalsSportType
 } from '../../../../utils/intervals'
 import { WorkoutConverter } from '../../../../utils/workout-converter'
 import { getServerSession } from '../../../../utils/session'
@@ -35,12 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workout not found' })
   }
 
-  // Determine correct type for Intervals.icu
-  // "Active Recovery" is not a valid activity type in Intervals.icu, so we map it to 'Ride'
-  let intervalsType = workout.type || 'Ride'
-  if (intervalsType === 'Active Recovery') {
-    intervalsType = 'Ride'
-  }
+  const intervalsType = normalizeIntervalsSportType(workout.type)
 
   // Get Intervals integration
   const integration = await prisma.integration.findFirst({
