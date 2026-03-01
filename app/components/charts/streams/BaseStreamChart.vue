@@ -54,6 +54,7 @@
     xAxisLabel?: string
     xAxisType?: 'linear' | 'category'
     highlightIndex?: number | null
+    highlightRange?: [number, number] | null
     showXAxis?: boolean
     fixedYAxisWidth?: number
     datasets?: ChartDataset[]
@@ -111,53 +112,65 @@
         ctx.stroke()
         ctx.restore()
       }
+
+      // Draw persistent highlight range (e.g. from lap split hover)
+      if (props.highlightRange) {
+        const [startIdx, endIdx] = props.highlightRange
+        // Check if indices are within visible bounds
+        if (startIdx >= 0 && endIdx < props.labels.length) {
+          const startX = chart.scales.x.getPixelForValue(props.labels[startIdx])
+          const endX = chart.scales.x.getPixelForValue(props.labels[endIdx])
+
+          ctx.save()
+          ctx.fillStyle = 'rgba(251, 191, 36, 0.15)' // amber-400 with low opacity
+          ctx.fillRect(startX, topY, endX - startX, bottomY - topY)
+          ctx.restore()
+        }
+      }
     }
   }
 
-  watch(
-    () => props.highlightIndex,
-    (newIndex) => {
-      const chart = chartRef.value?.chart
-      if (!chart) return
+  watch([() => props.highlightIndex, () => props.highlightRange], ([newIndex, newRange]) => {
+    const chart = chartRef.value?.chart
+    if (!chart) return
 
-      if (newIndex !== null && newIndex !== undefined && newIndex >= 0) {
-        // Trigger tooltip and hover state programmatically
-        const tooltip = chart.tooltip
-        if (tooltip) {
-          // Find the element to get its coordinates for better tooltip placement
-          const meta = chart.getDatasetMeta(0)
-          const element = meta.data[newIndex]
+    if (newIndex !== null && newIndex !== undefined && newIndex >= 0) {
+      // Trigger tooltip and hover state programmatically
+      const tooltip = chart.tooltip
+      if (tooltip) {
+        // Find the element to get its coordinates for better tooltip placement
+        const meta = chart.getDatasetMeta(0)
+        const element = meta.data[newIndex]
 
-          if (element) {
-            chart.setActiveElements([
+        if (element) {
+          chart.setActiveElements([
+            {
+              datasetIndex: 0,
+              index: newIndex
+            }
+          ])
+          tooltip.setActiveElements(
+            [
               {
                 datasetIndex: 0,
                 index: newIndex
               }
-            ])
-            tooltip.setActiveElements(
-              [
-                {
-                  datasetIndex: 0,
-                  index: newIndex
-                }
-              ],
-              { x: element.x, y: element.y }
-            )
-          }
-          chart.update()
-        }
-      } else {
-        // Clear tooltip and hover state
-        chart.setActiveElements([])
-        const tooltip = chart.tooltip
-        if (tooltip) {
-          tooltip.setActiveElements([], { x: 0, y: 0 })
+            ],
+            { x: element.x, y: element.y }
+          )
         }
         chart.update()
       }
+    } else {
+      // Clear tooltip and hover state
+      chart.setActiveElements([])
+      const tooltip = chart.tooltip
+      if (tooltip) {
+        tooltip.setActiveElements([], { x: 0, y: 0 })
+      }
+      chart.update()
     }
-  )
+  })
 
   const heightClass = computed(() => props.heightClass || 'h-64')
 

@@ -81,6 +81,7 @@
               :streams="workout.streams"
               :workout-id="workout.id"
               :highlight-index="hoverIndex"
+              :highlight-range="hoverSplitRange"
               :interactive="true"
               class="!h-full !rounded-none !border-0"
             />
@@ -116,7 +117,9 @@
                   <tr
                     v-for="split in lapSplits"
                     :key="split.lap"
-                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    @mouseenter="onSplitHover(split)"
+                    @mouseleave="onSplitLeave"
                   >
                     <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
                       {{ split.lap }}
@@ -227,6 +230,19 @@
                           : null
                         : hoverIndex
                     "
+                    :highlight-range="
+                      zoomRange
+                        ? hoverSplitRange
+                          ? [
+                              Math.max(0, hoverSplitRange[0] - zoomRange[0]),
+                              Math.min(
+                                zoomedStreams.time.length - 1,
+                                hoverSplitRange[1] - zoomRange[0]
+                              )
+                            ]
+                          : null
+                        : hoverSplitRange
+                    "
                     @chart-hover="onChartHover"
                     @chart-leave="onChartLeave"
                     @chart-zoom="onChartZoom"
@@ -292,6 +308,19 @@
                                 : null
                               : hoverIndex
                           "
+                          :highlight-range="
+                            zoomRange
+                              ? hoverSplitRange
+                                ? [
+                                    Math.max(0, hoverSplitRange[0] - zoomRange[0]),
+                                    Math.min(
+                                      zoomedStreams.time.length - 1,
+                                      hoverSplitRange[1] - zoomRange[0]
+                                    )
+                                  ]
+                                : null
+                              : hoverSplitRange
+                          "
                           :show-x-axis="idx === selectedStreamObjects.length - 1"
                           :fixed-y-axis-width="80"
                           @chart-hover="onChartHover"
@@ -326,6 +355,7 @@
   const workout = ref<any>(null)
   const lapSplits = ref<any[]>([])
   const hoverIndex = ref<number | null>(null)
+  const hoverSplit = ref<any | null>(null)
   const zoomRange = ref<[number, number] | null>(null)
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
@@ -557,6 +587,33 @@
   function onChartLeave() {
     hoverIndex.value = null
   }
+
+  function onSplitHover(split: any) {
+    hoverSplit.value = split
+  }
+
+  function onSplitLeave() {
+    hoverSplit.value = null
+  }
+
+  const hoverSplitRange = computed(() => {
+    if (!hoverSplit.value || !workout.value?.streams?.time) return null
+
+    // Find the range in the stream for this lap
+    // Lap split time is CUMULATIVE duration at end of lap
+    const splits = lapSplits.value
+    const idx = splits.findIndex((s) => s.lap === hoverSplit.value.lap)
+
+    const startTime = idx === 0 ? 0 : splits[idx - 1].time
+    const endTime = hoverSplit.value.time
+
+    // Map these times back to indices in the streams
+    const timeStream = workout.value.streams.time
+    const startIndex = timeStream.findIndex((t: number) => t >= startTime)
+    const endIndex = timeStream.findIndex((t: number) => t >= endTime)
+
+    return [startIndex, endIndex >= 0 ? endIndex : timeStream.length - 1] as [number, number]
+  })
 
   function onChartZoom(range: [number, number]) {
     const [start, end] = range

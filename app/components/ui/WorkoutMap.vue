@@ -63,6 +63,16 @@
             />
           </template>
 
+          <!-- Highlight Segment (Lap) -->
+          <LPolyline
+            v-if="highlightSegment"
+            :lat-lngs="highlightSegment"
+            :color="'#3b82f6'"
+            :weight="8"
+            :opacity="1"
+            class="z-[1500]"
+          />
+
           <!-- Split Markers -->
           <template v-if="showSplits">
             <LMarker
@@ -153,6 +163,7 @@
     streams?: Record<string, any>
     workoutId?: string
     highlightIndex?: number | null
+    highlightRange?: [number, number] | null
   }>()
 
   const L = ref<any>(null)
@@ -419,6 +430,12 @@
     if (props.highlightIndex === null || props.highlightIndex === undefined) return null
     if (!latLngs.value.length) return null
     return latLngs.value[Math.min(props.highlightIndex, latLngs.value.length - 1)]
+  })
+
+  const highlightSegment = computed(() => {
+    if (!props.highlightRange || !latLngs.value.length) return null
+    const [start, end] = props.highlightRange
+    return latLngs.value.slice(start, end + 1)
   })
 
   const onMapReady = (map: any) => {
