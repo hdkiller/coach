@@ -15,20 +15,33 @@ export const pbDetectionService = {
   /**
    * Analyze a workout's streams to detect new Personal Bests
    */
-  async detectPBs(workoutId: string) {
-    logger.log('Starting PB detection', { workoutId })
+  async detectPBs(workoutOrId: string | any) {
+    let workout: any
 
-    const workout = await prisma.workout.findUnique({
-      where: { id: workoutId },
-      include: {
-        streams: true,
-        user: true
+    if (typeof workoutOrId === 'string') {
+      workout = await prisma.workout.findUnique({
+        where: { id: workoutOrId },
+        include: {
+          streams: true,
+          user: true
+        }
+      })
+    } else {
+      workout = workoutOrId
+      // Ensure streams are loaded if passed as object
+      if (!workout.streams && workout.id) {
+        workout.streams = await prisma.workoutStream.findUnique({
+          where: { workoutId: workout.id }
+        })
       }
-    })
+    }
 
-    if (!workout || !workout.streams || !workout.user) {
+    if (!workout || !workout.streams || (!workout.user && !workout.userId)) {
       return null
     }
+
+    const userId = workout.userId || workout.user?.id
+    if (!userId) return null
 
     const candidates: PersonalBestCandidate[] = []
     const workoutType = (workout.type || '').toLowerCase()
@@ -98,12 +111,7 @@ export const pbDetectionService = {
     const achievements: any[] = []
 
     for (const candidate of candidates) {
-      const isNewBest = await this.processCandidate(
-        workout.userId,
-        workout.id,
-        workout.date,
-        candidate
-      )
+      const isNewBest = await this.processCandidate(userId, workout.id, workout.date, candidate)
       if (isNewBest) {
         achievements.push(candidate)
       }
