@@ -37,9 +37,16 @@
     Filler
   )
 
-  interface Props {
+  interface ChartDataset {
     label: string
-    dataPoints: number[]
+    data: number[]
+    color: string
+    unit?: string
+  }
+
+  interface Props {
+    label?: string
+    dataPoints?: number[]
     labels: any[]
     color?: string
     yAxisLabel?: string
@@ -49,12 +56,15 @@
     highlightIndex?: number | null
     showXAxis?: boolean
     fixedYAxisWidth?: number
+    datasets?: ChartDataset[]
   }
 
   const props = withDefaults(defineProps<Props>(), {
     showXAxis: true,
     xAxisType: 'linear',
-    heightClass: 'h-64'
+    heightClass: 'h-64',
+    label: '',
+    dataPoints: () => []
   })
 
   const emit = defineEmits(['chart-hover', 'chart-leave', 'chart-zoom'])
@@ -151,22 +161,41 @@
 
   const heightClass = computed(() => props.heightClass || 'h-64')
 
-  const chartData = computed(() => ({
-    labels: props.labels,
-    datasets: [
-      {
-        label: props.label,
-        data: props.dataPoints,
-        borderColor: props.color || '#3b82f6', // blue-500 default
-        backgroundColor: (props.color || '#3b82f6') + '20', // transparent fill
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        fill: true,
-        tension: 0.1
+  const chartData = computed(() => {
+    if (props.datasets && props.datasets.length > 0) {
+      return {
+        labels: props.labels,
+        datasets: props.datasets.map((ds) => ({
+          label: ds.label,
+          data: ds.data,
+          borderColor: ds.color,
+          backgroundColor: ds.color + '10',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: false, // Don't fill when multiple lines
+          tension: 0.1
+        }))
       }
-    ]
-  }))
+    }
+
+    return {
+      labels: props.labels,
+      datasets: [
+        {
+          label: props.label,
+          data: props.dataPoints || [],
+          borderColor: props.color || '#3b82f6', // blue-500 default
+          backgroundColor: (props.color || '#3b82f6') + '20', // transparent fill
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.1
+        }
+      ]
+    }
+  })
 
   const chartOptions = computed<any>(() => ({
     responsive: true,
@@ -206,7 +235,8 @@
               label += ': '
             }
             if (context.parsed.y !== null) {
-              label += context.parsed.y + (props.yAxisLabel || '')
+              const unit = props.datasets?.[context.datasetIndex]?.unit || props.yAxisLabel || ''
+              label += context.parsed.y + unit
             }
             return label
           }
@@ -240,12 +270,15 @@
       y: {
         display: true,
         afterFit: (axis: any) => {
-          if (props.fixedYAxisWidth) {
+          if (props.fixedYAxisWidth && !props.datasets?.length) {
             axis.width = props.fixedYAxisWidth
           }
         },
         ticks: {
-          callback: (value: any) => `${value}${props.yAxisLabel || ''}`
+          callback: (value: any) => {
+            if (props.datasets?.length) return value
+            return `${value}${props.yAxisLabel || ''}`
+          }
         },
         title: {
           display: false, // Hide title since we have unit on ticks

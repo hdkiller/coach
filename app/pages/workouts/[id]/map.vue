@@ -188,7 +188,14 @@
               </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-4 space-y-0">
+            <div
+              :class="[
+                'flex-1 p-4',
+                layoutMode === 'chart-focus'
+                  ? 'overflow-y-auto space-y-0'
+                  : 'overflow-hidden flex flex-col'
+              ]"
+            >
               <div
                 v-if="selectedStreamObjects.length === 0"
                 class="flex flex-col items-center justify-center h-full text-gray-400 space-y-2 py-12"
@@ -199,6 +206,35 @@
                 </p>
               </div>
 
+              <!-- Default Layout: Single Unified Chart -->
+              <div v-else-if="layoutMode === 'default'" class="flex-1 min-h-0">
+                <client-only>
+                  <StreamChart
+                    :datasets="
+                      selectedStreams.map((key) => ({
+                        label: getStreamMetadata(key).label,
+                        data: zoomedStreams[key],
+                        color: getStreamMetadata(key).color,
+                        unit: getStreamMetadata(key).unit
+                      }))
+                    "
+                    :labels="zoomedStreams.time"
+                    :height-class="'h-full'"
+                    :highlight-index="
+                      zoomRange
+                        ? hoverIndex !== null
+                          ? hoverIndex - zoomRange[0]
+                          : null
+                        : hoverIndex
+                    "
+                    @chart-hover="onChartHover"
+                    @chart-leave="onChartLeave"
+                    @chart-zoom="onChartZoom"
+                  />
+                </client-only>
+              </div>
+
+              <!-- Focus Layout: Stacked Draggable Charts -->
               <draggable
                 v-else
                 v-model="selectedStreamObjects"
@@ -293,6 +329,7 @@
   const zoomRange = ref<[number, number] | null>(null)
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
+  const selectedStreams = computed(() => selectedStreamObjects.value.map((s) => s.value))
 
   const zoomedStreams = computed(() => {
     if (!workout.value?.streams) return null
@@ -381,7 +418,7 @@
     if (layoutMode.value === 'chart-focus') {
       return `${base} lg:grid-cols-3 lg:grid-rows-[minmax(220px,0.42fr)_minmax(320px,0.58fr)]`
     }
-    return `${base} lg:grid-cols-3 lg:grid-rows-[500px_minmax(0,1fr)]`
+    return `${base} lg:grid-cols-3 lg:grid-rows-[380px_minmax(0,1fr)]`
   })
 
   const mapCardClass = computed(() => {
