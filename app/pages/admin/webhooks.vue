@@ -169,8 +169,8 @@
           <div class="flex justify-end px-3 py-3.5 border-t border-gray-200 dark:border-gray-700">
             <UPagination
               v-if="data?.meta"
-              v-model="page"
-              :page-count="pageCount"
+              v-model:page="page"
+              :items-per-page="pageCount"
               :total="data.meta.total"
             />
           </div>

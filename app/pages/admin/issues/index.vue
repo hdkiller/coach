@@ -434,7 +434,7 @@
               v-if="reports && reports.totalPages > 1"
               class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end"
             >
-              <UPagination v-model:page="page" :page-count="limit" :total="reports.count" />
+              <UPagination v-model:page="page" :items-per-page="limit" :total="reports.count" />
             </div>
           </div>
 
@@ -708,7 +708,7 @@
 
             <!-- Pagination inside card mode -->
             <div v-if="reports && reports.totalPages > 1" class="px-6 py-4 flex justify-end mt-4">
-              <UPagination v-model:page="page" :page-count="limit" :total="reports.count" />
+              <UPagination v-model:page="page" :items-per-page="limit" :total="reports.count" />
             </div>
           </div>
         </template>

@@ -684,21 +684,25 @@
   const sleepData = computed(() => {
     if (wellness.value?.rawJson?.sleep?.score?.stage_summary) return wellness.value.rawJson.sleep
 
-    // Fallback to generic fields
-    if (
-      wellness.value?.sleepSecs ||
+    const hasStageBreakdown = Boolean(
       wellness.value?.sleepDeepSecs ||
       wellness.value?.sleepRemSecs ||
       wellness.value?.sleepLightSecs ||
       wellness.value?.sleepAwakeSecs
-    ) {
-      const computedAwake = Math.max(
-        0,
-        (wellness.value.sleepSecs || 0) -
-          ((wellness.value.sleepDeepSecs || 0) +
-            (wellness.value.sleepRemSecs || 0) +
-            (wellness.value.sleepLightSecs || 0))
-      )
+    )
+
+    // Fallback to generic fields
+    if (wellness.value?.sleepSecs || hasStageBreakdown) {
+      const computedAwake =
+        hasStageBreakdown
+          ? Math.max(
+              0,
+              (wellness.value.sleepSecs || 0) -
+                ((wellness.value.sleepDeepSecs || 0) +
+                  (wellness.value.sleepRemSecs || 0) +
+                  (wellness.value.sleepLightSecs || 0))
+            )
+          : null
       return {
         totalSecs: wellness.value.sleepSecs,
         deepSecs: wellness.value.sleepDeepSecs,
