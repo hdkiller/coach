@@ -1297,8 +1297,20 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('map')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Session Route
+            <h2
+              class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0 flex items-center justify-between w-full"
+            >
+              <span>Session Route</span>
+              <UButton
+                icon="i-heroicons-arrows-pointing-out"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                class="font-black uppercase tracking-widest text-[9px]"
+                :to="`/workouts/${workout.id}/map`"
+              >
+                Expand Analysis
+              </UButton>
             </h2>
             <UiWorkoutMap
               :coordinates="workout.streams.latlng"
