@@ -92,7 +92,7 @@
               :workout-id="workout.id"
               :highlight-index="hoverIndex"
               :highlight-range="hoverSplitRange"
-              :highlight-ranges="hoverZoneRanges"
+              :highlight-ranges="zoneHoverRangesForDisplay"
               :interactive="true"
               class="!h-full !rounded-none !border-0"
             />
@@ -303,9 +303,7 @@
                   <tr
                     v-for="zone in hrZones"
                     :key="zone.index"
-                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
-                    @mouseenter="onZoneHover(zone)"
-                    @mouseleave="onZoneLeave"
+                    class="transition-colors"
                   >
                     <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
                       {{ zone.name }}
@@ -430,7 +428,7 @@
                     :height-class="'h-full'"
                     :highlight-index="zoomedHoverIndex"
                     :highlight-range="zoomedHoverSplitRange"
-                    :highlight-ranges="zoomedHoverZoneRanges"
+                    :highlight-ranges="zoomedZoneHoverRangesForDisplay"
                     @chart-hover="onChartHover"
                     @chart-leave="onChartLeave"
                     @chart-zoom="onChartZoom"
@@ -491,7 +489,7 @@
                           :height-class="'h-40'"
                           :highlight-index="zoomedHoverIndex"
                           :highlight-range="zoomedHoverSplitRange"
-                          :highlight-ranges="zoomedHoverZoneRanges"
+                          :highlight-ranges="zoomedZoneHoverRangesForDisplay"
                           :show-x-axis="idx === selectedStreamObjects.length - 1"
                           :fixed-y-axis-width="80"
                           @chart-hover="onChartHover"
@@ -533,6 +531,7 @@
   const hoverIndex = ref<number | null>(null)
   const hoverSplit = ref<any | null>(null)
   const hoverZone = ref<any | null>(null)
+  const isZoneHoverTemporarilyDisabled = true
   const zoomRange = ref<[number, number] | null>(null)
   const isExporting = ref(false)
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
@@ -919,6 +918,7 @@
   }
 
   function onZoneHover(zone: any) {
+    if (isZoneHoverTemporarilyDisabled) return
     hoverZone.value = zone
     console.log('[Map] Zone hover start:', {
       zone: zone.name,
@@ -950,6 +950,7 @@
   }
 
   const hoverZoneRanges = computed(() => {
+    if (isZoneHoverTemporarilyDisabled) return null
     if (!hoverZone.value || !workout.value?.streams?.heartrate || userHrZones.value.length === 0)
       return null
 
@@ -1067,6 +1068,14 @@
       })
       .filter(Boolean) as [number, number][]
   })
+
+  const zoneHoverRangesForDisplay = computed(() =>
+    isZoneHoverTemporarilyDisabled ? null : hoverZoneRanges.value
+  )
+
+  const zoomedZoneHoverRangesForDisplay = computed(() =>
+    isZoneHoverTemporarilyDisabled ? null : zoomedHoverZoneRanges.value
+  )
 
   watch(
     () => zoomedHoverZoneRanges.value,
