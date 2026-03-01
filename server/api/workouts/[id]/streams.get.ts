@@ -193,20 +193,6 @@ export default defineEventHandler(async (event) => {
 
         // Downsample high-frequency streams to reduce payload size (Fixes COACH-WATTS-B)
         const TARGET_POINTS = 2000
-        const streamKeys = [
-          'time',
-          'watts',
-          'heartrate',
-          'cadence',
-          'velocity',
-          'altitude',
-          'distance',
-          'grade_smooth',
-          'latlng',
-          'leftRightBalance',
-          'targetPower'
-        ]
-
         const processedStream = { ...workoutStream, pacingStrategy: strategy }
 
         // Only downsample if time stream is long enough
@@ -217,14 +203,17 @@ export default defineEventHandler(async (event) => {
         ) {
           const step = workoutStream.time.length / TARGET_POINTS
 
-          streamKeys.forEach((key) => {
+          // Downsample all array fields dynamically
+          Object.keys(processedStream).forEach((key) => {
             const streamData = (processedStream as any)[key]
-            if (streamData && Array.isArray(streamData)) {
+            if (Array.isArray(streamData) && key !== 'pacingStrategy' && key !== 'lapSplits') {
               const sampled: any[] = []
               for (let i = 0; i < TARGET_POINTS; i++) {
                 const index = Math.floor(i * step)
                 if (index < streamData.length) {
                   sampled.push(streamData[index])
+                } else {
+                  sampled.push(null)
                 }
               }
               ;(processedStream as any)[key] = sampled
@@ -244,28 +233,18 @@ export default defineEventHandler(async (event) => {
       ) {
         const processedStream = { ...workoutStream }
         const step = workoutStream.time.length / TARGET_POINTS
-        const streamKeys = [
-          'time',
-          'watts',
-          'heartrate',
-          'cadence',
-          'velocity',
-          'altitude',
-          'distance',
-          'grade_smooth',
-          'latlng',
-          'leftRightBalance',
-          'targetPower'
-        ]
 
-        streamKeys.forEach((key) => {
+        // Downsample all array fields dynamically
+        Object.keys(processedStream).forEach((key) => {
           const streamData = (processedStream as any)[key]
-          if (streamData && Array.isArray(streamData)) {
+          if (Array.isArray(streamData) && key !== 'pacingStrategy' && key !== 'lapSplits') {
             const sampled: any[] = []
             for (let i = 0; i < TARGET_POINTS; i++) {
               const index = Math.floor(i * step)
               if (index < streamData.length) {
                 sampled.push(streamData[index])
+              } else {
+                sampled.push(null)
               }
             }
             ;(processedStream as any)[key] = sampled
