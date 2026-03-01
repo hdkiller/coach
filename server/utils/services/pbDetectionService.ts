@@ -188,10 +188,14 @@ export const pbDetectionService = {
     // For Power and Elevation, HIGHER is better
     // For Pace/Time (unit: 's'), LOWER is better
     const isPace = candidate.unit === 's'
-    const isImprovement =
+    const isValueImprovement =
       !existing || (isPace ? candidate.value < existing.value : candidate.value > existing.value)
 
-    if (isImprovement) {
+    // Also update if it's the SAME workout but metadata is missing (backfill case)
+    const isSameWorkoutBackfill =
+      existing && existing.workoutId === workoutId && (!existing.metadata || candidate.metadata)
+
+    if (isValueImprovement || isSameWorkoutBackfill) {
       await prisma.personalBest.upsert({
         where: {
           userId_type: {
