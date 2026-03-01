@@ -635,6 +635,7 @@
   import PerformanceFtpEvolutionCard from '~/components/performance/PerformanceFtpEvolutionCard.vue'
   import PerformanceIntensityDistributionCard from '~/components/performance/PerformanceIntensityDistributionCard.vue'
   import PerformanceScoreTrajectoryCard from '~/components/performance/PerformanceScoreTrajectoryCard.vue'
+  import TrophyCase from '~/components/profile/TrophyCase.vue'
   import ChartDataLabels from 'chartjs-plugin-datalabels'
 
   const userStore = useUserStore()
