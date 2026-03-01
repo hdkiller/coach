@@ -26,9 +26,22 @@ import huPricing from '../i18n/hu/pricing.json'
 import huAuth from '../i18n/hu/auth.json'
 import huSupport from '../i18n/hu/support.json'
 
+import deCommon from '../i18n/de/common.json'
+import deHero from '../i18n/de/hero.json'
+import deNutrition from '../i18n/de/nutrition.json'
+import deHowItWorks from '../i18n/de/how-it-works.json'
+import deArchitecture from '../i18n/de/architecture.json'
+import deBento from '../i18n/de/bento.json'
+import deGoals from '../i18n/de/goals.json'
+import deCommunity from '../i18n/de/community.json'
+import dePricing from '../i18n/de/pricing.json'
+import deAuth from '../i18n/de/auth.json'
+import deSupport from '../i18n/de/support.json'
+
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
   const { apiUrl, apiKey } = config.public.tolgee
+  const canUseDevTools = import.meta.client && import.meta.dev && Boolean(apiUrl) && Boolean(apiKey)
 
   const builder = Tolgee().use(FormatIcu())
 
@@ -37,7 +50,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   if (import.meta.client) {
     builder.use(LanguageDetector()).use(LanguageStorage())
 
-    if (import.meta.dev && apiUrl && apiKey) {
+    if (canUseDevTools) {
       builder.use(DevTools())
     }
   }
@@ -66,12 +79,29 @@ export default defineNuxtPlugin((nuxtApp) => {
       'hu:community': huCommunity,
       'hu:pricing': huPricing,
       'hu:auth': huAuth,
-      'hu:support': huSupport
+      'hu:support': huSupport,
+      'de:common': deCommon,
+      'de:hero': deHero,
+      'de:nutrition': deNutrition,
+      'de:how-it-works': deHowItWorks,
+      'de:architecture': deArchitecture,
+      'de:bento': deBento,
+      'de:goals': deGoals,
+      'de:community': deCommunity,
+      'de:pricing': dePricing,
+      'de:auth': deAuth,
+      'de:support': deSupport
     },
-    ...(import.meta.dev && apiUrl && apiKey ? { apiUrl, apiKey } : {})
+    ...(canUseDevTools ? { apiUrl, apiKey } : {})
   })
 
-  nuxtApp.vueApp.use(VueTolgee, { tolgee })
+  if (import.meta.client) {
+    nuxtApp.hook('app:mounted', () => {
+      void tolgee.run()
+    })
+  }
+
+  nuxtApp.vueApp.use(VueTolgee, { tolgee, enableSSR: true })
 
   return {
     provide: {

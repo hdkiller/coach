@@ -143,7 +143,9 @@
                 }}</NuxtLink>
               </li>
               <li>
-                <NuxtLink to="/docs" class="hover:text-primary">{{ t('footer.docs') }}</NuxtLink>
+                <NuxtLink to="/documentation" class="hover:text-primary">{{
+                  t('footer.docs')
+                }}</NuxtLink>
               </li>
               <li>
                 <NuxtLink to="/login" class="hover:text-primary">{{ t('footer.login') }}</NuxtLink>
