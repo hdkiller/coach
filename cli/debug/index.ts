@@ -39,6 +39,7 @@ import garminIngestCommand from './garmin-ingest'
 import garminWebhookCommand from './webhook-garmin'
 import elevationAnomaliesCommand from './elevation-anomalies'
 import thresholdCheckCommand from './threshold-check'
+import pbCheckCommand from './pb-check'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -82,5 +83,6 @@ debugCommand.addCommand(cadenceJitterCommand)
 debugCommand.addCommand(garminIngestCommand)
 debugCommand.addCommand(elevationAnomaliesCommand)
 debugCommand.addCommand(thresholdCheckCommand)
+debugCommand.addCommand(pbCheckCommand)
 
 export default debugCommand

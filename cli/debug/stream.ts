@@ -41,7 +41,8 @@ const streamCommand = new Command('stream')
         'altitude',
         'latlng',
         'grade',
-        'moving'
+        'moving',
+        'surges'
       ]
 
       console.log('')

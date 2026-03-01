@@ -126,8 +126,8 @@ export const pbDetectionService = {
 
       for (let endPtr = 0; endPtr < distances.length; endPtr++) {
         // Move start pointer forward until distance is exactly or just under target
-        while (distances[endPtr] - distances[startPtr] > target.dist) {
-          const duration = times[endPtr] - times[startPtr]
+        while (distances[endPtr]! - distances[startPtr]! > target.dist) {
+          const duration = times[endPtr]! - times[startPtr]!
           if (duration < minTime) {
             minTime = duration
           }
@@ -135,9 +135,9 @@ export const pbDetectionService = {
         }
 
         // Final check for the segment ending at endPtr
-        if (distances[endPtr] - distances[startPtr] >= target.dist * 0.998) {
+        if (distances[endPtr]! - distances[startPtr]! >= target.dist * 0.998) {
           // 0.2% tolerance
-          const duration = times[endPtr] - times[startPtr]
+          const duration = times[endPtr]! - times[startPtr]!
           if (duration < minTime) minTime = duration
         }
       }
