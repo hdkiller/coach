@@ -13,6 +13,7 @@ import enCommunity from '../i18n/en/community.json'
 import enPricing from '../i18n/en/pricing.json'
 import enAuth from '../i18n/en/auth.json'
 import enSupport from '../i18n/en/support.json'
+import enStories from '../i18n/en/stories.json'
 
 import huCommon from '../i18n/hu/common.json'
 import huHero from '../i18n/hu/hero.json'
@@ -69,6 +70,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'en:pricing': enPricing,
       'en:auth': enAuth,
       'en:support': enSupport,
+      'en:stories': enStories,
       'hu:common': huCommon,
       'hu:hero': huHero,
       'hu:nutrition': huNutrition,
