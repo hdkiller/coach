@@ -1,5 +1,10 @@
 <template>
-  <div :class="['w-full', heightClass]">
+  <div
+    :class="['w-full cursor-crosshair select-none', heightClass]"
+    @mousedown="handleMouseDown"
+    @mouseup="handleMouseUp"
+    @mouseleave="handleMouseUp"
+  >
     <Line ref="chartRef" :data="chartData" :options="chartOptions" :plugins="[crosshairPlugin]" />
   </div>
 </template>
@@ -52,21 +57,39 @@
     heightClass: 'h-64'
   })
 
-  const emit = defineEmits(['chart-hover', 'chart-leave'])
+  const emit = defineEmits(['chart-hover', 'chart-leave', 'chart-zoom'])
 
   const chartRef = ref<any>(null)
+  const isSelecting = ref(false)
+  const selectionStart = ref<number | null>(null)
+  const selectionEnd = ref<number | null>(null)
 
-  // Custom plugin to draw vertical crosshair line
+  // Custom plugin to draw vertical crosshair line and selection box
   const crosshairPlugin = {
     id: 'crosshair',
     afterDraw: (chart: any) => {
       const activeElements = chart.getActiveElements()
+      const ctx = chart.ctx
+      const topY = chart.scales.y.top
+      const bottomY = chart.scales.y.bottom
+
+      // Draw selection box if dragging
+      if (isSelecting.value && selectionStart.value !== null && selectionEnd.value !== null) {
+        const startX = chart.scales.x.getPixelForValue(props.labels[selectionStart.value])
+        const endX = chart.scales.x.getPixelForValue(props.labels[selectionEnd.value])
+
+        ctx.save()
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.2)' // blue-500 with low opacity
+        ctx.fillRect(startX, topY, endX - startX, bottomY - topY)
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)'
+        ctx.lineWidth = 1
+        ctx.strokeRect(startX, topY, endX - startX, bottomY - topY)
+        ctx.restore()
+      }
+
       if (activeElements?.length) {
         const activePoint = activeElements[0]
-        const ctx = chart.ctx
         const x = activePoint.element.x
-        const topY = chart.scales.y.top
-        const bottomY = chart.scales.y.bottom
 
         ctx.save()
         ctx.beginPath()
@@ -145,20 +168,30 @@
     ]
   }))
 
-  const chartOptions = computed(() => ({
+  const chartOptions = computed<any>(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    animation: false as const,
     interaction: {
       mode: 'index' as const,
       intersect: false
     },
     onHover: (event: any, elements: any[]) => {
       if (elements && elements.length > 0) {
-        emit('chart-hover', elements[0].index)
+        const index = elements[0].index
+        emit('chart-hover', index)
+
+        if (isSelecting.value && selectionStart.value !== null) {
+          selectionEnd.value = index
+        }
       } else {
         emit('chart-leave')
       }
     },
+    onClick: (event: any, elements: any[]) => {
+      // Logic handled by mouse events for drag selection
+    },
+    // Use raw canvas events for reliable drag selection
     plugins: {
       legend: {
         display: true
@@ -184,6 +217,9 @@
       x: {
         type: props.xAxisType as 'linear' | 'category',
         display: props.showXAxis,
+        min: props.labels[0],
+        max: props.labels[props.labels.length - 1],
+        bounds: 'ticks',
         ticks: {
           callback: (value: any) => {
             const seconds = Number(value)
@@ -218,4 +254,32 @@
       }
     }
   }))
+
+  const handleMouseDown = (e: MouseEvent) => {
+    const chart = chartRef.value?.chart
+    if (!chart) return
+
+    const points = chart.getElementsAtEventForMode(e, 'index', { intersect: false }, false)
+    if (points.length) {
+      isSelecting.value = true
+      selectionStart.value = points[0].index
+      selectionEnd.value = points[0].index
+    }
+  }
+
+  const handleMouseUp = () => {
+    if (isSelecting.value && selectionStart.value !== null && selectionEnd.value !== null) {
+      const start = Math.min(selectionStart.value, selectionEnd.value)
+      const end = Math.max(selectionStart.value, selectionEnd.value)
+
+      if (end - start > 5) {
+        // Minimum threshold to trigger zoom
+        emit('chart-zoom', [start, end])
+      }
+    }
+
+    isSelecting.value = false
+    selectionStart.value = null
+    selectionEnd.value = null
+  }
 </script>
