@@ -180,9 +180,9 @@ export default defineEventHandler(async (event) => {
         workout.userId,
         workout.type || ''
       )
-      const processedStream = { ...workoutStream }
-      ;(processedStream as any).hrZones = (settings?.hrZones as any[]) || DEFAULT_HR_ZONES
-      ;(processedStream as any).powerZones = (settings?.powerZones as any[]) || DEFAULT_POWER_ZONES
+      const processedStream: any = { ...workoutStream }
+      processedStream.hrZones = (settings?.hrZones as any[]) || DEFAULT_HR_ZONES
+      processedStream.powerZones = (settings?.powerZones as any[]) || DEFAULT_POWER_ZONES
 
       // Persist calculated zones if needed
       if (zonesUpdated) {
@@ -230,7 +230,15 @@ export default defineEventHandler(async (event) => {
             const streamData = (processedStream as any)[key]
             if (
               Array.isArray(streamData) &&
-              !['pacingStrategy', 'lapSplits', 'surges'].includes(key)
+              ![
+                'pacingStrategy',
+                'lapSplits',
+                'surges',
+                'hrZones',
+                'powerZones',
+                'hrZoneTimes',
+                'powerZoneTimes'
+              ].includes(key)
             ) {
               const sampled: any[] = []
               for (let i = 0; i < TARGET_POINTS; i++) {
@@ -306,7 +314,11 @@ export default defineEventHandler(async (event) => {
               'lapSplits',
               'surges',
               'detectedIntervals',
-              'detectedClimbs'
+              'detectedClimbs',
+              'hrZones',
+              'powerZones',
+              'hrZoneTimes',
+              'powerZoneTimes'
             ].includes(key)
           ) {
             const sampled: any[] = []
@@ -329,6 +341,13 @@ export default defineEventHandler(async (event) => {
         const velocity = (workoutStream.velocity as number[]) || []
         const altitude = (workoutStream.altitude as number[]) || []
         const distance = (workoutStream.distance as number[]) || []
+
+        const settings = await sportSettingsRepository.getForActivityType(
+          workout.userId,
+          workout.type || ''
+        )
+        processedStream.hrZones = (settings?.hrZones as any[]) || DEFAULT_HR_ZONES
+        processedStream.powerZones = (settings?.powerZones as any[]) || DEFAULT_POWER_ZONES
 
         if (time.length > 0) {
           if (watts.length === time.length) {

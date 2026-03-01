@@ -316,7 +316,13 @@
                     <td
                       class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
                     >
-                      {{ Math.round((zone.time / (workout.duration || 1)) * 100) }}%
+                      {{
+                        Math.round(
+                          (zone.time /
+                            (hrZones.reduce((a, b) => a + b.time, 0) || workout.duration || 1)) *
+                            100
+                        )
+                      }}%
                     </td>
                   </tr>
                   <tr v-if="hrZones.length === 0">
@@ -665,12 +671,16 @@
 
     // Recenter map after layout change (DOM needs a tick to update size)
     nextTick(() => {
+      const map = workoutMap.value?.mapObject?.leafletObject
+      if (map) {
+        map.invalidateSize()
+      }
+
       if (workoutMap.value?.fitBounds) {
         workoutMap.value.fitBounds()
       }
     })
   })
-
   const contentGridClass = computed(() => {
     const base = 'grid flex-1 min-h-0 grid-cols-1 gap-4'
     if (layoutMode.value === 'chart-focus') {
@@ -738,7 +748,29 @@
         const data = streams[key]
         const isArray = Array.isArray(data)
         const isSelected = selectedStreamValues.value.includes(key)
-        return metadata[key] && (isArray || isSelected) && key !== 'time' && key !== 'latlng'
+
+        // Strictly only allow array streams that are not internal metadata
+        const metadataBlacklist = [
+          'time',
+          'latlng',
+          'hrZones',
+          'powerZones',
+          'hrZoneTimes',
+          'powerZoneTimes',
+          'pacingStrategy',
+          'lapSplits',
+          'surges',
+          'detectedIntervals',
+          'detectedClimbs',
+          'icu_intervals',
+          'icu_groups',
+          'id',
+          'workoutId',
+          'createdAt',
+          'updatedAt'
+        ]
+
+        return (isArray && metadata[key] && !metadataBlacklist.includes(key)) || isSelected
       })
       .map((key) => ({
         label: metadata[key]?.label || key,
@@ -764,6 +796,10 @@
     [workoutData, streamsData],
     ([newWorkout, newStreams]) => {
       if (newWorkout && newStreams) {
+        console.log('[Map] Streams loaded:', Object.keys(newStreams))
+        console.log('[Map] HR Zones Data:', newStreams.hrZones)
+        console.log('[Map] HR Zone Times:', newStreams.hrZoneTimes)
+
         workout.value = {
           ...newWorkout,
           streams: newStreams
@@ -788,11 +824,17 @@
         // Calculate HR Zones data if heartrate stream exists
         if (newStreams.heartrate && Array.isArray(newStreams.heartrate)) {
           if (newStreams.hrZoneTimes && newStreams.hrZones) {
-            hrZones.value = newStreams.hrZoneTimes.map((time: number, idx: number) => ({
-              name: newStreams.hrZones[idx]?.name || `Z${idx + 1}`,
-              time: time,
-              index: idx
-            }))
+            // Filter out nulls and ensure we only map valid indices
+            hrZones.value = newStreams.hrZoneTimes
+              .map((time: number, idx: number) => {
+                if (time === null || idx >= newStreams.hrZones.length) return null
+                return {
+                  name: newStreams.hrZones[idx]?.name || `Z${idx + 1}`,
+                  time: time,
+                  index: idx
+                }
+              })
+              .filter(Boolean)
           }
         } // Initialize from user settings or auto-detect
         const savedSelection = userStore.user?.dashboardSettings?.mapSelectedStreams

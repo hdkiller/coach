@@ -192,10 +192,6 @@
   const center = ref<[number, number]>([51.505, -0.09])
   const mapObject = ref<any>(null)
 
-  defineExpose({
-    mapObject
-  })
-
   const selectedMode = ref<'route' | 'altitude' | 'heartrate' | 'velocity'>('route')
   const showSplits = ref(true)
   const lapSplits = ref<any[]>([])

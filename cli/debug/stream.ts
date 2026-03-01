@@ -28,6 +28,8 @@ const streamCommand = new Command('stream')
         return
       }
 
+      console.log(chalk.gray(`Database record keys: ${Object.keys(streams).join(', ')}`))
+
       console.log('')
       console.log(chalk.bold.cyan(`=== Stream Debug: ${id} ===`))
 
@@ -45,7 +47,11 @@ const streamCommand = new Command('stream')
         'surges',
         'lapSplits',
         'icu_intervals',
-        'icu_groups'
+        'icu_groups',
+        'hrZoneTimes',
+        'powerZoneTimes',
+        'hrZones',
+        'powerZones'
       ]
 
       console.log('')
@@ -64,13 +70,17 @@ const streamCommand = new Command('stream')
           console.log(
             `${key.padEnd(20)}${data.length.toString().padEnd(10)}${first.padEnd(20)}${last}`
           )
+        } else if (data && typeof data === 'object') {
+          console.log(`${key.padEnd(20)}${chalk.yellow('Object (non-array)')}`)
+          if (key === 'hrZones' || key === 'powerZones') {
+            console.log(chalk.gray(JSON.stringify(data, null, 2).slice(0, 500) + '...'))
+          }
         } else if (data) {
-          console.log(`${key.padEnd(20)}${chalk.yellow('Not an array')}`)
+          console.log(`${key.padEnd(20)}${chalk.yellow('Not an array or object')}`)
         } else {
           console.log(`${key.padEnd(20)}${chalk.gray('Missing')}`)
         }
       }
-
       // Also check time increments
       if (Array.isArray(streams.time) && streams.time.length > 1) {
         const time = streams.time as number[]
