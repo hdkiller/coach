@@ -132,6 +132,7 @@ model User {
   wellness                           Wellness[]
   workouts                           Workout[]
   metricHistory                      MetricHistory[]
+  personalBests                      PersonalBest[]
   journeyEvents                      AthleteJourneyEvent[]
   nutritionSettings                  UserNutritionSettings?
   nutritionRecommendations           NutritionRecommendation[]
@@ -563,6 +564,7 @@ model Workout {
   exercises                       WorkoutExercise[]
   streams                         WorkoutStream?
   metricHistory                   MetricHistory[]
+  personalBests                   PersonalBest[]
 
   @@unique([userId, source, externalId])
   @@index([userId, date])
@@ -1734,4 +1736,28 @@ model MetricHistory {
   @@index([userId])
   @@index([type])
   @@index([date])
+}
+
+model PersonalBest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      String   // RUN_1K, RUN_5K, POWER_5S, POWER_20M, CLIMB_MAX, etc.
+  category  String   // RUN, CYCLE, SWIM, OTHER
+  value     Float
+  unit      String
+  
+  date      DateTime
+  workoutId String?
+  workout   Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  
+  notes     String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type]) // Each user has one all-time best per type
+  @@index([userId])
+  @@index([category])
 }
