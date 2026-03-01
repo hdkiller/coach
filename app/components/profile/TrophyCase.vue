@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { formatDistanceToNow } from 'date-fns'
+  import { formatDistanceToNow, isToday, isYesterday } from 'date-fns'
 
   const props = defineProps<{
     personalBests: any[]
@@ -12,18 +12,22 @@
     { id: 'OTHER', label: 'Other', icon: 'i-heroicons-trophy', color: 'gray' }
   ]
 
-  // Major milestones that should be "featured" (larger cards)
-  const featuredTypes = ['RUN_5K', 'RUN_10K', 'POWER_20M', 'POWER_1M', 'ELEVATION_GAIN']
+  // Major milestones that should be "featured" heroes
+  const heroTypes = ['RUN_5K', 'POWER_20M', 'ELEVATION_GAIN']
+  const featuredTypes = ['RUN_10K', 'POWER_1M', 'POWER_5M', 'RUN_1K']
 
   const pbsByCategory = computed(() => {
     const map: Record<string, any[]> = {}
     if (!props.personalBests) return map
 
-    // Sort so featured ones or more "important" ones come first or as desired
+    // Sort: Heroes first, then Featured, then others
     const sorted = [...props.personalBests].sort((a, b) => {
-      const aFeatured = featuredTypes.includes(a.type) ? 0 : 1
-      const bFeatured = featuredTypes.includes(b.type) ? 0 : 1
-      return aFeatured - bFeatured
+      const getPriority = (type: string) => {
+        if (heroTypes.includes(type)) return 0
+        if (featuredTypes.includes(type)) return 1
+        return 2
+      }
+      return getPriority(a.type) - getPriority(b.type)
     })
 
     sorted.forEach((pb) => {
@@ -56,9 +60,12 @@
       .replace('ELEVATION GAIN', 'Max Climb')
   }
 
-  function getRelativeDate(date: string | Date) {
+  function getHumanDate(date: string | Date) {
     try {
-      return formatDistanceToNow(new Date(date), { addSuffix: true })
+      const d = new Date(date)
+      if (isToday(d)) return 'Today'
+      if (isYesterday(d)) return 'Yesterday'
+      return formatDistanceToNow(d, { addSuffix: true })
     } catch (e) {
       return ''
     }
@@ -73,28 +80,34 @@
 
   function getSportIcon(pb: any) {
     if (pb.type.includes('POWER')) return 'i-heroicons-bolt'
-    if (pb.type.includes('ELEVATION')) return 'i-lucide-mountain'
+    if (pb.type.includes('ELEVATION')) return 'i-heroicons-mountain-20-solid'
     if (pb.category === 'RUN') return 'i-lucide-footprints'
-    if (pb.category === 'CYCLE') return 'i-heroicons-arrow-path' // Or appropriate cycling icon
+    if (pb.category === 'CYCLE') return 'i-heroicons-bicycle'
     return 'i-heroicons-trophy'
   }
 
   function getCardClass(pb: any) {
-    const isFeatured = featuredTypes.includes(pb.type)
+    const isHero = heroTypes.includes(pb.type)
     const recent = isRecent(pb.date)
 
     let classes =
-      'relative group overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg '
+      'relative group overflow-hidden transition-all duration-500 ease-out hover:-translate-y-1 '
 
-    if (isFeatured) {
+    // Glassmorphism base
+    classes +=
+      'backdrop-blur-md bg-white/80 dark:bg-gray-900/60 border border-gray-100 dark:border-white/5 '
+
+    if (isHero) {
       classes +=
-        'md:col-span-2 lg:col-span-1 border-2 border-primary-500/20 bg-gradient-to-br from-white to-primary-50 dark:from-gray-900 dark:to-primary-950/20 '
+        'md:col-span-2 lg:col-span-1 border-amber-400/30 dark:border-amber-400/20 shadow-[0_0_20px_-12px_rgba(251,191,36,0.2)] '
     } else {
-      classes += 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 '
+      classes += 'shadow-sm hover:shadow-xl '
     }
 
     if (recent) {
-      classes += 'ring-2 ring-amber-400/50 '
+      if (pb.category === 'RUN') classes += 'shadow-[0_0_30px_-10px_rgba(59,130,246,0.2)] '
+      else if (pb.category === 'CYCLE') classes += 'shadow-[0_0_30px_-10px_rgba(34,197,94,0.2)] '
+      else classes += 'shadow-[0_0_30px_-10px_rgba(251,191,36,0.2)] '
     }
 
     return classes
@@ -102,121 +115,152 @@
 </script>
 
 <template>
-  <div class="space-y-12">
+  <div class="space-y-16">
     <div
       v-for="cat in categories.filter((c) => pbsByCategory[c.id])"
       :key="cat.id"
-      class="space-y-6"
+      class="space-y-8"
     >
       <!-- Section Header -->
       <div class="flex items-center gap-4 px-4 sm:px-0">
         <div
-          class="p-2.5 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 shadow-sm"
+          class="p-3 rounded-2xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl text-gray-900 dark:text-white border border-gray-200/50 dark:border-white/10 shadow-sm"
         >
           <UIcon :name="cat.icon" class="w-6 h-6" />
         </div>
         <div>
           <h3
-            class="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
+            class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
           >
             {{ cat.label }} Hall of Fame
           </h3>
-          <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
-            Records detected from your {{ cat.label.toLowerCase() }} activities
+          <p
+            class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em]"
+          >
+            Elite performances from your history
           </p>
         </div>
         <div class="flex-1 border-b border-dashed border-gray-200 dark:border-gray-800 ml-2" />
       </div>
 
       <!-- Trophy Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div
           v-for="pb in pbsByCategory[cat.id]"
           :key="pb.id"
           :class="getCardClass(pb)"
-          class="p-6 rounded-3xl flex flex-col justify-between h-full"
+          class="p-8 rounded-[32px] flex flex-col justify-between h-full"
         >
-          <!-- Featured Background Glow -->
+          <!-- Hero Glow & Patterns -->
           <div
-            v-if="featuredTypes.includes(pb.type)"
-            class="absolute -top-12 -right-12 w-32 h-32 bg-primary-500/10 blur-3xl rounded-full"
+            v-if="heroTypes.includes(pb.type)"
+            class="absolute -top-24 -right-24 w-64 h-64 bg-amber-400/10 blur-[80px] rounded-full"
+          />
+          <div
+            v-if="isRecent(pb.date)"
+            class="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"
           />
 
           <div class="relative">
             <!-- Top Header: Icon + Badge -->
-            <div class="flex items-start justify-between mb-4">
+            <div class="flex items-start justify-between mb-6">
               <div
-                class="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm group-hover:border-primary-500/50 transition-colors"
+                class="p-4 rounded-[22px] bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-inner group-hover:border-primary-500/40 transition-colors duration-500"
               >
-                <UIcon :name="getSportIcon(pb)" class="w-6 h-6 text-primary-500" />
+                <UIcon :name="getSportIcon(pb)" class="w-7 h-7 text-primary-500" />
               </div>
-              <div
-                v-if="isRecent(pb.date)"
-                class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 animate-pulse"
-              >
-                <UIcon
-                  name="i-heroicons-sparkles"
-                  class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"
-                />
-                <span
-                  class="text-[9px] font-black text-amber-700 dark:text-amber-300 uppercase tracking-widest"
-                  >New Record</span
+
+              <div v-if="isRecent(pb.date)" class="relative">
+                <div class="absolute inset-0 bg-amber-400 blur-md opacity-20 animate-pulse" />
+                <div
+                  class="relative flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-400 dark:bg-amber-400 text-black overflow-hidden"
                 >
+                  <!-- Shimmer Effect -->
+                  <div
+                    class="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  />
+                  <UIcon name="i-heroicons-sparkles" class="w-4 h-4" />
+                  <span class="text-[10px] font-black uppercase tracking-widest">New Record</span>
+                </div>
+              </div>
+
+              <div
+                v-else-if="heroTypes.includes(pb.type)"
+                class="p-1.5 rounded-full border border-amber-400/40 text-amber-500"
+              >
+                <UIcon name="i-heroicons-trophy" class="w-5 h-5" />
               </div>
             </div>
 
             <!-- Value & Label -->
             <div class="space-y-1">
               <div
-                class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]"
+                class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.25em]"
               >
                 {{ formatType(pb.type) }}
               </div>
               <div class="flex items-baseline gap-2">
                 <span
-                  class="text-4xl font-black text-gray-900 dark:text-white tracking-tighter italic"
+                  class="text-5xl font-black text-gray-900 dark:text-white tracking-tighter italic tabular-nums font-athletic"
                 >
                   {{ formatValue(pb) }}
                 </span>
                 <span
                   v-if="pb.unit !== 's'"
-                  class="text-lg font-black text-gray-400 dark:text-gray-600 uppercase italic"
+                  class="text-xl font-black text-gray-900 dark:text-white opacity-40 uppercase italic"
                 >
                   {{ pb.unit }}
                 </span>
-                <span v-else class="text-sm font-bold text-gray-400 dark:text-gray-600 uppercase">
+                <span
+                  v-else
+                  class="text-sm font-black text-gray-400 dark:text-gray-600 uppercase opacity-50 tracking-widest"
+                >
                   pace
                 </span>
               </div>
             </div>
 
             <!-- Secondary Stats / Context -->
-            <div v-if="pb.metadata" class="mt-4 flex flex-wrap gap-4">
-              <div v-if="pb.metadata.avgHr" class="flex items-center gap-1.5 text-gray-500">
-                <UIcon name="i-heroicons-heart" class="w-3.5 h-3.5 text-red-500/70" />
-                <span class="text-[10px] font-bold uppercase tracking-tight"
-                  >{{ pb.metadata.avgHr }} bpm</span
-                >
+            <div v-if="pb.metadata || pb.workout" class="mt-6 flex flex-wrap gap-5">
+              <div
+                v-if="pb.metadata?.avgHr || pb.workout?.averageHr"
+                class="flex items-center gap-2"
+              >
+                <div class="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center">
+                  <UIcon name="i-heroicons-heart" class="w-4 h-4 text-red-500/60" />
+                </div>
+                <span class="text-xs font-black text-gray-500 dark:text-gray-400 tabular-nums">
+                  {{ pb.metadata?.avgHr || pb.workout?.averageHr }}
+                  <span class="ml-0.5 text-[9px] opacity-60">BPM</span>
+                </span>
               </div>
-              <div v-if="pb.metadata.avgCadence" class="flex items-center gap-1.5 text-gray-500">
-                <UIcon name="i-lucide-rotate-cw" class="w-3.5 h-3.5 text-blue-500/70" />
-                <span class="text-[10px] font-bold uppercase tracking-tight"
-                  >{{ pb.metadata.avgCadence }} rpm</span
-                >
+              <div
+                v-if="pb.metadata?.avgCadence || pb.workout?.averageCadence"
+                class="flex items-center gap-2"
+              >
+                <div class="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <UIcon name="i-lucide-rotate-cw" class="w-4 h-4 text-blue-500/60" />
+                </div>
+                <span class="text-xs font-black text-gray-500 dark:text-gray-400 tabular-nums">
+                  {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }}
+                  <span class="ml-0.5 text-[9px] opacity-60">RPM</span>
+                </span>
               </div>
             </div>
           </div>
 
           <!-- Footer: Date + Action -->
           <div
-            class="mt-8 pt-4 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between"
+            class="mt-10 pt-6 border-t border-gray-100/50 dark:border-white/5 flex items-center justify-between"
           >
             <div class="flex flex-col">
-              <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+              <div
+                class="text-[9px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest"
+              >
                 Achieved
               </div>
-              <div class="text-xs font-bold text-gray-600 dark:text-gray-300">
-                {{ getRelativeDate(pb.date) }}
+              <div class="text-sm font-black text-gray-700 dark:text-gray-300 italic">
+                {{ getHumanDate(pb.date) }}
               </div>
             </div>
 
@@ -226,8 +270,11 @@
               icon="i-heroicons-arrow-right"
               color="neutral"
               variant="subtle"
-              size="sm"
-              class="rounded-xl group-hover:bg-primary-500 group-hover:text-white transition-all"
+              size="md"
+              class="rounded-2xl group/btn transition-all duration-300 hover:bg-primary-500 hover:text-white"
+              :ui="{
+                icon: { base: 'transition-transform duration-300 group-hover/btn:translate-x-1' }
+              }"
             />
           </div>
         </div>
@@ -237,29 +284,48 @@
     <!-- Empty State -->
     <div
       v-if="personalBests.length === 0"
-      class="text-center py-24 bg-gray-50 dark:bg-gray-900/50 rounded-[40px] border-2 border-dashed border-gray-200 dark:border-gray-800 max-w-2xl mx-auto"
+      class="text-center py-32 bg-gray-50/50 dark:bg-gray-900/30 backdrop-blur-md rounded-[50px] border-2 border-dashed border-gray-200 dark:border-white/10 max-w-2xl mx-auto"
     >
       <div
-        class="w-20 h-20 bg-white dark:bg-gray-800 rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-6 transform -rotate-6"
+        class="w-24 h-24 bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl flex items-center justify-center mx-auto mb-8 transform -rotate-12 border border-gray-100 dark:border-white/5"
       >
-        <UIcon name="i-heroicons-trophy" class="w-10 h-10 text-gray-200" />
+        <UIcon name="i-heroicons-trophy" class="w-12 h-12 text-gray-200" />
       </div>
-      <h3 class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+      <h3 class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic">
         The Case is Empty
       </h3>
-      <p class="text-sm text-gray-500 max-w-xs mx-auto mt-2 font-medium">
-        Go out and push your limits. Coach Watts will automatically celebrate your peak performances
-        here.
+      <p class="text-base text-gray-500 max-w-sm mx-auto mt-3 font-medium leading-relaxed">
+        Your peak performances are waiting. Go out, push your limits, and Coach Watts will celebrate
+        you here.
       </p>
       <UButton
         color="primary"
         variant="solid"
-        size="lg"
-        class="mt-8 font-black uppercase tracking-widest rounded-2xl"
+        size="xl"
+        class="mt-10 font-black uppercase tracking-widest rounded-2xl px-10 py-4 shadow-xl shadow-primary-500/20"
         to="/activities"
       >
-        Start Training
+        Ignite Training
       </UButton>
     </div>
   </div>
 </template>
+
+<style scoped>
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Fallback for athletic font if not globally defined */
+  .font-athletic {
+    font-family:
+      'Inter var',
+      'Inter',
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-stretch: condensed;
+  }
+</style>

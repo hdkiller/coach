@@ -87,7 +87,13 @@ export default defineEventHandler(async (event) => {
           unit: true,
           date: true,
           workoutId: true,
-          metadata: true
+          metadata: true,
+          workout: {
+            select: {
+              averageHr: true,
+              averageCadence: true
+            }
+          }
         },
         orderBy: { type: 'asc' }
       }
