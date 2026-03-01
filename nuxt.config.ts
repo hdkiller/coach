@@ -293,6 +293,7 @@ export default defineNuxtConfig({
       stripeProMonthlyEurPriceId: process.env.STRIPE_PRO_MONTHLY_EUR_PRICE_ID || '',
       stripeProAnnualEurPriceId: process.env.STRIPE_PRO_ANNUAL_EUR_PRICE_ID || '',
       subscriptionsEnabled: process.env.NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED !== 'false',
+      stravaEnabled: process.env.NUXT_PUBLIC_STRAVA_ENABLED !== 'false',
       tolgee: {
         apiUrl: process.env.NUXT_PUBLIC_TOLGEE_API_URL || process.env.TOLGEE_API_URL,
         apiKey: process.env.NUXT_PUBLIC_TOLGEE_API_KEY || process.env.TOLGEE_API_KEY

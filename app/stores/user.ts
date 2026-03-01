@@ -387,6 +387,7 @@ export const useUserStore = defineStore('user', () => {
     updateDashboardSettings,
     fetchProfile,
     generateProfile,
+    updateUserMetrics,
     hasEntitlement,
     hasMinimumTier
   }
