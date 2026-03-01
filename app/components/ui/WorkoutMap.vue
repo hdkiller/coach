@@ -45,7 +45,7 @@
           <!-- Normal Route -->
           <LPolyline
             v-if="selectedMode === 'route' || coloredSegments.length === 0"
-            :lat-lngs="latLngs"
+            :lat-lngs="baseRoutePoints"
             :color="primaryColor"
             :weight="4"
             :opacity="0.8"
@@ -244,23 +244,20 @@
       cumulativeTime += split.time
 
       // Find the index in the time stream closest to this cumulative time
-      // This is more accurate than distance for locating splits on the latlng stream
       let closestIdx = 0
       let minDiff = Infinity
 
-      // Binary search would be faster but for typical stream lengths this is fine
-      // and we only do it once per split
       for (let i = 0; i < timeStream.length; i++) {
         const diff = Math.abs(timeStream[i] - cumulativeTime)
         if (diff < minDiff) {
           minDiff = diff
           closestIdx = i
         } else if (diff > minDiff) {
-          // Time stream is sorted, so we can stop once diff starts increasing
           break
         }
       }
 
+      // Use raw latLngs to maintain index alignment
       const position = latLngs.value[closestIdx]
       if (position) {
         // Calculate rotation for the arrow based on the segment direction
@@ -268,11 +265,13 @@
         if (closestIdx < latLngs.value.length - 1) {
           const p1 = latLngs.value[closestIdx]
           const p2 = latLngs.value[closestIdx + 1]
-          const lat1 = Array.isArray(p1) ? p1[0] : p1.lat
-          const lng1 = Array.isArray(p1) ? p1[1] : p1.lng
-          const lat2 = Array.isArray(p2) ? p2[0] : p2.lat
-          const lng2 = Array.isArray(p2) ? p2[1] : p2.lng
-          rotation = (Math.atan2(lng2 - lng1, lat2 - lat1) * 180) / Math.PI
+          if (p1 && p2) {
+            const lat1 = Array.isArray(p1) ? p1[0] : p1.lat
+            const lng1 = Array.isArray(p1) ? p1[1] : p1.lng
+            const lat2 = Array.isArray(p2) ? p2[0] : p2.lat
+            const lng2 = Array.isArray(p2) ? p2[1] : p2.lng
+            rotation = (Math.atan2(lng2 - lng1, lat2 - lat1) * 180) / Math.PI
+          }
         }
 
         markers.push({
@@ -330,26 +329,35 @@
   const latLngs = computed(() => {
     if (!props.coordinates || !Array.isArray(props.coordinates)) return []
 
-    // Filter out invalid coordinates to prevent Leaflet errors (COACH-WATTS-10)
-    return props.coordinates.filter((coord) => {
-      if (!coord) return false
+    // Preserve original indices for highlight mapping (COACH-WATTS-13)
+    return props.coordinates.map((coord) => {
+      if (!coord) return null
       if (Array.isArray(coord)) {
-        return (
+        if (
           coord.length >= 2 &&
           typeof coord[0] === 'number' &&
           !isNaN(coord[0]) &&
           typeof coord[1] === 'number' &&
           !isNaN(coord[1])
-        )
+        ) {
+          return coord
+        }
+        return null
       }
-      return (
+      if (
         typeof coord.lat === 'number' &&
         !isNaN(coord.lat) &&
         typeof coord.lng === 'number' &&
         !isNaN(coord.lng)
-      )
+      ) {
+        return coord
+      }
+      return null
     })
   })
+
+  // Leaflet-ready polyline data (removing nulls for the actual draw)
+  const baseRoutePoints = computed(() => latLngs.value.filter(Boolean) as [number, number][])
 
   const coloredSegments = computed(() => {
     if (selectedMode.value === 'route' || !props.streams || !latLngs.value.length) return []
@@ -390,6 +398,9 @@
     for (let i = 0; i < length - step; i += step) {
       const p1 = latLngs.value[i]
       const p2 = latLngs.value[Math.min(i + step, length - 1)]
+
+      // Skip segment if either end is null
+      if (!p1 || !p2) continue
 
       // Get average value for this segment
       let avgValue = 0
@@ -445,15 +456,17 @@
   const highlightSegment = computed(() => {
     if (!props.highlightRange || !latLngs.value.length) return null
     const [start, end] = props.highlightRange
-    return latLngs.value.slice(start, end + 1)
+    return latLngs.value.slice(start, end + 1).filter(Boolean) as [number, number][]
   })
 
   const highlightSegments = computed(() => {
     if (!props.highlightRanges || !props.highlightRanges.length || !latLngs.value.length)
       return null
-    return props.highlightRanges.map(([start, end]) => {
-      return latLngs.value.slice(start, end + 1)
-    })
+    return props.highlightRanges
+      .map(([start, end]) => {
+        return latLngs.value.slice(start, end + 1).filter(Boolean) as [number, number][]
+      })
+      .filter((seg) => seg.length > 0)
   })
 
   const onMapReady = (map: any) => {
@@ -462,8 +475,8 @@
   }
 
   const fitBounds = () => {
-    if (mapObject.value && latLngs.value.length > 0) {
-      mapObject.value.fitBounds(latLngs.value, { padding: [50, 50] })
+    if (mapObject.value && baseRoutePoints.value.length > 0) {
+      mapObject.value.fitBounds(baseRoutePoints.value, { padding: [50, 50] })
     }
   }
 

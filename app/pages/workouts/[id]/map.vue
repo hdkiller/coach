@@ -896,9 +896,15 @@
   }
 
   function getZoneIndex(value: number, zones: any[]): number {
-    if (!value || !zones || zones.length === 0) return -1
-    for (let i = zones.length - 1; i >= 0; i--) {
-      if (value >= zones[i].min) return i
+    if (value === null || value === undefined || !zones || zones.length === 0) return -1
+    for (let i = 0; i < zones.length; i++) {
+      if (value >= zones[i].min && value <= zones[i].max) {
+        return i
+      }
+    }
+    // If value is above all zones, put it in the highest zone
+    if (value > zones[zones.length - 1].max) {
+      return zones.length - 1
     }
     return -1
   }
@@ -911,10 +917,22 @@
     const targetIdx = hoverZone.value.index
     const ranges: [number, number][] = []
 
+    console.log(`[Map] Calculating ranges for Zone Index: ${targetIdx} (${hoverZone.value.name})`)
+    console.log(`[Map] Zone Bounds:`, userHrZones.value[targetIdx])
+    console.log(`[Map] HR Stream Sample (first 10):`, hrStream.slice(0, 10))
+
     let currentStart: number | null = null
 
     for (let i = 0; i < hrStream.length; i++) {
       const hr = hrStream[i]
+      if (hr === null) {
+        if (currentStart !== null) {
+          ranges.push([currentStart, i - 1])
+          currentStart = null
+        }
+        continue
+      }
+
       const zoneIdx = getZoneIndex(hr, userHrZones.value)
 
       if (zoneIdx === targetIdx) {
@@ -929,6 +947,16 @@
 
     if (currentStart !== null) {
       ranges.push([currentStart, hrStream.length - 1])
+    }
+
+    console.log(`[Map] Found ${ranges.length} segments for zone ${targetIdx}`)
+    if (ranges.length > 0) {
+      console.log(
+        `[Map] First segment:`,
+        ranges[0],
+        'Values:',
+        hrStream.slice(ranges[0][0], ranges[0][1] + 1).slice(0, 5)
+      )
     }
 
     return ranges
