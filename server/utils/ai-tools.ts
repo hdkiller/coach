@@ -11,6 +11,7 @@ import { wellnessTools } from './ai-tools/wellness'
 import { journeyTools } from './ai-tools/journey'
 import { availabilityTools } from './ai-tools/availability'
 import { timeTools } from './ai-tools/time'
+import { temporalTools } from './ai-tools/temporal'
 import type { AiSettings } from './ai-user-settings'
 import { getUserAiSettings } from './ai-user-settings'
 
@@ -37,6 +38,7 @@ export const getToolsWithContext = (
     ...wellnessTools(userId, timezone),
     ...journeyTools(userId, timezone),
     ...availabilityTools(userId, settings),
-    ...timeTools(userId, timezone)
+    ...timeTools(userId, timezone),
+    ...temporalTools(userId, timezone)
   }
 }
