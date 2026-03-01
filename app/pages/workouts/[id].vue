@@ -488,6 +488,120 @@
             </div>
           </div>
 
+          <!-- Refactored Threshold Detection Banner -->
+          <template v-if="detectedThresholds.length > 0">
+            <div
+              v-for="detection in detectedThresholds"
+              :key="detection.type"
+              class="relative overflow-hidden bg-neutral-50 dark:bg-[#1A1A1A] border border-neutral-200 dark:border-gray-800 rounded-2xl p-6 sm:p-8 shadow-xl dark:shadow-2xl transition-all duration-300 group"
+            >
+              <!-- Decorative Accent -->
+              <div class="absolute top-0 left-0 w-1 h-full bg-primary-500" />
+
+              <div class="flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-12">
+                <!-- Left: Content & Context -->
+                <div class="flex-1 space-y-4">
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center border border-primary-500/20"
+                    >
+                      <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
+                    </div>
+                    <h3
+                      class="text-lg font-black text-neutral-900 dark:text-white uppercase tracking-tight italic"
+                    >
+                      Level Up Detected
+                    </h3>
+                  </div>
+
+                  <div class="space-y-2">
+                    <p class="text-neutral-600 dark:text-gray-300 leading-relaxed">
+                      Based on your performance in this workout, your {{ detection.label }} has
+                      improved. Updating your threshold ensures your training zones and stress stats
+                      remain accurate.
+                    </p>
+                    <p class="text-xs text-neutral-500 dark:text-gray-500 font-medium">
+                      Peak 20-minute effort: {{ detection.peakValue }}{{ detection.unit }}
+                    </p>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-4 pt-2">
+                    <UButton
+                      size="md"
+                      color="primary"
+                      variant="solid"
+                      class="font-black px-6 shadow-lg shadow-primary-500/20"
+                      label="UPDATE NOW"
+                      @click="openThresholdUpdate(detection)"
+                    />
+                    <UButton
+                      size="md"
+                      color="neutral"
+                      variant="ghost"
+                      class="text-neutral-500 hover:text-neutral-900 dark:text-gray-400 dark:hover:text-white font-bold"
+                      label="LATER"
+                      @click="dismissedThresholds.push(detection.type)"
+                    />
+                  </div>
+                </div>
+
+                <!-- Right: High-Contrast Visualization -->
+                <div class="flex items-center justify-center lg:justify-end shrink-0">
+                  <div
+                    class="flex items-center gap-4 sm:gap-8 bg-neutral-100 dark:bg-black/40 p-6 rounded-2xl border border-neutral-200 dark:border-white/5"
+                  >
+                    <!-- Old Value -->
+                    <div class="text-center">
+                      <div
+                        class="text-[10px] font-black text-neutral-400 dark:text-gray-500 uppercase tracking-widest mb-1"
+                      >
+                        Old
+                      </div>
+                      <div
+                        class="text-2xl font-bold text-neutral-400 dark:text-gray-400 line-through decoration-neutral-300 dark:decoration-gray-600"
+                      >
+                        {{ detection.oldValue
+                        }}<span class="text-xs ml-0.5">{{ detection.unit.trim() }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Arrow and Percentage -->
+                    <div class="flex flex-col items-center gap-1">
+                      <div
+                        v-if="detection.percent > 0"
+                        class="text-[10px] font-black text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-full"
+                      >
+                        +{{ detection.percent }}%
+                      </div>
+                      <UIcon
+                        name="i-heroicons-arrow-long-right"
+                        class="w-8 h-8 text-neutral-300 dark:text-gray-600"
+                      />
+                    </div>
+
+                    <!-- New Value -->
+                    <div class="text-center relative">
+                      <div
+                        class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-1"
+                      >
+                        New
+                      </div>
+                      <div
+                        class="text-4xl font-black text-neutral-900 dark:text-white flex items-baseline gap-1"
+                      >
+                        {{ detection.newValue }}
+                        <span
+                          class="text-sm font-bold text-neutral-400 dark:text-gray-500 uppercase"
+                          >{{ detection.unit.trim() }}</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
           <!-- Training Impact Section (TSS, CTL, ATL, TSB) -->
           <div
             v-if="isSectionEnabled('training-impact')"
@@ -1838,6 +1952,85 @@
       </div>
     </template>
   </UModal>
+
+  <!-- Threshold Update Confirmation Modal -->
+  <UModal v-model:open="isThresholdModalOpen">
+    <template #content>
+      <UCard
+        v-if="activeDetection"
+        :ui="{
+          root: 'divide-y divide-gray-100 dark:divide-gray-800',
+          header: 'py-3 px-4',
+          body: 'p-4 sm:p-6'
+        }"
+      >
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+              Update {{ activeDetection.label }}?
+            </h3>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-x-mark-20-solid"
+              class="-my-1"
+              @click="isThresholdModalOpen = false"
+            />
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <div
+            class="p-4 rounded-xl bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800 flex items-center gap-4"
+          >
+            <div
+              class="w-12 h-12 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center border border-primary-200 dark:border-primary-700 shadow-sm"
+            >
+              <UIcon name="i-heroicons-sparkles" class="w-6 h-6 text-primary-500" />
+            </div>
+            <div>
+              <div class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase">
+                New Improvement Detected
+              </div>
+              <div class="text-lg font-black text-gray-900 dark:text-white">
+                {{ activeDetection.oldValue }}{{ activeDetection.unit }} →
+                {{ activeDetection.newValue }}{{ activeDetection.unit }}
+              </div>
+            </div>
+          </div>
+
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            Updating your <strong>{{ activeDetection.label }}</strong> will automatically
+            recalculate your training zones and ensure your stats for this period are accurate.
+          </p>
+
+          <div
+            class="text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800 italic text-gray-500"
+          >
+            Tip: Setting your threshold for past ranges allows Coach Watts to accurately analyze
+            your historical performance.
+          </div>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="neutral" variant="ghost" @click="isThresholdModalOpen = false"
+              >Later</UButton
+            >
+            <UButton
+              color="primary"
+              variant="solid"
+              class="font-bold"
+              :loading="userStore.loading"
+              @click="confirmThresholdUpdate"
+            >
+              Update Threshold
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -1875,6 +2068,65 @@
   const sharing = ref(false)
   const promoting = ref(false)
   const isPromoteModalOpen = ref(false)
+
+  // Threshold Detection State
+  const dismissedThresholds = ref<string[]>([])
+  const isThresholdModalOpen = ref(false)
+  const activeDetection = ref<any>(null)
+  const detectedThresholds = computed(() => {
+    if (!workout.value || !workout.value.metricHistory) return []
+
+    const uniqueThresholds: Record<string, any> = {}
+
+    workout.value.metricHistory
+      .filter(
+        (h: any) =>
+          h.source === 'AUTOMATIC' &&
+          (h.type === 'FTP' || h.type === 'LTHR') &&
+          !dismissedThresholds.value.includes(h.type)
+      )
+      .forEach((h: any) => {
+        // Since they are ordered by createdAt desc in the API,
+        // the first one we encounter for each type is the newest.
+        if (!uniqueThresholds[h.type]) {
+          const isFtp = h.type === 'FTP'
+          uniqueThresholds[h.type] = {
+            type: h.type,
+            label: isFtp ? 'Functional Threshold Power' : 'Lactate Threshold Heart Rate',
+            newValue: h.value,
+            oldValue: h.oldValue || (isFtp ? userStore.currentFtp : userStore.currentLthr),
+            peakValue: isFtp ? Math.round(h.value / 0.95) : h.value, // Peak 20m
+            unit: isFtp ? 'W' : ' bpm',
+            percent: h.oldValue ? Math.round(((h.value - h.oldValue) / h.oldValue) * 100) : 0
+          }
+        }
+      })
+
+    return Object.values(uniqueThresholds)
+  })
+
+  function openThresholdUpdate(detection: any) {
+    activeDetection.value = detection
+    isThresholdModalOpen.value = true
+  }
+
+  async function confirmThresholdUpdate() {
+    if (!activeDetection.value) return
+
+    const metricKey = activeDetection.value.type.toLowerCase()
+    const success = await userStore.updateUserMetrics(
+      {
+        [metricKey]: activeDetection.value.newValue
+      },
+      workout.value?.type
+    )
+
+    if (success) {
+      isThresholdModalOpen.value = false
+      dismissedThresholds.value.push(activeDetection.value.type)
+    }
+  }
+
   const isEditModalOpen = ref(false)
   const isDeleteModalOpen = ref(false)
 

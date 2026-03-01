@@ -287,6 +287,42 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // Update specific metrics (FTP, LTHR, etc.)
+  async function updateUserMetrics(
+    metrics: {
+      ftp?: number | null
+      lthr?: number | null
+      maxHr?: number | null
+      weight?: number | null
+    },
+    sportType?: string
+  ) {
+    loading.value = true
+    try {
+      await $fetch('/api/profile', {
+        method: 'PATCH',
+        body: { ...metrics, sportType }
+      })
+      await fetchProfile(true)
+      toast.add({
+        title: 'Success',
+        description: 'Your thresholds and zones have been updated.',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+      return true
+    } catch (error: any) {
+      toast.add({
+        title: 'Update Failed',
+        description: error.data?.message || 'Failed to update metrics',
+        color: 'error'
+      })
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Listen for completion
   onTaskCompleted('generate-athlete-profile', async (run) => {
     await fetchProfile(true)
