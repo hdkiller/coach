@@ -116,6 +116,38 @@ export default defineEventHandler(async (event) => {
       // ON-THE-FLY ZONE CALCULATION (Backfill)
       let zonesUpdated = false
       const updates: any = {}
+      const isValidHeartRate = (value: unknown): value is number =>
+        typeof value === 'number' && Number.isFinite(value) && value > 0
+      const getSampledIndices = (sourceLength: number, targetPoints: number) => {
+        if (sourceLength <= targetPoints) return Array.from({ length: sourceLength }, (_, i) => i)
+
+        const step = sourceLength / targetPoints
+        return Array.from({ length: targetPoints }, (_, i) => Math.floor(i * step))
+      }
+      const buildDownsamplingDebug = (stream: Record<string, any>, targetPoints: number) => {
+        const originalLengths = {
+          time: Array.isArray(stream.time) ? stream.time.length : null,
+          heartrate: Array.isArray(stream.heartrate) ? stream.heartrate.length : null,
+          latlng: Array.isArray(stream.latlng) ? stream.latlng.length : null
+        }
+        const sampledIndices =
+          typeof originalLengths.time === 'number'
+            ? getSampledIndices(originalLengths.time, targetPoints)
+            : []
+
+        return {
+          targetPoints,
+          originalLengths,
+          sampledIndexPreview: {
+            first: sampledIndices.slice(0, 8),
+            middle: sampledIndices.slice(
+              Math.max(0, Math.floor(sampledIndices.length / 2) - 4),
+              Math.floor(sampledIndices.length / 2) + 4
+            ),
+            last: sampledIndices.slice(-8)
+          }
+        }
+      }
 
       // Check if HR zones are missing but we have HR data
       if (
@@ -135,7 +167,7 @@ export default defineEventHandler(async (event) => {
         if (hrZones.length > 0) {
           const hrZoneTimes = new Array(hrZones.length).fill(0)
           ;(workoutStream.heartrate as number[]).forEach((hr) => {
-            if (hr !== null && hr !== undefined) {
+            if (isValidHeartRate(hr)) {
               const index = getZoneIndex(hr, hrZones)
               if (index >= 0) hrZoneTimes[index]++
             }
@@ -180,9 +212,33 @@ export default defineEventHandler(async (event) => {
         workout.userId,
         workout.type || ''
       )
-      const processedStream: any = { ...workoutStream }
+
+      // Use JSON parse/stringify to get a clean plain object without Prisma internal state (COACH-WATTS-14)
+      const processedStream: any = JSON.parse(JSON.stringify(workoutStream))
+
       processedStream.hrZones = (settings?.hrZones as any[]) || DEFAULT_HR_ZONES
       processedStream.powerZones = (settings?.powerZones as any[]) || DEFAULT_POWER_ZONES
+
+      if (Array.isArray(workoutStream.heartrate) && processedStream.hrZones.length > 0) {
+        const recalculatedHrZoneTimes = new Array(processedStream.hrZones.length).fill(0)
+
+        ;(workoutStream.heartrate as number[]).forEach((hr) => {
+          if (!isValidHeartRate(hr)) return
+
+          const index = getZoneIndex(hr, processedStream.hrZones)
+          if (index >= 0) recalculatedHrZoneTimes[index]++
+        })
+
+        processedStream.hrZoneTimes = recalculatedHrZoneTimes
+
+        if (
+          JSON.stringify(workoutStream.hrZoneTimes || []) !==
+          JSON.stringify(recalculatedHrZoneTimes)
+        ) {
+          updates.hrZoneTimes = recalculatedHrZoneTimes
+          zonesUpdated = true
+        }
+      }
 
       // Persist calculated zones if needed
       if (zonesUpdated) {
@@ -252,6 +308,11 @@ export default defineEventHandler(async (event) => {
               ;(processedStream as any)[key] = sampled
             }
           })
+
+          processedStream._debugDownsampling = buildDownsamplingDebug(
+            workoutStream as Record<string, any>,
+            TARGET_POINTS
+          )
         }
 
         // Enrich with detected segments
@@ -334,20 +395,17 @@ export default defineEventHandler(async (event) => {
           }
         })
 
-        // Also detect segments for the non-lapSplits branch
+        processedStream._debugDownsampling = buildDownsamplingDebug(
+          workoutStream as Record<string, any>,
+          TARGET_POINTS
+        )
+
         const time = (workoutStream.time as number[]) || []
         const watts = (workoutStream.watts as number[]) || []
         const heartrate = (workoutStream.heartrate as number[]) || []
         const velocity = (workoutStream.velocity as number[]) || []
         const altitude = (workoutStream.altitude as number[]) || []
         const distance = (workoutStream.distance as number[]) || []
-
-        const settings = await sportSettingsRepository.getForActivityType(
-          workout.userId,
-          workout.type || ''
-        )
-        processedStream.hrZones = (settings?.hrZones as any[]) || DEFAULT_HR_ZONES
-        processedStream.powerZones = (settings?.powerZones as any[]) || DEFAULT_POWER_ZONES
 
         if (time.length > 0) {
           if (watts.length === time.length) {
