@@ -73,9 +73,9 @@
 
   function getSportIcon(pb: any) {
     if (pb.type.includes('POWER')) return 'i-heroicons-bolt'
-    if (pb.type.includes('ELEVATION')) return 'i-heroicons-mountain-20-solid'
+    if (pb.type.includes('ELEVATION')) return 'i-lucide-mountain'
     if (pb.category === 'RUN') return 'i-lucide-footprints'
-    if (pb.category === 'CYCLE') return 'i-heroicons-騎乘' // Fallback or specific
+    if (pb.category === 'CYCLE') return 'i-heroicons-arrow-path' // Or appropriate cycling icon
     return 'i-heroicons-trophy'
   }
 
