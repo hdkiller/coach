@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
       metricHistory: {
         orderBy: { createdAt: 'desc' }
       },
+      personalBests: true,
       exercises: {
         include: {
           exercise: true,

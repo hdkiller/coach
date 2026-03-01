@@ -17,6 +17,7 @@ import { publishWorkoutSummaryToIntervals } from '../server/utils/services/worko
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import { createUserNotification } from '../server/utils/notifications'
 import { thresholdDetectionService } from '../server/utils/services/thresholdDetectionService'
+import { pbDetectionService } from '../server/utils/services/pbDetectionService'
 import {
   buildAnalysisRequestMetricRules,
   buildMetricPriorityPromptBlock,
@@ -448,6 +449,13 @@ export const analyzeWorkoutTask = task({
         await thresholdDetectionService.detectThresholdIncreases(workoutId)
       } catch (thresholdError) {
         logger.warn('Threshold detection failed', { workoutId, error: thresholdError })
+      }
+
+      // NEW: Detect Personal Bests
+      try {
+        await pbDetectionService.detectPBs(workoutId)
+      } catch (pbError) {
+        logger.warn('PB detection failed', { workoutId, error: pbError })
       }
 
       if (source === 'AUTOMATIC') {
