@@ -3,25 +3,27 @@ import chalk from 'chalk'
 import { Prisma, PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
-import { pbDetectionService } from '../../server/utils/services/pbDetectionService'
+import { thresholdDetectionService } from '../../server/utils/services/thresholdDetectionService'
 
-const backfillPBCommand = new Command('personal-bests')
+const backfillThresholdsCommand = new Command('thresholds')
 
-backfillPBCommand
-  .description('High-performance backfill for Personal Bests (supports 100k+ records).')
+backfillThresholdsCommand
+  .description('High-performance detection and backfill of FTP/LTHR increases.')
   .option('--prod', 'Use production database')
   .option('--user <email>', 'Filter to a specific user email')
   .option('--user-id <uuid>', 'Filter to a specific user ID')
   .option('--limit <number>', 'Max workouts to process', '1000')
   .option('--days <number>', 'Look back this many days', '365')
-  .option('--batch-size <number>', 'Database fetch batch size', '500')
+  .option('--batch-size <number>', 'Database fetch batch size', '200')
   .option('--concurrency <number>', 'Parallel processing limit', '5')
+  .option('--dry-run', 'Run without saving changes', false)
   .action(async (options) => {
     const isProd = Boolean(options.prod)
     const limit = Number.parseInt(options.limit, 10)
     const days = Number.parseInt(options.days, 10)
     const batchSize = Number.parseInt(options.batchSize, 10)
     const concurrency = Number.parseInt(options.concurrency, 10)
+    const dryRun = Boolean(options.dryRun)
     const userEmail = options.user ? String(options.user).trim().toLowerCase() : null
     const userId = options.userId ? String(options.userId).trim() : null
 
@@ -34,6 +36,7 @@ backfillPBCommand
     console.log(
       chalk.yellow(isProd ? '⚠️  Using PRODUCTION database.' : 'Using DEVELOPMENT database.')
     )
+    if (dryRun) console.log(chalk.cyan('🔍 DRY RUN mode enabled. No changes will be saved.'))
 
     const pool = new pg.Pool({ connectionString })
     const adapter = new PrismaPg(pool)
@@ -61,7 +64,7 @@ backfillPBCommand
       console.log(chalk.gray(`Batch Size: ${batchSize} | Concurrency: ${concurrency}\n`))
 
       let processedCount = 0
-      let pbDetectedCount = 0
+      let thresholdsDetectedCount = 0
       let skip = 0
 
       const startTime = Date.now()
@@ -69,14 +72,23 @@ backfillPBCommand
       while (processedCount < toProcess) {
         const take = Math.min(batchSize, toProcess - processedCount)
 
-        // Fetch batch of IDs and basic info
+        // Fetch batch of workouts with streams and user data
         const workouts = await prisma.workout.findMany({
           where: filters,
-          orderBy: { date: 'asc' },
+          orderBy: { date: 'asc' }, // Process chronologically so thresholds evolve correctly
           skip: skip,
           take: take,
           include: {
-            streams: true // Pre-fetch streams for speed
+            streams: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                lthr: true,
+                ftp: true,
+                maxHr: true
+              }
+            }
           }
         })
 
@@ -87,8 +99,21 @@ backfillPBCommand
           workouts,
           async (workout) => {
             try {
-              const results = await pbDetectionService.detectPBs(workout, prisma)
-              return results?.length || 0
+              const results = await thresholdDetectionService.detectThresholdIncreases(workout, {
+                dryRun: dryRun,
+                noNotify: true, // IMPORTANT: No emails or notifications during backfill
+                prismaOverride: prisma
+              })
+
+              if (!results) return 0
+
+              let count = 0
+              if (results.ftp?.detected) count++
+              if (results.lthr?.detected) count++
+              if (results.maxHr?.detected) count++
+              if (results.thresholdPace?.detected) count++
+
+              return count
             } catch (err) {
               console.error(chalk.red(`\n[Error] Workout ${workout.id}:`), err)
               return 0
@@ -97,26 +122,26 @@ backfillPBCommand
           concurrency,
           (count) => {
             processedCount++
+            thresholdsDetectedCount += count
             const pct = ((processedCount / toProcess) * 100).toFixed(1)
             const elapsed = (Date.now() - startTime) / 1000
             const rate = (processedCount / elapsed).toFixed(1)
             process.stdout.write(
               chalk.gray(
-                `\rProgress: ${processedCount}/${toProcess} (${pct}%) | ${rate} w/s | PBs: ${pbDetectedCount}`
+                `\rProgress: ${processedCount}/${toProcess} (${pct}%) | ${rate} w/s | Thresholds: ${thresholdsDetectedCount}`
               )
             )
           }
         )
 
-        pbDetectedCount += batchResults.reduce((a, b) => a + b, 0)
         skip += workouts.length
       }
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1)
       console.log('\n\n' + chalk.bold.green('Backfill Complete!'))
-      console.log(`Total Time:         ${totalTime}s`)
-      console.log(`Workouts Processed: ${processedCount}`)
-      console.log(`New PBs Detected:   ${pbDetectedCount}`)
+      console.log(`Total Time:          ${totalTime}s`)
+      console.log(`Workouts Processed:  ${processedCount}`)
+      console.log(`Thresholds Detected: ${thresholdsDetectedCount}`)
     } catch (error: any) {
       console.error(chalk.red('\nFatal Error:'), error)
     } finally {
@@ -148,16 +173,22 @@ async function processPool<T, R>(
         active++
         const item = queue.shift()!
 
-        task(item).then((res) => {
-          results.push(res)
-          active--
-          onItemDone(res)
-          next()
-        })
+        task(item)
+          .then((res) => {
+            results.push(res)
+            active--
+            onItemDone(res)
+            next()
+          })
+          .catch((err) => {
+            active--
+            // Error already logged in task wrapper
+            next()
+          })
       }
     }
     next()
   })
 }
 
-export default backfillPBCommand
+export default backfillThresholdsCommand

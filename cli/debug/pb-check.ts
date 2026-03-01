@@ -66,7 +66,7 @@ User:     ${workout.user?.name} (${workout.user?.email})
 
       console.log(chalk.gray('Running PB detection logic...'))
 
-      const results = await pbDetectionService.detectPBs(workoutId)
+      const results = await pbDetectionService.detectPBs(workoutId, prisma)
 
       if (!results || results.length === 0) {
         console.log(chalk.yellow('No new Personal Bests detected for this workout.'))
