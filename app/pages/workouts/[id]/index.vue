@@ -263,6 +263,22 @@
                         <span class="i-heroicons-tag w-3.5 h-3.5" />
                         {{ workout.type }}
                       </div>
+
+                      <!-- Personal Best Badges -->
+                      <div v-if="achievements.length > 0" class="flex items-center gap-1.5 ml-2">
+                        <template v-for="pb in achievements" :key="pb.type">
+                          <UTooltip
+                            :text="`${pb.label}: ${pb.displayValue}${pb.unit === 's' ? '' : pb.unit}`"
+                          >
+                            <div
+                              class="flex items-center gap-0.5 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded-full border border-yellow-500/20 lowercase font-black text-[10px] tracking-tight"
+                            >
+                              <UIcon name="i-heroicons-trophy" class="w-2.5 h-2.5" />
+                              {{ pb.label }}
+                            </div>
+                          </UTooltip>
+                        </template>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2117,6 +2133,26 @@
       })
 
     return Object.values(uniqueThresholds)
+  })
+
+  // Personal Bests State
+  const achievements = computed(() => {
+    if (!workout.value || !workout.value.personalBests) return []
+    return workout.value.personalBests.map((pb: any) => {
+      const isPace = pb.unit === 's'
+      let displayValue = pb.value.toString()
+      if (isPace) {
+        const mins = Math.floor(pb.value / 60)
+        const secs = Math.floor(pb.value % 60)
+        displayValue = `${mins}:${secs.toString().padStart(2, '0')}`
+      }
+
+      return {
+        ...pb,
+        displayValue,
+        label: pb.type.replace(/_/g, ' ').replace('RUN ', '').replace('POWER ', 'Peak ')
+      }
+    })
   })
 
   function openThresholdUpdate(detection: any) {

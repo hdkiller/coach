@@ -206,7 +206,10 @@ export default defineEventHandler(async (event) => {
           // Downsample all array fields dynamically
           Object.keys(processedStream).forEach((key) => {
             const streamData = (processedStream as any)[key]
-            if (Array.isArray(streamData) && key !== 'pacingStrategy' && key !== 'lapSplits') {
+            if (
+              Array.isArray(streamData) &&
+              !['pacingStrategy', 'lapSplits', 'surges'].includes(key)
+            ) {
               const sampled: any[] = []
               for (let i = 0; i < TARGET_POINTS; i++) {
                 const index = Math.floor(i * step)
@@ -237,7 +240,10 @@ export default defineEventHandler(async (event) => {
         // Downsample all array fields dynamically
         Object.keys(processedStream).forEach((key) => {
           const streamData = (processedStream as any)[key]
-          if (Array.isArray(streamData) && key !== 'pacingStrategy' && key !== 'lapSplits') {
+          if (
+            Array.isArray(streamData) &&
+            !['pacingStrategy', 'lapSplits', 'surges'].includes(key)
+          ) {
             const sampled: any[] = []
             for (let i = 0; i < TARGET_POINTS; i++) {
               const index = Math.floor(i * step)

@@ -251,7 +251,9 @@
         >
           <!-- Surge markers -->
           <div
-            v-for="(surge, index) in streams.surges"
+            v-for="(surge, index) in (streams.surges || []).filter(
+              (s) => s && s.time !== undefined
+            )"
             :key="index"
             class="absolute top-0 bottom-0 w-0.5 bg-amber-500/40 hover:bg-amber-500 transition-all cursor-crosshair"
             :style="{ left: getSurgePosition(surge.time) + '%' }"
@@ -262,7 +264,9 @@
         <!-- Compact Summary Grid -->
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <div
-            v-for="(surge, index) in streams.surges.slice(0, 12)"
+            v-for="(surge, index) in (streams.surges || [])
+              .filter((s) => s && s.time !== undefined)
+              .slice(0, 12)"
             :key="index"
             class="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl group"
           >
@@ -294,7 +298,9 @@
           class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-3"
         >
           <div
-            v-for="(surge, index) in streams.surges.slice(12)"
+            v-for="(surge, index) in (streams.surges || [])
+              .filter((s) => s && s.time !== undefined)
+              .slice(12)"
             :key="index + 12"
             class="p-3 bg-gray-50 dark:bg-gray-950 rounded-xl"
           >

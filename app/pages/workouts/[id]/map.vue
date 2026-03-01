@@ -146,20 +146,32 @@
                   Stream Analysis
                 </h3>
                 <div class="flex gap-2">
-                  <USelectMenu
-                    v-model="selectedStreamValues"
-                    multiple
-                    placeholder="Add streams..."
-                    :items="availableStreamOptions"
-                    value-key="value"
-                    label-key="label"
+                  <UButton
+                    v-if="zoomRange"
+                    icon="i-heroicons-magnifying-glass-minus"
                     size="xs"
-                    class="w-48"
+                    color="neutral"
+                    variant="outline"
+                    @click="resetZoom"
                   >
-                    <template #leading>
-                      <UIcon name="i-heroicons-plus-circle" class="w-3.5 h-3.5" />
-                    </template>
-                  </USelectMenu>
+                    Reset Zoom
+                  </UButton>
+                  <client-only>
+                    <USelectMenu
+                      v-model="selectedStreamValues"
+                      multiple
+                      placeholder="Add streams..."
+                      :items="availableStreamOptions"
+                      value-key="value"
+                      label-key="label"
+                      size="xs"
+                      class="w-48"
+                    >
+                      <template #leading>
+                        <UIcon name="i-heroicons-plus-circle" class="w-3.5 h-3.5" />
+                      </template>
+                    </USelectMenu>
+                  </client-only>
                 </div>
               </div>
               <div
@@ -187,53 +199,74 @@
                 </p>
               </div>
 
-              <div
-                v-for="(streamKey, idx) in selectedStreams"
-                :key="`${streamKey}-${selectedStreams.length}`"
-                class="relative group border-b border-gray-100 dark:border-gray-800 last:border-0 pb-1 pt-1 first:pt-0"
+              <draggable
+                v-else
+                v-model="selectedStreamObjects"
+                item-key="value"
+                handle=".drag-handle"
+                ghost-class="opacity-50"
+                class="space-y-0"
               >
-                <div
-                  class="absolute top-1 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <UButton
-                    icon="i-heroicons-x-mark"
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    @click="
-                      selectedStreamObjects = selectedStreamObjects.filter(
-                        (s) => s.value !== streamKey
-                      )
-                    "
-                  />
-                </div>
-                <div class="mb-0 flex items-center gap-2 px-2">
+                <template #item="{ element: streamObject, index: idx }">
                   <div
-                    class="w-2 h-2 rounded-full"
-                    :style="{ backgroundColor: getStreamMetadata(streamKey).color }"
-                  />
-                  <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">
-                    {{ getStreamMetadata(streamKey).label }}
-                  </span>
-                </div>
-                <div class="h-40">
-                  <client-only>
-                    <StreamChart
-                      :label="getStreamMetadata(streamKey).label"
-                      :data-points="workout.streams[streamKey]"
-                      :labels="workout.streams.time"
-                      :color="getStreamMetadata(streamKey).color"
-                      :y-axis-label="getStreamMetadata(streamKey).unit"
-                      :height-class="'h-40'"
-                      :highlight-index="hoverIndex"
-                      :show-x-axis="idx === selectedStreams.length - 1"
-                      :fixed-y-axis-width="80"
-                      @chart-hover="onChartHover"
-                      @chart-leave="onChartLeave"
-                    />
-                  </client-only>
-                </div>
-              </div>
+                    class="relative group border-b border-gray-100 dark:border-gray-800 last:border-0 pb-1 pt-1 first:pt-0"
+                  >
+                    <div
+                      class="absolute top-1 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                    >
+                      <div
+                        class="drag-handle cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                      >
+                        <UIcon name="i-heroicons-bars-2" class="w-4 h-4" />
+                      </div>
+                      <UButton
+                        icon="i-heroicons-x-mark"
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        @click="
+                          selectedStreamObjects = selectedStreamObjects.filter(
+                            (s) => s.value !== streamObject.value
+                          )
+                        "
+                      />
+                    </div>
+                    <div class="mb-0 flex items-center gap-2 px-2">
+                      <div
+                        class="w-2 h-2 rounded-full"
+                        :style="{ backgroundColor: getStreamMetadata(streamObject.value).color }"
+                      />
+                      <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                        {{ getStreamMetadata(streamObject.value).label }}
+                      </span>
+                    </div>
+                    <div class="h-40">
+                      <client-only>
+                        <StreamChart
+                          :label="getStreamMetadata(streamObject.value).label"
+                          :data-points="zoomedStreams[streamObject.value]"
+                          :labels="zoomedStreams.time"
+                          :color="getStreamMetadata(streamObject.value).color"
+                          :y-axis-label="getStreamMetadata(streamObject.value).unit"
+                          :height-class="'h-40'"
+                          :highlight-index="
+                            zoomRange
+                              ? hoverIndex !== null
+                                ? hoverIndex - zoomRange[0]
+                                : null
+                              : hoverIndex
+                          "
+                          :show-x-axis="idx === selectedStreamObjects.length - 1"
+                          :fixed-y-axis-width="80"
+                          @chart-hover="onChartHover"
+                          @chart-leave="onChartLeave"
+                          @chart-zoom="onChartZoom"
+                        />
+                      </client-only>
+                    </div>
+                  </div>
+                </template>
+              </draggable>
             </div>
           </div>
         </div>
@@ -244,6 +277,7 @@
 
 <script setup lang="ts">
   import { ref, computed, watch, toRaw } from 'vue'
+  import draggable from 'vuedraggable'
   import StreamChart from '~/components/charts/streams/BaseStreamChart.vue'
 
   const route = useRoute()
@@ -256,31 +290,73 @@
   const workout = ref<any>(null)
   const lapSplits = ref<any[]>([])
   const hoverIndex = ref<number | null>(null)
+  const zoomRange = ref<[number, number] | null>(null)
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
 
-  // Sync string values to objects for the rest of the component logic
-  watch(
-    selectedStreamValues,
-    (newValues) => {
-      selectedStreamObjects.value = availableStreamOptions.value.filter((o) =>
-        newValues.includes(o.value)
-      )
-    },
-    { deep: true }
-  )
+  const zoomedStreams = computed(() => {
+    if (!workout.value?.streams) return null
+    if (!zoomRange.value) return workout.value.streams
 
-  // Sync objects back to values when initialized or changed elsewhere
+    const [start, end] = zoomRange.value
+    const filtered: Record<string, any> = {}
+
+    Object.keys(workout.value.streams).forEach((key) => {
+      const data = workout.value.streams[key]
+      if (Array.isArray(data)) {
+        filtered[key] = data.slice(start, end + 1)
+      } else {
+        filtered[key] = data
+      }
+    })
+
+    return filtered
+  })
+
+  // Save selection and order when changed
   watch(
     selectedStreamObjects,
     (newObjs) => {
       const newValues = newObjs.map((o) => o.value)
-      if (JSON.stringify(newValues) !== JSON.stringify(selectedStreamValues.value)) {
+
+      // Sync values ref for dropdown checkmarks
+      if (
+        JSON.stringify(newValues.slice().sort()) !==
+        JSON.stringify(selectedStreamValues.value.slice().sort())
+      ) {
         selectedStreamValues.value = newValues
+      }
+
+      // Save preference including ORDER
+      if (newValues.length > 0) {
+        userStore.updateDashboardSettings({ mapSelectedStreams: newValues })
       }
     },
     { deep: true }
   )
+
+  // Sync string values from dropdown back to objects (for adding new ones)
+  watch(
+    selectedStreamValues,
+    (newValues) => {
+      if (newValues.length !== selectedStreamObjects.value.length) {
+        // Rebuild objects maintaining order of existing ones where possible
+        const currentMap = new Map(selectedStreamObjects.value.map((o) => [o.value, o]))
+        const newObjs = newValues
+          .map((v) => currentMap.get(v) || availableStreamOptions.value.find((o) => o.value === v))
+          .filter(Boolean) as { label: string; value: string }[]
+
+        const currentKeys = selectedStreamObjects.value.map((o) => o.value)
+        const newKeys = newObjs.map((o) => o.value)
+
+        if (JSON.stringify(currentKeys) !== JSON.stringify(newKeys)) {
+          selectedStreamObjects.value = newObjs
+        }
+      }
+    },
+    { deep: true }
+  )
+
   const layoutMode = ref<'default' | 'chart-focus'>(
     userStore.user?.dashboardSettings?.mapLayoutMode || 'default'
   )
@@ -360,22 +436,20 @@
     const availableKeys = new Set(Object.keys(streams))
 
     // Always include currently selected streams in options to avoid selection disappearance
-    selectedStreams.value.forEach((key) => availableKeys.add(key))
+    selectedStreamValues.value.forEach((key) => availableKeys.add(key))
 
     return Array.from(availableKeys)
       .filter((key) => {
         const data = streams[key]
         const isArray = Array.isArray(data)
-        const isSelected = selectedStreams.value.includes(key)
+        const isSelected = selectedStreamValues.value.includes(key)
         return metadata[key] && (isArray || isSelected) && key !== 'time' && key !== 'latlng'
       })
       .map((key) => ({
-        label: metadata[key].label,
+        label: metadata[key]?.label || key,
         value: key
       }))
   })
-
-  const selectedStreams = computed(() => selectedStreamObjects.value.map((s) => s.value))
 
   // Fetch workout and streams using useFetch
   const { data: workoutData, error: workoutError } = await useFetch<any>(
@@ -404,14 +478,19 @@
           lapSplits.value = newStreams.lapSplits
         }
 
-        // Auto-select based on availability
-        const initial: string[] = []
-        if (newStreams.heartrate) initial.push('heartrate')
-        if (newStreams.altitude) initial.push('altitude')
-        if (newStreams.watts) initial.push('watts')
+        // Initialize from user settings or auto-detect
+        const savedSelection = userStore.user?.dashboardSettings?.mapSelectedStreams
+        if (Array.isArray(savedSelection) && savedSelection.length > 0) {
+          selectedStreamObjects.value = savedSelection.map((key) => ({
+            label: getStreamMetadata(key).label,
+            value: key
+          }))
+        } else if (selectedStreamObjects.value.length === 0) {
+          const initial: string[] = []
+          if (newStreams.heartrate) initial.push('heartrate')
+          if (newStreams.altitude) initial.push('altitude')
+          if (newStreams.watts) initial.push('watts')
 
-        // Only set if not already set by user
-        if (selectedStreamObjects.value.length === 0) {
           selectedStreamObjects.value = availableStreamOptions.value.filter((option) =>
             initial.includes(option.value)
           )
@@ -431,11 +510,30 @@
   })
 
   function onChartHover(index: number) {
-    hoverIndex.value = index
+    if (zoomRange.value) {
+      hoverIndex.value = zoomRange.value[0] + index
+    } else {
+      hoverIndex.value = index
+    }
   }
 
   function onChartLeave() {
     hoverIndex.value = null
+  }
+
+  function onChartZoom(range: [number, number]) {
+    const [start, end] = range
+    // If we're already zoomed, the range is relative to the CURRENT zoomed view
+    if (zoomRange.value) {
+      const currentStart = zoomRange.value[0]
+      zoomRange.value = [currentStart + start, currentStart + end]
+    } else {
+      zoomRange.value = [start, end]
+    }
+  }
+
+  function resetZoom() {
+    zoomRange.value = null
   }
 
   function goBack() {
