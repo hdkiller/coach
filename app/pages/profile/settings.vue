@@ -73,10 +73,34 @@
             @autodetect="handleAutodetect"
           />
 
-          <TrophyCase
-            v-if="activeTab === 'records'"
-            :personal-bests="profile.personalBests || []"
-          />
+          <div v-if="activeTab === 'records'" class="space-y-6">
+            <UCard>
+              <template #header>
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-trophy" class="w-5 h-5 text-primary-500" />
+                  <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                    Trophy Case
+                  </h3>
+                </div>
+              </template>
+              <div class="py-12 text-center space-y-4">
+                <UIcon name="i-heroicons-sparkles" class="w-12 h-12 text-gray-300 mx-auto" />
+                <p class="text-sm text-gray-500 max-w-xs mx-auto">
+                  Your all-time records and peak performances are now tracked in a dedicated
+                  performance dashboard.
+                </p>
+                <UButton
+                  color="primary"
+                  variant="solid"
+                  size="lg"
+                  icon="i-heroicons-arrow-top-right-on-square"
+                  to="/performance/bests"
+                >
+                  Go to Trophy Case
+                </UButton>
+              </div>
+            </UCard>
+          </div>
 
           <ProfileNutritionSettings
             v-if="activeTab === 'nutrition'"

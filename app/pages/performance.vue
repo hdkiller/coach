@@ -174,12 +174,12 @@
           </div>
         </div>
 
-        <!-- Personal Bests / Trophy Case -->
+        <!-- Personal Bests Summary -->
         <div v-if="sectionSettings.records?.visible !== false" class="space-y-4">
           <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
             Personal Bests
           </h2>
-          <TrophyCase :personal-bests="profileData?.personalBests || []" />
+          <PerformanceBestsSummary :personal-bests="profileData?.personalBests || []" />
         </div>
 
         <!-- Score Detail Modal -->
@@ -635,7 +635,7 @@
   import PerformanceFtpEvolutionCard from '~/components/performance/PerformanceFtpEvolutionCard.vue'
   import PerformanceIntensityDistributionCard from '~/components/performance/PerformanceIntensityDistributionCard.vue'
   import PerformanceScoreTrajectoryCard from '~/components/performance/PerformanceScoreTrajectoryCard.vue'
-  import TrophyCase from '~/components/profile/TrophyCase.vue'
+  import PerformanceBestsSummary from '~/components/performance/PerformanceBestsSummary.vue'
   import ChartDataLabels from 'chartjs-plugin-datalabels'
 
   const userStore = useUserStore()
