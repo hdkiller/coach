@@ -3,7 +3,8 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
   const L = await import('leaflet')
   await import('leaflet/dist/leaflet.css')
-  const { LMap, LTileLayer, LPolyline, LCircleMarker } = await import('@vue-leaflet/vue-leaflet')
+  const { LMap, LTileLayer, LPolyline, LCircleMarker, LMarker, LTooltip } =
+    await import('@vue-leaflet/vue-leaflet')
 
   // Fix Leaflet's default icon paths
   type DefaultIcon = L.Icon.Default & {
@@ -26,4 +27,6 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   nuxtApp.vueApp.component('LTileLayer', LTileLayer)
   nuxtApp.vueApp.component('LPolyline', LPolyline)
   nuxtApp.vueApp.component('LCircleMarker', LCircleMarker)
+  nuxtApp.vueApp.component('LMarker', LMarker)
+  nuxtApp.vueApp.component('LTooltip', LTooltip)
 })
