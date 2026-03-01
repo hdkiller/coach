@@ -25,7 +25,7 @@ function parseScope(scope: string | null | undefined): Set<string> {
 }
 
 function toDateOnly(value: Date): string {
-  return value.toISOString().split('T')[0]
+  return value.toISOString().split('T')[0]!
 }
 
 function extractCourseGeoPoints(workout: any): any[] {

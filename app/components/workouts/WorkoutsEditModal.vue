@@ -416,7 +416,9 @@
       Number(durationSeconds.value) / 60
     if (totalMinutes <= 0) return
 
-    const type = (state.type || '').toLowerCase()
+    const type = (
+      typeof state.type === 'string' ? state.type : (state.type as any)?.value || ''
+    ).toLowerCase()
     const hourlyTss =
       type.includes('recovery') || type.includes('easy') || type.includes('walk')
         ? 30
@@ -441,7 +443,9 @@
       Number(durationSeconds.value) / 60
     if (totalMinutes <= 0) return
 
-    const type = (state.type || '').toLowerCase()
+    const type = (
+      typeof state.type === 'string' ? state.type : (state.type as any)?.value || ''
+    ).toLowerCase()
     // Rough metabolic cost (kcal/min)
     let kcalPerMin = 10 // default
     if (type.includes('ride') || type.includes('cycle')) kcalPerMin = 12
