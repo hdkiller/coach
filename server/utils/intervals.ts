@@ -27,6 +27,14 @@ export function isIntervalsEventId(eventId: string | null | undefined): eventId 
   return typeof eventId === 'string' && /^\d+$/.test(eventId.trim())
 }
 
+export function normalizeIntervalsSportType(type?: string | null): string {
+  if (!type) return 'Ride'
+  if (type === 'Gym') return 'WeightTraining'
+  if (type === 'Active Recovery') return 'Ride'
+  if (type === 'Rest') return 'Other'
+  return type
+}
+
 interface IntervalsActivity {
   id: string
   start_date: string // UTC timestamp
@@ -314,8 +322,7 @@ export async function upsertIntervalsEvent(
   else if (data.priority === 'C') category = 'RACE_C'
 
   // 2. Map Sport Type
-  let sport = data.type
-  if (data.type === 'Gym') sport = 'WeightTraining'
+  const sport = normalizeIntervalsSportType(data.type)
 
   // 3. Format Date (start_date_local)
   const year = data.date.getUTCFullYear()
