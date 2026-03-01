@@ -78,7 +78,17 @@ export default defineEventHandler(async (event) => {
         state: true,
         country: true,
         timezone: true,
-        nutritionTrackingEnabled: true
+        nutritionTrackingEnabled: true,
+        personalBests: {
+          include: {
+            workout: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
+          }
+        }
       }
     })
 
@@ -125,7 +135,8 @@ export default defineEventHandler(async (event) => {
         country: user.country,
         timezone: user.timezone,
         nutritionTrackingEnabled: user.nutritionTrackingEnabled,
-        sportSettings: sportSettings
+        sportSettings: sportSettings,
+        personalBests: user.personalBests
       }
     }
   } catch (error) {

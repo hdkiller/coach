@@ -99,11 +99,7 @@
               Import activities, segments, and social training data.
             </p>
             <UTooltip
-              :text="
-                isStravaDisabled
-                  ? 'Strava integration is temporarily unavailable on coachwatts.com'
-                  : ''
-              "
+              :text="isStravaDisabled ? 'Strava integration is temporarily unavailable' : ''"
               :popper="{ placement: 'top' }"
             >
               <UButton
@@ -292,7 +288,7 @@
   const { signIn } = useAuth()
 
   const isStravaDisabled = computed(() => {
-    if (import.meta.server) return false
-    return window.location.hostname === 'coachwatts.com'
+    const config = useRuntimeConfig()
+    return config.public.stravaEnabled === false
   })
 </script>

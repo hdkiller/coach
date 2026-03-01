@@ -140,8 +140,7 @@ export const dailyCoachTask = task({
     const trainingContext = await generateTrainingContext(userId, thirtyDaysAgo, todayEnd, {
       includeZones: false, // Skip expensive zone calculation for daily check
       period: 'Last 30 Days',
-      timezone, // Pass timezone for correct day alignment in metrics
-      adjustForTodayUncompletedPlannedTSS: true
+      timezone // Pass timezone for correct day alignment in metrics
     })
     const formattedContext = formatTrainingContextForPrompt(trainingContext)
 

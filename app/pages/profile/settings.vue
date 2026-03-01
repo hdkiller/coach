@@ -73,6 +73,11 @@
             @autodetect="handleAutodetect"
           />
 
+          <TrophyCase
+            v-if="activeTab === 'records'"
+            :personal-bests="profile.personalBests || []"
+          />
+
           <ProfileNutritionSettings
             v-if="activeTab === 'nutrition'"
             :settings="nutritionSettings"
@@ -94,6 +99,7 @@
   import ProfileSportSettings from '~/components/profile/SportSettings.vue'
   import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
   import ProfileCommunicationSettings from '~/components/profile/CommunicationSettings.vue'
+  import TrophyCase from '~/components/profile/TrophyCase.vue'
 
   const { data } = useAuth()
   const user = computed(() => data.value?.user)
@@ -106,7 +112,8 @@
 
   const tabs = [
     { id: 'basic', label: 'Basic Settings', icon: 'i-heroicons-user-circle' },
-    { id: 'sports', label: 'Sport Settings', icon: 'i-heroicons-trophy' },
+    { id: 'sports', label: 'Sport Settings', icon: 'i-heroicons-bolt' },
+    { id: 'records', label: 'Trophy Case', icon: 'i-heroicons-trophy' },
     { id: 'availability', label: 'Availability', icon: 'i-lucide-calendar-clock' },
     { id: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-fire' },
     { id: 'communication', label: 'Communication', icon: 'i-heroicons-envelope' }

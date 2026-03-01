@@ -682,7 +682,7 @@
 
     generating.value = true
     try {
-      await $fetch(`/api/planned-workouts/${props.plannedWorkout.id}/generate-structure`, {
+      await $fetch(`/api/workouts/planned/${props.plannedWorkout.id}/generate-structure`, {
         method: 'POST' as any
       })
 

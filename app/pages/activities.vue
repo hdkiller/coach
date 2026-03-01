@@ -948,6 +948,8 @@
 
   const integrationStore = useIntegrationStore()
   const userStore = useUserStore()
+  const route = useRoute()
+  const router = useRouter()
   const nutritionEnabled = computed(
     () =>
       userStore.profile?.nutritionTrackingEnabled !== false &&
@@ -1040,7 +1042,18 @@
     return [items]
   })
 
-  const currentDate = ref(getUserLocalDate())
+  function parseCalendarDate(dateParam: unknown) {
+    if (typeof dateParam !== 'string') return null
+
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateParam)
+    if (!match) return null
+
+    const [, year, month, day] = match
+    const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+    return formatDateUTC(parsed, 'yyyy-MM-dd') === dateParam ? parsed : null
+  }
+
+  const currentDate = ref(parseCalendarDate(route.query.date) || getUserLocalDate())
   const viewMode = ref<'calendar' | 'list'>('calendar')
   const mobileDraggingActivity = ref<{ id: string; source: string; date: string | Date } | null>(
     null
@@ -1316,6 +1329,36 @@
   function goToToday() {
     currentDate.value = getUserLocalDate()
   }
+
+  watch(
+    () => route.query.date,
+    (dateParam) => {
+      const parsed = parseCalendarDate(dateParam)
+      if (!parsed) return
+
+      if (formatDateUTC(parsed, 'yyyy-MM-dd') === formatDateUTC(currentDate.value, 'yyyy-MM-dd')) {
+        return
+      }
+
+      currentDate.value = parsed
+    }
+  )
+
+  watch(
+    currentDate,
+    (date) => {
+      const dateKey = formatDateUTC(date, 'yyyy-MM-dd')
+      if (route.query.date === dateKey) return
+
+      router.replace({
+        query: {
+          ...route.query,
+          date: dateKey
+        }
+      })
+    },
+    { immediate: true }
+  )
 
   function isTodayDate(date: Date) {
     return formatDateUTC(date, 'yyyy-MM-dd') === formatDateUTC(getUserLocalDate(), 'yyyy-MM-dd')
