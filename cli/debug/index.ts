@@ -11,6 +11,7 @@ import trainingLoadCommand from './training-load'
 import wellnessCommand from './wellness'
 import recommendationsCommand from './recommendations'
 import analyzeStreamsCommand from './analyze-streams'
+import streamCommand from './stream'
 import findAnyCommand from './find-any'
 import plannedCommand from './planned'
 import goalsCommand from './goals'
@@ -54,6 +55,7 @@ debugCommand.addCommand(trainingLoadCommand)
 debugCommand.addCommand(wellnessCommand)
 debugCommand.addCommand(recommendationsCommand)
 debugCommand.addCommand(analyzeStreamsCommand)
+debugCommand.addCommand(streamCommand)
 debugCommand.addCommand(findAnyCommand)
 debugCommand.addCommand(plannedCommand)
 debugCommand.addCommand(goalsCommand)
