@@ -247,6 +247,8 @@ async function handleChatMessage(
 
     // 6. Stream Text with Tools
     const allToolResults: any[] = []
+    const historyToolCalls = new Map<string, any>()
+    const currentTurnToolCalls = new Map<string, any>()
     let fullResponseText = ''
     const startTime = Date.now()
 
@@ -273,6 +275,10 @@ async function handleChatMessage(
       onStepFinish: async ({ text, toolCalls, toolResults, finishReason, usage }) => {
         // Notify client about tool execution
         if (toolCalls && toolCalls.length > 0) {
+          toolCalls.forEach((tc) => {
+            historyToolCalls.set(tc.toolCallId, tc)
+            currentTurnToolCalls.set(tc.toolCallId, tc)
+          })
           peer.send(
             JSON.stringify({
               type: 'tool_start',
@@ -320,12 +326,43 @@ async function handleChatMessage(
         })
 
         // 9. Extract Charts & Metadata
-        const toolCallsUsed = allToolResults.map((tr: any) => ({
-          name: tr.toolName,
-          args: tr.args,
-          response: tr.result,
-          timestamp: new Date().toISOString()
-        }))
+        const toolCallMap = new Map<string, any>()
+
+        const registerToolCall = (entry: any) => {
+          if (!entry?.toolCallId) return
+          const existing = toolCallMap.get(entry.toolCallId) || {}
+          toolCallMap.set(entry.toolCallId, {
+            toolCallId: entry.toolCallId,
+            name: entry.name || existing.name,
+            args: entry.args ?? existing.args,
+            response:
+              entry.response !== undefined
+                ? entry.response
+                : existing.response !== undefined
+                  ? existing.response
+                  : null,
+            timestamp: existing.timestamp || entry.timestamp || new Date().toISOString()
+          })
+        }
+
+        Array.from(currentTurnToolCalls.values()).forEach((tc: any) => {
+          registerToolCall({
+            toolCallId: tc.toolCallId,
+            name: tc.toolName,
+            args: tc.args || tc.input
+          })
+        })
+
+        allToolResults.forEach((tr: any) => {
+          registerToolCall({
+            toolCallId: tr.toolCallId,
+            name: tr.toolName || historyToolCalls.get(tr.toolCallId)?.toolName,
+            args: tr.args || historyToolCalls.get(tr.toolCallId)?.args,
+            response: tr.result
+          })
+        })
+
+        const toolCallsUsed = Array.from(toolCallMap.values()).filter((tc: any) => tc.name)
 
         const charts = toolCallsUsed
           .filter((t) => t.name === 'create_chart')

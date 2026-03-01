@@ -842,6 +842,7 @@ ${contextBullets}
 3. Data older than 7 days.
 4. Specific information the user explicitly requests that's not in the summary.
 5. **Precise Time & Active Session**: Use \`get_current_time\` if you need to know the exact time, hour, or if the athlete is **CURRENTLY** in a scheduled workout (the tool will tell you). Use this if they sound like they are training right now or if you need to plan a meal/session.
+6. **Relative Date Resolution**: Before any write action that depends on a relative date phrase ("yesterday", "last night", "day before yesterday", "next Monday"), call \`resolve_temporal_reference\`. Do not do calendar math yourself for writes.
 
 ## Chart Visualization Powers 📊
 
@@ -894,6 +895,7 @@ ${dateReference}
 When users say "next Monday", "this weekend", "tomorrow", refer to the reference above.
 ${nextSevenDays[1] ? `- "Tomorrow" = ${nextSevenDays[1].dayName}, ${nextSevenDays[1].dateStr}` : ''}
 - "This weekend" = Saturday & Sunday in the list above
+- For writes, if the user gives a relative date instead of YYYY-MM-DD, call \`resolve_temporal_reference\` first and use its \`resolved_date\`.
 - Use the exact dates (YYYY-MM-DD format) when creating or modifying workouts
 
 ## Engagement & Contextual Closure
