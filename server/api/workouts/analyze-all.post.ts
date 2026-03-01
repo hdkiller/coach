@@ -3,6 +3,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { getUserEntitlements } from '../../utils/entitlements'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getUserTimezone, getUserLocalDate } from '../../utils/date'
+import { getQuotaStatus } from '../../utils/quotas/engine'
 
 defineRouteMeta({
   openAPI: {
@@ -48,13 +49,32 @@ export default defineEventHandler(async (event) => {
   try {
     const timezone = await getUserTimezone(userId)
     const today = getUserLocalDate(timezone)
+    const quotaStatus = await getQuotaStatus(userId, 'workout_analysis')
 
     // Find all workouts that need analysis (excluding duplicates)
     let workoutsToAnalyze = await workoutRepository.getPendingAnalysis(userId, today)
+    const totalPending = workoutsToAnalyze.length
 
     // Limit to 10 for FREE users
     if (entitlements.tier === 'FREE') {
       workoutsToAnalyze = workoutsToAnalyze.slice(0, 10)
+    }
+
+    const remainingQuota = quotaStatus?.remaining ?? Number.POSITIVE_INFINITY
+    if (remainingQuota <= 0) {
+      return {
+        success: true,
+        message:
+          'Workout analysis quota reached. Wait for older analyses to expire before starting more.',
+        total: workoutsToAnalyze.length,
+        triggered: 0,
+        failed: 0,
+        quotaRemaining: 0
+      }
+    }
+
+    if (Number.isFinite(remainingQuota)) {
+      workoutsToAnalyze = workoutsToAnalyze.slice(0, remainingQuota)
     }
 
     if (workoutsToAnalyze.length === 0) {
@@ -105,13 +125,21 @@ export default defineEventHandler(async (event) => {
     const results = await Promise.all(triggerPromises)
     const successful = results.filter((r) => r.success).length
     const failed = results.filter((r) => !r.success).length
+    const limitedByQuota =
+      quotaStatus &&
+      Number.isFinite(quotaStatus.remaining) &&
+      quotaStatus.remaining < quotaStatus.limit &&
+      successful + failed < totalPending
 
     return {
       success: true,
-      message: `Analysis started for ${successful} workouts${failed > 0 ? ` (${failed} failed)` : ''}`,
+      message: limitedByQuota
+        ? `Analysis started for ${successful} workouts${failed > 0 ? ` (${failed} failed)` : ''}. Limited by ${quotaStatus?.remaining} remaining quota.`
+        : `Analysis started for ${successful} workouts${failed > 0 ? ` (${failed} failed)` : ''}`,
       total: workoutsToAnalyze.length,
       triggered: successful,
       failed,
+      quotaRemaining: quotaStatus?.remaining ?? null,
       results
     }
   } catch (error) {

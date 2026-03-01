@@ -55,11 +55,7 @@
           >
             <span>{{ quota.remaining }} remaining</span>
             <span v-if="quota.resetsAt">
-              {{
-                quota.window === 'calendar day'
-                  ? 'Resets at Midnight'
-                  : 'Resets ' + formatRelativeTime(quota.resetsAt)
-              }}
+              {{ getQuotaResetLabel(quota) }}
             </span>
           </div>
         </div>
@@ -121,8 +117,8 @@
         </div>
 
         <p class="text-[11px] text-muted leading-relaxed">
-          Quotas are reset automatically based on the time window shown. If you reach your quota,
-          you may need to wait for the reset or consider upgrading your plan.
+          Calendar-day quotas reset at midnight. Rolling quotas refill gradually as older usage
+          falls out of the time window shown above.
         </p>
       </div>
     </template>
@@ -177,5 +173,11 @@
     if (ratio >= 0.8) return 'bg-amber-500'
     if (ratio >= 0.5) return 'bg-blue-500'
     return 'bg-emerald-500'
+  }
+
+  function getQuotaResetLabel(quota: QuotaStatus) {
+    if (!quota.resetsAt) return ''
+    if (quota.window === 'calendar day') return 'Resets at Midnight'
+    return 'Oldest usage expires ' + formatRelativeTime(quota.resetsAt)
   }
 </script>
