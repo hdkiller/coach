@@ -326,16 +326,28 @@
 
   type Schema = z.output<typeof schema>
 
-  const state = reactive({
+  interface State {
+    title: string
+    type: string
+    date: string
+    startTime: string
+    description: string
+    distanceKm: number | null
+    trainingLoad: number | null
+    calories: number | null
+    elevationGain: number | null
+  }
+
+  const state = reactive<State>({
     title: '',
-    type: '' as string | { label?: string; value?: string } | null,
+    type: '',
     date: '',
     startTime: '',
     description: '',
-    distanceKm: null as number | null,
-    trainingLoad: null as number | null,
-    calories: null as number | null,
-    elevationGain: null as number | null
+    distanceKm: null,
+    trainingLoad: null,
+    calories: null,
+    elevationGain: null
   })
 
   const durationHours = ref(0)
@@ -416,9 +428,7 @@
       Number(durationSeconds.value) / 60
     if (totalMinutes <= 0) return
 
-    const type = (
-      typeof state.type === 'string' ? state.type : (state.type as any)?.value || ''
-    ).toLowerCase()
+    const type = state.type.toLowerCase()
     const hourlyTss =
       type.includes('recovery') || type.includes('easy') || type.includes('walk')
         ? 30
@@ -443,9 +453,7 @@
       Number(durationSeconds.value) / 60
     if (totalMinutes <= 0) return
 
-    const type = (
-      typeof state.type === 'string' ? state.type : (state.type as any)?.value || ''
-    ).toLowerCase()
+    const type = state.type.toLowerCase()
     // Rough metabolic cost (kcal/min)
     let kcalPerMin = 10 // default
     if (type.includes('ride') || type.includes('cycle')) kcalPerMin = 12
@@ -464,7 +472,7 @@
   async function onSubmit() {
     if (!props.workout?.id) return
 
-    const normalizedType = typeof state.type === 'string' ? state.type : (state.type?.value ?? '')
+    const normalizedType = state.type
 
     const totalSeconds =
       Number(durationHours.value) * 3600 +
