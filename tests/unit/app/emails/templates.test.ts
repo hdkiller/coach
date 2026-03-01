@@ -3,7 +3,7 @@ import { config } from '@vue-email/compiler'
 import { resolve } from 'path'
 
 const emailDir = resolve(process.cwd(), 'app/emails')
-const vueEmail = config(emailDir)
+const vueEmail = config(emailDir, { verbose: false })
 
 async function render(templateFileName: string, props: Record<string, unknown>) {
   return vueEmail.render(templateFileName, { props })

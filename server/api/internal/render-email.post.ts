@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const vueEmail = config(emailDir)
+    const vueEmail = config(emailDir, { verbose: false })
 
     // Attempt rendering
     const result = await vueEmail.render(templateFileName, { props })

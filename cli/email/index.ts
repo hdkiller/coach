@@ -257,7 +257,7 @@ emailCommand
         const subject = options.subject || `[Test] Workout Synced: ${workout.title}`
 
         const emailDir = resolve(process.cwd(), 'app/emails')
-        const renderer = config(emailDir)
+        const renderer = config(emailDir, { verbose: false })
         const rendered = await renderer.render('WorkoutReceived.vue', {
           props: {
             name: athleteName,
