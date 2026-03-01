@@ -89,7 +89,11 @@
     'update_training_availability'
   ])
 
-  const utilityToolNames = new Set(['perform_calculation', 'get_current_time'])
+  const utilityToolNames = new Set([
+    'perform_calculation',
+    'get_current_time',
+    'resolve_temporal_reference'
+  ])
 
   const payload = computed(() => props.response || {})
 
@@ -758,6 +762,23 @@
       ]
     }
 
+    if (props.toolName === 'resolve_temporal_reference') {
+      return [
+        {
+          title:
+            payload.value?.resolved_date ||
+            payload.value?.error ||
+            String(props.args?.reference || props.args?.base_date || 'Temporal resolution'),
+          subtitle: props.args?.reference || undefined,
+          badges: [
+            payload.value?.base_date ? `Base ${payload.value.base_date}` : undefined,
+            payload.value?.assumed_time_of_day || undefined
+          ].filter(Boolean) as string[],
+          description: payload.value?.explanation
+        }
+      ]
+    }
+
     if (payload.value && typeof payload.value === 'object' && !Array.isArray(payload.value)) {
       const title =
         payload.value.title ||
@@ -817,6 +838,18 @@
       ].filter(Boolean) as DetailRow[]
     }
 
+    if (props.toolName === 'resolve_temporal_reference') {
+      return [
+        response.base_date ? { label: 'Base date', value: response.base_date } : undefined,
+        response.resolved_date
+          ? { label: 'Resolved date', value: response.resolved_date }
+          : undefined,
+        response.assumed_time_of_day
+          ? { label: 'Time hint', value: response.assumed_time_of_day }
+          : undefined
+      ].filter(Boolean) as DetailRow[]
+    }
+
     if (props.toolName === 'update_user_profile' && Array.isArray(response.updated_fields)) {
       return response.updated_fields.map((field: string) => ({
         label: 'Updated',
@@ -828,10 +861,20 @@
   })
 
   const rawJson = computed(() => {
+    const input = props.args || {}
+
     if (payload.value && typeof payload.value === 'object' && !Array.isArray(payload.value)) {
       const { _system_note, ...rest } = payload.value
+      if (Object.keys(input).length > 0) {
+        return JSON.stringify({ input, output: rest }, null, 2)
+      }
       return JSON.stringify(rest, null, 2)
     }
+
+    if (Object.keys(input).length > 0) {
+      return JSON.stringify({ input, output: payload.value ?? null }, null, 2)
+    }
+
     return JSON.stringify(payload.value, null, 2)
   })
 </script>
