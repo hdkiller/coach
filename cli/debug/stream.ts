@@ -42,7 +42,8 @@ const streamCommand = new Command('stream')
         'latlng',
         'grade',
         'moving',
-        'surges'
+        'surges',
+        'lapSplits'
       ]
 
       console.log('')
