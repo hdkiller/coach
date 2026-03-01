@@ -73,6 +73,19 @@
             class="z-[1500]"
           />
 
+          <!-- Highlight Multiple Segments (Zones) -->
+          <template v-if="highlightSegments">
+            <LPolyline
+              v-for="(seg, idx) in highlightSegments"
+              :key="idx"
+              :lat-lngs="seg"
+              :color="'#ef4444'"
+              :weight="8"
+              :opacity="1"
+              class="z-[1400]"
+            />
+          </template>
+
           <!-- Split Markers -->
           <template v-if="showSplits">
             <LMarker
@@ -164,6 +177,7 @@
     workoutId?: string
     highlightIndex?: number | null
     highlightRange?: [number, number] | null
+    highlightRanges?: [number, number][] | null
   }>()
 
   const L = ref<any>(null)
@@ -438,6 +452,14 @@
     return latLngs.value.slice(start, end + 1)
   })
 
+  const highlightSegments = computed(() => {
+    if (!props.highlightRanges || !props.highlightRanges.length || !latLngs.value.length)
+      return null
+    return props.highlightRanges.map(([start, end]) => {
+      return latLngs.value.slice(start, end + 1)
+    })
+  })
+
   const onMapReady = (map: any) => {
     mapObject.value = map
     fitBounds()
@@ -448,6 +470,11 @@
       mapObject.value.fitBounds(latLngs.value, { padding: [50, 50] })
     }
   }
+
+  defineExpose({
+    fitBounds,
+    mapObject
+  })
 
   function formatTime(seconds: number): string {
     const hours = Math.floor(seconds / 3600)

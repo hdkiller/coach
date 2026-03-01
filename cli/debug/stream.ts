@@ -43,7 +43,9 @@ const streamCommand = new Command('stream')
         'grade',
         'moving',
         'surges',
-        'lapSplits'
+        'lapSplits',
+        'icu_intervals',
+        'icu_groups'
       ]
 
       console.log('')
