@@ -6,6 +6,8 @@ import {
   DEFAULT_POWER_ZONES
 } from '../../../utils/training-metrics'
 import { sportSettingsRepository } from '../../../utils/repositories/sportSettingsRepository'
+import { detectIntervals } from '../../../utils/interval-detection'
+import { detectClimbs } from '../../../utils/climb-detection'
 
 defineRouteMeta({
   openAPI: {
@@ -72,6 +74,14 @@ export default defineEventHandler(async (event) => {
     const workout = await prisma.workout.findUnique({
       where: {
         id: workoutId
+      },
+      include: {
+        user: {
+          select: {
+            ftp: true,
+            maxHr: true
+          }
+        }
       }
     })
 
@@ -81,6 +91,8 @@ export default defineEventHandler(async (event) => {
         message: 'Workout not found'
       })
     }
+
+    const user = workout.user
 
     if (workout.userId !== (session.user as any).id) {
       throw createError({
@@ -163,6 +175,15 @@ export default defineEventHandler(async (event) => {
         }
       }
 
+      // Add zones to response for frontend mapping
+      const settings = await sportSettingsRepository.getForActivityType(
+        workout.userId,
+        workout.type || ''
+      )
+      const processedStream = { ...workoutStream }
+      ;(processedStream as any).hrZones = (settings?.hrZones as any[]) || DEFAULT_HR_ZONES
+      ;(processedStream as any).powerZones = (settings?.powerZones as any[]) || DEFAULT_POWER_ZONES
+
       // Persist calculated zones if needed
       if (zonesUpdated) {
         // Run update in background to not block response
@@ -193,7 +214,8 @@ export default defineEventHandler(async (event) => {
 
         // Downsample high-frequency streams to reduce payload size (Fixes COACH-WATTS-B)
         const TARGET_POINTS = 2000
-        const processedStream = { ...workoutStream, pacingStrategy: strategy }
+        // Already defined processedStream above, just enrich it
+        processedStream.pacingStrategy = strategy as any
 
         // Only downsample if time stream is long enough
         if (
@@ -224,6 +246,44 @@ export default defineEventHandler(async (event) => {
           })
         }
 
+        // Enrich with detected segments
+        const time = (workoutStream.time as number[]) || []
+        const watts = (workoutStream.watts as number[]) || []
+        const heartrate = (workoutStream.heartrate as number[]) || []
+        const velocity = (workoutStream.velocity as number[]) || []
+        const altitude = (workoutStream.altitude as number[]) || []
+        const distance = (workoutStream.distance as number[]) || []
+
+        if (time.length > 0) {
+          // Detect Intervals
+          if (watts.length === time.length) {
+            ;(processedStream as any).detectedIntervals = detectIntervals(
+              time,
+              watts,
+              'power',
+              user.ftp || undefined
+            )
+          } else if (
+            velocity.length === time.length &&
+            (workout.type === 'Run' || workout.type === 'Swim')
+          ) {
+            ;(processedStream as any).detectedIntervals = detectIntervals(time, velocity, 'pace')
+          } else if (heartrate.length === time.length) {
+            const threshold = user.maxHr ? user.maxHr * 0.7 : undefined
+            ;(processedStream as any).detectedIntervals = detectIntervals(
+              time,
+              heartrate,
+              'heartrate',
+              threshold
+            )
+          }
+
+          // Detect Climbs
+          if (altitude.length === time.length && distance.length === time.length) {
+            ;(processedStream as any).detectedClimbs = detectClimbs(time, altitude, distance)
+          }
+        }
+
         return processedStream
       }
 
@@ -234,7 +294,6 @@ export default defineEventHandler(async (event) => {
         Array.isArray(workoutStream.time) &&
         workoutStream.time.length > TARGET_POINTS
       ) {
-        const processedStream = { ...workoutStream }
         const step = workoutStream.time.length / TARGET_POINTS
 
         // Downsample all array fields dynamically
@@ -242,7 +301,13 @@ export default defineEventHandler(async (event) => {
           const streamData = (processedStream as any)[key]
           if (
             Array.isArray(streamData) &&
-            !['pacingStrategy', 'lapSplits', 'surges'].includes(key)
+            ![
+              'pacingStrategy',
+              'lapSplits',
+              'surges',
+              'detectedIntervals',
+              'detectedClimbs'
+            ].includes(key)
           ) {
             const sampled: any[] = []
             for (let i = 0; i < TARGET_POINTS; i++) {
@@ -256,10 +321,42 @@ export default defineEventHandler(async (event) => {
             ;(processedStream as any)[key] = sampled
           }
         })
+
+        // Also detect segments for the non-lapSplits branch
+        const time = (workoutStream.time as number[]) || []
+        const watts = (workoutStream.watts as number[]) || []
+        const heartrate = (workoutStream.heartrate as number[]) || []
+        const velocity = (workoutStream.velocity as number[]) || []
+        const altitude = (workoutStream.altitude as number[]) || []
+        const distance = (workoutStream.distance as number[]) || []
+
+        if (time.length > 0) {
+          if (watts.length === time.length) {
+            ;(processedStream as any).detectedIntervals = detectIntervals(
+              time,
+              watts,
+              'power',
+              user.ftp || undefined
+            )
+          } else if (heartrate.length === time.length) {
+            const threshold = user.maxHr ? user.maxHr * 0.7 : undefined
+            ;(processedStream as any).detectedIntervals = detectIntervals(
+              time,
+              heartrate,
+              'heartrate',
+              threshold
+            )
+          }
+
+          if (altitude.length === time.length && distance.length === time.length) {
+            ;(processedStream as any).detectedClimbs = detectClimbs(time, altitude, distance)
+          }
+        }
+
         return processedStream
       }
 
-      return workoutStream
+      return processedStream
     }
 
     // Fallback: Extract pacing data from rawJson splits (for backwards compatibility)
