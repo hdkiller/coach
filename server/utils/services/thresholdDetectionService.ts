@@ -22,7 +22,8 @@ export const thresholdDetectionService = {
             id: true,
             name: true,
             lthr: true,
-            ftp: true
+            ftp: true,
+            maxHr: true
           }
         }
       }
@@ -36,6 +37,8 @@ export const thresholdDetectionService = {
       })
       return null
     }
+
+    const castWorkout = workout as any
 
     const results = {
       lthr: null as { old: number; new: number; detected: boolean } | null,
@@ -55,7 +58,7 @@ export const thresholdDetectionService = {
 
     const currentLthr = sportSettings?.lthr || workout.user.lthr
     const currentFtp = sportSettings?.ftp || workout.user.ftp
-    const currentMaxHr = sportSettings?.maxHr || workout.user.maxHr
+    const currentMaxHr = sportSettings?.maxHr || (workout.user as any).maxHr
     const currentThresholdPace = sportSettings?.thresholdPace
 
     // 2. Heart Rate Threshold & Max HR Detection
@@ -234,15 +237,14 @@ export const thresholdDetectionService = {
       const pacePeaks = findPeakEfforts(
         workout.streams.time as number[],
         workout.streams.velocity as number[],
-        'velocity'
+        'pace'
       )
-
       const peak40mPace = pacePeaks.find((p) => p.duration === 2400)?.value // 40m
 
       if (peak40mPace) {
         const detectedPacePerKm = 1000 / peak40mPace // s/km
         const effectiveOldPace =
-          currentThresholdPace || (workout.thresholdPace ? workout.thresholdPace : null)
+          currentThresholdPace || (castWorkout.thresholdPace ? castWorkout.thresholdPace : null)
 
         if (!effectiveOldPace || detectedPacePerKm < effectiveOldPace - 2) {
           // 2s improvement

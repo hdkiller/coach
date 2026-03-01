@@ -69,12 +69,12 @@ export const athleteMetricsService = {
     })
 
     // NEW: Log manual updates to MetricHistory
-    const logs = []
+    const logs: any[] = []
     if (metrics.ftp !== undefined && metrics.ftp !== oldMetrics?.ftp) {
       logs.push({
         userId,
         type: 'FTP',
-        value: metrics.ftp,
+        value: metrics.ftp || 0,
         oldValue: oldMetrics?.ftp,
         source: 'MANUAL',
         date: new Date()
@@ -84,7 +84,7 @@ export const athleteMetricsService = {
       logs.push({
         userId,
         type: 'LTHR',
-        value: metrics.lthr,
+        value: metrics.lthr || 0,
         oldValue: oldMetrics?.lthr,
         source: 'MANUAL',
         date: new Date()
@@ -94,7 +94,7 @@ export const athleteMetricsService = {
       logs.push({
         userId,
         type: 'MAX_HR',
-        value: metrics.maxHr,
+        value: metrics.maxHr || 0,
         oldValue: oldMetrics?.maxHr,
         source: 'MANUAL',
         date: new Date()
