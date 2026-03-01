@@ -3,6 +3,7 @@ import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import type { SubscriptionStatus, SubscriptionTier } from '@prisma/client'
 import type Stripe from 'stripe'
+import { getPriceProductId, resolveSubscriptionTier } from '../../utils/subscription-tier'
 
 function mapStripeStatus(subscription: Stripe.Subscription): SubscriptionStatus {
   if (subscription.cancel_at_period_end) {
@@ -22,37 +23,6 @@ function mapStripeStatus(subscription: Stripe.Subscription): SubscriptionStatus 
     default:
       return 'NONE'
   }
-}
-
-function getPriceProductId(priceProduct: Stripe.Price['product']): string | null {
-  if (!priceProduct) return null
-  return typeof priceProduct === 'string' ? priceProduct : priceProduct.id
-}
-
-function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): SubscriptionTier {
-  const config = useRuntimeConfig()
-
-  const priceId = item?.price?.id
-  const productId = getPriceProductId((item?.price?.product as any) ?? null)
-
-  const supporterPriceIds = [
-    config.stripeSupporterMonthlyPriceId,
-    config.stripeSupporterAnnualPriceId,
-    config.stripeSupporterMonthlyEurPriceId,
-    config.stripeSupporterAnnualEurPriceId
-  ].filter(Boolean)
-  const proPriceIds = [
-    config.stripeProMonthlyPriceId,
-    config.stripeProAnnualPriceId,
-    config.stripeProMonthlyEurPriceId,
-    config.stripeProAnnualEurPriceId
-  ].filter(Boolean)
-
-  if (priceId && supporterPriceIds.includes(priceId)) return 'SUPPORTER'
-  if (priceId && proPriceIds.includes(priceId)) return 'PRO'
-  if (productId === config.stripeSupporterProductId) return 'SUPPORTER'
-  if (productId === config.stripeProProductId) return 'PRO'
-  return 'FREE'
 }
 
 export default defineEventHandler(async (event) => {
@@ -98,9 +68,8 @@ export default defineEventHandler(async (event) => {
       const nextPhase = schedule.phases.find((p) => p.start_date > Date.now() / 1000)
       const firstItem = nextPhase?.items?.[0]
       if (nextPhase && firstItem) {
-        // Create a dummy item to reuse getSubscriptionTier logic
-        const dummyItem = { price: { id: firstItem.price } } as any
-        pendingTier = getSubscriptionTier(dummyItem)
+        const dummyItem = { price: { id: firstItem.price } } as Stripe.SubscriptionItem
+        pendingTier = await resolveSubscriptionTier(dummyItem, config, stripe)
         pendingDate = new Date(nextPhase.start_date * 1000)
       }
     }
@@ -116,7 +85,7 @@ export default defineEventHandler(async (event) => {
   ) || sortedSubs.find((sub) => sub.status === 'past_due' || sub.status === 'incomplete')) as any
 
   if (activeSub) {
-    const tier = getSubscriptionTier(activeSub.items.data[0])
+    const tier = await resolveSubscriptionTier(activeSub.items.data[0], config, stripe)
     const status = mapStripeStatus(activeSub)
 
     const firstItem = activeSub.items.data[0]

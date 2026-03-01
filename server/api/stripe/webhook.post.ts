@@ -1,9 +1,10 @@
 import type Stripe from 'stripe'
-import type { SubscriptionStatus, SubscriptionTier } from '@prisma/client'
+import type { SubscriptionStatus } from '@prisma/client'
 import { prisma } from '../../utils/db'
 import { stripe } from '../../utils/stripe'
 import { auditLogRepository } from '../../utils/repositories/auditLogRepository'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { getPriceProductId, resolveSubscriptionTier } from '../../utils/subscription-tier'
 
 /**
  * Map Stripe subscription status to internal status
@@ -29,66 +30,19 @@ function mapStripeStatus(subscription: Stripe.Subscription): SubscriptionStatus 
 }
 
 /**
- * Determine subscription tier from Stripe price/product IDs
- */
-function getPriceProductId(priceProduct: Stripe.Price['product']): string | null {
-  if (!priceProduct) return null
-  return typeof priceProduct === 'string' ? priceProduct : priceProduct.id
-}
-
-function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): SubscriptionTier {
-  const config = useRuntimeConfig()
-  const priceId = item?.price?.id
-  const productId = getPriceProductId((item?.price?.product as any) ?? null)
-
-  const supporterPriceIds = [
-    config.stripeSupporterMonthlyPriceId,
-    config.stripeSupporterAnnualPriceId,
-    config.stripeSupporterMonthlyEurPriceId,
-    config.stripeSupporterAnnualEurPriceId
-  ].filter(Boolean)
-  const proPriceIds = [
-    config.stripeProMonthlyPriceId,
-    config.stripeProAnnualPriceId,
-    config.stripeProMonthlyEurPriceId,
-    config.stripeProAnnualEurPriceId
-  ].filter(Boolean)
-
-  console.log(`[Webhook] Resolving tier for priceId: ${priceId}, productId: ${productId}`)
-  console.log(`[Webhook] Matches Supporter? ${priceId && supporterPriceIds.includes(priceId)}`)
-  console.log(`[Webhook] Matches Pro? ${priceId && proPriceIds.includes(priceId)}`)
-
-  if (priceId && supporterPriceIds.includes(priceId)) {
-    return 'SUPPORTER'
-  }
-  if (priceId && proPriceIds.includes(priceId)) {
-    return 'PRO'
-  }
-
-  if (productId && productId === config.stripeSupporterProductId) {
-    return 'SUPPORTER'
-  }
-  if (productId && productId === config.stripeProProductId) {
-    return 'PRO'
-  }
-
-  // Default to FREE if product not recognized
-  return 'FREE'
-}
-
-/**
  * Handle subscription created or updated
  */
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
+  const config = useRuntimeConfig()
   const customerId = subscription.customer as string
   const subscriptionId = subscription.id
 
   const firstItem = subscription.items.data[0]
-  const tier = getSubscriptionTier(firstItem)
   if (!firstItem?.price?.id) {
     console.error('No Stripe price found in subscription')
     return
   }
+  const tier = await resolveSubscriptionTier(firstItem, config, stripe)
 
   const productId =
     getPriceProductId((firstItem.price.product as any) ?? null) || '(unknown-product)'
