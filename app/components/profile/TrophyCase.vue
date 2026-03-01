@@ -80,9 +80,9 @@
 
   function getSportIcon(pb: any) {
     if (pb.type.includes('POWER')) return 'i-heroicons-bolt'
-    if (pb.type.includes('ELEVATION')) return 'i-heroicons-mountain-20-solid'
+    if (pb.type.includes('ELEVATION')) return 'i-lucide-mountain'
     if (pb.category === 'RUN') return 'i-lucide-footprints'
-    if (pb.category === 'CYCLE') return 'i-heroicons-bicycle'
+    if (pb.category === 'CYCLE') return 'i-lucide-bike'
     return 'i-heroicons-trophy'
   }
 
@@ -272,9 +272,6 @@
               variant="subtle"
               size="md"
               class="rounded-2xl group/btn transition-all duration-300 hover:bg-primary-500 hover:text-white"
-              :ui="{
-                icon: { base: 'transition-transform duration-300 group-hover/btn:translate-x-1' }
-              }"
             />
           </div>
         </div>
