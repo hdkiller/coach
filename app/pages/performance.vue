@@ -175,7 +175,10 @@
         </div>
 
         <!-- Personal Bests Summary -->
-        <div v-if="sectionSettings.records?.visible !== false" class="space-y-4">
+        <div
+          v-if="sectionSettings.records?.visible !== false && hasPersonalBests"
+          class="space-y-4"
+        >
           <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
             Personal Bests
           </h2>
@@ -802,6 +805,10 @@
   ]
 
   const workoutSport = ref<string>('all')
+
+  const hasPersonalBests = computed(() => {
+    return (profileData.value?.personalBests?.length || 0) > 0
+  })
 
   interface AthleteProfile {
     personalBests?: any[]

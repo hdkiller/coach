@@ -8,6 +8,7 @@ export interface PersonalBestCandidate {
   value: number
   unit: string
   label: string
+  metadata?: any
 }
 
 export const pbDetectionService = {
@@ -35,6 +36,13 @@ export const pbDetectionService = {
     const isBike =
       workoutType.includes('ride') || workoutType.includes('bike') || workoutType.includes('cycle')
 
+    const commonMetadata = {
+      avgHr: workout.averageHr,
+      avgCadence: workout.averageCadence,
+      maxHr: workout.maxHr,
+      maxCadence: workout.maxCadence
+    }
+
     // 1. POWER PEAKS (Cycling or Running with Power)
     if (
       workout.streams.watts &&
@@ -53,7 +61,8 @@ export const pbDetectionService = {
           category: isBike ? 'CYCLE' : isRun ? 'RUN' : 'OTHER',
           value: peak.value,
           unit: 'W',
-          label: `Peak ${peak.duration_label} Power`
+          label: `Peak ${peak.duration_label} Power`,
+          metadata: commonMetadata
         })
       }
     }
@@ -69,6 +78,7 @@ export const pbDetectionService = {
         workout.streams.time as number[],
         workout.streams.distance as number[]
       )
+      pacePBs.forEach((p) => (p.metadata = commonMetadata))
       candidates.push(...pacePBs)
     }
 
@@ -79,7 +89,8 @@ export const pbDetectionService = {
         category: isBike ? 'CYCLE' : isRun ? 'RUN' : 'OTHER',
         value: workout.elevationGain,
         unit: 'm',
-        label: 'Max Elevation Gain'
+        label: 'Max Elevation Gain',
+        metadata: commonMetadata
       })
     }
 
@@ -193,7 +204,8 @@ export const pbDetectionService = {
           workoutId,
           date,
           category: candidate.category,
-          unit: candidate.unit
+          unit: candidate.unit,
+          metadata: candidate.metadata
         },
         create: {
           userId,
@@ -202,7 +214,8 @@ export const pbDetectionService = {
           value: candidate.value,
           unit: candidate.unit,
           workoutId,
-          date
+          date,
+          metadata: candidate.metadata
         }
       })
 

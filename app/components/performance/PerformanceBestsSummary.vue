@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div v-if="summaryItems.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
     <UCard
       v-for="cat in summaryItems"
       :key="cat.id"
@@ -31,12 +31,6 @@
           </div>
         </div>
 
-        <div v-else class="py-2">
-          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic"
-            >No records yet</span
-          >
-        </div>
-
         <!-- Hover indicator -->
         <div
           class="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -49,7 +43,7 @@
       </div>
     </UCard>
 
-    <!-- Link Card to Full Trophy Case -->
+    <!-- Link Card to Full Trophy Case (Always shown if we have at least one summary item) -->
     <UCard
       class="bg-gray-50 dark:bg-gray-900/50 border-l-4 border-l-gray-300 group hover:border-primary-500 transition-all cursor-pointer flex flex-col justify-center items-center text-center py-0"
       @click="navigateTo('/performance/bests')"
@@ -97,29 +91,32 @@
   ]
 
   const summaryItems = computed(() => {
-    return categories.map((cat) => {
-      // Find the "best" PB for this category to show as summary
-      // We prioritize certain types like 5K for run, 20M Power for cycle
-      const pbs = props.personalBests.filter((pb) => pb.category === cat.id)
-      let bestPb = null
+    if (!props.personalBests?.length) return []
 
-      if (cat.id === 'RUN') {
-        bestPb =
-          pbs.find((p) => p.type === 'RUN_5K') || pbs.find((p) => p.type === 'RUN_1K') || pbs[0]
-      } else if (cat.id === 'CYCLE') {
-        bestPb =
-          pbs.find((p) => p.type === 'POWER_20M') ||
-          pbs.find((p) => p.type === 'POWER_60M') ||
-          pbs[0]
-      } else {
-        bestPb = pbs[0]
-      }
+    return categories
+      .map((cat) => {
+        const pbs = props.personalBests.filter((pb) => pb.category === cat.id)
+        if (!pbs.length) return null
 
-      return {
-        ...cat,
-        pb: bestPb
-      }
-    })
+        let bestPb = null
+        if (cat.id === 'RUN') {
+          bestPb =
+            pbs.find((p) => p.type === 'RUN_5K') || pbs.find((p) => p.type === 'RUN_1K') || pbs[0]
+        } else if (cat.id === 'CYCLE') {
+          bestPb =
+            pbs.find((p) => p.type === 'POWER_20M') ||
+            pbs.find((p) => p.type === 'POWER_60M') ||
+            pbs[0]
+        } else {
+          bestPb = pbs[0]
+        }
+
+        return {
+          ...cat,
+          pb: bestPb
+        }
+      })
+      .filter(Boolean) as any[]
   })
 
   function formatValue(pb: any) {

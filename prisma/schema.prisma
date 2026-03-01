@@ -1753,6 +1753,7 @@ model PersonalBest {
   workout   Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
   
   notes     String?
+  metadata  Json?    // Context stats: { avgHr: 160, avgCadence: 90, etc. }
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

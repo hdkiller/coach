@@ -79,6 +79,16 @@ export default defineEventHandler(async (event) => {
       nutritionComplianceExplanationJson: true,
       trainingConsistencyExplanationJson: true,
       personalBests: {
+        select: {
+          id: true,
+          type: true,
+          category: true,
+          value: true,
+          unit: true,
+          date: true,
+          workoutId: true,
+          metadata: true
+        },
         orderBy: { type: 'asc' }
       }
     }
