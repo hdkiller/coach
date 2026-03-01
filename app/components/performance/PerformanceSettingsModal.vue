@@ -60,6 +60,7 @@
   const defaultSettings = {
     highlights: { visible: true },
     athleteProfile: { visible: true },
+    records: { visible: true },
     pmc: { visible: true },
     powerCurve: { visible: true },
     efficiency: { visible: true },
@@ -113,6 +114,7 @@
   const sectionOptions = [
     { key: 'highlights', label: 'Activity Highlights' },
     { key: 'athleteProfile', label: 'Athlete Profile' },
+    { key: 'records', label: 'Personal Bests' },
     { key: 'pmc', label: 'Fitness & Readiness (PMC)' },
     { key: 'powerCurve', label: 'Power Duration Curve' },
     { key: 'efficiency', label: 'Aerobic Efficiency' },

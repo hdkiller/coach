@@ -174,6 +174,14 @@
           </div>
         </div>
 
+        <!-- Personal Bests / Trophy Case -->
+        <div v-if="sectionSettings.records?.visible !== false" class="space-y-4">
+          <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            Personal Bests
+          </h2>
+          <TrophyCase :personal-bests="profileData?.personalBests || []" />
+        </div>
+
         <!-- Score Detail Modal -->
         <ScoreDetailModal
           v-model="showModal"
@@ -677,6 +685,7 @@
   const defaultSectionSettings = {
     highlights: { visible: true },
     athleteProfile: { visible: true },
+    records: { visible: true },
     pmc: { visible: true },
     powerCurve: { visible: true },
     efficiency: { visible: true },
@@ -794,6 +803,7 @@
   const workoutSport = ref<string>('all')
 
   interface AthleteProfile {
+    personalBests?: any[]
     scores?: {
       lastUpdated?: string
       currentFitness?: number

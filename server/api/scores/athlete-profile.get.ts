@@ -77,7 +77,10 @@ export default defineEventHandler(async (event) => {
       currentFitnessExplanationJson: true,
       recoveryCapacityExplanationJson: true,
       nutritionComplianceExplanationJson: true,
-      trainingConsistencyExplanationJson: true
+      trainingConsistencyExplanationJson: true,
+      personalBests: {
+        orderBy: { type: 'asc' }
+      }
     }
   })) as any
 
@@ -128,6 +131,7 @@ export default defineEventHandler(async (event) => {
       maxHr: user.maxHr,
       wkg: user.ftp && user.weight ? (user.ftp / user.weight).toFixed(2) : null
     },
+    personalBests: user.personalBests,
     scores: {
       currentFitness: user.currentFitnessScore,
       currentFitnessExplanation: user.currentFitnessExplanation,
