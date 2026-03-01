@@ -64,14 +64,17 @@
           </template>
 
           <!-- Highlight Segment (Lap) -->
-          <LPolyline
-            v-if="highlightSegment"
-            :lat-lngs="highlightSegment"
-            :color="'#3b82f6'"
-            :weight="8"
-            :opacity="1"
-            class="z-[1500]"
-          />
+          <template v-if="highlightSegmentParts">
+            <LPolyline
+              v-for="(segment, idx) in highlightSegmentParts"
+              :key="`highlight-segment-${idx}`"
+              :lat-lngs="segment"
+              :color="'#3b82f6'"
+              :weight="8"
+              :opacity="1"
+              class="z-[1500]"
+            />
+          </template>
 
           <!-- Highlight Multiple Segments (Zones) -->
           <template v-if="highlightSegments">
@@ -453,26 +456,83 @@
     return latLngs.value[Math.min(props.highlightIndex, latLngs.value.length - 1)]
   })
 
-  const highlightSegment = computed(() => {
-    if (!props.highlightRange || !latLngs.value.length) return null
-    const [start, end] = props.highlightRange
-    return latLngs.value.slice(start, end + 1).filter(Boolean) as [number, number][]
-  })
+  function toPolylineSegments(start: number, end: number) {
+    const segments: any[][] = []
+    let currentSegment: any[] = []
+
+    for (let i = start; i <= end && i < latLngs.value.length; i++) {
+      const point = latLngs.value[i]
+      if (point) {
+        currentSegment.push(point)
+        continue
+      }
+
+      if (currentSegment.length > 1) {
+        segments.push(currentSegment)
+      }
+      currentSegment = []
+    }
+
+    if (currentSegment.length > 1) {
+      segments.push(currentSegment)
+    }
+
+    return segments
+  }
 
   const highlightSegments = computed(() => {
-    if (!props.highlightRanges || !props.highlightRanges.length || !latLngs.value.length)
-      return null
+    if (!props.highlightRanges?.length || !latLngs.value.length) return null
+
     return props.highlightRanges
-      .map(([start, end]) => {
-        return latLngs.value.slice(start, end + 1).filter(Boolean) as [number, number][]
-      })
-      .filter((seg) => seg.length > 0)
+      .flatMap(([start, end]) => toPolylineSegments(start, end))
+      .filter((segment) => segment.length > 1)
+  })
+
+  const highlightSegmentParts = computed(() => {
+    if (!props.highlightRange || !latLngs.value.length) return null
+
+    const segments = toPolylineSegments(props.highlightRange[0], props.highlightRange[1])
+    return segments.length > 0 ? segments : null
   })
 
   const onMapReady = (map: any) => {
     mapObject.value = map
     fitBounds()
   }
+
+  watch(
+    [() => props.highlightRange, () => props.highlightRanges, () => props.coordinates],
+    ([highlightRange, highlightRanges]) => {
+      console.log('[WorkoutMap] Highlight input:', {
+        coordinateCount: Array.isArray(props.coordinates) ? props.coordinates.length : null,
+        latLngCount: latLngs.value.length,
+        highlightRange,
+        highlightRanges
+      })
+    },
+    { deep: true }
+  )
+
+  watch(
+    [highlightSegmentParts, highlightSegments],
+    ([singleSegments, multiSegments]) => {
+      console.log('[WorkoutMap] Highlight render segments:', {
+        singleSegmentParts: singleSegments?.map((segment, index) => ({
+          index,
+          pointCount: segment.length,
+          start: segment[0],
+          end: segment[segment.length - 1]
+        })),
+        multiSegments: multiSegments?.map((segment, index) => ({
+          index,
+          pointCount: segment.length,
+          start: segment[0],
+          end: segment[segment.length - 1]
+        }))
+      })
+    },
+    { deep: true }
+  )
 
   const fitBounds = () => {
     if (mapObject.value && baseRoutePoints.value.length > 0) {

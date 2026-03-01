@@ -118,7 +118,6 @@
                   ]"
                   variant="link"
                   class="w-full"
-                  :ui="{ list: { height: 'h-8' }, trigger: { height: 'h-7', size: 'text-[10px]' } }"
                 />
               </div>
             </div>
@@ -290,6 +289,9 @@
                       Zone
                     </th>
                     <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      BPM
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
                       Time
                     </th>
                     <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
@@ -311,6 +313,11 @@
                     <td
                       class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
                     >
+                      {{ formatZoneRange(zone) }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
                       {{ formatTime(zone.time) }}
                     </td>
                     <td
@@ -327,7 +334,7 @@
                   </tr>
                   <tr v-if="hrZones.length === 0">
                     <td
-                      colspan="3"
+                      colspan="4"
                       class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
                     >
                       No zone data available
@@ -421,36 +428,9 @@
                     "
                     :labels="zoomedStreams.time"
                     :height-class="'h-full'"
-                    :highlight-index="
-                      zoomRange
-                        ? hoverIndex !== null
-                          ? hoverIndex - zoomRange[0]
-                          : null
-                        : hoverIndex
-                    "
-                    :highlight-range="
-                      zoomRange
-                        ? hoverSplitRange
-                          ? [
-                              Math.max(0, hoverSplitRange[0] - zoomRange[0]),
-                              Math.min(
-                                zoomedStreams.time.length - 1,
-                                hoverSplitRange[1] - zoomRange[0]
-                              )
-                            ]
-                          : null
-                        : hoverSplitRange
-                    "
-                    :highlight-ranges="
-                      zoomRange
-                        ? hoverZoneRanges
-                          ? hoverZoneRanges.map((r) => [
-                              Math.max(0, r[0] - zoomRange[0]),
-                              Math.min(zoomedStreams.time.length - 1, r[1] - zoomRange[0])
-                            ])
-                          : null
-                        : hoverZoneRanges
-                    "
+                    :highlight-index="zoomedHoverIndex"
+                    :highlight-range="zoomedHoverSplitRange"
+                    :highlight-ranges="zoomedHoverZoneRanges"
                     @chart-hover="onChartHover"
                     @chart-leave="onChartLeave"
                     @chart-zoom="onChartZoom"
@@ -509,36 +489,9 @@
                           :color="getStreamMetadata(streamObject.value).color"
                           :y-axis-label="getStreamMetadata(streamObject.value).unit"
                           :height-class="'h-40'"
-                          :highlight-index="
-                            zoomRange
-                              ? hoverIndex !== null
-                                ? hoverIndex - zoomRange[0]
-                                : null
-                              : hoverIndex
-                          "
-                          :highlight-range="
-                            zoomRange
-                              ? hoverSplitRange
-                                ? [
-                                    Math.max(0, hoverSplitRange[0] - zoomRange[0]),
-                                    Math.min(
-                                      zoomedStreams.time.length - 1,
-                                      hoverSplitRange[1] - zoomRange[0]
-                                    )
-                                  ]
-                                : null
-                              : hoverSplitRange
-                          "
-                          :highlight-ranges="
-                            zoomRange
-                              ? hoverZoneRanges
-                                ? hoverZoneRanges.map((r) => [
-                                    Math.max(0, r[0] - zoomRange[0]),
-                                    Math.min(zoomedStreams.time.length - 1, r[1] - zoomRange[0])
-                                  ])
-                                : null
-                              : hoverZoneRanges
-                          "
+                          :highlight-index="zoomedHoverIndex"
+                          :highlight-range="zoomedHoverSplitRange"
+                          :highlight-ranges="zoomedHoverZoneRanges"
                           :show-x-axis="idx === selectedStreamObjects.length - 1"
                           :fixed-y-axis-width="80"
                           @chart-hover="onChartHover"
@@ -585,6 +538,32 @@
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
   const selectedStreams = computed(() => selectedStreamObjects.value.map((s) => s.value))
+
+  function calculateDisplayedHrZoneTimes(streams: Record<string, any>, zones: any[]) {
+    if (!Array.isArray(streams?.heartrate) || !Array.isArray(streams?.time) || !zones.length)
+      return []
+
+    const hrZoneTimes = new Array(zones.length).fill(0)
+    const heartrate = streams.heartrate as number[]
+    const time = streams.time as number[]
+
+    for (let i = 0; i < heartrate.length; i++) {
+      const hr = heartrate[i]
+      if (!isValidHeartRateSample(hr)) continue
+
+      const zoneIndex = getZoneIndex(hr, zones)
+      if (zoneIndex < 0) continue
+
+      const currentTime = typeof time[i] === 'number' ? time[i] : null
+      const nextTime =
+        i < time.length - 1 && typeof time[i + 1] === 'number' ? time[i + 1] : currentTime
+      const duration = Math.max(1, (nextTime ?? currentTime ?? 0) - (currentTime ?? 0))
+
+      hrZoneTimes[zoneIndex] += duration
+    }
+
+    return hrZoneTimes
+  }
 
   const zoomedStreams = computed(() => {
     if (!workout.value?.streams) return null
@@ -799,6 +778,40 @@
         console.log('[Map] Streams loaded:', Object.keys(newStreams))
         console.log('[Map] HR Zones Data:', newStreams.hrZones)
         console.log('[Map] HR Zone Times:', newStreams.hrZoneTimes)
+        console.log('[Map] Stream lengths:', {
+          time: Array.isArray(newStreams.time) ? newStreams.time.length : null,
+          heartrate: Array.isArray(newStreams.heartrate) ? newStreams.heartrate.length : null,
+          latlng: Array.isArray(newStreams.latlng) ? newStreams.latlng.length : null
+        })
+        console.log('[Map] Downsampling debug:', newStreams._debugDownsampling || null)
+
+        if (
+          Array.isArray(newStreams.time) &&
+          Array.isArray(newStreams.heartrate) &&
+          Array.isArray(newStreams.latlng)
+        ) {
+          const middleIndex = Math.floor(newStreams.time.length / 2)
+          console.log('[Map] Stream alignment samples:', {
+            first: {
+              index: 0,
+              time: newStreams.time[0],
+              heartrate: newStreams.heartrate[0],
+              latlng: newStreams.latlng[0]
+            },
+            middle: {
+              index: middleIndex,
+              time: newStreams.time[middleIndex],
+              heartrate: newStreams.heartrate[middleIndex],
+              latlng: newStreams.latlng[middleIndex]
+            },
+            last: {
+              index: newStreams.time.length - 1,
+              time: newStreams.time[newStreams.time.length - 1],
+              heartrate: newStreams.heartrate[newStreams.heartrate.length - 1],
+              latlng: newStreams.latlng[newStreams.latlng.length - 1]
+            }
+          })
+        }
 
         workout.value = {
           ...newWorkout,
@@ -824,14 +837,32 @@
         // Calculate HR Zones data if heartrate stream exists
         if (newStreams.heartrate && Array.isArray(newStreams.heartrate)) {
           if (newStreams.hrZoneTimes && newStreams.hrZones) {
-            // Filter out nulls and ensure we only map valid indices
-            hrZones.value = newStreams.hrZoneTimes
+            const displayedHrZoneTimes = calculateDisplayedHrZoneTimes(
+              newStreams,
+              newStreams.hrZones
+            )
+            console.log('[Map] Zone time comparison:', {
+              apiHrZoneTimes: newStreams.hrZoneTimes,
+              displayedHrZoneTimes,
+              apiTotal: newStreams.hrZoneTimes.reduce(
+                (sum: number, value: number) => sum + value,
+                0
+              ),
+              displayedTotal: displayedHrZoneTimes.reduce(
+                (sum: number, value: number) => sum + value,
+                0
+              )
+            })
+
+            hrZones.value = displayedHrZoneTimes
               .map((time: number, idx: number) => {
                 if (time === null || idx >= newStreams.hrZones.length) return null
                 return {
                   name: newStreams.hrZones[idx]?.name || `Z${idx + 1}`,
                   time: time,
-                  index: idx
+                  index: idx,
+                  min: newStreams.hrZones[idx]?.min,
+                  max: newStreams.hrZones[idx]?.max
                 }
               })
               .filter(Boolean)
@@ -889,14 +920,23 @@
 
   function onZoneHover(zone: any) {
     hoverZone.value = zone
+    console.log('[Map] Zone hover start:', {
+      zone: zone.name,
+      zoneIndex: zone.index,
+      bpmRange: formatZoneRange(zone)
+    })
   }
 
   function onZoneLeave() {
     hoverZone.value = null
   }
 
+  function isValidHeartRateSample(value: unknown): value is number {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0
+  }
+
   function getZoneIndex(value: number, zones: any[]): number {
-    if (value === null || value === undefined || !zones || zones.length === 0) return -1
+    if (!isValidHeartRateSample(value) || !zones || zones.length === 0) return -1
     for (let i = 0; i < zones.length; i++) {
       if (value >= zones[i].min && value <= zones[i].max) {
         return i
@@ -917,15 +957,11 @@
     const targetIdx = hoverZone.value.index
     const ranges: [number, number][] = []
 
-    console.log(`[Map] Calculating ranges for Zone Index: ${targetIdx} (${hoverZone.value.name})`)
-    console.log(`[Map] Zone Bounds:`, userHrZones.value[targetIdx])
-    console.log(`[Map] HR Stream Sample (first 10):`, hrStream.slice(0, 10))
-
     let currentStart: number | null = null
 
     for (let i = 0; i < hrStream.length; i++) {
       const hr = hrStream[i]
-      if (hr === null) {
+      if (!isValidHeartRateSample(hr)) {
         if (currentStart !== null) {
           ranges.push([currentStart, i - 1])
           currentStart = null
@@ -949,18 +985,101 @@
       ranges.push([currentStart, hrStream.length - 1])
     }
 
-    console.log(`[Map] Found ${ranges.length} segments for zone ${targetIdx}`)
-    if (ranges.length > 0) {
-      console.log(
-        `[Map] First segment:`,
-        ranges[0],
-        'Values:',
-        hrStream.slice(ranges[0][0], ranges[0][1] + 1).slice(0, 5)
-      )
-    }
-
     return ranges
   })
+
+  watch(
+    () => hoverZone.value,
+    (zone) => {
+      if (!zone) {
+        console.log('[Map] Zone hover cleared')
+      }
+    }
+  )
+
+  watch(
+    () => hoverZoneRanges.value,
+    (ranges) => {
+      if (!hoverZone.value || !ranges || !workout.value?.streams) return
+
+      const timeStream = workout.value.streams.time || []
+      const hrStream = workout.value.streams.heartrate || []
+      const latLngStream = workout.value.streams.latlng || []
+
+      console.log('[Map] Hover zone range analysis:', {
+        zone: hoverZone.value.name,
+        zoneIndex: hoverZone.value.index,
+        bpmRange: formatZoneRange(hoverZone.value),
+        segmentCount: ranges.length,
+        segments: ranges.map(([start, end], segmentIndex) => ({
+          segmentIndex,
+          start,
+          end,
+          bpmStart: hrStream[start],
+          bpmEnd: hrStream[end],
+          timeStart: timeStream[start],
+          timeEnd: timeStream[end],
+          latLngStart: latLngStream[start],
+          latLngEnd: latLngStream[end]
+        }))
+      })
+    }
+  )
+
+  const zoomedHoverIndex = computed(() => {
+    if (hoverIndex.value === null || hoverIndex.value === undefined) return null
+    if (!zoomRange.value) return hoverIndex.value
+
+    const [zoomStart, zoomEnd] = zoomRange.value
+    if (hoverIndex.value < zoomStart || hoverIndex.value > zoomEnd) return null
+
+    return hoverIndex.value - zoomStart
+  })
+
+  const zoomedHoverSplitRange = computed(() => {
+    if (!hoverSplitRange.value) return null
+    if (!zoomRange.value || !zoomedStreams.value?.time?.length) return hoverSplitRange.value
+
+    const [zoomStart, zoomEnd] = zoomRange.value
+    const [rangeStart, rangeEnd] = hoverSplitRange.value
+    const clippedStart = Math.max(rangeStart, zoomStart)
+    const clippedEnd = Math.min(rangeEnd, zoomEnd)
+
+    if (clippedStart > clippedEnd) return null
+
+    return [clippedStart - zoomStart, clippedEnd - zoomStart] as [number, number]
+  })
+
+  const zoomedHoverZoneRanges = computed(() => {
+    if (!hoverZoneRanges.value) return null
+    if (!zoomRange.value) return hoverZoneRanges.value
+
+    const [zoomStart, zoomEnd] = zoomRange.value
+
+    return hoverZoneRanges.value
+      .map(([rangeStart, rangeEnd]) => {
+        const clippedStart = Math.max(rangeStart, zoomStart)
+        const clippedEnd = Math.min(rangeEnd, zoomEnd)
+
+        if (clippedStart > clippedEnd) return null
+
+        return [clippedStart - zoomStart, clippedEnd - zoomStart] as [number, number]
+      })
+      .filter(Boolean) as [number, number][]
+  })
+
+  watch(
+    () => zoomedHoverZoneRanges.value,
+    (ranges) => {
+      if (!hoverZone.value) return
+
+      console.log('[Map] Zoomed hover zone ranges:', {
+        zone: hoverZone.value.name,
+        zoomRange: zoomRange.value,
+        ranges
+      })
+    }
+  )
 
   const hoverSplitRange = computed(() => {
     if (!hoverSplit.value || !workout.value?.streams?.time) return null
@@ -968,9 +1087,8 @@
     // For Laps, we calculate cumulative time from durations
     if (segmentTab.value === 'laps') {
       const splits = lapSplits.value
-      const currentIdx = splits.findIndex((s) => s.lap === hoverSplit.value.lap)
+      const currentIdx = splits.findIndex((s) => s.lap === hoverSplit.value!.lap)
       if (currentIdx === -1) return null
-
       let startTime = 0
       for (let i = 0; i < currentIdx; i++) {
         startTime += splits[i].time
@@ -1063,5 +1181,10 @@
       return `${h}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  function formatZoneRange(zone: { min?: number; max?: number }) {
+    if (typeof zone?.min !== 'number' || typeof zone?.max !== 'number') return '-'
+    return `${zone.min}-${zone.max} bpm`
   }
 </script>
