@@ -1,4 +1,4 @@
-import { prisma } from '../db'
+import { prisma as globalPrisma } from '../db'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
 import { findPeakEfforts } from '../interval-detection'
 import { createUserNotification } from '../notifications'
@@ -9,27 +9,43 @@ export const thresholdDetectionService = {
   /**
    * Detect potential new thresholds (LTHR, FTP) from workout data
    */
-  async detectThresholdIncreases(workoutId: string, options: { dryRun?: boolean } = {}) {
-    const { dryRun = false } = options
-    logger.log('Starting threshold detection', { workoutId, dryRun })
+  async detectThresholdIncreases(
+    workoutOrId: string | any,
+    options: { dryRun?: boolean; noNotify?: boolean; prismaOverride?: any } = {}
+  ) {
+    const { dryRun = false, noNotify = false, prismaOverride = null } = options
+    const prisma = prismaOverride || globalPrisma
 
-    const workout = await prisma.workout.findUnique({
-      where: { id: workoutId },
-      include: {
-        streams: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            lthr: true,
-            ftp: true,
-            maxHr: true
+    logger.log('Starting threshold detection', { dryRun, noNotify })
+
+    let workout: any
+    if (typeof workoutOrId === 'string') {
+      workout = await prisma.workout.findUnique({
+        where: { id: workoutOrId },
+        include: {
+          streams: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              lthr: true,
+              ftp: true,
+              maxHr: true
+            }
           }
         }
+      })
+    } else {
+      workout = workoutOrId
+      // Ensure streams are loaded if passed as object
+      if (!workout.streams && workout.id) {
+        workout.streams = await prisma.workoutStream.findUnique({
+          where: { workoutId: workout.id }
+        })
       }
-    })
+    }
 
-    if (!workout || !workout.streams || !workout.user) {
+    if (!workout || !workout.streams || (!workout.user && !workout.userId)) {
       logger.log('Threshold detection skipped: missing data or streams', {
         hasWorkout: !!workout,
         hasStreams: !!workout?.streams,
@@ -53,12 +69,13 @@ export const thresholdDetectionService = {
     // 1. Fetch Sport Settings for this workout type
     const sportSettings = await sportSettingsRepository.getForActivityType(
       workout.userId,
-      workout.type || ''
+      workout.type || '',
+      prisma
     )
 
-    const currentLthr = sportSettings?.lthr || workout.user.lthr
-    const currentFtp = sportSettings?.ftp || workout.user.ftp
-    const currentMaxHr = sportSettings?.maxHr || (workout.user as any).maxHr
+    const currentLthr = sportSettings?.lthr || workout.user?.lthr
+    const currentFtp = sportSettings?.ftp || workout.user?.ftp
+    const currentMaxHr = sportSettings?.maxHr || (workout.user as any)?.maxHr
     const currentThresholdPace = sportSettings?.thresholdPace
 
     // 2. Heart Rate Threshold & Max HR Detection
@@ -71,14 +88,16 @@ export const thresholdDetectionService = {
       const workoutMaxHr = workout.maxHr || Math.max(...(workout.streams.heartrate as number[]))
       if (currentMaxHr && workoutMaxHr > currentMaxHr) {
         results.maxHr = { old: currentMaxHr, new: workoutMaxHr, detected: true }
-        if (!dryRun) {
+        if (!dryRun && !noNotify) {
           await this.createThresholdRecommendation(
             workout.userId,
             workout.id,
             'MAX_HR',
             currentMaxHr,
             workoutMaxHr,
-            workoutMaxHr
+            workoutMaxHr,
+            prisma,
+            noNotify
           )
           await createUserNotification(workout.userId, {
             title: 'New Max Heart Rate Detected',
@@ -125,15 +144,19 @@ export const thresholdDetectionService = {
               'LTHR',
               currentLthr,
               estimatedLthr,
-              peak20mHR
+              peak20mHR,
+              prisma,
+              noNotify
             )
 
-            await createUserNotification(workout.userId, {
-              title: 'New Heart Rate Threshold Detected',
-              message: `Congratulations! Based on your workout "${workout.title}", we've detected a new threshold heart rate of ${estimatedLthr} bpm (previous: ${currentLthr} bpm).`,
-              icon: 'i-heroicons-bolt',
-              link: `/workouts/${workout.id}`
-            })
+            if (!noNotify) {
+              await createUserNotification(workout.userId, {
+                title: 'New Heart Rate Threshold Detected',
+                message: `Congratulations! Based on your workout "${workout.title}", we've detected a new threshold heart rate of ${estimatedLthr} bpm (previous: ${currentLthr} bpm).`,
+                icon: 'i-heroicons-bolt',
+                link: `/workouts/${workout.id}`
+              })
+            }
           }
         } else {
           results.lthr = { old: currentLthr, new: estimatedLthr, detected: false }
@@ -168,15 +191,19 @@ export const thresholdDetectionService = {
               'FTP',
               currentFtp,
               estimatedFtp,
-              peak20mPower
+              peak20mPower,
+              prisma,
+              noNotify
             )
 
-            await createUserNotification(workout.userId, {
-              title: 'New FTP Detected',
-              message: `Great job! Based on your 20-minute effort, we've detected a potential new FTP of ${estimatedFtp}W (previous: ${currentFtp}W).`,
-              icon: 'i-heroicons-fire',
-              link: `/workouts/${workout.id}`
-            })
+            if (!noNotify) {
+              await createUserNotification(workout.userId, {
+                title: 'New FTP Detected',
+                message: `Great job! Based on your 20-minute effort, we've detected a potential new FTP of ${estimatedFtp}W (previous: ${currentFtp}W).`,
+                icon: 'i-heroicons-fire',
+                link: `/workouts/${workout.id}`
+              })
+            }
           }
         } else {
           results.ftp = { old: currentFtp, new: estimatedFtp, detected: false }
@@ -260,7 +287,9 @@ export const thresholdDetectionService = {
               'THRESHOLD_PACE',
               effectiveOldPace || 0,
               detectedPacePerKm,
-              peak40mPace
+              peak40mPace,
+              prisma,
+              noNotify
             )
           }
         } else {
@@ -281,8 +310,11 @@ export const thresholdDetectionService = {
     metric: 'LTHR' | 'FTP' | 'MAX_HR' | 'THRESHOLD_PACE',
     oldValue: number,
     newValue: number,
-    peakValue: number
+    peakValue: number,
+    prismaOverride?: any,
+    noNotify: boolean = false
   ) {
+    const prisma = prismaOverride || globalPrisma
     let title = `New ${metric} Threshold Detected`
     let description = ''
     const unit = metric === 'FTP' ? 'W' : metric === 'THRESHOLD_PACE' ? 's/km' : ' bpm'
@@ -360,18 +392,20 @@ export const thresholdDetectionService = {
     })
 
     // Queue email notification
-    try {
-      await queueThresholdUpdateEmail({
-        userId,
-        workoutId,
-        metric,
-        oldValue,
-        newValue,
-        unit,
-        peakValue
-      })
-    } catch (err) {
-      logger.warn('Failed to queue threshold email', { userId, workoutId, metric, error: err })
+    if (!noNotify) {
+      try {
+        await queueThresholdUpdateEmail({
+          userId,
+          workoutId,
+          metric,
+          oldValue,
+          newValue,
+          unit,
+          peakValue
+        })
+      } catch (err) {
+        logger.warn('Failed to queue threshold email', { userId, workoutId, metric, error: err })
+      }
     }
   }
 }

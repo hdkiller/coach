@@ -1,4 +1,4 @@
-import { prisma } from '../db'
+import { prisma as globalPrisma } from '../db'
 import { findPeakEfforts } from '../interval-detection'
 import { logger } from '@trigger.dev/sdk/v3'
 
@@ -15,7 +15,8 @@ export const pbDetectionService = {
   /**
    * Analyze a workout's streams to detect new Personal Bests
    */
-  async detectPBs(workoutOrId: string | any) {
+  async detectPBs(workoutOrId: string | any, prismaOverride?: any) {
+    const prisma = prismaOverride || globalPrisma
     let workout: any
 
     if (typeof workoutOrId === 'string') {
@@ -111,7 +112,13 @@ export const pbDetectionService = {
     const achievements: any[] = []
 
     for (const candidate of candidates) {
-      const isNewBest = await this.processCandidate(userId, workout.id, workout.date, candidate)
+      const isNewBest = await this.processCandidate(
+        userId,
+        workout.id,
+        workout.date,
+        candidate,
+        prisma
+      )
       if (isNewBest) {
         achievements.push(candidate)
       }
@@ -182,8 +189,10 @@ export const pbDetectionService = {
     userId: string,
     workoutId: string,
     date: Date,
-    candidate: PersonalBestCandidate
+    candidate: PersonalBestCandidate,
+    prismaOverride?: any
   ): Promise<boolean> {
+    const prisma = prismaOverride || globalPrisma
     const existing = await prisma.personalBest.findUnique({
       where: {
         userId_type: {

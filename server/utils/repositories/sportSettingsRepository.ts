@@ -1,11 +1,12 @@
-import { prisma } from '../db'
+import { prisma as globalPrisma } from '../db'
 import { getUserLocalDate } from '../date'
 
 export const sportSettingsRepository = {
   /**
    * Get all sport settings for a user, ensuring a Default profile exists.
    */
-  async getByUserId(userId: string) {
+  async getByUserId(userId: string, prismaOverride?: any) {
+    const prisma = prismaOverride || globalPrisma
     const settings = await prisma.sportSettings.findMany({
       where: { userId },
       orderBy: { isDefault: 'desc' } // Default first
@@ -24,7 +25,7 @@ export const sportSettingsRepository = {
       })
 
       if (user) {
-        const defaultProfile = await this.createDefault(userId, user)
+        const defaultProfile = await this.createDefault(userId, user, prisma)
         settings.unshift(defaultProfile)
       }
     }
@@ -35,15 +36,16 @@ export const sportSettingsRepository = {
   /**
    * Get the default sport settings for a user.
    */
-  async getDefault(userId: string) {
-    const settings = await this.getByUserId(userId)
+  async getDefault(userId: string, prismaOverride?: any) {
+    const settings = await this.getByUserId(userId, prismaOverride)
     return settings.find((s: any) => s.isDefault) || null
   },
 
   /**
    * Create the default profile using user's basic settings.
    */
-  async createDefault(userId: string, legacyProfile: any) {
+  async createDefault(userId: string, legacyProfile: any, prismaOverride?: any) {
+    const prisma = prismaOverride || globalPrisma
     return await prisma.sportSettings.create({
       data: {
         userId,
@@ -69,8 +71,8 @@ export const sportSettingsRepository = {
    * Get the applicable sport settings for a specific activity type.
    * Falls back to Default if no specific match found.
    */
-  async getForActivityType(userId: string, activityType: string) {
-    const allSettings = await this.getByUserId(userId)
+  async getForActivityType(userId: string, activityType: string, prismaOverride?: any) {
+    const allSettings = await this.getByUserId(userId, prismaOverride)
 
     // 1. Exact match in types array
     const specific = allSettings.find(
