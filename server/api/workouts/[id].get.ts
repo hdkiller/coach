@@ -54,6 +54,9 @@ export default defineEventHandler(async (event) => {
       canonicalWorkout: true,
       plannedWorkout: true,
       planAdherence: true,
+      metricHistory: {
+        orderBy: { createdAt: 'desc' }
+      },
       exercises: {
         include: {
           exercise: true,

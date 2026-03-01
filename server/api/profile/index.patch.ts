@@ -82,12 +82,16 @@ export default defineEventHandler(async (event) => {
 
     // 2. Update Metrics via Service (Weight, FTP, LTHR, MaxHR)
     // This also handles goal syncing and zone recalculation
-    const updatedUser = await athleteMetricsService.updateMetrics(userId, {
-      ftp: data.ftp,
-      weight: weightKg,
-      maxHr: data.maxHr,
-      lthr: data.lthr
-    })
+    const updatedUser = await athleteMetricsService.updateMetrics(
+      userId,
+      {
+        ftp: data.ftp,
+        weight: weightKg,
+        maxHr: data.maxHr,
+        lthr: data.lthr
+      },
+      { sportType: (data as any).sportType }
+    )
 
     // 2. Update remaining User fields
     const { sportSettings, hrZones, powerZones, ftp, weight, maxHr, lthr, ...otherData } = data
