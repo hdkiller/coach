@@ -1303,6 +1303,7 @@
             <UiWorkoutMap
               :coordinates="workout.streams.latlng"
               :streams="workout.streams"
+              :workout-id="workout.id"
               :interactive="true"
               :provider="workout.source"
               :device-name="workout.deviceName"

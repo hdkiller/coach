@@ -5,7 +5,7 @@
     <client-only>
       <div v-if="latLngs.length > 0" class="relative h-full w-full">
         <!-- Metric Selector Overlay -->
-        <div class="absolute top-4 right-4 z-[1000] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <UFieldGroup size="xs" variant="solid">
             <UButton
               v-for="mode in availableModes"
@@ -17,6 +17,17 @@
               <span class="hidden sm:inline">{{ mode.label }}</span>
             </UButton>
           </UFieldGroup>
+
+          <UButton
+            v-if="lapSplits.length > 0"
+            size="xs"
+            :color="showSplits ? 'primary' : 'neutral'"
+            :icon="showSplits ? 'i-heroicons-eye' : 'i-heroicons-eye-slash'"
+            class="self-end"
+            @click="showSplits = !showSplits"
+          >
+            Splits
+          </UButton>
         </div>
 
         <LMap
@@ -48,6 +59,32 @@
               :weight="5"
               :opacity="0.9"
             />
+          </template>
+
+          <!-- Split Markers -->
+          <template v-if="showSplits">
+            <LMarker
+              v-for="(split, index) in splitMarkers"
+              :key="`split-${index}`"
+              :lat-lng="split.position"
+              :icon="splitIcon(split.rotation)"
+            >
+              <LTooltip>
+                <div class="p-2 space-y-1 min-w-[120px]">
+                  <div class="flex items-center justify-between border-b border-gray-100 pb-1 mb-1">
+                    <span class="text-[10px] font-black uppercase text-gray-400">Split {{ split.label }}</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase">Pace</span>
+                    <span class="text-sm font-black text-gray-900">{{ split.pace }}</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase">Time</span>
+                    <span class="text-xs font-bold text-gray-700">{{ formatTime(split.time) }}</span>
+                  </div>
+                </div>
+              </LTooltip>
+            </LMarker>
           </template>
 
           <!-- Start Marker -->
@@ -87,8 +124,10 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, watch } from 'vue'
+  import { computed, ref, watch, onMounted } from 'vue'
   import { useColorMode } from '#imports'
+  import * as L from 'leaflet'
+  import { LMap, LTileLayer, LPolyline, LCircleMarker, LMarker, LTooltip } from '@vue-leaflet/vue-leaflet'
 
   const props = defineProps<{
     coordinates: any[]
@@ -97,12 +136,15 @@
     provider?: string
     deviceName?: string
     streams?: Record<string, any>
+    workoutId?: string
   }>()
 
   const zoom = ref(13)
   const center = ref<[number, number]>([51.505, -0.09])
   const mapObject = ref<any>(null)
   const selectedMode = ref<'route' | 'altitude' | 'heartrate' | 'velocity'>('route')
+  const showSplits = ref(true)
+  const lapSplits = ref<any[]>([])
 
   const availableModes = computed(() => {
     const modes = [{ id: 'route', label: 'Route', icon: 'i-heroicons-map' }] as any[]
@@ -116,6 +158,96 @@
 
     return modes
   })
+
+  // Fetch splits if workoutId is provided
+  if (props.workoutId) {
+    onMounted(async () => {
+      try {
+        const data = await $fetch<any>(`/api/workouts/${props.workoutId}/streams`)
+        if (data?.lapSplits) {
+          lapSplits.value = data.lapSplits
+        }
+      } catch (e) {
+        console.error('Failed to fetch splits for map:', e)
+      }
+    })
+  }
+
+  // Calculate split positions on the map
+  const splitMarkers = computed(() => {
+    if (!showSplits.value || !lapSplits.value.length || !props.streams?.time || !latLngs.value.length)
+      return []
+
+    const markers: any[] = []
+    const timeStream = props.streams.time
+    let cumulativeTime = 0
+
+    // Skip the last lap if it's just the end point (already has a marker)
+    const lapsToProcess = lapSplits.value.slice(0, -1)
+
+    lapsToProcess.forEach((split) => {
+      cumulativeTime += split.time
+
+      // Find the index in the time stream closest to this cumulative time
+      // This is more accurate than distance for locating splits on the latlng stream
+      let closestIdx = 0
+      let minDiff = Infinity
+
+      // Binary search would be faster but for typical stream lengths this is fine
+      // and we only do it once per split
+      for (let i = 0; i < timeStream.length; i++) {
+        const diff = Math.abs(timeStream[i] - cumulativeTime)
+        if (diff < minDiff) {
+          minDiff = diff
+          closestIdx = i
+        } else if (diff > minDiff) {
+          // Time stream is sorted, so we can stop once diff starts increasing
+          break
+        }
+      }
+
+      const position = latLngs.value[closestIdx]
+      if (position) {
+        // Calculate rotation for the arrow based on the segment direction
+        let rotation = 0
+        if (closestIdx < latLngs.value.length - 1) {
+          const p1 = latLngs.value[closestIdx]
+          const p2 = latLngs.value[closestIdx + 1]
+          const lat1 = Array.isArray(p1) ? p1[0] : p1.lat
+          const lng1 = Array.isArray(p1) ? p1[1] : p1.lng
+          const lat2 = Array.isArray(p2) ? p2[0] : p2.lat
+          const lng2 = Array.isArray(p2) ? p2[1] : p2.lng
+          rotation = (Math.atan2(lng2 - lng1, lat2 - lat1) * 180) / Math.PI
+        }
+
+        markers.push({
+          position,
+          rotation,
+          label: split.lap,
+          pace: split.pace,
+          distance: split.distance,
+          time: split.time
+        })
+      }
+    })
+
+    return markers
+  })
+
+  // Arrow Icon for splits
+  const splitIcon = (rotation: number) => {
+    return L.divIcon({
+      className: 'split-marker-icon',
+      html: `<div style="transform: rotate(${rotation}deg); width: 12px; height: 12px; display: flex; items-center; justify-center;">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" style="color: white; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));">
+                 <polyline points="7 11 12 6 17 11"></polyline>
+                 <polyline points="7 18 12 13 17 18"></polyline>
+               </svg>
+             </div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    })
+  }
 
   // Map options
   const mapOptions = computed(() => ({
@@ -255,6 +387,17 @@
     }
   }
 
+  function formatTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+    const secs = Math.round(seconds % 60)
+
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
   watch(
     () => props.coordinates,
     () => {
@@ -265,19 +408,6 @@
     { deep: true }
   )
 </script>
-
-<style scoped>
-  :deep(.leaflet-pane) {
-    z-index: 10 !important;
-  }
-  :deep(.leaflet-bottom) {
-    z-index: 11 !important;
-  }
-  :deep(.leaflet-control-attribution) {
-    display: none !important;
-  }
-</style>
-
 
 <style scoped>
   :deep(.leaflet-pane) {
