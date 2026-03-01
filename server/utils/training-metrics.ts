@@ -45,6 +45,10 @@ interface Zone {
   max: number
 }
 
+function isValidHeartRate(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+}
+
 interface ZoneDistribution {
   type: 'hr' | 'power'
   zones: {
@@ -189,7 +193,7 @@ export async function calculateZoneDistribution(
       // Process HR zones from raw stream
       hasHrData = true
       for (const hr of (stream.heartrate as number[]) || []) {
-        if (hr === null || hr === undefined) continue
+        if (!isValidHeartRate(hr)) continue
         const zoneIndex = getZoneIndex(hr, hrZones)
         if (zoneIndex >= 0) hrZoneTimes[zoneIndex]++
       }

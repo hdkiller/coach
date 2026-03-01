@@ -43,7 +43,7 @@ export function detectClimbs(time: number[], altitude: number[], distance: numbe
   const MIN_GRADE = 1.0 // percent
 
   for (let i = 1; i < smoothedAlt.length; i++) {
-    const diff = smoothedAlt[i] - smoothedAlt[i - 1]
+    const diff = smoothedAlt[i]! - smoothedAlt[i - 1]!
 
     // Simple logic: if altitude is increasing or flat-ish (+ some tolerance)
     const isAscending = diff >= -0.1
@@ -55,8 +55,8 @@ export function detectClimbs(time: number[], altitude: number[], distance: numbe
       inClimb = false
       const endIndex = i - 1
 
-      const ascent = smoothedAlt[endIndex] - smoothedAlt[startIndex]
-      const dist = distance[endIndex] - distance[startIndex]
+      const ascent = smoothedAlt[endIndex]! - smoothedAlt[startIndex]!
+      const dist = distance[endIndex]! - distance[startIndex]!
 
       if (ascent >= MIN_ASCENT && dist >= MIN_DISTANCE) {
         const avgGrade = (ascent / dist) * 100
@@ -65,8 +65,8 @@ export function detectClimbs(time: number[], altitude: number[], distance: numbe
           // Find max instantaneous grade in segment
           let maxGrade = 0
           for (let j = startIndex + 1; j <= endIndex; j++) {
-            const dD = distance[j] - distance[j - 1]
-            const dA = smoothedAlt[j] - smoothedAlt[j - 1]
+            const dD = distance[j]! - distance[j - 1]!
+            const dA = smoothedAlt[j]! - smoothedAlt[j - 1]!
             if (dD > 2) {
               // Need some minimum distance for local grade
               const localGrade = (dA / dD) * 100
@@ -77,15 +77,15 @@ export function detectClimbs(time: number[], altitude: number[], distance: numbe
           climbs.push({
             start_index: startIndex,
             end_index: endIndex,
-            start_time: time[startIndex],
-            end_time: time[endIndex],
-            duration: time[endIndex] - time[startIndex],
+            start_time: time[startIndex]!,
+            end_time: time[endIndex]!,
+            duration: time[endIndex]! - time[startIndex]!,
             distance: Math.round(dist),
             ascent: Math.round(ascent),
             avg_grade: Math.round(avgGrade * 10) / 10,
             max_grade: Math.round(maxGrade * 10) / 10,
-            start_altitude: Math.round(altitude[startIndex] * 10) / 10,
-            end_altitude: Math.round(altitude[endIndex] * 10) / 10
+            start_altitude: Math.round(altitude[startIndex]! * 10) / 10,
+            end_altitude: Math.round(altitude[endIndex]! * 10) / 10
           })
         }
       }
@@ -95,21 +95,21 @@ export function detectClimbs(time: number[], altitude: number[], distance: numbe
   // Handle case if workout ends on a climb
   if (inClimb) {
     const endIndex = smoothedAlt.length - 1
-    const ascent = smoothedAlt[endIndex] - smoothedAlt[startIndex]
-    const dist = distance[endIndex] - distance[startIndex]
+    const ascent = smoothedAlt[endIndex]! - smoothedAlt[startIndex]!
+    const dist = distance[endIndex]! - distance[startIndex]!
     if (ascent >= MIN_ASCENT && dist >= MIN_DISTANCE) {
       climbs.push({
         start_index: startIndex,
         end_index: endIndex,
-        start_time: time[startIndex],
-        end_time: time[endIndex],
-        duration: time[endIndex] - time[startIndex],
+        start_time: time[startIndex]!,
+        end_time: time[endIndex]!,
+        duration: time[endIndex]! - time[startIndex]!,
         distance: Math.round(dist),
         ascent: Math.round(ascent),
         avg_grade: Math.round((ascent / dist) * 100 * 10) / 10,
         max_grade: 0, // max calculation skipped for simplicity here
-        start_altitude: Math.round(altitude[startIndex] * 10) / 10,
-        end_altitude: Math.round(altitude[endIndex] * 10) / 10
+        start_altitude: Math.round(altitude[startIndex]! * 10) / 10,
+        end_altitude: Math.round(altitude[endIndex]! * 10) / 10
       })
     }
   }

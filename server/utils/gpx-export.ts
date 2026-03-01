@@ -28,12 +28,12 @@ export function generateGPX(
 
   // Track Points
   for (let i = 0; i < latlngs.length; i++) {
-    const point = latlngs[i]
+    const point = latlngs[i]!
     if (!point || point.length < 2) continue
 
-    const lat = point[0]
-    const lon = point[1]
-    const elapsedSec = timeStream[i] || 0
+    const lat = point[0]!
+    const lon = point[1]!
+    const elapsedSec = timeStream[i]!
     const pointTime = new Date(startTime.getTime() + elapsedSec * 1000)
 
     gpx += `
@@ -41,7 +41,7 @@ export function generateGPX(
 
     if (altitudes && altitudes[i] !== undefined) {
       gpx += `
-        <ele>${altitudes[i]}</ele>`
+        <ele>${altitudes[i]!}</ele>`
     }
 
     gpx += `
