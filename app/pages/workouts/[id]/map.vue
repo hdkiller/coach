@@ -9,6 +9,16 @@
         </template>
         <template #right>
           <div v-if="workout" class="flex items-center gap-4">
+            <UButton
+              icon="i-heroicons-document-arrow-down"
+              color="neutral"
+              variant="outline"
+              size="xs"
+              :loading="isExporting"
+              @click="downloadGPX"
+            >
+              Download GPX
+            </UButton>
             <div class="hidden sm:flex flex-col items-end">
               <span class="text-[10px] font-black uppercase text-gray-500">{{
                 formatDateWeekday(workout.date)
@@ -82,6 +92,7 @@
               :workout-id="workout.id"
               :highlight-index="hoverIndex"
               :highlight-range="hoverSplitRange"
+              :highlight-ranges="hoverZoneRanges"
               :interactive="true"
               class="!h-full !rounded-none !border-0"
             />
@@ -89,17 +100,35 @@
 
           <div :class="splitsCardClass">
             <div
-              class="p-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50"
+              class="border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50"
             >
-              <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                Lap Splits
-              </h3>
-              <UBadge size="xs" color="neutral" variant="subtle"
-                >{{ lapSplits.length }} Laps</UBadge
-              >
+              <div class="px-3 pt-3 flex items-center justify-between">
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                  Segment Analysis
+                </h3>
+              </div>
+              <div class="px-2 pb-1">
+                <UTabs
+                  v-model="segmentTab"
+                  :items="[
+                    { label: 'Laps', value: 'laps', icon: 'i-heroicons-flag' },
+                    { label: 'Intervals', value: 'intervals', icon: 'i-heroicons-bolt' },
+                    { label: 'Climbs', value: 'climbs', icon: 'i-heroicons-arrow-trending-up' },
+                    { label: 'Zones', value: 'zones', icon: 'i-heroicons-heart' }
+                  ]"
+                  variant="link"
+                  class="w-full"
+                  :ui="{ list: { height: 'h-8' }, trigger: { height: 'h-7', size: 'text-[10px]' } }"
+                />
+              </div>
             </div>
+
             <div class="flex-1 overflow-y-auto">
-              <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+              <!-- LAPS TABLE -->
+              <table
+                v-if="segmentTab === 'laps'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
                 <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
                     <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
@@ -133,6 +162,169 @@
                       class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
                     >
                       {{ formatDistance(split.distance) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- INTERVALS TABLE -->
+              <table
+                v-else-if="segmentTab === 'intervals'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Type
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Avg
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Time
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="(interval, idx) in detectedIntervals"
+                    :key="idx"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    @mouseenter="onSplitHover(interval)"
+                    @mouseleave="onSplitLeave"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black">
+                      <span
+                        :class="interval.type === 'WORK' ? 'text-primary-600' : 'text-gray-400'"
+                      >
+                        {{ interval.type }}
+                      </span>
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{
+                        interval.avg_power
+                          ? Math.round(interval.avg_power) + 'W'
+                          : interval.avg_pace
+                            ? formatPace(interval.avg_pace)
+                            : '-'
+                      }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatTime(interval.duration) }}
+                    </td>
+                  </tr>
+                  <tr v-if="detectedIntervals.length === 0">
+                    <td
+                      colspan="3"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      No intervals detected
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- CLIMBS TABLE -->
+              <table
+                v-else-if="segmentTab === 'climbs'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Gain
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Grade
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Dist
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="(climb, idx) in detectedClimbs"
+                    :key="idx"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    @mouseenter="onSplitHover(climb)"
+                    @mouseleave="onSplitLeave"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
+                      +{{ climb.ascent }}m
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ climb.avg_grade }}%
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatDistance(climb.distance) }}
+                    </td>
+                  </tr>
+                  <tr v-if="detectedClimbs.length === 0">
+                    <td
+                      colspan="3"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      No significant climbs detected
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- ZONES TABLE -->
+              <table
+                v-else-if="segmentTab === 'zones'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Zone
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Time
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      %
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="zone in hrZones"
+                    :key="zone.index"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    @mouseenter="onZoneHover(zone)"
+                    @mouseleave="onZoneLeave"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
+                      {{ zone.name }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatTime(zone.time) }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ Math.round((zone.time / (workout.duration || 1)) * 100) }}%
+                    </td>
+                  </tr>
+                  <tr v-if="hrZones.length === 0">
+                    <td
+                      colspan="3"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      No zone data available
                     </td>
                   </tr>
                 </tbody>
@@ -243,6 +435,16 @@
                           : null
                         : hoverSplitRange
                     "
+                    :highlight-ranges="
+                      zoomRange
+                        ? hoverZoneRanges
+                          ? hoverZoneRanges.map((r) => [
+                              Math.max(0, r[0] - zoomRange[0]),
+                              Math.min(zoomedStreams.time.length - 1, r[1] - zoomRange[0])
+                            ])
+                          : null
+                        : hoverZoneRanges
+                    "
                     @chart-hover="onChartHover"
                     @chart-leave="onChartLeave"
                     @chart-zoom="onChartZoom"
@@ -321,6 +523,16 @@
                                 : null
                               : hoverSplitRange
                           "
+                          :highlight-ranges="
+                            zoomRange
+                              ? hoverZoneRanges
+                                ? hoverZoneRanges.map((r) => [
+                                    Math.max(0, r[0] - zoomRange[0]),
+                                    Math.min(zoomedStreams.time.length - 1, r[1] - zoomRange[0])
+                                  ])
+                                : null
+                              : hoverZoneRanges
+                          "
                           :show-x-axis="idx === selectedStreamObjects.length - 1"
                           :fixed-y-axis-width="80"
                           @chart-hover="onChartHover"
@@ -341,7 +553,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, watch, toRaw } from 'vue'
+  import { ref, computed, watch, toRaw, nextTick } from 'vue'
   import draggable from 'vuedraggable'
   import StreamChart from '~/components/charts/streams/BaseStreamChart.vue'
 
@@ -354,9 +566,16 @@
   const error = ref<string | null>(null)
   const workout = ref<any>(null)
   const lapSplits = ref<any[]>([])
+  const detectedIntervals = ref<any[]>([])
+  const detectedClimbs = ref<any[]>([])
+  const hrZones = ref<any[]>([])
+  const userHrZones = ref<any[]>([])
+  const segmentTab = ref('laps')
   const hoverIndex = ref<number | null>(null)
   const hoverSplit = ref<any | null>(null)
+  const hoverZone = ref<any | null>(null)
   const zoomRange = ref<[number, number] | null>(null)
+  const isExporting = ref(false)
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
   const selectedStreams = computed(() => selectedStreamObjects.value.map((s) => s.value))
@@ -438,9 +657,18 @@
     }
   )
 
+  const workoutMap = ref<any>(null)
+
   // Save layout preference when changed
   watch(layoutMode, (newMode) => {
     userStore.updateDashboardSettings({ mapLayoutMode: newMode })
+
+    // Recenter map after layout change (DOM needs a tick to update size)
+    nextTick(() => {
+      if (workoutMap.value?.fitBounds) {
+        workoutMap.value.fitBounds()
+      }
+    })
   })
 
   const contentGridClass = computed(() => {
@@ -545,7 +773,28 @@
           lapSplits.value = newStreams.lapSplits
         }
 
-        // Initialize from user settings or auto-detect
+        if (newStreams.detectedIntervals) {
+          detectedIntervals.value = newStreams.detectedIntervals
+        }
+
+        if (newStreams.detectedClimbs) {
+          detectedClimbs.value = newStreams.detectedClimbs
+        }
+
+        if (newStreams.hrZones) {
+          userHrZones.value = newStreams.hrZones
+        }
+
+        // Calculate HR Zones data if heartrate stream exists
+        if (newStreams.heartrate && Array.isArray(newStreams.heartrate)) {
+          if (newStreams.hrZoneTimes && newStreams.hrZones) {
+            hrZones.value = newStreams.hrZoneTimes.map((time: number, idx: number) => ({
+              name: newStreams.hrZones[idx]?.name || `Z${idx + 1}`,
+              time: time,
+              index: idx
+            }))
+          }
+        } // Initialize from user settings or auto-detect
         const savedSelection = userStore.user?.dashboardSettings?.mapSelectedStreams
         if (Array.isArray(savedSelection) && savedSelection.length > 0) {
           selectedStreamObjects.value = savedSelection.map((key) => ({
@@ -596,36 +845,82 @@
     hoverSplit.value = null
   }
 
+  function onZoneHover(zone: any) {
+    hoverZone.value = zone
+  }
+
+  function onZoneLeave() {
+    hoverZone.value = null
+  }
+
+  function getZoneIndex(value: number, zones: any[]): number {
+    if (!value || !zones || zones.length === 0) return -1
+    for (let i = zones.length - 1; i >= 0; i--) {
+      if (value >= zones[i].min) return i
+    }
+    return -1
+  }
+
+  const hoverZoneRanges = computed(() => {
+    if (!hoverZone.value || !workout.value?.streams?.heartrate || userHrZones.value.length === 0)
+      return null
+
+    const hrStream = workout.value.streams.heartrate
+    const targetIdx = hoverZone.value.index
+    const ranges: [number, number][] = []
+
+    let currentStart: number | null = null
+
+    for (let i = 0; i < hrStream.length; i++) {
+      const hr = hrStream[i]
+      const zoneIdx = getZoneIndex(hr, userHrZones.value)
+
+      if (zoneIdx === targetIdx) {
+        if (currentStart === null) currentStart = i
+      } else {
+        if (currentStart !== null) {
+          ranges.push([currentStart, i - 1])
+          currentStart = null
+        }
+      }
+    }
+
+    if (currentStart !== null) {
+      ranges.push([currentStart, hrStream.length - 1])
+    }
+
+    return ranges
+  })
+
   const hoverSplitRange = computed(() => {
     if (!hoverSplit.value || !workout.value?.streams?.time) return null
 
-    // Find the range in the stream for this lap
-    const splits = lapSplits.value
-    const currentIdx = splits.findIndex((s) => s.lap === hoverSplit.value.lap)
-    if (currentIdx === -1) return null
+    // For Laps, we calculate cumulative time from durations
+    if (segmentTab.value === 'laps') {
+      const splits = lapSplits.value
+      const currentIdx = splits.findIndex((s) => s.lap === hoverSplit.value.lap)
+      if (currentIdx === -1) return null
 
-    // Calculate cumulative start and end times
-    // Each split.time is the DURATION of that split
-    let startTime = 0
-    for (let i = 0; i < currentIdx; i++) {
-      startTime += splits[i].time
+      let startTime = 0
+      for (let i = 0; i < currentIdx; i++) {
+        startTime += splits[i].time
+      }
+      const endTime = startTime + hoverSplit.value.time
+      const timeStream = workout.value.streams.time
+      let startIdx = timeStream.findIndex((t: number) => t >= startTime)
+      if (startIdx === -1) startIdx = 0
+      let endIdx = timeStream.findIndex((t: number) => t >= endTime)
+      if (endIdx === -1) endIdx = timeStream.length - 1
+      return [startIdx, endIdx] as [number, number]
     }
-    const endTime = startTime + hoverSplit.value.time
 
-    // Map these times back to indices in the streams
-    const timeStream = workout.value.streams.time
+    // For Intervals and Climbs, we use stored indices
+    if (hoverSplit.value.start_index !== undefined && hoverSplit.value.end_index !== undefined) {
+      return [hoverSplit.value.start_index, hoverSplit.value.end_index] as [number, number]
+    }
 
-    // Find index for startTime
-    let startIdx = timeStream.findIndex((t: number) => t >= startTime)
-    if (startIdx === -1) startIdx = 0
-
-    // Find index for endTime
-    let endIdx = timeStream.findIndex((t: number) => t >= endTime)
-    if (endIdx === -1) endIdx = timeStream.length - 1
-
-    return [startIdx, endIdx] as [number, number]
+    return null
   })
-
   function onChartZoom(range: [number, number]) {
     const [start, end] = range
     // If we're already zoomed, the range is relative to the CURRENT zoomed view
@@ -645,6 +940,26 @@
     router.push(`/workouts/${workoutId}`)
   }
 
+  async function downloadGPX() {
+    try {
+      isExporting.value = true
+      const url = `/api/workouts/${workoutId}/export/gpx`
+
+      // Use window.location.assign for simple download trigger
+      // or create a transient <a> tag for more control
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', '')
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (e) {
+      console.error('Failed to download GPX:', e)
+    } finally {
+      isExporting.value = false
+    }
+  }
+
   // Formatters
   function formatDateWeekday(date: string) {
     return new Date(date).toLocaleDateString('en-US', { weekday: 'long' })
@@ -660,6 +975,14 @@
 
   function formatDistance(meters: number) {
     return (meters / 1000).toFixed(2) + ' km'
+  }
+
+  function formatPace(metersPerSecond: number) {
+    if (!metersPerSecond || metersPerSecond <= 0) return '-'
+    const paceSeconds = 1000 / metersPerSecond
+    const mins = Math.floor(paceSeconds / 60)
+    const secs = Math.round(paceSeconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}/km`
   }
 
   function formatTime(seconds: number) {

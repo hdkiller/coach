@@ -195,6 +195,18 @@
                       class="rounded-lg"
                       @click="navigateDate(1)"
                     />
+
+                    <!-- Map Analysis shortcut -->
+                    <UButton
+                      :to="`/workouts/${workout.id}/map`"
+                      icon="i-heroicons-map"
+                      color="primary"
+                      variant="subtle"
+                      size="sm"
+                      class="ml-2 font-bold"
+                    >
+                      Map Analysis
+                    </UButton>
                   </div>
 
                   <div class="flex gap-2 items-end">
