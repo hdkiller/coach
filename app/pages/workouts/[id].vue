@@ -1302,6 +1302,7 @@
             </h2>
             <UiWorkoutMap
               :coordinates="workout.streams.latlng"
+              :streams="workout.streams"
               :interactive="true"
               :provider="workout.source"
               :device-name="workout.deviceName"
