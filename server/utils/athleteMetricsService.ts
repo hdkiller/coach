@@ -20,8 +20,10 @@ export const athleteMetricsService = {
       maxHr?: number | null
       lthr?: number | null
       date?: Date
-    }
+    },
+    options: { sportType?: string } = {}
   ) {
+    const { sportType } = options
     const user = await userRepository.getById(userId)
     if (!user) throw new Error('User not found')
 
@@ -56,10 +58,62 @@ export const athleteMetricsService = {
     }
 
     // 4. Persist Updates
+    const oldMetrics = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { ftp: true, lthr: true, maxHr: true }
+    })
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: userUpdateData
     })
+
+    // NEW: Log manual updates to MetricHistory
+    const logs = []
+    if (metrics.ftp !== undefined && metrics.ftp !== oldMetrics?.ftp) {
+      logs.push({
+        userId,
+        type: 'FTP',
+        value: metrics.ftp,
+        oldValue: oldMetrics?.ftp,
+        source: 'MANUAL',
+        date: new Date()
+      })
+    }
+    if (metrics.lthr !== undefined && metrics.lthr !== oldMetrics?.lthr) {
+      logs.push({
+        userId,
+        type: 'LTHR',
+        value: metrics.lthr,
+        oldValue: oldMetrics?.lthr,
+        source: 'MANUAL',
+        date: new Date()
+      })
+    }
+    if (metrics.maxHr !== undefined && metrics.maxHr !== oldMetrics?.maxHr) {
+      logs.push({
+        userId,
+        type: 'MAX_HR',
+        value: metrics.maxHr,
+        oldValue: oldMetrics?.maxHr,
+        source: 'MANUAL',
+        date: new Date()
+      })
+    }
+    if (logs.length > 0) {
+      await prisma.metricHistory.createMany({ data: logs })
+    }
+
+    // Update Specific Sport Profile if sportType provided
+    if (sportType) {
+      const specificProfile = await sportSettingsRepository.getForActivityType(userId, sportType)
+      if (specificProfile) {
+        await prisma.sportSettings.update({
+          where: { id: specificProfile.id },
+          data: sportUpdateData
+        })
+      }
+    }
 
     // Update Default Sport Profile
     const defaultProfile = await sportSettingsRepository.getDefault(userId)
@@ -91,6 +145,11 @@ export const athleteMetricsService = {
     // 6. Sync Goal Progress
     await this.syncGoalProgress(userId, metrics)
 
+    // NEW: Resolve threshold recommendations if metrics were updated
+    if (metrics.ftp !== undefined || metrics.lthr !== undefined) {
+      await this.resolveThresholdRecommendations(userId, metrics)
+    }
+
     // 7. REACTIVE: Update metabolic plan synchronously
     // If weight or FTP changed, the whole fueling plan needs updating
     if (metrics.weight !== undefined || metrics.ftp !== undefined) {
@@ -106,6 +165,36 @@ export const athleteMetricsService = {
     }
 
     return updatedUser
+  },
+
+  /**
+   * Mark active threshold recommendations as completed if the user has updated their metrics.
+   */
+  async resolveThresholdRecommendations(
+    userId: string,
+    metrics: {
+      ftp?: number | null
+      lthr?: number | null
+    }
+  ) {
+    const metricsToResolve = []
+    if (metrics.ftp !== undefined) metricsToResolve.push('FTP')
+    if (metrics.lthr !== undefined) metricsToResolve.push('LTHR')
+
+    if (metricsToResolve.length === 0) return
+
+    await prisma.recommendation.updateMany({
+      where: {
+        userId,
+        metric: { in: metricsToResolve },
+        status: 'ACTIVE',
+        sourceType: 'workout'
+      },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date()
+      }
+    })
   },
 
   /**

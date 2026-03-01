@@ -131,6 +131,7 @@ model User {
   weeklyTrainingPlans                WeeklyTrainingPlan[]
   wellness                           Wellness[]
   workouts                           Workout[]
+  metricHistory                      MetricHistory[]
   journeyEvents                      AthleteJourneyEvent[]
   nutritionSettings                  UserNutritionSettings?
   nutritionRecommendations           NutritionRecommendation[]
@@ -561,6 +562,7 @@ model Workout {
   user                            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises                       WorkoutExercise[]
   streams                         WorkoutStream?
+  metricHistory                   MetricHistory[]
 
   @@unique([userId, source, externalId])
   @@index([userId, date])
@@ -1641,6 +1643,7 @@ model EmailPreference {
   channel           EmailPreferenceChannel @default(EMAIL)
   onboarding        Boolean                @default(true)
   workoutAnalysis   Boolean                @default(true)
+  thresholdUpdates  Boolean                @default(true)
   planUpdates       Boolean                @default(true)
   billing           Boolean                @default(true) // usually required/limited toggle UX
   productUpdates    Boolean                @default(true)
@@ -1707,4 +1710,28 @@ model EmailSuppression {
 
   @@unique([email, reason, active])
   @@index([email])
+}
+
+model MetricHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      String   // LTHR, FTP, MAX_HR, THRESHOLD_PACE, PEAK_POWER_5S, etc.
+  value     Float
+  oldValue  Float?
+  
+  date      DateTime @default(now())
+  workoutId String?
+  workout   Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  
+  source    String   @default("AUTOMATIC") // AUTOMATIC, MANUAL
+  notes     String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([date])
 }
