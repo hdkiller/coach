@@ -1,8 +1,18 @@
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
-import { startOfDay, endOfDay, subDays, startOfYear, differenceInYears } from 'date-fns'
+import { addDays, startOfDay, endOfDay, subDays, startOfYear, differenceInYears } from 'date-fns'
 import { prisma } from './db'
 
 export const DEFAULT_TIMEZONE = 'UTC'
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const WEEKDAY_INDEX: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6
+}
 
 /**
  * Calculate age from Date of Birth
@@ -125,6 +135,150 @@ export function formatUserDate(
  */
 export function formatDateUTC(date: Date, formatStr: string = 'yyyy-MM-dd'): string {
   return format(date, formatStr, { timeZone: 'UTC' })
+}
+
+export function parseCalendarDate(dateStr: string): Date | null {
+  if (!ISO_DATE_RE.test(dateStr)) return null
+
+  const parsed = new Date(`${dateStr}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  return formatDateUTC(parsed, 'yyyy-MM-dd') === dateStr ? parsed : null
+}
+
+export function isValidCalendarDate(dateStr: string): boolean {
+  return parseCalendarDate(dateStr) !== null
+}
+
+export function buildInvalidCalendarDateResult(
+  field: string,
+  value: string,
+  attemptedInput?: Record<string, unknown>
+) {
+  return {
+    success: false,
+    error_code: 'INVALID_CALENDAR_DATE',
+    error: `Invalid calendar date for ${field}: ${value}. Expected YYYY-MM-DD and a real calendar day.`,
+    invalid_payload: attemptedInput || { [field]: value }
+  }
+}
+
+const shiftUtcCalendarDate = (date: Date, days: number) => {
+  const next = new Date(date)
+  next.setUTCDate(next.getUTCDate() + days)
+  return next
+}
+
+const resolveWeekdayReference = (
+  baseDate: Date,
+  weekday: string,
+  qualifier: 'this' | 'next' | 'last'
+) => {
+  const targetDay = WEEKDAY_INDEX[weekday.toLowerCase()]
+  if (targetDay === undefined) return null
+
+  const currentDay = baseDate.getUTCDay()
+  let delta = targetDay - currentDay
+
+  if (qualifier === 'next') {
+    if (delta <= 0) delta += 7
+  } else if (qualifier === 'last') {
+    if (delta >= 0) delta -= 7
+  }
+
+  return shiftUtcCalendarDate(baseDate, delta)
+}
+
+export function resolveRelativeDateReference(
+  reference: string,
+  timezone: string,
+  baseDateInput?: string
+) {
+  const baseDate =
+    typeof baseDateInput === 'string' && baseDateInput.trim()
+      ? parseCalendarDate(baseDateInput)
+      : getUserLocalDate(timezone)
+
+  if (!baseDate) {
+    return {
+      success: false as const,
+      error_code: 'INVALID_BASE_DATE',
+      error: `Invalid base_date: ${baseDateInput}. Expected YYYY-MM-DD and a real calendar day.`
+    }
+  }
+
+  const normalized = reference.trim().toLowerCase().replace(/\s+/g, ' ')
+  let resolvedDate: Date | null = null
+  let assumedTimeOfDay: string | undefined
+
+  if (normalized === 'today') resolvedDate = baseDate
+  else if (normalized === 'tomorrow') resolvedDate = shiftUtcCalendarDate(baseDate, 1)
+  else if (normalized === 'yesterday' || normalized === 'last night') {
+    resolvedDate = shiftUtcCalendarDate(baseDate, -1)
+    if (normalized === 'last night') assumedTimeOfDay = 'evening'
+  } else if (normalized === 'day before yesterday') {
+    resolvedDate = shiftUtcCalendarDate(baseDate, -2)
+  } else if (normalized === 'tonight') {
+    resolvedDate = baseDate
+    assumedTimeOfDay = 'evening'
+  } else if (normalized === 'this morning') {
+    resolvedDate = baseDate
+    assumedTimeOfDay = 'morning'
+  } else if (normalized === 'this afternoon') {
+    resolvedDate = baseDate
+    assumedTimeOfDay = 'afternoon'
+  } else if (normalized === 'this evening') {
+    resolvedDate = baseDate
+    assumedTimeOfDay = 'evening'
+  } else {
+    const weekdayMatch = normalized.match(
+      /^(this|next|last) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/
+    )
+    if (weekdayMatch) {
+      resolvedDate = resolveWeekdayReference(
+        baseDate,
+        weekdayMatch[2]!,
+        weekdayMatch[1]! as 'this' | 'next' | 'last'
+      )
+    }
+  }
+
+  if (!resolvedDate) {
+    return {
+      success: false as const,
+      error_code: 'UNSUPPORTED_TEMPORAL_REFERENCE',
+      error: `Unsupported temporal reference: "${reference}".`
+    }
+  }
+
+  return {
+    success: true as const,
+    resolvedDate,
+    resolvedDateString: formatDateUTC(resolvedDate, 'yyyy-MM-dd'),
+    baseDate,
+    baseDateString: formatDateUTC(baseDate, 'yyyy-MM-dd'),
+    assumedTimeOfDay
+  }
+}
+
+export function adjustCalendarDate(baseDateInput: string, amount: number) {
+  const baseDate = parseCalendarDate(baseDateInput)
+  if (!baseDate) {
+    return {
+      success: false as const,
+      error_code: 'INVALID_BASE_DATE',
+      error: `Invalid base_date: ${baseDateInput}. Expected YYYY-MM-DD and a real calendar day.`
+    }
+  }
+
+  const resolvedDate = addDays(baseDate, amount)
+  return {
+    success: true as const,
+    resolvedDate,
+    resolvedDateString: formatDateUTC(resolvedDate, 'yyyy-MM-dd'),
+    baseDate,
+    baseDateString: formatDateUTC(baseDate, 'yyyy-MM-dd')
+  }
 }
 
 /**
