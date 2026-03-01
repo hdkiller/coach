@@ -27,6 +27,7 @@
 
   const schema = z.object({
     workoutAnalysis: z.boolean(),
+    thresholdUpdates: z.boolean(),
     planUpdates: z.boolean(),
     billing: z.boolean(),
     productUpdates: z.boolean(),
@@ -45,6 +46,7 @@
 
   const state = reactive<Schema>({
     workoutAnalysis: true,
+    thresholdUpdates: true,
     planUpdates: true,
     billing: true,
     productUpdates: true,
@@ -64,6 +66,7 @@
       const data = (await $fetch('/api/profile/email-preferences')) as any
       if (data) {
         state.workoutAnalysis = data.workoutAnalysis ?? true
+        state.thresholdUpdates = data.thresholdUpdates ?? true
         state.planUpdates = data.planUpdates ?? true
         state.billing = data.billing ?? true
         state.productUpdates = data.productUpdates ?? true
@@ -95,6 +98,7 @@
     (newVal) => {
       if (newVal) {
         state.workoutAnalysis = false
+        state.thresholdUpdates = false
         state.planUpdates = false
         state.productUpdates = false
         state.retentionNudges = false
@@ -226,6 +230,14 @@
                 v-model="state.workoutAnalysis"
                 label="Workout Analysis"
                 description="Receive an email when your AI workout analysis is ready."
+                :disabled="state.globalUnsubscribe"
+              />
+            </UFormField>
+            <UFormField name="thresholdUpdates">
+              <UCheckbox
+                v-model="state.thresholdUpdates"
+                label="Threshold Updates"
+                description="Get notified when a new FTP or LTHR improvement is detected."
                 :disabled="state.globalUnsubscribe"
               />
             </UFormField>

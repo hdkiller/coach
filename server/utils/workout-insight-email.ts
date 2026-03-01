@@ -8,7 +8,14 @@ const WORKOUT_RECEIVED_LOOKBACK_HOURS = 24
 const WORKOUT_RECEIVED_MIN_DURATION_SEC = 10 * 60
 const WORKOUT_RECEIVED_COOLDOWN_MINUTES = 15
 const COPY_VARIANT_LOOKBACK = 20
-const WORKOUT_RECEIVED_ACTIVE_STATUSES = ['QUEUED', 'SENDING', 'SENT', 'DELIVERED', 'OPENED', 'CLICKED'] as const
+const WORKOUT_RECEIVED_ACTIVE_STATUSES = [
+  'QUEUED',
+  'SENDING',
+  'SENT',
+  'DELIVERED',
+  'OPENED',
+  'CLICKED'
+] as const
 
 const COPY_SLOTS = ['heroTitle', 'introLine', 'ctaLabel', 'nextStepMessage', 'subject'] as const
 type CopySlot = (typeof COPY_SLOTS)[number]
@@ -72,7 +79,9 @@ export function evaluateWorkoutReceivedEligibility(input: {
   }
 
   const now = input.now || new Date()
-  const oldestAllowedDate = new Date(now.getTime() - WORKOUT_RECEIVED_LOOKBACK_HOURS * 60 * 60 * 1000)
+  const oldestAllowedDate = new Date(
+    now.getTime() - WORKOUT_RECEIVED_LOOKBACK_HOURS * 60 * 60 * 1000
+  )
   if (input.workoutDate < oldestAllowedDate) {
     return { eligible: false as const, reason: 'workout_older_than_24_hours' as const }
   }
@@ -1015,4 +1024,76 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   })
 
   return { queued: true, templateKey: 'WorkoutAnalysisReady' }
+}
+
+export async function queueThresholdUpdateEmail(options: {
+  userId: string
+  workoutId: string
+  metric: 'LTHR' | 'FTP' | 'MAX_HR' | 'THRESHOLD_PACE'
+  oldValue: number
+  newValue: number
+  unit: string
+  peakValue: number
+}) {
+  const { userId, workoutId, metric, oldValue, newValue, unit, peakValue } = options
+
+  const [workout, user, pref] = await Promise.all([
+    prisma.workout.findUnique({
+      where: { id: workoutId },
+      select: { title: true }
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true }
+    }),
+    prisma.emailPreference.findUnique({
+      where: {
+        userId_channel: {
+          userId,
+          channel: 'EMAIL'
+        }
+      }
+    })
+  ])
+
+  if (!workout || !user) return { queued: false, reason: 'workout_or_user_not_found' }
+
+  // Check preferences
+  if (pref?.globalUnsubscribe || pref?.thresholdUpdates === false) {
+    return { queued: false, reason: 'preference_disabled' }
+  }
+
+  const metricLabelMap = {
+    LTHR: 'Lactate Threshold Heart Rate',
+    FTP: 'Functional Threshold Power',
+    MAX_HR: 'Peak Heart Rate',
+    THRESHOLD_PACE: 'Threshold Pace'
+  }
+
+  const percentIncrease =
+    oldValue > 0 ? Math.round(((newValue - oldValue) / oldValue) * 100) : undefined
+  const baseUrl = process.env.NUXT_PUBLIC_SITE_URL || 'https://coachwatts.com'
+
+  await queueEmail({
+    userId,
+    templateKey: 'ThresholdUpdateDetected',
+    eventKey: `THRESHOLD_UPDATE_${metric}_${workoutId}`,
+    idempotencyKey: `threshold-update:${metric}:${workoutId}`,
+    subject: `Level Up! New ${metric} Detected`,
+    props: {
+      name: user.name || 'Athlete',
+      workoutId,
+      workoutTitle: workout.title || 'Workout',
+      metricLabel: metricLabelMap[metric],
+      oldValue,
+      newValue,
+      unit,
+      peakValue,
+      percentIncrease,
+      workoutUrl: `${baseUrl}/workouts/${workoutId}`,
+      unsubscribeUrl: `${baseUrl}/profile/settings?tab=communication`
+    }
+  })
+
+  return { queued: true, templateKey: 'ThresholdUpdateDetected' }
 }

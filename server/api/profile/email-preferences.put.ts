@@ -15,6 +15,7 @@ const dayEnum = z.enum([
 const updateSchema = z.object({
   onboarding: z.boolean().optional(),
   workoutAnalysis: z.boolean().optional(),
+  thresholdUpdates: z.boolean().optional(),
   planUpdates: z.boolean().optional(),
   billing: z.boolean().optional(),
   productUpdates: z.boolean().optional(),

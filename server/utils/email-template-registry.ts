@@ -3,6 +3,7 @@ import type { EmailAudience } from '@prisma/client'
 export type EmailPreferenceKey =
   | 'onboarding'
   | 'workoutAnalysis'
+  | 'thresholdUpdates'
   | 'planUpdates'
   | 'billing'
   | 'productUpdates'
@@ -50,6 +51,17 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     preferenceKey: 'workoutAnalysis',
     requiredProps: ['workoutTitle'],
     utmCampaign: 'workout_analysis_ready',
+    utmMedium: 'engagement',
+    throttleGroup: 'WORKOUT_INSIGHTS',
+    cooldownHours: 12
+  },
+  ThresholdUpdateDetected: {
+    templateKey: 'ThresholdUpdateDetected',
+    defaultSubject: 'Level Up! New Threshold Detected',
+    audience: 'ENGAGEMENT',
+    preferenceKey: 'thresholdUpdates',
+    requiredProps: ['workoutTitle', 'metricLabel', 'oldValue', 'newValue', 'unit', 'peakValue'],
+    utmCampaign: 'threshold_update_detected',
     utmMedium: 'engagement',
     throttleGroup: 'WORKOUT_INSIGHTS',
     cooldownHours: 12
