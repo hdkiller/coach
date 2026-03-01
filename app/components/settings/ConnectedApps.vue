@@ -561,11 +561,7 @@
       >
         <div v-if="!stravaConnected">
           <UTooltip
-            :text="
-              isStravaDisabled
-                ? 'Strava integration is temporarily unavailable on coachwatts.com'
-                : ''
-            "
+            :text="isStravaDisabled ? 'Strava integration is temporarily unavailable' : ''"
             :popper="{ placement: 'top' }"
           >
             <UButton
@@ -1039,7 +1035,7 @@
   ])
 
   const isStravaDisabled = computed(() => {
-    if (import.meta.server) return false
-    return window.location.hostname === 'coachwatts.com'
+    const config = useRuntimeConfig()
+    return config.public.stravaEnabled === false
   })
 </script>

@@ -19,12 +19,12 @@ export const ingestStravaActivityTask = task({
     logger.log('Starting Strava activity ingestion', { userId, activityId, isUpdate })
 
     // Block ingestion on hosted site until Strava app is approved
-    const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || ''
-    if (siteUrl.includes('coachwatts.com')) {
-      logger.log('Strava ingestion is temporarily disabled on coachwatts.com')
+    const stravaEnabled = process.env.NUXT_PUBLIC_STRAVA_ENABLED !== 'false'
+    if (!stravaEnabled) {
+      logger.log('Strava ingestion is temporarily disabled via environment variable')
       return {
         success: false,
-        message: 'Strava integration is temporarily disabled on coachwatts.com'
+        message: 'Strava integration is temporarily disabled'
       }
     }
 

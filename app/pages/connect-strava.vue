@@ -40,7 +40,7 @@
               variant="soft"
               icon="i-heroicons-exclamation-triangle"
               title="Temporarily Unavailable"
-              description="Strava integration is temporarily unavailable on coachwatts.com. We are working to restore it as soon as possible."
+              description="Strava integration is temporarily unavailable. We are working to restore it as soon as possible."
               class="mb-4"
             />
             <div class="bg-muted/50 p-4 rounded-lg">
@@ -74,11 +74,7 @@
             <div class="flex justify-end gap-3">
               <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
               <UTooltip
-                :text="
-                  isStravaDisabled
-                    ? 'Strava integration is temporarily unavailable on coachwatts.com'
-                    : ''
-                "
+                :text="isStravaDisabled ? 'Strava integration is temporarily unavailable' : ''"
                 :popper="{ placement: 'top' }"
               >
                 <UButton
@@ -103,8 +99,8 @@
   const router = useRouter()
 
   const isStravaDisabled = computed(() => {
-    if (import.meta.server) return false
-    return window.location.hostname === 'coachwatts.com'
+    const config = useRuntimeConfig()
+    return config.public.stravaEnabled === false
   })
 
   definePageMeta({

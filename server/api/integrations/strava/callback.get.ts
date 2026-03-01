@@ -30,11 +30,10 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
 
   // Disable Strava on hosted version until app request is accepted
-  const isHosted = config.public.siteUrl?.includes('coachwatts.com')
-  if (isHosted) {
+  if (config.public.stravaEnabled === false) {
     throw createError({
       statusCode: 503,
-      message: 'Strava integration is temporarily unavailable on coachwatts.com'
+      message: 'Strava integration is temporarily unavailable'
     })
   }
 
