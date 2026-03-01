@@ -5,7 +5,9 @@
     <client-only>
       <div v-if="latLngs.length > 0" class="relative h-full w-full">
         <!-- Metric Selector Overlay -->
-        <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        <div
+          class="absolute top-4 right-4 z-[1000] flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+        >
           <UFieldGroup size="xs" variant="solid">
             <UButton
               v-for="mode in availableModes"
@@ -72,7 +74,9 @@
               <LTooltip>
                 <div class="p-2 space-y-1 min-w-[120px]">
                   <div class="flex items-center justify-between border-b border-gray-100 pb-1 mb-1">
-                    <span class="text-[10px] font-black uppercase text-gray-400">Split {{ split.label }}</span>
+                    <span class="text-[10px] font-black uppercase text-gray-400"
+                      >Split {{ split.label }}</span
+                    >
                   </div>
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-[10px] font-bold text-gray-500 uppercase">Pace</span>
@@ -80,7 +84,9 @@
                   </div>
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-[10px] font-bold text-gray-500 uppercase">Time</span>
-                    <span class="text-xs font-bold text-gray-700">{{ formatTime(split.time) }}</span>
+                    <span class="text-xs font-bold text-gray-700">{{
+                      formatTime(split.time)
+                    }}</span>
                   </div>
                 </div>
               </LTooltip>
@@ -108,6 +114,18 @@
             :fill-opacity="1"
             :weight="2"
           />
+
+          <!-- Highlight Marker -->
+          <LCircleMarker
+            v-if="highlightPoint"
+            :lat-lng="highlightPoint"
+            :radius="8"
+            :color="'white'"
+            :fill-color="'#3b82f6'"
+            :fill-opacity="1"
+            :weight="3"
+            class="z-[2000]"
+          />
         </LMap>
 
         <!-- Attribution Overlay -->
@@ -124,10 +142,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, watch, onMounted } from 'vue'
-  import { useColorMode } from '#imports'
-  import * as L from 'leaflet'
-  import { LMap, LTileLayer, LPolyline, LCircleMarker, LMarker, LTooltip } from '@vue-leaflet/vue-leaflet'
+  import { ref, computed, onMounted, watch } from 'vue'
 
   const props = defineProps<{
     coordinates: any[]
@@ -137,11 +152,25 @@
     deviceName?: string
     streams?: Record<string, any>
     workoutId?: string
+    highlightIndex?: number | null
   }>()
+
+  const L = ref<any>(null)
+
+  onMounted(async () => {
+    if (import.meta.client) {
+      L.value = await import('leaflet')
+    }
+  })
 
   const zoom = ref(13)
   const center = ref<[number, number]>([51.505, -0.09])
   const mapObject = ref<any>(null)
+
+  defineExpose({
+    mapObject
+  })
+
   const selectedMode = ref<'route' | 'altitude' | 'heartrate' | 'velocity'>('route')
   const showSplits = ref(true)
   const lapSplits = ref<any[]>([])
@@ -175,7 +204,12 @@
 
   // Calculate split positions on the map
   const splitMarkers = computed(() => {
-    if (!showSplits.value || !lapSplits.value.length || !props.streams?.time || !latLngs.value.length)
+    if (
+      !showSplits.value ||
+      !lapSplits.value.length ||
+      !props.streams?.time ||
+      !latLngs.value.length
+    )
       return []
 
     const markers: any[] = []
@@ -236,7 +270,8 @@
 
   // Arrow Icon for splits
   const splitIcon = (rotation: number) => {
-    return L.divIcon({
+    if (!L.value) return null
+    return L.value.divIcon({
       className: 'split-marker-icon',
       html: `<div style="transform: rotate(${rotation}deg); width: 12px; height: 12px; display: flex; items-center; justify-center;">
                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" style="color: white; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));">
@@ -299,7 +334,11 @@
     if (selectedMode.value === 'route' || !props.streams || !latLngs.value.length) return []
 
     let streamKey: any = selectedMode.value
-    if (selectedMode.value === 'velocity' && !props.streams.velocity && props.streams.velocity_smooth) {
+    if (
+      selectedMode.value === 'velocity' &&
+      !props.streams.velocity &&
+      props.streams.velocity_smooth
+    ) {
       streamKey = 'velocity_smooth'
     }
 
@@ -375,6 +414,12 @@
   const endPoint = computed(() =>
     latLngs.value.length > 0 ? latLngs.value[latLngs.value.length - 1] : null
   )
+
+  const highlightPoint = computed(() => {
+    if (props.highlightIndex === null || props.highlightIndex === undefined) return null
+    if (!latLngs.value.length) return null
+    return latLngs.value[Math.min(props.highlightIndex, latLngs.value.length - 1)]
+  })
 
   const onMapReady = (map: any) => {
     mapObject.value = map
