@@ -16,6 +16,7 @@ import { checkQuota } from '../server/utils/quotas/engine'
 import { publishWorkoutSummaryToIntervals } from '../server/utils/services/workout-summary-publish'
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import { createUserNotification } from '../server/utils/notifications'
+import { thresholdDetectionService } from '../server/utils/services/thresholdDetectionService'
 import {
   buildAnalysisRequestMetricRules,
   buildMetricPriorityPromptBlock,
@@ -442,6 +443,13 @@ export const analyzeWorkoutTask = task({
 
       logger.log('Analysis saved to database')
 
+      // NEW: Detect threshold increases
+      try {
+        await thresholdDetectionService.detectThresholdIncreases(workoutId)
+      } catch (thresholdError) {
+        logger.warn('Threshold detection failed', { workoutId, error: thresholdError })
+      }
+
       if (source === 'AUTOMATIC') {
         try {
           await createUserNotification(workout.userId, {
@@ -628,7 +636,8 @@ function buildWorkoutAnalysisData(workout: any) {
   if (workout.trainer !== null && workout.trainer !== undefined) data.trainer = workout.trainer
 
   // L/R Balance
-  if (workout.lrBalance !== null && workout.lrBalance !== undefined) data.lr_balance = workout.lrBalance
+  if (workout.lrBalance !== null && workout.lrBalance !== undefined)
+    data.lr_balance = workout.lrBalance
 
   // Exercises (for Strength/Hevy workouts)
   if (workout.exercises && workout.exercises.length > 0) {
