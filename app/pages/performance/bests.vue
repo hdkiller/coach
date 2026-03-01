@@ -16,18 +16,18 @@
     </template>
 
     <template #body>
-      <div class="p-4 sm:p-6 space-y-6 pb-24 max-w-5xl mx-auto">
+      <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
         <!-- Header Branding -->
-        <div>
+        <div class="px-4 sm:px-0">
           <h1
-            class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
+            class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
           >
             Trophy Case
           </h1>
           <p
-            class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1"
+            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.3em] mt-1"
           >
-            Your historic peak performances across all disciplines.
+            Historic peak performances & milestones
           </p>
         </div>
 
@@ -35,7 +35,7 @@
           <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 animate-spin text-primary-500" />
         </div>
 
-        <div v-else-if="data" class="space-y-8">
+        <div v-else-if="data" class="space-y-12">
           <TrophyCase :personal-bests="data.personalBests || []" />
         </div>
 
