@@ -57,8 +57,11 @@
   "cta.headline": "Bereit, deine Höchstform zu erreichen?",
   "cta.primary": "Kostenlos starten",
   "cta.secondary": "Erfolgsgeschichten lesen",
+  "cta_button": "Starte deine Reise",
+  "cta_description": "Tritt der Community bei und beginne noch heute, smarter zu trainieren.",
   "cta_primary": "Sichere dir deinen digitalen Zwilling (kostenlos)",
   "cta_secondary": "So funktioniert es",
+  "cta_title": "Haben Sie eine eigene Erfolgsgeschichte?",
   "data_nutrition": "Nährwerte",
   "data_wellness": "Wellness",
   "data_workouts": "Workouts",
@@ -92,6 +95,14 @@
   "feat3_title": "Dein digitaler Zwilling",
   "feat4_desc": "Wenn der Daily Coach läuft, liest er das Athletenprofil aus, nicht nur die Rohdaten. Dadurch kann er sagen: \"Deine Erholung ist gering und erfahrungsgemäß wirst du krank, wenn du in diesem Zustand trainierst\", statt nur \"Die HRV ist niedrig.\"",
   "feat4_title": "4. Ganzheitliches Coaching",
+  "featured_headline": "Ich habe nach Jahren des Stillstands endlich die 4-W/kg-Grenze geknackt.",
+  "featured_label": "Hervorgehobener Athlet",
+  "featured_name": "Sarah Jenkins",
+  "featured_quote": "Ich habe hart trainiert, aber nicht smart. Coach Watts hat meine Daten analysiert und erkannt, dass ich mich zwischen harten Blöcken nicht ausreichend erholt habe. Die KI schlug einen polarisierten Ansatz vor, der mein Training komplett verändert hat.",
+  "featured_role": "Cat 2 Straßenrennfahrer",
+  "featured_stat_consistency": "Trainingskonsistenz",
+  "featured_stat_ftp": "FTP-Verbesserung",
+  "featured_stat_vo2": "VO2 Max",
   "final": {
     "success": "Round-Trip verifiziert",
     "test": "Erfolg EN"
@@ -129,6 +140,9 @@
     "title": "GitHub Issues"
   },
   "guarantee": "Alle Pläne beinhalten eine 14-tägige Geld-zurück-Garantie. Keine Kreditkarte für den kostenlosen Plan erforderlich.",
+  "header_badge": "Community",
+  "header_description": "Echte Athleten, die mit Coach Watts ihre Bestleistung erreichen. Von den ersten Centurys bis zu Podiumsplätzen.",
+  "header_title": "Athlete Stories",
   "headline": "Das Gehirn hinter der Leistung",
   "headline_1": "Entfesseln Sie Ihr wahres Potenzial.",
   "headline_2": "Hör auf zu raten. Fang an zu gewinnen.",
@@ -178,6 +192,8 @@
     "workout_end": "Trainingsende",
     "workout_start": "Trainingsstart"
   },
+  "meta_description": "Erfahre, wie Athleten Coach Watts nutzen, um smarter zu trainieren, sich besser zu erholen und ihre Ziele zu erreichen.",
+  "meta_title": "Athlete Stories",
   "modal": {
     "confirm_change": "Änderung bestätigen",
     "description": "Änderungen an Ihrem Abonnement überprüfen",
@@ -228,6 +244,24 @@
       "name": "Supporter"
     }
   },
+  "s1_quote": "Die adaptive Planung war ein Lebensretter. Als es auf der Arbeit stressig wurde und ich das Training verpasst habe, hat Coach Watts meinen Plan sofort angepasst, damit ich nicht ausbrenne.",
+  "s1_title": "Gebrochen ungebunden 200",
+  "s1_type": "Gravel-Radfahrer",
+  "s2_quote": "Drei Sportarten unter einen Hut zu bringen, ist hart. Die Integration mit Whoop hat mir geholfen, genau zu verstehen, wie viel Belastung ich auf dem Rad vertragen kann, ohne meinen Lauf zu ruinieren.",
+  "s2_title": "PB auf der Radstrecke",
+  "s2_type": "Triathlet",
+  "s3_quote": "Ich dachte, ich müsste jeden Tag hart trainieren, um mithalten zu können. Coach Watts hat mir die Bedeutung von Erholung beigebracht. Ich fahre jetzt schneller als in meinen 40ern.",
+  "s3_title": "Sich 10 Jahre jünger fühlen",
+  "s3_type": "Masters-Radfahrer (50+)",
+  "s4_quote": "Früher war ich der Typ 'alles oder nichts'. Diese App gibt mir realistische tägliche Ziele, die ich tatsächlich erreichen kann. Die Beständigkeit hat sich zu riesigen Fortschritten summiert.",
+  "s4_title": "Endlich konsistent",
+  "s4_type": "Wochenendkrieger",
+  "s5_quote": "Die Funktionen zur Rennanalyse haben mir geholfen, meine Leistungskurve besser zu verstehen. Ich weiß jetzt genau, wann ich meinen Sprint ansetzen muss.",
+  "s5_title": "Intelligentere Taktiken",
+  "s5_type": "Crit-Racer",
+  "s6_quote": "Bei mehrtägigen Veranstaltungen ist das Ermüdungsmanagement entscheidend. Der Readiness-Score war an jedem einzelnen Tag goldrichtig.",
+  "s6_title": "Ermüdung perfekt gemanagt",
+  "s6_type": "Ultra-Ausdauer",
   "scenario": {
     "no-fuel": {
       "name": "Kein Pre-Fuel",

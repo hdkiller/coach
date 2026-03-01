@@ -57,8 +57,11 @@
   "cta.headline": "Ready to reach your peak?",
   "cta.primary": "Get Started for Free",
   "cta.secondary": "Read Success Stories",
+  "cta_button": "Start Your Journey",
+  "cta_description": "Join the community and start training smarter today.",
   "cta_primary": "Claim Your Digital Twin (Free)",
   "cta_secondary": "See How It Works",
+  "cta_title": "Have your own success story?",
   "data_nutrition": "Nutrition",
   "data_wellness": "Wellness",
   "data_workouts": "Workouts",
@@ -92,6 +95,14 @@
   "feat3_title": "Your Digital Twin",
   "feat4_desc": "When the Daily Coach runs, it reads the Athlete Profile, not just the raw data. This allows it to say \"Your recovery is low, and historically you get sick when training in this state\" rather than just \"HRV is low.\"",
   "feat4_title": "4. Holistic Coaching",
+  "featured_headline": "I finally broke the 4 W/kg barrier after years of stagnation.",
+  "featured_label": "Featured Athlete",
+  "featured_name": "Sarah Jenkins",
+  "featured_quote": "I was training hard but not smart. Coach Watts analyzed my data and realized I wasn't recovering enough between hard blocks. The AI suggested a polarized approach that completely changed my game.",
+  "featured_role": "Cat 2 Road Racer",
+  "featured_stat_consistency": "Training Consistency",
+  "featured_stat_ftp": "FTP Improvement",
+  "featured_stat_vo2": "VO2 Max",
   "final": {
     "success": "Round-trip verified",
     "test": "Success EN"
@@ -129,6 +140,9 @@
     "title": "GitHub Issues"
   },
   "guarantee": "All plans include a 14-day money-back guarantee. No credit card required for the free plan.",
+  "header_badge": "Community",
+  "header_description": "Real athletes achieving their peak performance with Coach Watts. From first centuries to podium finishes.",
+  "header_title": "Athlete Stories",
   "headline": "The Brain Behind the Performance",
   "headline_1": "Unlock Your True Potential.",
   "headline_2": "Stop Guessing. Start Winning.",
@@ -178,6 +192,8 @@
     "workout_end": "Workout End",
     "workout_start": "Workout Start"
   },
+  "meta_description": "See how athletes are using Coach Watts to train smarter, recover better, and reach their goals.",
+  "meta_title": "Athlete Stories",
   "modal": {
     "confirm_change": "Confirm Change",
     "description": "Review changes to your subscription plan",
@@ -228,6 +244,24 @@
       "name": "Supporter"
     }
   },
+  "s1_quote": "The adaptive planning was a lifesaver. When work got crazy and I missed training, Coach Watts instantly adjusted my plan so I didn't burn out.",
+  "s1_title": "Crushed Unbound 200",
+  "s1_type": "Gravel Cyclist",
+  "s2_quote": "Balancing three sports is hard. The integration with Whoop helped me understand exactly how much strain I could handle on the bike without wrecking my run.",
+  "s2_title": "PB on the Bike Leg",
+  "s2_type": "Triathlete",
+  "s3_quote": "I thought I had to train hard every day to keep up. Coach Watts taught me the power of recovery. I'm riding faster now than I was in my 40s.",
+  "s3_title": "Feeling 10 Years Younger",
+  "s3_type": "Master's Cyclist (50+)",
+  "s4_quote": "I used to be 'all or nothing'. This app gives me realistic daily goals that I can actually hit. The consistency has compounded into huge gains.",
+  "s4_title": "Finally Consistent",
+  "s4_type": "Weekend Warrior",
+  "s5_quote": "The race analysis features helped me understand my power curve better. I know exactly when to launch my sprint now.",
+  "s5_title": "Smarter Tactics",
+  "s5_type": "Crit Racer",
+  "s6_quote": "For multi-day events, fatigue management is key. The readiness score was spot on every single day.",
+  "s6_title": "Managed Fatigue Perfectly",
+  "s6_type": "Ultra-Endurance",
   "scenario": {
     "no-fuel": {
       "name": "No Pre-Fuel",
