@@ -48,10 +48,6 @@ function getSubscriptionTier(item: Stripe.SubscriptionItem | undefined): Subscri
     config.stripeProAnnualEurPriceId
   ].filter(Boolean)
 
-  console.log(`[Sync] Resolving tier for priceId: ${priceId}, productId: ${productId}`)
-  console.log(`[Sync] Matches Supporter? ${priceId && supporterPriceIds.includes(priceId)}`)
-  console.log(`[Sync] Matches Pro? ${priceId && proPriceIds.includes(priceId)}`)
-
   if (priceId && supporterPriceIds.includes(priceId)) return 'SUPPORTER'
   if (priceId && proPriceIds.includes(priceId)) return 'PRO'
   if (productId === config.stripeSupporterProductId) return 'SUPPORTER'
@@ -106,21 +102,9 @@ export default defineEventHandler(async (event) => {
         const dummyItem = { price: { id: firstItem.price } } as any
         pendingTier = getSubscriptionTier(dummyItem)
         pendingDate = new Date(nextPhase.start_date * 1000)
-        console.log(
-          `[Sync] Found pending ${pendingTier} change scheduled for ${pendingDate.toISOString()}`
-        )
       }
     }
   }
-
-  console.log(
-    `[Sync] Found ${subscriptions.data.length} total subscriptions for user ${session.user.id}`
-  )
-  subscriptions.data.forEach((sub) => {
-    console.log(
-      `[Sync] - Sub: ${sub.id}, Status: ${sub.status}, CancelAtEnd: ${sub.cancel_at_period_end}, Created: ${new Date(sub.created * 1000).toISOString()}`
-    )
-  })
 
   // Sort by created date descending (newest first)
   const sortedSubs = [...subscriptions.data].sort((a, b) => b.created - a.created)
@@ -142,16 +126,6 @@ export default defineEventHandler(async (event) => {
       ? new Date(activeSub.current_period_end * 1000)
       : null
     const startedAt = new Date(activeSub.created * 1000)
-
-    console.log(`[Sync] Found subscription ${activeSub.id} for user ${session.user.id}:`, {
-      stripeStatus: activeSub.status,
-      internalStatus: status,
-      cancelAtPeriodEnd: activeSub.cancel_at_period_end,
-      tier,
-      priceId,
-      productId,
-      periodEnd
-    })
 
     // Check if we need to update startedAt
     const currentUser = await prisma.user.findUnique({
