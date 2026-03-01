@@ -1,32 +1,37 @@
 {
-  "title": "Support",
+  "community": {
+    "btn": "Join our Discord",
+    "desc": "Join our Discord server to ask questions, share feedback, and connect with other users. This is the fastest way to get help.",
+    "title": "Community Support"
+  },
+  "email": {
+    "btn": "Contact Support",
+    "desc": "Have a specific issue or need private assistance? Send us an email and we'll get back to you as soon as possible.",
+    "title": "Email Support"
+  },
+  "form": {
+    "email": "Email",
+    "message": "Message",
+    "message_placeholder": "Describe your issue or feedback...",
+    "name": "Name",
+    "name_placeholder": "Your Name",
+    "sending_as": "Sending as",
+    "subject": "Subject",
+    "subject_placeholder": "What is this about?",
+    "submit": "Send Message",
+    "title": "Send us a Message"
+  },
+  "github": {
+    "btn": "Open an Issue",
+    "desc": "Found a bug or have a feature request? Open an issue on our GitHub repository to track its progress and contribute.",
+    "title": "GitHub Issues"
+  },
   "subtitle": "We're here to help. Choose the channel that works best for you.",
-
-  "community.title": "Community Support",
-  "community.desc": "Join our Discord server to ask questions, share feedback, and connect with other users. This is the fastest way to get help.",
-  "community.btn": "Join our Discord",
-
-  "github.title": "GitHub Issues",
-  "github.desc": "Found a bug or have a feature request? Open an issue on our GitHub repository to track its progress and contribute.",
-  "github.btn": "Open an Issue",
-
-  "email.title": "Email Support",
-  "email.desc": "Have a specific issue or need private assistance? Send us an email and we'll get back to you as soon as possible.",
-  "email.btn": "Contact Support",
-
-  "form.title": "Send us a Message",
-  "form.sending_as": "Sending as",
-  "form.name": "Name",
-  "form.name_placeholder": "Your Name",
-  "form.email": "Email",
-  "form.subject": "Subject",
-  "form.subject_placeholder": "What is this about?",
-  "form.message": "Message",
-  "form.message_placeholder": "Describe your issue or feedback...",
-  "form.submit": "Send Message",
-
-  "toast.missing_fields": "Name and Email are required",
-  "toast.missing_content": "Subject and Message are required",
-  "toast.success": "Message sent successfully!",
-  "toast.error": "Failed to send message"
+  "title": "Support",
+  "toast": {
+    "error": "Failed to send message",
+    "missing_content": "Subject and Message are required",
+    "missing_fields": "Name and Email are required",
+    "success": "Message sent successfully!"
+  }
 }

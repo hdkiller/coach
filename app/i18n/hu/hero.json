@@ -1,14 +1,14 @@
 {
   "badge": "Átlátható Intelligencia",
   "badge_link": "Tekintsd meg az architektúrát",
-  "headline_1": "Tárd fel valódi lehetőségeidet.",
-  "headline_2": "Hagyd el a találgatást. Kezdj győzni.",
-  "tagline": "Edzz wattban. Táplálkozz fiziológia szerint.",
-  "description": "Az AI Állóképességi Edző, amely minden nap alkalmazkodik az edzésedhez, regenerációdhoz és táplálkozásodhoz. Edzési és táplálkozási naplóidat egyértelmű teljesítménydöntésekké alakítjuk.",
-  "cta_primary": "Szerezd meg digitális ikerpéldányodat (Ingyenes)",
-  "cta_secondary": "Nézd meg, hogyan működik",
+  "card_fitness": "FITNESZ PONTSZÁM",
   "card_insight": "Napi Elemzés",
   "card_live": "Élő",
-  "card_fitness": "FITNESZ PONTSZÁM",
-  "card_recovery": "REGENERÁCIÓ"
+  "card_recovery": "REGENERÁCIÓ",
+  "cta_primary": "Szerezd meg digitális ikerpéldányodat (Ingyenes)",
+  "cta_secondary": "Nézd meg, hogyan működik",
+  "description": "Az AI Állóképességi Edző, amely minden nap alkalmazkodik az edzésedhez, regenerációdhoz és táplálkozásodhoz. Edzési és táplálkozási naplóidat egyértelmű teljesítménydöntésekké alakítjuk.",
+  "headline_1": "Tárd fel valódi lehetőségeidet.",
+  "headline_2": "Hagyd el a találgatást. Kezdj győzni.",
+  "tagline": "Edzz wattban. Táplálkozz fiziológia szerint."
 }

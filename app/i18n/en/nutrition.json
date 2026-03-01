@@ -1,38 +1,48 @@
 {
-  "label": "NUTRITION INTELLIGENCE",
-  "headline": "Stop counting calories. Start fueling for the work ahead.",
-  "description": "Coach Watts combines your training load, meal logs, and planned sessions to estimate fuel availability and tell you what to eat, when to eat, and why it matters for performance.",
-  "card1_title": "Fuel Tank",
-  "card1_desc": "A live glycogen estimate for your current day. Use it to understand your readiness for high-intensity work and avoid under-fueling before key sessions.",
   "card1_cue": "What you get: current level, trend, and next action.",
-  "card2_title": "Metabolic Horizon",
-  "card2_desc": "A rolling projection across upcoming days. It highlights when your plan may accumulate fatigue so you can correct fueling before performance drops.",
+  "card1_desc": "A live glycogen estimate for your current day. Use it to understand your readiness for high-intensity work and avoid under-fueling before key sessions.",
+  "card1_title": "Fuel Tank",
   "card2_cue": "What you get: trendline, risk windows, and confidence cues.",
-  "card3_title": "Fueling Windows",
-  "card3_desc": "Pre, intra, and post-workout targets for carbs, hydration, and sodium based on your planned training and current state.",
+  "card2_desc": "A rolling projection across upcoming days. It highlights when your plan may accumulate fatigue so you can correct fueling before performance drops.",
+  "card2_title": "Metabolic Horizon",
   "card3_cue": "What you get: practical targets you can execute without guesswork.",
-  "demo_title": "Live Fuel Demo",
-  "demo_subtitle": "Example timeline: same workout, different fueling strategies.",
-  "scenario_label": "Scenario: {name}",
-  "threshold_label": "Threshold line: 35%",
-  "outcome_title": "Projected Session Outcome",
-  "outcome_subtitle": "Based on the selected fueling strategy.",
-  "start_workout": "Start Workout At",
-  "end_workout": "End Workout At",
-  "expected_quality": "Expected Session Quality",
+  "card3_desc": "Pre, intra, and post-workout targets for carbs, hydration, and sodium based on your planned training and current state.",
+  "card3_title": "Fueling Windows",
   "cta_primary": "Build My Fueling Plan",
   "cta_secondary": "See Full Coaching Flow",
+  "demo_subtitle": "Example timeline: same workout, different fueling strategies.",
+  "demo_title": "Live Fuel Demo",
+  "description": "Coach Watts combines your training load, meal logs, and planned sessions to estimate fuel availability and tell you what to eat, when to eat, and why it matters for performance.",
   "disclaimer": "Fuel estimates are model-based and improve with consistent logs and completed sessions. They are not direct lab measurements.",
-  "scenario.no-fuel.name": "No Pre-Fuel",
-  "scenario.no-fuel.quality": "Low and unstable",
-  "scenario.no-fuel.note": "Without targeted carbs before the session, you enter the workout near the low-fuel zone and fade early.",
-  "scenario.pre-60.name": "+60g Pre",
-  "scenario.pre-60.quality": "Stable execution",
-  "scenario.pre-60.note": "A pre-session carb hit lifts your starting fuel and helps sustain quality through the main set.",
-  "scenario.pre-plus-intra.name": "+60g Pre +30g Intra",
-  "scenario.pre-plus-intra.quality": "High quality throughout",
-  "scenario.pre-plus-intra.note": "Combining pre and intra fueling gives the smoothest curve and the strongest finish for hard work.",
-  "marker.pre_workout": "Pre-Workout Window",
-  "marker.workout_start": "Workout Start",
-  "marker.workout_end": "Workout End"
+  "end_workout": "End Workout At",
+  "expected_quality": "Expected Session Quality",
+  "headline": "Stop counting calories. Start fueling for the work ahead.",
+  "label": "NUTRITION INTELLIGENCE",
+  "marker": {
+    "pre_workout": "Pre-Workout Window",
+    "workout_end": "Workout End",
+    "workout_start": "Workout Start"
+  },
+  "outcome_subtitle": "Based on the selected fueling strategy.",
+  "outcome_title": "Projected Session Outcome",
+  "scenario": {
+    "no-fuel": {
+      "name": "No Pre-Fuel",
+      "note": "Without targeted carbs before the session, you enter the workout near the low-fuel zone and fade early.",
+      "quality": "Low and unstable"
+    },
+    "pre-60": {
+      "name": "+60g Pre",
+      "note": "A pre-session carb hit lifts your starting fuel and helps sustain quality through the main set.",
+      "quality": "Stable execution"
+    },
+    "pre-plus-intra": {
+      "name": "+60g Pre +30g Intra",
+      "note": "Combining pre and intra fueling gives the smoothest curve and the strongest finish for hard work.",
+      "quality": "High quality throughout"
+    }
+  },
+  "scenario_label": "Scenario: {name}",
+  "start_workout": "Start Workout At",
+  "threshold_label": "Threshold line: 35%"
 }

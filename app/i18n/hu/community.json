@@ -1,12 +1,12 @@
 {
-  "label": "KÖZÖSSÉG",
-  "headline": "Atlétáink bíznak bennünk",
   "description": "Többet építünk, mint kódot. Adatvezérelt állóképességi atléták közösségét építjük.",
+  "discord_cta": "Csatlakozz a beszélgetéshez itt:",
+  "headline": "Atlétáink bíznak bennünk",
+  "label": "KÖZÖSSÉG",
   "t1_quote": "\"Végre áttörtem a 4 W/kg korlátot, évek stagnálása után. Az AI meglátások pontosan azonosították, hol edzettem túl magam.\"",
   "t1_role": "2. kat. Versenyző",
   "t2_quote": "\"Az adaptív tervezés mentette meg a szezonomat, amikor a munka megőrült. Automatikusan igazította a hetemet, hogy ne égjem ki magam. Olyan, mintha profi edző lenne a zsebemben, aki valóban érti, hogy van munkám.\"",
   "t2_role": "Kavicsos Kerékpáros",
   "t3_quote": "\"Az átláthatóság azt jelenti, hogy megbízhatok az algoritmusokban. Nincsenek fekete dobozok, csak tiszta adattudomány alkalmazva a fiziológiámra.\"",
-  "t3_role": "Triatlonista",
-  "discord_cta": "Csatlakozz a beszélgetéshez itt:"
+  "t3_role": "Triatlonista"
 }

@@ -1,0 +1,31 @@
+{
+  "cta": {
+    "description": "Schließe dich Ausdauersportlern an, die Coach Watts nutzen, um smarter zu trainieren und jeden Tag mit Zuversicht Energie zu tanken.",
+    "headline": "Bereit, deine Höchstform zu erreichen?",
+    "primary": "Kostenlos starten",
+    "secondary": "Erfolgsgeschichten lesen"
+  },
+  "footer": {
+    "architecture": "Architektur",
+    "cookies": "Cookies",
+    "copyright": "© 2026 Coach Watts. Alle Rechte vorbehalten.",
+    "docs": "Dokumentation",
+    "features": "Funktionen",
+    "legal": "Rechtliches",
+    "login": "Anmelden",
+    "pricing": "Preise",
+    "privacy": "Datenschutz",
+    "product": "Produkt",
+    "support": "Support",
+    "tagline": "KI-gestütztes Ausdauer-Coaching, das sich an dein Leben, deine Erholung und deine Ziele anpasst.",
+    "terms": "Nutzungsbedingungen"
+  },
+  "nav": {
+    "get_started": "Jetzt starten",
+    "how_it_works": "So funktioniert es",
+    "pricing": "Preise",
+    "pricing_badge": "Kostenlos",
+    "sign_in": "Anmelden",
+    "stories": "Stories"
+  }
+}

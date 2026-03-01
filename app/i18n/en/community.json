@@ -1,12 +1,12 @@
 {
-  "label": "COMMUNITY",
-  "headline": "Trusted by Athletes",
   "description": "We're building more than just code. We're building a community of data-driven endurance athletes.",
+  "discord_cta": "Join the conversation on",
+  "headline": "Trusted by Athletes",
+  "label": "COMMUNITY",
   "t1_quote": "\"I finally broke the 4 W/kg barrier after years of stagnation. The AI insights identified exactly where I was overtraining.\"",
   "t1_role": "Cat 2 Racer",
   "t2_quote": "\"The adaptive planning saved my season when work got crazy. It automatically adjusted my week so I didn't burn out. It's like having a pro coach in my pocket, but one that actually understands I have a job.\"",
   "t2_role": "Gravel Cyclist",
   "t3_quote": "\"Transparency means I can trust the algorithms. No black boxes, just pure data science applied to my physiology.\"",
-  "t3_role": "Triathlete",
-  "discord_cta": "Join the conversation on"
+  "t3_role": "Triathlete"
 }

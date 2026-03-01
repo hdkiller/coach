@@ -1,0 +1,71 @@
+{
+  "badge": {
+    "best_value": "Bestes Preis-Leistungs-Verhältnis",
+    "current_plan": "Aktueller Plan",
+    "most_popular": "Beliebteste",
+    "smart_start": "Smart-Start"
+  },
+  "billing": {
+    "annual": "Jährlich",
+    "billed_annually": "{price}/Mon. bei jährlicher Abrechnung",
+    "billed_monthly": "Monatliche Abrechnung",
+    "monthly": "Monatlich",
+    "per_month": "/ Monat",
+    "per_year": "/ Jahr",
+    "save_pct": "{pct}% sparen"
+  },
+  "btn": {
+    "choose_supporter": "Supporter auswählen",
+    "current_plan": "Aktueller Plan",
+    "downgrade_free": "Auf Kostenlos herabstufen",
+    "get_pro": "Pro holen",
+    "get_supporter": "Supporter werden",
+    "sign_up": "Registrieren",
+    "stay_free": "Kostenlos bleiben",
+    "switch_pro": "Zu Pro wechseln",
+    "switch_supporter": "Zu Supporter wechseln",
+    "unavailable": "Vorübergehend nicht verfügbar",
+    "upgrade_pro": "Auf Pro upgraden"
+  },
+  "cancel_anytime": "Jederzeit kündbar. Sofortige Herabstufung auf Free.",
+  "description": "Vom einfachen Tracking bis zum professionellen KI-Coaching. Kostenlos starten und bei Bedarf upgraden.",
+  "guarantee": "Alle Pläne beinhalten eine 14-tägige Geld-zurück-Garantie. Keine Kreditkarte für den kostenlosen Plan erforderlich.",
+  "headline": "Pläne für jeden Athleten",
+  "label": "PREISE",
+  "modal": {
+    "confirm_change": "Änderung bestätigen",
+    "description": "Änderungen an Ihrem Abonnement überprüfen",
+    "keep_plan": "Meinen aktuellen Plan behalten",
+    "stripe_note": "Stripe berechnet automatisch alle Gutschriften für Ihren nicht genutzten Zeitraum und verrechnet diese mit Ihren zukünftigen Rechnungen.",
+    "switch_to": "Zu {name} wechseln?",
+    "title": "Downgrade bestätigen",
+    "warning": "Sie wechseln in einen niedrigeren Tarif. Einige Funktionen (wie Deep AI Analysis) werden eingeschränkt, sobald die Änderung verarbeitet wurde."
+  },
+  "plan": {
+    "free": {
+      "description": "Das intelligenteste Logbuch, das du je benutzt hast.",
+      "feature_1": "Unbegrenzter Datenverlauf",
+      "feature_2": "Manueller Synchronisationsmodus",
+      "feature_3": "On-Demand-Analyse",
+      "feature_4": "Schnelle KI-Analyse",
+      "name": "Kostenlos"
+    },
+    "pro": {
+      "description": "Ihr Full-Service Digitaler Zwilling und Coach.",
+      "feature_1": "Adaptive Rennstrategie und periodisierte Planung",
+      "feature_2": "Durchdachtes KI-Coaching mit Szenarioanalyse",
+      "feature_3": "Proaktive Warnungen zu Bereitschaft und Überlastungsrisiko",
+      "feature_4": "Erweiterte Trend-Intelligence mit langfristigen Prognosen",
+      "feature_5": "Priorisierte Bearbeitung und Antwort (Fast-Lane)",
+      "name": "Pro"
+    },
+    "supporter": {
+      "description": "Automatisierte Erkenntnisse für den selbst trainierenden Athleten.",
+      "feature_1": "Automatische Synchronisierung von Workouts und Gesundheitsdaten",
+      "feature_2": "Permanente KI-Analyse nach neuen Aktivitäten",
+      "feature_3": "Priorisierte Verarbeitung bei hoher Auslastung",
+      "feature_4": "Zuverlässige Trendverfolgung und wöchentliche Zusammenfassungen",
+      "name": "Supporter"
+    }
+  }
+}

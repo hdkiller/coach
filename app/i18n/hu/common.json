@@ -1,25 +1,31 @@
 {
-  "cta.headline": "Készen állsz a csúcsra?",
-  "cta.description": "Csatlakozz az állóképességi atlétákhoz, akik a Coach Watts-t használják az okosabb edzéshez és a magabiztos feltöltéshez minden nap.",
-  "cta.primary": "Kezdj el ingyen",
-  "cta.secondary": "Sikertörténetek olvasása",
-  "footer.copyright": "© 2026 Coach Watts. Minden jog fenntartva.",
-  "footer.support": "Támogatás",
-  "footer.docs": "Dokumentáció",
-  "footer.tagline": "AI-alapú állóképességi edzés, amely alkalmazkodik az életedhez, regenerációdhoz és céljaidhoz.",
-  "footer.product": "Termék",
-  "footer.features": "Funkciók",
-  "footer.architecture": "Architektúra",
-  "footer.pricing": "Árazás",
-  "footer.login": "Bejelentkezés",
-  "footer.legal": "Jogi",
-  "footer.privacy": "Adatvédelem",
-  "footer.terms": "Feltételek",
-  "footer.cookies": "Sütik",
-  "nav.how_it_works": "Hogyan Működik",
-  "nav.pricing": "Árazás",
-  "nav.pricing_badge": "Ingyenes",
-  "nav.stories": "Történetek",
-  "nav.sign_in": "Bejelentkezés",
-  "nav.get_started": "Kezdés"
+  "cta": {
+    "description": "Csatlakozz az állóképességi atlétákhoz, akik a Coach Watts-t használják az okosabb edzéshez és a magabiztos feltöltéshez minden nap.",
+    "headline": "Készen állsz a csúcsra?",
+    "primary": "Kezdj el ingyen",
+    "secondary": "Sikertörténetek olvasása"
+  },
+  "footer": {
+    "architecture": "Architektúra",
+    "cookies": "Sütik",
+    "copyright": "© 2026 Coach Watts. Minden jog fenntartva.",
+    "docs": "Dokumentáció",
+    "features": "Funkciók",
+    "legal": "Jogi",
+    "login": "Bejelentkezés",
+    "pricing": "Árazás",
+    "privacy": "Adatvédelem",
+    "product": "Termék",
+    "support": "Támogatás",
+    "tagline": "AI-alapú állóképességi edzés, amely alkalmazkodik az életedhez, regenerációdhoz és céljaidhoz.",
+    "terms": "Feltételek"
+  },
+  "nav": {
+    "get_started": "Kezdés",
+    "how_it_works": "Hogyan Működik",
+    "pricing": "Árazás",
+    "pricing_badge": "Ingyenes",
+    "sign_in": "Bejelentkezés",
+    "stories": "Történetek"
+  }
 }

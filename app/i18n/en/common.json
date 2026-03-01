@@ -1,25 +1,31 @@
 {
-  "cta.headline": "Ready to reach your peak?",
-  "cta.description": "Join endurance athletes using Coach Watts to train smarter and fuel with confidence every day.",
-  "cta.primary": "Get Started for Free",
-  "cta.secondary": "Read Success Stories",
-  "footer.copyright": "© 2026 Coach Watts. All rights reserved.",
-  "footer.support": "Support",
-  "footer.docs": "Docs",
-  "footer.tagline": "AI-powered endurance coaching that adapts to your life, recovery, and goals.",
-  "footer.product": "Product",
-  "footer.features": "Features",
-  "footer.architecture": "Architecture",
-  "footer.pricing": "Pricing",
-  "footer.login": "Login",
-  "footer.legal": "Legal",
-  "footer.privacy": "Privacy",
-  "footer.terms": "Terms",
-  "footer.cookies": "Cookies",
-  "nav.how_it_works": "How it Works",
-  "nav.pricing": "Pricing",
-  "nav.pricing_badge": "Free",
-  "nav.stories": "Stories",
-  "nav.sign_in": "Sign In",
-  "nav.get_started": "Get Started"
+  "cta": {
+    "description": "Join endurance athletes using Coach Watts to train smarter and fuel with confidence every day.",
+    "headline": "Ready to reach your peak?",
+    "primary": "Get Started for Free",
+    "secondary": "Read Success Stories"
+  },
+  "footer": {
+    "architecture": "Architecture",
+    "cookies": "Cookies",
+    "copyright": "© 2026 Coach Watts. All rights reserved.",
+    "docs": "Docs",
+    "features": "Features",
+    "legal": "Legal",
+    "login": "Login",
+    "pricing": "Pricing",
+    "privacy": "Privacy",
+    "product": "Product",
+    "support": "Support",
+    "tagline": "AI-powered endurance coaching that adapts to your life, recovery, and goals.",
+    "terms": "Terms"
+  },
+  "nav": {
+    "get_started": "Get Started",
+    "how_it_works": "How it Works",
+    "pricing": "Pricing",
+    "pricing_badge": "Free",
+    "sign_in": "Sign In",
+    "stories": "Stories"
+  }
 }

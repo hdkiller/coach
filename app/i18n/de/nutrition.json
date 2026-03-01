@@ -1,0 +1,48 @@
+{
+  "card1_cue": "Das erhalten Sie: aktueller Stand, Trend und nächste Aktion.",
+  "card1_desc": "Eine Live-Glykogen-Schätzung für deinen aktuellen Tag. Nutze sie, um deine Bereitschaft für hochintensive Belastungen einzuschätzen und eine Unterversorgung vor wichtigen Einheiten zu vermeiden.",
+  "card1_title": "Kraftstofftank",
+  "card2_cue": "Was Sie erhalten: Trendlinie, Risikofenster und Konfidenzhinweise.",
+  "card2_desc": "Eine fortlaufende Prognose über die kommenden Tage. Sie zeigt auf, wann sich in deinem Plan Ermüdung ansammeln könnte, damit du die Energiezufuhr anpassen kannst, bevor die Leistung abfällt.",
+  "card2_title": "Metabolischer Horizont",
+  "card3_cue": "Das erhalten Sie: praktische Ziele, die Sie ohne Rätselraten umsetzen können.",
+  "card3_desc": "Verpflegungsziele für vor, während und nach dem Training für Kohlenhydrate, Flüssigkeit und Natrium, basierend auf deinem geplanten Training und aktuellen Zustand.",
+  "card3_title": "Windows befeuern",
+  "cta_primary": "Meinen Betankungsplan erstellen",
+  "cta_secondary": "Vollständigen Coaching-Ablauf ansehen",
+  "demo_subtitle": "Beispiel-Zeitstrahl: gleiches Workout, unterschiedliche Verpflegungsstrategien.",
+  "demo_title": "Live-Kraftstoff-Demo",
+  "description": "Coach Watts kombiniert deine Trainingsbelastung, Mahlzeitenprotokolle und geplanten Einheiten, um die Energieverfügbarkeit zu schätzen und dir zu sagen, was du essen sollst, wann du essen sollst und warum es für die Leistung wichtig ist.",
+  "disclaimer": "Kraftstoffschätzungen basieren auf Modellen und verbessern sich durch konsistente Protokolle und abgeschlossene Sitzungen. Es handelt sich nicht um direkte Labormessungen.",
+  "end_workout": "Training beenden um",
+  "expected_quality": "Erwartete Sitzungsqualität",
+  "headline": "Hör auf, Kalorien zu zählen. Tanke Energie für das, was vor dir liegt.",
+  "label": "ERNÄHRUNGSINTELLIGENZ",
+  "marker": {
+    "pre_workout": "Pre-Workout-Zeitfenster",
+    "workout_end": "Trainingsende",
+    "workout_start": "Trainingsstart"
+  },
+  "outcome_subtitle": "Basierend auf der ausgewählten Betankungsstrategie.",
+  "outcome_title": "Voraussichtliches Sitzungsergebnis",
+  "scenario": {
+    "no-fuel": {
+      "name": "Kein Pre-Fuel",
+      "note": "Ohne gezielte Kohlenhydrate vor der Einheit startest du das Training nahe dem Bereich niedriger Energiereserven und baust frühzeitig ab.",
+      "quality": "Niedrig und instabil"
+    },
+    "pre-60": {
+      "name": "+60g Pre",
+      "note": "Ein Kohlenhydrat-Snack vor der Einheit erhöht deine Energiereserven zu Beginn und hilft, die Qualität im Hauptteil aufrechtzuerhalten.",
+      "quality": "Stabile Ausführung"
+    },
+    "pre-plus-intra": {
+      "name": "+60g Pre +30g Intra",
+      "note": "Die Kombination aus Pre- und Intra-Fueling bietet die gleichmäßigste Kurve und das stärkste Finish bei harter Belastung.",
+      "quality": "Durchgehend hohe Qualität"
+    }
+  },
+  "scenario_label": "Szenario: {name}",
+  "start_workout": "Training starten um",
+  "threshold_label": "Schwellenwertlinie: 35%"
+}

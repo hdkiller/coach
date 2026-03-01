@@ -1,63 +1,71 @@
 {
-  "label": "ÁRAZÁS",
-  "headline": "Tervek minden atlétának",
+  "badge": {
+    "best_value": "Legjobb ár-érték",
+    "current_plan": "Jelenlegi terv",
+    "most_popular": "Legnépszerűbb",
+    "smart_start": "Okos kezdet"
+  },
+  "billing": {
+    "annual": "Éves",
+    "billed_annually": "{price}/hó éves számlázással",
+    "billed_monthly": "Havi számlázás",
+    "monthly": "Havi",
+    "per_month": "/ hó",
+    "per_year": "/ év",
+    "save_pct": "Spórolj {pct}%"
+  },
+  "btn": {
+    "choose_supporter": "Támogató választása",
+    "current_plan": "Jelenlegi terv",
+    "downgrade_free": "Visszaváltás Ingyenesre",
+    "get_pro": "Pro csomag",
+    "get_supporter": "Támogató csomag",
+    "sign_up": "Regisztráció",
+    "stay_free": "Maradok Ingyenesen",
+    "switch_pro": "Váltás Pro-ra",
+    "switch_supporter": "Váltás Támogatóra",
+    "unavailable": "Átmenetileg nem elérhető",
+    "upgrade_pro": "Frissítés Pro-ra"
+  },
+  "cancel_anytime": "Bármikor lemondható. Azonnali visszaváltás Ingyenesre.",
   "description": "A kötetlen nyomon követéstől a professzionális AI edzésig. Kezdd ingyen, és fejlőj tovább.",
   "guarantee": "Minden terv tartalmaz 14 napos pénzvisszafizetési garanciát. Az ingyenes tervhez nincs szükség hitelkártyára.",
-
-  "plan.free.name": "Ingyenes",
-  "plan.free.description": "A legokosabb edzésnapló, amit valaha használtál.",
-  "plan.free.feature_1": "Korlátlan adatelőzmény",
-  "plan.free.feature_2": "Kézi szinkronizálás",
-  "plan.free.feature_3": "Igény szerinti elemzés",
-  "plan.free.feature_4": "Gyors AI elemzés",
-
-  "plan.supporter.name": "Támogató",
-  "plan.supporter.description": "Automatizált meglátások az önállóan edző atlétának.",
-  "plan.supporter.feature_1": "Automatikus szinkronizálás edzésekhez és egészségügyi mutatókhoz",
-  "plan.supporter.feature_2": "Folyamatos AI elemzés új aktivitások után",
-  "plan.supporter.feature_3": "Prioritásos feldolgozás csúcsidőben",
-  "plan.supporter.feature_4": "Megbízható trendkövetés és heti összefoglalók",
-
-  "plan.pro.name": "Pro",
-  "plan.pro.description": "A teljes körű Digitális Ikered és Edződ.",
-  "plan.pro.feature_1": "Adaptív verseny stratégia és periodizált tervezés",
-  "plan.pro.feature_2": "Átgondolt AI coaching scenárió elemzéssel",
-  "plan.pro.feature_3": "Proaktív riasztások felkészültségi és túlterhelési kockázathoz",
-  "plan.pro.feature_4": "Fejlett trend intelligencia hosszú távú előrejelzéssel",
-  "plan.pro.feature_5": "Gyorsított prioritásos feldolgozás és válasz",
-
-  "billing.monthly": "Havi",
-  "billing.annual": "Éves",
-  "billing.save_pct": "Spórolj {pct}%",
-  "billing.billed_monthly": "Havi számlázás",
-  "billing.billed_annually": "{price}/hó éves számlázással",
-  "billing.per_month": "/ hó",
-  "billing.per_year": "/ év",
-
-  "badge.most_popular": "Legnépszerűbb",
-  "badge.best_value": "Legjobb ár-érték",
-  "badge.smart_start": "Okos kezdet",
-  "badge.current_plan": "Jelenlegi terv",
-
-  "btn.sign_up": "Regisztráció",
-  "btn.get_supporter": "Támogató csomag",
-  "btn.get_pro": "Pro csomag",
-  "btn.upgrade_pro": "Frissítés Pro-ra",
-  "btn.switch_pro": "Váltás Pro-ra",
-  "btn.choose_supporter": "Támogató választása",
-  "btn.switch_supporter": "Váltás Támogatóra",
-  "btn.downgrade_free": "Visszaváltás Ingyenesre",
-  "btn.stay_free": "Maradok Ingyenesen",
-  "btn.current_plan": "Jelenlegi terv",
-  "btn.unavailable": "Átmenetileg nem elérhető",
-
-  "cancel_anytime": "Bármikor lemondható. Azonnali visszaváltás Ingyenesre.",
-
-  "modal.title": "Visszaváltás megerősítése",
-  "modal.description": "Az előfizetési terved változásainak áttekintése",
-  "modal.switch_to": "Váltás erre: {name}?",
-  "modal.warning": "Alacsonyabb szintre váltasz. Egyes funkciók (pl. Mély AI Elemzés) korlátozva lesznek a változás feldolgozása után.",
-  "modal.stripe_note": "A Stripe automatikusan kiszámítja a fel nem használt időre járó kreditekét, és alkalmazza azokat a jövőbeli számláidra.",
-  "modal.keep_plan": "Megtartom a jelenlegi tervemet",
-  "modal.confirm_change": "Változtatás megerősítése"
+  "headline": "Tervek minden atlétának",
+  "label": "ÁRAZÁS",
+  "modal": {
+    "confirm_change": "Változtatás megerősítése",
+    "description": "Az előfizetési terved változásainak áttekintése",
+    "keep_plan": "Megtartom a jelenlegi tervemet",
+    "stripe_note": "A Stripe automatikusan kiszámítja a fel nem használt időre járó kreditekét, és alkalmazza azokat a jövőbeli számláidra.",
+    "switch_to": "Váltás erre: {name}?",
+    "title": "Visszaváltás megerősítése",
+    "warning": "Alacsonyabb szintre váltasz. Egyes funkciók (pl. Mély AI Elemzés) korlátozva lesznek a változás feldolgozása után."
+  },
+  "plan": {
+    "free": {
+      "description": "A legokosabb edzésnapló, amit valaha használtál.",
+      "feature_1": "Korlátlan adatelőzmény",
+      "feature_2": "Kézi szinkronizálás",
+      "feature_3": "Igény szerinti elemzés",
+      "feature_4": "Gyors AI elemzés",
+      "name": "Ingyenes"
+    },
+    "pro": {
+      "description": "A teljes körű Digitális Ikered és Edződ.",
+      "feature_1": "Adaptív verseny stratégia és periodizált tervezés",
+      "feature_2": "Átgondolt AI coaching scenárió elemzéssel",
+      "feature_3": "Proaktív riasztások felkészültségi és túlterhelési kockázathoz",
+      "feature_4": "Fejlett trend intelligencia hosszú távú előrejelzéssel",
+      "feature_5": "Gyorsított prioritásos feldolgozás és válasz",
+      "name": "Pro"
+    },
+    "supporter": {
+      "description": "Automatizált meglátások az önállóan edző atlétának.",
+      "feature_1": "Automatikus szinkronizálás edzésekhez és egészségügyi mutatókhoz",
+      "feature_2": "Folyamatos AI elemzés új aktivitások után",
+      "feature_3": "Prioritásos feldolgozás csúcsidőben",
+      "feature_4": "Megbízható trendkövetés és heti összefoglalók",
+      "name": "Támogató"
+    }
+  }
 }
