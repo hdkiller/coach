@@ -23,7 +23,9 @@ import {
   formatUserDate,
   formatDateUTC,
   getStartOfLocalDateUTC,
-  getEndOfLocalDateUTC
+  getEndOfLocalDateUTC,
+  parseCalendarDate,
+  buildInvalidCalendarDateResult
 } from '../../utils/date'
 import { checkQuota } from '../../utils/quotas/engine'
 
@@ -94,6 +96,14 @@ const normalizeStructuredWorkoutRepetition = (structuredWorkout: any) => {
 
 const getPendingSyncStatus = (syncStatus: string | null | undefined) => {
   return syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING'
+}
+
+const parsePlanningDateInput = (field: string, value: string, input: Record<string, unknown>) => {
+  const parsed = parseCalendarDate(value)
+  if (!parsed) {
+    return { error: buildInvalidCalendarDateResult(field, value, input) }
+  }
+  return { date: parsed }
 }
 
 const patchOperationSchema = z.object({
@@ -529,7 +539,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
   }),
 
   create_planned_workout: tool({
-    description: 'Create a future planned workout in the calendar.',
+    description:
+      'Create a future planned workout in the calendar. If the user gives a relative date like "next Monday" or "tomorrow", first call `resolve_temporal_reference` and use its `resolved_date` here.',
     inputSchema: z.object({
       date: z.string().describe('Date (YYYY-MM-DD)'),
       time_of_day: z.string().optional().describe('Time in HH:mm format'),
@@ -557,10 +568,13 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         await checkQuota(userId, 'generate_structured_workout')
       }
 
+      const parsedDate = parsePlanningDateInput('date', args.date, args)
+      if ('error' in parsedDate) return parsedDate.error
+
       // Create a PlannedWorkout, not a Workout
       const workout = await plannedWorkoutRepository.create({
         userId,
-        date: new Date(`${args.date}T00:00:00Z`),
+        date: parsedDate.date,
         startTime: args.time_of_day,
         title: args.title,
         description: args.description || args.intensity,
@@ -603,7 +617,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
   }),
 
   update_planned_workout: tool({
-    description: 'Update an existing planned workout (rename, reschedule, etc).',
+    description:
+      'Update an existing planned workout (rename, reschedule, etc). If updating the date from a relative phrase, first call `resolve_temporal_reference` and use its `resolved_date`.',
     inputSchema: z.object({
       workout_id: z.string(),
       date: z.string().optional(),
@@ -643,7 +658,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       }
       if (args.tss !== undefined) data.tss = args.tss
       if (args.date) {
-        data.date = new Date(`${args.date}T00:00:00Z`)
+        const parsedDate = parsePlanningDateInput('date', args.date, args)
+        if ('error' in parsedDate) return parsedDate.error
+        data.date = parsedDate.date
       }
       data.modifiedLocally = true
       data.syncStatus = nextSyncStatus
@@ -681,7 +698,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
   reschedule_planned_workout: tool({
     description:
-      'Reschedule an existing planned workout to a new date/time. Prefer this over delete + create when moving sessions.',
+      'Reschedule an existing planned workout to a new date/time. Prefer this over delete + create when moving sessions. If the user gives a relative target date like "next Monday" or "tomorrow", first call `resolve_temporal_reference` and use its `resolved_date` as `new_date`.',
     inputSchema: z.object({
       workout_id: z.string().optional().describe('Planned workout ID if known'),
       current_date: z
@@ -702,6 +719,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
       let workoutId = args.workout_id
+      const parsedNewDate = parsePlanningDateInput('new_date', args.new_date, args)
+      if ('error' in parsedNewDate) return parsedNewDate.error
 
       if (!workoutId) {
         if (!args.current_date) {
@@ -711,6 +730,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
               'workout_id is required unless you provide current_date for lookup before rescheduling.'
           }
         }
+
+        const parsedCurrentDate = parsePlanningDateInput('current_date', args.current_date, args)
+        if ('error' in parsedCurrentDate) return parsedCurrentDate.error
 
         const candidates = await plannedWorkoutRepository.list(userId, {
           startDate: getStartOfLocalDateUTC(timezone, args.current_date),
@@ -763,7 +785,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       const nextSyncStatus = getPendingSyncStatus((existing as any).syncStatus)
       const updateData: any = {
-        date: new Date(`${args.new_date}T00:00:00Z`),
+        date: parsedNewDate.date,
         modifiedLocally: true,
         syncStatus: nextSyncStatus,
         syncError: null

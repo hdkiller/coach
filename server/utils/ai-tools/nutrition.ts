@@ -11,7 +11,9 @@ import {
   formatDateUTC,
   getUserLocalDate,
   getStartOfLocalDateUTC,
-  getEndOfLocalDateUTC
+  getEndOfLocalDateUTC,
+  parseCalendarDate,
+  buildInvalidCalendarDateResult
 } from '../../utils/date'
 import { getProfileForItem } from '../nutrition-domain/absorption'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
@@ -22,6 +24,14 @@ import { nutritionPlanService } from '../services/nutritionPlanService'
 import type { AiSettings } from '../ai-user-settings'
 import { normalizeFluidFields, recalculateNutritionTotals } from '../nutrition/totals'
 import { pickMealScheduledTime } from '../nutrition/meal-pattern'
+
+const parseToolDateInput = (field: string, value: string, input: Record<string, unknown>) => {
+  const parsed = parseCalendarDate(value)
+  if (!parsed) {
+    return { error: buildInvalidCalendarDateResult(field, value, input) }
+  }
+  return { date: parsed }
+}
 
 export const nutritionTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
   get_nutrition_log: tool({
@@ -35,8 +45,16 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         .describe('End date in ISO format (YYYY-MM-DD). If not provided, defaults to start_date')
     }),
     execute: async ({ start_date, end_date }) => {
-      const start = new Date(`${start_date}T00:00:00Z`)
-      const end = end_date ? new Date(`${end_date}T00:00:00Z`) : start
+      const startParsed = parseToolDateInput('start_date', start_date, { start_date, end_date })
+      if ('error' in startParsed) return startParsed.error
+
+      const endParsed = end_date
+        ? parseToolDateInput('end_date', end_date, { start_date, end_date })
+        : null
+      if (endParsed && 'error' in endParsed) return endParsed.error
+
+      const start = startParsed.date
+      const end = endParsed?.date || start
 
       const nutritionEntries = await nutritionRepository.getForUser(userId, {
         startDate: start,
@@ -102,7 +120,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   log_nutrition_meal: tool({
     description:
-      'Log food and drink items to a specific meal (breakfast, lunch, dinner, snacks, or custom slots like "Sport"). Call this when the user says "I ate X", "Add X to my lunch", or when logging beverages consumed with a meal. For "instant" or "just now" logging, you MUST first call `get_current_time` to get the current time, and pass the local time (HH:mm) as `logged_at`. The AI should estimate macros for the items if not provided. Water and zero-calorie drinks MUST be logged with 0 calories and 0 macros.',
+      'Log food and drink items to a specific meal (breakfast, lunch, dinner, snacks, or custom slots like "Sport"). Call this when the user says "I ate X", "Add X to my lunch", or when logging beverages consumed with a meal. If the user references a relative day like "yesterday" or "last night", first call `resolve_temporal_reference` and pass its `resolved_date` here. For "instant" or "just now" logging, you MUST first call `get_current_time` to get the current time, and pass the local time (HH:mm) as `logged_at`. The AI should estimate macros for the items if not provided. Water and zero-calorie drinks MUST be logged with 0 calories and 0 macros.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       meal_type: z
@@ -138,7 +156,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       )
     }),
     execute: async ({ date, meal_type, items }) => {
-      const dateUtc = new Date(`${date}T00:00:00Z`)
+      const parsedDate = parseToolDateInput('date', date, { date, meal_type, items })
+      if ('error' in parsedDate) return parsedDate.error
+
+      const dateUtc = parsedDate.date
       const settings = await getUserNutritionSettings(userId)
 
       // Dynamic Mapping: Map custom slots to 'snacks' but preserve intent in item names
@@ -252,7 +273,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   log_hydration_intake: tool({
     description:
-      'Log hydration volume in ml/L/oz. Use mode="SET" to overwrite the daily total or mode="ADD" (default) to append. DO NOT use this for drinks consumed as part of a meal (e.g. breakfast coffee); use log_nutrition_meal for those instead.',
+      'Log hydration volume in ml/L/oz. Use mode="SET" to overwrite the daily total or mode="ADD" (default) to append. If the user references a relative day like "yesterday" or "last night", first call `resolve_temporal_reference` and pass its `resolved_date` here. DO NOT use this for drinks consumed as part of a meal (e.g. breakfast coffee); use log_nutrition_meal for those instead.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       volume_ml: z.number().describe('Hydration volume in ml'),
@@ -266,7 +287,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         .describe('ISO timestamp or time string (HH:mm) when the fluid was consumed')
     }),
     execute: async ({ date, volume_ml, mode, logged_at }) => {
-      const dateUtc = new Date(`${date}T00:00:00Z`)
+      const parsedDate = parseToolDateInput('date', date, { date, volume_ml, mode, logged_at })
+      if ('error' in parsedDate) return parsedDate.error
+
+      const dateUtc = parsedDate.date
       let normalizedLoggedAt = logged_at
 
       if (!normalizedLoggedAt) {
@@ -423,7 +447,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         )
     }),
     execute: async ({ date, volume_ml }) => {
-      const dateUtc = new Date(`${date}T00:00:00Z`)
+      const parsedDate = parseToolDateInput('date', date, { date, volume_ml })
+      if ('error' in parsedDate) return parsedDate.error
+
+      const dateUtc = parsedDate.date
       let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
 
       if (!nutrition) {
@@ -514,7 +541,15 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async ({ date, meal_type, item_name, item_id }) => {
-      const dateUtc = new Date(`${date}T00:00:00Z`)
+      const parsedDate = parseToolDateInput('date', date, {
+        date,
+        meal_type,
+        item_name,
+        item_id
+      })
+      if ('error' in parsedDate) return parsedDate.error
+
+      const dateUtc = parsedDate.date
 
       let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
 
