@@ -1,6 +1,8 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
-import { Prisma } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
 import { subDays } from 'date-fns'
 import { normalizeOuraWellness } from '../../server/utils/oura'
 
@@ -33,18 +35,17 @@ backfillOuraCommand
 
     if (isProd) {
       console.log(chalk.yellow('⚠️  Using PRODUCTION database.'))
-      process.env.DATABASE_URL = connectionString // Override for global prisma singleton
     } else {
       console.log(chalk.blue('Using DEVELOPMENT database.'))
     }
 
-    // console.log(chalk.gray(`DATABASE_URL: ${process.env.DATABASE_URL?.split('@')[1]}`))
-
-    // Import prisma AFTER setting environment variable
-    const { prisma } = await import('../../server/utils/db')
+    const pool = new pg.Pool({ connectionString })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
 
     try {
       if (isHard) {
+        process.env.DATABASE_URL = connectionString
         await handleHardBackfill(prisma, options)
       } else {
         await handleSoftBackfill(prisma, options)
@@ -53,6 +54,7 @@ backfillOuraCommand
       console.error(chalk.red('Error:'), e.message || e)
     } finally {
       await prisma.$disconnect()
+      await pool.end()
     }
   })
 
@@ -60,19 +62,6 @@ async function handleSoftBackfill(prisma: any, options: any) {
   const { dryRun, user: userEmail } = options
   console.log(chalk.blue('Starting SOFT backfill (re-normalizing local rawJson)...'))
   if (dryRun) console.log(chalk.cyan('🔍 DRY RUN mode enabled.'))
-
-  // DEBUG: Check what we have in DB
-  const totalCount = await prisma.wellness.count()
-  console.log(chalk.gray(`DEBUG: Total wellness records in DB: ${totalCount}`))
-
-  // DEBUG sample
-  const sample = await prisma.wellness.findFirst({
-    where: { lastSource: null, rawJson: { not: Prisma.AnyNull } }
-  })
-  if (sample && sample.rawJson) {
-    console.log(chalk.gray(`DEBUG: Sample Record ID: ${sample.id}`))
-    console.log(chalk.gray(`DEBUG: Sample rawJson keys: ${Object.keys(sample.rawJson as object).join(', ')}`))
-  }
 
   const where: any = {
     OR: [
@@ -88,8 +77,25 @@ async function handleSoftBackfill(prisma: any, options: any) {
     where.userId = user.id
   }
 
+  // DEBUG: Check what we have in DB
+  const totalCount = await prisma.wellness.count({ where })
+  console.log(chalk.gray(`DEBUG: Total wellness records in DB: ${totalCount}`))
+
+  // DEBUG sample
+  const sample = await prisma.wellness.findFirst({
+    where: {
+      ...where,
+      rawJson: { not: Prisma.AnyNull }
+    }
+  })
+  if (sample && sample.rawJson) {
+    console.log(chalk.gray(`DEBUG: Sample Record ID: ${sample.id}`))
+    console.log(chalk.gray(`DEBUG: Sample rawJson keys: ${Object.keys(sample.rawJson as object).join(', ')}`))
+  }
+
   // Fetch all records to filter in memory (safer than Prisma JSON filter)
   const entries = await prisma.wellness.findMany({
+    where,
     orderBy: { date: 'desc' }
   })
 
@@ -154,6 +160,14 @@ async function handleSoftBackfill(prisma: any, options: any) {
     if (normalized.readiness !== null) updateData.readiness = normalized.readiness
 
     if (normalized.recoveryScore !== null) updateData.recoveryScore = normalized.recoveryScore
+
+    if (normalized.sleepDeepSecs !== null) updateData.sleepDeepSecs = normalized.sleepDeepSecs
+
+    if (normalized.sleepRemSecs !== null) updateData.sleepRemSecs = normalized.sleepRemSecs
+
+    if (normalized.sleepLightSecs !== null) updateData.sleepLightSecs = normalized.sleepLightSecs
+
+    if (normalized.sleepAwakeSecs !== null) updateData.sleepAwakeSecs = normalized.sleepAwakeSecs
 
     // Only update if something changed (and we're not just setting lastSource)
 
