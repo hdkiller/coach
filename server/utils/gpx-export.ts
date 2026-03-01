@@ -60,7 +60,7 @@ export function generateGPX(
           <power>${power}</power>`
       }
 
-      if (hr !== null) {
+      if (hr !== null && hr !== undefined) {
         gpx += `
           <gpxtpx:TrackPointExtension>
             <gpxtpx:hr>${Math.round(hr)}</gpxtpx:hr>
