@@ -3,11 +3,10 @@
     <UContainer>
       <!-- Header -->
       <div class="text-center max-w-3xl mx-auto mb-16">
-        <UBadge color="primary" variant="subtle" class="mb-4">Community</UBadge>
-        <h1 class="text-4xl md:text-5xl font-bold mb-6">Athlete Stories</h1>
+        <UBadge color="primary" variant="subtle" class="mb-4">{{ t('header_badge') }}</UBadge>
+        <h1 class="text-4xl md:text-5xl font-bold mb-6">{{ t('header_title') }}</h1>
         <p class="text-lg text-gray-600 dark:text-gray-300">
-          Real athletes achieving their peak performance with Coach Watts. From first centuries to
-          podium finishes.
+          {{ t('header_description') }}
         </p>
       </div>
 
@@ -26,21 +25,17 @@
                 class="flex items-center gap-2 mb-4 text-primary-400 font-bold tracking-wide uppercase text-sm"
               >
                 <UIcon name="i-heroicons-trophy" />
-                Featured Athlete
+                {{ t('featured_label') }}
               </div>
-              <h2 class="text-3xl md:text-4xl font-bold mb-6">
-                "I finally broke the 4 W/kg barrier after years of stagnation."
-              </h2>
+              <h2 class="text-3xl md:text-4xl font-bold mb-6">"{{ t('featured_headline') }}"</h2>
               <blockquote class="text-lg text-gray-300 mb-8 italic">
-                "I was training hard but not smart. Coach Watts analyzed my data and realized I
-                wasn't recovering enough between hard blocks. The AI suggested a polarized approach
-                that completely changed my game."
+                "{{ t('featured_quote') }}"
               </blockquote>
               <div class="flex items-center gap-4">
-                <UAvatar size="lg" alt="Sarah J." class="bg-primary/20 text-primary" />
+                <UAvatar size="lg" :alt="t('featured_name')" class="bg-primary/20 text-primary" />
                 <div>
-                  <div class="font-bold">Sarah Jenkins</div>
-                  <div class="text-sm text-gray-400">Cat 2 Road Racer</div>
+                  <div class="font-bold">{{ t('featured_name') }}</div>
+                  <div class="text-sm text-gray-400">{{ t('featured_role') }}</div>
                 </div>
               </div>
             </div>
@@ -49,15 +44,15 @@
               <div class="bg-white/5 backdrop-blur rounded-xl p-6 border border-white/10">
                 <div class="space-y-4">
                   <div class="flex justify-between items-end border-b border-white/10 pb-2">
-                    <span class="text-sm text-gray-400">FTP Improvement</span>
+                    <span class="text-sm text-gray-400">{{ t('featured_stat_ftp') }}</span>
                     <span class="text-2xl font-bold text-green-400">+12%</span>
                   </div>
                   <div class="flex justify-between items-end border-b border-white/10 pb-2">
-                    <span class="text-sm text-gray-400">VO2 Max</span>
+                    <span class="text-sm text-gray-400">{{ t('featured_stat_vo2') }}</span>
                     <span class="text-2xl font-bold text-blue-400">54 ml/kg</span>
                   </div>
                   <div class="flex justify-between items-end">
-                    <span class="text-sm text-gray-400">Training Consistency</span>
+                    <span class="text-sm text-gray-400">{{ t('featured_stat_consistency') }}</span>
                     <span class="text-2xl font-bold text-purple-400">98%</span>
                   </div>
                 </div>
@@ -93,77 +88,71 @@
 
       <!-- CTA -->
       <div class="mt-24 text-center">
-        <h2 class="text-2xl font-bold mb-4">Have your own success story?</h2>
+        <h2 class="text-2xl font-bold mb-4">{{ t('cta_title') }}</h2>
         <p class="text-gray-600 dark:text-gray-300 mb-8">
-          Join the community and start training smarter today.
+          {{ t('cta_description') }}
         </p>
-        <UButton to="/login" size="xl" color="primary" icon="i-heroicons-arrow-right"
-          >Start Your Journey</UButton
-        >
+        <UButton to="/login" size="xl" color="primary" icon="i-heroicons-arrow-right">
+          {{ t('cta_button') }}
+        </UButton>
       </div>
     </UContainer>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
   definePageMeta({
     layout: 'home',
     auth: false
   })
 
-  useHead({
-    title: 'Athlete Stories',
-    meta: [
-      {
-        name: 'description',
-        content:
-          'See how athletes are using Coach Watts to train smarter, recover better, and reach their goals.'
-      }
-    ]
-  })
+  const { t } = useTranslate('stories')
 
-  const stories = [
+  useHead(
+    computed(() => ({
+      title: t.value('meta_title'),
+      meta: [{ name: 'description', content: t.value('meta_description') }]
+    }))
+  )
+
+  const stories = computed(() => [
     {
       name: 'Mike Chen',
-      type: 'Gravel Cyclist',
-      title: 'Crushed Unbound 200',
-      quote:
-        "The adaptive planning was a lifesaver. When work got crazy and I missed training, Coach Watts instantly adjusted my plan so I didn't burn out."
+      type: t.value('s1_type'),
+      title: t.value('s1_title'),
+      quote: t.value('s1_quote')
     },
     {
       name: 'Elena Rodriguez',
-      type: 'Triathlete',
-      title: 'PB on the Bike Leg',
-      quote:
-        'Balancing three sports is hard. The integration with Whoop helped me understand exactly how much strain I could handle on the bike without wrecking my run.'
+      type: t.value('s2_type'),
+      title: t.value('s2_title'),
+      quote: t.value('s2_quote')
     },
     {
       name: 'David Smith',
-      type: "Master's Cyclist (50+)",
-      title: 'Feeling 10 Years Younger',
-      quote:
-        "I thought I had to train hard every day to keep up. Coach Watts taught me the power of recovery. I'm riding faster now than I was in my 40s."
+      type: t.value('s3_type'),
+      title: t.value('s3_title'),
+      quote: t.value('s3_quote')
     },
     {
       name: 'Tom Baker',
-      type: 'Weekend Warrior',
-      title: 'Finally Consistent',
-      quote:
-        "I used to be 'all or nothing'. This app gives me realistic daily goals that I can actually hit. The consistency has compounded into huge gains."
+      type: t.value('s4_type'),
+      title: t.value('s4_title'),
+      quote: t.value('s4_quote')
     },
     {
       name: 'Lisa Wong',
-      type: 'Crit Racer',
-      title: 'Smarter Tactics',
-      quote:
-        'The race analysis features helped me understand my power curve better. I know exactly when to launch my sprint now.'
+      type: t.value('s5_type'),
+      title: t.value('s5_title'),
+      quote: t.value('s5_quote')
     },
     {
       name: 'James Wilson',
-      type: 'Ultra-Endurance',
-      title: 'Managed Fatigue Perfectly',
-      quote:
-        'For multi-day events, fatigue management is key. The readiness score was spot on every single day.'
+      type: t.value('s6_type'),
+      title: t.value('s6_title'),
+      quote: t.value('s6_quote')
     }
-  ]
+  ])
 </script>
