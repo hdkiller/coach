@@ -1,11 +1,48 @@
 <template>
-  <UModal v-model:open="isOpen" :description="formattedDate" class="sm:max-w-2xl" title="Dialog">
-    <template #title>
-      <div class="flex items-center gap-2">
-        <span>Wellness Overview</span>
-        <UTooltip v-if="isStale" :text="staleLabel">
-          <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-amber-500" />
-        </UTooltip>
+  <UModal v-model:open="isOpen" class="sm:max-w-2xl" title="Dialog">
+    <template #header>
+      <div class="flex w-full items-start justify-between gap-6">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span>Wellness Overview</span>
+            <UTooltip v-if="isStale" :text="staleLabel">
+              <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-amber-500" />
+            </UTooltip>
+          </div>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            {{ formattedDate }}
+          </p>
+        </div>
+
+        <div class="flex shrink-0 flex-col items-end gap-2">
+          <UButton
+            icon="i-heroicons-x-mark"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Close"
+            class="-mr-2"
+            @click="isOpen = false"
+          />
+
+          <div v-if="isGarminConnected" class="flex items-center gap-1.5 whitespace-nowrap">
+            <span
+              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+            >
+              Includes data from
+            </span>
+            <img
+              src="/images/logos/Garmin-Tag-black-high-res.png"
+              class="h-4 w-auto dark:hidden"
+              alt="Garmin"
+            />
+            <img
+              src="/images/logos/Garmin-Tag-white-high-res.png"
+              class="hidden h-4 w-auto dark:block"
+              alt="Garmin"
+            />
+          </div>
+        </div>
       </div>
     </template>
 
@@ -657,6 +694,7 @@
   const { formatDate, formatDateUTC, formatWeight, timezone } = useFormat()
   const toast = useToast()
   const { checkWellnessStale } = useDataStatus()
+  const integrationStore = useIntegrationStore()
 
   const isOpen = computed({
     get: () => props.open,
@@ -670,6 +708,12 @@
   })
   const isStale = computed(() => wellnessStatus.value.isStale)
   const staleLabel = computed(() => wellnessStatus.value.label)
+  const isGarminConnected = computed(() => {
+    return (
+      integrationStore.integrationStatus?.integrations?.some((i: any) => i.provider === 'garmin') ??
+      false
+    )
+  })
 
   const formattedDate = computed(() => {
     return props.date ? formatDateUTC(props.date, 'EEEE, MMMM d, yyyy') : ''
