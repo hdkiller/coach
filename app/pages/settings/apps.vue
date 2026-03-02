@@ -1,22 +1,24 @@
 <template>
   <div class="space-y-6">
-    <UCard>
+    <UCard :ui="{ body: 'hidden' }">
       <template #header>
-        <h2 class="text-xl font-bold uppercase tracking-tight">Connected Apps</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          Manage your connected apps and integrations.
-        </p>
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold uppercase tracking-tight">Connected Apps</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Manage your connected apps and integrations.
+            </p>
+          </div>
+          <UButton
+            color="neutral"
+            variant="outline"
+            icon="i-heroicons-adjustments-horizontal"
+            @click="openIngestionSettingsModal"
+          >
+            Ingestion Settings
+          </UButton>
+        </div>
       </template>
-      <div class="flex justify-end">
-        <UButton
-          color="neutral"
-          variant="outline"
-          icon="i-heroicons-adjustments-horizontal"
-          @click="openIngestionSettingsModal"
-        >
-          Ingestion Settings
-        </UButton>
-      </div>
     </UCard>
     <UAlert
       v-if="intervalsConnected && !intervalsStravaWarningDismissed"
@@ -389,11 +391,12 @@
 
   const syncingProviders = ref(new Set<string>())
 
-  const { data: publicApps, pending: pendingPublicApps } = await useFetch<any[]>(
+  const { data: publicApps, pending: pendingPublicApps } = await useFetch<any[] | null>(
     '/api/oauth/public-apps',
     {
       lazy: true,
-      server: false
+      server: false,
+      default: () => null
     }
   )
 
@@ -402,9 +405,10 @@
     data: consents,
     pending: pendingConsents,
     refresh: refreshConsents
-  } = await useFetch<any[]>('/api/oauth/consents', {
+  } = await useFetch<any[] | null>('/api/oauth/consents', {
     lazy: true,
-    server: false
+    server: false,
+    default: () => null
   })
 
   const isRevokeModalOpen = ref(false)
@@ -460,7 +464,13 @@
     })
   })
 
-  const pendingApplications = computed(() => pendingPublicApps.value || pendingConsents.value)
+  const pendingApplications = computed(
+    () =>
+      publicApps.value === null ||
+      consents.value === null ||
+      pendingPublicApps.value ||
+      pendingConsents.value
+  )
 
   function confirmRevoke(consent: any) {
     selectedConsent.value = consent
