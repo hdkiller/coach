@@ -14,6 +14,13 @@
           <h3 class="font-bold text-gray-900 dark:text-white tracking-tight">
             {{ item.title }}
           </h3>
+          <UiDataAttribution
+            v-if="item.source === 'garmin'"
+            provider="garmin"
+            :device-name="item.deviceName"
+            mode="minimal"
+            class="opacity-60 grayscale hover:grayscale-0 transition-all ml-1"
+          />
         </div>
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400 ml-9">{{
           dateLabel
@@ -63,6 +70,8 @@
     item: any
     dateLabel: string
   }>()
+
+  defineEmits(['click'])
 
   const recoveryMetric = computed(() => {
     return props.item.details.find((d: any) => d.label === 'Recovery')

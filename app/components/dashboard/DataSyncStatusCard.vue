@@ -32,12 +32,24 @@
             {{ integrationStore.dataSyncStatus.workoutCount || 0 }} synced
           </UBadge>
         </div>
-        <p
+        <div
           v-if="integrationStore.dataSyncStatus.workoutProviders?.length"
-          class="text-xs text-muted mt-1 ml-6"
+          class="flex items-center gap-2 mt-2 ml-6 overflow-x-auto no-scrollbar"
         >
-          via {{ integrationStore.dataSyncStatus.workoutProviders.join(', ') }}
-        </p>
+          <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0">via</span>
+          <div class="flex items-center gap-3">
+            <template
+              v-for="provider in integrationStore.dataSyncStatus.workoutProviders"
+              :key="provider"
+            >
+              <UiDataAttribution
+                :provider="provider.toLowerCase().replace('.icu', '')"
+                mode="minimal"
+                class="opacity-80 grayscale hover:grayscale-0 transition-all shrink-0"
+              />
+            </template>
+          </div>
+        </div>
       </div>
 
       <!-- Nutrition -->
@@ -55,12 +67,24 @@
             {{ integrationStore.dataSyncStatus.nutritionCount || 0 }} days
           </UBadge>
         </div>
-        <p
+        <div
           v-if="integrationStore.dataSyncStatus.nutritionProviders?.length"
-          class="text-xs text-muted mt-1 ml-6"
+          class="flex items-center gap-2 mt-2 ml-6 overflow-x-auto no-scrollbar"
         >
-          via {{ integrationStore.dataSyncStatus.nutritionProviders.join(', ') }}
-        </p>
+          <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0">via</span>
+          <div class="flex items-center gap-3">
+            <template
+              v-for="provider in integrationStore.dataSyncStatus.nutritionProviders"
+              :key="provider"
+            >
+              <UiDataAttribution
+                :provider="provider.toLowerCase().replace('.icu', '')"
+                mode="minimal"
+                class="opacity-80 grayscale hover:grayscale-0 transition-all shrink-0"
+              />
+            </template>
+          </div>
+        </div>
       </div>
 
       <!-- Wellness -->
@@ -78,12 +102,24 @@
             {{ integrationStore.dataSyncStatus.wellnessCount || 0 }} days
           </UBadge>
         </div>
-        <p
+        <div
           v-if="integrationStore.dataSyncStatus.wellnessProviders?.length"
-          class="text-xs text-muted mt-1 ml-6"
+          class="flex items-center gap-2 mt-2 ml-6 overflow-x-auto no-scrollbar"
         >
-          via {{ integrationStore.dataSyncStatus.wellnessProviders.join(', ') }}
-        </p>
+          <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0">via</span>
+          <div class="flex items-center gap-3">
+            <template
+              v-for="provider in integrationStore.dataSyncStatus.wellnessProviders"
+              :key="provider"
+            >
+              <UiDataAttribution
+                :provider="provider.toLowerCase().replace('.icu', '')"
+                mode="minimal"
+                class="opacity-80 grayscale hover:grayscale-0 transition-all shrink-0"
+              />
+            </template>
+          </div>
+        </div>
       </div>
 
       <!-- Authorized Apps -->
@@ -100,15 +136,23 @@
             {{ integrationStore.oauthAppCount }} active
           </UBadge>
         </div>
-        <p class="text-xs text-muted mt-1 ml-6">
-          via
-          {{
-            integrationStore.integrationStatus?.integrations
-              ?.filter((i: any) => i.isOAuthApp)
-              .map((i: any) => i.provider)
-              .join(', ')
-          }}
-        </p>
+        <div class="flex items-center gap-2 mt-2 ml-6 overflow-x-auto no-scrollbar">
+          <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0">via</span>
+          <div class="flex items-center gap-3">
+            <template
+              v-for="provider in integrationStore.integrationStatus?.integrations
+                ?.filter((i: any) => i.isOAuthApp)
+                .map((i: any) => i.provider) || []"
+              :key="provider"
+            >
+              <UiDataAttribution
+                :provider="provider.toLowerCase()"
+                mode="minimal"
+                class="opacity-80 grayscale hover:grayscale-0 transition-all shrink-0"
+              />
+            </template>
+          </div>
+        </div>
       </div>
 
       <!-- Last Sync Info -->

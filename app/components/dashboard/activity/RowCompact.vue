@@ -14,9 +14,18 @@
     <!-- Content -->
     <div class="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
       <div class="flex items-center justify-between">
-        <span class="text-sm font-bold text-gray-900 dark:text-white truncate pr-2">
-          {{ item.title }}
-        </span>
+        <div class="flex items-center gap-2 min-w-0 pr-2">
+          <span class="text-sm font-bold text-gray-900 dark:text-white truncate">
+            {{ item.title }}
+          </span>
+          <UiDataAttribution
+            v-if="item.source === 'garmin'"
+            provider="garmin"
+            :device-name="item.deviceName"
+            mode="minimal"
+            class="opacity-60 grayscale hover:grayscale-0 transition-all shrink-0"
+          />
+        </div>
         <span class="text-[10px] font-bold text-gray-400 shrink-0 uppercase tracking-wider">
           {{ dateLabel }}
         </span>
@@ -62,6 +71,8 @@
     item: any
     dateLabel: string
   }>()
+
+  defineEmits(['click'])
 
   const compactDetails = computed(() => {
     // Map long labels to short ones or keep as is

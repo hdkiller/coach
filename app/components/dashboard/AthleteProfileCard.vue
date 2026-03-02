@@ -439,6 +439,12 @@
             >
               Latest Wellness
             </p>
+            <UiDataAttribution
+              v-if="userStore.profile?.wellnessSource === 'garmin'"
+              provider="garmin"
+              mode="minimal"
+              class="opacity-60 grayscale hover:grayscale-0 transition-all ml-1"
+            />
             <UTooltip v-if="wellnessStatus.isStale" :text="wellnessStatus.label">
               <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
             </UTooltip>
@@ -448,6 +454,7 @@
             class="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-primary-500 transition-colors"
           />
         </div>
+
         <div class="grid grid-cols-3 gap-4">
           <div v-for="metric in getVisibleMetrics('wellness')" :key="metric.key" class="space-y-1">
             <div class="flex items-center gap-1 text-[10px] font-bold text-gray-500 uppercase">
@@ -703,6 +710,13 @@
   const integrationStore = useIntegrationStore()
   const { formatDate, formatDateUTC, getUserLocalDate } = useFormat()
   const { checkProfileStale, checkWellnessStale } = useDataStatus()
+
+  const isGarminConnected = computed(() => {
+    return (
+      integrationStore.integrationStatus?.integrations?.some((i: any) => i.provider === 'garmin') ??
+      false
+    )
+  })
 
   const isOnboarded = computed(() => {
     // 1. Check if Intervals is connected (current behavior)
