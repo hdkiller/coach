@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { Webhook } from 'svix'
 import { logWebhookRequest } from '../../utils/webhook-logger'
+import { processResendWebhookTask } from '../../../trigger/process-resend-webhook'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
@@ -43,14 +44,24 @@ export default defineEventHandler(async (event) => {
     return sendError(event, createError({ statusCode: 400, statusMessage: 'Invalid signature' }))
   }
 
-  // Log to database - set status to PENDING for the worker poller to pick up
-  await logWebhookRequest({
+  // Log to database - set status to PENDING
+  const webhookLog = await logWebhookRequest({
     provider: 'resend',
     eventType: payload.type || 'UNKNOWN',
     payload,
     headers,
     status: 'PENDING'
   })
+
+  // Trigger background task for processing if log was successful
+  if (webhookLog) {
+    await processResendWebhookTask.trigger({
+      webhookLogId: webhookLog.id,
+      type: payload.type,
+      data: payload.data,
+      createdAt: payload.created_at
+    })
+  }
 
   return { success: true }
 })

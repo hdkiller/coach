@@ -55,6 +55,21 @@ export const ResendService = {
     const updateData: any = { status }
     const timestamp = new Date(createdAt)
 
+    // Helper to update user status
+    const updateUserStatus = async (email: string, eventStatus: string, error?: string) => {
+      await prisma.user.updateMany({
+        where: { email },
+        data: {
+          emailStatus: eventStatus,
+          emailError: error || null
+        }
+      })
+    }
+
+    // Extract bounce/complaint message if available
+    const errorMessage =
+      data?.bounce?.message || data?.complaint?.feedback_type || data?.failed?.message
+
     switch (status) {
       case 'DELIVERED':
         updateData.deliveredAt = timestamp
@@ -83,6 +98,8 @@ export const ResendService = {
             source: 'webhook'
           }
         })
+        // Mark user profile
+        await updateUserStatus(delivery.toEmail, 'BOUNCED', errorMessage)
         break
       case 'COMPLAINED':
         updateData.complainedAt = timestamp
@@ -102,6 +119,8 @@ export const ResendService = {
             source: 'webhook'
           }
         })
+        // Mark user profile
+        await updateUserStatus(delivery.toEmail, 'COMPLAINT', errorMessage)
         break
     }
 

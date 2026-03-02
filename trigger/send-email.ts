@@ -55,8 +55,17 @@ export const sendEmailTask = task({
     }
     logger.log(`Found user: ${user.email}`)
 
-    // 2. Check Suppression/Unsubscribe
-    logger.log('Step 2: Checking suppression and preferences...')
+    // 2. Check Suppression/Unsubscribe/Email Status
+    logger.log('Step 2: Checking suppression, preferences, and email status...')
+
+    // Check Email Status (Bounce/Complaint)
+    if (user.emailStatus !== 'VALID' && audience !== 'TRANSACTIONAL') {
+      logger.log(
+        `EXIT: User email status is ${user.emailStatus} (${user.emailError}). Skipping non-transactional email.`
+      )
+      return
+    }
+
     const preference = user.emailPreferences.find((p) => p.channel === 'EMAIL')
     const globalUnsub = Boolean(preference?.globalUnsubscribe)
     if (globalUnsub && audience !== 'TRANSACTIONAL') {
