@@ -36,6 +36,7 @@ import { getZoneIndex, DEFAULT_HR_ZONES, DEFAULT_POWER_ZONES } from '../training
 import { triggerReadinessCheckIfNeeded } from './wellness-analysis'
 import { deduplicationService } from './deduplicationService'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
+import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
 
@@ -1247,15 +1248,17 @@ export const IntervalsService = {
         }
 
         // Trigger deduplication and analysis
-        await deduplicateWorkoutsTask.trigger(
-          { userId, dryRun: false },
-          {
-            concurrencyKey: userId,
-            tags: [`user:${userId}`],
-            idempotencyKey: `deduplicate-workouts:auto:${userId}`,
-            idempotencyKeyTTL: '2m'
-          }
-        )
+        if (await shouldAutoDeduplicateWorkoutsAfterIngestion(userId)) {
+          await deduplicateWorkoutsTask.trigger(
+            { userId, dryRun: false },
+            {
+              concurrencyKey: userId,
+              tags: [`user:${userId}`],
+              idempotencyKey: `deduplicate-workouts:auto:${userId}`,
+              idempotencyKeyTTL: '2m'
+            }
+          )
+        }
         break
       }
 

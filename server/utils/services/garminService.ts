@@ -5,6 +5,7 @@ import { workoutRepository } from '../repositories/workoutRepository'
 import { fetchGarminActivityFile, requestGarminBackfill } from '../garmin'
 import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
+import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
 import crypto from 'crypto'
 
 function normalizeDeviceName(name: unknown): string | null {
@@ -445,7 +446,7 @@ export const GarminService = {
       }
     }
 
-    if (data.length > 0) {
+    if (data.length > 0 && (await shouldAutoDeduplicateWorkoutsAfterIngestion(userId))) {
       await deduplicateWorkoutsTask.trigger(
         { userId, dryRun: false },
         {
