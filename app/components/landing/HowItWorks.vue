@@ -2,173 +2,158 @@
   <div
     id="how-it-works"
     ref="sectionRef"
-    class="py-24 sm:py-32 bg-gray-900 relative overflow-hidden"
+    class="py-24 sm:py-32 bg-gray-950 relative overflow-hidden"
     :style="{ '--flow-progress': `${Math.round(flowProgress * 100)}%` }"
   >
-    <!-- Matrix Background Effect -->
-    <div
-      class="absolute inset-0 opacity-5 bg-[url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbm95MXY4Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0Z3Y0/U3qYN8S0j3bpK/giphy.gif')] bg-cover mix-blend-screen pointer-events-none"
-    />
-
     <div class="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
-      <div class="mx-auto max-w-2xl text-center">
-        <h2 class="text-base font-semibold leading-7 text-primary-400 font-mono">
+      <div class="mx-auto max-w-2xl text-center mb-20">
+        <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-primary-500 mb-4 font-mono">
           {{ t('label') }}
         </h2>
-        <p class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <p class="text-5xl font-black tracking-tight text-white sm:text-6xl font-athletic italic uppercase leading-[0.85]">
           {{ t('headline') }}
         </p>
-        <p class="mt-6 text-lg leading-8 text-gray-400">{{ t('description') }}</p>
+        <p class="mt-8 text-xl leading-relaxed text-gray-400 font-medium">
+          {{ t('description') }}
+        </p>
       </div>
 
-      <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-        <dl
-          class="relative grid grid-cols-1 gap-x-8 gap-y-14 md:grid-cols-2 lg:grid-cols-4 lg:gap-y-10"
-        >
-          <div
-            class="pointer-events-none absolute left-11 right-11 top-8 hidden lg:block border-t border-dashed border-gray-700/90"
-          />
-          <div
-            class="flow-line-fill pointer-events-none absolute left-11 right-11 top-8 hidden lg:block h-px"
-          />
+      <div class="mx-auto mt-16 max-w-2xl lg:max-w-none relative">
+        <!-- Connecting Line -->
+        <div class="absolute left-1/2 top-0 bottom-0 w-px bg-white/5 hidden lg:block -translate-x-1/2" />
+        <div 
+          class="absolute left-1/2 top-0 w-px bg-primary-500 shadow-[0_0_15px_rgba(34,197,94,0.5)] hidden lg:block -translate-x-1/2 transition-all duration-300 ease-out"
+          :style="{ height: `${flowProgress * 100}%` }"
+        />
 
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-x-24 lg:gap-y-32">
           <!-- Step 1: Ingest -->
-          <div
-            class="group relative flex flex-col rounded-2xl border border-transparent p-3 transition-all duration-300 hover:border-primary-500/25 hover:bg-gray-800/20"
-          >
-            <div
-              class="icon-shell mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-gray-800/80 ring-1 ring-gray-700/90 transition-all duration-300 group-hover:bg-primary-500/12 group-hover:ring-primary-500/70"
-            >
-              <UIcon
-                name="i-heroicons-arrow-down-tray"
-                class="h-6 w-6 text-white transition-all duration-300 group-hover:scale-110 group-hover:text-[#00DC82]"
-              />
+          <div class="relative group">
+            <div class="lg:absolute lg:-right-12 lg:top-1/2 lg:-translate-y-1/2 z-20 hidden lg:flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-gray-950 group-hover:border-primary-500/50 transition-colors">
+              <div class="w-3 h-3 rounded-full bg-gray-800 group-hover:bg-primary-500 transition-colors" />
             </div>
-            <dt
-              class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
-            >
-              <span class="font-mono text-xl font-black text-primary-500">01_</span>
-              {{ t('step1_title') }}
-            </dt>
-            <dd
-              class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
-            >
-              <p class="flex-auto">{{ t('step1_desc') }}</p>
-
-              <!-- Visual Hint -->
-              <div class="meta-row mt-5 flex -space-x-2 overflow-hidden">
-                <div class="inline-block h-6 w-6 rounded-full bg-orange-500 ring-2 ring-gray-900" />
-                <!-- Strava color -->
-                <div
-                  class="inline-block h-6 w-6 rounded-full bg-black ring-2 ring-gray-900 border border-white/20"
-                />
-                <!-- Whoop color -->
-                <div class="inline-block h-6 w-6 rounded-full bg-blue-500 ring-2 ring-gray-900" />
-                <!-- Icons for more -->
-                <div
-                  class="inline-block h-6 w-6 rounded-full bg-gray-700 ring-2 ring-gray-900 flex items-center justify-center text-[10px] text-white font-bold"
-                >
-                  +
+            
+            <div class="rounded-[2.5rem] floating-card-base grain-overlay p-10 hover:border-primary-500/40 transition-all duration-500 border-white/10">
+              <div class="flex items-center gap-4 mb-8">
+                <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-500 border border-primary-500/20 group-hover:scale-110 transition-transform">
+                  <UIcon name="i-heroicons-arrow-down-tray-solid" class="w-8 h-8" />
+                </div>
+                <div class="font-athletic italic text-4xl font-black text-white/5 uppercase tracking-tighter">01</div>
+              </div>
+              
+              <h3 class="text-2xl font-black text-white italic font-athletic uppercase leading-tight mb-4 group-hover:text-primary-500 transition-colors">
+                {{ t('step1_title') }}
+              </h3>
+              <p class="text-lg text-gray-400 font-medium leading-relaxed mb-8">
+                {{ t('step1_desc') }}
+              </p>
+              
+              <div class="flex -space-x-3 overflow-hidden">
+                <div v-for="i in 4" :key="i" class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-sm group-hover:border-primary-500/30 transition-colors">
+                  <div class="w-5 h-5 rounded-md bg-gray-800" />
                 </div>
               </div>
-            </dd>
+            </div>
           </div>
 
+          <!-- Spacer for Grid (Step 2 is on the right/other column in flex) -->
+          <div class="hidden lg:block"></div>
+          <div class="hidden lg:block"></div>
+
           <!-- Step 2: Analyze -->
-          <div
-            class="group relative flex flex-col rounded-2xl border border-transparent p-3 transition-all duration-300 hover:border-primary-500/25 hover:bg-gray-800/20"
-          >
-            <div
-              class="icon-shell mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-gray-800/80 ring-1 ring-gray-700/90 transition-all duration-300 group-hover:bg-primary-500/12 group-hover:ring-primary-500/70"
-            >
-              <UIcon
-                name="i-heroicons-cpu-chip"
-                class="h-6 w-6 text-white transition-all duration-300 group-hover:scale-110 group-hover:text-[#00DC82]"
-              />
+          <div class="relative group lg:-mt-16">
+             <div class="lg:absolute lg:-left-12 lg:top-1/2 lg:-translate-y-1/2 z-20 hidden lg:flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-gray-950 group-hover:border-primary-500/50 transition-colors">
+              <div class="w-3 h-3 rounded-full bg-gray-800 group-hover:bg-primary-500 transition-colors" />
             </div>
-            <dt
-              class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
-            >
-              <span class="font-mono text-xl font-black text-primary-500">02_</span>
-              {{ t('step2_title') }}
-            </dt>
-            <dd
-              class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
-            >
-              <p class="flex-auto">{{ t('step2_desc') }}</p>
-              <div class="meta-row mt-5 flex items-center gap-2">
-                <span class="relative flex h-3 w-3">
-                  <span
-                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ef4444] opacity-75"
-                  />
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-[#ef4444]" />
-                </span>
-                <span class="status-pill status-pill-red">{{ t('step2_status') }}</span>
+
+            <div class="rounded-[2.5rem] floating-card-base grain-overlay p-10 hover:border-primary-500/40 transition-all duration-500 border-white/10">
+              <div class="flex items-center gap-4 mb-8">
+                <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-500 border border-primary-500/20 group-hover:scale-110 transition-transform">
+                  <UIcon name="i-heroicons-cpu-chip-solid" class="w-8 h-8" />
+                </div>
+                <div class="font-athletic italic text-4xl font-black text-white/5 uppercase tracking-tighter">02</div>
               </div>
-            </dd>
+              
+              <h3 class="text-2xl font-black text-white italic font-athletic uppercase leading-tight mb-4 group-hover:text-primary-500 transition-colors">
+                {{ t('step2_title') }}
+              </h3>
+              <p class="text-lg text-gray-400 font-medium leading-relaxed mb-8">
+                {{ t('step2_desc') }}
+              </p>
+              
+              <div class="flex items-center gap-3 px-4 py-2 rounded-full bg-primary-500/5 border border-primary-500/20 w-fit">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-500 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
+                </span>
+                <span class="text-[10px] font-black uppercase tracking-widest text-primary-500">{{ t('step2_status') }}</span>
+              </div>
+            </div>
           </div>
 
           <!-- Step 3: Profile -->
-          <div
-            class="group relative flex flex-col rounded-2xl border border-transparent p-3 transition-all duration-300 hover:border-primary-500/25 hover:bg-gray-800/20"
-          >
-            <div
-              class="icon-shell mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-gray-800/80 ring-1 ring-gray-700/90 transition-all duration-300 group-hover:bg-primary-500/12 group-hover:ring-primary-500/70"
-            >
-              <UIcon
-                name="i-heroicons-user-circle"
-                class="h-6 w-6 text-white transition-all duration-300 group-hover:scale-110 group-hover:text-[#00DC82]"
-              />
+          <div class="relative group">
+             <div class="lg:absolute lg:-right-12 lg:top-1/2 lg:-translate-y-1/2 z-20 hidden lg:flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-gray-950 group-hover:border-primary-500/50 transition-colors">
+              <div class="w-3 h-3 rounded-full bg-gray-800 group-hover:bg-primary-500 transition-colors" />
             </div>
-            <dt
-              class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
-            >
-              <span class="font-mono text-xl font-black text-primary-500">03_</span>
-              {{ t('step3_title') }}
-            </dt>
-            <dd
-              class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
-            >
-              <p class="flex-auto">{{ t('step3_desc') }}</p>
-              <div class="meta-row mt-5 flex flex-wrap gap-2">
-                <span class="status-pill status-pill-green">{{ t('step3_status1') }}</span>
-                <span class="status-pill status-pill-yellow">{{ t('step3_status2') }}</span>
+
+            <div class="rounded-[2.5rem] floating-card-base grain-overlay p-10 hover:border-primary-500/40 transition-all duration-500 border-white/10">
+              <div class="flex items-center gap-4 mb-8">
+                <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-500 border border-primary-500/20 group-hover:scale-110 transition-transform">
+                  <UIcon name="i-heroicons-user-circle-solid" class="w-8 h-8" />
+                </div>
+                <div class="font-athletic italic text-4xl font-black text-white/5 uppercase tracking-tighter">03</div>
               </div>
-            </dd>
+              
+              <h3 class="text-2xl font-black text-white italic font-athletic uppercase leading-tight mb-4 group-hover:text-primary-500 transition-colors">
+                {{ t('step3_title') }}
+              </h3>
+              <p class="text-lg text-gray-400 font-medium leading-relaxed mb-8">
+                {{ t('step3_desc') }}
+              </p>
+              
+              <div class="flex flex-wrap gap-2">
+                <div v-for="tag in [t('step3_status1'), t('step3_status2')]" :key="tag" class="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                  {{ tag }}
+                </div>
+              </div>
+            </div>
           </div>
+
+          <div class="hidden lg:block"></div>
+          <div class="hidden lg:block"></div>
 
           <!-- Step 4: Coach -->
-          <div
-            class="group relative flex flex-col rounded-2xl border border-transparent p-3 transition-all duration-300 hover:border-primary-500/25 hover:bg-gray-800/20"
-          >
-            <div
-              class="icon-shell mb-6 flex h-16 w-16 items-center justify-center rounded-[22px] bg-gray-800/80 ring-1 ring-gray-700/90 transition-all duration-300 group-hover:bg-primary-500/12 group-hover:ring-primary-500/70"
-            >
-              <UIcon
-                name="i-heroicons-chat-bubble-bottom-center-text"
-                class="h-6 w-6 text-white transition-all duration-300 group-hover:scale-110 group-hover:text-[#00DC82]"
-              />
+          <div class="relative group lg:-mt-16">
+             <div class="lg:absolute lg:-left-12 lg:top-1/2 lg:-translate-y-1/2 z-20 hidden lg:flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-gray-950 group-hover:border-primary-500/50 transition-colors">
+              <div class="w-3 h-3 rounded-full bg-gray-800 group-hover:bg-primary-500 transition-colors" />
             </div>
-            <dt
-              class="flex items-center gap-x-3 text-base font-semibold leading-7 text-white transition-colors duration-300 group-hover:text-white"
-            >
-              <span class="font-mono text-xl font-black text-primary-500">04_</span>
-              {{ t('step4_title') }}
-            </dt>
-            <dd
-              class="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400 transition-colors duration-300 group-hover:text-gray-300"
-            >
-              <p class="flex-auto">{{ t('step4_desc') }}</p>
 
-              <div
-                class="meta-row ai-quote mt-5 flex items-center gap-3 rounded-lg border-l-2 border-primary-500 bg-gray-800 p-3 text-xs italic text-gray-300"
-              >
-                <UIcon name="i-heroicons-cpu-chip" class="w-5 h-5 text-primary-500 shrink-0" />
-                <span class="typing-quote">{{ t('step4_quote') }}</span>
+            <div class="rounded-[2.5rem] floating-card-base grain-overlay p-10 hover:border-primary-500/40 transition-all duration-500 border-white/10">
+              <div class="flex items-center gap-4 mb-8">
+                <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-500 border border-primary-500/20 group-hover:scale-110 transition-transform">
+                  <UIcon name="i-heroicons-chat-bubble-bottom-center-text-solid" class="w-8 h-8" />
+                </div>
+                <div class="font-athletic italic text-4xl font-black text-white/5 uppercase tracking-tighter">04</div>
               </div>
-            </dd>
+              
+              <h3 class="text-2xl font-black text-white italic font-athletic uppercase leading-tight mb-4 group-hover:text-primary-500 transition-colors">
+                {{ t('step4_title') }}
+              </h3>
+              <p class="text-lg text-gray-400 font-medium leading-relaxed mb-8">
+                {{ t('step4_desc') }}
+              </p>
+              
+              <div class="rounded-2xl bg-black/60 p-5 border border-primary-500/20 relative group-hover:shadow-[0_0_30px_rgba(34,197,94,0.1)] transition-all">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                  <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Coach Watts</span>
+                </div>
+                <p class="text-sm font-medium italic text-gray-200 leading-snug">"{{ t('step4_quote') }}"</p>
+              </div>
+            </div>
           </div>
-        </dl>
+        </div>
       </div>
     </div>
   </div>
@@ -187,11 +172,14 @@
 
     const rect = sectionRef.value.getBoundingClientRect()
     const viewportHeight = window.innerHeight
-    const travel = rect.height + viewportHeight * 0.6
-    const passed = viewportHeight * 0.75 - rect.top
-    const raw = passed / travel
-
-    flowProgress.value = Math.min(1, Math.max(0, raw))
+    
+    // Calculate progress based on how much of the section has passed the center of the viewport
+    const centerOfViewport = viewportHeight / 2
+    const sectionTop = rect.top
+    const sectionHeight = rect.height
+    
+    const progress = (centerOfViewport - sectionTop) / sectionHeight
+    flowProgress.value = Math.min(1, Math.max(0, progress))
   }
 
   onMounted(() => {
@@ -207,130 +195,4 @@
 </script>
 
 <style scoped>
-  .icon-shell {
-    box-shadow:
-      0 0 0 1px rgba(0, 220, 130, 0.08),
-      0 0 24px rgba(0, 220, 130, 0.08);
-  }
-
-  .group:hover .icon-shell {
-    animation: icon-bounce 0.42s ease;
-    box-shadow:
-      0 0 0 1px rgba(0, 220, 130, 0.36),
-      0 0 30px rgba(0, 220, 130, 0.24);
-  }
-
-  .meta-row {
-    min-height: 2.6rem;
-    align-items: center;
-  }
-
-  .status-pill {
-    display: inline-flex;
-    min-height: 1.75rem;
-    align-items: center;
-    border-radius: 9999px;
-    border-width: 1px;
-    padding: 0.25rem 0.7rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .status-pill-red {
-    border-color: rgba(239, 68, 68, 0.38);
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
-  }
-
-  .status-pill-green {
-    border-color: rgba(0, 220, 130, 0.34);
-    background: rgba(0, 220, 130, 0.12);
-    color: #00dc82;
-  }
-
-  .status-pill-yellow {
-    border-color: rgba(250, 204, 21, 0.32);
-    background: rgba(250, 204, 21, 0.12);
-    color: #facc15;
-  }
-
-  .flow-line-fill {
-    width: var(--flow-progress);
-    background: linear-gradient(90deg, rgba(0, 220, 130, 0.45), #00dc82, rgba(0, 220, 130, 0.72));
-    box-shadow: 0 0 16px rgba(0, 220, 130, 0.3);
-    transition: width 0.2s ease-out;
-  }
-
-  .ai-quote {
-    animation: ai-pulse 2.2s ease-in-out infinite;
-  }
-
-  .typing-quote {
-    display: inline-block;
-    max-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    border-right: 2px solid rgba(0, 220, 130, 0.6);
-    animation:
-      quote-type 4.4s steps(64, end) 0.35s forwards,
-      cursor-blink 0.8s steps(1, end) infinite;
-  }
-
-  @keyframes icon-bounce {
-    0% {
-      transform: scale(1) translateY(0);
-    }
-    50% {
-      transform: scale(1.08) translateY(-2px);
-    }
-    100% {
-      transform: scale(1) translateY(0);
-    }
-  }
-
-  @keyframes ai-pulse {
-    0%,
-    100% {
-      box-shadow: 0 0 0 rgba(0, 220, 130, 0);
-    }
-    50% {
-      box-shadow: 0 0 20px rgba(0, 220, 130, 0.14);
-    }
-  }
-
-  @keyframes quote-type {
-    to {
-      max-width: 36ch;
-    }
-  }
-
-  @keyframes cursor-blink {
-    0%,
-    49% {
-      border-right-color: rgba(0, 220, 130, 0.6);
-    }
-    50%,
-    100% {
-      border-right-color: transparent;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .flow-line-fill,
-    .group:hover .icon-shell,
-    .ai-quote,
-    .typing-quote {
-      animation: none;
-      transition: none;
-    }
-
-    .typing-quote {
-      max-width: 100%;
-      border-right: none;
-      white-space: normal;
-    }
-  }
 </style>

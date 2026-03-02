@@ -1,267 +1,219 @@
 <template>
-  <div class="space-y-8">
-    <div class="flex flex-wrap justify-center items-center gap-4">
-      <div class="inline-flex items-center gap-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+  <div class="space-y-12">
+    <div class="flex flex-wrap justify-center items-center gap-6">
+      <div class="inline-flex items-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
         <button
-          class="px-4 py-2 rounded-md text-sm font-medium transition-all"
+          class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
           :class="
             billingInterval === 'monthly'
-              ? 'bg-white dark:bg-gray-900 shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              ? 'bg-primary-500 text-black shadow-lg shadow-primary-500/20'
+              : 'text-gray-400 hover:text-white'
           "
           @click="billingInterval = 'monthly'"
         >
           {{ t('billing.monthly') }}
         </button>
         <button
-          class="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2"
+          class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
           :class="
             billingInterval === 'annual'
-              ? 'bg-white dark:bg-gray-900 shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              ? 'bg-primary-500 text-black shadow-lg shadow-primary-500/20'
+              : 'text-gray-400 hover:text-white'
           "
           @click="billingInterval = 'annual'"
         >
           {{ t('billing.annual') }}
           <span
-            class="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full"
+            v-if="billingInterval !== 'annual'"
+            class="text-[9px] bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full border border-primary-500/20"
           >
             {{ t('billing.save_pct', { pct: 33 }) }}
           </span>
         </button>
       </div>
 
-      <div class="inline-flex items-center gap-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+      <div class="inline-flex items-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
         <button
-          class="px-4 py-2 rounded-md text-sm font-medium transition-all"
+          class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
           :class="
             currency === 'usd'
-              ? 'bg-white dark:bg-gray-900 shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              ? 'bg-white/10 text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-300'
           "
           @click="setCurrency('usd')"
         >
-          $ USD
+          USD
         </button>
         <button
-          class="px-4 py-2 rounded-md text-sm font-medium transition-all"
+          class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
           :class="
             currency === 'eur'
-              ? 'bg-white dark:bg-gray-900 shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              ? 'bg-white/10 text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-300'
           "
           @click="setCurrency('eur')"
         >
-          € EUR
+          EUR
         </button>
       </div>
     </div>
 
     <div
-      class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 items-stretch"
+      class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch max-w-7xl mx-auto"
       :class="
         props.conversionGoal === 'pro'
-          ? 'lg:[grid-template-columns:minmax(0,0.96fr)_minmax(0,1.08fr)_minmax(0,0.96fr)] xl:[grid-template-columns:minmax(0,0.94fr)_minmax(0,1.12fr)_minmax(0,0.94fr)]'
+          ? 'lg:[grid-template-columns:1fr_1.1fr_1fr]'
           : ''
       "
     >
-      <UCard
+      <div
         v-for="plan in displayedPlans"
         :key="plan.key"
-        class="flex flex-col relative overflow-hidden h-full min-w-0 transform-gpu will-change-transform transition-transform transition-shadow transition-colors duration-200 ease-out motion-reduce:transition-none"
+        class="flex flex-col relative overflow-hidden rounded-[2.5rem] floating-card-base grain-overlay p-8 sm:p-10 transition-all duration-500 group border-white/10"
         :class="[
           getCardClass(plan),
           getPlanOrderClass(plan),
-          isCardClickable(plan)
-            ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 active:scale-[0.995]'
-            : ''
+          isPrimaryPlan(plan) ? 'shadow-2xl shadow-primary-500/10' : ''
         ]"
-        :tabindex="isCardClickable(plan) ? 0 : -1"
-        :role="isCardClickable(plan) ? 'button' : undefined"
-        :aria-disabled="isCardClickable(plan) ? false : undefined"
-        :ui="{ body: 'flex-grow flex flex-col p-4 sm:p-6' }"
-        @click="onCardClick(plan, $event)"
-        @keydown.enter.prevent="onCardActivate(plan, $event)"
-        @keydown.space.prevent="onCardActivate(plan, $event)"
       >
+        <!-- Custom Pulsing Border Overlay for Primary Plan -->
+        <div v-if="isPrimaryPlan(plan)" class="absolute inset-0 rounded-[2.5rem] pointer-events-none ring-2 ring-primary-500/50 animate-pulse-border" />
+
         <div
           v-if="getPlanBadge(plan)"
-          class="absolute top-0 right-0 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wide"
-          :class="isPrimaryPlan(plan) ? 'bg-primary' : 'bg-gray-700 dark:bg-gray-600'"
+          class="absolute top-6 right-8 text-primary-500 text-[9px] font-black px-3 py-1 rounded-full border border-primary-500/20 bg-primary-500/5 uppercase tracking-widest"
         >
           {{ getPlanBadge(plan) }}
         </div>
 
-        <div
-          v-if="isCurrentPlan(plan)"
-          class="absolute top-0 left-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg uppercase tracking-wide"
-        >
-          {{ t('badge.current_plan') }}
-        </div>
+        <div class="mb-10">
+          <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-6 group-hover:text-primary-500 transition-colors">
+            {{ t(`plan.${plan.key}.name`) }}
+          </h3>
 
-        <template #header>
-          <h3 class="text-xl font-bold">{{ t(`plan.${plan.key}.name`) }}</h3>
-
-          <div class="mt-4">
-            <div class="flex items-baseline gap-1">
-              <span class="text-4xl font-extrabold">
-                {{
-                  formatPrice(
-                    billingInterval === 'annual' && plan.annualPrice
-                      ? plan.annualPrice
-                      : plan.monthlyPrice,
-                    currency
-                  )
-                }}
-              </span>
-              <span class="text-sm text-gray-500 dark:text-gray-400">
-                {{
-                  plan.key === 'free'
-                    ? ''
-                    : billingInterval === 'annual'
-                      ? t('billing.per_year')
-                      : t('billing.per_month')
-                }}
-              </span>
-            </div>
-
-            <div class="mt-2 min-h-[2.75rem] flex flex-col justify-center gap-1">
-              <template v-if="billingInterval === 'annual' && plan.annualPrice">
-                <div class="text-xs text-gray-600 dark:text-gray-300">
-                  {{
-                    t('billing.billed_annually', {
-                      price: formatPrice(getEffectiveMonthly(plan), currency)
-                    })
-                  }}
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-gray-500 line-through">
-                    {{ formatPrice(plan.monthlyPrice, currency) }}/mo
-                  </span>
-                  <span
-                    class="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                    :class="
-                      isPrimaryPlan(plan)
-                        ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-                    "
-                  >
-                    {{ t('billing.save_pct', { pct: calculateAnnualSavings(plan) }) }}
-                  </span>
-                </div>
-              </template>
-              <template v-else-if="plan.key !== 'free'">
-                <div class="text-xs text-gray-600 dark:text-gray-300">
-                  {{ t('billing.billed_monthly') }}
-                </div>
-              </template>
-            </div>
+          <div class="flex items-baseline gap-2 mb-2 font-athletic italic">
+            <span class="text-6xl font-black text-white leading-none">
+              {{
+                formatPrice(
+                  billingInterval === 'annual' && plan.annualPrice
+                    ? plan.annualPrice
+                    : plan.monthlyPrice,
+                  currency
+                )
+              }}
+            </span>
+            <span class="text-[10px] font-black text-gray-600 uppercase tracking-widest leading-none mb-1">
+              {{
+                plan.key === 'free'
+                  ? ''
+                  : billingInterval === 'annual'
+                    ? t('billing.per_year')
+                    : t('billing.per_month')
+              }}
+            </span>
           </div>
 
-          <p class="mt-3 text-sm text-gray-500 dark:text-gray-400 min-h-[3.5rem]">
-            {{ t(`plan.${plan.key}.description`) }}
-          </p>
-        </template>
+          <div class="min-h-[2.5rem]">
+            <template v-if="billingInterval === 'annual' && plan.annualPrice">
+              <div class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-1">
+                {{ formatPrice(getEffectiveMonthly(plan), currency) }} / {{ t('billing.per_month') }}
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-[10px] font-bold text-gray-600 line-through tracking-wider">
+                  {{ formatPrice(plan.monthlyPrice, currency) }}/mo
+                </span>
+                <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/5 border border-emerald-500/20">
+                  {{ t('billing.save_pct', { pct: calculateAnnualSavings(plan) }) }}
+                </span>
+              </div>
+            </template>
+            <template v-else-if="plan.key !== 'free'">
+              <div class="text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                {{ t('billing.billed_monthly') }}
+              </div>
+            </template>
+          </div>
+        </div>
 
-        <ul class="space-y-3 flex-grow flex flex-col justify-start min-h-[12rem]">
+        <p class="text-lg text-gray-400 font-medium leading-relaxed mb-10 min-h-[4rem]">
+          {{ t(`plan.${plan.key}.description`) }}
+        </p>
+
+        <ul class="space-y-4 mb-10 flex-grow">
           <li
             v-for="(feature, fIndex) in plan.features"
             :key="fIndex"
-            class="flex items-start gap-2 text-sm"
+            class="flex items-start gap-3 text-sm font-medium text-gray-300"
           >
             <UIcon
-              name="i-heroicons-check"
-              class="w-5 h-5 flex-shrink-0"
-              :class="isPrimaryPlan(plan) ? 'text-primary' : 'text-gray-500 dark:text-gray-400'"
+              name="i-heroicons-check-circle-solid"
+              class="w-5 h-5 flex-shrink-0 mt-0.5"
+              :class="isPrimaryPlan(plan) ? 'text-primary-500' : 'text-gray-600'"
             />
-            <span>{{ t(`plan.${plan.key}.feature_${fIndex + 1}`) }}</span>
+            <span class="leading-tight">{{ t(`plan.${plan.key}.feature_${fIndex + 1}`) }}</span>
           </li>
         </ul>
 
-        <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 space-y-2">
+        <div class="mt-auto space-y-4 pt-8 border-t border-white/5">
           <UButton
-            :color="getButtonStyle(plan).color"
-            :variant="getButtonStyle(plan).variant"
+            size="xl"
             block
-            :disabled="
-              isCurrentPlan(plan) ||
-              loading ||
-              (status === 'authenticated' && !subscriptionsEnabled && plan.key !== 'free')
-            "
-            :loading="loading && selectedPlan === plan.key"
+            class="h-16 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all"
+            :color="isPrimaryPlan(plan) ? 'primary' : 'neutral'"
+            :variant="isPrimaryPlan(plan) ? 'solid' : 'outline'"
+            :disabled="isCurrentPlan(plan) || loading"
             @click.stop="handlePlanSelect(plan)"
           >
-            {{
-              subscriptionsEnabled || plan.key === 'free' || status !== 'authenticated'
-                ? getButtonLabel(plan)
-                : t('btn.unavailable')
-            }}
+            {{ getButtonLabel(plan) }}
           </UButton>
-          <p
-            class="text-[11px] text-center text-gray-500 dark:text-gray-400 min-h-[1rem]"
-            :class="plan.key === 'free' && !isCurrentPlan(plan) ? 'opacity-0' : ''"
-          >
+          <p class="text-[9px] font-black text-center text-slate-500 uppercase tracking-widest">
             {{ t('cancel_anytime') }}
           </p>
         </div>
-      </UCard>
+      </div>
     </div>
 
     <!-- Downgrade Confirmation Modal -->
     <UModal
       v-model:open="showDowngradeModal"
-      :title="t('modal.title')"
-      :description="t('modal.description')"
     >
       <template #content>
-        <UCard :ui="{ body: 'p-6 sm:p-8' }">
-          <template #header>
-            <div class="flex items-center gap-3">
-              <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                <UIcon
-                  name="i-heroicons-exclamation-triangle"
-                  class="w-6 h-6 text-amber-600 dark:text-amber-400"
-                />
-              </div>
-              <h3 class="text-xl font-bold">
-                {{
-                  t('modal.switch_to', {
-                    name: planToChangeTo ? t(`plan.${planToChangeTo.key}.name`) : ''
-                  })
-                }}
-              </h3>
-            </div>
-          </template>
-
-          <div class="space-y-4 py-2">
-            <p class="text-sm text-gray-600 dark:text-gray-300">
+        <div class="floating-card-base grain-overlay rounded-[2.5rem] p-10 overflow-hidden relative">
+          <div class="absolute top-0 right-0 p-8 opacity-5">
+             <UIcon name="i-heroicons-exclamation-triangle-solid" class="w-24 h-24" />
+          </div>
+          
+          <div class="relative z-10">
+            <h3 class="text-3xl font-black text-white font-athletic italic uppercase mb-6">
+              {{ t('modal.title') }}
+            </h3>
+            <p class="text-lg text-gray-400 font-medium leading-relaxed mb-8">
               {{ t('modal.warning') }}
             </p>
-            <div
-              class="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700"
-            >
-              <p class="text-xs text-gray-500 leading-relaxed italic">
-                {{ t('modal.stripe_note') }}
-              </p>
-            </div>
-          </div>
-
-          <template #footer>
-            <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
-              <UButton color="neutral" variant="ghost" @click="showDowngradeModal = false">
+            
+            <div class="flex flex-col sm:flex-row gap-4">
+              <UButton 
+                color="neutral" 
+                variant="outline" 
+                size="xl"
+                class="flex-1 h-14 rounded-xl text-[11px] font-black uppercase tracking-widest"
+                @click="showDowngradeModal = false"
+              >
                 {{ t('modal.keep_plan') }}
               </UButton>
               <UButton
                 color="primary"
                 variant="solid"
+                size="xl"
+                class="flex-1 h-14 rounded-xl text-[11px] font-black uppercase tracking-widest"
                 :loading="loading"
                 @click="planToChangeTo && executePlanChange(planToChangeTo)"
               >
                 {{ t('modal.confirm_change') }}
               </UButton>
             </div>
-          </template>
-        </UCard>
+          </div>
+        </div>
       </template>
     </UModal>
   </div>
@@ -335,81 +287,27 @@
     return plan.key === props.conversionGoal
   }
 
-  function isAnchorPlan(plan: PricingPlan): boolean {
-    return props.conversionGoal === 'pro' && plan.key === 'supporter'
-  }
-
   function getPlanBadge(plan: PricingPlan): string | null {
     if (isPrimaryPlan(plan)) {
       return props.conversionGoal === 'pro'
         ? translate('badge.best_value')
         : translate('badge.most_popular')
     }
-
-    if (isAnchorPlan(plan)) {
-      return translate('badge.smart_start')
-    }
-
     return null
   }
 
   function getCardClass(plan: PricingPlan): string {
     if (isPrimaryPlan(plan)) {
-      return 'ring-2 ring-primary border-primary shadow-xl'
+      return 'border-primary-500/50 lg:scale-[1.03] z-10'
     }
-
-    if (isAnchorPlan(plan)) {
-      return 'ring-1 ring-gray-200 dark:ring-gray-700 border-gray-200 dark:border-gray-700'
-    }
-
-    return 'opacity-95 hover:opacity-100'
-  }
-
-  function isCardClickable(plan: PricingPlan): boolean {
-    if (plan.key === 'free') return false
-    if (isCurrentPlan(plan)) return false
-    if (loading.value) return false
-    if (status.value === 'authenticated' && !subscriptionsEnabled.value) return false
-    return true
-  }
-
-  function onCardActivate(plan: PricingPlan, event: KeyboardEvent) {
-    if (!isCardClickable(plan)) return
-    const target = event.target as HTMLElement | null
-    if (target?.closest('button, a, input, select, textarea, summary, details')) return
-    handlePlanSelect(plan)
-  }
-
-  function onCardClick(plan: PricingPlan, event: MouseEvent) {
-    if (!isCardClickable(plan)) return
-    const target = event.target as HTMLElement | null
-    if (target?.closest('button, a, input, select, textarea, summary, details')) return
-    handlePlanSelect(plan)
+    return 'border-white/5 opacity-80 hover:opacity-100 hover:scale-[1.01]'
   }
 
   function getPlanOrderClass(plan: PricingPlan): string {
     if (props.conversionGoal !== 'pro') return ''
-
     if (plan.key === 'supporter') return 'lg:order-1'
     if (plan.key === 'pro') return 'lg:order-2'
     return 'lg:order-3'
-  }
-
-  function getButtonStyle(plan: PricingPlan): {
-    color: 'primary' | 'neutral'
-    variant: 'solid' | 'outline' | 'soft'
-  } {
-    if (isCurrentPlan(plan)) {
-      return { color: 'neutral', variant: 'soft' }
-    }
-
-    if (isPrimaryPlan(plan)) {
-      return { color: 'primary', variant: 'solid' }
-    }
-
-    return plan.key === 'free'
-      ? { color: 'neutral', variant: 'soft' }
-      : { color: 'neutral', variant: 'outline' }
   }
 
   function getEffectiveMonthly(plan: PricingPlan): number {
@@ -419,28 +317,15 @@
 
   function getButtonLabel(plan: PricingPlan): string {
     if (isCurrentPlan(plan)) return translate('btn.current_plan')
-
-    if (status.value !== 'authenticated') {
-      if (plan.key === 'free') return translate('btn.sign_up')
-      return plan.key === 'pro' ? translate('btn.get_pro') : translate('btn.get_supporter')
-    }
-
+    if (status.value !== 'authenticated') return translate('btn.sign_up')
+    
     const currentTier = userStore.user?.subscriptionTier || 'FREE'
     const tiers = ['FREE', 'SUPPORTER', 'PRO']
     const currentLevel = tiers.indexOf(currentTier)
     const planLevel = tiers.indexOf(plan.key.toUpperCase())
 
-    if (plan.key === 'pro') {
-      return planLevel > currentLevel ? translate('btn.upgrade_pro') : translate('btn.switch_pro')
-    }
-
-    if (plan.key === 'supporter') {
-      return planLevel >= currentLevel
-        ? translate('btn.choose_supporter')
-        : translate('btn.switch_supporter')
-    }
-
-    return planLevel < currentLevel ? translate('btn.downgrade_free') : translate('btn.stay_free')
+    if (planLevel > currentLevel) return translate('btn.upgrade_pro')
+    return translate('btn.switch_pro')
   }
 
   async function executePlanChange(plan: PricingPlan) {
@@ -459,19 +344,10 @@
       if (success) {
         showDowngradeModal.value = false
         emit('close')
-
-        if (props.isBillingPage) {
-          // Add refresh param and reload
-          const url = new URL(window.location.href)
-          url.searchParams.set('refresh', 'true')
-          window.location.href = url.toString()
-        } else {
-          navigateTo('/settings/billing?success=true')
-        }
+        navigateTo('/settings/billing?success=true')
         return
       }
     }
-
     loading.value = false
     selectedPlan.value = null
     showDowngradeModal.value = false
@@ -484,21 +360,17 @@
       const currentLevel = tiers.indexOf(currentTier)
       const planLevel = tiers.indexOf(plan.key.toUpperCase())
 
-      // 1. Upgrade Path (Always one-click)
-      if (planLevel > currentLevel) {
+      if (planLevel >= currentLevel) {
         await executePlanChange(plan)
         return
       }
 
-      // 2. Downgrade Path (Confirmed one-click, unless it's FREE)
-      if (planLevel < currentLevel && plan.key !== 'free') {
+      if (plan.key !== 'free') {
         planToChangeTo.value = plan
         showDowngradeModal.value = true
         return
       }
 
-      // 3. Fallback Path (Downgrade to FREE or same-tier maintenance)
-      // We use the Portal for FREE to allow users to see Stripe's cancellation flow
       loading.value = true
       selectedPlan.value = plan.key
       await openCustomerPortal(window.location.href)
@@ -508,11 +380,7 @@
     }
 
     if (plan.key === 'free') {
-      if (status.value === 'authenticated') {
-        navigateTo('/dashboard')
-      } else {
-        navigateTo('/login')
-      }
+      navigateTo(status.value === 'authenticated' ? '/dashboard' : '/login')
       return
     }
 
@@ -522,22 +390,31 @@
     }
 
     const priceId = getStripePriceId(plan, billingInterval.value, currency.value)
-    if (!priceId) {
-      console.error('No Stripe price ID found for plan:', plan.key, billingInterval.value)
-      return
-    }
+    if (!priceId) return
 
     loading.value = true
     selectedPlan.value = plan.key
-
     await createCheckoutSession(priceId, {
       successUrl: `${window.location.origin}/settings/billing?success=true`,
-      cancelUrl: `${window.location.origin}${props.isBillingPage ? '/settings/billing' : '/pricing'}?canceled=true`
+      cancelUrl: `${window.location.origin}/pricing?canceled=true`
     })
-
-    setTimeout(() => {
-      loading.value = false
-      selectedPlan.value = null
-    }, 3000)
+    loading.value = false
   }
 </script>
+
+<style scoped>
+  @keyframes pulseBorder {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.01);
+    }
+  }
+
+  .animate-pulse-border {
+    animation: pulseBorder 3s ease-in-out infinite;
+  }
+</style>

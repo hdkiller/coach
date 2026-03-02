@@ -5,6 +5,8 @@
     name: string
     hex: string
     tailwind?: string
+    variable?: string
+    contrast?: string
     usage?: string
     dark?: boolean
   }>()
@@ -14,34 +16,28 @@
 
 <template>
   <div
-    class="flex flex-col group h-full rounded-2xl overflow-hidden border transition-all duration-300 hover:shadow-xl"
-    :class="[
-      dark
-        ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
-        : 'bg-white border-zinc-100 dark:border-zinc-800 hover:border-primary-200'
-    ]"
+    class="flex flex-col group h-full rounded-[2rem] overflow-hidden floating-card-base grain-overlay border-white/10 transition-all duration-500"
   >
     <!-- Color Swatch -->
     <div
-      class="h-32 sm:h-40 w-full transition-transform duration-500 group-hover:scale-105"
+      class="h-40 w-full transition-transform duration-700 group-hover:scale-105 relative"
       :style="{ backgroundColor: hex }"
-    />
+    >
+      <div v-if="contrast" class="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2">
+        <span class="text-[9px] font-black uppercase tracking-widest text-zinc-400">Contrast</span>
+        <span class="text-xs font-black text-white font-mono">{{ contrast }}</span>
+      </div>
+    </div>
 
     <!-- Info Area -->
-    <div class="p-6 flex flex-col flex-grow">
-      <div class="flex justify-between items-start mb-4">
+    <div class="p-8 flex flex-col flex-grow">
+      <div class="flex justify-between items-start mb-6">
         <div>
-          <h3
-            class="text-sm font-black uppercase tracking-[0.2em] mb-1"
-            :class="dark ? 'text-zinc-400' : 'text-zinc-500'"
-          >
+          <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-primary-500 mb-2">
             {{ name }}
           </h3>
-          <div class="flex items-center gap-2">
-            <span
-              class="text-xl font-mono font-bold"
-              :class="dark ? 'text-white' : 'text-zinc-900'"
-            >
+          <div class="flex items-center gap-3">
+            <span class="text-2xl font-black text-white font-mono tracking-tight">
               {{ hex }}
             </span>
             <UButton
@@ -49,29 +45,38 @@
               variant="ghost"
               color="primary"
               size="xs"
+              class="rounded-xl border border-white/5 hover:bg-white/5"
               @click="copy()"
             >
               <template #trailing>
-                <span v-if="copied" class="text-[10px] animate-pulse">Copied!</span>
+                <div v-if="copied" class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg animate-in fade-in zoom-in duration-200">
+                  Copied!
+                </div>
               </template>
             </UButton>
           </div>
         </div>
       </div>
 
-      <div v-if="tailwind" class="mb-4">
-        <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 block mb-1"
-          >Tailwind Class</label
-        >
-        <code class="text-xs px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-800 font-mono">
-          {{ tailwind }}
-        </code>
+      <div class="space-y-4 mb-8">
+        <div v-if="tailwind">
+          <label class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-1.5">Tailwind Class</label>
+          <code class="text-[11px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 font-mono text-zinc-300 block w-full">
+            {{ tailwind }}
+          </code>
+        </div>
+
+        <div v-if="variable">
+          <label class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-1.5">CSS Variable</label>
+          <code class="text-[11px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 font-mono text-primary-500/80 block w-full">
+            {{ variable }}
+          </code>
+        </div>
       </div>
 
       <p
         v-if="usage"
-        class="text-sm leading-relaxed mt-auto"
-        :class="dark ? 'text-zinc-400' : 'text-zinc-600'"
+        class="text-sm font-medium leading-relaxed text-zinc-400 mt-auto border-t border-white/5 pt-6 italic"
       >
         {{ usage }}
       </p>

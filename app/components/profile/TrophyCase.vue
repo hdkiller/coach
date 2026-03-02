@@ -148,7 +148,7 @@
         <div
           v-for="pb in pbsByCategory[cat.id]"
           :key="pb.id"
-          class="floating-card-base grain-overlay p-10 rounded-[40px] flex flex-col justify-between h-full group"
+          class="floating-card-base grain-overlay p-10 rounded-[40px] flex flex-col justify-between h-full group !bg-white dark:!bg-[#111111] !border-gray-200 dark:!border-white/5"
         >
           <!-- Hero Glow & Patterns -->
           <div
@@ -160,7 +160,7 @@
             <!-- Top Header: Icon + Badge -->
             <div class="flex items-start justify-between mb-10">
               <div
-                class="p-5 rounded-[24px] bg-gray-950 border border-white/5 group-hover:border-primary-500/40 transition-colors duration-500"
+                class="p-5 rounded-[24px] bg-gray-100 dark:bg-gray-950 border border-gray-200 dark:border-white/5 group-hover:border-primary-500/40 transition-colors duration-500"
               >
                 <UIcon :name="getSportIcon(pb)" class="w-8 h-8 text-primary-500" />
               </div>
@@ -189,25 +189,25 @@
             <!-- Value & Label -->
             <div class="space-y-3">
               <div
-                class="text-[11px] font-black text-gray-600 uppercase tracking-[0.4em] ml-1"
+                class="text-[11px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.4em] ml-1"
               >
                 {{ formatType(pb.type) }}
               </div>
               <div class="flex items-baseline gap-4">
                 <span
-                  class="text-8xl font-black text-white tracking-tighter italic tabular-nums font-athletic leading-none drop-shadow-2xl"
+                  class="text-8xl font-black text-gray-900 dark:text-white tracking-tighter italic tabular-nums font-athletic leading-none drop-shadow-2xl"
                 >
                   {{ formatValue(pb) }}
                 </span>
                 <span
                   v-if="pb.unit !== 's'"
-                  class="text-xl font-black text-gray-600 uppercase italic tracking-widest"
+                  class="text-xl font-black text-gray-500 dark:text-gray-600 uppercase italic tracking-widest"
                 >
                   {{ pb.unit }}
                 </span>
                 <span
                   v-else
-                  class="text-xs font-black text-gray-600 uppercase tracking-[0.3em] italic"
+                  class="text-xs font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.3em] italic"
                 >
                   pace
                 </span>
@@ -220,13 +220,13 @@
                 v-if="pb.metadata?.avgHr || pb.workout?.averageHr"
                 class="flex items-center gap-3 group/stat"
               >
-                <div class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/stat:border-red-500/30 transition-colors">
+                <div class="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/5 group-hover/stat:border-red-500/30 transition-colors">
                   <UIcon name="i-heroicons-heart" class="w-6 h-6 text-red-500/60" />
                 </div>
                 <div>
-                  <div class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-0.5">Avg Heart Rate</div>
-                  <span class="text-base font-black text-gray-400 tabular-nums">
-                    {{ pb.metadata?.avgHr || pb.workout?.averageHr }} <span class="text-[10px] text-gray-600">BPM</span>
+                  <div class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5">Avg Heart Rate</div>
+                  <span class="text-base font-black text-gray-700 dark:text-gray-400 tabular-nums">
+                    {{ pb.metadata?.avgHr || pb.workout?.averageHr }} <span class="text-[10px] text-gray-500 dark:text-gray-600">BPM</span>
                   </span>
                 </div>
               </div>
@@ -234,13 +234,13 @@
                 v-if="pb.metadata?.avgCadence || pb.workout?.averageCadence"
                 class="flex items-center gap-3 group/stat"
               >
-                <div class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/stat:border-blue-500/30 transition-colors">
+                <div class="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/5 group-hover/stat:border-blue-500/30 transition-colors">
                   <UIcon name="i-lucide-rotate-cw" class="w-6 h-6 text-blue-500/60" />
                 </div>
                 <div>
-                  <div class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-0.5">Avg Cadence</div>
-                  <span class="text-base font-black text-gray-400 tabular-nums">
-                    {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }} <span class="text-[10px] text-gray-600">RPM</span>
+                  <div class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5">Avg Cadence</div>
+                  <span class="text-base font-black text-gray-700 dark:text-gray-400 tabular-nums">
+                    {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }} <span class="text-[10px] text-gray-500 dark:text-gray-600">RPM</span>
                   </span>
                 </div>
               </div>
@@ -249,15 +249,15 @@
 
           <!-- Footer: Date + Action -->
           <div
-            class="mt-14 pt-8 border-t border-white/5 flex items-end justify-between ml-1"
+            class="mt-14 pt-8 border-t border-gray-200 dark:border-white/5 flex items-end justify-between ml-1"
           >
             <div class="flex flex-col gap-1.5">
               <div
-                class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]"
+                class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.3em]"
               >
                 Achieved
               </div>
-              <div class="text-base font-black text-gray-500 italic">
+              <div class="text-base font-black text-gray-700 dark:text-gray-500 italic">
                 {{ getHumanDate(pb.date) }}
               </div>
             </div>

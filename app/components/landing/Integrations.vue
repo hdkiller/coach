@@ -1,5 +1,8 @@
 <script setup lang="ts">
   import { motion } from 'motion-v'
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('integrations')
 
   const integrations = [
     {
@@ -64,17 +67,20 @@
 
 <template>
   <section class="relative py-24 sm:py-32 overflow-hidden bg-gray-900 isolate">
-    <!-- Glow Background -->
-    <div
-      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/10 rounded-full blur-[120px] -z-10 pointer-events-none"
-    />
-
     <UContainer>
+      <!-- Intensive Focal Glimmer -->
+      <div
+        class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[100px] -z-10 pointer-events-none opacity-60"
+      />
+
       <div class="text-center mb-16 relative z-10">
-        <h2 class="text-4xl sm:text-5xl font-black uppercase tracking-tight text-white mb-6">
-          Your Data, <span class="text-primary-500">Unified.</span>
+        <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-primary-500 mb-4">
+          {{ t('label') }}
         </h2>
-        <p class="max-w-2xl mx-auto text-lg text-gray-400">
+        <h3 class="text-5xl sm:text-6xl font-black uppercase tracking-tight text-white mb-8 font-athletic italic leading-[0.85]">
+          Your Data, <span class="text-primary-500 tracking-[0.02em]">Unified.</span>
+        </h3>
+        <p class="max-w-2xl mx-auto text-xl text-gray-400 font-medium leading-relaxed">
           We sync seamlessly with the tools you already use. Stop jumping between apps and start
           seeing the full picture of your performance.
         </p>
@@ -96,11 +102,11 @@
               :x2="getPosition(i, integrations.length).x"
               :y2="getPosition(i, integrations.length).y"
               stroke="currentColor"
-              class="text-primary-500/20"
-              stroke-width="2"
-              stroke-dasharray="6 6"
+              class="text-primary-500/10"
+              stroke-width="1.5"
+              stroke-dasharray="8 8"
               :initial="{ pathLength: 0, opacity: 0 }"
-              :animate="{ pathLength: 1, opacity: 0.4 }"
+              :animate="{ pathLength: 1, opacity: 0.5 }"
               :transition="{ duration: 1.5, delay: i * 0.15, ease: 'easeOut' }"
             />
           </g>
@@ -109,7 +115,7 @@
         <!-- Central Hub -->
         <motion.div
           layout
-          class="relative z-20 w-32 h-32 bg-gray-950 rounded-3xl border-2 border-primary-500 shadow-[0_0_50px_rgba(34,197,94,0.3)] flex items-center justify-center p-6"
+          class="relative z-20 w-32 h-32 bg-black rounded-3xl border border-primary-500/40 shadow-[0_0_50px_rgba(34,197,94,0.2)] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl"
           :animate="{ scale: [1, 1.03, 1] }"
           :transition="{ duration: 4, repeat: Infinity, ease: 'easeInOut' }"
         >
@@ -133,12 +139,12 @@
           >
             <!-- Logo Card -->
             <div
-              class="relative w-24 h-24 bg-gray-950/80 backdrop-blur-md rounded-2xl border border-gray-800 p-5 transition-all duration-500 group-hover:border-primary-500/50 group-hover:bg-gray-900 group-hover:shadow-[0_0_40px_rgba(34,197,94,0.15)] cursor-default flex items-center justify-center"
+              class="relative w-24 h-24 bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 p-5 transition-all duration-500 group-hover:border-primary-500/50 group-hover:bg-[#0c0e12] group-hover:shadow-[0_0_40px_rgba(34,197,94,0.1)] cursor-default flex items-center justify-center grain-overlay shadow-xl"
             >
               <img
                 :src="integ.src"
                 :alt="integ.name"
-                class="w-full h-full object-contain filter grayscale opacity-40 transition-all duration-500 group-hover:grayscale-0 group-hover:invert-0 group-hover:brightness-100 group-hover:opacity-100 group-hover:scale-110"
+                class="w-full h-full object-contain filter grayscale opacity-30 transition-all duration-500 group-hover:grayscale-0 group-hover:invert-0 group-hover:brightness-100 group-hover:opacity-100 group-hover:scale-110"
                 :class="{ 'invert brightness-200': integ.color === '#000000' || !integ.color }"
               />
             </div>
@@ -146,7 +152,7 @@
             <!-- Status Pill Area (Always present to avoid layout shift) -->
             <div class="h-6 mt-3 flex justify-center">
               <div
-                class="px-2 py-0.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-[9px] font-black uppercase tracking-widest text-primary-400 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 whitespace-nowrap"
+                class="px-2 py-0.5 rounded-full bg-primary-500/10 border border-primary-500/30 text-[9px] font-black uppercase tracking-widest text-primary-400 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 whitespace-nowrap"
               >
                 {{ integ.status }}
               </div>
@@ -154,7 +160,7 @@
 
             <!-- Label -->
             <span
-              class="mt-1 text-xs font-bold text-gray-500 group-hover:text-white transition-colors"
+              class="mt-1 text-xs font-black text-slate-500 group-hover:text-white transition-colors uppercase tracking-[0.2em]"
               >{{ integ.name }}</span
             >
           </motion.div>
@@ -163,7 +169,7 @@
 
       <!-- Mobile/Tablet Layout: Grid -->
       <div class="lg:hidden">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
           <motion.div
             v-for="(integ, i) in integrations"
             :key="`mobile-${integ.name}`"
@@ -171,7 +177,7 @@
             :whileInView="{ opacity: 1, y: 0 }"
             :viewport="{ once: true }"
             :transition="{ delay: i * 0.1 }"
-            class="group flex flex-col items-center p-6 bg-gray-950/40 rounded-3xl border border-gray-800/50 hover:border-primary-500/30 transition-all duration-300 backdrop-blur-sm"
+            class="group flex flex-col items-center p-8 bg-gray-950/40 rounded-3xl border border-white/5 hover:border-primary-500/30 transition-all duration-300 backdrop-blur-sm grain-overlay"
           >
             <div class="w-16 h-16 mb-4 flex items-center justify-center">
               <img
@@ -182,9 +188,9 @@
               />
             </div>
             <div class="text-center">
-              <p class="text-sm font-bold text-white mb-1">{{ integ.name }}</p>
+              <p class="text-sm font-bold text-white mb-2 uppercase tracking-wide">{{ integ.name }}</p>
               <span
-                class="text-[9px] font-black uppercase tracking-[0.1em] text-primary-500/90"
+                class="text-[9px] font-black uppercase tracking-[0.15em] text-primary-500/90"
                 >{{ integ.status }}</span
               >
             </div>
@@ -193,17 +199,20 @@
       </div>
 
       <!-- CTA Link -->
-      <div class="mt-16 text-center">
-        <NuxtLink
+      <div class="mt-20 text-center">
+        <UButton
           to="/works-with"
-          class="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-primary-500 transition-colors uppercase tracking-widest group"
+          color="primary"
+          variant="link"
+          size="xl"
+          class="font-black uppercase tracking-[0.2em] group"
         >
           Explore all 20+ integrations
           <UIcon
             name="i-heroicons-arrow-right-20-solid"
-            class="w-4 h-4 transition-transform group-hover:translate-x-1"
+            class="w-5 h-5 transition-transform group-hover:translate-x-2"
           />
-        </NuxtLink>
+        </UButton>
       </div>
     </UContainer>
   </section>

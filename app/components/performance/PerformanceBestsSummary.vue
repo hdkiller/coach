@@ -1,87 +1,93 @@
 <template>
-  <div v-if="summaryItems.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div
+    v-if="summaryItems.length > 0"
+    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start"
+  >
     <UCard
       v-for="cat in summaryItems"
       :key="cat.id"
-      class="floating-card-base grain-overlay rounded-[32px] cursor-pointer group"
+      class="floating-card-base grain-overlay rounded-[24px] cursor-pointer group relative min-h-[132px] !bg-white dark:!bg-[#111111] !border-gray-200 dark:!border-white/5"
       :ui="{
         root: 'overflow-visible',
-        body: 'p-8 flex flex-col gap-8'
+        body: 'p-4 flex flex-col gap-2'
       }"
       @click="navigateTo('/performance/bests')"
     >
-      <div class="flex items-center justify-between">
-        <div
-          class="p-4 rounded-2xl bg-gray-950 border border-white/5 group-hover:border-primary-500/40 transition-colors duration-500"
+      <div
+        class="absolute top-4 right-4 flex flex-col items-end gap-1 opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+      >
+        <span class="text-[10px] font-black text-primary-500 uppercase tracking-widest text-right"
+          >Hall of Fame</span
         >
-          <UIcon :name="cat.icon" class="w-6 h-6" :class="cat.iconColor" />
-        </div>
         <div
-          v-if="cat.pb && isRecent(cat.pb.date)"
-          class="w-3 h-3 rounded-full bg-amber-400 animate-pulse shadow-[0_0_15px_rgba(251,191,36,0.8)]"
-        />
+          class="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center text-white shadow-lg shadow-primary-500/20"
+        >
+          <UIcon
+            name="i-heroicons-arrow-right"
+            class="w-3.5 h-3.5"
+          />
+        </div>
       </div>
 
-      <div v-if="cat.pb" class="space-y-2">
-        <div
-          class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]"
-        >
-          {{ formatType(cat.pb.type) }}
+      <div v-if="cat.pb" class="space-y-1">
+        <div class="flex items-center gap-2">
+          <div
+            class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.28em]"
+          >
+            {{ formatType(cat.pb.type) }}
+          </div>
+          <div
+            v-if="isRecent(cat.pb.date)"
+            class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_15px_rgba(251,191,36,0.8)]"
+          />
         </div>
-        <div class="flex items-baseline gap-3">
+        <div class="flex items-baseline gap-2 min-w-0 pr-14">
           <span
-            class="text-6xl font-black text-white tabular-nums italic tracking-tighter leading-none"
+            class="text-4xl font-black text-gray-900 dark:text-white tabular-nums italic tracking-tighter leading-none"
           >
             {{ formatValue(cat.pb) }}
           </span>
           <span
             v-if="cat.pb.unit !== 's'"
-            class="text-base font-black text-gray-600 uppercase italic"
+            class="text-sm font-black text-gray-500 dark:text-gray-600 uppercase italic"
             >{{ cat.pb.unit }}</span
           >
           <span
             v-else
-            class="text-[10px] font-black text-gray-600 uppercase tracking-widest italic"
+            class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-widest italic"
             >pace</span
           >
-        </div>
-      </div>
-
-      <div
-        class="flex items-center justify-between mt-auto pt-6 border-t border-white/5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500"
-      >
-        <span class="text-[10px] font-black text-primary-500 uppercase tracking-widest"
-          >Hall of Fame</span
-        >
-        <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white shadow-lg shadow-primary-500/20">
-          <UIcon
-            name="i-heroicons-arrow-right"
-            class="w-4 h-4"
-          />
         </div>
       </div>
     </UCard>
 
     <!-- Link Card to Full Trophy Case -->
     <UCard
-      class="floating-card-base grain-overlay border-dashed border-white/10 group hover:border-primary-500/50 transition-all duration-500 cursor-pointer flex flex-col justify-center items-center text-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)]"
-      :ui="{ root: 'rounded-[32px]', body: 'p-0 h-full flex items-center justify-center' }"
+      class="floating-card-base grain-overlay rounded-[24px] border-dashed group hover:border-primary-500/50 transition-all duration-500 cursor-pointer text-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] min-h-[132px] !bg-white dark:!bg-[#111111] !border-gray-200 dark:!border-white/10"
+      :ui="{ root: 'overflow-visible', body: 'p-4 h-full flex items-center gap-3' }"
       @click="navigateTo('/performance/bests')"
     >
-      <div class="flex flex-col items-center justify-center py-10">
-        <div
-          class="w-16 h-16 rounded-[24px] bg-gray-950 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:border-primary-500/30 transition-all duration-500"
-        >
-          <UIcon
-            name="i-heroicons-trophy"
-            class="w-8 h-8 text-gray-600 group-hover:text-primary-500 transition-colors"
-          />
+      <div
+        class="w-10 h-10 rounded-[14px] bg-gray-100 dark:bg-gray-950 border border-gray-200 dark:border-white/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:border-primary-500/30 transition-all duration-500"
+      >
+        <UIcon
+          name="i-heroicons-trophy"
+          class="w-5 h-5 text-gray-500 dark:text-gray-600 group-hover:text-primary-500 transition-colors"
+        />
+      </div>
+      <div class="min-w-0 text-left">
+        <div class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.28em]">
+          Explore
         </div>
         <span
-          class="text-[11px] font-black text-white uppercase tracking-[0.3em]"
+          class="block text-sm font-black text-gray-900 dark:text-white uppercase tracking-[0.2em]"
           >Full Trophy Case</span
         >
       </div>
+      <UIcon
+        name="i-heroicons-arrow-right"
+        class="w-4 h-4 text-primary-500 ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform duration-300"
+      />
     </UCard>
   </div>
 </template>
@@ -94,24 +100,15 @@
   const categories = [
     {
       id: 'RUN',
-      label: 'Running',
-      icon: 'i-heroicons-sparkles',
-      iconColor: 'text-blue-500',
-      bgColor: 'bg-blue-500'
+      label: 'Running'
     },
     {
       id: 'CYCLE',
-      label: 'Cycling',
-      icon: 'i-heroicons-bolt',
-      iconColor: 'text-green-500',
-      bgColor: 'bg-green-500'
+      label: 'Cycling'
     },
     {
       id: 'SWIM',
-      label: 'Swimming',
-      icon: 'i-heroicons-beaker',
-      iconColor: 'text-cyan-500',
-      bgColor: 'bg-cyan-500'
+      label: 'Swimming'
     }
   ]
 
