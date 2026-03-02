@@ -9,11 +9,20 @@
   const route = useRoute()
   const userId = route.params.id as string
   const toast = useToast()
+  const { data: session } = useAuth()
 
   const { data, pending, refresh } = await useFetch(`/api/admin/users/${userId}`)
 
   const impersonating = ref(false)
+  const deletingUser = ref(false)
   const sendingEmailIds = ref<string[]>([])
+  const isDeleteModalOpen = ref(false)
+
+  const isOwnAdminAccount = computed(() => {
+    const sessionUser = session.value?.user as any
+    const actorId = sessionUser?.originalUserId || sessionUser?.id
+    return actorId === userId
+  })
 
   async function impersonateUser() {
     impersonating.value = true
@@ -90,6 +99,34 @@
     }
   }
 
+  async function deleteUserAccount() {
+    if (deletingUser.value || isOwnAdminAccount.value) return
+
+    deletingUser.value = true
+    try {
+      await $fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      })
+      toast.add({
+        title: 'Deletion scheduled',
+        description:
+          'The user account has been scheduled for deletion and a transactional notification email was prepared.',
+        color: 'success'
+      })
+      await navigateTo('/admin/users')
+    } catch (error: any) {
+      toast.add({
+        title: 'Error',
+        description:
+          error?.data?.message || error?.message || 'Failed to schedule account deletion',
+        color: 'error'
+      })
+    } finally {
+      deletingUser.value = false
+      isDeleteModalOpen.value = false
+    }
+  }
+
   useHead({
     title: computed(() => `User: ${data.value?.profile.name || 'Unknown'}`)
   })
@@ -118,6 +155,14 @@
               icon="i-lucide-refresh-cw"
               :loading="pending"
               @click="() => refresh()"
+            />
+            <UButton
+              color="error"
+              variant="soft"
+              icon="i-lucide-trash-2"
+              label="Delete Account"
+              :disabled="isOwnAdminAccount"
+              @click="isDeleteModalOpen = true"
             />
           </div>
         </template>
@@ -520,4 +565,35 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <UModal
+    v-model:open="isDeleteModalOpen"
+    title="Delete User Account"
+    description="Dangerous: this will schedule permanent deletion of the entire user account."
+  >
+    <template #body>
+      <p class="text-error font-semibold mb-2">Warning: this action is irreversible.</p>
+      <p v-if="isOwnAdminAccount" class="text-sm text-warning">
+        You cannot use the admin deletion action on your own account.
+      </p>
+      <p v-else>
+        This will schedule deletion for <strong>{{ data?.profile.email }}</strong
+        >, invalidate all active sessions, and prepare a transactional notification email.
+      </p>
+    </template>
+
+    <template #footer>
+      <div class="flex gap-2 justify-end w-full">
+        <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false">Cancel</UButton>
+        <UButton
+          color="error"
+          :loading="deletingUser"
+          :disabled="isOwnAdminAccount"
+          @click="deleteUserAccount"
+        >
+          Delete Account
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>

@@ -107,11 +107,15 @@
         <p class="text-sm text-muted">
           Once you delete your account, there is no going back. Please be certain.
         </p>
+        <p v-if="accountDeletionBlocked" class="text-sm text-warning">
+          {{ accountDeletionBlockReason }}
+        </p>
         <UButton
           color="error"
           variant="outline"
           :loading="deletingAccount"
-          @click="isDeleteAccountModalOpen = true"
+          :disabled="accountDeletionBlocked"
+          @click="openDeleteAccountModal"
         >
           Delete Account
         </UButton>
@@ -224,16 +228,26 @@
       description="Dangerous: This will permanently delete your entire account and all data."
     >
       <template #body>
-        <p class="text-error font-semibold mb-2">Warning: This action is irreversible.</p>
-        <p>All your data including workouts, metrics, and reports will be permanently deleted.</p>
+        <p v-if="accountDeletionBlocked" class="text-warning font-semibold mb-2">
+          {{ accountDeletionBlockReason }}
+        </p>
+        <template v-else>
+          <p class="text-error font-semibold mb-2">Warning: This action is irreversible.</p>
+          <p>All your data including workouts, metrics, and reports will be permanently deleted.</p>
+        </template>
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
           <UButton color="neutral" variant="ghost" @click="isDeleteAccountModalOpen = false"
             >Cancel</UButton
           >
-          <UButton color="error" :loading="deletingAccount" @click="executeDeleteAccount"
-            >Delete Account</UButton
+          <UButton
+            color="error"
+            :loading="deletingAccount"
+            :disabled="accountDeletionBlocked"
+            @click="executeDeleteAccount"
+          >
+            Delete Account</UButton
           >
         </div>
       </template>
@@ -244,6 +258,7 @@
 <script setup lang="ts">
   const toast = useToast()
   const { signOut } = useAuth()
+  const coachingStore = useCoachingStore()
   const clearingSchedule = ref(false)
   const clearingPastSchedule = ref(false)
   const wipingProfiles = ref(false)
@@ -254,6 +269,40 @@
   const isWipeProfilesModalOpen = ref(false)
   const isWipeAnalysisModalOpen = ref(false)
   const isDeleteAccountModalOpen = ref(false)
+  const impersonationMeta = useCookie<{
+    adminId: string
+    adminEmail: string
+    impersonatedUserId: string
+    impersonatedUserEmail: string
+  }>('auth.impersonation_meta')
+
+  const accountDeletionBlockReason = computed(() => {
+    if (impersonationMeta.value) {
+      return 'Stop impersonating before using account deletion.'
+    }
+
+    if (coachingStore.isCoachingMode) {
+      return 'Exit coaching mode before using account deletion.'
+    }
+
+    return null
+  })
+
+  const accountDeletionBlocked = computed(() => !!accountDeletionBlockReason.value)
+
+  function openDeleteAccountModal() {
+    if (accountDeletionBlocked.value) {
+      toast.add({
+        title: 'Account deletion unavailable',
+        description:
+          accountDeletionBlockReason.value || 'You cannot delete this account right now.',
+        color: 'warning'
+      })
+      return
+    }
+
+    isDeleteAccountModalOpen.value = true
+  }
 
   async function executeClearSchedule() {
     clearingSchedule.value = true
@@ -356,6 +405,16 @@
   }
 
   async function executeDeleteAccount() {
+    if (accountDeletionBlocked.value) {
+      toast.add({
+        title: 'Account deletion unavailable',
+        description:
+          accountDeletionBlockReason.value || 'You cannot delete this account right now.',
+        color: 'warning'
+      })
+      return
+    }
+
     deletingAccount.value = true
     try {
       await $fetch('/api/profile', {
