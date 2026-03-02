@@ -148,12 +148,14 @@ export default defineEventHandler(async (event) => {
         id: `workout-${workout.id}`,
         type: 'workout',
         activityType: workout.type,
+        source: workout.source,
         sourceName:
           workout.source === 'intervals'
             ? 'Intervals.icu'
             : workout.source === 'strava'
               ? 'Strava'
               : workout.source,
+        deviceName: workout.deviceName,
         date: workout.date,
         icon: getWorkoutIcon(workout.type || ''),
         color: 'primary',
@@ -228,6 +230,7 @@ export default defineEventHandler(async (event) => {
           id: `nutrition-${dateKey}`,
           type: 'nutrition',
           activityType: 'Nutrition',
+          source: 'yazio',
           sourceName: 'Yazio',
           date: firstEntry.date,
           icon: 'i-tabler-tools-kitchen-2',
@@ -297,6 +300,7 @@ export default defineEventHandler(async (event) => {
           id: `wellness-${entry.id}`,
           type: 'wellness',
           activityType: 'Wellness',
+          source: entry.lastSource,
           sourceName: 'Health',
           date: entry.date,
           icon: 'i-tabler-heart-search',

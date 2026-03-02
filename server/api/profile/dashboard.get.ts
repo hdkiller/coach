@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
 
     // Get Sport Settings via Repository (ensures Default exists)
     const sportSettings = await sportSettingsRepository.getByUserId(user.id)
-    const defaultProfile = sportSettings.find((s) => s.isDefault)
+    const defaultProfile = sportSettings.find((s: any) => s.isDefault)
 
     const [wellness, dailyMetric, latestWeightWellness, latestBodyFatWellness] = await Promise.all([
       // Query most recent wellness record with any meaningful values (not only resting HR)
@@ -94,7 +94,8 @@ export default defineEventHandler(async (event) => {
           sleepLightSecs: true,
           sleepAwakeSecs: true,
           systolic: true,
-          diastolic: true
+          diastolic: true,
+          lastSource: true
         }
       }),
       // Also check DailyMetric as fallback
@@ -124,9 +125,11 @@ export default defineEventHandler(async (event) => {
           sleepDeepSecs: true,
           sleepRemSecs: true,
           sleepLightSecs: true,
-          sleepAwakeSecs: true
+          sleepAwakeSecs: true,
+          source: true
         }
       }),
+
       prisma.wellness.findFirst({
         where: {
           userId: user.id,
@@ -233,6 +236,7 @@ export default defineEventHandler(async (event) => {
         ? Math.round((wellnessData.sleepSecs / 3600) * 10) / 10
         : null)
     const recentRecoveryScore = wellnessData?.recoveryScore ?? null
+    const wellnessSource = wellnessData?.lastSource || wellnessData?.source || null
     const latestWellnessDate = wellnessDate
 
     // Additional wellness fields
@@ -318,6 +322,10 @@ export default defineEventHandler(async (event) => {
         case 'whoop':
           wellnessProviders.push('Whoop')
           break
+        case 'garmin':
+          workoutProviders.push('Garmin')
+          wellnessProviders.push('Garmin')
+          break
       }
     }
 
@@ -384,7 +392,9 @@ export default defineEventHandler(async (event) => {
         recentSystolic,
         recentDiastolic,
         recentReadiness,
+        wellnessSource,
         latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
+
         profileLastUpdated: user.profileLastUpdated?.toISOString() ?? null,
         latestWorkoutDate: latestWorkout?.date.toISOString() ?? null,
         nutritionTrackingEnabled: user.nutritionTrackingEnabled,

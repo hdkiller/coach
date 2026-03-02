@@ -12,8 +12,8 @@ export interface AttributionRule {
 
 export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
   garmin: {
-    logoLight: '/images/logos/Garmin-Tag-black-high-res.png',
-    logoDark: '/images/logos/Garmin-Tag-white-high-res.png',
+    logoLight: '/images/logos/WorksWithGarmin-Black.svg',
+    logoDark: '/images/logos/WorksWithGarmin-White.svg',
     requiresDeviceName: true,
     textFormat: (deviceName) => deviceName || 'Device',
     logoHeightClass: 'h-6'
