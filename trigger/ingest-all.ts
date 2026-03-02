@@ -11,6 +11,7 @@ import { ingestFitbitTask } from './ingest-fitbit'
 import { ingestHevyTask } from './ingest-hevy'
 import { ingestPolarTask } from './ingest-polar'
 import { ingestGarminTask } from './ingest-garmin'
+import { ingestRouvyTask } from './ingest-rouvy'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { processSyncQueueTask } from './process-sync-queue'
 import { deduplicateWorkoutsTask } from './deduplicate-workouts'
@@ -20,6 +21,7 @@ import { getUserTimezone } from '../server/utils/date'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { auditLogRepository } from '../server/utils/repositories/auditLogRepository'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
+import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../server/utils/ingestion-settings'
 import type { IngestionResult } from './types'
 
 export const ingestAllTask = task({
@@ -141,6 +143,12 @@ export const ingestAllTask = task({
             payload: { userId, startDate, endDate }
           })
           break
+        case 'rouvy':
+          tasksTrigger.push({
+            task: ingestRouvyTask,
+            payload: { userId, startDate, endDate }
+          })
+          break
         default:
           logger.warn(`Unknown provider: ${integration.provider}`)
       }
@@ -177,6 +185,7 @@ export const ingestAllTask = task({
         if (item.task.id === ingestHevyTask.id && i.provider === 'hevy') return true
         if (item.task.id === ingestPolarTask.id && i.provider === 'polar') return true
         if (item.task.id === ingestGarminTask.id && i.provider === 'garmin') return true
+        if (item.task.id === ingestRouvyTask.id && i.provider === 'rouvy') return true
         return false
       })
 
@@ -289,7 +298,7 @@ export const ingestAllTask = task({
     logger.log('='.repeat(60))
 
     // CHAIN: Deduplicate Workouts (Autonomously)
-    if (newWorkoutsIngested) {
+    if (newWorkoutsIngested && (await shouldAutoDeduplicateWorkoutsAfterIngestion(userId))) {
       console.log('[DEBUG] Triggering Workout Deduplication chain...')
       logger.log('🔄 Chaining: Triggering Workout Deduplication...')
       try {
