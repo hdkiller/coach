@@ -72,7 +72,8 @@
                   'whoop',
                   'intervals',
                   'withings',
-                  'hevy'
+                  'hevy',
+                  'wahoo'
                 ].includes(workout.source)
               "
               :provider="workout.source"

@@ -76,6 +76,14 @@ export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
     textFormat: () => '',
     logoHeightClass: 'h-8',
     invertInDarkMode: true
+  },
+  wahoo: {
+    logoLight: '/images/logos/wahoo_logo_white.webp',
+    logoDark: '/images/logos/wahoo_logo_white.webp',
+    requiresDeviceName: false,
+    textFormat: () => '',
+    logoHeightClass: 'h-4',
+    invertInDarkMode: true
   }
   // Future providers can be added here
 }

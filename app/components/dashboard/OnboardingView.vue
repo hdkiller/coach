@@ -207,6 +207,38 @@
               Connect
             </UButton>
           </UCard>
+
+          <!-- Wahoo -->
+          <UCard
+            class="hover:ring-2 hover:ring-blue-500/20 transition-all cursor-pointer"
+            @click="navigateTo('/connect-wahoo')"
+          >
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                class="w-8 h-8 bg-white rounded-md flex items-center justify-center overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
+              >
+                <img
+                  src="/images/logos/wahoo_logo_square.jpeg"
+                  alt="Wahoo Logo"
+                  class="w-5 h-5 object-contain"
+                />
+              </div>
+              <h4 class="font-bold text-gray-900 dark:text-white">Wahoo</h4>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 h-10">
+              Sync workouts and plans with your ELEMNT device.
+            </p>
+            <UButton
+              to="/connect-wahoo"
+              variant="soft"
+              color="neutral"
+              size="xs"
+              block
+              icon="i-heroicons-plus"
+            >
+              Connect
+            </UButton>
+          </UCard>
         </div>
       </div>
 

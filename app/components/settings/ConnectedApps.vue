@@ -479,6 +479,65 @@
       </div>
     </UCard>
 
+    <!-- Wahoo -->
+    <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
+      <div class="flex items-start gap-4">
+        <div
+          class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
+        >
+          <img
+            src="/images/logos/wahoo_logo_square.jpeg"
+            alt="Wahoo Logo"
+            class="w-full h-full object-cover"
+          />
+        </div>
+        <div>
+          <h3 class="font-semibold">Wahoo</h3>
+          <p class="text-sm text-muted">Activities and planned workouts sync</p>
+        </div>
+      </div>
+
+      <div
+        class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
+      >
+        <div v-if="!wahooConnected">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('wahoo')
+                navigateTo('/api/integrations/wahoo/authorize', { external: true })
+              }
+            "
+          >
+            Connect
+          </UButton>
+        </div>
+        <div v-else class="flex items-center gap-2">
+          <UButton
+            color="success"
+            variant="solid"
+            size="sm"
+            class="font-bold"
+            icon="i-heroicons-arrow-path"
+            :loading="syncingProviders.has('wahoo')"
+            @click="$emit('sync', 'wahoo')"
+          >
+            Sync Now
+          </UButton>
+          <UDropdownMenu :items="wahooActions">
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="sm"
+              icon="i-heroicons-ellipsis-vertical"
+            />
+          </UDropdownMenu>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Polar -->
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
@@ -898,6 +957,8 @@
     telegramConnected: boolean
     syncingProviders: Set<string>
     intervalsSettings: any
+    wahooConnected: boolean
+    wahooIngestWorkouts: boolean
   }>()
 
   const { signIn } = useAuth()
@@ -941,6 +1002,26 @@
         icon: 'i-heroicons-trash',
         color: 'error' as const,
         onSelect: () => emit('disconnect', 'intervals')
+      }
+    ]
+  ])
+
+  const wahooActions = computed(() => [
+    [
+      {
+        label: 'Ingest Workouts',
+        type: 'checkbox' as const,
+        checked: props.wahooIngestWorkouts,
+        onUpdateChecked: (checked: boolean) =>
+          emit('updateSetting', 'wahoo', 'ingestWorkouts', checked)
+      }
+    ],
+    [
+      {
+        label: 'Disconnect',
+        icon: 'i-heroicons-trash',
+        color: 'error' as const,
+        onSelect: () => emit('disconnect', 'wahoo')
       }
     ]
   ])
