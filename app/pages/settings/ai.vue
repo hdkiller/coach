@@ -50,7 +50,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <SettingsAiCoachSettings
         v-if="aiSettings"
-        :settings="aiSettings"
+        :settings="aiSettings as any"
         :force-unlocked="hasSuccessBypass"
         @save="saveAiSettings"
       />
@@ -58,7 +58,7 @@
       <div class="flex flex-col gap-6">
         <SettingsAiAutomationSettings
           v-if="aiSettings"
-          :settings="aiSettings"
+          :settings="aiSettings as any"
           :force-unlocked="hasSuccessBypass"
           @save="saveAiSettings"
         />

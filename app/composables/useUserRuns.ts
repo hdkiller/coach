@@ -66,7 +66,7 @@ export function useUserRuns() {
 
     isLoading.value = true
     try {
-      const data = (await $fetch<TriggerRun[]>('/api/runs/active')) as any[]
+      const data = (await ($fetch as any)('/api/runs/active')) as TriggerRun[]
 
       // Start with a map of existing runs to facilitate merging
       const mergedRunsMap = new Map<string, TriggerRun>()
@@ -162,7 +162,7 @@ export function useUserRuns() {
       startPing()
       if (session.value?.user && (session.value.user as any).id) {
         try {
-          const { token } = await $fetch<{ token: string }>('/api/websocket-token')
+          const { token } = await ($fetch as any)('/api/websocket-token')
           ws?.send(JSON.stringify({ type: 'authenticate', token }))
           ws?.send(JSON.stringify({ type: 'subscribe_user' }))
         } catch (e) {

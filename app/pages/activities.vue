@@ -96,6 +96,18 @@
                 <div class="w-2 h-2 rounded-full bg-red-500" />
                 <span>Missed</span>
               </div>
+              <div class="flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 pl-4 ml-1">
+                <div class="w-2 h-2 rounded-full bg-yellow-500" />
+                <span>Goal</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="w-2 h-2 rounded-full bg-purple-500" />
+                <span>Threshold</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="w-2 h-2 rounded-full bg-teal-500" />
+                <span>Personal Best</span>
+              </div>
               <div
                 v-if="nutritionEnabled"
                 class="flex items-center gap-3 border-l border-gray-300 dark:border-gray-700 pl-4 ml-1"
@@ -1482,6 +1494,27 @@
     } else if (activity.source === 'note') {
       // Open note modal
       await openCalendarNoteModal(activity.id)
+    } else if (activity.source === 'goal') {
+      // Navigate to plan page where goals are managed
+      navigateTo('/plan')
+    } else if (activity.source === 'threshold') {
+      // Show detail toast
+      const toast = useToast()
+      toast.add({
+        title: activity.title,
+        description: activity.description || 'Threshold update detected.',
+        color: 'primary',
+        icon: 'i-heroicons-arrow-trending-up'
+      })
+    } else if (activity.source === 'pb') {
+      // Show detail toast
+      const toast = useToast()
+      toast.add({
+        title: activity.title,
+        description: activity.description || 'New personal best achieved!',
+        color: 'success',
+        icon: 'i-heroicons-trophy'
+      })
     }
   }
 
@@ -1806,6 +1839,9 @@
     if (t.includes('weight') || t.includes('strength')) return 'i-heroicons-trophy'
     if (t.includes('note') || t.includes('target') || t.includes('holiday'))
       return 'i-heroicons-document-text'
+    if (t.includes('goal')) return 'i-heroicons-flag'
+    if (t.includes('threshold')) return 'i-heroicons-arrow-trending-up'
+    if (t.includes('pb')) return 'i-heroicons-trophy'
     return 'i-heroicons-check-circle'
   }
 
