@@ -597,10 +597,10 @@ ${projectedMetrics
 
     // Build zone definitions based on today's activity type
     let zoneDefinitions = ''
-    let activeProfile = sportSettings.find((s) => s.isDefault)
+    let activeProfile = sportSettings.find((s: any) => s.isDefault)
     if (primaryPlannedWorkout?.type) {
       const match = sportSettings.find(
-        (s) => !s.isDefault && s.types.includes(primaryPlannedWorkout.type!)
+        (s: any) => !s.isDefault && s.types.includes(primaryPlannedWorkout.type!)
       )
       if (match) activeProfile = match
     }

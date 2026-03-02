@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
 
     // Get Sport Settings via Repository (handles Default lazy creation)
     const sportSettings = await sportSettingsRepository.getByUserId(user.id)
-    const defaultProfile = sportSettings.find((s) => s.isDefault)
+    const defaultProfile = sportSettings.find((s: any) => s.isDefault)
 
     // Helper to format date as YYYY-MM-DD
     const formatDate = (date: Date | null) => {

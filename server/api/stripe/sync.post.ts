@@ -27,6 +27,7 @@ function mapStripeStatus(subscription: Stripe.Subscription): SubscriptionStatus 
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
+  const config = useRuntimeConfig()
   if (!session?.user?.id) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }

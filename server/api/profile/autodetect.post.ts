@@ -103,7 +103,7 @@ export default defineEventHandler(async (event) => {
         // IntervalsService.getAthlete normalizes this.
 
         const existing = existingSettings.find(
-          (s) => s.externalId === newSetting.externalId && s.source === 'intervals'
+          (s: any) => s.externalId === newSetting.externalId && s.source === 'intervals'
         )
 
         if (!existing) {

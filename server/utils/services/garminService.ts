@@ -400,12 +400,12 @@ export const GarminService = {
                 userId,
                 workoutId: upserted.record.id,
                 filename: `garmin_${externalId}.fit`,
-                fileData: buffer,
+                fileData: buffer as any,
                 hash
               },
               update: {
                 filename: `garmin_${externalId}.fit`,
-                fileData: buffer,
+                fileData: buffer as any,
                 hash
               }
             })

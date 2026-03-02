@@ -66,15 +66,16 @@ export function useUserRuns() {
 
     isLoading.value = true
     try {
-      const data = await $fetch<TriggerRun[]>('/api/runs/active')
+      const data = (await $fetch<TriggerRun[]>('/api/runs/active')) as any[]
 
       // Start with a map of existing runs to facilitate merging
       const mergedRunsMap = new Map<string, TriggerRun>()
       runs.value.forEach((r) => mergedRunsMap.set(r.id, r))
 
       // Update/Add with new data from API
-      data.forEach((run) => {
+      data.forEach((run: any) => {
         const existing = mergedRunsMap.get(run.id)
+
         if (existing) {
           // Check existing runs for any local final states we want to preserve
           // (e.g. if API is slightly behind and says EXECUTING but we know it's COMPLETED via WS)
