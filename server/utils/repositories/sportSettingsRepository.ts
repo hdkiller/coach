@@ -97,6 +97,7 @@ export const sportSettingsRepository = {
    * Ensures Default profile is preserved/updated correctly.
    */
   async upsertSettings(userId: string, settingsPayload: any[]) {
+    const prisma = globalPrisma
     // We handle updates by iterating.
     // Identify by ID if present, or externalId+source.
 
