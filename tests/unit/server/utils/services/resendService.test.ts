@@ -11,6 +11,9 @@ vi.mock('../../../../../server/utils/db', () => ({
     },
     emailSuppression: {
       upsert: vi.fn()
+    },
+    user: {
+      updateMany: vi.fn()
     }
   }
 }))
@@ -80,6 +83,13 @@ describe('ResendService', () => {
           reason: 'BOUNCE'
         }),
         update: expect.any(Object)
+      })
+
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: { email: mockDelivery.toEmail },
+        data: expect.objectContaining({
+          emailStatus: 'BOUNCED'
+        })
       })
     })
 

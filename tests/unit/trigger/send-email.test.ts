@@ -18,6 +18,13 @@ vi.mock('../../../server/utils/db', () => ({
   }
 }))
 
+// Mock EmailDeliveryService
+vi.mock('../../../server/utils/services/emailDeliveryService', () => ({
+  EmailDeliveryService: {
+    dispatch: vi.fn()
+  }
+}))
+
 // Mock logger
 vi.mock('@trigger.dev/sdk/v3', async () => {
   const actual = await vi.importActual('@trigger.dev/sdk/v3')
@@ -64,7 +71,8 @@ describe('sendEmailTask', () => {
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
-    emailPreferences: []
+    emailPreferences: [],
+    emailStatus: 'VALID'
   }
 
   it('should skip if email is suppressed', async () => {
@@ -83,6 +91,12 @@ describe('sendEmailTask', () => {
     vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
     vi.mocked(prisma.emailDelivery.create).mockResolvedValue({ id: 'delivery-1' } as any)
+    const { EmailDeliveryService } =
+      await import('../../../server/utils/services/emailDeliveryService')
+    vi.mocked(EmailDeliveryService.dispatch).mockResolvedValue({
+      id: 'delivery-1',
+      status: 'SENT'
+    } as any)
 
     const result = await sendEmailTask.run(mockPayload, { ctx: {} } as any)
 
@@ -136,6 +150,20 @@ describe('sendEmailTask', () => {
       { ...mockPayload, templateKey: 'WorkoutAnalysisReady' },
       { ctx: {} } as any
     )
+
+    expect(result).toBeUndefined()
+    expect(prisma.emailDelivery.create).not.toHaveBeenCalled()
+  })
+
+  it('should skip if user email status is BOUNCED', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      ...mockUser,
+      emailStatus: 'BOUNCED'
+    } as any)
+    vi.mocked(prisma.emailDelivery.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.emailSuppression.findFirst).mockResolvedValue(null)
+
+    const result = await sendEmailTask.run(mockPayload, { ctx: {} } as any)
 
     expect(result).toBeUndefined()
     expect(prisma.emailDelivery.create).not.toHaveBeenCalled()

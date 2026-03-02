@@ -46,9 +46,13 @@ describe('getUserAiSettings', () => {
         aiProactivityEnabled: true,
         aiConversationalEngagement: true,
         aiContext: true,
-        nickname: true,
         nutritionTrackingEnabled: true,
-        updateWorkoutNotesEnabled: true
+        updateWorkoutNotesEnabled: true,
+        nickname: true,
+        aiTtsStyle: true,
+        aiTtsVoiceName: true,
+        aiTtsSpeed: true,
+        aiTtsAutoReadMessages: true
       }
     })
 
@@ -64,7 +68,11 @@ describe('getUserAiSettings', () => {
       aiContext: 'I have a sore knee.',
       nickname: undefined,
       nutritionTrackingEnabled: true,
-      updateWorkoutNotesEnabled: true
+      updateWorkoutNotesEnabled: true,
+      aiTtsStyle: 'coach',
+      aiTtsVoiceName: 'Kore',
+      aiTtsSpeed: 'normal',
+      aiTtsAutoReadMessages: false
     })
   })
 
@@ -85,7 +93,11 @@ describe('getUserAiSettings', () => {
       aiContext: null,
       nickname: null,
       nutritionTrackingEnabled: true,
-      updateWorkoutNotesEnabled: true
+      updateWorkoutNotesEnabled: true,
+      aiTtsStyle: 'coach',
+      aiTtsVoiceName: 'Kore',
+      aiTtsSpeed: 'normal',
+      aiTtsAutoReadMessages: false
     })
   })
 
@@ -110,7 +122,11 @@ describe('getUserAiSettings', () => {
       aiContext: undefined,
       nickname: undefined,
       nutritionTrackingEnabled: true,
-      updateWorkoutNotesEnabled: true
+      updateWorkoutNotesEnabled: true,
+      aiTtsStyle: 'coach',
+      aiTtsVoiceName: 'Kore',
+      aiTtsSpeed: 'normal',
+      aiTtsAutoReadMessages: false
     })
   })
 })

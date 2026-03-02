@@ -7,8 +7,17 @@ import { IntervalsService } from '../../../../../server/utils/services/intervals
 
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
-    integration: { findUnique: vi.fn() },
-    plannedWorkout: { findUnique: vi.fn(), update: vi.fn() }
+    integration: { findUnique: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
+    plannedWorkout: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+      upsert: vi.fn()
+    },
+    user: { findUnique: vi.fn(), update: vi.fn() },
+    workout: { findUnique: vi.fn(), update: vi.fn(), findFirst: vi.fn(), delete: vi.fn() },
+    workoutStream: { upsert: vi.fn() }
   }
 }))
 
