@@ -27,7 +27,8 @@ import {
   getSorenessLabel,
   getMotivationLabel,
   getHydrationLabel,
-  getInjuryLabel
+  getInjuryLabel,
+  evaluateFitbitRecoveryAlert
 } from '../server/utils/wellness'
 
 interface RecommendationAnalysis {
@@ -235,6 +236,7 @@ export const recommendTodayActivityTask = task({
       sportSettings,
       todayAvailability,
       weeklyAvailability,
+      recentWellness,
       mealTargetContext
     ] = await Promise.all([
       // Today's planned workouts (Fetch ALL to handle multi-session days)
@@ -368,6 +370,16 @@ export const recommendTodayActivityTask = task({
 
       // Full weekly training availability (for forward-looking guidance)
       availabilityRepository.getFullSchedule(userId),
+
+      wellnessRepository.getForUser(userId, {
+        startDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
+        endDate: today,
+        select: {
+          date: true,
+          hrv: true
+        },
+        orderBy: { date: 'desc' }
+      }),
 
       // Canonical metabolic meal target context (same engine as nutrition charts)
       nutritionEnabled
@@ -642,6 +654,22 @@ ${analysis.recommendations ? 'Recommendations:\n' + analysis.recommendations.map
 `
     }
 
+    const fitbitRecoveryAlert = evaluateFitbitRecoveryAlert({
+      source: enrichedTodayMetric?.source,
+      lastSource: enrichedTodayMetric?.lastSource,
+      hrv: enrichedTodayMetric?.hrv,
+      sleepHours: enrichedTodayMetric?.sleepHours,
+      sleepQuality: enrichedTodayMetric?.sleepQuality,
+      sleepScore: enrichedTodayMetric?.sleepScore,
+      atl: currentFitness?.atl,
+      recentHrvValues: recentWellness.map((metric) => metric.hrv)
+    })
+
+    const fitbitRecoveryAlertContext = `
+FITBIT RECOVERY ALERT CHECK:
+- ${fitbitRecoveryAlert.summary}
+`
+
     // Build canonical metabolic meal-target context
     const mealTargetContextText = mealTargetContext
       ? `
@@ -759,6 +787,7 @@ ${enrichedTodayMetric.spO2 ? `- SpO2: ${enrichedTodayMetric.spO2}%` : ''}
 }
 
 ${wellnessAnalysisContext}
+${fitbitRecoveryAlertContext}
 ${mealTargetContextText}
 
 ${checkinsSummary}
@@ -783,6 +812,7 @@ CRITICAL INSTRUCTIONS:
 3. IGNORE any conflicting TSB/CTL values found in the "ATHLETE PROFILE" section if they differ from the Source of Truth, as they may be stale summaries.
 4. Refer to the "PROJECTED FITNESS TRENDS" for future state, but base your primary decision on the current TSB and recovery metrics.
 5. RESPECT TRAINING AVAILABILITY: do not recommend sessions outside declared availability windows unless user feedback explicitly asks to override.
+6. If Fitbit recovery alert is triggered, bias strongly toward 'rest' or 'reduce_intensity' unless user feedback explicitly requests otherwise.
 
 ${zoneDefinitions}
 

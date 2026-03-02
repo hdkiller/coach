@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   mergeFitbitNutritionWithExisting,
-  normalizeFitbitNutrition
+  normalizeFitbitNutrition,
+  normalizeFitbitWellness
 } from '../../../../server/utils/fitbit'
 
 describe('fitbit nutrition normalization and merge', () => {
@@ -254,5 +255,101 @@ describe('fitbit nutrition normalization and merge', () => {
 
     expect(fitbitItem?.logged_at).toBe('2026-02-20T00:45:00.000Z')
     expect(fitbitItem?.fitbitTimeDerived).toBe(false)
+  })
+})
+
+describe('fitbit wellness normalization', () => {
+  it('normalizes sleep, HRV, and resting heart rate into wellness fields', () => {
+    const normalized = normalizeFitbitWellness(
+      {
+        sleep: [
+          {
+            isMainSleep: true,
+            minutesAsleep: 420,
+            efficiency: 88,
+            levels: {
+              summary: {
+                deep: { minutes: 90 },
+                light: { minutes: 230 },
+                rem: { minutes: 100 },
+                wake: { minutes: 25 }
+              }
+            }
+          }
+        ],
+        summary: {
+          totalMinutesAsleep: 420
+        }
+      },
+      {
+        hrv: [
+          {
+            dateTime: '2026-03-01',
+            value: {
+              dailyRmssd: 54.2
+            }
+          }
+        ]
+      },
+      {
+        'activities-heart': [
+          {
+            dateTime: '2026-03-01',
+            value: {
+              restingHeartRate: 47
+            }
+          }
+        ]
+      },
+      {
+        'activities-heart-intraday': {
+          dataset: [
+            { time: '00:15:00', value: 46 },
+            { time: '01:10:00', value: 45 },
+            { time: '05:55:00', value: 47 },
+            { time: '12:00:00', value: 86 }
+          ]
+        }
+      },
+      'user-1',
+      '2026-03-01'
+    )
+
+    expect(normalized).not.toBeNull()
+    expect(normalized?.hrv).toBe(54.2)
+    expect(normalized?.restingHr).toBe(47)
+    expect(normalized?.avgSleepingHr).toBe(46)
+    expect(normalized?.sleepSecs).toBe(25200)
+    expect(normalized?.sleepHours).toBe(7)
+    expect(normalized?.sleepQuality).toBe(88)
+    expect(normalized?.sleepDeepSecs).toBe(5400)
+    expect(normalized?.sleepLightSecs).toBe(13800)
+    expect(normalized?.sleepRemSecs).toBe(6000)
+    expect(normalized?.sleepAwakeSecs).toBe(1500)
+    expect(normalized?.source).toBe('fitbit')
+  })
+
+  it('returns null when no wellness metrics are available', () => {
+    const normalized = normalizeFitbitWellness(
+      {
+        sleep: [],
+        summary: {}
+      },
+      {
+        hrv: []
+      },
+      {
+        'activities-heart': []
+      },
+      {
+        'activities-heart-intraday': {
+          dataset: []
+        }
+      },
+      'user-1',
+      '2026-03-01'
+    )
+
+    expect(normalized).toBeNull()
   })
 })

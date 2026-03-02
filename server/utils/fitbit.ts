@@ -89,6 +89,82 @@ export interface FitbitWaterGoalsResponse {
   }
 }
 
+export interface FitbitSleepLogResponse {
+  sleep?: Array<{
+    dateOfSleep?: string
+    duration?: number
+    efficiency?: number
+    endTime?: string
+    isMainSleep?: boolean
+    logId?: number
+    minutesAfterWakeup?: number
+    minutesAsleep?: number
+    minutesAwake?: number
+    minutesToFallAsleep?: number
+    startTime?: string
+    timeInBed?: number
+    type?: 'classic' | 'stages'
+    levels?: {
+      summary?: {
+        deep?: { minutes?: number }
+        light?: { minutes?: number }
+        rem?: { minutes?: number }
+        wake?: { minutes?: number }
+        asleep?: { minutes?: number }
+        restless?: { minutes?: number }
+        awake?: { minutes?: number }
+      }
+    }
+  }>
+  summary?: {
+    stages?: {
+      deep?: number
+      light?: number
+      rem?: number
+      wake?: number
+    }
+    totalMinutesAsleep?: number
+    totalSleepRecords?: number
+    totalTimeInBed?: number
+  }
+}
+
+export interface FitbitHrvSummaryResponse {
+  hrv?: Array<{
+    dateTime?: string
+    value?: {
+      dailyRmssd?: number
+      deepRmssd?: number
+    }
+  }>
+}
+
+export interface FitbitHeartRateResponse {
+  'activities-heart'?: Array<{
+    dateTime?: string
+    value?: {
+      restingHeartRate?: number
+    }
+  }>
+}
+
+export interface FitbitHeartRateIntradayResponse {
+  'activities-heart'?: Array<{
+    dateTime?: string
+    value?: {
+      restingHeartRate?: number
+    }
+  }>
+  'activities-heart-intraday'?: {
+    dataset?: Array<{
+      time?: string
+      value?: number
+    }>
+    datasetInterval?: number
+    datasetType?: string
+  }
+}
+
 function encodeBasicAuth(clientId: string, clientSecret: string) {
   const creds = `${clientId}:${clientSecret}`
   return Buffer.from(creds).toString('base64')
@@ -286,6 +362,182 @@ export async function fetchFitbitWaterGoals(
     integration,
     '/1/user/-/foods/log/water/goal.json'
   )
+}
+
+export async function fetchFitbitSleepLog(
+  integration: Integration,
+  date: string
+): Promise<FitbitSleepLogResponse> {
+  return await fitbitGet<FitbitSleepLogResponse>(integration, `/1.2/user/-/sleep/date/${date}.json`)
+}
+
+export async function fetchFitbitHrvSummary(
+  integration: Integration,
+  date: string
+): Promise<FitbitHrvSummaryResponse> {
+  return await fitbitGet<FitbitHrvSummaryResponse>(integration, `/1/user/-/hrv/date/${date}.json`)
+}
+
+export async function fetchFitbitHeartRateSummary(
+  integration: Integration,
+  date: string
+): Promise<FitbitHeartRateResponse> {
+  return await fitbitGet<FitbitHeartRateResponse>(
+    integration,
+    `/1/user/-/activities/heart/date/${date}/1d.json`
+  )
+}
+
+export async function fetchFitbitHeartRateIntraday(
+  integration: Integration,
+  date: string
+): Promise<FitbitHeartRateIntradayResponse | null> {
+  const scope = (integration.scope || '').toLowerCase()
+  if (!scope.includes('heartrate')) {
+    return null
+  }
+
+  try {
+    return await fitbitGet<FitbitHeartRateIntradayResponse>(
+      integration,
+      `/1/user/-/activities/heart/date/${date}/1d/1min.json`
+    )
+  } catch (error) {
+    if (error instanceof Error && /403|404/.test(error.message)) {
+      return null
+    }
+    throw error
+  }
+}
+
+export function normalizeFitbitWellness(
+  sleepLog: FitbitSleepLogResponse | null,
+  hrvSummary: FitbitHrvSummaryResponse | null,
+  heartRateSummary: FitbitHeartRateResponse | null,
+  heartRateIntraday: FitbitHeartRateIntradayResponse | null,
+  userId: string,
+  date: string
+) {
+  const [year = 0, month = 1, day = 1] = date.split('-').map(Number)
+  const dateObj = new Date(Date.UTC(year, month - 1, day))
+
+  const mainSleep =
+    sleepLog?.sleep?.find((entry) => entry?.isMainSleep) ||
+    (Array.isArray(sleepLog?.sleep) ? sleepLog?.sleep[0] : null)
+  const sleepSummary = sleepLog?.summary || {}
+
+  const summaryStageMinutes = sleepSummary.stages || {}
+  const levelSummary = mainSleep?.levels?.summary || {}
+
+  const deepMinutes =
+    summaryStageMinutes.deep ?? levelSummary.deep?.minutes ?? levelSummary.asleep?.minutes ?? null
+  const lightMinutes = summaryStageMinutes.light ?? levelSummary.light?.minutes ?? null
+  const remMinutes = summaryStageMinutes.rem ?? levelSummary.rem?.minutes ?? null
+  const wakeMinutes =
+    summaryStageMinutes.wake ??
+    levelSummary.wake?.minutes ??
+    levelSummary.awake?.minutes ??
+    mainSleep?.minutesAwake ??
+    null
+
+  const totalMinutesAsleep = mainSleep?.minutesAsleep ?? sleepSummary.totalMinutesAsleep ?? null
+  const sleepSecs =
+    typeof totalMinutesAsleep === 'number' && Number.isFinite(totalMinutesAsleep)
+      ? Math.round(totalMinutesAsleep * 60)
+      : null
+  const sleepHours = sleepSecs != null ? Math.round((sleepSecs / 3600) * 10) / 10 : null
+
+  const sleepQuality =
+    typeof mainSleep?.efficiency === 'number' && Number.isFinite(mainSleep.efficiency)
+      ? Math.round(mainSleep.efficiency)
+      : null
+
+  const hrvValue = hrvSummary?.hrv?.[0]?.value || null
+  const hrvRmssd =
+    typeof hrvValue?.dailyRmssd === 'number'
+      ? hrvValue.dailyRmssd
+      : typeof hrvValue?.deepRmssd === 'number'
+        ? hrvValue.deepRmssd
+        : null
+
+  const restingHeartRate =
+    heartRateSummary?.['activities-heart']?.[0]?.value?.restingHeartRate ?? null
+
+  const intradayHeartRates = (heartRateIntraday?.['activities-heart-intraday']?.dataset || [])
+    .map((point) => {
+      const hr =
+        typeof point.value === 'number' && Number.isFinite(point.value) ? point.value : null
+      const hour = typeof point.time === 'string' ? Number(point.time.split(':')[0]) : NaN
+      return { hr, hour }
+    })
+    .filter((point) => point.hr !== null && Number.isFinite(point.hour) && point.hour >= 0)
+
+  const likelySleepingRates = intradayHeartRates
+    .filter((point) => point.hour <= 5)
+    .map((point) => point.hr as number)
+
+  const avgSleepingHr =
+    likelySleepingRates.length > 0
+      ? Math.round(
+          likelySleepingRates.reduce((sum, value) => sum + value, 0) / likelySleepingRates.length
+        )
+      : null
+
+  const hasWellnessData =
+    hrvRmssd != null ||
+    restingHeartRate != null ||
+    avgSleepingHr != null ||
+    sleepSecs != null ||
+    sleepQuality != null ||
+    deepMinutes != null ||
+    lightMinutes != null ||
+    remMinutes != null ||
+    wakeMinutes != null
+
+  if (!hasWellnessData) {
+    return null
+  }
+
+  return {
+    userId,
+    date: dateObj,
+    hrv: hrvRmssd,
+    hrvSdnn: null,
+    restingHr: restingHeartRate,
+    avgSleepingHr,
+    sleepSecs,
+    sleepHours,
+    sleepScore: null,
+    sleepQuality,
+    sleepDeepSecs:
+      typeof deepMinutes === 'number' && Number.isFinite(deepMinutes)
+        ? Math.round(deepMinutes * 60)
+        : null,
+    sleepRemSecs:
+      typeof remMinutes === 'number' && Number.isFinite(remMinutes)
+        ? Math.round(remMinutes * 60)
+        : null,
+    sleepLightSecs:
+      typeof lightMinutes === 'number' && Number.isFinite(lightMinutes)
+        ? Math.round(lightMinutes * 60)
+        : null,
+    sleepAwakeSecs:
+      typeof wakeMinutes === 'number' && Number.isFinite(wakeMinutes)
+        ? Math.round(wakeMinutes * 60)
+        : null,
+    readiness: null,
+    recoveryScore: null,
+    spO2: null,
+    respiration: null,
+    skinTemp: null,
+    rawJson: {
+      sleepLog,
+      hrvSummary,
+      heartRateSummary,
+      heartRateIntraday
+    },
+    source: 'fitbit'
+  }
 }
 
 const MEAL_TYPE_MAP: Record<number, MealKey> = {
