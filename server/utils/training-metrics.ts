@@ -137,15 +137,36 @@ export async function calculateZoneDistribution(
 ): Promise<{ hr?: ZoneDistribution; power?: ZoneDistribution }> {
   if (workoutIds.length === 0) return {}
 
-  // Fetch user's default sport settings (primary zone source)
   const defaultProfile = await sportSettingsRepository.getDefault(userId)
+  let zoneProfile = defaultProfile
+
+  const workouts = await prisma.workout.findMany({
+    where: { id: { in: workoutIds } },
+    select: {
+      id: true,
+      type: true
+    }
+  })
+
+  const uniqueTypes = Array.from(
+    new Set(
+      workouts
+        .map((workout) => workout.type)
+        .filter((type): type is string => typeof type === 'string' && type.length > 0)
+    )
+  )
+
+  // Use sport-specific zones only when the whole selection is clearly one activity type.
+  if (uniqueTypes.length === 1) {
+    zoneProfile = await sportSettingsRepository.getForActivityType(userId, uniqueTypes[0]!)
+  }
 
   let hrZones: Zone[] = []
   let powerZones: Zone[] = []
 
-  if (defaultProfile) {
-    hrZones = (defaultProfile.hrZones as unknown as Zone[]) || []
-    powerZones = (defaultProfile.powerZones as unknown as Zone[]) || []
+  if (zoneProfile) {
+    hrZones = (zoneProfile.hrZones as unknown as Zone[]) || []
+    powerZones = (zoneProfile.powerZones as unknown as Zone[]) || []
   }
 
   // Fallback to legacy User zones if default profile zones are empty

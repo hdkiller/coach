@@ -26,7 +26,8 @@ vi.mock('../../../../../server/utils/db', () => ({
       findUnique: vi.fn()
     },
     workout: {
-      findFirst: vi.fn()
+      findFirst: vi.fn(),
+      findMany: vi.fn()
     }
   }
 }))
@@ -97,40 +98,94 @@ describe('analysisTools', () => {
     it('should forecast from provided planned workouts and include metric forecasts', async () => {
       vi.mocked(getInitialPMCValues).mockResolvedValue({ ctl: 35, atl: 40 })
       vi.mocked(calculateProjectedPMC).mockReturnValue([
-        { date: new Date('2026-02-20T00:00:00Z'), ctl: 35.8, atl: 41.3, tsb: -5.5, tss: 70 },
-        { date: new Date('2026-02-21T00:00:00Z'), ctl: 36.2, atl: 42.5, tsb: -6.3, tss: 80 }
+        { date: new Date('2026-03-20T00:00:00Z'), ctl: 35.8, atl: 41.3, tsb: -5.5, tss: 70 },
+        { date: new Date('2026-03-21T00:00:00Z'), ctl: 36.2, atl: 42.5, tsb: -6.3, tss: 80 }
       ] as any)
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([] as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ ftp: 230 } as any)
       vi.mocked(prisma.workout.findFirst).mockResolvedValue({ maxWatts: 820 } as any)
 
       const result = await tools.forecast_training_load.execute(
         {
-          start_date: '2026-02-20',
-          end_date: '2026-02-21',
+          start_date: '2026-03-20',
+          end_date: '2026-03-21',
           focus_metric: 'CTL',
-          planned_workouts: [{ date: '2026-02-20', tss: 75, duration_minutes: 75, type: 'Tempo' }]
+          planned_workouts: [{ date: '2026-03-20', tss: 75, duration_minutes: 75, type: 'Tempo' }]
         },
         { toolCallId: '1', messages: [] }
       )
 
-      expect(getInitialPMCValues).toHaveBeenCalledWith(userId, new Date('2026-02-20T00:00:00Z'))
+      expect(getInitialPMCValues).toHaveBeenCalledWith(userId, new Date('2026-03-20T00:00:00Z'))
       expect(calculateProjectedPMC).toHaveBeenCalled()
       expect(result).toMatchObject({
         predictions: [
-          { date: '2026-02-20', ctl: 35.8, atl: 41.3, tsb: -5.5 },
-          { date: '2026-02-21', ctl: 36.2, atl: 42.5, tsb: -6.3 }
+          { date: '2026-03-20', ctl: 35.8, atl: 41.3, tsb: -5.5 },
+          { date: '2026-03-21', ctl: 36.2, atl: 42.5, tsb: -6.3 }
         ],
         summary: expect.any(String),
         ftp_forecast: {
-          date: '2026-02-21',
+          date: '2026-03-21',
           confidence: expect.any(Number)
         },
         peak_power_forecast: {
-          date: '2026-02-21',
+          date: '2026-03-21',
           confidence: expect.any(Number)
         },
         focus_metric: 'CTL'
       })
+    })
+
+    it('should include completed workouts before future planned projection windows', async () => {
+      vi.mocked(getInitialPMCValues).mockResolvedValue({ ctl: 0, atl: 0 })
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([
+        { date: new Date('2026-03-01T00:00:00Z'), tss: 80, durationSec: 3600, type: 'Run' }
+      ] as any)
+      vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([
+        { date: new Date('2026-03-03T00:00:00Z'), tss: 50, durationSec: 3600, type: 'Run' }
+      ] as any)
+      vi.mocked(calculateProjectedPMC).mockReturnValue([
+        { date: new Date('2026-03-01T00:00:00Z'), ctl: 1, atl: 2, tsb: -1, tss: 80 },
+        { date: new Date('2026-03-02T00:00:00Z'), ctl: 1, atl: 1.5, tsb: -0.5, tss: 0 },
+        { date: new Date('2026-03-03T00:00:00Z'), ctl: 2, atl: 3, tsb: -1, tss: 50 }
+      ] as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ ftp: 230 } as any)
+      vi.mocked(prisma.workout.findFirst).mockResolvedValue({ maxWatts: 820 } as any)
+
+      await tools.forecast_training_load.execute(
+        {
+          start_date: '2026-03-01',
+          end_date: '2026-03-03'
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(prisma.workout.findMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          isDuplicate: false,
+          date: {
+            gte: new Date('2026-03-01T00:00:00Z'),
+            lte: new Date('2026-03-02T00:00:00Z')
+          }
+        },
+        select: {
+          date: true,
+          tss: true,
+          durationSec: true,
+          type: true
+        },
+        orderBy: { date: 'asc' }
+      })
+      expect(calculateProjectedPMC).toHaveBeenCalledWith(
+        new Date('2026-03-01T00:00:00Z'),
+        new Date('2026-03-03T00:00:00Z'),
+        0,
+        0,
+        [
+          { date: new Date('2026-03-01T00:00:00Z'), tss: 80 },
+          { date: new Date('2026-03-03T00:00:00Z'), tss: 50 }
+        ]
+      )
     })
 
     it('should reject invalid date ranges', async () => {

@@ -39,7 +39,8 @@ vi.mock('../../../../server/utils/db', () => ({
 // Mock sportSettingsRepository
 vi.mock('../../../../server/utils/repositories/sportSettingsRepository', () => ({
   sportSettingsRepository: {
-    getDefault: vi.fn()
+    getDefault: vi.fn(),
+    getForActivityType: vi.fn()
   }
 }))
 
@@ -95,6 +96,11 @@ describe('Training Metrics Utils', () => {
         hrZones: mockZones,
         powerZones: mockZones
       } as any)
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([{ id: 'w1', type: 'Run' }] as any)
+      vi.mocked(sportSettingsRepository.getForActivityType).mockResolvedValue({
+        hrZones: mockZones,
+        powerZones: mockZones
+      } as any)
 
       vi.mocked(prisma.workoutStream.findMany).mockResolvedValue([
         {
@@ -108,6 +114,7 @@ describe('Training Metrics Utils', () => {
 
       const result = await calculateZoneDistribution(workoutIds, userId)
 
+      expect(sportSettingsRepository.getForActivityType).toHaveBeenCalledWith(userId, 'Run')
       expect(result.hr).toBeDefined()
       expect(result.hr!.zones[0].percentage).toBe(50)
       expect(result.hr!.zones[1].percentage).toBe(50)
@@ -124,6 +131,11 @@ describe('Training Metrics Utils', () => {
         { name: 'Z2', min: 101, max: 200 }
       ]
       vi.mocked(sportSettingsRepository.getDefault).mockResolvedValue({
+        hrZones: mockZones,
+        powerZones: mockZones
+      } as any)
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([{ id: 'w1', type: 'Run' }] as any)
+      vi.mocked(sportSettingsRepository.getForActivityType).mockResolvedValue({
         hrZones: mockZones,
         powerZones: mockZones
       } as any)
@@ -145,6 +157,38 @@ describe('Training Metrics Utils', () => {
       expect(result.power!.totalTime).toBe(400)
       expect(result.power!.zones[0].percentage).toBe(50)
       expect(result.power!.zones[1].percentage).toBe(50)
+    })
+
+    it('should fall back to default zones for mixed activity selections', async () => {
+      const defaultZones = [
+        { name: 'Default Z1', min: 0, max: 100 },
+        { name: 'Default Z2', min: 101, max: 200 }
+      ]
+
+      vi.mocked(sportSettingsRepository.getDefault).mockResolvedValue({
+        hrZones: defaultZones,
+        powerZones: defaultZones
+      } as any)
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([
+        { id: 'w1', type: 'Run' },
+        { id: 'w2', type: 'Ride' }
+      ] as any)
+
+      vi.mocked(prisma.workoutStream.findMany).mockResolvedValue([
+        {
+          workoutId: 'w1',
+          heartrate: [90, 150],
+          watts: [90, 150],
+          hrZoneTimes: null,
+          powerZoneTimes: null
+        }
+      ] as any)
+
+      const result = await calculateZoneDistribution(['w1', 'w2'], userId)
+
+      expect(sportSettingsRepository.getForActivityType).not.toHaveBeenCalled()
+      expect(result.hr?.zones[0].name).toBe('Default Z1')
+      expect(result.power?.zones[0].name).toBe('Default Z1')
     })
   })
 

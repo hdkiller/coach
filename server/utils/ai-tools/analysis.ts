@@ -4,7 +4,12 @@ import { workoutRepository } from '../repositories/workoutRepository'
 import { ingestAllTask } from '../../../trigger/ingest-all'
 import { generateReportTask } from '../../../trigger/generate-report'
 import { prisma } from '../../utils/db'
-import { getStartOfDaysAgoUTC, formatDateUTC, formatUserDate } from '../../utils/date'
+import {
+  getStartOfDaysAgoUTC,
+  formatDateUTC,
+  formatUserDate,
+  getUserLocalDate
+} from '../../utils/date'
 import { calculateProjectedPMC, getInitialPMCValues } from '../../utils/training-stress'
 import type { AiSettings } from '../ai-user-settings'
 
@@ -24,6 +29,22 @@ const estimateTssFromWorkoutType = (durationMinutes: number, type?: string | nul
           ? 70
           : 50
   return roundToOne((durationMinutes / 60) * hourlyTss)
+}
+
+const resolveWorkoutTss = (workout: {
+  tss?: number | null
+  durationSec?: number | null
+  type?: string | null
+}) => {
+  if (typeof workout.tss === 'number' && Number.isFinite(workout.tss)) {
+    return workout.tss
+  }
+
+  if (typeof workout.durationSec === 'number' && workout.durationSec > 0) {
+    return estimateTssFromWorkoutType(workout.durationSec / 60, workout.type)
+  }
+
+  return 0
 }
 
 const buildForecastSummary = ({
@@ -133,47 +154,84 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
       const startDate = new Date(`${start_date}T00:00:00Z`)
       const endDate = new Date(`${end_date}T00:00:00Z`)
       const initial = await getInitialPMCValues(userId, startDate)
+      const todayDate = getUserLocalDate(timezone)
+      const historicalEndDate = endDate < todayDate ? endDate : todayDate
+      const hasHistoricalWindow = startDate <= historicalEndDate
 
-      const plannedWorkoutsForProjection = planned_workouts?.length
-        ? planned_workouts
-            .map((workout) => {
-              const resolvedTss =
-                workout.tss ??
-                (workout.duration_minutes
-                  ? estimateTssFromWorkoutType(workout.duration_minutes, workout.type)
-                  : 0)
-
-              return {
-                date: new Date(`${workout.date}T00:00:00Z`),
-                tss: resolvedTss
-              }
-            })
-            .filter((workout) => workout.date >= startDate && workout.date <= endDate)
-        : (
-            await prisma.plannedWorkout.findMany({
+      const completedWorkloads = hasHistoricalWindow
+        ? (
+            await prisma.workout.findMany({
               where: {
                 userId,
-                date: { gte: startDate, lte: endDate },
-                completionStatus: { not: 'COMPLETED' },
-                completed: { not: true }
+                isDuplicate: false,
+                date: { gte: startDate, lte: historicalEndDate }
               },
               select: {
                 date: true,
-                tss: true
+                tss: true,
+                durationSec: true,
+                type: true
               },
               orderBy: { date: 'asc' }
             })
           ).map((workout) => ({
             date: workout.date,
-            tss: workout.tss
+            tss: resolveWorkoutTss(workout)
           }))
+        : []
+
+      const futureProjectionStartDate = new Date(historicalEndDate)
+      futureProjectionStartDate.setUTCDate(futureProjectionStartDate.getUTCDate() + 1)
+      const hasFutureWindow = futureProjectionStartDate <= endDate
+
+      const projectedFutureWorkloads = hasFutureWindow
+        ? planned_workouts?.length
+          ? planned_workouts
+              .map((workout) => {
+                const resolvedTss =
+                  workout.tss ??
+                  (workout.duration_minutes
+                    ? estimateTssFromWorkoutType(workout.duration_minutes, workout.type)
+                    : 0)
+
+                return {
+                  date: new Date(`${workout.date}T00:00:00Z`),
+                  tss: resolvedTss
+                }
+              })
+              .filter(
+                (workout) => workout.date >= futureProjectionStartDate && workout.date <= endDate
+              )
+          : (
+              await prisma.plannedWorkout.findMany({
+                where: {
+                  userId,
+                  date: { gte: futureProjectionStartDate, lte: endDate },
+                  completionStatus: { not: 'COMPLETED' },
+                  completed: { not: true }
+                },
+                select: {
+                  date: true,
+                  tss: true,
+                  durationSec: true,
+                  type: true
+                },
+                orderBy: { date: 'asc' }
+              })
+            ).map((workout) => ({
+              date: workout.date,
+              tss: resolveWorkoutTss(workout)
+            }))
+        : []
+
+      const workloadsForProjection = [...completedWorkloads, ...projectedFutureWorkloads]
 
       const projected = calculateProjectedPMC(
         startDate,
         endDate,
         initial.ctl,
         initial.atl,
-        plannedWorkoutsForProjection
+        workloadsForProjection
       )
 
       if (projected.length === 0) {
