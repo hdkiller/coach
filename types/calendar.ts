@@ -4,8 +4,16 @@ export interface CalendarActivity {
   date: string // ISO date string
   startTime?: string | null
   type?: string
-  source: 'completed' | 'planned' | 'note' | 'wellness' | 'nutrition'
-  status: 'completed' | 'planned' | 'missed' | 'completed_plan' | 'note'
+  source: 'completed' | 'planned' | 'note' | 'wellness' | 'nutrition' | 'goal' | 'threshold' | 'pb'
+  status: 'completed' | 'planned' | 'missed' | 'completed_plan' | 'note' | 'active'
+
+  // Metric-specific
+  metric?: string
+  value?: number
+  oldValue?: number
+  unit?: string
+  priority?: string
+  description?: string
 
   // Normalized metrics
   duration?: number // seconds
