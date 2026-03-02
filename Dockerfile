@@ -23,7 +23,7 @@ ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN NODE_OPTIONS=--max-old-space-size=8192 pnpm build
+RUN NODE_OPTIONS=--max-old-space-size=12288 pnpm build
 
 # Stage 3: Production image
 FROM base AS runner
