@@ -18,6 +18,7 @@ import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import { createUserNotification } from '../server/utils/notifications'
 import { thresholdDetectionService } from '../server/utils/services/thresholdDetectionService'
 import { pbDetectionService } from '../server/utils/services/pbDetectionService'
+import { KG_TO_LBS } from '../server/utils/number'
 import {
   buildAnalysisRequestMetricRules,
   buildMetricPriorityPromptBlock,
@@ -395,6 +396,7 @@ export const analyzeWorkoutTask = task({
           language: user?.language || null,
           temperatureUnits: user?.temperatureUnits || null
         },
+        aiSettings.aiContext,
         workout.plannedWorkout
       )
 
@@ -845,7 +847,20 @@ function getAnalysisSectionsGuidance(
    - Each point should be 1-2 sentences maximum`
 }
 
-function buildWorkoutAnalysisPrompt(
+function formatPromptWeight(
+  weight: number | null | undefined,
+  weightUnits?: string | null
+): string {
+  if (!weight) return ''
+
+  if (weightUnits === 'Pounds') {
+    return `${(weight * KG_TO_LBS).toFixed(1)} lbs`
+  }
+
+  return `${weight.toFixed(1)} kg`
+}
+
+export function buildWorkoutAnalysisPrompt(
   workoutData: any,
 
   timezone: string,
@@ -864,6 +879,8 @@ function buildWorkoutAnalysisPrompt(
     language?: string | null
     temperatureUnits?: string | null
   },
+
+  aiContext?: string | null,
 
   plannedWorkout?: any
 ): string {
@@ -958,7 +975,9 @@ ATHLETE CONTEXT:
 
 - Height: ${userProfile?.height || 'Unknown'} ${userProfile?.heightUnits || 'cm'}
 
-${userProfile?.weight ? `- Weight: ${userProfile.weight} ${userProfile.weightUnits === 'Pounds' ? 'lbs' : 'kg'}` : ''}
+${userProfile?.weight ? `- Weight: ${formatPromptWeight(userProfile.weight, userProfile.weightUnits)}` : ''}
+
+${aiContext ? `\n## Global Athlete Context / About Me / Special Instructions\n${aiContext}\n` : ''}
 
 
 
