@@ -12,6 +12,18 @@
   }>()
 
   const { copy, copied } = useClipboard({ source: props.hex })
+  const toast = useToast()
+
+  watch(copied, (newVal) => {
+    if (newVal) {
+      toast.add({
+        title: 'Copied to Clipboard',
+        description: `${props.hex} specialized for ${props.usage || props.name}`,
+        icon: 'i-heroicons-check-circle',
+        color: 'primary'
+      })
+    }
+  })
 </script>
 
 <template>
@@ -23,7 +35,10 @@
       class="h-40 w-full transition-transform duration-700 group-hover:scale-105 relative"
       :style="{ backgroundColor: hex }"
     >
-      <div v-if="contrast" class="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2">
+      <div
+        v-if="contrast"
+        class="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2"
+      >
         <span class="text-[9px] font-black uppercase tracking-widest text-zinc-400">Contrast</span>
         <span class="text-xs font-black text-white font-mono">{{ contrast }}</span>
       </div>
@@ -47,28 +62,30 @@
               size="xs"
               class="rounded-xl border border-white/5 hover:bg-white/5"
               @click="copy()"
-            >
-              <template #trailing>
-                <div v-if="copied" class="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary-500 text-black text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg animate-in fade-in zoom-in duration-200">
-                  Copied!
-                </div>
-              </template>
-            </UButton>
+            />
           </div>
         </div>
       </div>
 
       <div class="space-y-4 mb-8">
         <div v-if="tailwind">
-          <label class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-1.5">Tailwind Class</label>
-          <code class="text-[11px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 font-mono text-zinc-300 block w-full">
+          <label class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-1.5"
+            >Tailwind Class</label
+          >
+          <code
+            class="text-[11px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 font-mono text-zinc-300 block w-full"
+          >
             {{ tailwind }}
           </code>
         </div>
 
         <div v-if="variable">
-          <label class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-1.5">CSS Variable</label>
-          <code class="text-[11px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 font-mono text-primary-500/80 block w-full">
+          <label class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-1.5"
+            >CSS Variable</label
+          >
+          <code
+            class="text-[11px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 font-mono text-primary-500/80 block w-full"
+          >
             {{ variable }}
           </code>
         </div>
