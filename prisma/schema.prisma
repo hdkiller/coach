@@ -91,6 +91,8 @@ model User {
   aiTtsVoiceName                     String?                      @default("Kore")
   aiTtsSpeed                         String?                      @default("normal")
   aiTtsAutoReadMessages              Boolean                      @default(false)
+  emailStatus                        String                       @default("VALID")
+  emailError                         String?
   accounts                           Account[]
   activityRecommendations            ActivityRecommendation[]
   apiKeys                            ApiKey[]
