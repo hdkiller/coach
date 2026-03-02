@@ -354,7 +354,11 @@ export default defineNuxtConfig({
 
   sentry: {
     org: 'newpush-y4',
-    project: 'coach-watts'
+    project: 'coach-watts',
+    autoUploadSourceMaps: false,
+    sourceMapsUploadOptions: {
+      telemetry: false
+    }
   },
 
   sourcemap: {
