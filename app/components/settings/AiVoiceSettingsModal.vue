@@ -156,7 +156,7 @@
         return
       }
 
-      const audio = new Audio(URL.createObjectURL(audioBlob))
+      const audio = new Audio(URL.createObjectURL(audioBlob as any))
       previewAudio = audio
       previewAudioUrl = audio.src
       isPreviewPlaying.value = true
@@ -229,7 +229,7 @@
 
           <div class="space-y-2">
             <USelectMenu
-              v-model="geminiVoiceName"
+              v-model="geminiVoiceName as any"
               :items="geminiVoiceItems"
               value-key="name"
               class="w-full"

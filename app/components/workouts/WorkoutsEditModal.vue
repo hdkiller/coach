@@ -376,15 +376,6 @@
     { label: 'Other', value: 'Other' }
   ]
 
-  watch(
-    () => state.type,
-    (nextType) => {
-      if (nextType && typeof nextType === 'object' && typeof nextType.value === 'string') {
-        state.type = nextType.value
-      }
-    }
-  )
-
   // Initialize state from props
   watch(
     () => props.workout,

@@ -300,7 +300,7 @@
         return
       }
 
-      const audio = new Audio(URL.createObjectURL(audioBlob))
+      const audio = new Audio(URL.createObjectURL(audioBlob as any))
       activeAudio = audio
       activeAudioUrl = audio.src
       ttsPlayingMessageId.value = messageKey

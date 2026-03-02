@@ -220,7 +220,7 @@
       }
 
       // Set user zones or use defaults
-      const sportSettings = profile?.profile?.sportSettings || []
+      const sportSettings = (profile as any)?.profile?.sportSettings || []
       const defaultProfile = sportSettings.find((s: any) => s.isDefault)
 
       zonesData.value = props.userZones || {

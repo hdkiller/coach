@@ -92,6 +92,11 @@
             'bg-red-50 dark:bg-red-900/20': activity.status === 'missed',
             'bg-gray-50 dark:bg-gray-800/50 border-dashed border-gray-300 dark:border-gray-700':
               activity.source === 'note',
+            'bg-yellow-50 dark:bg-yellow-900/30 ring-1 ring-yellow-400/30':
+              activity.source === 'goal',
+            'bg-purple-50 dark:bg-purple-900/30 ring-1 ring-purple-400/30':
+              activity.source === 'threshold',
+            'bg-teal-50 dark:bg-teal-900/30 ring-1 ring-teal-400/30': activity.source === 'pb',
             'ring-2 ring-primary-500 ring-offset-1': isDragOver === activity.id
           }"
           @click="$emit('activity-click', activity)"
@@ -124,14 +129,40 @@
                   (activity.source === 'planned' && activity.status === 'completed_plan'),
                 'bg-amber-500': activity.source === 'planned' && activity.status === 'planned',
                 'bg-red-500': activity.status === 'missed',
-                'bg-gray-400 dark:bg-gray-600': activity.source === 'note'
+                'bg-gray-400 dark:bg-gray-600': activity.source === 'note',
+                'bg-yellow-500': activity.source === 'goal',
+                'bg-purple-500': activity.source === 'threshold',
+                'bg-teal-500': activity.source === 'pb'
               }"
             />
 
             <div class="flex-1 min-w-0">
               <!-- Title -->
               <div class="font-medium truncate flex items-center gap-1" :title="activity.title">
-                <span>{{ activity.title }}</span>
+                <UIcon
+                  v-if="activity.source === 'goal'"
+                  :name="activity.priority === 'HIGH' ? 'i-heroicons-star-solid' : 'i-heroicons-flag-solid'"
+                  class="w-3 h-3 text-yellow-600 dark:text-yellow-400 shrink-0"
+                />
+                <UIcon
+                  v-if="activity.source === 'threshold'"
+                  name="i-heroicons-arrow-trending-up"
+                  class="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0"
+                />
+                <UIcon
+                  v-if="activity.source === 'pb'"
+                  name="i-heroicons-trophy-solid"
+                  class="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0"
+                />
+
+                <span
+                  :class="{
+                    'text-yellow-700 dark:text-yellow-300': activity.source === 'goal',
+                    'text-purple-700 dark:text-purple-300': activity.source === 'threshold',
+                    'text-teal-700 dark:text-teal-300': activity.source === 'pb'
+                  }"
+                  >{{ activity.title }}</span
+                >
                 <UIcon
                   v-if="activity.isWeeklyNote"
                   name="i-heroicons-calendar-days"
