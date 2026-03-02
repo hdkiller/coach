@@ -6,12 +6,12 @@
   import BrandTypefaceCard from '~/components/brand/BrandTypefaceCard.vue'
 
   definePageMeta({
-    layout: 'simple'
+    layout: false
   })
 
   const logoDownloads = [
-    { label: 'SVG', url: '/images/logo.svg', icon: 'i-heroicons-code-bracket' },
-    { label: 'PNG', url: '/icon.png', icon: 'i-heroicons-photo' }
+    { label: 'WebP (Wordmark)', url: '/media/coach_watts_text_cropped.webp', icon: 'i-heroicons-photo' },
+    { label: 'WebP (Square)', url: '/media/logo.webp', icon: 'i-heroicons-photo' }
   ]
 
   const colors = [
@@ -102,7 +102,7 @@
             <div
               class="p-1 rounded-lg bg-primary-400/10 group-hover:bg-primary-400/20 transition-colors"
             >
-              <img src="/images/logo.svg" alt="Coach Watts" class="h-8 w-auto" />
+              <img src="/media/logo.webp" alt="Coach Watts" class="h-8 w-auto" />
             </div>
             <span class="text-white text-lg font-black uppercase tracking-tight hidden sm:block"
               >Brand Manual</span
@@ -116,9 +116,9 @@
             >Back to Dashboard</NuxtLink
           >
           <UButton
-            to="/images/logo.svg"
+            to="/media/coach_watts_text_cropped.webp"
             download
-            label="Download Logo"
+            label="Download Asset"
             variant="solid"
             color="primary"
             size="sm"
@@ -132,7 +132,7 @@
     <div class="pt-20 bg-zinc-950">
       <!-- Hero -->
       <BrandSection dark pattern>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <motion.div
             :initial="{ opacity: 0, y: 20 }"
             :animate="{ opacity: 1, y: 0 }"
@@ -140,12 +140,28 @@
           >
             <BrandLogoCard
               dark
-              title="Logos"
-              description="Our primary visual identifier. Use the appropriate version based on the background contrast."
-              logo-src="/images/logo.svg"
-              alt="Coach Watts Logo"
+              title="Wordmark"
+              description="Primary logo with horizontal text. Use on top-left of pages."
+              logo-src="/media/coach_watts_text_cropped.webp"
+              alt="Coach Watts Wordmark"
               background-class="bg-zinc-900 shadow-inner"
-              :download-links="logoDownloads"
+              :download-links="[logoDownloads[0]!]"
+            />
+          </motion.div>
+          
+          <motion.div
+            :initial="{ opacity: 0, y: 20 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.6, delay: 0.05}"
+          >
+            <BrandLogoCard
+              dark
+              title="Square"
+              description="Compact logo / symbol for avatars and icons."
+              logo-src="/media/logo.webp"
+              alt="Coach Watts Square Logo"
+              background-class="bg-zinc-900 shadow-inner"
+              :download-links="[logoDownloads[1]!]"
             />
           </motion.div>
           <motion.div

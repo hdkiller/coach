@@ -7,7 +7,7 @@
     >
       <UContainer class="h-16 flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center hover:opacity-90 transition-opacity">
-          <img src="/media/coach-watts.webp" alt="Coach Watts" class="h-12 w-auto object-contain" />
+          <img src="/media/coach_watts_text_cropped.webp" alt="Coach Watts" class="h-12 w-auto object-contain" />
         </NuxtLink>
 
         <nav
@@ -99,74 +99,72 @@
 
     <footer class="border-t border-gray-200 dark:border-gray-800 py-12 bg-gray-50 dark:bg-gray-900">
       <UContainer>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8 mb-8">
           <div class="md:col-span-2">
             <NuxtLink to="/" class="flex items-center mb-4 hover:opacity-90 transition-opacity">
               <img
-                src="/media/coach-watts.webp"
+                src="/media/coach_watts_text_cropped.webp"
                 alt="Coach Watts"
                 class="h-16 w-auto object-contain"
               />
             </NuxtLink>
             <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-              {{ t('footer.tagline') }}
+              AI-powered endurance coaching that adapts to your life, recovery, and goals.
             </p>
           </div>
           <div>
-            <h3 class="font-semibold mb-4">{{ t('footer.product') }}</h3>
+            <h3 class="font-semibold mb-4 text-white">Product</h3>
             <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
               <li>
-                <NuxtLink to="/#features" class="hover:text-primary">{{
-                  t('footer.features')
-                }}</NuxtLink>
+                <NuxtLink to="/#features" class="hover:text-primary">Features</NuxtLink>
               </li>
               <li>
-                <NuxtLink to="/#architecture" class="hover:text-primary">{{
-                  t('footer.architecture')
-                }}</NuxtLink>
+                <NuxtLink to="/#architecture" class="hover:text-primary">Architecture</NuxtLink>
               </li>
               <li>
                 <NuxtLink to="/#pricing" class="hover:text-primary flex items-center gap-1">
-                  {{ t('footer.pricing') }}
+                  Pricing
                   <UBadge
                     size="xs"
                     color="primary"
                     variant="soft"
                     class="font-bold leading-none inline-flex items-center justify-center !bg-emerald-400 !text-emerald-950 px-1.5 py-0.5"
-                    >{{ t('nav.pricing_badge') }}</UBadge
+                    >FREE</UBadge
                   >
                 </NuxtLink>
               </li>
               <li>
-                <NuxtLink to="/support" class="hover:text-primary">{{
-                  t('footer.support')
-                }}</NuxtLink>
-              </li>
-              <li>
-                <NuxtLink to="/documentation" class="hover:text-primary">{{
-                  t('footer.docs')
-                }}</NuxtLink>
-              </li>
-              <li>
-                <NuxtLink to="/login" class="hover:text-primary">{{ t('footer.login') }}</NuxtLink>
+                <NuxtLink to="/login" class="hover:text-primary">Login</NuxtLink>
               </li>
             </ul>
           </div>
           <div>
-            <h3 class="font-semibold mb-4">{{ t('footer.legal') }}</h3>
+            <h3 class="font-semibold mb-4 text-white">Resources</h3>
             <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
               <li>
-                <NuxtLink to="/privacy" class="hover:text-primary">{{
-                  t('footer.privacy')
-                }}</NuxtLink>
+                <NuxtLink to="/support" class="hover:text-primary">Support</NuxtLink>
               </li>
               <li>
-                <NuxtLink to="/terms" class="hover:text-primary">{{ t('footer.terms') }}</NuxtLink>
+                <NuxtLink to="/documentation" class="hover:text-primary">Docs</NuxtLink>
               </li>
               <li>
-                <NuxtLink to="/cookies" class="hover:text-primary">{{
-                  t('footer.cookies')
-                }}</NuxtLink>
+                <NuxtLink to="/brand-manual" class="hover:text-primary italic font-medium"
+                  >Brand Manual</NuxtLink
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-4 text-white">Legal</h3>
+            <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+              <li>
+                <NuxtLink to="/privacy" class="hover:text-primary">Privacy</NuxtLink>
+              </li>
+              <li>
+                <NuxtLink to="/terms" class="hover:text-primary">Terms</NuxtLink>
+              </li>
+              <li>
+                <NuxtLink to="/cookies" class="hover:text-primary">Cookies</NuxtLink>
               </li>
             </ul>
           </div>

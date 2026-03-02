@@ -7,7 +7,7 @@
         <div class="flex items-center justify-between h-16">
           <NuxtLink to="/" class="flex items-center hover:opacity-90 transition-opacity">
             <img
-              src="/media/coach-watts.webp"
+              src="/media/coach_watts_text_cropped.webp"
               alt="Coach Watts"
               class="h-12 w-auto object-contain"
             />
