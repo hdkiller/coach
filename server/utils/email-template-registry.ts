@@ -85,6 +85,15 @@ export const EMAIL_TEMPLATE_REGISTRY: Record<string, EmailTemplateDefinition> = 
     requiredProps: ['tier'],
     utmCampaign: 'subscription_started',
     utmMedium: 'transactional'
+  },
+  AccountDeletionScheduled: {
+    templateKey: 'AccountDeletionScheduled',
+    defaultSubject: 'Your Coach Watts account deletion has been scheduled',
+    audience: 'TRANSACTIONAL',
+    preferenceKey: null,
+    requiredProps: ['initiatedBy', 'requestedAt'],
+    utmCampaign: 'account_deletion_scheduled',
+    utmMedium: 'transactional'
   }
 }
 
