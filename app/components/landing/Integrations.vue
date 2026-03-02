@@ -138,7 +138,8 @@
               <img
                 :src="integ.src"
                 :alt="integ.name"
-                class="w-full h-full object-contain filter grayscale invert brightness-200 opacity-40 transition-all duration-500 group-hover:grayscale-0 group-hover:invert-0 group-hover:brightness-100 group-hover:opacity-100 group-hover:scale-110"
+                class="w-full h-full object-contain filter grayscale opacity-40 transition-all duration-500 group-hover:grayscale-0 group-hover:invert-0 group-hover:brightness-100 group-hover:opacity-100 group-hover:scale-110"
+                :class="{ 'invert brightness-200': integ.color === '#000000' || !integ.color }"
               />
             </div>
 
@@ -176,7 +177,8 @@
               <img
                 :src="integ.src"
                 :alt="integ.name"
-                class="w-full h-full object-contain filter grayscale invert brightness-200 opacity-50 group-hover:grayscale-0 group-hover:invert-0 group-hover:brightness-100 group-hover:opacity-100 transition-all duration-500"
+                class="w-full h-full object-contain filter grayscale opacity-50 group-hover:grayscale-0 group-hover:invert-0 group-hover:brightness-100 group-hover:opacity-100 transition-all duration-500"
+                :class="{ 'invert brightness-200': integ.color === '#000000' || !integ.color }"
               />
             </div>
             <div class="text-center">

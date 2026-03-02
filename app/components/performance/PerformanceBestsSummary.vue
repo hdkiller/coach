@@ -3,64 +3,60 @@
     <UCard
       v-for="cat in summaryItems"
       :key="cat.id"
-      class="relative group overflow-hidden transition-all duration-500 ease-out hover:-translate-y-1 hover:shadow-xl backdrop-blur-md bg-white/80 dark:bg-gray-900/60 border border-gray-100 dark:border-white/5 cursor-pointer"
+      class="floating-card-base grain-overlay rounded-[32px] cursor-pointer group"
       :ui="{
-        root: 'rounded-[24px]',
-        body: 'p-5'
+        root: 'overflow-visible',
+        body: 'p-8 flex flex-col gap-8'
       }"
       @click="navigateTo('/performance/bests')"
     >
-      <!-- Accent Line -->
-      <div class="absolute top-0 left-0 w-full h-1 opacity-60" :class="cat.bgColor" />
-
-      <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <div
-            class="p-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5"
-          >
-            <UIcon :name="cat.icon" class="w-4 h-4" :class="cat.iconColor" />
-          </div>
-          <div
-            v-if="cat.pb && isRecent(cat.pb.date)"
-            class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.8)]"
-          />
-        </div>
-
-        <div v-if="cat.pb" class="space-y-0.5">
-          <div
-            class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]"
-          >
-            {{ formatType(cat.pb.type) }}
-          </div>
-          <div class="flex items-baseline gap-1.5">
-            <span
-              class="text-3xl font-black text-gray-900 dark:text-white tabular-nums italic tracking-tighter"
-            >
-              {{ formatValue(cat.pb) }}
-            </span>
-            <span
-              v-if="cat.pb.unit !== 's'"
-              class="text-xs font-black text-gray-400 dark:text-gray-600 uppercase italic opacity-60"
-              >{{ cat.pb.unit }}</span
-            >
-            <span
-              v-else
-              class="text-[9px] font-bold text-gray-400 dark:text-gray-600 uppercase opacity-60"
-              >pace</span
-            >
-          </div>
-        </div>
-
-        <!-- Hover indicator -->
+      <div class="flex items-center justify-between">
         <div
-          class="flex items-center gap-1.5 mt-1 transition-all duration-300 transform translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
+          class="p-4 rounded-2xl bg-gray-950 border border-white/5 group-hover:border-primary-500/40 transition-colors duration-500"
         >
-          <span class="text-[9px] font-black text-primary-500 uppercase tracking-widest"
-            >Hall of Fame</span
+          <UIcon :name="cat.icon" class="w-6 h-6" :class="cat.iconColor" />
+        </div>
+        <div
+          v-if="cat.pb && isRecent(cat.pb.date)"
+          class="w-3 h-3 rounded-full bg-amber-400 animate-pulse shadow-[0_0_15px_rgba(251,191,36,0.8)]"
+        />
+      </div>
+
+      <div v-if="cat.pb" class="space-y-2">
+        <div
+          class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]"
+        >
+          {{ formatType(cat.pb.type) }}
+        </div>
+        <div class="flex items-baseline gap-3">
+          <span
+            class="text-6xl font-black text-white tabular-nums italic tracking-tighter leading-none"
           >
+            {{ formatValue(cat.pb) }}
+          </span>
+          <span
+            v-if="cat.pb.unit !== 's'"
+            class="text-base font-black text-gray-600 uppercase italic"
+            >{{ cat.pb.unit }}</span
+          >
+          <span
+            v-else
+            class="text-[10px] font-black text-gray-600 uppercase tracking-widest italic"
+            >pace</span
+          >
+        </div>
+      </div>
+
+      <div
+        class="flex items-center justify-between mt-auto pt-6 border-t border-white/5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500"
+      >
+        <span class="text-[10px] font-black text-primary-500 uppercase tracking-widest"
+          >Hall of Fame</span
+        >
+        <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white shadow-lg shadow-primary-500/20">
           <UIcon
             name="i-heroicons-arrow-right"
-            class="w-3 h-3 text-primary-500 transition-transform duration-300 group-hover:translate-x-1"
+            class="w-4 h-4"
           />
         </div>
       </div>
@@ -68,21 +64,21 @@
 
     <!-- Link Card to Full Trophy Case -->
     <UCard
-      class="backdrop-blur-md bg-gray-50/50 dark:bg-gray-900/40 border border-dashed border-gray-200 dark:border-white/5 group hover:border-primary-500/50 transition-all duration-500 cursor-pointer flex flex-col justify-center items-center text-center"
-      :ui="{ root: 'rounded-[24px]', body: 'p-0 h-full flex items-center justify-center' }"
+      class="floating-card-base grain-overlay border-dashed border-white/10 group hover:border-primary-500/50 transition-all duration-500 cursor-pointer flex flex-col justify-center items-center text-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)]"
+      :ui="{ root: 'rounded-[32px]', body: 'p-0 h-full flex items-center justify-center' }"
       @click="navigateTo('/performance/bests')"
     >
-      <div class="flex flex-col items-center justify-center py-6">
+      <div class="flex flex-col items-center justify-center py-10">
         <div
-          class="w-10 h-10 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-500"
+          class="w-16 h-16 rounded-[24px] bg-gray-950 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:border-primary-500/30 transition-all duration-500"
         >
           <UIcon
             name="i-heroicons-trophy"
-            class="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors"
+            class="w-8 h-8 text-gray-600 group-hover:text-primary-500 transition-colors"
           />
         </div>
         <span
-          class="text-[10px] font-black text-gray-900 dark:text-white uppercase tracking-[0.2em]"
+          class="text-[11px] font-black text-white uppercase tracking-[0.3em]"
           >Full Trophy Case</span
         >
       </div>

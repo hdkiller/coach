@@ -148,72 +148,66 @@
         <div
           v-for="pb in pbsByCategory[cat.id]"
           :key="pb.id"
-          :class="getCardClass(pb)"
-          class="p-8 rounded-[32px] flex flex-col justify-between h-full"
+          class="floating-card-base grain-overlay p-10 rounded-[40px] flex flex-col justify-between h-full group"
         >
           <!-- Hero Glow & Patterns -->
           <div
             v-if="heroTypes.includes(pb.type)"
-            class="absolute -top-24 -right-24 w-64 h-64 bg-amber-400/10 blur-[80px] rounded-full"
-          />
-          <div
-            v-if="isRecent(pb.date)"
-            class="absolute inset-0 bg-gradient-to-tr from-transparent via-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+            class="absolute -top-32 -right-32 w-80 h-80 bg-amber-400/10 blur-[100px] rounded-full -z-10"
           />
 
           <div class="relative">
             <!-- Top Header: Icon + Badge -->
-            <div class="flex items-start justify-between mb-6">
+            <div class="flex items-start justify-between mb-10">
               <div
-                class="p-4 rounded-[22px] bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-inner group-hover:border-primary-500/40 transition-colors duration-500"
+                class="p-5 rounded-[24px] bg-gray-950 border border-white/5 group-hover:border-primary-500/40 transition-colors duration-500"
               >
-                <UIcon :name="getSportIcon(pb)" class="w-7 h-7 text-primary-500" />
+                <UIcon :name="getSportIcon(pb)" class="w-8 h-8 text-primary-500" />
               </div>
 
-              <div v-if="isRecent(pb.date)" class="relative">
-                <div class="absolute inset-0 bg-amber-400 blur-md opacity-20 animate-pulse" />
+              <div v-if="isRecent(pb.date)" class="relative group/badge">
                 <div
-                  class="relative flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-400 dark:bg-amber-400 text-black overflow-hidden"
+                  class="relative flex items-center gap-2 px-6 py-2.5 rounded-full bg-amber-400 text-black overflow-hidden shadow-[0_0_20px_rgba(251,191,36,0.4)] animate-neon-pulse"
                 >
-                  <!-- Shimmer Effect -->
+                  <!-- Holographic Shimmer Effect -->
                   <div
-                    class="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                    class="absolute inset-0 -translate-x-full animate-[shimmer_3s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-12"
                   />
-                  <UIcon name="i-heroicons-sparkles" class="w-4 h-4" />
-                  <span class="text-[10px] font-black uppercase tracking-widest">New Record</span>
+                  <UIcon name="i-heroicons-sparkles" class="w-5 h-5 animate-spin-slow" />
+                  <span class="text-xs font-black uppercase tracking-[0.2em]">New Record</span>
                 </div>
               </div>
 
               <div
                 v-else-if="heroTypes.includes(pb.type)"
-                class="p-1.5 rounded-full border border-amber-400/40 text-amber-500"
+                class="w-12 h-12 rounded-full border border-amber-400/40 text-amber-500 flex items-center justify-center bg-amber-400/5 shadow-[0_0_20px_rgba(251,191,36,0.1)]"
               >
-                <UIcon name="i-heroicons-trophy" class="w-5 h-5" />
+                <UIcon name="i-heroicons-trophy" class="w-6 h-6" />
               </div>
             </div>
 
             <!-- Value & Label -->
-            <div class="space-y-1">
+            <div class="space-y-3">
               <div
-                class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.25em]"
+                class="text-[11px] font-black text-gray-600 uppercase tracking-[0.4em] ml-1"
               >
                 {{ formatType(pb.type) }}
               </div>
-              <div class="flex items-baseline gap-2">
+              <div class="flex items-baseline gap-4">
                 <span
-                  class="text-5xl font-black text-gray-900 dark:text-white tracking-tighter italic tabular-nums font-athletic"
+                  class="text-8xl font-black text-white tracking-tighter italic tabular-nums font-athletic leading-none drop-shadow-2xl"
                 >
                   {{ formatValue(pb) }}
                 </span>
                 <span
                   v-if="pb.unit !== 's'"
-                  class="text-xl font-black text-gray-900 dark:text-white opacity-40 uppercase italic"
+                  class="text-xl font-black text-gray-600 uppercase italic tracking-widest"
                 >
                   {{ pb.unit }}
                 </span>
                 <span
                   v-else
-                  class="text-sm font-black text-gray-400 dark:text-gray-600 uppercase opacity-50 tracking-widest"
+                  class="text-xs font-black text-gray-600 uppercase tracking-[0.3em] italic"
                 >
                   pace
                 </span>
@@ -221,45 +215,49 @@
             </div>
 
             <!-- Secondary Stats / Context -->
-            <div v-if="pb.metadata || pb.workout" class="mt-6 flex flex-wrap gap-5">
+            <div v-if="pb.metadata || pb.workout" class="mt-10 flex flex-wrap gap-8 ml-1">
               <div
                 v-if="pb.metadata?.avgHr || pb.workout?.averageHr"
-                class="flex items-center gap-2"
+                class="flex items-center gap-3 group/stat"
               >
-                <div class="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <UIcon name="i-heroicons-heart" class="w-4 h-4 text-red-500/60" />
+                <div class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/stat:border-red-500/30 transition-colors">
+                  <UIcon name="i-heroicons-heart" class="w-6 h-6 text-red-500/60" />
                 </div>
-                <span class="text-xs font-black text-gray-500 dark:text-gray-400 tabular-nums">
-                  {{ pb.metadata?.avgHr || pb.workout?.averageHr }}
-                  <span class="ml-0.5 text-[9px] opacity-60">BPM</span>
-                </span>
+                <div>
+                  <div class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-0.5">Avg Heart Rate</div>
+                  <span class="text-base font-black text-gray-400 tabular-nums">
+                    {{ pb.metadata?.avgHr || pb.workout?.averageHr }} <span class="text-[10px] text-gray-600">BPM</span>
+                  </span>
+                </div>
               </div>
               <div
                 v-if="pb.metadata?.avgCadence || pb.workout?.averageCadence"
-                class="flex items-center gap-2"
+                class="flex items-center gap-3 group/stat"
               >
-                <div class="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <UIcon name="i-lucide-rotate-cw" class="w-4 h-4 text-blue-500/60" />
+                <div class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover/stat:border-blue-500/30 transition-colors">
+                  <UIcon name="i-lucide-rotate-cw" class="w-6 h-6 text-blue-500/60" />
                 </div>
-                <span class="text-xs font-black text-gray-500 dark:text-gray-400 tabular-nums">
-                  {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }}
-                  <span class="ml-0.5 text-[9px] opacity-60">RPM</span>
-                </span>
+                <div>
+                  <div class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-0.5">Avg Cadence</div>
+                  <span class="text-base font-black text-gray-400 tabular-nums">
+                    {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }} <span class="text-[10px] text-gray-600">RPM</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Footer: Date + Action -->
           <div
-            class="mt-10 pt-6 border-t border-gray-100/50 dark:border-white/5 flex items-center justify-between"
+            class="mt-14 pt-8 border-t border-white/5 flex items-end justify-between ml-1"
           >
-            <div class="flex flex-col">
+            <div class="flex flex-col gap-1.5">
               <div
-                class="text-[9px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest"
+                class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]"
               >
                 Achieved
               </div>
-              <div class="text-sm font-black text-gray-700 dark:text-gray-300 italic">
+              <div class="text-base font-black text-gray-500 italic">
                 {{ getHumanDate(pb.date) }}
               </div>
             </div>
@@ -269,9 +267,9 @@
               :to="`/workouts/${pb.workoutId}`"
               icon="i-heroicons-arrow-right"
               color="neutral"
-              variant="subtle"
-              size="md"
-              class="rounded-2xl group/btn transition-all duration-300 hover:bg-primary-500 hover:text-white"
+              variant="ghost"
+              size="xl"
+              class="rounded-full h-14 w-14 flex items-center justify-center transition-all duration-500 hover:bg-primary-500 hover:text-white hover:scale-110 shadow-lg hover:shadow-primary-500/20 group/arrow"
             />
           </div>
         </div>
@@ -309,9 +307,29 @@
 </template>
 
 <style scoped>
-  @keyframes shimmer {
-    100% {
-      transform: translateX(100%);
+  @keyframes neon-pulse {
+    0%, 100% {
+      filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.4));
+    }
+    50% {
+      filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.8));
+    }
+  }
+
+  .animate-neon-pulse {
+    animation: neon-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin 6s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
     }
   }
 
