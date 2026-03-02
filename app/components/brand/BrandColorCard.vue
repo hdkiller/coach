@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import { useClipboard } from '@vueuse/core'
+
   const props = defineProps<{
     name: string
     hex: string
@@ -46,7 +48,7 @@
               icon="i-heroicons-clipboard-document"
               variant="ghost"
               color="primary"
-              size="2xs"
+              size="xs"
               @click="copy()"
             >
               <template #trailing>

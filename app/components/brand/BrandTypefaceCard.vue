@@ -21,11 +21,11 @@
 
 <template>
   <div
-    class="rounded-2xl border p-8 transition-all duration-300"
+    class="rounded-2xl border p-8 transition-all duration-300 group"
     :class="[
       dark
-        ? 'bg-zinc-900 border-zinc-800'
-        : 'bg-white border-zinc-100 dark:border-zinc-800 shadow-sm'
+        ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+        : 'bg-white border-zinc-100 dark:border-zinc-800 shadow-sm hover:shadow-lg'
     ]"
   >
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -46,14 +46,17 @@
         </p>
 
         <div class="space-y-6">
-          <div v-for="weight in weights" :key="weight.label">
+          <div v-for="weight in weights" :key="weight.label" class="group/weight">
             <label
-              class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-2"
+              class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 block mb-2 transition-colors group-hover/weight:text-primary-400"
             >
               {{ weight.label }}
             </label>
             <div
-              :class="[weight.class, 'text-2xl lg:text-3xl tracking-tight']"
+              :class="[
+                weight.class,
+                'text-2xl lg:text-3xl tracking-tight transition-transform group-hover/weight:translate-x-1'
+              ]"
               :style="{ fontFamily: fontName }"
             >
               Coach Watts
@@ -65,7 +68,7 @@
       <!-- Big Visual and Details -->
       <div class="lg:col-span-8 flex flex-col justify-between">
         <div
-          class="text-7xl sm:text-9xl font-black tracking-tighter leading-none mb-12"
+          class="text-7xl sm:text-9xl font-black tracking-tighter leading-none mb-12 transition-all duration-700 group-hover:tracking-normal group-hover:text-primary-500/20"
           :class="dark ? 'text-zinc-800' : 'text-zinc-50'"
           :style="{ fontFamily: fontName }"
         >

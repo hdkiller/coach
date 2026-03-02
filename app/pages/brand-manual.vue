@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { motion } from 'motion-v'
   import BrandSection from '~/components/brand/BrandSection.vue'
   import BrandColorCard from '~/components/brand/BrandColorCard.vue'
   import BrandLogoCard from '~/components/brand/BrandLogoCard.vue'
@@ -93,12 +94,16 @@
 
     <!-- Header / Nav -->
     <nav
-      class="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 px-6 py-4"
+      class="fixed top-0 left-0 right-0 z-50 bg-zinc-950/20 backdrop-blur-xl border-b border-white/5 px-6 py-4 transition-all duration-500"
     >
       <div class="max-w-7xl mx-auto flex justify-between items-center">
         <div class="flex items-center gap-4">
           <NuxtLink to="/" class="flex items-center gap-2 group">
-            <img src="/images/logo.svg" alt="Coach Watts" class="h-8 w-auto" />
+            <div
+              class="p-1 rounded-lg bg-primary-400/10 group-hover:bg-primary-400/20 transition-colors"
+            >
+              <img src="/images/logo.svg" alt="Coach Watts" class="h-8 w-auto" />
+            </div>
             <span class="text-white text-lg font-black uppercase tracking-tight hidden sm:block"
               >Brand Manual</span
             >
@@ -117,7 +122,7 @@
             variant="solid"
             color="primary"
             size="sm"
-            class="rounded-full px-6"
+            class="rounded-full px-6 shadow-lg shadow-primary-500/20"
           />
         </div>
       </div>
@@ -126,34 +131,50 @@
     <!-- Dark Upper Section -->
     <div class="pt-20 bg-zinc-950">
       <!-- Hero -->
-      <BrandSection dark>
+      <BrandSection dark pattern>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <BrandLogoCard
-            dark
-            title="Logos"
-            description="Our primary visual identifier. Use the appropriate version based on the background contrast."
-            logo-src="/images/logo.svg"
-            alt="Coach Watts Logo"
-            background-class="bg-zinc-900"
-            :download-links="logoDownloads"
-          />
-          <div class="lg:col-span-2">
+          <motion.div
+            :initial="{ opacity: 0, y: 20 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.6 }"
+          >
+            <BrandLogoCard
+              dark
+              title="Logos"
+              description="Our primary visual identifier. Use the appropriate version based on the background contrast."
+              logo-src="/images/logo.svg"
+              alt="Coach Watts Logo"
+              background-class="bg-zinc-900 shadow-inner"
+              :download-links="logoDownloads"
+            />
+          </motion.div>
+          <motion.div
+            class="lg:col-span-2"
+            :initial="{ opacity: 0, y: 20 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.6, delay: 0.1 }"
+          >
             <BrandTypefaceCard
               dark
               font-name="Public Sans"
               description="A strong, neutral, yet friendly sans-serif that reflects our commitment to clarity and professional results."
             />
-          </div>
+          </motion.div>
         </div>
 
-        <div class="mt-8">
+        <motion.div
+          class="mt-8"
+          :initial="{ opacity: 0 }"
+          :animate="{ opacity: 1 }"
+          :transition="{ duration: 0.8, delay: 0.2 }"
+        >
           <h2 class="text-sm font-black uppercase tracking-[0.2em] text-zinc-500 mb-6">
             Primary Brand Colors
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <BrandColorCard v-for="color in colors" :key="color.hex" dark v-bind="color" />
           </div>
-        </div>
+        </motion.div>
       </BrandSection>
     </div>
 
