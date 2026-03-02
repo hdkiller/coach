@@ -1,10 +1,46 @@
 <template>
-  <UModal
-    v-model:open="isOpen"
-    title="Training Load & Form"
-    description="Track your Fitness (CTL), Fatigue (ATL), and Form (TSB) over the selected period."
-    class="sm:max-w-4xl"
-  >
+  <UModal v-model:open="isOpen" class="sm:max-w-4xl" title="Training Load & Form">
+    <template #header>
+      <div class="flex w-full items-start justify-between gap-6">
+        <div class="min-w-0">
+          <div>Training Load & Form</div>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Track your Fitness (CTL), Fatigue (ATL), and Form (TSB) over the selected period.
+          </p>
+        </div>
+
+        <div class="flex shrink-0 flex-col items-end gap-2">
+          <UButton
+            icon="i-heroicons-x-mark"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Close"
+            class="-mr-2"
+            @click="isOpen = false"
+          />
+
+          <div v-if="isGarminConnected" class="flex items-center gap-1.5 whitespace-nowrap">
+            <span
+              class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+            >
+              Includes data from
+            </span>
+            <img
+              src="/images/logos/Garmin-Tag-black-high-res.png"
+              class="h-4 w-auto dark:hidden"
+              alt="Garmin"
+            />
+            <img
+              src="/images/logos/Garmin-Tag-white-high-res.png"
+              class="hidden h-4 w-auto dark:block"
+              alt="Garmin"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
+
     <template #body>
       <div class="space-y-6">
         <div class="flex items-center justify-between">
@@ -43,9 +79,17 @@
     'update:open': [value: boolean]
   }>()
 
+  const integrationStore = useIntegrationStore()
+
   const isOpen = computed({
     get: () => props.open,
     set: (value) => emit('update:open', value)
+  })
+  const isGarminConnected = computed(() => {
+    return (
+      integrationStore.integrationStatus?.integrations?.some((i: any) => i.provider === 'garmin') ??
+      false
+    )
   })
 
   const selectedPeriod = ref<number | string>(90)

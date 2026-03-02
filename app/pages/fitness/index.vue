@@ -36,7 +36,7 @@
 
     <template #body>
       <ClientOnly>
-        <div class="p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
+        <div class="relative p-0 sm:p-6 space-y-4 sm:space-y-6 pb-24">
           <FitnessSettingsModal v-model:open="isSettingsModalOpen" />
           <FitnessHrvRhrSettingsModal v-model:open="isHrvRhrSettingsModalOpen" />
           <FitnessChartSettingsModal
@@ -47,6 +47,28 @@
             :weight-goal="weightGoal"
             @update:open="activeMetricSettings = null"
           />
+          <div
+            v-if="isGarminConnected"
+            class="px-4 pt-1 sm:px-0 sm:pt-0 sm:absolute sm:right-6 sm:top-6 sm:z-10"
+          >
+            <div class="flex items-center gap-1.5">
+              <span
+                class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+              >
+                Dashboard may include data from
+              </span>
+              <img
+                src="/images/logos/Garmin-Tag-black-high-res.png"
+                class="h-5 w-auto dark:hidden"
+                alt="Garmin"
+              />
+              <img
+                src="/images/logos/Garmin-Tag-white-high-res.png"
+                class="hidden h-5 w-auto dark:block"
+                alt="Garmin"
+              />
+            </div>
+          </div>
 
           <!-- Dashboard Branding -->
           <div class="px-4 sm:px-0">
@@ -295,10 +317,17 @@
   const toast = useToast()
   const theme = useTheme()
   const userStore = useUserStore()
+  const integrationStore = useIntegrationStore()
   const loading = ref(true)
   const allWellness = ref<any[]>([])
   const currentPage = ref(1)
   const itemsPerPage = 20
+  const isGarminConnected = computed(() => {
+    return (
+      integrationStore.integrationStatus?.integrations?.some((i: any) => i.provider === 'garmin') ??
+      false
+    )
+  })
 
   const isSettingsModalOpen = ref(false)
   const isHrvRhrSettingsModalOpen = ref(false)

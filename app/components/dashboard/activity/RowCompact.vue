@@ -13,22 +13,23 @@
 
     <!-- Content -->
     <div class="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2 min-w-0 pr-2">
-          <span class="text-sm font-bold text-gray-900 dark:text-white truncate">
+      <div class="flex items-start justify-between">
+        <div class="min-w-0 pr-2">
+          <span class="text-sm font-bold text-gray-900 dark:text-white truncate block">
             {{ item.title }}
           </span>
-          <UiDataAttribution
-            v-if="item.source === 'garmin'"
-            provider="garmin"
-            :device-name="item.deviceName"
-            mode="minimal"
-            class="opacity-60 grayscale hover:grayscale-0 transition-all shrink-0"
-          />
         </div>
-        <span class="text-[10px] font-bold text-gray-400 shrink-0 uppercase tracking-wider">
-          {{ dateLabel }}
-        </span>
+        <div class="shrink-0 text-right">
+          <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+            {{ dateLabel }}
+          </span>
+          <span
+            v-if="sourceLabel"
+            class="mt-0.5 block text-[10px] font-medium text-gray-400 dark:text-gray-500"
+          >
+            {{ sourceLabel }}
+          </span>
+        </div>
       </div>
 
       <!-- Inline Metrics -->
@@ -73,6 +74,15 @@
   }>()
 
   defineEmits(['click'])
+
+  const sourceLabel = computed(() => {
+    if (props.item.type !== 'workout') return ''
+    if (!props.item.source) return ''
+
+    const source = String(props.item.source)
+    if (source === 'intervals') return 'Intervals.icu'
+    return source.charAt(0).toUpperCase() + source.slice(1)
+  })
 
   const compactDetails = computed(() => {
     // Map long labels to short ones or keep as is
