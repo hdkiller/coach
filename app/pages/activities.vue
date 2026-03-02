@@ -96,7 +96,9 @@
                 <div class="w-2 h-2 rounded-full bg-red-500" />
                 <span>Missed</span>
               </div>
-              <div class="flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 pl-4 ml-1">
+              <div
+                class="flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 pl-4 ml-1"
+              >
                 <div class="w-2 h-2 rounded-full bg-yellow-500" />
                 <span>Goal</span>
               </div>
@@ -936,6 +938,8 @@
   </UModal>
 
   <CalendarSettingsModal v-model:open="showCalendarSettingsModal" />
+
+  <MilestoneModal v-model:open="showMilestoneModal" :milestone="selectedMilestone" />
 </template>
 
 <script setup lang="ts">
@@ -950,6 +954,7 @@
   import BulkDeleteModal from '~/components/workouts/BulkDeleteModal.vue'
   import CalendarMetabolicWave from '~/components/activities/CalendarMetabolicWave.vue'
   import CalendarSettingsModal from '~/components/activities/CalendarSettingsModal.vue'
+  import MilestoneModal from '~/components/activities/MilestoneModal.vue'
   import { getDefaultSportSettings, getPreferredMetric } from '~/utils/sportSettings'
   import { formatDistance as formatDist } from '~/utils/metrics'
 
@@ -1027,6 +1032,8 @@
   const mergeTarget = ref<CalendarActivity | null>(null)
   const isMerging = ref(false)
   const showMatcherModal = ref(false)
+  const showMilestoneModal = ref(false)
+  const selectedMilestone = ref<CalendarActivity | null>(null)
 
   const showLinkModal = ref(false)
   const linkPlanned = ref<CalendarActivity | null>(null)
@@ -1247,10 +1254,7 @@
           return dayStr >= noteStart && dayStr <= noteEnd
         }
 
-        const dateStr =
-          a.source === 'planned' || a.source === 'wellness' || a.source === 'nutrition'
-            ? formatDateUTC(a.date, 'yyyy-MM-dd')
-            : formatDate(a.date, 'yyyy-MM-dd')
+        const dateStr = formatDateUTC(a.date, 'yyyy-MM-dd')
         return dateStr === dayStr
       })
 
@@ -1494,27 +1498,13 @@
     } else if (activity.source === 'note') {
       // Open note modal
       await openCalendarNoteModal(activity.id)
-    } else if (activity.source === 'goal') {
-      // Navigate to plan page where goals are managed
-      navigateTo('/plan')
-    } else if (activity.source === 'threshold') {
-      // Show detail toast
-      const toast = useToast()
-      toast.add({
-        title: activity.title,
-        description: activity.description || 'Threshold update detected.',
-        color: 'primary',
-        icon: 'i-heroicons-arrow-trending-up'
-      })
-    } else if (activity.source === 'pb') {
-      // Show detail toast
-      const toast = useToast()
-      toast.add({
-        title: activity.title,
-        description: activity.description || 'New personal best achieved!',
-        color: 'success',
-        icon: 'i-heroicons-trophy'
-      })
+    } else if (
+      activity.source === 'goal' ||
+      activity.source === 'threshold' ||
+      activity.source === 'pb'
+    ) {
+      selectedMilestone.value = activity
+      showMilestoneModal.value = true
     }
   }
 

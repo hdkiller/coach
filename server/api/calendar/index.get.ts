@@ -374,6 +374,10 @@ export default defineEventHandler(async (event) => {
       date: {
         gte: rangeStart,
         lte: rangeEnd
+      },
+      // Only show true threshold changes on the calendar, not session-level peaks
+      type: {
+        in: ['FTP', 'LTHR', 'MAX_HR', 'THRESHOLD_PACE', 'WEIGHT']
       }
     },
     orderBy: { date: 'asc' }
@@ -407,6 +411,11 @@ export default defineEventHandler(async (event) => {
     if (!activitiesByDate.has(dateKey)) {
       activitiesByDate.set(dateKey, [])
     }
+
+    // Check if already added (safety)
+    const existing = activitiesByDate.get(dateKey)
+    if (existing.some((a: any) => a.id === g.id && a.source === 'goal')) continue
+
     activitiesByDate.get(dateKey).push({
       id: g.id,
       title: g.title,
@@ -429,13 +438,54 @@ export default defineEventHandler(async (event) => {
     if (!activitiesByDate.has(dateKey)) {
       activitiesByDate.set(dateKey, [])
     }
-    
-    // Format title
-    let title = `${m.type}: ${m.value}`
-    if (m.oldValue !== null) {
+
+    const existing = activitiesByDate.get(dateKey)
+    // Robust deduplication: check ID OR (Type + Value)
+    if (
+      existing.some(
+        (a: any) =>
+          a.source === 'threshold' &&
+          (a.id === m.id || (a.metric === m.type && a.value === m.value))
+      )
+    )
+      continue
+
+    // Format type to be nicer (e.g. FTP -> FTP, THRESHOLD_PACE -> Threshold Pace)
+    const displayType = m.type
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+      .replace('Ftp', 'FTP')
+      .replace('Lthr', 'LTHR')
+      .replace('Hr', 'HR')
+
+    // Format values (handle pace/duration if needed)
+    let formattedValue = m.value.toString()
+    let formattedOldValue = m.oldValue?.toString()
+    let unit = ''
+
+    if (m.type === 'THRESHOLD_PACE') {
+      const formatPace = (s: number) => {
+        const min = Math.floor(s / 60)
+        const sec = Math.round(s % 60)
+        return `${min}:${sec.toString().padStart(2, '0')}`
+      }
+      formattedValue = formatPace(m.value)
+      if (m.oldValue) formattedOldValue = formatPace(m.oldValue)
+      unit = '/km'
+    } else if (m.type.includes('HR')) {
+      unit = ' bpm'
+    } else if (m.type === 'FTP') {
+      unit = 'W'
+    }
+
+    let title = `${displayType}: ${formattedValue}${unit}`
+    if (m.oldValue !== null && formattedOldValue) {
       const change = m.value - m.oldValue
-      const changeStr = change >= 0 ? `+${change}` : `${change}`
-      title = `${m.type}: ${m.oldValue} → ${m.value} (${changeStr})`
+      // For pace, lower is better
+      const isImprovement = m.type === 'THRESHOLD_PACE' ? change < 0 : change > 0
+      const changePrefix = change >= 0 ? '+' : ''
+      title = `${displayType}: ${formattedOldValue} → ${formattedValue}${unit}`
     }
 
     activitiesByDate.get(dateKey).push({
@@ -461,9 +511,41 @@ export default defineEventHandler(async (event) => {
       activitiesByDate.set(dateKey, [])
     }
 
+    const existing = activitiesByDate.get(dateKey)
+    // Robust deduplication: check ID OR (Type + Value)
+    if (
+      existing.some(
+        (a: any) =>
+          a.source === 'pb' && (a.id === pb.id || (a.metric === pb.type && a.value === pb.value))
+      )
+    )
+      continue
+
+    // Format PB type (RUN_5K -> 5k Run, POWER_5S -> 5s Power)
+    let displayType = pb.type
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+
+    if (pb.type.startsWith('RUN_')) {
+      const dist = pb.type.replace('RUN_', '')
+      displayType = `${dist} Run`
+    } else if (pb.type.startsWith('POWER_')) {
+      const dur = pb.type.replace('POWER_', '')
+      displayType = `${dur} Power`
+    }
+
+    // Format value (convert seconds to mm:ss for running PBs)
+    let displayValue = `${pb.value}${pb.unit}`
+    if (pb.type.startsWith('RUN_') && pb.unit.toLowerCase() === 's') {
+      const min = Math.floor(pb.value / 60)
+      const sec = Math.round(pb.value % 60)
+      displayValue = `${min}:${sec.toString().padStart(2, '0')}`
+    }
+
     activitiesByDate.get(dateKey).push({
       id: pb.id,
-      title: `New PB: ${pb.type} (${pb.value}${pb.unit})`,
+      title: `${displayType} (${displayValue})`,
       date: pb.date.toISOString(),
       type: 'PB',
       source: 'pb',

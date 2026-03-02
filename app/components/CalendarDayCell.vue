@@ -92,11 +92,6 @@
             'bg-red-50 dark:bg-red-900/20': activity.status === 'missed',
             'bg-gray-50 dark:bg-gray-800/50 border-dashed border-gray-300 dark:border-gray-700':
               activity.source === 'note',
-            'bg-yellow-50 dark:bg-yellow-900/30 ring-1 ring-yellow-400/30':
-              activity.source === 'goal',
-            'bg-purple-50 dark:bg-purple-900/30 ring-1 ring-purple-400/30':
-              activity.source === 'threshold',
-            'bg-teal-50 dark:bg-teal-900/30 ring-1 ring-teal-400/30': activity.source === 'pb',
             'ring-2 ring-primary-500 ring-offset-1': isDragOver === activity.id
           }"
           @click="$emit('activity-click', activity)"
@@ -129,40 +124,14 @@
                   (activity.source === 'planned' && activity.status === 'completed_plan'),
                 'bg-amber-500': activity.source === 'planned' && activity.status === 'planned',
                 'bg-red-500': activity.status === 'missed',
-                'bg-gray-400 dark:bg-gray-600': activity.source === 'note',
-                'bg-yellow-500': activity.source === 'goal',
-                'bg-purple-500': activity.source === 'threshold',
-                'bg-teal-500': activity.source === 'pb'
+                'bg-gray-400 dark:bg-gray-600': activity.source === 'note'
               }"
             />
 
             <div class="flex-1 min-w-0">
               <!-- Title -->
               <div class="font-medium truncate flex items-center gap-1" :title="activity.title">
-                <UIcon
-                  v-if="activity.source === 'goal'"
-                  :name="activity.priority === 'HIGH' ? 'i-heroicons-star-solid' : 'i-heroicons-flag-solid'"
-                  class="w-3 h-3 text-yellow-600 dark:text-yellow-400 shrink-0"
-                />
-                <UIcon
-                  v-if="activity.source === 'threshold'"
-                  name="i-heroicons-arrow-trending-up"
-                  class="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0"
-                />
-                <UIcon
-                  v-if="activity.source === 'pb'"
-                  name="i-heroicons-trophy-solid"
-                  class="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0"
-                />
-
-                <span
-                  :class="{
-                    'text-yellow-700 dark:text-yellow-300': activity.source === 'goal',
-                    'text-purple-700 dark:text-purple-300': activity.source === 'threshold',
-                    'text-teal-700 dark:text-teal-300': activity.source === 'pb'
-                  }"
-                  >{{ activity.title }}</span
-                >
+                <span>{{ activity.title }}</span>
                 <UIcon
                   v-if="activity.isWeeklyNote"
                   name="i-heroicons-calendar-days"
@@ -340,6 +309,59 @@
               </div>
             </div>
           </div>
+        </button>
+      </div>
+
+      <!-- Milestones Section (Goals, Thresholds, PBs) - Shown under workouts -->
+      <div v-if="milestones.length > 0" class="mt-1 space-y-0.5">
+        <button
+          v-for="m in milestones.slice(0, 2)"
+          :key="m.id"
+          class="w-full flex items-center gap-1.5 px-1.5 py-0.5 rounded transition-colors text-left mb-0.5 last:mb-0"
+          :class="{
+            'bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50':
+              m.source === 'goal',
+            'bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50':
+              m.source === 'threshold',
+            'bg-teal-50 dark:bg-teal-900/30 hover:bg-teal-100 dark:hover:bg-teal-900/50':
+              m.source === 'pb'
+          }"
+          @click.stop="$emit('activity-click', m)"
+        >
+          <UIcon
+            v-if="m.source === 'goal'"
+            :name="m.priority === 'HIGH' ? 'i-heroicons-star-solid' : 'i-heroicons-flag-solid'"
+            class="w-3 h-3 text-yellow-600 dark:text-yellow-400 shrink-0"
+          />
+          <UIcon
+            v-if="m.source === 'threshold'"
+            name="i-heroicons-arrow-trending-up"
+            class="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0"
+          />
+          <UIcon
+            v-if="m.source === 'pb'"
+            name="i-heroicons-trophy-solid"
+            class="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0"
+          />
+          <span
+            class="text-[10px] font-bold truncate"
+            :class="{
+              'text-yellow-700 dark:text-yellow-300': m.source === 'goal',
+              'text-purple-700 dark:text-purple-300': m.source === 'threshold',
+              'text-teal-700 dark:text-teal-300': m.source === 'pb'
+            }"
+          >
+            {{ m.title }}
+          </span>
+        </button>
+
+        <!-- More Milestones Indicator -->
+        <button
+          v-if="milestones.length > 2"
+          class="w-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors text-left"
+          @click.stop="$emit('activity-click', milestones[2]!)"
+        >
+          + {{ milestones.length - 2 }} more milestones
         </button>
       </div>
     </div>
@@ -558,10 +580,10 @@
     )
   })
 
-  // Filter out wellness dummy activities for display in the activity list
+  // Filter out wellness dummy activities and milestones for display in the main activity list
   const displayActivities = computed(() => {
     return props.activities
-      .filter((a) => a.type !== 'wellness')
+      .filter((a) => a.type !== 'wellness' && !['goal', 'threshold', 'pb'].includes(a.source))
       .sort((a, b) => {
         const getTime = (activity: CalendarActivity) => {
           if (activity.source === 'planned' && activity.startTime) return activity.startTime
@@ -572,6 +594,29 @@
           return `${h}:${m}`
         }
         return getTime(a).localeCompare(getTime(b))
+      })
+  })
+
+  // Milestones (Goals, Thresholds, PBs) shown below workouts
+  const milestones = computed(() => {
+    return props.activities
+      .filter((a) => ['goal', 'threshold', 'pb'].includes(a.source))
+      .sort((a, b) => {
+        // Prioritize FTP changes at the top
+        const isAFtp = a.source === 'threshold' && a.metric === 'FTP'
+        const isBFtp = b.source === 'threshold' && b.metric === 'FTP'
+        if (isAFtp && !isBFtp) return -1
+        if (!isAFtp && isBFtp) return 1
+
+        // Then Goals (Events)
+        if (a.source === 'goal' && b.source !== 'goal') return -1
+        if (a.source !== 'goal' && b.source === 'goal') return 1
+
+        // Then by importance (Priority)
+        if (a.priority === 'HIGH' && b.priority !== 'HIGH') return -1
+        if (a.priority !== 'HIGH' && b.priority === 'HIGH') return 1
+
+        return 0
       })
   })
 
