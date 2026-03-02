@@ -22,6 +22,7 @@ defineRouteMeta({
                   'withings',
                   'yazio',
                   'strava',
+                  'rouvy',
                   'hevy',
                   'fitbit',
                   'oura',
@@ -99,6 +100,7 @@ export default defineEventHandler(async (event) => {
       'withings',
       'yazio',
       'strava',
+      'rouvy',
       'hevy',
       'fitbit',
       'oura',
@@ -157,7 +159,7 @@ export default defineEventHandler(async (event) => {
     let daysBack =
       provider === 'yazio'
         ? 5
-        : provider === 'strava'
+        : provider === 'strava' || provider === 'rouvy'
           ? 7
           : provider === 'fitbit'
             ? 7
@@ -213,15 +215,17 @@ export default defineEventHandler(async (event) => {
               ? 'ingest-yazio'
               : provider === 'strava'
                 ? 'ingest-strava'
-                : provider === 'fitbit'
-                  ? 'ingest-fitbit'
-                  : provider === 'oura'
-                    ? 'ingest-oura'
-                    : provider === 'polar'
-                      ? 'ingest-polar'
-                      : provider === 'garmin'
-                        ? 'ingest-garmin'
-                        : 'ingest-hevy'
+                : provider === 'rouvy'
+                  ? 'ingest-rouvy'
+                  : provider === 'fitbit'
+                    ? 'ingest-fitbit'
+                    : provider === 'oura'
+                      ? 'ingest-oura'
+                      : provider === 'polar'
+                        ? 'ingest-polar'
+                        : provider === 'garmin'
+                          ? 'ingest-garmin'
+                          : 'ingest-hevy'
 
   try {
     const handle = await tasks.trigger(
