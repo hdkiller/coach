@@ -58,7 +58,6 @@
       :telegram-connected="telegramConnected"
       :syncing-providers="syncingProviders"
       :intervals-settings="intervalsSettings"
-      :is-admin="userStore.user?.isAdmin ?? false"
       @disconnect="disconnectIntegration"
       @sync="syncIntegration"
       @sync-profile="syncProfile"
