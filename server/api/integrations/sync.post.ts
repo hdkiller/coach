@@ -28,6 +28,7 @@ defineRouteMeta({
                   'oura',
                   'polar',
                   'garmin',
+                  'wahoo',
                   'all'
                 ]
               },
@@ -106,13 +107,14 @@ export default defineEventHandler(async (event) => {
       'oura',
       'polar',
       'garmin',
+      'wahoo',
       'all'
     ].includes(provider)
   ) {
     throw createError({
       statusCode: 400,
       message:
-        'Invalid provider. Must be "intervals", "whoop", "withings", "yazio", "strava", "hevy", "fitbit", "oura", "polar", "garmin", or "all"'
+        'Invalid provider. Must be "intervals", "whoop", "withings", "yazio", "strava", "hevy", "fitbit", "oura", "polar", "garmin", "wahoo", or "all"'
     })
   }
 
@@ -165,7 +167,9 @@ export default defineEventHandler(async (event) => {
             ? 7
             : provider === 'garmin'
               ? 1
-              : 90
+              : provider === 'wahoo'
+                ? 90
+                : 90
 
     // Logic for Intervals.icu:
     // If it's the first sync (initialSyncCompleted is false), fetch 90 days history
@@ -225,7 +229,9 @@ export default defineEventHandler(async (event) => {
                         ? 'ingest-polar'
                         : provider === 'garmin'
                           ? 'ingest-garmin'
-                          : 'ingest-hevy'
+                          : provider === 'wahoo'
+                            ? 'ingest-wahoo'
+                            : 'ingest-hevy'
 
   try {
     const handle = await tasks.trigger(

@@ -23,10 +23,22 @@ export const ingestFitFile = task({
   id: 'ingest-fit-file',
   queue: userIngestionQueue,
   maxDuration: 600, // 10 minutes for heavy processing
-  run: async (payload: { userId: string; fitFileId: string; rawJson?: any; source?: string }) => {
-    const { userId, fitFileId, rawJson, source = 'fit_file' } = payload
+  run: async (payload: {
+    userId: string
+    fitFileId: string
+    rawJson?: any
+    source?: string
+    externalId?: string
+  }) => {
+    const {
+      userId,
+      fitFileId,
+      rawJson,
+      source = 'fit_file',
+      externalId: providedExternalId
+    } = payload
 
-    logger.log('Starting FIT file ingestion', { userId, fitFileId, source })
+    logger.log('Starting FIT file ingestion', { userId, fitFileId, source, providedExternalId })
 
     // Retrieve the file from DB
     const fitFile = await prisma.fitFile.findUnique({
@@ -58,6 +70,9 @@ export const ingestFitFile = task({
       // Normalize to workout
       logger.log('Normalizing session data...')
       const workoutData = normalizeFitSession(session, userId, fitFile.filename)
+      if (providedExternalId) {
+        workoutData.externalId = providedExternalId
+      }
 
       // Extract streams
       logger.log('Extracting and saving streams...')
