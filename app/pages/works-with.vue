@@ -51,6 +51,15 @@
       weight: 0.9
     },
     {
+      name: 'Wahoo Cloud',
+      category: 'hardware',
+      src: '/images/logos/wahoo_logo_square.jpeg',
+      description: 'Sync activities and training plans with your ELEMNT.',
+      status: 'Instant Sync',
+      color: '#000000',
+      weight: 1.0
+    },
+    {
       name: 'WHOOP',
       category: 'hardware',
       src: '/images/logos/whoop_square.svg',
