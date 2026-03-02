@@ -281,7 +281,7 @@
     <footer class="bg-zinc-50 border-t border-zinc-100 py-12 px-6">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-8">
         <div class="flex items-center gap-4">
-          <img src="/images/logo.svg" alt="Coach Watts" class="h-6 w-auto grayscale opacity-50" />
+          <img src="/media/logo.webp" alt="Coach Watts" class="h-6 w-auto grayscale opacity-50" />
           <p class="text-zinc-400 text-sm">© 2026 Coach Watts. All rights reserved.</p>
         </div>
         <div class="flex items-center gap-8">

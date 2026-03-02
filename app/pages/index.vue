@@ -3,6 +3,7 @@
     <LandingHero />
     <LandingNutritionExplainer />
     <LandingHowItWorks />
+    <LandingIntegrations />
     <LandingDeepDiveArchitecture />
     <LandingFeatureBento />
     <LandingFeatureGoals />

@@ -148,6 +148,9 @@
                 <NuxtLink to="/documentation" class="hover:text-primary">Docs</NuxtLink>
               </li>
               <li>
+                <NuxtLink to="/works-with" class="hover:text-primary">Integrations</NuxtLink>
+              </li>
+              <li>
                 <NuxtLink to="/brand-manual" class="hover:text-primary italic font-medium"
                   >Brand Manual</NuxtLink
                 >
