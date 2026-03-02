@@ -3116,6 +3116,8 @@
       return `${baseClass} bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200`
     if (source === 'strava')
       return `${baseClass} bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200`
+    if (source === 'rouvy')
+      return `${baseClass} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`
     if (source === 'garmin')
       return `${baseClass} bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200`
     return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200`
@@ -3177,7 +3179,7 @@
   function shouldShowPowerCurve(workout: any) {
     if (!workout) return false
     // Show power curve if workout has power data (watts stream)
-    const supportedSources = ['strava', 'intervals', 'fit_file']
+    const supportedSources = ['strava', 'rouvy', 'intervals', 'fit_file']
     return (
       supportedSources.includes(workout.source) &&
       workout.streams &&
@@ -3196,7 +3198,7 @@
 
   function shouldShowIntervals(workout: any) {
     if (!workout || !workout.streams) return false
-    const supportedSources = ['strava', 'intervals', 'fit_file']
+    const supportedSources = ['strava', 'rouvy', 'intervals', 'fit_file']
     return (
       supportedSources.includes(workout.source) &&
       (workout.streams.watts || workout.streams.heartrate || workout.streams.velocity)
@@ -3207,7 +3209,7 @@
     if (!workout) return false
     // Show timeline/zones if workout has stream data (time-series HR, power, velocity, etc.)
     // OR if it has cached zone data in rawJson (fallback for Whoop, etc.)
-    const supportedSources = ['strava', 'intervals', 'fit_file', 'whoop']
+    const supportedSources = ['strava', 'rouvy', 'intervals', 'fit_file', 'whoop']
     const hasRawZones = workout.rawJson?.score?.zone_durations?.length > 0
     const hasStreams =
       workout.streams &&
@@ -3286,6 +3288,7 @@
     if (!name) return undefined
     const lower = name.toLowerCase()
     if (lower.includes('zwift')) return 'zwift'
+    if (lower.includes('rouvy')) return 'rouvy'
     if (lower.includes('garmin')) return 'garmin'
     if (lower.includes('apple')) return 'apple_health'
     return undefined

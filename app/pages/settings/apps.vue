@@ -1,12 +1,22 @@
 <template>
   <div class="space-y-6">
-    <UCard :ui="{ body: 'hidden' }">
+    <UCard>
       <template #header>
         <h2 class="text-xl font-bold uppercase tracking-tight">Connected Apps</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">
           Manage your connected apps and integrations.
         </p>
       </template>
+      <div class="flex justify-end">
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-heroicons-adjustments-horizontal"
+          @click="openIngestionSettingsModal"
+        >
+          Ingestion Settings
+        </UButton>
+      </div>
     </UCard>
     <UAlert
       v-if="intervalsConnected && !intervalsStravaWarningDismissed"
@@ -37,6 +47,7 @@
       :yazio-connected="yazioConnected"
       :fitbit-connected="fitbitConnected"
       :strava-connected="stravaConnected"
+      :rouvy-connected="rouvyConnected"
       :hevy-connected="hevyConnected"
       :polar-connected="polarConnected"
       :polar-ingest-workouts="polarIngestWorkouts"
@@ -103,7 +114,10 @@
               >
                 Authorized on {{ formatDate(app.consent.createdAt) }}
               </p>
-              <p v-else class="text-sm text-muted mt-1 break-words whitespace-normal leading-relaxed">
+              <p
+                v-else
+                class="text-sm text-muted mt-1 break-words whitespace-normal leading-relaxed"
+              >
                 {{ app.description || 'No description provided.' }}
               </p>
             </div>
@@ -192,10 +206,56 @@
         </div>
       </template>
     </UModal>
+
+    <UModal
+      v-model:open="isIngestionSettingsModalOpen"
+      title="Ingestion Settings"
+      description="Control what happens automatically after future activity imports."
+    >
+      <template #body>
+        <div class="space-y-4 sm:min-w-[440px]">
+          <UFormField
+            label="Automatic deduplication after ingestion"
+            description="When enabled, newly imported workouts can be automatically deduplicated after sync. Turn this off if you prefer to review and clean up duplicates manually."
+          >
+            <UCheckbox
+              v-model="ingestionSettingsForm.autoDeduplicateWorkouts"
+              label="Enable automatic deduplication"
+            />
+          </UFormField>
+
+          <p class="text-xs text-muted">
+            This only affects future imports. Existing workouts and manual deduplication remain
+            unchanged.
+          </p>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :disabled="savingIngestionSettings"
+            @click="isIngestionSettingsModalOpen = false"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            color="primary"
+            :loading="savingIngestionSettings"
+            @click="saveIngestionSettings"
+          >
+            Save
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { isAutoDeduplicateWorkoutsEnabled } from '~/utils/ingestion-settings'
+
   const toast = useToast()
   const router = useRouter()
   const route = useRoute()
@@ -294,6 +354,10 @@
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'strava') ?? false
   )
 
+  const rouvyConnected = computed(
+    () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'rouvy') ?? false
+  )
+
   const hevyConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'hevy') ?? false
   )
@@ -346,6 +410,15 @@
   const isRevokeModalOpen = ref(false)
   const revoking = ref(false)
   const selectedConsent = ref<any>(null)
+  const isIngestionSettingsModalOpen = ref(false)
+  const savingIngestionSettings = ref(false)
+  const ingestionSettingsForm = ref({
+    autoDeduplicateWorkouts: true
+  })
+
+  const autoDeduplicateWorkoutsEnabled = computed(() =>
+    isAutoDeduplicateWorkoutsEnabled(userStore.user?.dashboardSettings)
+  )
 
   const consentsByAppId = computed(() => {
     return new Map((consents.value || []).map((consent: any) => [consent.app.id, consent]))
@@ -392,6 +465,55 @@
   function confirmRevoke(consent: any) {
     selectedConsent.value = consent
     isRevokeModalOpen.value = true
+  }
+
+  function openIngestionSettingsModal() {
+    ingestionSettingsForm.value = {
+      autoDeduplicateWorkouts: autoDeduplicateWorkoutsEnabled.value
+    }
+    isIngestionSettingsModalOpen.value = true
+  }
+
+  async function saveIngestionSettings() {
+    savingIngestionSettings.value = true
+
+    try {
+      await $fetch('/api/user/settings', {
+        method: 'PATCH',
+        body: {
+          dashboardSettings: {
+            ingestion: {
+              autoDeduplicateWorkouts: ingestionSettingsForm.value.autoDeduplicateWorkouts
+            }
+          }
+        }
+      })
+
+      if (userStore.user) {
+        userStore.user.dashboardSettings = {
+          ...(userStore.user.dashboardSettings || {}),
+          ingestion: {
+            autoDeduplicateWorkouts: ingestionSettingsForm.value.autoDeduplicateWorkouts
+          }
+        }
+      }
+
+      toast.add({
+        title: 'Settings Updated',
+        description: 'Ingestion settings saved successfully.',
+        color: 'success'
+      })
+
+      isIngestionSettingsModalOpen.value = false
+    } catch (error: any) {
+      toast.add({
+        title: 'Update Failed',
+        description: error?.data?.message || 'Failed to save ingestion settings.',
+        color: 'error'
+      })
+    } finally {
+      savingIngestionSettings.value = false
+    }
   }
 
   async function revokeAccess() {
@@ -499,7 +621,9 @@
                           ? 'Oura'
                           : provider === 'telegram'
                             ? 'Telegram'
-                            : 'Strava'
+                            : provider === 'rouvy'
+                              ? 'ROUVY'
+                              : 'Strava'
 
       toast.add({
         title: 'Sync Started',
@@ -555,7 +679,9 @@
                           ? 'Hevy'
                           : provider === 'telegram'
                             ? 'Telegram'
-                            : 'Strava'
+                            : provider === 'rouvy'
+                              ? 'ROUVY'
+                              : 'Strava'
 
       toast.add({
         title: 'Disconnected',
@@ -604,7 +730,9 @@
                           ? 'Hevy'
                           : provider === 'telegram'
                             ? 'Telegram'
-                            : 'Strava'
+                            : provider === 'rouvy'
+                              ? 'ROUVY'
+                              : 'Strava'
 
       toast.add({
         title: 'Settings Updated',
@@ -629,6 +757,7 @@
       route.query.oura_success ||
       route.query.withings_success ||
       route.query.strava_success ||
+      route.query.rouvy_success ||
       route.query.fitbit_success ||
       route.query.polar_success ||
       route.query.garmin_success ||
@@ -663,6 +792,14 @@
         toast.add({
           title: 'Connected!',
           description: 'Successfully connected to Strava',
+          color: 'success'
+        })
+        refreshIntegrations()
+      } else if (route.query.rouvy_success) {
+        trackIntegrationConnectSuccess('rouvy')
+        toast.add({
+          title: 'Connected!',
+          description: 'Successfully connected to ROUVY',
           color: 'success'
         })
         refreshIntegrations()
@@ -705,6 +842,7 @@
       route.query.oura_error ||
       route.query.withings_error ||
       route.query.strava_error ||
+      route.query.rouvy_error ||
       route.query.fitbit_error ||
       route.query.garmin_error ||
       route.query.polar_error
@@ -713,6 +851,7 @@
         route.query.oura_error ||
         route.query.withings_error ||
         route.query.strava_error ||
+        route.query.rouvy_error ||
         route.query.fitbit_error ||
         route.query.garmin_error ||
         route.query.polar_error) as string
@@ -722,13 +861,17 @@
           ? 'Oura'
           : route.query.withings_error
             ? 'Withings'
-            : route.query.fitbit_error
-              ? 'Fitbit'
-              : route.query.polar_error
-                ? 'Polar'
-                : route.query.garmin_error
-                  ? 'Garmin'
-                  : 'Strava'
+            : route.query.strava_error
+              ? 'Strava'
+              : route.query.rouvy_error
+                ? 'ROUVY'
+                : route.query.fitbit_error
+                  ? 'Fitbit'
+                  : route.query.polar_error
+                    ? 'Polar'
+                    : route.query.garmin_error
+                      ? 'Garmin'
+                      : 'Strava'
       const description =
         errorMsg === 'no_code'
           ? 'Authorization was cancelled or no code was received'

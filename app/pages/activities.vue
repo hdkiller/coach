@@ -981,6 +981,7 @@
   // Auto-refresh when relevant background tasks complete
   const REFRESH_TASKS = [
     'ingest-strava',
+    'ingest-rouvy',
     'ingest-intervals',
     'ingest-fit-file',
     'ingest-hevy',

@@ -603,6 +603,63 @@
       </div>
     </UCard>
 
+    <!-- ROUVY -->
+    <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden">
+          <img
+            src="/images/logos/rouvy-symbol-rgb.svg"
+            alt="ROUVY Logo"
+            class="w-full h-full object-contain"
+          />
+        </div>
+        <div>
+          <h3 class="font-semibold">ROUVY</h3>
+          <p class="text-sm text-muted">Indoor cycling activities and workouts</p>
+        </div>
+      </div>
+
+      <div
+        class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto"
+      >
+        <div v-if="!rouvyConnected">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="
+              () => {
+                trackIntegrationConnectStart('rouvy')
+                navigateTo('/api/integrations/rouvy/authorize', { external: true })
+              }
+            "
+          >
+            Connect
+          </UButton>
+        </div>
+        <div v-else class="flex items-center gap-2">
+          <UButton
+            color="success"
+            variant="solid"
+            size="sm"
+            class="font-bold"
+            icon="i-heroicons-arrow-path"
+            :loading="syncingProviders.has('rouvy')"
+            @click="$emit('sync', 'rouvy')"
+          >
+            Sync Now
+          </UButton>
+          <UDropdownMenu :items="rouvyActions">
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="sm"
+              icon="i-heroicons-ellipsis-vertical"
+            />
+          </UDropdownMenu>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Telegram -->
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
@@ -832,6 +889,7 @@
     yazioConnected: boolean
     fitbitConnected: boolean
     stravaConnected: boolean
+    rouvyConnected: boolean
     hevyConnected: boolean
     polarConnected: boolean
     polarIngestWorkouts: boolean
@@ -979,6 +1037,17 @@
         icon: 'i-heroicons-trash',
         color: 'error' as const,
         onSelect: () => emit('disconnect', 'strava')
+      }
+    ]
+  ])
+
+  const rouvyActions = computed(() => [
+    [
+      {
+        label: 'Disconnect',
+        icon: 'i-heroicons-trash',
+        color: 'error' as const,
+        onSelect: () => emit('disconnect', 'rouvy')
       }
     ]
   ])
