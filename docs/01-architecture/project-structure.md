@@ -138,7 +138,7 @@ coach-watts/
 │   ├── favicon.ico
 │   ├── robots.txt
 │   └── images/
-│       └── logo.svg
+│       └── logo.webp
 │
 ├── assets/                  # Build-time Assets
 │   ├── css/
