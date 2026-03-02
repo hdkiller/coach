@@ -118,6 +118,8 @@ export const ingestFitbitTask = task({
           const today = new Date()
           const daysDiff = Math.floor((today.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24))
           const isRecentDate = daysDiff <= 2
+          let hasExistingNutrition = false
+          let hasExistingWellness = false
 
           if (!isRecentDate) {
             const [existingNutrition, existingWellness] = await Promise.all([
@@ -125,7 +127,7 @@ export const ingestFitbitTask = task({
               wellnessRepository.getByDate(userId, dateObj)
             ])
 
-            const hasExistingNutrition =
+            hasExistingNutrition =
               !!existingNutrition &&
               !!(
                 existingNutrition.calories ||
@@ -133,7 +135,7 @@ export const ingestFitbitTask = task({
                 existingNutrition.lunch
               )
 
-            const hasExistingWellness =
+            hasExistingWellness =
               !!existingWellness &&
               !!(
                 existingWellness.hrv ||
@@ -152,46 +154,56 @@ export const ingestFitbitTask = task({
             logger.log(`[${date}] Recent date - will update even if data exists`)
           }
 
+          const shouldFetchNutrition = isRecentDate || !hasExistingNutrition
+          const shouldFetchWellness = isRecentDate || !hasExistingWellness
+
           logger.log(`[${date}] Fetching Fitbit nutrition + wellness logs...`)
 
-          const foodLog = await fetchFitbitFoodLog(integration, date)
-          // Small delay to avoid immediate back-to-back rate limit hits
-          await new Promise((resolve) => setTimeout(resolve, 300))
-          const waterLog = await fetchFitbitWaterLog(integration, date)
+          let foodLog: any = null
+          let waterLog: any = null
+
+          if (shouldFetchNutrition) {
+            foodLog = await fetchFitbitFoodLog(integration, date)
+            // Small delay to avoid immediate back-to-back rate limit hits
+            await new Promise((resolve) => setTimeout(resolve, 300))
+            waterLog = await fetchFitbitWaterLog(integration, date)
+          }
 
           let sleepLog: any = null
           let hrvSummary: any = null
           let heartRateSummary: any = null
           let heartRateIntraday: any = null
 
-          try {
-            sleepLog = await fetchFitbitSleepLog(integration, date)
-          } catch (error) {
-            logger.warn(`[${date}] Failed to fetch Fitbit sleep log`, { error })
-          }
-
-          try {
-            hrvSummary = await fetchFitbitHrvSummary(integration, date)
-          } catch (error) {
-            logger.warn(`[${date}] Failed to fetch Fitbit HRV summary`, { error })
-          }
-
-          try {
-            heartRateSummary = await fetchFitbitHeartRateSummary(integration, date)
-          } catch (error) {
-            logger.warn(`[${date}] Failed to fetch Fitbit heart-rate summary`, { error })
-          }
-
-          if (intradayHeartRateEnabled) {
+          if (shouldFetchWellness) {
             try {
-              heartRateIntraday = await fetchFitbitHeartRateIntraday(integration, date)
+              sleepLog = await fetchFitbitSleepLog(integration, date)
             } catch (error) {
-              logger.warn(
-                `[${date}] Failed to fetch Fitbit intraday heart-rate; using daily summary`,
-                {
-                  error
-                }
-              )
+              logger.warn(`[${date}] Failed to fetch Fitbit sleep log`, { error })
+            }
+
+            try {
+              hrvSummary = await fetchFitbitHrvSummary(integration, date)
+            } catch (error) {
+              logger.warn(`[${date}] Failed to fetch Fitbit HRV summary`, { error })
+            }
+
+            try {
+              heartRateSummary = await fetchFitbitHeartRateSummary(integration, date)
+            } catch (error) {
+              logger.warn(`[${date}] Failed to fetch Fitbit heart-rate summary`, { error })
+            }
+
+            if (intradayHeartRateEnabled) {
+              try {
+                heartRateIntraday = await fetchFitbitHeartRateIntraday(integration, date)
+              } catch (error) {
+                logger.warn(
+                  `[${date}] Failed to fetch Fitbit intraday heart-rate; using daily summary`,
+                  {
+                    error
+                  }
+                )
+              }
             }
           }
 
@@ -199,7 +211,8 @@ export const ingestFitbitTask = task({
           const calories = foodLog?.summary?.calories || 0
           const water = waterLog?.summary?.water || 0
 
-          const hasNutritionData = !(foodsCount === 0 && calories === 0 && water === 0)
+          const hasNutritionData =
+            shouldFetchNutrition && !(foodsCount === 0 && calories === 0 && water === 0)
 
           const wellness = normalizeFitbitWellness(
             sleepLog,

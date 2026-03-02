@@ -63,7 +63,6 @@ export function getInjuryLabel(val: string | number | null | undefined): string 
 }
 
 export interface FitbitRecoveryAlertInput {
-  source?: string | null
   lastSource?: string | null
   hrv?: number | null
   sleepHours?: number | null
@@ -90,7 +89,7 @@ function toFiniteNumber(value: number | null | undefined): number | null {
 export function evaluateFitbitRecoveryAlert(
   input: FitbitRecoveryAlertInput
 ): FitbitRecoveryAlertResult {
-  const source = `${input.lastSource || input.source || ''}`.toLowerCase()
+  const source = `${input.lastSource || ''}`.toLowerCase()
   const isFitbit = source === 'fitbit'
 
   const currentHrv = toFiniteNumber(input.hrv)

@@ -654,15 +654,18 @@ ${analysis.recommendations ? 'Recommendations:\n' + analysis.recommendations.map
 `
     }
 
+    const priorHrvValues = recentWellness
+      .filter((metric) => metric.date.getTime() < today.getTime())
+      .map((metric) => metric.hrv)
+
     const fitbitRecoveryAlert = evaluateFitbitRecoveryAlert({
-      source: enrichedTodayMetric?.source,
       lastSource: enrichedTodayMetric?.lastSource,
       hrv: enrichedTodayMetric?.hrv,
       sleepHours: enrichedTodayMetric?.sleepHours,
       sleepQuality: enrichedTodayMetric?.sleepQuality,
       sleepScore: enrichedTodayMetric?.sleepScore,
       atl: currentFitness?.atl,
-      recentHrvValues: recentWellness.map((metric) => metric.hrv)
+      recentHrvValues: priorHrvValues
     })
 
     const fitbitRecoveryAlertContext = `

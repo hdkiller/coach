@@ -4,7 +4,7 @@ import { evaluateFitbitRecoveryAlert } from '../../../../server/utils/wellness'
 describe('evaluateFitbitRecoveryAlert', () => {
   it('triggers alert when fitbit has low HRV, poor sleep, and high ATL', () => {
     const result = evaluateFitbitRecoveryAlert({
-      source: 'fitbit',
+      lastSource: 'fitbit',
       hrv: 40,
       sleepHours: 6.1,
       sleepQuality: 68,
@@ -22,7 +22,7 @@ describe('evaluateFitbitRecoveryAlert', () => {
 
   it('does not trigger alert for non-fitbit sources', () => {
     const result = evaluateFitbitRecoveryAlert({
-      source: 'whoop',
+      lastSource: 'whoop',
       hrv: 25,
       sleepHours: 5,
       sleepQuality: 60,

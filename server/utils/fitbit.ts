@@ -429,8 +429,7 @@ export function normalizeFitbitWellness(
   const summaryStageMinutes = sleepSummary.stages || {}
   const levelSummary = mainSleep?.levels?.summary || {}
 
-  const deepMinutes =
-    summaryStageMinutes.deep ?? levelSummary.deep?.minutes ?? levelSummary.asleep?.minutes ?? null
+  const deepMinutes = summaryStageMinutes.deep ?? levelSummary.deep?.minutes ?? null
   const lightMinutes = summaryStageMinutes.light ?? levelSummary.light?.minutes ?? null
   const remMinutes = summaryStageMinutes.rem ?? levelSummary.rem?.minutes ?? null
   const wakeMinutes =
@@ -463,18 +462,62 @@ export function normalizeFitbitWellness(
   const restingHeartRate =
     heartRateSummary?.['activities-heart']?.[0]?.value?.restingHeartRate ?? null
 
+  const toMinutesOfDay = (timeValue?: string): number | null => {
+    if (!timeValue || typeof timeValue !== 'string') {
+      return null
+    }
+
+    const isoMatch = timeValue.match(/T(\d{2}):(\d{2})/)
+    if (isoMatch?.[1] && isoMatch?.[2]) {
+      return Number(isoMatch[1]) * 60 + Number(isoMatch[2])
+    }
+
+    const plainMatch = timeValue.match(/^(\d{2}):(\d{2})/)
+    if (plainMatch?.[1] && plainMatch?.[2]) {
+      return Number(plainMatch[1]) * 60 + Number(plainMatch[2])
+    }
+
+    return null
+  }
+
+  const sleepWindowStartMinutes = toMinutesOfDay(mainSleep?.startTime)
+  const sleepWindowEndMinutes = toMinutesOfDay(mainSleep?.endTime)
+
   const intradayHeartRates = (heartRateIntraday?.['activities-heart-intraday']?.dataset || [])
     .map((point) => {
       const hr =
         typeof point.value === 'number' && Number.isFinite(point.value) ? point.value : null
-      const hour = typeof point.time === 'string' ? Number(point.time.split(':')[0]) : NaN
-      return { hr, hour }
+      const minutes = toMinutesOfDay(point.time)
+      return { hr, minutes }
     })
-    .filter((point) => point.hr !== null && Number.isFinite(point.hour) && point.hour >= 0)
+    .filter(
+      (point) =>
+        point.hr !== null && point.minutes !== null && point.minutes >= 0 && point.minutes < 1440
+    )
 
-  const likelySleepingRates = intradayHeartRates
-    .filter((point) => point.hour <= 5)
-    .map((point) => point.hr as number)
+  let likelySleepingRates: number[] = []
+  if (sleepWindowStartMinutes !== null && sleepWindowEndMinutes !== null) {
+    const bufferMinutes = 30
+    const windowStart = (sleepWindowStartMinutes - bufferMinutes + 1440) % 1440
+    const windowEnd = (sleepWindowEndMinutes + bufferMinutes) % 1440
+    const wrapsMidnight = windowStart > windowEnd
+
+    likelySleepingRates = intradayHeartRates
+      .filter((point) => {
+        const minute = point.minutes as number
+        if (wrapsMidnight) {
+          return minute >= windowStart || minute <= windowEnd
+        }
+        return minute >= windowStart && minute <= windowEnd
+      })
+      .map((point) => point.hr as number)
+  }
+
+  if (likelySleepingRates.length === 0) {
+    likelySleepingRates = intradayHeartRates
+      .filter((point) => (point.minutes as number) <= 5 * 60 + 59)
+      .map((point) => point.hr as number)
+  }
 
   const avgSleepingHr =
     likelySleepingRates.length > 0

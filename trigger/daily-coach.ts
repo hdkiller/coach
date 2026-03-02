@@ -141,16 +141,18 @@ export const dailyCoachTask = task({
       })
     ])
     const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayDateOnly)
+    const priorHrvValues = recentWellness
+      .filter((metric) => metric.date.getTime() < todayDateOnly.getTime())
+      .map((metric) => metric.hrv)
 
     const fitbitRecoveryAlert = evaluateFitbitRecoveryAlert({
-      source: todayMetric?.source,
       lastSource: todayMetric?.lastSource,
       hrv: todayMetric?.hrv,
       sleepHours: todayMetric?.sleepHours,
       sleepQuality: todayMetric?.sleepQuality,
       sleepScore: todayMetric?.sleepScore,
       atl: currentFitness?.atl,
-      recentHrvValues: recentWellness.map((metric) => metric.hrv)
+      recentHrvValues: priorHrvValues
     })
 
     logger.log('Data fetched', {

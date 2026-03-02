@@ -265,6 +265,8 @@ describe('fitbit wellness normalization', () => {
         sleep: [
           {
             isMainSleep: true,
+            startTime: '2026-02-28T23:30:00.000',
+            endTime: '2026-03-01T06:45:00.000',
             minutesAsleep: 420,
             efficiency: 88,
             levels: {
@@ -304,6 +306,7 @@ describe('fitbit wellness normalization', () => {
       {
         'activities-heart-intraday': {
           dataset: [
+            { time: '23:30:00', value: 44 },
             { time: '00:15:00', value: 46 },
             { time: '01:10:00', value: 45 },
             { time: '05:55:00', value: 47 },
