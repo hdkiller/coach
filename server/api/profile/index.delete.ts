@@ -1,7 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { tasks } from '@trigger.dev/sdk/v3'
-import { prisma } from '../../utils/db'
-import { logAction } from '../../utils/audit'
+import { scheduleAccountDeletion } from '../../utils/services/accountDeletionService'
 
 defineRouteMeta({
   openAPI: {
@@ -39,45 +37,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const userId = (session.user as any).id
+  if (session.user.isImpersonating || session.user.isCoaching) {
+    throw createError({
+      statusCode: 403,
+      message: 'Account deletion is disabled while acting on behalf of another user'
+    })
+  }
 
-  // Trigger the background job to handle the full deletion (cascading, cleanup, etc.)
-  const handle = await tasks.trigger(
-    'delete-user-account',
-    {
-      userId
+  return await scheduleAccountDeletion({
+    userId: session.user.id,
+    actor: {
+      type: 'self',
+      id: session.user.id,
+      email: session.user.email
     },
-    {
-      concurrencyKey: userId,
-      tags: [`user:${userId}`]
-    }
-  )
-
-  await logAction({
-    userId,
-    action: 'USER_ACCOUNT_DELETION_REQUESTED',
-    resourceType: 'User',
-    resourceId: userId,
-    metadata: { jobId: handle.id },
     event
   })
-
-  // Immediately invalidate sessions to prevent further access
-  try {
-    // Note: This relies on using a database adapter for sessions.
-    // If using JWT only, this might not be sufficient without a blacklist,
-    // but typically we use PrismaAdapter so sessions are in DB.
-    await prisma.session.deleteMany({
-      where: { userId }
-    })
-  } catch (e) {
-    console.error('Failed to clear sessions immediately', e)
-    // Continue anyway, the job will handle it
-  }
-
-  return {
-    success: true,
-    jobId: handle.id,
-    message: 'Account scheduled for deletion'
-  }
 })
