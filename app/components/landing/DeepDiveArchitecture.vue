@@ -1,5 +1,11 @@
 <template>
-  <div id="architecture" class="bg-gray-900 py-24 sm:py-32 border-t border-gray-800">
+  <div
+    id="architecture"
+    class="bg-[#09090B] py-24 sm:py-32 border-t border-white/5 relative overflow-hidden"
+  >
+    <div
+      class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,220,130,0.03)_0%,transparent_50%)] pointer-events-none"
+    />
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <!-- Section Header -->
       <div class="mx-auto max-w-2xl text-center mb-16">
@@ -68,7 +74,23 @@
 
         <!-- Right: Visualization -->
         <div class="relative pt-8">
-          <div class="rounded-xl bg-gray-800 border border-gray-700 p-8 shadow-2xl">
+          <div
+            class="relative rounded-[2rem] bg-gray-900/60 p-10 shadow-2xl border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+          >
+            <!-- 1px Gradient Border Overlay -->
+            <div class="absolute inset-0 rounded-[2rem] p-px pointer-events-none z-50">
+              <div
+                class="w-full h-full rounded-[2rem] border border-white/10"
+                style="
+                  border-image: linear-gradient(
+                      to bottom right,
+                      rgba(255, 255, 255, 0.1),
+                      rgba(0, 220, 130, 0.2)
+                    )
+                    1;
+                "
+              />
+            </div>
             <!-- Schematic Visualization -->
             <div class="space-y-4">
               <!-- Input Layer -->
@@ -95,9 +117,28 @@
               </div>
 
               <!-- Ingestion Engine -->
-              <div class="p-4 bg-gray-900 border border-primary-500/30 rounded-lg text-center">
-                <div class="text-primary-400 font-mono text-sm mb-1">{{ t('engine') }}</div>
-                <div class="text-xs text-gray-500">{{ t('engine_sub') }}</div>
+              <div
+                class="relative p-6 bg-black/40 rounded-2xl text-center border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+              >
+                <div class="absolute inset-0 rounded-2xl p-px pointer-events-none z-50">
+                  <div
+                    class="w-full h-full rounded-2xl border border-white/10"
+                    style="
+                      border-image: linear-gradient(
+                          to bottom right,
+                          rgba(255, 255, 255, 0.1),
+                          rgba(0, 220, 130, 0.3)
+                        )
+                        1;
+                    "
+                  />
+                </div>
+                <div class="text-primary-400 font-mono text-sm mb-1 uppercase tracking-widest">
+                  {{ t('engine') }}
+                </div>
+                <div class="text-[10px] text-gray-500 font-black uppercase tracking-widest">
+                  {{ t('engine_sub') }}
+                </div>
               </div>
 
               <div class="h-8 flex justify-center">
@@ -118,16 +159,44 @@
 
               <!-- The Digital Twin -->
               <div
-                class="p-6 bg-gradient-to-b from-gray-800 to-gray-900 border-2 border-primary-500 rounded-xl text-center relative overflow-hidden"
+                class="relative p-8 bg-gradient-to-b from-gray-900 to-black rounded-[2rem] text-center overflow-hidden border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_20px_40px_-10px_rgba(0,0,0,0.5)]"
               >
-                <div class="absolute inset-0 bg-primary-500/5" />
+                <div class="absolute inset-0 rounded-[2rem] p-px pointer-events-none z-50">
+                  <div
+                    class="w-full h-full rounded-[2rem] border border-white/10"
+                    style="
+                      border-image: linear-gradient(
+                          to bottom right,
+                          rgba(255, 255, 255, 0.2),
+                          rgba(0, 220, 130, 0.5)
+                        )
+                        1;
+                    "
+                  />
+                </div>
+                <div class="absolute inset-0 bg-primary-500/5 blur-3xl animate-pulse" />
                 <div class="relative z-10">
-                  <UIcon name="i-heroicons-user" class="w-12 h-12 text-primary-500 mx-auto mb-2" />
-                  <div class="text-white font-bold text-lg">{{ t('twin_title') }}</div>
-                  <div class="text-xs text-gray-400 mt-2 space-y-1">
-                    <p>{{ t('twin_fitness') }}</p>
-                    <p>{{ t('twin_fatigue') }}</p>
-                    <p>{{ t('twin_trend') }}</p>
+                  <UIcon
+                    name="i-heroicons-user-solid"
+                    class="w-16 h-16 text-primary-500 mx-auto mb-4 filter drop-shadow-[0_0_15px_rgba(0,220,130,0.3)]"
+                  />
+                  <div
+                    class="text-white font-black italic font-athletic uppercase text-2xl tracking-tight"
+                  >
+                    {{ t('twin_title') }}
+                  </div>
+                  <div
+                    class="text-[10px] text-gray-400 mt-4 space-y-2 font-black uppercase tracking-widest"
+                  >
+                    <p class="flex items-center justify-center gap-2">
+                      <span class="w-1 h-1 rounded-full bg-primary-500" /> {{ t('twin_fitness') }}
+                    </p>
+                    <p class="flex items-center justify-center gap-2">
+                      <span class="w-1 h-1 rounded-full bg-primary-500" /> {{ t('twin_fatigue') }}
+                    </p>
+                    <p class="flex items-center justify-center gap-2">
+                      <span class="w-1 h-1 rounded-full bg-primary-500" /> {{ t('twin_trend') }}
+                    </p>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 <template>
   <section id="nutrition-intelligence" class="relative overflow-hidden bg-gray-950 py-24 sm:py-32">
     <div
-      class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.12),transparent_45%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.1),transparent_40%)]"
+      class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.08),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.06),transparent_35%)] pointer-events-none"
     />
 
     <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
@@ -18,7 +18,22 @@
       </div>
 
       <div class="mt-16 grid gap-6 lg:grid-cols-3">
-        <article class="rounded-2xl border border-emerald-500/20 bg-gray-900/80 p-6 backdrop-blur">
+        <article
+          class="relative rounded-2xl bg-gray-900/80 p-6 backdrop-blur-[12px] border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+        >
+          <div class="absolute inset-0 rounded-2xl p-px pointer-events-none z-50">
+            <div
+              class="w-full h-full rounded-2xl border border-white/10"
+              style="
+                border-image: linear-gradient(
+                    to bottom right,
+                    rgba(255, 255, 255, 0.1),
+                    rgba(16, 185, 129, 0.2)
+                  )
+                  1;
+              "
+            />
+          </div>
           <div class="flex items-center gap-3">
             <div class="rounded-lg bg-emerald-500/20 p-2 text-emerald-400">
               <UIcon name="i-heroicons-battery-100" class="h-5 w-5" />
@@ -29,7 +44,22 @@
           <p class="mt-3 text-xs text-gray-400">{{ t('card1_cue') }}</p>
         </article>
 
-        <article class="rounded-2xl border border-blue-500/20 bg-gray-900/80 p-6 backdrop-blur">
+        <article
+          class="relative rounded-2xl bg-gray-900/80 p-6 backdrop-blur-[12px] border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+        >
+          <div class="absolute inset-0 rounded-2xl p-px pointer-events-none z-50">
+            <div
+              class="w-full h-full rounded-2xl border border-white/10"
+              style="
+                border-image: linear-gradient(
+                    to bottom right,
+                    rgba(255, 255, 255, 0.1),
+                    rgba(59, 130, 246, 0.2)
+                  )
+                  1;
+              "
+            />
+          </div>
           <div class="flex items-center gap-3">
             <div class="rounded-lg bg-blue-500/20 p-2 text-blue-400">
               <UIcon name="i-heroicons-chart-bar-square" class="h-5 w-5" />
@@ -40,7 +70,22 @@
           <p class="mt-3 text-xs text-gray-400">{{ t('card2_cue') }}</p>
         </article>
 
-        <article class="rounded-2xl border border-amber-500/20 bg-gray-900/80 p-6 backdrop-blur">
+        <article
+          class="relative rounded-2xl bg-gray-900/80 p-6 backdrop-blur-[12px] border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+        >
+          <div class="absolute inset-0 rounded-2xl p-px pointer-events-none z-50">
+            <div
+              class="w-full h-full rounded-2xl border border-white/10"
+              style="
+                border-image: linear-gradient(
+                    to bottom right,
+                    rgba(255, 255, 255, 0.1),
+                    rgba(245, 158, 11, 0.2)
+                  )
+                  1;
+              "
+            />
+          </div>
           <div class="flex items-center gap-3">
             <div class="rounded-lg bg-amber-500/20 p-2 text-amber-400">
               <UIcon name="i-heroicons-clock" class="h-5 w-5" />
@@ -53,7 +98,22 @@
       </div>
 
       <div class="mt-16 grid gap-6 lg:grid-cols-5">
-        <div class="rounded-3xl border border-gray-800 bg-gray-900/80 p-6 lg:col-span-3">
+        <div
+          class="relative rounded-3xl bg-gray-900/80 p-6 lg:col-span-3 border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+        >
+          <div class="absolute inset-0 rounded-3xl p-px pointer-events-none z-50">
+            <div
+              class="w-full h-full rounded-3xl border border-white/10"
+              style="
+                border-image: linear-gradient(
+                    to bottom right,
+                    rgba(255, 255, 255, 0.1),
+                    rgba(0, 220, 130, 0.2)
+                  )
+                  1;
+              "
+            />
+          </div>
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p class="text-sm font-semibold text-white">{{ t('demo_title') }}</p>
@@ -145,7 +205,22 @@
           </div>
         </div>
 
-        <div class="rounded-3xl border border-gray-800 bg-gray-900/80 p-6 lg:col-span-2">
+        <div
+          class="relative rounded-3xl bg-gray-900/80 p-6 lg:col-span-2 border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+        >
+          <div class="absolute inset-0 rounded-3xl p-px pointer-events-none z-50">
+            <div
+              class="w-full h-full rounded-3xl border border-white/10"
+              style="
+                border-image: linear-gradient(
+                    to bottom right,
+                    rgba(255, 255, 255, 0.1),
+                    rgba(0, 220, 130, 0.2)
+                  )
+                  1;
+              "
+            />
+          </div>
           <p class="text-sm font-semibold text-white">{{ t('outcome_title') }}</p>
           <p class="mt-1 text-xs text-gray-400">{{ t('outcome_subtitle') }}</p>
 

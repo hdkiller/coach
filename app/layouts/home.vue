@@ -7,7 +7,11 @@
     >
       <UContainer class="h-16 flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center hover:opacity-90 transition-opacity">
-          <img src="/media/coach_watts_text_cropped.webp" alt="Coach Watts" class="h-12 w-auto object-contain" />
+          <img
+            src="/media/coach_watts_text_cropped.webp"
+            alt="Coach Watts"
+            class="h-12 w-auto object-contain"
+          />
         </NuxtLink>
 
         <nav
@@ -35,9 +39,17 @@
         </nav>
 
         <div class="flex items-center gap-2">
-          <ClientOnly>
-            <LanguageSwitcher />
-          </ClientOnly>
+          <div class="h-8 min-w-[8.5rem] shrink-0">
+            <ClientOnly>
+              <LanguageSwitcher />
+              <template #fallback>
+                <div
+                  class="h-full w-full rounded-md border border-gray-200/70 bg-gray-100/60 dark:border-gray-800/70 dark:bg-gray-900/60"
+                  aria-hidden="true"
+                />
+              </template>
+            </ClientOnly>
+          </div>
           <div class="hidden sm:flex items-center gap-2">
             <UButton v-if="route.path !== '/login'" to="/login" variant="ghost" color="gray">{{
               t('nav.sign_in')

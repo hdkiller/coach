@@ -1,14 +1,16 @@
 <template>
-  <div class="relative bg-gray-900 min-h-screen">
-    <LandingHero />
-    <LandingNutritionExplainer />
-    <LandingHowItWorks />
-    <LandingIntegrations />
-    <LandingDeepDiveArchitecture />
-    <LandingFeatureBento />
-    <LandingFeatureGoals />
-    <LandingCommunity />
-    <LandingPricing />
+  <div class="relative bg-[#09090B] min-h-screen overflow-x-hidden selection:bg-primary-500/30">
+    <!-- Global Grain Overlay (2%) -->
+    <div class="fixed inset-0 pointer-events-none z-[100] opacity-[0.02] grain-overlay" />
+    <LandingHero class="mb-32" />
+    <LandingNutritionExplainer class="py-32" />
+    <LandingHowItWorks class="py-32" />
+    <LandingIntegrations class="py-32" />
+    <LandingDeepDiveArchitecture class="py-32" />
+    <LandingFeatureBento class="py-32" />
+    <LandingFeatureGoals class="py-32" />
+    <LandingCommunity class="py-32" />
+    <LandingPricing class="py-32" />
 
     <!-- CTA Final -->
     <div class="relative isolate overflow-hidden bg-gray-900 px-6 py-24 sm:py-32 lg:px-8">

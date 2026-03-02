@@ -68,16 +68,18 @@
 <template>
   <section class="relative py-24 sm:py-32 overflow-hidden bg-gray-900 isolate">
     <UContainer>
-      <!-- Intensive Focal Glimmer -->
+      <!-- Targeted Focal Glimmer -->
       <div
-        class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[100px] -z-10 pointer-events-none opacity-60"
+        class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary-500/15 rounded-full blur-[80px] -z-10 pointer-events-none opacity-40"
       />
 
       <div class="text-center mb-16 relative z-10">
         <h2 class="text-[10px] font-black uppercase tracking-[0.4em] text-primary-500 mb-4">
           {{ t('label') }}
         </h2>
-        <h3 class="text-5xl sm:text-6xl font-black uppercase tracking-tight text-white mb-8 font-athletic italic leading-[0.85]">
+        <h3
+          class="text-5xl sm:text-6xl font-black uppercase tracking-tight text-white mb-8 font-athletic italic leading-[0.85]"
+        >
           Your Data, <span class="text-primary-500 tracking-[0.02em]">Unified.</span>
         </h3>
         <p class="max-w-2xl mx-auto text-xl text-gray-400 font-medium leading-relaxed">
@@ -115,11 +117,29 @@
         <!-- Central Hub -->
         <motion.div
           layout
-          class="relative z-20 w-32 h-32 bg-black rounded-3xl border border-primary-500/40 shadow-[0_0_50px_rgba(34,197,94,0.2)] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl"
+          class="relative z-20 w-32 h-32 bg-black rounded-3xl shadow-[0_0_50px_rgba(34,197,94,0.2)] flex items-center justify-center p-6 bg-black/95 backdrop-blur-[12px] border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
           :animate="{ scale: [1, 1.03, 1] }"
           :transition="{ duration: 4, repeat: Infinity, ease: 'easeInOut' }"
         >
-          <img src="/media/logo_square.webp" alt="Coach Watts" class="w-full h-full object-contain" />
+          <!-- 1px Gradient Border -->
+          <div class="absolute inset-0 rounded-3xl p-px pointer-events-none z-50">
+            <div
+              class="w-full h-full rounded-3xl border border-white/10"
+              style="
+                border-image: linear-gradient(
+                    to bottom right,
+                    rgba(255, 255, 255, 0.15),
+                    rgba(0, 220, 130, 0.4)
+                  )
+                  1;
+              "
+            />
+          </div>
+          <img
+            src="/media/logo_square.webp"
+            alt="Coach Watts"
+            class="w-full h-full object-contain"
+          />
           <div class="absolute inset-0 rounded-3xl bg-primary-500/10 blur-xl animate-pulse -z-10" />
         </motion.div>
 
@@ -139,8 +159,22 @@
           >
             <!-- Logo Card -->
             <div
-              class="relative w-24 h-24 bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 p-5 transition-all duration-500 group-hover:border-primary-500/50 group-hover:bg-[#0c0e12] group-hover:shadow-[0_0_40px_rgba(34,197,94,0.1)] cursor-default flex items-center justify-center grain-overlay shadow-xl"
+              class="relative w-24 h-24 bg-black/80 backdrop-blur-[12px] rounded-2xl p-5 transition-all duration-500 group-hover:bg-[#0c0e12] group-hover:shadow-[0_0_40px_rgba(34,197,94,0.15)] cursor-default flex items-center justify-center grain-overlay shadow-xl border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
             >
+              <!-- 1px Gradient Border Overlay -->
+              <div class="absolute inset-0 rounded-2xl p-px pointer-events-none z-50">
+                <div
+                  class="w-full h-full rounded-2xl border border-white/10"
+                  style="
+                    border-image: linear-gradient(
+                        to bottom right,
+                        rgba(255, 255, 255, 0.1),
+                        rgba(0, 220, 130, 0.3)
+                      )
+                      1;
+                  "
+                />
+              </div>
               <img
                 :src="integ.src"
                 :alt="integ.name"
@@ -174,7 +208,7 @@
             v-for="(integ, i) in integrations"
             :key="`mobile-${integ.name}`"
             :initial="{ opacity: 0, y: 20 }"
-            :whileInView="{ opacity: 1, y: 0 }"
+            :while-in-view="{ opacity: 1, y: 0 }"
             :viewport="{ once: true }"
             :transition="{ delay: i * 0.1 }"
             class="group flex flex-col items-center p-8 bg-gray-950/40 rounded-3xl border border-white/5 hover:border-primary-500/30 transition-all duration-300 backdrop-blur-sm grain-overlay"
@@ -188,11 +222,12 @@
               />
             </div>
             <div class="text-center">
-              <p class="text-sm font-bold text-white mb-2 uppercase tracking-wide">{{ integ.name }}</p>
-              <span
-                class="text-[9px] font-black uppercase tracking-[0.15em] text-primary-500/90"
-                >{{ integ.status }}</span
-              >
+              <p class="text-sm font-bold text-white mb-2 uppercase tracking-wide">
+                {{ integ.name }}
+              </p>
+              <span class="text-[9px] font-black uppercase tracking-[0.15em] text-primary-500/90">{{
+                integ.status
+              }}</span>
             </div>
           </motion.div>
         </div>
