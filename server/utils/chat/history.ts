@@ -193,7 +193,7 @@ export function expandStoredChatMessages(messages: any[]) {
 
 export async function buildModelMessagesFromStoredChatMessages(messages: any[], tools: any) {
   const historyMessages = expandStoredChatMessages(messages)
-  const coreMessages = await convertToModelMessages(historyMessages, { tools: tools as any })
+  const coreMessages = await convertToModelMessages(historyMessages as any, { tools: tools as any })
 
   const merged: any[] = []
   for (const msg of coreMessages) {

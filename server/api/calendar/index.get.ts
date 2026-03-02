@@ -345,12 +345,137 @@ export default defineEventHandler(async (event) => {
     orderBy: { startDate: 'asc' }
   })
 
+  // Fetch goals (targetDate or eventDate)
+  const goals = await prisma.goal.findMany({
+    where: {
+      userId,
+      OR: [
+        {
+          targetDate: {
+            gte: calendarStart,
+            lte: calendarEnd
+          }
+        },
+        {
+          eventDate: {
+            gte: calendarStart,
+            lte: calendarEnd
+          }
+        }
+      ]
+    },
+    orderBy: { targetDate: 'asc' }
+  })
+
+  // Fetch metric history (threshold changes)
+  const metricHistory = await prisma.metricHistory.findMany({
+    where: {
+      userId,
+      date: {
+        gte: rangeStart,
+        lte: rangeEnd
+      }
+    },
+    orderBy: { date: 'asc' }
+  })
+
+  // Fetch personal bests
+  const personalBests = await prisma.personalBest.findMany({
+    where: {
+      userId,
+      date: {
+        gte: rangeStart,
+        lte: rangeEnd
+      }
+    },
+    orderBy: { date: 'asc' }
+  })
+
   // Create a set of plannedWorkoutIds that are already represented by completed workouts
   // We'll use this to mark them as linked or hide them if we only want them nested
   const completedPlannedIds = new Set(workouts.map((w) => w.plannedWorkoutId).filter(Boolean))
 
   // Group activities by date for nutrition injection
   const activitiesByDate = new Map()
+
+  // Process Goals
+  for (const g of goals) {
+    const goalDate = g.eventDate || g.targetDate
+    if (!goalDate) continue
+
+    const dateKey = goalDate.toISOString().split('T')[0]
+    if (!activitiesByDate.has(dateKey)) {
+      activitiesByDate.set(dateKey, [])
+    }
+    activitiesByDate.get(dateKey).push({
+      id: g.id,
+      title: g.title,
+      date: goalDate.toISOString(),
+      type: 'Goal',
+      source: 'goal',
+      status: g.status === 'ACTIVE' ? 'active' : 'completed',
+      priority: g.priority,
+      metric: g.metric,
+      targetValue: g.targetValue,
+      description: g.description,
+      nutrition: nutritionByDate.get(dateKey) || null,
+      wellness: wellnessByDate.get(dateKey) || null
+    })
+  }
+
+  // Process Metric History (Thresholds)
+  for (const m of metricHistory) {
+    const dateKey = m.date.toISOString().split('T')[0]
+    if (!activitiesByDate.has(dateKey)) {
+      activitiesByDate.set(dateKey, [])
+    }
+    
+    // Format title
+    let title = `${m.type}: ${m.value}`
+    if (m.oldValue !== null) {
+      const change = m.value - m.oldValue
+      const changeStr = change >= 0 ? `+${change}` : `${change}`
+      title = `${m.type}: ${m.oldValue} → ${m.value} (${changeStr})`
+    }
+
+    activitiesByDate.get(dateKey).push({
+      id: m.id,
+      title,
+      date: m.date.toISOString(),
+      type: 'Threshold',
+      source: 'threshold',
+      status: 'completed',
+      metric: m.type,
+      value: m.value,
+      oldValue: m.oldValue,
+      description: m.notes,
+      nutrition: nutritionByDate.get(dateKey) || null,
+      wellness: wellnessByDate.get(dateKey) || null
+    })
+  }
+
+  // Process Personal Bests
+  for (const pb of personalBests) {
+    const dateKey = pb.date.toISOString().split('T')[0]
+    if (!activitiesByDate.has(dateKey)) {
+      activitiesByDate.set(dateKey, [])
+    }
+
+    activitiesByDate.get(dateKey).push({
+      id: pb.id,
+      title: `New PB: ${pb.type} (${pb.value}${pb.unit})`,
+      date: pb.date.toISOString(),
+      type: 'PB',
+      source: 'pb',
+      status: 'completed',
+      metric: pb.type,
+      value: pb.value,
+      unit: pb.unit,
+      description: pb.notes,
+      nutrition: nutritionByDate.get(dateKey) || null,
+      wellness: wellnessByDate.get(dateKey) || null
+    })
+  }
 
   // Process Completed Workouts
   for (const w of workouts) {

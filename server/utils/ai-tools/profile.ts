@@ -134,7 +134,7 @@ export const profileTools = (userId: string, timezone: string, aiSettings: AiSet
       const settings = await sportSettingsRepository.getByUserId(userId)
       return {
         count: settings.length,
-        profiles: settings.map((s) => ({
+        profiles: (settings as any[]).map((s) => ({
           id: s.id,
           name: s.name,
           is_default: s.isDefault,
