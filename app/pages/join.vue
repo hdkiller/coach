@@ -83,15 +83,18 @@
                 class="flex justify-start items-end gap-4 mt-8"
               >
                 <div
-                  class="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center shrink-0 border border-primary-500/30 shadow-[0_0_20px_rgba(34,197,94,0.15)] relative"
+                  class="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center shrink-0 border border-primary-500/30 shadow-[0_0_20px_rgba(34,197,94,0.15)] relative group"
                 >
                   <UIcon
                     name="i-heroicons-sparkles-solid"
-                    class="w-5 h-5 text-primary-500 animate-pulse"
+                    class="w-5 h-5 text-primary-500 relative z-10"
                   />
-                  <!-- Hidden Glow Ring -->
+                  <!-- Breathing Glow Effect -->
                   <div
-                    class="absolute inset-0 rounded-xl border border-primary-500/20 animate-ping opacity-20"
+                    class="absolute inset-0 rounded-xl bg-primary-500/40 animate-pulse-slow blur-md opacity-30"
+                  />
+                  <div
+                    class="absolute -inset-1 rounded-xl border border-primary-500/20 animate-ping-slow opacity-20"
                   />
                 </div>
 
@@ -104,23 +107,33 @@
                   </div>
 
                   <div
-                    class="bg-white/5 backdrop-blur-[24px] rounded-2xl rounded-tl-sm px-6 py-5 text-sm text-white border border-white/10 shadow-2xl relative min-w-[120px] min-h-[148px] sm:min-h-[164px]"
+                    class="bg-white/5 backdrop-blur-[24px] rounded-2xl rounded-tl-sm px-6 py-5 text-sm text-white border border-white/10 shadow-2xl relative min-w-[200px] min-h-[148px] sm:min-h-[164px]"
                   >
-                    <div class="relative z-10 leading-relaxed font-medium">
-                      <div v-if="isTyping" class="space-y-3 pt-1">
+                    <!-- Skeleton/Ghost State -->
+                    <div v-if="isTyping" class="space-y-3 pt-1 animate-pulse">
+                      <div
+                        class="h-3 w-24 rounded-full bg-[#00C16A]/20 shadow-[0_0_20px_rgba(0,193,106,0.08)]"
+                      />
+                      <div class="h-3 w-full rounded-full bg-white/5" />
+                      <div class="h-3 w-[92%] rounded-full bg-white/5" />
+                      <div class="h-3 w-[68%] rounded-full bg-white/5" />
+                      <!-- Typing dots inside skeleton -->
+                      <div class="flex items-center gap-1.5 mt-4">
                         <div
-                          class="h-3 w-20 rounded-full bg-[#00C16A]/20 shadow-[0_0_20px_rgba(0,193,106,0.08)]"
+                          class="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce [animation-delay:-0.3s]"
                         />
-                        <div class="h-3 w-full rounded-full bg-white/10" />
-                        <div class="h-3 w-[92%] rounded-full bg-white/10" />
-                        <div class="h-3 w-[68%] rounded-full bg-white/10" />
                         <div
-                          class="h-8 w-40 rounded-2xl bg-[#00C16A]/10 border border-[#00C16A]/15"
+                          class="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce [animation-delay:-0.15s]"
                         />
+                        <div class="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce" />
                       </div>
-                      <div v-else class="animate-in fade-in slide-in-from-bottom-2 duration-700">
+                    </div>
+
+                    <!-- Content State -->
+                    <div v-else class="animate-in fade-in slide-in-from-bottom-2 duration-1000">
+                      <div class="relative z-10 leading-relaxed font-medium">
                         <p class="mb-3 text-zinc-200">
-                          {{ aiGreeting }}
+                          <span v-html="aiGreeting" />
                         </p>
                         <p class="text-white" v-html="aiAdvice" />
                       </div>
@@ -170,22 +183,25 @@
           </div>
         </div>
 
-        <!-- Right: Auth Form -->
-        <div class="lg:col-span-7 p-10 sm:p-20 flex flex-col justify-center bg-[#09090B] relative">
+        <!-- 2. The Signup Container -->
+        <div
+          class="lg:col-span-7 flex flex-col justify-center p-6 sm:p-12 lg:p-24 bg-black relative order-1 lg:order-2"
+        >
           <!-- Inner Glow -->
           <div
             class="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(0,220,130,0.02)_0%,transparent_70%)]"
           />
 
           <div class="max-w-md mx-auto w-full relative z-10">
-            <div class="mb-12 text-center lg:text-left">
+            <div class="mb-10 text-center lg:text-left">
               <h1
-                class="text-4xl font-black text-white italic font-athletic uppercase tracking-tight mb-4"
+                class="text-4xl sm:text-6xl font-black italic font-athletic uppercase text-white leading-[0.85] mb-6 tracking-tighter"
               >
-                {{ joinFormTitle }}
+                Initialize Your <br class="hidden sm:block" />
+                <span class="text-primary-500">Digital Twin</span>
               </h1>
-              <p class="text-zinc-500 text-lg leading-relaxed font-medium">
-                {{ joinFormSubtitle }}
+              <p class="text-zinc-400 text-sm sm:text-lg max-w-md mx-auto lg:mx-0 font-medium pb-2">
+                Start your evolution for free. No credit card, no commitment.
               </p>
             </div>
 
@@ -204,11 +220,11 @@
                   color="primary"
                   variant="solid"
                   class="relative overflow-hidden group shadow-[0_0_30px_rgba(0,220,130,0.1)] py-5 rounded-2xl h-14 min-w-full"
-                  :loading="loading"
+                  :loading="loading || isInitializing"
                   @click="handleGoogleLogin"
                 >
                   <span class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px]">{{
-                    joinGoogle
+                    isInitializing ? 'CALIBRATING...' : joinGoogle
                   }}</span>
                   <div
                     class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"
@@ -237,17 +253,23 @@
               <!-- Trust Signals -->
               <div class="flex flex-col items-center gap-6 pt-4">
                 <div
-                  class="flex items-center gap-8 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all duration-500"
+                  class="flex items-center gap-6 opacity-30 grayscale group hover:grayscale-0 hover:opacity-100 transition-all duration-500 scale-90 sm:scale-100"
                 >
-                  <div class="flex items-center gap-2">
-                    <UIcon name="i-heroicons-shield-check-solid" class="w-4 h-4 text-emerald-500" />
-                    <span class="text-[9px] font-black uppercase tracking-widest text-zinc-400"
+                  <div class="flex items-center gap-1.5">
+                    <UIcon
+                      name="i-heroicons-shield-check-solid"
+                      class="w-3.5 h-3.5 text-emerald-500"
+                    />
+                    <span class="text-[8px] font-black uppercase tracking-widest text-zinc-500"
                       >Secure 256-bit AES</span
                     >
                   </div>
-                  <div class="flex items-center gap-2">
-                    <UIcon name="i-heroicons-lock-closed-solid" class="w-4 h-4 text-emerald-500" />
-                    <span class="text-[9px] font-black uppercase tracking-widest text-zinc-400"
+                  <div class="flex items-center gap-1.5">
+                    <UIcon
+                      name="i-heroicons-lock-closed-solid"
+                      class="w-3.5 h-3.5 text-emerald-500"
+                    />
+                    <span class="text-[8px] font-black uppercase tracking-widest text-zinc-500"
                       >Privacy Guaranteed</span
                     >
                   </div>
@@ -282,6 +304,56 @@
                 </div>
               </div>
             </div>
+
+            <!-- Initialization Overlay -->
+            <transition
+              enter-active-class="transition duration-1000 ease-out"
+              enter-from-class="opacity-0 backdrop-blur-0"
+              enter-to-class="opacity-100 backdrop-blur-2xl"
+              leave-active-class="transition duration-500 ease-in"
+              leave-from-class="opacity-100 backdrop-blur-2xl"
+              leave-to-class="opacity-0 backdrop-blur-0"
+            >
+              <div
+                v-if="isInitializing"
+                class="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl"
+              >
+                <div class="text-center space-y-8 p-12 max-w-sm">
+                  <div class="relative w-24 h-24 mx-auto mb-12">
+                    <div
+                      class="absolute inset-0 rounded-3xl bg-primary-500/20 animate-ping opacity-20"
+                    />
+                    <div
+                      class="absolute inset-0 rounded-3xl border-2 border-primary-500/50 flex items-center justify-center"
+                    >
+                      <UIcon
+                        name="i-heroicons-cpu-chip"
+                        class="w-12 h-12 text-primary-500 animate-pulse"
+                      />
+                    </div>
+                  </div>
+                  <div class="space-y-4">
+                    <h3
+                      class="text-2xl font-black italic font-athletic uppercase text-white tracking-widest"
+                    >
+                      Initializing <br />
+                      <span class="text-primary-500">Digital Twin</span>
+                    </h3>
+                    <div class="flex items-center justify-center gap-1">
+                      <div
+                        v-for="i in 3"
+                        :key="i"
+                        class="w-1.5 h-1.5 rounded-full bg-primary-500 animate-bounce"
+                        :style="{ animationDelay: `${i * 0.15}s` }"
+                      />
+                    </div>
+                    <p class="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mt-6">
+                      Syncing Biometric Nodes...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </transition>
           </div>
         </div>
       </div>
@@ -323,6 +395,7 @@
   })
 
   const loading = ref(false)
+  const isInitializing = ref(false)
   const isTyping = ref(true)
 
   const translateOrFallback = (key: string, fallback: string, invalidValues: string[] = []) =>
@@ -367,7 +440,7 @@
     if (referral.value === 'hall-of-fame') {
       return 'Absolutely. I see your current best is 18:42 from last June.'
     }
-    return 'I noticed your HRV dropped to 28ms overnight. 📉'
+    return "I noticed your <span class='text-[#00C16A] font-bold'>HRV</span> dropped to 28ms overnight. 📉"
   })
 
   const aiAdvice = computed(() => {
@@ -380,7 +453,7 @@
   onMounted(() => {
     setTimeout(() => {
       isTyping.value = false
-    }, 800)
+    }, 1200)
   })
 
   // Starfield Generator
@@ -411,17 +484,14 @@
   }
 
   async function handleGoogleLogin() {
-    trackSignUp('google')
-    loading.value = true
+    isInitializing.value = true
     try {
-      await signIn('google', { callbackUrl })
+      // Simulate technical delay for the animation
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await signIn('google', { callbackUrl: '/' })
     } catch (error: any) {
-      toast.add({
-        title: 'Login Failed',
-        description: error.message || 'Could not initiate Google login.',
-        color: 'error'
-      })
-      loading.value = false
+      console.error('Login error:', error)
+      isInitializing.value = false
     }
   }
 </script>
@@ -470,5 +540,24 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-ping-slow {
+    animation: ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.1;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.2);
+    }
   }
 </style>
