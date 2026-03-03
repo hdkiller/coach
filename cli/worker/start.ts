@@ -416,7 +416,7 @@ export const startCommand = new Command('start')
         }
 
         if (provider === 'garmin') {
-          const { payload, headers } = job.data
+          const { payload, headers, query } = job.data
           let { logId } = job.data
 
           // Log if not already logged (e.g. from async endpoint)
@@ -426,6 +426,7 @@ export const startCommand = new Command('start')
               eventType: 'PUSH',
               payload,
               headers,
+              query,
               status: 'PENDING'
             })
             logId = log?.id
@@ -436,7 +437,7 @@ export const startCommand = new Command('start')
           )
 
           try {
-            const result = await GarminService.processWebhookEvent(payload)
+            const result = await GarminService.processWebhookEvent(payload, { query, headers })
 
             console.log(chalk.green(`[GarminJob ${job.id}] Completed: ${result.message}`))
             if (logId) {
@@ -518,6 +519,7 @@ export const startCommand = new Command('start')
               type: log.eventType,
               payload: log.payload,
               headers: log.headers,
+              query: log.query,
               logId: log.id,
               // Oauth specific fields if any were stored in error or similar
               appName: log.eventType?.startsWith('oauth:')

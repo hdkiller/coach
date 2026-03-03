@@ -6,6 +6,7 @@ import { fetchGarminActivityFile, requestGarminBackfill } from '../garmin'
 import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
+import { normalizeGarminActivityType } from '../activity-mapping'
 import crypto from 'crypto'
 
 function normalizeDeviceName(name: unknown): string | null {
@@ -35,8 +36,12 @@ export const GarminService = {
   /**
    * Process a single webhook payload (Push API).
    */
-  async processWebhookEvent(payload: any) {
+  async processWebhookEvent(
+    payload: any,
+    context?: { query?: Record<string, any> | null; headers?: Record<string, any> | null }
+  ) {
     console.log('[GarminService] Processing webhook payload:', Object.keys(payload))
+    const pullToken = this.extractPullToken(payload, context)
 
     const deregistrations = Array.isArray(payload?.deregistrations) ? payload.deregistrations : []
     const userPermissionsChange = Array.isArray(payload?.userPermissionsChange)
@@ -117,7 +122,8 @@ export const GarminService = {
       if (dailies.length > 0) await this.processWellness(userId, dailies)
       if (sleeps.length > 0) await this.processSleep(userId, sleeps)
       if (hrv.length > 0) await this.processHRV(userId, hrv)
-      if (activities.length > 0) await this.processActivities(userId, activities, integration)
+      if (activities.length > 0)
+        await this.processActivities(userId, activities, integration, pullToken)
 
       // Handle additional health types
       if (bodyComps.length > 0) await this.processBodyComp(userId, bodyComps)
@@ -323,7 +329,12 @@ export const GarminService = {
   /**
    * Process Garmin Activities
    */
-  async processActivities(userId: string, data: any[], integration: any) {
+  async processActivities(
+    userId: string,
+    data: any[],
+    integration: any,
+    pullToken?: string | null
+  ) {
     for (const record of data) {
       const startDate = new Date(record.startTimeInSeconds * 1000)
       const externalId = record.summaryId
@@ -344,7 +355,7 @@ export const GarminService = {
         source: 'garmin',
         date: startDate,
         title: record.activityName || `Garmin ${record.activityType}`,
-        type: this.mapActivityType(record.activityType),
+        type: normalizeGarminActivityType(record.activityType),
         durationSec: record.durationInSeconds,
         elapsedTimeSec: record.durationInSeconds || null,
         distanceMeters: record.distanceInMeters || null,
@@ -391,7 +402,7 @@ export const GarminService = {
 
         if (!existingStream || !existingFitFile) {
           try {
-            const buffer = await fetchGarminActivityFile(integration, externalId)
+            const buffer = await fetchGarminActivityFile(integration, externalId, pullToken)
             const hash = crypto.createHash('sha256').update(buffer).digest('hex')
 
             // Persist raw FIT payload so we can re-process/backfill parsing later.
@@ -459,19 +470,28 @@ export const GarminService = {
     }
   },
 
-  /**
-   * Map Garmin activity types to Coach Watts types
-   */
-  mapActivityType(garminType: string): string {
-    const map: Record<string, string> = {
-      RUNNING: 'Run',
-      CYCLING: 'Ride',
-      WALKING: 'Walk',
-      LAP_SWIMMING: 'Swim',
-      OPEN_WATER_SWIMMING: 'Swim',
-      HIKING: 'Hike',
-      YOGA: 'Yoga'
+  extractPullToken(
+    payload: any,
+    context?: { query?: Record<string, any> | null; headers?: Record<string, any> | null }
+  ): string | null {
+    const queryToken = context?.query?.token
+    if (typeof queryToken === 'string' && queryToken.trim()) return queryToken.trim()
+    if (Array.isArray(queryToken)) {
+      const candidate = queryToken.find((value) => typeof value === 'string' && value.trim())
+      if (candidate) return candidate.trim()
     }
-    return map[garminType] || 'Other'
+
+    const payloadToken = payload?.token
+    if (typeof payloadToken === 'string' && payloadToken.trim()) return payloadToken.trim()
+
+    const headerToken =
+      context?.headers?.['x-garmin-pull-token'] || context?.headers?.['X-Garmin-Pull-Token']
+    if (typeof headerToken === 'string' && headerToken.trim()) return headerToken.trim()
+    if (Array.isArray(headerToken)) {
+      const candidate = headerToken.find((value) => typeof value === 'string' && value.trim())
+      if (candidate) return candidate.trim()
+    }
+
+    return null
   }
 }

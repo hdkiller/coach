@@ -15,6 +15,7 @@ defineRouteMeta({
 export default defineEventHandler(async (event) => {
   const payload = await readBody(event)
   const headers = getRequestHeaders(event)
+  const query = getQuery(event)
 
   try {
     // Garmin Push API sends lists of records (activities, sleeps, etc.)
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
       eventType: 'PUSH',
       payload,
       headers,
+      query,
       status: 'PENDING'
     })
 

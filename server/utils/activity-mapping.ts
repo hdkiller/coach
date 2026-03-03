@@ -175,3 +175,50 @@ export function normalizePolarSport(sport: string, detailed?: string): string {
       return 'Other'
   }
 }
+
+export function normalizeGarminActivityType(activityType: string | null | undefined): string {
+  const type = String(activityType || '')
+    .trim()
+    .toUpperCase()
+
+  if (!type) return 'Other'
+
+  const exactMap: Record<string, string> = {
+    RUNNING: 'Run',
+    TRAIL_RUNNING: 'Run',
+    TREADMILL_RUNNING: 'Run',
+    WALKING: 'Walk',
+    HIKING: 'Hike',
+    CYCLING: 'Ride',
+    ROAD_BIKING: 'Ride',
+    INDOOR_CYCLING: 'VirtualRide',
+    MOUNTAIN_BIKING: 'MountainBikeRide',
+    BMX: 'Ride',
+    ROWING: 'Rowing',
+    INDOOR_ROWING: 'Rowing',
+    LAP_SWIMMING: 'Swim',
+    OPEN_WATER_SWIMMING: 'Swim',
+    STRENGTH_TRAINING: 'WeightTraining',
+    ELLIPTICAL: 'Elliptical',
+    YOGA: 'Yoga'
+  }
+
+  if (exactMap[type]) return exactMap[type]
+
+  if (type.includes('BIK') || type.includes('CYCL')) {
+    if (type.includes('MOUNTAIN')) return 'MountainBikeRide'
+    if (type.includes('INDOOR') || type.includes('VIRTUAL')) return 'VirtualRide'
+    return 'Ride'
+  }
+
+  if (type.includes('ROW')) return 'Rowing'
+  if (type.includes('RUN')) return 'Run'
+  if (type.includes('WALK')) return 'Walk'
+  if (type.includes('HIK')) return 'Hike'
+  if (type.includes('SWIM')) return 'Swim'
+  if (type.includes('STRENGTH')) return 'WeightTraining'
+  if (type.includes('ELLIPTICAL')) return 'Elliptical'
+  if (type.includes('YOGA')) return 'Yoga'
+
+  return 'Other'
+}
