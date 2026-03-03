@@ -163,6 +163,27 @@ backfillBodyMeasurementsCommand
 
     try {
       const userFilter = userId ? { id: userId } : userEmail ? { email: userEmail } : {}
+      const wellnessWhere = {
+        ...(userId || userEmail ? { user: userFilter } : {}),
+        OR: [{ weight: { not: null } }, { bodyFat: { not: null } }]
+      }
+      const usersWhere = {
+        ...userFilter,
+        OR: [{ height: { not: null } }, { weight: { not: null } }]
+      }
+      const [wellnessTotal, usersTotal] = await Promise.all([
+        prisma.wellness.count({
+          where: wellnessWhere
+        }),
+        prisma.user.count({
+          where: usersWhere
+        })
+      ])
+
+      console.log(chalk.cyan(`Wellness rows to process: ${wellnessTotal}`))
+      console.log(chalk.cyan(`Users to scan: ${usersTotal}`))
+      console.log(chalk.cyan(`Batch size: ${batchSize}`))
+      console.log(chalk.cyan(`Concurrency: ${concurrency}`))
 
       let wellnessProcessed = 0
       let heightProcessed = 0
@@ -175,10 +196,7 @@ backfillBodyMeasurementsCommand
 
       while (true) {
         const wellnessRows = await prisma.wellness.findMany({
-          where: {
-            ...(userId || userEmail ? { user: userFilter } : {}),
-            OR: [{ weight: { not: null } }, { bodyFat: { not: null } }]
-          },
+          where: wellnessWhere,
           select: {
             id: true,
             userId: true,
@@ -210,10 +228,7 @@ backfillBodyMeasurementsCommand
 
       while (true) {
         const users = await prisma.user.findMany({
-          where: {
-            ...userFilter,
-            OR: [{ height: { not: null } }, { weight: { not: null } }]
-          },
+          where: usersWhere,
           select: {
             id: true,
             height: true,

@@ -204,12 +204,12 @@ const goalReviewSchema = {
         goals_to_adjust: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Which goals should be modified'
+          description: 'Titles of the goals that should be modified (use Title, not UUID)'
         },
         goals_to_pause: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Goals that should be paused or archived'
+          description: 'Titles of the goals that should be paused or archived (use Title, not UUID)'
         },
         new_goals_to_consider: {
           type: 'array',
@@ -498,8 +498,8 @@ Also identify:
 
 Provide an action plan with:
 - Immediate actions
-- Goals to adjust (and how)
-- Goals to pause or archive
+- Goals to adjust (and how) - Use Goal Titles, NOT UUIDs
+- Goals to pause or archive - Use Goal Titles, NOT UUIDs
 - New goals to consider
 
 Be honest and constructive. The athlete wants real coaching advice, not cheerleading. Reference specific metrics and data points.`
