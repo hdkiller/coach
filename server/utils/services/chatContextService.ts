@@ -826,6 +826,11 @@ ${toolApprovalInstruction}
 5.  **Multi-Step Reasoning**: You can call multiple tools in a row (e.g. \`get_available_slots\` -> \`get_planned_workouts\` -> \`reschedule_planned_workout\`).
 6.  **Workout Notes Safety**: For \`update_workout_notes\`, APPEND is the default behavior. Only use REPLACE when the user explicitly asks to overwrite existing notes.
 
+## Nutrition Logging Accuracy & Efficiency (CRITICAL)
+
+1.  **Pass Local Time**: When logging food "now", "just now", or for the current moment, you MUST pass the exact local time (HH:mm) into the \`logged_at\` parameter of \`log_nutrition_meal\`. First call \`get_current_time\` to obtain it. Never omit the time for "today" logs.
+2.  **Non-Destructive Edits**: When the user wants to correct a mistake (e.g. "I actually ate that at 12:30", "it was 500 calories, not 400"), use the \`patch_nutrition_items\` tool. Do NOT delete and recreate the meal. You MUST provide the \`item_id\` for each update.
+
 ## Your Tools & Data Access
 
 **IMPORTANT: Recent data (last 7 days) is ALREADY PROVIDED in your context!**

@@ -33,6 +33,14 @@ const parseToolDateInput = (field: string, value: string, input: Record<string, 
   return { date: parsed }
 }
 
+const formatMealItems = (items: any, timezone: string) => {
+  if (!Array.isArray(items)) return []
+  return items.map((item: any) => ({
+    ...item,
+    logged_at_local: item.logged_at ? formatUserTime(new Date(item.logged_at), timezone) : null
+  }))
+}
+
 export const nutritionTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
   get_nutrition_log: tool({
     description:
@@ -100,10 +108,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
             water_ml: entry.waterMl
           },
           meals: {
-            breakfast: entry.breakfast,
-            lunch: entry.lunch,
-            dinner: entry.dinner,
-            snacks: entry.snacks
+            breakfast: formatMealItems(entry.breakfast, timezone),
+            lunch: formatMealItems(entry.lunch, timezone),
+            dinner: formatMealItems(entry.dinner, timezone),
+            snacks: formatMealItems(entry.snacks, timezone)
           },
           ai_analysis: entry.aiAnalysis || null
         })),
@@ -113,6 +121,27 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           carbs: nutritionEntries.reduce((sum, e) => sum + (e.carbs || 0), 0),
           fat: nutritionEntries.reduce((sum, e) => sum + (e.fat || 0), 0),
           water_ml: nutritionEntries.reduce((sum, e) => sum + (e.waterMl || 0), 0)
+        },
+        averages: {
+          // Average based only on days where something was actually logged, matching dashboard history
+          calories: Math.round(
+            nutritionEntries
+              .filter((e) => (e.calories || 0) > 0)
+              .reduce((sum, e) => sum + (e.calories || 0), 0) /
+              (nutritionEntries.filter((e) => (e.calories || 0) > 0).length || 1)
+          ),
+          protein: Math.round(
+            nutritionEntries
+              .filter((e) => (e.protein || 0) > 0)
+              .reduce((sum, e) => sum + (e.protein || 0), 0) /
+              (nutritionEntries.filter((e) => (e.protein || 0) > 0).length || 1)
+          ),
+          carbs: Math.round(
+            nutritionEntries
+              .filter((e) => (e.carbs || 0) > 0)
+              .reduce((sum, e) => sum + (e.carbs || 0), 0) /
+              (nutritionEntries.filter((e) => (e.carbs || 0) > 0).length || 1)
+          )
         }
       }
     }
@@ -161,6 +190,8 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
       const dateUtc = parsedDate.date
       const settings = await getUserNutritionSettings(userId)
+      const todayStr = formatDateUTC(getUserLocalDate(timezone), 'yyyy-MM-dd')
+      const isToday = date === todayStr
 
       // Dynamic Mapping: Map custom slots to 'snacks' but preserve intent in item names
       const standardTypes = ['breakfast', 'lunch', 'dinner', 'snacks']
@@ -176,9 +207,15 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       const itemsWithIds = items.map((item) => {
         let normalizedLoggedAt = item.logged_at
 
-        // If no time is provided, anchor to configured meal schedule for this meal type.
+        // If no time is provided:
+        // 1. If today, default to current local time (High fidelity)
+        // 2. If past/future, anchor to configured meal schedule (Best guess)
         if (!normalizedLoggedAt) {
-          normalizedLoggedAt = pickMealScheduledTime(targetMealType, settings.mealPattern)
+          if (isToday) {
+            normalizedLoggedAt = formatUserTime(new Date(), timezone)
+          } else {
+            normalizedLoggedAt = pickMealScheduledTime(targetMealType, settings.mealPattern)
+          }
         }
 
         if (normalizedLoggedAt.includes('T')) {
@@ -637,6 +674,133 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           water_ml: updatedNutrition.waterMl
         },
         remaining_items: updatedItems
+      }
+    }
+  }),
+
+  patch_nutrition_items: tool({
+    description:
+      'Update specific properties (name, calories, macros, or time) of one or more existing food items. Use this for corrections instead of deleting and re-logging. You MUST provide the item_id for each update.',
+    inputSchema: z.object({
+      date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
+      meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']).describe('The meal category'),
+      updates: z.array(
+        z.object({
+          item_id: z.string().describe('The unique ID of the item to update'),
+          name: z.string().optional(),
+          calories: z.number().optional(),
+          protein: z.number().optional(),
+          carbs: z.number().optional(),
+          fat: z.number().optional(),
+          fiber: z.number().optional(),
+          sugar: z.number().optional(),
+          logged_at: z
+            .string()
+            .optional()
+            .describe('New timestamp or time string (HH:mm) for the item')
+        })
+      )
+    }),
+    needsApproval: async () => aiSettings.aiRequireToolApproval,
+    execute: async ({ date, meal_type, updates }) => {
+      const parsedDate = parseToolDateInput('date', date, { date, meal_type, updates })
+      if ('error' in parsedDate) return parsedDate.error
+
+      const dateUtc = parsedDate.date
+      let nutrition = await nutritionRepository.getByDate(userId, dateUtc)
+
+      if (!nutrition) {
+        return { message: 'No nutrition log found for this date.' }
+      }
+
+      const currentItems = (nutrition[meal_type] as any[]) || []
+      const updatedItems = [...currentItems]
+      let updatedCount = 0
+
+      for (const update of updates) {
+        const index = updatedItems.findIndex((i) => i.id === update.item_id)
+        if (index === -1) continue
+
+        const item = updatedItems[index]
+        let normalizedLoggedAt = update.logged_at || item.logged_at
+
+        if (normalizedLoggedAt && normalizedLoggedAt.includes('T')) {
+          const timePart = normalizedLoggedAt.split('T')[1]
+          normalizedLoggedAt = `${date}T${timePart}`
+        } else if (normalizedLoggedAt && /^\d{2}:\d{2}/.test(normalizedLoggedAt)) {
+          const timeMatch = normalizedLoggedAt.match(/^(\d{2}):(\d{2})/)
+          if (timeMatch) {
+            const h = parseInt(timeMatch[1]!)
+            const m = parseInt(timeMatch[2]!)
+            const baseDate = getStartOfLocalDateUTC(timezone, date)
+            const finalDate = new Date(baseDate.getTime() + (h * 3600 + m * 60) * 1000)
+            normalizedLoggedAt = finalDate.toISOString()
+          }
+        }
+
+        updatedItems[index] = {
+          ...item,
+          name: update.name || item.name,
+          calories: update.calories !== undefined ? update.calories : item.calories,
+          protein: update.protein !== undefined ? update.protein : item.protein,
+          carbs: update.carbs !== undefined ? update.carbs : item.carbs,
+          fat: update.fat !== undefined ? update.fat : item.fat,
+          fiber: update.fiber !== undefined ? update.fiber : item.fiber,
+          sugar: update.sugar !== undefined ? update.sugar : item.sugar,
+          logged_at: normalizedLoggedAt
+        }
+        updatedCount++
+      }
+
+      if (updatedCount === 0) {
+        return { message: 'No matching items found to update.' }
+      }
+
+      // Update DB
+      nutrition = await nutritionRepository.update(nutrition.id, {
+        [meal_type]: updatedItems
+      })
+
+      // Recalculate daily totals
+      const totals = recalculateNutritionTotals(nutrition)
+
+      const updatedNutrition = await nutritionRepository.update(nutrition.id, {
+        calories: totals.calories,
+        protein: totals.protein,
+        carbs: totals.carbs,
+        fat: totals.fat,
+        fiber: totals.fiber,
+        sugar: totals.sugar,
+        waterMl: totals.waterMl
+      })
+
+      try {
+        await prisma.auditLog.create({
+          data: {
+            userId,
+            action: 'UPDATE_NUTRITION_ITEMS',
+            resourceType: 'Nutrition',
+            resourceId: updatedNutrition.id,
+            metadata: {
+              date,
+              meal_type,
+              updatedCount
+            }
+          }
+        })
+      } catch (e) {
+        console.error('[NutritionTool] Failed to create audit log:', e)
+      }
+
+      return {
+        message: `Successfully updated ${updatedCount} item(s) in ${meal_type}.`,
+        totals: {
+          calories: updatedNutrition.calories,
+          protein: Math.round(updatedNutrition.protein || 0),
+          carbs: Math.round(updatedNutrition.carbs || 0),
+          fat: Math.round(updatedNutrition.fat || 0),
+          water_ml: updatedNutrition.waterMl
+        }
       }
     }
   }),

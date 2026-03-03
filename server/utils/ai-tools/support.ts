@@ -4,6 +4,7 @@ import { prisma } from '../db'
 import { issuesRepository } from '../repositories/issuesRepository'
 import { BugStatus } from '@prisma/client'
 import type { AiSettings } from '../ai-user-settings'
+import { issueCommentContentSchema } from '../issues/commentValidation'
 
 const bugStatusSchema = z.nativeEnum(BugStatus)
 const ticketCreateSchema = z.object({
@@ -249,7 +250,7 @@ export const supportTools = (userId: string, chatRoomId?: string, aiSettings?: A
     description: 'Add a new message comment to an existing ticket owned by the current user.',
     inputSchema: z.object({
       ticket_id: z.string().describe('The ID of the ticket'),
-      content: z.string().min(1).max(2000).describe('The comment text to add')
+      content: issueCommentContentSchema.describe('The comment text to add')
     }),
     needsApproval: async () => !!aiSettings?.aiRequireToolApproval,
     execute: async ({ ticket_id, content }) => {

@@ -51,6 +51,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
           duration: w.durationSec,
           tss: w.tss,
           intensity: w.intensity,
+          calories: w.calories,
           rpe: w.rpe,
           feel: w.feel
         }))
@@ -98,7 +99,8 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         title: w.title,
         sport: w.type,
         duration: w.durationSec,
-        tss: w.tss
+        tss: w.tss,
+        calories: w.calories
       }))
     }
   }),
