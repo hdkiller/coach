@@ -1,0 +1,48 @@
+{
+  "card1_cue": "Cosa ottieni: livello attuale, andamento e prossima azione.",
+  "card1_desc": "Una stima in tempo reale del glicogeno per la giornata odierna. Usala per capire la tua preparazione per attività ad alta intensità ed evitare una nutrizione insufficiente prima delle sessioni chiave.",
+  "card1_title": "Serbatoio carburante",
+  "card2_cue": "Cosa ottieni: linea di tendenza, finestre di rischio e segnali di confidenza.",
+  "card2_desc": "Una proiezione continua sui prossimi giorni. Evidenzia quando il tuo piano potrebbe accumulare fatica, permettendoti di correggere l'alimentazione prima di un calo delle prestazioni.",
+  "card2_title": "Orizzonte Metabolico",
+  "card3_cue": "Cosa ottieni: obiettivi pratici che puoi eseguire senza andare a tentativi.",
+  "card3_desc": "Target pre, intra e post-allenamento per carboidrati, idratazione e sodio in base all'allenamento pianificato e allo stato attuale.",
+  "card3_title": "Alimentando Windows",
+  "cta_primary": "Crea il mio piano di rifornimento",
+  "cta_secondary": "Visualizza il flusso di coaching completo",
+  "demo_subtitle": "Timeline di esempio: stesso allenamento, diverse strategie di alimentazione.",
+  "demo_title": "Demo Carburante Live",
+  "description": "Coach Watts combina il tuo carico di allenamento, i diari dei pasti e le sessioni pianificate per stimare la disponibilità di energia e dirti cosa mangiare, quando mangiare e perché è importante per la prestazione.",
+  "disclaimer": "Le stime del carburante si basano su modelli e migliorano con log costanti e sessioni completate. Non sono misurazioni dirette di laboratorio.",
+  "end_workout": "Termina l'allenamento alle",
+  "expected_quality": "Qualità della sessione prevista",
+  "headline": "Smetti di contare le calorie. Inizia a darti la carica per il lavoro che ti aspetta.",
+  "label": "INTELLIGENZA NUTRIZIONALE",
+  "marker": {
+    "pre_workout": "Finestra Pre-Workout",
+    "workout_end": "Fine allenamento",
+    "workout_start": "Inizio allenamento"
+  },
+  "outcome_subtitle": "In base alla strategia di rifornimento selezionata.",
+  "outcome_title": "Risultato previsto della sessione",
+  "scenario": {
+    "no-fuel": {
+      "name": "Nessun Pre-Fuel",
+      "note": "Senza carboidrati mirati prima della sessione, inizi l'allenamento vicino alla zona a corto di carburante e cali presto.",
+      "quality": "Bassa e instabile"
+    },
+    "pre-60": {
+      "name": "+60g Pre",
+      "note": "Un apporto di carboidrati prima della sessione aumenta le riserve energetiche iniziali e aiuta a mantenere la qualità durante la serie principale.",
+      "quality": "Esecuzione stabile"
+    },
+    "pre-plus-intra": {
+      "name": "+60g Pre +30g Intra",
+      "note": "Combinare l'integrazione pre e intra sessione offre la curva più fluida e il finale più forte per gli allenamenti intensi.",
+      "quality": "Alta qualità costante"
+    }
+  },
+  "scenario_label": "Scenario: {name}",
+  "start_workout": "Inizia l'allenamento alle",
+  "threshold_label": "Linea di soglia: 35%"
+}

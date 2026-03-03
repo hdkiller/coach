@@ -1,0 +1,31 @@
+{
+  "cta": {
+    "description": "Sluit je aan bij duursporters die Coach Watts gebruiken om slimmer te trainen en elke dag met vertrouwen bij te tanken.",
+    "headline": "Klaar om je top te bereiken?",
+    "primary": "Gratis aan de slag",
+    "secondary": "Lees succesverhalen"
+  },
+  "footer": {
+    "architecture": "Architectuur",
+    "cookies": "Cookies",
+    "copyright": "© 2026 Coach Watts. Alle rechten voorbehouden.",
+    "docs": "Documentatie",
+    "features": "Functies",
+    "legal": "Juridisch",
+    "login": "Inloggen",
+    "pricing": "Prijzen",
+    "privacy": "Privacy",
+    "product": "Product",
+    "support": "Support",
+    "tagline": "AI-gestuurde endurance coaching die zich aanpast aan je leven, herstel en doelen.",
+    "terms": "Voorwaarden"
+  },
+  "nav": {
+    "get_started": "Aan de slag",
+    "how_it_works": "Hoe het werkt",
+    "pricing": "Prijzen",
+    "pricing_badge": "Gratis",
+    "sign_in": "Inloggen",
+    "stories": "Verhalen"
+  }
+}

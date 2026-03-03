@@ -1,0 +1,31 @@
+{
+  "cta": {
+    "description": "Unisciti agli atleti endurance che usano Coach Watts per allenarsi in modo più intelligente e alimentarsi con sicurezza ogni giorno.",
+    "headline": "Pronto a raggiungere la vetta?",
+    "primary": "Inizia gratis",
+    "secondary": "Leggi le storie di successo"
+  },
+  "footer": {
+    "architecture": "Architettura",
+    "cookies": "Cookie",
+    "copyright": "© 2026 Coach Watts. Tutti i diritti riservati.",
+    "docs": "Documentazione",
+    "features": "Funzionalità",
+    "legal": "Note legali",
+    "login": "Accedi",
+    "pricing": "Prezzi",
+    "privacy": "Privacy",
+    "product": "Prodotto",
+    "support": "Supporto",
+    "tagline": "Coaching per la resistenza basato sull'IA che si adatta alla tua vita, al tuo recupero e ai tuoi obiettivi.",
+    "terms": "Termini"
+  },
+  "nav": {
+    "get_started": "Inizia",
+    "how_it_works": "Come funziona",
+    "pricing": "Prezzi",
+    "pricing_badge": "Gratis",
+    "sign_in": "Accedi",
+    "stories": "Storie"
+  }
+}

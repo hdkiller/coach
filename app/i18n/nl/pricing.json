@@ -1,0 +1,71 @@
+{
+  "badge": {
+    "best_value": "Beste deal",
+    "current_plan": "Huidig abonnement",
+    "most_popular": "Meest populair",
+    "smart_start": "Slimme start"
+  },
+  "billing": {
+    "annual": "Jaarlijks",
+    "billed_annually": "{price}/mnd jaarlijks gefactureerd",
+    "billed_monthly": "Maandelijks gefactureerd",
+    "monthly": "Maandelijks",
+    "per_month": "/ maand",
+    "per_year": "/ jaar",
+    "save_pct": "Bespaar {pct}%"
+  },
+  "btn": {
+    "choose_supporter": "Kies Supporter",
+    "current_plan": "Huidig abonnement",
+    "downgrade_free": "Downgraden naar Gratis",
+    "get_pro": "Word Pro",
+    "get_supporter": "Word Supporter",
+    "sign_up": "Registreren",
+    "stay_free": "Blijf gratis",
+    "switch_pro": "Overstappen naar Pro",
+    "switch_supporter": "Overschakelen naar Supporter",
+    "unavailable": "Tijdelijk onbeschikbaar",
+    "upgrade_pro": "Upgraden naar Pro"
+  },
+  "cancel_anytime": "Annuleer op elk moment. Directe downgrade naar Gratis.",
+  "description": "Van eenvoudig bijhouden tot professionele AI-coaching. Start gratis en upgrade naarmate je groeit.",
+  "guarantee": "Alle abonnementen zijn inclusief een 14-dagen niet-goed-geld-terug-garantie. Geen creditcard vereist voor het gratis abonnement.",
+  "headline": "Plannen voor elke atleet",
+  "label": "PRIJZEN",
+  "modal": {
+    "confirm_change": "Wijziging bevestigen",
+    "description": "Bekijk de wijzigingen in uw abonnement",
+    "keep_plan": "Mijn huidige abonnement behouden",
+    "stripe_note": "Stripe berekent automatisch eventuele tegoeden voor je ongebruikte tijd en past deze toe op je toekomstige facturen.",
+    "switch_to": "Overstappen naar {name}?",
+    "title": "Downgrade bevestigen",
+    "warning": "Je stapt over naar een lager niveau. Sommige functies (zoals Deep AI-analyse) worden beperkt zodra de wijziging is verwerkt."
+  },
+  "plan": {
+    "free": {
+      "description": "Het slimste logboek dat je ooit hebt gebruikt.",
+      "feature_1": "Onbeperkte datageschiedenis",
+      "feature_2": "Handmatige synchronisatiemodus",
+      "feature_3": "Analyse op aanvraag",
+      "feature_4": "Snelle AI-analyse",
+      "name": "Gratis"
+    },
+    "pro": {
+      "description": "Jouw full-service Digitale Tweeling en Coach.",
+      "feature_1": "Adaptieve racestrategie en geperiodiseerde planning",
+      "feature_2": "Doordachte AI-coaching met scenario-analyse",
+      "feature_3": "Proactieve meldingen voor gereedheid en risico op overbelasting",
+      "feature_4": "Geavanceerde trend-intelligentie met lange-termijnvoorspellingen",
+      "feature_5": "Fast-lane prioriteitsverwerking en respons",
+      "name": "Pro"
+    },
+    "supporter": {
+      "description": "Geautomatiseerde inzichten voor de zelf-gecoachte atleet.",
+      "feature_1": "Automatische synchronisatie voor trainingen en gezondheidsgegevens",
+      "feature_2": "Altijd actieve AI-analyse na nieuwe activiteiten",
+      "feature_3": "Prioritaire verwerking tijdens piekgebruik",
+      "feature_4": "Betrouwbare trendtracking en wekelijkse samenvattingen",
+      "name": "Supporter"
+    }
+  }
+}

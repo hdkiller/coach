@@ -1,0 +1,48 @@
+{
+  "card1_cue": "Wat je krijgt: huidig niveau, trend en volgende actie.",
+  "card1_desc": "Een live glycogeenschatting voor de huidige dag. Gebruik het om inzicht te krijgen in je gereedheid voor werk met hoge intensiteit en om te voorkomen dat je te weinig brandstof inneemt voor belangrijke sessies.",
+  "card1_title": "Brandstoftank",
+  "card2_cue": "Wat je krijgt: trendlijn, risicovensters en betrouwbaarheidssignalen.",
+  "card2_desc": "Een voortschrijdende projectie over de komende dagen. Het geeft aan wanneer je plan vermoeidheid kan opbouwen, zodat je de voeding kunt bijsturen voordat de prestaties afnemen.",
+  "card2_title": "Metabole Horizon",
+  "card3_cue": "Wat je krijgt: praktische doelen die je kunt uitvoeren zonder giswerk.",
+  "card3_desc": "Doelen voor voor, tijdens en na de training voor koolhydraten, hydratatie en natrium op basis van je geplande training en huidige toestand.",
+  "card3_title": "Windows van brandstof voorzien",
+  "cta_primary": "Stel mijn tankplan samen",
+  "cta_secondary": "Bekijk volledige coachingflow",
+  "demo_subtitle": "Voorbeeldtijdlijn: dezelfde workout, verschillende voedingsstrategieën.",
+  "demo_title": "Live Brandstof Demo",
+  "description": "Coach Watts combineert je trainingsbelasting, maaltijdlogs en geplande sessies om de beschikbaarheid van brandstof in te schatten en je te vertellen wat je moet eten, wanneer je moet eten en waarom het belangrijk is voor je prestaties.",
+  "disclaimer": "Brandstofschattingen zijn gebaseerd op modellen en verbeteren bij consistente logs en voltooide sessies. Het zijn geen directe laboratoriummetingen.",
+  "end_workout": "Eindig workout om",
+  "expected_quality": "Verwachte sessiekwaliteit",
+  "headline": "Stop met calorieën tellen. Begin met brandstof te geven voor het werk dat voor je ligt.",
+  "label": "VOEDINGSINTELLIGENTIE",
+  "marker": {
+    "pre_workout": "Pre-workout-venster",
+    "workout_end": "Einde workout",
+    "workout_start": "Start workout"
+  },
+  "outcome_subtitle": "Op basis van de gekozen tankstrategie.",
+  "outcome_title": "Verwacht sessieresultaat",
+  "scenario": {
+    "no-fuel": {
+      "name": "Geen voortanken",
+      "note": "Zonder gerichte koolhydraten voor de sessie begin je de workout nabij de 'low-fuel'-zone en verslap je vroegtijdig.",
+      "quality": "Laag en onstabiel"
+    },
+    "pre-60": {
+      "name": "+60g Pre",
+      "note": "Een dosis koolhydraten voor de sessie verhoogt je startvoorraad en helpt de kwaliteit te behouden tijdens het hoofdonderdeel.",
+      "quality": "Stabiele uitvoering"
+    },
+    "pre-plus-intra": {
+      "name": "+60g Pre +30g Intra",
+      "note": "Het combineren van pre- en intra-fueling geeft de soepelste curve en de sterkste finish voor zware inspanning.",
+      "quality": "Hoge kwaliteit over de gehele linie"
+    }
+  },
+  "scenario_label": "Scenario: {name}",
+  "start_workout": "Start workout om",
+  "threshold_label": "Drempellijn: 35%"
+}

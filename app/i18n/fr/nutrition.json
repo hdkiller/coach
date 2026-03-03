@@ -1,0 +1,48 @@
+{
+  "card1_cue": "Ce que vous obtenez : niveau actuel, tendance et prochaine action.",
+  "card1_desc": "Une estimation en temps réel de votre glycogène pour la journée. Utilisez-la pour évaluer votre préparation à des efforts de haute intensité et éviter un apport énergétique insuffisant avant vos séances clés.",
+  "card1_title": "Réservoir de carburant",
+  "card2_cue": "Ce que vous obtenez : courbe de tendance, fenêtres de risque et indices de confiance.",
+  "card2_desc": "Une projection glissante sur les jours à venir. Elle met en évidence les moments où votre programme peut accumuler de la fatigue afin de corriger votre apport énergétique avant une baisse de performance.",
+  "card2_title": "Horizon métabolique",
+  "card3_cue": "Ce que vous obtenez : des objectifs concrets que vous pouvez exécuter sans tâtonnement.",
+  "card3_desc": "Objectifs avant, pendant et après l'entraînement en glucides, hydratation et sodium basés sur votre entraînement prévu et votre état actuel.",
+  "card3_title": "Alimenter Windows",
+  "cta_primary": "Créer mon plan de ravitaillement",
+  "cta_secondary": "Voir le parcours de coaching complet",
+  "demo_subtitle": "Exemple de chronologie : même entraînement, différentes stratégies de ravitaillement.",
+  "demo_title": "Démo carburant en direct",
+  "description": "Coach Watts combine votre charge d'entraînement, vos suivis de repas et vos séances planifiées pour estimer la disponibilité énergétique et vous dire quoi manger, quand manger et pourquoi cela compte pour la performance.",
+  "disclaimer": "Les estimations de carburant sont basées sur des modèles et s'améliorent avec des journaux réguliers et des sessions terminées. Elles ne sont pas des mesures directes en laboratoire.",
+  "end_workout": "Terminer l'entraînement à",
+  "expected_quality": "Qualité de session attendue",
+  "headline": "Arrêtez de compter les calories. Faites le plein pour l'effort à venir.",
+  "label": "INTELLIGENCE NUTRITIONNELLE",
+  "marker": {
+    "pre_workout": "Fenêtre pré-entraînement",
+    "workout_end": "Fin de l'entraînement",
+    "workout_start": "Début de l'entraînement"
+  },
+  "outcome_subtitle": "Basé sur la stratégie de ravitaillement sélectionnée.",
+  "outcome_title": "Résultat prévisionnel de la session",
+  "scenario": {
+    "no-fuel": {
+      "name": "Sans pré-carburant",
+      "note": "Sans glucides ciblés avant la séance, vous abordez l'entraînement proche de la zone de manque de carburant et faiblissez rapidement.",
+      "quality": "Faible et instable"
+    },
+    "pre-60": {
+      "name": "+60g Pré",
+      "note": "Un apport en glucides avant la séance augmente vos réserves initiales et aide à maintenir la qualité durant la série principale.",
+      "quality": "Exécution stable"
+    },
+    "pre-plus-intra": {
+      "name": "+60g Pré +30g Intra",
+      "note": "Combiner le ravitaillement pré et intra offre la courbe la plus fluide et le final le plus puissant pour les efforts intenses.",
+      "quality": "Haute qualité tout au long"
+    }
+  },
+  "scenario_label": "Scénario : {name}",
+  "start_workout": "Commencer l'entraînement à",
+  "threshold_label": "Ligne de seuil : 35 %"
+}

@@ -1,0 +1,71 @@
+{
+  "badge": {
+    "best_value": "Meilleur rapport qualité-prix",
+    "current_plan": "Forfait actuel",
+    "most_popular": "Le plus populaire",
+    "smart_start": "Démarrage intelligent"
+  },
+  "billing": {
+    "annual": "Annuel",
+    "billed_annually": "{price}/mois facturé annuellement",
+    "billed_monthly": "Facturé mensuellement",
+    "monthly": "Mensuel",
+    "per_month": "/ mois",
+    "per_year": "/ an",
+    "save_pct": "Économisez {pct}%"
+  },
+  "btn": {
+    "choose_supporter": "Choisir Supporter",
+    "current_plan": "Forfait actuel",
+    "downgrade_free": "Passer au forfait gratuit",
+    "get_pro": "Passer à Pro",
+    "get_supporter": "Obtenir Supporter",
+    "sign_up": "S'inscrire",
+    "stay_free": "Rester gratuit",
+    "switch_pro": "Passer à Pro",
+    "switch_supporter": "Passer à Supporter",
+    "unavailable": "Temporairement indisponible",
+    "upgrade_pro": "Passer à la version Pro"
+  },
+  "cancel_anytime": "Annulez à tout moment. Rétrogradation immédiate vers l'offre gratuite.",
+  "description": "Du suivi occasionnel au coaching IA professionnel. Commencez gratuitement et évoluez selon vos besoins.",
+  "guarantee": "Tous les forfaits incluent une garantie satisfait ou remboursé de 14 jours. Aucune carte de crédit n'est requise pour le forfait gratuit.",
+  "headline": "Des forfaits pour chaque athlète",
+  "label": "TARIFS",
+  "modal": {
+    "confirm_change": "Confirmer la modification",
+    "description": "Vérifiez les modifications apportées à votre abonnement",
+    "keep_plan": "Garder mon forfait actuel",
+    "stripe_note": "Stripe calculera automatiquement les crédits pour votre temps non utilisé et les appliquera à vos prochaines factures.",
+    "switch_to": "Passer à {name} ?",
+    "title": "Confirmer la rétrogradation",
+    "warning": "Vous passez à un forfait inférieur. Certaines fonctionnalités (comme l'analyse Deep AI) seront limitées une fois le changement traité."
+  },
+  "plan": {
+    "free": {
+      "description": "Le carnet de bord le plus intelligent que vous ayez jamais utilisé.",
+      "feature_1": "Historique des données illimité",
+      "feature_2": "Mode de synchronisation manuelle",
+      "feature_3": "Analyse à la demande",
+      "feature_4": "Analyse IA rapide",
+      "name": "Gratuit"
+    },
+    "pro": {
+      "description": "Votre jumeau numérique et coach complet.",
+      "feature_1": "Stratégie de course adaptative et planification périodisée",
+      "feature_2": "Coaching IA approfondi avec analyse de scénarios",
+      "feature_3": "Alertes proactives pour la préparation et le risque de surentraînement",
+      "feature_4": "Intelligence avancée des tendances avec prévisions à long terme",
+      "feature_5": "Traitement et réponse prioritaires",
+      "name": "Pro"
+    },
+    "supporter": {
+      "description": "Analyses automatisées pour l'athlète s'entraînant seul.",
+      "feature_1": "Synchronisation automatique des entraînements et des données de santé",
+      "feature_2": "Analyse par IA en continu après de nouvelles activités",
+      "feature_3": "Traitement prioritaire lors des pics d'utilisation",
+      "feature_4": "Suivi fiable des tendances et résumés hebdomadaires",
+      "name": "Supporter"
+    }
+  }
+}

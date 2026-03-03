@@ -1,0 +1,31 @@
+{
+  "cta": {
+    "description": "Rejoignez les athlètes d'endurance qui utilisent Coach Watts pour s'entraîner plus intelligemment et s'alimenter en toute confiance chaque jour.",
+    "headline": "Prêt à atteindre votre sommet ?",
+    "primary": "Commencer gratuitement",
+    "secondary": "Lire les témoignages de réussite"
+  },
+  "footer": {
+    "architecture": "Architecture",
+    "cookies": "Cookies",
+    "copyright": "© 2026 Coach Watts. Tous droits réservés.",
+    "docs": "Docs",
+    "features": "Fonctionnalités",
+    "legal": "Mentions légales",
+    "login": "Connexion",
+    "pricing": "Tarifs",
+    "privacy": "Confidentialité",
+    "product": "Produit",
+    "support": "Support",
+    "tagline": "Coaching d'endurance propulsé par l'IA qui s'adapte à votre vie, votre récupération et vos objectifs.",
+    "terms": "Conditions"
+  },
+  "nav": {
+    "get_started": "Commencer",
+    "how_it_works": "Comment ça marche",
+    "pricing": "Tarifs",
+    "pricing_badge": "Gratuit",
+    "sign_in": "Se connecter",
+    "stories": "Histoires"
+  }
+}
