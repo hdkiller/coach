@@ -37,4 +37,11 @@ describe('profileUpdateSchema', () => {
     })
     expect(result.success).toBe(true)
   })
+
+  it('should allow weight source mode updates', () => {
+    const result = profileUpdateSchema.safeParse({
+      weightSourceMode: 'PROFILE_LOCK'
+    })
+    expect(result.success).toBe(true)
+  })
 })

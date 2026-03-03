@@ -7,6 +7,7 @@ export const profileUpdateSchema = z.object({
   language: z.string().optional(),
   weight: z.number().nullable().optional(),
   weightUnits: z.enum(['Kilograms', 'Pounds']).optional(),
+  weightSourceMode: z.enum(['AUTO', 'PROFILE_LOCK']).optional(),
   height: z.number().nullable().optional(),
   heightUnits: z.enum(['cm', 'ft/in']).optional(),
   distanceUnits: z.enum(['Kilometers', 'Miles']).optional(),

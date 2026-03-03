@@ -45,6 +45,7 @@ model User {
   timezone                           String?
   visibility                         String?                      @default("Private")
   weightUnits                        String?                      @default("Kilograms")
+  weightSourceMode                   String                       @default("AUTO")
   hrZones                            Json?
   powerZones                         Json?
   aiAutoAnalyzeNutrition             Boolean                      @default(false)
@@ -134,6 +135,7 @@ model User {
   wellness                           Wellness[]
   workouts                           Workout[]
   metricHistory                      MetricHistory[]
+  bodyMeasurementEntries             BodyMeasurementEntry[]
   personalBests                      PersonalBest[]
   journeyEvents                      AthleteJourneyEvent[]
   nutritionSettings                  UserNutritionSettings?
@@ -1738,6 +1740,27 @@ model MetricHistory {
   @@index([userId])
   @@index([type])
   @@index([date])
+}
+
+model BodyMeasurementEntry {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recordedAt    DateTime
+  metricKey     String
+  displayName   String?
+  value         Float
+  unit          String
+  source        String
+  sourceRefType String?
+  sourceRefId   String?
+  notes         String?
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, metricKey, recordedAt(sort: Desc)])
+  @@index([userId, recordedAt(sort: Desc)])
 }
 
 model PersonalBest {
