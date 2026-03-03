@@ -151,51 +151,24 @@
 
     <!-- Pagination -->
     <div
-      v-if="totalPages > 1"
+      v-if="totalItems > itemsPerPage"
       class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
     >
-      <div class="flex items-center justify-between">
-        <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+      <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+        <div
+          class="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center sm:text-left"
+        >
           Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
             Math.min(currentPage * itemsPerPage, totalItems)
           }}
           of {{ totalItems }} entries
         </div>
-        <div class="flex gap-2">
-          <UButton
-            :disabled="currentPage === 1"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            class="font-black uppercase tracking-widest text-[10px]"
-            @click="$emit('update:page', currentPage - 1)"
-          >
-            Prev
-          </UButton>
-          <div class="flex gap-1">
-            <UButton
-              v-for="page in visiblePages"
-              :key="page"
-              size="xs"
-              :color="page === currentPage ? 'primary' : 'neutral'"
-              :variant="page === currentPage ? 'solid' : 'ghost'"
-              class="font-black uppercase tracking-widest text-[10px] min-w-[28px] justify-center"
-              @click="$emit('update:page', page)"
-            >
-              {{ page }}
-            </UButton>
-          </div>
-          <UButton
-            :disabled="currentPage === totalPages"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            class="font-black uppercase tracking-widest text-[10px]"
-            @click="$emit('update:page', currentPage + 1)"
-          >
-            Next
-          </UButton>
-        </div>
+        <UPagination
+          :page="currentPage"
+          :total="totalItems"
+          :items-per-page="itemsPerPage"
+          @update:page="(p) => $emit('update:page', p)"
+        />
       </div>
     </div>
   </div>
@@ -206,10 +179,8 @@
     wellness: any[]
     loading: boolean
     currentPage: number
-    totalPages: number
     totalItems: number
     itemsPerPage: number
-    visiblePages: number[]
   }>()
 
   defineEmits(['update:page'])

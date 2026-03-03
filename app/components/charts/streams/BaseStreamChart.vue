@@ -4,6 +4,10 @@
     @mousedown="handleMouseDown"
     @mouseup="handleMouseUp"
     @mouseleave="handleMouseUp"
+    @touchstart.prevent="handleTouchStart"
+    @touchmove.prevent="handleTouchMove"
+    @touchend="handleTouchEnd"
+    @touchcancel="handleTouchEnd"
   >
     <Line ref="chartRef" :data="chartData" :options="chartOptions" :plugins="[crosshairPlugin]" />
   </div>
@@ -66,7 +70,15 @@
     xAxisType: 'linear',
     heightClass: 'h-64',
     label: '',
-    dataPoints: () => []
+    dataPoints: () => [],
+    color: '#3b82f6',
+    yAxisLabel: '',
+    xAxisLabel: '',
+    highlightIndex: null,
+    highlightRange: null,
+    highlightRanges: null,
+    fixedYAxisWidth: undefined,
+    datasets: undefined
   })
 
   const emit = defineEmits(['chart-hover', 'chart-leave', 'chart-zoom'])
@@ -365,5 +377,73 @@
     isSelecting.value = false
     selectionStart.value = null
     selectionEnd.value = null
+  }
+
+  const updateTouchHover = (touch: Touch | null) => {
+    const chart = chartRef.value?.chart
+    if (!chart || !touch) return
+
+    const rect = chart.canvas.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+    const points = chart.getElementsAtEventForMode(
+      { x, y } as any,
+      'index',
+      { intersect: false },
+      false
+    )
+
+    if (!points.length) return
+
+    const index = points[0].index
+    const meta = chart.getDatasetMeta(points[0].datasetIndex || 0)
+    const element = meta?.data?.[index]
+
+    chart.setActiveElements(
+      chart.data.datasets.map((_: unknown, datasetIndex: number) => ({
+        datasetIndex,
+        index
+      }))
+    )
+
+    if (chart.tooltip && element) {
+      chart.tooltip.setActiveElements(
+        chart.data.datasets.map((_: unknown, datasetIndex: number) => ({
+          datasetIndex,
+          index
+        })),
+        { x: element.x, y: element.y }
+      )
+    }
+
+    chart.update('none')
+    emit('chart-hover', index)
+  }
+
+  const clearTouchHover = () => {
+    const chart = chartRef.value?.chart
+    if (chart) {
+      chart.setActiveElements([])
+      if (chart.tooltip) {
+        chart.tooltip.setActiveElements([], { x: 0, y: 0 })
+      }
+      chart.update('none')
+    }
+
+    emit('chart-leave')
+  }
+
+  const handleTouchStart = (event: TouchEvent) => {
+    if (event.touches.length !== 1) return
+    updateTouchHover(event.touches[0] || null)
+  }
+
+  const handleTouchMove = (event: TouchEvent) => {
+    if (event.touches.length !== 1) return
+    updateTouchHover(event.touches[0] || null)
+  }
+
+  const handleTouchEnd = () => {
+    clearTouchHover()
   }
 </script>

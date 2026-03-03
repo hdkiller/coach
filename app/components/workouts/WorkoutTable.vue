@@ -134,43 +134,25 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-      <div class="flex items-center justify-between">
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
-          {{ Math.min(currentPage * itemsPerPage, totalWorkouts) }} of {{ totalWorkouts }} entries
+    <div
+      v-if="totalWorkouts > itemsPerPage"
+      class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
+    >
+      <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+        <div
+          class="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center sm:text-left"
+        >
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
+            Math.min(currentPage * itemsPerPage, totalWorkouts)
+          }}
+          of {{ totalWorkouts }} entries
         </div>
-        <div class="flex gap-2">
-          <button
-            :disabled="currentPage === 1"
-            class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            @click="$emit('update:currentPage', currentPage - 1)"
-          >
-            Previous
-          </button>
-          <div class="flex gap-1">
-            <button
-              v-for="page in visiblePages"
-              :key="page"
-              :class="[
-                'px-3 py-1 rounded text-sm',
-                page === currentPage
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-              ]"
-              @click="$emit('update:currentPage', page)"
-            >
-              {{ page }}
-            </button>
-          </div>
-          <button
-            :disabled="currentPage === totalPages"
-            class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            @click="$emit('update:currentPage', currentPage + 1)"
-          >
-            Next
-          </button>
-        </div>
+        <UPagination
+          :page="currentPage"
+          :total="totalWorkouts"
+          :items-per-page="itemsPerPage"
+          @update:page="(p) => $emit('update:currentPage', p)"
+        />
       </div>
     </div>
   </div>
@@ -181,9 +163,7 @@
     workouts: any[]
     loading: boolean
     currentPage: number
-    totalPages: number
     totalWorkouts: number
-    visiblePages: number[]
   }>()
 
   defineEmits(['update:currentPage', 'navigate'])
