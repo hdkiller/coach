@@ -2,6 +2,7 @@ import type { Job } from 'bullmq'
 import { Worker } from 'bullmq'
 import IORedis from 'ioredis'
 import chalk from 'chalk'
+import http from 'http'
 import { IntervalsService } from '../../server/utils/services/intervalsService'
 import { GarminService } from '../../server/utils/services/garminService'
 import { WhoopService } from '../../server/utils/services/whoopService'
@@ -18,6 +19,7 @@ export const startCommand = new Command('start')
   .description('Start the webhook worker')
   .action(async () => {
     const connectionString = process.env.REDIS_URL || 'redis://localhost:6379'
+    const healthPort = parseInt(process.env.CW_WORKER_HEALTH_PORT || '8081')
 
     console.log(chalk.blue.bold('Initializing Webhook Worker...'))
     console.log(chalk.gray(`Using REDIS_URL connection string`))
@@ -27,6 +29,54 @@ export const startCommand = new Command('start')
     })
 
     const concurrency = parseInt(process.env.CW_WORKER_QUEUE_WEBHOOK_CONCURRENCY || '1')
+
+    // --- Health Check Server ---
+    const healthServer = http.createServer(async (req, res) => {
+      if (req.url === '/api/health' && req.method === 'GET') {
+        try {
+          const [webhookCounts, pingCounts] = await Promise.all([
+            webhookQueue.getJobCounts(
+              'waiting',
+              'active',
+              'completed',
+              'failed',
+              'delayed',
+              'paused'
+            ),
+            pingQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused')
+          ])
+
+          const status = {
+            status: 'ok',
+            worker: 'webhook-worker',
+            timestamp: new Date().toISOString(),
+            environment: process.env.NODE_ENV || 'development',
+            redis: connection.status,
+            queues: {
+              webhook: webhookCounts,
+              ping: pingCounts
+            },
+            config: {
+              concurrency,
+              healthPort
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify(status))
+        } catch (error: any) {
+          res.writeHead(503, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ status: 'error', message: error.message }))
+        }
+      } else {
+        res.writeHead(404)
+        res.end()
+      }
+    })
+
+    healthServer.listen(healthPort, '0.0.0.0', () => {
+      console.log(chalk.green(`✔ Health server listening on port ${healthPort} (0.0.0.0)`))
+    })
 
     // Redis Connection Logging
     connection.on('connect', () => {
@@ -607,6 +657,9 @@ export const startCommand = new Command('start')
       clearInterval(pollerInterval)
 
       try {
+        healthServer.close()
+        console.log(chalk.gray('Health server closed.'))
+
         await Promise.all([webhookWorker.close(), pingWorker.close()])
         console.log(chalk.gray('Workers closed.'))
 
