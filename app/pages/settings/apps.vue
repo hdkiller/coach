@@ -27,7 +27,7 @@
       color="warning"
       variant="soft"
       :close="{ color: 'warning', variant: 'link', label: 'Dismiss' }"
-      description="Activities synced from Strava to Intervals.icu cannot be automatically imported. Please upload FIT files manually (direct Strava connection is coming soon)."
+      description="Activities synced from Strava to Intervals.icu cannot be automatically imported. If you use Strava, please connect Strava directly."
       @update:open="intervalsStravaWarningDismissed = true"
     />
     <UAlert

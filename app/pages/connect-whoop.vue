@@ -34,6 +34,15 @@
           </template>
 
           <div class="space-y-6">
+            <UAlert
+              v-if="isWhoopDisabled"
+              color="warning"
+              variant="soft"
+              icon="i-heroicons-exclamation-triangle"
+              title="WHOOP integration is temporarily unavailable"
+              description="WHOOP connections are currently disabled on coachwatts.com."
+            />
+
             <div class="bg-muted/50 p-4 rounded-lg">
               <h3 class="font-medium mb-2">What you'll get:</h3>
               <ul class="text-sm text-muted space-y-2">
@@ -93,8 +102,13 @@
           <template #footer>
             <div class="flex justify-end gap-3">
               <UButton to="/dashboard" color="neutral" variant="outline"> Cancel </UButton>
-              <UButton :loading="connecting" color="primary" @click="connect">
-                Connect WHOOP
+              <UButton
+                :loading="connecting"
+                color="primary"
+                :disabled="isWhoopDisabled"
+                @click="connect"
+              >
+                {{ isWhoopDisabled ? 'Temporarily unavailable' : 'Connect WHOOP' }}
               </UButton>
             </div>
           </template>
@@ -123,12 +137,17 @@
   })
 
   const connecting = ref(false)
+  const isWhoopDisabled = computed(() => {
+    const hostname = import.meta.client ? window.location.hostname : useRequestURL().hostname
+    return hostname === 'coachwatts.com' || hostname === 'www.coachwatts.com'
+  })
 
   const goBack = () => {
     router.push('/dashboard')
   }
 
   const connect = async () => {
+    if (isWhoopDisabled.value) return
     connecting.value = true
     try {
       // Redirect to the authorize endpoint which will redirect to WHOOP OAuth
