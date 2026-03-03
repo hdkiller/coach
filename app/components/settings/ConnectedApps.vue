@@ -838,7 +838,7 @@
             description="How should we interpret the 'readiness' value from Intervals.icu?"
           >
             <USelectMenu
-              :model-value="intervalsSettings?.readinessScale || 'STANDARD'"
+              :model-value="getProviderSettings('intervals')?.readinessScale || 'STANDARD'"
               :items="[
                 { label: 'Standard (0-100)', value: 'STANDARD' },
                 { label: '10-Point Scale (1-10)', value: 'TEN_POINT' },
@@ -849,7 +849,7 @@
               @update:model-value="
                 (item: any) =>
                   $emit('updateSetting', 'intervals', 'settings', {
-                    ...intervalsSettings,
+                    ...getProviderSettings('intervals'),
                     readinessScale: item.value
                   })
               "
@@ -861,7 +861,7 @@
             description="How should we interpret the 'sleep score' value from Intervals.icu?"
           >
             <USelectMenu
-              :model-value="intervalsSettings?.sleepScoreScale || 'STANDARD'"
+              :model-value="getProviderSettings('intervals')?.sleepScoreScale || 'STANDARD'"
               :items="[
                 { label: 'Standard (0-100)', value: 'STANDARD' },
                 { label: '10-Point Scale (1-10)', value: 'TEN_POINT' },
@@ -871,7 +871,7 @@
               @update:model-value="
                 (item: any) =>
                   $emit('updateSetting', 'intervals', 'settings', {
-                    ...intervalsSettings,
+                    ...getProviderSettings('intervals'),
                     sleepScoreScale: item.value
                   })
               "
@@ -883,12 +883,12 @@
             description="Enable bidirectional synchronization of planned workouts with Intervals.icu."
           >
             <UCheckbox
-              :model-value="intervalsSettings?.importPlannedWorkouts !== false"
+              :model-value="getProviderSettings('intervals')?.importPlannedWorkouts !== false"
               label="Enable Sync"
               @update:model-value="
                 (checked: any) =>
                   $emit('updateSetting', 'intervals', 'settings', {
-                    ...intervalsSettings,
+                    ...getProviderSettings('intervals'),
                     importPlannedWorkouts: !!checked
                   })
               "
@@ -909,16 +909,31 @@
           </UFormField>
 
           <UFormField
+            label="Wellness"
+            description="Import readiness, sleep, weight, and other wellness metrics from Intervals.icu."
+          >
+            <UCheckbox
+              :model-value="isProviderSettingEnabled('intervals', 'ingestWellness')"
+              label="Ingest Wellness Data"
+              @update:model-value="
+                (checked: any) => updateProviderSetting('intervals', 'ingestWellness', !!checked)
+              "
+            />
+          </UFormField>
+
+          <UFormField
             label="Configure Sports Auto-sync"
             description="When you manually sync Intervals.icu, automatically refresh sport-specific thresholds and zones (Configure Sports Auto-detect)."
           >
             <UCheckbox
-              :model-value="intervalsSettings?.autoSyncSportSettingsOnManualSync === true"
+              :model-value="
+                getProviderSettings('intervals')?.autoSyncSportSettingsOnManualSync === true
+              "
               label="Auto-sync sport settings on manual sync"
               @update:model-value="
                 (checked: any) =>
                   $emit('updateSetting', 'intervals', 'settings', {
-                    ...intervalsSettings,
+                    ...getProviderSettings('intervals'),
                     autoSyncSportSettingsOnManualSync: !!checked
                   })
               "
@@ -940,10 +955,70 @@
         </div>
       </template>
     </UModal>
+
+    <UModal
+      v-model:open="providerSettingsModalOpen"
+      :title="selectedProviderSettings?.title"
+      :description="selectedProviderSettings?.description"
+    >
+      <template #body>
+        <div v-if="selectedProviderSettings" class="space-y-6 sm:min-w-[400px]">
+          <UFormField
+            v-for="option in selectedProviderOptions"
+            :key="`${selectedProviderKey}-${option.key}`"
+            :label="option.title"
+            :description="option.description"
+          >
+            <UCheckbox
+              :model-value="getProviderOptionValue(selectedProviderKey, option)"
+              :label="option.label"
+              @update:model-value="
+                (checked: any) => updateProviderOption(selectedProviderKey, option, !!checked)
+              "
+            />
+          </UFormField>
+
+          <p class="text-xs text-muted">
+            Changes apply to future syncs and webhooks. Existing imported records stay unchanged.
+          </p>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end">
+          <UButton color="neutral" variant="soft" @click="providerSettingsModalOpen = false">
+            Close
+          </UButton>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
+  type ProviderSettingOption =
+    | {
+        key: 'ingestWorkouts'
+        title: string
+        description: string
+        label: string
+        target: 'root'
+      }
+    | {
+        key: 'ingestWellness' | 'ingestNutrition'
+        title: string
+        description: string
+        label: string
+        target: 'settings'
+      }
+
+  type ProviderSettingsDefinition = {
+    provider: string
+    title: string
+    description: string
+    options: ProviderSettingOption[]
+  }
+
   const props = defineProps<{
     intervalsConnected: boolean
     intervalsIngestWorkouts: boolean
@@ -952,18 +1027,20 @@
     ouraConnected: boolean
     ouraIngestWorkouts: boolean
     withingsConnected: boolean
+    withingsIngestWorkouts: boolean
     yazioConnected: boolean
     fitbitConnected: boolean
     stravaConnected: boolean
     rouvyConnected: boolean
     hevyConnected: boolean
+    hevyIngestWorkouts: boolean
     polarConnected: boolean
     polarIngestWorkouts: boolean
     garminConnected: boolean
     garminIngestWorkouts: boolean
     telegramConnected: boolean
     syncingProviders: Set<string>
-    intervalsSettings: any
+    integrationSettings: Record<string, any>
     wahooConnected: boolean
     wahooIngestWorkouts: boolean
   }>()
@@ -972,6 +1049,8 @@
   const { trackIntegrationConnectStart } = useAnalytics()
   const advancedSyncModalOpen = ref(false)
   const intervalsSettingsModalOpen = ref(false)
+  const providerSettingsModalOpen = ref(false)
+  const selectedProvider = ref<string | null>(null)
   const selectedDays = ref<number | undefined>()
   const emit = defineEmits<{
     disconnect: [provider: string]
@@ -980,6 +1059,221 @@
     'connect-telegram': []
     updateSetting: [provider: string, setting: string, value: any]
   }>()
+
+  const providerSettingsDefinitions: Record<string, ProviderSettingsDefinition> = {
+    whoop: {
+      provider: 'whoop',
+      title: 'WHOOP Settings',
+      description: 'Choose which WHOOP data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Activities',
+          description: 'Import completed workouts from WHOOP.',
+          label: 'Ingest Activities',
+          target: 'root'
+        },
+        {
+          key: 'ingestWellness',
+          title: 'Wellness',
+          description: 'Import recovery and sleep metrics from WHOOP.',
+          label: 'Ingest Wellness Data',
+          target: 'settings'
+        }
+      ]
+    },
+    oura: {
+      provider: 'oura',
+      title: 'Oura Settings',
+      description: 'Choose which Oura data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Activities',
+          description: 'Import completed workouts from Oura.',
+          label: 'Ingest Activities',
+          target: 'root'
+        },
+        {
+          key: 'ingestWellness',
+          title: 'Wellness',
+          description: 'Import sleep, readiness, activity, and other wellness metrics from Oura.',
+          label: 'Ingest Wellness Data',
+          target: 'settings'
+        }
+      ]
+    },
+    withings: {
+      provider: 'withings',
+      title: 'Withings Settings',
+      description: 'Choose which Withings data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Activities',
+          description: 'Import workouts and activity sessions from Withings.',
+          label: 'Ingest Activities',
+          target: 'root'
+        },
+        {
+          key: 'ingestWellness',
+          title: 'Wellness',
+          description: 'Import body metrics, weight, and sleep data from Withings.',
+          label: 'Ingest Wellness Data',
+          target: 'settings'
+        }
+      ]
+    },
+    yazio: {
+      provider: 'yazio',
+      title: 'YAZIO Settings',
+      description: 'Choose which YAZIO data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestNutrition',
+          title: 'Nutrition',
+          description: 'Import daily nutrition logs and meal data from YAZIO.',
+          label: 'Ingest Nutrition Data',
+          target: 'settings'
+        }
+      ]
+    },
+    fitbit: {
+      provider: 'fitbit',
+      title: 'Fitbit Settings',
+      description: 'Choose which Fitbit data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestNutrition',
+          title: 'Nutrition',
+          description: 'Import food logs, water, and nutrition summaries from Fitbit.',
+          label: 'Ingest Nutrition Data',
+          target: 'settings'
+        }
+      ]
+    },
+    hevy: {
+      provider: 'hevy',
+      title: 'Hevy Settings',
+      description: 'Choose which Hevy data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Activities',
+          description: 'Import completed strength workouts from Hevy.',
+          label: 'Ingest Activities',
+          target: 'root'
+        }
+      ]
+    },
+    polar: {
+      provider: 'polar',
+      title: 'Polar Settings',
+      description: 'Choose which Polar data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Activities',
+          description: 'Import completed workouts from Polar.',
+          label: 'Ingest Activities',
+          target: 'root'
+        },
+        {
+          key: 'ingestWellness',
+          title: 'Wellness',
+          description: 'Import sleep and nightly recharge data from Polar.',
+          label: 'Ingest Wellness Data',
+          target: 'settings'
+        }
+      ]
+    },
+    garmin: {
+      provider: 'garmin',
+      title: 'Garmin Settings',
+      description: 'Choose which Garmin data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Activities',
+          description: 'Import completed activities from Garmin.',
+          label: 'Ingest Activities',
+          target: 'root'
+        },
+        {
+          key: 'ingestWellness',
+          title: 'Wellness',
+          description: 'Import sleep, HRV, body metrics, and daily wellness data from Garmin.',
+          label: 'Ingest Wellness Data',
+          target: 'settings'
+        }
+      ]
+    }
+  }
+
+  const selectedProviderSettings = computed(() =>
+    selectedProvider.value ? providerSettingsDefinitions[selectedProvider.value] || null : null
+  )
+  const selectedProviderKey = computed(() => selectedProviderSettings.value?.provider || '')
+  const selectedProviderOptions = computed(() => selectedProviderSettings.value?.options || [])
+
+  function openProviderSettings(provider: string) {
+    selectedProvider.value = provider
+    providerSettingsModalOpen.value = true
+  }
+
+  function getProviderSettings(provider: string) {
+    return props.integrationSettings?.[provider] || {}
+  }
+
+  function isProviderSettingEnabled(provider: string, key: 'ingestWellness' | 'ingestNutrition') {
+    return getProviderSettings(provider)?.[key] !== false
+  }
+
+  function updateProviderSetting(
+    provider: string,
+    key: 'ingestWellness' | 'ingestNutrition',
+    value: boolean
+  ) {
+    emit('updateSetting', provider, 'settings', {
+      ...getProviderSettings(provider),
+      [key]: value
+    })
+  }
+
+  function getProviderOptionValue(provider: string, option: ProviderSettingOption) {
+    if (option.target === 'root') {
+      switch (provider) {
+        case 'whoop':
+          return props.whoopIngestWorkouts
+        case 'oura':
+          return props.ouraIngestWorkouts
+        case 'withings':
+          return props.withingsIngestWorkouts
+        case 'polar':
+          return props.polarIngestWorkouts
+        case 'garmin':
+          return props.garminIngestWorkouts
+        case 'hevy':
+          return props.hevyIngestWorkouts
+        default:
+          return true
+      }
+    }
+
+    return isProviderSettingEnabled(provider, option.key)
+  }
+
+  function updateProviderOption(provider: string, option: ProviderSettingOption, value: boolean) {
+    if (option.target === 'root') {
+      emit('updateSetting', provider, option.key, value)
+      return
+    }
+
+    emit('updateSetting', provider, 'settings', {
+      ...getProviderSettings(provider),
+      [option.key]: value
+    })
+  }
 
   const intervalsActions = computed(() => [
     [
@@ -1036,11 +1330,9 @@
   const whoopActions = computed(() => [
     [
       {
-        label: 'Ingest Workouts',
-        type: 'checkbox' as const,
-        checked: props.whoopIngestWorkouts,
-        onUpdateChecked: (checked: boolean) =>
-          emit('updateSetting', 'whoop', 'ingestWorkouts', checked)
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('whoop')
       }
     ],
     [
@@ -1056,11 +1348,9 @@
   const ouraActions = computed(() => [
     [
       {
-        label: 'Ingest Workouts',
-        type: 'checkbox' as const,
-        checked: props.ouraIngestWorkouts,
-        onUpdateChecked: (checked: boolean) =>
-          emit('updateSetting', 'oura', 'ingestWorkouts', checked)
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('oura')
       }
     ],
     [
@@ -1076,6 +1366,13 @@
   const withingsActions = computed(() => [
     [
       {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('withings')
+      }
+    ],
+    [
+      {
         label: 'Disconnect',
         icon: 'i-heroicons-trash',
         color: 'error' as const,
@@ -1085,6 +1382,13 @@
   ])
 
   const yazioActions = computed(() => [
+    [
+      {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('yazio')
+      }
+    ],
     [
       {
         label: 'Disconnect',
@@ -1098,6 +1402,13 @@
   const fitbitActions = computed(() => [
     [
       {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('fitbit')
+      }
+    ],
+    [
+      {
         label: 'Disconnect',
         icon: 'i-heroicons-trash',
         color: 'error' as const,
@@ -1107,6 +1418,13 @@
   ])
 
   const hevyActions = computed(() => [
+    [
+      {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('hevy')
+      }
+    ],
     [
       {
         label: 'Disconnect',
@@ -1142,11 +1460,9 @@
   const polarActions = computed(() => [
     [
       {
-        label: 'Ingest Workouts',
-        type: 'checkbox' as const,
-        checked: props.polarIngestWorkouts,
-        onUpdateChecked: (checked: boolean) =>
-          emit('updateSetting', 'polar', 'ingestWorkouts', checked)
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('polar')
       }
     ],
     [
@@ -1162,11 +1478,9 @@
   const garminActions = computed(() => [
     [
       {
-        label: 'Ingest Workouts',
-        type: 'checkbox' as const,
-        checked: props.garminIngestWorkouts,
-        onUpdateChecked: (checked: boolean) =>
-          emit('updateSetting', 'garmin', 'ingestWorkouts', checked)
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('garmin')
       }
     ],
     [

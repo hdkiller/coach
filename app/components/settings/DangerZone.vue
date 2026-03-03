@@ -94,6 +94,71 @@
       </div>
     </UCard>
 
+    <!-- Imported Data Management (New) -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-heroicons-circle-stack" class="w-5 h-5 text-warning" />
+          <h2 class="text-xl font-semibold">Imported Data Management</h2>
+        </div>
+      </template>
+
+      <div class="space-y-6">
+        <div>
+          <h3 class="font-medium mb-1">Wipe Synced Activities</h3>
+          <p class="text-sm text-muted mb-3">
+            Remove all actual activity data imported from external sources (Strava, Garmin,
+            Intervals.icu, etc.). This is useful for resolving integration conflicts or clearing
+            duplicate activities.
+          </p>
+          <UButton
+            color="warning"
+            variant="soft"
+            :loading="wipingSyncedActivities"
+            @click="isWipeSyncedActivitiesModalOpen = true"
+          >
+            Wipe Synced Activities
+          </UButton>
+        </div>
+
+        <UDivider />
+
+        <div>
+          <h3 class="font-medium mb-1">Wipe Wellness Data</h3>
+          <p class="text-sm text-muted mb-3">
+            Clear all imported health metrics including HRV, RHR, SpO2, and Sleep logs. This does
+            not affect your workout data.
+          </p>
+          <UButton
+            color="warning"
+            variant="soft"
+            :loading="wipingWellness"
+            @click="isWipeWellnessModalOpen = true"
+          >
+            Wipe Wellness Data
+          </UButton>
+        </div>
+
+        <UDivider />
+
+        <div>
+          <h3 class="font-medium mb-1">Wipe Nutrition Logs</h3>
+          <p class="text-sm text-muted mb-3">
+            Clear all imported calorie, macro, and hydration data. This will also remove any
+            AI-generated nutrition plans or recommendations.
+          </p>
+          <UButton
+            color="warning"
+            variant="soft"
+            :loading="wipingNutrition"
+            @click="isWipeNutritionModalOpen = true"
+          >
+            Wipe Nutrition Logs
+          </UButton>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Account Deletion -->
     <UCard>
       <template #header>
@@ -221,6 +286,90 @@
       </template>
     </UModal>
 
+    <!-- Wipe Synced Activities Confirmation Modal -->
+    <UModal
+      v-model:open="isWipeSyncedActivitiesModalOpen"
+      title="Wipe Synced Activities"
+      description="Dangerous: This will delete ALL actual workout data and raw files."
+    >
+      <template #body>
+        <div class="space-y-2">
+          <p class="text-error font-semibold">Warning: This action is irreversible.</p>
+          <p>
+            All imported workouts, performance scores, and FIT files will be permanently removed
+            from your account. You will need to re-sync your integrations to recover this data.
+          </p>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex gap-2 justify-end w-full">
+          <UButton color="neutral" variant="ghost" @click="isWipeSyncedActivitiesModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="wipingSyncedActivities"
+            @click="executeWipeSyncedActivities"
+            >Wipe Synced Activities</UButton
+          >
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Wipe Wellness Confirmation Modal -->
+    <UModal
+      v-model:open="isWipeWellnessModalOpen"
+      title="Wipe Wellness Data"
+      description="Confirm the removal of imported health metrics."
+    >
+      <template #body>
+        <div class="space-y-2">
+          <p class="text-error font-semibold">Warning: This action is irreversible.</p>
+          <p>
+            All HRV, RHR, and Sleep logs will be permanently deleted. This is typically used to fix
+            ingestion errors from specific sources.
+          </p>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex gap-2 justify-end w-full">
+          <UButton color="neutral" variant="ghost" @click="isWipeWellnessModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="wipingWellness" @click="executeWipeWellness"
+            >Wipe Wellness Data</UButton
+          >
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Wipe Nutrition Confirmation Modal -->
+    <UModal
+      v-model:open="isWipeNutritionModalOpen"
+      title="Wipe Nutrition Logs"
+      description="Confirm the removal of imported nutrition data."
+    >
+      <template #body>
+        <div class="space-y-2">
+          <p class="text-error font-semibold">Warning: This action is irreversible.</p>
+          <p>
+            All calorie, macro, and hydration data will be permanently deleted. Related AI plans and
+            recommendations will also be cleared.
+          </p>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex gap-2 justify-end w-full">
+          <UButton color="neutral" variant="ghost" @click="isWipeNutritionModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="wipingNutrition" @click="executeWipeNutrition"
+            >Wipe Nutrition Logs</UButton
+          >
+        </div>
+      </template>
+    </UModal>
+
     <!-- Delete Account Confirmation Modal -->
     <UModal
       v-model:open="isDeleteAccountModalOpen"
@@ -263,11 +412,17 @@
   const clearingPastSchedule = ref(false)
   const wipingProfiles = ref(false)
   const wipingAnalysis = ref(false)
+  const wipingSyncedActivities = ref(false)
+  const wipingWellness = ref(false)
+  const wipingNutrition = ref(false)
   const deletingAccount = ref(false)
   const isClearScheduleModalOpen = ref(false)
   const isClearPastScheduleModalOpen = ref(false)
   const isWipeProfilesModalOpen = ref(false)
   const isWipeAnalysisModalOpen = ref(false)
+  const isWipeSyncedActivitiesModalOpen = ref(false)
+  const isWipeWellnessModalOpen = ref(false)
+  const isWipeNutritionModalOpen = ref(false)
   const isDeleteAccountModalOpen = ref(false)
   const impersonationMeta = useCookie<{
     adminId: string
@@ -401,6 +556,81 @@
       })
     } finally {
       wipingProfiles.value = false
+    }
+  }
+
+  async function executeWipeSyncedActivities() {
+    wipingSyncedActivities.value = true
+    try {
+      const result: any = await $fetch('/api/profile/synced-activities', {
+        method: 'DELETE'
+      })
+
+      toast.add({
+        title: 'Activities Wiped',
+        description: `Permanently deleted ${result.counts.workouts} workouts and ${result.counts.fitFiles} raw files.`,
+        color: 'success'
+      })
+      isWipeSyncedActivitiesModalOpen.value = false
+    } catch (error) {
+      console.error('Failed to wipe synced activities', error)
+      toast.add({
+        title: 'Action Failed',
+        description: 'Could not wipe synced activities.',
+        color: 'error'
+      })
+    } finally {
+      wipingSyncedActivities.value = false
+    }
+  }
+
+  async function executeWipeWellness() {
+    wipingWellness.value = true
+    try {
+      const result: any = await $fetch('/api/profile/wellness', {
+        method: 'DELETE'
+      })
+
+      toast.add({
+        title: 'Wellness Data Wiped',
+        description: `Cleared ${result.counts.wellness} logs.`,
+        color: 'success'
+      })
+      isWipeWellnessModalOpen.value = false
+    } catch (error) {
+      console.error('Failed to wipe wellness data', error)
+      toast.add({
+        title: 'Action Failed',
+        description: 'Could not wipe wellness data.',
+        color: 'error'
+      })
+    } finally {
+      wipingWellness.value = false
+    }
+  }
+
+  async function executeWipeNutrition() {
+    wipingNutrition.value = true
+    try {
+      const result: any = await $fetch('/api/profile/nutrition', {
+        method: 'DELETE'
+      })
+
+      toast.add({
+        title: 'Nutrition Logs Wiped',
+        description: `Removed ${result.counts.nutrition} logs and ${result.counts.plans} plans.`,
+        color: 'success'
+      })
+      isWipeNutritionModalOpen.value = false
+    } catch (error) {
+      console.error('Failed to wipe nutrition logs', error)
+      toast.add({
+        title: 'Action Failed',
+        description: 'Could not wipe nutrition logs.',
+        color: 'error'
+      })
+    } finally {
+      wipingNutrition.value = false
     }
   }
 
