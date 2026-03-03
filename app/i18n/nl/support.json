@@ -1,0 +1,37 @@
+{
+  "community": {
+    "btn": "Word lid van onze Discord",
+    "desc": "Word lid van onze Discord-server om vragen te stellen, feedback te delen en in contact te komen met andere gebruikers. Dit is de snelste manier om hulp te krijgen.",
+    "title": "Community-ondersteuning"
+  },
+  "email": {
+    "btn": "Neem contact op met support",
+    "desc": "Heb je een specifiek probleem of persoonlijke hulp nodig? Stuur ons een e-mail en we nemen zo snel mogelijk contact met je op.",
+    "title": "E-mail support"
+  },
+  "form": {
+    "email": "E-mail",
+    "message": "Bericht",
+    "message_placeholder": "Beschrijf je probleem of feedback...",
+    "name": "Naam",
+    "name_placeholder": "Je naam",
+    "sending_as": "Verzenden als",
+    "subject": "Onderwerp",
+    "subject_placeholder": "Waar gaat dit over?",
+    "submit": "Bericht verzenden",
+    "title": "Stuur ons een bericht"
+  },
+  "github": {
+    "btn": "Issue openen",
+    "desc": "Een bug gevonden of een functieverzoek? Open een issue op onze GitHub-repository om de voortgang te volgen en bij te dragen.",
+    "title": "GitHub Issues"
+  },
+  "subtitle": "We zijn er om te helpen. Kies het kanaal dat het best bij je past.",
+  "title": "Support",
+  "toast": {
+    "error": "Bericht verzenden mislukt",
+    "missing_content": "Onderwerp en bericht zijn verplicht",
+    "missing_fields": "Naam en e-mail zijn verplicht",
+    "success": "Bericht succesvol verzonden!"
+  }
+}
