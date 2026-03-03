@@ -39,6 +39,7 @@ import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
+import { bodyMeasurementService } from './bodyMeasurementService'
 
 function parseIntervalsActivityDate(activity: any): Date | null {
   const rawDate = activity?.start_date || activity?.start_date_local
@@ -737,11 +738,21 @@ export const IntervalsService = {
           }
         }
 
-        const { isNew } = await wellnessRepository.upsert(
+        const { record, isNew } = await wellnessRepository.upsert(
           userId,
           wellnessDate,
           normalizedWellness,
           normalizedWellness,
+          'intervals'
+        )
+        await bodyMeasurementService.recordWellnessMetrics(
+          userId,
+          {
+            id: record.id,
+            date: record.date,
+            weight: record.weight,
+            bodyFat: record.bodyFat
+          },
           'intervals'
         )
         if (isNew) {
@@ -751,10 +762,14 @@ export const IntervalsService = {
         // Also update the User profile weight if this is a recent measurement
         const isRecent = new Date().getTime() - wellnessDate.getTime() < 7 * 24 * 60 * 60 * 1000
         if (isRecent && normalizedWellness.weight) {
-          await athleteMetricsService.updateMetrics(userId, {
-            weight: normalizedWellness.weight,
-            date: wellnessDate
-          })
+          await athleteMetricsService.updateMetrics(
+            userId,
+            {
+              weight: normalizedWellness.weight,
+              date: wellnessDate
+            },
+            { weightUpdateSource: 'sync' }
+          )
         }
       }
 

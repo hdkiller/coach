@@ -7,6 +7,7 @@ import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
 import { normalizeGarminActivityType } from '../activity-mapping'
+import { bodyMeasurementService } from './bodyMeasurementService'
 import crypto from 'crypto'
 
 function normalizeDeviceName(name: unknown): string | null {
@@ -303,7 +304,23 @@ export const GarminService = {
         rawJson: record
       }
 
-      await wellnessRepository.upsert(userId, utcDate, weightData, weightData, 'garmin')
+      const { record } = await wellnessRepository.upsert(
+        userId,
+        utcDate,
+        weightData,
+        weightData,
+        'garmin'
+      )
+      await bodyMeasurementService.recordWellnessMetrics(
+        userId,
+        {
+          id: record.id,
+          date: record.date,
+          weight: record.weight,
+          bodyFat: record.bodyFat
+        },
+        'garmin'
+      )
     }
   },
 

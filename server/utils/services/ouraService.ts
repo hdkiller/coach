@@ -17,6 +17,7 @@ import { wellnessRepository } from '../repositories/wellnessRepository'
 import { normalizeTSS } from '../normalize-tss'
 import { calculateWorkoutStress } from '../calculate-workout-stress'
 import { triggerReadinessCheckIfNeeded } from './wellness-analysis'
+import { bodyMeasurementService } from './bodyMeasurementService'
 
 export const OuraService = {
   /**
@@ -103,11 +104,21 @@ export const OuraService = {
           wellness.weight = Math.round(wellness.weight * 100) / 100
         }
 
-        await wellnessRepository.upsert(
+        const { record } = await wellnessRepository.upsert(
           userId,
           wellness.date,
           wellness as any,
           wellness as any,
+          'oura'
+        )
+        await bodyMeasurementService.recordWellnessMetrics(
+          userId,
+          {
+            id: record.id,
+            date: record.date,
+            weight: record.weight,
+            bodyFat: record.bodyFat
+          },
           'oura'
         )
         console.log(`[OuraService] Upserted wellness for ${date.toISOString()}`)

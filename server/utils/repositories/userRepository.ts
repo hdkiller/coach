@@ -1,5 +1,6 @@
 import { prisma } from '../db'
 import type { Prisma } from '@prisma/client'
+import { bodyMetricResolver } from '../services/bodyMetricResolver'
 
 export const userRepository = {
   /**
@@ -139,13 +140,8 @@ export const userRepository = {
       return wellness.weight
     }
 
-    // 2. Fallback to current profile
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { weight: true }
-    })
-
-    return user?.weight || null
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId)
+    return effectiveWeight.value || null
   },
 
   /**
