@@ -57,7 +57,7 @@ defineRouteMeta({
     security: [{ bearerAuth: [] }],
     parameters: [
       {
-        name: 'id',
+        name: 'wellnessId',
         in: 'path',
         required: true,
         schema: { type: 'string' },
@@ -76,7 +76,7 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event, ['health:write'])
-  const wellnessId = getRouterParam(event, 'id')
+  const wellnessId = getRouterParam(event, 'wellnessId') || getRouterParam(event, 'id')
 
   if (!wellnessId) {
     throw createError({

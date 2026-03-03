@@ -8,7 +8,7 @@ defineRouteMeta({
     description: 'Returns a wellness record by ID or Date.',
     parameters: [
       {
-        name: 'param',
+        name: 'wellnessParam',
         in: 'path',
         required: true,
         schema: { type: 'string' },
@@ -35,7 +35,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const param = getRouterParam(event, 'param') || getRouterParam(event, 'id')
+  const param =
+    getRouterParam(event, 'wellnessParam') ||
+    getRouterParam(event, 'wellnessId') ||
+    getRouterParam(event, 'id')
   if (!param) {
     throw createError({
       statusCode: 400,
