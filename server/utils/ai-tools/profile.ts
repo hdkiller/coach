@@ -1,6 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { userRepository } from '../repositories/userRepository'
+import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
 import { generateAthleteProfileTask } from '../../../trigger/generate-athlete-profile'
 import { prisma } from '../../utils/db'
 import { getStartOfDaysAgoUTC, getEndOfDayUTC } from '../../utils/date'

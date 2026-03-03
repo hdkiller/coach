@@ -15,6 +15,17 @@ export async function queueEmail(options: {
   idempotencyKey?: string
 }) {
   const { userId, templateKey, eventKey, audience, subject, props = {}, idempotencyKey } = options
+
+  if (process.env.CW_DISABLE_EMAILS === '1') {
+    console.info('[EmailService] Skipped', {
+      userId,
+      templateKey,
+      eventKey,
+      reason: 'emails_disabled_by_environment'
+    })
+    return { queued: false, reason: 'emails_disabled_by_environment' }
+  }
+
   const template = getEmailTemplateDefinition(templateKey)
 
   if (!template && (!audience || !subject)) {
