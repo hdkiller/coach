@@ -133,6 +133,24 @@ describe('Fit Utils', () => {
       expect(workout.type).toBe('Cycling')
       expect(workout.externalId).toContain('fit_')
       expect(workout.externalId).toContain('morning_ride')
+      expect(workout.title).toBe('morning ride')
+    })
+
+    it('prefers the provided activity name over the filename', () => {
+      const fitSession = {
+        start_time: new Date('2023-01-01T10:00:00Z'),
+        total_timer_time: 3600,
+        sport: 'cycling'
+      }
+
+      const workout = normalizeFitSession(
+        fitSession,
+        'user-123',
+        'morning-ride.fit',
+        'Sunday Endurance Ride'
+      )
+
+      expect(workout.title).toBe('Sunday Endurance Ride')
     })
   })
 })
