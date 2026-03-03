@@ -796,8 +796,11 @@
 
     analyzingWellness.value = true
     try {
-      const result = (await $fetch(`/api/wellness/${wellnessData.value.id}/analyze`, {
-        method: 'POST'
+      const result = (await $fetch('/api/wellness/analyze', {
+        method: 'POST',
+        body: {
+          wellnessId: wellnessData.value.id
+        }
       })) as any
 
       // If already completed, update immediately
