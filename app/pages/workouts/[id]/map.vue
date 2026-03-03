@@ -1,21 +1,18 @@
 <template>
   <UDashboardPanel id="workout-map-detail">
     <template #header>
-      <UDashboardNavbar
-        :title="workout ? `Map Analysis: ${workout.title}` : 'Map Analysis'"
-        class="hidden lg:flex"
-      >
+      <UDashboardNavbar :title="workout ? `Map Analysis: ${workout.title}` : 'Map Analysis'">
         <template #leading>
           <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" @click="goBack">
             Back to Workout
           </UButton>
         </template>
         <template #right>
-          <div v-if="workout" class="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
+          <div v-if="workout" class="flex items-center gap-4">
             <UButton
               icon="i-heroicons-document-arrow-down"
               color="neutral"
-              variant="soft"
+              variant="outline"
               size="xs"
               :loading="isExporting"
               @click="downloadGPX"
@@ -48,101 +45,42 @@
         />
       </div>
 
-      <div
-        v-else-if="workout"
-        class="min-h-full flex flex-col gap-4 overflow-visible px-4 pb-6 pt-4 lg:h-full lg:overflow-hidden"
-      >
-        <div class="sticky top-0 z-50 lg:hidden">
-          <div
-            class="floating-card-base grain-overlay flex items-center justify-between rounded-2xl px-2 py-2 !bg-white/85 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.65)] dark:!bg-[#111111]/85"
-          >
-            <UButton
-              icon="i-heroicons-arrow-left"
-              color="neutral"
-              variant="ghost"
-              aria-label="Back to Workout"
-              @click="goBack"
-            />
-            <UButton
-              icon="i-heroicons-document-arrow-down"
-              color="neutral"
-              variant="soft"
-              size="xs"
-              aria-label="Download GPX"
-              :loading="isExporting"
-              @click="downloadGPX"
-            />
-          </div>
-        </div>
-
-        <div class="hidden space-y-2 lg:block">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                Layout
-              </span>
-              <div class="min-w-0 overflow-x-auto pb-1">
-                <div
-                  class="inline-flex min-w-max items-center gap-1 rounded-xl border border-gray-200 bg-gray-50/90 p-1 shadow-sm dark:border-gray-800 dark:bg-gray-900/80"
-                >
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    :variant="layoutMode === 'default' ? 'soft' : 'ghost'"
-                    icon="i-heroicons-rectangle-group"
-                    class="shrink-0 whitespace-nowrap"
-                    @click="layoutMode = 'default'"
-                  >
-                    Default
-                  </UButton>
-                  <UButton
-                    size="xs"
-                    color="neutral"
-                    :variant="layoutMode === 'chart-focus' ? 'soft' : 'ghost'"
-                    icon="i-heroicons-chart-bar-square"
-                    class="shrink-0 whitespace-nowrap"
-                    @click="layoutMode = 'chart-focus'"
-                  >
-                    Charts Wide
-                  </UButton>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-            {{ desktopLayoutDescription }}
-          </p>
-        </div>
-
-        <div class="space-y-3 lg:hidden">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-500">
-                Metrics
-              </p>
-              <p class="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                Hide streams you do not need to keep the view dense.
-              </p>
-            </div>
-            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
-              {{ selectedStreamObjects.length }} active
-            </p>
-          </div>
-          <div class="overflow-x-auto pb-1">
-            <div class="flex min-w-max items-center gap-2">
+      <div v-else-if="workout" class="h-full flex flex-col p-4 gap-4 overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Layout
+            </span>
+            <div
+              class="flex items-center rounded-lg border border-gray-200 bg-white p-1 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+            >
               <UButton
-                v-for="option in availableStreamOptions"
-                :key="option.value"
                 size="xs"
                 color="neutral"
-                :variant="selectedStreamValues.includes(option.value) ? 'soft' : 'ghost'"
-                class="shrink-0 rounded-full border border-gray-200/70 bg-white/70 px-3 dark:border-white/10 dark:bg-white/5"
-                @click="toggleStreamSelection(option.value)"
+                :variant="layoutMode === 'default' ? 'solid' : 'ghost'"
+                icon="i-heroicons-rectangle-group"
+                @click="layoutMode = 'default'"
               >
-                {{ option.label }}
+                Default
+              </UButton>
+              <UButton
+                size="xs"
+                color="neutral"
+                :variant="layoutMode === 'chart-focus' ? 'solid' : 'ghost'"
+                icon="i-heroicons-chart-bar-square"
+                @click="layoutMode = 'chart-focus'"
+              >
+                Charts Wide
               </UButton>
             </div>
           </div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            {{
+              layoutMode === 'chart-focus'
+                ? 'Charts left, map stacked under splits'
+                : 'Map-first layout'
+            }}
+          </p>
         </div>
 
         <div :class="contentGridClass">
@@ -156,20 +94,20 @@
               :highlight-range="hoverSplitRange"
               :highlight-ranges="zoneHoverRangesForDisplay"
               :interactive="true"
-              class="!h-full !rounded-[inherit] !border-0 !bg-transparent !shadow-none"
+              class="!h-full !rounded-none !border-0"
             />
           </div>
 
           <div :class="splitsCardClass">
             <div
-              class="border-b border-gray-100 bg-gray-50/60 dark:border-white/10 dark:bg-white/5"
+              class="border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50"
             >
               <div class="px-3 pt-3 flex items-center justify-between">
                 <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
                   Segment Analysis
                 </h3>
               </div>
-              <div class="overflow-x-auto px-2 pb-1">
+              <div class="px-2 pb-1">
                 <UTabs
                   v-model="segmentTab"
                   :items="[
@@ -179,293 +117,251 @@
                     { label: 'Zones', value: 'zones', icon: 'i-heroicons-heart' }
                   ]"
                   variant="link"
-                  class="min-w-max w-full"
+                  class="w-full"
                 />
               </div>
             </div>
 
-            <div class="overflow-visible lg:flex-1 lg:overflow-y-auto">
-              <div v-if="segmentTab === 'laps'" class="overflow-x-auto">
-                <table class="min-w-[420px] w-full divide-y divide-gray-100 dark:divide-white/10">
-                  <thead class="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm dark:bg-black/30">
-                    <tr>
-                      <th
-                        class="sticky left-0 z-20 bg-gray-50/95 px-4 py-2 text-left text-[9px] font-black uppercase text-gray-400 backdrop-blur-sm dark:bg-[#111111]"
-                      >
-                        Lap
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        Pace
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        Dist
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100 dark:divide-white/10">
-                    <tr
-                      v-for="split in lapSplits"
-                      :key="split.lap"
-                      class="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
-                      @mouseenter="onSplitHover(split)"
-                      @mouseleave="onSplitLeave"
+            <div class="flex-1 overflow-y-auto">
+              <!-- LAPS TABLE -->
+              <table
+                v-if="segmentTab === 'laps'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Lap
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Pace
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Dist
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="split in lapSplits"
+                    :key="split.lap"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    @mouseenter="onSplitHover(split)"
+                    @mouseleave="onSplitLeave"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
+                      {{ split.lap }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
                     >
-                      <td
-                        class="sticky left-0 z-10 bg-white px-4 py-2.5 text-xs font-black text-gray-900 dark:bg-[#111111] dark:text-white"
-                      >
-                        {{ split.lap }}
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{ split.pace }}
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{ formatDistance(split.distance) }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                      {{ split.pace }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatDistance(split.distance) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-              <div v-else-if="segmentTab === 'intervals'" class="overflow-x-auto">
-                <table class="min-w-[420px] w-full divide-y divide-gray-100 dark:divide-white/10">
-                  <thead class="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm dark:bg-black/30">
-                    <tr>
-                      <th
-                        class="sticky left-0 z-20 bg-gray-50/95 px-4 py-2 text-left text-[9px] font-black uppercase text-gray-400 backdrop-blur-sm dark:bg-[#111111]"
+              <!-- INTERVALS TABLE -->
+              <table
+                v-else-if="segmentTab === 'intervals'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Type
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Avg
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Time
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="(interval, idx) in detectedIntervals"
+                    :key="idx"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    @mouseenter="onSplitHover(interval)"
+                    @mouseleave="onSplitLeave"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black">
+                      <span
+                        :class="interval.type === 'WORK' ? 'text-primary-600' : 'text-gray-400'"
                       >
-                        Type
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        Avg
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        Time
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100 dark:divide-white/10">
-                    <tr
-                      v-for="(interval, idx) in detectedIntervals"
-                      :key="idx"
-                      class="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
-                      @mouseenter="onSplitHover(interval)"
-                      @mouseleave="onSplitLeave"
+                        {{ interval.type }}
+                      </span>
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
                     >
-                      <td
-                        class="sticky left-0 z-10 bg-white px-4 py-2.5 text-xs font-black dark:bg-[#111111]"
-                      >
-                        <span
-                          :class="interval.type === 'WORK' ? 'text-primary-600' : 'text-gray-400'"
-                        >
-                          {{ interval.type }}
-                        </span>
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{
-                          interval.avg_power
-                            ? Math.round(interval.avg_power) + 'W'
-                            : interval.avg_pace
-                              ? formatPace(interval.avg_pace)
-                              : '-'
-                        }}
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{ formatTime(interval.duration) }}
-                      </td>
-                    </tr>
-                    <tr v-if="detectedIntervals.length === 0">
-                      <td
-                        colspan="3"
-                        class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
-                      >
-                        No intervals detected
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                      {{
+                        interval.avg_power
+                          ? Math.round(interval.avg_power) + 'W'
+                          : interval.avg_pace
+                            ? formatPace(interval.avg_pace)
+                            : '-'
+                      }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatTime(interval.duration) }}
+                    </td>
+                  </tr>
+                  <tr v-if="detectedIntervals.length === 0">
+                    <td
+                      colspan="3"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      No intervals detected
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-              <div v-else-if="segmentTab === 'climbs'" class="overflow-x-auto">
-                <table class="min-w-[420px] w-full divide-y divide-gray-100 dark:divide-white/10">
-                  <thead class="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm dark:bg-black/30">
-                    <tr>
-                      <th
-                        class="sticky left-0 z-20 bg-gray-50/95 px-4 py-2 text-left text-[9px] font-black uppercase text-gray-400 backdrop-blur-sm dark:bg-[#111111]"
-                      >
-                        Gain
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        Grade
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        Dist
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100 dark:divide-white/10">
-                    <tr
-                      v-for="(climb, idx) in detectedClimbs"
-                      :key="idx"
-                      class="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
-                      @mouseenter="onSplitHover(climb)"
-                      @mouseleave="onSplitLeave"
+              <!-- CLIMBS TABLE -->
+              <table
+                v-else-if="segmentTab === 'climbs'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Gain
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Grade
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Dist
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="(climb, idx) in detectedClimbs"
+                    :key="idx"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    @mouseenter="onSplitHover(climb)"
+                    @mouseleave="onSplitLeave"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
+                      +{{ climb.ascent }}m
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
                     >
-                      <td
-                        class="sticky left-0 z-10 bg-white px-4 py-2.5 text-xs font-black text-gray-900 dark:bg-[#111111] dark:text-white"
-                      >
-                        +{{ climb.ascent }}m
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{ climb.avg_grade }}%
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{ formatDistance(climb.distance) }}
-                      </td>
-                    </tr>
-                    <tr v-if="detectedClimbs.length === 0">
-                      <td
-                        colspan="3"
-                        class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
-                      >
-                        No significant climbs detected
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                      {{ climb.avg_grade }}%
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatDistance(climb.distance) }}
+                    </td>
+                  </tr>
+                  <tr v-if="detectedClimbs.length === 0">
+                    <td
+                      colspan="3"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      No significant climbs detected
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-              <div v-else-if="segmentTab === 'zones'" class="overflow-x-auto">
-                <table class="min-w-[460px] w-full divide-y divide-gray-100 dark:divide-white/10">
-                  <thead class="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm dark:bg-black/30">
-                    <tr>
-                      <th
-                        class="sticky left-0 z-20 bg-gray-50/95 px-4 py-2 text-left text-[9px] font-black uppercase text-gray-400 backdrop-blur-sm dark:bg-[#111111]"
-                      >
-                        Zone
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        BPM
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        Time
-                      </th>
-                      <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
-                        %
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100 dark:divide-white/10">
-                    <tr
-                      v-for="zone in hrZones"
-                      :key="zone.index"
-                      class="transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+              <!-- ZONES TABLE -->
+              <table
+                v-else-if="segmentTab === 'zones'"
+                class="min-w-full divide-y divide-gray-100 dark:divide-gray-800"
+              >
+                <thead class="bg-gray-50/30 dark:bg-gray-950/30 sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Zone
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      BPM
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      Time
+                    </th>
+                    <th class="px-4 py-2 text-left text-[9px] font-black text-gray-400 uppercase">
+                      %
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr
+                    v-for="zone in hrZones"
+                    :key="zone.index"
+                    class="transition-colors"
+                  >
+                    <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
+                      {{ zone.name }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
                     >
-                      <td
-                        class="sticky left-0 z-10 bg-white px-4 py-2.5 text-xs font-black text-gray-900 dark:bg-[#111111] dark:text-white"
-                      >
-                        {{ zone.name }}
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{ formatZoneRange(zone) }}
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{ formatTime(zone.time) }}
-                      </td>
-                      <td
-                        class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
-                      >
-                        {{
-                          Math.round(
-                            (zone.time /
-                              (hrZones.reduce((a, b) => a + b.time, 0) || workout.duration || 1)) *
-                              100
-                          )
-                        }}%
-                      </td>
-                    </tr>
-                    <tr v-if="hrZones.length === 0">
-                      <td
-                        colspan="4"
-                        class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
-                      >
-                        No zone data available
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                      {{ formatZoneRange(zone) }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{ formatTime(zone.time) }}
+                    </td>
+                    <td
+                      class="px-4 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums"
+                    >
+                      {{
+                        Math.round(
+                          (zone.time /
+                            (hrZones.reduce((a, b) => a + b.time, 0) || workout.duration || 1)) *
+                            100
+                        )
+                      }}%
+                    </td>
+                  </tr>
+                  <tr v-if="hrZones.length === 0">
+                    <td
+                      colspan="4"
+                      class="px-4 py-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest"
+                    >
+                      No zone data available
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
           <div :class="chartsCardClass">
             <div
-              class="border-b border-gray-100 bg-gray-50/60 p-3 dark:border-white/10 dark:bg-white/5"
+              class="p-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50"
             >
-              <div class="flex flex-col gap-3 lg:hidden">
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                    Stream Analysis
-                  </h3>
+              <div class="flex items-center gap-4">
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                  Stream Analysis
+                </h3>
+                <div class="flex gap-2">
                   <UButton
                     v-if="zoomRange"
                     icon="i-heroicons-magnifying-glass-minus"
                     size="xs"
                     color="neutral"
-                    variant="soft"
-                    class="shrink-0"
+                    variant="outline"
                     @click="resetZoom"
                   >
                     Reset Zoom
                   </UButton>
-                </div>
-                <div
-                  v-if="hoverIndex !== null && workout?.streams?.time"
-                  class="text-[10px] font-black uppercase text-primary-500"
-                >
-                  T: {{ formatTime(workout.streams.time[hoverIndex]) }}
-                  <span v-if="workout.streams.heartrate" class="inline-block">
-                    | {{ workout.streams.heartrate[hoverIndex] }} bpm
-                  </span>
-                  <span v-if="workout.streams.altitude" class="inline-block">
-                    | {{ Math.round(workout.streams.altitude[hoverIndex]) }}m
-                  </span>
-                </div>
-              </div>
-
-              <div class="hidden flex-col gap-3 lg:flex">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                    Stream Analysis
-                  </h3>
-                  <UButton
-                    v-if="zoomRange"
-                    icon="i-heroicons-magnifying-glass-minus"
-                    size="xs"
-                    color="neutral"
-                    variant="soft"
-                    class="shrink-0"
-                    @click="resetZoom"
-                  >
-                    Reset Zoom
-                  </UButton>
-                </div>
-                <div class="min-w-0">
                   <client-only>
                     <USelectMenu
                       v-model="selectedStreamValues"
@@ -475,48 +371,40 @@
                       value-key="value"
                       label-key="label"
                       size="xs"
-                      color="neutral"
-                      variant="soft"
-                      :search-input="{ placeholder: 'Search streams...', variant: 'none' }"
-                      class="w-full min-w-0 sm:w-56"
+                      class="w-48"
                     >
                       <template #leading>
                         <UIcon name="i-heroicons-plus-circle" class="w-3.5 h-3.5" />
                       </template>
-                      <template #default>
-                        <span class="truncate">{{ selectedStreamTriggerLabel }}</span>
-                      </template>
                     </USelectMenu>
                   </client-only>
                 </div>
-                <div
-                  v-if="hoverIndex !== null && workout?.streams?.time"
-                  class="text-[10px] font-black uppercase text-primary-500"
+              </div>
+              <div
+                v-if="hoverIndex !== null && workout?.streams?.time"
+                class="text-[10px] font-black text-primary-500 uppercase"
+              >
+                T: {{ formatTime(workout.streams.time[hoverIndex]) }} |
+                <span v-if="workout.streams.heartrate"
+                  >{{ workout.streams.heartrate[hoverIndex] }} bpm</span
                 >
-                  T: {{ formatTime(workout.streams.time[hoverIndex]) }}
-                  <span v-if="workout.streams.heartrate" class="inline-block">
-                    | {{ workout.streams.heartrate[hoverIndex] }} bpm
-                  </span>
-                  <span v-if="workout.streams.altitude" class="inline-block">
-                    | {{ Math.round(workout.streams.altitude[hoverIndex]) }}m
-                  </span>
-                </div>
+                <span v-if="workout.streams.altitude">
+                  | {{ Math.round(workout.streams.altitude[hoverIndex]) }}m</span
+                >
               </div>
             </div>
 
             <div
               :class="[
-                'p-4',
-                isMobile
-                  ? 'space-y-3'
-                  : layoutMode === 'chart-focus'
-                    ? 'space-y-0 overflow-visible lg:flex-1 lg:overflow-y-auto'
-                    : 'flex flex-col overflow-visible lg:flex-1 lg:overflow-hidden'
+                'flex-1 p-4',
+                layoutMode === 'chart-focus'
+                  ? 'overflow-y-auto space-y-0'
+                  : 'overflow-hidden flex flex-col'
               ]"
             >
               <div
                 v-if="selectedStreamObjects.length === 0"
-                class="flex min-h-[240px] flex-col items-center justify-center space-y-2 py-12 text-gray-400"
+                class="flex flex-col items-center justify-center h-full text-gray-400 space-y-2 py-12"
               >
                 <UIcon name="i-heroicons-chart-bar" class="w-12 h-12 opacity-20" />
                 <p class="text-xs font-bold uppercase tracking-widest">
@@ -524,69 +412,8 @@
                 </p>
               </div>
 
-              <template v-else-if="isMobile">
-                <div
-                  v-for="streamObject in selectedStreamObjects"
-                  :key="streamObject.value"
-                  class="floating-card-base grain-overlay overflow-hidden rounded-[28px] !bg-white/85 dark:!bg-[#111111]"
-                >
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-3 px-4 py-3 text-left"
-                    @click="toggleMetricCollapse(streamObject.value)"
-                  >
-                    <div
-                      class="h-2.5 w-2.5 shrink-0 rounded-full"
-                      :style="{ backgroundColor: getStreamMetadata(streamObject.value).color }"
-                    />
-                    <div class="min-w-0 flex-1">
-                      <p
-                        class="truncate text-[10px] font-black uppercase tracking-[0.24em] text-gray-400"
-                      >
-                        {{ getStreamMetadata(streamObject.value).label }}
-                      </p>
-                      <p
-                        v-if="hoverIndex !== null"
-                        class="mt-1 truncate text-sm font-semibold text-gray-700 dark:text-gray-200"
-                      >
-                        {{ getHoveredMetricValue(streamObject.value) }}
-                      </p>
-                    </div>
-                    <UIcon
-                      :name="
-                        isMetricCollapsed(streamObject.value)
-                          ? 'i-heroicons-chevron-down'
-                          : 'i-heroicons-chevron-up'
-                      "
-                      class="h-4 w-4 shrink-0 text-gray-400"
-                    />
-                  </button>
-
-                  <div
-                    v-if="!isMetricCollapsed(streamObject.value)"
-                    class="border-t border-white/10 px-3 pb-3 pt-2"
-                  >
-                    <StreamChart
-                      :label="getStreamMetadata(streamObject.value).label"
-                      :data-points="zoomedStreams[streamObject.value]"
-                      :labels="zoomedStreams.time"
-                      :color="getStreamMetadata(streamObject.value).color"
-                      :y-axis-label="getStreamMetadata(streamObject.value).unit"
-                      :height-class="mobileChartHeightClass"
-                      :highlight-index="zoomedHoverIndex"
-                      :highlight-range="zoomedHoverSplitRange"
-                      :highlight-ranges="zoomedZoneHoverRangesForDisplay"
-                      :show-x-axis="true"
-                      :fixed-y-axis-width="64"
-                      @chart-hover="onChartHover"
-                      @chart-leave="onChartLeave"
-                      @chart-zoom="onChartZoom"
-                    />
-                  </div>
-                </div>
-              </template>
-
-              <div v-else-if="layoutMode === 'default'" :class="defaultChartContainerClass">
+              <!-- Default Layout: Single Unified Chart -->
+              <div v-else-if="layoutMode === 'default'" class="flex-1 min-h-0">
                 <client-only>
                   <StreamChart
                     :datasets="
@@ -598,7 +425,7 @@
                       }))
                     "
                     :labels="zoomedStreams.time"
-                    :height-class="defaultChartHeightClass"
+                    :height-class="'h-full'"
                     :highlight-index="zoomedHoverIndex"
                     :highlight-range="zoomedHoverSplitRange"
                     :highlight-ranges="zoomedZoneHoverRangesForDisplay"
@@ -609,6 +436,7 @@
                 </client-only>
               </div>
 
+              <!-- Focus Layout: Stacked Draggable Charts -->
               <draggable
                 v-else
                 v-model="selectedStreamObjects"
@@ -683,7 +511,6 @@
 
 <script setup lang="ts">
   import { ref, computed, watch, toRaw, nextTick } from 'vue'
-  import { useMediaQuery } from '@vueuse/core'
   import draggable from 'vuedraggable'
   import StreamChart from '~/components/charts/streams/BaseStreamChart.vue'
 
@@ -709,23 +536,7 @@
   const isExporting = ref(false)
   const selectedStreamObjects = ref<{ label: string; value: string }[]>([])
   const selectedStreamValues = ref<string[]>([])
-  const collapsedMetricKeys = ref<string[]>([])
-  const isMobile = useMediaQuery('(max-width: 1023px)')
   const selectedStreams = computed(() => selectedStreamObjects.value.map((s) => s.value))
-  const selectedStreamTriggerLabel = computed(() => {
-    if (selectedStreamObjects.value.length === 0) return 'Add streams'
-
-    const [firstStream, ...remainingStreams] = selectedStreamObjects.value
-    if (remainingStreams.length === 0) return firstStream.label
-
-    return `${firstStream.label} +${remainingStreams.length}`
-  })
-  const desktopLayoutDescription = computed(() =>
-    layoutMode.value === 'chart-focus'
-      ? 'Charts left, map stacked under splits'
-      : 'Map-first layout'
-  )
-  const mobileChartHeightClass = computed(() => 'h-32 sm:h-36')
 
   function calculateDisplayedHrZoneTimes(streams: Record<string, any>, zones: any[]) {
     if (!Array.isArray(streams?.heartrate) || !Array.isArray(streams?.time) || !zones.length)
@@ -787,10 +598,9 @@
       }
 
       // Save preference including ORDER
-      userStore.updateDashboardSettings({ mapSelectedStreams: newValues })
-
-      const activeKeys = new Set(newValues)
-      collapsedMetricKeys.value = collapsedMetricKeys.value.filter((key) => activeKeys.has(key))
+      if (newValues.length > 0) {
+        userStore.updateDashboardSettings({ mapSelectedStreams: newValues })
+      }
     },
     { deep: true }
   )
@@ -850,8 +660,8 @@
     })
   })
   const contentGridClass = computed(() => {
-    const base = 'grid grid-cols-1 gap-4 lg:flex-1 lg:min-h-0'
-    if (!isMobile.value && layoutMode.value === 'chart-focus') {
+    const base = 'grid flex-1 min-h-0 grid-cols-1 gap-4'
+    if (layoutMode.value === 'chart-focus') {
       return `${base} lg:grid-cols-3 lg:grid-rows-[minmax(220px,0.42fr)_minmax(320px,0.58fr)]`
     }
     return `${base} lg:grid-cols-3 lg:grid-rows-[380px_minmax(0,1fr)]`
@@ -859,17 +669,17 @@
 
   const mapCardClass = computed(() => {
     const base =
-      'floating-card-base grain-overlay relative aspect-video overflow-hidden rounded-[28px] !bg-white/85 dark:!bg-[#111111]'
-    if (!isMobile.value && layoutMode.value === 'chart-focus') {
-      return `${base} lg:col-start-3 lg:col-span-1 lg:row-start-2 lg:h-auto lg:min-h-0 lg:max-h-none`
+      'relative min-h-[320px] overflow-hidden rounded-xl border border-gray-100 bg-gray-50 shadow-sm dark:border-gray-800 dark:bg-gray-900'
+    if (layoutMode.value === 'chart-focus') {
+      return `${base} lg:col-start-3 lg:col-span-1 lg:row-start-2 lg:min-h-0`
     }
-    return `${base} lg:col-span-2 lg:row-start-1 lg:h-auto lg:min-h-0 lg:max-h-none`
+    return `${base} lg:col-span-2 lg:row-start-1 lg:min-h-0`
   })
 
   const splitsCardClass = computed(() => {
     const base =
-      'floating-card-base grain-overlay flex min-h-[220px] flex-col overflow-hidden rounded-[28px] !bg-white/85 dark:!bg-[#111111]'
-    if (!isMobile.value && layoutMode.value === 'chart-focus') {
+      'flex min-h-[220px] flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900'
+    if (layoutMode.value === 'chart-focus') {
       return `${base} lg:col-start-3 lg:col-span-1 lg:row-start-1 lg:min-h-0`
     }
     return `${base} lg:col-span-1 lg:row-start-1 lg:min-h-0`
@@ -877,16 +687,12 @@
 
   const chartsCardClass = computed(() => {
     const base =
-      'floating-card-base grain-overlay flex min-h-[380px] flex-col overflow-hidden rounded-[28px] !bg-white/85 dark:!bg-[#111111]'
-    if (!isMobile.value && layoutMode.value === 'chart-focus') {
+      'flex min-h-[380px] flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900'
+    if (layoutMode.value === 'chart-focus') {
       return `${base} lg:col-start-1 lg:col-span-2 lg:row-span-2 lg:min-h-0`
     }
     return `${base} lg:col-span-3 lg:row-start-2 lg:min-h-0`
   })
-  const defaultChartContainerClass = computed(
-    () => 'min-h-[280px] sm:min-h-[320px] lg:flex-1 lg:min-h-0'
-  )
-  const defaultChartHeightClass = computed(() => 'h-[280px] sm:h-[320px] lg:h-full')
 
   function getStreamMetadataMap() {
     return {
@@ -903,52 +709,6 @@
 
   function getStreamMetadata(key: string) {
     return getStreamMetadataMap()[key] || { label: key, color: '#9ca3af', unit: '' }
-  }
-
-  function toggleStreamSelection(streamValue: string) {
-    const existingIndex = selectedStreamObjects.value.findIndex(
-      (stream) => stream.value === streamValue
-    )
-    if (existingIndex >= 0) {
-      selectedStreamObjects.value = selectedStreamObjects.value.filter(
-        (stream) => stream.value !== streamValue
-      )
-      return
-    }
-
-    const option = availableStreamOptions.value.find((item) => item.value === streamValue)
-    if (!option) return
-
-    selectedStreamObjects.value = [...selectedStreamObjects.value, option]
-  }
-
-  function toggleMetricCollapse(streamValue: string) {
-    collapsedMetricKeys.value = collapsedMetricKeys.value.includes(streamValue)
-      ? collapsedMetricKeys.value.filter((key) => key !== streamValue)
-      : [...collapsedMetricKeys.value, streamValue]
-  }
-
-  function isMetricCollapsed(streamValue: string) {
-    return collapsedMetricKeys.value.includes(streamValue)
-  }
-
-  function getHoveredMetricValue(streamValue: string) {
-    if (hoverIndex.value === null || hoverIndex.value === undefined) return ''
-
-    const metricValue = workout.value?.streams?.[streamValue]?.[hoverIndex.value]
-    if (metricValue === null || metricValue === undefined) return ''
-
-    const metadata = getStreamMetadata(streamValue)
-    if (streamValue === 'velocity') {
-      return formatPace(metricValue)
-    }
-
-    const roundedValue =
-      typeof metricValue === 'number' && Number.isFinite(metricValue)
-        ? Math.round(metricValue * 10) / 10
-        : metricValue
-
-    return `${roundedValue}${metadata.unit || ''}`
   }
 
   const availableStreamOptions = computed(() => {
