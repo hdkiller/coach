@@ -133,7 +133,8 @@ export default defineEventHandler(async (event) => {
           externalUserId: userid.toString(),
           expiresAt,
           syncStatus: 'SUCCESS',
-          lastSyncAt: new Date()
+          lastSyncAt: new Date(),
+          ingestWorkouts: true
         }
       })
     }

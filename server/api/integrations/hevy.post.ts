@@ -104,7 +104,8 @@ export default defineEventHandler(async (event) => {
           accessToken: apiKey,
           syncStatus: 'SUCCESS',
           lastSyncAt: new Date(),
-          initialSyncCompleted: false
+          initialSyncCompleted: false,
+          ingestWorkouts: true
         }
       })
     }

@@ -149,7 +149,8 @@ export default defineEventHandler(async (event) => {
           externalUserId: String(externalUserId),
           expiresAt,
           syncStatus: 'SUCCESS',
-          lastSyncAt: new Date()
+          lastSyncAt: new Date(),
+          ingestWorkouts: true
         }
       })
     }

@@ -72,14 +72,16 @@ export default defineEventHandler(async (event) => {
       refreshToken: tokenData.refresh_token,
       expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       externalUserId: userData.userId,
-      scope: tokenData.scope || null
+      scope: tokenData.scope || null,
+      ingestWorkouts: true
     },
     update: {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       externalUserId: userData.userId,
-      scope: tokenData.scope || null
+      scope: tokenData.scope || null,
+      ingestWorkouts: true
     }
   })
 

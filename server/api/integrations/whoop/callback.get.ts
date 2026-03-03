@@ -139,7 +139,8 @@ export default defineEventHandler(async (event) => {
           externalUserId: String(whoopUser.user_id),
           expiresAt,
           syncStatus: 'SUCCESS',
-          lastSyncAt: new Date()
+          lastSyncAt: new Date(),
+          ingestWorkouts: true
         }
       })
     }
