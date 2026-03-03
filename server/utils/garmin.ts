@@ -260,6 +260,28 @@ export async function fetchGarminActivityFile(
   return Buffer.from(arrayBuffer)
 }
 
+export async function fetchGarminActivityFileByCallbackUrl(
+  integration: Integration,
+  callbackUrl: string
+): Promise<Buffer> {
+  const validIntegration = await ensureValidToken(integration)
+
+  const response = await fetchWithRetry(callbackUrl, {
+    headers: {
+      Authorization: `Bearer ${validIntegration.accessToken}`
+    }
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}))
+    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    throw new Error(`Garmin File API error (${response.status}): ${errorMessage}`)
+  }
+
+  const arrayBuffer = await response.arrayBuffer()
+  return Buffer.from(arrayBuffer)
+}
+
 /**
  * Request historical data backfill from Garmin
  */

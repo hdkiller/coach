@@ -28,3 +28,22 @@ describe('GarminService.extractPullToken', () => {
     expect(GarminService.extractPullToken({}, { query: {}, headers: {} })).toBeNull()
   })
 })
+
+describe('GarminService.getActivityFileExternalIds', () => {
+  it('matches activity file records back to garmin workout external ids', () => {
+    expect(
+      GarminService.getActivityFileExternalIds({
+        activityId: 22047215050,
+        summaryId: '22047215050-file'
+      })
+    ).toEqual(['22047215050', '22047215050-file'])
+  })
+
+  it('handles sparse records', () => {
+    expect(GarminService.getActivityFileExternalIds({ summaryId: 'abc-file' })).toEqual([
+      'abc-file',
+      'abc'
+    ])
+    expect(GarminService.getActivityFileExternalIds({})).toEqual([])
+  })
+})

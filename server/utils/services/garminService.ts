@@ -2,7 +2,11 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../db'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { workoutRepository } from '../repositories/workoutRepository'
-import { fetchGarminActivityFile, requestGarminBackfill } from '../garmin'
+import {
+  fetchGarminActivityFile,
+  fetchGarminActivityFileByCallbackUrl,
+  requestGarminBackfill
+} from '../garmin'
 import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
@@ -54,6 +58,7 @@ export const GarminService = {
     const sleeps = payload.sleeps || []
     const hrv = payload.hrv || []
     const activities = payload.activities || payload.manuallyUpdatedActivities || []
+    const activityFiles = Array.isArray(payload?.activityFiles) ? payload.activityFiles : []
     const bodyComps = payload.bodyComposition || []
     const pulseOx = payload.pulseOx || []
     const respiration = payload.respiration || []
@@ -65,6 +70,7 @@ export const GarminService = {
       sleeps.length > 0 ||
       hrv.length > 0 ||
       activities.length > 0 ||
+      activityFiles.length > 0 ||
       bodyComps.length > 0 ||
       pulseOx.length > 0 ||
       respiration.length > 0 ||
@@ -98,6 +104,7 @@ export const GarminService = {
       sleeps[0]?.userId ||
       hrv[0]?.userId ||
       activities[0]?.userId ||
+      activityFiles[0]?.userId ||
       bodyComps[0]?.userId ||
       pulseOx[0]?.userId ||
       respiration[0]?.userId ||
@@ -125,6 +132,7 @@ export const GarminService = {
       if (hrv.length > 0) await this.processHRV(userId, hrv)
       if (activities.length > 0)
         await this.processActivities(userId, activities, integration, pullToken)
+      if (activityFiles.length > 0) await this.processActivityFiles(userId, activityFiles, integration)
 
       // Handle additional health types
       if (bodyComps.length > 0) await this.processBodyComp(userId, bodyComps)
@@ -132,7 +140,7 @@ export const GarminService = {
 
       return {
         handled: true,
-        message: `Processed: ${activities.length} activities, ${dailies.length} dailies, ${sleeps.length} sleeps, ${hrv.length} hrv`
+        message: `Processed: ${activities.length} activities, ${activityFiles.length} activity files, ${dailies.length} dailies, ${sleeps.length} sleeps, ${hrv.length} hrv`
       }
     } catch (error: any) {
       console.error('[GarminService] Error processing webhook:', error)
@@ -420,53 +428,12 @@ export const GarminService = {
         if (!existingStream || !existingFitFile) {
           try {
             const buffer = await fetchGarminActivityFile(integration, externalId, pullToken)
-            const hash = crypto.createHash('sha256').update(buffer).digest('hex')
-
-            // Persist raw FIT payload so we can re-process/backfill parsing later.
-            await prisma.fitFile.upsert({
-              where: { workoutId: upserted.record.id },
-              create: {
-                userId,
-                workoutId: upserted.record.id,
-                filename: `garmin_${externalId}.fit`,
-                fileData: buffer as any,
-                hash
-              },
-              update: {
-                filename: `garmin_${externalId}.fit`,
-                fileData: buffer as any,
-                hash
-              }
-            })
-
-            const fitData = await parseFitFile(buffer)
-            const streams = extractFitStreams(fitData.records)
-            const extrasMeta = extractFitExtrasMeta(fitData)
-            const fitDeviceName = inferDeviceNameFromFitData(fitData)
-
-            if (!upserted.record.deviceName && fitDeviceName) {
-              await prisma.workout.update({
-                where: { id: upserted.record.id },
-                data: { deviceName: fitDeviceName }
-              })
-            }
-
-            if (!existingStream && streams) {
-              await prisma.workoutStream.upsert({
-                where: { workoutId: upserted.record.id },
-                create: {
-                  workoutId: upserted.record.id,
-                  ...streams,
-                  extrasMeta
-                },
-                update: { ...streams, extrasMeta }
-              })
-            } else if (existingStream) {
-              await prisma.workoutStream.update({
-                where: { workoutId: upserted.record.id },
-                data: { extrasMeta }
-              })
-            }
+            await this.ingestFitArtifactsForWorkout(
+              userId,
+              upserted.record.id,
+              externalId,
+              buffer
+            )
           } catch (e) {
             console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
           }
@@ -485,6 +452,121 @@ export const GarminService = {
         }
       )
     }
+  },
+
+  async processActivityFiles(userId: string, data: any[], integration: any) {
+    for (const record of data) {
+      const callbackUrl =
+        typeof record?.callbackURL === 'string' && record.callbackURL.trim()
+          ? record.callbackURL.trim()
+          : null
+
+      if (!callbackUrl) continue
+
+      const candidateExternalIds = this.getActivityFileExternalIds(record)
+      if (candidateExternalIds.length === 0) continue
+
+      const workout = await prisma.workout.findFirst({
+        where: {
+          userId,
+          source: 'garmin',
+          externalId: { in: candidateExternalIds }
+        },
+        orderBy: { date: 'desc' }
+      })
+
+      if (!workout) {
+        console.warn('[GarminService] No matching Garmin workout found for activity file', {
+          userId,
+          candidateExternalIds
+        })
+        continue
+      }
+
+      const existingFitFile = await prisma.fitFile.findUnique({
+        where: { workoutId: workout.id },
+        select: { id: true }
+      })
+      const existingStream = await prisma.workoutStream.findUnique({
+        where: { workoutId: workout.id },
+        select: { id: true }
+      })
+
+      if (existingFitFile && existingStream) continue
+
+      try {
+        const buffer = await fetchGarminActivityFileByCallbackUrl(integration, callbackUrl)
+        await this.ingestFitArtifactsForWorkout(userId, workout.id, workout.externalId, buffer)
+      } catch (e) {
+        console.error(
+          `[GarminService] Failed to ingest activity file for workout ${workout.id} (${workout.externalId})`,
+          e
+        )
+      }
+    }
+  },
+
+  getActivityFileExternalIds(record: any): string[] {
+    const ids = new Set<string>()
+
+    if (record?.activityId !== undefined && record?.activityId !== null) {
+      ids.add(String(record.activityId))
+    }
+
+    if (typeof record?.summaryId === 'string' && record.summaryId.trim()) {
+      const summaryId = record.summaryId.trim()
+      ids.add(summaryId)
+      if (summaryId.endsWith('-file')) ids.add(summaryId.slice(0, -5))
+    }
+
+    return [...ids]
+  },
+
+  async ingestFitArtifactsForWorkout(
+    userId: string,
+    workoutId: string,
+    externalId: string,
+    buffer: Buffer
+  ) {
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex')
+
+    await prisma.fitFile.upsert({
+      where: { workoutId },
+      create: {
+        userId,
+        workoutId,
+        filename: `garmin_${externalId}.fit`,
+        fileData: buffer as any,
+        hash
+      },
+      update: {
+        filename: `garmin_${externalId}.fit`,
+        fileData: buffer as any,
+        hash
+      }
+    })
+
+    const fitData = await parseFitFile(buffer)
+    const streams = extractFitStreams(fitData.records)
+    const extrasMeta = extractFitExtrasMeta(fitData)
+    const fitDeviceName = inferDeviceNameFromFitData(fitData)
+
+    if (fitDeviceName) {
+      await prisma.workout.update({
+        where: { id: workoutId },
+        data: { deviceName: fitDeviceName }
+      })
+    }
+
+    await prisma.workoutStream.upsert({
+      where: { workoutId },
+      create: {
+        workoutId,
+        ...streams,
+        extrasMeta
+      },
+      update: { ...streams, extrasMeta }
+    })
   },
 
   extractPullToken(
