@@ -1,4 +1,5 @@
 import { prisma } from '../db'
+import { bodyMetricResolver } from './bodyMetricResolver'
 import { metabolicService } from './metabolicService'
 import { generateStructuredAnalysis } from '../gemini'
 import { logger } from '@trigger.dev/sdk/v3'
@@ -156,7 +157,11 @@ export const mealRecommendationService = {
       })
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { weight: true }
+        select: { weight: true, weightSourceMode: true }
+      })
+      const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+        weight: user?.weight,
+        weightSourceMode: user?.weightSourceMode
       })
 
       const context = {
@@ -168,7 +173,7 @@ export const mealRecommendationService = {
           lifestyleExclusions: toStringArray(settings?.lifestyleExclusions)
         },
         athlete: {
-          weightKg: user?.weight || 75
+          weightKg: effectiveWeight.value || 75
         }
       }
 

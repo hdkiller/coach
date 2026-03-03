@@ -3,6 +3,7 @@ import { getServerSession } from '../../../../utils/session'
 import { getUserNutritionSettings } from '../../../../utils/nutrition/settings'
 import { calculateFuelingStrategy } from '../../../../utils/nutrition-domain'
 import { buildZonedDateTimeFromUtcDate, getUserTimezone } from '../../../../utils/date'
+import { bodyMetricResolver } from '../../../../utils/services/bodyMetricResolver'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const [user, timezone] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, ftp: true, nutritionTrackingEnabled: true }
+      select: { weight: true, weightSourceMode: true, ftp: true, nutritionTrackingEnabled: true }
     }),
     getUserTimezone(userId)
   ])
@@ -42,9 +43,13 @@ export default defineEventHandler(async (event) => {
     }
   }
   const settings = await getUserNutritionSettings(userId)
+  const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+    weight: user?.weight,
+    weightSourceMode: user?.weightSourceMode
+  })
 
   const profile = {
-    weight: user?.weight || 75,
+    weight: effectiveWeight.value || 75,
     ftp: user?.ftp || 250,
     currentCarbMax: settings.currentCarbMax,
     sodiumTarget: settings.sodiumTarget,

@@ -14,6 +14,7 @@ import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { calculateFuelingStrategy } from '../../utils/nutrition-domain'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../../utils/services/metabolicService'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 import { getCalendarNoteDisplayEndDate } from '../../utils/calendar-notes'
 
 defineRouteMeta({
@@ -97,6 +98,7 @@ export default defineEventHandler(async (event) => {
     select: {
       timezone: true,
       weight: true,
+      weightSourceMode: true,
       ftp: true,
       nutritionTrackingEnabled: true
     }
@@ -245,8 +247,12 @@ export default defineEventHandler(async (event) => {
   // PROACTIVE NUTRITION ESTIMATION (only when nutrition is enabled)
   if (nutritionEnabled) {
     const nutritionSettings = await getUserNutritionSettings(userId)
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+      weight: user?.weight,
+      weightSourceMode: user?.weightSourceMode
+    })
     const profile = {
-      weight: user?.weight || 75,
+      weight: effectiveWeight.value || 75,
       ftp: user?.ftp || 250,
       currentCarbMax: nutritionSettings.currentCarbMax,
       sodiumTarget: nutritionSettings.sodiumTarget,

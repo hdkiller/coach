@@ -4,6 +4,7 @@ import { prisma } from '../../utils/db'
 import { userRepository } from '../../utils/repositories/userRepository'
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../utils/date'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 defineRouteMeta({
   openAPI: {
@@ -73,6 +74,11 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!user) throw createError({ statusCode: 404, message: 'User not found' })
+  const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(user.id, {
+    weight: user.weight,
+    weightSourceMode: (user as any).weightSourceMode,
+    weightUnits: user.weightUnits
+  })
 
   const timezone = await getUserTimezone(user.id)
   const endDate = getUserLocalDate(timezone)
@@ -110,7 +116,7 @@ export default defineEventHandler(async (event) => {
 
   // Add current weight if recent history is missing or different
   // Only if current profile weight is set
-  if (user.weight) {
+  if (effectiveWeight.value) {
     const lastEntry = data[data.length - 1]
     const today = getUserLocalDate(timezone)
 
@@ -120,17 +126,17 @@ export default defineEventHandler(async (event) => {
       : false
 
     // If no history, or last entry is old/different (and not today), append current state
-    if (!lastEntry || (lastEntry.weight !== user.weight && !hasEntryForToday)) {
+    if (!lastEntry || (lastEntry.weight !== effectiveWeight.value && !hasEntryForToday)) {
       data.push({
         date: today,
-        weight: user.weight
+        weight: effectiveWeight.value
       })
     }
   }
 
   // Calculate stats
   const lastEntry = data.length > 0 ? data[data.length - 1] : null
-  const currentWeight = user.weight || (lastEntry ? lastEntry.weight : null)
+  const currentWeight = effectiveWeight.value || (lastEntry ? lastEntry.weight : null)
 
   const firstEntry = data.length > 0 ? data[0] : null
   const startingWeight = firstEntry ? firstEntry.weight : null

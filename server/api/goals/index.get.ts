@@ -1,4 +1,5 @@
 import { getServerSession } from '../../utils/session'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 defineRouteMeta({
   openAPI: {
@@ -69,6 +70,12 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(user.id, {
+      weight: user.weight,
+      weightSourceMode: (user as any).weightSourceMode,
+      weightUnits: user.weightUnits
+    })
+
     // Dynamic update for Body Composition and FTP goals to ensure fresh UI
     const goals = user.goals.map((goal) => {
       // Create a shallow copy to modify
@@ -77,10 +84,10 @@ export default defineEventHandler(async (event) => {
       // Update weight goals if profile weight is different from stored currentValue
       if (
         (g.metric === 'weight_kg' || g.type === 'BODY_COMPOSITION') &&
-        user.weight &&
-        g.currentValue !== user.weight
+        effectiveWeight.value &&
+        g.currentValue !== effectiveWeight.value
       ) {
-        g.currentValue = user.weight
+        g.currentValue = effectiveWeight.value
       }
 
       // Update FTP goals if profile FTP is different from stored currentValue

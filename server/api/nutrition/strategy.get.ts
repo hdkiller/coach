@@ -4,6 +4,7 @@ import { getUserTimezone, getUserLocalDate, formatDateUTC } from '../../utils/da
 import { prisma } from '../../utils/db'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { calculateFuelingStrategy } from '../../utils/nutrition-domain'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 import {
   getHydrationRingStatus,
   HYDRATION_DEBT_FLUSH_THRESHOLD_ML,
@@ -59,9 +60,9 @@ export default defineEventHandler(async (event) => {
     const settings = await getUserNutritionSettings(userId)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true, ftp: true }
+      select: { weight: true, weightSourceMode: true, ftp: true }
     })
-    const weight = user?.weight || 75
+    const weight = (await bodyMetricResolver.resolveEffectiveWeight(userId, user)).value || 75
 
     const fuelingMatrix = []
     for (let i = 0; i < 7; i++) {
