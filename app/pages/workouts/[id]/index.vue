@@ -538,7 +538,7 @@
                     <h3
                       class="text-lg font-black text-neutral-900 dark:text-white uppercase tracking-tight italic"
                     >
-                      Level Up Detected
+                      {{ detection.sportName }} Level Up Detected
                     </h3>
                   </div>
 
@@ -548,28 +548,44 @@
                       improved. Updating your threshold ensures your training zones and stress stats
                       remain accurate.
                     </p>
-                    <p class="text-xs text-neutral-500 dark:text-gray-500 font-medium">
-                      Peak 20-minute effort: {{ detection.peakValue }}{{ detection.unit }}
-                    </p>
+                    <div class="flex items-center gap-2">
+                      <p class="text-xs text-neutral-500 dark:text-gray-500 font-medium">
+                        Peak 20-minute effort: {{ detection.peakValue }}{{ detection.unit }}
+                      </p>
+                      <UBadge
+                        v-if="detection.isEstimated"
+                        color="neutral"
+                        variant="subtle"
+                        size="xs"
+                        class="uppercase text-[8px] font-bold"
+                        label="Estimated"
+                      />
+                    </div>
                   </div>
 
-                  <div class="flex flex-wrap items-center gap-4 pt-2">
-                    <UButton
-                      size="md"
-                      color="primary"
-                      variant="solid"
-                      class="font-black px-6 shadow-lg shadow-primary-500/20"
-                      label="UPDATE NOW"
-                      @click="openThresholdUpdate(detection)"
-                    />
-                    <UButton
-                      size="md"
-                      color="neutral"
-                      variant="ghost"
-                      class="text-neutral-500 hover:text-neutral-900 dark:text-gray-400 dark:hover:text-white font-bold"
-                      label="LATER"
-                      @click="dismissedThresholds.push(detection.type)"
-                    />
+                  <div class="space-y-3 pt-2">
+                    <div class="flex flex-wrap items-center gap-4">
+                      <UButton
+                        size="md"
+                        color="primary"
+                        variant="solid"
+                        class="font-black px-6 shadow-lg shadow-primary-500/20"
+                        label="UPDATE NOW"
+                        @click="openThresholdUpdate(detection)"
+                      />
+                      <UButton
+                        size="md"
+                        color="neutral"
+                        variant="ghost"
+                        class="text-neutral-500 hover:text-neutral-900 dark:text-gray-400 dark:hover:text-white font-bold"
+                        label="LATER"
+                        @click="dismissedThresholds.push(detection.type)"
+                      />
+                    </div>
+                    <p class="text-[9px] text-neutral-400 dark:text-gray-500 italic leading-tight">
+                      Updates sync to Coach Watts and Intervals.icu. <br />
+                      Don't forget to manually update Garmin Connect to align your watch zones.
+                    </p>
                   </div>
                 </div>
 
@@ -2032,7 +2048,7 @@
             </div>
             <div>
               <div class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase">
-                New Improvement Detected
+                New {{ activeDetection.sportName }} Improvement
               </div>
               <div class="text-lg font-black text-gray-900 dark:text-white">
                 {{ activeDetection.oldValue }}{{ activeDetection.unit }} →
@@ -2047,10 +2063,16 @@
           </p>
 
           <div
-            class="text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800 italic text-gray-500"
+            class="text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800 italic text-gray-500 space-y-2"
           >
-            Tip: Setting your threshold for past ranges allows Coach Watts to accurately analyze
-            your historical performance.
+            <p>
+              <UIcon name="i-heroicons-information-circle" class="mr-1 inline-block" />
+              This update will sync to Intervals.icu automatically.
+            </p>
+            <p>
+              <UIcon name="i-heroicons-exclamation-triangle" class="mr-1 inline-block" />
+              Don't forget to manually update Garmin Connect to align your watch zones.
+            </p>
           </div>
         </div>
 
@@ -2132,9 +2154,23 @@
         // the first one we encounter for each type is the newest.
         if (!uniqueThresholds[h.type]) {
           const isFtp = h.type === 'FTP'
+          const isLthr = h.type === 'LTHR'
+
+          // Extract sport name from notes if possible, else fallback to workout type
+          const sportMatch = h.notes?.match(/Detected for (.+) profile\./)
+          const sportName = sportMatch ? sportMatch[1] : workout.value.type || 'Default'
+
+          // Determine if measurement is likely estimated or direct
+          const isEstimated =
+            (isFtp && workout.value.type?.toLowerCase().includes('run')) ||
+            workout.value.deviceName?.toLowerCase().includes('garmin') ||
+            workout.value.deviceName?.toLowerCase().includes('apple watch')
+
           uniqueThresholds[h.type] = {
             type: h.type,
-            label: isFtp ? 'Functional Threshold Power' : 'Lactate Threshold Heart Rate',
+            sportName,
+            isEstimated,
+            label: isFtp ? `${sportName} FTP` : isLthr ? `${sportName} LTHR` : h.type,
             newValue: h.value,
             oldValue: h.oldValue || (isFtp ? userStore.currentFtp : userStore.currentLthr),
             peakValue: isFtp ? Math.round(h.value / 0.95) : h.value, // Peak 20m
@@ -2143,7 +2179,6 @@
           }
         }
       })
-
     return Object.values(uniqueThresholds)
   })
 

@@ -74,19 +74,24 @@ export const sportSettingsRepository = {
   async getForActivityType(userId: string, activityType: string, prismaOverride?: any) {
     const allSettings = await this.getByUserId(userId, prismaOverride)
 
-    // 1. Exact match in types array
-    const specific = allSettings.find(
+    // 1. Exact match in types array (Prioritize profiles with actual data)
+    const specificMatches = allSettings.filter(
       (s: any) => !s.isDefault && s.types && s.types.includes(activityType)
     )
-    if (specific) return specific
+    if (specificMatches.length > 0) {
+      // Prefer profile with FTP or LTHR data
+      const withData = specificMatches.find((s: any) => s.ftp !== null || s.lthr !== null)
+      return withData || specificMatches[0]
+    }
 
     // 2. Partial match (e.g. "Ride" matches "VirtualRide")?
-    // For now, strict match or fallback.
-    // Ideally we might want logic like: if type contains "Ride", look for profile with "Ride".
-    const partial = allSettings.find(
+    const partialMatches = allSettings.filter(
       (s: any) => !s.isDefault && s.types && s.types.some((t: string) => activityType.includes(t))
     )
-    if (partial) return partial
+    if (partialMatches.length > 0) {
+      const withData = partialMatches.find((s: any) => s.ftp !== null || s.lthr !== null)
+      return withData || partialMatches[0]
+    }
 
     // 3. Fallback to Default
     return allSettings.find((s: any) => s.isDefault)
