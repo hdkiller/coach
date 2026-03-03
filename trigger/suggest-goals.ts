@@ -15,6 +15,7 @@ import {
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
+import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
 // Goal suggestions schema for structured JSON output
 const goalSuggestionsSchema = {
@@ -187,6 +188,7 @@ export const suggestGoalsTask = task({
             ftp: true,
             weight: true,
             weightUnits: true,
+            weightSourceMode: true,
             height: true,
             heightUnits: true,
             maxHr: true,
@@ -333,6 +335,16 @@ Areas for Development: ${profile?.training_characteristics?.areas_for_developmen
 Planning Context: ${profile?.planning_context?.current_focus || 'N/A'}`
       }
 
+      const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+        weight: user?.weight,
+        weightSourceMode: user?.weightSourceMode,
+        weightUnits: user?.weightUnits
+      })
+      const effectiveWeightDisplay =
+        effectiveWeight.value && user.weightUnits === 'Pounds'
+          ? effectiveWeight.value / LBS_TO_KG
+          : effectiveWeight.value
+
       // Build comprehensive prompt
       const prompt = `You are a **${aiSettings.aiPersona}** expert endurance sports coach analyzing an athlete's data to suggest personalized, achievable goals.
 Adapt your suggestions and rationale to match your **${aiSettings.aiPersona}** persona.
@@ -341,14 +353,14 @@ Preferred Language: ${user.language || 'English'} (ALL analysis and text respons
 USER PROFILE:
 - FTP: ${user.ftp || 'Unknown'} watts
 - Weight: ${
-        user.weight
+        effectiveWeight.value
           ? user.weightUnits === 'Pounds'
-            ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
-            : user.weight.toFixed(1) + ' kg'
+            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
+            : effectiveWeight.value.toFixed(1) + ' kg'
           : 'Unknown'
       }
 - Height: ${user.height || 'Unknown'} ${user.heightUnits || 'cm'}
-- W/kg: ${user.ftp && user.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- W/kg: ${user.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user.maxHr || 'Unknown'} bpm
 
 ATHLETE PROFILE SCORES (1-10 scale):
@@ -399,7 +411,7 @@ Goal Types:
 
 Be specific with metrics and targets. For example:
 - Instead of "Improve FTP", suggest "Increase FTP from ${user.ftp || 250}W to ${user.ftp ? Math.round(user.ftp * 1.05) : 265}W over 12 weeks"
-- Instead of "Lose weight", suggest "Reduce weight from ${user.weight || 75}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} to ${user.weight ? (user.weight - 3).toFixed(1) : 72}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} over 8 weeks"
+- Instead of "Lose weight", suggest "Reduce weight from ${effectiveWeightDisplay || 75}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} to ${effectiveWeightDisplay ? (effectiveWeightDisplay - 3).toFixed(1) : 72}${user.weightUnits === 'Pounds' ? 'lbs' : 'kg'} over 8 weeks"
 
 Identify any potential goal conflicts and provide resolution strategies.`
 

@@ -14,6 +14,7 @@ import {
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
+import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
 // Goal review schema for structured JSON output
 const goalReviewSchema = {
@@ -254,6 +255,7 @@ export const reviewGoalsTask = task({
               ftp: true,
               weight: true,
               weightUnits: true,
+              weightSourceMode: true,
               height: true,
               heightUnits: true,
               maxHr: true,
@@ -373,6 +375,12 @@ export const reviewGoalsTask = task({
             recentWellness.length
           : null
 
+      const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+        weight: user?.weight,
+        weightSourceMode: user?.weightSourceMode,
+        weightUnits: user?.weightUnits
+      })
+
       // Format goals for review
       const goalsForReview = activeGoals
         .map((g) => {
@@ -385,8 +393,8 @@ export const reviewGoalsTask = task({
 
           // Use the latest user weight if this is a weight goal to ensure accuracy
           let effectiveCurrentValue = g.currentValue
-          if (g.metric === 'weight_kg' && user.weight) {
-            effectiveCurrentValue = user.weight
+          if (g.metric === 'weight_kg' && effectiveWeight.value) {
+            effectiveCurrentValue = effectiveWeight.value
           }
 
           let progressPct = null
@@ -436,14 +444,14 @@ Preferred Language: ${user.language || 'English'} (ALL analysis and text respons
 USER PROFILE:
 - FTP: ${user.ftp || 'Unknown'} watts
 - Weight: ${
-        user.weight
+        effectiveWeight.value
           ? user.weightUnits === 'Pounds'
-            ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
-            : user.weight.toFixed(1) + ' kg'
+            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
+            : effectiveWeight.value.toFixed(1) + ' kg'
           : 'Unknown'
       }
 - Height: ${user.height || 'Unknown'} ${user.heightUnits || 'cm'}
-- W/kg: ${user.ftp && user.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- W/kg: ${user.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user.maxHr || 'Unknown'} bpm
 
 ATHLETE PROFILE SCORES (1-10 scale):

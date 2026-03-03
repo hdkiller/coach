@@ -20,6 +20,7 @@ import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
 import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
+import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 import {
   getMoodLabel,
   getStressLabel,
@@ -163,6 +164,7 @@ export const recommendTodayActivityTask = task({
         ftp: true,
         weight: true,
         weightUnits: true,
+        weightSourceMode: true,
         height: true,
         heightUnits: true,
         maxHr: true,
@@ -179,6 +181,11 @@ export const recommendTodayActivityTask = task({
     const userTimezone = user?.timezone || 'UTC'
     const nutritionEnabled = user?.nutritionTrackingEnabled ?? true
     const userAge = calculateAge(user?.dob)
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+      weight: user?.weight,
+      weightSourceMode: user?.weightSourceMode,
+      weightUnits: user?.weightUnits
+    })
 
     // Fetch Email Preferences
     const emailPrefs = await prisma.emailPreference.findUnique({
@@ -498,14 +505,14 @@ ATHLETE BASIC INFO:
 - Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} watts
 - Weight: ${
-        user?.weight
+        effectiveWeight.value
           ? user.weightUnits === 'Pounds'
-            ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
-            : user.weight.toFixed(1) + ' kg'
+            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
+            : effectiveWeight.value.toFixed(1) + ' kg'
           : 'Unknown'
       }
 - Preferred Language: ${user?.language || 'English'}
-- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- W/kg: ${user?.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 Note: No structured athlete profile available yet. Generate one for better recommendations.
 `
