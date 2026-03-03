@@ -153,7 +153,6 @@ export default defineEventHandler(async (event) => {
   }
 
   // Define bucket boundaries based on user pattern
-  // Default fallback if pattern is weird: 10:00 (Breakfast ends), 14:00 (Lunch ends), 17:00 (Snack ends)
   const breakfastTime = timeToMinutes(
     pattern.find((p) => p.name.toLowerCase() === 'breakfast')?.time || '07:00'
   )
@@ -179,7 +178,10 @@ export default defineEventHandler(async (event) => {
 
   for (const item of items) {
     const itemDate = new Date(item.logged_at)
-    const itemMinutes = itemDate.getUTCHours() * 60 + itemDate.getUTCMinutes()
+    // Use formatUserTime to get HH and mm in user's timezone
+    const localTimeStr = formatUserTime(itemDate, timezone, 'H:m')
+    const [localH, localM] = localTimeStr.split(':').map(Number)
+    const itemMinutes = (localH || 0) * 60 + (localM || 0)
 
     // Enrich item with source and ID
     const enrichedItem = {

@@ -298,31 +298,14 @@ export default defineEventHandler(async (event) => {
       // 1. No record exists
       // 2. Record exists but has no fueling plan AND is not manually locked
       if (!existing || (!existing.fuelingPlan && !existing.isManualLock)) {
-        // Estimate fueling strategy for this day based on planned workouts
-        // We'll use the first workout for simplicity in this preview estimation
-        const primaryWorkout = dayWorkouts[0]
-        if (primaryWorkout) {
-          // Convert HH:mm string to a Date object relative to the workout date
-          let startTimeDate: Date | null = null
-          if (
-            primaryWorkout.startTime &&
-            typeof primaryWorkout.startTime === 'string' &&
-            primaryWorkout.startTime.includes(':')
-          ) {
-            startTimeDate = buildZonedDateTimeFromUtcDate(
-              primaryWorkout.date,
-              primaryWorkout.startTime,
-              timezone,
-              10,
-              0
-            )
-          }
-
-          const estimate = calculateFuelingStrategy(profile, {
-            ...primaryWorkout,
-            startTime: startTimeDate,
-            strategyOverride: primaryWorkout.fuelingStrategy || undefined
-          } as any)
+        // Estimate fueling strategy for this day based on ALL workouts
+        // We use the centralized metabolic service to ensure consistency with the dashboard
+        if (dayWorkouts.length > 0) {
+          const date = new Date(`${dateKey}T00:00:00Z`)
+          const planResult = await metabolicService.calculateFuelingPlanForDate(userId, date, {
+            persist: false
+          })
+          const estimate = planResult.plan as any
 
           nutritionByDate.set(dateKey, {
             calories: existing?.calories ?? 0,
