@@ -10,6 +10,7 @@ import {
 import { parseFitFile, extractFitStreams, extractFitExtrasMeta } from '../fit'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
+import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
 import { normalizeGarminActivityType } from '../activity-mapping'
 import { bodyMeasurementService } from './bodyMeasurementService'
 import crypto from 'crypto'
@@ -124,19 +125,26 @@ export const GarminService = {
     }
 
     const userId = integration.userId
+    const settings = (integration.settings as Record<string, any> | null) || {}
+    const wellnessEnabled = shouldIngestWellness(settings)
+    const activitiesEnabled = shouldIngestActivities('garmin', integration.ingestWorkouts, settings)
 
     // Process all metrics immediately in the worker
     try {
-      if (dailies.length > 0) await this.processWellness(userId, dailies)
-      if (sleeps.length > 0) await this.processSleep(userId, sleeps)
-      if (hrv.length > 0) await this.processHRV(userId, hrv)
-      if (activities.length > 0)
+      if (wellnessEnabled && dailies.length > 0) await this.processWellness(userId, dailies)
+      if (wellnessEnabled && sleeps.length > 0) await this.processSleep(userId, sleeps)
+      if (wellnessEnabled && hrv.length > 0) await this.processHRV(userId, hrv)
+      if (activitiesEnabled && activities.length > 0)
         await this.processActivities(userId, activities, integration, pullToken)
-      if (activityFiles.length > 0) await this.processActivityFiles(userId, activityFiles, integration)
+      if (activitiesEnabled && activityFiles.length > 0) {
+        await this.processActivityFiles(userId, activityFiles, integration)
+      }
 
       // Handle additional health types
-      if (bodyComps.length > 0) await this.processBodyComp(userId, bodyComps)
-      if (userMetrics.length > 0) await this.processUserMetrics(userId, userMetrics)
+      if (wellnessEnabled && bodyComps.length > 0) await this.processBodyComp(userId, bodyComps)
+      if (wellnessEnabled && userMetrics.length > 0) {
+        await this.processUserMetrics(userId, userMetrics)
+      }
 
       return {
         handled: true,
@@ -428,12 +436,7 @@ export const GarminService = {
         if (!existingStream || !existingFitFile) {
           try {
             const buffer = await fetchGarminActivityFile(integration, externalId, pullToken)
-            await this.ingestFitArtifactsForWorkout(
-              userId,
-              upserted.record.id,
-              externalId,
-              buffer
-            )
+            await this.ingestFitArtifactsForWorkout(userId, upserted.record.id, externalId, buffer)
           } catch (e) {
             console.error(`[GarminService] Failed to ingest streams for ${externalId}`, e)
           }

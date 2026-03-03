@@ -12,6 +12,7 @@ import {
   normalizeOuraWellness,
   normalizeOuraWorkout
 } from '../oura'
+import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { normalizeTSS } from '../normalize-tss'
@@ -38,12 +39,14 @@ export const OuraService = {
       throw new Error(`Oura integration not found for user ${userId}`)
     }
 
+    const settings = (integration.settings as Record<string, any> | null) || {}
+    const wellnessEnabled = shouldIngestWellness(settings)
+
     // We fetch a single day. Oura start/end are inclusive.
     // Ensure date is valid.
     const start = new Date(date)
     const end = new Date(date) // Same day
 
-    // 1. Fetch Wellness (Sleep, Activity, Readiness + New Metrics)
     const [
       sleepData,
       sleepPeriodsData,
@@ -53,16 +56,18 @@ export const OuraService = {
       stressData,
       vo2maxData,
       personalInfo
-    ] = await Promise.all([
-      fetchOuraDailySleep(integration, start, end),
-      fetchOuraSleepPeriods(integration, start, end),
-      fetchOuraDailyActivity(integration, start, end),
-      fetchOuraDailyReadiness(integration, start, end),
-      fetchOuraDailySpO2(integration, start, end),
-      fetchOuraDailyStress(integration, start, end),
-      fetchOuraVO2Max(integration, start, end),
-      fetchOuraPersonalInfo(integration)
-    ])
+    ] = wellnessEnabled
+      ? await Promise.all([
+          fetchOuraDailySleep(integration, start, end),
+          fetchOuraSleepPeriods(integration, start, end),
+          fetchOuraDailyActivity(integration, start, end),
+          fetchOuraDailyReadiness(integration, start, end),
+          fetchOuraDailySpO2(integration, start, end),
+          fetchOuraDailyStress(integration, start, end),
+          fetchOuraVO2Max(integration, start, end),
+          fetchOuraPersonalInfo(integration)
+        ])
+      : [[], [], [], [], [], [], [], null]
 
     // Assume the first record matches the day (since we requested 1 day range)
     const sleep = sleepData[0]
@@ -73,7 +78,10 @@ export const OuraService = {
     const stress = stressData[0]
     const vo2max = vo2maxData[0]
 
-    if (sleep || activity || readiness || sleepPeriods.length > 0 || spo2 || stress || vo2max) {
+    if (
+      wellnessEnabled &&
+      (sleep || activity || readiness || sleepPeriods.length > 0 || spo2 || stress || vo2max)
+    ) {
       // Fetch user preference for unit conversion
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -126,7 +134,7 @@ export const OuraService = {
     }
 
     // 2. Fetch Workouts for that day
-    if (integration.ingestWorkouts) {
+    if (shouldIngestActivities('oura', integration.ingestWorkouts, settings)) {
       const workouts = await fetchOuraWorkouts(integration, start, end)
       for (const workout of workouts) {
         const normalized = normalizeOuraWorkout(workout, userId)
@@ -179,8 +187,19 @@ export const OuraService = {
     await OuraService.syncDay(userId, yesterday)
     await OuraService.syncDay(userId, today)
 
-    // Trigger auto-analysis/recommendation if needed
-    await triggerReadinessCheckIfNeeded(userId)
+    const integration = await prisma.integration.findUnique({
+      where: {
+        userId_provider: {
+          userId,
+          provider: 'oura'
+        }
+      },
+      select: { settings: true }
+    })
+
+    if (shouldIngestWellness((integration?.settings as Record<string, any> | null) || {})) {
+      await triggerReadinessCheckIfNeeded(userId)
+    }
 
     return { handled: true, message: 'Synced last 3 days' }
   }

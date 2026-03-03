@@ -37,6 +37,7 @@ import { triggerReadinessCheckIfNeeded } from './wellness-analysis'
 import { deduplicationService } from './deduplicationService'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
+import { shouldIngestWellness } from '../integration-settings'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
 import { bodyMeasurementService } from './bodyMeasurementService'
@@ -1189,11 +1190,30 @@ export const IntervalsService = {
    * Process a single webhook event.
    */
   async processWebhookEvent(userId: string, type: string, intervalEvent: any) {
+    const integration = await prisma.integration.findUnique({
+      where: {
+        userId_provider: {
+          userId,
+          provider: 'intervals'
+        }
+      },
+      select: {
+        ingestWorkouts: true,
+        settings: true
+      }
+    })
+    const intervalsSettings = (integration?.settings as Record<string, any> | null) || {}
+    const wellnessEnabled = shouldIngestWellness(intervalsSettings)
+
     switch (type) {
       case 'ACTIVITY_UPLOADED':
       case 'ACTIVITY_ANALYZED':
       case 'ACTIVITY_ACHIEVEMENTS':
       case 'ACTIVITY_UPDATED': {
+        if (integration && !integration.ingestWorkouts) {
+          break
+        }
+
         const activity = intervalEvent.activity
         const activityId = activity?.id ? String(activity.id) : null
         const activityDate = parseIntervalsActivityDate(activity)
@@ -1445,12 +1465,16 @@ export const IntervalsService = {
 
       case 'WELLNESS_UPDATED':
         // Delta-only worker mode: do not run range pulls on webhook events.
-        await triggerReadinessCheckIfNeeded(userId)
+        if (wellnessEnabled) {
+          await triggerReadinessCheckIfNeeded(userId)
+        }
         break
 
       case 'FITNESS_UPDATED': {
         // Delta-only worker mode: do not run range pulls on webhook events.
-        await triggerReadinessCheckIfNeeded(userId)
+        if (wellnessEnabled) {
+          await triggerReadinessCheckIfNeeded(userId)
+        }
         break
       }
 

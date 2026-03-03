@@ -10,6 +10,7 @@ import {
   normalizePolarNightlyRecharge,
   ensureValidToken
 } from '../polar'
+import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 
@@ -31,18 +32,24 @@ export const polarService = {
       sleeps: 0,
       recharges: 0
     }
+    const settings = (integration.settings as Record<string, any> | null) || {}
+    const wellnessEnabled = shouldIngestWellness(settings)
 
     try {
       // 1. Sync Exercises
-      if (integration.ingestWorkouts) {
+      if (shouldIngestActivities('polar', integration.ingestWorkouts, settings)) {
         results.exercises = await this.syncExercises(validIntegration)
       }
 
       // 2. Sync Sleep
-      results.sleeps = await this.syncSleep(validIntegration)
+      if (wellnessEnabled) {
+        results.sleeps = await this.syncSleep(validIntegration)
+      }
 
       // 3. Sync Nightly Recharge
-      results.recharges = await this.syncNightlyRecharge(validIntegration)
+      if (wellnessEnabled) {
+        results.recharges = await this.syncNightlyRecharge(validIntegration)
+      }
 
       // Update sync status
       await prisma.integration.update({

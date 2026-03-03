@@ -6,6 +6,7 @@ import {
   normalizeWhoopWorkout,
   normalizeWhoopRecovery
 } from '../whoop'
+import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
 import { workoutRepository } from '../repositories/workoutRepository'
 import { wellnessRepository } from '../repositories/wellnessRepository'
 import { getUserTimezone, getStartOfDayUTC } from '../date'
@@ -27,6 +28,17 @@ export const WhoopService = {
 
     if (!integration) {
       throw new Error(`Whoop integration not found for user ${userId}`)
+    }
+
+    if (
+      !shouldIngestActivities(
+        'whoop',
+        integration.ingestWorkouts,
+        (integration.settings as Record<string, any> | null) || {}
+      )
+    ) {
+      console.log(`[WhoopService] Workout ingestion disabled for user ${userId}`)
+      return
     }
 
     const workout = await fetchWhoopWorkout(integration, workoutId)
@@ -82,6 +94,11 @@ export const WhoopService = {
 
     if (!integration) {
       throw new Error(`Whoop integration not found for user ${userId}`)
+    }
+
+    if (!shouldIngestWellness((integration.settings as Record<string, any> | null) || {})) {
+      console.log(`[WhoopService] Wellness ingestion disabled for user ${userId}`)
+      return
     }
 
     // 1. Fetch Recovery (using Sleep ID to find it)
@@ -145,8 +162,21 @@ export const WhoopService = {
         // For recovery.updated, ID is Sleep UUID (V2).
         // For sleep.updated, ID is Sleep UUID.
         await WhoopService.syncRecovery(userId, resourceId)
-        // Trigger auto-analysis/recommendation if needed
-        await triggerReadinessCheckIfNeeded(userId)
+        {
+          const integration = await prisma.integration.findUnique({
+            where: {
+              userId_provider: {
+                userId,
+                provider: 'whoop'
+              }
+            },
+            select: { settings: true }
+          })
+
+          if (shouldIngestWellness((integration?.settings as Record<string, any> | null) || {})) {
+            await triggerReadinessCheckIfNeeded(userId)
+          }
+        }
         break
 
       case 'recovery.deleted':
