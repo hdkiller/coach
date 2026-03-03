@@ -24,6 +24,7 @@ import { stravaCommand } from './integrations/strava'
 import emailCommand from './email'
 import bugsCommand from './bugs'
 import supportCommand from './support'
+import importCommand from './import'
 
 const program = new Command()
 
@@ -51,6 +52,7 @@ program.addCommand(stravaCommand)
 program.addCommand(emailCommand)
 program.addCommand(bugsCommand)
 program.addCommand(supportCommand)
+program.addCommand(importCommand)
 
 program.parse(process.argv)
 

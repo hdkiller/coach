@@ -66,6 +66,16 @@ function normalizeIntensityValue(activity: any): number | null {
   return Math.round(val * 10000) / 10000
 }
 
+function calculateChunkCount(startDate: Date, endDate: Date, chunkDays: number): number {
+  const msPerDay = 24 * 60 * 60 * 1000
+  const diffDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / msPerDay) + 1)
+  return Math.max(1, Math.ceil(diffDays / chunkDays))
+}
+
+type IntervalsSyncOptions = {
+  skipExisting?: boolean
+}
+
 export const IntervalsService = {
   /**
    * Get athlete profile from Intervals.icu
@@ -128,7 +138,12 @@ export const IntervalsService = {
    * Sync activities for a user within a given date range.
    * Chunks the range into 14-day batches to reduce long-running ingestion work.
    */
-  async syncActivities(userId: string, startDate: Date, endDate: Date) {
+  async syncActivities(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    options: IntervalsSyncOptions = {}
+  ) {
     const integration = await prisma.integration.findUnique({
       where: {
         userId_provider: {
@@ -157,26 +172,33 @@ export const IntervalsService = {
 
     let totalUpsertedCount = 0
     let currentEnd = new Date(historicalEnd)
+    const totalChunks = calculateChunkCount(startDate, historicalEnd, 14)
+    let chunkIndex = 0
 
     // Process in 14-day chunks, going backwards from newest to oldest
     while (currentEnd >= startDate) {
       await heartbeats.yield()
+      chunkIndex++
 
       const currentStart = new Date(currentEnd)
       currentStart.setDate(currentStart.getDate() - 14)
       const effectiveStart = currentStart < startDate ? startDate : currentStart
 
       console.log(
-        `[Intervals Sync] Fetching activity chunk: ${effectiveStart.toISOString().split('T')[0]} to ${currentEnd.toISOString().split('T')[0]}`
+        `[Intervals Sync] Activity chunk ${chunkIndex}/${totalChunks}: ${effectiveStart.toISOString().split('T')[0]} to ${currentEnd.toISOString().split('T')[0]}`
       )
 
       const chunkUpserted = await IntervalsService._syncActivitiesBatch(
         userId,
         integration,
         effectiveStart,
-        currentEnd
+        currentEnd,
+        options
       )
       totalUpsertedCount += chunkUpserted
+      console.log(
+        `[Intervals Sync] Activity chunk ${chunkIndex}/${totalChunks} complete. New workouts: ${chunkUpserted}. Total new workouts: ${totalUpsertedCount}`
+      )
 
       // Move to the day before currentStart
       currentEnd = new Date(effectiveStart)
@@ -192,7 +214,13 @@ export const IntervalsService = {
   /**
    * Internal helper to sync a batch of activities.
    */
-  async _syncActivitiesBatch(userId: string, integration: any, startDate: Date, endDate: Date) {
+  async _syncActivitiesBatch(
+    userId: string,
+    integration: any,
+    startDate: Date,
+    endDate: Date,
+    options: IntervalsSyncOptions = {}
+  ) {
     const allActivities = await fetchIntervalsWorkouts(integration, startDate, endDate)
 
     // Filter out incomplete Strava activities and Notes/Holidays
@@ -210,10 +238,39 @@ export const IntervalsService = {
       return true
     })
 
-    let upsertedCount = 0
+    let pendingActivities = activities
 
-    for (const summaryActivity of activities) {
+    if (options.skipExisting && activities.length > 0) {
+      const existingWorkouts = await prisma.workout.findMany({
+        where: {
+          userId,
+          source: 'intervals',
+          externalId: { in: activities.map((activity) => String(activity.id)) }
+        },
+        select: { externalId: true }
+      })
+
+      const existingIds = new Set(existingWorkouts.map((workout) => workout.externalId))
+      pendingActivities = activities.filter((activity) => !existingIds.has(String(activity.id)))
+
+      console.log(
+        `[Intervals Sync] Skip-existing filtered ${existingWorkouts.length} workouts in ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`
+      )
+    }
+
+    console.log(
+      `[Intervals Sync] Retrieved ${allActivities.length} raw activities, ${pendingActivities.length} eligible after filtering for ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`
+    )
+
+    let upsertedCount = 0
+    let activityIndex = 0
+
+    for (const summaryActivity of pendingActivities) {
       await heartbeats.yield()
+      activityIndex++
+      console.log(
+        `[Intervals Sync] Processing activity ${activityIndex}/${pendingActivities.length}: ${summaryActivity.id} | ${summaryActivity.name || 'Unnamed Activity'}`
+      )
 
       // Fetch detailed activity data to get icu_intervals and other granular fields
       let activity = summaryActivity
@@ -552,7 +609,12 @@ export const IntervalsService = {
    * Sync wellness data for a user within a given date range.
    * Chunks the range into yearly batches to handle large histories safely.
    */
-  async syncWellness(userId: string, startDate: Date, endDate: Date) {
+  async syncWellness(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    options: IntervalsSyncOptions = {}
+  ) {
     const integration = await prisma.integration.findUnique({
       where: {
         userId_provider: {
@@ -594,24 +656,54 @@ export const IntervalsService = {
 
     let totalUpsertedCount = 0
     let currentEnd = new Date(historicalEnd)
+    const totalChunks = calculateChunkCount(startDate, historicalEnd, 365)
+    let chunkIndex = 0
 
     // Process in 365-day chunks, going backwards from newest to oldest
     while (currentEnd >= startDate) {
       await heartbeats.yield()
+      chunkIndex++
 
       const currentStart = new Date(currentEnd)
       currentStart.setDate(currentStart.getDate() - 365)
       const effectiveStart = currentStart < startDate ? startDate : currentStart
 
       console.log(
-        `[Intervals Sync] Fetching wellness chunk: ${effectiveStart.toISOString().split('T')[0]} to ${currentEnd.toISOString().split('T')[0]}`
+        `[Intervals Sync] Wellness chunk ${chunkIndex}/${totalChunks}: ${effectiveStart.toISOString().split('T')[0]} to ${currentEnd.toISOString().split('T')[0]}`
       )
 
       const wellnessData = await fetchIntervalsWellness(integration, effectiveStart, currentEnd)
 
       let chunkUpsertedCount = 0
       // Sort wellness data by date ascending to ensure baseline updates correctly during backfills
-      const sortedWellness = [...wellnessData].sort((a, b) => a.id.localeCompare(b.id))
+      let sortedWellness = [...wellnessData].sort((a, b) => a.id.localeCompare(b.id))
+
+      if (options.skipExisting && sortedWellness.length > 0) {
+        const chunkDates = sortedWellness.map((wellness) => {
+          const rawDate = new Date(wellness.id)
+          return new Date(
+            Date.UTC(rawDate.getUTCFullYear(), rawDate.getUTCMonth(), rawDate.getUTCDate())
+          )
+        })
+
+        const existingWellness = await prisma.wellness.findMany({
+          where: {
+            userId,
+            date: { in: chunkDates }
+          },
+          select: { date: true }
+        })
+
+        const existingKeys = new Set(
+          existingWellness.map((entry) => entry.date.toISOString().split('T')[0])
+        )
+
+        const beforeCount = sortedWellness.length
+        sortedWellness = sortedWellness.filter((wellness) => !existingKeys.has(wellness.id))
+        console.log(
+          `[Intervals Sync] Skip-existing filtered ${beforeCount - sortedWellness.length} wellness entries in ${effectiveStart.toISOString().split('T')[0]} to ${currentEnd.toISOString().split('T')[0]}`
+        )
+      }
 
       for (const wellness of sortedWellness) {
         await heartbeats.yield()
@@ -667,6 +759,9 @@ export const IntervalsService = {
       }
 
       totalUpsertedCount += chunkUpsertedCount
+      console.log(
+        `[Intervals Sync] Wellness chunk ${chunkIndex}/${totalChunks} complete. New entries: ${chunkUpsertedCount}. Total new entries: ${totalUpsertedCount}`
+      )
 
       // Move to the day before currentStart
       currentEnd = new Date(effectiveStart)
@@ -682,7 +777,12 @@ export const IntervalsService = {
   /**
    * Sync planned workouts and events for a user within a given date range.
    */
-  async syncPlannedWorkouts(userId: string, startDate: Date, endDate: Date) {
+  async syncPlannedWorkouts(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    options: IntervalsSyncOptions = {}
+  ) {
     const integration = await prisma.integration.findUnique({
       where: {
         userId_provider: {
@@ -706,7 +806,51 @@ export const IntervalsService = {
       return { plannedWorkouts: 0, events: 0, notes: 0 }
     }
 
-    const plannedWorkouts = await fetchIntervalsPlannedWorkouts(integration, startDate, endDate)
+    let plannedWorkouts = await fetchIntervalsPlannedWorkouts(integration, startDate, endDate)
+    console.log(
+      `[Intervals Sync] Retrieved ${plannedWorkouts.length} planned items for ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`
+    )
+
+    if (options.skipExisting && plannedWorkouts.length > 0) {
+      const externalIds = plannedWorkouts.map((planned) => String(planned.id))
+      const [existingPlanned, existingNotes, existingEvents] = await Promise.all([
+        prisma.plannedWorkout.findMany({
+          where: {
+            userId,
+            externalId: { in: externalIds }
+          },
+          select: { externalId: true }
+        }),
+        prisma.calendarNote.findMany({
+          where: {
+            userId,
+            source: 'intervals',
+            externalId: { in: externalIds }
+          },
+          select: { externalId: true }
+        }),
+        prisma.event.findMany({
+          where: {
+            userId,
+            source: 'intervals',
+            externalId: { in: externalIds }
+          },
+          select: { externalId: true }
+        })
+      ])
+
+      const existingIds = new Set([
+        ...existingPlanned.map((item) => item.externalId),
+        ...existingNotes.map((item) => item.externalId),
+        ...existingEvents.map((item) => item.externalId)
+      ])
+
+      const beforeCount = plannedWorkouts.length
+      plannedWorkouts = plannedWorkouts.filter((planned) => !existingIds.has(String(planned.id)))
+      console.log(
+        `[Intervals Sync] Skip-existing filtered ${beforeCount - plannedWorkouts.length} planned items in ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`
+      )
+    }
 
     // SMART SYNC RECONCILIATION
     // Remove local items that no longer exist in Intervals (orphans)
@@ -799,9 +943,14 @@ export const IntervalsService = {
     let plannedUpserted = 0
     let eventsUpserted = 0
     let notesUpserted = 0
+    let plannedIndex = 0
 
     for (const planned of plannedWorkouts) {
       await heartbeats.yield()
+      plannedIndex++
+      console.log(
+        `[Intervals Sync] Processing planned item ${plannedIndex}/${plannedWorkouts.length}: ${planned.id} | ${planned.name || 'Unnamed Item'}`
+      )
 
       // Skip "Weekly" notes which are internal system notes
       if (planned.name === 'Weekly') {
