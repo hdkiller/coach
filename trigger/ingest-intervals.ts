@@ -5,6 +5,7 @@ import { prisma } from '../server/utils/db'
 import { IntervalsService } from '../server/utils/services/intervalsService'
 import { metabolicService } from '../server/utils/services/metabolicService'
 import { getUserTimezone, getEndOfDayUTC, getUserLocalDate } from '../server/utils/date'
+import { shouldIngestWellness } from '../server/utils/integration-settings'
 import { isNutritionTrackingEnabled } from '../server/utils/nutrition/feature'
 import type { IngestionResult } from './types'
 
@@ -95,10 +96,14 @@ export const ingestIntervalsTask = task({
 
       await heartbeats.yield()
 
-      // Fetch wellness data
-      logger.log('Syncing wellness data...')
-      const wellnessUpserted = await IntervalsService.syncWellness(userId, start, historicalEnd)
-      logger.log(`Upserted ${wellnessUpserted} wellness entries`)
+      let wellnessUpserted = 0
+      if (shouldIngestWellness(settings)) {
+        logger.log('Syncing wellness data...')
+        wellnessUpserted = await IntervalsService.syncWellness(userId, start, historicalEnd)
+        logger.log(`Upserted ${wellnessUpserted} wellness entries`)
+      } else {
+        logger.log('Wellness ingestion disabled for Intervals.icu, skipping')
+      }
 
       // Update sync status
       await prisma.integration.update({

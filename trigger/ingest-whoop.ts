@@ -10,6 +10,7 @@ import {
   extractWhoopHrZones
 } from '../server/utils/whoop'
 import { prisma } from '../server/utils/db'
+import { shouldIngestActivities, shouldIngestWellness } from '../server/utils/integration-settings'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { normalizeTSS } from '../server/utils/normalize-tss'
@@ -57,15 +58,20 @@ export const ingestWhoopTask = task({
     })
 
     try {
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      const wellnessEnabled = shouldIngestWellness(settings)
+
       // Fetch recovery data
       // 1. Fetch Recovery Data (Wellness)
-      const recoveryData = await fetchWhoopRecovery(
-        integration,
-        new Date(startDate),
-        new Date(endDate)
-      )
+      const recoveryData = wellnessEnabled
+        ? await fetchWhoopRecovery(integration, new Date(startDate), new Date(endDate))
+        : []
 
-      logger.log(`[Whoop Ingest] Fetched ${recoveryData.length} recovery records`)
+      if (wellnessEnabled) {
+        logger.log(`[Whoop Ingest] Fetched ${recoveryData.length} recovery records`)
+      } else {
+        logger.log('[Whoop Ingest] Wellness Disabled - Skipping')
+      }
 
       // Re-fetch integration to get any updated tokens from the recovery fetch
       // We need to use the LATEST token for subsequent requests
@@ -81,29 +87,29 @@ export const ingestWhoopTask = task({
       let upsertedCount = 0
       let skippedCount = 0
 
-      for (const recovery of recoveryData) {
-        // Fetch corresponding sleep data if available
-        let sleepData = null
-        if (recovery.sleep_id) {
-          sleepData = await fetchWhoopSleep(updatedIntegration, recovery.sleep_id)
+      if (wellnessEnabled) {
+        for (const recovery of recoveryData) {
+          let sleepData = null
+          if (recovery.sleep_id) {
+            sleepData = await fetchWhoopSleep(updatedIntegration, recovery.sleep_id)
+          }
+
+          const wellness = normalizeWhoopRecovery(recovery, userId, sleepData)
+
+          if (!wellness) {
+            skippedCount++
+            continue
+          }
+
+          await wellnessRepository.upsert(
+            userId,
+            wellness.date,
+            wellness as any,
+            wellness as any,
+            'whoop'
+          )
+          upsertedCount++
         }
-
-        const wellness = normalizeWhoopRecovery(recovery, userId, sleepData)
-
-        // Skip if recovery wasn't scored yet
-        if (!wellness) {
-          skippedCount++
-          continue
-        }
-
-        await wellnessRepository.upsert(
-          userId,
-          wellness.date,
-          wellness as any,
-          wellness as any,
-          'whoop'
-        )
-        upsertedCount++
       }
 
       logger.log(
@@ -112,7 +118,11 @@ export const ingestWhoopTask = task({
 
       // 2. Fetch Workout Data
       // Workout ingestion from Whoop can be toggled via settings
-      const WHOOP_WORKOUTS_ENABLED = updatedIntegration.ingestWorkouts
+      const WHOOP_WORKOUTS_ENABLED = shouldIngestActivities(
+        'whoop',
+        updatedIntegration.ingestWorkouts,
+        settings
+      )
 
       let workoutUpsertCount = 0
 

@@ -14,6 +14,7 @@ import {
   WITHINGS_MEASURE_TYPES
 } from '../server/utils/withings'
 import { prisma } from '../server/utils/db'
+import { shouldIngestActivities, shouldIngestWellness } from '../server/utils/integration-settings'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { getUserTimezone, getStartOfDayUTC } from '../server/utils/date'
@@ -68,6 +69,14 @@ export const ingestWithingsTask = task({
     const timezone = await getUserTimezone(userId)
 
     try {
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      const wellnessEnabled = shouldIngestWellness(settings)
+      const workoutsEnabled = shouldIngestActivities(
+        'withings',
+        integration.ingestWorkouts,
+        settings
+      )
+
       // 1. Fetch Measure Groups (Wellness)
       // Include Weight (1), Fat Ratio (6), Muscle Mass (76), Hydration (77), Bone Mass (88)
       const measureTypes = [
@@ -78,14 +87,20 @@ export const ingestWithingsTask = task({
         WITHINGS_MEASURE_TYPES.BONE_MASS
       ]
 
-      const measureGroups = await fetchWithingsMeasures(
-        integration,
-        new Date(startDate),
-        new Date(endDate),
-        measureTypes
-      )
+      const measureGroups = wellnessEnabled
+        ? await fetchWithingsMeasures(
+            integration,
+            new Date(startDate),
+            new Date(endDate),
+            measureTypes
+          )
+        : []
 
-      logger.log(`[Withings Ingest] Fetched ${measureGroups.length} measure groups`)
+      if (wellnessEnabled) {
+        logger.log(`[Withings Ingest] Fetched ${measureGroups.length} measure groups`)
+      } else {
+        logger.log('[Withings Ingest] Wellness Disabled - Skipping')
+      }
 
       // Upsert wellness data (Measures)
       let upsertedCount = 0
@@ -206,68 +221,63 @@ export const ingestWithingsTask = task({
 
       // 2. Fetch Sleep (Wellness)
       let sleepUpsertCount = 0
-      try {
-        const sleepSummaries = await fetchWithingsSleep(
-          integration,
-          new Date(startDate),
-          new Date(endDate),
-          timezone
-        )
+      if (wellnessEnabled) {
+        try {
+          const sleepSummaries = await fetchWithingsSleep(
+            integration,
+            new Date(startDate),
+            new Date(endDate),
+            timezone
+          )
 
-        logger.log(`[Withings Ingest] Fetched ${sleepSummaries.length} sleep summaries`)
+          logger.log(`[Withings Ingest] Fetched ${sleepSummaries.length} sleep summaries`)
 
-        for (const summary of sleepSummaries) {
-          const wellness = normalizeWithingsSleep(summary, userId)
+          for (const summary of sleepSummaries) {
+            const wellness = normalizeWithingsSleep(summary, userId)
 
-          if (!wellness) {
-            continue
-          }
-
-          const cleanWellness: any = {}
-          Object.entries(wellness).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-              cleanWellness[key] = value
+            if (!wellness) {
+              continue
             }
-          })
 
-          // Ensure userId and date are present
-          cleanWellness.userId = userId
-          cleanWellness.date = wellness.date
+            const cleanWellness: any = {}
+            Object.entries(wellness).forEach(([key, value]) => {
+              if (value !== null && value !== undefined) {
+                cleanWellness[key] = value
+              }
+            })
 
-          // Fetch existing for rawJson merging
-          const existingWellness = await prisma.wellness.findUnique({
-            where: {
-              userId_date: {
-                userId,
-                date: wellness.date
+            cleanWellness.userId = userId
+            cleanWellness.date = wellness.date
+
+            const existingWellness = await prisma.wellness.findUnique({
+              where: {
+                userId_date: {
+                  userId,
+                  date: wellness.date
+                }
+              }
+            })
+
+            if (existingWellness && existingWellness.rawJson) {
+              const existingRaw = existingWellness.rawJson as any
+              cleanWellness.rawJson = {
+                ...existingRaw,
+                ...cleanWellness.rawJson
               }
             }
-          })
 
-          if (existingWellness && existingWellness.rawJson) {
-            const existingRaw = existingWellness.rawJson as any
-            cleanWellness.rawJson = {
-              ...existingRaw,
-              ...cleanWellness.rawJson
-            }
+            await wellnessRepository.upsert(
+              userId,
+              wellness.date,
+              cleanWellness as any,
+              cleanWellness as any,
+              'withings'
+            )
+            sleepUpsertCount++
           }
-
-          // If restingHr is present in sleep data, it might override measure data, or vice versa.
-          // We'll trust sleep resting HR if measure resting HR is not present.
-          // If we already have resting HR from measures (e.g. smart scale standing heart rate), we might want to keep that or prefer sleep.
-          // Generally, sleeping HR is "true" resting HR.
-
-          await wellnessRepository.upsert(
-            userId,
-            wellness.date,
-            cleanWellness as any,
-            cleanWellness as any,
-            'withings'
-          )
-          sleepUpsertCount++
+        } catch (error) {
+          logger.error('[Withings Ingest] Error fetching sleep', { error })
         }
-      } catch (error) {
-        logger.error('[Withings Ingest] Error fetching sleep', { error })
       }
 
       // 3. Fetch Workouts
@@ -277,132 +287,135 @@ export const ingestWithingsTask = task({
       // But we requested both scopes in auth, so unless user unchecked it, we should have it.
       // We'll proceed and catch errors if scope is missing (API will return error).
 
-      try {
-        // Re-fetch integration to get any updated tokens
-        const updatedIntegration = await prisma.integration.findUnique({
-          where: { id: integration.id }
-        })
-        if (!updatedIntegration) throw new Error('Integration lost')
+      if (workoutsEnabled) {
+        try {
+          // Re-fetch integration to get any updated tokens
+          const updatedIntegration = await prisma.integration.findUnique({
+            where: { id: integration.id }
+          })
+          if (!updatedIntegration) throw new Error('Integration lost')
 
-        const workouts = await fetchWithingsWorkouts(
-          updatedIntegration,
-          new Date(startDate),
-          new Date(endDate),
-          timezone
-        )
+          const workouts = await fetchWithingsWorkouts(
+            updatedIntegration,
+            new Date(startDate),
+            new Date(endDate),
+            timezone
+          )
 
-        logger.log(`[Withings Ingest] Fetched ${workouts.length} workouts`)
+          logger.log(`[Withings Ingest] Fetched ${workouts.length} workouts`)
 
-        for (const wWorkout of workouts) {
-          const normalizedWorkout = normalizeWithingsWorkout(wWorkout, userId)
+          for (const wWorkout of workouts) {
+            const normalizedWorkout = normalizeWithingsWorkout(wWorkout, userId)
 
-          if (!normalizedWorkout) {
-            continue
-          }
+            if (!normalizedWorkout) {
+              continue
+            }
 
-          // Try to fetch HR stream for this workout
-          try {
-            // Buffer start/end by a few minutes to ensure we capture all data
-            const streamStart = new Date(normalizedWorkout.date.getTime() - 5 * 60000)
-            const streamEnd = new Date(
-              normalizedWorkout.date.getTime() + normalizedWorkout.durationSec * 1000 + 5 * 60000
-            )
-
-            // Check if duration is within reasonable limits (e.g. < 24h)
-            if (normalizedWorkout.durationSec < 24 * 3600) {
-              const intradayData = await fetchWithingsIntraday(
-                updatedIntegration,
-                streamStart,
-                streamEnd
+            // Try to fetch HR stream for this workout
+            try {
+              // Buffer start/end by a few minutes to ensure we capture all data
+              const streamStart = new Date(normalizedWorkout.date.getTime() - 5 * 60000)
+              const streamEnd = new Date(
+                normalizedWorkout.date.getTime() + normalizedWorkout.durationSec * 1000 + 5 * 60000
               )
 
-              // Process intraday data if we have any
-              const timestamps = Object.keys(intradayData).sort()
-              if (timestamps.length > 0) {
-                // Create streams
-                const hrStream: number[] = []
-                const timeStream: number[] = []
+              // Check if duration is within reasonable limits (e.g. < 24h)
+              if (normalizedWorkout.durationSec < 24 * 3600) {
+                const intradayData = await fetchWithingsIntraday(
+                  updatedIntegration,
+                  streamStart,
+                  streamEnd
+                )
 
-                // We need to map timestamps to seconds from start
-                // Intraday timestamps are unix seconds
-                const startTime = normalizedWorkout.date.getTime() / 1000
+                // Process intraday data if we have any
+                const timestamps = Object.keys(intradayData).sort()
+                if (timestamps.length > 0) {
+                  // Create streams
+                  const hrStream: number[] = []
+                  const timeStream: number[] = []
 
-                for (const tsStr of timestamps) {
-                  const ts = parseInt(tsStr)
-                  const point = intradayData[tsStr]
+                  // We need to map timestamps to seconds from start
+                  // Intraday timestamps are unix seconds
+                  const startTime = normalizedWorkout.date.getTime() / 1000
 
-                  // Only include points within the workout window (with small buffer)
-                  if (
-                    ts >= startTime - 60 &&
-                    ts <= startTime + normalizedWorkout.durationSec + 60
-                  ) {
-                    const offset = ts - startTime
+                  for (const tsStr of timestamps) {
+                    const ts = parseInt(tsStr)
+                    const point = intradayData[tsStr]
 
-                    if (point.heart_rate) {
-                      hrStream.push(point.heart_rate)
-                      timeStream.push(offset)
+                    // Only include points within the workout window (with small buffer)
+                    if (
+                      ts >= startTime - 60 &&
+                      ts <= startTime + normalizedWorkout.durationSec + 60
+                    ) {
+                      const offset = ts - startTime
+
+                      if (point.heart_rate) {
+                        hrStream.push(point.heart_rate)
+                        timeStream.push(offset)
+                      }
                     }
                   }
-                }
 
-                if (hrStream.length > 0) {
-                  // @ts-expect-error - streams property added dynamically
-                  normalizedWorkout.streams = {
-                    time: timeStream,
-                    heartrate: hrStream
+                  if (hrStream.length > 0) {
+                    // @ts-expect-error - streams property added dynamically
+                    normalizedWorkout.streams = {
+                      time: timeStream,
+                      heartrate: hrStream
+                    }
+
+                    logger.log(
+                      `[Withings Ingest] Added HR stream with ${hrStream.length} points for workout ${wWorkout.id}`
+                    )
                   }
-
-                  logger.log(
-                    `[Withings Ingest] Added HR stream with ${hrStream.length} points for workout ${wWorkout.id}`
-                  )
                 }
               }
+            } catch (e) {
+              logger.warn(
+                `[Withings Ingest] Failed to fetch intraday data for workout ${wWorkout.id}`,
+                { error: e }
+              )
             }
-          } catch (e) {
-            logger.warn(
-              `[Withings Ingest] Failed to fetch intraday data for workout ${wWorkout.id}`,
-              { error: e }
-            )
-          }
 
-          // Check if workout already exists to merge rawJson if needed
-          // We can't rely on upsert alone if we want to merge deep JSON properties
-          // But for now, we assume fresh data from API is always better/more complete than what we have.
-          // The upsert will overwrite top-level fields and replace rawJson.
-          // This is desired behavior when re-syncing to get stream data.
+            // Check if workout already exists to merge rawJson if needed
+            // We can't rely on upsert alone if we want to merge deep JSON properties
+            // But for now, we assume fresh data from API is always better/more complete than what we have.
+            // The upsert will overwrite top-level fields and replace rawJson.
+            // This is desired behavior when re-syncing to get stream data.
 
-          logger.log(`[Withings Ingest] Upserting workout ${normalizedWorkout.externalId}`, {
-            hasStreams: !!(normalizedWorkout as any).streams,
-            streamPoints: (normalizedWorkout as any).streams?.heartrate?.length || 0
-          })
-
-          const upsertedWorkout = await workoutRepository.upsert(
-            userId,
-            'withings',
-            normalizedWorkout.externalId,
-            normalizedWorkout as any,
-            normalizedWorkout as any
-          )
-          workoutUpsertCount++
-
-          // Normalize TSS (if HR data available, we might estimate)
-          try {
-            const tssResult = await normalizeTSS(upsertedWorkout.record.id, userId)
-
-            // Update CTL/ATL if TSS was set
-            if (tssResult.tss !== null) {
-              await calculateWorkoutStress(upsertedWorkout.record.id, userId)
-            }
-          } catch (error) {
-            logger.error('[Withings Ingest] Failed to normalize TSS', {
-              workoutId: upsertedWorkout.record.id,
-              error
+            logger.log(`[Withings Ingest] Upserting workout ${normalizedWorkout.externalId}`, {
+              hasStreams: !!(normalizedWorkout as any).streams,
+              streamPoints: (normalizedWorkout as any).streams?.heartrate?.length || 0
             })
+
+            const upsertedWorkout = await workoutRepository.upsert(
+              userId,
+              'withings',
+              normalizedWorkout.externalId,
+              normalizedWorkout as any,
+              normalizedWorkout as any
+            )
+            workoutUpsertCount++
+
+            // Normalize TSS (if HR data available, we might estimate)
+            try {
+              const tssResult = await normalizeTSS(upsertedWorkout.record.id, userId)
+
+              // Update CTL/ATL if TSS was set
+              if (tssResult.tss !== null) {
+                await calculateWorkoutStress(upsertedWorkout.record.id, userId)
+              }
+            } catch (error) {
+              logger.error('[Withings Ingest] Failed to normalize TSS', {
+                workoutId: upsertedWorkout.record.id,
+                error
+              })
+            }
           }
+        } catch (error) {
+          logger.error('[Withings Ingest] Error fetching workouts', { error })
         }
-      } catch (error) {
-        logger.error('[Withings Ingest] Error fetching workouts', { error })
-        // Don't fail the whole task if workouts fail but measures succeeded
+      } else {
+        logger.log('[Withings Ingest] Workouts Disabled - Skipping')
       }
 
       logger.log(
@@ -419,8 +432,9 @@ export const ingestWithingsTask = task({
         }
       })
 
-      // Trigger auto-analysis/recommendation if needed
-      await triggerReadinessCheckIfNeeded(userId)
+      if (wellnessEnabled) {
+        await triggerReadinessCheckIfNeeded(userId)
+      }
 
       return {
         success: true,

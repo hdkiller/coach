@@ -1,5 +1,6 @@
 import { task, logger } from '@trigger.dev/sdk/v3'
 import { prisma } from '../server/utils/db'
+import { shouldIngestActivities, shouldIngestWellness } from '../server/utils/integration-settings'
 import { GarminService } from '../server/utils/services/garminService'
 import {
   fetchGarminDailies,
@@ -88,11 +89,15 @@ export const ingestGarminTask = task({
     })
 
     try {
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      const wellnessEnabled = shouldIngestWellness(settings)
+      const workoutsEnabled = shouldIngestActivities('garmin', integration.ingestWorkouts, settings)
+
       const results = await Promise.allSettled([
-        fetchGarminDailies(integration, startTimestamp, endTimestamp),
-        fetchGarminSleeps(integration, startTimestamp, endTimestamp),
-        fetchGarminHRV(integration, startTimestamp, endTimestamp),
-        fetchGarminActivities(integration, startTimestamp, endTimestamp)
+        wellnessEnabled ? fetchGarminDailies(integration, startTimestamp, endTimestamp) : [],
+        wellnessEnabled ? fetchGarminSleeps(integration, startTimestamp, endTimestamp) : [],
+        wellnessEnabled ? fetchGarminHRV(integration, startTimestamp, endTimestamp) : [],
+        workoutsEnabled ? fetchGarminActivities(integration, startTimestamp, endTimestamp) : []
       ])
 
       const dailies = results[0].status === 'fulfilled' ? results[0].value : []

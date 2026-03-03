@@ -11,6 +11,7 @@ import {
   normalizeOuraWorkout
 } from '../server/utils/oura'
 import { prisma } from '../server/utils/db'
+import { shouldIngestActivities, shouldIngestWellness } from '../server/utils/integration-settings'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { normalizeTSS } from '../server/utils/normalize-tss'
@@ -57,19 +58,25 @@ export const ingestOuraTask = task({
     try {
       const start = new Date(startDate)
       const end = new Date(endDate)
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      const wellnessEnabled = shouldIngestWellness(settings)
 
-      // 1. Fetch Wellness Data (Sleep, Activity, Readiness)
-      // We need to fetch all 3 to construct a complete Wellness record
-      const [sleepData, sleepPeriodsData, activityData, readinessData] = await Promise.all([
-        fetchOuraDailySleep(integration, start, end),
-        fetchOuraSleepPeriods(integration, start, end),
-        fetchOuraDailyActivity(integration, start, end),
-        fetchOuraDailyReadiness(integration, start, end)
-      ])
+      const [sleepData, sleepPeriodsData, activityData, readinessData] = wellnessEnabled
+        ? await Promise.all([
+            fetchOuraDailySleep(integration, start, end),
+            fetchOuraSleepPeriods(integration, start, end),
+            fetchOuraDailyActivity(integration, start, end),
+            fetchOuraDailyReadiness(integration, start, end)
+          ])
+        : [[], [], [], []]
 
-      logger.log(
-        `[Oura Ingest] Fetched records: DailySleep=${sleepData.length}, SleepPeriods=${sleepPeriodsData.length}, Activity=${activityData.length}, Readiness=${readinessData.length}`
-      )
+      if (wellnessEnabled) {
+        logger.log(
+          `[Oura Ingest] Fetched records: DailySleep=${sleepData.length}, SleepPeriods=${sleepPeriodsData.length}, Activity=${activityData.length}, Readiness=${readinessData.length}`
+        )
+      } else {
+        logger.log('[Oura Ingest] Wellness Disabled - Skipping')
+      }
 
       // Group by date to normalize
       // Oura dates are YYYY-MM-DD. We'll map them.
@@ -101,38 +108,39 @@ export const ingestOuraTask = task({
       let wellnessUpsertCount = 0
       let wellnessSkippedCount = 0
 
-      for (const dateStr of dates) {
-        const sleep = sleepMap.get(dateStr)
-        const sleepPeriods = sleepPeriodsMap.get(dateStr) || []
-        const activity = activityMap.get(dateStr)
-        const readiness = readinessMap.get(dateStr)
+      if (wellnessEnabled) {
+        for (const dateStr of dates) {
+          const sleep = sleepMap.get(dateStr)
+          const sleepPeriods = sleepPeriodsMap.get(dateStr) || []
+          const activity = activityMap.get(dateStr)
+          const readiness = readinessMap.get(dateStr)
 
-        const date = new Date(dateStr) // This creates a date at UTC midnight if ISO string is YYYY-MM-DD (usually)
-        // Ensure strictly UTC midnight
-        const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+          const date = new Date(dateStr)
+          const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
 
-        const wellness = normalizeOuraWellness(
-          sleep,
-          activity,
-          readiness,
-          sleepPeriods,
-          userId,
-          utcDate
-        )
+          const wellness = normalizeOuraWellness(
+            sleep,
+            activity,
+            readiness,
+            sleepPeriods,
+            userId,
+            utcDate
+          )
 
-        if (!wellness) {
-          wellnessSkippedCount++
-          continue
+          if (!wellness) {
+            wellnessSkippedCount++
+            continue
+          }
+
+          await wellnessRepository.upsert(
+            userId,
+            wellness.date,
+            wellness as any,
+            wellness as any,
+            'oura'
+          )
+          wellnessUpsertCount++
         }
-
-        await wellnessRepository.upsert(
-          userId,
-          wellness.date,
-          wellness as any,
-          wellness as any,
-          'oura'
-        )
-        wellnessUpsertCount++
       }
 
       logger.log(
@@ -140,7 +148,11 @@ export const ingestOuraTask = task({
       )
 
       // 2. Fetch Workouts
-      const OURA_WORKOUTS_ENABLED = integration.ingestWorkouts // Default true if boolean
+      const OURA_WORKOUTS_ENABLED = shouldIngestActivities(
+        'oura',
+        integration.ingestWorkouts,
+        settings
+      )
 
       let workoutUpsertCount = 0
 

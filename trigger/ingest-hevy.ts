@@ -2,6 +2,7 @@ import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
+import { shouldIngestActivities } from '../server/utils/integration-settings'
 import {
   fetchHevyWorkouts,
   fetchHevyExerciseTemplate,
@@ -29,6 +30,27 @@ export const ingestHevyTask = task({
 
     if (!integration || !integration.accessToken) {
       throw new Error('Hevy integration not found or missing API key')
+    }
+
+    const settings = (integration.settings as Record<string, any> | null) || {}
+
+    if (!shouldIngestActivities('hevy', integration.ingestWorkouts, settings)) {
+      await prisma.integration.update({
+        where: { id: integration.id },
+        data: {
+          syncStatus: 'SUCCESS',
+          lastSyncAt: new Date(),
+          errorMessage: null
+        }
+      })
+
+      return {
+        success: true,
+        counts: {
+          workouts: 0
+        },
+        userId
+      }
     }
 
     const apiKey = integration.accessToken

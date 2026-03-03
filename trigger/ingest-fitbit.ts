@@ -2,6 +2,7 @@ import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
+import { shouldIngestNutrition } from '../server/utils/integration-settings'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { getUserTimezone } from '../server/utils/date'
 import {
@@ -56,6 +57,29 @@ export const ingestFitbitTask = task({
     })
 
     try {
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      if (!shouldIngestNutrition(settings)) {
+        logger.log('[Fitbit Ingest] Nutrition Disabled - Skipping')
+        await prisma.integration.update({
+          where: { id: integration.id },
+          data: {
+            syncStatus: 'SUCCESS',
+            lastSyncAt: new Date(),
+            errorMessage: null
+          }
+        })
+
+        return {
+          success: true,
+          counts: {
+            nutrition: 0
+          },
+          userId,
+          startDate,
+          endDate
+        }
+      }
+
       const timezone = await getUserTimezone(userId)
       const nutritionSettings = await getUserNutritionSettings(userId)
       logger.log(`User timezone: ${timezone}`)
