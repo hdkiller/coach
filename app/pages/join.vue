@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen bg-[#09090B] flex flex-col items-center justify-center p-6 relative overflow-hidden selection:bg-primary-500/30"
+    class="min-h-screen bg-[#09090B] flex flex-col items-center justify-center p-0 lg:p-6 relative overflow-hidden selection:bg-primary-500/30"
   >
     <!-- Starfield/Atmosphere Background -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
@@ -8,18 +8,18 @@
         class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,220,130,0.03)_0%,transparent_70%)]"
       />
       <div class="stars-container absolute inset-0 opacity-30 animate-slow-rotate">
-        <div v-for="n in 30" :key="n" class="star" :style="generateStarStyle(n)" />
+        <div v-for="(style, index) in starStyles" :key="index" class="star" :style="style" />
       </div>
     </div>
 
     <!-- Main Container -->
-    <UContainer class="w-full max-w-7xl relative z-10 my-12">
+    <UContainer class="w-full max-w-7xl relative z-10 my-0 lg:my-12 px-0 lg:px-6">
       <div
-        class="grid lg:grid-cols-12 rounded-[3.5rem] floating-card-base grain-overlay overflow-hidden border-white/10 shadow-2xl min-h-[720px]"
+        class="grid lg:grid-cols-12 rounded-none lg:rounded-[3.5rem] floating-card-base grain-overlay overflow-hidden border-white/10 shadow-2xl min-h-screen lg:min-h-[720px]"
       >
         <!-- Left: Digital Twin Sidecar -->
         <div
-          class="lg:col-span-5 relative bg-black/40 p-10 sm:p-14 flex flex-col justify-between overflow-hidden border-r border-white/5 min-h-[600px] lg:min-h-[720px] lg:aspect-[5/6]"
+          class="lg:col-span-5 relative bg-black/40 p-10 sm:p-14 flex flex-col justify-between overflow-hidden border-t lg:border-t-0 lg:border-r border-white/5 min-h-[600px] lg:min-h-[720px] lg:aspect-[5/6] order-2 lg:order-1"
         >
           <!-- Dynamic Content -->
           <div class="relative z-10 h-full flex flex-col">
@@ -185,7 +185,7 @@
 
         <!-- 2. The Signup Container -->
         <div
-          class="lg:col-span-7 flex flex-col justify-center p-6 sm:p-12 lg:p-24 bg-black relative order-1 lg:order-2"
+          class="lg:col-span-7 flex flex-col justify-center p-10 sm:p-14 lg:p-24 bg-black relative order-1 lg:order-2"
         >
           <!-- Inner Glow -->
           <div
@@ -397,6 +397,7 @@
   const loading = ref(false)
   const isInitializing = ref(false)
   const isTyping = ref(true)
+  const starStyles = ref<any[]>([])
 
   const translateOrFallback = (key: string, fallback: string, invalidValues: string[] = []) =>
     computed(() => {
@@ -451,21 +452,19 @@
   })
 
   onMounted(() => {
-    setTimeout(() => {
-      isTyping.value = false
-    }, 1200)
-  })
-
-  // Starfield Generator
-  const generateStarStyle = (n: number) => {
-    return {
+    // Generate star styles on client to avoid hydration mismatch
+    starStyles.value = Array.from({ length: 30 }).map(() => ({
       top: `${Math.random() * 100}%`,
       left: `${Math.random() * 100}%`,
       opacity: Math.random() * 0.7 + 0.3,
       animationDelay: `${Math.random() * 5}s`,
       animationDuration: `${Math.random() * 3 + 2}s`
-    }
-  }
+    }))
+
+    setTimeout(() => {
+      isTyping.value = false
+    }, 1200)
+  })
 
   // Magnetic Button Logic
   const buttonX = ref(0)
