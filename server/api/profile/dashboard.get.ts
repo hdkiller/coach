@@ -71,7 +71,10 @@ export default defineEventHandler(async (event) => {
             { sleepLightSecs: { not: null } },
             { sleepAwakeSecs: { not: null } },
             { systolic: { not: null } },
-            { diastolic: { not: null } }
+            { diastolic: { not: null } },
+            { fatigue: { not: null } },
+            { stress: { not: null } },
+            { mood: { not: null } }
           ]
         },
         orderBy: { date: 'desc' },
@@ -95,6 +98,9 @@ export default defineEventHandler(async (event) => {
           sleepAwakeSecs: true,
           systolic: true,
           diastolic: true,
+          fatigue: true,
+          stress: true,
+          mood: true,
           lastSource: true
         }
       }),
@@ -178,7 +184,10 @@ export default defineEventHandler(async (event) => {
           skinTemp: null,
           vo2max: null,
           systolic: null,
-          diastolic: null
+          diastolic: null,
+          fatigue: null,
+          stress: null,
+          mood: null
         }
         wellnessDate = dailyMetric.date
       }
@@ -205,7 +214,10 @@ export default defineEventHandler(async (event) => {
         skinTemp: null,
         vo2max: null,
         systolic: null,
-        diastolic: null
+        diastolic: null,
+        fatigue: null,
+        stress: null,
+        mood: null
       }
       wellnessDate = dailyMetric.date
     }
@@ -251,6 +263,9 @@ export default defineEventHandler(async (event) => {
     const recentSystolic = wellnessData?.systolic ?? null
     const recentDiastolic = wellnessData?.diastolic ?? null
     const recentReadiness = wellnessData?.readiness ?? null
+    const recentFatigue = wellnessData?.fatigue ?? null
+    const recentStress = wellnessData?.stress ?? null
+    const recentMood = wellnessData?.mood ?? null
 
     // Calculate 7-day HRV average if we have wellness data
     let avgRecentHRV = null
@@ -392,6 +407,9 @@ export default defineEventHandler(async (event) => {
         recentSystolic,
         recentDiastolic,
         recentReadiness,
+        recentFatigue,
+        recentStress,
+        recentMood,
         wellnessSource,
         latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
 
