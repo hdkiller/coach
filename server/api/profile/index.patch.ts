@@ -1,9 +1,9 @@
 import { requireAuth } from '../../utils/auth-guard'
-import { z } from 'zod'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 import { profileUpdateSchema } from '../../utils/schemas/profile'
 import { athleteMetricsService } from '../../utils/athleteMetricsService'
 import { LBS_TO_KG } from '../../utils/number'
+import { bodyMeasurementService } from '../../utils/services/bodyMeasurementService'
 
 defineRouteMeta({
   openAPI: {
@@ -62,6 +62,15 @@ export default defineEventHandler(async (event) => {
   const userId = user.id
 
   try {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        weight: true,
+        height: true,
+        weightUnits: true
+      }
+    })
+
     // 1. Convert weight to KG if provided in Pounds
     // Database is standardized to Kilograms
     let weightKg = data.weight
@@ -70,10 +79,6 @@ export default defineEventHandler(async (event) => {
         weightKg = weightKg * LBS_TO_KG
       } else if (!data.weightUnits) {
         // If units not provided in this patch, check current user units
-        const currentUser = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { weightUnits: true }
-        })
         if (currentUser?.weightUnits === 'Pounds') {
           weightKg = weightKg * LBS_TO_KG
         }
@@ -82,7 +87,7 @@ export default defineEventHandler(async (event) => {
 
     // 2. Update Metrics via Service (Weight, FTP, LTHR, MaxHR)
     // This also handles goal syncing and zone recalculation
-    const updatedUser = await athleteMetricsService.updateMetrics(
+    await athleteMetricsService.updateMetrics(
       userId,
       {
         ftp: data.ftp,
@@ -90,7 +95,7 @@ export default defineEventHandler(async (event) => {
         maxHr: data.maxHr,
         lthr: data.lthr
       },
-      { sportType: (data as any).sportType }
+      { sportType: (data as any).sportType, weightUpdateSource: 'manual' }
     )
 
     // 2. Update remaining User fields
@@ -111,6 +116,21 @@ export default defineEventHandler(async (event) => {
         where: { id: userId },
         data: updatePayload
       })
+    }
+
+    const measurementWrites: Promise<unknown>[] = []
+    if (weightKg !== undefined && weightKg !== currentUser?.weight) {
+      measurementWrites.push(
+        bodyMeasurementService.recordProfileMetrics(userId, { weight: weightKg })
+      )
+    }
+    if (data.height !== undefined && data.height !== currentUser?.height) {
+      measurementWrites.push(
+        bodyMeasurementService.recordProfileMetrics(userId, { height: data.height })
+      )
+    }
+    if (measurementWrites.length > 0) {
+      await Promise.all(measurementWrites)
     }
 
     // 3. Update Sport Settings via Repository (if explicitly provided)
@@ -135,6 +155,7 @@ export default defineEventHandler(async (event) => {
         lthr: true,
         weight: true,
         weightUnits: true,
+        weightSourceMode: true,
         dob: true,
         language: true,
         height: true,

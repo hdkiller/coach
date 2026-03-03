@@ -4,6 +4,7 @@ import { sportSettingsRepository } from '../../utils/repositories/sportSettingsR
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -30,6 +31,7 @@ export default defineEventHandler(async (event) => {
         lthr: true,
         dob: true,
         weightUnits: true,
+        weightSourceMode: true,
         height: true,
         heightUnits: true,
         profileLastUpdated: true,
@@ -48,7 +50,7 @@ export default defineEventHandler(async (event) => {
     const sportSettings = await sportSettingsRepository.getByUserId(user.id)
     const defaultProfile = sportSettings.find((s: any) => s.isDefault)
 
-    const [wellness, dailyMetric, latestWeightWellness, latestBodyFatWellness] = await Promise.all([
+    const [wellness, dailyMetric, latestBodyFatWellness] = await Promise.all([
       // Query most recent wellness record with any meaningful values (not only resting HR)
       prisma.wellness.findFirst({
         where: {
@@ -134,15 +136,6 @@ export default defineEventHandler(async (event) => {
           sleepAwakeSecs: true,
           source: true
         }
-      }),
-
-      prisma.wellness.findFirst({
-        where: {
-          userId: user.id,
-          weight: { not: null }
-        },
-        orderBy: { date: 'desc' },
-        select: { weight: true }
       }),
       prisma.wellness.findFirst({
         where: {
@@ -238,9 +231,14 @@ export default defineEventHandler(async (event) => {
     const estimatedMaxHR = age ? 220 - age : null
 
     // Use the wellness data we found
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(user.id, {
+      weight: user.weight,
+      weightSourceMode: user.weightSourceMode,
+      weightUnits: user.weightUnits
+    })
     const recentRestingHR = wellnessData?.restingHr ?? null
     const recentHRV = wellnessData?.hrv ?? null
-    const recentWeight = latestWeightWellness?.weight ?? user.weight
+    const recentWeight = effectiveWeight.value
     const recentBodyFat = latestBodyFatWellness?.bodyFat ?? null
     const recentSleep =
       wellnessData?.sleepHours ??
@@ -383,6 +381,10 @@ export default defineEventHandler(async (event) => {
         country: user.country,
         age: age,
         weight: recentWeight,
+        profileWeight: effectiveWeight.profileWeight,
+        latestWellnessWeight: effectiveWeight.latestWellnessWeight,
+        weightSourceMode: effectiveWeight.weightSourceMode,
+        recentWeightSource: effectiveWeight.source,
         weightUnits: user.weightUnits,
         height: user.height,
         heightUnits: user.heightUnits,
