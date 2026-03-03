@@ -159,6 +159,10 @@
   const now = useNow({ interval: 1000 })
   const cancellingId = ref<string | null>(null)
 
+  const isRunning = (status: string) => {
+    return ACTIVE_STATUSES.includes(status)
+  }
+
   const isStaleActiveRun = (run: TriggerRun) => {
     if (!isRunning(run.status) || !run.startedAt) return false
 
@@ -240,10 +244,6 @@
     } finally {
       cancellingId.value = null
     }
-  }
-
-  const isRunning = (status: string) => {
-    return ACTIVE_STATUSES.includes(status)
   }
 
   const getStatusColor = (status: string) => {

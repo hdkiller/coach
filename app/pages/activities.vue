@@ -1009,12 +1009,6 @@
     'adapt-training-plan'
   ]
 
-  REFRESH_TASKS.forEach((task) => {
-    onTaskCompleted(task, () => {
-      refresh()
-    })
-  })
-
   // Modal state
   const showDeduplicateModal = ref(false)
   const showBulkDeleteModal = ref(false)
@@ -1114,6 +1108,12 @@
   } = await useFetch<CalendarActivity[]>('/api/calendar', {
     query: calendarRange,
     watch: [currentDate]
+  })
+
+  REFRESH_TASKS.forEach((task) => {
+    onTaskCompleted(task, () => {
+      refresh()
+    })
   })
 
   // Metabolic Wave Fetch (Consolidated to fix N+1)

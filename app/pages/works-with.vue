@@ -22,6 +22,7 @@
 
   const activeCategory = ref('all')
   const searchQuery = ref('')
+  const isMobile = useMediaQuery('(max-width: 1024px)')
 
   const integrations = [
     {
@@ -180,7 +181,6 @@
     viewport: { once: true, margin: '-10% 0px' },
     transition: { duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }
   }
-  const isMobile = useMediaQuery('(max-width: 1024px)')
 </script>
 
 <template>
