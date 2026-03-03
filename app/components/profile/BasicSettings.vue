@@ -59,31 +59,55 @@
     <!-- Body Metrics Card -->
     <UCard>
       <template #header>
-        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Body Metrics</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Used for BMR calculation and power/weight performance metrics.
-        </p>
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+              Body Metrics
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Used for BMR calculation and power/weight performance metrics.
+            </p>
+          </div>
+          <UButton
+            color="neutral"
+            variant="soft"
+            size="sm"
+            class="w-full sm:w-auto justify-center"
+            @click="emit('navigate', 'measurements')"
+          >
+            Measurements
+          </UButton>
+        </div>
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="grid grid-cols-3 gap-4">
-          <UFormField label="Weight" name="weight" class="col-span-2">
-            <UInput v-model.number="localProfile.weight" type="number" step="0.1" class="w-full">
-              <template #trailing>
-                <span class="text-gray-500 dark:text-gray-400 text-xs">{{
-                  localProfile.weightUnits === 'Pounds' ? 'lbs' : 'kg'
-                }}</span>
-              </template>
-            </UInput>
-          </UFormField>
-          <UFormField label="Units" name="weightUnits">
-            <USelectMenu
-              v-model="localProfile.weightUnits"
-              :items="['Kilograms', 'Pounds']"
-              class="w-full"
-              :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
-            />
-          </UFormField>
+        <div class="space-y-4">
+          <div class="grid grid-cols-3 gap-4">
+            <UFormField label="Weight" name="weight" class="col-span-2">
+              <UInput v-model.number="localProfile.weight" type="number" step="0.1" class="w-full">
+                <template #trailing>
+                  <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                    localProfile.weightUnits === 'Pounds' ? 'lbs' : 'kg'
+                  }}</span>
+                </template>
+              </UInput>
+            </UFormField>
+            <UFormField label="Units" name="weightUnits">
+              <USelectMenu
+                v-model="localProfile.weightUnits"
+                :items="['Kilograms', 'Pounds']"
+                class="w-full"
+                :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
+              />
+            </UFormField>
+          </div>
+
+          <UBadge variant="soft" color="neutral">
+            Current effective weight:
+            {{ formattedEffectiveWeight }}
+            <span v-if="effectiveWeightLabel"> from {{ effectiveWeightLabel }}</span>
+            <span v-if="effectiveWeightDate"> on {{ effectiveWeightDate }}</span>
+          </UBadge>
         </div>
 
         <div class="grid grid-cols-3 gap-4">
@@ -334,7 +358,7 @@
     loading?: boolean
   }>()
 
-  const emit = defineEmits(['update:modelValue', 'autodetect'])
+  const emit = defineEmits(['update:modelValue', 'autodetect', 'navigate'])
   const { formatDateUTC } = useFormat()
 
   const localProfile = ref({ ...props.modelValue })
@@ -386,6 +410,21 @@
   }
 
   const dobValue = ref(toDateInputValue(props.modelValue.dob))
+  const effectiveWeightLabel = computed(() => localProfile.value.effectiveWeightSource?.label || '')
+  const effectiveWeightDate = computed(() => {
+    const value = localProfile.value.effectiveWeightSource?.date
+    return value ? formatDateUTC(value, 'yyyy-MM-dd') : ''
+  })
+  const formattedEffectiveWeight = computed(() => {
+    const effectiveWeight = localProfile.value.effectiveWeight
+    if (!effectiveWeight) return 'Not set'
+
+    if (localProfile.value.weightUnits === 'Pounds') {
+      return `${(effectiveWeight / LBS_TO_KG).toFixed(1)} lbs`
+    }
+
+    return `${effectiveWeight.toFixed(1)} kg`
+  })
 
   watch(
     () => props.modelValue,

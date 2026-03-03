@@ -34,6 +34,7 @@
             :loading="savingProfile"
             @update:model-value="handleProfileUpdate"
             @autodetect="handleAutodetect"
+            @navigate="(tab) => (activeTab = tab)"
           />
 
           <template v-if="activeTab === 'availability'">
@@ -73,34 +74,7 @@
             @autodetect="handleAutodetect"
           />
 
-          <div v-if="activeTab === 'records'" class="space-y-6">
-            <UCard>
-              <template #header>
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-heroicons-trophy" class="w-5 h-5 text-primary-500" />
-                  <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-                    Trophy Case
-                  </h3>
-                </div>
-              </template>
-              <div class="py-12 text-center space-y-4">
-                <UIcon name="i-heroicons-sparkles" class="w-12 h-12 text-gray-300 mx-auto" />
-                <p class="text-sm text-gray-500 max-w-xs mx-auto">
-                  Your all-time records and peak performances are now tracked in a dedicated
-                  performance dashboard.
-                </p>
-                <UButton
-                  color="primary"
-                  variant="solid"
-                  size="lg"
-                  icon="i-heroicons-arrow-top-right-on-square"
-                  to="/performance/bests"
-                >
-                  Go to Trophy Case
-                </UButton>
-              </div>
-            </UCard>
-          </div>
+          <ProfileMeasurementsSettings v-if="activeTab === 'measurements'" />
 
           <ProfileNutritionSettings
             v-if="activeTab === 'nutrition'"
@@ -123,8 +97,7 @@
   import ProfileSportSettings from '~/components/profile/SportSettings.vue'
   import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
   import ProfileCommunicationSettings from '~/components/profile/CommunicationSettings.vue'
-  import TrophyCase from '~/components/profile/TrophyCase.vue'
-
+  import ProfileMeasurementsSettings from '~/components/profile/MeasurementsSettings.vue'
   const { data } = useAuth()
   const user = computed(() => data.value?.user)
   const toast = useToast()
@@ -137,7 +110,7 @@
   const tabs = [
     { id: 'basic', label: 'Basic Settings', icon: 'i-heroicons-user-circle' },
     { id: 'sports', label: 'Sport Settings', icon: 'i-heroicons-bolt' },
-    { id: 'records', label: 'Trophy Case', icon: 'i-heroicons-trophy' },
+    { id: 'measurements', label: 'Measurements', icon: 'i-heroicons-scale' },
     { id: 'availability', label: 'Availability', icon: 'i-lucide-calendar-clock' },
     { id: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-fire' },
     { id: 'communication', label: 'Communication', icon: 'i-heroicons-envelope' }
@@ -172,7 +145,8 @@
     city: '',
     state: '',
     country: '',
-    timezone: ''
+    timezone: '',
+    weightSourceMode: 'AUTO'
   })
 
   const sportSettings = ref<any[]>([])

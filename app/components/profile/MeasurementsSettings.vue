@@ -1,0 +1,873 @@
+<template>
+  <div class="space-y-6">
+    <UCard>
+      <template #header>
+        <div>
+          <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Measurements</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Log body measurements with the correct unit for each metric. Imported readings remain in
+            the same history so you can review everything in one place.
+          </p>
+        </div>
+      </template>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UFormField label="Measurement">
+          <USelectMenu
+            v-model="selectedMetric"
+            :items="metricOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField v-if="selectedMetric === 'custom'" label="Custom Name">
+          <UInput v-model="customName" placeholder="e.g. Forearm" class="w-full" />
+        </UFormField>
+
+        <UFormField v-if="selectedMetric === 'custom'" label="Measurement Type">
+          <USelectMenu
+            v-model="customUnitKind"
+            :items="customUnitOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField label="Value">
+          <div
+            v-if="selectedMetricCategory === 'height' && prefersImperialHeight"
+            class="grid grid-cols-2 gap-3"
+          >
+            <UInput
+              v-model.number="heightFt"
+              type="number"
+              step="1"
+              :placeholder="selectedHeightPlaceholder.ft"
+              class="w-full"
+            >
+              <template #trailing>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">ft</span>
+              </template>
+            </UInput>
+            <UInput
+              v-model.number="heightIn"
+              type="number"
+              step="1"
+              :placeholder="selectedHeightPlaceholder.in"
+              class="w-full"
+            >
+              <template #trailing>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">in</span>
+              </template>
+            </UInput>
+          </div>
+          <UInput
+            v-else
+            v-model.number="value"
+            type="number"
+            step="0.1"
+            :placeholder="selectedValuePlaceholder"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField label="Unit">
+          <UInput
+            :model-value="selectedUnitLabel"
+            disabled
+            class="w-full bg-gray-50 dark:bg-gray-800"
+          />
+        </UFormField>
+
+        <UFormField label="Recorded At">
+          <UInput v-model="recordedAt" type="datetime-local" class="w-full" />
+        </UFormField>
+
+        <UFormField label="Notes">
+          <UInput v-model="notes" placeholder="Optional note" class="w-full" />
+        </UFormField>
+      </div>
+
+      <div class="pt-4 flex justify-end">
+        <UButton :loading="saving" color="primary" @click="saveMeasurement">
+          Add Measurement
+        </UButton>
+      </div>
+    </UCard>
+
+    <UCard>
+      <template #header>
+        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Latest Values</h3>
+      </template>
+
+      <div v-if="latestEntries.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          v-for="entry in latestEntries"
+          :key="entry.id"
+          class="rounded-xl border border-neutral-200 dark:border-neutral-800 p-4"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-gray-900 dark:text-white">
+                {{ formatMetricName(entry) }}
+              </p>
+              <p class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ formatValue(entry) }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ formatDateTime(entry.recordedAt) }}
+              </p>
+            </div>
+            <UBadge
+              variant="soft"
+              :color="entry.source === 'manual_measurement' ? 'primary' : 'neutral'"
+            >
+              {{ formatSource(entry.source) }}
+            </UBadge>
+          </div>
+
+          <div v-if="getMetricSourceOptions(entry.metricKey).length > 1" class="pt-3">
+            <UFormField
+              label="Preferred Source"
+              description="Choose which source should win when values disagree."
+            >
+              <USelectMenu
+                :model-value="getSelectedSource(entry.metricKey)"
+                :items="getMetricSourceOptions(entry.metricKey)"
+                value-key="value"
+                label-key="label"
+                class="w-full"
+                @update:model-value="
+                  (value) => updatePreferredSource(entry.metricKey, String(value))
+                "
+              />
+            </UFormField>
+          </div>
+        </div>
+      </div>
+      <p v-else class="text-sm text-gray-500 dark:text-gray-400">No measurements recorded yet.</p>
+    </UCard>
+
+    <UCard>
+      <template #header>
+        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">History</h3>
+      </template>
+
+      <div v-if="entries.length > 0" class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <UFormField label="Measurement">
+          <USelectMenu
+            v-model="historyMetricFilter"
+            :items="historyMetricFilterOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField label="Source">
+          <USelectMenu
+            v-model="historySourceFilter"
+            :items="historySourceFilterOptions"
+            value-key="value"
+            label-key="label"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
+
+      <div v-if="filteredEntries.length > 0" class="overflow-x-auto">
+        <UTable
+          :data="filteredEntries"
+          :columns="historyColumns"
+          :ui="{
+            root: 'w-full',
+            base: 'w-full table-auto',
+            th: 'text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3',
+            td: 'text-sm text-gray-900 dark:text-gray-100 px-4 py-3 align-top',
+            tbody: 'divide-y divide-gray-200 dark:divide-gray-800'
+          }"
+        >
+          <template #metricKey-cell="{ row }">
+            <span class="font-medium text-gray-900 dark:text-white">
+              {{ formatMetricName(row.original) }}
+            </span>
+          </template>
+
+          <template #value-cell="{ row }">
+            <div class="group flex items-center gap-2">
+              <span>{{ formatValue(row.original) }}</span>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                icon="i-heroicons-pencil-square"
+                class="text-gray-400 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                :loading="editingId === row.original.id"
+                @click="openEditModal(row.original)"
+              />
+            </div>
+          </template>
+
+          <template #recordedAt-cell="{ row }">
+            {{ formatDateTime(row.original.recordedAt) }}
+          </template>
+
+          <template #source-cell="{ row }">
+            <UBadge
+              variant="soft"
+              :color="row.original.source === 'manual_measurement' ? 'primary' : 'neutral'"
+            >
+              {{ formatSource(row.original.source) }}
+            </UBadge>
+          </template>
+
+          <template #notes-cell="{ row }">
+            <div class="group flex items-start gap-2">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ row.original.notes || '-' }}
+              </span>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                icon="i-heroicons-pencil-square"
+                class="text-gray-400 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                :loading="editingId === row.original.id"
+                @click="openEditModal(row.original)"
+              />
+            </div>
+          </template>
+
+          <template #actions-cell="{ row }">
+            <div class="group flex justify-end">
+              <UButton
+                color="error"
+                variant="ghost"
+                size="xs"
+                icon="i-heroicons-trash"
+                class="opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                :loading="deletingId === row.original.id"
+                @click="deleteMeasurement(row.original)"
+              >
+                Delete
+              </UButton>
+            </div>
+          </template>
+        </UTable>
+      </div>
+      <p v-if="entries.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+        No history available.
+      </p>
+      <p v-else-if="filteredEntries.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+        No history entries match the selected filters.
+      </p>
+    </UCard>
+
+    <UModal
+      v-model:open="showEditModal"
+      title="Edit Measurement"
+      description="Update the value and notes for this measurement entry."
+    >
+      <template #body>
+        <div class="space-y-4">
+          <div>
+            <p class="text-sm font-medium text-gray-900 dark:text-white">
+              {{ editingEntry ? formatMetricName(editingEntry) : '' }}
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              {{ editingEntry ? formatDateTime(editingEntry.recordedAt) : '' }}
+            </p>
+          </div>
+
+          <UFormField label="Value">
+            <div
+              v-if="editingEntry?.metricKey === 'height' && prefersImperialHeight"
+              class="grid grid-cols-2 gap-3"
+            >
+              <UInput v-model.number="editHeightFt" type="number" step="1" class="w-full">
+                <template #trailing>
+                  <span class="text-gray-500 dark:text-gray-400 text-xs">ft</span>
+                </template>
+              </UInput>
+              <UInput v-model.number="editHeightIn" type="number" step="1" class="w-full">
+                <template #trailing>
+                  <span class="text-gray-500 dark:text-gray-400 text-xs">in</span>
+                </template>
+              </UInput>
+            </div>
+            <UInput v-else v-model.number="editValue" type="number" step="0.1" class="w-full">
+              <template #trailing>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">
+                  {{
+                    editingEntry
+                      ? getDisplayUnitLabel(editingEntry.metricKey, editingEntry.unit)
+                      : ''
+                  }}
+                </span>
+              </template>
+            </UInput>
+          </UFormField>
+
+          <UFormField label="Notes">
+            <UTextarea
+              v-model="editNotes"
+              :rows="3"
+              autoresize
+              placeholder="Optional note"
+              class="w-full"
+            />
+          </UFormField>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton color="neutral" variant="ghost" @click="showEditModal = false">Cancel</UButton>
+          <UButton color="primary" :loading="savingEdit" @click="saveEdit">Save</UButton>
+        </div>
+      </template>
+    </UModal>
+  </div>
+</template>
+
+<script setup lang="ts">
+  import { cmToFtIn, ftInToCm, LBS_TO_KG } from '~/utils/metrics'
+
+  const toast = useToast()
+  const { formatDateUTC } = useFormat()
+  const userStore = useUserStore()
+
+  const metricOptions = [
+    { label: 'Weight', value: 'weight', unit: 'kg' },
+    { label: 'Height', value: 'height', unit: 'cm' },
+    { label: 'Body Fat %', value: 'body_fat_pct', unit: 'pct' },
+    { label: 'Neck', value: 'neck', unit: 'cm' },
+    { label: 'Shoulders', value: 'shoulders', unit: 'cm' },
+    { label: 'Waist', value: 'waist', unit: 'cm' },
+    { label: 'Abdomen', value: 'abdomen', unit: 'cm' },
+    { label: 'Hips', value: 'hips', unit: 'cm' },
+    { label: 'Glutes', value: 'glutes', unit: 'cm' },
+    { label: 'Chest', value: 'chest', unit: 'cm' },
+    { label: 'Underbust', value: 'underbust', unit: 'cm' },
+    { label: 'Left Arm', value: 'left_arm', unit: 'cm' },
+    { label: 'Right Arm', value: 'right_arm', unit: 'cm' },
+    { label: 'Left Forearm', value: 'left_forearm', unit: 'cm' },
+    { label: 'Right Forearm', value: 'right_forearm', unit: 'cm' },
+    { label: 'Left Wrist', value: 'left_wrist', unit: 'cm' },
+    { label: 'Right Wrist', value: 'right_wrist', unit: 'cm' },
+    { label: 'Left Thigh', value: 'left_thigh', unit: 'cm' },
+    { label: 'Right Thigh', value: 'right_thigh', unit: 'cm' },
+    { label: 'Left Calf', value: 'left_calf', unit: 'cm' },
+    { label: 'Right Calf', value: 'right_calf', unit: 'cm' },
+    { label: 'Left Ankle', value: 'left_ankle', unit: 'cm' },
+    { label: 'Right Ankle', value: 'right_ankle', unit: 'cm' },
+    { label: 'Inseam', value: 'inseam', unit: 'cm' },
+    { label: 'Muscle Mass', value: 'muscle_mass_kg', unit: 'kg' },
+    { label: 'Bone Mass', value: 'bone_mass_kg', unit: 'kg' },
+    { label: 'Custom', value: 'custom', unit: 'cm' }
+  ]
+  const customUnitOptions = [
+    { label: 'Length', value: 'cm' },
+    { label: 'Mass', value: 'kg' },
+    { label: 'Percentage', value: 'pct' }
+  ]
+
+  const selectedMetric = ref('waist')
+  const customName = ref('')
+  const value = ref<number | null>(null)
+  const customUnitKind = ref<'cm' | 'kg' | 'pct'>('cm')
+  const notes = ref('')
+  const historyMetricFilter = ref('all')
+  const historySourceFilter = ref('all')
+  const saving = ref(false)
+  const deletingId = ref<string | null>(null)
+  const editingId = ref<string | null>(null)
+  const savingEdit = ref(false)
+  const showEditModal = ref(false)
+  const editingEntry = ref<any | null>(null)
+  const editValue = ref<number | null>(null)
+  const editNotes = ref('')
+  const heightFt = ref<number | null>(null)
+  const heightIn = ref<number | null>(null)
+  const editHeightFt = ref<number | null>(null)
+  const editHeightIn = ref<number | null>(null)
+  const recordedAt = ref(toDateTimeLocalInput(new Date()))
+
+  const { data, refresh } = await useFetch('/api/body-measurements', {
+    key: 'body-measurements'
+  })
+
+  const entries = computed(() => ((data.value as any)?.items || []) as any[])
+  const preferredSources = computed(
+    () => userStore.user?.dashboardSettings?.bodyMetrics?.preferredSources || {}
+  )
+  const latestEntries = computed(() => {
+    const grouped = new Map<string, any[]>()
+    for (const entry of entries.value) {
+      const bucket = grouped.get(entry.metricKey) || []
+      bucket.push(entry)
+      grouped.set(entry.metricKey, bucket)
+    }
+
+    const resolved: any[] = []
+    for (const [metricKey, metricEntries] of grouped.entries()) {
+      const preferred = preferredSources.value?.[metricKey]
+      const picked =
+        (preferred
+          ? metricEntries.find((entry) => normalizeSourceKey(entry.source) === preferred)
+          : null) || metricEntries[0]
+
+      if (picked) resolved.push(picked)
+    }
+
+    return resolved.sort(
+      (a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
+    )
+  })
+  const filteredEntries = computed(() =>
+    entries.value.filter((entry) => {
+      const matchesMetric =
+        historyMetricFilter.value === 'all' || entry.metricKey === historyMetricFilter.value
+      const matchesSource =
+        historySourceFilter.value === 'all' ||
+        normalizeSourceKey(entry.source) === historySourceFilter.value
+
+      return matchesMetric && matchesSource
+    })
+  )
+  const historyColumns = [
+    { accessorKey: 'metricKey', header: 'Measurement' },
+    { accessorKey: 'value', header: 'Value' },
+    { accessorKey: 'recordedAt', header: 'Date' },
+    { accessorKey: 'source', header: 'Source' },
+    { accessorKey: 'notes', header: 'Notes' },
+    { accessorKey: 'actions', header: '' }
+  ]
+  const selectedMetricConfig = computed(
+    () => metricOptions.find((option) => option.value === selectedMetric.value) || metricOptions[0]
+  )
+  const prefersPounds = computed(() => userStore.profile?.weightUnits === 'Pounds')
+  const prefersImperialHeight = computed(() => userStore.profile?.heightUnits === 'ft/in')
+  const selectedMetricCategory = computed(() => getMetricCategory(selectedMetric.value))
+  const selectedUnit = computed(() =>
+    selectedMetric.value === 'custom' ? customUnitKind.value : selectedMetricConfig.value.unit
+  )
+  const selectedUnitLabel = computed(() => {
+    return getDisplayUnitLabel(selectedMetric.value, selectedUnit.value)
+  })
+  const selectedMetricKey = computed(() => buildMetricKey())
+  const selectedLatestEntry = computed(() => {
+    if (selectedMetric.value === 'custom' && !customName.value.trim()) return null
+    return entries.value.find((entry) => entry.metricKey === selectedMetricKey.value) || null
+  })
+  const selectedValuePlaceholder = computed(() => {
+    if (!selectedLatestEntry.value) return ''
+    if (selectedLatestEntry.value.metricKey === 'height' && prefersImperialHeight.value) return ''
+
+    return String(
+      toDisplayValue(
+        selectedLatestEntry.value.value,
+        selectedLatestEntry.value.metricKey,
+        selectedLatestEntry.value.unit
+      )
+    )
+  })
+  const selectedHeightPlaceholder = computed(() => {
+    if (!selectedLatestEntry.value || selectedLatestEntry.value.metricKey !== 'height') {
+      return { ft: '', in: '' }
+    }
+
+    const { ft, in: inches } = cmToFtIn(selectedLatestEntry.value.value)
+    return {
+      ft: String(ft),
+      in: String(inches)
+    }
+  })
+  const historyMetricFilterOptions = computed(() => {
+    const options = [{ label: 'All measurements', value: 'all' }]
+    const seen = new Set<string>()
+
+    for (const entry of entries.value) {
+      if (seen.has(entry.metricKey)) continue
+      seen.add(entry.metricKey)
+      options.push({
+        label: formatMetricName(entry),
+        value: entry.metricKey
+      })
+    }
+
+    return options
+  })
+  const historySourceFilterOptions = computed(() => {
+    const options = [{ label: 'All sources', value: 'all' }]
+    const seen = new Set<string>()
+
+    for (const entry of entries.value) {
+      const sourceKey = normalizeSourceKey(entry.source)
+      if (seen.has(sourceKey)) continue
+      seen.add(sourceKey)
+      options.push({
+        label: formatSource(entry.source),
+        value: sourceKey
+      })
+    }
+
+    return options
+  })
+
+  function formatMetricName(entry: any) {
+    const knownMetric = metricOptions.find((option) => option.value === entry.metricKey)
+    if (knownMetric) return knownMetric.label
+    return entry.displayName || entry.metricKey.replace(/^custom:/, '').replace(/_/g, ' ')
+  }
+
+  function normalizeSourceKey(source: string) {
+    if (source === 'profile_manual' || source === 'profile_locked') return 'profile'
+    if (source === 'manual_measurement' || source === 'manual' || source === 'manual_edit')
+      return 'manual'
+    if (source.startsWith('oauth:')) return 'oauth'
+    return source
+  }
+
+  function formatSource(source: string) {
+    const normalized = normalizeSourceKey(source)
+    if (normalized === 'profile') return 'Profile'
+    if (normalized === 'manual') return 'Manual'
+    if (normalized === 'oauth') return 'Connected App'
+
+    return source
+      .split(/[:_]/g)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+  }
+
+  function formatDate(value: string) {
+    return formatDateUTC(value, 'yyyy-MM-dd')
+  }
+
+  function formatDateTime(value: string) {
+    return formatDateUTC(value, 'yyyy-MM-dd HH:mm')
+  }
+
+  function formatValue(entry: any) {
+    if (entry.metricKey === 'height' && prefersImperialHeight.value) {
+      const { ft, in: inches } = cmToFtIn(entry.value)
+      return `${ft} ft ${inches} in`
+    }
+
+    const displayValue = toDisplayValue(entry.value, entry.metricKey, entry.unit)
+    const label = getDisplayUnitLabel(entry.metricKey, entry.unit)
+    if (label === '%') return `${displayValue}%`
+    return `${displayValue} ${label}`
+  }
+
+  function formatValueWithUnit(value: number, unit: string) {
+    const displayValue = toDisplayValue(value, '', unit)
+    const label = getDisplayUnitLabel('', unit)
+    if (label === '%') return `${displayValue}%`
+    return `${displayValue} ${label}`
+  }
+
+  function getMetricCategory(metricKey: string, canonicalUnit?: string) {
+    if ((metricKey === 'custom' || metricKey.startsWith('custom:')) && canonicalUnit) {
+      if (canonicalUnit === 'pct') return 'percent'
+      if (canonicalUnit === 'kg') return 'mass'
+      return 'length'
+    }
+    if (metricKey === 'height') return 'height'
+    if (metricKey === 'body_fat_pct') return 'percent'
+    if (['weight', 'muscle_mass_kg', 'bone_mass_kg'].includes(metricKey)) return 'mass'
+    return 'length'
+  }
+
+  function getDisplayUnitLabel(metricKey: string, canonicalUnit: string) {
+    const category = metricKey
+      ? getMetricCategory(metricKey, canonicalUnit)
+      : canonicalUnit === 'pct'
+        ? 'percent'
+        : canonicalUnit === 'kg'
+          ? 'mass'
+          : 'length'
+
+    if (category === 'percent') return '%'
+    if (category === 'mass') return prefersPounds.value ? 'lbs' : 'kg'
+    if (category === 'height') return prefersImperialHeight.value ? 'ft/in' : 'cm'
+    return prefersImperialHeight.value ? 'in' : 'cm'
+  }
+
+  function toDisplayValue(value: number, metricKey: string, canonicalUnit: string) {
+    const category = metricKey
+      ? getMetricCategory(metricKey, canonicalUnit)
+      : canonicalUnit === 'pct'
+        ? 'percent'
+        : canonicalUnit === 'kg'
+          ? 'mass'
+          : 'length'
+    if (category === 'mass' && prefersPounds.value) {
+      return Number((value / LBS_TO_KG).toFixed(1))
+    }
+    if (category === 'length' && prefersImperialHeight.value) {
+      return Number((value / 2.54).toFixed(1))
+    }
+    return Number(value.toFixed(1))
+  }
+
+  function fromDisplayValue(displayValue: number, metricKey: string, canonicalUnit: string) {
+    const category = metricKey
+      ? getMetricCategory(metricKey, canonicalUnit)
+      : canonicalUnit === 'pct'
+        ? 'percent'
+        : canonicalUnit === 'kg'
+          ? 'mass'
+          : 'length'
+    if (category === 'mass' && prefersPounds.value) {
+      return Number((displayValue * LBS_TO_KG).toFixed(2))
+    }
+    if (category === 'length' && prefersImperialHeight.value) {
+      return Number((displayValue * 2.54).toFixed(2))
+    }
+    return displayValue
+  }
+
+  function toDateTimeLocalInput(date: Date) {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    return local.toISOString().slice(0, 16)
+  }
+
+  function buildMetricKey() {
+    if (selectedMetric.value !== 'custom') return selectedMetric.value
+
+    const slug = customName.value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+
+    return slug ? `custom:${slug}` : 'custom'
+  }
+
+  function getMetricSourceOptions(metricKey: string) {
+    const sources = new Map<string, { label: string; value: string }>()
+    sources.set('auto', { label: 'Auto (latest)', value: 'auto' })
+
+    if (metricKey === 'weight') {
+      const profileEntry = entries.value.find(
+        (entry) => entry.metricKey === metricKey && normalizeSourceKey(entry.source) === 'profile'
+      )
+      sources.set('profile', {
+        label: profileEntry
+          ? `Profile (${formatValueWithUnit(profileEntry.value, profileEntry.unit)})`
+          : 'Profile',
+        value: 'profile'
+      })
+    }
+
+    for (const entry of entries.value.filter((item) => item.metricKey === metricKey)) {
+      const normalized = normalizeSourceKey(entry.source)
+      if (!sources.has(normalized)) {
+        sources.set(normalized, {
+          label: `${formatSource(entry.source)} (${formatValue(entry)})`,
+          value: normalized
+        })
+      }
+    }
+
+    return [...sources.values()]
+  }
+
+  function getSelectedSource(metricKey: string) {
+    return preferredSources.value?.[metricKey] || 'auto'
+  }
+
+  async function updatePreferredSource(metricKey: string, value: string) {
+    const currentDashboardSettings = userStore.user?.dashboardSettings || {}
+    const currentBodyMetrics = currentDashboardSettings.bodyMetrics || {}
+    const currentPreferredSources = { ...(currentBodyMetrics.preferredSources || {}) }
+
+    let nextPreferredSources = currentPreferredSources
+    if (value === 'auto') {
+      const { [metricKey]: _removed, ...rest } = currentPreferredSources
+      nextPreferredSources = rest
+    } else {
+      nextPreferredSources = {
+        ...currentPreferredSources,
+        [metricKey]: value
+      }
+    }
+
+    await userStore.updateDashboardSettings({
+      bodyMetrics: {
+        ...currentBodyMetrics,
+        preferredSources: nextPreferredSources
+      }
+    })
+  }
+
+  async function saveMeasurement() {
+    if (
+      (selectedMetricCategory.value === 'height' && !prefersImperialHeight.value && !value.value) ||
+      (selectedMetricCategory.value !== 'height' && !value.value)
+    ) {
+      toast.add({
+        title: 'Missing Value',
+        description: 'Enter a measurement value before saving.',
+        color: 'error'
+      })
+      return
+    }
+
+    if (selectedMetric.value === 'custom' && !customName.value.trim()) {
+      toast.add({
+        title: 'Missing Name',
+        description: 'Enter a custom measurement name before saving.',
+        color: 'error'
+      })
+      return
+    }
+
+    saving.value = true
+    try {
+      const canonicalValue =
+        selectedMetricCategory.value === 'height' && prefersImperialHeight.value
+          ? ftInToCm(heightFt.value || 0, heightIn.value || 0)
+          : fromDisplayValue(value.value || 0, buildMetricKey(), selectedUnit.value)
+
+      await $fetch('/api/body-measurements', {
+        method: 'POST',
+        body: {
+          recordedAt: new Date(recordedAt.value).toISOString(),
+          metricKey: buildMetricKey(),
+          displayName: selectedMetric.value === 'custom' ? customName.value.trim() : null,
+          value: canonicalValue,
+          unit: selectedUnit.value,
+          notes: notes.value || null
+        }
+      })
+
+      value.value = null
+      notes.value = ''
+      customName.value = ''
+      customUnitKind.value = 'cm'
+      heightFt.value = null
+      heightIn.value = null
+      recordedAt.value = toDateTimeLocalInput(new Date())
+      await refresh()
+
+      toast.add({
+        title: 'Measurement Added',
+        description: 'Your measurement history has been updated.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Save Failed',
+        description: error.data?.statusMessage || error.message || 'Could not save measurement.',
+        color: 'error'
+      })
+    } finally {
+      saving.value = false
+    }
+  }
+
+  async function deleteMeasurement(entry: any) {
+    deletingId.value = entry.id
+    try {
+      await $fetch(`/api/body-measurements/${entry.id}`, {
+        method: 'PATCH',
+        body: {
+          isDeleted: true
+        }
+      })
+
+      await refresh()
+      toast.add({
+        title: 'Measurement Deleted',
+        description: 'The incorrect entry has been removed from history.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Delete Failed',
+        description: error.data?.statusMessage || error.message || 'Could not delete measurement.',
+        color: 'error'
+      })
+    } finally {
+      deletingId.value = null
+    }
+  }
+
+  function openEditModal(entry: any) {
+    editingId.value = entry.id
+    editingEntry.value = entry
+    editNotes.value = entry.notes || ''
+    if (entry.metricKey === 'height' && prefersImperialHeight.value) {
+      const { ft, in: inches } = cmToFtIn(entry.value)
+      editHeightFt.value = ft
+      editHeightIn.value = inches
+      editValue.value = null
+    } else {
+      editValue.value = toDisplayValue(entry.value, entry.metricKey, entry.unit)
+      editHeightFt.value = null
+      editHeightIn.value = null
+    }
+    showEditModal.value = true
+  }
+
+  async function saveEdit() {
+    if (
+      !editingEntry.value ||
+      (editingEntry.value.metricKey === 'height'
+        ? prefersImperialHeight.value
+          ? editHeightFt.value == null && editHeightIn.value == null
+          : editValue.value == null
+        : editValue.value == null)
+    ) {
+      toast.add({
+        title: 'Missing Value',
+        description: 'Enter a value before saving your edit.',
+        color: 'error'
+      })
+      return
+    }
+
+    savingEdit.value = true
+    try {
+      const nextValue =
+        editingEntry.value.metricKey === 'height' && prefersImperialHeight.value
+          ? ftInToCm(editHeightFt.value || 0, editHeightIn.value || 0)
+          : fromDisplayValue(
+              editValue.value || 0,
+              editingEntry.value.metricKey,
+              editingEntry.value.unit
+            )
+      await $fetch(`/api/body-measurements/${editingEntry.value.id}`, {
+        method: 'PATCH',
+        body: {
+          value: nextValue,
+          notes: editNotes.value.trim() || null
+        }
+      })
+
+      await refresh()
+      showEditModal.value = false
+      toast.add({
+        title: 'Measurement Updated',
+        description: 'The measurement has been updated.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Update Failed',
+        description: error.data?.statusMessage || error.message || 'Could not update measurement.',
+        color: 'error'
+      })
+    } finally {
+      savingEdit.value = false
+      editingId.value = null
+    }
+  }
+</script>
