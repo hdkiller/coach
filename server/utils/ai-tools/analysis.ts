@@ -180,8 +180,7 @@ export const analysisTools = (userId: string, timezone: string, settings: AiSett
           }))
         : []
 
-      const futureProjectionStartDate = new Date(historicalEndDate)
-      futureProjectionStartDate.setUTCDate(futureProjectionStartDate.getUTCDate() + 1)
+      const futureProjectionStartDate = historicalEndDate
       const hasFutureWindow = futureProjectionStartDate <= endDate
 
       const projectedFutureWorkloads = hasFutureWindow
