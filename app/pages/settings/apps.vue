@@ -46,11 +46,13 @@
       :oura-connected="ouraConnected"
       :oura-ingest-workouts="ouraIngestWorkouts"
       :withings-connected="withingsConnected"
+      :withings-ingest-workouts="withingsIngestWorkouts"
       :yazio-connected="yazioConnected"
       :fitbit-connected="fitbitConnected"
       :strava-connected="stravaConnected"
       :rouvy-connected="rouvyConnected"
       :hevy-connected="hevyConnected"
+      :hevy-ingest-workouts="hevyIngestWorkouts"
       :polar-connected="polarConnected"
       :polar-ingest-workouts="polarIngestWorkouts"
       :garmin-connected="garminConnected"
@@ -59,7 +61,7 @@
       :wahoo-ingest-workouts="wahooIngestWorkouts"
       :telegram-connected="telegramConnected"
       :syncing-providers="syncingProviders"
-      :intervals-settings="intervalsSettings"
+      :integration-settings="integrationSettings"
       @disconnect="disconnectIntegration"
       @sync="syncIntegration"
       @sync-profile="syncProfile"
@@ -298,42 +300,45 @@
       integrationStatus.value?.integrations?.some((i: any) => i.provider === 'intervals') ?? false
   )
 
-  const intervalsIngestWorkouts = computed(
-    () =>
-      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'intervals')
-        ?.ingestWorkouts ?? false
-  )
+  const getIntegration = (provider: string) =>
+    integrationStatus.value?.integrations?.find((i: any) => i.provider === provider)
 
-  const intervalsSettings = computed(
-    () =>
-      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'intervals')
-        ?.settings ?? {}
+  const isActivityIngestionEnabled = (provider: string) => {
+    const integration = getIntegration(provider)
+    const settings = integration?.settings || {}
+
+    if (
+      ['garmin', 'whoop', 'oura', 'withings', 'polar', 'hevy'].includes(provider) &&
+      settings.activityPreferenceConfigured !== true
+    ) {
+      return true
+    }
+
+    return integration?.ingestWorkouts === true
+  }
+
+  const intervalsIngestWorkouts = computed(
+    () => getIntegration('intervals')?.ingestWorkouts ?? false
   )
 
   const whoopConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'whoop') ?? false
   )
 
-  const whoopIngestWorkouts = computed(
-    () =>
-      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'whoop')
-        ?.ingestWorkouts ?? false
-  )
+  const whoopIngestWorkouts = computed(() => isActivityIngestionEnabled('whoop'))
 
   const ouraConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'oura') ?? false
   )
 
-  const ouraIngestWorkouts = computed(
-    () =>
-      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'oura')
-        ?.ingestWorkouts ?? false
-  )
+  const ouraIngestWorkouts = computed(() => isActivityIngestionEnabled('oura'))
 
   const withingsConnected = computed(
     () =>
       integrationStatus.value?.integrations?.some((i: any) => i.provider === 'withings') ?? false
   )
+
+  const withingsIngestWorkouts = computed(() => isActivityIngestionEnabled('withings'))
 
   const yazioConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'yazio') ?? false
@@ -343,9 +348,7 @@
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'fitbit') ?? false
   )
 
-  const fitbitIntegration = computed(() =>
-    integrationStatus.value?.integrations?.find((i: any) => i.provider === 'fitbit')
-  )
+  const fitbitIntegration = computed(() => getIntegration('fitbit'))
 
   const fitbitRateLimited = computed(() => fitbitIntegration.value?.syncStatus === 'RATE_LIMITED')
 
@@ -365,40 +368,49 @@
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'hevy') ?? false
   )
 
+  const hevyIngestWorkouts = computed(() => isActivityIngestionEnabled('hevy'))
+
   const polarConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'polar') ?? false
   )
 
-  const polarIngestWorkouts = computed(
-    () =>
-      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'polar')
-        ?.ingestWorkouts ?? false
-  )
+  const polarIngestWorkouts = computed(() => isActivityIngestionEnabled('polar'))
 
   const garminConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'garmin') ?? false
   )
 
-  const garminIngestWorkouts = computed(
-    () =>
-      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'garmin')
-        ?.ingestWorkouts ?? false
-  )
+  const garminIngestWorkouts = computed(() => isActivityIngestionEnabled('garmin'))
 
   const wahooConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'wahoo') ?? false
   )
 
-  const wahooIngestWorkouts = computed(
-    () =>
-      integrationStatus.value?.integrations?.find((i: any) => i.provider === 'wahoo')
-        ?.ingestWorkouts ?? false
-  )
+  const wahooIngestWorkouts = computed(() => getIntegration('wahoo')?.ingestWorkouts ?? false)
 
   const telegramConnected = computed(
     () =>
       integrationStatus.value?.integrations?.some((i: any) => i.provider === 'telegram') ?? false
   )
+
+  const integrationSettings = computed(() => {
+    const providers = [
+      'intervals',
+      'whoop',
+      'oura',
+      'withings',
+      'yazio',
+      'fitbit',
+      'hevy',
+      'polar',
+      'garmin',
+      'wahoo'
+    ]
+
+    return Object.fromEntries(
+      providers.map((provider) => [provider, getIntegration(provider)?.settings || {}])
+    )
+  })
 
   const syncingProviders = ref(new Set<string>())
 
@@ -722,12 +734,21 @@
 
   const updateIntegrationSetting = async (provider: string, setting: string, value: any) => {
     try {
+      const body: Record<string, any> = {
+        provider,
+        [setting]: value
+      }
+
+      if (setting === 'ingestWorkouts') {
+        body.settings = {
+          ...(integrationSettings.value[provider] || {}),
+          activityPreferenceConfigured: true
+        }
+      }
+
       await $fetch('/api/integrations/update', {
         method: 'POST',
-        body: {
-          provider,
-          [setting]: value
-        }
+        body
       })
 
       const providerName =

@@ -42,9 +42,7 @@
           v-model:current-page="currentPage"
           :events="paginatedEvents"
           :loading="loading"
-          :total-pages="totalPages"
           :total-events="events.length"
-          :visible-pages="visiblePages"
           @navigate="navigateToEvent"
           @create="openCreateModal"
           @edit="openEditModal"
@@ -120,23 +118,6 @@
   // Pagination
   const currentPage = ref(1)
   const itemsPerPage = 20
-
-  const totalPages = computed(() => Math.ceil(events.value.length / itemsPerPage))
-  const visiblePages = computed(() => {
-    const pages = []
-    const maxVisible = 7
-    let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-    const end = Math.min(totalPages.value, start + maxVisible - 1)
-
-    if (end - start < maxVisible - 1) {
-      start = Math.max(1, end - maxVisible + 1)
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i)
-    }
-    return pages
-  })
 
   const paginatedEvents = computed(() => {
     const start = (currentPage.value - 1) * itemsPerPage

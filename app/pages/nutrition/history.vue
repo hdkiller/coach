@@ -574,46 +574,24 @@
 
           <!-- Pagination -->
           <div
-            v-if="totalPages > 1"
-            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
+            v-if="filteredNutrition.length > itemsPerPage"
+            class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
           >
-            <div class="flex items-center justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
-                {{ Math.min(currentPage * itemsPerPage, filteredNutrition.length) }} of
-                {{ filteredNutrition.length }} entries
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+              <div
+                class="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center sm:text-left"
+              >
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
+                  Math.min(currentPage * itemsPerPage, filteredNutrition.length)
+                }}
+                of {{ filteredNutrition.length }} entries
               </div>
-              <div class="flex gap-2">
-                <button
-                  :disabled="currentPage === 1"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changePage(currentPage - 1)"
-                >
-                  Previous
-                </button>
-                <div class="flex gap-1">
-                  <button
-                    v-for="page in visiblePages"
-                    :key="page"
-                    :class="[
-                      'px-3 py-1 rounded text-sm',
-                      page === currentPage
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    ]"
-                    @click="changePage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                </div>
-                <button
-                  :disabled="currentPage === totalPages"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changePage(currentPage + 1)"
-                >
-                  Next
-                </button>
-              </div>
+              <UPagination
+                v-model:page="currentPage"
+                :total="filteredNutrition.length"
+                :items-per-page="itemsPerPage"
+                @update:page="changePage"
+              />
             </div>
           </div>
         </div>
@@ -910,23 +888,6 @@
     const withCalories = allNutrition.value.filter((n) => n.calories)
     if (withCalories.length === 0) return null
     return withCalories.reduce((sum, n) => sum + n.calories, 0) / withCalories.length
-  })
-
-  const totalPages = computed(() => Math.ceil(filteredNutrition.value.length / itemsPerPage))
-  const visiblePages = computed(() => {
-    const pages = []
-    const maxVisible = 7
-    let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-    const end = Math.min(totalPages.value, start + maxVisible - 1)
-
-    if (end - start < maxVisible - 1) {
-      start = Math.max(1, end - maxVisible + 1)
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i)
-    }
-    return pages
   })
 
   const paginatedNutrition = computed(() => {

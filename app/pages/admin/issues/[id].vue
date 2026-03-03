@@ -1,6 +1,11 @@
 <script setup lang="ts">
   import AdminUserIssuesCard from '~/components/admin/AdminUserIssuesCard.vue'
   import IssueFormModal from '~/components/issues/IssueFormModal.vue'
+  import {
+    ISSUE_COMMENT_MAX_LENGTH,
+    ISSUE_COMMENT_MAX_LENGTH_LABEL,
+    ISSUE_COMMENT_WARNING_LENGTH
+  } from '~/utils/issue-constants'
 
   definePageMeta({
     layout: 'admin',
@@ -98,6 +103,18 @@
   const newComment = ref('')
   const newCommentType = ref<'NOTE' | 'MESSAGE'>('MESSAGE')
   const sendingComment = ref(false)
+  const newCommentLength = computed(() => newComment.value.length)
+  const editingCommentLength = computed(() => editingCommentContent.value.length)
+
+  function getApiErrorMessage(error: any, fallback: string) {
+    return (
+      error?.data?.statusMessage ||
+      error?.data?.message ||
+      error?.statusMessage ||
+      error?.message ||
+      fallback
+    )
+  }
 
   async function addComment() {
     if (!newComment.value.trim()) return
@@ -110,8 +127,12 @@
       newComment.value = ''
       await refreshComments()
       toast.add({ title: 'Comment added', color: 'success' })
-    } catch (error) {
-      toast.add({ title: 'Failed to add comment', color: 'error' })
+    } catch (error: any) {
+      toast.add({
+        title: 'Failed to add comment',
+        description: getApiErrorMessage(error, 'Something went wrong.'),
+        color: 'error'
+      })
     } finally {
       sendingComment.value = false
     }
@@ -138,8 +159,12 @@
       toast.add({ title: 'Comment updated', color: 'success' })
       closeEditCommentModal()
       await refreshComments()
-    } catch {
-      toast.add({ title: 'Failed to update comment', color: 'error' })
+    } catch (error: any) {
+      toast.add({
+        title: 'Failed to update comment',
+        description: getApiErrorMessage(error, 'Something went wrong.'),
+        color: 'error'
+      })
     } finally {
       savingComment.value = false
     }
@@ -292,6 +317,72 @@
       toast.add({ title: 'Ticket ID copied to clipboard', color: 'success' })
     }
   }
+
+  function formatJsonBlock(value: unknown) {
+    if (value == null) return 'None'
+    return JSON.stringify(value, null, 2)
+  }
+
+  function buildTicketClipboardText() {
+    if (!report.value) return ''
+
+    const formattedComments = (comments.value || []).map((comment: any, index: number) => {
+      const author = comment.user?.name || comment.user?.email || 'Unknown'
+      const userLine = comment.userId ? `User ID: ${comment.userId}` : null
+      const acknowledgedLine = comment.acknowledgedAt
+        ? `Acknowledged At: ${new Date(comment.acknowledgedAt).toLocaleString()}`
+        : null
+
+      return [
+        `Comment ${index + 1}`,
+        `ID: ${comment.id}`,
+        `Type: ${comment.type}`,
+        `Author: ${author}`,
+        userLine,
+        `Is Admin: ${comment.isAdmin ? 'Yes' : 'No'}`,
+        `Created At: ${new Date(comment.createdAt).toLocaleString()}`,
+        acknowledgedLine,
+        'Content:',
+        comment.content
+      ]
+        .filter(Boolean)
+        .join('\n')
+    })
+
+    return [
+      'Ticket',
+      `Title: ${report.value.title}`,
+      `Ticket ID: ${report.value.id}`,
+      `User ID: ${report.value.userId}`,
+      `Status: ${report.value.status}`,
+      `Priority: ${report.value.priority || 'MEDIUM'}`,
+      `Created At: ${new Date(report.value.createdAt).toLocaleString()}`,
+      `Updated At: ${new Date(report.value.updatedAt).toLocaleString()}`,
+      '',
+      'Description',
+      report.value.description,
+      '',
+      'Context',
+      formatJsonBlock(report.value.context),
+      '',
+      'Logs',
+      report.value.logs || 'None',
+      '',
+      'Comments',
+      formattedComments.length > 0 ? formattedComments.join('\n\n') : 'None'
+    ].join('\n')
+  }
+
+  async function copyFullTicket() {
+    if (!report.value) return
+
+    try {
+      await navigator.clipboard.writeText(buildTicketClipboardText())
+      toast.add({ title: 'Full ticket copied to clipboard', color: 'success' })
+    } catch {
+      toast.add({ title: 'Failed to copy full ticket', color: 'error' })
+    }
+  }
 </script>
 
 <template>
@@ -385,6 +476,15 @@
                   <h3 class="text-xs font-black uppercase tracking-widest text-gray-400">
                     Description
                   </h3>
+                  <UButton
+                    icon="i-heroicons-clipboard-document"
+                    variant="ghost"
+                    color="neutral"
+                    size="xs"
+                    @click="copyFullTicket"
+                  >
+                    Copy ticket
+                  </UButton>
                 </div>
               </template>
               <p
@@ -614,6 +714,7 @@
                     "
                     autoresize
                     :rows="3"
+                    :maxlength="ISSUE_COMMENT_MAX_LENGTH"
                     class="w-full"
                     :class="{ 'bg-amber-50/50 dark:bg-amber-900/10': newCommentType === 'NOTE' }"
                     @keydown.meta.enter="addComment"
@@ -629,7 +730,22 @@
                     :ui="{ fieldset: 'flex flex-row gap-4' }"
                   />
                   <div class="flex justify-between items-center gap-4">
-                    <p class="text-[10px] text-gray-400 hidden sm:block">Press Cmd+Enter to send</p>
+                    <div class="flex items-center justify-between gap-4 w-full">
+                      <p class="text-[10px] text-gray-400 hidden sm:block">
+                        Press Cmd+Enter to send
+                      </p>
+                      <p
+                        class="text-[10px] ml-auto"
+                        :class="
+                          newCommentLength >= ISSUE_COMMENT_WARNING_LENGTH
+                            ? 'font-semibold text-error-500'
+                            : 'text-gray-400'
+                        "
+                      >
+                        {{ newCommentLength.toLocaleString() }}/{{ ISSUE_COMMENT_MAX_LENGTH_LABEL }}
+                        characters
+                      </p>
+                    </div>
                     <UButton
                       icon="i-heroicons-paper-airplane"
                       :color="newCommentType === 'NOTE' ? 'warning' : 'primary'"
@@ -1009,7 +1125,23 @@
       >
         <template #body>
           <div class="space-y-3">
-            <UTextarea v-model="editingCommentContent" :rows="4" autoresize />
+            <UTextarea
+              v-model="editingCommentContent"
+              :rows="4"
+              :maxlength="ISSUE_COMMENT_MAX_LENGTH"
+              autoresize
+            />
+            <p
+              class="text-[10px] text-right"
+              :class="
+                editingCommentLength >= ISSUE_COMMENT_WARNING_LENGTH
+                  ? 'font-semibold text-error-500'
+                  : 'text-gray-400'
+              "
+            >
+              {{ editingCommentLength.toLocaleString() }}/{{ ISSUE_COMMENT_MAX_LENGTH_LABEL }}
+              characters
+            </p>
             <div class="flex justify-end gap-2">
               <UButton color="neutral" variant="ghost" @click="closeEditCommentModal">
                 Cancel

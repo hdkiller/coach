@@ -1,5 +1,10 @@
 <script setup lang="ts">
   import IssueFormModal from '~/components/issues/IssueFormModal.vue'
+  import {
+    ISSUE_COMMENT_MAX_LENGTH,
+    ISSUE_COMMENT_MAX_LENGTH_LABEL,
+    ISSUE_COMMENT_WARNING_LENGTH
+  } from '~/utils/issue-constants'
 
   definePageMeta({
     middleware: 'auth'
@@ -24,12 +29,24 @@
   const editingCommentContent = ref('')
   const savingComment = ref(false)
   const deletingCommentId = ref<string | null>(null)
+  const newCommentLength = computed(() => newComment.value.length)
+  const editingCommentLength = computed(() => editingCommentContent.value.length)
   const isEditCommentModalOpen = computed({
     get: () => !!editingCommentId.value,
     set: (open: boolean) => {
       if (!open) closeEditCommentModal()
     }
   })
+
+  function getApiErrorMessage(error: any, fallback: string) {
+    return (
+      error?.data?.statusMessage ||
+      error?.data?.message ||
+      error?.statusMessage ||
+      error?.message ||
+      fallback
+    )
+  }
 
   function copyText(value: string, label: string) {
     if (!value?.trim()) return
@@ -53,8 +70,12 @@
       newComment.value = ''
       await refreshReport()
       toast.add({ title: 'Message sent', color: 'success' })
-    } catch (error) {
-      toast.add({ title: 'Failed to send message', color: 'error' })
+    } catch (error: any) {
+      toast.add({
+        title: 'Failed to send message',
+        description: getApiErrorMessage(error, 'Something went wrong.'),
+        color: 'error'
+      })
     } finally {
       sendingComment.value = false
     }
@@ -82,8 +103,12 @@
       toast.add({ title: 'Comment updated', color: 'success' })
       closeEditCommentModal()
       await refreshReport()
-    } catch {
-      toast.add({ title: 'Failed to update comment', color: 'error' })
+    } catch (error: any) {
+      toast.add({
+        title: 'Failed to update comment',
+        description: getApiErrorMessage(error, 'Something went wrong.'),
+        color: 'error'
+      })
     } finally {
       savingComment.value = false
     }
@@ -545,6 +570,7 @@
                     placeholder="Add more details or reply to the team..."
                     autoresize
                     :rows="2"
+                    :maxlength="ISSUE_COMMENT_MAX_LENGTH"
                     class="flex-1"
                     @keydown.meta.enter="addComment"
                   />
@@ -560,7 +586,20 @@
                     </UButton>
                   </div>
                 </div>
-                <p class="mt-2 text-[10px] text-gray-400 text-right">Press Cmd+Enter to send</p>
+                <div class="mt-2 flex items-center justify-between gap-3">
+                  <p class="text-[10px] text-gray-400">Press Cmd+Enter to send</p>
+                  <p
+                    class="text-[10px] text-right"
+                    :class="
+                      newCommentLength >= ISSUE_COMMENT_WARNING_LENGTH
+                        ? 'font-semibold text-error-500'
+                        : 'text-gray-400'
+                    "
+                  >
+                    {{ newCommentLength.toLocaleString() }}/{{ ISSUE_COMMENT_MAX_LENGTH_LABEL }}
+                    characters
+                  </p>
+                </div>
               </UCard>
             </div>
 
@@ -665,7 +704,23 @@
       >
         <template #body>
           <div class="space-y-3">
-            <UTextarea v-model="editingCommentContent" :rows="4" autoresize />
+            <UTextarea
+              v-model="editingCommentContent"
+              :rows="4"
+              :maxlength="ISSUE_COMMENT_MAX_LENGTH"
+              autoresize
+            />
+            <p
+              class="text-[10px] text-right"
+              :class="
+                editingCommentLength >= ISSUE_COMMENT_WARNING_LENGTH
+                  ? 'font-semibold text-error-500'
+                  : 'text-gray-400'
+              "
+            >
+              {{ editingCommentLength.toLocaleString() }}/{{ ISSUE_COMMENT_MAX_LENGTH_LABEL }}
+              characters
+            </p>
             <div class="flex justify-end gap-2">
               <UButton color="neutral" variant="ghost" @click="closeEditCommentModal">
                 Cancel

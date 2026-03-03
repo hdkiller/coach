@@ -1799,6 +1799,22 @@
               </div>
             </div>
           </div>
+
+          <div
+            v-if="isSectionEnabled('raw-data')"
+            id="raw-data"
+            class="scroll-mt-20 space-y-4"
+            :style="sectionStyle('raw-data')"
+          >
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+              Raw Data
+            </h2>
+            <JsonViewer
+              title="Raw Data (JSON)"
+              :data="workout.rawJson"
+              filename="workout-raw.json"
+            />
+          </div>
         </div>
       </div>
     </template>
@@ -2253,6 +2269,7 @@
     | 'metrics'
     | 'streams'
     | 'duplicates'
+    | 'raw-data'
 
   type WorkoutSectionSettings = Record<WorkoutSectionKey, { visible: boolean; order: number }>
 
@@ -2283,7 +2300,8 @@
     { key: 'notes', label: 'Notes', icon: 'i-lucide-notebook-pen', anchorId: 'notes' },
     { key: 'metrics', label: 'Metrics', icon: 'i-lucide-bar-chart-3', anchorId: 'metrics' },
     { key: 'streams', label: 'Streams', icon: 'i-lucide-radio', anchorId: 'streams' },
-    { key: 'duplicates', label: 'Versions', icon: 'i-lucide-copy', anchorId: 'duplicates' }
+    { key: 'duplicates', label: 'Versions', icon: 'i-lucide-copy', anchorId: 'duplicates' },
+    { key: 'raw-data', label: 'Raw Data', icon: 'i-lucide-code-xml', anchorId: 'raw-data' }
   ]
 
   const workoutSectionDefaults = workoutSectionCatalog.reduce((acc, section, index) => {
@@ -2790,7 +2808,8 @@
         currentWorkout?.isDuplicate ||
         currentWorkout?.duplicates?.length ||
         currentWorkout?.plannedWorkout
-      )
+      ),
+      'raw-data': Boolean(currentWorkout?.rawJson)
     }
   })
 

@@ -508,24 +508,37 @@
                               <div class="text-xs font-bold truncate">{{ activity.title }}</div>
 
                               <div class="mt-1 flex items-center justify-between gap-2 min-w-0">
-                                <div class="text-[10px] text-gray-500 truncate">
-                                  <span
-                                    v-if="activity.tss || activity.plannedTss"
-                                    class="text-green-600 font-medium"
+                                <div
+                                  class="text-[10px] text-gray-500 truncate flex items-center gap-1"
+                                >
+                                  <template
+                                    v-for="(item, i) in [
+                                      activity.tss || activity.plannedTss
+                                        ? {
+                                            label: `${Math.round(activity.tss || activity.plannedTss || 0)} TSS`,
+                                            class: 'text-green-600 font-medium'
+                                          }
+                                        : null,
+                                      activity.duration || activity.plannedDuration
+                                        ? {
+                                            label: formatDurationCompact(
+                                              activity.duration || activity.plannedDuration || 0
+                                            )
+                                          }
+                                        : null,
+                                      activity.distance || activity.plannedDistance
+                                        ? {
+                                            label: formatDistance(
+                                              activity.distance || activity.plannedDistance || 0
+                                            )
+                                          }
+                                        : null
+                                    ].filter(Boolean)"
+                                    :key="i"
                                   >
-                                    {{ Math.round(activity.tss || activity.plannedTss || 0) }} TSS •
-                                  </span>
-                                  {{
-                                    formatDurationCompact(
-                                      activity.duration || activity.plannedDuration || 0
-                                    )
-                                  }}
-                                  •
-                                  {{
-                                    formatDistance(
-                                      activity.distance || activity.plannedDistance || 0
-                                    )
-                                  }}
+                                    <span v-if="i > 0">•</span>
+                                    <span :class="item.class">{{ item.label }}</span>
+                                  </template>
                                 </div>
 
                                 <div class="flex items-center gap-2 shrink-0">

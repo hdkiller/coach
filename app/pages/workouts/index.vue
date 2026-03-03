@@ -340,9 +340,7 @@
               v-model:current-page="currentPage"
               :workouts="paginatedWorkouts"
               :loading="loading"
-              :total-pages="totalPages"
               :total-workouts="filteredWorkouts.length"
-              :visible-pages="visiblePages"
               @navigate="navigateToWorkout"
             />
           </div>
@@ -965,24 +963,6 @@
     }
 
     return workouts
-  })
-
-  const totalPages = computed(() => Math.ceil(filteredWorkouts.value.length / itemsPerPage))
-
-  const visiblePages = computed(() => {
-    const pages = []
-    const maxVisible = 7
-    let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-    const end = Math.min(totalPages.value, start + maxVisible - 1)
-
-    if (end - start < maxVisible - 1) {
-      start = Math.max(1, end - maxVisible + 1)
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i)
-    }
-    return pages
   })
 
   const paginatedWorkouts = computed(() => {

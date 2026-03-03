@@ -219,48 +219,25 @@
             </table>
           </div>
 
-          <!-- Fitness Pagination -->
           <div
-            v-if="fitnessTotalPages > 1"
-            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
+            v-if="fitnessTotalItems > 0"
+            class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
           >
-            <div class="flex items-center justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                Showing {{ (fitnessPage - 1) * fitnessItemsPerPage + 1 }} to
-                {{ Math.min(fitnessPage * fitnessItemsPerPage, fitnessTotalItems) }} of
-                {{ fitnessTotalItems }} entries
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+              <div
+                class="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center sm:text-left"
+              >
+                Showing {{ (fitnessPage - 1) * fitnessItemsPerPage + 1 }}-{{
+                  Math.min(fitnessPage * fitnessItemsPerPage, fitnessTotalItems)
+                }}
+                of {{ fitnessTotalItems }} entries
               </div>
-              <div class="flex gap-2">
-                <button
-                  :disabled="fitnessPage === 1"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changeFitnessPage(fitnessPage - 1)"
-                >
-                  Previous
-                </button>
-                <div class="flex gap-1">
-                  <button
-                    v-for="page in fitnessTotalPages"
-                    :key="page"
-                    :class="[
-                      'px-3 py-1 rounded text-sm',
-                      page === fitnessPage
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    ]"
-                    @click="changeFitnessPage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                </div>
-                <button
-                  :disabled="fitnessPage === fitnessTotalPages"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changeFitnessPage(fitnessPage + 1)"
-                >
-                  Next
-                </button>
-              </div>
+              <UPagination
+                v-model:page="fitnessPage"
+                :total="fitnessTotalItems"
+                :items-per-page="fitnessItemsPerPage"
+                @update:page="fetchFitnessData"
+              />
             </div>
           </div>
         </div>
@@ -358,13 +335,14 @@
 
           <!-- Planned Workouts Pagination -->
           <div
-            v-if="plannedWorkoutsTotalPages > 1"
-            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
+            v-if="plannedWorkoutsTotalItems > 0"
+            class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
           >
-            <div class="flex items-center justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                Showing {{ (plannedWorkoutsPage - 1) * plannedWorkoutsItemsPerPage + 1 }} to
-                {{
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+              <div
+                class="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center sm:text-left"
+              >
+                Showing {{ (plannedWorkoutsPage - 1) * plannedWorkoutsItemsPerPage + 1 }}-{{
                   Math.min(
                     plannedWorkoutsPage * plannedWorkoutsItemsPerPage,
                     plannedWorkoutsTotalItems
@@ -372,37 +350,12 @@
                 }}
                 of {{ plannedWorkoutsTotalItems }} entries
               </div>
-              <div class="flex gap-2">
-                <button
-                  :disabled="plannedWorkoutsPage === 1"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changePlannedWorkoutsPage(plannedWorkoutsPage - 1)"
-                >
-                  Previous
-                </button>
-                <div class="flex gap-1">
-                  <button
-                    v-for="page in plannedWorkoutsTotalPages"
-                    :key="page"
-                    :class="[
-                      'px-3 py-1 rounded text-sm',
-                      page === plannedWorkoutsPage
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    ]"
-                    @click="changePlannedWorkoutsPage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                </div>
-                <button
-                  :disabled="plannedWorkoutsPage === plannedWorkoutsTotalPages"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changePlannedWorkoutsPage(plannedWorkoutsPage + 1)"
-                >
-                  Next
-                </button>
-              </div>
+              <UPagination
+                v-model:page="plannedWorkoutsPage"
+                :total="plannedWorkoutsTotalItems"
+                :items-per-page="plannedWorkoutsItemsPerPage"
+                @update:page="fetchPlannedWorkouts"
+              />
             </div>
           </div>
         </div>
@@ -671,45 +624,23 @@
           <!-- Workouts Pagination -->
           <div
             v-if="workoutsTotalItems > 0"
-            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
+            class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
           >
-            <div class="flex items-center justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                Showing {{ (workoutsPage - 1) * workoutsItemsPerPage + 1 }} to
-                {{ Math.min(workoutsPage * workoutsItemsPerPage, workoutsTotalItems) }} of
-                {{ workoutsTotalItems }} entries
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+              <div
+                class="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center sm:text-left"
+              >
+                Showing {{ (workoutsPage - 1) * workoutsItemsPerPage + 1 }}-{{
+                  Math.min(workoutsPage * workoutsItemsPerPage, workoutsTotalItems)
+                }}
+                of {{ workoutsTotalItems }} entries
               </div>
-              <div class="flex gap-2">
-                <button
-                  :disabled="workoutsPage === 1"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changeWorkoutsPage(workoutsPage - 1)"
-                >
-                  Previous
-                </button>
-                <div class="flex gap-1">
-                  <button
-                    v-for="page in workoutsTotalPages"
-                    :key="page"
-                    :class="[
-                      'px-3 py-1 rounded text-sm',
-                      page === workoutsPage
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    ]"
-                    @click="changeWorkoutsPage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                </div>
-                <button
-                  :disabled="workoutsPage === workoutsTotalPages"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changeWorkoutsPage(workoutsPage + 1)"
-                >
-                  Next
-                </button>
-              </div>
+              <UPagination
+                v-model:page="workoutsPage"
+                :total="workoutsTotalItems"
+                :items-per-page="workoutsItemsPerPage"
+                @update:page="fetchRecentWorkouts"
+              />
             </div>
           </div>
         </div>
@@ -857,46 +788,24 @@
 
           <!-- Nutrition Pagination -->
           <div
-            v-if="nutritionTotalPages > 1"
-            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
+            v-if="nutritionTotalItems > 0"
+            class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-950/30"
           >
-            <div class="flex items-center justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                Showing {{ (nutritionPage - 1) * nutritionItemsPerPage + 1 }} to
-                {{ Math.min(nutritionPage * nutritionItemsPerPage, nutritionTotalItems) }} of
-                {{ nutritionTotalItems }} entries
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+              <div
+                class="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center sm:text-left"
+              >
+                Showing {{ (nutritionPage - 1) * nutritionItemsPerPage + 1 }}-{{
+                  Math.min(nutritionPage * nutritionItemsPerPage, nutritionTotalItems)
+                }}
+                of {{ nutritionTotalItems }} entries
               </div>
-              <div class="flex gap-2">
-                <button
-                  :disabled="nutritionPage === 1"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changeNutritionPage(nutritionPage - 1)"
-                >
-                  Previous
-                </button>
-                <div class="flex gap-1">
-                  <button
-                    v-for="page in nutritionTotalPages"
-                    :key="page"
-                    :class="[
-                      'px-3 py-1 rounded text-sm',
-                      page === nutritionPage
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    ]"
-                    @click="changeNutritionPage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                </div>
-                <button
-                  :disabled="nutritionPage === nutritionTotalPages"
-                  class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  @click="changeNutritionPage(nutritionPage + 1)"
-                >
-                  Next
-                </button>
-              </div>
+              <UPagination
+                v-model:page="nutritionPage"
+                :total="nutritionTotalItems"
+                :items-per-page="nutritionItemsPerPage"
+                @update:page="fetchNutritionData"
+              />
             </div>
           </div>
         </div>
@@ -1244,19 +1153,7 @@
     }
   }
 
-  // Computed properties for pagination
-  const fitnessTotalPages = computed(() => Math.ceil(fitnessTotalItems.value / fitnessItemsPerPage))
-  const plannedWorkoutsTotalPages = computed(() =>
-    Math.ceil(plannedWorkoutsTotalItems.value / plannedWorkoutsItemsPerPage)
-  )
-  const workoutsTotalPages = computed(() =>
-    Math.ceil(workoutsTotalItems.value / workoutsItemsPerPage)
-  )
-  const nutritionTotalPages = computed(() =>
-    Math.ceil(nutritionTotalItems.value / nutritionItemsPerPage)
-  )
-
-  // Pagination handlers
+  // Fetch recent nutrition data
   function changeFitnessPage(page: number) {
     fitnessPage.value = page
     fetchFitnessData()
