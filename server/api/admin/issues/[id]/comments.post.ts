@@ -1,12 +1,10 @@
 import { getServerSession } from '../../../../utils/session'
 import { issuesRepository } from '../../../../utils/repositories/issuesRepository'
-import { z } from 'zod'
 import { createUserNotification } from '../../../../utils/notifications'
-
-const commentSchema = z.object({
-  content: z.string().min(1).max(2000),
-  type: z.enum(['NOTE', 'MESSAGE']).default('MESSAGE')
-})
+import {
+  getZodErrorMessage,
+  issueAdminCommentSchema
+} from '../../../../utils/issues/commentValidation'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -20,12 +18,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const result = commentSchema.safeParse(body)
+  const result = issueAdminCommentSchema.safeParse(body)
 
   if (!result.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid input',
+      statusMessage: getZodErrorMessage(result.error),
       data: result.error.flatten()
     })
   }
