@@ -157,53 +157,59 @@
                   activity.plannedDistance ||
                   activity.averageHr ||
                   activity.tss ||
+                  activity.trimp ||
                   activity.plannedTss ||
                   activity.startTime
                 "
-                class="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5"
+                class="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex-wrap"
               >
                 <span
                   v-if="activity.startTime"
-                  class="inline-flex items-center gap-0.5 text-primary-600 dark:text-primary-400 font-medium"
+                  class="inline-flex items-center gap-0.5 text-primary-600 dark:text-primary-400 font-medium mr-1"
                 >
                   <UIcon name="i-heroicons-clock" class="w-2.5 h-2.5" />
                   <span>{{ activity.startTime }}</span>
                 </span>
-                <span class="inline-block w-10 text-left">
-                  <span v-if="activity.duration || activity.plannedDuration">
-                    {{ formatDuration(activity.duration || activity.plannedDuration || 0) }}
+
+                <template
+                  v-for="(item, i) in [
+                    activity.duration || activity.plannedDuration
+                      ? {
+                          label: formatDuration(activity.duration || activity.plannedDuration || 0)
+                        }
+                      : null,
+                    activity.distance || activity.plannedDistance
+                      ? {
+                          label: formatDistance(activity.distance || activity.plannedDistance || 0)
+                        }
+                      : null,
+                    activity.averageHr
+                      ? {
+                          label: Math.round(activity.averageHr).toString(),
+                          icon: 'i-heroicons-heart',
+                          class: 'text-red-500 dark:text-red-400'
+                        }
+                      : null,
+                    activity.tss || activity.trimp || activity.plannedTss
+                      ? {
+                          label: Math.round(
+                            activity.tss ?? activity.trimp ?? activity.plannedTss ?? 0
+                          ).toString(),
+                          dot: true,
+                          dotClass:
+                            activity.source === 'completed' ? 'bg-green-500' : 'bg-amber-500'
+                        }
+                      : null
+                  ].filter(Boolean)"
+                  :key="i"
+                >
+                  <span v-if="i > 0" class="opacity-50 text-[8px] mx-0.5">•</span>
+                  <span class="flex items-center gap-0.5" :class="item.class">
+                    <UIcon v-if="item.icon" :name="item.icon" class="w-2.5 h-2.5" />
+                    <div v-if="item.dot" class="w-2.5 h-0.5 rounded-full" :class="item.dotClass" />
+                    <span>{{ item.label }}</span>
                   </span>
-                </span>
-                <span class="inline-block w-11 text-left">
-                  <span v-if="activity.distance || activity.plannedDistance">
-                    {{ formatDistance(activity.distance || activity.plannedDistance || 0) }}
-                  </span>
-                </span>
-                <span class="inline-flex items-center gap-0.5 w-8">
-                  <template v-if="activity.averageHr">
-                    <UIcon
-                      name="i-heroicons-heart"
-                      class="w-2.5 h-2.5 flex-shrink-0 text-red-500 dark:text-red-400"
-                    />
-                    <span class="text-red-500 dark:text-red-400">{{
-                      Math.round(activity.averageHr)
-                    }}</span>
-                  </template>
-                </span>
-                <span class="inline-flex items-center gap-0.5">
-                  <template v-if="activity.tss || activity.trimp || activity.plannedTss">
-                    <span
-                      class="w-3 h-0.5 rounded-full flex-shrink-0"
-                      :class="{
-                        'bg-green-500': activity.source === 'completed',
-                        'bg-amber-500': activity.source === 'planned'
-                      }"
-                    />
-                    <span class="font-medium">{{
-                      Math.round(activity.tss ?? activity.trimp ?? activity.plannedTss ?? 0)
-                    }}</span>
-                  </template>
-                </span>
+                </template>
               </div>
 
               <!-- Training Stress Metrics (CTL/ATL/TSB) for completed workouts -->

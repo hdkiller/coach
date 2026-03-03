@@ -6,30 +6,36 @@
       <div v-if="latLngs.length > 0" class="relative h-full w-full">
         <!-- Metric Selector Overlay -->
         <div
-          class="absolute top-4 right-4 z-[1000] flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+          class="absolute bottom-4 right-4 z-[1000] flex flex-col gap-2 opacity-100 transition-opacity sm:bottom-auto sm:top-4 sm:opacity-0 sm:group-hover:opacity-100"
         >
-          <UFieldGroup size="xs" variant="solid">
-            <UButton
-              v-for="mode in availableModes"
-              :key="mode.id"
-              :color="selectedMode === mode.id ? 'primary' : 'neutral'"
-              :icon="mode.icon"
-              @click="selectedMode = mode.id"
-            >
-              <span class="hidden sm:inline">{{ mode.label }}</span>
-            </UButton>
-          </UFieldGroup>
-
-          <UButton
-            v-if="lapSplits.length > 0"
-            size="xs"
-            :color="showSplits ? 'primary' : 'neutral'"
-            :icon="showSplits ? 'i-heroicons-eye' : 'i-heroicons-eye-slash'"
-            class="self-end"
-            @click="showSplits = !showSplits"
+          <div
+            class="rounded-2xl border border-white/10 bg-black/55 p-2 shadow-2xl backdrop-blur-xl"
           >
-            Splits
-          </UButton>
+            <UFieldGroup size="xs" variant="solid">
+              <UButton
+                v-for="mode in availableModes"
+                :key="mode.id"
+                :color="selectedMode === mode.id ? 'primary' : 'neutral'"
+                :variant="selectedMode === mode.id ? 'soft' : 'ghost'"
+                :icon="mode.icon"
+                @click="selectedMode = mode.id"
+              >
+                <span class="hidden sm:inline">{{ mode.label }}</span>
+              </UButton>
+            </UFieldGroup>
+
+            <UButton
+              v-if="lapSplits.length > 0"
+              size="xs"
+              :color="showSplits ? 'primary' : 'neutral'"
+              :variant="showSplits ? 'soft' : 'ghost'"
+              :icon="showSplits ? 'i-heroicons-eye' : 'i-heroicons-eye-slash'"
+              class="mt-2 w-full justify-center"
+              @click="showSplits = !showSplits"
+            >
+              <span class="hidden sm:inline">Splits</span>
+            </UButton>
+          </div>
         </div>
 
         <LMap
