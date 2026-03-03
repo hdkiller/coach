@@ -123,7 +123,9 @@ export function evaluateFitbitRecoveryAlert(
   const baselineText = baselineHrv !== null ? `${baselineHrv.toFixed(1)}ms` : 'unknown'
   const summary = triggered
     ? `FITBIT RECOVERY ALERT: low HRV + poor sleep + high ATL detected (HRV ${currentHrv ?? 'n/a'}ms vs baseline ${baselineText}, ATL ${atl ?? 'n/a'}). Bias recommendation to rest/reduce intensity today.`
-    : `Fitbit recovery flags — lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}.`
+    : isFitbit
+      ? `Fitbit recovery flags — lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}. No Fitbit recovery alert triggered.`
+      : `Not a Fitbit-sourced wellness day; Fitbit recovery alert not evaluated. Flags — lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}.`
 
   return {
     isFitbit,

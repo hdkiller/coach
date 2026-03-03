@@ -374,6 +374,9 @@ export const recommendTodayActivityTask = task({
       wellnessRepository.getForUser(userId, {
         startDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
         endDate: today,
+        where: {
+          lastSource: 'fitbit'
+        },
         select: {
           date: true,
           hrv: true

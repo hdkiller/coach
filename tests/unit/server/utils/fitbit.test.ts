@@ -314,6 +314,22 @@ describe('fitbit wellness normalization', () => {
           ]
         }
       },
+      {
+        weight: [{ weight: 71.4 }]
+      },
+      {
+        fat: [{ fat: 14.8 }]
+      },
+      {
+        value: { avg: 96.7 }
+      },
+      {
+        br: [
+          {
+            value: { breathingRate: 13.2 }
+          }
+        ]
+      },
       'user-1',
       '2026-03-01'
     )
@@ -324,12 +340,44 @@ describe('fitbit wellness normalization', () => {
     expect(normalized?.avgSleepingHr).toBe(46)
     expect(normalized?.sleepSecs).toBe(25200)
     expect(normalized?.sleepHours).toBe(7)
+    expect(normalized?.sleepScore).toBeNull()
     expect(normalized?.sleepQuality).toBe(88)
     expect(normalized?.sleepDeepSecs).toBe(5400)
     expect(normalized?.sleepLightSecs).toBe(13800)
     expect(normalized?.sleepRemSecs).toBe(6000)
     expect(normalized?.sleepAwakeSecs).toBe(1500)
+    expect(normalized?.weight).toBe(71.4)
+    expect(normalized?.bodyFat).toBe(14.8)
+    expect(normalized?.spO2).toBe(96.7)
+    expect(normalized?.respiration).toBe(13.2)
     expect(normalized?.source).toBe('fitbit')
+  })
+
+  it('maps sleep score when Fitbit payload includes it', () => {
+    const normalized = normalizeFitbitWellness(
+      {
+        sleep: [
+          {
+            isMainSleep: true,
+            minutesAsleep: 420,
+            score: {
+              overall: 82
+            }
+          }
+        ]
+      },
+      { hrv: [] },
+      { 'activities-heart': [] },
+      { 'activities-heart-intraday': { dataset: [] } },
+      { weight: [] },
+      { fat: [] },
+      { value: {} },
+      { br: [] },
+      'user-1',
+      '2026-03-01'
+    )
+
+    expect(normalized?.sleepScore).toBe(82)
   })
 
   it('returns null when no wellness metrics are available', () => {
@@ -349,8 +397,44 @@ describe('fitbit wellness normalization', () => {
           dataset: []
         }
       },
+      {
+        weight: []
+      },
+      {
+        fat: []
+      },
+      {
+        value: {}
+      },
+      {
+        br: []
+      },
       'user-1',
       '2026-03-01'
+    )
+
+    expect(normalized).toBeNull()
+  })
+
+  it('returns null for invalid date input', () => {
+    const normalized = normalizeFitbitWellness(
+      {
+        sleep: [
+          {
+            isMainSleep: true,
+            minutesAsleep: 420
+          }
+        ]
+      },
+      { hrv: [] },
+      { 'activities-heart': [] },
+      { 'activities-heart-intraday': { dataset: [] } },
+      { weight: [] },
+      { fat: [] },
+      { value: {} },
+      { br: [] },
+      'user-1',
+      '2026-13-40'
     )
 
     expect(normalized).toBeNull()

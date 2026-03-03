@@ -165,6 +165,55 @@ export interface FitbitHeartRateIntradayResponse {
   }
 }
 
+export interface FitbitWeightLogResponse {
+  weight?: Array<{
+    date?: string
+    bmi?: number
+    fat?: number
+    logId?: number
+    source?: string
+    time?: string
+    weight?: number
+  }>
+}
+
+export interface FitbitBodyFatLogResponse {
+  fat?: Array<{
+    date?: string
+    fat?: number
+    logId?: number
+    source?: string
+    time?: string
+  }>
+}
+
+export interface FitbitSpO2SummaryResponse {
+  value?: {
+    avg?: number
+    spo2?: number
+    average?: number
+    min?: number
+    max?: number
+  }
+  minutesBelow90?: {
+    minute?: number
+    value?: number
+  }
+  dateTime?: string
+}
+
+export interface FitbitBreathingRateSummaryResponse {
+  br?: Array<{
+    dateTime?: string
+    value?: {
+      breathingRate?: number
+      avg?: number
+      br?: number
+      rate?: number
+    }
+  }>
+}
+
 function encodeBasicAuth(clientId: string, clientSecret: string) {
   const creds = `${clientId}:${clientSecret}`
   return Buffer.from(creds).toString('base64')
@@ -410,16 +459,74 @@ export async function fetchFitbitHeartRateIntraday(
   }
 }
 
+export async function fetchFitbitWeightLog(
+  integration: Integration,
+  date: string
+): Promise<FitbitWeightLogResponse> {
+  return await fitbitGet<FitbitWeightLogResponse>(
+    integration,
+    `/1/user/-/body/log/weight/date/${date}.json`
+  )
+}
+
+export async function fetchFitbitBodyFatLog(
+  integration: Integration,
+  date: string
+): Promise<FitbitBodyFatLogResponse> {
+  return await fitbitGet<FitbitBodyFatLogResponse>(
+    integration,
+    `/1/user/-/body/log/fat/date/${date}.json`
+  )
+}
+
+export async function fetchFitbitSpO2Summary(
+  integration: Integration,
+  date: string
+): Promise<FitbitSpO2SummaryResponse> {
+  return await fitbitGet<FitbitSpO2SummaryResponse>(integration, `/1/user/-/spo2/date/${date}.json`)
+}
+
+export async function fetchFitbitBreathingRateSummary(
+  integration: Integration,
+  date: string
+): Promise<FitbitBreathingRateSummaryResponse> {
+  return await fitbitGet<FitbitBreathingRateSummaryResponse>(
+    integration,
+    `/1/user/-/br/date/${date}.json`
+  )
+}
+
 export function normalizeFitbitWellness(
   sleepLog: FitbitSleepLogResponse | null,
   hrvSummary: FitbitHrvSummaryResponse | null,
   heartRateSummary: FitbitHeartRateResponse | null,
   heartRateIntraday: FitbitHeartRateIntradayResponse | null,
+  weightLog: FitbitWeightLogResponse | null,
+  bodyFatLog: FitbitBodyFatLogResponse | null,
+  spO2Summary: FitbitSpO2SummaryResponse | null,
+  breathingRateSummary: FitbitBreathingRateSummaryResponse | null,
   userId: string,
   date: string
 ) {
-  const [year = 0, month = 1, day = 1] = date.split('-').map(Number)
+  const [yearStr, monthStr, dayStr] = date.split('-')
+  const year = Number(yearStr)
+  const month = Number(monthStr)
+  const day = Number(dayStr)
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return null
+  }
+
   const dateObj = new Date(Date.UTC(year, month - 1, day))
+
+  if (
+    Number.isNaN(dateObj.getTime()) ||
+    dateObj.getUTCFullYear() !== year ||
+    dateObj.getUTCMonth() !== month - 1 ||
+    dateObj.getUTCDate() !== day
+  ) {
+    return null
+  }
 
   const mainSleep =
     sleepLog?.sleep?.find((entry) => entry?.isMainSleep) ||
@@ -450,6 +557,54 @@ export function normalizeFitbitWellness(
     typeof mainSleep?.efficiency === 'number' && Number.isFinite(mainSleep.efficiency)
       ? Math.round(mainSleep.efficiency)
       : null
+
+  const asNumber = (value: unknown): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+
+    return null
+  }
+
+  const firstNumber = (...values: unknown[]): number | null => {
+    for (const value of values) {
+      const parsed = asNumber(value)
+      if (parsed !== null) {
+        return parsed
+      }
+    }
+    return null
+  }
+
+  const getNestedValue = (obj: unknown, path: (string | number)[]): unknown => {
+    let current: unknown = obj
+    for (const key of path) {
+      if (current && typeof current === 'object' && key in (current as Record<string, unknown>)) {
+        current = (current as Record<string, unknown>)[key as string]
+      } else {
+        return undefined
+      }
+    }
+    return current
+  }
+
+  const sleepScoreRaw = firstNumber(
+    getNestedValue(mainSleep, ['score', 'overall']),
+    getNestedValue(mainSleep, ['score']),
+    getNestedValue(mainSleep, ['sleepScore']),
+    getNestedValue(mainSleep, ['levels', 'summary', 'sleepScore']),
+    getNestedValue(sleepLog, ['summary', 'sleepScore']),
+    getNestedValue(sleepLog, ['summary', 'sleep_score'])
+  )
+
+  const sleepScore = sleepScoreRaw != null ? Math.round(sleepScoreRaw) : null
 
   const hrvValue = hrvSummary?.hrv?.[0]?.value || null
   const hrvRmssd =
@@ -526,16 +681,42 @@ export function normalizeFitbitWellness(
         )
       : null
 
+  const weight = firstNumber(weightLog?.weight?.[0]?.weight)
+  const bodyFat = firstNumber(bodyFatLog?.fat?.[0]?.fat, weightLog?.weight?.[0]?.fat)
+
+  const spO2 = firstNumber(
+    spO2Summary?.value?.avg,
+    spO2Summary?.value?.spo2,
+    spO2Summary?.value?.average,
+    (spO2Summary as any)?.spo2?.[0]?.value?.avg,
+    (spO2Summary as any)?.spo2?.[0]?.value?.spo2,
+    (spO2Summary as any)?.spo2?.[0]?.value
+  )
+
+  const respiration = firstNumber(
+    breathingRateSummary?.br?.[0]?.value?.breathingRate,
+    breathingRateSummary?.br?.[0]?.value?.avg,
+    breathingRateSummary?.br?.[0]?.value?.br,
+    breathingRateSummary?.br?.[0]?.value?.rate,
+    (breathingRateSummary as any)?.value?.breathingRate,
+    (breathingRateSummary as any)?.value?.avg
+  )
+
   const hasWellnessData =
     hrvRmssd != null ||
     restingHeartRate != null ||
     avgSleepingHr != null ||
     sleepSecs != null ||
+    sleepScore != null ||
     sleepQuality != null ||
     deepMinutes != null ||
     lightMinutes != null ||
     remMinutes != null ||
-    wakeMinutes != null
+    wakeMinutes != null ||
+    weight != null ||
+    bodyFat != null ||
+    spO2 != null ||
+    respiration != null
 
   if (!hasWellnessData) {
     return null
@@ -550,7 +731,7 @@ export function normalizeFitbitWellness(
     avgSleepingHr,
     sleepSecs,
     sleepHours,
-    sleepScore: null,
+    sleepScore,
     sleepQuality,
     sleepDeepSecs:
       typeof deepMinutes === 'number' && Number.isFinite(deepMinutes)
@@ -570,14 +751,20 @@ export function normalizeFitbitWellness(
         : null,
     readiness: null,
     recoveryScore: null,
-    spO2: null,
-    respiration: null,
+    weight,
+    bodyFat,
+    spO2,
+    respiration,
     skinTemp: null,
     rawJson: {
       sleepLog,
       hrvSummary,
       heartRateSummary,
-      heartRateIntraday
+      heartRateIntraday,
+      weightLog,
+      bodyFatLog,
+      spO2Summary,
+      breathingRateSummary
     },
     source: 'fitbit'
   }

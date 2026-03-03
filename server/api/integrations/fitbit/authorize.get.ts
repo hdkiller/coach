@@ -46,7 +46,14 @@ export default defineEventHandler(async (event) => {
     path: '/'
   })
 
-  const scope = 'nutrition sleep heartrate'
+  const scope = [
+    'nutrition',
+    'sleep',
+    'heartrate',
+    'weight',
+    'oxygen_saturation',
+    'respiratory_rate'
+  ].join(' ')
 
   const params = new URLSearchParams({
     response_type: 'code',

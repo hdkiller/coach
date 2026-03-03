@@ -86,6 +86,9 @@ export const dailyCoachTask = task({
       wellnessRepository.getForUser(userId, {
         startDate: getStartOfDaysAgoUTC(timezone, 14),
         endDate: todayEnd,
+        where: {
+          lastSource: 'fitbit'
+        },
         select: {
           date: true,
           hrv: true

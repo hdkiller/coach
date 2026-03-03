@@ -32,5 +32,6 @@ describe('evaluateFitbitRecoveryAlert', () => {
 
     expect(result.isFitbit).toBe(false)
     expect(result.triggered).toBe(false)
+    expect(result.summary).toContain('not evaluated')
   })
 })

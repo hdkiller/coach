@@ -4,15 +4,19 @@ import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
-import { getUserTimezone } from '../server/utils/date'
+import { getEndOfDayUTC, getUserTimezone } from '../server/utils/date'
 import {
+  fetchFitbitBodyFatLog,
+  fetchFitbitBreathingRateSummary,
   fetchFitbitHeartRateIntraday,
   fetchFitbitHeartRateSummary,
   fetchFitbitFoodLog,
   fetchFitbitFoodGoals,
   fetchFitbitHrvSummary,
   fetchFitbitSleepLog,
+  fetchFitbitSpO2Summary,
   fetchFitbitWaterLog,
+  fetchFitbitWeightLog,
   mergeFitbitNutritionWithExisting,
   normalizeFitbitNutrition,
   normalizeFitbitWellness
@@ -68,16 +72,47 @@ export const ingestFitbitTask = task({
 
       const start = new Date(startDate)
       const end = new Date(endDate)
+      const now = new Date()
+      const historicalEndLocal = getEndOfDayUTC(timezone, now)
+      const historicalEnd = end > historicalEndLocal ? historicalEndLocal : end
 
       const dates: string[] = []
       const currentDate = new Date(start)
 
-      while (currentDate <= end) {
+      while (currentDate <= historicalEnd) {
         const year = currentDate.getUTCFullYear()
         const month = String(currentDate.getUTCMonth() + 1).padStart(2, '0')
         const day = String(currentDate.getUTCDate()).padStart(2, '0')
         dates.push(`${year}-${month}-${day}`)
         currentDate.setUTCDate(currentDate.getUTCDate() + 1)
+      }
+
+      if (dates.length === 0) {
+        logger.warn('No Fitbit dates to process after capping to today in user timezone', {
+          startDate,
+          endDate,
+          cappedEndDate: historicalEnd.toISOString()
+        })
+
+        await prisma.integration.update({
+          where: { id: integration.id },
+          data: {
+            syncStatus: 'SUCCESS',
+            lastSyncAt: new Date(),
+            errorMessage: null
+          }
+        })
+
+        return {
+          success: true,
+          counts: {
+            nutrition: 0,
+            wellness: 0
+          },
+          userId,
+          startDate,
+          endDate
+        }
       }
 
       // Process most recent days first
@@ -105,6 +140,7 @@ export const ingestFitbitTask = task({
       const intradayHeartRateEnabled =
         process.env.FITBIT_ENABLE_INTRADAY_HEART_RATE === 'true' &&
         `${integration.scope || ''}`.toLowerCase().includes('heartrate')
+      const wellnessCallDelayMs = 200
 
       for (const date of dates) {
         try {
@@ -159,8 +195,8 @@ export const ingestFitbitTask = task({
 
           logger.log(`[${date}] Fetching Fitbit nutrition + wellness logs...`)
 
-          let foodLog: any = null
-          let waterLog: any = null
+          let foodLog: Awaited<ReturnType<typeof fetchFitbitFoodLog>> | null = null
+          let waterLog: Awaited<ReturnType<typeof fetchFitbitWaterLog>> | null = null
 
           if (shouldFetchNutrition) {
             foodLog = await fetchFitbitFoodLog(integration, date)
@@ -169,29 +205,43 @@ export const ingestFitbitTask = task({
             waterLog = await fetchFitbitWaterLog(integration, date)
           }
 
-          let sleepLog: any = null
-          let hrvSummary: any = null
-          let heartRateSummary: any = null
-          let heartRateIntraday: any = null
+          let sleepLog: Awaited<ReturnType<typeof fetchFitbitSleepLog>> | null = null
+          let hrvSummary: Awaited<ReturnType<typeof fetchFitbitHrvSummary>> | null = null
+          let heartRateSummary: Awaited<ReturnType<typeof fetchFitbitHeartRateSummary>> | null =
+            null
+          let heartRateIntraday: Awaited<ReturnType<typeof fetchFitbitHeartRateIntraday>> | null =
+            null
+          let weightLog: Awaited<ReturnType<typeof fetchFitbitWeightLog>> | null = null
+          let bodyFatLog: Awaited<ReturnType<typeof fetchFitbitBodyFatLog>> | null = null
+          let spO2Summary: Awaited<ReturnType<typeof fetchFitbitSpO2Summary>> | null = null
+          let breathingRateSummary: Awaited<
+            ReturnType<typeof fetchFitbitBreathingRateSummary>
+          > | null = null
 
           if (shouldFetchWellness) {
+            const pauseBetweenWellnessCalls = async () =>
+              await new Promise((resolve) => setTimeout(resolve, wellnessCallDelayMs))
+
             try {
               sleepLog = await fetchFitbitSleepLog(integration, date)
             } catch (error) {
               logger.warn(`[${date}] Failed to fetch Fitbit sleep log`, { error })
             }
+            await pauseBetweenWellnessCalls()
 
             try {
               hrvSummary = await fetchFitbitHrvSummary(integration, date)
             } catch (error) {
               logger.warn(`[${date}] Failed to fetch Fitbit HRV summary`, { error })
             }
+            await pauseBetweenWellnessCalls()
 
             try {
               heartRateSummary = await fetchFitbitHeartRateSummary(integration, date)
             } catch (error) {
               logger.warn(`[${date}] Failed to fetch Fitbit heart-rate summary`, { error })
             }
+            await pauseBetweenWellnessCalls()
 
             if (intradayHeartRateEnabled) {
               try {
@@ -204,6 +254,35 @@ export const ingestFitbitTask = task({
                   }
                 )
               }
+
+              await pauseBetweenWellnessCalls()
+            }
+
+            try {
+              weightLog = await fetchFitbitWeightLog(integration, date)
+            } catch (error) {
+              logger.warn(`[${date}] Failed to fetch Fitbit weight log`, { error })
+            }
+            await pauseBetweenWellnessCalls()
+
+            try {
+              bodyFatLog = await fetchFitbitBodyFatLog(integration, date)
+            } catch (error) {
+              logger.warn(`[${date}] Failed to fetch Fitbit body-fat log`, { error })
+            }
+            await pauseBetweenWellnessCalls()
+
+            try {
+              spO2Summary = await fetchFitbitSpO2Summary(integration, date)
+            } catch (error) {
+              logger.warn(`[${date}] Failed to fetch Fitbit SpO2 summary`, { error })
+            }
+            await pauseBetweenWellnessCalls()
+
+            try {
+              breathingRateSummary = await fetchFitbitBreathingRateSummary(integration, date)
+            } catch (error) {
+              logger.warn(`[${date}] Failed to fetch Fitbit respiration summary`, { error })
             }
           }
 
@@ -219,6 +298,10 @@ export const ingestFitbitTask = task({
             hrvSummary,
             heartRateSummary,
             heartRateIntraday,
+            weightLog,
+            bodyFatLog,
+            spO2Summary,
+            breathingRateSummary,
             userId,
             date
           )

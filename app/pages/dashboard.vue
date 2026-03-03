@@ -641,9 +641,12 @@
   // Wellness modal handlers
   function openWellnessModal() {
     // Use today's date or the latest wellness date
-    wellnessModalDate.value = userStore.profile?.latestWellnessDate
+    const latestDate = userStore.profile?.latestWellnessDate
       ? new Date(userStore.profile.latestWellnessDate)
       : getUserLocalDate()
+
+    const today = getUserLocalDate()
+    wellnessModalDate.value = latestDate > today ? today : latestDate
     showWellnessModal.value = true
   }
 

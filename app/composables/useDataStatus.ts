@@ -32,6 +32,9 @@ export const useDataStatus = () => {
     if (wellnessDateStr === todayStr) return { isStale: false, label: 'Up to Date' }
 
     const daysAgo = getDaysAgo(latestWellnessDate)
+    if (daysAgo !== null && daysAgo < 0) {
+      return { isStale: true, label: 'Future date detected' }
+    }
     if (daysAgo === 1) return { isStale: true, label: 'Yesterday (Sync Needed)' }
 
     return { isStale: true, label: `${daysAgo} days old` }
