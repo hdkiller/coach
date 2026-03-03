@@ -25,6 +25,7 @@ import emailCommand from './email'
 import bugsCommand from './bugs'
 import supportCommand from './support'
 import importCommand from './import'
+import translationsCommand from './translations'
 
 const program = new Command()
 
@@ -53,6 +54,7 @@ program.addCommand(emailCommand)
 program.addCommand(bugsCommand)
 program.addCommand(supportCommand)
 program.addCommand(importCommand)
+program.addCommand(translationsCommand)
 
 program.parse(process.argv)
 
