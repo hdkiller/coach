@@ -291,7 +291,7 @@
   )
 
   const priorityOptions = [
-    { label: 'None', value: '' },
+    { label: 'None', value: 'NONE' },
     { label: 'A Race (Main Goal)', value: 'A' },
     { label: 'B Race (Preparation)', value: 'B' },
     { label: 'C Race (Training)', value: 'C' }
