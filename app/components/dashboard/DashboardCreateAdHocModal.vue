@@ -1,13 +1,17 @@
 <template>
   <UModal
     v-model:open="isOpen"
-    title="Generate Ad-Hoc Workout"
-    description="Create a custom workout for today instantly."
+    :title="t('training_recommendation_adhoc_modal_title')"
+    :description="t('training_recommendation_adhoc_modal_description')"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #body>
       <div class="space-y-5">
-        <UFormField label="Activity Type" name="type" help="What kind of session is this?">
+        <UFormField
+          :label="t('training_recommendation_adhoc_modal_type_label')"
+          name="type"
+          :help="t('training_recommendation_adhoc_modal_type_help')"
+        >
           <USelect
             v-model="form.type"
             :items="activityOptions"
@@ -17,7 +21,11 @@
         </UFormField>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <UFormField label="Duration" name="duration" help="Target time in minutes">
+          <UFormField
+            :label="t('training_recommendation_adhoc_modal_duration_label')"
+            name="duration"
+            :help="t('training_recommendation_adhoc_modal_duration_help')"
+          >
             <UInput
               v-model.number="form.durationMinutes"
               type="number"
@@ -32,7 +40,11 @@
             </UInput>
           </UFormField>
 
-          <UFormField label="Intensity" name="intensity" help="Effort level for the session">
+          <UFormField
+            :label="t('training_recommendation_adhoc_modal_intensity_label')"
+            name="intensity"
+            :help="t('training_recommendation_adhoc_modal_intensity_help')"
+          >
             <USelect
               v-model="form.intensity"
               :items="intensityOptions"
@@ -43,13 +55,13 @@
         </div>
 
         <UFormField
-          label="Instructions / Focus"
+          :label="t('training_recommendation_adhoc_modal_notes_label')"
           name="notes"
-          help="Any specific intervals or goals?"
+          :help="t('training_recommendation_adhoc_modal_notes_help')"
         >
           <UTextarea
             v-model="form.notes"
-            placeholder="e.g. 'Focus on high cadence', 'Hill repeats', 'Upper body focus'"
+            :placeholder="t('training_recommendation_adhoc_modal_notes_placeholder')"
             :rows="3"
             class="w-full"
           />
@@ -59,7 +71,9 @@
 
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
-        <UButton color="neutral" variant="ghost" @click="isOpen = false">Cancel</UButton>
+        <UButton color="neutral" variant="ghost" @click="isOpen = false">{{
+          t('banner_exit')
+        }}</UButton>
         <UButton
           color="primary"
           variant="solid"
@@ -68,7 +82,7 @@
           icon="i-heroicons-sparkles"
           @click="submit"
         >
-          Generate Workout
+          {{ t('training_recommendation_adhoc_modal_generate_button') }}
         </UButton>
       </div>
     </template>
@@ -76,6 +90,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
+
   const props = defineProps<{
     open: boolean
     loading?: boolean
@@ -96,12 +114,12 @@
     notes: ''
   })
 
-  const activityOptions = [
-    { label: 'Cycling', value: 'Ride' },
-    { label: 'Running', value: 'Run' },
-    { label: 'Swimming', value: 'Swim' },
-    { label: 'Strength / Gym', value: 'WeightTraining' }
-  ]
+  const activityOptions = computed(() => [
+    { label: t.value('navigation_cycling'), value: 'Ride' },
+    { label: t.value('navigation_running'), value: 'Run' },
+    { label: t.value('navigation_swimming'), value: 'Swim' },
+    { label: t.value('navigation_strength'), value: 'WeightTraining' }
+  ])
 
   const intensityOptions = ['Recovery', 'Endurance', 'Tempo', 'Threshold', 'VO2Max', 'Anaerobic']
 

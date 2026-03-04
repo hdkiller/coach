@@ -1,20 +1,20 @@
 <template>
   <UModal
     v-model:open="isOpen"
-    title="Refine or Refresh"
-    description="Provide feedback to adjust the plan, or leave empty to simply refresh with latest data."
+    :title="t('training_recommendation_refine_modal_title')"
+    :description="t('training_recommendation_refine_modal_description')"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #body>
       <div class="space-y-4">
         <UFormField
-          label="Your Feedback (Optional)"
+          :label="t('training_recommendation_refine_modal_feedback_label')"
           name="feedback"
-          help="The coach will re-evaluate your data. Add context to guide the new plan."
+          :help="t('training_recommendation_refine_modal_feedback_help')"
         >
           <UTextarea
             v-model="feedback"
-            placeholder="e.g. 'I'm feeling extra tired today', 'I want to do a harder session'. Leave empty for a quick refresh."
+            :placeholder="t('training_recommendation_refine_modal_feedback_placeholder')"
             :rows="5"
             autofocus
             class="w-full"
@@ -25,7 +25,9 @@
 
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
-        <UButton color="neutral" variant="ghost" @click="isOpen = false">Cancel</UButton>
+        <UButton color="neutral" variant="ghost" @click="isOpen = false">{{
+          t('banner_exit')
+        }}</UButton>
         <UButton
           color="primary"
           variant="solid"
@@ -34,7 +36,11 @@
           icon="i-heroicons-arrow-path"
           @click="submit"
         >
-          {{ feedback.trim() ? 'Refine Plan' : 'Refresh Data' }}
+          {{
+            feedback.trim()
+              ? t('training_recommendation_refine_modal_refine_button')
+              : t('training_recommendation_refine_modal_refresh_button')
+          }}
         </UButton>
       </div>
     </template>
@@ -42,6 +48,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
+
   const props = defineProps<{
     open: boolean
     loading?: boolean
