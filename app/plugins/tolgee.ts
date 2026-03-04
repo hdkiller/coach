@@ -74,6 +74,10 @@ import deSupport from '../i18n/de/support.json'
 import deStories from '../i18n/de/stories.json'
 import deChat from '../i18n/de/chat.json'
 import deFitness from '../i18n/de/fitness.json'
+import deLegend from '../i18n/de/legend.json'
+import deOnboarding from '../i18n/de/onboarding.json'
+import dePerformance from '../i18n/de/performance.json'
+import deWorkoutTooltips from '../i18n/de/workout-tooltips.json'
 import deHuBento from '../i18n/de/hu-bento.json'
 import deTestDynamic from '../i18n/de/test-dynamic.json'
 import deWorksWith from '../i18n/de/works-with.json'
@@ -94,6 +98,10 @@ import frPricing from '../i18n/fr/pricing.json'
 import frAuth from '../i18n/fr/auth.json'
 import frChat from '../i18n/fr/chat.json'
 import frFitness from '../i18n/fr/fitness.json'
+import frLegend from '../i18n/fr/legend.json'
+import frOnboarding from '../i18n/fr/onboarding.json'
+import frPerformance from '../i18n/fr/performance.json'
+import frWorkoutTooltips from '../i18n/fr/workout-tooltips.json'
 import frHuBento from '../i18n/fr/hu-bento.json'
 import frStories from '../i18n/fr/stories.json'
 import frSupport from '../i18n/fr/support.json'
@@ -115,6 +123,10 @@ import itCommunity from '../i18n/it/community.json'
 import itPricing from '../i18n/it/pricing.json'
 import itAuth from '../i18n/it/auth.json'
 import itChat from '../i18n/it/chat.json'
+import itFitness from '../i18n/it/fitness.json'
+import itLegend from '../i18n/it/legend.json'
+import itOnboarding from '../i18n/it/onboarding.json'
+import itPerformance from '../i18n/it/performance.json'
 import itHuBento from '../i18n/it/hu-bento.json'
 import itStories from '../i18n/it/stories.json'
 import itSupport from '../i18n/it/support.json'
@@ -136,6 +148,10 @@ import nlCommunity from '../i18n/nl/community.json'
 import nlPricing from '../i18n/nl/pricing.json'
 import nlAuth from '../i18n/nl/auth.json'
 import nlChat from '../i18n/nl/chat.json'
+import nlFitness from '../i18n/nl/fitness.json'
+import nlLegend from '../i18n/nl/legend.json'
+import nlOnboarding from '../i18n/nl/onboarding.json'
+import nlPerformance from '../i18n/nl/performance.json'
 import nlHuBento from '../i18n/nl/hu-bento.json'
 import nlStories from '../i18n/nl/stories.json'
 import nlSupport from '../i18n/nl/support.json'
@@ -281,10 +297,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       'de:hu-bento': deHuBento,
       'de:test-dynamic': deTestDynamic,
       'de:works-with': deWorksWith,
-      'de:legend': huLegend,
-      'de:onboarding': huOnboarding,
-      'de:performance': huPerformance,
-      'de:workout-tooltips': huWorkoutTooltips,
+      'de:legend': deLegend,
+      'de:onboarding': deOnboarding,
+      'de:performance': dePerformance,
+      'de:workout-tooltips': deWorkoutTooltips,
 
       'fr:common': frCommon,
       'fr:dashboard': frDashboard,
@@ -307,10 +323,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       'fr:support': frSupport,
       'fr:test-dynamic': frTestDynamic,
       'fr:works-with': frWorksWith,
-      'fr:legend': huLegend,
-      'fr:onboarding': huOnboarding,
-      'fr:performance': huPerformance,
-      'fr:workout-tooltips': huWorkoutTooltips,
+      'fr:legend': frLegend,
+      'fr:onboarding': frOnboarding,
+      'fr:performance': frPerformance,
+      'fr:workout-tooltips': frWorkoutTooltips,
 
       'it:common': itCommon,
       'it:dashboard': itDashboard,
@@ -332,10 +348,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       'it:support': itSupport,
       'it:test-dynamic': itTestDynamic,
       'it:works-with': itWorksWith,
-      'it:fitness': huFitness,
-      'it:performance': huPerformance,
-      'it:legend': huLegend,
-      'it:onboarding': huOnboarding,
+      'it:fitness': itFitness,
+      'it:legend': itLegend,
+      'it:onboarding': itOnboarding,
+      'it:performance': itPerformance,
 
       'nl:common': nlCommon,
       'nl:dashboard': nlDashboard,
@@ -357,10 +373,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       'nl:support': nlSupport,
       'nl:test-dynamic': nlTestDynamic,
       'nl:works-with': nlWorksWith,
-      'nl:fitness': huFitness,
-      'nl:performance': huPerformance,
-      'nl:legend': huLegend,
-      'nl:onboarding': huOnboarding
+      'nl:fitness': nlFitness,
+      'nl:legend': nlLegend,
+      'nl:onboarding': nlOnboarding,
+      'nl:performance': nlPerformance
     },
     ...(canUseDevTools ? { apiUrl, apiKey } : {})
   })

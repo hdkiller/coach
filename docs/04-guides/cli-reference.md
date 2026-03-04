@@ -96,6 +96,7 @@ Manage i18n keys and namespaces across the Tolgee platform. Requires `TOLGEE_API
 - `status`: Shows a per-language coverage table — which namespaces have JSON files and which are missing.
 - `push-values --namespace <ns> [--dry-run]`: Reads `app/i18n/en/<ns>.json` and pushes every key's English value to the platform. Auto-creates keys that don't exist yet. Use for a single namespace.
 - `sync [--patterns <globs>] [--dry-run]`: Runs `tolgee sync` to create key stubs on the platform with the correct namespace (reads namespace from `useTranslate()` in code). Safer than `pnpm i18n:push` for new namespaces.
+- `untranslated [--lang <codes>] [--namespace <ns>]`: Lists all keys that are missing translations on the platform. Groups output by language then namespace. `--lang` accepts comma-separated codes (e.g. `de,fr`); defaults to all non-English languages.
 
 **Routine sync (after adding or changing any keys):**
 
