@@ -5,16 +5,16 @@
   >
     <div class="flex items-center gap-2 text-sm font-medium">
       <UIcon name="i-heroicons-eye" class="w-5 h-5" />
-      <span
-        >Viewing as <strong>{{ coachingStore.actingAsUserName }}</strong></span
-      >
+      <span>
+        {{ t('coaching_banner_active', { name: coachingStore.actingAsUserName }) }}
+      </span>
     </div>
     <div class="flex items-center gap-4">
       <UButton
         color="neutral"
         variant="solid"
         size="xs"
-        label="Exit"
+        :label="t('banner_exit')"
         @click="coachingStore.stopActingAs"
       />
     </div>
@@ -22,5 +22,7 @@
 </template>
 
 <script setup>
+  import { useTranslate } from '@tolgee/vue'
+  const { t } = useTranslate('common')
   const coachingStore = useCoachingStore()
 </script>

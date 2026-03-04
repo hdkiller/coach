@@ -6,7 +6,7 @@
     <div class="flex items-center gap-2 text-sm font-medium">
       <UIcon name="i-heroicons-eye" class="w-5 h-5" />
       <span>
-        Impersonating <strong>{{ impersonatedUserEmail }}</strong>
+        {{ t('impersonation_banner_active', { email: impersonatedUserEmail }) }}
       </span>
     </div>
     <div class="flex items-center gap-4">
@@ -14,7 +14,7 @@
         color="neutral"
         variant="solid"
         size="xs"
-        label="Exit"
+        :label="t('banner_exit')"
         :loading="stopping"
         @click="stopImpersonation"
       />
@@ -23,6 +23,9 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('common')
   const { data, refresh } = useAuth()
   const toast = useToast()
   const stopping = ref(false)
@@ -43,8 +46,8 @@
     try {
       await $fetch('/api/admin/stop-impersonation', { method: 'POST' })
       toast.add({
-        title: 'Impersonation stopped',
-        description: 'Returning to admin account',
+        title: t.value('impersonation_toast_stopped_title'),
+        description: t.value('impersonation_toast_stopped_description'),
         color: 'success'
       })
 
@@ -55,8 +58,8 @@
     } catch (error) {
       console.error('Failed to stop impersonation:', error)
       toast.add({
-        title: 'Error',
-        description: 'Failed to stop impersonation',
+        title: t.value('impersonation_toast_error_title'),
+        description: t.value('impersonation_toast_error_description'),
         color: 'error'
       })
     } finally {

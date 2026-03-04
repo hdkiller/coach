@@ -32,14 +32,14 @@
         >
           <div class="flex items-center gap-2">
             <UIcon name="i-heroicons-sparkles" class="w-4 h-4 text-primary-500" />
-            <span class="text-xs font-black uppercase tracking-widest text-gray-500"
-              >Coach Preview</span
-            >
+            <span class="text-xs font-black uppercase tracking-widest text-gray-500">{{
+              t('quick_capture_preview_header')
+            }}</span>
           </div>
           <div class="flex items-center gap-1">
             <UButton
               to="/chat"
-              label="Full Chat"
+              :label="t('quick_capture_full_chat')"
               icon="i-heroicons-arrows-pointing-out"
               color="neutral"
               variant="ghost"
@@ -94,7 +94,7 @@
               class="flex items-center gap-2 text-xs text-gray-400 font-medium px-2 italic"
             >
               <UIcon name="i-heroicons-ellipsis-horizontal" class="w-4 h-4 animate-pulse" />
-              Coach is thinking...
+              {{ t('quick_capture_thinking') }}
             </div>
           </template>
         </div>
@@ -120,7 +120,9 @@
       >
         <UInput
           v-model="input"
-          :placeholder="isExpanded ? 'Type a reply...' : 'Ask anything or log data...'"
+          :placeholder="
+            isExpanded ? t('quick_capture_placeholder_reply') : t('quick_capture_placeholder_ask')
+          "
           size="lg"
           variant="none"
           class="w-full"
@@ -152,7 +154,7 @@
                 v-if="!input && !isExpanded"
                 class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-800 text-[10px] font-medium text-gray-400"
               >
-                Ask Coach
+                {{ t('quick_capture_ask_coach') }}
               </kbd>
               <UButton
                 v-else
@@ -179,19 +181,21 @@
         "
       >
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
-        <span class="text-xs font-black uppercase tracking-widest text-gray-500 truncate"
-          >Ask Coach</span
-        >
+        <span class="text-xs font-black uppercase tracking-widest text-gray-500 truncate">{{
+          t('quick_capture_ask_coach')
+        }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { Chat } from '@ai-sdk/vue'
   import { DefaultChatTransport } from 'ai'
   import { useBreakpoints, breakpointsTailwind, useEventListener } from '@vueuse/core'
 
+  const { t } = useTranslate('common')
   const breakpoints = useBreakpoints(breakpointsTailwind)
   const isMobile = breakpoints.smaller('sm')
 

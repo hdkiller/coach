@@ -1,5 +1,21 @@
 <script setup lang="ts">
+  import { useTranslate, useTolgee } from '@tolgee/vue'
   import type { NavigationMenuItem } from '@nuxt/ui'
+
+  const { t } = useTranslate('common')
+  const tolgee = useTolgee()
+  const isTReady = ref(false)
+
+  // Robust ready check
+  watch(
+    () => t.value,
+    (val) => {
+      if (typeof val === 'function') {
+        isTReady.value = true
+      }
+    },
+    { immediate: true }
+  )
 
   const config = useRuntimeConfig()
   const { data, signOut, refresh } = useAuth()
@@ -71,10 +87,15 @@
 
   const open = ref(false)
 
+  // Navigation Items
   const links = computed<NavigationMenuItem[][]>(() => {
+    // Force re-evaluation on language change or ready state
+    const ready = isTReady.value && typeof t.value === 'function'
+    const lang = tolgee.value.getLanguage()
+
     const primaryLinks: any[] = [
       {
-        label: 'Dashboard',
+        label: ready ? t.value('navigation_dashboard') : 'Dashboard',
         icon: 'i-lucide-layout-dashboard',
         to: '/dashboard',
         onSelect: () => {
@@ -82,7 +103,7 @@
         }
       },
       {
-        label: 'Activities',
+        label: ready ? t.value('navigation_activities') : 'Activities',
         icon: 'i-lucide-calendar-days',
         to: '/activities',
         onSelect: () => {
@@ -92,7 +113,7 @@
       ...(nutritionEnabled.value
         ? [
             {
-              label: 'Nutrition',
+              label: ready ? t.value('navigation_nutrition') : 'Nutrition',
               icon: 'i-lucide-utensils',
               to: '/nutrition',
               onSelect: () => {
@@ -102,7 +123,7 @@
           ]
         : []),
       {
-        label: 'Performance',
+        label: ready ? t.value('navigation_performance') : 'Performance',
         icon: 'i-lucide-trending-up',
         to: '/performance',
         onSelect: () => {
@@ -110,7 +131,7 @@
         }
       },
       {
-        label: 'Recommendations',
+        label: ready ? t.value('navigation_recommendations') : 'Recommendations',
         icon: 'i-lucide-sparkles',
         to: '/recommendations',
         onSelect: () => {
@@ -118,7 +139,7 @@
         }
       },
       {
-        label: 'Training Plan',
+        label: ready ? t.value('navigation_training_plan') : 'Training Plan',
         icon: 'i-lucide-calendar',
         to: '/plan',
         onSelect: () => {
@@ -126,7 +147,7 @@
         }
       },
       {
-        label: 'Workouts',
+        label: ready ? t.value('navigation_workouts') : 'Workouts',
         icon: 'i-lucide-activity',
         to: '/workouts',
         onSelect: () => {
@@ -134,7 +155,7 @@
         }
       },
       {
-        label: 'Fitness',
+        label: ready ? t.value('navigation_fitness') : 'Fitness',
         icon: 'i-lucide-heart-pulse',
         to: '/fitness',
         onSelect: () => {
@@ -142,7 +163,7 @@
         }
       },
       {
-        label: 'Goals',
+        label: ready ? t.value('navigation_goals') : 'Goals',
         icon: 'i-lucide-trophy',
         to: '/profile/goals',
         onSelect: () => {
@@ -150,7 +171,7 @@
         }
       },
       {
-        label: 'Events',
+        label: ready ? t.value('navigation_events') : 'Events',
         icon: 'i-lucide-flag',
         to: '/events',
         onSelect: () => {
@@ -158,7 +179,7 @@
         }
       },
       {
-        label: 'Reports',
+        label: ready ? t.value('navigation_reports') : 'Reports',
         icon: 'i-lucide-file-text',
         to: '/reports',
         onSelect: () => {
@@ -166,7 +187,7 @@
         }
       },
       {
-        label: 'Coaching',
+        label: ready ? t.value('navigation_coaching') : 'Coaching',
         icon: 'i-lucide-users',
         to: '/coaching',
         onSelect: () => {
@@ -174,7 +195,7 @@
         }
       },
       {
-        label: 'AI Chat',
+        label: ready ? t.value('navigation_chat') : 'AI Chat',
         icon: 'i-lucide-message-circle',
         to: '/chat',
         onSelect: () => {
@@ -182,7 +203,7 @@
         }
       },
       {
-        label: 'Help Center',
+        label: ready ? t.value('navigation_help_center') : 'Help Center',
         icon: 'i-heroicons-question-mark-circle',
         to: '/help-center',
         onSelect: () => {
@@ -193,7 +214,7 @@
 
     if ((user.value as any)?.isAdmin) {
       primaryLinks.push({
-        label: 'Admin',
+        label: ready ? t.value('navigation_admin') : 'Admin',
         icon: 'i-lucide-shield-check',
         to: '/admin',
         onSelect: () => {
@@ -203,12 +224,12 @@
     }
 
     primaryLinks.push({
-      label: 'Settings',
+      label: ready ? t.value('navigation_settings_title') : 'Settings',
       icon: 'i-lucide-settings',
       defaultOpen: route.path.includes('settings'),
       children: [
         {
-          label: 'Profile',
+          label: ready ? t.value('navigation_settings_profile') : 'Profile',
           icon: 'i-lucide-user',
           to: '/profile/settings',
           onSelect: () => {
@@ -216,7 +237,7 @@
           }
         },
         {
-          label: 'AI Coach',
+          label: ready ? t.value('navigation_settings_ai_coach') : 'AI Coach',
           icon: 'i-lucide-sparkles',
           to: '/settings/ai',
           onSelect: () => {
@@ -226,7 +247,7 @@
         ...(config.public.stripePublishableKey
           ? [
               {
-                label: 'Billing',
+                label: ready ? t.value('navigation_settings_billing') : 'Billing',
                 icon: 'i-lucide-credit-card',
                 to: '/settings/billing',
                 onSelect: () => {
@@ -236,7 +257,7 @@
             ]
           : []),
         {
-          label: 'Apps',
+          label: ready ? t.value('navigation_settings_apps') : 'Apps',
           icon: 'i-lucide-layout-grid',
           to: '/settings/apps',
           onSelect: () => {
@@ -244,7 +265,7 @@
           }
         },
         {
-          label: 'Developer',
+          label: ready ? t.value('navigation_settings_developer') : 'Developer',
           icon: 'i-lucide-code-2',
           to: '/settings/developer',
           onSelect: () => {
@@ -252,7 +273,7 @@
           }
         },
         {
-          label: 'Danger Zone',
+          label: ready ? t.value('navigation_settings_danger_zone') : 'Danger Zone',
           icon: 'i-lucide-trash-2',
           to: '/settings/danger',
           onSelect: () => {
@@ -265,7 +286,10 @@
     return [primaryLinks]
   })
 
+  // Command Palette Groups
   const groups = computed(() => {
+    const ready = isTReady.value && typeof t.value === 'function'
+    const lang = tolgee.value.getLanguage()
     const searchGroups: any[] = []
 
     // 1. Nutrition Group
@@ -280,25 +304,25 @@
     if (nutritionEnabled.value) {
       searchGroups.push({
         id: 'nutrition',
-        label: 'Nutrition',
+        label: ready ? t.value('navigation_nutrition') : 'Nutrition',
         items: [
           {
             id: 'nutrition-today',
-            label: 'Today',
+            label: ready ? t.value('navigation_search_nutrition_today') : 'Today',
             icon: 'i-lucide-utensils',
             to: `/nutrition/${todayStr}`,
             onSelect: () => (open.value = false)
           },
           {
             id: 'nutrition-tomorrow',
-            label: 'Tomorrow',
+            label: ready ? t.value('navigation_search_nutrition_tomorrow') : 'Tomorrow',
             icon: 'i-lucide-utensils',
             to: `/nutrition/${tomorrowStr}`,
             onSelect: () => (open.value = false)
           },
           {
             id: 'nutrition-yesterday',
-            label: 'Yesterday',
+            label: ready ? t.value('navigation_search_nutrition_yesterday') : 'Yesterday',
             icon: 'i-lucide-utensils',
             to: `/nutrition/${yesterdayStr}`,
             onSelect: () => (open.value = false)
@@ -319,7 +343,7 @@
       if (activeWorkouts.length > 0) {
         searchGroups.push({
           id: 'upcoming-workouts',
-          label: 'Upcoming Workouts',
+          label: ready ? t.value('navigation_search_upcoming_workouts') : 'Upcoming Workouts',
           items: activeWorkouts.map((w: any) => ({
             id: `planned-workout-${w.id}`,
             label: w.title,
@@ -336,7 +360,7 @@
     if (recentWorkouts.value?.length) {
       searchGroups.push({
         id: 'recent-workouts',
-        label: 'Recent Workouts',
+        label: ready ? t.value('navigation_search_recent_workouts') : 'Recent Workouts',
         items: (recentWorkouts.value as any[]).map((w: any) => ({
           id: `recent-workout-${w.id}`,
           label: w.title,
@@ -351,26 +375,28 @@
     // 4. Navigation Group
     searchGroups.push({
       id: 'links',
-      label: 'Go to',
+      label: ready ? t.value('navigation_search_go_to') : 'Go to',
       items: links.value.flat()
     })
 
     // 5. Settings Group (Deep Links)
     const settingsItems = [
       {
-        label: 'Profile: Basic Settings',
+        label: ready ? t.value('navigation_settings_profile_basic') : 'Profile: Basic Settings',
         icon: 'i-heroicons-user-circle',
         to: '/profile/settings?tab=basic',
         onSelect: () => (open.value = false)
       },
       {
-        label: 'Profile: Sport Settings',
+        label: ready ? t.value('navigation_settings_profile_sport') : 'Profile: Sport Settings',
         icon: 'i-heroicons-trophy',
         to: '/profile/settings?tab=sports',
         onSelect: () => (open.value = false)
       },
       {
-        label: 'Profile: Availability',
+        label: ready
+          ? t.value('navigation_settings_profile_availability')
+          : 'Profile: Availability',
         icon: 'i-lucide-calendar-clock',
         to: '/profile/settings?tab=availability',
         onSelect: () => (open.value = false)
@@ -378,7 +404,9 @@
       ...(nutritionEnabled.value
         ? [
             {
-              label: 'Profile: Nutrition',
+              label: ready
+                ? t.value('navigation_settings_profile_nutrition')
+                : 'Profile: Nutrition',
               icon: 'i-heroicons-fire',
               to: '/profile/settings?tab=nutrition',
               onSelect: () => (open.value = false)
@@ -386,7 +414,7 @@
           ]
         : []),
       {
-        label: 'Athlete Profile',
+        label: ready ? t.value('navigation_settings_athlete_profile') : 'Athlete Profile',
         icon: 'i-lucide-user-2',
         to: '/profile/athlete',
         onSelect: () => (open.value = false)
@@ -394,7 +422,7 @@
       ...(nutritionEnabled.value
         ? [
             {
-              label: 'Nutrition: History',
+              label: ready ? t.value('navigation_search_nutrition_history') : 'Nutrition: History',
               icon: 'i-lucide-history',
               to: '/nutrition/history',
               onSelect: () => (open.value = false)
@@ -402,37 +430,39 @@
           ]
         : []),
       {
-        label: 'AI Coach Settings',
+        label: ready ? t.value('navigation_settings_ai_coach_settings') : 'AI Coach Settings',
         icon: 'i-lucide-sparkles',
         to: '/settings/ai',
         onSelect: () => (open.value = false)
       },
       {
-        label: 'Connected Apps (Strava, Garmin, Oura...)',
+        label: ready
+          ? t.value('navigation_settings_apps_connected')
+          : 'Connected Apps (Strava, Garmin, Oura...)',
         icon: 'i-lucide-layout-grid',
         to: '/settings/apps',
         onSelect: () => (open.value = false)
       },
       {
-        label: 'Developer Settings',
+        label: ready ? t.value('navigation_settings_developer_settings') : 'Developer Settings',
         icon: 'i-lucide-code-2',
         to: '/settings/developer',
         onSelect: () => (open.value = false)
       },
       {
-        label: 'Release Notes',
+        label: ready ? t.value('navigation_settings_release_notes') : 'Release Notes',
         icon: 'i-lucide-clipboard-list',
         to: '/settings/release-notes',
         onSelect: () => (open.value = false)
       },
       {
-        label: 'Changelog',
+        label: ready ? t.value('navigation_settings_changelog') : 'Changelog',
         icon: 'i-lucide-history',
         to: '/settings/changelog',
         onSelect: () => (open.value = false)
       },
       {
-        label: 'Privacy Policy',
+        label: ready ? t.value('navigation_settings_privacy_policy') : 'Privacy Policy',
         icon: 'i-lucide-shield',
         to: '/privacy',
         onSelect: () => (open.value = false)
@@ -441,7 +471,7 @@
 
     if (config.public.stripePublishableKey) {
       settingsItems.push({
-        label: 'Billing',
+        label: ready ? t.value('navigation_settings_billing') : 'Billing',
         icon: 'i-lucide-credit-card',
         to: '/settings/billing',
         onSelect: () => (open.value = false)
@@ -450,7 +480,7 @@
 
     searchGroups.push({
       id: 'settings',
-      label: 'Settings',
+      label: ready ? t.value('navigation_settings_title') : 'Settings',
       items: settingsItems
     })
 
@@ -458,28 +488,28 @@
     if ((user.value as any)?.isAdmin) {
       searchGroups.push({
         id: 'admin',
-        label: 'Admin',
+        label: ready ? t.value('navigation_admin') : 'Admin',
         items: [
           {
-            label: 'Users Management',
+            label: ready ? t.value('navigation_admin_nav_users') : 'Users Management',
             icon: 'i-lucide-users-2',
             to: '/admin/users',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Subscriptions',
+            label: ready ? t.value('navigation_admin_nav_subscriptions') : 'Subscriptions',
             icon: 'i-lucide-wallet',
             to: '/admin/subscriptions',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'System Messages',
+            label: ready ? t.value('navigation_admin_nav_system_messages') : 'System Messages',
             icon: 'i-lucide-megaphone',
             to: '/admin/system-messages',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Tickets',
+            label: ready ? t.value('navigation_admin_nav_tickets') : 'Tickets',
             icon: 'i-lucide-bug',
             to: '/admin/issues',
             onSelect: () => (open.value = false)
@@ -489,40 +519,50 @@
 
       searchGroups.push({
         id: 'admin-stats',
-        label: 'Admin: Statistics',
+        label: ready
+          ? `${t.value('navigation_admin')}: ${t.value('navigation_admin_nav_statistics')}`
+          : 'Admin: Statistics',
         items: [
           {
-            label: 'Overview Stats',
+            label: ready ? t.value('navigation_admin_nav_llm_overview') : 'Overview Stats',
             icon: 'i-lucide-bar-chart-3',
             to: '/admin/stats',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'LLM Performance & Costs',
+            label: ready
+              ? t.value('navigation_admin_nav_stats_llm_performance')
+              : 'LLM Performance & Costs',
             icon: 'i-lucide-brain-circuit',
             to: '/admin/stats/llm',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'User Analytics',
+            label: ready ? t.value('navigation_admin_nav_stats_user_analytics') : 'User Analytics',
             icon: 'i-lucide-trending-up',
             to: '/admin/stats/users',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Developer & API Stats',
+            label: ready
+              ? t.value('navigation_admin_nav_stats_developers')
+              : 'Developer & API Stats',
             icon: 'i-lucide-code-2',
             to: '/admin/stats/developers',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Webhook Performance',
+            label: ready
+              ? t.value('navigation_admin_nav_stats_webhook_performance')
+              : 'Webhook Performance',
             icon: 'i-lucide-webhook',
             to: '/admin/stats/webhooks',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Workout & Sync Stats',
+            label: ready
+              ? t.value('navigation_admin_nav_stats_workout_sync')
+              : 'Workout & Sync Stats',
             icon: 'i-lucide-activity',
             to: '/admin/stats/workouts',
             onSelect: () => (open.value = false)
@@ -532,40 +572,54 @@
 
       searchGroups.push({
         id: 'admin-monitoring',
-        label: 'Admin: Monitoring',
+        label: ready
+          ? `${t.value('navigation_admin')}: ${t.value('navigation_admin_nav_monitoring_title')}`
+          : 'Admin: Monitoring',
         items: [
           {
-            label: 'AI Logs (Live)',
+            label: ready
+              ? t.value('navigation_admin_nav_monitoring_ai_logs_live')
+              : 'AI Logs (Live)',
             icon: 'i-lucide-terminal',
             to: '/admin/ai/logs',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Audit & Security Logs',
+            label: ready
+              ? t.value('navigation_admin_nav_monitoring_audit_security_logs')
+              : 'Audit & Security Logs',
             icon: 'i-lucide-scroll-text',
             to: '/admin/audit-logs',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Failed Requests',
+            label: ready
+              ? t.value('navigation_admin_nav_monitoring_failed_requests')
+              : 'Failed Requests',
             icon: 'i-lucide-alert-triangle',
             to: '/admin/ai/failed-requests',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Trigger.dev Queues',
+            label: ready
+              ? t.value('navigation_admin_nav_monitoring_trigger_queues')
+              : 'Trigger.dev Queues',
             icon: 'i-lucide-layers',
             to: '/admin/queues',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Native Webhooks',
+            label: ready
+              ? t.value('navigation_admin_nav_monitoring_native_webhooks')
+              : 'Native Webhooks',
             icon: 'i-lucide-webhook',
             to: '/admin/webhooks',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Global LLM Settings',
+            label: ready
+              ? t.value('navigation_admin_nav_llm_global_settings')
+              : 'Global LLM Settings',
             icon: 'i-lucide-settings-2',
             to: '/admin/llm/settings',
             onSelect: () => (open.value = false)
@@ -575,28 +629,36 @@
 
       searchGroups.push({
         id: 'admin-debug',
-        label: 'Admin: Debug Tools',
+        label: ready
+          ? `${t.value('navigation_admin')}: ${t.value('navigation_admin_nav_debug_title')}`
+          : 'Admin: Debug Tools',
         items: [
           {
-            label: 'Trigger.dev Config',
+            label: ready
+              ? t.value('navigation_admin_nav_debug_trigger_config')
+              : 'Trigger.dev Config',
             icon: 'i-lucide-zap',
             to: '/admin/debug/trigger',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Env Vars & Config',
+            label: ready
+              ? t.value('navigation_admin_nav_debug_env_vars_config')
+              : 'Env Vars & Config',
             icon: 'i-lucide-file-code',
             to: '/admin/debug/env',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Database Explorer',
+            label: ready
+              ? t.value('navigation_admin_nav_debug_database_explorer')
+              : 'Database Explorer',
             icon: 'i-lucide-database',
             to: '/admin/debug/database',
             onSelect: () => (open.value = false)
           },
           {
-            label: 'Network Ping Tool',
+            label: ready ? t.value('navigation_admin_nav_debug_ping') : 'Network Ping Tool',
             icon: 'i-lucide-radio',
             to: '/admin/debug/ping',
             onSelect: () => (open.value = false)
@@ -623,6 +685,7 @@
   <UDashboardGroup unit="rem">
     <UDashboardSidebar
       id="default"
+      :key="tolgee.getLanguage()"
       v-model:open="open"
       collapsible
       resizable
@@ -738,7 +801,7 @@
                 :loading="stoppingImpersonation"
                 @click="stopImpersonation"
               >
-                Stop impersonating
+                {{ isTReady ? t('navigation_admin_nav_stop_impersonating') : 'Stop impersonating' }}
               </UButton>
               <UButton
                 v-else
@@ -749,7 +812,7 @@
                 class="p-0 h-auto font-normal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 @click="signOut({ callbackUrl: '/login' })"
               >
-                Sign out
+                {{ isTReady ? t('navigation_admin_nav_sign_out') : 'Sign out' }}
               </UButton>
             </div>
             <ColorModeButton />
@@ -758,7 +821,7 @@
       </template>
     </UDashboardSidebar>
 
-    <UDashboardSearch :groups="groups" />
+    <UDashboardSearch :key="tolgee.getLanguage()" :groups="groups" />
 
     <slot />
 
