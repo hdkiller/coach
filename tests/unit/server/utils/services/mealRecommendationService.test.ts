@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mealRecommendationService } from '../../../../../server/utils/services/mealRecommendationService'
 import { prisma } from '../../../../../server/utils/db'
 import { metabolicService } from '../../../../../server/utils/services/metabolicService'
+import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
 
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
@@ -18,6 +19,12 @@ vi.mock('../../../../../server/utils/db', () => ({
     mealOptionCatalog: {
       findMany: vi.fn()
     }
+  }
+}))
+
+vi.mock('../../../../../server/utils/services/bodyMetricResolver', () => ({
+  bodyMetricResolver: {
+    resolveEffectiveWeight: vi.fn()
   }
 }))
 
@@ -48,6 +55,10 @@ describe('mealRecommendationService', () => {
     vi.mocked(prisma.nutritionRecommendation.create).mockResolvedValue({ id: 'rec-1' } as any)
     vi.mocked(prisma.nutritionRecommendation.update).mockResolvedValue({ id: 'rec-1' } as any)
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ weight: 70 } as any)
+    vi.mocked(bodyMetricResolver.resolveEffectiveWeight).mockResolvedValue({
+      value: 70,
+      source: { type: 'profile', label: 'Profile' }
+    } as any)
     vi.mocked(metabolicService.getMealTargetContext).mockResolvedValue({
       currentTank: { percentage: 80, advice: 'Stable' },
       nextFuelingWindow: null,

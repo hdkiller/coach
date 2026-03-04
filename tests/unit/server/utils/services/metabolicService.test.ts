@@ -5,6 +5,7 @@ import { nutritionRepository } from '../../../../../server/utils/repositories/nu
 import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
 import { getUserNutritionSettings } from '../../../../../server/utils/nutrition/settings'
+import { bodyMetricResolver } from '../../../../../server/utils/services/bodyMetricResolver'
 import {
   calculateGlycogenState,
   selectRelevantWorkouts
@@ -14,7 +15,16 @@ vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
     user: {
       findUnique: vi.fn()
+    },
+    athleteJourneyEvent: {
+      findMany: vi.fn()
     }
+  }
+}))
+
+vi.mock('../../../../../server/utils/services/bodyMetricResolver', () => ({
+  bodyMetricResolver: {
+    resolveEffectiveWeight: vi.fn()
   }
 }))
 
@@ -67,6 +77,11 @@ describe('metabolicService smoke coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(bodyMetricResolver.resolveEffectiveWeight).mockResolvedValue({
+      value: 70,
+      source: { type: 'profile', label: 'Profile' }
+    } as any)
+    vi.mocked(prisma.athleteJourneyEvent.findMany).mockResolvedValue([] as any)
   })
 
   it('getRelevantWorkouts should include planned workouts repository in merge flow', async () => {
@@ -134,7 +149,11 @@ describe('metabolicService smoke coverage', () => {
         endingFluidDeficit: 40
       } as any)
 
-    const result = await metabolicService.repairMetabolicChain(userId, new Date('2026-01-01T00:00:00Z'), 5)
+    const result = await metabolicService.repairMetabolicChain(
+      userId,
+      new Date('2026-01-01T00:00:00Z'),
+      5
+    )
 
     expect(getUserNutritionSettings).toHaveBeenCalledWith(userId)
     expect(result).toEqual({
