@@ -56,7 +56,10 @@
         >
           Direct Share
         </p>
-        <div class="grid grid-cols-4 sm:grid-cols-7 gap-3">
+        <p v-if="resourceLabel === 'workout'" class="text-[9px] text-gray-500 italic ml-1 -mt-3 mb-2">
+          Note: Link previews on Facebook/X will automatically include your workout image.
+        </p>
+        <div class="grid grid-cols-4 sm:grid-cols-8 gap-3">
           <div
             v-for="network in networks"
             :key="network"
@@ -152,11 +155,12 @@
     { label: 'Never', value: 'never' }
   ]
 
-  const networks = ['x', 'facebook', 'linkedin', 'reddit', 'whatsapp', 'telegram', 'email']
+  const networks = ['share', 'x', 'facebook', 'linkedin', 'reddit', 'whatsapp', 'telegram', 'email']
   const isGeneratedMode = computed(() => props.mode !== 'static')
 
   const getNetworkColor = (network: string) => {
     const colors: Record<string, string> = {
+      share: '#00DC82',
       x: '#000000',
       facebook: '#1877F2',
       linkedin: '#0A66C2',
