@@ -261,6 +261,35 @@ describe('WorkoutConverter', () => {
       expect(result).toContain('- HR Push 5m 165bpm')
     })
 
+    it('infers watts for absolute power values when units are missing', () => {
+      const workout = {
+        title: 'Infer Watts Missing Units',
+        steps: [{ type: 'Active', durationSeconds: 30, power: { value: 296 }, name: 'On' }]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- On 30s 296w')
+      expect(result).not.toContain('296%')
+    })
+
+    it('infers watts for absolute power ranges when units are missing', () => {
+      const workout = {
+        title: 'Infer Watts Missing Units Range',
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 600,
+            power: { range: { start: 220, end: 260 } },
+            name: 'Steady'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- Steady 10m 220-260w')
+      expect(result).not.toContain('ramp 220-260%')
+    })
+
     it('preserves power zone targets for Intervals export', () => {
       const workout = {
         title: 'Zone Targets',

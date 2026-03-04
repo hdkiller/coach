@@ -392,14 +392,25 @@ export const WorkoutConverter = {
     ) => {
       if (!target) return ''
       const units = target.units?.toLowerCase()
+      const inferredPowerUnits = (() => {
+        if (kind !== 'power' || units) return units
+        const values: number[] = []
+        if (typeof target.value === 'number') values.push(target.value)
+        if (typeof target.range?.start === 'number') values.push(target.range.start)
+        if (typeof target.range?.end === 'number') values.push(target.range.end)
+        if (values.length === 0) return units
+        const maxAbs = Math.max(...values.map((v) => Math.abs(v)))
+        return maxAbs > 3 ? 'w' : units
+      })()
       const hrLabel = units === 'hr' || units === 'maxhr' ? 'HR' : 'LTHR'
 
       const formatValue = (value: number) => {
         if (!Number.isFinite(value)) return ''
         if (kind === 'power') {
-          if (units === 'power_zone') return `Z${Math.round(value)}`
-          if (units === 'w' || units === 'watts') return `${Math.round(value)}w`
-          if (units?.startsWith('z')) return units.toUpperCase()
+          if (inferredPowerUnits === 'power_zone') return `Z${Math.round(value)}`
+          if (inferredPowerUnits === 'w' || inferredPowerUnits === 'watts')
+            return `${Math.round(value)}w`
+          if (inferredPowerUnits?.startsWith('z')) return inferredPowerUnits.toUpperCase()
           return `${toValuePct(value)}%`
         }
         if (kind === 'hr') {
@@ -412,9 +423,10 @@ export const WorkoutConverter = {
 
       const formatRange = (start: number, end: number) => {
         if (kind === 'power') {
-          if (units === 'power_zone') return `Z${Math.round(start)}-${Math.round(end)}`
-          if (units === 'w' || units === 'watts') return `${Math.round(start)}-${Math.round(end)}w`
-          if (units?.startsWith('z')) return units.toUpperCase()
+          if (inferredPowerUnits === 'power_zone') return `Z${Math.round(start)}-${Math.round(end)}`
+          if (inferredPowerUnits === 'w' || inferredPowerUnits === 'watts')
+            return `${Math.round(start)}-${Math.round(end)}w`
+          if (inferredPowerUnits?.startsWith('z')) return inferredPowerUnits.toUpperCase()
           const pct = toRangePct(start, end)
           return `ramp ${pct.start}-${pct.end}%`
         }

@@ -101,6 +101,82 @@ export async function syncPlannedWorkoutToIntervals(
   }
 }
 
+type PlannedWorkoutForAutoUpload = {
+  id: string
+  userId: string
+  externalId: string
+  date: Date
+  startTime?: string | null
+  title: string
+  description?: string | null
+  type?: string | null
+  durationSec?: number | null
+  tss?: number | null
+  managedBy?: string | null
+}
+
+export async function autoUploadPlannedWorkoutToIntervalsIfEnabled(
+  workout: PlannedWorkoutForAutoUpload
+): Promise<{ attempted: boolean; synced: boolean; error?: string }> {
+  const integration = await prisma.integration.findFirst({
+    where: {
+      userId: workout.userId,
+      provider: 'intervals'
+    },
+    select: {
+      id: true,
+      settings: true
+    }
+  })
+
+  if (!integration) {
+    return { attempted: false, synced: false }
+  }
+
+  const settings = (integration.settings as Record<string, any> | null) || {}
+  const importPlannedWorkouts = settings.importPlannedWorkouts !== false
+
+  if (!importPlannedWorkouts) {
+    return { attempted: false, synced: false }
+  }
+
+  const syncResult = await syncPlannedWorkoutToIntervals(
+    'CREATE',
+    {
+      id: workout.id,
+      externalId: workout.externalId,
+      date: workout.date,
+      startTime: workout.startTime || undefined,
+      title: workout.title,
+      description: workout.description || '',
+      type: workout.type || 'Ride',
+      durationSec: workout.durationSec || 3600,
+      tss: workout.tss ?? undefined,
+      managedBy: workout.managedBy || undefined
+    },
+    workout.userId
+  )
+
+  await prisma.plannedWorkout.update({
+    where: { id: workout.id },
+    data: {
+      syncStatus: syncResult.synced ? 'SYNCED' : 'PENDING',
+      lastSyncedAt: syncResult.synced ? new Date() : undefined,
+      syncError: syncResult.error || null,
+      ...(syncResult.synced &&
+        syncResult.result?.id && {
+          externalId: String(syncResult.result.id)
+        })
+    }
+  })
+
+  return {
+    attempted: true,
+    synced: syncResult.synced,
+    error: syncResult.error
+  }
+}
+
 /**
  * Sync a racing event to Intervals.icu with retry logic
  */
