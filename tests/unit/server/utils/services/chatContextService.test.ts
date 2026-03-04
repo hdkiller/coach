@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildAthleteContext } from '../../../../../server/utils/services/chatContextService'
 import { prisma } from '../../../../../server/utils/db'
+import { generateTrainingContext } from '../../../../../server/utils/training-metrics'
 
 // Mock dependencies
 vi.mock('../../../../../server/utils/db', () => ({
@@ -90,5 +91,32 @@ describe('chatContextService', () => {
 
     expect(result.systemInstruction).toContain('Address the athlete as **John**')
     expect(result.context).not.toContain('**Nickname**')
+  })
+
+  it('should adjust training context for today uncompleted planned TSS', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      name: 'John Doe',
+      nickname: null,
+      timezone: 'Europe/Brussels',
+      aiPersona: 'Supportive'
+    } as any)
+
+    vi.mocked(prisma.goal.findMany).mockResolvedValue([])
+    vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([])
+    vi.mocked(prisma.plannedWorkout.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.trainingAvailability.findMany).mockResolvedValue([])
+    vi.mocked(prisma.weeklyTrainingPlan.findFirst).mockResolvedValue(null)
+
+    await buildAthleteContext(userId)
+
+    expect(generateTrainingContext).toHaveBeenCalledWith(
+      userId,
+      expect.any(Date),
+      expect.any(Date),
+      expect.objectContaining({
+        timezone: 'Europe/Brussels',
+        adjustForTodayUncompletedPlannedTSS: true
+      })
+    )
   })
 })

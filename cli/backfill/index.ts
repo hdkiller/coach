@@ -21,6 +21,7 @@ import backfillFitExtrasMetaCommand from './fit-extras-meta'
 import backfillElevationGainCommand from './elevation-gain'
 import backfillPBCommand from './pb'
 import backfillThresholdsCommand from './thresholds'
+import backfillBodyMeasurementsCommand from './body-measurements'
 
 const backfill = new Command('backfill')
 
@@ -48,5 +49,6 @@ backfill
   .addCommand(backfillElevationGainCommand)
   .addCommand(backfillPBCommand)
   .addCommand(backfillThresholdsCommand)
+  .addCommand(backfillBodyMeasurementsCommand)
 
 export default backfill

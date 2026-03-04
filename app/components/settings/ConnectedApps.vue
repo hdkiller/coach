@@ -95,18 +95,25 @@
       <div class="flex flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
         <div class="flex items-center justify-end gap-2">
           <div v-if="!whoopConnected">
-            <UButton
-              color="neutral"
-              variant="outline"
-              @click="
-                () => {
-                  trackIntegrationConnectStart('whoop')
-                  navigateTo('/connect-whoop')
-                }
-              "
+            <UTooltip
+              :text="isWhoopDisabled ? 'WHOOP integration is temporarily unavailable' : ''"
+              :popper="{ placement: 'top' }"
             >
-              Connect
-            </UButton>
+              <UButton
+                color="neutral"
+                variant="outline"
+                :disabled="isWhoopDisabled"
+                @click="
+                  () => {
+                    if (isWhoopDisabled) return
+                    trackIntegrationConnectStart('whoop')
+                    navigateTo('/connect-whoop')
+                  }
+                "
+              >
+                {{ isWhoopDisabled ? 'Temporarily unavailable' : 'Connect' }}
+              </UButton>
+            </UTooltip>
           </div>
           <div v-else class="flex items-center gap-2">
             <UButton
@@ -1186,5 +1193,10 @@
   const isStravaDisabled = computed(() => {
     const config = useRuntimeConfig()
     return config.public.stravaEnabled === false
+  })
+
+  const isWhoopDisabled = computed(() => {
+    const hostname = import.meta.client ? window.location.hostname : useRequestURL().hostname
+    return hostname === 'coachwatts.com' || hostname === 'www.coachwatts.com'
   })
 </script>

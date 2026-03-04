@@ -286,6 +286,23 @@ export default defineEventHandler(async (event) => {
           color: 'text-orange-500'
         })
       }
+      if (entry.fatigue != null) {
+        description.push(`Fatigue: ${entry.fatigue}/10`)
+        details.push({
+          label: 'Fatigue',
+          value: `${entry.fatigue}/10`,
+          icon: 'i-tabler-battery',
+          color: 'text-amber-500'
+        })
+      }
+      if (entry.mood != null) {
+        details.push({
+          label: 'Mood',
+          value: `${entry.mood}/10`,
+          icon: 'i-tabler-mood-smile',
+          color: 'text-sky-500'
+        })
+      }
       if (entry.recoveryScore) {
         details.push({
           label: 'Recovery',

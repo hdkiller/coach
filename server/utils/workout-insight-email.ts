@@ -659,6 +659,14 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   const { workoutId, triggerType } = options
   const logContext = { workoutId, triggerType }
 
+  if (process.env.CW_DISABLE_EMAILS === '1') {
+    console.info('[WorkoutInsightEmail] Skipped', {
+      ...logContext,
+      reason: 'emails_disabled_by_environment'
+    })
+    return { queued: false, reason: 'emails_disabled_by_environment' }
+  }
+
   const workout = await prisma.workout.findUnique({
     where: { id: workoutId },
     select: {

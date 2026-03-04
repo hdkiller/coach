@@ -471,7 +471,8 @@ export async function buildAthleteContext(userId: string): Promise<{
   const trainingContext = await generateTrainingContext(userId, fourteenDaysAgo, todayDate, {
     includeZones: false, // Skip expensive zone calculation for chat context
     period: 'Last 14 Days',
-    timezone: userProfile?.timezone || 'UTC'
+    timezone: userProfile?.timezone || 'UTC',
+    adjustForTodayUncompletedPlannedTSS: true
   })
 
   const formattedTrainingContext = formatTrainingContextForPrompt(trainingContext)

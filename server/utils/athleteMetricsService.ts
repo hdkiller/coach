@@ -21,22 +21,30 @@ export const athleteMetricsService = {
       lthr?: number | null
       date?: Date
     },
-    options: { sportType?: string } = {}
+    options: { sportType?: string; weightUpdateSource?: 'manual' | 'sync' } = {}
   ) {
-    const { sportType } = options
+    const { sportType, weightUpdateSource = 'manual' } = options
     const user = await userRepository.getById(userId)
     if (!user) throw new Error('User not found')
 
     const userUpdateData: any = {}
     const sportUpdateData: any = {}
+    const effectiveMetrics = { ...metrics }
+    const shouldSkipProfileWeightUpdate =
+      weightUpdateSource === 'sync' && user.weightSourceMode === 'PROFILE_LOCK'
 
     // 1. Prepare User Update (Basic/Global fields)
     if (metrics.ftp !== undefined) userUpdateData.ftp = metrics.ftp
-    if (metrics.weight !== undefined && metrics.weight !== null)
+    if (!shouldSkipProfileWeightUpdate && metrics.weight !== undefined && metrics.weight !== null)
       userUpdateData.weight = roundToTwoDecimals(metrics.weight)
-    else if (metrics.weight !== undefined) userUpdateData.weight = metrics.weight
+    else if (!shouldSkipProfileWeightUpdate && metrics.weight !== undefined)
+      userUpdateData.weight = metrics.weight
     if (metrics.maxHr !== undefined) userUpdateData.maxHr = metrics.maxHr
     if (metrics.lthr !== undefined) userUpdateData.lthr = metrics.lthr
+
+    if (shouldSkipProfileWeightUpdate) {
+      effectiveMetrics.weight = undefined
+    }
 
     // 2. Prepare Sport Profile Update (for Default profile)
     if (metrics.ftp !== undefined) sportUpdateData.ftp = metrics.ftp
@@ -63,10 +71,13 @@ export const athleteMetricsService = {
       select: { ftp: true, lthr: true, maxHr: true }
     })
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: userUpdateData
-    })
+    const updatedUser =
+      Object.keys(userUpdateData).length > 0
+        ? await prisma.user.update({
+            where: { id: userId },
+            data: userUpdateData
+          })
+        : user
 
     // NEW: Log manual updates to MetricHistory
     const logs: any[] = []
@@ -143,7 +154,7 @@ export const athleteMetricsService = {
     }
 
     // 6. Sync Goal Progress
-    await this.syncGoalProgress(userId, metrics)
+    await this.syncGoalProgress(userId, effectiveMetrics)
 
     // NEW: Resolve threshold recommendations if metrics were updated
     if (metrics.ftp !== undefined || metrics.lthr !== undefined) {
@@ -152,7 +163,7 @@ export const athleteMetricsService = {
 
     // 7. REACTIVE: Update metabolic plan synchronously
     // If weight or FTP changed, the whole fueling plan needs updating
-    if (metrics.weight !== undefined || metrics.ftp !== undefined) {
+    if (effectiveMetrics.weight !== undefined || effectiveMetrics.ftp !== undefined) {
       try {
         if (await isNutritionTrackingEnabled(userId)) {
           const timezone = await getUserTimezone(userId)

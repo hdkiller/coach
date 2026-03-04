@@ -118,8 +118,13 @@
 
           <!-- WHOOP -->
           <UCard
-            class="hover:ring-2 hover:ring-red-500/20 transition-all cursor-pointer"
-            @click="navigateTo('/connect-whoop')"
+            class="transition-all"
+            :class="[
+              isWhoopDisabled
+                ? 'opacity-60 cursor-not-allowed grayscale'
+                : 'hover:ring-2 hover:ring-red-500/20 cursor-pointer'
+            ]"
+            @click="!isWhoopDisabled && navigateTo('/connect-whoop')"
           >
             <div class="flex items-center gap-3 mb-3">
               <div
@@ -136,16 +141,22 @@
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 h-10">
               Sync recovery scores, sleep performance, and HRV trends.
             </p>
-            <UButton
-              to="/connect-whoop"
-              variant="soft"
-              color="error"
-              size="xs"
-              block
-              icon="i-heroicons-plus"
+            <UTooltip
+              :text="isWhoopDisabled ? 'WHOOP integration is temporarily unavailable' : ''"
+              :popper="{ placement: 'top' }"
             >
-              Connect
-            </UButton>
+              <UButton
+                :to="isWhoopDisabled ? undefined : '/connect-whoop'"
+                variant="soft"
+                color="error"
+                size="xs"
+                block
+                icon="i-heroicons-plus"
+                :disabled="isWhoopDisabled"
+              >
+                {{ isWhoopDisabled ? 'Temporarily unavailable' : 'Connect' }}
+              </UButton>
+            </UTooltip>
           </UCard>
 
           <!-- Yazio -->
@@ -322,5 +333,10 @@
   const isStravaDisabled = computed(() => {
     const config = useRuntimeConfig()
     return config.public.stravaEnabled === false
+  })
+
+  const isWhoopDisabled = computed(() => {
+    const hostname = import.meta.client ? window.location.hostname : useRequestURL().hostname
+    return hostname === 'coachwatts.com' || hostname === 'www.coachwatts.com'
   })
 </script>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-  import { en, hu, de } from '@nuxt/ui/locale'
+  import { en, hu, de, fr, it, nl } from '@nuxt/ui/locale'
   import { useTolgee } from '@tolgee/vue'
 
   const tolgee = useTolgee(['language'])
-  const locales = [en, hu, de]
+  const locales = [en, hu, de, fr, it, nl]
   const selectedLanguage = computed({
     get: () => tolgee.value.getLanguage() || 'en',
     set: (language: string) => {

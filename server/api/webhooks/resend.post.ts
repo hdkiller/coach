@@ -7,6 +7,12 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
   const webhookSecret = config.resendWebhookSecret
 
+  console.log('Resend Webhook Handler:', {
+    hasSecret: !!webhookSecret,
+    secretLength: webhookSecret?.length || 0,
+    allConfigKeys: Object.keys(config).filter((k) => !['public', 'app', 'nitro'].includes(k))
+  })
+
   if (!webhookSecret) {
     console.warn('Resend webhook secret not configured')
     return sendError(

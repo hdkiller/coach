@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 defineRouteMeta({
   openAPI: {
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
         dob: true,
         language: true,
         weightUnits: true,
+        weightSourceMode: true,
         height: true,
         heightUnits: true,
         distanceUnits: true,
@@ -102,6 +104,11 @@ export default defineEventHandler(async (event) => {
     // Get Sport Settings via Repository (handles Default lazy creation)
     const sportSettings = await sportSettingsRepository.getByUserId(user.id)
     const defaultProfile = sportSettings.find((s: any) => s.isDefault)
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(user.id, {
+      weight: user.weight,
+      weightSourceMode: (user as any).weightSourceMode,
+      weightUnits: user.weightUnits
+    })
 
     // Helper to format date as YYYY-MM-DD
     const formatDate = (date: Date | null) => {
@@ -119,6 +126,9 @@ export default defineEventHandler(async (event) => {
         language: user.language || 'English',
         weight: user.weight,
         weightUnits: user.weightUnits || 'Kilograms',
+        weightSourceMode: (user as any).weightSourceMode || 'AUTO',
+        effectiveWeight: effectiveWeight.value,
+        effectiveWeightSource: effectiveWeight.source,
         height: user.height,
         heightUnits: user.heightUnits || 'cm',
         distanceUnits: user.distanceUnits || 'Kilometers',

@@ -21,6 +21,11 @@ defineRouteMeta({
                 format: 'binary',
                 description: 'The .fit file to upload'
               },
+              name: {
+                type: 'string',
+                description:
+                  'Optional activity name to use for the imported workout title. Falls back to the uploaded filename.'
+              },
               metadata: {
                 type: 'string',
                 description: 'Optional JSON string containing raw development data (rawJson)'
@@ -94,6 +99,11 @@ export default defineEventHandler(async (event) => {
 
   // Extract metadata if present
   const metadataPart = body.find((part) => part.name === 'metadata')
+  const nameParts = body
+    .filter((part) => part.name === 'name')
+    .map((part) => part.data.toString().trim())
+    .filter(Boolean)
+
   let rawJson: any = null
   if (metadataPart) {
     try {
@@ -108,8 +118,10 @@ export default defineEventHandler(async (event) => {
     event.context.authType === 'oauth' ? `oauth:${event.context.oauthAppId}` : 'manual_upload'
 
   // Process each file
-  for (const filePart of fileParts) {
+  for (const [index, filePart] of fileParts.entries()) {
     try {
+      const activityName = nameParts[index] || nameParts[0] || undefined
+
       // Calculate hash to detect duplicates
       const hash = crypto.createHash('sha256').update(filePart.data).digest('hex')
 
@@ -144,6 +156,7 @@ export default defineEventHandler(async (event) => {
         {
           userId: user.id,
           fitFileId: fitFileId,
+          activityName,
           rawJson,
           source // Pass the source attribution
         },

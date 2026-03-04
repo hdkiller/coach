@@ -259,18 +259,24 @@ export function extractFitStreams(records: any[]) {
 /**
  * Normalize a FIT session into a standard Workout structure
  */
-export function normalizeFitSession(session: any, userId: string, filename: string) {
+export function normalizeFitSession(
+  session: any,
+  userId: string,
+  filename: string,
+  activityName?: string
+) {
   // Generate a predictable external ID based on file info
   // Use timestamp if available, otherwise filename hash
   const timestamp = session.start_time ? new Date(session.start_time).getTime() : Date.now()
   const externalId = `fit_${timestamp}_${filename.replace(/\W/g, '_')}`
+  const preferredTitle = activityName?.trim() || filename.replace('.fit', '').replace(/[_-]/g, ' ')
 
   return {
     userId,
     externalId,
     source: 'fit_file',
     date: session.start_time ? new Date(session.start_time) : new Date(),
-    title: filename.replace('.fit', '').replace(/[_-]/g, ' '),
+    title: preferredTitle,
     description: `Imported from ${filename}`,
     type: session.sport ? capitalize(session.sport) : 'Activity',
 

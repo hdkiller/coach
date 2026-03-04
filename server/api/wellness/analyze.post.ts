@@ -1,7 +1,12 @@
-import { getServerSession } from '../../../utils/session'
-import { prisma } from '../../../utils/db'
+import { z } from 'zod'
+import { getServerSession } from '../../utils/session'
+import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { checkQuota } from '../../../utils/quotas/engine'
+import { checkQuota } from '../../utils/quotas/engine'
+
+const analyzeSchema = z.object({
+  wellnessId: z.string().uuid()
+})
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -9,16 +14,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
+  const { wellnessId } = await readValidatedBody(event, analyzeSchema.parse)
   const userId = (session.user as any).id
+
   await checkQuota(userId, 'wellness_analysis')
 
-  const wellnessId = getRouterParam(event, 'id')
-
-  if (!wellnessId) {
-    throw createError({ statusCode: 400, message: 'Wellness ID is required' })
-  }
-
-  // Fetch the wellness record
   const wellness = await prisma.wellness.findUnique({
     where: { id: wellnessId }
   })
@@ -31,14 +31,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
 
-  // Update status to PROCESSING
   await prisma.wellness.update({
     where: { id: wellnessId },
     data: { aiAnalysisStatus: 'PROCESSING' }
   })
 
   try {
-    // Trigger the background task
     const handle = await tasks.trigger(
       'analyze-wellness',
       {

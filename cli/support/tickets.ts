@@ -99,7 +99,10 @@ ticketsCommand
 
       // Fetch user separately
       const user = await prisma.user.findUnique({
-        where: { id: ticket.userId }
+        where: { id: ticket.userId },
+        select: {
+          email: true
+        }
       })
 
       console.log(chalk.bold.blue('\\n--- TICKET DETAILS ---'))
@@ -211,7 +214,10 @@ ticketsCommand
         // 1. Try to find the specific agent from .env
         if (process.env.SUPPORT_AGENT_USER) {
           const agent = await prisma.user.findUnique({
-            where: { email: process.env.SUPPORT_AGENT_USER }
+            where: { email: process.env.SUPPORT_AGENT_USER },
+            select: {
+              id: true
+            }
           })
           if (agent) {
             userId = agent.id
@@ -220,7 +226,12 @@ ticketsCommand
 
         // 2. Fallback to any admin if no specific agent or agent not found
         if (!userId) {
-          const admin = await prisma.user.findFirst({ where: { isAdmin: true } })
+          const admin = await prisma.user.findFirst({
+            where: { isAdmin: true },
+            select: {
+              id: true
+            }
+          })
           if (admin) {
             userId = admin.id
           }

@@ -235,15 +235,38 @@ export async function fetchGarminActivities(
  */
 export async function fetchGarminActivityFile(
   integration: Integration,
-  fileId: string
+  fileId: string,
+  pullToken?: string | null
 ): Promise<Buffer> {
   const validIntegration = await ensureValidToken(integration)
 
-  // Note: Activity Files use a different base URL sometimes, but wellness-api also has it.
-  // The documentation says: GET https://apis.garmin.com/wellness-api/rest/activityFile?id=XXX
-  const url = `https://apis.garmin.com/wellness-api/rest/activityFile?id=${fileId}`
+  const url = new URL('https://apis.garmin.com/wellness-api/rest/activityFile')
+  url.searchParams.set('id', fileId)
+  if (pullToken) url.searchParams.set('token', pullToken)
 
-  const response = await fetchWithRetry(url, {
+  const response = await fetchWithRetry(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${validIntegration.accessToken}`
+    }
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}))
+    const errorMessage = errorBody.errorMessage || response.statusText || 'Unknown error'
+    throw new Error(`Garmin File API error (${response.status}): ${errorMessage}`)
+  }
+
+  const arrayBuffer = await response.arrayBuffer()
+  return Buffer.from(arrayBuffer)
+}
+
+export async function fetchGarminActivityFileByCallbackUrl(
+  integration: Integration,
+  callbackUrl: string
+): Promise<Buffer> {
+  const validIntegration = await ensureValidToken(integration)
+
+  const response = await fetchWithRetry(callbackUrl, {
     headers: {
       Authorization: `Bearer ${validIntegration.accessToken}`
     }

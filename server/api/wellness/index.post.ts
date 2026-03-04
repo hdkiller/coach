@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
+import { bodyMeasurementService } from '../../utils/services/bodyMeasurementService'
 
 const wellnessUploadSchema = z.object({
   date: z.string(), // ISO date or YYYY-MM-DD
@@ -174,6 +175,17 @@ export default defineEventHandler(async (event) => {
     targetDate,
     { ...data, userId: user.id, date: targetDate, rawJson: rawJson || null },
     { ...data, rawJson: rawJson || null },
+    event.context.authType === 'oauth' ? `oauth:${event.context.oauthAppId}` : 'manual'
+  )
+
+  await bodyMeasurementService.recordWellnessMetrics(
+    user.id,
+    {
+      id: record.id,
+      date: record.date,
+      weight: record.weight,
+      bodyFat: record.bodyFat
+    },
     event.context.authType === 'oauth' ? `oauth:${event.context.oauthAppId}` : 'manual'
   )
 

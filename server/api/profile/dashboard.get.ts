@@ -5,6 +5,7 @@ import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getEndOfDayUTC, getUserTimezone } from '../../utils/date'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -31,6 +32,7 @@ export default defineEventHandler(async (event) => {
         lthr: true,
         dob: true,
         weightUnits: true,
+        weightSourceMode: true,
         height: true,
         heightUnits: true,
         profileLastUpdated: true,
@@ -51,7 +53,7 @@ export default defineEventHandler(async (event) => {
     const timezone = await getUserTimezone(user.id)
     const latestAllowedDate = getEndOfDayUTC(timezone, new Date())
 
-    const [wellness, dailyMetric, latestWeightWellness, latestBodyFatWellness] = await Promise.all([
+    const [wellness, dailyMetric, latestBodyFatWellness] = await Promise.all([
       // Query most recent wellness record with any meaningful values (not only resting HR)
       prisma.wellness.findFirst({
         where: {
@@ -77,7 +79,10 @@ export default defineEventHandler(async (event) => {
             { sleepLightSecs: { not: null } },
             { sleepAwakeSecs: { not: null } },
             { systolic: { not: null } },
-            { diastolic: { not: null } }
+            { diastolic: { not: null } },
+            { fatigue: { not: null } },
+            { stress: { not: null } },
+            { mood: { not: null } }
           ]
         },
         orderBy: { date: 'desc' },
@@ -101,6 +106,9 @@ export default defineEventHandler(async (event) => {
           sleepAwakeSecs: true,
           systolic: true,
           diastolic: true,
+          fatigue: true,
+          stress: true,
+          mood: true,
           lastSource: true
         }
       }),
@@ -193,7 +201,10 @@ export default defineEventHandler(async (event) => {
           skinTemp: null,
           vo2max: null,
           systolic: null,
-          diastolic: null
+          diastolic: null,
+          fatigue: null,
+          stress: null,
+          mood: null
         }
         wellnessDate = dailyMetric.date
       }
@@ -220,7 +231,10 @@ export default defineEventHandler(async (event) => {
         skinTemp: null,
         vo2max: null,
         systolic: null,
-        diastolic: null
+        diastolic: null,
+        fatigue: null,
+        stress: null,
+        mood: null
       }
       wellnessDate = dailyMetric.date
     }
@@ -241,9 +255,14 @@ export default defineEventHandler(async (event) => {
     const estimatedMaxHR = age ? 220 - age : null
 
     // Use the wellness data we found
+    const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(user.id, {
+      weight: user.weight,
+      weightSourceMode: user.weightSourceMode,
+      weightUnits: user.weightUnits
+    })
     const recentRestingHR = wellnessData?.restingHr ?? null
     const recentHRV = wellnessData?.hrv ?? null
-    const recentWeight = latestWeightWellness?.weight ?? user.weight
+    const recentWeight = effectiveWeight.value
     const recentBodyFat = latestBodyFatWellness?.bodyFat ?? null
     const recentSleep =
       wellnessData?.sleepHours ??
@@ -266,6 +285,9 @@ export default defineEventHandler(async (event) => {
     const recentSystolic = wellnessData?.systolic ?? null
     const recentDiastolic = wellnessData?.diastolic ?? null
     const recentReadiness = wellnessData?.readiness ?? null
+    const recentFatigue = wellnessData?.fatigue ?? null
+    const recentStress = wellnessData?.stress ?? null
+    const recentMood = wellnessData?.mood ?? null
 
     // Calculate 7-day HRV average if we have wellness data
     let avgRecentHRV = null
@@ -383,6 +405,10 @@ export default defineEventHandler(async (event) => {
         country: user.country,
         age: age,
         weight: recentWeight,
+        profileWeight: effectiveWeight.profileWeight,
+        latestWellnessWeight: effectiveWeight.latestWellnessWeight,
+        weightSourceMode: effectiveWeight.weightSourceMode,
+        recentWeightSource: effectiveWeight.source,
         weightUnits: user.weightUnits,
         height: user.height,
         heightUnits: user.heightUnits,
@@ -407,6 +433,9 @@ export default defineEventHandler(async (event) => {
         recentSystolic,
         recentDiastolic,
         recentReadiness,
+        recentFatigue,
+        recentStress,
+        recentMood,
         wellnessSource,
         latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
 

@@ -1,0 +1,71 @@
+{
+  "badge": {
+    "best_value": "Miglior rapporto qualità-prezzo",
+    "current_plan": "Piano attuale",
+    "most_popular": "Più popolare",
+    "smart_start": "Avvio intelligente"
+  },
+  "billing": {
+    "annual": "Annuale",
+    "billed_annually": "{price}/mese fatturati annualmente",
+    "billed_monthly": "Fatturato mensilmente",
+    "monthly": "Mensile",
+    "per_month": "/ mese",
+    "per_year": "/ anno",
+    "save_pct": "Risparmia il {pct}%"
+  },
+  "btn": {
+    "choose_supporter": "Scegli Sostenitore",
+    "current_plan": "Piano attuale",
+    "downgrade_free": "Passa a Free",
+    "get_pro": "Ottieni Pro",
+    "get_supporter": "Ottieni Sostenitore",
+    "sign_up": "Registrati",
+    "stay_free": "Rimani gratis",
+    "switch_pro": "Passa a Pro",
+    "switch_supporter": "Passa a Sostenitore",
+    "unavailable": "Temporaneamente non disponibile",
+    "upgrade_pro": "Passa a Pro"
+  },
+  "cancel_anytime": "Annulla in qualsiasi momento. Downgrade immediato al piano Free.",
+  "description": "Dal monitoraggio occasionale al coaching professionale con IA. Inizia gratis e fai l'upgrade man mano che cresci.",
+  "guarantee": "Tutti i piani includono una garanzia di rimborso di 14 giorni. Nessuna carta di credito richiesta per il piano gratuito.",
+  "headline": "Piani per ogni atleta",
+  "label": "PREZZI",
+  "modal": {
+    "confirm_change": "Conferma modifica",
+    "description": "Rivedi le modifiche al tuo piano di abbonamento",
+    "keep_plan": "Mantieni il mio piano attuale",
+    "stripe_note": "Stripe calcolerà automaticamente eventuali crediti per il tempo non utilizzato e li applicherà alle tue fatture future.",
+    "switch_to": "Passa a {name}?",
+    "title": "Conferma downgrade",
+    "warning": "Stai passando a un piano inferiore. Alcune funzionalità (come Deep AI Analysis) saranno limitate una volta elaborata la modifica."
+  },
+  "plan": {
+    "free": {
+      "description": "Il diario di bordo più intelligente che tu abbia mai usato.",
+      "feature_1": "Cronologia dati illimitata",
+      "feature_2": "Modalità di sincronizzazione manuale",
+      "feature_3": "Analisi su richiesta",
+      "feature_4": "Analisi IA rapida",
+      "name": "Gratis"
+    },
+    "pro": {
+      "description": "Il tuo Gemello Digitale e Coach completo.",
+      "feature_1": "Strategia di gara adattiva e pianificazione periodizzata",
+      "feature_2": "Coaching IA approfondito con analisi degli scenari",
+      "feature_3": "Avvisi proattivi per la prontezza e il rischio di overreaching",
+      "feature_4": "Intelligence avanzata sui trend con previsioni a lungo termine",
+      "feature_5": "Elaborazione e risposta con priorità in corsia preferenziale",
+      "name": "Pro"
+    },
+    "supporter": {
+      "description": "Analisi automatizzate per l'atleta autodidatta.",
+      "feature_1": "Sincronizzazione automatica di allenamenti e parametri di salute",
+      "feature_2": "Analisi AI sempre attiva dopo nuove attività",
+      "feature_3": "Elaborazione prioritaria durante i picchi di utilizzo",
+      "feature_4": "Monitoraggio affidabile dei trend e riepiloghi settimanali",
+      "name": "Sostenitore"
+    }
+  }
+}

@@ -693,16 +693,15 @@
 
     // Fallback to generic fields
     if (wellness.value?.sleepSecs || hasStageBreakdown) {
-      const computedAwake =
-        hasStageBreakdown
-          ? Math.max(
-              0,
-              (wellness.value.sleepSecs || 0) -
-                ((wellness.value.sleepDeepSecs || 0) +
-                  (wellness.value.sleepRemSecs || 0) +
-                  (wellness.value.sleepLightSecs || 0))
-            )
-          : null
+      const computedAwake = hasStageBreakdown
+        ? Math.max(
+            0,
+            (wellness.value.sleepSecs || 0) -
+              ((wellness.value.sleepDeepSecs || 0) +
+                (wellness.value.sleepRemSecs || 0) +
+                (wellness.value.sleepLightSecs || 0))
+          )
+        : null
       return {
         totalSecs: wellness.value.sleepSecs,
         deepSecs: wellness.value.sleepDeepSecs,
@@ -793,8 +792,11 @@
 
     analyzingWellness.value = true
     try {
-      const result = (await $fetch(`/api/wellness/${wellness.value.id}/analyze`, {
-        method: 'POST'
+      const result = (await $fetch('/api/wellness/analyze', {
+        method: 'POST',
+        body: {
+          wellnessId: wellness.value.id
+        }
       })) as any
 
       // If already completed, update immediately

@@ -86,6 +86,24 @@ Troubleshooting and debugging commands.
   - `--source <source>`: Filter by source (default: `intervals`).
   - `-v, --verbose`: Show comparison for all fields, even matching ones.
 
+### Import (`import`)
+
+Direct long-running imports that bypass Trigger.dev.
+
+- **Import Intervals.icu data for a user:**
+
+  ```bash
+  pnpm cw:cli import intervals <userId-or-email> --prod
+  ```
+
+  Options:
+  - `--start-date <YYYY-MM-DD>`: Explicit import start date.
+  - `--end-date <YYYY-MM-DD>`: Explicit import end date. Defaults to 30 days in the future.
+  - `--years <number>`: Historical lookback when `--start-date` is omitted (default: `10`).
+  - `--skip-planned`: Skip planned workouts/events/notes import.
+  - `--skip-activities`: Skip activity import.
+  - `--skip-wellness`: Skip wellness import.
+
 ### Trigger (`trigger`)
 
 Trigger.dev management commands.

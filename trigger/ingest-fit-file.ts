@@ -26,6 +26,7 @@ export const ingestFitFile = task({
   run: async (payload: {
     userId: string
     fitFileId: string
+    activityName?: string
     rawJson?: any
     source?: string
     externalId?: string
@@ -33,12 +34,19 @@ export const ingestFitFile = task({
     const {
       userId,
       fitFileId,
+      activityName,
       rawJson,
       source = 'fit_file',
       externalId: providedExternalId
     } = payload
 
-    logger.log('Starting FIT file ingestion', { userId, fitFileId, source, providedExternalId })
+    logger.log('Starting FIT file ingestion', {
+      userId,
+      fitFileId,
+      activityName,
+      source,
+      providedExternalId
+    })
 
     // Retrieve the file from DB
     const fitFile = await prisma.fitFile.findUnique({
@@ -69,7 +77,7 @@ export const ingestFitFile = task({
 
       // Normalize to workout
       logger.log('Normalizing session data...')
-      const workoutData = normalizeFitSession(session, userId, fitFile.filename)
+      const workoutData = normalizeFitSession(session, userId, fitFile.filename, activityName)
       if (providedExternalId) {
         workoutData.externalId = providedExternalId
       }

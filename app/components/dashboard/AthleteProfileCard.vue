@@ -415,20 +415,7 @@
 
       <!-- Wellness Section - Clickable -->
       <button
-        v-if="
-          userStore.profile.recentHRV ||
-          userStore.profile.restingHr ||
-          userStore.profile.recentSleep ||
-          userStore.profile.recentRecoveryScore ||
-          userStore.profile.recentBodyFat != null ||
-          userStore.profile.recentReadiness != null ||
-          userStore.profile.recentSpO2 != null ||
-          userStore.profile.recentRespiration != null ||
-          userStore.profile.recentSkinTemp != null ||
-          userStore.profile.recentVo2max != null ||
-          userStore.profile.recentSystolic != null ||
-          userStore.profile.recentDiastolic != null
-        "
+        v-if="hasWellnessSummary"
         class="group w-full text-left p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 ring-1 ring-inset ring-gray-200 dark:ring-gray-700 hover:ring-primary-500/50 transition-all duration-200"
         @click="$emit('open-wellness')"
       >
@@ -734,6 +721,30 @@
       return true
 
     return false
+  })
+
+  const hasWellnessSummary = computed(() => {
+    const profile = userStore.profile
+    if (!profile) return false
+
+    return (
+      profile.latestWellnessDate != null ||
+      profile.recentHRV != null ||
+      profile.restingHr != null ||
+      profile.recentSleep != null ||
+      profile.recentRecoveryScore != null ||
+      profile.recentBodyFat != null ||
+      profile.recentReadiness != null ||
+      profile.recentFatigue != null ||
+      profile.recentStress != null ||
+      profile.recentMood != null ||
+      profile.recentSpO2 != null ||
+      profile.recentRespiration != null ||
+      profile.recentSkinTemp != null ||
+      profile.recentVo2max != null ||
+      profile.recentSystolic != null ||
+      profile.recentDiastolic != null
+    )
   })
 
   defineEmits(['open-wellness', 'open-training-load'])

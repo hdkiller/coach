@@ -143,7 +143,10 @@
 
 <script setup lang="ts">
   import { useNow } from '@vueuse/core'
+  import type { TriggerRun } from '~/composables/useUserRuns'
   import { ACTIVE_STATUSES } from '~/composables/useUserRuns'
+
+  const STALE_ACTIVE_RUN_MS = 60 * 60 * 1000
 
   const props = defineProps<{
     modelValue: boolean
@@ -156,8 +159,23 @@
   const now = useNow({ interval: 1000 })
   const cancellingId = ref<string | null>(null)
 
+  const isRunning = (status: string) => {
+    return ACTIVE_STATUSES.includes(status)
+  }
+
+  const isStaleActiveRun = (run: TriggerRun) => {
+    if (!isRunning(run.status) || !run.startedAt) return false
+
+    const startedAt = new Date(run.startedAt).getTime()
+    if (Number.isNaN(startedAt)) return false
+
+    return now.value.getTime() - startedAt > STALE_ACTIVE_RUN_MS
+  }
+
+  const visibleRuns = computed(() => runs.value.filter((run) => !isStaleActiveRun(run)))
+
   const activeCount = computed(
-    () => runs.value.filter((r) => ACTIVE_STATUSES.includes(r.status)).length
+    () => visibleRuns.value.filter((run) => ACTIVE_STATUSES.includes(run.status)).length
   )
 
   // Initialize based on current state to prevent flash
@@ -168,7 +186,7 @@
     const history: any[] = []
 
     // Runs are already sorted by date desc from the store
-    runs.value.forEach((run) => {
+    visibleRuns.value.forEach((run) => {
       if (isRunning(run.status)) {
         active.push(run)
       } else {
@@ -180,7 +198,7 @@
   })
 
   const hasMoreHistory = computed(() => {
-    const historyCount = runs.value.filter((r) => !isRunning(r.status)).length
+    const historyCount = visibleRuns.value.filter((run) => !isRunning(run.status)).length
     return historyCount > historyLimit.value
   })
 
@@ -226,10 +244,6 @@
     } finally {
       cancellingId.value = null
     }
-  }
-
-  const isRunning = (status: string) => {
-    return ACTIVE_STATUSES.includes(status)
   }
 
   const getStatusColor = (status: string) => {

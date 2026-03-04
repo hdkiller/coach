@@ -8,6 +8,10 @@ const garminWebhookCommand = new Command('garmin')
   .option('--url <url>', 'Override the webhook URL')
   .option('--external-user <id>', 'Garmin External User ID', '0db20509-029f-4a45-ada0-fc230913f3b3')
   .option('--type <type>', 'Metric type (activities, dailies, sleeps, hrv)', 'activities')
+  .option(
+    '--pull-token <token>',
+    'Attach a Garmin OAuth2 pull token as ?token= for file-fetch testing'
+  )
   .action(async (options) => {
     let baseUrl = options.url
     if (!baseUrl) {
@@ -20,7 +24,8 @@ const garminWebhookCommand = new Command('garmin')
 
     // Ensure baseUrl doesn't end with slash
     baseUrl = baseUrl.replace(/\/$/, '')
-    const webhookUrl = `${baseUrl}/api/webhooks/garmin`
+    const webhookUrl = new URL(`${baseUrl}/api/webhooks/garmin`)
+    if (options.pullToken) webhookUrl.searchParams.set('token', options.pullToken)
 
     const now = Math.floor(Date.now() / 1000)
 
@@ -84,13 +89,15 @@ const garminWebhookCommand = new Command('garmin')
       }
     }
 
-    console.log(chalk.blue(`Triggering Garmin mock webhook at: ${chalk.bold(webhookUrl)}`))
+    console.log(
+      chalk.blue(`Triggering Garmin mock webhook at: ${chalk.bold(webhookUrl.toString())}`)
+    )
     console.log(chalk.gray(`External User ID: ${options.externalUser}`))
     console.log(chalk.gray(`Type: ${options.type}`))
     console.log(chalk.gray('Payload:'), JSON.stringify(payload, null, 2))
 
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(webhookUrl.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

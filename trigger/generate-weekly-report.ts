@@ -13,6 +13,7 @@ import { getUserTimezone, getStartOfDaysAgoUTC, getEndOfDayUTC } from '../server
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
+import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
 // Analysis schema for structured JSON output
 const analysisSchema = {
@@ -220,6 +221,7 @@ export const generateWeeklyReportTask = task({
             ftp: true,
             weight: true,
             weightUnits: true,
+            weightSourceMode: true,
             height: true,
             heightUnits: true,
             maxHr: true,
@@ -291,6 +293,12 @@ ${activeGoals
 `
       }
 
+      const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+        weight: user?.weight,
+        weightSourceMode: user?.weightSourceMode,
+        weightUnits: user?.weightUnits
+      })
+
       // Build prompt for structured analysis
       const prompt = `You are a **${aiSettings.aiPersona}** expert cycling coach analyzing the previous week of training data (last 7 days).
 Adapt your analysis tone and style to match your persona.
@@ -299,15 +307,15 @@ Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, summ
 USER PROFILE:
 - FTP: ${user?.ftp || 'Unknown'} watts
 - Weight: ${
-        user?.weight
+        effectiveWeight.value
           ? user.weightUnits === 'Pounds'
-            ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
-            : user.weight.toFixed(1) + ' kg'
+            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
+            : effectiveWeight.value.toFixed(1) + ' kg'
           : 'Unknown'
       }
 - Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
-- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- W/kg: ${user?.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 
 WORKOUTS (Last 7 days):
 ${buildWorkoutSummary(workouts)}

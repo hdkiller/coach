@@ -33,6 +33,9 @@
               >{{ t('nav.pricing_badge') }}</UBadge
             >
           </NuxtLink>
+          <NuxtLink to="/works-with" class="hover:text-primary transition-colors">{{
+            t('nav.integrations')
+          }}</NuxtLink>
           <NuxtLink to="/stories" class="hover:text-primary transition-colors">{{
             t('nav.stories')
           }}</NuxtLink>
@@ -82,6 +85,11 @@
                   >
                 </NuxtLink>
                 <NuxtLink
+                  to="/works-with"
+                  class="text-sm font-medium hover:text-primary transition-colors"
+                  >{{ t('nav.integrations') }}</NuxtLink
+                >
+                <NuxtLink
                   to="/stories"
                   class="text-sm font-medium hover:text-primary transition-colors"
                   >{{ t('nav.stories') }}</NuxtLink
@@ -111,16 +119,19 @@
 
     <footer class="border-t border-gray-200 dark:border-gray-800 py-12 bg-gray-50 dark:bg-gray-900">
       <UContainer>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8 mb-8">
-          <div class="md:col-span-2">
-            <NuxtLink to="/" class="flex items-center mb-4 hover:opacity-90 transition-opacity">
+        <div class="grid grid-cols-3 md:grid-cols-5 gap-y-12 gap-x-4 mb-8 text-center md:text-left">
+          <div class="col-span-3 md:col-span-2 flex flex-col items-center md:items-start">
+            <NuxtLink
+              to="/"
+              class="flex items-center mb-4 hover:opacity-90 transition-opacity justify-center md:justify-start"
+            >
               <img
                 src="/media/coach_watts_text_cropped.webp"
                 alt="Coach Watts"
                 class="h-16 w-auto object-contain"
               />
             </NuxtLink>
-            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto md:mx-0">
               AI-powered endurance coaching that adapts to your life, recovery, and goals.
             </p>
           </div>
@@ -134,7 +145,10 @@
                 <NuxtLink to="/#architecture" class="hover:text-primary">Architecture</NuxtLink>
               </li>
               <li>
-                <NuxtLink to="/#pricing" class="hover:text-primary flex items-center gap-1">
+                <NuxtLink
+                  to="/#pricing"
+                  class="hover:text-primary flex items-center gap-1 justify-center md:justify-start"
+                >
                   Pricing
                   <UBadge
                     size="xs"

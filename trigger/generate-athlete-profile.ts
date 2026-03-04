@@ -25,6 +25,7 @@ import { checkQuota } from '../server/utils/quotas/engine'
 import { recommendTodayActivityTask } from './recommend-today-activity'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { LBS_TO_KG } from '../server/utils/number'
+import { bodyMetricResolver } from '../server/utils/services/bodyMetricResolver'
 
 // Athlete Profile schema for structured JSON output
 const athleteProfileSchema = {
@@ -420,6 +421,7 @@ export const generateAthleteProfileTask = task({
             ftp: true,
             weight: true,
             weightUnits: true,
+            weightSourceMode: true,
             height: true,
             heightUnits: true,
             maxHr: true,
@@ -719,6 +721,11 @@ Plan Summary: ${planData.weekSummary || 'N/A'}
         hasZoneData: !!trainingContext.hrZoneDistribution,
         hasCurrentPlan: !!currentPlan
       })
+      const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+        weight: user?.weight,
+        weightSourceMode: user?.weightSourceMode,
+        weightUnits: user?.weightUnits
+      })
 
       // Build comprehensive prompt
       const prompt = `You are a **${aiSettings.aiPersona}** expert coach creating a comprehensive Athlete Profile for training planning purposes.
@@ -731,13 +738,13 @@ USER PROFILE:
 - Height: ${user?.height || 'Unknown'} ${user?.heightUnits || 'cm'}
 - FTP: ${user?.ftp || 'Unknown'} watts
 - Weight: ${
-        user?.weight
+        effectiveWeight.value
           ? user.weightUnits === 'Pounds'
-            ? (user.weight / LBS_TO_KG).toFixed(1) + ' lbs'
-            : user.weight.toFixed(1) + ' kg'
+            ? (effectiveWeight.value / LBS_TO_KG).toFixed(1) + ' lbs'
+            : effectiveWeight.value.toFixed(1) + ' kg'
           : 'Unknown'
       }
-- W/kg: ${user?.ftp && user?.weight ? (user.ftp / user.weight).toFixed(2) : 'Unknown'}
+- W/kg: ${user?.ftp && effectiveWeight.value ? (user.ftp / effectiveWeight.value).toFixed(2) : 'Unknown'}
 - Max HR: ${user?.maxHr || 'Unknown'} bpm
 - Preferred Language: ${user?.language || 'English'} (CRITICAL: ALL analysis, summaries, reasoning, and scores explanations MUST be written in this language)
 

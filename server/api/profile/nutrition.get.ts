@@ -1,6 +1,7 @@
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
+import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -13,15 +14,19 @@ export default defineEventHandler(async (event) => {
     getUserNutritionSettings(userId),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { weight: true }
+      select: { weight: true, weightSourceMode: true }
     })
   ])
+  const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(userId, {
+    weight: user?.weight,
+    weightSourceMode: user?.weightSourceMode
+  })
 
   return {
     settings: {
       ...settings,
       user: {
-        weight: user?.weight || 75
+        weight: effectiveWeight.value || 75
       }
     }
   }

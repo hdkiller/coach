@@ -165,7 +165,7 @@ describe('analysisTools', () => {
           isDuplicate: false,
           date: {
             gte: new Date('2026-03-01T00:00:00Z'),
-            lte: new Date('2026-03-02T00:00:00Z')
+            lte: new Date('2026-03-03T00:00:00Z')
           }
         },
         select: {

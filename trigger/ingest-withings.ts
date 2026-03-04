@@ -22,6 +22,7 @@ import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress
 import { roundToTwoDecimals } from '../server/utils/number'
 import { triggerReadinessCheckIfNeeded } from '../server/utils/services/wellness-analysis'
 import { athleteMetricsService } from '../server/utils/athleteMetricsService'
+import { bodyMeasurementService } from '../server/utils/services/bodyMeasurementService'
 import type { IngestionResult } from './types'
 
 export const ingestWithingsTask = task({
@@ -131,7 +132,7 @@ export const ingestWithingsTask = task({
           }
         }
 
-        await wellnessRepository.upsert(
+        const { record } = await wellnessRepository.upsert(
           userId,
           wellness.date,
           cleanWellness as any,
@@ -140,13 +141,66 @@ export const ingestWithingsTask = task({
         )
         upsertedCount++
 
+        await bodyMeasurementService.recordWellnessMetrics(
+          userId,
+          {
+            id: record.id,
+            date: record.date,
+            weight: record.weight,
+            bodyFat: record.bodyFat
+          },
+          'withings'
+        )
+
+        const withingsRaw = (record.rawJson as any)?.withings
+        if (withingsRaw?.fatRatio != null) {
+          await bodyMeasurementService.recordEntry({
+            userId,
+            recordedAt: record.date,
+            metricKey: 'body_fat_pct',
+            value: withingsRaw.fatRatio,
+            unit: 'pct',
+            source: 'withings',
+            sourceRefType: 'wellness',
+            sourceRefId: record.id
+          })
+        }
+        if (withingsRaw?.muscleMass != null) {
+          await bodyMeasurementService.recordEntry({
+            userId,
+            recordedAt: record.date,
+            metricKey: 'muscle_mass_kg',
+            value: withingsRaw.muscleMass,
+            unit: 'kg',
+            source: 'withings',
+            sourceRefType: 'wellness',
+            sourceRefId: record.id
+          })
+        }
+        if (withingsRaw?.boneMass != null) {
+          await bodyMeasurementService.recordEntry({
+            userId,
+            recordedAt: record.date,
+            metricKey: 'bone_mass_kg',
+            value: withingsRaw.boneMass,
+            unit: 'kg',
+            source: 'withings',
+            sourceRefType: 'wellness',
+            sourceRefId: record.id
+          })
+        }
+
         // Also update the User profile weight if this is the most recent measurement
         const isRecent = new Date().getTime() - wellness.date.getTime() < 7 * 24 * 60 * 60 * 1000 // within 7 days
         if (isRecent && cleanWellness.weight) {
-          await athleteMetricsService.updateMetrics(userId, {
-            weight: cleanWellness.weight,
-            date: wellness.date
-          })
+          await athleteMetricsService.updateMetrics(
+            userId,
+            {
+              weight: cleanWellness.weight,
+              date: wellness.date
+            },
+            { weightUpdateSource: 'sync' }
+          )
         }
       }
 
