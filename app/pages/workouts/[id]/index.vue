@@ -2082,18 +2082,19 @@
   const isShareModalOpen = ref(false)
   const isExtrasMetaModalOpen = ref(false)
   const isWorkoutSectionsModalOpen = ref(false)
-  const shareExpiryValue = ref(7) // default 1 week
+  const shareExpiryValue = ref('604800') // default 7 days
 
   const stomachFeel = ref<number | null>(null)
 
   const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
-    'workout',
+    'WORKOUT',
     computed(() => workout.value?.id)
   )
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = () => {
+    if (!shareLink.value) return
     if (import.meta.client) {
-      navigator.clipboard.writeText(text)
+      navigator.clipboard.writeText(shareLink.value)
       toast.add({
         title: 'Copied',
         description: 'Link copied to clipboard.',
@@ -2101,6 +2102,12 @@
       })
     }
   }
+
+  watch(isShareModalOpen, (newValue) => {
+    if (newValue && !shareLink.value) {
+      generateShareLink()
+    }
+  })
 
   const renderedAnalysis = computed(() => {
     if (!workout.value?.aiAnalysis) return ''
@@ -2240,6 +2247,16 @@
 
   const isThresholdModalOpen = ref(false)
   const activeDetection = ref<any>(null)
+
+  const extrasMetaData = computed<Record<string, any> | null>(() => {
+    const value = workout.value?.streams?.extrasMeta
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    return value as Record<string, any>
+  })
+
+  const fitSessionSummary = computed(() => {
+    return extrasMetaData.value?.fitSession || null
+  })
 
   // Available metrics computed property
   const availableMetrics = computed(() => {
@@ -2565,12 +2582,6 @@
       }
     }
     return streams
-  })
-
-  const extrasMetaData = computed<Record<string, any> | null>(() => {
-    const value = workout.value?.streams?.extrasMeta
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-    return value as Record<string, any>
   })
 
   const hasExtrasMeta = computed(() => {

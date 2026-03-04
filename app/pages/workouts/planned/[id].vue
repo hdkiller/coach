@@ -864,9 +864,12 @@
 
   // Share functionality
   const isShareModalOpen = ref(false)
-  const shareLink = ref('')
   const shareExpiryValue = ref('2592000')
-  const generatingShareLink = ref(false)
+
+  const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
+    'PLANNED_WORKOUT',
+    computed(() => workout.value?.id)
+  )
   const publishing = ref(false)
   const publishingGarminTraining = ref(false)
   const publishingGarminCourse = ref(false)
@@ -1408,35 +1411,6 @@
       })
     } finally {
       savingStructure.value = false
-    }
-  }
-
-  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
-    if (!workout.value?.id || generatingShareLink.value) return
-
-    generatingShareLink.value = true
-    try {
-      const body: Record<string, any> = {
-        resourceType: 'PLANNED_WORKOUT',
-        resourceId: workout.value.id
-      }
-      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
-      if (options?.forceNew) body.forceNew = true
-
-      const response = await $fetch('/api/share/generate', {
-        method: 'POST',
-        body
-      })
-      shareLink.value = response.url
-    } catch (error) {
-      console.error('Failed to generate share link:', error)
-      toast.add({
-        title: 'Error',
-        description: 'Failed to generate share link. Please try again.',
-        color: 'error'
-      })
-    } finally {
-      generatingShareLink.value = false
     }
   }
 

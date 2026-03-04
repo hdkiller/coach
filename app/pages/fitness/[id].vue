@@ -669,9 +669,12 @@
   const analyzingWellness = ref(false)
   const isEditModalOpen = ref(false)
   const isShareModalOpen = ref(false)
-  const shareLink = ref('')
   const shareExpiryValue = ref('2592000')
-  const generatingShareLink = ref(false)
+
+  const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
+    'WELLNESS',
+    computed(() => wellness.value?.id)
+  )
 
   const { refresh: refreshRuns } = useUserRuns()
 
@@ -731,35 +734,6 @@
   }
 
   // Share functionality
-  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
-    if (!wellness.value?.id || generatingShareLink.value) return
-
-    generatingShareLink.value = true
-    try {
-      const body: Record<string, any> = {
-        resourceType: 'WELLNESS',
-        resourceId: wellness.value.id
-      }
-      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
-      if (options?.forceNew) body.forceNew = true
-
-      const response = await $fetch('/api/share/generate', {
-        method: 'POST',
-        body
-      })
-      shareLink.value = response.url
-    } catch (error) {
-      console.error('Failed to generate share link:', error)
-      toast.add({
-        title: 'Error',
-        description: 'Failed to generate share link. Please try again.',
-        color: 'error'
-      })
-    } finally {
-      generatingShareLink.value = false
-    }
-  }
-
   const copyToClipboard = () => {
     if (!shareLink.value) return
 

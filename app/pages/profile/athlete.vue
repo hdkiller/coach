@@ -679,33 +679,11 @@
 
   // Share state
   const isShareModalOpen = ref(false)
-  const shareLink = ref('')
-  const generatingShareLink = ref(false)
 
-  const generateShareLink = async () => {
-    if (!profile.value?.id) return
-
-    generatingShareLink.value = true
-    try {
-      const response = await $fetch('/api/share/generate', {
-        method: 'POST',
-        body: {
-          resourceType: 'REPORT',
-          resourceId: profile.value.id
-        }
-      })
-      shareLink.value = response.url
-    } catch (error) {
-      console.error('Failed to generate share link:', error)
-      toast.add({
-        title: 'Error',
-        description: 'Failed to generate share link. Please try again.',
-        color: 'error'
-      })
-    } finally {
-      generatingShareLink.value = false
-    }
-  }
+  const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
+    'REPORT',
+    computed(() => profile.value?.id)
+  )
 
   const copyToClipboard = () => {
     if (!shareLink.value) return

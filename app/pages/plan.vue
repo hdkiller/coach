@@ -219,43 +219,17 @@
 
   // Share state
   const isShareModalOpen = ref(false)
-  const shareLink = ref('')
   const shareExpiryValue = ref('2592000')
-  const generatingShareLink = ref(false)
 
   const { data, status, refresh } = await useFetch<any>('/api/plans/active')
   const activePlan = computed(() => data.value?.plan)
+
+  const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
+    'TRAINING_PLAN',
+    computed(() => activePlan.value?.id)
+  )
   const userFtp = computed(() => data.value?.userFtp)
   const loading = computed(() => status.value === 'pending')
-
-  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
-    if (!activePlan.value?.id || generatingShareLink.value) return
-
-    generatingShareLink.value = true
-    try {
-      const body: Record<string, any> = {
-        resourceType: 'TRAINING_PLAN',
-        resourceId: activePlan.value.id
-      }
-      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
-      if (options?.forceNew) body.forceNew = true
-
-      const response = await $fetch('/api/share/generate', {
-        method: 'POST',
-        body
-      })
-      shareLink.value = response.url
-    } catch (error) {
-      console.error('Failed to generate share link:', error)
-      toast.add({
-        title: 'Error',
-        description: 'Failed to generate share link. Please try again.',
-        color: 'error'
-      })
-    } finally {
-      generatingShareLink.value = false
-    }
-  }
 
   const copyToClipboard = () => {
     if (!shareLink.value) return

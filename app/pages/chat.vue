@@ -548,38 +548,12 @@
 
   // Share current chat room
   const isShareModalOpen = ref(false)
-  const shareLink = ref('')
   const shareExpiryValue = ref('2592000')
-  const generatingShareLink = ref(false)
 
-  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
-    if (!currentRoomId.value || generatingShareLink.value) return
-
-    generatingShareLink.value = true
-    try {
-      const body: Record<string, any> = {
-        resourceType: 'CHAT_ROOM',
-        resourceId: currentRoomId.value
-      }
-      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
-      if (options?.forceNew) body.forceNew = true
-
-      const response = await $fetch<any>('/api/share/generate', {
-        method: 'POST',
-        body
-      })
-      shareLink.value = response.url
-    } catch (error) {
-      console.error('Failed to generate share link:', error)
-      toast.add({
-        title: 'Error',
-        description: 'Failed to generate share link. Please try again.',
-        color: 'error'
-      })
-    } finally {
-      generatingShareLink.value = false
-    }
-  }
+  const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
+    'CHAT_ROOM',
+    computed(() => currentRoomId.value)
+  )
 
   const copyToClipboard = () => {
     if (!shareLink.value) return
