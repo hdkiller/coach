@@ -636,12 +636,13 @@
               :disabled="isStravaDisabled"
               @click="
                 () => {
+                  if (isStravaDisabled) return
                   trackIntegrationConnectStart('strava')
-                  navigateTo('/connect-strava')
+                  signIn('strava')
                 }
               "
             >
-              Connect
+              {{ isStravaDisabled ? 'Temporarily unavailable' : 'Connect' }}
             </UButton>
           </UTooltip>
         </div>
@@ -1031,6 +1032,7 @@
     yazioConnected: boolean
     fitbitConnected: boolean
     stravaConnected: boolean
+    stravaIngestWorkouts: boolean
     rouvyConnected: boolean
     hevyConnected: boolean
     hevyIngestWorkouts: boolean
@@ -1152,6 +1154,20 @@
         }
       ]
     },
+    strava: {
+      provider: 'strava',
+      title: 'Strava Settings',
+      description: 'Choose which Strava data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWorkouts',
+          title: 'Activities',
+          description: 'Import completed activities from Strava.',
+          label: 'Ingest Activities',
+          target: 'root'
+        }
+      ]
+    },
     hevy: {
       provider: 'hevy',
       title: 'Hevy Settings',
@@ -1255,6 +1271,8 @@
           return props.garminIngestWorkouts
         case 'hevy':
           return props.hevyIngestWorkouts
+        case 'strava':
+          return props.stravaIngestWorkouts
         default:
           return true
       }
@@ -1436,6 +1454,13 @@
   ])
 
   const stravaActions = computed(() => [
+    [
+      {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('strava')
+      }
+    ],
     [
       {
         label: 'Disconnect',

@@ -275,6 +275,96 @@
       </div>
     </UCard>
 
+    <!-- Login Methods Card -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+              Login Methods
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Manage how you sign in to Coach Watts.
+            </p>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500"
+              >Internal Athlete ID</span
+            >
+            <div class="flex items-center gap-2">
+              <code
+                class="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded"
+                >{{ modelValue.id }}</code
+              >
+              <UButton
+                icon="i-heroicons-clipboard"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click="copyUserId"
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <div
+          v-for="method in loginMethods"
+          :key="method.id"
+          class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800"
+        >
+          <div class="flex items-center gap-4">
+            <div
+              class="w-10 h-10 rounded-lg flex items-center justify-center bg-white dark:bg-gray-900 ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden"
+            >
+              <img
+                v-if="method.id === 'intervals'"
+                src="/images/logos/intervals.png"
+                alt="Intervals.icu Logo"
+                class="w-full h-full object-cover"
+              />
+              <UIcon v-else :name="method.icon" class="w-6 h-6" :class="method.iconClass" />
+            </div>
+            <div>
+              <p class="font-semibold text-gray-900 dark:text-white">{{ method.name }}</p>
+              <div v-if="method.isConnected" class="flex flex-col">
+                <p class="text-xs text-green-500 font-medium">
+                  Connected
+                  <span v-if="method.linkedAt" class="text-gray-500 dark:text-gray-400 font-normal">
+                    on {{ formatDateUTC(method.linkedAt, 'PPP') }}
+                  </span>
+                </p>
+                <p v-if="method.profileId" class="text-[10px] font-mono text-zinc-500 mt-0.5">
+                  ID: {{ method.profileId }}
+                </p>
+              </div>
+              <p v-else-if="method.isIntegrated" class="flex flex-col">
+                <span class="text-xs text-amber-500 font-medium">Linked for data sync</span>
+                <span v-if="method.profileId" class="text-[10px] font-mono text-zinc-500 mt-0.5"
+                  >ID: {{ method.profileId }}</span
+                >
+              </p>
+              <p v-else class="text-xs text-gray-500 dark:text-gray-400">Not connected</p>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-end gap-2">
+            <UButton
+              v-if="!method.isConnected"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              @click="linkAccount(method.id)"
+            >
+              {{ method.isIntegrated ? 'Link for Login' : 'Link Account' }}
+            </UButton>
+            <UBadge v-else color="success" variant="subtle" size="sm"> Active </UBadge>
+          </div>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Save Button -->
     <div class="flex justify-end pt-4">
       <UButton
@@ -360,8 +450,66 @@
 
   const emit = defineEmits(['update:modelValue', 'autodetect', 'navigate'])
   const { formatDateUTC } = useFormat()
+  const { signIn } = useAuth()
 
   const localProfile = ref({ ...props.modelValue })
+
+  const loginMethods = computed(() => {
+    const accounts = props.modelValue?.accounts || []
+    const integrations = props.modelValue?.integrations || []
+
+    return [
+      {
+        id: 'google',
+        name: 'Google',
+        icon: 'i-simple-icons-google',
+        iconClass: 'text-gray-900 dark:text-white',
+        isConnected: accounts.some((a: any) => a.provider === 'google'),
+        isIntegrated: false, // Google is login-only for now
+        linkedAt: accounts.find((a: any) => a.provider === 'google')?.createdAt,
+        profileId: accounts.find((a: any) => a.provider === 'google')?.providerAccountId
+      },
+      {
+        id: 'strava',
+        name: 'Strava',
+        icon: 'i-simple-icons-strava',
+        iconClass: 'text-[#FC4C02]',
+        isConnected: accounts.some((a: any) => a.provider === 'strava'),
+        isIntegrated: integrations.some((i: any) => i.provider === 'strava'),
+        linkedAt: accounts.find((a: any) => a.provider === 'strava')?.createdAt,
+        profileId:
+          accounts.find((a: any) => a.provider === 'strava')?.providerAccountId ||
+          integrations.find((i: any) => i.provider === 'strava')?.externalUserId
+      },
+      {
+        id: 'intervals',
+        name: 'Intervals.icu',
+        icon: 'i-heroicons-calendar-days',
+        iconClass: 'text-primary',
+        isConnected: accounts.some((a: any) => a.provider === 'intervals'),
+        isIntegrated: integrations.some((i: any) => i.provider === 'intervals'),
+        linkedAt: accounts.find((a: any) => a.provider === 'intervals')?.createdAt,
+        profileId:
+          accounts.find((a: any) => a.provider === 'intervals')?.providerAccountId ||
+          integrations.find((i: any) => i.provider === 'intervals')?.externalUserId
+      }
+    ]
+  })
+
+  function copyUserId() {
+    if (import.meta.client) {
+      navigator.clipboard.writeText(props.modelValue.id)
+      toast.add({
+        title: 'Copied',
+        description: 'Internal Athlete ID copied to clipboard.',
+        color: 'success'
+      })
+    }
+  }
+
+  function linkAccount(provider: string) {
+    signIn(provider, { callbackUrl: window.location.href })
+  }
 
   // Initialize weight for display based on units
   if (localProfile.value.weight && localProfile.value.weightUnits === 'Pounds') {
