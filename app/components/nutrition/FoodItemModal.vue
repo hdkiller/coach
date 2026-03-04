@@ -223,7 +223,9 @@
           mealType: state.value.mealType,
           item: {
             ...payload,
-            id: currentItemId.value
+            ...(typeof currentItemId.value === 'string' && currentItemId.value.length > 0
+              ? { id: currentItemId.value }
+              : {})
           }
         }
       })

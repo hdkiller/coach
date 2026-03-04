@@ -43,14 +43,17 @@
         v-else
         class="mt-1 text-[10px] font-bold uppercase tracking-tighter text-gray-500 dark:text-gray-400"
       >
-        No baseline
+        {{ t('metrics_no_baseline') }}
       </div>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import type { TrendType } from '~/composables/useTrend'
+
+  const { t } = useTranslate('workout')
 
   type MetricKey = 'totalWorkouts' | 'analyzedWorkouts' | 'avgScore' | 'totalHours'
   type TrendItem = { previous: number; type?: TrendType }
@@ -76,9 +79,9 @@
 
   const metricOrder: MetricKey[] = ['totalWorkouts', 'analyzedWorkouts', 'avgScore', 'totalHours']
 
-  const metricCards = {
+  const metricCards = computed(() => ({
     totalWorkouts: {
-      label: 'Total Workouts',
+      label: t.value('metrics_total_workouts'),
       icon: 'i-heroicons-chart-bar',
       cardClass: 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/50',
       valueClass: 'text-blue-600 dark:text-blue-400',
@@ -87,7 +90,7 @@
       unit: ''
     },
     analyzedWorkouts: {
-      label: 'AI Analyzed',
+      label: t.value('metrics_ai_analyzed'),
       icon: 'i-heroicons-sparkles',
       cardClass:
         'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/50',
@@ -97,7 +100,7 @@
       unit: ''
     },
     avgScore: {
-      label: 'Avg Score',
+      label: t.value('metrics_avg_score'),
       icon: 'i-heroicons-star',
       cardClass: 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/50',
       valueClass: 'text-amber-600 dark:text-amber-400',
@@ -106,7 +109,7 @@
       unit: ''
     },
     totalHours: {
-      label: 'Total Volume',
+      label: t.value('metrics_total_volume'),
       icon: 'i-heroicons-clock',
       cardClass: 'bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/50',
       valueClass: 'text-purple-600 dark:text-purple-400',
@@ -114,7 +117,7 @@
       iconClass: 'text-purple-500',
       unit: 'h'
     }
-  } as const
+  }))
 
   function metricValue(key: MetricKey): number | null {
     if (key === 'totalWorkouts') return props.totalWorkouts
@@ -139,8 +142,8 @@
 
   function trendLabel(key: MetricKey): string {
     const trend = metricTrend(key)
-    if (!trend) return 'No baseline'
+    if (!trend) return t.value('metrics_no_baseline')
     const sign = trend.percent > 0 ? '+' : ''
-    return `${sign}${Math.round(trend.percent)}% vs prev`
+    return t.value('metrics_vs_prev', { percent: `${sign}${Math.round(trend.percent)}` })
   }
 </script>
