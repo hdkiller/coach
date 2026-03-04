@@ -445,9 +445,12 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // Configure thinking based on model version and tier settings
+    // Configure thinking based on model version and tier settings.
+    // thinkingBudget: 0 disables thinking entirely for both model families.
     const providerOptions: any = {}
-    if (modelName.includes('gemini-3')) {
+    if (opSettings.thinkingBudget === 0) {
+      // Thinking disabled for this operation
+    } else if (modelName.includes('gemini-3')) {
       providerOptions.google = {
         thinkingConfig: { thinkingLevel: opSettings.thinkingLevel }
       }
