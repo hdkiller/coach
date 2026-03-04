@@ -24,7 +24,7 @@ function coerceNumberOrZero(value: unknown) {
 }
 
 const ItemSchema = z.object({
-  id: z.string().optional(),
+  id: z.preprocess((value) => (value === null ? undefined : value), z.string().optional()),
   name: z.string(),
   calories: z.preprocess(coerceNumberOrZero, z.coerce.number()),
   protein: z.preprocess(coerceNumberOrZero, z.coerce.number()),
@@ -43,7 +43,7 @@ const PatchSchema = z.object({
   action: z.enum(['add', 'update', 'delete']),
   mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']),
   item: ItemSchema.optional(),
-  itemId: z.string().optional()
+  itemId: z.preprocess((value) => (value === null ? undefined : value), z.string().optional())
 })
 
 export default defineEventHandler(async (event) => {

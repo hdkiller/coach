@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
       shareRewardDaysGranted: true,
       nutritionTrackingEnabled: true,
       dashboardSettings: true,
-      isAdmin: true
+      isAdmin: true,
+      language: true
     }
   })
 

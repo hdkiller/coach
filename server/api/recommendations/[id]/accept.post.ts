@@ -1,7 +1,10 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { syncPlannedWorkoutToIntervals } from '../../../utils/intervals-sync'
+import {
+  syncPlannedWorkoutToIntervals,
+  autoUploadPlannedWorkoutToIntervalsIfEnabled
+} from '../../../utils/intervals-sync'
 import { isIntervalsEventId } from '../../../utils/intervals'
 
 defineRouteMeta({
@@ -146,11 +149,25 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  // Sync to Intervals.icu if it's already published (not local-only)
+  // Sync to Intervals.icu if already published, otherwise auto-upload when enabled in settings
   const isLocal =
     updatedWorkout.syncStatus === 'LOCAL_ONLY' || !isIntervalsEventId(updatedWorkout.externalId)
 
-  if (!isLocal) {
+  if (isLocal) {
+    await autoUploadPlannedWorkoutToIntervalsIfEnabled({
+      id: updatedWorkout.id,
+      userId,
+      externalId: updatedWorkout.externalId,
+      date: updatedWorkout.date,
+      startTime: updatedWorkout.startTime,
+      title: updatedWorkout.title,
+      description: updatedWorkout.description,
+      type: updatedWorkout.type,
+      durationSec: updatedWorkout.durationSec,
+      tss: updatedWorkout.tss,
+      managedBy: updatedWorkout.managedBy
+    })
+  } else {
     await syncPlannedWorkoutToIntervals(
       'UPDATE',
       {

@@ -35,7 +35,8 @@ export default defineEventHandler(async (event) => {
         height: true,
         heightUnits: true,
         profileLastUpdated: true,
-        nutritionTrackingEnabled: true
+        nutritionTrackingEnabled: true,
+        language: true
       }
     })
 
@@ -418,6 +419,7 @@ export default defineEventHandler(async (event) => {
         profileLastUpdated: user.profileLastUpdated?.toISOString() ?? null,
         latestWorkoutDate: latestWorkout?.date.toISOString() ?? null,
         nutritionTrackingEnabled: user.nutritionTrackingEnabled,
+        language: user.language,
         sportSettings // Return for frontend context
       }
     }
