@@ -1,5 +1,13 @@
-export default defineNuxtRouteMiddleware((to) => {
-  const { status, signOut } = useAuth()
+export default defineNuxtRouteMiddleware(async (to) => {
+  const { status, data, getSession, signOut } = useAuth()
+
+  if (typeof data.value === 'undefined') {
+    await getSession().catch(() => null)
+  }
+
+  if (status.value === 'loading') {
+    return
+  }
 
   // Handle prompt=login: if user is authenticated, we sign them out first
   // to ensure they see the specialized OAuth login screen

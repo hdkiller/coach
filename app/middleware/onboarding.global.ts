@@ -1,5 +1,11 @@
-export default defineNuxtRouteMiddleware((to, from) => {
-  const { status, data } = useAuth()
+export default defineNuxtRouteMiddleware(async (to, from) => {
+  const { status, data, getSession } = useAuth()
+
+  if (typeof data.value === 'undefined') {
+    await getSession().catch(() => null)
+  }
+
+  if (status.value === 'loading') return
 
   // Only check for authenticated users
   if (status.value !== 'authenticated') return
