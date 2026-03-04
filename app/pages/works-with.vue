@@ -1,35 +1,39 @@
 <script setup lang="ts">
   import { motion } from 'motion-v'
   import { useMediaQuery } from '@vueuse/core'
+  import { useTranslate } from '@tolgee/vue'
 
   definePageMeta({
     layout: 'home',
     auth: false
   })
 
-  useSeoMeta({
-    title: 'Ecosystem & Integrations',
-    description:
-      'Connect your favorite devices and platforms. We handle the data, you handle the training.'
-  })
+  const { t } = useTranslate('works-with')
 
-  const categories = [
-    { id: 'all', label: 'All' },
-    { id: 'platforms', label: 'Platforms' },
-    { id: 'hardware', label: 'Wearables' },
-    { id: 'virtual', label: 'Virtual' }
-  ]
+  useHead(
+    computed(() => ({
+      title: t.value('meta_title'),
+      meta: [{ name: 'description', content: t.value('meta_description') }]
+    }))
+  )
+
+  const categories = computed(() => [
+    { id: 'all', label: t.value('cat_all') },
+    { id: 'platforms', label: t.value('cat_platforms') },
+    { id: 'hardware', label: t.value('cat_hardware') },
+    { id: 'virtual', label: t.value('cat_virtual') }
+  ])
 
   const activeCategory = ref('all')
   const searchQuery = ref('')
   const isMobile = useMediaQuery('(max-width: 1024px)')
 
-  const integrations = [
+  const integrationsMeta = [
     {
       name: 'Strava',
       category: 'platforms',
       src: '/images/logos/strava.svg',
-      description: 'Auto-upload activities and sync your segments.',
+      descKey: 'strava_desc',
       status: 'Instant Sync',
       color: '#FC6100',
       weight: 1.2
@@ -38,7 +42,7 @@
       name: 'Intervals.icu',
       category: 'platforms',
       src: '/images/logos/intervals.png',
-      description: 'Deep-dive power analytics and seasonal planning.',
+      descKey: 'intervals_desc',
       status: '2-Key Sync',
       color: '#00DC82',
       weight: 1.0
@@ -47,7 +51,7 @@
       name: 'Garmin Connect',
       category: 'hardware',
       src: '/images/logos/Garmin_Connect_app_1024x1024.png',
-      description: 'Direct integration for health and activity data.',
+      descKey: 'garmin_desc',
       status: 'Instant Sync',
       color: '#007cc3',
       weight: 0.9
@@ -56,7 +60,7 @@
       name: 'Wahoo Cloud',
       category: 'hardware',
       src: '/images/logos/wahoo_logo_square.jpeg',
-      description: 'Sync activities and training plans with your ELEMNT.',
+      descKey: 'wahoo_desc',
       status: 'Instant Sync',
       color: '#000000',
       weight: 1.0
@@ -65,7 +69,7 @@
       name: 'WHOOP',
       category: 'hardware',
       src: '/images/logos/whoop_square.svg',
-      description: 'Incorporate recovery and sleep scores into your training.',
+      descKey: 'whoop_desc',
       status: 'Instant Sync',
       color: '#000000',
       weight: 0.8
@@ -74,7 +78,7 @@
       name: 'Oura',
       category: 'hardware',
       src: '/images/logos/oura.svg',
-      description: 'Monitor readiness and sleep cycles automatically.',
+      descKey: 'oura_desc',
       status: 'Instant Sync',
       color: '#FFFFFF',
       weight: 1.1
@@ -83,7 +87,7 @@
       name: 'ROUVY',
       category: 'virtual',
       src: '/images/logos/rouvy-symbol-rgb.svg',
-      description: 'Analyze your virtual races with outdoor precision.',
+      descKey: 'rouvy_desc',
       status: 'Instant Sync',
       color: '#E01E26',
       weight: 1.0
@@ -92,7 +96,7 @@
       name: 'Fitbit',
       category: 'hardware',
       src: '/images/logos/fitbit_square.png',
-      description: 'Track daily activity, sleep, and nutrition history.',
+      descKey: 'fitbit_desc',
       status: 'Instant Sync',
       color: '#00B0B9',
       weight: 1.0
@@ -101,7 +105,7 @@
       name: 'Polar',
       category: 'hardware',
       src: '/images/logos/polar_logo_square.png',
-      description: 'Activities, sleep, and nightly recharge data.',
+      descKey: 'polar_desc',
       status: 'Instant Sync',
       color: '#E31E24',
       weight: 1.0
@@ -110,7 +114,7 @@
       name: 'Withings',
       category: 'hardware',
       src: '/images/logos/withings.png',
-      description: 'Weight, body composition, and health metrics.',
+      descKey: 'withings_desc',
       status: 'Instant Sync',
       color: '#000000',
       weight: 1.0
@@ -119,7 +123,7 @@
       name: 'Yazio',
       category: 'platforms',
       src: '/images/logos/yazio_square.webp',
-      description: 'Nutrition tracking and meal planning integration.',
+      descKey: 'yazio_desc',
       status: 'Instant Sync',
       color: '#EE5223',
       weight: 0.9
@@ -128,7 +132,7 @@
       name: 'Hevy',
       category: 'platforms',
       src: '/images/logos/hevy-icon.png',
-      description: 'Strength training and workout logging analysis.',
+      descKey: 'hevy_desc',
       status: 'Instant Sync',
       color: '#3069FE',
       weight: 0.9
@@ -138,15 +142,22 @@
       category: 'platforms',
       src: 'i-simple-icons-telegram',
       isIcon: true,
-      description: 'Chat with your AI Coach on the go via Telegram Bot.',
+      descKey: 'telegram_desc',
       status: 'Instant Sync',
       color: '#26A5E4',
       weight: 1.0
     }
   ]
 
+  const integrations = computed(() =>
+    integrationsMeta.map((item) => ({
+      ...item,
+      description: t.value(item.descKey)
+    }))
+  )
+
   const filteredIntegrations = computed(() => {
-    return integrations.filter((item) => {
+    return integrations.value.filter((item) => {
       const matchesCategory =
         activeCategory.value === 'all' || item.category === activeCategory.value
       const matchesSearch =
@@ -164,6 +175,7 @@
     }
   }
 
+  // Cast to any to bypass strict motion-v variant typing issues in template
   const floatingVariants: any = {
     animate: {
       y: [0, -10, 0],
@@ -204,14 +216,13 @@
             <h1
               class="text-3xl sm:text-6xl lg:text-8xl font-black uppercase tracking-tight text-white mb-6 lg:mb-8 leading-[0.9]"
             >
-              The Center <br class="hidden sm:block" />
-              of Your <br class="hidden sm:block" />
-              <span class="text-primary-500">Performance</span> <br class="hidden sm:block" />
-              Ecosystem.
+              {{ t('hero_title_1') }} <br class="hidden sm:block" />
+              <span class="text-primary-500">{{ t('hero_title_accent') }}</span>
+              <br class="hidden sm:block" />
+              {{ t('hero_title_2') }}
             </h1>
             <p class="text-xl text-gray-400 max-w-xl mb-12 leading-relaxed font-medium">
-              Connect your favorite devices and platforms. We handle the data, you handle the
-              training.
+              {{ t('hero_desc') }}
             </p>
             <div
               class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
@@ -221,7 +232,7 @@
                 to="/join"
                 color="primary"
                 class="w-full sm:w-auto font-black px-10 h-16 rounded-2xl text-lg shadow-[0_0_40px_rgba(34,197,94,0.3)] hover:scale-105 active:scale-95 transition-all"
-                >Get Started</UButton
+                >{{ t('hero_cta_start') }}</UButton
               >
               <UButton
                 size="xl"
@@ -230,7 +241,7 @@
                 class="font-bold text-gray-400 hover:text-white"
                 to="/documentation"
               >
-                View API Docs <UIcon name="i-heroicons-arrow-up-right-20-solid" />
+                {{ t('hero_cta_api') }} <UIcon name="i-heroicons-arrow-up-right-20-solid" />
               </UButton>
             </div>
           </motion.div>
@@ -298,112 +309,148 @@
               <div
                 v-for="(integ, i) in integrations.slice(0, 8)"
                 :key="integ.name"
-                class="absolute left-1/2 top-1/2"
+                class="absolute left-1/2 top-1/2 hidden lg:block"
                 :style="{
-                  transform: `translate(calc(-50% + ${isMobile ? getPosition(i, 8, 125).x : getPosition(i, 8, 320).x + 70}px), calc(-50% + ${isMobile ? getPosition(i, 8, 125).y : getPosition(i, 8, 320).y}px))`
+                  transform: `translate(calc(-50% + ${getPosition(i, 8, 320).x + 70}px), calc(-50% + ${getPosition(i, 8, 320).y}px))`
                 }"
               >
-                <motion.div :variants="floatingVariants" animate="animate">
+                <motion.div
+                  :variants="floatingVariants"
+                  animate="animate"
+                  class="group relative flex flex-col items-center"
+                  :style="{ animationDelay: `${i * 0.5}s` }"
+                >
                   <div
-                    class="w-12 h-12 lg:w-20 lg:h-20 bg-gray-950/80 backdrop-blur-md rounded-xl lg:rounded-2xl border border-white/5 p-2 lg:p-4 flex items-center justify-center lg:translate-x-[70px] shadow-2xl"
+                    class="relative w-20 h-20 bg-black/80 backdrop-blur-[12px] rounded-2xl p-4 transition-all duration-500 group-hover:bg-[#0c0e12] group-hover:shadow-[0_0_40px_rgba(34,197,94,0.15)] cursor-default flex items-center justify-center grain-overlay shadow-xl border-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
                   >
+                    <!-- 1px Gradient Border Overlay -->
+                    <div class="absolute inset-0 rounded-2xl p-px pointer-events-none z-50">
+                      <div
+                        class="w-full h-full rounded-2xl border border-white/10"
+                        style="
+                          border-image: linear-gradient(
+                              to bottom right,
+                              rgba(255, 255, 255, 0.1),
+                              rgba(0, 220, 130, 0.3)
+                            )
+                            1;
+                        "
+                      />
+                    </div>
                     <UIcon
                       v-if="integ.isIcon"
                       :name="integ.src"
                       class="w-full h-full object-contain"
+                      :style="{ color: integ.color, transform: `scale(${integ.weight || 1})` }"
+                    />
+                    <img
+                      v-else
+                      :src="integ.src"
+                      :alt="integ.name"
+                      class="w-full h-full object-contain filter grayscale opacity-30 transition-all duration-500 group-hover:grayscale-0 group-hover:invert-0 group-hover:brightness-100 group-hover:opacity-100 group-hover:scale-110"
+                      :class="{
+                        'invert brightness-200': integ.color === '#000000' || !integ.color
+                      }"
+                    />
+                  </div>
+                  <span
+                    class="mt-2 text-[9px] font-black text-slate-600 group-hover:text-white transition-colors uppercase tracking-[0.2em] whitespace-nowrap"
+                    >{{ integ.name }}</span
+                  >
+                </motion.div>
+              </div>
+
+              <!-- Mobile Grid -->
+              <div class="lg:hidden grid grid-cols-3 gap-4 w-full max-w-sm">
+                <div
+                  v-for="integ in integrations.slice(0, 6)"
+                  :key="`mobile-${integ.name}`"
+                  class="flex flex-col items-center gap-2 p-4 bg-gray-950/40 rounded-2xl border border-white/5"
+                >
+                  <div class="w-12 h-12 flex items-center justify-center">
+                    <UIcon
+                      v-if="integ.isIcon"
+                      :name="integ.src"
+                      class="w-8 h-8"
                       :style="{ color: integ.color }"
                     />
                     <img
                       v-else
                       :src="integ.src"
-                      class="w-full h-full object-contain filter grayscale-0 brightness-100 opacity-80 sm:grayscale sm:invert sm:brightness-200 sm:opacity-40 hover:grayscale-0 hover:invert-0 hover:brightness-100 hover:opacity-100 transition-all duration-500"
+                      :alt="integ.name"
+                      class="w-full h-full object-contain filter grayscale opacity-50"
+                      :class="{
+                        'invert brightness-150': integ.color === '#000000' || !integ.color
+                      }"
                     />
                   </div>
-                </motion.div>
+                  <span class="text-[8px] font-black text-slate-500 uppercase tracking-wider">{{
+                    integ.name
+                  }}</span>
+                </div>
               </div>
             </div>
-            <template #fallback>
-              <div
-                class="flex lg:flex-1 relative items-center justify-center h-[400px] sm:h-[500px] lg:h-[700px]"
-              >
-                <div
-                  class="w-28 h-28 sm:w-32 sm:h-32 lg:w-44 lg:h-44 bg-gray-950 rounded-3xl border border-white/10 animate-pulse"
-                />
-              </div>
-            </template>
           </ClientOnly>
         </div>
       </UContainer>
     </section>
 
-    <!-- 2. Categorized Integration Grid -->
-    <section class="py-10 lg:py-32 bg-gray-950/50 relative border-y border-white/5">
-      <UContainer>
-        <motion.div v-bind="scrollVariants" class="flex flex-col gap-8 mb-12 sm:mb-20">
-          <div class="px-4">
-            <h2
-              class="text-4xl sm:text-5xl font-black uppercase text-white mb-4 tracking-tight italic"
-            >
-              Our Ecosystem
-            </h2>
-            <p class="text-sm text-gray-400 font-medium mb-8 max-w-sm lg:hidden">
-              Filter by category to find your performance tools.
-            </p>
-          </div>
-
-          <!-- Sticky Category Bar -->
-          <div
-            class="sticky top-0 z-40 bg-gray-950/80 backdrop-blur-md border-b border-white/10 py-3 shadow-2xl lg:static lg:bg-transparent lg:border-none lg:py-0"
-          >
-            <UContainer class="!px-0 sm:!px-4">
-              <div class="flex items-center justify-between gap-4 px-4 sm:px-0">
-                <div class="flex-1 overflow-x-auto scrollbar-hide no-scrollbar">
-                  <div class="flex gap-2">
-                    <button
-                      v-for="cat in categories"
-                      :key="cat.id"
-                      class="whitespace-nowrap px-5 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-300 border shrink-0"
-                      :class="[
-                        activeCategory === cat.id
-                          ? 'bg-primary-500 border-primary-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]'
-                          : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/30 hover:text-white'
-                      ]"
-                      @click="activeCategory = cat.id"
-                    >
-                      {{ cat.label }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Inline Search (Desktop only or icon on mobile?) -->
-                <div class="hidden lg:block w-72">
-                  <UInput
-                    v-model="searchQuery"
-                    icon="i-heroicons-magnifying-glass"
-                    placeholder="Search..."
-                    variant="outline"
-                    :ui="{ base: 'rounded-xl bg-white/5 border-white/10' }"
-                  />
-                </div>
+    <!-- 2. Integration Grid Section -->
+    <section class="py-10 lg:py-20 bg-gray-950">
+      <motion.div v-bind="scrollVariants">
+        <!-- Sticky Filter Bar -->
+        <div
+          class="sticky top-0 z-30 bg-gray-950/80 backdrop-blur-xl border-b border-white/5 py-4 mb-8 lg:mb-16"
+        >
+          <UContainer>
+            <div class="flex items-center justify-between gap-4">
+              <!-- Category Filter Chips -->
+              <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                <button
+                  v-for="cat in categories"
+                  :key="cat.id"
+                  class="flex-shrink-0 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300"
+                  :class="[
+                    activeCategory === cat.id
+                      ? 'bg-primary-500 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)]'
+                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/10'
+                  ]"
+                  @click="activeCategory = cat.id"
+                >
+                  {{ cat.label }}
+                </button>
               </div>
-            </UContainer>
-          </div>
 
-          <!-- Mobile Search Bar (Below Sticky) -->
-          <div class="px-4 lg:hidden">
-            <UInput
-              v-model="searchQuery"
-              icon="i-heroicons-magnifying-glass"
-              placeholder="Search integrations..."
-              size="xl"
-              variant="outline"
-              :ui="{
-                base: 'rounded-2xl bg-white/5 border-white/10 hover:border-primary-500/50 transition-colors'
-              }"
-            />
-          </div>
-        </motion.div>
+              <!-- Inline Search (Desktop only or icon on mobile?) -->
+              <div class="hidden lg:block w-72">
+                <UInput
+                  v-model="searchQuery"
+                  icon="i-heroicons-magnifying-glass"
+                  :placeholder="t('search_placeholder')"
+                  variant="outline"
+                  :ui="{ base: 'rounded-xl bg-white/5 border-white/10' }"
+                />
+              </div>
+            </div>
+          </UContainer>
+        </div>
 
+        <!-- Mobile Search Bar (Below Sticky) -->
+        <div class="px-4 lg:hidden">
+          <UInput
+            v-model="searchQuery"
+            icon="i-heroicons-magnifying-glass"
+            :placeholder="t('search_placeholder_mobile')"
+            size="xl"
+            variant="outline"
+            :ui="{
+              base: 'rounded-2xl bg-white/5 border-white/10 hover:border-primary-500/50 transition-colors'
+            }"
+          />
+        </div>
+      </motion.div>
+
+      <UContainer>
         <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 px-0 sm:px-4">
           <transition-group
             enter-active-class="transition duration-700 ease-out"
@@ -478,7 +525,7 @@
               <div class="hidden sm:flex items-center gap-2 mt-auto">
                 <span
                   class="text-[10px] font-black text-primary-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-2 group-hover:translate-x-0"
-                  >Learn More</span
+                  >{{ t('learn_more') }}</span
                 >
                 <UIcon
                   name="i-heroicons-arrow-right"
@@ -524,12 +571,12 @@
                       <div
                         class="text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1"
                       >
-                        Today's Readiness
+                        {{ t('f1_ui_readiness') }}
                       </div>
                       <div class="text-4xl sm:text-6xl font-black text-white italic font-athletic">
-                        94<span class="text-sm sm:text-xl text-primary-500 ml-2 sm:ml-3"
-                          >Optimal</span
-                        >
+                        94<span class="text-sm sm:text-xl text-primary-500 ml-2 sm:ml-3">{{
+                          t('f1_ui_optimal')
+                        }}</span>
                       </div>
                     </div>
                     <div
@@ -547,8 +594,8 @@
                     <div
                       class="flex justify-between text-[9px] sm:text-[11px] font-black text-gray-600 uppercase tracking-widest"
                     >
-                      <span>Recovery State</span>
-                      <span class="text-primary-400">Deep Sleep</span>
+                      <span>{{ t('f1_ui_recovery') }}</span>
+                      <span class="text-primary-400">{{ t('f1_ui_sleep') }}</span>
                     </div>
                     <div
                       class="h-3 sm:h-4 bg-gray-950 rounded-full overflow-hidden border border-white/5 shadow-inner"
@@ -574,11 +621,10 @@
                     <div
                       class="text-[9px] sm:text-[11px] text-primary-500 font-black uppercase tracking-[0.3em] mb-2 sm:mb-3"
                     >
-                      Coach Insight
+                      {{ t('f1_ui_insight_label') }}
                     </div>
                     <p class="text-sm sm:text-base text-gray-300 font-medium leading-relaxed">
-                      High recovery detected from Oura. Recommended intensity increased by
-                      <span class="text-primary-400 font-black">+5%</span>.
+                      {{ t('f1_ui_insight_text') }}
                     </p>
                   </div>
                 </div>
@@ -596,26 +642,20 @@
             <div
               class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-500 text-[10px] font-black uppercase tracking-[0.2em] mb-8"
             >
-              Intelligent Synergy
+              {{ t('f1_badge') }}
             </div>
             <h2
               class="text-5xl sm:text-7xl font-black uppercase text-white mb-10 tracking-tighter leading-[0.9]"
             >
-              The Biometric <br />
-              <span class="text-emerald-500">Overlay.</span>
+              {{ t('f1_title_1') }} <br />
+              <span class="text-emerald-500">{{ t('f1_title_accent') }}</span>
             </h2>
             <p class="text-xl text-gray-400 mb-10 leading-relaxed font-medium">
-              We don't just import data; we correlate it. By combining your Garmin workout files
-              with sleep and recovery metrics from Oura or WHOOP, our AI adjusts your training
-              recommendations in real-time.
+              {{ t('f1_desc') }}
             </p>
             <ul class="space-y-6">
               <li
-                v-for="item in [
-                  'Real-time Load Balancing',
-                  'Automatic Intensity Scaling',
-                  'Recovery-Aware Periodization'
-                ]"
+                v-for="item in [t('f1_item_1'), t('f1_item_2'), t('f1_item_3')]"
                 :key="item"
                 class="flex items-center gap-4 text-white font-black uppercase tracking-tight"
               >
@@ -636,17 +676,16 @@
             <div
               class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-black uppercase tracking-[0.2em] mb-8"
             >
-              Seamless Workflow
+              {{ t('f2_badge') }}
             </div>
             <h2
               class="text-4xl sm:text-7xl font-black uppercase text-white mb-8 tracking-tighter leading-[0.9]"
             >
-              One-Click <br />
-              <span class="text-blue-500">Device Sync.</span>
+              {{ t('f2_title_1') }} <br />
+              <span class="text-blue-500">{{ t('f2_title_accent') }}</span>
             </h2>
             <p class="text-lg sm:text-xl text-gray-400 mb-10 leading-relaxed font-medium">
-              Stop manually typing power targets into your bike computer. Our AI models generates
-              structured files that sync directly to your Intervals.icu calendar.
+              {{ t('f2_desc') }}
             </p>
             <div class="flex flex-wrap gap-4">
               <UButton
@@ -654,7 +693,7 @@
                 color="neutral"
                 class="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white font-black border border-white/10 uppercase tracking-widest px-8 rounded-2xl h-14"
               >
-                Explore File Formats
+                {{ t('f2_cta') }}
               </UButton>
             </div>
           </div>
@@ -664,10 +703,10 @@
             >
               <div class="text-center mb-12">
                 <div class="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-4">
-                  Finalizing Plan
+                  {{ t('f2_ui_label') }}
                 </div>
                 <div class="text-3xl font-black text-white tracking-tight italic">
-                  V02 Max Intervals
+                  {{ t('f2_ui_workout') }}
                 </div>
               </div>
               <div class="space-y-5 mb-12">
@@ -680,9 +719,9 @@
                     >
                       <img src="/images/logos/intervals.png" class="w-10 h-10 object-contain" />
                     </div>
-                    <span class="text-lg font-black text-white uppercase tracking-tight"
-                      >Push to Intervals</span
-                    >
+                    <span class="text-lg font-black text-white uppercase tracking-tight">{{
+                      t('f2_ui_push')
+                    }}</span>
                   </div>
                   <UIcon
                     name="i-heroicons-cloud-arrow-up"
@@ -698,9 +737,9 @@
                     >
                       <UIcon name="i-heroicons-bolt" class="w-8 h-8 text-blue-500" />
                     </div>
-                    <span class="text-lg font-black text-white uppercase tracking-tight"
-                      >Export .FIT File</span
-                    >
+                    <span class="text-lg font-black text-white uppercase tracking-tight">{{
+                      t('f2_ui_export')
+                    }}</span>
                   </div>
                   <UIcon
                     name="i-heroicons-arrow-down-tray"
@@ -725,12 +764,12 @@
         <h2
           class="text-4xl sm:text-6xl lg:text-9xl font-black uppercase text-white mb-8 leading-[0.8] tracking-tighter"
         >
-          Ready to <br />
-          <span class="text-primary-500">Upgrade</span> <br />
-          Your Training?
+          {{ t('cta_title_1') }} <br />
+          <span class="text-primary-500">{{ t('cta_title_accent') }}</span> <br />
+          {{ t('cta_title_2') }}
         </h2>
         <p class="text-lg sm:text-2xl text-gray-400 mb-12 font-medium max-w-2xl mx-auto">
-          Join the elite athletes using the most connected AI platform on the market.
+          {{ t('cta_description') }}
         </p>
         <div class="flex items-center justify-center">
           <UButton
@@ -738,7 +777,7 @@
             to="/join"
             color="primary"
             class="w-full sm:w-auto font-black px-12 h-20 rounded-3xl text-xl sm:text-2xl shadow-[0_0_50px_rgba(34,197,94,0.4)] hover:scale-105 active:scale-95 transition-all"
-            >Connect Your Apps</UButton
+            >{{ t('cta_button') }}</UButton
           >
         </div>
       </motion.div>

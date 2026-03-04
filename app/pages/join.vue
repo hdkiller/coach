@@ -205,7 +205,7 @@
               </p>
             </div>
 
-            <div class="space-y-8">
+            <div class="space-y-4">
               <!-- Magnetic Google Button -->
               <div
                 class="relative transition-transform duration-200"
@@ -232,6 +232,46 @@
                 </UButton>
               </div>
 
+              <!-- Strava Button -->
+              <UButton
+                block
+                size="xl"
+                color="neutral"
+                variant="outline"
+                class="relative overflow-hidden group border-white/10 hover:border-white/20 bg-white/5 py-5 rounded-2xl h-14 min-w-full"
+                :loading="loadingStrava || isInitializing"
+                @click="handleStravaLogin"
+              >
+                <template #leading>
+                  <UIcon name="i-simple-icons-strava" class="w-5 h-5 text-[#FC4C02]" />
+                </template>
+                <span
+                  class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
+                >
+                  {{ isInitializing ? 'CALIBRATING...' : joinStrava }}
+                </span>
+              </UButton>
+
+              <!-- Intervals.icu Button -->
+              <UButton
+                block
+                size="xl"
+                color="neutral"
+                variant="outline"
+                class="relative overflow-hidden group border-white/10 hover:border-white/20 bg-white/5 py-5 rounded-2xl h-14 min-w-full"
+                :loading="loadingIntervals || isInitializing"
+                @click="handleIntervalsLogin"
+              >
+                <template #leading>
+                  <img src="/images/logos/intervals.png" alt="Intervals.icu Logo" class="w-5 h-5" />
+                </template>
+                <span
+                  class="relative z-10 font-black uppercase tracking-[0.2em] text-[11px] text-white"
+                >
+                  {{ isInitializing ? 'CALIBRATING...' : joinIntervals }}
+                </span>
+              </UButton>
+
               <p
                 class="text-center lg:text-left text-[11px] font-black italic uppercase tracking-[0.18em] text-[#00C16A]"
               >
@@ -245,7 +285,7 @@
                 <div class="relative flex justify-center text-[10px]">
                   <span
                     class="bg-[#09090B] px-4 font-black uppercase tracking-[0.4em] text-zinc-600"
-                    >{{ joinOnlyGoogle }}</span
+                    >Secure OAuth Login</span
                   >
                 </div>
               </div>
@@ -395,6 +435,8 @@
   })
 
   const loading = ref(false)
+  const loadingStrava = ref(false)
+  const loadingIntervals = ref(false)
   const isInitializing = ref(false)
   const isTyping = ref(true)
   const starStyles = ref<any[]>([])
@@ -415,11 +457,12 @@
     ['Create your Coach Watts account. No credit card required.']
   )
   const joinGoogle = translateOrFallback('join.google', 'Create Account with Google')
+  const joinStrava = translateOrFallback('join.strava', 'Create Account with Strava')
+  const joinIntervals = translateOrFallback('join.intervals', 'Create Account with Intervals.icu')
   const joinFreeForeverNote = translateOrFallback(
     'join.free_forever_note',
     'Free forever with optional upgrades when you need more.'
   )
-  const joinOnlyGoogle = translateOrFallback('join.only_google', 'Only Google Login supported')
   const joinAlreadyAccount = translateOrFallback('join.already_account', 'Already have an account?')
   const joinLogin = translateOrFallback('join.login', 'Log in')
   const joinTermsAgree = translateOrFallback('join.terms_agree', 'By continuing, you agree to our')
@@ -491,6 +534,34 @@
     } catch (error: any) {
       console.error('Login error:', error)
       isInitializing.value = false
+    }
+  }
+
+  async function handleStravaLogin() {
+    isInitializing.value = true
+    loadingStrava.value = true
+    try {
+      // Simulate technical delay for the animation
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await signIn('strava', { callbackUrl: '/' })
+    } catch (error: any) {
+      console.error('Strava login error:', error)
+      isInitializing.value = false
+      loadingStrava.value = false
+    }
+  }
+
+  async function handleIntervalsLogin() {
+    isInitializing.value = true
+    loadingIntervals.value = true
+    try {
+      // Simulate technical delay for the animation
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await signIn('intervals', { callbackUrl: '/' })
+    } catch (error: any) {
+      console.error('Intervals login error:', error)
+      isInitializing.value = false
+      loadingIntervals.value = false
     }
   }
 </script>

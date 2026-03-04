@@ -50,6 +50,7 @@
       :yazio-connected="yazioConnected"
       :fitbit-connected="fitbitConnected"
       :strava-connected="stravaConnected"
+      :strava-ingest-workouts="stravaIngestWorkouts"
       :rouvy-connected="rouvyConnected"
       :hevy-connected="hevyConnected"
       :hevy-ingest-workouts="hevyIngestWorkouts"
@@ -308,7 +309,7 @@
     const settings = integration?.settings || {}
 
     if (
-      ['garmin', 'whoop', 'oura', 'withings', 'polar', 'hevy'].includes(provider) &&
+      ['garmin', 'whoop', 'oura', 'withings', 'polar', 'hevy', 'strava'].includes(provider) &&
       settings.activityPreferenceConfigured !== true
     ) {
       return true
@@ -359,6 +360,8 @@
   const stravaConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'strava') ?? false
   )
+
+  const stravaIngestWorkouts = computed(() => isActivityIngestionEnabled('strava'))
 
   const rouvyConnected = computed(
     () => integrationStatus.value?.integrations?.some((i: any) => i.provider === 'rouvy') ?? false

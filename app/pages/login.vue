@@ -101,6 +101,21 @@
                 color="neutral"
                 variant="outline"
                 class="shadow-sm py-4"
+                :loading="loadingStrava"
+                @click="handleStravaLogin"
+              >
+                <template #leading>
+                  <UIcon name="i-simple-icons-strava" class="w-5 h-5 text-[#FC4C02]" />
+                </template>
+                {{ t('login.strava') }}
+              </UButton>
+
+              <UButton
+                block
+                size="xl"
+                color="neutral"
+                variant="outline"
+                class="shadow-sm py-4"
                 :loading="loadingIntervals"
                 @click="handleIntervalsLogin"
               >
@@ -184,6 +199,7 @@
   })
 
   const loading = ref(false)
+  const loadingStrava = ref(false)
   const loadingIntervals = ref(false)
 
   async function handleGoogleLogin() {
@@ -198,6 +214,21 @@
         color: 'error'
       })
       loading.value = false
+    }
+  }
+
+  async function handleStravaLogin() {
+    trackLogin('strava')
+    loadingStrava.value = true
+    try {
+      await signIn('strava', { callbackUrl })
+    } catch (error: any) {
+      toast.add({
+        title: 'Login Failed',
+        description: error.message || 'Could not initiate Strava login.',
+        color: 'error'
+      })
+      loadingStrava.value = false
     }
   }
 
