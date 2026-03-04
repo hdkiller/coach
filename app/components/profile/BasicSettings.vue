@@ -6,10 +6,10 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              Personal Information
+              {{ t('basic_personal_info_title') }}
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Your basic identity and contact details.
+              {{ t('basic_personal_info_description') }}
             </p>
           </div>
           <div class="flex shrink-0">
@@ -19,7 +19,7 @@
               variant="soft"
               color="primary"
               :loading="autodetecting"
-              label="Auto-detect from Apps"
+              :label="t('basic_personal_info_autodetect')"
               class="w-full sm:w-auto justify-center"
               @click="autodetectProfile"
             />
@@ -28,15 +28,19 @@
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UFormField label="Name" name="name">
-          <UInput v-model="localProfile.name" placeholder="Your Name" class="w-full" />
+        <UFormField :label="t('basic_form_name')" name="name">
+          <UInput
+            v-model="localProfile.name"
+            :placeholder="t('basic_form_name_placeholder')"
+            class="w-full"
+          />
         </UFormField>
 
-        <UFormField label="Email Address" name="email" help="Email cannot be changed here.">
+        <UFormField :label="t('basic_form_email')" name="email" :help="t('basic_form_email_help')">
           <UInput :model-value="email" disabled class="w-full bg-gray-50 dark:bg-gray-800" />
         </UFormField>
 
-        <UFormField label="Sex" name="sex">
+        <UFormField :label="t('basic_form_sex')" name="sex">
           <USelectMenu
             v-model="localProfile.sex"
             :items="['Male', 'Female', 'Other']"
@@ -45,7 +49,7 @@
           />
         </UFormField>
 
-        <UFormField label="Date of Birth" name="dob">
+        <UFormField :label="t('basic_form_dob')" name="dob">
           <UInput
             v-model="dobValue"
             type="date"
@@ -62,10 +66,10 @@
         <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              Body Metrics
+              {{ t('basic_body_metrics_title') }}
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Used for BMR calculation and power/weight performance metrics.
+              {{ t('basic_body_metrics_description') }}
             </p>
           </div>
           <UButton
@@ -75,7 +79,7 @@
             class="w-full sm:w-auto justify-center"
             @click="emit('navigate', 'measurements')"
           >
-            Measurements
+            {{ t('settings_tabs_measurements') }}
           </UButton>
         </div>
       </template>
@@ -83,7 +87,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-4">
           <div class="grid grid-cols-3 gap-4">
-            <UFormField label="Weight" name="weight" class="col-span-2">
+            <UFormField :label="t('basic_body_metrics_weight')" name="weight" class="col-span-2">
               <UInput v-model.number="localProfile.weight" type="number" step="0.1" class="w-full">
                 <template #trailing>
                   <span class="text-gray-500 dark:text-gray-400 text-xs">{{
@@ -92,7 +96,7 @@
                 </template>
               </UInput>
             </UFormField>
-            <UFormField label="Units" name="weightUnits">
+            <UFormField :label="t('basic_body_metrics_units')" name="weightUnits">
               <USelectMenu
                 v-model="localProfile.weightUnits"
                 :items="['Kilograms', 'Pounds']"
@@ -103,15 +107,18 @@
           </div>
 
           <UBadge variant="soft" color="neutral">
-            Current effective weight:
-            {{ formattedEffectiveWeight }}
-            <span v-if="effectiveWeightLabel"> from {{ effectiveWeightLabel }}</span>
-            <span v-if="effectiveWeightDate"> on {{ effectiveWeightDate }}</span>
+            {{
+              t('basic_body_metrics_effective_weight', {
+                weight: formattedEffectiveWeight,
+                source: effectiveWeightLabel || '?',
+                date: effectiveWeightDate || '?'
+              })
+            }}
           </UBadge>
         </div>
 
         <div class="grid grid-cols-3 gap-4">
-          <UFormField label="Height" name="height" class="col-span-2">
+          <UFormField :label="t('basic_body_metrics_height')" name="height" class="col-span-2">
             <div v-if="localProfile.heightUnits === 'ft/in'" class="flex gap-2">
               <UInput
                 v-model.number="heightFt"
@@ -142,7 +149,7 @@
               </template>
             </UInput>
           </UFormField>
-          <UFormField label="Units" name="heightUnits">
+          <UFormField :label="t('basic_body_metrics_units')" name="heightUnits">
             <USelectMenu
               v-model="localProfile.heightUnits"
               :items="['cm', 'ft/in']"
@@ -159,15 +166,15 @@
     <UCard>
       <template #header>
         <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-          Localization & Preferences
+          {{ t('basic_localization_title') }}
         </h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Regional settings and measurement units.
+          {{ t('basic_localization_description') }}
         </p>
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UFormField label="Language" name="language">
+        <UFormField :label="t('basic_localization_language')" name="language">
           <USelectMenu
             v-model="localProfile.language"
             :items="[
@@ -204,7 +211,7 @@
           />
         </UFormField>
 
-        <UFormField label="Timezone" name="timezone">
+        <UFormField :label="t('basic_localization_timezone')" name="timezone">
           <USelectMenu
             v-model="localProfile.timezone"
             :items="timezones"
@@ -214,7 +221,7 @@
           />
         </UFormField>
 
-        <UFormField label="Distance Units" name="distanceUnits">
+        <UFormField :label="t('basic_localization_distance_units')" name="distanceUnits">
           <USelectMenu
             v-model="localProfile.distanceUnits"
             :items="['Kilometers', 'Miles']"
@@ -223,7 +230,7 @@
           />
         </UFormField>
 
-        <UFormField label="Temperature Units" name="temperatureUnits">
+        <UFormField :label="t('basic_localization_temperature_units')" name="temperatureUnits">
           <USelectMenu
             v-model="localProfile.temperatureUnits"
             :items="['Celsius', 'Fahrenheit']"
@@ -237,34 +244,44 @@
     <!-- Location Card -->
     <UCard>
       <template #header>
-        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Location</h3>
+        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+          {{ t('basic_location_title') }}
+        </h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Used for weather forecasts and regional insights.
+          {{ t('basic_location_description') }}
         </p>
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UFormField label="City" name="city">
-          <UInput v-model="localProfile.city" placeholder="e.g. London" class="w-full" />
+        <UFormField :label="t('basic_location_city')" name="city">
+          <UInput
+            v-model="localProfile.city"
+            :placeholder="t('basic_location_city_placeholder')"
+            class="w-full"
+          />
         </UFormField>
 
-        <UFormField label="State/Province" name="state">
-          <UInput v-model="localProfile.state" placeholder="e.g. Ontario" class="w-full" />
+        <UFormField :label="t('basic_location_state')" name="state">
+          <UInput
+            v-model="localProfile.state"
+            :placeholder="t('basic_location_state_placeholder')"
+            class="w-full"
+          />
         </UFormField>
 
-        <UFormField label="Country" name="country">
+        <UFormField :label="t('basic_location_country')" name="country">
           <USelectMenu
             v-model="countryModel"
             :items="countriesWithLabel"
             label-key="label"
             :filter-fields="['name', 'code']"
             class="w-full"
-            :search-input="{ placeholder: 'Search country...' }"
+            :search-input="{ placeholder: t('basic_location_country_search') }"
             :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
           />
         </UFormField>
 
-        <UFormField label="Profile Visibility" name="visibility">
+        <UFormField :label="t('basic_location_visibility')" name="visibility">
           <USelectMenu
             v-model="localProfile.visibility"
             :items="['Private', 'Public', 'Followers Only']"
@@ -281,16 +298,16 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              Login Methods
+              {{ t('basic_login_methods_title') }}
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage how you sign in to Coach Watts.
+              {{ t('basic_login_methods_description') }}
             </p>
           </div>
           <div class="flex flex-col items-end gap-1">
-            <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500"
-              >Internal Athlete ID</span
-            >
+            <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500">{{
+              t('basic_login_methods_athlete_id')
+            }}</span>
             <div class="flex items-center gap-2">
               <code
                 class="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded"
@@ -330,7 +347,7 @@
               <p class="font-semibold text-gray-900 dark:text-white">{{ method.name }}</p>
               <div v-if="method.isConnected" class="flex flex-col">
                 <p class="text-xs text-green-500 font-medium">
-                  Connected
+                  {{ t('basic_login_methods_connected') }}
                   <span v-if="method.linkedAt" class="text-gray-500 dark:text-gray-400 font-normal">
                     on {{ formatDateUTC(method.linkedAt, 'PPP') }}
                   </span>
@@ -340,12 +357,16 @@
                 </p>
               </div>
               <p v-else-if="method.isIntegrated" class="flex flex-col">
-                <span class="text-xs text-amber-500 font-medium">Linked for data sync</span>
+                <span class="text-xs text-amber-500 font-medium">{{
+                  t('basic_login_methods_linked')
+                }}</span>
                 <span v-if="method.profileId" class="text-[10px] font-mono text-zinc-500 mt-0.5"
                   >ID: {{ method.profileId }}</span
                 >
               </p>
-              <p v-else class="text-xs text-gray-500 dark:text-gray-400">Not connected</p>
+              <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('basic_login_methods_not_connected') }}
+              </p>
             </div>
           </div>
 
@@ -357,9 +378,15 @@
               size="sm"
               @click="linkAccount(method.id)"
             >
-              {{ method.isIntegrated ? 'Link for Login' : 'Link Account' }}
+              {{
+                method.isIntegrated
+                  ? t('basic_login_methods_link_for_login')
+                  : t('basic_login_methods_link_account')
+              }}
             </UButton>
-            <UBadge v-else color="success" variant="subtle" size="sm"> Active </UBadge>
+            <UBadge v-else color="success" variant="subtle" size="sm">
+              {{ t('basic_login_methods_active') }}
+            </UBadge>
           </div>
         </div>
       </div>
@@ -368,7 +395,7 @@
     <!-- Save Button -->
     <div class="flex justify-end pt-4">
       <UButton
-        label="Save Profile Settings"
+        :label="t('basic_save_button')"
         color="primary"
         size="lg"
         :loading="loading"
@@ -439,8 +466,11 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { countries } from '~/utils/countries'
   import { cmToFtIn, ftInToCm, LBS_TO_KG } from '~/utils/metrics'
+
+  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     modelValue: any

@@ -1,5 +1,8 @@
 <script setup lang="ts">
   import { formatDistanceToNow, isToday, isYesterday } from 'date-fns'
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     personalBests: any[]
@@ -132,12 +135,12 @@
           <h3
             class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
           >
-            {{ cat.label }} Hall of Fame
+            {{ t('trophy_hall_of_fame', { category: cat.label }) }}
           </h3>
           <p
             class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em]"
           >
-            Elite performances from your history
+            {{ t('trophy_hall_of_fame_desc') }}
           </p>
         </div>
         <div class="flex-1 border-b border-dashed border-gray-200 dark:border-gray-800 ml-2" />
@@ -174,7 +177,9 @@
                     class="absolute inset-0 -translate-x-full animate-[shimmer_3s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-12"
                   />
                   <UIcon name="i-heroicons-sparkles" class="w-5 h-5 animate-spin-slow" />
-                  <span class="text-xs font-black uppercase tracking-[0.2em]">New Record</span>
+                  <span class="text-xs font-black uppercase tracking-[0.2em]">{{
+                    t('trophy_new_record')
+                  }}</span>
                 </div>
               </div>
 
@@ -220,13 +225,20 @@
                 v-if="pb.metadata?.avgHr || pb.workout?.averageHr"
                 class="flex items-center gap-3 group/stat"
               >
-                <div class="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/5 group-hover/stat:border-red-500/30 transition-colors">
+                <div
+                  class="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/5 group-hover/stat:border-red-500/30 transition-colors"
+                >
                   <UIcon name="i-heroicons-heart" class="w-6 h-6 text-red-500/60" />
                 </div>
                 <div>
-                  <div class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5">Avg Heart Rate</div>
+                  <div
+                    class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5"
+                  >
+                    {{ t('trophy_stat_avg_hr') }}
+                  </div>
                   <span class="text-base font-black text-gray-700 dark:text-gray-400 tabular-nums">
-                    {{ pb.metadata?.avgHr || pb.workout?.averageHr }} <span class="text-[10px] text-gray-500 dark:text-gray-600">BPM</span>
+                    {{ pb.metadata?.avgHr || pb.workout?.averageHr }}
+                    <span class="text-[10px] text-gray-500 dark:text-gray-600">BPM</span>
                   </span>
                 </div>
               </div>
@@ -234,13 +246,20 @@
                 v-if="pb.metadata?.avgCadence || pb.workout?.averageCadence"
                 class="flex items-center gap-3 group/stat"
               >
-                <div class="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/5 group-hover/stat:border-blue-500/30 transition-colors">
+                <div
+                  class="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center border border-gray-200 dark:border-white/5 group-hover/stat:border-blue-500/30 transition-colors"
+                >
                   <UIcon name="i-lucide-rotate-cw" class="w-6 h-6 text-blue-500/60" />
                 </div>
                 <div>
-                  <div class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5">Avg Cadence</div>
+                  <div
+                    class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5"
+                  >
+                    {{ t('trophy_stat_avg_cadence') }}
+                  </div>
                   <span class="text-base font-black text-gray-700 dark:text-gray-400 tabular-nums">
-                    {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }} <span class="text-[10px] text-gray-500 dark:text-gray-600">RPM</span>
+                    {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }}
+                    <span class="text-[10px] text-gray-500 dark:text-gray-600">RPM</span>
                   </span>
                 </div>
               </div>
@@ -255,7 +274,7 @@
               <div
                 class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.3em]"
               >
-                Achieved
+                {{ t('trophy_achieved') }}
               </div>
               <div class="text-base font-black text-gray-700 dark:text-gray-500 italic">
                 {{ getHumanDate(pb.date) }}
@@ -287,11 +306,10 @@
         <UIcon name="i-heroicons-trophy" class="w-12 h-12 text-gray-200" />
       </div>
       <h3 class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic">
-        The Case is Empty
+        {{ t('trophy_empty_title') }}
       </h3>
       <p class="text-base text-gray-500 max-w-sm mx-auto mt-3 font-medium leading-relaxed">
-        Your peak performances are waiting. Go out, push your limits, and Coach Watts will celebrate
-        you here.
+        {{ t('trophy_empty_desc') }}
       </p>
       <UButton
         color="primary"
@@ -300,7 +318,7 @@
         class="mt-10 font-black uppercase tracking-widest rounded-2xl px-10 py-4 shadow-xl shadow-primary-500/20"
         to="/activities"
       >
-        Ignite Training
+        {{ t('trophy_empty_button') }}
       </UButton>
     </div>
   </div>
@@ -308,7 +326,8 @@
 
 <style scoped>
   @keyframes neon-pulse {
-    0%, 100% {
+    0%,
+    100% {
       filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.4));
     }
     50% {

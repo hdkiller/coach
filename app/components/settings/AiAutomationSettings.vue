@@ -1,236 +1,87 @@
 <template>
-  <UCard>
+  <UCard :ui="{ body: 'space-y-6' }">
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-bolt" class="w-5 h-5 text-primary" />
-        <h2 class="text-xl font-semibold">Automation Settings</h2>
+        <div>
+          <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+            {{ t('automation_header') }}
+          </h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {{ t('automation_desc') }}
+          </p>
+        </div>
       </div>
     </template>
 
-    <div class="space-y-4">
-      <!-- Auto-Analyze Readiness (Supporter+) -->
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <USwitch
-            v-model="localSettings.aiAutoAnalyzeReadiness"
-            label="Auto-analyze Readiness"
-            description="Generate coaching tips for your day automatically"
-            :disabled="!canUseTier('SUPPORTER')"
-            @update:model-value="handleChange"
-          />
-        </div>
-        <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">Supporter</UBadge>
-          <UButton
-            icon="i-heroicons-lock-closed"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="
-              upgradeModal.show({
-                featureTitle: 'Auto-analyze Readiness',
-                featureDescription:
-                  'Automatically receive coaching tips and readiness insights for your day.',
-                recommendedTier: 'supporter'
-              })
-            "
-          />
-        </div>
+    <UFormField :label="t('automation_form_auto_analysis')" name="autoAnalyzeActivities">
+      <div class="flex items-center justify-between gap-4">
+        <p class="text-xs text-gray-500 leading-tight">
+          {{ t('automation_desc_auto_analysis') }}
+        </p>
+        <USwitch v-model="localSettings.autoAnalyzeActivities" />
       </div>
+    </UFormField>
 
-      <!-- Auto-Analyze Workouts (Supporter+) -->
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <USwitch
-            v-model="localSettings.aiAutoAnalyzeWorkouts"
-            label="Auto-analyze Workouts"
-            description="Generate insights for every workout that syncs"
-            :disabled="!canUseTier('SUPPORTER')"
-            @update:model-value="handleChange"
-          />
-        </div>
-        <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">Supporter</UBadge>
-          <UButton
-            icon="i-heroicons-lock-closed"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="
-              upgradeModal.show({
-                featureTitle: 'Auto-analyze Workouts',
-                featureDescription:
-                  'Automatically generate insights for every workout without manual intervention.',
-                recommendedTier: 'supporter'
-              })
-            "
-          />
-        </div>
+    <UFormField :label="t('automation_form_daily_brief')" name="enableDailyBriefings">
+      <div class="flex items-center justify-between gap-4">
+        <p class="text-xs text-gray-500 leading-tight">
+          {{ t('automation_desc_daily_brief') }}
+        </p>
+        <USwitch v-model="localSettings.enableDailyBriefings" />
       </div>
+    </UFormField>
 
-      <!-- Auto-Analyze Nutrition (Supporter+) -->
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <USwitch
-            v-model="localSettings.aiAutoAnalyzeNutrition"
-            label="Auto-analyze Nutrition"
-            description="Evaluate meal quality and compliance automatically"
-            :disabled="!canUseTier('SUPPORTER')"
-            @update:model-value="handleChange"
-          />
-        </div>
-        <div v-if="!canUseTier('SUPPORTER')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">Supporter</UBadge>
-          <UButton
-            icon="i-heroicons-lock-closed"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="
-              upgradeModal.show({
-                featureTitle: 'Auto-analyze Nutrition',
-                featureDescription:
-                  'Automatically evaluate meal quality and compliance as soon as data syncs.',
-                recommendedTier: 'supporter'
-              })
-            "
-          />
-        </div>
+    <UFormField :label="t('automation_form_weekly_reports')" name="enableWeeklyReports">
+      <div class="flex items-center justify-between gap-4">
+        <p class="text-xs text-gray-500 leading-tight">
+          {{ t('automation_desc_weekly_reports') }}
+        </p>
+        <USwitch v-model="localSettings.enableWeeklyReports" />
       </div>
+    </UFormField>
 
-      <!-- Thoughtful Analysis (Pro+) -->
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <USwitch
-            v-model="localSettings.aiDeepAnalysisEnabled"
-            label="Thoughtful Analysis"
-            description="Use advanced reasoning for more thorough activity breakdowns"
-            :disabled="!canUseTier('PRO')"
-            @update:model-value="handleChange"
-          />
-        </div>
-        <div v-if="!canUseTier('PRO')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">Pro</UBadge>
-          <UButton
-            icon="i-heroicons-lock-closed"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="
-              upgradeModal.show({
-                featureTitle: 'Thoughtful Analysis',
-                featureDescription:
-                  'Get more thorough activity breakdowns with our most powerful AI engine.',
-                recommendedTier: 'pro'
-              })
-            "
-          />
-        </div>
+    <template #footer>
+      <div class="flex justify-end">
+        <UButton
+          :label="t('basic_save_button')"
+          color="primary"
+          :loading="saving"
+          @click="handleSave"
+        />
       </div>
-
-      <!-- Proactive Coaching (Pro+) -->
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <USwitch
-            v-model="localSettings.aiProactivityEnabled"
-            label="Proactive Coaching"
-            description="Allow the coach to send you unprompted tips and warnings"
-            :disabled="!canUseTier('PRO')"
-            @update:model-value="handleChange"
-          />
-        </div>
-        <div v-if="!canUseTier('PRO')" class="flex items-center gap-2">
-          <UBadge color="primary" variant="subtle" size="xs">Pro</UBadge>
-          <UButton
-            icon="i-heroicons-lock-closed"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="
-              upgradeModal.show({
-                featureTitle: 'Proactive Coaching',
-                featureDescription:
-                  'Receive personalized training tips and recovery warnings automatically.',
-                recommendedTier: 'pro'
-              })
-            "
-          />
-        </div>
-      </div>
-
-      <USeparator class="my-2" />
-
-      <div class="space-y-1">
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">
-          AI Tools Settings
-        </h3>
-      </div>
-
-      <USwitch
-        v-model="localSettings.aiRequireToolApproval"
-        label="Request tool approval"
-        description="Ask for approval before running certain AI tool actions."
-        @update:model-value="handleChange"
-      />
-
-      <!-- Save Button -->
-      <div class="flex justify-end pt-4">
-        <UButton :loading="saving" @click="saveSettings"> Save Changes </UButton>
-      </div>
-    </div>
+    </template>
   </UCard>
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('settings')
+
   const props = defineProps<{
+    settings: any
     forceUnlocked?: boolean
-    settings: {
-      aiAutoAnalyzeWorkouts: boolean
-      aiAutoAnalyzeNutrition: boolean
-      aiAutoAnalyzeReadiness: boolean
-      aiProactivityEnabled: boolean
-      aiConversationalEngagement: boolean
-      aiDeepAnalysisEnabled: boolean
-      aiRequireToolApproval: boolean
-      [key: string]: any // Allow other props to pass through without type error if mixed
-    }
   }>()
 
-  const emit = defineEmits<{
-    save: [settings: typeof props.settings]
-  }>()
+  const emit = defineEmits(['save'])
 
   const localSettings = ref({ ...props.settings })
   const saving = ref(false)
-  const userStore = useUserStore()
-  const upgradeModal = useUpgradeModal()
 
-  function canUseTier(tier: 'SUPPORTER' | 'PRO') {
-    if (props.forceUnlocked) return true
-    return userStore.hasMinimumTier(tier)
-  }
-
-  function handleChange() {
-    // Auto-save on change (optional)
-  }
-
-  async function saveSettings() {
-    saving.value = true
-    try {
-      emit('save', { ...localSettings.value })
-    } finally {
-      saving.value = false
-    }
-  }
-
-  // Watch for prop changes to update local state
   watch(
     () => props.settings,
-    (newSettings) => {
-      // Only update if changed to avoid overwriting local edits while typing?
-      // For switches it's fine.
-      localSettings.value = { ...localSettings.value, ...newSettings }
+    (newVal) => {
+      localSettings.value = { ...newVal }
     },
     { deep: true }
   )
+
+  const handleSave = async () => {
+    saving.value = true
+    emit('save', localSettings.value)
+    setTimeout(() => {
+      saving.value = false
+    }, 500)
+  }
 </script>
