@@ -1,0 +1,98 @@
+<svg viewBox="0 0 1080 1920" width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="card-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.1)" />
+      <stop offset="100%" stop-color="rgba(0, 220, 130, 0.3)" />
+    </linearGradient>
+
+    <radialGradient id="brand-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00DC82" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#00DC82" stop-opacity="0" />
+    </radialGradient>
+    
+    <radialGradient id="hub-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00DC82" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#00DC82" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
+    </filter>
+
+    <filter id="glow-blur">
+      <feGaussianBlur stdDeviation="20" />
+    </filter>
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&amp;family=Roboto+Condensed:ital,wght@1,900&amp;display=swap');
+      
+      .title { font-family: 'Public Sans', sans-serif; font-weight: 700; font-size: 52px; fill: #FFFFFF; letter-spacing: 2px; text-transform: uppercase; }
+      .subtitle { font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 26px; fill: #00DC82; letter-spacing: 4px; text-transform: uppercase; }
+      
+      .hero-stat { font-family: 'Roboto Condensed', sans-serif; font-weight: 900; font-style: italic; font-size: 160px; fill: #FFFFFF; }
+      .hero-unit { font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 56px; fill: #71717A; }
+      
+      .sec-stat { font-family: 'Roboto Condensed', sans-serif; font-weight: 900; font-style: italic; font-size: 96px; fill: #FFFFFF; }
+      .sec-unit { font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 36px; fill: #71717A; }
+      
+      .label { font-family: 'Public Sans', sans-serif; font-weight: 600; font-size: 24px; fill: #71717A; letter-spacing: 2px; text-transform: uppercase; }
+    </style>
+  </defs>
+
+  <rect width="1080" height="1920" fill="#09090B" />
+  
+  <rect width="1080" height="1920" filter="url(#noise)" opacity="0.03" pointer-events="none" style="mix-blend-mode: overlay;" />
+
+  <rect x="50" y="80" width="980" height="1760" rx="32" fill="rgba(255, 255, 255, 0.02)" stroke="url(#card-border)" stroke-width="2" />
+
+  <g transform="translate(0, 100)">
+    <circle cx="540" cy="350" r="400" fill="url(#brand-glow)" filter="url(#glow-blur)" />
+    
+    <path d="M 220 520 L 340 380 L 480 440 L 580 220 L 720 320 L 860 140" fill="none" stroke="#00DC82" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <circle cx="220" cy="520" r="20" fill="#09090B" stroke="#00DC82" stroke-width="6" />
+    <circle cx="860" cy="140" r="24" fill="#00C16A" />
+    <circle cx="860" cy="140" r="40" fill="none" stroke="#00C16A" stroke-width="2" opacity="0.5" />
+  </g>
+
+  <text x="540" y="780" text-anchor="middle" class="subtitle">{{subtitle}}</text>
+  <text x="540" y="860" text-anchor="middle" class="title">{{title}}</text>
+  
+  <line x1="120" y1="940" x2="960" y2="940" stroke="rgba(0, 220, 130, 0.2)" stroke-width="2" stroke-dasharray="8 8" />
+
+  <text x="540" y="1040" text-anchor="middle" class="label">{{heroLabel}}</text>
+  <text x="540" y="1200" text-anchor="middle">
+    <tspan class="hero-stat">{{heroValue}}</tspan>
+    <tspan class="hero-unit"> {{heroUnit}}</tspan>
+  </text>
+
+  <line x1="120" y1="1300" x2="960" y2="1300" stroke="rgba(0, 220, 130, 0.2)" stroke-width="2" />
+
+  <g transform="translate(0, 1400)">
+    <text x="240" y="0" text-anchor="middle" class="label">{{stat1Label}}</text>
+    <text x="240" y="100" text-anchor="middle">
+      <tspan class="sec-stat">{{stat1Value}}</tspan>
+      <tspan class="sec-unit"> {{stat1Unit}}</tspan>
+    </text>
+
+    <text x="540" y="0" text-anchor="middle" class="label">{{stat2Label}}</text>
+    <text x="540" y="100" text-anchor="middle">
+      <tspan class="sec-stat">{{stat2Value}}</tspan>
+      <tspan class="sec-unit"> {{stat2Unit}}</tspan>
+    </text>
+
+    <text x="840" y="0" text-anchor="middle" class="label">{{stat3Label}}</text>
+    <text x="840" y="100" text-anchor="middle">
+      <tspan class="sec-stat">{{stat3Value}}</tspan>
+      <tspan class="sec-unit"> {{stat3Unit}}</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(540, 1680)">
+    <rect x="-44" y="-44" width="88" height="88" rx="20" fill="rgba(0, 220, 130, 0.05)" stroke="rgba(0, 220, 130, 0.3)" stroke-width="1.5" />
+    
+    <circle cx="0" cy="0" r="44" fill="url(#hub-glow)" filter="url(#glow-blur)" opacity="0.8" />
+    
+    <path d="M -20 0 L -10 0 L -5 -15 L 5 15 L 10 0 L 20 0" fill="none" stroke="#00DC82" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
