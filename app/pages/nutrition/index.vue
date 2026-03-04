@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="nutrition-strategy">
     <template #header>
-      <UDashboardNavbar title="Metabolic Strategy">
+      <UDashboardNavbar :title="t('page_title')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -19,7 +19,7 @@
               size="sm"
               class="font-bold"
             >
-              <span class="hidden sm:inline">View History</span>
+              <span class="hidden sm:inline">{{ t('nav_history') }}</span>
             </UButton>
 
             <UButton
@@ -31,7 +31,7 @@
               :loading="loading"
               @click="refreshData"
             >
-              <span class="hidden sm:inline">Refresh</span>
+              <span class="hidden sm:inline">{{ t('nav_refresh') }}</span>
             </UButton>
 
             <UButton
@@ -42,8 +42,8 @@
               size="sm"
               class="font-bold"
             >
-              <span class="hidden sm:inline">New Chat</span>
-              <span class="sm:hidden">Chat</span>
+              <span class="hidden sm:inline">{{ t('nav_new_chat') }}</span>
+              <span class="sm:hidden">{{ t('nav_chat') }}</span>
             </UButton>
           </div>
         </template>
@@ -55,12 +55,12 @@
         <!-- Dashboard Branding -->
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            Nutrition
+            {{ t('branding_title') }}
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
           >
-            Metabolic Strategy & Fueling Periodization
+            {{ t('branding_subtitle') }}
           </p>
         </div>
 
@@ -81,34 +81,44 @@
                     >
                       <div>
                         <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                          Metabolic Horizon
+                          {{ t('horizon_header') }}
                         </h3>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          7-day rolling glycogen tank projection
+                          {{ t('horizon_desc') }}
                         </p>
                       </div>
                       <div class="flex flex-wrap items-center gap-3">
                         <div class="flex items-center gap-1">
                           <div class="size-2 rounded-full bg-blue-500" />
-                          <span class="text-[10px] text-gray-500">Glycogen</span>
+                          <span class="text-[10px] text-gray-500">{{
+                            t('horizon_legend_glycogen')
+                          }}</span>
                         </div>
                         <div class="flex items-center gap-1">
                           <div class="size-2 rounded-full bg-blue-500 border border-dashed" />
-                          <span class="text-[10px] text-gray-500">Projected</span>
+                          <span class="text-[10px] text-gray-500">{{
+                            t('horizon_legend_projected')
+                          }}</span>
                         </div>
                         <div class="flex items-center gap-1">
                           <div class="size-2 rounded bg-[#ef4444]" />
-                          <span class="text-[10px] text-gray-500">Workout</span>
+                          <span class="text-[10px] text-gray-500">{{
+                            t('horizon_legend_workout')
+                          }}</span>
                         </div>
                         <div class="flex items-center gap-1">
                           <div class="size-2 rounded-full bg-[#10b981]" />
-                          <span class="text-[10px] text-gray-500">Meal</span>
+                          <span class="text-[10px] text-gray-500">{{
+                            t('horizon_legend_meal')
+                          }}</span>
                         </div>
                         <div class="flex items-center gap-1">
                           <div
                             class="size-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[6px] border-b-[#8b5cf6]"
                           />
-                          <span class="text-[10px] text-gray-500">Multiple</span>
+                          <span class="text-[10px] text-gray-500">{{
+                            t('horizon_legend_multiple')
+                          }}</span>
                         </div>
                         <UButton
                           icon="i-heroicons-cog-6-tooth"
@@ -138,7 +148,7 @@
                       v-else-if="!loadingWave"
                       class="h-[300px] flex items-center justify-center text-gray-500"
                     >
-                      No wave data available
+                      {{ t('horizon_empty') }}
                     </div>
                   </ClientOnly>
 
@@ -148,11 +158,11 @@
                     color="warning"
                     variant="soft"
                     icon="i-heroicons-exclamation-triangle"
-                    title="Planned activity missing start time"
+                    :title="t('horizon_alert_missing_start_single')"
                   >
                     <template #description>
                       <span v-if="missingPlannedStartActivities.length === 1">
-                        The following planned activity is missing a start time:
+                        {{ t('horizon_alert_missing_start_single') }}
                         <NuxtLink
                           :to="`/workouts/planned/${missingPlannedStartActivities[0].id}`"
                           class="font-bold underline hover:text-warning-600 transition-colors"
@@ -161,8 +171,11 @@
                         </NuxtLink>
                       </span>
                       <span v-else>
-                        The following {{ missingPlannedStartActivities.length }} planned activities
-                        are missing a start time:
+                        {{
+                          t('horizon_alert_missing_start_multiple', {
+                            count: missingPlannedStartActivities.length
+                          })
+                        }}
                         <template
                           v-for="(activity, index) in missingPlannedStartActivities"
                           :key="activity.id"
@@ -176,7 +189,7 @@
                           <span v-if="index < missingPlannedStartActivities.length - 1">, </span>
                         </template>
                       </span>
-                      . They can appear at 00:00 and skew this metabolic horizon.
+                      {{ t('horizon_alert_missing_start_footer') }}
                     </template>
                   </UAlert>
                 </UCard>
@@ -184,7 +197,7 @@
                 <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }">
                   <template #header>
                     <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                      Weekly Fueling Periodization
+                      {{ t('periodization_header') }}
                     </h3>
                   </template>
                   <div v-if="loadingStrategy" class="h-24 flex items-center justify-center">
@@ -220,7 +233,7 @@
                   <template #header>
                     <div class="flex items-center gap-2">
                       <UIcon name="i-lucide-sparkles" class="size-5 text-primary-500" />
-                      <h3 class="text-base font-semibold leading-6">Strategic Summary</h3>
+                      <h3 class="text-base font-semibold leading-6">{{ t('summary_header') }}</h3>
                     </div>
                   </template>
                   <div v-if="loadingStrategy" class="space-y-2">
@@ -242,7 +255,7 @@
                     <div class="flex items-center gap-2">
                       <UIcon name="i-lucide-droplets" class="size-5 text-blue-500" />
                       <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                        Fluid Balance
+                        {{ t('hydration_header') }}
                       </h3>
                     </div>
                   </template>
@@ -260,7 +273,7 @@
                         </span>
                       </div>
                     </div>
-                    <p class="text-sm text-gray-500 mt-3">Persistent Fluid Debt</p>
+                    <p class="text-sm text-gray-500 mt-3">{{ t('hydration_status_debt') }}</p>
 
                     <div
                       class="mt-4 p-3 bg-info-50 dark:bg-info-900/20 rounded-lg text-xs text-info-700 dark:text-info-300"
@@ -282,7 +295,7 @@
                           variant="solid"
                           @click="resetHydrationDebt"
                         >
-                          Reset to zero
+                          {{ t('hydration_reset_button') }}
                         </UButton>
                       </template>
                     </UAlert>
@@ -296,7 +309,7 @@
                       icon="i-lucide-clipboard-list"
                       @click="showGroceryList = true"
                     >
-                      View Grocery Needs
+                      {{ t('grocery_button') }}
                     </UButton>
                   </template>
                 </UCard>
@@ -321,12 +334,12 @@
             <div class="pt-4 space-y-6">
               <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-lg font-black uppercase tracking-tight">Active Plan</h3>
+                  <h3 class="text-lg font-black uppercase tracking-tight">
+                    {{ t('active_plan_header') }}
+                  </h3>
                   <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">
                     {{
-                      isCurrentWeek
-                        ? 'Lock in your fueling for the week'
-                        : 'Review your historical fueling strategy'
+                      isCurrentWeek ? t('active_plan_desc_current') : t('active_plan_desc_history')
                     }}
                   </p>
                 </div>
@@ -350,8 +363,8 @@
 
         <UModal
           v-model:open="showGroceryList"
-          title="Strategic Grocery List"
-          description="A detailed list of grocery items needed for your planned meals and training fueling."
+          :title="t('grocery_modal_title')"
+          :description="t('grocery_modal_desc')"
           :ui="{ content: 'sm:max-w-2xl' }"
         >
           <template #content>
@@ -362,21 +375,21 @@
                 <p
                   class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1"
                 >
-                  48-Hour Carb Target
+                  {{ t('grocery_carb_target') }}
                 </p>
                 <div class="flex items-baseline gap-2">
                   <span class="text-3xl font-black text-primary-700 dark:text-primary-300"
                     >{{ next48hCarbTotal }}g</span
                   >
-                  <span class="text-sm text-primary-600/70">Total Carbs Needed</span>
+                  <span class="text-sm text-primary-600/70">{{ t('grocery_total_carbs') }}</span>
                 </div>
                 <p class="text-[10px] text-primary-600/60 mt-1 italic">
-                  This is the sum of all planned workout and baseline fueling windows.
+                  {{ t('grocery_sum_desc') }}
                 </p>
               </div>
 
               <p class="text-sm text-gray-500">
-                Based on your metabolic horizon, ensure you have these fueling essentials ready:
+                {{ t('grocery_essentials_desc') }}
               </p>
 
               <ul class="space-y-2">
@@ -394,8 +407,7 @@
               <div
                 class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-xs text-primary-700 dark:text-primary-300"
               >
-                <strong>Pro Tip:</strong> Focus on high-glycemic carbs for your State 3 days to
-                ensure rapid replenishment.
+                <strong>{{ t('grocery_tip_title') }}</strong> {{ t('grocery_tip_desc') }}
               </div>
             </div>
           </template>
@@ -433,9 +445,12 @@
 
 <script setup lang="ts">
   import { format, parseISO, addDays, startOfWeek, subDays, isSameWeek } from 'date-fns'
+  import { useTranslate } from '@tolgee/vue'
   import { getPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
   import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
   import NutritionHorizonSettingsModal from '~/components/nutrition/NutritionHorizonSettingsModal.vue'
+
+  const { t } = useTranslate('nutrition')
 
   definePageMeta({
     middleware: ['auth', 'nutrition-enabled'],
@@ -452,18 +467,18 @@
     ]
   })
 
-  const tabs = [
+  const tabs = computed(() => [
     {
-      label: 'Strategic Horizon',
+      label: t.value('tabs_strategy'),
       icon: 'i-lucide-activity',
       slot: 'strategy'
     },
     {
-      label: 'Weekly Plan',
+      label: t.value('tabs_plan'),
       icon: 'i-lucide-calendar-days',
       slot: 'plan'
     }
-  ]
+  ])
 
   const loadingWave = ref(true)
   const loadingStrategy = ref(true)
@@ -722,14 +737,12 @@
   }
 
   const hydrationAdvice = computed(() => {
-    if (!strategy.value) return 'Loading...'
+    if (!strategy.value) return t.value('nav_refresh') + '...'
     const debt = strategy.value.hydrationDebt
-    if (debt > 2000)
-      return 'High fluid debt detected. Add 500ml of water to your next two meals to normalize.'
-    if (debt > 1500)
-      return 'Severe dehydration risk. Sip 250ml every 30 mins until balance is restored.'
-    if (debt > 500) return 'Moderate fluid debt. Increase intake by 500ml over your baseline today.'
-    return 'Fluid balance is optimal. Maintain standard hydration pattern.'
+    if (debt > 2000) return t.value('hydration_advice_high')
+    if (debt > 1500) return t.value('hydration_advice_severe')
+    if (debt > 500) return t.value('hydration_advice_moderate')
+    return t.value('hydration_advice_optimal')
   })
 
   const hydrationStatus = computed(() => strategy.value?.hydrationStatus || 'green')
@@ -755,21 +768,37 @@
   const groceryItems = computed(() => {
     if (!strategy.value) return []
     const items = [
-      { name: 'Complex Carbs', reason: 'Daily baseline', icon: 'i-lucide-wheat' },
-      { name: 'Electrolytes', reason: 'Fluid retention', icon: 'i-lucide-flask-conical' }
+      {
+        name: t.value('grocery_item_complex_carbs'),
+        reason: t.value('grocery_reason_baseline'),
+        icon: 'i-lucide-wheat'
+      },
+      {
+        name: t.value('grocery_item_electrolytes'),
+        reason: t.value('grocery_reason_retention'),
+        icon: 'i-lucide-flask-conical'
+      }
     ]
 
     if (strategy.value.fuelingMatrix.some((d: any) => d.state === 3)) {
       items.push({
-        name: 'Simple Sugars/Gels',
-        reason: 'High intensity fueling',
+        name: t.value('grocery_item_sugars'),
+        reason: t.value('grocery_reason_high_intensity'),
         icon: 'i-lucide-zap'
       })
-      items.push({ name: 'Rice/Pasta', reason: 'Carb loading', icon: 'i-lucide-utensils-crossed' })
+      items.push({
+        name: t.value('grocery_item_rice_pasta'),
+        reason: t.value('grocery_reason_loading'),
+        icon: 'i-lucide-utensils-crossed'
+      })
     }
 
     if (strategy.value.hydrationDebt > 1000) {
-      items.push({ name: 'Sodium/Sea Salt', reason: 'Rehydration focus', icon: 'i-lucide-waves' })
+      items.push({
+        name: t.value('grocery_item_sodium'),
+        reason: t.value('grocery_reason_rehydration'),
+        icon: 'i-lucide-waves'
+      })
     }
 
     return items

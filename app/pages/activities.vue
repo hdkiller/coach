@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="activities">
     <template #header>
-      <UDashboardNavbar title="Performance Lab">
+      <UDashboardNavbar :title="t('title')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -17,9 +17,9 @@
               color="neutral"
               variant="outline"
               size="sm"
-              class="font-black uppercase tracking-widest text-[10px]"
+              class="hidden sm:flex font-black uppercase tracking-widest text-[10px]"
             >
-              <span class="hidden sm:inline">Upload</span>
+              <span class="hidden sm:inline">{{ t('header.upload') }}</span>
             </UButton>
 
             <!-- Secondary Actions Dropdown -->
@@ -41,7 +41,7 @@
               :loading="status === 'pending' || integrationStore.syncingData"
               @click="handleRefresh"
             >
-              <span class="hidden sm:inline">Refresh</span>
+              <span class="hidden sm:inline">{{ t('header.refresh') }}</span>
             </UButton>
 
             <UButton
@@ -52,8 +52,8 @@
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
             >
-              <span class="hidden sm:inline">New Chat</span>
-              <span class="sm:hidden">Chat</span>
+              <span class="hidden sm:inline">{{ t('header.new_chat') }}</span>
+              <span class="sm:hidden">{{ t('header.chat') }}</span>
             </UButton>
           </div>
         </template>
@@ -63,11 +63,8 @@
     <template #body>
       <div class="h-full flex flex-col">
         <Head>
-          <Title>Activities</Title>
-          <Meta
-            name="description"
-            content="View your training calendar, analyze completed workouts, and plan future sessions."
-          />
+          <Title>{{ t('meta_title') }}</Title>
+          <Meta name="description" :content="t('meta_description')" />
         </Head>
 
         <!-- Secondary Controls -->
@@ -82,33 +79,33 @@
             >
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-green-500" />
-                <span>Completed</span>
+                <span>{{ tl('completed') }}</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-blue-500" />
-                <span>Plan</span>
+                <span>{{ tl('plan') }}</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Proposed</span>
+                <span>{{ tl('proposed') }}</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-red-500" />
-                <span>Missed</span>
+                <span>{{ tl('missed') }}</span>
               </div>
               <div
                 class="flex items-center gap-1.5 border-l border-gray-300 dark:border-gray-700 pl-4 ml-1"
               >
                 <div class="w-2 h-2 rounded-full bg-yellow-500" />
-                <span>Goal</span>
+                <span>{{ tl('goal') }}</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-purple-500" />
-                <span>Threshold</span>
+                <span>{{ tl('threshold') }}</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-2 h-2 rounded-full bg-teal-500" />
-                <span>Personal Best</span>
+                <span>{{ tl('personal_best') }}</span>
               </div>
               <div
                 v-if="nutritionEnabled"
@@ -119,7 +116,7 @@
                   <div class="w-1.5 h-1.5 rounded-full bg-orange-500" title="State 2: Steady" />
                   <div class="w-1.5 h-1.5 rounded-full bg-red-500" title="State 3: Performance" />
                 </div>
-                <span>Fuel States</span>
+                <span>{{ tl('fuel_states') }}</span>
               </div>
             </div>
           </div>
@@ -130,7 +127,7 @@
               v-if="viewMode === 'list'"
               v-model="tableSearch"
               icon="i-heroicons-magnifying-glass"
-              placeholder="Filter..."
+              :placeholder="t('controls.filter_placeholder')"
               size="sm"
               class="w-48"
               :ui="{ base: 'font-bold uppercase tracking-widest text-[10px]' }"
@@ -143,7 +140,7 @@
               :disabled="columnMenuItems.length === 0"
             >
               <UButton
-                label="Columns"
+                :label="t('controls.columns')"
                 color="neutral"
                 variant="outline"
                 trailing-icon="i-heroicons-chevron-down"
@@ -191,7 +188,7 @@
             >
               <UButton
                 v-if="!isCurrentMonth"
-                label="Today"
+                :label="t('controls.today')"
                 size="sm"
                 variant="ghost"
                 color="neutral"
@@ -224,7 +221,7 @@
         <!-- Content Area -->
         <div class="flex-1 overflow-hidden p-4">
           <div v-if="status === 'error'" class="p-4 text-red-500 bg-red-50 rounded-lg">
-            Failed to load activities. Please try again.
+            {{ t('errors.load_failed') }}
           </div>
 
           <ClientOnly>
@@ -238,7 +235,7 @@
                 <div
                   class="bg-gray-50 dark:bg-gray-800 p-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700"
                 >
-                  Week
+                  {{ t('controls.week') }}
                 </div>
                 <div
                   v-for="day in weekDays"
@@ -966,6 +963,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { nextTick } from 'vue'
   import { format, isSameMonth, getISOWeek, getISOWeekYear } from 'date-fns'
   import { useStorage } from '@vueuse/core'
@@ -980,6 +978,9 @@
   import MilestoneModal from '~/components/activities/MilestoneModal.vue'
   import { getDefaultSportSettings, getPreferredMetric } from '~/utils/sportSettings'
   import { formatDistance as formatDist } from '~/utils/metrics'
+
+  const { t } = useTranslate('activities')
+  const { t: tl } = useTranslate('legend')
 
   definePageMeta({
     middleware: 'auth',
@@ -1058,10 +1059,11 @@
   const isLinking = ref(false)
 
   const activityMenuItems = computed(() => {
+    const isTReady = typeof t === 'function'
     const items = []
 
     items.push({
-      label: 'Deduplicate',
+      label: isTReady ? t('header.menu.deduplicate') : 'Deduplicate',
       icon: 'i-heroicons-document-duplicate',
       onSelect: () => {
         showDeduplicateModal.value = true
@@ -1069,14 +1071,14 @@
     })
 
     items.push({
-      label: 'Manage',
+      label: isTReady ? t('header.menu.manage') : 'Manage',
       icon: 'i-heroicons-trash',
       onSelect: () => {
         showBulkDeleteModal.value = true
       }
     })
 
-    return [items]
+    return items
   })
 
   function parseCalendarDate(dateParam: unknown) {
@@ -1096,7 +1098,18 @@
     null
   )
   const mobileDragTargetDateKey = ref<string | null>(null)
-  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const weekDays = computed(() => {
+    const isTReady = typeof t === 'function'
+    return [
+      isTReady ? t('controls.days.mon') : 'Mon',
+      isTReady ? t('controls.days.tue') : 'Tue',
+      isTReady ? t('controls.days.wed') : 'Wed',
+      isTReady ? t('controls.days.thu') : 'Thu',
+      isTReady ? t('controls.days.fri') : 'Fri',
+      isTReady ? t('controls.days.sat') : 'Sat',
+      isTReady ? t('controls.days.sun') : 'Sun'
+    ]
+  })
 
   const calendarRange = computed(() => {
     // Manual UTC start/end calculation to match calendarWeeks
@@ -1738,34 +1751,133 @@
   const tableSearch = ref('')
   const table = useTemplateRef('table')
 
-  const availableColumns = [
-    { accessorKey: 'type', header: 'Type', id: 'type' },
-    { accessorKey: 'date', header: 'Date', id: 'date' },
-    { accessorKey: 'chart', header: 'Structure', id: 'chart' },
-    { accessorKey: 'title', header: 'Name', id: 'title' },
-    { accessorKey: 'duration', header: 'Duration', id: 'duration' },
-    { accessorKey: 'distance', header: 'Distance', id: 'distance' },
-    { accessorKey: 'averageHr', header: 'Avg HR', id: 'averageHr' },
-    { accessorKey: 'intensity', header: 'Intensity', id: 'intensity' },
-    { accessorKey: 'tss', header: 'TSS', id: 'tss' },
-    { accessorKey: 'trainingLoad', header: 'Training Load', id: 'trainingLoad' },
-    { accessorKey: 'trimp', header: 'TRIMP', id: 'trimp' },
-    { accessorKey: 'rpe', header: 'RPE', id: 'rpe' },
-    { accessorKey: 'sessionRpe', header: 'Session RPE', id: 'sessionRpe' },
-    { accessorKey: 'feel', header: 'Feel', id: 'feel' },
-    { accessorKey: 'averageWatts', header: 'Avg Power', id: 'averageWatts' },
-    { accessorKey: 'normalizedPower', header: 'NP', id: 'normalizedPower' },
-    { accessorKey: 'weightedAvgWatts', header: 'Weighted Power', id: 'weightedAvgWatts' },
-    { accessorKey: 'kilojoules', header: 'kJ', id: 'kilojoules' },
-    { accessorKey: 'calories', header: 'Calories', id: 'calories' },
-    { accessorKey: 'elapsedTime', header: 'Elapsed Time', id: 'elapsedTime' },
-    { accessorKey: 'deviceName', header: 'Device', id: 'deviceName' },
-    { accessorKey: 'commute', header: 'Commute', id: 'commute' },
-    { accessorKey: 'isPrivate', header: 'Private', id: 'isPrivate' },
-    { accessorKey: 'gearId', header: 'Gear', id: 'gearId' },
-    { accessorKey: 'source', header: 'Source', id: 'source' },
-    { accessorKey: 'status', header: 'Status', id: 'status' }
-  ]
+  const availableColumns = computed(() => {
+    const isTReady = typeof t === 'function'
+    return [
+      {
+        accessorKey: 'type',
+        header: isTReady ? t('controls.table_columns.type') : 'Type',
+        id: 'type'
+      },
+      {
+        accessorKey: 'date',
+        header: isTReady ? t('controls.table_columns.date') : 'Date',
+        id: 'date'
+      },
+      {
+        accessorKey: 'chart',
+        header: isTReady ? t('controls.table_columns.chart') : 'Structure',
+        id: 'chart'
+      },
+      {
+        accessorKey: 'title',
+        header: isTReady ? t('controls.table_columns.title') : 'Name',
+        id: 'title'
+      },
+      {
+        accessorKey: 'duration',
+        header: isTReady ? t('controls.table_columns.duration') : 'Duration',
+        id: 'duration'
+      },
+      {
+        accessorKey: 'distance',
+        header: isTReady ? t('controls.table_columns.distance') : 'Distance',
+        id: 'distance'
+      },
+      {
+        accessorKey: 'averageHr',
+        header: isTReady ? t('controls.table_columns.averageHr') : 'Avg HR',
+        id: 'averageHr'
+      },
+      {
+        accessorKey: 'intensity',
+        header: isTReady ? t('controls.table_columns.intensity') : 'Intensity',
+        id: 'intensity'
+      },
+      { accessorKey: 'tss', header: isTReady ? t('controls.table_columns.tss') : 'TSS', id: 'tss' },
+      {
+        accessorKey: 'trainingLoad',
+        header: isTReady ? t('controls.table_columns.trainingLoad') : 'Training Load',
+        id: 'trainingLoad'
+      },
+      {
+        accessorKey: 'trimp',
+        header: isTReady ? t('controls.table_columns.trimp') : 'TRIMP',
+        id: 'trimp'
+      },
+      { accessorKey: 'rpe', header: isTReady ? t('controls.table_columns.rpe') : 'RPE', id: 'rpe' },
+      {
+        accessorKey: 'sessionRpe',
+        header: isTReady ? t('controls.table_columns.sessionRpe') : 'Session RPE',
+        id: 'sessionRpe'
+      },
+      {
+        accessorKey: 'feel',
+        header: isTReady ? t('controls.table_columns.feel') : 'Feel',
+        id: 'feel'
+      },
+      {
+        accessorKey: 'averageWatts',
+        header: isTReady ? t('controls.table_columns.averageWatts') : 'Avg Power',
+        id: 'averageWatts'
+      },
+      {
+        accessorKey: 'normalizedPower',
+        header: isTReady ? t('controls.table_columns.normalizedPower') : 'NP',
+        id: 'normalizedPower'
+      },
+      {
+        accessorKey: 'weightedAvgWatts',
+        header: isTReady ? t('controls.table_columns.weightedAvgWatts') : 'Weighted Power',
+        id: 'weightedAvgWatts'
+      },
+      {
+        accessorKey: 'kilojoules',
+        header: isTReady ? t('controls.table_columns.kilojoules') : 'kJ',
+        id: 'kilojoules'
+      },
+      {
+        accessorKey: 'calories',
+        header: isTReady ? t('controls.table_columns.calories') : 'Calories',
+        id: 'calories'
+      },
+      {
+        accessorKey: 'elapsedTime',
+        header: isTReady ? t('controls.table_columns.elapsedTime') : 'Elapsed Time',
+        id: 'elapsedTime'
+      },
+      {
+        accessorKey: 'deviceName',
+        header: isTReady ? t('controls.table_columns.deviceName') : 'Device',
+        id: 'deviceName'
+      },
+      {
+        accessorKey: 'commute',
+        header: isTReady ? t('controls.table_columns.commute') : 'Commute',
+        id: 'commute'
+      },
+      {
+        accessorKey: 'isPrivate',
+        header: isTReady ? t('controls.table_columns.isPrivate') : 'Private',
+        id: 'isPrivate'
+      },
+      {
+        accessorKey: 'gearId',
+        header: isTReady ? t('controls.table_columns.gearId') : 'Gear',
+        id: 'gearId'
+      },
+      {
+        accessorKey: 'source',
+        header: isTReady ? t('controls.table_columns.source') : 'Source',
+        id: 'source'
+      },
+      {
+        accessorKey: 'status',
+        header: isTReady ? t('controls.table_columns.status') : 'Status',
+        id: 'status'
+      }
+    ]
+  })
 
   // Use column visibility state that persists in localStorage
   // Default: hide some of the more advanced columns
@@ -1789,7 +1901,7 @@
   )
 
   const columnMenuItems = computed(() => {
-    return availableColumns.map((column) => ({
+    return availableColumns.value.map((column) => ({
       label: column.header as string,
       type: 'checkbox' as const,
       checked: columnVisibility.value[column.id] !== false,
