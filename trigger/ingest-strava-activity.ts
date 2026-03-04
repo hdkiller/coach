@@ -3,11 +3,13 @@ import { logger, task, tasks } from '@trigger.dev/sdk/v3'
 import { userIngestionQueue } from './queues'
 import { fetchStravaActivityDetails, normalizeStravaActivity } from '../server/utils/strava'
 import { prisma } from '../server/utils/db'
+import { shouldIngestActivities } from '../server/utils/integration-settings'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import { isNutritionTrackingEnabled } from '../server/utils/nutrition/feature'
 import { metabolicService } from '../server/utils/services/metabolicService'
+import { ingestStravaStreamsForWorkout } from './utils/strava-stream-ingestion'
 
 export const ingestStravaActivityTask = task({
   id: 'ingest-strava-activity',
@@ -39,6 +41,21 @@ export const ingestStravaActivityTask = task({
 
     if (!integration) {
       throw new Error('Strava integration not found for user')
+    }
+
+    if (
+      !shouldIngestActivities(
+        'strava',
+        integration.ingestWorkouts,
+        (integration.settings as Record<string, any> | null) || {}
+      )
+    ) {
+      logger.log('Strava activity ingestion disabled - skipping single-activity import')
+      return {
+        success: true,
+        skipped: true,
+        reason: 'ingestion_disabled'
+      }
     }
 
     try {
@@ -85,29 +102,44 @@ export const ingestStravaActivityTask = task({
 
       logger.log(`Successfully ${isNew ? 'created' : 'updated'} workout ${upsertedWorkout.id}`)
 
-      // Calculate stress metrics
       try {
-        await calculateWorkoutStress(upsertedWorkout.id, userId)
-      } catch (error) {
-        logger.error(`Failed to calculate workout stress for ${upsertedWorkout.id}:`, { error })
-      }
+        const streamIntegration =
+          (await prisma.integration.findUnique({
+            where: { id: integration.id }
+          })) || integration
 
-      // Trigger stream ingestion
-      logger.log(
-        `Triggering stream ingestion for ${upsertedWorkout.type} workout: ${upsertedWorkout.id}`
-      )
-      await tasks.trigger(
-        'ingest-strava-streams',
-        {
+        await ingestStravaStreamsForWorkout({
           userId,
           workoutId: upsertedWorkout.id,
-          activityId: activityId
-        },
-        {
-          concurrencyKey: userId,
-          tags: [`user:${userId}`]
+          activityId,
+          integration: streamIntegration
+        })
+      } catch (error) {
+        logger.error(`Failed to ingest streams for ${upsertedWorkout.id}`, { error })
+
+        try {
+          await calculateWorkoutStress(upsertedWorkout.id, userId)
+        } catch (stressError) {
+          logger.error(`Failed to calculate fallback stress for ${upsertedWorkout.id}`, {
+            error: stressError
+          })
         }
-      )
+
+        await tasks.trigger(
+          'ingest-strava-streams',
+          {
+            userId,
+            workoutId: upsertedWorkout.id,
+            activityId
+          },
+          {
+            concurrencyKey: userId,
+            tags: [`user:${userId}`],
+            idempotencyKey: `strava-streams:${userId}:${activityId}`,
+            idempotencyKeyTTL: '1h'
+          }
+        )
+      }
 
       // REACTIVE: Trigger fueling plan update for the workout date
       try {

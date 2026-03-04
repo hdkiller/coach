@@ -7,14 +7,33 @@ import {
   normalizeStravaActivity
 } from '../server/utils/strava'
 import { prisma } from '../server/utils/db'
+import { shouldIngestActivities } from '../server/utils/integration-settings'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { calculateWorkoutStress } from '../server/utils/calculate-workout-stress'
 import type { IngestionResult } from './types'
+import { ingestStravaStreamsForWorkout } from './utils/strava-stream-ingestion'
+
+function buildStravaStreamRepairTrigger(userId: string, workoutId: string, activityId: number) {
+  return tasks.trigger(
+    'ingest-strava-streams',
+    {
+      userId,
+      workoutId,
+      activityId
+    },
+    {
+      concurrencyKey: userId,
+      tags: [`user:${userId}`],
+      idempotencyKey: `strava-streams:${userId}:${activityId}`,
+      idempotencyKeyTTL: '1h'
+    }
+  )
+}
 
 export const ingestStravaTask = task({
   id: 'ingest-strava',
   queue: userIngestionQueue,
-  maxDuration: 900, // 15 minutes
+  maxDuration: 1800, // 30 minutes
   run: async (payload: {
     userId: string
     startDate: string
@@ -54,6 +73,29 @@ export const ingestStravaTask = task({
     })
 
     try {
+      const settings = (integration.settings as Record<string, any> | null) || {}
+      if (!shouldIngestActivities('strava', integration.ingestWorkouts, settings)) {
+        logger.log('Strava activity ingestion disabled - skipping')
+        await prisma.integration.update({
+          where: { id: integration.id },
+          data: {
+            syncStatus: 'SUCCESS',
+            lastSyncAt: new Date(),
+            errorMessage: null
+          }
+        })
+
+        return {
+          success: true,
+          counts: {
+            workouts: 0
+          },
+          userId,
+          startDate,
+          endDate
+        }
+      }
+
       const start = new Date(startDate)
       const end = new Date(endDate)
 
@@ -73,7 +115,7 @@ export const ingestStravaTask = task({
       let workoutsUpserted = 0
       let workoutsSkipped = 0
       let detailsFetched = 0
-      const triggeredWorkoutIds = new Set<string>()
+      const queuedRepairWorkoutIds = new Set<string>()
 
       for (const activity of activities) {
         // Check if this activity already exists from Intervals.icu
@@ -144,32 +186,32 @@ export const ingestStravaTask = task({
           workoutsUpserted++
         }
 
-        // Calculate CTL/ATL for the workout
         try {
-          await calculateWorkoutStress(upsertedWorkout.id, userId)
-        } catch (error) {
-          logger.error(`Failed to calculate workout stress for ${upsertedWorkout.id}:`, { error })
-          // Don't fail the sync if stress calculation fails
-        }
+          const streamIntegration =
+            (await prisma.integration.findUnique({
+              where: { id: updatedIntegration.id }
+            })) || updatedIntegration
 
-        // Trigger stream ingestion for ALL activities to capture time-series data
-        // This includes HR, power, GPS, altitude, speed, cadence - whatever Strava has
-        logger.log(
-          `Triggering stream ingestion for ${upsertedWorkout.type} workout: ${upsertedWorkout.id}`
-        )
-        await tasks.trigger(
-          'ingest-strava-streams',
-          {
+          await ingestStravaStreamsForWorkout({
             userId,
             workoutId: upsertedWorkout.id,
-            activityId: activity.id
-          },
-          {
-            concurrencyKey: userId,
-            tags: [`user:${userId}`]
+            activityId: activity.id,
+            integration: streamIntegration
+          })
+        } catch (error) {
+          logger.error(`Failed to ingest streams for ${upsertedWorkout.id}:`, { error })
+
+          try {
+            await calculateWorkoutStress(upsertedWorkout.id, userId)
+          } catch (stressError) {
+            logger.error(`Failed to calculate fallback stress for ${upsertedWorkout.id}:`, {
+              error: stressError
+            })
           }
-        )
-        triggeredWorkoutIds.add(upsertedWorkout.id)
+
+          await buildStravaStreamRepairTrigger(userId, upsertedWorkout.id, activity.id)
+          queuedRepairWorkoutIds.add(upsertedWorkout.id)
+        }
 
         // Add a small delay to avoid rate limiting (Strava allows 100 requests per 15 minutes)
         // With 7-day sync window, we expect ~7-14 activities max, well under rate limits
@@ -181,21 +223,13 @@ export const ingestStravaTask = task({
         }
       }
 
-      // Check for recent workouts that are missing streams and backfill them (max 5)
-      // This catches workouts that might have been synced without streams initially or where stream ingestion failed
-      // We exclude workouts we just triggered to avoid duplicate jobs
       logger.log('Checking for recent workouts missing streams...')
-
-      // Custom query not supported by generic repo methods yet, kept as is or we can extend repo
-      // But standard 'findMany' is available on prisma client if we really need it,
-      // or we add specific method 'getMissingStreams(userId, source, excludeIds)'
-      // For now, let's leave this complex query using prisma directly as it's very specific maintenance logic
       const workoutsMissingStreams = await prisma.workout.findMany({
         where: {
           userId,
           source: 'strava',
           streams: null,
-          id: { notIn: Array.from(triggeredWorkoutIds) }
+          id: { notIn: Array.from(queuedRepairWorkoutIds) }
         },
         orderBy: {
           date: 'desc'
@@ -222,18 +256,7 @@ export const ingestStravaTask = task({
             `Triggering backfill stream ingestion for workout ${workout.id} (Strava ID: ${activityId})`
           )
 
-          await tasks.trigger(
-            'ingest-strava-streams',
-            {
-              userId,
-              workoutId: workout.id,
-              activityId
-            },
-            {
-              concurrencyKey: userId,
-              tags: [`user:${userId}`]
-            }
-          )
+          await buildStravaStreamRepairTrigger(userId, workout.id, activityId)
 
           // Small delay to be safe
           await new Promise((resolve) => setTimeout(resolve, 200))
