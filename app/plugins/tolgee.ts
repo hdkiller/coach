@@ -14,6 +14,7 @@ import enPricing from '../i18n/en/pricing.json'
 import enAuth from '../i18n/en/auth.json'
 import enSupport from '../i18n/en/support.json'
 import enStories from '../i18n/en/stories.json'
+import enWorksWith from '../i18n/en/works-with.json'
 import huStories from '../i18n/hu/stories.json'
 import deStories from '../i18n/de/stories.json'
 
@@ -106,6 +107,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'en:auth': enAuth,
       'en:support': enSupport,
       'en:stories': enStories,
+      'en:works-with': enWorksWith,
       'hu:stories': huStories,
       'hu:common': huCommon,
       'hu:hero': huHero,
