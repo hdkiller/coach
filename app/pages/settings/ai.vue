@@ -2,9 +2,9 @@
   <div class="space-y-6">
     <UCard :ui="{ body: 'hidden' }">
       <template #header>
-        <h2 class="text-xl font-bold uppercase tracking-tight">AI Coach Settings</h2>
+        <h2 class="text-xl font-bold uppercase tracking-tight">{{ t('ai_coach_header') }}</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Configure your AI coach preferences, personality, and data access.
+          {{ t('ai_coach_description') }}
         </p>
       </template>
     </UCard>
@@ -18,18 +18,17 @@
         <div class="flex-1 flex justify-between items-start">
           <div>
             <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-              Consider upgrading your plan
+              {{ t('upgrade_banner_title') }}
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium">
-              Unlock the full potential of your AI Coach with a paid plan. Get automatic analysis,
-              thoughtful analysis, and proactive coaching to take your training to the next level.
+              {{ t('upgrade_banner_desc') }}
             </p>
             <div class="mt-3">
               <UButton
                 to="/settings/billing"
                 color="primary"
                 size="sm"
-                label="View Plans"
+                :label="t('upgrade_banner_button')"
                 icon="i-heroicons-arrow-right"
                 trailing
               />
@@ -84,7 +83,9 @@
 
 <script setup lang="ts">
   import { useLocalStorage } from '@vueuse/core'
+  import { useTranslate } from '@tolgee/vue'
 
+  const { t } = useTranslate('settings')
   const toast = useToast()
   const route = useRoute()
 
@@ -120,8 +121,8 @@
       })
 
       toast.add({
-        title: 'Settings Saved',
-        description: 'Your AI coach settings have been updated',
+        title: t.value('toast_settings_saved_title'),
+        description: t.value('toast_settings_saved_desc'),
         color: 'success'
       })
 
@@ -129,7 +130,7 @@
       await refreshSettings()
     } catch (error: any) {
       toast.add({
-        title: 'Save Failed',
+        title: t.value('toast_save_failed_title'),
         description: error.data?.message || 'Failed to save AI settings',
         color: 'error'
       })

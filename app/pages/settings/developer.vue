@@ -3,10 +3,10 @@
     <UCard :ui="{ body: 'hidden' }">
       <template #header>
         <h2 class="text-xl font-bold uppercase tracking-tight text-gray-900 dark:text-white">
-          Developer Settings
+          {{ t('dev_header') }}
         </h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Manage your API keys and access developer documentation.
+          {{ t('dev_description') }}
         </p>
       </template>
     </UCard>
@@ -23,10 +23,10 @@
           </div>
           <div class="min-w-0">
             <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
-              Version History
+              {{ t('dev_section_version_title') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              View the Coach Watts version history, release notes, and new features.
+              {{ t('dev_section_version_desc') }}
             </p>
           </div>
         </div>
@@ -39,7 +39,7 @@
             size="sm"
             class="font-bold shrink-0"
           >
-            View Changelog
+            {{ t('dev_button_changelog') }}
           </UButton>
           <UButton
             to="/settings/release-notes"
@@ -49,7 +49,7 @@
             size="sm"
             class="font-bold shrink-0"
           >
-            View Release Notes
+            {{ t('dev_button_release_notes') }}
           </UButton>
         </div>
       </div>
@@ -67,10 +67,10 @@
           </div>
           <div class="min-w-0">
             <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
-              API Documentation
+              {{ t('dev_section_api_title') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Explore our API endpoints and learn how to integrate with Coach Watts.
+              {{ t('dev_section_api_desc') }}
             </p>
           </div>
         </div>
@@ -83,7 +83,7 @@
           size="sm"
           class="font-bold shrink-0"
         >
-          View Docs
+          {{ t('dev_button_view_docs') }}
         </UButton>
       </div>
     </UCard>
@@ -97,10 +97,10 @@
           </div>
           <div class="min-w-0">
             <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
-              Tickets
+              {{ t('dev_section_tickets_title') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Track the status and resolution of the issues you've reported.
+              {{ t('dev_section_tickets_desc') }}
             </p>
           </div>
         </div>
@@ -112,7 +112,7 @@
           size="sm"
           class="font-bold shrink-0"
         >
-          Get Help
+          {{ t('dev_button_get_help') }}
         </UButton>
       </div>
     </UCard>
@@ -129,10 +129,10 @@
           </div>
           <div class="min-w-0">
             <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
-              Browse Ingested Data
+              {{ t('dev_section_data_title') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Explore the raw and processed data ingested from your connected devices and apps.
+              {{ t('dev_section_data_desc') }}
             </p>
           </div>
         </div>
@@ -144,7 +144,7 @@
           size="sm"
           class="font-bold shrink-0"
         >
-          View Data
+          {{ t('dev_button_view_data') }}
         </UButton>
       </div>
     </UCard>
@@ -161,10 +161,10 @@
           </div>
           <div class="min-w-0">
             <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
-              OAuth Developer Portal
+              {{ t('dev_section_oauth_title') }}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Create and manage OAuth 2.0 applications for third-party integrations.
+              {{ t('dev_section_oauth_desc') }}
             </p>
           </div>
         </div>
@@ -176,7 +176,7 @@
           size="sm"
           class="font-bold shrink-0"
         >
-          Open Portal
+          {{ t('dev_button_open_portal') }}
         </UButton>
       </div>
     </UCard>
@@ -186,7 +186,7 @@
       <template #header>
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
-            API Keys
+            {{ t('dev_keys_header') }}
           </h3>
           <UButton
             color="primary"
@@ -196,7 +196,7 @@
             class="font-bold"
             @click="isCreateModalOpen = true"
           >
-            Create Key
+            {{ t('dev_button_create_key') }}
           </UButton>
         </div>
       </template>
@@ -211,7 +211,7 @@
           class="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3"
         />
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          You haven't created any API keys yet.
+          {{ t('dev_keys_empty') }}
         </p>
       </div>
 
@@ -222,22 +222,22 @@
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
-                Name
+                {{ t('dev_keys_col_name') }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
-                Prefix
+                {{ t('dev_keys_col_prefix') }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
-                Last Used
+                {{ t('dev_keys_col_last_used') }}
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
-                Created
+                {{ t('dev_keys_col_created') }}
               </th>
               <th
                 class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
@@ -259,7 +259,7 @@
                 >
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                {{ key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Never' }}
+                {{ key.lastUsedAt ? formatDate(key.lastUsedAt) : t('dev_keys_last_used_never') }}
               </td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                 {{ formatDate(key.createdAt) }}
@@ -282,12 +282,16 @@
     <!-- Create Key Modal -->
     <UModal
       v-model:open="isCreateModalOpen"
-      title="Create API Key"
-      description="Give your new API key a name to help you identify it later."
+      :title="t('dev_modal_create_title')"
+      :description="t('dev_modal_create_desc')"
     >
       <template #body>
-        <UFormField label="Key Name" help="e.g. My Website, External Script">
-          <UInput v-model="newKeyName" placeholder="Enter a name" @keyup.enter="createKey" />
+        <UFormField :label="t('dev_form_key_name')" :help="t('dev_help_key_name')">
+          <UInput
+            v-model="newKeyName"
+            :placeholder="t('dev_form_key_placeholder')"
+            @keyup.enter="createKey"
+          />
         </UFormField>
 
         <div
@@ -303,11 +307,10 @@
               <p
                 class="text-xs font-bold text-yellow-800 dark:text-yellow-300 uppercase tracking-tight"
               >
-                Save this key!
+                {{ t('dev_modal_save_title') }}
               </p>
               <p class="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
-                For security reasons, we can only show this key once. If you lose it, you'll need to
-                create a new one.
+                {{ t('dev_modal_save_desc') }}
               </p>
             </div>
           </div>
@@ -335,7 +338,7 @@
               size="sm"
               @click="copyKey"
             >
-              Copy
+              {{ t('quick_capture_preview_header').includes('előnézet') ? 'Másolás' : 'Copy' }}
             </UButton>
           </div>
         </div>
@@ -343,10 +346,15 @@
 
       <template #footer>
         <div class="flex justify-between w-full">
-          <UButton label="Close" color="neutral" variant="ghost" @click="closeCreateModal" />
+          <UButton
+            :label="t('banner_exit')"
+            color="neutral"
+            variant="ghost"
+            @click="closeCreateModal"
+          />
           <UButton
             v-if="!generatedKey"
-            label="Create Key"
+            :label="t('dev_button_create_key')"
             color="primary"
             :loading="creating"
             @click="createKey"
@@ -358,8 +366,8 @@
     <!-- Delete Confirmation Modal -->
     <UModal
       v-model:open="isDeleteModalOpen"
-      title="Revoke API Key"
-      description="Are you sure you want to revoke this API key? Any applications using this key will immediately lose access."
+      :title="t('dev_modal_revoke_title')"
+      :description="t('dev_modal_revoke_desc')"
     >
       <template #footer>
         <UButton
@@ -368,13 +376,21 @@
           variant="ghost"
           @click="isDeleteModalOpen = false"
         />
-        <UButton label="Revoke Key" color="error" :loading="deleting" @click="deleteKey" />
+        <UButton
+          :label="t('dev_button_revoke')"
+          color="error"
+          :loading="deleting"
+          @click="deleteKey"
+        />
       </template>
     </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('settings')
   const toast = useToast()
 
   definePageMeta({
@@ -422,7 +438,11 @@
       })
       generatedKey.value = response.key
       await fetchKeys()
-      toast.add({ title: 'Success', description: 'API key created successfully', color: 'success' })
+      toast.add({
+        title: t.value('dev_toast_create_success_title'),
+        description: t.value('dev_toast_create_success_desc'),
+        color: 'success'
+      })
     } catch (error) {
       console.error('Failed to create key:', error)
       toast.add({ title: 'Error', description: 'Failed to create API key', color: 'error' })
@@ -446,7 +466,11 @@
       })
       await fetchKeys()
       isDeleteModalOpen.value = false
-      toast.add({ title: 'Success', description: 'API key revoked', color: 'success' })
+      toast.add({
+        title: t.value('dev_toast_revoke_success_title'),
+        description: t.value('dev_toast_revoke_success_desc'),
+        color: 'success'
+      })
     } catch (error) {
       console.error('Failed to delete key:', error)
       toast.add({ title: 'Error', description: 'Failed to revoke API key', color: 'error' })

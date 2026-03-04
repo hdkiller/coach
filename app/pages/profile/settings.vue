@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="profile-settings">
     <template #header>
-      <UDashboardNavbar title="Profile Settings">
+      <UDashboardNavbar :title="t('settings_title')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -93,11 +93,14 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import ProfileBasicSettings from '~/components/profile/BasicSettings.vue'
   import ProfileSportSettings from '~/components/profile/SportSettings.vue'
   import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
   import ProfileCommunicationSettings from '~/components/profile/CommunicationSettings.vue'
   import ProfileMeasurementsSettings from '~/components/profile/MeasurementsSettings.vue'
+
+  const { t } = useTranslate('profile')
   const { data } = useAuth()
   const user = computed(() => data.value?.user)
   const toast = useToast()
@@ -107,14 +110,38 @@
     middleware: 'auth'
   })
 
-  const tabs = [
-    { id: 'basic', label: 'Basic Settings', icon: 'i-heroicons-user-circle' },
-    { id: 'sports', label: 'Sport Settings', icon: 'i-heroicons-bolt' },
-    { id: 'measurements', label: 'Measurements', icon: 'i-heroicons-scale' },
-    { id: 'availability', label: 'Availability', icon: 'i-lucide-calendar-clock' },
-    { id: 'nutrition', label: 'Nutrition', icon: 'i-heroicons-fire' },
-    { id: 'communication', label: 'Communication', icon: 'i-heroicons-envelope' }
-  ]
+  const tabs = computed(() => [
+    {
+      id: 'basic',
+      label: typeof t === 'function' ? t.value('settings_tabs_basic') : 'Basic Settings',
+      icon: 'i-heroicons-user-circle'
+    },
+    {
+      id: 'sports',
+      label: typeof t === 'function' ? t.value('settings_tabs_sports') : 'Sport Settings',
+      icon: 'i-heroicons-bolt'
+    },
+    {
+      id: 'measurements',
+      label: typeof t === 'function' ? t.value('settings_tabs_measurements') : 'Measurements',
+      icon: 'i-heroicons-scale'
+    },
+    {
+      id: 'availability',
+      label: typeof t === 'function' ? t.value('settings_tabs_availability') : 'Availability',
+      icon: 'i-lucide-calendar-clock'
+    },
+    {
+      id: 'nutrition',
+      label: typeof t === 'function' ? t.value('settings_tabs_nutrition') : 'Nutrition',
+      icon: 'i-heroicons-fire'
+    },
+    {
+      id: 'communication',
+      label: typeof t === 'function' ? t.value('settings_tabs_communication') : 'Communication',
+      icon: 'i-heroicons-envelope'
+    }
+  ])
 
   const route = useRoute()
   const activeTab = ref((route.query.tab as string) || 'basic')
@@ -122,7 +149,7 @@
   watch(
     () => route.query.tab,
     (newTab) => {
-      if (newTab && tabs.some((t) => t.id === newTab)) {
+      if (newTab && tabs.value.some((t) => t.id === newTab)) {
         activeTab.value = newTab as string
       }
     }

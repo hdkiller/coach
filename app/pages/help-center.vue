@@ -1,6 +1,9 @@
 <script setup lang="ts">
   import { useClipboard } from '@vueuse/core'
+  import { useTranslate } from '@tolgee/vue'
   import IssueFormModal from '~/components/issues/IssueFormModal.vue'
+
+  const { t } = useTranslate('common')
 
   definePageMeta({
     middleware: 'auth'
@@ -26,43 +29,42 @@
     if (!userStore.user?.id) return
     copy(userStore.user.id)
     toast.add({
-      title: 'ID Copied',
-      description: 'Account ID copied to clipboard.',
+      title: t.value('help_toast_id_copied_title'),
+      description: t.value('help_toast_id_copied_desc'),
       color: 'success',
       icon: 'i-heroicons-check-circle'
     })
   }
 
-  const helpLinks = [
+  const helpLinks = computed(() => [
     {
-      title: 'Documentation',
-      description:
-        'Learn how to use Coach Watts, setup integrations, and understand your training data.',
+      title: t.value('help_resource_docs_title'),
+      description: t.value('help_resource_docs_desc'),
       icon: 'i-heroicons-book-open',
       to: '/documentation',
       disabled: false
     },
     {
-      title: 'Community Discord',
-      description: 'Join other athletes and developers in our discord.',
+      title: t.value('help_resource_discord_title'),
+      description: t.value('help_resource_discord_desc'),
       icon: 'i-simple-icons-discord',
       to: 'https://discord.gg/dPYkzg49T9',
       external: true
     },
     {
-      title: 'GitHub Issues',
-      description: 'View public feature requests and system-wide bugs.',
+      title: t.value('help_resource_github_title'),
+      description: t.value('help_resource_github_desc'),
       icon: 'i-simple-icons-github',
       to: 'https://github.com/newpush/coach/issues',
       external: true
     }
-  ]
+  ])
 </script>
 
 <template>
   <UDashboardPanel id="help-center">
     <template #header>
-      <UDashboardNavbar title="Help Center">
+      <UDashboardNavbar :title="t('help_header')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -80,12 +82,12 @@
         <!-- Branding Header -->
         <div>
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            Help Center
+            {{ t('help_header') }}
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
           >
-            Support Resources & Issue Tracking
+            {{ t('help_description') }}
           </p>
         </div>
 
@@ -102,8 +104,8 @@
                 <UIcon name="i-heroicons-bug-ant" class="size-8 text-primary-500" />
               </div>
               <div>
-                <h3 class="text-lg font-bold">Report a Bug</h3>
-                <p class="text-sm text-gray-500">Encountered an issue? Tell us about it.</p>
+                <h3 class="text-lg font-bold">{{ t('help_action_report_bug') }}</h3>
+                <p class="text-sm text-gray-500">{{ t('help_action_report_bug_desc') }}</p>
               </div>
             </div>
           </UCard>
@@ -119,8 +121,8 @@
                 <UIcon name="i-heroicons-ticket" class="size-8 text-primary-500" />
               </div>
               <div>
-                <h3 class="text-lg font-bold">My Issues</h3>
-                <p class="text-sm text-gray-500">Track progress on your reported issues.</p>
+                <h3 class="text-lg font-bold">{{ t('help_action_my_issues') }}</h3>
+                <p class="text-sm text-gray-500">{{ t('help_action_my_issues_desc') }}</p>
               </div>
             </div>
           </UCard>
@@ -143,9 +145,9 @@
                 <UIcon name="i-heroicons-sparkles" class="size-8 text-primary-500" />
               </div>
               <div>
-                <h3 class="text-lg font-bold">Create Ticket With AI</h3>
+                <h3 class="text-lg font-bold">{{ t('help_action_ai_ticket') }}</h3>
                 <p class="text-sm text-gray-500">
-                  Describe your issue in normal language. AI drafts and files it for you.
+                  {{ t('help_action_ai_ticket_desc') }}
                 </p>
               </div>
             </div>
@@ -162,21 +164,16 @@
                 <h2
                   class="text-sm font-black uppercase tracking-widest text-primary-700 dark:text-primary-300"
                 >
-                  AI Ticket Assistant
+                  {{ t('help_ai_assistant_title') }}
                 </h2>
               </div>
               <p class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
-                You can create and manage support tickets directly in chat. Tell the AI what
-                happened, what you expected, and what actually happened. It will draft the ticket in
-                clean wording, show it to you for review when approval is enabled, and then publish
-                it.
+                {{ t('help_ai_assistant_desc') }}
               </p>
               <div class="text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                <p>
-                  <strong>Try:</strong> "Create a ticket: workout import failed after Garmin sync."
-                </p>
-                <p><strong>Try:</strong> "Find my open tickets and add this update..."</p>
-                <p><strong>Tip:</strong> If you decline a draft, AI will ask what to change.</p>
+                <p><strong>Try:</strong> {{ t('help_ai_assistant_try_1') }}</p>
+                <p><strong>Try:</strong> {{ t('help_ai_assistant_try_2') }}</p>
+                <p><strong>Tip:</strong> {{ t('help_ai_assistant_tip') }}</p>
               </div>
               <div class="flex flex-wrap gap-2 pt-1">
                 <UButton
@@ -184,10 +181,10 @@
                   icon="i-heroicons-chat-bubble-left-right"
                   @click="navigateTo('/chat')"
                 >
-                  Open AI Chat
+                  {{ t('help_ai_assistant_button_chat') }}
                 </UButton>
                 <UButton to="/issues" color="neutral" variant="outline" icon="i-heroicons-ticket">
-                  View My Tickets
+                  {{ t('help_ai_assistant_button_tickets') }}
                 </UButton>
               </div>
             </div>
@@ -213,10 +210,10 @@
                 <h3
                   class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white"
                 >
-                  Ticket Commands
+                  {{ t('help_ticket_commands_title') }}
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Learn how to ask AI chat to create or update tickets for you.
+                  {{ t('help_ticket_commands_desc') }}
                 </p>
               </div>
               <UButton
@@ -225,7 +222,7 @@
                 icon="i-heroicons-arrow-right"
                 class="self-start"
               >
-                Open in Chat
+                {{ t('help_ticket_commands_button') }}
               </UButton>
             </div>
           </UCard>
@@ -234,7 +231,7 @@
         <!-- Secondary Resources -->
         <div class="space-y-4">
           <h2 class="text-xs font-black uppercase tracking-widest text-gray-400">
-            Additional Resources
+            {{ t('help_resources_header') }}
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <template v-for="link in helpLinks" :key="link.title">
@@ -265,7 +262,7 @@
         <!-- Account Diagnostics -->
         <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
           <h2 class="text-xs font-black uppercase tracking-widest text-gray-400">
-            Account Diagnostics
+            {{ t('help_diagnostics_header') }}
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <UCard
@@ -278,7 +275,7 @@
                   class="size-5 text-primary-500 group-hover:scale-110 transition-transform"
                 />
                 <h4 class="font-bold text-sm group-hover:text-primary-500 transition-colors">
-                  Account ID
+                  {{ t('help_diagnostics_id_title') }}
                 </h4>
                 <div
                   class="text-[10px] font-mono text-gray-600 dark:text-gray-400 break-all bg-gray-100/50 dark:bg-gray-900/40 p-2 rounded border border-gray-200 dark:border-gray-800"
@@ -286,7 +283,7 @@
                   {{ userStore.user?.id || 'Loading...' }}
                 </div>
                 <p class="text-[10px] text-gray-400 italic">
-                  Click to copy your unique Account ID.
+                  {{ t('help_diagnostics_id_hint') }}
                 </p>
               </div>
             </UCard>
