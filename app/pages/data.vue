@@ -466,6 +466,7 @@
                 size="sm"
                 color="primary"
                 variant="solid"
+                class="hidden sm:flex"
               >
                 Upload FIT
               </UButton>

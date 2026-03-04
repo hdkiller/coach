@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="performance">
     <template #header>
-      <UDashboardNavbar title="Performance Scores">
+      <UDashboardNavbar :title="t('page_title')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -17,7 +17,7 @@
               size="sm"
               @click="isPerformanceSettingsModalOpen = true"
             >
-              Customize
+              {{ t('nav_customize') }}
             </UButton>
             <UButton
               :loading="generatingExplanations"
@@ -28,8 +28,8 @@
               class="font-bold"
               @click="generateExplanations"
             >
-              <span class="sm:hidden">Generate</span>
-              <span class="hidden sm:inline">Generate Insights</span>
+              <span class="sm:hidden">{{ t('nav_generate') }}</span>
+              <span class="hidden sm:inline">{{ t('nav_generate_insights') }}</span>
             </UButton>
           </div>
         </template>
@@ -47,7 +47,7 @@
             <span
               class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
             >
-              Dashboard may include data from
+              {{ tc('attribution_garmin') }}
             </span>
             <img
               src="/images/logos/Garmin-Tag-black-high-res.png"
@@ -65,12 +65,12 @@
         <!-- Dashboard Branding -->
         <div class="px-4 sm:px-0">
           <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-            Performance
+            {{ t('branding_title') }}
           </h1>
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
           >
-            Systemic Integrity & Long-term Progression
+            {{ t('branding_subtitle') }}
           </p>
         </div>
 
@@ -78,7 +78,7 @@
         <div v-if="sectionSettings.highlights?.visible !== false" class="space-y-4">
           <div class="flex items-center justify-between px-4 sm:px-0">
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
-              Activity Highlights
+              {{ t('highlights_header') }}
             </h2>
             <div class="flex gap-2">
               <USelect
@@ -106,7 +106,7 @@
         <div v-if="sectionSettings.athleteProfile?.visible !== false" class="space-y-4">
           <div class="flex items-center justify-between px-4 sm:px-0">
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400">
-              Athlete Profile
+              {{ t('profile_header') }}
             </h2>
             <UBadge
               v-if="profileData?.scores?.lastUpdated"
@@ -115,7 +115,7 @@
               size="sm"
               class="font-black uppercase tracking-widest text-[9px]"
             >
-              Sync: {{ formatDateLocal(profileData.scores.lastUpdated) }}
+              {{ t('profile_sync', { date: formatDateLocal(profileData.scores.lastUpdated) }) }}
             </UBadge>
           </div>
 
@@ -125,11 +125,11 @@
 
           <div v-else-if="profileData" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <ScoreCard
-              title="Current Fitness"
+              :title="t('profile_fitness_title')"
               :score="profileData.scores?.currentFitness"
               :explanation="
                 profileData.scores?.currentFitnessExplanationJson
-                  ? 'Click for detailed analysis'
+                  ? t('profile_click_detailed')
                   : profileData.scores?.currentFitnessExplanation
               "
               icon="i-heroicons-bolt"
@@ -140,11 +140,11 @@
               "
             />
             <ScoreCard
-              title="Recovery Capacity"
+              :title="t('profile_recovery_title')"
               :score="profileData.scores?.recoveryCapacity"
               :explanation="
                 profileData.scores?.recoveryCapacityExplanationJson
-                  ? 'Click for detailed analysis'
+                  ? t('profile_click_detailed')
                   : profileData.scores?.recoveryCapacityExplanation
               "
               icon="i-heroicons-heart"
@@ -159,11 +159,11 @@
             />
             <ScoreCard
               v-if="nutritionEnabled"
-              title="Nutrition Compliance"
+              :title="t('profile_nutrition_title')"
               :score="profileData.scores?.nutritionCompliance"
               :explanation="
                 profileData.scores?.nutritionComplianceExplanationJson
-                  ? 'Click for detailed analysis'
+                  ? t('profile_click_detailed')
                   : profileData.scores?.nutritionComplianceExplanation
               "
               icon="i-heroicons-cake"
@@ -177,11 +177,11 @@
               "
             />
             <ScoreCard
-              title="Training Consistency"
+              :title="t('profile_consistency_title')"
               :score="profileData.scores?.trainingConsistency"
               :explanation="
                 profileData.scores?.trainingConsistencyExplanationJson
-                  ? 'Click for detailed analysis'
+                  ? t('profile_click_detailed')
                   : profileData.scores?.trainingConsistencyExplanation
               "
               icon="i-heroicons-calendar"
@@ -203,7 +203,7 @@
           class="space-y-4"
         >
           <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-            Personal Bests
+            {{ t('bests_header') }}
           </h2>
           <PerformanceBestsSummary :personal-bests="profileData?.personalBests || []" />
         </div>
@@ -225,7 +225,7 @@
             :period-options="pmcPeriodOptions"
             :settings="chartSettings.pmc"
             @settings="
-              openChartSettings('pmc', 'Fitness & Readiness (PMC)', {
+              openChartSettings('pmc', t('pmc_title'), {
                 max: 150,
                 step: 5,
                 showOverlays: false
@@ -243,7 +243,7 @@
             :sport-options="sportOptions"
             :settings="chartSettings.powerCurve"
             @settings="
-              openChartSettings('powerCurve', 'Power Duration Curve', {
+              openChartSettings('powerCurve', t('power_curve_title'), {
                 unit: 'W',
                 max: 1500,
                 step: 50,
@@ -263,7 +263,7 @@
             :sport-options="sportOptions"
             :settings="chartSettings.efficiency"
             @settings="
-              openChartSettings('efficiency', 'Aerobic Efficiency', {
+              openChartSettings('efficiency', t('efficiency_title'), {
                 max: 5,
                 step: 0.1,
                 showOverlays: false
@@ -281,7 +281,7 @@
             :sport-options="sportOptions"
             :settings="chartSettings.ftp"
             @settings="
-              openChartSettings('ftp', 'FTP Evolution', {
+              openChartSettings('ftp', t('ftp_evolution_title'), {
                 unit: 'W',
                 max: 500,
                 step: 10,
@@ -301,7 +301,7 @@
             :sport-options="sportOptions"
             :settings="chartSettings.distribution"
             @settings="
-              openChartSettings('distribution', 'Intensity Distribution', {
+              openChartSettings('distribution', t('intensity_dist_title'), {
                 unit: 'h',
                 max: 50,
                 step: 1,
@@ -315,7 +315,7 @@
         <div v-if="sectionSettings.workoutScores?.visible !== false" class="space-y-4">
           <div class="flex items-center justify-between px-1">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
-              Workout Performance
+              {{ t('workout_header') }}
             </h2>
             <div class="flex gap-2">
               <USelect
@@ -345,77 +345,85 @@
             <!-- Score Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <ScoreCard
-                title="Overall"
+                :title="t('workout_overall_title')"
                 :score="workoutData.summary?.avgOverall"
                 icon="i-heroicons-star"
                 color="yellow"
                 compact
-                explanation="Click for AI-generated insights"
+                :explanation="t('workout_click_insights')"
                 @click="
                   () =>
                     workoutData &&
                     openWorkoutModal(
-                      'Overall Workout Performance',
+                      t('workout_overall_full'),
                       workoutData.summary?.avgOverall,
                       'yellow'
                     )
                 "
               />
               <ScoreCard
-                title="Technical"
+                :title="t('workout_technical_title')"
                 :score="workoutData.summary?.avgTechnical"
                 icon="i-heroicons-cog"
                 color="blue"
                 compact
-                explanation="Click for AI-generated insights"
+                :explanation="t('workout_click_insights')"
                 @click="
                   () =>
                     workoutData &&
                     openWorkoutModal(
-                      'Technical Execution',
+                      t('workout_technical_full'),
                       workoutData.summary?.avgTechnical,
                       'blue'
                     )
                 "
               />
               <ScoreCard
-                title="Effort"
+                :title="t('workout_effort_title')"
                 :score="workoutData.summary?.avgEffort"
                 icon="i-heroicons-fire"
                 color="red"
                 compact
-                explanation="Click for AI-generated insights"
-                @click="
-                  () =>
-                    workoutData &&
-                    openWorkoutModal('Effort Management', workoutData.summary?.avgEffort, 'red')
-                "
-              />
-              <ScoreCard
-                title="Pacing"
-                :score="workoutData.summary?.avgPacing"
-                icon="i-heroicons-chart-bar"
-                color="green"
-                compact
-                explanation="Click for AI-generated insights"
-                @click="
-                  () =>
-                    workoutData &&
-                    openWorkoutModal('Pacing Strategy', workoutData.summary?.avgPacing, 'green')
-                "
-              />
-              <ScoreCard
-                title="Execution"
-                :score="workoutData.summary?.avgExecution"
-                icon="i-heroicons-check-circle"
-                color="purple"
-                compact
-                explanation="Click for AI-generated insights"
+                :explanation="t('workout_click_insights')"
                 @click="
                   () =>
                     workoutData &&
                     openWorkoutModal(
-                      'Workout Execution',
+                      t('workout_effort_full'),
+                      workoutData.summary?.avgEffort,
+                      'red'
+                    )
+                "
+              />
+              <ScoreCard
+                :title="t('workout_pacing_title')"
+                :score="workoutData.summary?.avgPacing"
+                icon="i-heroicons-chart-bar"
+                color="green"
+                compact
+                :explanation="t('workout_click_insights')"
+                @click="
+                  () =>
+                    workoutData &&
+                    openWorkoutModal(
+                      t('workout_pacing_full'),
+                      workoutData.summary?.avgPacing,
+                      'green'
+                    )
+                "
+              />
+              <ScoreCard
+                :title="t('workout_execution_title')"
+                :score="workoutData.summary?.avgExecution"
+                icon="i-heroicons-check-circle"
+                color="purple"
+                compact
+                :explanation="t('workout_click_insights')"
+                @click="
+                  () =>
+                    workoutData &&
+                    openWorkoutModal(
+                      t('workout_execution_full'),
                       workoutData.summary?.avgExecution,
                       'purple'
                     )
@@ -428,12 +436,12 @@
               <!-- Score Trends (2/3 width) -->
               <div class="lg:col-span-2 space-y-4">
                 <PerformanceScoreTrajectoryCard
-                  title="Performance Trajectory"
+                  :title="t('trajectory_workout_title')"
                   :data="workoutData.workouts"
                   type="workout"
                   :settings="chartSettings.performance"
                   @settings="
-                    openChartSettings('performance', 'Performance Trajectory', {
+                    openChartSettings('performance', t('trajectory_workout_title'), {
                       max: 10,
                       step: 1,
                       showOverlays: false
@@ -452,7 +460,7 @@
                 >
                   <template #header>
                     <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                      Execution Balance
+                      {{ t('execution_balance_header') }}
                     </h3>
                   </template>
                   <div class="h-[320px]">
@@ -482,7 +490,7 @@
         >
           <div class="px-1">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">
-              Nutrition Quality
+              {{ t('nutrition_header') }}
             </h2>
           </div>
 
@@ -494,81 +502,85 @@
             <!-- Score Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <ScoreCard
-                title="Overall"
+                :title="t('workout_overall_title')"
                 :score="nutritionData.summary?.avgOverall"
                 icon="i-heroicons-star"
                 color="yellow"
                 compact
-                explanation="Click for AI-generated insights"
+                :explanation="t('workout_click_insights')"
                 @click="
                   () =>
                     nutritionData &&
                     openNutritionModal(
-                      'Overall Nutrition Quality',
+                      t('nutrition_overall_full'),
                       nutritionData.summary?.avgOverall,
                       'yellow'
                     )
                 "
               />
               <ScoreCard
-                title="Macro Balance"
+                :title="t('nutrition_macro_title')"
                 :score="nutritionData.summary?.avgMacroBalance"
                 icon="i-heroicons-scale"
                 color="blue"
                 compact
-                explanation="Click for AI-generated insights"
+                :explanation="t('workout_click_insights')"
                 @click="
                   () =>
                     nutritionData &&
                     openNutritionModal(
-                      'Macronutrient Balance',
+                      t('nutrition_macro_full'),
                       nutritionData.summary?.avgMacroBalance,
                       'blue'
                     )
                 "
               />
               <ScoreCard
-                title="Quality"
+                :title="t('nutrition_quality_title')"
                 :score="nutritionData.summary?.avgQuality"
                 icon="i-heroicons-sparkles"
                 color="green"
                 compact
-                explanation="Click for AI-generated insights"
-                @click="
-                  () =>
-                    nutritionData &&
-                    openNutritionModal('Food Quality', nutritionData.summary?.avgQuality, 'green')
-                "
-              />
-              <ScoreCard
-                title="Adherence"
-                :score="nutritionData.summary?.avgAdherence"
-                icon="i-heroicons-check-badge"
-                color="purple"
-                compact
-                explanation="Click for AI-generated insights"
+                :explanation="t('workout_click_insights')"
                 @click="
                   () =>
                     nutritionData &&
                     openNutritionModal(
-                      'Goal Adherence',
+                      t('nutrition_quality_full'),
+                      nutritionData.summary?.avgQuality,
+                      'green'
+                    )
+                "
+              />
+              <ScoreCard
+                :title="t('nutrition_adherence_title')"
+                :score="nutritionData.summary?.avgAdherence"
+                icon="i-heroicons-check-badge"
+                color="purple"
+                compact
+                :explanation="t('workout_click_insights')"
+                @click="
+                  () =>
+                    nutritionData &&
+                    openNutritionModal(
+                      t('nutrition_adherence_full'),
                       nutritionData.summary?.avgAdherence,
                       'purple'
                     )
                 "
               />
               <ScoreCard
-                title="Hydration"
+                :title="t('nutrition_hydration_title')"
                 :score="nutritionData.summary?.avgHydration"
                 icon="i-heroicons-beaker"
                 color="cyan"
                 compact
-                explanation="Click for AI-generated insights"
+                :explanation="t('workout_click_insights')"
                 @click="
                   () =>
                     nutritionData &&
                     openNutritionModal(
-                      'Hydration Status',
+                      t('nutrition_hydration_full'),
                       nutritionData.summary?.avgHydration,
                       'cyan'
                     )
@@ -581,12 +593,12 @@
               <!-- Score Trends (2/3 width) -->
               <div class="lg:col-span-2 space-y-4">
                 <PerformanceScoreTrajectoryCard
-                  title="Fueling Trajectory"
+                  :title="t('trajectory_nutrition_title')"
                   :data="nutritionData.nutrition"
                   type="nutrition"
                   :settings="chartSettings.nutrition"
                   @settings="
-                    openChartSettings('nutrition', 'Fueling Trajectory', {
+                    openChartSettings('nutrition', t('trajectory_nutrition_title'), {
                       max: 10,
                       step: 1,
                       showOverlays: false
@@ -605,7 +617,7 @@
                 >
                   <template #header>
                     <h3 class="text-base font-black uppercase tracking-widest text-gray-400">
-                      Metabolic Balance
+                      {{ t('metabolic_balance_header') }}
                     </h3>
                   </template>
                   <div class="h-[320px]">
@@ -649,6 +661,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import ActivityHighlights from '~/components/ActivityHighlights.vue'
   import PowerCurveChart from '~/components/PowerCurveChart.vue'
   import EfficiencyTrendChart from '~/components/EfficiencyTrendChart.vue'
@@ -663,6 +676,9 @@
   import PerformanceScoreTrajectoryCard from '~/components/performance/PerformanceScoreTrajectoryCard.vue'
   import PerformanceBestsSummary from '~/components/performance/PerformanceBestsSummary.vue'
   import ChartDataLabels from 'chartjs-plugin-datalabels'
+
+  const { t } = useTranslate('performance')
+  const { t: tc } = useTranslate('common')
 
   const userStore = useUserStore()
   const integrationStore = useIntegrationStore()
@@ -784,7 +800,7 @@
   // Fetch available sports
   const { data: sportsData } = await useFetch<string[]>('/api/workouts/sports')
   const sportOptions = computed(() => {
-    const options = [{ label: 'All Sports', value: 'all' }]
+    const options = [{ label: t.value('highlights_all_sports'), value: 'all' }]
     if (sportsData.value) {
       sportsData.value.forEach((sport) => {
         options.push({ label: sport, value: sport })
@@ -793,46 +809,46 @@
     return options
   })
 
-  const periodOptions = [
-    { label: '7 Days', value: 7 },
-    { label: '14 Days', value: 14 },
-    { label: '30 Days', value: 30 },
-    { label: '90 Days', value: 90 },
-    { label: 'Year to Date', value: 'YTD' },
-    { label: 'All Time', value: 3650 }
-  ]
+  const periodOptions = computed(() => [
+    { label: t.value('period_7_days'), value: 7 },
+    { label: t.value('period_14_days'), value: 14 },
+    { label: t.value('period_30_days'), value: 30 },
+    { label: t.value('period_90_days'), value: 90 },
+    { label: t.value('period_ytd'), value: 'YTD' },
+    { label: t.value('period_all_time'), value: 3650 }
+  ])
 
   const pmcPeriod = ref<number | string>(90)
-  const pmcPeriodOptions = [
-    { label: '30 Days', value: 30 },
-    { label: '60 Days', value: 60 },
-    { label: '90 Days', value: 90 },
-    { label: '180 Days', value: 180 },
-    { label: 'Year to Date', value: 'YTD' },
-    { label: 'All Time', value: 3650 }
-  ]
+  const pmcPeriodOptions = computed(() => [
+    { label: t.value('period_30_days'), value: 30 },
+    { label: t.value('period_60_days'), value: 60 },
+    { label: t.value('period_90_days'), value: 90 },
+    { label: t.value('period_180_days'), value: 180 },
+    { label: t.value('period_ytd'), value: 'YTD' },
+    { label: t.value('period_all_time'), value: 3650 }
+  ])
 
   const ftpPeriod = ref<number | string>(12)
   const ftpSport = ref<string>('all')
-  const ftpPeriodOptions = [
-    { label: '3 Months', value: 3 },
-    { label: '6 Months', value: 6 },
-    { label: '12 Months', value: 12 },
-    { label: '24 Months', value: 24 },
-    { label: 'Year to Date', value: 'YTD' },
-    { label: 'All Time', value: 3650 }
-  ]
+  const ftpPeriodOptions = computed(() => [
+    { label: t.value('period_3_months'), value: 3 },
+    { label: t.value('period_6_months'), value: 6 },
+    { label: t.value('period_12_months'), value: 12 },
+    { label: t.value('period_24_months'), value: 24 },
+    { label: t.value('period_ytd'), value: 'YTD' },
+    { label: t.value('period_all_time'), value: 3650 }
+  ])
 
   const distributionPeriod = ref<number | string>(12)
   const distributionSport = ref<string>('all')
-  const distributionPeriodOptions = [
-    { label: '4 Weeks', value: 4 },
-    { label: '8 Weeks', value: 8 },
-    { label: '12 Weeks', value: 12 },
-    { label: '24 Weeks', value: 24 },
-    { label: 'Year to Date', value: 'YTD' },
-    { label: 'All Time', value: 3650 }
-  ]
+  const distributionPeriodOptions = computed(() => [
+    { label: t.value('period_4_weeks'), value: 4 },
+    { label: t.value('period_8_weeks'), value: 8 },
+    { label: t.value('period_12_weeks'), value: 12 },
+    { label: t.value('period_24_weeks'), value: 24 },
+    { label: t.value('period_ytd'), value: 'YTD' },
+    { label: t.value('period_all_time'), value: 3650 }
+  ])
 
   const workoutSport = ref<string>('all')
 
@@ -948,14 +964,16 @@
 
   // Map display titles to metric names
   const getWorkoutMetricName = (title: string): string => {
-    const mapping: Record<string, string> = {
-      'Overall Workout Performance': 'overall',
-      'Technical Execution': 'technical',
-      'Effort Management': 'effort',
-      'Pacing Strategy': 'pacing',
-      'Workout Execution': 'execution'
-    }
-    return mapping[title] || 'overall'
+    const isTReady = typeof t === 'function'
+    if (!isTReady) return 'overall'
+
+    if (title === t.value('workout_overall_full')) return 'overall'
+    if (title === t.value('workout_technical_full')) return 'technical'
+    if (title === t.value('workout_effort_full')) return 'effort'
+    if (title === t.value('workout_pacing_full')) return 'pacing'
+    if (title === t.value('workout_execution_full')) return 'execution'
+
+    return 'overall'
   }
 
   // Handle workout aggregate score click - fetch from database or trigger generation
@@ -965,7 +983,7 @@
     modalData.value = {
       title,
       score,
-      explanation: 'Loading insights...',
+      explanation: t.value('loading_insights'),
       analysisData: undefined,
       color: color as any
     }
@@ -1000,21 +1018,15 @@
         modalData.value.explanation = null
       } else if (response.generating) {
         // Explanation is being generated - show message
-        modalData.value.explanation = 'Generating insights... This may take a moment.'
-        // Listener will refresh this when 'generate-score-explanations' completes
-        // Note: The specific task might be different but 'generate-score-explanations' covers the batch.
-        // If it's a single on-demand generation, we might need to listen to 'generate-score-explanation-single'
-        // But for now assuming the batch task or a generic refresh handles it.
-        // Actually, we should trigger a refreshRuns() here just in case the backend triggered a job we don't know about yet
+        modalData.value.explanation = t.value('generating_insights_wait')
         refreshRuns()
       } else {
         // Not cached and not generating (manual trigger required)
-        modalData.value.explanation =
-          response.message || 'No insights available. Click "Generate Insights" to create them.'
+        modalData.value.explanation = response.message || t.value('no_insights_available')
       }
     } catch (error) {
       console.error('Error fetching workout explanation:', error)
-      modalData.value.explanation = 'Failed to load explanation. Please try again.'
+      modalData.value.explanation = t.value('failed_to_load_explanation')
     } finally {
       if (!modalData.value.explanation?.includes('Generating')) {
         loadingExplanation.value = false
@@ -1024,14 +1036,16 @@
 
   // Map display titles to metric names
   const getNutritionMetricName = (title: string): string => {
-    const mapping: Record<string, string> = {
-      'Overall Nutrition Quality': 'overall',
-      'Macronutrient Balance': 'macroBalance',
-      'Food Quality': 'quality',
-      'Goal Adherence': 'adherence',
-      'Hydration Status': 'hydration'
-    }
-    return mapping[title] || 'overall'
+    const isTReady = typeof t === 'function'
+    if (!isTReady) return 'overall'
+
+    if (title === t.value('nutrition_overall_full')) return 'overall'
+    if (title === t.value('nutrition_macro_full')) return 'macroBalance'
+    if (title === t.value('nutrition_quality_full')) return 'quality'
+    if (title === t.value('nutrition_adherence_full')) return 'adherence'
+    if (title === t.value('nutrition_hydration_full')) return 'hydration'
+
+    return 'overall'
   }
 
   // Handle nutrition aggregate score click - fetch from database or trigger generation
@@ -1041,7 +1055,7 @@
     modalData.value = {
       title,
       score,
-      explanation: 'Loading insights...',
+      explanation: t.value('loading_insights'),
       analysisData: undefined,
       color: color as any
     }
@@ -1076,16 +1090,15 @@
         modalData.value.explanation = null
       } else if (response.generating) {
         // Explanation is being generated - show message
-        modalData.value.explanation = 'Generating insights... This may take a moment.'
+        modalData.value.explanation = t.value('generating_insights_wait')
         refreshRuns()
       } else {
         // Not cached and not generating (manual trigger required)
-        modalData.value.explanation =
-          response.message || 'No insights available. Click "Generate Insights" to create them.'
+        modalData.value.explanation = response.message || t.value('no_insights_available')
       }
     } catch (error) {
       console.error('Error fetching nutrition explanation:', error)
-      modalData.value.explanation = 'Failed to load explanation. Please try again.'
+      modalData.value.explanation = t.value('failed_to_load_explanation')
     } finally {
       if (!modalData.value.explanation?.includes('Generating')) {
         loadingExplanation.value = false
@@ -1105,8 +1118,8 @@
       refreshRuns()
 
       toast.add({
-        title: 'Insights Generation Started',
-        description: 'AI is generating insights for all metrics. This may take a few minutes.',
+        title: t.value('toast_generation_started_title'),
+        description: t.value('toast_generation_started_desc'),
         color: 'success',
         icon: 'i-heroicons-sparkles'
       })
@@ -1129,14 +1142,13 @@
     if (!showModal.value || !modalData.value) return
 
     // Identify if it is a workout or nutrition modal based on title/context
-    // This is a bit heuristic but works for now given the titles are distinct enough or we can track type
     const title = modalData.value.title
     const isWorkout = [
-      'Overall Workout Performance',
-      'Technical Execution',
-      'Effort Management',
-      'Pacing Strategy',
-      'Workout Execution'
+      t.value('workout_overall_full'),
+      t.value('workout_technical_full'),
+      t.value('workout_effort_full'),
+      t.value('workout_pacing_full'),
+      t.value('workout_execution_full')
     ].includes(title)
 
     if (isWorkout) {
@@ -1153,8 +1165,8 @@
     nutritionExplanations.value = {}
 
     toast.add({
-      title: 'Insights Ready',
-      description: 'Performance insights have been generated.',
+      title: t.value('toast_insights_ready_title'),
+      description: t.value('toast_insights_ready_desc'),
       color: 'success',
       icon: 'i-heroicons-check-badge'
     })

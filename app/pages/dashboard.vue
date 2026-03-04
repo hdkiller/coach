@@ -1,13 +1,22 @@
 <template>
   <UDashboardPanel id="dashboard">
     <template #header>
-      <UDashboardNavbar title="Dashboard">
+      <UDashboardNavbar :title="t('dashboard_title')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
           <div class="flex items-center gap-3">
             <ClientOnly>
+              <UButton
+                icon="i-lucide-heart"
+                color="neutral"
+                variant="outline"
+                size="sm"
+                square
+                aria-label="Share Coach Watts"
+                @click="showShareCoachWattsModal = true"
+              />
               <DashboardTriggerMonitorButton />
               <NotificationDropdown />
             </ClientOnly>
@@ -18,9 +27,9 @@
               color="neutral"
               variant="outline"
               size="sm"
-              class="font-bold"
+              class="hidden sm:flex font-bold"
             >
-              <span class="hidden sm:inline">Upload</span>
+              <span class="hidden sm:inline">{{ t('header_upload') }}</span>
             </UButton>
             <UButton
               v-if="isOnboarded"
@@ -31,10 +40,10 @@
               icon="i-heroicons-arrow-path"
               size="sm"
               class="font-bold"
+              aria-label="Sync data"
               @click="handleSync"
             >
-              <span class="hidden sm:inline">Sync Data</span>
-              <span class="sm:hidden">Sync</span>
+              <span class="hidden sm:inline">{{ t('header_sync_data') }}</span>
             </UButton>
             <UButton
               to="/chat"
@@ -44,8 +53,8 @@
               size="sm"
               class="font-bold"
             >
-              <span class="hidden sm:inline">New Chat</span>
-              <span class="sm:hidden">Chat</span>
+              <span class="hidden sm:inline">{{ t('header_new_chat') }}</span>
+              <span class="sm:hidden">{{ t('header_chat') }}</span>
             </UButton>
           </div>
         </template>
@@ -71,7 +80,7 @@
             <div class="flex items-center gap-1.5">
               <span
                 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
-                >Dashboard may include data from</span
+                >{{ t('attribution_garmin') }}</span
               >
               <img
                 src="/images/logos/Garmin-Tag-black-high-res.png"
@@ -116,12 +125,11 @@
                           size="xs"
                           class="bg-white/12 text-white ring-white/20"
                         >
-                          Trial
+                          {{ t('trial_badge') }}
                         </UBadge>
                       </div>
                       <p class="text-white/80 text-sm font-medium leading-relaxed max-w-xl">
-                        Unlock faster improvement with AI coaching and automated performance
-                        insights during your trial.
+                        {{ t('trial_unlock_improvement') }}
                       </p>
                     </div>
                   </div>
@@ -135,7 +143,7 @@
                       size="sm"
                       class="justify-center bg-white/10 hover:bg-white/20 text-white font-bold border-none"
                     >
-                      View Usage
+                      {{ t('trial_view_usage') }}
                     </UButton>
                     <UButton
                       to="/settings/billing"
@@ -144,7 +152,7 @@
                       size="sm"
                       class="justify-center bg-white text-primary-600 hover:bg-gray-100 font-bold border-none"
                     >
-                      Keep Full Access
+                      {{ t('trial_keep_access') }}
                     </UButton>
                   </div>
                 </div>
@@ -166,10 +174,10 @@
               <div class="flex justify-between items-start">
                 <div>
                   <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                    Welcome back
+                    {{ t('onboarding_title') }}
                   </h1>
                   <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    Your AI-powered endurance coach is analyzing your latest data.
+                    {{ t('onboarding_description') }}
                   </p>
                 </div>
                 <UButton
@@ -234,7 +242,7 @@
                       class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2"
                     >
                       <UIcon name="i-heroicons-calendar-days" class="w-4 h-4" />
-                      Upcoming Workouts
+                      {{ t('upcoming_workouts_header') }}
                     </h3>
                     <UButton
                       to="/plan"
@@ -263,10 +271,10 @@
                       name="i-heroicons-calendar"
                       class="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2"
                     />
-                    <p class="text-sm text-gray-500">No upcoming workouts scheduled.</p>
-                    <UButton to="/plans" variant="link" color="primary" size="xs" class="mt-2"
-                      >View Plans</UButton
-                    >
+                    <p class="text-sm text-gray-500">{{ t('upcoming_workouts_empty') }}</p>
+                    <UButton to="/plans" variant="link" color="primary" size="xs" class="mt-2">{{
+                      t('upcoming_workouts_view_plans')
+                    }}</UButton>
                   </div>
 
                   <div v-else class="divide-y divide-gray-100 dark:divide-gray-800 -mx-4 px-4">
@@ -305,7 +313,7 @@
                           </div>
                           <UTooltip
                             v-if="workout.planName"
-                            :text="`Part of plan: ${workout.planName}`"
+                            :text="t('upcoming_workouts_plan_part_of', { name: workout.planName })"
                           >
                             <UIcon
                               name="i-heroicons-trophy"
@@ -394,9 +402,13 @@
 
   <!-- Daily Check-in Modal -->
   <DashboardDailyCheckinModal v-model:open="showCheckinModal" />
+
+  <!-- Share Coach Watts Modal -->
+  <DashboardShareCoachWattsModal v-model:open="showShareCoachWattsModal" />
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { useLocalStorage } from '@vueuse/core'
   import {
     getWorkoutIcon,
@@ -404,6 +416,8 @@
     getWorkoutBorderColorClass
   } from '~/utils/activity-types'
   import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
+
+  const { t } = useTranslate('dashboard')
 
   const { formatDate, formatDateUTC, getUserLocalDate } = useFormat()
 
@@ -445,9 +459,9 @@
   const activityStore = useActivityStore()
   const checkinStore = useCheckinStore()
   const trialAccessTitle = computed(() => {
-    const daysRemaining = userStore.trialDaysRemaining
-    if (!daysRemaining) return '6 Days of Full Access Remaining'
-    return `${daysRemaining} ${daysRemaining === 1 ? 'Day' : 'Days'} of Full Access Remaining`
+    const daysRemaining = userStore.trialDaysRemaining || 0
+    if (typeof t !== 'function' || !t.value) return `${daysRemaining} Days of Full Access Remaining`
+    return t.value('trial_access_remaining', { count: daysRemaining })
   })
   const nutritionEnabled = computed(
     () =>
@@ -498,8 +512,8 @@
     showDashboardProgressToast(
       toast,
       {
-        title: 'Sync Complete',
-        description: 'Your data has been updated successfully!',
+        title: t.value('sync_toast_title'),
+        description: t.value('sync_toast_description'),
         color: 'success',
         icon: 'i-heroicons-check-circle',
         duration: 2500
@@ -665,6 +679,9 @@
   function openCheckinModal() {
     showCheckinModal.value = true
   }
+
+  // Share Coach Watts modal
+  const showShareCoachWattsModal = ref(false)
 
   useHead({
     title: 'Dashboard',
