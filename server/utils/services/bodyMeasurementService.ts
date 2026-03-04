@@ -14,6 +14,14 @@ type BodyMeasurementInput = {
   notes?: string | null
 }
 
+type WellnessMeasurementInput = {
+  id: string
+  date: Date
+  weight?: number | null
+  bodyFat?: number | null
+  rawJson?: unknown
+}
+
 const CM_PER_INCH = 2.54
 
 function normalizeUnit(unit: string) {
@@ -56,6 +64,95 @@ function buildReferenceWhere(input: BodyMeasurementInput) {
     sourceRefType: input.sourceRefType,
     sourceRefId: input.sourceRefId
   }
+}
+
+function extractRawNumber(
+  rawJson: unknown,
+  candidates: string[],
+  nestedCandidates: Array<{ parent: string; keys: string[] }> = []
+) {
+  if (!rawJson || typeof rawJson !== 'object' || Array.isArray(rawJson)) return null
+
+  const raw = rawJson as Record<string, unknown>
+
+  for (const key of candidates) {
+    const value = raw[key]
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  }
+
+  for (const nested of nestedCandidates) {
+    const parent = raw[nested.parent]
+    if (!parent || typeof parent !== 'object' || Array.isArray(parent)) continue
+
+    for (const key of nested.keys) {
+      const value = (parent as Record<string, unknown>)[key]
+      if (typeof value === 'number' && Number.isFinite(value)) return value
+    }
+  }
+
+  return null
+}
+
+export function extractWellnessBodyMeasurements(wellness: WellnessMeasurementInput) {
+  const measurements: Array<{
+    metricKey: string
+    value: number
+    unit: string
+  }> = []
+
+  if (wellness.weight != null) {
+    measurements.push({
+      metricKey: 'weight',
+      value: wellness.weight,
+      unit: 'kg'
+    })
+  }
+
+  const bodyFat =
+    wellness.bodyFat ??
+    extractRawNumber(
+      wellness.rawJson,
+      ['bodyFat', 'BodyFat', 'fatRatio'],
+      [{ parent: 'withings', keys: ['fatRatio'] }]
+    )
+
+  if (bodyFat != null) {
+    measurements.push({
+      metricKey: 'body_fat_pct',
+      value: bodyFat,
+      unit: 'pct'
+    })
+  }
+
+  const muscleMass = extractRawNumber(
+    wellness.rawJson,
+    ['muscleMass', 'MuscleMass', 'muscle_mass', 'muscle_mass_kg', 'muscleMassKg'],
+    [{ parent: 'withings', keys: ['muscleMass'] }]
+  )
+
+  if (muscleMass != null) {
+    measurements.push({
+      metricKey: 'muscle_mass_kg',
+      value: muscleMass,
+      unit: 'kg'
+    })
+  }
+
+  const boneMass = extractRawNumber(
+    wellness.rawJson,
+    ['boneMass', 'BoneMass', 'bone_mass', 'bone_mass_kg', 'boneMassKg'],
+    [{ parent: 'withings', keys: ['boneMass'] }]
+  )
+
+  if (boneMass != null) {
+    measurements.push({
+      metricKey: 'bone_mass_kg',
+      value: boneMass,
+      unit: 'kg'
+    })
+  }
+
+  return measurements
 }
 
 export const bodyMeasurementService = {
@@ -140,48 +237,20 @@ export const bodyMeasurementService = {
     await Promise.all(writes)
   },
 
-  async recordWellnessMetrics(
-    userId: string,
-    wellness: {
-      id: string
-      date: Date
-      weight?: number | null
-      bodyFat?: number | null
-    },
-    source: string
-  ) {
+  async recordWellnessMetrics(userId: string, wellness: WellnessMeasurementInput, source: string) {
     const recordedAt = wellness.date
-    const writes: Promise<unknown>[] = []
-
-    if (wellness.weight != null) {
-      writes.push(
-        this.recordEntry({
-          userId,
-          recordedAt,
-          metricKey: 'weight',
-          value: wellness.weight,
-          unit: 'kg',
-          source,
-          sourceRefType: 'wellness',
-          sourceRefId: wellness.id
-        })
-      )
-    }
-
-    if (wellness.bodyFat != null) {
-      writes.push(
-        this.recordEntry({
-          userId,
-          recordedAt,
-          metricKey: 'body_fat_pct',
-          value: wellness.bodyFat,
-          unit: 'pct',
-          source,
-          sourceRefType: 'wellness',
-          sourceRefId: wellness.id
-        })
-      )
-    }
+    const writes = extractWellnessBodyMeasurements(wellness).map((measurement) =>
+      this.recordEntry({
+        userId,
+        recordedAt,
+        metricKey: measurement.metricKey,
+        value: measurement.value,
+        unit: measurement.unit,
+        source,
+        sourceRefType: 'wellness',
+        sourceRefId: wellness.id
+      })
+    )
 
     await Promise.all(writes)
   }

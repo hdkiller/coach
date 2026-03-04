@@ -221,8 +221,7 @@ export default NuxtAuthHandler({
   ],
   secret: process.env.NUXT_AUTH_SECRET,
   callbacks: {
-    async signIn({ user, account, profile }: any) {
-      console.log(`[Auth] Sign-in attempt for ${user.email} via ${account?.provider}`)
+    async signIn() {
       return true
     },
     async session({ session, user }: any) {

@@ -184,7 +184,8 @@ export default defineEventHandler(async (event) => {
       id: record.id,
       date: record.date,
       weight: record.weight,
-      bodyFat: record.bodyFat
+      bodyFat: record.bodyFat,
+      rawJson: record.rawJson
     },
     event.context.authType === 'oauth' ? `oauth:${event.context.oauthAppId}` : 'manual'
   )

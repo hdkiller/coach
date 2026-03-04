@@ -6,7 +6,7 @@ async function main() {
   const [wellnessRows, users] = await Promise.all([
     prisma.wellness.findMany({
       where: {
-        OR: [{ weight: { not: null } }, { bodyFat: { not: null } }]
+        OR: [{ weight: { not: null } }, { bodyFat: { not: null } }, { rawJson: { not: null } }]
       },
       select: {
         id: true,
@@ -14,7 +14,8 @@ async function main() {
         date: true,
         weight: true,
         bodyFat: true,
-        lastSource: true
+        lastSource: true,
+        rawJson: true
       }
     }),
     prisma.user.findMany({
@@ -36,7 +37,8 @@ async function main() {
         id: row.id,
         date: row.date,
         weight: row.weight,
-        bodyFat: row.bodyFat
+        bodyFat: row.bodyFat,
+        rawJson: row.rawJson
       },
       row.lastSource || 'wellness'
     )

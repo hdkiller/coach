@@ -752,7 +752,8 @@ export const IntervalsService = {
             id: record.id,
             date: record.date,
             weight: record.weight,
-            bodyFat: record.bodyFat
+            bodyFat: record.bodyFat,
+            rawJson: record.rawJson
           },
           'intervals'
         )

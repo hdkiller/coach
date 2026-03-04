@@ -175,7 +175,8 @@ export default defineEventHandler(async (event) => {
         id: updated.id,
         date: updated.date,
         weight: updated.weight,
-        bodyFat: updated.bodyFat
+        bodyFat: updated.bodyFat,
+        rawJson: updated.rawJson
       },
       'manual_edit'
     )

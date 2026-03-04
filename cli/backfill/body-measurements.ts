@@ -3,7 +3,10 @@ import chalk from 'chalk'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
-import { bodyMeasurementService } from '../../server/utils/services/bodyMeasurementService'
+import {
+  bodyMeasurementService,
+  extractWellnessBodyMeasurements
+} from '../../server/utils/services/bodyMeasurementService'
 
 const backfillBodyMeasurementsCommand = new Command('body-measurements')
 const DEFAULT_BATCH_SIZE = 1000
@@ -92,40 +95,22 @@ async function recordWellnessMetrics(
     weight: number | null
     bodyFat: number | null
     lastSource: string | null
+    rawJson: unknown
   }
 ) {
   const source = row.lastSource || 'wellness'
-  const writes: Promise<unknown>[] = []
-
-  if (row.weight != null) {
-    writes.push(
-      recordEntry(prisma, {
-        userId: row.userId,
-        recordedAt: row.date,
-        metricKey: 'weight',
-        value: row.weight,
-        unit: 'kg',
-        source,
-        sourceRefType: 'wellness',
-        sourceRefId: row.id
-      })
-    )
-  }
-
-  if (row.bodyFat != null) {
-    writes.push(
-      recordEntry(prisma, {
-        userId: row.userId,
-        recordedAt: row.date,
-        metricKey: 'body_fat_pct',
-        value: row.bodyFat,
-        unit: 'pct',
-        source,
-        sourceRefType: 'wellness',
-        sourceRefId: row.id
-      })
-    )
-  }
+  const writes = extractWellnessBodyMeasurements(row).map((measurement) =>
+    recordEntry(prisma, {
+      userId: row.userId,
+      recordedAt: row.date,
+      metricKey: measurement.metricKey,
+      value: measurement.value,
+      unit: measurement.unit,
+      source,
+      sourceRefType: 'wellness',
+      sourceRefId: row.id
+    })
+  )
 
   await Promise.all(writes)
 }
@@ -165,7 +150,7 @@ backfillBodyMeasurementsCommand
       const userFilter = userId ? { id: userId } : userEmail ? { email: userEmail } : {}
       const wellnessWhere = {
         ...(userId || userEmail ? { user: userFilter } : {}),
-        OR: [{ weight: { not: null } }, { bodyFat: { not: null } }]
+        OR: [{ weight: { not: null } }, { bodyFat: { not: null } }, { rawJson: { not: null } }]
       }
       const usersWhere = {
         ...userFilter,
@@ -203,7 +188,8 @@ backfillBodyMeasurementsCommand
             date: true,
             weight: true,
             bodyFat: true,
-            lastSource: true
+            lastSource: true,
+            rawJson: true
           },
           orderBy: { id: 'asc' },
           take: batchSize,
