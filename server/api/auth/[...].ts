@@ -1,5 +1,6 @@
 import { NuxtAuthHandler } from '#auth'
 import GoogleProvider from 'next-auth/providers/google'
+import StravaProvider from 'next-auth/providers/strava'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
@@ -79,6 +80,61 @@ const syncIntervalsIntegration = async (user: any, account: any) => {
   }
 }
 
+const syncStravaIntegration = async (user: any, account: any) => {
+  try {
+    await prisma.integration.upsert({
+      where: {
+        userId_provider: {
+          userId: user.id,
+          provider: 'strava'
+        }
+      },
+      update: {
+        accessToken: account.access_token!,
+        refreshToken: account.refresh_token,
+        expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
+        externalUserId: account.providerAccountId,
+        scope: account.scope,
+        lastSyncAt: new Date(),
+        syncStatus: 'SUCCESS'
+      },
+      create: {
+        userId: user.id,
+        provider: 'strava',
+        accessToken: account.access_token!,
+        refreshToken: account.refresh_token,
+        expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : undefined,
+        externalUserId: account.providerAccountId,
+        scope: account.scope,
+        syncStatus: 'SUCCESS',
+        lastSyncAt: new Date(),
+        ingestWorkouts: true
+      }
+    })
+    console.log('Successfully synced Strava integration')
+
+    // Trigger initial sync (last 30 days for Strava initially to be safe, or 365 if we want consistency)
+    const endDate = new Date().toISOString()
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    await tasks.trigger(
+      'ingest-strava',
+      {
+        userId: user.id,
+        startDate,
+        endDate
+      },
+      {
+        concurrencyKey: user.id,
+        tags: [`user:${user.id}`]
+      }
+    )
+    console.log('Triggered initial Strava sync')
+  } catch (error) {
+    console.error('Failed to sync Strava integration:', error)
+  }
+}
+
 export default NuxtAuthHandler({
   adapter,
   providers: [
@@ -86,6 +142,56 @@ export default NuxtAuthHandler({
     GoogleProvider.default({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true
+    }),
+    // @ts-expect-error - Types mismatch between next-auth versions
+    StravaProvider.default({
+      clientId: process.env.STRAVA_CLIENT_ID!,
+      clientSecret: process.env.STRAVA_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: 'read,activity:read_all,profile:read_all'
+        }
+      },
+      async profile(profile: any) {
+        // Try to get current session to see if we are linking an account
+        let currentEmail: string | undefined
+        try {
+          const event = useEvent()
+          const { getServerSession: getSession } = await import('../../utils/session')
+          const session = await getSession(event)
+          if (session?.user?.email) {
+            currentEmail = session.user.email
+            console.log(`[Auth] Detected active session for ${currentEmail}, forcing Strava link`)
+          }
+        } catch (e) {
+          // No active session or not in H3 context, ignore
+        }
+
+        // Try to find if this athlete already exists in our system via Integration table
+        const existingIntegration = await prisma.integration.findFirst({
+          where: {
+            provider: 'strava',
+            externalUserId: profile.id.toString()
+          },
+          include: { user: true }
+        })
+
+        const email =
+          currentEmail ||
+          existingIntegration?.user?.email ||
+          profile.email ||
+          `${profile.id}@strava.coachwatts.com`
+
+        console.log(`[Auth] Strava profile mapping for ${profile.id}: using email ${email}`)
+
+        return {
+          id: profile.id.toString(),
+          name: `${profile.firstname} ${profile.lastname}`,
+          email,
+          image: profile.profile
+        }
+      },
       allowDangerousEmailAccountLinking: true
     }),
     {
@@ -104,18 +210,75 @@ export default NuxtAuthHandler({
         token_endpoint_auth_method: 'client_secret_post'
       },
       allowDangerousEmailAccountLinking: true,
-      profile(profile: any) {
+      async profile(profile: any) {
+        // Try to get current session to see if we are linking an account
+        let currentEmail: string | undefined
+        try {
+          const event = useEvent()
+          const { getServerSession: getSession } = await import('../../utils/session')
+          const session = await getSession(event)
+          if (session?.user?.email) {
+            currentEmail = session.user.email
+            console.log(
+              `[Auth] Detected active session for ${currentEmail}, forcing Intervals link`
+            )
+          }
+        } catch (e) {
+          // No active session or not in H3 context, ignore
+        }
+
+        // Similar lookup for Intervals.icu
+        const existingIntegration = await prisma.integration.findFirst({
+          where: {
+            provider: 'intervals',
+            externalUserId: profile.id.toString()
+          },
+          include: { user: true }
+        })
+
+        const email =
+          currentEmail ||
+          existingIntegration?.user?.email ||
+          profile.email ||
+          `${profile.id}@intervals.coachwatts.com`
+
+        console.log(`[Auth] Intervals profile mapping for ${profile.id}: using email ${email}`)
+
         return {
           id: profile.id,
           name: profile.name,
-          email: profile.email,
+          email,
           image: profile.profile_medium || profile.profile
         }
       }
     }
   ],
   secret: process.env.NUXT_AUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
   callbacks: {
+    async signIn({ user, account, profile }: any) {
+      console.log(`[Auth] Sign-in attempt for ${user.email} via ${account?.provider}`)
+
+      // Try to get current session
+      try {
+        const event = useEvent()
+        const { getServerSession: getSession } = await import('../../utils/session')
+        const session = await getSession(event)
+
+        if (session?.user?.email && user.email !== session.user.email) {
+          console.log(
+            `[Auth] Session mismatch: logged in as ${session.user.email}, but OAuth says ${user.email}. Forcing merge.`
+          )
+          // Overriding user.email here is the "secret sauce" to make next-auth link
+          // the new account to the CURRENTLY logged in user.
+          user.email = session.user.email
+        }
+      } catch (e) {
+        // Not in an active session context, normal login
+      }
+
+      return true
+    },
     async session({ session, user }: any) {
       if (session.user) {
         ;(session.user as any).id = user.id
@@ -157,13 +320,20 @@ export default NuxtAuthHandler({
       }
     },
     async linkAccount({ user, account }: any) {
+      console.log(`[Auth] Linking account: ${account.provider} to user ${user.id} (${user.email})`)
       if (account.provider === 'intervals') {
         await syncIntervalsIntegration(user, account)
+      }
+      if (account.provider === 'strava') {
+        await syncStravaIntegration(user, account)
       }
     },
     async signIn({ user, account }: any) {
       if (account?.provider === 'intervals') {
         await syncIntervalsIntegration(user, account)
+      }
+      if (account?.provider === 'strava') {
+        await syncStravaIntegration(user, account)
       }
 
       // Capture login info

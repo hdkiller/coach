@@ -81,6 +81,20 @@ export default defineEventHandler(async (event) => {
         country: true,
         timezone: true,
         nutritionTrackingEnabled: true,
+        accounts: {
+          select: {
+            provider: true,
+            providerAccountId: true,
+            createdAt: true
+          }
+        },
+        integrations: {
+          select: {
+            provider: true,
+            externalUserId: true,
+            syncStatus: true
+          }
+        },
         personalBests: {
           include: {
             workout: {
@@ -116,10 +130,10 @@ export default defineEventHandler(async (event) => {
       return date.toISOString().split('T')[0]
     }
 
-    // Transform to match frontend expectation
     return {
       connected: true, // Assuming if we have user data we are "connected" to the app
       profile: {
+        id: user.id,
         name: user.name,
         nickname: user.nickname,
         email: user.email,
@@ -145,6 +159,8 @@ export default defineEventHandler(async (event) => {
         country: user.country,
         timezone: user.timezone,
         nutritionTrackingEnabled: user.nutritionTrackingEnabled,
+        accounts: user.accounts,
+        integrations: user.integrations,
         sportSettings: sportSettings,
         personalBests: user.personalBests
       }

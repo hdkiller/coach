@@ -123,7 +123,8 @@ export default defineEventHandler(async (event) => {
           externalUserId: athleteId,
           expiresAt,
           lastSyncAt: new Date(),
-          syncStatus: 'SUCCESS'
+          syncStatus: 'SUCCESS',
+          ingestWorkouts: true
         }
       })
     } else {
@@ -136,7 +137,8 @@ export default defineEventHandler(async (event) => {
           externalUserId: athleteId,
           expiresAt,
           syncStatus: 'SUCCESS',
-          lastSyncAt: new Date()
+          lastSyncAt: new Date(),
+          ingestWorkouts: true
         }
       })
     }
