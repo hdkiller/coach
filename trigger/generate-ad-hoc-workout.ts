@@ -7,6 +7,7 @@ import { wellnessRepository } from '../server/utils/repositories/wellnessReposit
 import { sportSettingsRepository } from '../server/utils/repositories/sportSettingsRepository'
 import { getUserTimezone, getStartOfDaysAgoUTC, formatUserDate } from '../server/utils/date'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { autoUploadPlannedWorkoutToIntervalsIfEnabled } from '../server/utils/intervals-sync'
 
 const adHocWorkoutSchema = {
   type: 'object',
@@ -204,6 +205,20 @@ export const generateAdHocWorkoutTask = task({
     })
 
     logger.log('Created planned workout', { id: plannedWorkout.id })
+
+    await autoUploadPlannedWorkoutToIntervalsIfEnabled({
+      id: plannedWorkout.id,
+      userId,
+      externalId: plannedWorkout.externalId,
+      date: plannedWorkout.date,
+      startTime: plannedWorkout.startTime,
+      title: plannedWorkout.title,
+      description: plannedWorkout.description,
+      type: plannedWorkout.type,
+      durationSec: plannedWorkout.durationSec,
+      tss: plannedWorkout.tss,
+      managedBy: plannedWorkout.managedBy
+    })
 
     // Trigger Structure Generation
     await tasks.trigger(

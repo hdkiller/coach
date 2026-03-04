@@ -360,6 +360,16 @@ function applyZoneHintToCyclingPower(step: any, sportSettings: any, ftp: number)
   step.power.units = '%'
 }
 
+function inferPowerUnits(power: any): '%' | 'w' {
+  const values: number[] = []
+  if (typeof power?.value === 'number') values.push(power.value)
+  if (typeof power?.range?.start === 'number') values.push(power.range.start)
+  if (typeof power?.range?.end === 'number') values.push(power.range.end)
+  if (values.length === 0) return '%'
+  const maxAbs = Math.max(...values.map((v) => Math.abs(v)))
+  return maxAbs > 3 ? 'w' : '%'
+}
+
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
@@ -717,7 +727,7 @@ export const generateStructuredWorkoutTask = task({
             else step.power = { value: 0.75 }
           }
           if (!step.power.units) {
-            step.power.units = '%'
+            step.power.units = inferPowerUnits(step.power)
           }
           applyZoneHintToCyclingPower(step, sportSettings, ftp)
           if (!step.cadence) {

@@ -25,6 +25,7 @@ import {
   resolveMetricPriorityContext,
   shouldCondenseHeartRateSection
 } from './utils/workout-metric-priority'
+import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
 
 // TypeScript interface for the structured analysis
 interface StructuredAnalysis {
@@ -1018,19 +1019,17 @@ This workout was linked to a planned training session. Compare the actual execut
 
 `
 
-    // Extract detailed structured plan if available
-    const structure = plannedWorkout.structuredWorkout
-    if (structure && Array.isArray(structure) && structure.length > 0) {
+    // Extract detailed structured plan if available (from numeric target fields, not step title text)
+    const formattedPlan = formatStructuredPlanForPrompt(plannedWorkout.structuredWorkout, {
+      ftp: workoutData.ftp || sportSettings?.ftp || null
+    })
+    if (formattedPlan !== 'N/A') {
       prompt += `### Structured Plan (Target Intervals)\n`
-      structure.forEach((step: any, idx: number) => {
-        const duration = step.duration_s ? `${Math.round(step.duration_s / 60)}m` : 'Lap'
-        const target = step.target_value
-          ? `${step.target_value}${step.target_type === 'POWER' ? 'W' : ''}`
-          : 'N/A'
-        const type = step.type || 'Interval'
-        prompt += `- Step ${idx + 1} [${type}]: ${duration} @ ${target}\n`
-      })
-      prompt += `\nUse this detailed plan structure to precisely evaluate if the athlete hit the specific interval targets (Power/Duration) listed above.\n`
+      prompt += `${formattedPlan
+        .split('\n')
+        .map((line) => `- ${line}`)
+        .join('\n')}\n`
+      prompt += `\nUse this detailed plan structure to precisely evaluate if the athlete hit the specific interval targets (Power/Duration) listed above. Use these numeric targets as source of truth; step names can contain stale labels and must never override the structured values.\n`
     }
 
     prompt += `

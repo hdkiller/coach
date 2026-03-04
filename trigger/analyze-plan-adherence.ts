@@ -4,6 +4,7 @@ import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
+import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
 
 const adherenceSchema = {
   type: 'object',
@@ -70,19 +71,9 @@ export const analyzePlanAdherenceTask = task({
     })
 
     try {
-      // Format structured plan for better readability
-      const formatStructuredPlan = (structure: any) => {
-        if (!structure || !Array.isArray(structure)) return 'N/A'
-        return structure
-          .map((s: any, i: number) => {
-            const duration = s.duration_s ? `${Math.round(s.duration_s / 60)}m` : 'Lap'
-            const target = s.target_value
-              ? `${s.target_value}${s.target_type === 'POWER' ? 'W' : ''}`
-              : 'N/A'
-            return `Step ${i + 1} [${s.type}]: ${duration} @ ${target}`
-          })
-          .join('\n      ')
-      }
+      const structuredPlan = formatStructuredPlanForPrompt(plan.structuredWorkout, {
+        ftp: workout.ftp || workout.user?.ftp || null
+      })
 
       // Format actual intervals including Cadence
       const formatActualIntervals = (raw: any) => {
@@ -107,7 +98,7 @@ export const analyzePlanAdherenceTask = task({
       - Intensity: ${plan.workIntensity ? (plan.workIntensity * 100).toFixed(0) + '%' : 'N/A'}
       - Description: ${plan.description || 'N/A'}
       - Structured Plan:
-      ${formatStructuredPlan(plan.structuredWorkout)}
+      ${structuredPlan}
       
       COMPLETED:
       - Duration: ${Math.round(workout.durationSec / 60)}m
@@ -130,7 +121,8 @@ export const analyzePlanAdherenceTask = task({
       2. Analyze deviations in Duration, Intensity (Power/HR), and Structure.
       3. Provide specific feedback on what was missed or exceeded.
       4. Compare the "Structured Plan" steps against the "ACTUAL INTERVALS". Did they do the intervals?
-      5. "impact" should describe how the deviation affects the training stimulus (e.g. "Reduced aerobic benefit", "Excessive fatigue risk").
+      5. For planned intensity, trust numeric structured values (power/hr/pace) as source of truth. Do NOT infer targets from step names/titles.
+      6. "impact" should describe how the deviation affects the training stimulus (e.g. "Reduced aerobic benefit", "Excessive fatigue risk").
       
       OUTPUT JSON matching the schema.`
 

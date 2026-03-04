@@ -21,6 +21,7 @@ import {
 } from '../server/utils/date'
 import { buildWorkoutCleanupQuery } from '../server/utils/plans/cleanup'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { autoUploadPlannedWorkoutToIntervalsIfEnabled } from '../server/utils/intervals-sync'
 
 const weeklyPlanSchema = {
   type: 'object',
@@ -1008,6 +1009,33 @@ Maintain your **${aiSettings.aiPersona}** persona throughout the plan's reasonin
           data: workoutsToCreate as any
         })
         logger.log('Created workouts in DB', { count: result.count })
+
+        const createdExternalIds = workoutsToCreate.map((w: any) => w?.externalId).filter(Boolean)
+        if (createdExternalIds.length > 0) {
+          const createdWorkouts = await prisma.plannedWorkout.findMany({
+            where: {
+              userId,
+              externalId: { in: createdExternalIds }
+            },
+            select: {
+              id: true,
+              userId: true,
+              externalId: true,
+              date: true,
+              startTime: true,
+              title: true,
+              description: true,
+              type: true,
+              durationSec: true,
+              tss: true,
+              managedBy: true
+            }
+          })
+
+          for (const workout of createdWorkouts) {
+            await autoUploadPlannedWorkoutToIntervalsIfEnabled(workout)
+          }
+        }
       } else {
         logger.warn('No workouts to create found in plan')
       }
