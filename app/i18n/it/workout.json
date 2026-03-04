@@ -1,0 +1,4 @@
+{
+  "details_title": "Dettagli allenamento",
+  "modal_delete_sync_note_desc": "Eliminando questo allenamento qui NON lo eliminerà dalla sorgente originale ({source}). Potrebbe essere reimportato durante la prossima sincronizzazione a meno che non venga eliminato anche lì."
+}

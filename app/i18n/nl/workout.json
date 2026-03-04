@@ -1,0 +1,4 @@
+{
+  "details_title": "Workoutdetails",
+  "modal_delete_sync_note_desc": "Het verwijderen van deze workout hier zal deze NIET verwijderen uit de oorspronkelijke bron ({source}). Deze kan opnieuw worden geïmporteerd tijdens de volgende synchronisatie, tenzij deze daar ook wordt verwijderd."
+}
