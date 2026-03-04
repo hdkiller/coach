@@ -19,7 +19,7 @@
       >
         <!-- Left: Digital Twin Sidecar -->
         <div
-          class="lg:col-span-5 relative bg-black/40 p-10 sm:p-14 flex flex-col justify-between overflow-hidden border-t lg:border-t-0 lg:border-r border-white/5 min-h-[600px] lg:min-h-[720px] lg:aspect-[5/6] order-2 lg:order-1"
+          class="hidden lg:flex lg:col-span-5 relative bg-black/40 p-10 sm:p-14 flex-col justify-between overflow-hidden border-t lg:border-t-0 lg:border-r border-white/5 min-h-[600px] lg:min-h-[720px] lg:aspect-[5/6] order-2 lg:order-1"
         >
           <!-- Dynamic Content -->
           <div class="relative z-10 h-full flex flex-col">
@@ -46,15 +46,15 @@
             <h2
               class="text-3xl sm:text-4xl font-black italic font-athletic uppercase leading-[0.9] mb-4 tracking-tight text-white mb-8 mt-4"
             >
-              {{ joinTitle }} <br />
-              <span class="text-primary-500">{{ joinSubtitle }}</span>
+              ELIMINATE THE <br />
+              <span class="text-primary-500">GUESSWORK</span>
             </h2>
 
             <p
               class="text-zinc-500 text-xs font-black uppercase tracking-[0.4em] mb-12 flex items-center gap-2"
             >
               <span class="w-8 h-px bg-white/10" />
-              {{ joinTagline }}
+              Experience the next generation of endurance training.
             </p>
 
             <!-- Chat Simulation -->
@@ -238,7 +238,7 @@
                 size="xl"
                 color="neutral"
                 variant="outline"
-                class="relative overflow-hidden group border-white/10 hover:border-white/20 bg-white/5 py-5 rounded-2xl h-14 min-w-full"
+                class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full"
                 :loading="loadingStrava || isInitializing"
                 @click="handleStravaLogin"
               >
@@ -258,7 +258,7 @@
                 size="xl"
                 color="neutral"
                 variant="outline"
-                class="relative overflow-hidden group border-white/10 hover:border-white/20 bg-white/5 py-5 rounded-2xl h-14 min-w-full"
+                class="relative overflow-hidden group border-white/10 hover:border-white/20 py-5 rounded-2xl h-14 min-w-full"
                 :loading="loadingIntervals || isInitializing"
                 @click="handleIntervalsLogin"
               >
@@ -273,7 +273,7 @@
               </UButton>
 
               <p
-                class="text-center lg:text-left text-[11px] font-black italic uppercase tracking-[0.18em] text-[#00C16A]"
+                class="text-center lg:text-left text-[11px] font-black italic uppercase tracking-[0.18em] text-primary-500"
               >
                 {{ joinFreeForeverNote }}
               </p>
@@ -484,14 +484,14 @@
     if (referral.value === 'hall-of-fame') {
       return 'Absolutely. I see your current best is 18:42 from last June.'
     }
-    return "I noticed your <span class='text-[#00C16A] font-bold'>HRV</span> dropped to 28ms overnight. 📉"
+    return "I noticed your <span class='text-action-green font-bold'>HRV</span> dropped to 28ms overnight. 📉"
   })
 
   const aiAdvice = computed(() => {
     if (referral.value === 'hall-of-fame') {
-      return "Based on your current fatigue profile, we need to focus on <span class='font-bold text-[#00C16A] bg-[#00C16A]/10 px-1.5 py-0.5 rounded'>Threshold Intervals</span> this week to push that ceiling."
+      return "Based on your current fatigue profile, we need to focus on <span class='font-bold text-action-green bg-action-green/10 px-1.5 py-0.5 rounded'>Threshold Intervals</span> this week to push that ceiling."
     }
-    return "Let's swap your intervals for a <span class='font-bold text-[#00C16A] bg-[#00C16A]/10 px-1.5 py-0.5 rounded'>Zone 2 Recovery Ride</span>. We'll get back to intensity tomorrow."
+    return "Let's swap your intervals for a <span class='font-bold text-action-green bg-action-green/10 px-1.5 py-0.5 rounded'>Zone 2 Recovery Ride</span>. We'll get back to intensity tomorrow."
   })
 
   onMounted(() => {
@@ -506,7 +506,7 @@
 
     setTimeout(() => {
       isTyping.value = false
-    }, 1200)
+    }, 800)
   })
 
   // Magnetic Button Logic
@@ -617,6 +617,14 @@
 
   .animate-ping-slow {
     animation: ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .text-action-green {
+    color: #00c16a;
+  }
+
+  .bg-action-green\/10 {
+    background-color: rgba(0, 193, 106, 0.1);
   }
 
   @keyframes pulse {
