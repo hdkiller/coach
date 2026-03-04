@@ -2,22 +2,67 @@
   <UModal
     v-model:open="open"
     :title="rewardEnabled ? 'Share Coach Watts' : 'Help Coach Watts Grow'"
-    :description="
-      rewardEnabled
-        ? 'Share Coach Watts on social and unlock 3 extra trial days. One-time reward for free users.'
-        : 'Share Coach Watts with a friend or your audience.'
-    "
+    :ui="{
+      width: 'max-w-md',
+      content: 'overflow-hidden'
+    }"
+    :transition="true"
   >
     <template #body>
-      <div class="space-y-4">
+      <div class="space-y-6">
+        <!-- Hero Section: QR Code -->
+        <div class="relative group">
+          <div
+            class="floating-card-base grain-overlay p-8 rounded-[32px] flex flex-col items-center gap-6 !bg-white dark:!bg-[#111111] !border-gray-200 dark:!border-white/5"
+          >
+            <div
+              class="relative flex items-center justify-center rounded-2xl bg-white p-4 shadow-inner ring-1 ring-gray-900/5 dark:bg-white"
+            >
+              <img
+                v-if="qrCodeDataUrl"
+                :src="qrCodeDataUrl"
+                :alt="`QR code linking to ${shareLink}`"
+                class="h-48 w-48 rounded-lg"
+              />
+              <USkeleton v-else class="h-48 w-48 rounded-lg" />
+
+              <!-- Decorative Corner Accents -->
+              <div
+                class="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-primary-500 rounded-tl-sm opacity-40"
+              />
+              <div
+                class="absolute -top-2 -right-2 w-4 h-4 border-t-2 border-r-2 border-primary-500 rounded-tr-sm opacity-40"
+              />
+              <div
+                class="absolute -bottom-2 -left-2 w-4 h-4 border-b-2 border-l-2 border-primary-500 rounded-bl-sm opacity-40"
+              />
+              <div
+                class="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-primary-500 rounded-br-sm opacity-40"
+              />
+            </div>
+
+            <div class="text-center space-y-1">
+              <p
+                class="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
+              >
+                Share your evolution
+              </p>
+              <p
+                class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]"
+              >
+                Scan to invite your team
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full border-b border-dashed border-gray-200 dark:border-gray-800" />
+
         <div
-          class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100"
+          v-if="rewardEnabled"
+          class="rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900 dark:border-primary-900/60 dark:bg-primary-950/30 dark:text-primary-100"
         >
-          {{
-            rewardEnabled
-              ? 'Help us grow by sharing Coach Watts with a friend or your audience. After you copy the link or use one of the share buttons below, you can claim your bonus trial time.'
-              : 'If Coach Watts has been useful, sharing it helps more athletes discover it.'
-          }}
+          Help us grow by sharing Coach Watts. After you share, you can claim your bonus trial time.
         </div>
 
         <ShareAccessPanel
@@ -33,18 +78,22 @@
 
         <div
           v-if="rewardEnabled"
-          class="flex items-center justify-between gap-4 rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-900/60"
+          class="flex items-center justify-between gap-4 rounded-2xl bg-gray-50 p-4 dark:bg-gray-900/60 border border-gray-100 dark:border-white/5"
         >
-          <p class="text-sm text-gray-600 dark:text-gray-300">
+          <p
+            class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-relaxed"
+          >
             {{
               hasShareIntent
-                ? 'Share intent detected. You can claim your reward now.'
-                : 'Copy the link or click a share target to enable the reward claim.'
+                ? 'Action detected. Claim your reward.'
+                : 'Copy link or click share to unlock reward.'
             }}
           </p>
           <UButton
-            label="Claim 3 extra trial days"
+            label="Claim Extension"
             color="primary"
+            variant="solid"
+            class="font-black uppercase tracking-widest rounded-xl"
             :disabled="!hasShareIntent || claimingReward"
             :loading="claimingReward"
             @click="claimReward"
@@ -52,13 +101,12 @@
         </div>
       </div>
     </template>
-    <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="open = false" />
-    </template>
   </UModal>
 </template>
 
 <script setup lang="ts">
+  import QRCode from 'qrcode'
+
   const open = defineModel<boolean>('open', { default: false })
 
   const { rewardEnabled = false, messageId = null } = defineProps<{
@@ -72,6 +120,7 @@
 
   const hasShareIntent = ref(false)
   const claimingReward = ref(false)
+  const qrCodeDataUrl = ref('')
   const userStore = useUserStore()
   const toast = useToast()
   const runtimeConfig = useRuntimeConfig()
@@ -95,6 +144,67 @@
     return url.toString()
   })
   const shareTitle = 'Coach Watts - AI Endurance Coaching'
+
+  async function generateQrCode() {
+    try {
+      const canvas = document.createElement('canvas')
+      await QRCode.toCanvas(canvas, shareLink.value, {
+        errorCorrectionLevel: 'H',
+        margin: 1,
+        width: 640, // High res for better quality
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      })
+
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        const logo = new Image()
+        logo.src = '/media/logo_square.png'
+        await new Promise((resolve) => {
+          logo.onload = resolve
+          logo.onerror = resolve // Continue even if logo fails
+        })
+
+        if (logo.complete && logo.naturalWidth !== 0) {
+          const size = canvas.width
+          const logoSize = size * 0.2
+          const x = (size - logoSize) / 2
+          const y = (size - logoSize) / 2
+
+          // Clear background for logo with slight padding
+          const padding = size * 0.05
+          ctx.fillStyle = '#ffffff'
+          ctx.beginPath()
+          const radius = size * 0.04
+          const bx = x - padding / 2
+          const by = y - padding / 2
+          const bw = logoSize + padding
+          const bh = logoSize + padding
+
+          ctx.moveTo(bx + radius, by)
+          ctx.arcTo(bx + bw, by, bx + bw, by + bh, radius)
+          ctx.arcTo(bx + bw, by + bh, bx, by + bh, radius)
+          ctx.arcTo(bx, by + bh, bx, by, radius)
+          ctx.arcTo(bx, by, bx + bw, by, radius)
+          ctx.closePath()
+          ctx.fill()
+
+          ctx.drawImage(logo, x, y, logoSize, logoSize)
+        }
+      }
+
+      qrCodeDataUrl.value = canvas.toDataURL('image/png')
+    } catch (error) {
+      console.error('Failed to generate share QR code:', error)
+      toast.add({
+        title: 'QR code unavailable',
+        description: 'Could not generate the QR code right now.',
+        color: 'error'
+      })
+    }
+  }
 
   async function handleShareCopy() {
     try {
@@ -161,9 +271,12 @@
 
   watch(
     () => open.value,
-    (isOpen) => {
+    async (isOpen) => {
       if (isOpen) {
         hasShareIntent.value = false
+        if (!qrCodeDataUrl.value) {
+          await generateQrCode()
+        }
         trackShareModalOpen()
       } else {
         hasShareIntent.value = false

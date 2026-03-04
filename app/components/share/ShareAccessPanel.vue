@@ -1,10 +1,10 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-6">
     <div v-if="loading" class="flex items-center justify-center py-8">
       <UIcon name="i-heroicons-arrow-path" class="h-8 w-8 animate-spin text-primary" />
     </div>
 
-    <div v-else-if="link" class="space-y-4">
+    <div v-else-if="link" class="space-y-6">
       <UFormField v-if="isGeneratedMode" label="Link expiry">
         <USelect
           :model-value="expiryValue"
@@ -15,39 +15,70 @@
         />
       </UFormField>
 
-      <UFormField label="Share Link">
-        <div class="flex gap-2">
-          <UInput :model-value="link" readonly class="flex-1" />
-          <UButton icon="i-heroicons-clipboard" color="neutral" variant="outline" @click="emitCopy">
-            Copy
-          </UButton>
-        </div>
-      </UFormField>
-
-      <p class="text-xs text-gray-500 dark:text-gray-400">
-        <template v-if="isGeneratedMode">
-          Anyone with this link can view this {{ resourceLabel }}. Links are read-only and use the
-          expiry you selected when generated.
-        </template>
-        <template v-else>
-          Anyone with this link can open the Coach Watts site and learn more about the product.
-        </template>
-      </p>
-
       <div class="space-y-2">
-        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          Share directly
+        <p
+          class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1"
+        >
+          Share Link
         </p>
-        <div class="flex flex-wrap gap-2">
-          <div v-for="network in networks" :key="network" @click="emitNetworkClick(network)">
+        <div class="relative group">
+          <UInput
+            :model-value="link"
+            readonly
+            size="xl"
+            class="w-full font-medium"
+            :ui="{
+              base: 'rounded-2xl pr-20 focus:ring-primary-500/50'
+            }"
+            @focus="handleFocus"
+          >
+            <template #trailing>
+              <div class="flex items-center pr-1">
+                <UButton
+                  :icon="copied ? 'i-heroicons-check' : 'i-heroicons-clipboard'"
+                  :color="copied ? 'success' : 'neutral'"
+                  variant="ghost"
+                  size="sm"
+                  class="rounded-xl transition-all duration-300"
+                  @click="handleCopy"
+                >
+                  {{ copied ? 'Copied' : 'Copy' }}
+                </UButton>
+              </div>
+            </template>
+          </UInput>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <p
+          class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1"
+        >
+          Direct Share
+        </p>
+        <div class="grid grid-cols-4 sm:grid-cols-7 gap-3">
+          <div
+            v-for="network in networks"
+            :key="network"
+            class="group/share-item"
+            @click="emitNetworkClick(network)"
+          >
             <SocialShare
               :network="network"
               :url="link"
               :title="shareTitle"
-              :styled="true"
-              :label="true"
-              class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
-            />
+              :styled="false"
+              :label="false"
+              class="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-gray-900/40 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-primary-500/5 group-hover/share-item:border-primary-500/20"
+            >
+              <template #default="{ icon }">
+                <UIcon
+                  :name="icon"
+                  class="w-6 h-6 transition-all duration-300 opacity-80 group-hover/share-item:opacity-100 group-hover/share-item:scale-110"
+                  :style="{ color: getNetworkColor(network) }"
+                />
+              </template>
+            </SocialShare>
           </div>
         </div>
       </div>
@@ -93,6 +124,7 @@
     'update:expiryValue': [value: string]
   }>()
 
+  const copied = ref(false)
   const expiryOptions = [
     { label: '1 day', value: '86400' },
     { label: '7 days', value: '604800' },
@@ -103,6 +135,31 @@
 
   const networks = ['x', 'facebook', 'linkedin', 'reddit', 'whatsapp', 'telegram', 'email']
   const isGeneratedMode = computed(() => props.mode !== 'static')
+
+  const getNetworkColor = (network: string) => {
+    const colors: Record<string, string> = {
+      x: '#000000',
+      facebook: '#1877F2',
+      linkedin: '#0A66C2',
+      reddit: '#FF4500',
+      whatsapp: '#25D366',
+      telegram: '#26A5E4',
+      email: '#6366F1'
+    }
+    return colors[network] || '#6366F1'
+  }
+
+  const handleCopy = () => {
+    emit('copy')
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  }
+
+  const handleFocus = (event: FocusEvent) => {
+    ;(event.target as HTMLInputElement).select()
+  }
 
   const parseExpiryValue = (value: string): number | null => {
     if (value === 'never') return null
@@ -128,6 +185,5 @@
       forceNew: true
     })
 
-  const emitCopy = () => emit('copy')
   const emitNetworkClick = (network: string) => emit('networkClick', network)
 </script>
