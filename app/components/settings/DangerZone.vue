@@ -609,31 +609,6 @@
     }
   }
 
-  async function executeWipeWellness() {
-    wipingWellness.value = true
-    try {
-      const result: any = await $fetch('/api/profile/wellness', {
-        method: 'DELETE'
-      })
-
-      toast.add({
-        title: t.value('danger_toast_wellness_wiped_title'),
-        description: t.value('danger_toast_wellness_wiped_desc', { count: result.counts.wellness }),
-        color: 'success'
-      })
-      isWipeWellnessModalOpen.value = false
-    } catch (error) {
-      console.error('Failed to wipe wellness data', error)
-      toast.add({
-        title: 'Action Failed',
-        description: 'Could not wipe wellness data.',
-        color: 'error'
-      })
-    } finally {
-      wipingWellness.value = false
-    }
-  }
-
   async function executeWipeNutrition() {
     wipingNutrition.value = true
     try {
