@@ -13,12 +13,12 @@
         </div>
         <div>
           <h3 class="text-sm font-bold text-amber-800 dark:text-amber-200 uppercase tracking-tight">
-            Complete your profile for personalized insights
+            {{ t('profile_banner_title') }}
           </h3>
           <p class="mt-1 text-sm text-amber-700 dark:text-amber-300 font-medium">
-            We're missing:
+            {{ t('profile_banner_missing_prefix') }}
             <span class="font-bold underline decoration-amber-500/30">{{ missingFieldsList }}</span
-            >. Providing this information is critical for accurate coaching guidance.
+            >{{ t('profile_banner_missing_suffix') }}
           </p>
         </div>
       </div>
@@ -31,7 +31,7 @@
           class="font-bold"
           icon="i-heroicons-user-circle"
         >
-          Complete Profile
+          {{ t('profile_banner_button') }}
         </UButton>
         <UButton
           color="warning"
@@ -46,6 +46,11 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
+  const { t: tp } = useTranslate('profile')
+
   const props = defineProps<{
     missingFields: string[]
   }>()
@@ -60,14 +65,30 @@
     }
   })
 
+  const fieldTranslationMap: Record<string, string> = {
+    sex: 'basic_form_sex',
+    dob: 'basic_form_dob',
+    weight: 'basic_body_metrics_weight',
+    height: 'basic_body_metrics_height',
+    restingHr: 'basic_personal_info_resting_hr', // Added to profile.json below if missing
+    maxHr: 'basic_personal_info_max_hr',
+    lthr: 'basic_personal_info_lthr'
+  }
+
   const missingFieldsList = computed(() => {
     if (props.missingFields.length === 0) return ''
-    if (props.missingFields.length === 1) return props.missingFields[0]
-    if (props.missingFields.length === 2) return props.missingFields.join(' and ')
 
-    const last = props.missingFields[props.missingFields.length - 1]
-    const others = props.missingFields.slice(0, -1).join(', ')
-    return `${others}, and ${last}`
+    const translatedFields = props.missingFields.map((field) => {
+      const key = fieldTranslationMap[field]
+      return key ? tp.value(key) : field
+    })
+
+    if (translatedFields.length === 1) return translatedFields[0]
+
+    // Simple join for now, could use a localized join helper if needed
+    const last = translatedFields[translatedFields.length - 1]
+    const others = translatedFields.slice(0, -1).join(', ')
+    return `${others} & ${last}`
   })
 
   function dismiss() {

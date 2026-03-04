@@ -91,13 +91,13 @@
               v-if="isAdvert"
               class="text-[10px] text-gray-500 dark:text-gray-400 font-medium ml-1 mt-0.5 whitespace-nowrap"
             >
-              No commitment • Cancel anytime
+              {{ t('system_message_no_commitment') }}
             </span>
             <span
               v-else-if="isShare"
               class="text-[10px] text-sky-700/80 dark:text-sky-300/80 font-medium ml-1 mt-0.5 whitespace-nowrap"
             >
-              One-time reward • +3 days
+              {{ t('system_message_reward') }}
             </span>
           </div>
         </div>
@@ -114,7 +114,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { marked } from 'marked'
+
+  const { t } = useTranslate('dashboard')
 
   interface DashboardSystemMessage {
     id: string

@@ -9,8 +9,8 @@
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-chart-bar" class="w-5 h-5 text-primary-500" />
           <h3 class="font-bold text-sm tracking-tight uppercase">
-            <span class="hidden sm:inline">Performance Scores</span>
-            <span class="sm:hidden">Performance</span>
+            <span class="hidden sm:inline">{{ t('performance_scores_header') }}</span>
+            <span class="sm:hidden">{{ t('navigation_performance') }}</span>
           </h3>
         </div>
         <div class="flex items-center gap-1">
@@ -21,8 +21,8 @@
             icon="i-heroicons-presentation-chart-line"
             @click="$emit('open-training-load')"
           >
-            <span class="hidden sm:inline">Training Load</span>
-            <span class="sm:hidden">Load</span>
+            <span class="hidden sm:inline">{{ t('performance_scores_load_button') }}</span>
+            <span class="sm:hidden">{{ t('performance_scores_load_badge') }}</span>
           </UButton>
           <UButton
             color="neutral"
@@ -112,14 +112,18 @@
         <p
           class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight text-center italic"
         >
-          Analysis current as of {{ formatScoreDate(profileScores.lastUpdated) }}
+          {{
+            t('performance_scores_analysis_current', {
+              date: formatScoreDate(profileScores.lastUpdated)
+            })
+          }}
         </p>
       </div>
     </div>
 
     <!-- No scores yet -->
     <div v-else class="text-center py-4 flex-grow">
-      <p class="text-sm text-muted">Generate your athlete profile to see performance scores.</p>
+      <p class="text-sm text-muted">{{ t('performance_scores_empty_message') }}</p>
     </div>
 
     <template #footer>
@@ -131,7 +135,7 @@
         class="font-bold"
         @click="$emit('open-training-load')"
       >
-        View Analysis
+        {{ t('performance_scores_view_analysis') }}
       </UButton>
     </template>
 
@@ -140,6 +144,9 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
   const integrationStore = useIntegrationStore()
   const userStore = useUserStore()
   const nutritionEnabled = computed(
@@ -228,67 +235,62 @@
   })
 
   // Computed visible scores
-  const allScoreConfigs = {
+  const allScoreConfigs = computed(() => ({
     currentFitness: {
-      label: 'Current Fitness',
+      label: t.value('score_label_fitness'),
       color: 'bg-amber-50 dark:bg-amber-900/20 ring-amber-500/10',
-      sublabel: 'Fitness Level (1-10)',
-      description:
-        'Your current cardiovascular and muscular fitness based on recent performance data.'
+      sublabel: t.value('score_sublabel_fitness'),
+      description: t.value('score_desc_fitness')
     },
     recoveryCapacity: {
-      label: 'Recovery Capacity',
+      label: t.value('score_label_recovery'),
       color: 'bg-emerald-50 dark:bg-emerald-900/20 ring-emerald-500/10',
-      sublabel: 'Recovery State (1-10)',
-      description:
-        'How well your body is currently responding to and recovering from training stress.'
+      sublabel: t.value('score_sublabel_recovery'),
+      description: t.value('score_desc_recovery')
     },
     nutritionCompliance: {
-      label: 'Nutrition Quality',
+      label: t.value('score_label_nutrition'),
       color: 'bg-purple-50 dark:bg-purple-900/20 ring-purple-500/10',
-      sublabel: 'Fueling Quality (1-10)',
-      description: 'How closely your nutrition and fueling habits align with your training needs.'
+      sublabel: t.value('score_sublabel_nutrition'),
+      description: t.value('score_desc_nutrition')
     },
     trainingConsistency: {
-      label: 'Consistency',
+      label: t.value('score_label_consistency'),
       color: 'bg-blue-50 dark:bg-blue-900/20 ring-blue-500/10',
-      sublabel: 'Plan Adherence (1-10)',
-      description: 'A measure of how reliably you have been completing your scheduled workouts.'
+      sublabel: t.value('score_sublabel_consistency'),
+      description: t.value('score_desc_consistency')
     },
     ctl: {
-      label: 'TL (Fitness)',
+      label: t.value('score_label_ctl'),
       color: 'bg-purple-50 dark:bg-purple-900/20 ring-purple-500/10',
-      sublabel: 'Long-term Load (~42d)',
-      description:
-        'Chronic Training Load (CTL) represents your long-term fitness based on the last 42 days of training.'
+      sublabel: t.value('score_sublabel_ctl'),
+      description: t.value('score_desc_ctl')
     },
     atl: {
-      label: 'ATL (Fatigue)',
+      label: t.value('score_label_atl'),
       color: 'bg-yellow-50 dark:bg-yellow-900/20 ring-yellow-500/10',
-      sublabel: 'Short-term Load (~7d)',
-      description:
-        'Acute Training Load (ATL) represents your short-term fatigue based on the last 7 days of training.'
+      sublabel: t.value('score_sublabel_atl'),
+      description: t.value('score_desc_atl')
     },
     tsb: {
-      label: 'TSB (Form)',
+      label: t.value('score_label_tsb'),
       color: 'bg-indigo-50 dark:bg-indigo-900/20 ring-indigo-500/10',
-      sublabel: 'Freshness (CTL - ATL)',
-      description:
-        'Training Stress Balance (TSB) is your freshness. Positive means fresh, negative means fatigued. -10 to +5 is optimal for racing.'
+      sublabel: t.value('score_sublabel_tsb'),
+      description: t.value('score_desc_tsb')
     },
     avgTss: {
-      label: 'Avg TSS',
+      label: t.value('score_label_avg_tss'),
       color: 'bg-blue-50 dark:bg-blue-900/20 ring-blue-500/10',
-      sublabel: 'Workout Avg (7d)',
-      description: 'Average Training Stress Score per workout over the last 7 days.'
+      sublabel: t.value('score_sublabel_avg_tss'),
+      description: t.value('score_desc_avg_tss')
     }
-  }
+  }))
 
   const visibleScoreOptions = computed(() => {
     const options = {} as any
     const visibleScores = settings.value.visibleScores || defaultSettings.visibleScores
 
-    for (const [key, config] of Object.entries(allScoreConfigs)) {
+    for (const [key, config] of Object.entries(allScoreConfigs.value)) {
       if (key === 'nutritionCompliance' && !nutritionEnabled.value) continue
       if (visibleScores[key as keyof typeof visibleScores] !== false) {
         options[key] = config
@@ -333,8 +335,8 @@
     const tStr = formatDateUTC(today, 'yyyy-MM-dd')
     const yStr = formatDateUTC(yesterday, 'yyyy-MM-dd')
 
-    if (dStr === tStr) return 'today'
-    if (dStr === yStr) return 'yesterday'
+    if (dStr === tStr) return t.value('navigation_search_nutrition_today').toLowerCase()
+    if (dStr === yStr) return t.value('navigation_search_nutrition_yesterday').toLowerCase()
 
     const diffDays = Math.floor((today.getTime() - scoreDate.getTime()) / (1000 * 60 * 60 * 24))
     if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`
@@ -374,28 +376,28 @@
 
     const scoreConfig = {
       currentFitness: {
-        title: 'Current Fitness',
+        title: t.value('score_label_fitness'),
         score: profileScores.value.currentFitness,
         explanation: profileScores.value.currentFitnessExplanation,
         analysisData: profileScores.value.currentFitnessExplanationJson,
         color: 'blue' as const
       },
       recoveryCapacity: {
-        title: 'Recovery Capacity',
+        title: t.value('score_label_recovery'),
         score: profileScores.value.recoveryCapacity,
         explanation: profileScores.value.recoveryCapacityExplanation,
         analysisData: profileScores.value.recoveryCapacityExplanationJson,
         color: 'green' as const
       },
       nutritionCompliance: {
-        title: 'Nutrition Compliance',
+        title: t.value('score_label_nutrition'),
         score: profileScores.value.nutritionCompliance,
         explanation: profileScores.value.nutritionComplianceExplanation,
         analysisData: profileScores.value.nutritionComplianceExplanationJson,
         color: 'purple' as const
       },
       trainingConsistency: {
-        title: 'Training Consistency',
+        title: t.value('score_label_consistency'),
         score: profileScores.value.trainingConsistency,
         explanation: profileScores.value.trainingConsistencyExplanation,
         analysisData: profileScores.value.trainingConsistencyExplanationJson,

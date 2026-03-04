@@ -11,7 +11,9 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-clock" class="w-5 h-5 text-primary-500" />
-          <h3 class="font-bold text-sm tracking-tight uppercase">Recent Activity</h3>
+          <h3 class="font-bold text-sm tracking-tight uppercase">
+            {{ t('recent_activity_header') }}
+          </h3>
         </div>
         <UBadge
           v-if="activityStore.recentActivity && activityStore.recentActivity.items.length > 0"
@@ -20,7 +22,7 @@
           size="xs"
           class="font-bold uppercase tracking-widest"
         >
-          Last 5 Days
+          {{ t('recent_activity_last_days', { count: 5 }) }}
         </UBadge>
       </div>
     </template>
@@ -28,7 +30,7 @@
     <!-- Loading state -->
     <div v-if="activityStore.loading" class="text-center py-8">
       <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin inline text-primary" />
-      <p class="text-sm text-muted mt-2">Loading activity...</p>
+      <p class="text-sm text-muted mt-2">{{ t('recent_activity_loading') }}</p>
     </div>
 
     <!-- No activity -->
@@ -37,7 +39,7 @@
       class="text-center py-8"
     >
       <UIcon name="i-heroicons-calendar" class="w-12 h-12 mx-auto text-muted mb-3" />
-      <p class="text-sm text-muted">No recent activity found. Your data is syncing...</p>
+      <p class="text-sm text-muted">{{ t('recent_activity_empty') }}</p>
     </div>
 
     <!-- New Layout -->
@@ -54,7 +56,9 @@
       <div v-if="listItems.length > 0" class="space-y-1">
         <div class="flex items-center gap-2 mb-2 px-1">
           <div class="h-px bg-gray-100 dark:bg-gray-800 flex-1"></div>
-          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">History</span>
+          <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{
+            t('recent_activity_history_divider')
+          }}</span>
           <div class="h-px bg-gray-100 dark:bg-gray-800 flex-1"></div>
         </div>
         <DashboardActivityRowCompact
@@ -70,6 +74,9 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
   const activityStore = useActivityStore()
   const integrationStore = useIntegrationStore()
   const userStore = useUserStore()
@@ -118,9 +125,9 @@
     const yesterdayStr = formatDateUTC(yesterday, 'yyyy-MM-dd')
 
     if (activityDateStr === todayStr) {
-      return 'Today'
+      return t.value('recent_activity_today')
     } else if (activityDateStr === yesterdayStr) {
-      return 'Yesterday'
+      return t.value('recent_activity_yesterday')
     } else {
       return isDateOnly ? formatDateUTC(activityDate, 'MMM d') : formatDate(activityDate, 'MMM d')
     }

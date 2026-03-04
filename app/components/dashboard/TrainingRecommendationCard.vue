@@ -8,7 +8,9 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-light-bulb" class="w-5 h-5 text-primary-500" />
-          <h3 class="font-bold text-sm tracking-tight uppercase">Today's Training</h3>
+          <h3 class="font-bold text-sm tracking-tight uppercase">
+            {{ t('training_recommendation_header') }}
+          </h3>
         </div>
         <div class="flex items-center gap-2">
           <UButton
@@ -16,7 +18,7 @@
             size="xs"
             color="neutral"
             variant="ghost"
-            title="Daily Check-in"
+            :title="t('training_recommendation_checkin_title')"
             @click.stop="$emit('open-checkin')"
           />
           <UBadge
@@ -46,7 +48,7 @@
         v-if="recommendationStore.generating || recommendationStore.generatingAdHoc"
         class="text-xs mt-1"
       >
-        This may take up to 60 seconds
+        {{ t('training_recommendation_loading_time_warning') }}
       </p>
     </div>
 
@@ -59,14 +61,14 @@
           <div class="flex items-center justify-between">
             <span
               class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest"
-              >Today's Plan</span
+              >{{ t('training_recommendation_todays_plan') }}</span
             >
             <UButton
               size="xs"
               color="neutral"
               variant="ghost"
               icon="i-heroicons-sparkles"
-              label="New"
+              :label="t('training_recommendation_new_adhoc')"
               class="-my-1 h-6 text-[10px]"
               @click.stop="openCreateAdHoc"
             />
@@ -107,7 +109,7 @@
                       size="sm"
                       class="shrink-0 text-[10px] px-1 py-0"
                     >
-                      Done
+                      {{ t('training_recommendation_done') }}
                     </UBadge>
                   </div>
                   <div
@@ -124,7 +126,7 @@
                       <span>• {{ workout.type }}</span>
                     </template>
                     <template v-else>
-                      <span>Rest Day</span>
+                      <span>{{ t('training_recommendation_rest_day') }}</span>
                     </template>
                   </div>
                 </div>
@@ -149,7 +151,7 @@
         <div v-else class="flex items-center justify-between">
           <div class="flex items-center gap-2 text-gray-500">
             <UIcon name="i-heroicons-calendar" class="w-5 h-5" />
-            <span class="text-sm">No workout planned</span>
+            <span class="text-sm">{{ t('training_recommendation_no_workout') }}</span>
           </div>
           <UButton
             size="xs"
@@ -158,7 +160,7 @@
             icon="i-heroicons-sparkles"
             @click="openCreateAdHoc"
           >
-            Generate
+            {{ t('training_recommendation_generate') }}
           </UButton>
         </div>
       </div>
@@ -174,7 +176,7 @@
           class="font-bold py-2 justify-start"
           @click.stop="$emit('open-checkin')"
         >
-          Do Quick Daily Coach Check-In
+          {{ t('training_recommendation_daily_checkin_button') }}
         </UButton>
       </div>
 
@@ -190,14 +192,14 @@
         >
           <div class="flex justify-between items-start mb-2 gap-2">
             <p class="text-sm font-bold text-blue-900 dark:text-blue-100">
-              Suggested Modification:
+              {{ t('training_recommendation_suggested_modification') }}
             </p>
             <div
               v-if="recommendationStore.todayRecommendation.userAccepted"
               class="shrink-0 flex items-center gap-1 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase tracking-wide bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded"
             >
               <UIcon name="i-heroicons-check" class="w-3 h-3" />
-              <span>Accepted</span>
+              <span>{{ t('training_recommendation_accepted') }}</span>
             </div>
           </div>
           <p class="text-sm text-blue-800 dark:text-blue-200 break-words leading-snug">
@@ -221,7 +223,7 @@
         v-else-if="recommendationStore.todayWorkouts.length > 0"
         class="text-[10px] text-gray-500 text-center leading-tight"
       >
-        Get AI-powered guidance for this workout based on your recovery.
+        {{ t('training_recommendation_get_ai_guidance') }}
       </div>
     </div>
 
@@ -245,7 +247,7 @@
             class="font-bold flex-1"
             @click="$emit('open-details')"
           >
-            Details
+            {{ t('training_recommendation_details_button') }}
           </UButton>
           <UButton
             v-if="canAccept"
@@ -256,7 +258,7 @@
             :loading="accepting"
             @click="handleAccept"
           >
-            Accept
+            {{ t('training_recommendation_accept_button') }}
           </UButton>
         </div>
         <div class="space-y-2">
@@ -284,7 +286,7 @@
             v-if="!recommendationStore.todayRecommendation"
             class="text-[10px] text-gray-500 text-center leading-tight"
           >
-            The coach will analyze your recovery data and today's plan to provide guidance.
+            {{ t('training_recommendation_coach_analysis_description') }}
           </p>
         </div>
       </div>
@@ -305,6 +307,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import DashboardCreateAdHocModal from '~/components/dashboard/DashboardCreateAdHocModal.vue'
   import DashboardRefineRecommendationModal from '~/components/dashboard/DashboardRefineRecommendationModal.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
@@ -315,6 +318,7 @@
     getWorkoutBorderColorClass
   } from '~/utils/activity-types'
 
+  const { t } = useTranslate('dashboard')
   const integrationStore = useIntegrationStore()
   const recommendationStore = useRecommendationStore()
   const userStore = useUserStore()
@@ -439,18 +443,21 @@
   }
 
   function getButtonLabel() {
-    if (isSyncingForAnalysis.value) return 'Syncing data...'
-    if (userStore.generating) return 'Updating Profile...'
-    if (recommendationStore.generating) return 'Thinking...'
-    if (recommendationStore.todayRecommendation) return 'Refine'
-    return 'Ask Coach to Analyze Readiness'
+    if (isSyncingForAnalysis.value) return t.value('training_recommendation_syncing')
+    if (userStore.generating) return t.value('training_recommendation_updating_profile')
+    if (recommendationStore.generating) return t.value('training_recommendation_thinking')
+    if (recommendationStore.todayRecommendation)
+      return t.value('training_recommendation_refine_button')
+    return t.value('training_recommendation_analyze_readiness_button')
   }
 
   function getLoadingText() {
-    if (recommendationStore.generatingAdHoc) return 'Designing your workout...'
-    if (userStore.generating) return 'Updating your athlete profile...'
-    if (recommendationStore.generating) return 'Generating recommendation...'
-    return 'Loading...'
+    if (recommendationStore.generatingAdHoc)
+      return t.value('training_recommendation_loading_designing')
+    if (userStore.generating) return t.value('training_recommendation_loading_profile')
+    if (recommendationStore.generating)
+      return t.value('training_recommendation_loading_recommendation')
+    return t.value('training_recommendation_loading_generic')
   }
 
   function getRecommendationColor(rec: string): 'success' | 'warning' | 'error' | 'neutral' {
@@ -465,10 +472,10 @@
 
   function getRecommendationLabel(rec: string) {
     const labels: Record<string, string> = {
-      proceed: '✓ Proceed as Planned',
-      modify: '⟳ Modify Workout',
-      reduce_intensity: '↓ Reduce Intensity',
-      rest: '⏸ Rest Day'
+      proceed: t.value('training_recommendation_label_proceed'),
+      modify: t.value('training_recommendation_label_modify'),
+      reduce_intensity: t.value('training_recommendation_label_reduce'),
+      rest: t.value('training_recommendation_label_rest')
     }
     return labels[rec] || rec
   }

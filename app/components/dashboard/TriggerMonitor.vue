@@ -6,10 +6,10 @@
           <div class="flex items-center gap-2">
             <UIcon name="i-heroicons-cpu-chip" class="w-5 h-5 text-gray-900 dark:text-white" />
             <div class="flex items-center gap-1.5">
-              <h3 class="font-semibold text-sm">Background Tasks</h3>
+              <h3 class="font-semibold text-sm">{{ t('trigger_monitor_header') }}</h3>
               <UTooltip
                 :text="
-                  isConnected ? 'Real-time updates active' : 'Polling mode (WebSocket disconnected)'
+                  isConnected ? t('trigger_monitor_connected') : t('trigger_monitor_disconnected')
                 "
               >
                 <div
@@ -21,7 +21,7 @@
               </UTooltip>
             </div>
             <UBadge v-if="activeCount > 0" size="xs" color="primary" variant="subtle">
-              {{ activeCount }} running
+              {{ t('trigger_monitor_running', { count: activeCount }) }}
             </UBadge>
           </div>
           <div class="flex items-center gap-1">
@@ -46,7 +46,7 @@
 
       <div class="max-h-96 overflow-y-auto flex flex-col">
         <div v-if="displayedRuns.length === 0" class="p-4 text-center text-gray-500 text-sm">
-          No active tasks.
+          {{ t('trigger_monitor_empty') }}
         </div>
 
         <div v-else class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -97,7 +97,7 @@
                 v-if="isRunning(run.status)"
                 class="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <UTooltip text="Stop task">
+                <UTooltip :text="t('trigger_monitor_stop_task')">
                   <UButton
                     color="error"
                     variant="soft"
@@ -123,7 +123,7 @@
               v-if="run.error"
               class="mt-2 text-xs text-red-600 bg-red-50 dark:bg-red-900/10 p-2 rounded break-words"
             >
-              {{ run.error.message || 'Unknown error' }}
+              {{ run.error.message || t('trigger_monitor_unknown_error') }}
             </div>
           </div>
         </div>
@@ -133,7 +133,7 @@
           class="p-2 text-center border-t border-gray-100 dark:border-gray-800"
         >
           <UButton variant="ghost" size="xs" color="neutral" @click="loadMore">
-            Load previous runs
+            {{ t('trigger_monitor_load_more') }}
           </UButton>
         </div>
       </div>
@@ -142,10 +142,12 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { useNow } from '@vueuse/core'
   import type { TriggerRun } from '~/composables/useUserRuns'
   import { ACTIVE_STATUSES } from '~/composables/useUserRuns'
 
+  const { t } = useTranslate('dashboard')
   const STALE_ACTIVE_RUN_MS = 60 * 60 * 1000
 
   const props = defineProps<{

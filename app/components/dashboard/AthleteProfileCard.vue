@@ -8,7 +8,9 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-user-circle" class="w-5 h-5 text-primary-500" />
-          <h3 class="font-bold text-sm tracking-tight uppercase">Athlete Profile</h3>
+          <h3 class="font-bold text-sm tracking-tight uppercase">
+            {{ t('athlete_profile_header') }}
+          </h3>
         </div>
         <div class="flex items-center gap-1">
           <UButton
@@ -35,7 +37,7 @@
     <div v-if="userStore?.loading && !userStore?.profile" class="space-y-4 animate-pulse flex-grow">
       <div>
         <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2" />
-        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+        <div class="text-xs text-gray-400">{{ t('athlete_profile_loading') }}</div>
       </div>
       <div class="pt-2 border-t space-y-2">
         <div class="flex justify-between">
@@ -64,7 +66,7 @@
           <p
             class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
           >
-            Athlete's Profile
+            {{ t('athlete_profile_header') }}
           </p>
           <div class="flex items-center gap-2">
             <UTooltip v-if="profileStatus.isStale" :text="profileStatus.label">
@@ -78,7 +80,7 @@
               :loading="userStore?.generating"
               @click.prevent="userStore?.generateProfile"
             >
-              Refresh
+              {{ t('header_sync') }}
             </UButton>
             <UIcon
               name="i-heroicons-chevron-right"
@@ -424,7 +426,7 @@
             <p
               class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest"
             >
-              Latest Wellness
+              {{ t('athlete_profile_wellness') }}
             </p>
             <UiDataAttribution
               v-if="userStore.profile?.wellnessSource === 'garmin'"
@@ -690,9 +692,11 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { countries } from '~/utils/countries'
   import { formatHeight, LBS_TO_KG } from '~/utils/metrics'
 
+  const { t } = useTranslate('dashboard')
   const userStore = useUserStore()
   const integrationStore = useIntegrationStore()
   const { formatDate, formatDateUTC, getUserLocalDate } = useFormat()

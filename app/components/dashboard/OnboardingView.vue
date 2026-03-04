@@ -11,11 +11,10 @@
         />
       </div>
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-        Welcome to Coach Watts
+        {{ t('welcome_title') }}
       </h1>
       <p class="max-w-2xl mx-auto text-lg text-gray-600 dark:text-gray-300">
-        Your AI-powered endurance coach is ready. Connect your training apps to get personalized
-        insights, recovery analysis, and daily recommendations.
+        {{ t('welcome_description') }}
       </p>
     </div>
 
@@ -41,11 +40,10 @@
               </div>
               <div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                  Connect Intervals.icu
+                  {{ t('intervals_title') }}
                 </h3>
                 <p class="text-gray-600 dark:text-gray-400 mt-1">
-                  Required for your athlete profile, power data, and training calendar. This is the
-                  core of your AI coach.
+                  {{ t('intervals_description') }}
                 </p>
               </div>
             </div>
@@ -58,14 +56,14 @@
                 icon="i-heroicons-link"
                 @click="signIn('intervals')"
               >
-                Connect Now
+                {{ t('connect_now') }}
               </UButton>
               <a
                 href="https://intervals.icu"
                 target="_blank"
                 class="text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline decoration-dotted"
               >
-                What is Intervals.icu?
+                {{ t('what_is_intervals') }}
               </a>
             </div>
           </div>
@@ -96,10 +94,10 @@
               <h4 class="font-bold text-gray-900 dark:text-white">Strava</h4>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 h-10">
-              Import activities, segments, and social training data.
+              {{ t('strava_description') }}
             </p>
             <UTooltip
-              :text="isStravaDisabled ? 'Strava integration is temporarily unavailable' : ''"
+              :text="isStravaDisabled ? t('strava_disabled') : ''"
               :popper="{ placement: 'top' }"
             >
               <UButton
@@ -111,7 +109,7 @@
                 icon="i-heroicons-plus"
                 :disabled="isStravaDisabled"
               >
-                Connect
+                {{ t('connect_button') }}
               </UButton>
             </UTooltip>
           </UCard>
@@ -139,10 +137,10 @@
               <h4 class="font-bold text-gray-900 dark:text-white">WHOOP</h4>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 h-10">
-              Sync recovery scores, sleep performance, and HRV trends.
+              {{ t('whoop_description') }}
             </p>
             <UTooltip
-              :text="isWhoopDisabled ? 'WHOOP integration is temporarily unavailable' : ''"
+              :text="isWhoopDisabled ? t('whoop_disabled') : ''"
               :popper="{ placement: 'top' }"
             >
               <UButton
@@ -154,7 +152,7 @@
                 icon="i-heroicons-plus"
                 :disabled="isWhoopDisabled"
               >
-                {{ isWhoopDisabled ? 'Temporarily unavailable' : 'Connect' }}
+                {{ isWhoopDisabled ? t('whoop_temp_unavailable') : t('connect_button') }}
               </UButton>
             </UTooltip>
           </UCard>
@@ -177,7 +175,7 @@
               <h4 class="font-bold text-gray-900 dark:text-white">Yazio</h4>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 h-10">
-              Track nutrition, macros, and hydration for better fueling.
+              {{ t('yazio_description') }}
             </p>
             <UButton
               to="/connect-yazio"
@@ -187,7 +185,7 @@
               block
               icon="i-heroicons-plus"
             >
-              Connect
+              {{ t('connect_button') }}
             </UButton>
           </UCard>
 
@@ -205,7 +203,7 @@
               <h4 class="font-bold text-gray-900 dark:text-white">Fitbit</h4>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 h-10">
-              Pull nutrition history and daily food logs.
+              {{ t('fitbit_description') }}
             </p>
             <UButton
               to="/connect-fitbit"
@@ -215,7 +213,7 @@
               block
               icon="i-heroicons-plus"
             >
-              Connect
+              {{ t('connect_button') }}
             </UButton>
           </UCard>
 
@@ -237,7 +235,7 @@
               <h4 class="font-bold text-gray-900 dark:text-white">Wahoo</h4>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 h-10">
-              Sync workouts and plans with your ELEMNT device.
+              {{ t('wahoo_description') }}
             </p>
             <UButton
               to="/connect-wahoo"
@@ -247,7 +245,7 @@
               block
               icon="i-heroicons-plus"
             >
-              Connect
+              {{ t('connect_button') }}
             </UButton>
           </UCard>
         </div>
@@ -258,7 +256,7 @@
         <UCard class="bg-gray-50 dark:bg-gray-800/50 sticky top-4">
           <template #header>
             <h3 class="font-bold text-sm uppercase tracking-wider text-gray-500">
-              Getting Started
+              {{ t('getting_started_header') }}
             </h3>
           </template>
 
@@ -277,8 +275,10 @@
                 />
               </div>
               <div>
-                <p class="font-bold text-sm text-gray-900 dark:text-white">Account Ready</p>
-                <p class="text-xs text-gray-500">Welcome to the team!</p>
+                <p class="font-bold text-sm text-gray-900 dark:text-white">
+                  {{ t('step_account_ready_title') }}
+                </p>
+                <p class="text-xs text-gray-500">{{ t('step_account_ready_desc') }}</p>
               </div>
             </div>
 
@@ -290,8 +290,10 @@
                 <div class="w-2.5 h-2.5 rounded-full bg-primary-500" />
               </div>
               <div>
-                <p class="font-bold text-sm text-gray-900 dark:text-white">Connect Data</p>
-                <p class="text-xs text-gray-500">Link Intervals.icu to start</p>
+                <p class="font-bold text-sm text-gray-900 dark:text-white">
+                  {{ t('step_connect_data_title') }}
+                </p>
+                <p class="text-xs text-gray-500">{{ t('step_connect_data_desc') }}</p>
               </div>
             </div>
 
@@ -303,8 +305,10 @@
                 <span class="text-[10px] font-bold text-gray-500">3</span>
               </div>
               <div>
-                <p class="font-bold text-sm text-gray-900 dark:text-white">AI Analysis</p>
-                <p class="text-xs text-gray-500">Processing your history</p>
+                <p class="font-bold text-sm text-gray-900 dark:text-white">
+                  {{ t('step_analysis_title') }}
+                </p>
+                <p class="text-xs text-gray-500">{{ t('step_analysis_desc') }}</p>
               </div>
             </div>
 
@@ -316,8 +320,10 @@
                 <span class="text-[10px] font-bold text-gray-500">4</span>
               </div>
               <div>
-                <p class="font-bold text-sm text-gray-900 dark:text-white">First Report</p>
-                <p class="text-xs text-gray-500">Get your baseline insights</p>
+                <p class="font-bold text-sm text-gray-900 dark:text-white">
+                  {{ t('step_report_title') }}
+                </p>
+                <p class="text-xs text-gray-500">{{ t('step_report_desc') }}</p>
               </div>
             </div>
           </div>
@@ -328,6 +334,9 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('onboarding')
   const { signIn } = useAuth()
 
   const isStravaDisabled = computed(() => {
