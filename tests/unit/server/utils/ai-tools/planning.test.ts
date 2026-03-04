@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { planningTools } from '../../../../../server/utils/ai-tools/planning'
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
+import { trainingWeekRepository } from '../../../../../server/utils/repositories/trainingWeekRepository'
 import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
 import { metabolicService } from '../../../../../server/utils/services/metabolicService'
 
@@ -11,6 +12,13 @@ vi.mock('../../../../../server/utils/repositories/plannedWorkoutRepository', () 
     list: vi.fn(),
     create: vi.fn(),
     delete: vi.fn()
+  }
+}))
+
+vi.mock('../../../../../server/utils/repositories/trainingWeekRepository', () => ({
+  trainingWeekRepository: {
+    getById: vi.fn(),
+    update: vi.fn()
   }
 }))
 
@@ -86,6 +94,174 @@ describe('planningTools', () => {
       )
 
       expect(result).toEqual({ error: 'Planned workout not found' })
+    })
+  })
+
+  describe('update_training_week', () => {
+    it('requires approval', async () => {
+      await expect(tools.update_training_week.needsApproval?.()).resolves.toBe(true)
+    })
+
+    it('updates a training week directly by week id', async () => {
+      vi.mocked(trainingWeekRepository.getById).mockResolvedValue({
+        id: 'tw-1',
+        weekNumber: 2,
+        startDate: new Date('2026-03-09T00:00:00Z'),
+        endDate: new Date('2026-03-15T00:00:00Z'),
+        tssTarget: 420,
+        volumeTargetMinutes: 510,
+        focusKey: 'tempo',
+        focusLabel: 'Tempo Build',
+        isRecovery: false,
+        block: {
+          plan: {
+            id: 'plan-1',
+            userId,
+            status: 'ACTIVE',
+            name: 'Spring Build'
+          }
+        }
+      } as any)
+      vi.mocked(trainingWeekRepository.update).mockResolvedValue({
+        id: 'tw-1',
+        weekNumber: 2,
+        startDate: new Date('2026-03-09T00:00:00Z'),
+        endDate: new Date('2026-03-15T00:00:00Z'),
+        tssTarget: 480,
+        volumeTargetMinutes: 540,
+        focusKey: 'threshold',
+        focusLabel: 'Threshold Build',
+        isRecovery: false
+      } as any)
+
+      const result = await tools.update_training_week.execute(
+        {
+          week_id: 'tw-1',
+          tss_target: 480,
+          volume_target_minutes: 540,
+          focus_key: 'threshold',
+          focus_label: 'Threshold Build'
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(trainingWeekRepository.getById).toHaveBeenCalledWith('tw-1', {
+        include: {
+          block: {
+            include: {
+              plan: {
+                select: {
+                  id: true,
+                  userId: true,
+                  status: true,
+                  name: true
+                }
+              }
+            }
+          }
+        }
+      })
+      expect(trainingWeekRepository.update).toHaveBeenCalledWith(
+        'tw-1',
+        expect.objectContaining({
+          tssTarget: 480,
+          volumeTargetMinutes: 540,
+          focusKey: 'threshold',
+          focusLabel: 'Threshold Build'
+        })
+      )
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          week: expect.objectContaining({
+            id: 'tw-1',
+            tss_target: 480,
+            volume_target_minutes: 540,
+            plan_id: 'plan-1'
+          })
+        })
+      )
+    })
+
+    it('resolves the training week from a planned workout id', async () => {
+      vi.mocked(plannedWorkoutRepository.getById).mockResolvedValue({
+        id: 'pw-1',
+        title: 'Long Ride',
+        trainingWeekId: 'tw-2'
+      } as any)
+      vi.mocked(trainingWeekRepository.getById).mockResolvedValue({
+        id: 'tw-2',
+        block: {
+          plan: {
+            id: 'plan-2',
+            userId,
+            status: 'ACTIVE',
+            name: null
+          }
+        }
+      } as any)
+      vi.mocked(trainingWeekRepository.update).mockResolvedValue({
+        id: 'tw-2',
+        weekNumber: 3,
+        startDate: new Date('2026-03-16T00:00:00Z'),
+        endDate: new Date('2026-03-22T00:00:00Z'),
+        tssTarget: 360,
+        volumeTargetMinutes: 420,
+        focusKey: null,
+        focusLabel: null,
+        isRecovery: true
+      } as any)
+
+      const result = await tools.update_training_week.execute(
+        {
+          workout_id: 'pw-1',
+          is_recovery: true,
+          tss_target: 360
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(plannedWorkoutRepository.getById).toHaveBeenCalledWith('pw-1', userId, {
+        select: {
+          id: true,
+          title: true,
+          trainingWeekId: true
+        }
+      })
+      expect(trainingWeekRepository.update).toHaveBeenCalledWith(
+        'tw-2',
+        expect.objectContaining({
+          isRecovery: true,
+          tssTarget: 360
+        })
+      )
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          week: expect.objectContaining({
+            id: 'tw-2',
+            is_recovery: true,
+            tss_target: 360
+          })
+        })
+      )
+    })
+
+    it('rejects updates without fields', async () => {
+      const result = await tools.update_training_week.execute(
+        {
+          week_id: 'tw-1'
+        },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.stringContaining('No training week fields provided')
+        })
+      )
+      expect(trainingWeekRepository.update).not.toHaveBeenCalled()
     })
   })
 
@@ -479,9 +655,13 @@ describe('planningTools', () => {
         select: { id: true, date: true }
       })
       expect(plannedWorkoutRepository.delete).toHaveBeenCalledWith('pw-del', userId)
-      expect(metabolicService.calculateFuelingPlanForDate).toHaveBeenCalledWith(userId, workoutDate, {
-        persist: true
-      })
+      expect(metabolicService.calculateFuelingPlanForDate).toHaveBeenCalledWith(
+        userId,
+        workoutDate,
+        {
+          persist: true
+        }
+      )
       expect(result).toEqual({
         success: true,
         message: 'Planned workout deleted.'

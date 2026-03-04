@@ -3,7 +3,10 @@ import { z } from 'zod'
 import { prisma } from '../../utils/db'
 import { generateStructuredWorkoutTask } from '../../../trigger/generate-structured-workout'
 import { adjustStructuredWorkoutTask } from '../../../trigger/adjust-structured-workout'
-import { syncPlannedWorkoutToIntervals } from '../../utils/intervals-sync'
+import {
+  syncPlannedWorkoutToIntervals,
+  autoUploadPlannedWorkoutToIntervalsIfEnabled
+} from '../../utils/intervals-sync'
 import { WorkoutConverter } from '../../utils/workout-converter'
 import {
   cleanIntervalsDescription,
@@ -16,6 +19,8 @@ import { plannedWorkoutRepository } from '../repositories/plannedWorkoutReposito
 import { workoutRepository } from '../repositories/workoutRepository'
 import { sportSettingsRepository } from '../repositories/sportSettingsRepository'
 import { plannedWorkoutPublishRepository } from '../repositories/plannedWorkoutPublishRepository'
+import { trainingPlanRepository } from '../repositories/trainingPlanRepository'
+import { trainingWeekRepository } from '../repositories/trainingWeekRepository'
 import { metabolicService } from '../services/metabolicService'
 import type { AiSettings } from '../ai-user-settings'
 import {
@@ -250,6 +255,18 @@ const applyStructurePatchOperation = (structuredWorkout: any, operation: any) =>
   }
 }
 
+const trainingWeekLookupSchema = z
+  .object({
+    week_id: z.string().optional().describe('TrainingWeek ID to update'),
+    workout_id: z
+      .string()
+      .optional()
+      .describe('Planned workout ID whose linked training week should be updated')
+  })
+  .refine((value) => value.week_id || value.workout_id, {
+    message: 'Provide either week_id or workout_id'
+  })
+
 export const planningTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
   get_planned_workouts: tool({
     description: 'Get a list of planned workouts for a specific date range.',
@@ -376,6 +393,112 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           generated_at: formatUserDate(plan.createdAt, timezone),
           model_version: plan.modelVersion
         }
+      }
+    }
+  }),
+
+  update_training_week: tool({
+    description:
+      'Update a training week target or focus. Use this when the user wants to change weekly TSS, volume, recovery status, or focus for an existing plan week.',
+    inputSchema: trainingWeekLookupSchema.extend({
+      tss_target: z.number().int().min(0).optional(),
+      volume_target_minutes: z.number().int().min(0).optional(),
+      focus_key: z.string().optional(),
+      focus_label: z.string().optional(),
+      is_recovery: z.boolean().optional()
+    }),
+    needsApproval: async () => true,
+    execute: async ({
+      week_id,
+      workout_id,
+      tss_target,
+      volume_target_minutes,
+      focus_key,
+      focus_label,
+      is_recovery
+    }) => {
+      const updateData: Record<string, unknown> = {}
+
+      if (tss_target !== undefined) updateData.tssTarget = tss_target
+      if (volume_target_minutes !== undefined)
+        updateData.volumeTargetMinutes = volume_target_minutes
+      if (focus_key !== undefined) updateData.focusKey = focus_key
+      if (focus_label !== undefined) updateData.focusLabel = focus_label
+      if (is_recovery !== undefined) updateData.isRecovery = is_recovery
+
+      if (Object.keys(updateData).length === 0) {
+        return {
+          success: false,
+          error:
+            'No training week fields provided. Update at least one of tss_target, volume_target_minutes, focus_key, focus_label, or is_recovery.'
+        }
+      }
+
+      let targetWeekId = week_id
+
+      if (!targetWeekId && workout_id) {
+        const workout = (await plannedWorkoutRepository.getById(workout_id, userId, {
+          select: {
+            id: true,
+            title: true,
+            trainingWeekId: true
+          }
+        })) as any
+
+        if (!workout) {
+          return { success: false, error: 'Planned workout not found.' }
+        }
+
+        if (!workout.trainingWeekId) {
+          return {
+            success: false,
+            error: 'Planned workout is not linked to a training week.'
+          }
+        }
+
+        targetWeekId = workout.trainingWeekId
+      }
+
+      const week = (await trainingWeekRepository.getById(targetWeekId!, {
+        include: {
+          block: {
+            include: {
+              plan: {
+                select: {
+                  id: true,
+                  userId: true,
+                  status: true,
+                  name: true
+                }
+              }
+            }
+          }
+        }
+      })) as any
+
+      if (!week || week.block?.plan?.userId !== userId) {
+        return { success: false, error: 'Training week not found.' }
+      }
+
+      const updatedWeek = await trainingWeekRepository.update(targetWeekId!, updateData as any)
+
+      return {
+        success: true,
+        week: {
+          id: updatedWeek.id,
+          week_number: updatedWeek.weekNumber,
+          start_date: formatDateUTC(updatedWeek.startDate),
+          end_date: formatDateUTC(updatedWeek.endDate),
+          tss_target: updatedWeek.tssTarget,
+          volume_target_minutes: updatedWeek.volumeTargetMinutes,
+          focus_key: updatedWeek.focusKey,
+          focus_label: updatedWeek.focusLabel,
+          is_recovery: updatedWeek.isRecovery,
+          plan_id: week.block.plan.id,
+          plan_status: week.block.plan.status,
+          plan_name: week.block.plan.name || undefined
+        },
+        message: 'Training week updated successfully.'
       }
     }
   }),
@@ -582,7 +705,22 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         durationSec: args.duration_minutes * 60,
         tss: args.tss,
         externalId: `ai-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
+        syncStatus: 'LOCAL_ONLY',
         completionStatus: 'PENDING'
+      })
+
+      await autoUploadPlannedWorkoutToIntervalsIfEnabled({
+        id: workout.id,
+        userId,
+        externalId: workout.externalId,
+        date: workout.date,
+        startTime: workout.startTime,
+        title: workout.title,
+        description: workout.description,
+        type: workout.type,
+        durationSec: workout.durationSec,
+        tss: workout.tss,
+        managedBy: workout.managedBy
       })
 
       // Trigger structured workout generation

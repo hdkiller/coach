@@ -70,6 +70,7 @@ describe('chatContextService', () => {
     const result = await buildAthleteContext(userId)
 
     expect(result.systemInstruction).toContain('Address the athlete as **Johnny**')
+    expect(result.systemInstruction).toContain('**No Autonomous Follow-Up Claims**')
     expect(result.context).toContain('**Nickname**: Johnny')
   })
 

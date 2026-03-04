@@ -194,7 +194,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
 
   analyze_activity: tool({
     description:
-      'Force a deep AI analysis of a specific completed activity. Use this when the user asks for a more detailed breakdown or if the initial analysis was missing details.',
+      'Force a deep AI analysis of a specific completed activity. Use this when the user asks for a more detailed breakdown or if the initial analysis was missing details. This runs asynchronously and does not provide autonomous completion updates; do not claim you will proactively notify the user when it finishes.',
     inputSchema: z.object({
       workout_id: z.string().describe('The ID of the workout to analyze')
     }),
@@ -213,7 +213,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         )
         return {
           success: true,
-          message: 'Workout re-analysis has been prepared and is ready to be queued.'
+          message: 'Workout re-analysis has been queued for processing.'
         }
       } catch (e: any) {
         return { error: `Failed to trigger analysis: ${e.message}` }
