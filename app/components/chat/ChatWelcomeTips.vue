@@ -5,10 +5,9 @@
     <div class="mb-6 p-4 rounded-full bg-primary-50 dark:bg-primary-900/20">
       <UIcon name="i-heroicons-sparkles" class="w-10 h-10 text-primary-500" />
     </div>
-    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Welcome to your AI Coach!</h3>
+    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ t('welcome_title') }}</h3>
     <p class="max-w-sm mb-8 text-sm">
-      I'm here to help you analyze your training, optimize your nutrition, and reach your endurance
-      goals.
+      {{ t('welcome_description') }}
     </p>
 
     <div class="grid gap-4 max-w-sm w-full text-left">
@@ -19,13 +18,10 @@
           <UIcon name="i-heroicons-chat-bubble-left-right" class="w-5 h-5 text-primary-500" />
         </div>
         <div>
-          <span class="font-bold text-gray-900 dark:text-white block text-sm mb-0.5"
-            >Start Fresh</span
-          >
-          <span class="text-xs leading-relaxed"
-            >Open new chats frequently. Keeping conversations focused helps me give better
-            advice.</span
-          >
+          <span class="font-bold text-gray-900 dark:text-white block text-sm mb-0.5">{{
+            t('welcome_tip_fresh_title')
+          }}</span>
+          <span class="text-xs leading-relaxed">{{ t('welcome_tip_fresh_desc') }}</span>
         </div>
       </div>
 
@@ -36,13 +32,10 @@
           <UIcon name="i-heroicons-bolt" class="w-5 h-5 text-primary-500" />
         </div>
         <div>
-          <span class="font-bold text-gray-900 dark:text-white block text-sm mb-0.5"
-            >Be Specific</span
-          >
-          <span class="text-xs leading-relaxed"
-            >Ask about specific workouts, health metrics, or race goals for the most accurate
-            analysis.</span
-          >
+          <span class="font-bold text-gray-900 dark:text-white block text-sm mb-0.5">{{
+            t('welcome_tip_specific_title')
+          }}</span>
+          <span class="text-xs leading-relaxed">{{ t('welcome_tip_specific_desc') }}</span>
         </div>
       </div>
 
@@ -51,11 +44,13 @@
         class="mt-4 flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 text-orange-600 dark:text-orange-400"
       >
         <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 shrink-0" />
-        <span class="text-[10px] leading-tight text-left"
-          >Coach Watts is an AI assistant and may make mistakes. Always listen to your body and
-          verify critical training advice.</span
-        >
+        <span class="text-[10px] leading-tight text-left">{{ t('welcome_disclaimer') }}</span>
       </div>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+  const { t } = useTranslate('chat')
+</script>

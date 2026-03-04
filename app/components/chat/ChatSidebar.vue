@@ -1,5 +1,8 @@
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import ChatRoomList from './ChatRoomList.vue'
+
+  const { t } = useTranslate('chat')
 
   defineProps<{
     rooms: any[]
@@ -19,9 +22,9 @@
   <!-- Mobile & Desktop Drawer (Always collapsed by default) -->
   <USlideover
     :open="isOpen"
-    title="Chat History"
+    :title="t('sidebar_header')"
     side="left"
-    description="Access and manage your previous AI coach conversations and training advice."
+    :description="t('sidebar_description')"
     @update:open="emit('update:isOpen', $event)"
   >
     <template #content>

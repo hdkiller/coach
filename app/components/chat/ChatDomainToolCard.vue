@@ -46,7 +46,8 @@
     'search_planned_workouts',
     'get_current_plan',
     'delete_planned_workout',
-    'modify_training_plan_structure'
+    'modify_training_plan_structure',
+    'update_training_week'
   ])
 
   const recommendationToolNames = new Set([
@@ -257,6 +258,8 @@
         return `Found ${items.value.length} result${items.value.length === 1 ? '' : 's'}.`
       case 'get_current_plan':
         return payload.value?.plan?.summary || 'Current plan loaded.'
+      case 'update_training_week':
+        return payload.value?.message || 'Training week updated.'
       case 'recommend_workout':
         return payload.value?.recommendation?.description || 'Recommendation ready.'
       case 'list_pending_recommendations':
@@ -331,6 +334,13 @@
           { label: 'Days', value: response.plan?.days_planned ?? response.plan?.days?.length ?? 0 },
           { label: 'Workouts', value: response.plan?.workout_count ?? 0 },
           { label: 'TSS', value: response.plan?.total_tss ?? 0 }
+        )
+        break
+      case 'update_training_week':
+        values.push(
+          { label: 'Week', value: response.week?.week_number ?? '--' },
+          { label: 'TSS', value: response.week?.tss_target ?? '--' },
+          { label: 'Volume', value: response.week?.volume_target_minutes ?? '--' }
         )
         break
       case 'recommend_workout':
@@ -497,6 +507,24 @@
           description: firstTitles || day.notes || day.summary
         }
       })
+    }
+
+    if (props.toolName === 'update_training_week' && response.week) {
+      return [
+        {
+          id: response.week.id,
+          title: response.week.plan_name || `Week ${response.week.week_number || ''}`.trim(),
+          subtitle: [response.week.start_date, response.week.end_date].filter(Boolean).join(' • '),
+          badges: [
+            formatBadgeValue('TSS', response.week.tss_target),
+            response.week.volume_target_minutes
+              ? `${response.week.volume_target_minutes} min`
+              : undefined,
+            response.week.is_recovery ? 'Recovery' : undefined
+          ].filter(Boolean) as string[],
+          description: response.week.focus_label || response.week.focus_key || undefined
+        }
+      ]
     }
 
     if (props.toolName === 'recommend_workout') {

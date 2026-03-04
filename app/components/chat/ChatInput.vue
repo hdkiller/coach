@@ -1,5 +1,8 @@
 <script setup lang="ts">
   import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref, watch } from 'vue'
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('chat')
 
   type ChatAttachment = {
     id: string
@@ -68,9 +71,7 @@
   )
   const showInlineMic = computed(() => !hasTextContent.value && attachments.value.length === 0)
   const placeholderText = computed(() =>
-    isLikelyMobile()
-      ? 'Ask Coach Watts or add a photo...'
-      : 'Ask Coach Watts, add a meal photo, or dictate a note...'
+    isLikelyMobile() ? t.value('input_placeholder_mobile') : t.value('input_placeholder_desktop')
   )
   const canUseDesktopWebcam = computed(() => {
     if (!import.meta.client) return false
@@ -81,13 +82,13 @@
       ...(canUseDesktopWebcam.value
         ? [
             {
-              label: 'Take photo',
+              label: t.value('input_action_take_photo'),
               icon: 'i-heroicons-camera',
               disabled: composerDisabled.value,
               onSelect: () => openDesktopWebcam('photo')
             },
             {
-              label: 'Record video',
+              label: t.value('input_action_record_video'),
               icon: 'i-heroicons-film',
               disabled: composerDisabled.value,
               onSelect: () => openDesktopWebcam('video')
@@ -95,7 +96,9 @@
           ]
         : []),
       {
-        label: canUseDesktopWebcam.value ? 'Add photos & files' : 'Take photo',
+        label: canUseDesktopWebcam.value
+          ? t.value('input_action_add_files')
+          : t.value('input_action_take_photo'),
         icon: canUseDesktopWebcam.value ? 'i-heroicons-folder-open' : 'i-heroicons-camera',
         disabled: composerDisabled.value,
         onSelect: () => (canUseDesktopWebcam.value ? openLibrary() : openCamera())
@@ -104,13 +107,13 @@
         ? []
         : [
             {
-              label: 'Record video',
+              label: t.value('input_action_record_video'),
               icon: 'i-heroicons-film',
               disabled: composerDisabled.value,
               onSelect: () => openMobileVideo()
             },
             {
-              label: 'Add photos & files',
+              label: t.value('input_action_add_files'),
               icon: 'i-heroicons-folder-open',
               disabled: composerDisabled.value,
               onSelect: () => openLibrary()
@@ -265,8 +268,8 @@
     )
     if (supportedFiles.length !== files.length) {
       toast.add({
-        title: 'Unsupported file',
-        description: 'Only image and video uploads are supported in chat.',
+        title: t.value('input_error_unsupported_file'),
+        description: t.value('input_error_unsupported_file_desc'),
         color: 'error'
       })
     }
@@ -356,8 +359,8 @@
   const openDesktopWebcam = async (mode: 'photo' | 'video') => {
     if (!import.meta.client || !navigator.mediaDevices?.getUserMedia) {
       toast.add({
-        title: 'Webcam unavailable',
-        description: 'This browser does not support webcam capture.',
+        title: t.value('input_error_webcam_unavailable'),
+        description: t.value('input_error_webcam_unavailable_desc'),
         color: 'error'
       })
       return
@@ -388,8 +391,8 @@
       stopWebcam()
       isWebcamModalOpen.value = false
       toast.add({
-        title: 'Webcam access denied',
-        description: 'Allow camera access to take a desktop photo.',
+        title: t.value('input_error_webcam_denied'),
+        description: t.value('input_error_webcam_denied_desc'),
         color: 'error'
       })
     } finally {
@@ -424,7 +427,7 @@
       isWebcamModalOpen.value = false
     } catch (error: any) {
       toast.add({
-        title: 'Capture failed',
+        title: t.value('input_error_capture_failed'),
         description: error?.message || 'Could not capture webcam photo.',
         color: 'error'
       })
@@ -442,8 +445,8 @@
     if (!import.meta.client || !webcamStream) return
     if (typeof MediaRecorder === 'undefined') {
       toast.add({
-        title: 'Video recording unavailable',
-        description: 'This browser does not support video recording.',
+        title: t.value('input_error_video_unavailable'),
+        description: t.value('input_error_video_unavailable_desc'),
         color: 'error'
       })
       return
@@ -554,8 +557,8 @@
     if (!import.meta.client || props.disabled) return
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       toast.add({
-        title: 'Dictation unavailable',
-        description: 'This browser does not support microphone recording.',
+        title: t.value('input_error_dictation_unavailable'),
+        description: t.value('input_error_dictation_unavailable_desc'),
         color: 'error'
       })
       return
@@ -619,8 +622,8 @@
     } catch (error) {
       cleanupRecorder()
       toast.add({
-        title: 'Microphone access denied',
-        description: 'Allow microphone access to use dictation.',
+        title: t.value('input_error_mic_denied'),
+        description: t.value('input_error_mic_denied_desc'),
         color: 'error'
       })
     }
@@ -652,12 +655,14 @@
   )
 
   const webcamModalTitle = computed(() =>
-    webcamMode.value === 'video' ? 'Record Video' : 'Take Photo'
+    webcamMode.value === 'video'
+      ? t.value('modal_webcam_video_title')
+      : t.value('modal_webcam_photo_title')
   )
   const webcamModalDescription = computed(() =>
     webcamMode.value === 'video'
-      ? 'Record a short webcam video up to 10 seconds and add it to the chat.'
-      : 'Capture a photo from your desktop webcam and add it to the chat.'
+      ? t.value('modal_webcam_video_desc')
+      : t.value('modal_webcam_photo_desc')
   )
 
   const handleSubmit = (event?: Event) => {
@@ -787,11 +792,11 @@
       </div>
 
       <div class="min-h-5 flex items-center text-xs text-gray-500 dark:text-gray-400">
-        <span v-if="uploadingCount > 0">Uploading attachment...</span>
-        <span v-else-if="isRecording">Recording voice note...</span>
-        <span v-else-if="isTranscribing">Gemini is transcribing your voice note...</span>
+        <span v-if="uploadingCount > 0">{{ t('input_uploading_attachment') }}</span>
+        <span v-else-if="isRecording">{{ t('input_recording_voice') }}</span>
+        <span v-else-if="isTranscribing">{{ t('input_transcribing') }}</span>
         <span v-else-if="isRecordingWebcamVideo">
-          Recording webcam video {{ webcamRecordingLabel }}
+          {{ t('input_recording_webcam', { time: webcamRecordingLabel }) }}
         </span>
       </div>
 
@@ -873,7 +878,7 @@
         </div>
 
         <p v-if="isOpeningWebcam" class="text-sm text-gray-500 dark:text-gray-400">
-          Starting webcam...
+          {{ t('modal_webcam_starting') }}
         </p>
         <div
           v-if="webcamMode === 'video'"
@@ -892,7 +897,7 @@
         <UButton
           color="neutral"
           variant="ghost"
-          label="Cancel"
+          :label="t('banner_exit')"
           :disabled="isCapturingWebcam || isRecordingWebcamVideo"
           @click="isWebcamModalOpen = false"
         />
@@ -901,7 +906,7 @@
           color="primary"
           variant="solid"
           icon="i-heroicons-camera"
-          label="Capture"
+          :label="t('modal_webcam_capture')"
           :loading="isCapturingWebcam || isOpeningWebcam"
           :disabled="isOpeningWebcam"
           @click="captureDesktopPhoto"
@@ -911,7 +916,7 @@
           color="primary"
           variant="solid"
           icon="i-heroicons-video-camera"
-          label="Start Recording"
+          :label="t('modal_webcam_start_recording')"
           :loading="isOpeningWebcam"
           :disabled="isOpeningWebcam"
           @click="startDesktopVideoRecording"
@@ -921,7 +926,7 @@
           color="error"
           variant="solid"
           icon="i-heroicons-stop-circle"
-          label="Stop Recording"
+          :label="t('modal_webcam_stop_recording')"
           @click="stopDesktopVideoRecording"
         />
       </div>

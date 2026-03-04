@@ -1,5 +1,8 @@
 <script setup lang="ts">
   import { computed } from 'vue'
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('chat')
 
   const props = defineProps<{
     rooms: any[]
@@ -77,8 +80,8 @@
     } catch (error) {
       console.error('Failed to generate share link:', error)
       toast.add({
-        title: 'Error',
-        description: 'Failed to generate share link. Please try again.',
+        title: t.value('common_error_title'), // Using common if available or fallback
+        description: t.value('input_error_capture_failed'), // Reusing similar key or just 'Error'
         color: 'error'
       })
       isShareModalOpen.value = false
@@ -99,8 +102,8 @@
   async function summarizeRoom(roomId: string) {
     try {
       toast.add({
-        title: 'Summarizing Chat',
-        description: 'Generating a summary to optimize memory... This happens in the background.',
+        title: t.value('toast_summarizing_title'),
+        description: t.value('toast_summarizing_desc'),
         icon: 'i-heroicons-arrow-path',
         color: 'neutral'
       })
@@ -110,9 +113,8 @@
       })
 
       toast.add({
-        title: 'Summarization Started',
-        description:
-          'The AI is now condensing this conversation. The summary will be available in your next message.',
+        title: t.value('toast_summarization_started_title'),
+        description: t.value('toast_summarization_started_desc'),
         icon: 'i-heroicons-check-circle',
         color: 'success'
       })
@@ -129,8 +131,8 @@
   async function generateRoomNameAi(roomId: string) {
     try {
       toast.add({
-        title: 'Generating Name',
-        description: 'Analyzing conversation to suggest a new title...',
+        title: t.value('toast_generating_name_title'),
+        description: t.value('toast_generating_name_desc'),
         icon: 'i-heroicons-sparkles',
         color: 'neutral'
       })
@@ -141,8 +143,8 @@
       })
 
       toast.add({
-        title: 'Naming Task Started',
-        description: 'The AI is generating a title in the background. It will update shortly.',
+        title: t.value('toast_naming_started_title'),
+        description: t.value('toast_naming_started_desc'),
         icon: 'i-heroicons-check-circle',
         color: 'success'
       })
@@ -159,40 +161,44 @@
   const getDropdownItems = (room: any) => [
     [
       {
-        label: 'Rename Chat',
+        label: t.value('sidebar_rename_chat'),
         icon: 'i-heroicons-pencil-square',
         onSelect: () => confirmRename(room)
       },
       {
-        label: 'Generate AI Name',
+        label: t.value('sidebar_generate_ai_name'),
         icon: 'i-heroicons-sparkles',
         onSelect: () => generateRoomNameAi(room.roomId)
       },
       {
-        label: 'Summarize & Optimize',
+        label: t.value('sidebar_summarize_optimize'),
         icon: 'i-heroicons-adjustments-horizontal',
         onSelect: () => summarizeRoom(room.roomId)
       },
       {
-        label: 'Share Chat',
+        label: t.value('sidebar_share_chat'),
         icon: 'i-heroicons-share',
         onSelect: () => createPublicChat(room)
       },
       {
-        label: 'Copy Room ID',
+        label: t.value('sidebar_copy_room_id'),
         icon: 'i-heroicons-clipboard',
         onSelect: () =>
-          copyToClipboard(room.roomId, 'Room ID Copied', 'The chat room ID has been copied.')
+          copyToClipboard(
+            room.roomId,
+            t.value('sidebar_room_id_copied'),
+            t.value('sidebar_room_id_copied_desc')
+          )
       }
     ],
     [
       {
-        label: 'Report Issue',
+        label: t.value('sidebar_report_issue'),
         icon: 'i-heroicons-flag',
         onSelect: () => confirmReport(room.roomId)
       },
       {
-        label: 'Delete Room',
+        label: t.value('sidebar_delete_room'),
         icon: 'i-heroicons-trash',
         color: 'error' as const,
         onSelect: () => confirmDelete(room.roomId)
@@ -270,20 +276,22 @@
       </template>
     </UNavigationMenu>
 
-    <div v-else class="text-left py-8 text-sm text-gray-500 px-4">No chat history yet</div>
+    <div v-else class="text-left py-8 text-sm text-gray-500 px-4">
+      {{ t('sidebar_empty_history') }}
+    </div>
 
     <!-- Rename Modal -->
     <UModal
       v-model:open="isRenameModalOpen"
-      title="Rename Chat"
-      description="Provide a new descriptive name for this conversation."
+      :title="t('modal_rename_title')"
+      :description="t('modal_rename_desc')"
     >
       <template #body>
         <div class="space-y-4">
-          <UFormField label="New Name">
+          <UFormField :label="t('sidebar_rename_chat')">
             <UInput
               v-model="newRoomName"
-              placeholder="Enter new chat name"
+              :placeholder="t('modal_rename_placeholder')"
               autofocus
               @keyup.enter="handleRename"
             />
@@ -293,9 +301,11 @@
       <template #footer>
         <div class="flex justify-end gap-3">
           <UButton color="neutral" variant="ghost" @click="isRenameModalOpen = false">
-            Cancel
+            {{ t('banner_exit') }}
           </UButton>
-          <UButton :disabled="!newRoomName.trim()" @click="handleRename"> Save Changes </UButton>
+          <UButton :disabled="!newRoomName.trim()" @click="handleRename">
+            {{ t('modal_rename_save') }}
+          </UButton>
         </div>
       </template>
     </UModal>
@@ -303,8 +313,8 @@
     <!-- Share Modal -->
     <UModal
       v-model:open="isShareModalOpen"
-      :title="`Share Chat: ${sharedRoomName}`"
-      description="Anyone with this link can view this chat history. The link will expire in 30 days."
+      :title="t('modal_share_title', { name: sharedRoomName })"
+      :description="t('modal_share_desc')"
     >
       <template #body>
         <div v-if="generatingShareLink" class="flex items-center justify-center py-8">
@@ -319,18 +329,18 @@
               variant="outline"
               @click="copyToClipboard(shareLink)"
             >
-              Copy
+              {{ t('modal_share_copy') }}
             </UButton>
           </div>
           <p class="text-xs text-gray-500">
-            This link provides read-only access to this specific chat history.
+            {{ t('modal_share_note') }}
           </p>
         </div>
       </template>
       <template #footer>
         <div class="flex justify-end">
           <UButton
-            label="Close"
+            :label="t('banner_exit')"
             color="neutral"
             variant="ghost"
             @click="isShareModalOpen = false"
@@ -342,8 +352,8 @@
     <!-- Report Issue Modal -->
     <UModal
       v-model:open="isReportModalOpen"
-      title="Report Issue"
-      description="Help us improve the chat experience."
+      :title="t('sidebar_report_issue')"
+      :description="t('modal_rename_desc')"
     >
       <template #body>
         <AiFeedbackForm
@@ -357,21 +367,20 @@
     <!-- Delete Confirmation Modal -->
     <UModal
       v-model:open="isDeleteModalOpen"
-      title="Delete Chat Room"
-      description="Confirm if you want to permanently delete this chat room and its message history."
+      :title="t('modal_delete_title')"
+      :description="t('modal_delete_desc')"
     >
       <template #body>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Are you sure you want to delete this chat room? This action will remove it from your chat
-          list.
+          {{ t('modal_delete_confirm_text') }}
         </p>
       </template>
       <template #footer>
         <div class="flex justify-end gap-3">
           <UButton color="neutral" variant="ghost" @click="isDeleteModalOpen = false">
-            Cancel
+            {{ t('banner_exit') }}
           </UButton>
-          <UButton color="error" @click="handleDelete"> Delete Room </UButton>
+          <UButton color="error" @click="handleDelete"> {{ t('sidebar_delete_room') }} </UButton>
         </div>
       </template>
     </UModal>

@@ -8,11 +8,14 @@
     watch,
     nextTick
   } from 'vue'
+  import { useTranslate } from '@tolgee/vue'
   import { Chat } from '@ai-sdk/vue'
   import { DefaultChatTransport } from 'ai'
   import ChatSidebar from '~/components/chat/ChatSidebar.vue'
   import ChatMessageList from '~/components/chat/ChatMessageList.vue'
   import ChatInput from '~/components/chat/ChatInput.vue'
+
+  const { t } = useTranslate('chat')
 
   const DashboardTriggerMonitorButton = defineAsyncComponent(
     () => import('~/components/dashboard/TriggerMonitorButton.vue')
@@ -117,27 +120,6 @@
   const chatMessages = computed(() => chat.messages)
   const chatStatus = computed(() => chat.status)
 
-  // Reactive watcher for debugging parts during streaming
-  watch(
-    () => {
-      const msgs = chat.messages
-      if (msgs.length === 0) return undefined
-      return msgs[msgs.length - 1]?.parts
-    },
-    (parts) => {
-      if (!parts) return
-      /*
-  const lastMsg = chat.messages[chat.messages.length - 1]
-  if (lastMsg) {
-    console.log(
-      `[Chat] Watcher: Msg ${lastMsg.id} (${lastMsg.role}) parts updated. Count: ${parts.length}`
-    )
-  }
-  */
-    },
-    { deep: true }
-  )
-
   // Form submission handler
   const onSubmit = (
     payload?:
@@ -166,20 +148,9 @@
         ? payload.attachments || []
         : []
 
-    // console.log('[Chat Frontend DEBUG] onSubmit called')
-    // console.log('[Chat Frontend DEBUG] submittedText:', submittedText)
-    // console.log('[Chat Frontend DEBUG] currentRoomId:', currentRoomId.value)
-
     if ((!submittedText?.trim() && attachments.length === 0) || !currentRoomId.value) {
-      // console.warn('[Chat Frontend DEBUG] Aborting submit: input empty or no roomId')
       return
     }
-
-    // const messagePayload = {
-    //   role: 'user',
-    //   content: submittedText
-    // }
-    // console.log('[Chat Frontend DEBUG] Calling chat.sendMessage with:', messagePayload)
 
     // Track session start if it's the first message in this room
     if (chat.messages.length === 0 && currentRoomId.value) {
@@ -572,7 +543,7 @@
   const isCurrentRoomReadOnly = computed(() => currentRoom.value?.isReadOnly || false)
 
   const currentRoomName = computed(() => {
-    return currentRoom.value?.roomName || 'Coach Watts'
+    return currentRoom.value?.roomName || t.value('chat_title')
   })
 
   // Share current chat room
@@ -615,8 +586,8 @@
 
     navigator.clipboard.writeText(shareLink.value)
     toast.add({
-      title: 'Copied',
-      description: 'Share link copied to clipboard.',
+      title: t.value('toast_copied'),
+      description: t.value('toast_copied_desc'),
       color: 'success'
     })
   }
@@ -639,7 +610,6 @@
     :style="{ height: chatViewportHeight }"
     :ui="{ body: 'p-0 min-h-0 overflow-hidden' }"
   >
-    <!-- ... header remains same ... -->
     <template #header>
       <div class="sticky top-0 z-20">
         <UDashboardNavbar :title="currentRoomName">
@@ -667,7 +637,7 @@
               :disabled="!currentRoomId"
               @click="isShareModalOpen = true"
             >
-              <span class="hidden sm:inline">Share</span>
+              <span class="hidden sm:inline">{{ t('nav_share') }}</span>
             </UButton>
             <UButton
               to="/settings/ai"
@@ -678,7 +648,7 @@
               class="font-bold"
               aria-label="AI Settings"
             >
-              <span class="hidden sm:inline">Settings</span>
+              <span class="hidden sm:inline">{{ t('nav_settings') }}</span>
             </UButton>
             <UButton
               color="primary"
@@ -689,8 +659,8 @@
               class="font-bold"
               @click="createNewChat"
             >
-              <span class="hidden sm:inline">New Chat</span>
-              <span class="sm:hidden">Chat</span>
+              <span class="hidden sm:inline">{{ t('nav_new_chat') }}</span>
+              <span class="sm:hidden">{{ t('controls_chat') }}</span>
             </UButton>
           </template>
         </UDashboardNavbar>
@@ -721,15 +691,15 @@
               color="warning"
               variant="subtle"
               icon="i-heroicons-information-circle"
-              title="Legacy Chat"
-              description="This chat was created before the AI engine update and is now read-only. Please start a new chat to continue the conversation."
+              :title="t('legacy_banner_title')"
+              :description="t('legacy_banner_desc')"
             >
               <template #actions>
                 <UButton
                   color="warning"
                   variant="outline"
                   size="xs"
-                  label="New Chat"
+                  :label="t('legacy_banner_action')"
                   @click="createNewChat"
                 />
               </template>
@@ -769,8 +739,8 @@
 
   <UModal
     v-model:open="isShareModalOpen"
-    :title="`Share Chat: ${currentRoomName}`"
-    description="Create a read-only link to this chat and share it directly."
+    :title="t('modal_share_title', { name: currentRoomName })"
+    :description="t('modal_share_history_desc')"
   >
     <template #body>
       <ShareAccessPanel
@@ -785,7 +755,12 @@
       />
     </template>
     <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
+      <UButton
+        :label="t('banner_exit')"
+        color="neutral"
+        variant="ghost"
+        @click="isShareModalOpen = false"
+      />
     </template>
   </UModal>
 </template>
