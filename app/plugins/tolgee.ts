@@ -74,6 +74,7 @@ import deSupport from '../i18n/de/support.json'
 import deStories from '../i18n/de/stories.json'
 import deChat from '../i18n/de/chat.json'
 import deFitness from '../i18n/de/fitness.json'
+import deSettings from '../i18n/de/settings.json'
 import deLegend from '../i18n/de/legend.json'
 import deOnboarding from '../i18n/de/onboarding.json'
 import dePerformance from '../i18n/de/performance.json'
@@ -98,6 +99,7 @@ import frPricing from '../i18n/fr/pricing.json'
 import frAuth from '../i18n/fr/auth.json'
 import frChat from '../i18n/fr/chat.json'
 import frFitness from '../i18n/fr/fitness.json'
+import frSettings from '../i18n/fr/settings.json'
 import frLegend from '../i18n/fr/legend.json'
 import frOnboarding from '../i18n/fr/onboarding.json'
 import frPerformance from '../i18n/fr/performance.json'
@@ -124,6 +126,8 @@ import itPricing from '../i18n/it/pricing.json'
 import itAuth from '../i18n/it/auth.json'
 import itChat from '../i18n/it/chat.json'
 import itFitness from '../i18n/it/fitness.json'
+import itSettings from '../i18n/it/settings.json'
+import itWorkoutTooltips from '../i18n/it/workout-tooltips.json'
 import itLegend from '../i18n/it/legend.json'
 import itOnboarding from '../i18n/it/onboarding.json'
 import itPerformance from '../i18n/it/performance.json'
@@ -149,6 +153,8 @@ import nlPricing from '../i18n/nl/pricing.json'
 import nlAuth from '../i18n/nl/auth.json'
 import nlChat from '../i18n/nl/chat.json'
 import nlFitness from '../i18n/nl/fitness.json'
+import nlSettings from '../i18n/nl/settings.json'
+import nlWorkoutTooltips from '../i18n/nl/workout-tooltips.json'
 import nlLegend from '../i18n/nl/legend.json'
 import nlOnboarding from '../i18n/nl/onboarding.json'
 import nlPerformance from '../i18n/nl/performance.json'
@@ -297,6 +303,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'de:hu-bento': deHuBento,
       'de:test-dynamic': deTestDynamic,
       'de:works-with': deWorksWith,
+      'de:settings': deSettings,
       'de:legend': deLegend,
       'de:onboarding': deOnboarding,
       'de:performance': dePerformance,
@@ -323,6 +330,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'fr:support': frSupport,
       'fr:test-dynamic': frTestDynamic,
       'fr:works-with': frWorksWith,
+      'fr:settings': frSettings,
       'fr:legend': frLegend,
       'fr:onboarding': frOnboarding,
       'fr:performance': frPerformance,
@@ -349,6 +357,8 @@ export default defineNuxtPlugin((nuxtApp) => {
       'it:test-dynamic': itTestDynamic,
       'it:works-with': itWorksWith,
       'it:fitness': itFitness,
+      'it:settings': itSettings,
+      'it:workout-tooltips': itWorkoutTooltips,
       'it:legend': itLegend,
       'it:onboarding': itOnboarding,
       'it:performance': itPerformance,
@@ -374,6 +384,8 @@ export default defineNuxtPlugin((nuxtApp) => {
       'nl:test-dynamic': nlTestDynamic,
       'nl:works-with': nlWorksWith,
       'nl:fitness': nlFitness,
+      'nl:settings': nlSettings,
+      'nl:workout-tooltips': nlWorkoutTooltips,
       'nl:legend': nlLegend,
       'nl:onboarding': nlOnboarding,
       'nl:performance': nlPerformance

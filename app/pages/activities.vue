@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="activities">
     <template #header>
-      <UDashboardNavbar :title="t('title')">
+      <UDashboardNavbar :title="t('activities_title')">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -19,7 +19,7 @@
               size="sm"
               class="hidden sm:flex font-black uppercase tracking-widest text-[10px]"
             >
-              <span class="hidden sm:inline">{{ t('header.upload') }}</span>
+              <span class="hidden sm:inline">{{ t('header_upload') }}</span>
             </UButton>
 
             <!-- Secondary Actions Dropdown -->
@@ -41,7 +41,7 @@
               :loading="status === 'pending' || integrationStore.syncingData"
               @click="handleRefresh"
             >
-              <span class="hidden sm:inline">{{ t('header.refresh') }}</span>
+              <span class="hidden sm:inline">{{ t('header_refresh') }}</span>
             </UButton>
 
             <UButton
@@ -52,8 +52,8 @@
               size="sm"
               class="font-black uppercase tracking-widest text-[10px]"
             >
-              <span class="hidden sm:inline">{{ t('header.new_chat') }}</span>
-              <span class="sm:hidden">{{ t('header.chat') }}</span>
+              <span class="hidden sm:inline">{{ t('header_new_chat') }}</span>
+              <span class="sm:hidden">{{ t('header_chat') }}</span>
             </UButton>
           </div>
         </template>
@@ -127,7 +127,7 @@
               v-if="viewMode === 'list'"
               v-model="tableSearch"
               icon="i-heroicons-magnifying-glass"
-              :placeholder="t('controls.filter_placeholder')"
+              :placeholder="t('controls_filter_placeholder')"
               size="sm"
               class="w-48"
               :ui="{ base: 'font-bold uppercase tracking-widest text-[10px]' }"
@@ -140,7 +140,7 @@
               :disabled="columnMenuItems.length === 0"
             >
               <UButton
-                :label="t('controls.columns')"
+                :label="t('controls_columns')"
                 color="neutral"
                 variant="outline"
                 trailing-icon="i-heroicons-chevron-down"
@@ -188,7 +188,7 @@
             >
               <UButton
                 v-if="!isCurrentMonth"
-                :label="t('controls.today')"
+                :label="t('controls_today')"
                 size="sm"
                 variant="ghost"
                 color="neutral"
@@ -221,7 +221,7 @@
         <!-- Content Area -->
         <div class="flex-1 overflow-hidden p-4">
           <div v-if="status === 'error'" class="p-4 text-red-500 bg-red-50 rounded-lg">
-            {{ t('errors.load_failed') }}
+            {{ t('errors_load_failed') }}
           </div>
 
           <ClientOnly>
@@ -235,7 +235,7 @@
                 <div
                   class="bg-gray-50 dark:bg-gray-800 p-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700"
                 >
-                  {{ t('controls.week') }}
+                  {{ t('controls_week') }}
                 </div>
                 <div
                   v-for="day in weekDays"
@@ -1063,7 +1063,7 @@
     const items = []
 
     items.push({
-      label: isTReady ? t('header.menu.deduplicate') : 'Deduplicate',
+      label: isTReady ? t('header_menu_deduplicate') : 'Deduplicate',
       icon: 'i-heroicons-document-duplicate',
       onSelect: () => {
         showDeduplicateModal.value = true
@@ -1071,7 +1071,7 @@
     })
 
     items.push({
-      label: isTReady ? t('header.menu.manage') : 'Manage',
+      label: isTReady ? t('header_menu_manage') : 'Manage',
       icon: 'i-heroicons-trash',
       onSelect: () => {
         showBulkDeleteModal.value = true
@@ -1101,13 +1101,13 @@
   const weekDays = computed(() => {
     const isTReady = typeof t === 'function'
     return [
-      isTReady ? t('controls.days.mon') : 'Mon',
-      isTReady ? t('controls.days.tue') : 'Tue',
-      isTReady ? t('controls.days.wed') : 'Wed',
-      isTReady ? t('controls.days.thu') : 'Thu',
-      isTReady ? t('controls.days.fri') : 'Fri',
-      isTReady ? t('controls.days.sat') : 'Sat',
-      isTReady ? t('controls.days.sun') : 'Sun'
+      isTReady ? t('controls_days_mon') : 'Mon',
+      isTReady ? t('controls_days_tue') : 'Tue',
+      isTReady ? t('controls_days_wed') : 'Wed',
+      isTReady ? t('controls_days_thu') : 'Thu',
+      isTReady ? t('controls_days_fri') : 'Fri',
+      isTReady ? t('controls_days_sat') : 'Sat',
+      isTReady ? t('controls_days_sun') : 'Sun'
     ]
   })
 
@@ -1756,124 +1756,124 @@
     return [
       {
         accessorKey: 'type',
-        header: isTReady ? t('controls.table_columns.type') : 'Type',
+        header: isTReady ? t('controls_table_columns_type') : 'Type',
         id: 'type'
       },
       {
         accessorKey: 'date',
-        header: isTReady ? t('controls.table_columns.date') : 'Date',
+        header: isTReady ? t('controls_table_columns_date') : 'Date',
         id: 'date'
       },
       {
         accessorKey: 'chart',
-        header: isTReady ? t('controls.table_columns.chart') : 'Structure',
+        header: isTReady ? t('controls_table_columns_chart') : 'Structure',
         id: 'chart'
       },
       {
         accessorKey: 'title',
-        header: isTReady ? t('controls.table_columns.title') : 'Name',
+        header: isTReady ? t('controls_table_columns_title') : 'Name',
         id: 'title'
       },
       {
         accessorKey: 'duration',
-        header: isTReady ? t('controls.table_columns.duration') : 'Duration',
+        header: isTReady ? t('controls_table_columns_duration') : 'Duration',
         id: 'duration'
       },
       {
         accessorKey: 'distance',
-        header: isTReady ? t('controls.table_columns.distance') : 'Distance',
+        header: isTReady ? t('controls_table_columns_distance') : 'Distance',
         id: 'distance'
       },
       {
         accessorKey: 'averageHr',
-        header: isTReady ? t('controls.table_columns.averageHr') : 'Avg HR',
+        header: isTReady ? t('controls_table_columns_averageHr') : 'Avg HR',
         id: 'averageHr'
       },
       {
         accessorKey: 'intensity',
-        header: isTReady ? t('controls.table_columns.intensity') : 'Intensity',
+        header: isTReady ? t('controls_table_columns_intensity') : 'Intensity',
         id: 'intensity'
       },
-      { accessorKey: 'tss', header: isTReady ? t('controls.table_columns.tss') : 'TSS', id: 'tss' },
+      { accessorKey: 'tss', header: isTReady ? t('controls_table_columns_tss') : 'TSS', id: 'tss' },
       {
         accessorKey: 'trainingLoad',
-        header: isTReady ? t('controls.table_columns.trainingLoad') : 'Training Load',
+        header: isTReady ? t('controls_table_columns_trainingLoad') : 'Training Load',
         id: 'trainingLoad'
       },
       {
         accessorKey: 'trimp',
-        header: isTReady ? t('controls.table_columns.trimp') : 'TRIMP',
+        header: isTReady ? t('controls_table_columns_trimp') : 'TRIMP',
         id: 'trimp'
       },
-      { accessorKey: 'rpe', header: isTReady ? t('controls.table_columns.rpe') : 'RPE', id: 'rpe' },
+      { accessorKey: 'rpe', header: isTReady ? t('controls_table_columns_rpe') : 'RPE', id: 'rpe' },
       {
         accessorKey: 'sessionRpe',
-        header: isTReady ? t('controls.table_columns.sessionRpe') : 'Session RPE',
+        header: isTReady ? t('controls_table_columns_sessionRpe') : 'Session RPE',
         id: 'sessionRpe'
       },
       {
         accessorKey: 'feel',
-        header: isTReady ? t('controls.table_columns.feel') : 'Feel',
+        header: isTReady ? t('controls_table_columns_feel') : 'Feel',
         id: 'feel'
       },
       {
         accessorKey: 'averageWatts',
-        header: isTReady ? t('controls.table_columns.averageWatts') : 'Avg Power',
+        header: isTReady ? t('controls_table_columns_averageWatts') : 'Avg Power',
         id: 'averageWatts'
       },
       {
         accessorKey: 'normalizedPower',
-        header: isTReady ? t('controls.table_columns.normalizedPower') : 'NP',
+        header: isTReady ? t('controls_table_columns_normalizedPower') : 'NP',
         id: 'normalizedPower'
       },
       {
         accessorKey: 'weightedAvgWatts',
-        header: isTReady ? t('controls.table_columns.weightedAvgWatts') : 'Weighted Power',
+        header: isTReady ? t('controls_table_columns_weightedAvgWatts') : 'Weighted Power',
         id: 'weightedAvgWatts'
       },
       {
         accessorKey: 'kilojoules',
-        header: isTReady ? t('controls.table_columns.kilojoules') : 'kJ',
+        header: isTReady ? t('controls_table_columns_kilojoules') : 'kJ',
         id: 'kilojoules'
       },
       {
         accessorKey: 'calories',
-        header: isTReady ? t('controls.table_columns.calories') : 'Calories',
+        header: isTReady ? t('controls_table_columns_calories') : 'Calories',
         id: 'calories'
       },
       {
         accessorKey: 'elapsedTime',
-        header: isTReady ? t('controls.table_columns.elapsedTime') : 'Elapsed Time',
+        header: isTReady ? t('controls_table_columns_elapsedTime') : 'Elapsed Time',
         id: 'elapsedTime'
       },
       {
         accessorKey: 'deviceName',
-        header: isTReady ? t('controls.table_columns.deviceName') : 'Device',
+        header: isTReady ? t('controls_table_columns_deviceName') : 'Device',
         id: 'deviceName'
       },
       {
         accessorKey: 'commute',
-        header: isTReady ? t('controls.table_columns.commute') : 'Commute',
+        header: isTReady ? t('controls_table_columns_commute') : 'Commute',
         id: 'commute'
       },
       {
         accessorKey: 'isPrivate',
-        header: isTReady ? t('controls.table_columns.isPrivate') : 'Private',
+        header: isTReady ? t('controls_table_columns_isPrivate') : 'Private',
         id: 'isPrivate'
       },
       {
         accessorKey: 'gearId',
-        header: isTReady ? t('controls.table_columns.gearId') : 'Gear',
+        header: isTReady ? t('controls_table_columns_gearId') : 'Gear',
         id: 'gearId'
       },
       {
         accessorKey: 'source',
-        header: isTReady ? t('controls.table_columns.source') : 'Source',
+        header: isTReady ? t('controls_table_columns_source') : 'Source',
         id: 'source'
       },
       {
         accessorKey: 'status',
-        header: isTReady ? t('controls.table_columns.status') : 'Status',
+        header: isTReady ? t('controls_table_columns_status') : 'Status',
         id: 'status'
       }
     ]
@@ -1999,111 +1999,80 @@
     const completedActivities: CalendarActivity[] = []
     const allPlannedActivities: CalendarActivity[] = []
 
-    let totalPlannedDuration = 0
-    let totalPlannedDistance = 0
-    let totalPlannedTss = 0
-
     week.forEach((day) => {
       day.activities.forEach((activity: CalendarActivity) => {
         if (activity.source === 'completed') {
           completedActivities.push(activity)
-        }
-        if (activity.source === 'planned') {
+        } else if (activity.source === 'planned') {
           allPlannedActivities.push(activity)
-          totalPlannedDuration += activity.plannedDuration || 0
-          totalPlannedDistance += activity.plannedDistance || 0
-          totalPlannedTss += activity.plannedTss || 0
         }
       })
     })
 
+    const weekStreams = getWeekStreams(week)
+
     selectedWeekData.value = {
-      weekNumber: week[0] ? getWeekNumber(week[0].date) : 0,
-      completedWorkouts: completedActivities.length,
-      totalDuration: summary.duration,
-      plannedDuration: totalPlannedDuration,
-      totalDistance: summary.distance,
-      plannedDistance: totalPlannedDistance,
-      totalTSS: summary.tss,
-      plannedTss: totalPlannedTss,
-      workoutIds: getWeekWorkoutIds(week),
-      activities: completedActivities,
-      plannedActivities: allPlannedActivities
+      summary,
+      completedActivities,
+      allPlannedActivities
     }
-
-    selectedWeekStreams.value = getWeekStreams(week)
-
+    selectedWeekStreams.value = weekStreams
     showWeekZoneModal.value = true
   }
 
+  function handleRefresh() {
+    refresh()
+    integrationStore.syncAllData()
+  }
+
+  function onWorkoutsMatched() {
+    showMatcherModal.value = false
+    refresh()
+  }
+
   const unlinkedCompletedWorkouts = computed(() => {
-    if (!activities.value) return []
-    return activities.value.filter((a) => a.source === 'completed' && !a.plannedWorkoutId) // Assuming CalendarActivity has plannedWorkoutId if linked, or we can infer
+    return (activities.value || []).filter((a) => a.source === 'completed' && !a.plannedWorkoutId)
   })
 
   const unlinkedPlannedWorkouts = computed(() => {
-    if (!activities.value) return []
-    return activities.value.filter((a) => a.source === 'planned' && a.status !== 'completed')
+    return (activities.value || []).filter((a) => a.source === 'planned' && a.status === 'missed')
   })
-
-  function onWorkoutsMatched() {
-    refresh()
-    // showMatcherModal.value = false // Optional: keep open to match more
-  }
-
-  async function handleRefresh() {
-    await integrationStore.syncAllData()
-    await refresh()
-  }
-
-  // Scroll to today
-  function scrollToToday() {
-    if (viewMode.value !== 'calendar' || !isCurrentMonth.value) return
-
-    // For mobile, use the specific anchor
-    if (window.innerWidth < 1024) {
-      const mobileEl = document.getElementById('mobile-today-anchor')
-      if (mobileEl) {
-        mobileEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-      return
-    }
-
-    // For desktop, scroll with offset to keep headers visible
-    const todayCell = document.querySelector('.today-cell')
-    if (todayCell) {
-      const container = todayCell.closest('.overflow-y-auto')
-      if (container) {
-        const cellRect = todayCell.getBoundingClientRect()
-        const containerRect = container.getBoundingClientRect()
-        const scrollTop = container.scrollTop
-
-        // Calculate position relative to container
-        const relativeTop = cellRect.top - containerRect.top + scrollTop
-
-        // Scroll to the cell (relativeTop accounts for headers/padding within the grid)
-        container.scrollTo({
-          top: relativeTop,
-          behavior: 'smooth'
-        })
-      }
-    }
-  }
-
-  // Attempt to scroll on mount and when data changes
-  onMounted(() => {
-    // Give time for DOM to render if data is already present
-    setTimeout(scrollToToday, 500)
-  })
-
-  // Also watch for data readiness
-  watch(
-    () => status.value,
-    (newStatus) => {
-      if (newStatus === 'success') {
-        // Wait for DOM update
-        setTimeout(scrollToToday, 100)
-      }
-    }
-  )
 </script>
+
+<style scoped>
+  /* Custom scrollbar for horizontal scrolling on mobile */
+  .overflow-x-auto {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+  }
+
+  /* Success Shimmer for active week */
+  .active-week-indicator {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(34, 197, 94, 0.05),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+</style>
