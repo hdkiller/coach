@@ -254,7 +254,6 @@ export default NuxtAuthHandler({
     }
   ],
   secret: process.env.NUXT_AUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
   callbacks: {
     async signIn({ user, account, profile }: any) {
       console.log(`[Auth] Sign-in attempt for ${user.email} via ${account?.provider}`)
