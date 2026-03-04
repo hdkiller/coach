@@ -1,8 +1,8 @@
 export default defineNuxtRouteMiddleware((to, from) => {
   const { status, data } = useAuth()
 
-  // Only check for authenticated users
-  if (status.value !== 'authenticated') return
+  // Only check for authenticated users and wait for data to load
+  if (status.value !== 'authenticated' || !data.value) return
 
   const user = data.value?.user as any // Type assertion until types are fully propagated
   const termsAccepted = !!user?.termsAcceptedAt
