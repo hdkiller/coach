@@ -261,11 +261,29 @@ Refer to the comprehensive [Chat Development Guide](docs/04-guides/chat-developm
 
 - **Mandatory Reading**: Before modifying chat logic, read the relevant files in `vercel-ai-docs/`, specifically `07-reference/01-ai-sdk-core/31-ui-message.mdx` and `04-ai-sdk-ui/03-chatbot-tool-usage.mdx`.
 
-## 14. External Integrations
+## 15. Internationalization (Tolgee)
 
-### Garmin Connect
+### Core Principle
 
-- **Pull API Range**: The Garmin Pull API enforces a strict **24-hour (86400s)** maximum range. Clamping must be handled in background tasks.
-- **Pull API Buffer**: Always use a **1-minute safety buffer** for the `endTimestamp` (e.g., `now - 60`) to avoid `InvalidPullTokenException` errors caused by requesting data too close to the current time.
-- **Rate Limits**: Pull API is limited to roughly 1 request per minute per user per endpoint. Use `idempotencyKey` and `concurrencyKey` in Trigger.dev to avoid hitting these limits.
-- **Sleep & HRV**: These types may return `InvalidPullTokenException` if the user has not consented to "Health" data sharing in their Garmin Connect app, even if "Wellness" (Dailies) is enabled. Handle these errors gracefully as partial failures.
+- **Namespaces**: Group translations into logical namespaces (e.g., `common`, `dashboard`, `activities`, `workout`, `profile`, `fitness`, `plans`, `chat`, `admin`).
+- **Initialization**: Always place `import { useTranslate } from '@tolgee/vue'` at the very top of `<script setup>`, followed immediately by `const { t } = useTranslate('namespace')`.
+
+### Initialization Safety (CRITICAL)
+
+- **Computed Properties**: ALWAYS add a defensive check for the `t` function inside `computed` properties. During initial mount or hydration, `t` may not yet be initialized as a function, leading to `TypeError: t is not a function`.
+- **Fallback Strings**: Provide sensible English fallback strings when `t` is not ready.
+
+```typescript
+// GOOD
+const labels = computed(() => {
+  const isTReady = typeof t === 'function'
+  return [{ label: isTReady ? t('nav.home') : 'Home', to: '/' }]
+})
+
+// BAD - Will crash during hydration if t is not ready
+const labels = computed(() => [{ label: t('nav.home'), to: '/' }])
+```
+
+### Static vs Reactive
+
+- Use `computed` for arrays or objects containing translated labels (like navigation links) to ensure they update automatically when the user changes their language preference.

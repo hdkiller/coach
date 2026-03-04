@@ -106,35 +106,23 @@ npx tolgee extract print --patterns "app/pages/your-page.vue"
 
 Should show 0 warnings. If you see `Expected source of t function`, the extractor can't trace `t` back to `useTranslate` — usually because `t` is passed as a prop or used outside `<script setup>`.
 
-### Step 5 — Sync keys to Tolgee platform
+### Step 5 — Push keys and pull translations
 
-**Do not use `pnpm i18n:push` for new namespaces.** The push command does not correctly associate the namespace when creating keys on the platform (known issue with the current `.tolgeerc` push config). Use the CLI instead:
-
-```bash
-cw:cli translations sync
-```
-
-`sync` reads `useTranslate('namespace')` from the code, so it creates keys with the correct namespace on the platform. After this, set the English values (Step 6).
-
-### Step 6 — Push English values
-
-After `sync` creates the key stubs, push the English values from the local JSON:
+Run the all-in-one sync command:
 
 ```bash
-cw:cli translations push-values --namespace <ns>
+cw:cli translations sync-all
 ```
 
-Use `--dry-run` first to preview what will be sent.
+This does everything in one shot:
 
-### Step 7 — Pull translated files
+1. Pushes all English values from every `app/i18n/en/*.json` to the platform (creates missing keys automatically)
+2. Warns about any namespace files not registered in `tolgee.ts` staticData
+3. Pulls translated files for all languages
 
-Once translators complete the other languages in the Tolgee UI:
+After pulling, any new language files (e.g. `app/i18n/hu/{namespace}.json`) will be created. Register them in the plugin (Step 3).
 
-```bash
-pnpm i18n:pull
-```
-
-This creates `app/i18n/hu/{namespace}.json` and `app/i18n/de/{namespace}.json`. Then register them in the plugin (Step 3).
+> **Note:** `pnpm i18n:push` is not recommended for new namespaces — it does not correctly assign the namespace on the platform. Use `sync-all` or `push-values` instead.
 
 ## 5. Using `t()` in Script vs Template
 
@@ -158,13 +146,14 @@ This creates `app/i18n/hu/{namespace}.json` and `app/i18n/de/{namespace}.json`. 
 
 Prefer these over raw Tolgee CLI calls — they handle env vars, error output, and namespace parsing automatically.
 
-| Command                                            | When to use                                                                                        |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `cw:cli translations check`                        | Before pushing — verifies namespace registration in `tolgee.ts` and runs extraction warnings check |
-| `cw:cli translations status`                       | Overview of which languages have which namespace JSON files                                        |
-| `cw:cli translations list-missing`                 | Lists keys present in code but missing from the platform                                           |
-| `cw:cli translations sync`                         | Creates key stubs on the platform with the correct namespace (reads from code)                     |
-| `cw:cli translations push-values --namespace <ns>` | Sets English values for an existing namespace via the API                                          |
+| Command                                            | When to use                                                                                                 |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `cw:cli translations sync-all`                     | **Full sync** — push all English values, check registration, pull translations. Use this for routine syncs. |
+| `cw:cli translations check`                        | Before pushing — verifies namespace registration in `tolgee.ts` and runs extraction warnings check          |
+| `cw:cli translations status`                       | Overview of which languages have which namespace JSON files                                                 |
+| `cw:cli translations list-missing`                 | Lists keys present in code but missing from the platform                                                    |
+| `cw:cli translations sync`                         | Creates key stubs on the platform with the correct namespace (reads from code)                              |
+| `cw:cli translations push-values --namespace <ns>` | Sets English values for a single namespace via the API. Auto-creates missing keys.                          |
 
 ### Deleting keys from the platform
 
@@ -191,3 +180,4 @@ Without pulling, the deleted keys remain in local JSON files. The next `pnpm i18
 5. **Pull after deleting keys** — after deleting keys in the Tolgee UI, run `pnpm i18n:pull` to remove them from local JSON files. Otherwise the next push will re-create them.
 6. **English is the source of truth** — always provide an English value for every key. Other languages fall back to English if untranslated.
 7. **Proper nouns don't need translation** — names like "Sarah Jenkins" can stay as literals in computed arrays.
+8. **Admin pages exclusion** — pages and components under `/admin/` (e.g., `app/pages/admin/**`) are intended for internal use only and **do not need to be translated**. They should remain in English.

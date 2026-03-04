@@ -90,19 +90,25 @@ Deep debugging and analysis of nutrition data and metabolic calculations.
 
 Manage i18n keys and namespaces across the Tolgee platform. Requires `TOLGEE_API_URL` and `TOLGEE_API_KEY` in `.env`.
 
+- `sync-all [--dry-run]`: **One-command workflow** — pushes all English namespace values (creating any missing keys automatically), checks every JSON file is registered in `tolgee.ts` staticData, then pulls all translations. Use this for any routine sync after adding or changing keys.
 - `check [--patterns <globs>]`: Two-part check — (1) verifies all `useTranslate('ns')` namespaces are registered in `app/plugins/tolgee.ts` staticData; (2) runs `tolgee extract check` for extraction warnings.
 - `list-missing [--patterns <globs>] [--namespace <ns>]`: Compares keys found in code against the Tolgee platform and lists any that are missing. Groups output by namespace.
 - `status`: Shows a per-language coverage table — which namespaces have JSON files and which are missing.
-- `push-values --namespace <ns> [--dry-run]`: Reads `app/i18n/en/<ns>.json` and pushes every key's English value to the platform via REST API (`PUT /v2/projects/{id}/translations`). Use after `tolgee sync` creates key stubs.
+- `push-values --namespace <ns> [--dry-run]`: Reads `app/i18n/en/<ns>.json` and pushes every key's English value to the platform. Auto-creates keys that don't exist yet. Use for a single namespace.
 - `sync [--patterns <globs>] [--dry-run]`: Runs `tolgee sync` to create key stubs on the platform with the correct namespace (reads namespace from `useTranslate()` in code). Safer than `pnpm i18n:push` for new namespaces.
+
+**Routine sync (after adding or changing any keys):**
+
+```bash
+cw:cli translations sync-all
+```
 
 **Typical workflow for a new page:**
 
 ```bash
-cw:cli translations check          # verify namespace is registered
-cw:cli translations sync           # create key stubs on platform
-cw:cli translations push-values --namespace <ns>   # set English values
-cw:cli translations list-missing   # confirm nothing is left out
+# 1. Create app/i18n/en/<ns>.json, add useTranslate('<ns>') to the component
+# 2. Register the namespace in app/plugins/tolgee.ts staticData
+cw:cli translations sync-all      # push all English values, check registration, pull
 ```
 
 ---

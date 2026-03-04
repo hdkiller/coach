@@ -4,6 +4,7 @@ import listMissingCommand from './list-missing'
 import statusCommand from './status'
 import pushValuesCommand from './push-values'
 import syncCommand from './sync'
+import syncAllCommand from './sync-all'
 
 const translationsCommand = new Command('translations').description(
   'Manage i18n translations and Tolgee namespaces'
@@ -14,5 +15,6 @@ translationsCommand.addCommand(listMissingCommand)
 translationsCommand.addCommand(statusCommand)
 translationsCommand.addCommand(pushValuesCommand)
 translationsCommand.addCommand(syncCommand)
+translationsCommand.addCommand(syncAllCommand)
 
 export default translationsCommand

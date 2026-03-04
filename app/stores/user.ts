@@ -20,6 +20,7 @@ interface User {
   shareRewardDaysGranted: number | null
   dashboardSettings?: any
   isAdmin?: boolean
+  language?: string
 }
 
 interface UserEntitlements {
