@@ -4,7 +4,7 @@ import StravaProvider from 'next-auth/providers/strava'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { getRequestIP, getRequestHeader, defineEventHandler } from 'h3'
+import { getRequestIP, getRequestHeader } from 'h3'
 import { logAction } from '../../utils/audit'
 
 const adapter = PrismaAdapter(prisma)
@@ -154,20 +154,6 @@ export default NuxtAuthHandler({
         }
       },
       async profile(profile: any) {
-        // Try to get current session to see if we are linking an account
-        let currentEmail: string | undefined
-        try {
-          const event = useEvent()
-          const { getServerSession: getSession } = await import('../../utils/session')
-          const session = await getSession(event)
-          if (session?.user?.email) {
-            currentEmail = session.user.email
-            console.log(`[Auth] Detected active session for ${currentEmail}, forcing Strava link`)
-          }
-        } catch (e) {
-          // No active session or not in H3 context, ignore
-        }
-
         // Try to find if this athlete already exists in our system via Integration table
         const existingIntegration = await prisma.integration.findFirst({
           where: {
@@ -178,10 +164,7 @@ export default NuxtAuthHandler({
         })
 
         const email =
-          currentEmail ||
-          existingIntegration?.user?.email ||
-          profile.email ||
-          `${profile.id}@strava.coachwatts.com`
+          existingIntegration?.user?.email || profile.email || `${profile.id}@strava.coachwatts.com`
 
         console.log(`[Auth] Strava profile mapping for ${profile.id}: using email ${email}`)
 
@@ -211,22 +194,6 @@ export default NuxtAuthHandler({
       },
       allowDangerousEmailAccountLinking: true,
       async profile(profile: any) {
-        // Try to get current session to see if we are linking an account
-        let currentEmail: string | undefined
-        try {
-          const event = useEvent()
-          const { getServerSession: getSession } = await import('../../utils/session')
-          const session = await getSession(event)
-          if (session?.user?.email) {
-            currentEmail = session.user.email
-            console.log(
-              `[Auth] Detected active session for ${currentEmail}, forcing Intervals link`
-            )
-          }
-        } catch (e) {
-          // No active session or not in H3 context, ignore
-        }
-
         // Similar lookup for Intervals.icu
         const existingIntegration = await prisma.integration.findFirst({
           where: {
@@ -237,7 +204,6 @@ export default NuxtAuthHandler({
         })
 
         const email =
-          currentEmail ||
           existingIntegration?.user?.email ||
           profile.email ||
           `${profile.id}@intervals.coachwatts.com`
@@ -257,25 +223,6 @@ export default NuxtAuthHandler({
   callbacks: {
     async signIn({ user, account, profile }: any) {
       console.log(`[Auth] Sign-in attempt for ${user.email} via ${account?.provider}`)
-
-      // Try to get current session
-      try {
-        const event = useEvent()
-        const { getServerSession: getSession } = await import('../../utils/session')
-        const session = await getSession(event)
-
-        if (session?.user?.email && user.email !== session.user.email) {
-          console.log(
-            `[Auth] Session mismatch: logged in as ${session.user.email}, but OAuth says ${user.email}. Forcing merge.`
-          )
-          // Overriding user.email here is the "secret sauce" to make next-auth link
-          // the new account to the CURRENTLY logged in user.
-          user.email = session.user.email
-        }
-      } catch (e) {
-        // Not in an active session context, normal login
-      }
-
       return true
     },
     async session({ session, user }: any) {
@@ -337,17 +284,11 @@ export default NuxtAuthHandler({
 
       // Capture login info
       try {
-        // Use useEvent() with experimental.asyncContext: true enabled in nuxt.config.ts
-        const event = useEvent()
-        const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
-        const locale = getRequestHeader(event, 'accept-language')
-
         // Update User model
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            lastLoginAt: new Date(),
-            lastLoginIp: ip
+            lastLoginAt: new Date()
           }
         })
 
@@ -356,10 +297,8 @@ export default NuxtAuthHandler({
           userId: user.id,
           action: 'USER_LOGIN',
           metadata: {
-            locale,
             provider: account?.provider || 'unknown'
-          },
-          event
+          }
         })
       } catch (error) {
         console.error('Failed to update user login info:', error)
