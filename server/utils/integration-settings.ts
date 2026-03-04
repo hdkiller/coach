@@ -6,7 +6,8 @@ const ACTIVITY_DEFAULT_ON_PROVIDERS = new Set([
   'oura',
   'withings',
   'polar',
-  'hevy'
+  'hevy',
+  'strava'
 ])
 
 export function isIntegrationSettingEnabled(

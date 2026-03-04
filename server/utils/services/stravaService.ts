@@ -1,5 +1,6 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../db'
+import { shouldIngestActivities } from '../integration-settings'
 
 /**
  * Process a webhook event from Strava.
@@ -12,6 +13,27 @@ export async function processStravaWebhookEvent(userId: string, type: string, pa
 
   if (object_type === 'activity') {
     if (aspect_type === 'create' || aspect_type === 'update') {
+      const integration = await prisma.integration.findFirst({
+        where: {
+          userId,
+          provider: 'strava'
+        },
+        select: {
+          ingestWorkouts: true,
+          settings: true
+        }
+      })
+
+      if (
+        !shouldIngestActivities(
+          'strava',
+          integration?.ingestWorkouts,
+          (integration?.settings as Record<string, any> | null) || {}
+        )
+      ) {
+        return { handled: true, message: 'Strava activity ingestion disabled' }
+      }
+
       // Trigger single activity ingestion
       await tasks.trigger(
         'ingest-strava-activity',
@@ -22,7 +44,9 @@ export async function processStravaWebhookEvent(userId: string, type: string, pa
         },
         {
           concurrencyKey: userId,
-          tags: [`user:${userId}`]
+          tags: [`user:${userId}`],
+          idempotencyKey: `strava-activity:${userId}:${object_id}`,
+          idempotencyKeyTTL: '15m'
         }
       )
       return { handled: true, message: `Triggered ingestion for activity ${object_id}` }
