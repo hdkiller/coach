@@ -82,6 +82,25 @@
           </div>
         </div>
       </div>
+
+      <div v-if="resourceLabel === 'workout'" class="space-y-4 pt-2">
+        <p
+          class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1"
+        >
+          Visual Share
+        </p>
+        <UButton
+          icon="i-heroicons-photo"
+          color="neutral"
+          variant="subtle"
+          size="lg"
+          block
+          class="rounded-2xl font-black uppercase tracking-widest text-[10px] py-4 border border-dashed border-gray-200 dark:border-white/10"
+          @click="handleDownloadImage"
+        >
+          Download Share Image
+        </UButton>
+      </div>
     </div>
 
     <div v-else class="flex flex-col items-center justify-center py-8 text-center">
@@ -186,4 +205,29 @@
     })
 
   const emitNetworkClick = (network: string) => emit('networkClick', network)
+
+  const handleDownloadImage = () => {
+    if (!props.link) return
+
+    // Extract token from link (handle both local and production URLs)
+    // Link format: http://.../share/workouts/[token]
+    const parts = props.link.split('/')
+    const token = parts[parts.length - 1]
+
+    if (token) {
+      const imageUrl = `/api/share/workouts/${token}/image`
+      const title = props.shareTitle
+        ? props.shareTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+        : 'workout'
+      const filename = `coachwatts_${title}.png`
+
+      // Create a temporary link to trigger download
+      const link = document.createElement('a')
+      link.href = imageUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  }
 </script>

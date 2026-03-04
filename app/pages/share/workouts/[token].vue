@@ -588,6 +588,10 @@
     return 'View shared workout analysis and performance metrics on Coach Wattz.'
   })
 
+  const config = useRuntimeConfig()
+  const siteUrl = config.public.siteUrl || 'http://localhost:3000'
+  const imageUrl = `${siteUrl}/api/share/workouts/${token}/image`
+
   useHead({
     title: pageTitle,
     meta: [
@@ -595,9 +599,14 @@
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
       { property: 'og:type', content: 'article' },
+      { property: 'og:image', content: imageUrl },
+      { property: 'og:image:width', content: '1080' },
+      { property: 'og:image:height', content: '1920' },
       { property: 'article:published_time', content: computed(() => workout.value?.date) },
       { name: 'twitter:title', content: pageTitle },
-      { name: 'twitter:description', content: pageDescription }
+      { name: 'twitter:description', content: pageDescription },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:image', content: imageUrl }
     ],
     script: [
       {
