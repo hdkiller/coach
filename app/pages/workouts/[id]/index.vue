@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="workout-detail">
     <template #header>
-      <UDashboardNavbar :title="workout ? `Workout: ${workout.title}` : 'Workout Details'">
+      <UDashboardNavbar :title="workout ? `Workout: ${workout.title}` : t('details_title')">
         <template #leading>
           <UButton
             icon="i-heroicons-arrow-left"
@@ -10,7 +10,7 @@
             class="hidden sm:flex"
             @click="goBack"
           >
-            Back to Data
+            {{ t('back_to_data') }}
           </UButton>
           <UButton
             icon="i-heroicons-arrow-left"
@@ -33,7 +33,7 @@
               size="sm"
               @click="isWorkoutSectionsModalOpen = true"
             >
-              <span class="hidden sm:inline">Customize</span>
+              <span class="hidden sm:inline">{{ t('controls_customize') }}</span>
             </UButton>
             <UButton
               icon="i-heroicons-share"
@@ -43,18 +43,18 @@
               class="hidden sm:flex"
               @click="isShareModalOpen = true"
             >
-              <span>Share</span>
+              <span>{{ t('controls_share') }}</span>
             </UButton>
             <UDropdownMenu
               :items="[
                 [
                   {
-                    label: 'Edit Workout',
+                    label: t('controls_edit'),
                     icon: 'i-heroicons-pencil-square',
                     onSelect: () => (isEditModalOpen = true)
                   },
                   {
-                    label: 'Share Workout',
+                    label: t('controls_share'),
                     icon: 'i-heroicons-share',
                     class: 'sm:hidden',
                     onSelect: () => (isShareModalOpen = true)
@@ -62,7 +62,7 @@
                 ],
                 [
                   {
-                    label: 'Delete Workout',
+                    label: t('controls_delete'),
                     icon: 'i-heroicons-trash',
                     color: 'error',
                     onSelect: () => (isDeleteModalOpen = true)
@@ -85,8 +85,8 @@
               class="font-bold"
               @click="chatAboutWorkout"
             >
-              <span class="hidden sm:inline">Chat about this workout</span>
-              <span class="sm:hidden">Chat</span>
+              <span class="hidden sm:inline">{{ t('controls_chat_about') }}</span>
+              <span class="sm:hidden">{{ t('controls_chat') }}</span>
             </UButton>
           </div>
         </template>
@@ -144,7 +144,7 @@
             icon="i-heroicons-exclamation-triangle"
             color="error"
             variant="soft"
-            title="Data Error"
+            :title="t('error_data_title')"
             :description="error"
           />
         </div>
@@ -205,7 +205,7 @@
                       size="sm"
                       class="ml-2 font-bold"
                     >
-                      Map Analysis
+                      {{ t('map_analysis') }}
                     </UButton>
                   </div>
 
@@ -252,7 +252,7 @@
                       :class="getSourceBadgeClass(workout.source)"
                       class="font-black uppercase tracking-widest text-[9px]"
                     >
-                      {{ workout.source }}
+                      {{ t(`source_${workout.source}`) || workout.source }}
                     </span>
                   </div>
                 </div>
@@ -302,7 +302,7 @@
                     class="rounded-xl p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 cursor-pointer hover:border-blue-500/50 transition-all active:scale-[0.98] group"
                     @click="
                       handleOpenMetric({
-                        key: 'Training Load',
+                        key: t('metrics_tss'),
                         value: Math.round(workout.trainingLoad),
                         unit: ''
                       })
@@ -317,10 +317,10 @@
                         <div
                           class="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 border-b border-dashed border-blue-300 dark:border-blue-700 inline-block cursor-help"
                         >
-                          Training Load
+                          {{ t('metrics_tss') }}
                         </div>
                         <template #content>
-                          <div class="text-left text-sm">{{ metricTooltips['Training Load'] }}</div>
+                          <div class="text-left text-sm">{{ tt('training_load') }}</div>
                         </template>
                       </UTooltip>
                       <UIcon
@@ -338,7 +338,11 @@
                     v-if="workout.averageHr"
                     class="rounded-xl p-4 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800/50 cursor-pointer hover:border-pink-500/50 transition-all active:scale-[0.98] group"
                     @click="
-                      handleOpenMetric({ key: 'Avg HR', value: workout.averageHr, unit: 'BPM' })
+                      handleOpenMetric({
+                        key: t('metrics_avg_hr'),
+                        value: workout.averageHr,
+                        unit: 'BPM'
+                      })
                     "
                   >
                     <div class="flex items-center justify-between mb-1">
@@ -350,10 +354,10 @@
                         <div
                           class="text-[10px] font-black uppercase tracking-widest text-pink-600 dark:text-pink-400 mb-1 border-b border-dashed border-pink-300 dark:border-pink-700 inline-block cursor-help"
                         >
-                          Avg HR
+                          {{ t('metrics_avg_hr') }}
                         </div>
                         <template #content>
-                          <div class="text-left text-sm">{{ metricTooltips['Avg HR'] }}</div>
+                          <div class="text-left text-sm">{{ tt('avg_hr') }}</div>
                         </template>
                       </UTooltip>
                       <UIcon
@@ -372,7 +376,11 @@
                     v-if="workout.averageWatts"
                     class="rounded-xl p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50 cursor-pointer hover:border-purple-500/50 transition-all active:scale-[0.98] group"
                     @click="
-                      handleOpenMetric({ key: 'Avg Power', value: workout.averageWatts, unit: 'W' })
+                      handleOpenMetric({
+                        key: t('metrics_avg_power'),
+                        value: workout.averageWatts,
+                        unit: 'W'
+                      })
                     "
                   >
                     <div class="flex items-center justify-between mb-1">
@@ -384,10 +392,10 @@
                         <div
                           class="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 mb-1 border-b border-dashed border-purple-300 dark:border-purple-700 inline-block cursor-help"
                         >
-                          Avg Power
+                          {{ t('metrics_avg_power') }}
                         </div>
                         <template #content>
-                          <div class="text-left text-sm">{{ metricTooltips['Avg Power'] }}</div>
+                          <div class="text-left text-sm">{{ tt('avg_power') }}</div>
                         </template>
                       </UTooltip>
                       <UIcon
@@ -407,7 +415,7 @@
                     class="rounded-xl p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 cursor-pointer hover:border-indigo-500/50 transition-all active:scale-[0.98] group"
                     @click="
                       handleOpenMetric({
-                        key: 'Norm Power',
+                        key: t('metrics_np'),
                         value: workout.normalizedPower,
                         unit: 'W'
                       })
@@ -422,10 +430,10 @@
                         <div
                           class="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-1 border-b border-dashed border-indigo-300 dark:border-indigo-700 inline-block cursor-help"
                         >
-                          Norm Power
+                          {{ t('metrics_np') }}
                         </div>
                         <template #content>
-                          <div class="text-left text-sm">{{ metricTooltips['Norm Power'] }}</div>
+                          <div class="text-left text-sm">{{ tt('norm_power') }}</div>
                         </template>
                       </UTooltip>
                       <UIcon
@@ -471,7 +479,7 @@
                   class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"
                 >
                   <UIcon name="i-heroicons-star" class="w-4 h-4 text-amber-500" />
-                  Performance Summary
+                  {{ t('performance_summary_header') }}
                 </h2>
                 <div style="height: 200px">
                   <PerformanceScoreChart
@@ -496,12 +504,12 @@
                   <UIcon name="i-heroicons-sparkles" class="w-6 h-6 text-gray-400" />
                 </div>
                 <h2 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-                  Analysis Required
+                  {{ t('analysis_required_title') }}
                 </h2>
                 <p
                   class="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed max-w-[140px]"
                 >
-                  Initialize analysis to generate performance metrics.
+                  {{ t('analysis_required_desc') }}
                 </p>
                 <UButton
                   color="neutral"
@@ -510,7 +518,7 @@
                   class="mt-6 font-black uppercase tracking-widest text-[9px]"
                   @click="scrollToSection('analysis')"
                 >
-                  Go to Analysis
+                  {{ t('analysis_required_button') }}
                 </UButton>
               </div>
             </div>
@@ -538,19 +546,22 @@
                     <h3
                       class="text-lg font-black text-neutral-900 dark:text-white uppercase tracking-tight italic"
                     >
-                      {{ detection.sportName }} Level Up Detected
+                      {{ t('level_up_detected', { sport: detection.sportName }) }}
                     </h3>
                   </div>
 
                   <div class="space-y-2">
                     <p class="text-neutral-600 dark:text-gray-300 leading-relaxed">
-                      Based on your performance in this workout, your {{ detection.label }} has
-                      improved. Updating your threshold ensures your training zones and stress stats
-                      remain accurate.
+                      {{ t('level_up_desc', { label: detection.label }) }}
                     </p>
                     <div class="flex items-center gap-2">
                       <p class="text-xs text-neutral-500 dark:text-gray-500 font-medium">
-                        Peak 20-minute effort: {{ detection.peakValue }}{{ detection.unit }}
+                        {{
+                          t('level_up_peak_effort', {
+                            value: detection.peakValue,
+                            unit: detection.unit
+                          })
+                        }}
                       </p>
                       <UBadge
                         v-if="detection.isEstimated"
@@ -558,7 +569,7 @@
                         variant="subtle"
                         size="xs"
                         class="uppercase text-[8px] font-bold"
-                        label="Estimated"
+                        :label="t('level_up_estimated')"
                       />
                     </div>
                   </div>
@@ -570,7 +581,7 @@
                         color="primary"
                         variant="solid"
                         class="font-black px-6 shadow-lg shadow-primary-500/20"
-                        label="UPDATE NOW"
+                        :label="t('level_up_update_now')"
                         @click="openThresholdUpdate(detection)"
                       />
                       <UButton
@@ -578,13 +589,12 @@
                         color="neutral"
                         variant="ghost"
                         class="text-neutral-500 hover:text-neutral-900 dark:text-gray-400 dark:hover:text-white font-bold"
-                        label="LATER"
+                        :label="t('level_up_later')"
                         @click="dismissedThresholds.push(detection.type)"
                       />
                     </div>
                     <p class="text-[9px] text-neutral-400 dark:text-gray-500 italic leading-tight">
-                      Updates sync to Coach Watts and Intervals.icu. <br />
-                      Don't forget to manually update Garmin Connect to align your watch zones.
+                      {{ t('level_up_sync_note') }}
                     </p>
                   </div>
                 </div>
@@ -599,7 +609,7 @@
                       <div
                         class="text-[10px] font-black text-neutral-400 dark:text-gray-500 uppercase tracking-widest mb-1"
                       >
-                        Old
+                        {{ t('level_up_old') }}
                       </div>
                       <div
                         class="text-2xl font-bold text-neutral-400 dark:text-gray-400 line-through decoration-neutral-300 dark:decoration-gray-600"
@@ -628,7 +638,7 @@
                       <div
                         class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-1"
                       >
-                        New
+                        {{ t('level_up_new') }}
                       </div>
                       <div
                         class="text-4xl font-black text-neutral-900 dark:text-white flex items-baseline gap-1"
@@ -654,7 +664,7 @@
             :style="sectionStyle('training-impact')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Systemic Impact & Load
+              {{ t('impact_header') }}
             </h2>
             <div
               v-if="hasTrainingMetrics(workout)"
@@ -682,7 +692,7 @@
                         >TSS (Load)</span
                       >
                       <template #content>
-                        <div class="text-left text-sm">{{ metricTooltips['TSS (Load)'] }}</div>
+                        <div class="text-left text-sm">{{ tt('tss_load') }}</div>
                       </template>
                     </UTooltip>
                     <UIcon
@@ -716,7 +726,7 @@
                         >Fitness (CTL)</span
                       >
                       <template #content>
-                        <div class="text-left text-sm">{{ metricTooltips['Fitness (CTL)'] }}</div>
+                        <div class="text-left text-sm">{{ tt('fitness_ctl') }}</div>
                       </template>
                     </UTooltip>
                     <UIcon
@@ -752,7 +762,7 @@
                         >Fatigue (ATL)</span
                       >
                       <template #content>
-                        <div class="text-left text-sm">{{ metricTooltips['Fatigue (ATL)'] }}</div>
+                        <div class="text-left text-sm">{{ tt('fatigue_atl') }}</div>
                       </template>
                     </UTooltip>
                     <UIcon
@@ -786,7 +796,7 @@
                         >Form (TSB)</span
                       >
                       <template #content>
-                        <div class="text-left text-sm">{{ metricTooltips['Form (TSB)'] }}</div>
+                        <div class="text-left text-sm">{{ tt('form_tsb') }}</div>
                       </template>
                     </UTooltip>
                     <UIcon
@@ -807,7 +817,7 @@
               <!-- Detailed Explanation Accordion -->
               <div class="border-t border-gray-100 dark:border-gray-800 pt-4">
                 <UAccordion
-                  :items="[{ label: 'How is this calculated?', slot: 'explanation' }]"
+                  :items="[{ label: t('impact_calc_title'), slot: 'explanation' }]"
                   color="gray"
                   variant="ghost"
                 >
@@ -816,37 +826,26 @@
                       class="text-sm text-gray-600 dark:text-gray-400 space-y-3 pt-2 font-medium"
                     >
                       <p>
-                        <strong>Data Source:</strong>
+                        <strong>{{ t('impact_source_label') }}</strong>
                         <span v-if="workout.source === 'intervals'">
-                          This data is synced directly from
-                          <a
-                            href="https://intervals.icu"
-                            target="_blank"
-                            class="text-primary-500 hover:underline font-bold"
-                            >Intervals.icu</a
-                          >.
+                          {{ t('impact_source_intervals', { link: 'Intervals.icu' }) }}
                         </span>
                         <span v-else>
-                          This data is calculated locally based on your workout intensity.
+                          {{ t('impact_source_local') }}
                         </span>
                       </p>
                       <ul class="list-disc pl-5 space-y-2 leading-relaxed">
                         <li>
-                          <strong>TSS (Training Stress Score):</strong> Measures the physiological
-                          cost of a ride. 100 points is roughly equivalent to 1 hour at your
-                          threshold power (FTP).
+                          {{ tt('tss_load') }}
                         </li>
                         <li>
-                          <strong>CTL (Fitness):</strong> Exponentially weighted average of your
-                          daily TSS over 42 days. It models your training load sustainability.
+                          {{ tt('fitness_ctl') }}
                         </li>
                         <li>
-                          <strong>ATL (Fatigue):</strong> Exponentially weighted average of your
-                          daily TSS over 7 days. It reflects current physiological strain.
+                          {{ tt('fatigue_atl') }}
                         </li>
                         <li>
-                          <strong>TSB (Form):</strong> Simply <code>CTL - ATL</code>. A positive TSB
-                          indicates you are tapered and ready for peak performance.
+                          {{ tt('form_tsb') }}
                         </li>
                       </ul>
                     </div>
@@ -864,7 +863,7 @@
             :style="sectionStyle('exercises')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Exercises
+              {{ t('sections_exercises') }}
             </h2>
             <WorkoutsExerciseList :exercises="workout.exercises" />
           </div>
@@ -887,18 +886,18 @@
                 <h2
                   class="text-base font-black uppercase tracking-widest text-gray-900 dark:text-white"
                 >
-                  Nutrition Summary
+                  {{ t('nutrition_header') }}
                 </h2>
               </div>
               <div v-if="workout.plannedWorkout?.tss" class="text-right">
                 <div class="text-[10px] uppercase font-black text-gray-400 tracking-widest">
-                  Energy Delta
+                  {{ t('nutrition_energy_delta') }}
                 </div>
                 <div
                   class="text-sm font-black tracking-tight"
                   :class="kJDelta >= 10 ? 'text-red-500' : 'text-green-500'"
                 >
-                  {{ kJDelta > 0 ? '+' : '' }}{{ kJDelta }}% kJ vs. Plan
+                  {{ t('nutrition_vs_plan', { delta: (kJDelta > 0 ? '+' : '') + kJDelta }) }}
                 </div>
               </div>
             </div>
@@ -916,14 +915,12 @@
                 <h3
                   class="font-black text-orange-900 dark:text-orange-100 text-sm uppercase tracking-tight"
                 >
-                  Fueling Adjustment Recommended
+                  {{ t('nutrition_adjustment_title') }}
                 </h3>
                 <p
                   class="text-xs text-orange-800 dark:text-orange-300 mt-0.5 font-medium leading-relaxed"
                 >
-                  Session was significantly harder than prescribed (+{{ kJDelta }}% kJ).
-                  Recommending {{ recoveryCarbBump }}g additional carbohydrates over the next 4
-                  hours.
+                  {{ t('nutrition_adjustment_desc', { delta: kJDelta, carbs: recoveryCarbBump }) }}
                 </p>
               </div>
             </div>
@@ -934,7 +931,7 @@
                 <div
                   class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest"
                 >
-                  <span class="text-gray-500">Actual Energy (kJ)</span>
+                  <span class="text-gray-500">{{ t('nutrition_actual_energy') }}</span>
                   <span class="text-gray-900 dark:text-white"
                     >{{ workout.kilojoules || 0 }} kJ</span
                   >
@@ -942,8 +939,10 @@
                 <div
                   class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest"
                 >
-                  <span class="text-gray-500">Planned Energy (kJ)</span>
-                  <span class="text-gray-400">{{ plannedKJ || 'No target set' }} kJ</span>
+                  <span class="text-gray-500">{{ t('nutrition_planned_energy') }}</span>
+                  <span class="text-gray-400">{{
+                    plannedKJ ? plannedKJ + ' kJ' : t('nutrition_no_target')
+                  }}</span>
                 </div>
                 <div
                   class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden mt-2"
@@ -963,7 +962,7 @@
                 class="bg-gray-50 dark:bg-gray-950 p-4 rounded-xl space-y-3 border border-gray-100 dark:border-gray-800"
               >
                 <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  Digestion & Stomach Feel
+                  {{ t('nutrition_digestion_header') }}
                 </div>
                 <div class="flex items-center gap-2">
                   <UButton
@@ -981,8 +980,8 @@
                 <div
                   class="flex justify-between text-[9px] text-gray-400 font-bold uppercase tracking-widest px-1"
                 >
-                  <span>Poor</span>
-                  <span>Great</span>
+                  <span>{{ t('nutrition_digestion_poor') }}</span>
+                  <span>{{ t('nutrition_digestion_great') }}</span>
                 </div>
               </div>
             </div>
@@ -996,7 +995,7 @@
             :style="sectionStyle('analysis')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              AI Analysis
+              {{ t('analysis_header') }}
             </h2>
 
             <!-- Plan Adherence (if linked) -->
@@ -1018,7 +1017,7 @@
                   <h3
                     class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white"
                   >
-                    Analysis Detail
+                    {{ t('analysis_detail_title') }}
                   </h3>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1033,7 +1032,7 @@
                     :disabled="analyzingWorkout"
                     @click="analyzeWorkout"
                   >
-                    Analyze
+                    {{ t('analysis_button_analyze') }}
                   </UButton>
                   <UButton
                     v-else
@@ -1046,7 +1045,7 @@
                     :disabled="analyzingWorkout"
                     @click="analyzeWorkout"
                   >
-                    Regenerate
+                    {{ t('analysis_button_regenerate') }}
                   </UButton>
                   <UButton
                     v-if="canPublishSummaryToIntervals"
@@ -1059,7 +1058,7 @@
                     :disabled="publishingSummary || analyzingWorkout"
                     @click="publishSummaryToIntervals"
                   >
-                    Publish
+                    {{ t('analysis_button_publish') }}
                   </UButton>
                 </div>
               </div>
@@ -1074,7 +1073,7 @@
                     class="text-[10px] font-black uppercase tracking-widest text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2"
                   >
                     <span class="i-heroicons-light-bulb w-4 h-4" />
-                    Workout Summary
+                    {{ t('performance_summary_header') }}
                   </h3>
                   <p class="text-base text-gray-800 dark:text-gray-200 leading-relaxed font-medium">
                     {{ workout.aiAnalysisJson.executive_summary }}
@@ -1137,7 +1136,7 @@
                       class="text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white flex items-center gap-2"
                     >
                       <span class="i-heroicons-clipboard-document-list w-4 h-4" />
-                      Strategic Recommendations
+                      {{ t('analysis_strategic_recom') }}
                     </h3>
                   </div>
                   <div class="px-5 py-6 space-y-4">
@@ -1186,7 +1185,7 @@
                       class="text-[10px] font-black uppercase tracking-widest text-green-700 dark:text-green-400 mb-4 flex items-center gap-2"
                     >
                       <span class="i-heroicons-check-circle w-4 h-4" />
-                      Strengths Identified
+                      {{ t('analysis_strengths') }}
                     </h3>
                     <ul class="space-y-2">
                       <li
@@ -1208,7 +1207,7 @@
                       class="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 mb-4 flex items-center gap-2"
                     >
                       <span class="i-heroicons-exclamation-triangle w-4 h-4" />
-                      Areas of Concern
+                      {{ t('analysis_weaknesses') }}
                     </h3>
                     <ul class="space-y-2">
                       <li
@@ -1231,7 +1230,7 @@
                   class="flex justify-between items-center pt-6 border-t border-gray-100 dark:border-gray-800"
                 >
                   <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    Synchronized Analysis • {{ formatDate(workout.aiAnalyzedAt) }}
+                    {{ t('analysis_sync_analysis', { date: formatDate(workout.aiAnalyzedAt) }) }}
                   </div>
                   <AiFeedback
                     v-if="workout.llmUsageId"
@@ -1257,7 +1256,7 @@
                   class="flex justify-between items-center pt-6 border-t border-gray-100 dark:border-gray-800"
                 >
                   <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    Legacy Analysis • {{ formatDate(workout.aiAnalyzedAt) }}
+                    {{ t('analysis_legacy_analysis', { date: formatDate(workout.aiAnalyzedAt) }) }}
                   </div>
                   <AiFeedback
                     v-if="workout.llmUsageId"
@@ -1275,9 +1274,11 @@
                   >
                     <UIcon name="i-heroicons-bolt" class="w-8 h-8 opacity-40" />
                   </div>
-                  <p class="text-sm font-black uppercase tracking-widest">AI Analysis Pending</p>
+                  <p class="text-sm font-black uppercase tracking-widest">
+                    {{ t('analysis_pending_title') }}
+                  </p>
                   <p class="text-xs mt-2 text-gray-400 max-w-xs mx-auto">
-                    Click "Analyze" to initialize deep performance auditing on this session.
+                    {{ t('analysis_pending_desc') }}
                   </p>
                 </div>
               </div>
@@ -1289,7 +1290,7 @@
                 <p
                   class="text-sm text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest"
                 >
-                  Analyzing Activity...
+                  {{ t('analysis_analyzing') }}
                 </p>
               </div>
             </div>
@@ -1303,7 +1304,7 @@
             :style="sectionStyle('power-curve')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Power Curve
+              {{ t('sections_power_curve') }}
             </h2>
             <PowerCurveChart :workout-id="workout.id" />
           </div>
@@ -1316,7 +1317,7 @@
             :style="sectionStyle('intervals')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Interval Breakdown
+              {{ t('sections_intervals') }}
             </h2>
             <IntervalsAnalysis :workout-id="workout.id" />
           </div>
@@ -1329,7 +1330,7 @@
             :style="sectionStyle('advanced')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Advanced Metrics
+              {{ t('sections_advanced') }}
             </h2>
             <AdvancedWorkoutMetrics :workout-id="workout.id" @open-metric="handleOpenMetric" />
           </div>
@@ -1344,7 +1345,7 @@
             <h2
               class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0 flex items-center justify-between w-full"
             >
-              <span>Session Route</span>
+              <span>{{ t('sections_map') }}</span>
               <UButton
                 icon="i-heroicons-arrows-pointing-out"
                 size="xs"
@@ -1353,7 +1354,7 @@
                 class="font-black uppercase tracking-widest text-[9px]"
                 :to="`/workouts/${workout.id}/map`"
               >
-                Expand Analysis
+                {{ t('map_analysis') }}
               </UButton>
             </h2>
             <UiWorkoutMap
@@ -1374,7 +1375,7 @@
             :style="sectionStyle('pacing')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Pacing Analysis
+              {{ t('sections_pacing') }}
             </h2>
             <PacingAnalysis :workout-id="workout.id" @open-metric="handleOpenMetric" />
           </div>
@@ -1387,7 +1388,7 @@
             :style="sectionStyle('timeline')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Workout Timeline
+              {{ t('sections_timeline') }}
             </h2>
             <WorkoutTimeline :workout-id="workout.id" />
           </div>
@@ -1400,7 +1401,7 @@
             :style="sectionStyle('zones')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Zone Distribution
+              {{ t('sections_zones') }}
             </h2>
             <ZoneChart
               :workout-id="workout.id"
@@ -1417,7 +1418,7 @@
             :style="sectionStyle('efficiency')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Efficiency Metrics
+              {{ t('sections_efficiency') }}
             </h2>
             <EfficiencyMetricsCard
               :metrics="{
@@ -1456,7 +1457,7 @@
             :style="sectionStyle('metrics')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Activity Metrics
+              {{ t('sections_metrics') }}
             </h2>
             <div
               class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3"
@@ -1519,7 +1520,7 @@
             :style="sectionStyle('streams')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Data Streams
+              {{ t('sections_streams') }}
             </h2>
             <div
               class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 flex flex-wrap gap-2.5"
@@ -1551,7 +1552,7 @@
                 class="uppercase font-black tracking-widest text-[9px] px-2.5 py-1"
                 @click="isExtrasMetaModalOpen = true"
               >
-                View extrasMeta
+                {{ t('modal_extras_title') }}
               </UButton>
             </div>
           </div>
@@ -1564,7 +1565,7 @@
             :style="sectionStyle('duplicates')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Version Control
+              {{ t('version_header') }}
             </h2>
             <div
               class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
@@ -1583,18 +1584,17 @@
                     <h3
                       class="font-bold text-yellow-900 dark:text-yellow-100 uppercase tracking-tight"
                     >
-                      This workout is a duplicate
+                      {{ t('version_duplicate_title') }}
                     </h3>
                     <p class="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
-                      This workout has been identified as a duplicate of another activity. The
-                      primary version is likely from a more preferred source.
+                      {{ t('version_duplicate_desc') }}
                     </p>
 
                     <div v-if="workout.canonicalWorkout" class="mt-4">
                       <p
                         class="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-2"
                       >
-                        Original Workout Reference:
+                        {{ t('version_original_ref') }}
                       </p>
                       <NuxtLink
                         :to="`/workouts/${workout.canonicalWorkout.id}`"
@@ -1637,7 +1637,10 @@
                                 :class="getSourceBadgeClass(workout.canonicalWorkout.source)"
                                 class="py-0 px-1.5 text-[10px]"
                               >
-                                {{ workout.canonicalWorkout.source }}
+                                {{
+                                  t(`source_${workout.canonicalWorkout.source}`) ||
+                                  workout.canonicalWorkout.source
+                                }}
                               </span>
                             </div>
                             <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
@@ -1656,7 +1659,7 @@
                         :loading="promoting"
                         @click="promoteWorkout"
                       >
-                        Promote to Primary
+                        {{ t('version_promote_button') }}
                       </UButton>
                     </div>
                   </div>
@@ -1672,10 +1675,10 @@
                   />
                   <div>
                     <h3 class="font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                      Linked Duplicates
+                      {{ t('version_linked_duplicates') }}
                     </h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
-                      Merged sessions identified as duplicates of this activity.
+                      {{ t('version_linked_desc') }}
                     </p>
                   </div>
                 </div>
@@ -1706,7 +1709,7 @@
                           variant="subtle"
                           size="xs"
                           class="font-bold uppercase tracking-widest"
-                          >Duplicate</UBadge
+                          >{{ t('sections_duplicates') }}</UBadge
                         >
                         <div class="w-48 flex justify-end">
                           <UiDataAttribution
@@ -1731,7 +1734,7 @@
                             :class="getSourceBadgeClass(dup.source)"
                             class="py-0 px-1.5 text-[10px]"
                           >
-                            {{ dup.source }}
+                            {{ t(`source_${dup.source}`) || dup.source }}
                           </span>
                         </div>
                         <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
@@ -1753,10 +1756,10 @@
                   />
                   <div>
                     <h3 class="font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                      Prescribed Plan Match
+                      {{ t('version_prescribed_plan') }}
                     </h3>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
-                      This activity successfully completed the following planned workout.
+                      {{ t('version_prescribed_desc') }}
                     </p>
                   </div>
                 </div>
@@ -1790,7 +1793,7 @@
                         variant="solid"
                         size="xs"
                         class="font-black uppercase tracking-widest"
-                        >Plan</UBadge
+                        >{{ t('legend_plan') }}</UBadge
                       >
                       <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
                     </div>
@@ -1807,7 +1810,7 @@
             :style="sectionStyle('raw-data')"
           >
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Raw Data
+              {{ t('raw_data_header') }}
             </h2>
             <JsonViewer
               title="Raw Data (JSON)"
@@ -1841,8 +1844,8 @@
   <!-- Promote Workout Confirmation Modal -->
   <UModal
     v-model:open="isPromoteModalOpen"
-    title="Promote Workout"
-    description="This will make the current workout the primary version."
+    :title="t('modal_promote_title')"
+    :description="t('modal_promote_desc')"
   >
     <template #body>
       <div class="space-y-4">
@@ -1855,10 +1858,11 @@
               class="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0"
             />
             <div>
-              <h3 class="font-semibold text-yellow-900 dark:text-yellow-100">Are you sure?</h3>
+              <h3 class="font-semibold text-yellow-900 dark:text-yellow-100">
+                {{ t('modal_promote_sure') }}
+              </h3>
               <p class="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
-                This action will swap the primary status. The current primary workout will become a
-                duplicate of this one.
+                {{ t('modal_promote_action_desc') }}
               </p>
             </div>
           </div>
@@ -1868,13 +1872,13 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton
-          label="Cancel"
+          :label="t('banner_exit')"
           color="neutral"
           variant="ghost"
           @click="isPromoteModalOpen = false"
         />
         <UButton
-          label="Make Primary"
+          :label="t('modal_promote_confirm')"
           color="warning"
           variant="solid"
           :loading="promoting"
@@ -1887,8 +1891,8 @@
   <!-- Share Modal -->
   <UModal
     v-model:open="isShareModalOpen"
-    title="Share Workout"
-    description="Create a read-only link to this workout and share it directly to social platforms."
+    :title="t('modal_share_title')"
+    :description="t('modal_share_desc')"
   >
     <template #body>
       <ShareAccessPanel
@@ -1905,7 +1909,12 @@
       />
     </template>
     <template #footer>
-      <UButton label="Close" color="neutral" variant="ghost" @click="isShareModalOpen = false" />
+      <UButton
+        :label="t('banner_exit')"
+        color="neutral"
+        variant="ghost"
+        @click="isShareModalOpen = false"
+      />
     </template>
   </UModal>
 
@@ -1923,8 +1932,8 @@
   <!-- Extras Meta Modal -->
   <UModal
     v-model:open="isExtrasMetaModalOpen"
-    title="Workout extrasMeta"
-    description="Compact FIT metadata captured during stream ingestion."
+    :title="t('modal_extras_title')"
+    :description="t('modal_extras_desc')"
     :ui="{ content: 'max-w-5xl' }"
   >
     <template #body>
@@ -1936,11 +1945,11 @@
         :default-open="true"
         filename="fit-extras-meta.json"
       />
-      <div v-else class="text-sm text-gray-500 py-4">No extrasMeta available for this workout.</div>
+      <div v-else class="text-sm text-gray-500 py-4">{{ t('modal_extras_empty') }}</div>
     </template>
     <template #footer>
       <UButton
-        label="Close"
+        :label="t('banner_exit')"
         color="neutral"
         variant="ghost"
         @click="isExtrasMetaModalOpen = false"
@@ -1960,8 +1969,8 @@
   <!-- Delete Confirmation Modal -->
   <UModal
     v-model:open="isDeleteModalOpen"
-    title="Delete Workout"
-    description="This will permanently remove the activity from your history."
+    :title="t('modal_delete_title')"
+    :description="t('modal_delete_desc')"
   >
     <template #body>
       <div class="space-y-4">
@@ -1974,10 +1983,11 @@
               class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0"
             />
             <div>
-              <h3 class="font-semibold text-red-900 dark:text-red-100">Are you sure?</h3>
+              <h3 class="font-semibold text-red-900 dark:text-red-100">
+                {{ t('modal_delete_sure') }}
+              </h3>
               <p class="text-sm text-red-800 dark:text-red-200 mt-1">
-                This action cannot be undone. All data, analysis, and metrics associated with this
-                workout will be permanently deleted.
+                {{ t('modal_delete_action_desc') }}
               </p>
             </div>
           </div>
@@ -1996,12 +2006,14 @@
               <h3
                 class="font-semibold text-orange-900 dark:text-orange-100 uppercase tracking-tight text-xs"
               >
-                Sync Note
+                {{ t('modal_delete_sync_note_title') }}
               </h3>
-              <p class="text-xs text-orange-800 dark:text-orange-200 mt-1 font-medium">
-                This activity was synced from <strong>{{ workout?.source }}</strong
-                >. If you don't delete it there as well, it may be re-imported during the next
-                synchronization.
+              <p class="text-xs text-orange-800 dark:text-orange-200 mt-1">
+                {{
+                  t('modal_delete_sync_note_desc', {
+                    source: t(`source_${workout?.source}`) || workout?.source
+                  })
+                }}
               </p>
             </div>
           </div>
@@ -2011,114 +2023,32 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton
-          label="Cancel"
+          :label="t('banner_exit')"
           color="neutral"
           variant="ghost"
           @click="isDeleteModalOpen = false"
         />
         <UButton
-          label="Delete Permanently"
+          :label="t('controls_delete')"
           color="error"
-          variant="solid"
           :loading="deleting"
           @click="deleteWorkout"
         />
       </div>
     </template>
   </UModal>
-
-  <!-- Threshold Update Confirmation Modal -->
-  <UModal v-model:open="isThresholdModalOpen">
-    <template #content>
-      <UCard
-        v-if="activeDetection"
-        :ui="{
-          root: 'divide-y divide-gray-100 dark:divide-gray-800',
-          header: 'py-3 px-4',
-          body: 'p-4 sm:p-6'
-        }"
-      >
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-              Update {{ activeDetection.label }}?
-            </h3>
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="i-heroicons-x-mark-20-solid"
-              class="-my-1"
-              @click="isThresholdModalOpen = false"
-            />
-          </div>
-        </template>
-
-        <div class="space-y-4">
-          <div
-            class="p-4 rounded-xl bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800 flex items-center gap-4"
-          >
-            <div
-              class="w-12 h-12 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center border border-primary-200 dark:border-primary-700 shadow-sm"
-            >
-              <UIcon name="i-heroicons-sparkles" class="w-6 h-6 text-primary-500" />
-            </div>
-            <div>
-              <div class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase">
-                New {{ activeDetection.sportName }} Improvement
-              </div>
-              <div class="text-lg font-black text-gray-900 dark:text-white">
-                {{ activeDetection.oldValue }}{{ activeDetection.unit }} →
-                {{ activeDetection.newValue }}{{ activeDetection.unit }}
-              </div>
-            </div>
-          </div>
-
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            Updating your <strong>{{ activeDetection.label }}</strong> will automatically
-            recalculate your training zones and ensure your stats for this period are accurate.
-          </p>
-
-          <div
-            class="text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-100 dark:border-gray-800 italic text-gray-500 space-y-2"
-          >
-            <p>
-              <UIcon name="i-heroicons-information-circle" class="mr-1 inline-block" />
-              This update will sync to Intervals.icu automatically.
-            </p>
-            <p>
-              <UIcon name="i-heroicons-exclamation-triangle" class="mr-1 inline-block" />
-              Don't forget to manually update Garmin Connect to align your watch zones.
-            </p>
-          </div>
-        </div>
-
-        <template #footer>
-          <div class="flex justify-end gap-3">
-            <UButton color="neutral" variant="ghost" @click="isThresholdModalOpen = false"
-              >Later</UButton
-            >
-            <UButton
-              color="primary"
-              variant="solid"
-              class="font-bold"
-              :loading="userStore.loading"
-              @click="confirmThresholdUpdate"
-            >
-              Update Threshold
-            </UButton>
-          </div>
-        </template>
-      </UCard>
-    </template>
-  </UModal>
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { marked } from 'marked'
   import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
   import StreamChartModal from '~/components/charts/streams/StreamChartModal.vue'
   import { metricTooltips } from '~/utils/tooltips'
   import { formatDistance as formatDist, formatTemperature } from '~/utils/metrics'
+
+  const { t } = useTranslate('workout')
+  const { t: tt } = useTranslate('workout-tooltips')
 
   const { formatDate: baseFormatDate, formatDateTime, formatDateUTC } = useFormat()
   const { trackWorkoutViewDetail } = useAnalytics()
@@ -2144,55 +2074,108 @@
   const error = ref<string | null>(null)
   const analyzingWorkout = ref(false)
   const analyzingAdherence = ref(false)
-  const publishingSummary = ref(false)
-  const sharing = ref(false)
   const promoting = ref(false)
+  const deleting = ref(false)
+  const publishingSummary = ref(false)
+
   const isPromoteModalOpen = ref(false)
+  const isShareModalOpen = ref(false)
+  const isExtrasMetaModalOpen = ref(false)
+  const isWorkoutSectionsModalOpen = ref(false)
+  const shareExpiryValue = ref(7) // default 1 week
 
-  // Threshold Detection State
+  const stomachFeel = ref<number | null>(null)
+
+  const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
+    'workout',
+    computed(() => workout.value?.id)
+  )
+
+  const copyToClipboard = (text: string) => {
+    if (import.meta.client) {
+      navigator.clipboard.writeText(text)
+      toast.add({
+        title: 'Copied',
+        description: 'Link copied to clipboard.',
+        color: 'success'
+      })
+    }
+  }
+
+  const renderedAnalysis = computed(() => {
+    if (!workout.value?.aiAnalysis) return ''
+    return marked(workout.value.aiAnalysis)
+  })
+
+  const isOnboarded = computed(() => {
+    // 1. Check if ANY data (Workouts, Nutrition, or Wellness)
+    if (
+      userStore.dataSyncStatus?.workouts ||
+      userStore.dataSyncStatus?.nutrition ||
+      userStore.dataSyncStatus?.wellness
+    )
+      return true
+
+    return false
+  })
+
+  const canPublishSummaryToIntervals = computed(() => {
+    return (
+      workout.value &&
+      workout.value.source === 'intervals' &&
+      (workout.value.aiAnalysis || workout.value.aiAnalysisJson)
+    )
+  })
+
+  // Metric modal state
+  const isMetricModalOpen = ref(false)
+  const activeMetric = ref<{
+    key: string
+    value: any
+    unit?: string
+    rating?: number
+    ratingColor?: string
+  } | null>(null)
+
+  function handleOpenMetric(metric: any) {
+    activeMetric.value = metric
+    isMetricModalOpen.value = true
+  }
+
+  // Stream modal state
+  const isStreamModalOpen = ref(false)
+  const selectedStream = ref<{
+    key: string
+    label: string
+    color: string
+    unit: string
+  } | null>(null)
+
+  function openStreamModal(stream: any) {
+    selectedStream.value = stream
+    isStreamModalOpen.value = true
+  }
+
   const dismissedThresholds = ref<string[]>([])
-  const isThresholdModalOpen = ref(false)
-  const activeDetection = ref<any>(null)
-  const detectedThresholds = computed(() => {
-    if (!workout.value || !workout.value.metricHistory) return []
 
+  const detectedThresholds = computed(() => {
+    if (!workout.value || !workout.value.thresholdDetection) return []
     const uniqueThresholds: Record<string, any> = {}
 
-    workout.value.metricHistory
-      .filter(
-        (h: any) =>
-          h.source === 'AUTOMATIC' &&
-          (h.type === 'FTP' || h.type === 'LTHR') &&
-          !dismissedThresholds.value.includes(h.type)
-      )
-      .forEach((h: any) => {
-        // Since they are ordered by createdAt desc in the API,
-        // the first one we encounter for each type is the newest.
-        if (!uniqueThresholds[h.type]) {
-          const isFtp = h.type === 'FTP'
-          const isLthr = h.type === 'LTHR'
+    workout.value.thresholdDetection
+      .filter((d: any) => !dismissedThresholds.value.includes(d.type))
+      .forEach((detection: any) => {
+        const sport = detection.sport || 'General'
+        const label = detection.label || detection.type
+        const unit = detection.unit || (detection.type === 'LTHR' ? 'bpm' : 'W')
+        const key = `${sport}-${detection.type}`
 
-          // Extract sport name from notes if possible, else fallback to workout type
-          const sportMatch = h.notes?.match(/Detected for (.+) profile\./)
-          const sportName = sportMatch ? sportMatch[1] : workout.value.type || 'Default'
-
-          // Determine if measurement is likely estimated or direct
-          const isEstimated =
-            (isFtp && workout.value.type?.toLowerCase().includes('run')) ||
-            workout.value.deviceName?.toLowerCase().includes('garmin') ||
-            workout.value.deviceName?.toLowerCase().includes('apple watch')
-
-          uniqueThresholds[h.type] = {
-            type: h.type,
-            sportName,
-            isEstimated,
-            label: isFtp ? `${sportName} FTP` : isLthr ? `${sportName} LTHR` : h.type,
-            newValue: h.value,
-            oldValue: h.oldValue || (isFtp ? userStore.currentFtp : userStore.currentLthr),
-            peakValue: isFtp ? Math.round(h.value / 0.95) : h.value, // Peak 20m
-            unit: isFtp ? 'W' : ' bpm',
-            percent: h.oldValue ? Math.round(((h.value - h.oldValue) / h.oldValue) * 100) : 0
-          }
+        uniqueThresholds[key] = {
+          ...detection,
+          sportName: sport,
+          label,
+          unit,
+          peakValue: detection.peakValue || detection.newValue
         }
       })
     return Object.values(uniqueThresholds)
@@ -2210,10 +2193,17 @@
         displayValue = `${mins}:${secs.toString().padStart(2, '0')}`
       }
 
+      // Localize common PB types
+      let label = pb.type.replace(/_/g, ' ').replace('RUN ', '').replace('POWER ', 'Peak ')
+      const typeKey = `achievement_${pb.type.toLowerCase()}`
+      if (typeof t === 'function' && t.value(typeKey) !== typeKey) {
+        label = t.value(typeKey)
+      }
+
       return {
         ...pb,
         displayValue,
-        label: pb.type.replace(/_/g, ' ').replace('RUN ', '').replace('POWER ', 'Peak ')
+        label
       }
     })
   })
@@ -2247,323 +2237,116 @@
     isEditModalOpen.value = false
     isDeleteModalOpen.value = true
   }
-  const isWorkoutSectionsModalOpen = ref(false)
-  const deleting = ref(false)
-  const stomachFeel = ref<number | null>(null)
 
-  type WorkoutSectionKey =
-    | 'overview'
-    | 'training-impact'
-    | 'exercises'
-    | 'nutrition'
-    | 'analysis'
-    | 'power-curve'
-    | 'intervals'
-    | 'advanced'
-    | 'map'
-    | 'pacing'
-    | 'timeline'
-    | 'zones'
-    | 'efficiency'
-    | 'notes'
-    | 'metrics'
-    | 'streams'
-    | 'duplicates'
-    | 'raw-data'
+  const isThresholdModalOpen = ref(false)
+  const activeDetection = ref<any>(null)
 
-  type WorkoutSectionSettings = Record<WorkoutSectionKey, { visible: boolean; order: number }>
-
-  const workoutSectionCatalog: Array<{
-    key: WorkoutSectionKey
-    label: string
-    icon: string
-    anchorId: string
-  }> = [
-    { key: 'overview', label: 'Overview', icon: 'i-lucide-file-text', anchorId: 'header' },
-    {
-      key: 'training-impact',
-      label: 'Training Impact',
-      icon: 'i-lucide-activity-square',
-      anchorId: 'training-impact'
-    },
-    { key: 'exercises', label: 'Exercises', icon: 'i-lucide-dumbbell', anchorId: 'exercises' },
-    { key: 'nutrition', label: 'Nutrition', icon: 'i-lucide-beaker', anchorId: 'nutrition' },
-    { key: 'analysis', label: 'AI Analysis', icon: 'i-lucide-sparkles', anchorId: 'analysis' },
-    { key: 'power-curve', label: 'Power Curve', icon: 'i-lucide-zap', anchorId: 'power-curve' },
-    { key: 'intervals', label: 'Intervals', icon: 'i-lucide-timer', anchorId: 'intervals' },
-    { key: 'advanced', label: 'Advanced', icon: 'i-lucide-microscope', anchorId: 'advanced' },
-    { key: 'map', label: 'Map', icon: 'i-lucide-map', anchorId: 'map' },
-    { key: 'pacing', label: 'Pacing', icon: 'i-lucide-activity', anchorId: 'pacing' },
-    { key: 'timeline', label: 'Timeline', icon: 'i-lucide-chart-line', anchorId: 'timeline' },
-    { key: 'zones', label: 'Zones', icon: 'i-lucide-layers', anchorId: 'zones' },
-    { key: 'efficiency', label: 'Efficiency', icon: 'i-lucide-gauge', anchorId: 'efficiency' },
-    { key: 'notes', label: 'Notes', icon: 'i-lucide-notebook-pen', anchorId: 'notes' },
-    { key: 'metrics', label: 'Metrics', icon: 'i-lucide-bar-chart-3', anchorId: 'metrics' },
-    { key: 'streams', label: 'Streams', icon: 'i-lucide-radio', anchorId: 'streams' },
-    { key: 'duplicates', label: 'Versions', icon: 'i-lucide-copy', anchorId: 'duplicates' },
-    { key: 'raw-data', label: 'Raw Data', icon: 'i-lucide-code-xml', anchorId: 'raw-data' }
-  ]
-
-  const workoutSectionDefaults = workoutSectionCatalog.reduce((acc, section, index) => {
-    acc[section.key] = { visible: true, order: index }
-    return acc
-  }, {} as WorkoutSectionSettings)
-
-  function goBack() {
-    router.back()
-  }
-
-  const plannedKJ = computed(() => {
-    if (!workout.value?.plannedWorkout) return null
-    const pw = workout.value.plannedWorkout
-    // Simple estimation: TSS * 10 or from duration/intensity if available
-    // For now use a multiplier for demonstration
-    return Math.round((pw.tss || 100) * 8.5)
-  })
-
-  const kJDelta = computed(() => {
-    if (!workout.value?.kilojoules || !plannedKJ.value) return 0
-    return Math.round(((workout.value.kilojoules - plannedKJ.value) / plannedKJ.value) * 100)
-  })
-
-  const recoveryCarbBump = computed(() => {
-    if (kJDelta.value < 10) return 0
-    // roughly 40g per 15% delta
-    return Math.round((kJDelta.value / 15) * 40)
-  })
-
-  async function updateStomachFeel(val: number) {
-    stomachFeel.value = val
-    try {
-      await $fetch(`/api/workouts/${workout.value.id}/metadata`, {
-        method: 'POST' as any,
-        body: { stomachFeel: val }
-      })
-      toast.add({
-        title: 'Feedback Saved',
-        description: 'Thank you! Your feedback helps tune your carb limits.',
-        color: 'success'
-      })
-    } catch (e) {
-      console.error('Failed to save stomach feel', e)
-    }
-  }
-
-  // Stream Modal State
-  const isStreamModalOpen = ref(false)
-  const isExtrasMetaModalOpen = ref(false)
-  const selectedStream = ref<{ key: string; label: string; color: string; unit: string } | null>(
-    null
-  )
-
-  function openStreamModal(stream: { key: string; label: string; color: string; unit: string }) {
-    selectedStream.value = stream
-    isStreamModalOpen.value = true
-  }
-
-  // Metric Detail Modal State
-  const isMetricModalOpen = ref(false)
-  const activeMetric = ref<any>(null)
-
-  function handleOpenMetric(metric: any) {
-    activeMetric.value = metric
-    isMetricModalOpen.value = true
-  }
-
-  // Share functionality
-  const isShareModalOpen = ref(false)
-  const shareLink = ref('')
-  const shareExpiryValue = ref('2592000')
-  const generatingShareLink = ref(false)
-
-  const generateShareLink = async (options?: { expiresIn?: number | null; forceNew?: boolean }) => {
-    if (!workout.value?.id || generatingShareLink.value) return
-
-    generatingShareLink.value = true
-    try {
-      const body: Record<string, any> = {
-        resourceType: 'WORKOUT',
-        resourceId: workout.value.id
-      }
-      if (options?.expiresIn !== undefined) body.expiresIn = options.expiresIn
-      if (options?.forceNew) body.forceNew = true
-
-      const response = await $fetch('/api/share/generate', {
-        method: 'POST',
-        body
-      })
-      shareLink.value = response.url
-    } catch (error) {
-      console.error('Failed to generate share link:', error)
-      toast.add({
-        title: 'Error',
-        description: 'Failed to generate share link. Please try again.',
-        color: 'error'
-      })
-    } finally {
-      generatingShareLink.value = false
-    }
-  }
-
-  const copyToClipboard = () => {
-    if (!shareLink.value) return
-
-    navigator.clipboard.writeText(shareLink.value)
-    toast.add({
-      title: 'Copied',
-      description: 'Share link copied to clipboard.',
-      color: 'success'
-    })
-  }
-
-  watch(isShareModalOpen, (newValue) => {
-    if (newValue && !shareLink.value) {
-      generateShareLink()
-    }
-  })
-
-  // Set page title and description
-  useHead(() => {
-    if (!workout.value) {
-      return {
-        title: 'Workout Details',
-        meta: [{ name: 'description', content: 'View detailed workout analysis and metrics' }]
-      }
-    }
-
-    const workoutType = workout.value.type ? ` - ${workout.value.type}` : ''
-    const workoutDate = baseFormatDate(workout.value.date)
-
-    const title = `${workout.value.title} | Coach Watts`
-
-    const descriptionParts = [
-      `${workout.value.title}${workoutType}`,
-      `${workoutDate}`,
-      workout.value.durationSec ? `Duration: ${formatDuration(workout.value.durationSec)}` : null,
-      workout.value.trainingLoad
-        ? `Training Load: ${Math.round(workout.value.trainingLoad)}`
-        : null,
-      workout.value.overallScore ? `Score: ${workout.value.overallScore}/10` : null
-    ]
-      .filter(Boolean)
-      .join(' • ')
-
-    return {
-      title,
-      meta: [{ name: 'description', content: descriptionParts }]
-    }
-  })
-
-  // Rendered markdown analysis
-  const renderedAnalysis = computed(() => {
-    if (!workout.value?.aiAnalysis) return ''
-    return marked(workout.value.aiAnalysis)
-  })
-
-  const workoutSummary = computed(() => {
-    const summary = workout.value?.aiAnalysisJson?.executive_summary
-    return typeof summary === 'string' ? summary.trim() : ''
-  })
-
-  const canPublishSummaryToIntervals = computed(() => {
-    return Boolean(
-      workout.value?.source === 'intervals' && workout.value?.externalId && workoutSummary.value
-    )
-  })
-
-  const fitSessionSummary = computed<Record<string, any> | null>(() => {
-    const sessionSummary = extrasMetaData.value?.sessionSummary
-    if (!sessionSummary || typeof sessionSummary !== 'object' || Array.isArray(sessionSummary)) {
-      return null
-    }
-    return sessionSummary as Record<string, any>
-  })
-
-  // Available metrics computed property - only shows non-null values
+  // Available metrics computed property
   const availableMetrics = computed(() => {
     if (!workout.value) return []
+    const metrics = []
 
-    const metrics: Array<{ key: string; label: string; value: string; source?: 'fit' }> = []
+    // Time & Distance
+    if (workout.value.durationSec)
+      metrics.push({
+        key: 'duration',
+        label: t.value('metrics_duration'),
+        value: formatDuration(workout.value.durationSec)
+      })
+    if (workout.value.distance)
+      metrics.push({
+        key: 'distance',
+        label: t.value('metrics_distance'),
+        value: formatDistance(workout.value.distance)
+      })
 
-    // Power metrics
+    // Intensity & Load
+    if (workout.value.tss)
+      metrics.push({
+        key: 'tss',
+        label: t.value('metrics_tss'),
+        value: workout.value.tss.toFixed(1)
+      })
+    if (workout.value.intensity)
+      metrics.push({
+        key: 'intensity',
+        label: 'Intensity (IF)',
+        value: workout.value.intensity.toFixed(2)
+      })
+    if (workout.value.trainingLoad)
+      metrics.push({
+        key: 'load',
+        label: 'Training Load',
+        value: workout.value.trainingLoad.toFixed(0)
+      })
+
+    // Heart Rate
+    if (workout.value.averageHr)
+      metrics.push({
+        key: 'avgHr',
+        label: t.value('metrics_avg_hr'),
+        value: `${workout.value.averageHr} bpm`
+      })
+    if (workout.value.maxHr)
+      metrics.push({
+        key: 'maxHr',
+        label: t.value('metrics_max_hr'),
+        value: `${workout.value.maxHr} bpm`
+      })
+
+    // Power
     if (workout.value.averageWatts)
       metrics.push({
-        key: 'avgPower',
-        label: 'Average Power',
+        key: 'avgWatts',
+        label: t.value('metrics_avg_power'),
         value: `${workout.value.averageWatts}W`
       })
     if (workout.value.maxWatts)
-      metrics.push({ key: 'maxPower', label: 'Max Power', value: `${workout.value.maxWatts}W` })
+      metrics.push({
+        key: 'maxWatts',
+        label: t.value('metrics_max_power'),
+        value: `${workout.value.maxWatts}W`
+      })
     if (workout.value.normalizedPower)
       metrics.push({
         key: 'np',
-        label: 'Normalized Power',
+        label: t.value('metrics_np'),
         value: `${workout.value.normalizedPower}W`
       })
-    if (workout.value.weightedAvgWatts)
-      metrics.push({
-        key: 'wap',
-        label: 'Weighted Avg Power',
-        value: `${workout.value.weightedAvgWatts}W`
-      })
-
-    // Heart rate metrics
-    if (workout.value.maxHr)
-      metrics.push({ key: 'maxHr', label: 'Max HR', value: `${workout.value.maxHr} bpm` })
-
-    // Cadence metrics
-    if (workout.value.averageCadence)
-      metrics.push({
-        key: 'avgCad',
-        label: 'Average Cadence',
-        value: `${workout.value.averageCadence} rpm`
-      })
-    if (workout.value.maxCadence)
-      metrics.push({
-        key: 'maxCad',
-        label: 'Max Cadence',
-        value: `${workout.value.maxCadence} rpm`
-      })
-
-    // Advanced metrics
     if (workout.value.variabilityIndex)
       metrics.push({
         key: 'vi',
-        label: 'Variability Index',
-        value: workout.value.variabilityIndex.toFixed(3)
-      })
-    if (workout.value.powerHrRatio)
-      metrics.push({
-        key: 'phr',
-        label: 'Power/HR Ratio',
-        value: workout.value.powerHrRatio.toFixed(2)
+        label: 'Variability Index (VI)',
+        value: workout.value.variabilityIndex.toFixed(2)
       })
     if (workout.value.efficiencyFactor)
       metrics.push({
         key: 'ef',
-        label: 'Efficiency Factor',
+        label: 'Efficiency Factor (EF)',
         value: workout.value.efficiencyFactor.toFixed(2)
       })
-    if (workout.value.decoupling)
-      metrics.push({
-        key: 'dec',
-        label: 'Decoupling',
-        value: `${workout.value.decoupling.toFixed(1)}%`
-      })
-    if (workout.value.polarizationIndex)
-      metrics.push({
-        key: 'pi',
-        label: 'Polarization Index',
-        value: workout.value.polarizationIndex.toFixed(2)
-      })
-    if (workout.value.lrBalance)
-      metrics.push({
-        key: 'lr',
-        label: 'L/R Balance',
-        value: `${workout.value.lrBalance.toFixed(1)}%`
-      })
 
-    // Advanced Physiology
+    // Others
+    if (workout.value.averageCadence)
+      metrics.push({
+        key: 'cadence',
+        label: t.value('metrics_avg_cadence'),
+        value: `${workout.value.averageCadence} rpm`
+      })
+    if (workout.value.calories)
+      metrics.push({
+        key: 'calories',
+        label: t.value('metrics_calories'),
+        value: `${workout.value.calories} kcal`
+      })
+    if (workout.value.elevationGain)
+      metrics.push({
+        key: 'elevation',
+        label: t.value('metrics_elevation'),
+        value: `${workout.value.elevationGain} m`
+      })
+    if (workout.value.kilojoules)
+      metrics.push({ key: 'kj', label: 'Work (kJ)', value: `${workout.value.kilojoules} kJ` })
     if (workout.value.strainScore)
       metrics.push({
         key: 'strain',
@@ -2575,7 +2358,7 @@
     if (workout.value.workAboveFtp)
       metrics.push({
         key: 'workAboveFtp',
-        label: 'Work > FTP',
+        label: t.value('metrics_work') + ' > FTP',
         value: `${(workout.value.workAboveFtp / 1000).toFixed(1)} kJ`
       })
     if (workout.value.wBalDepletion)
@@ -2591,7 +2374,11 @@
         value: `${(workout.value.wPrime / 1000).toFixed(1)} kJ`
       })
     if (workout.value.carbsUsed)
-      metrics.push({ key: 'carbs', label: 'Carbs Used', value: `${workout.value.carbsUsed} g` })
+      metrics.push({
+        key: 'carbs',
+        label: t.value('metrics_carbs'),
+        value: `${workout.value.carbsUsed} g`
+      })
 
     // Training status
     if (workout.value.ctl)
@@ -2616,7 +2403,7 @@
     if (workout.value.avgTemp !== null && workout.value.avgTemp !== undefined)
       metrics.push({
         key: 'temp',
-        label: 'Avg Temperature',
+        label: t.value('metrics_temp'),
         value: formatTemperature(
           workout.value.avgTemp,
           userStore.profile?.temperatureUnits || 'Celsius'
@@ -2625,8 +2412,8 @@
     if (workout.value.trainer !== null && workout.value.trainer !== undefined)
       metrics.push({
         key: 'trainer',
-        label: 'Indoor Trainer',
-        value: workout.value.trainer ? 'Yes' : 'No'
+        label: t.value('trainer_indoor'),
+        value: workout.value.trainer ? t.value('trainer_yes') : t.value('trainer_no')
       })
 
     const sessionSummary = fitSessionSummary.value
@@ -2650,7 +2437,7 @@
       if (sessionSummary.totalDistance !== null && sessionSummary.totalDistance !== undefined)
         metrics.push({
           key: 'fitTotalDistance',
-          label: 'Total Distance',
+          label: t.value('metrics_distance'),
           value: formatDistance(sessionSummary.totalDistance),
           source: 'fit'
         })
@@ -2674,7 +2461,7 @@
       if (sessionSummary.totalCalories !== null && sessionSummary.totalCalories !== undefined)
         metrics.push({
           key: 'fitTotalCalories',
-          label: 'Total Calories',
+          label: t.value('metrics_calories'),
           value: `${Math.round(sessionSummary.totalCalories)} kcal`,
           source: 'fit'
         })
@@ -2686,7 +2473,7 @@
       )
         metrics.push({
           key: 'fitAvgPower',
-          label: 'Average Power',
+          label: t.value('metrics_avg_power'),
           value: `${Math.round(sessionSummary.avgPower)}W`,
           source: 'fit'
         })
@@ -2698,7 +2485,7 @@
       )
         metrics.push({
           key: 'fitMaxPower',
-          label: 'Max Power',
+          label: t.value('metrics_max_power'),
           value: `${Math.round(sessionSummary.maxPower)}W`,
           source: 'fit'
         })
@@ -2710,7 +2497,7 @@
       )
         metrics.push({
           key: 'fitMaxHr',
-          label: 'Max HR',
+          label: t.value('metrics_max_hr'),
           value: `${Math.round(sessionSummary.maxHeartRate)} bpm`,
           source: 'fit'
         })
@@ -2721,7 +2508,7 @@
       )
         metrics.push({
           key: 'fitTss',
-          label: 'Training Stress Score',
+          label: t.value('metrics_tss'),
           value: Number(sessionSummary.trainingStressScore).toFixed(1),
           source: 'fit'
         })
@@ -2738,17 +2525,25 @@
     // Define stream metadata
     const streamMetadata: Record<string, { label: string; color: string; unit: string }> = {
       time: { label: 'Time', color: '#9ca3af', unit: 's' },
-      distance: { label: 'Distance', color: '#6b7280', unit: userStore.distanceUnitLabel },
+      distance: {
+        label: t.value('metrics_distance'),
+        color: '#6b7280',
+        unit: userStore.distanceUnitLabel
+      },
       velocity: { label: 'Velocity', color: '#3b82f6', unit: 'm/s' },
       heartrate: { label: 'Heart Rate', color: '#ef4444', unit: 'bpm' },
       cadence: { label: 'Cadence', color: '#f59e0b', unit: 'rpm' },
-      watts: { label: 'Power', color: '#8b5cf6', unit: 'W' },
+      watts: { label: t.value('metrics_avg_power'), color: '#8b5cf6', unit: 'W' },
       altitude: { label: 'Altitude', color: '#10b981', unit: 'm' },
       latlng: { label: 'GPS', color: '#6366f1', unit: '' },
       grade: { label: 'Grade', color: '#14b8a6', unit: '%' },
       moving: { label: 'Moving', color: '#9ca3af', unit: '' },
       torque: { label: 'Torque', color: '#f97316', unit: 'N-m' },
-      temp: { label: 'Temperature', color: '#06b6d4', unit: userStore.temperatureUnitLabel },
+      temp: {
+        label: t.value('metrics_temp'),
+        color: '#06b6d4',
+        unit: userStore.temperatureUnitLabel
+      },
       respiration: { label: 'Respiration', color: '#ec4899', unit: 'brpm' },
       hrv: { label: 'HRV', color: '#84cc16', unit: 'ms' },
       leftRightBalance: { label: 'L/R Balance', color: '#d946ef', unit: '%' },
@@ -2819,8 +2614,8 @@
         | Partial<WorkoutSectionSettings>
         | undefined) || {}
 
-    return workoutSectionCatalog.reduce((acc, section) => {
-      const fallback = workoutSectionDefaults[section.key]
+    return workoutSectionCatalog.value.reduce((acc, section) => {
+      const fallback = workoutSectionDefaults.value[section.key]
       const sectionSettings = saved[section.key]
       acc[section.key] = {
         visible: sectionSettings?.visible ?? fallback.visible,
@@ -2831,17 +2626,17 @@
   })
 
   const workoutSectionsModalOptions = computed(() =>
-    workoutSectionCatalog.map((section) => ({
+    workoutSectionCatalog.value.map((section) => ({
       key: section.key,
       label: section.label,
       icon: section.icon,
       available: workoutSectionAvailability.value[section.key],
-      defaultVisible: workoutSectionDefaults[section.key].visible
+      defaultVisible: workoutSectionDefaults.value[section.key].visible
     }))
   )
 
   const workoutNavSections = computed(() =>
-    workoutSectionCatalog
+    workoutSectionCatalog.value
       .filter((section) => isSectionEnabled(section.key))
       .sort(
         (a, b) =>
@@ -2870,7 +2665,7 @@
       const id = route.params.id
       workout.value = await $fetch(`/api/workouts/${id}`)
     } catch (e: any) {
-      error.value = e.data?.message || e.message || 'Failed to load workout'
+      error.value = e.data?.message || e.message || t.value('error_failed_to_load')
       console.error('Error fetching workout:', e)
     } finally {
       loading.value = false
@@ -2899,8 +2694,8 @@
         analyzingWorkout.value = false
 
         toast.add({
-          title: 'Analysis Ready',
-          description: 'Workout analysis already exists',
+          title: t.value('analyzing_ready_title'),
+          description: t.value('analyzing_ready_desc'),
           color: 'success',
           icon: 'i-heroicons-check-circle'
         })
@@ -2913,8 +2708,8 @@
 
       // Show processing message
       toast.add({
-        title: 'Analysis Started',
-        description: 'Your workout is being analyzed by AI. This may take a minute...',
+        title: t.value('analyzing_started_title'),
+        description: t.value('analyzing_started_desc'),
         color: 'info',
         icon: 'i-heroicons-sparkles'
       })
@@ -2940,7 +2735,7 @@
       }
 
       toast.add({
-        title: 'Analysis Failed',
+        title: t.value('analyzing_failed_title'),
         description: e.data?.message || e.message || 'Failed to start workout analysis',
         color: 'error',
         icon: 'i-heroicons-exclamation-circle'
@@ -2960,8 +2755,8 @@
       refreshRuns()
 
       toast.add({
-        title: 'Analysis Started',
-        description: 'Analyzing plan adherence...',
+        title: t.value('analyzing_started_title'),
+        description: t.value('analyzing_adherence_started'),
         color: 'info',
         icon: 'i-heroicons-sparkles'
       })
@@ -2981,8 +2776,8 @@
       }
 
       toast.add({
-        title: 'Analysis Failed',
-        description: e.data?.message || 'Failed to start adherence analysis',
+        title: t.value('analyzing_failed_title'),
+        description: e.data?.message || e.message || 'Failed to start adherence analysis',
         color: 'error'
       })
     }
@@ -2998,8 +2793,8 @@
       })
 
       toast.add({
-        title: 'Published',
-        description: 'Workout summary has been added to Intervals.icu notes',
+        title: t.value('analysis_button_publish'),
+        description: t.value('publish_summary_success'),
         color: 'success',
         icon: 'i-heroicons-check-circle'
       })
@@ -3023,7 +2818,7 @@
     await fetchWorkout()
     analyzingWorkout.value = false
     toast.add({
-      title: 'Analysis Complete',
+      title: t.value('analyzing_ready_title'),
       description: 'AI workout analysis has been generated successfully',
       color: 'success',
       icon: 'i-heroicons-check-circle'
@@ -3056,7 +2851,7 @@
 
       toast.add({
         title: 'Success',
-        description: 'Workout promoted to primary version',
+        description: t.value('promote_success'),
         color: 'success'
       })
 
@@ -3085,8 +2880,8 @@
       })
 
       toast.add({
-        title: 'Workout Deleted',
-        description: 'The activity has been removed.',
+        title: t.value('delete_success_title'),
+        description: t.value('delete_success_desc'),
         color: 'success'
       })
 
@@ -3346,6 +3141,171 @@
     if (lower.includes('garmin')) return 'garmin'
     if (lower.includes('apple')) return 'apple_health'
     return undefined
+  }
+
+  // Section Catalog Definition
+  const workoutSectionCatalog = computed(
+    (): Array<{
+      key: WorkoutSectionKey
+      label: string
+      icon: string
+      anchorId: string
+    }> => {
+      const isTReady = typeof t === 'function'
+      return [
+        {
+          key: 'overview',
+          label: isTReady ? t.value('sections_overview') : 'Overview',
+          icon: 'i-lucide-file-text',
+          anchorId: 'header'
+        },
+        {
+          key: 'training-impact',
+          label: isTReady ? t.value('sections_training_impact') : 'Training Impact',
+          icon: 'i-lucide-activity-square',
+          anchorId: 'training-impact'
+        },
+        {
+          key: 'exercises',
+          label: isTReady ? t.value('sections_exercises') : 'Exercises',
+          icon: 'i-lucide-dumbbell',
+          anchorId: 'exercises'
+        },
+        {
+          key: 'nutrition',
+          label: isTReady ? t.value('sections_nutrition') : 'Nutrition',
+          icon: 'i-lucide-beaker',
+          anchorId: 'nutrition'
+        },
+        {
+          key: 'analysis',
+          label: isTReady ? t.value('sections_analysis') : 'AI Analysis',
+          icon: 'i-lucide-sparkles',
+          anchorId: 'analysis'
+        },
+        {
+          key: 'power-curve',
+          label: isTReady ? t.value('sections_power_curve') : 'Power Curve',
+          icon: 'i-lucide-zap',
+          anchorId: 'power-curve'
+        },
+        {
+          key: 'intervals',
+          label: isTReady ? t.value('sections_intervals') : 'Intervals',
+          icon: 'i-lucide-timer',
+          anchorId: 'intervals'
+        },
+        {
+          key: 'advanced',
+          label: isTReady ? t.value('sections_advanced') : 'Advanced',
+          icon: 'i-lucide-microscope',
+          anchorId: 'advanced'
+        },
+        {
+          key: 'map',
+          label: isTReady ? t.value('sections_map') : 'Map',
+          icon: 'i-lucide-map',
+          anchorId: 'map'
+        },
+        {
+          key: 'pacing',
+          label: isTReady ? t.value('sections_pacing') : 'Pacing',
+          icon: 'i-lucide-activity',
+          anchorId: 'pacing'
+        },
+        {
+          key: 'timeline',
+          label: isTReady ? t.value('sections_timeline') : 'Timeline',
+          icon: 'i-lucide-chart-line',
+          anchorId: 'timeline'
+        },
+        {
+          key: 'zones',
+          label: isTReady ? t.value('sections_zones') : 'Zones',
+          icon: 'i-lucide-layers',
+          anchorId: 'zones'
+        },
+        {
+          key: 'efficiency',
+          label: isTReady ? t.value('sections_efficiency') : 'Efficiency',
+          icon: 'i-lucide-gauge',
+          anchorId: 'efficiency'
+        },
+        {
+          key: 'notes',
+          label: isTReady ? t.value('sections_notes') : 'Notes',
+          icon: 'i-lucide-notebook-pen',
+          anchorId: 'notes'
+        },
+        {
+          key: 'metrics',
+          label: isTReady ? t.value('sections_metrics') : 'Metrics',
+          icon: 'i-lucide-bar-chart-3',
+          anchorId: 'metrics'
+        },
+        {
+          key: 'streams',
+          label: isTReady ? t.value('sections_streams') : 'Streams',
+          icon: 'i-lucide-radio',
+          anchorId: 'streams'
+        },
+        {
+          key: 'duplicates',
+          label: isTReady ? t.value('sections_duplicates') : 'Versions',
+          icon: 'i-lucide-copy',
+          anchorId: 'duplicates'
+        },
+        {
+          key: 'raw-data',
+          label: isTReady ? t.value('sections_raw_data') : 'Raw Data',
+          icon: 'i-lucide-code-xml',
+          anchorId: 'raw-data'
+        }
+      ]
+    }
+  )
+
+  const workoutSectionDefaults = computed(() =>
+    workoutSectionCatalog.value.reduce((acc, section, index) => {
+      acc[section.key] = { visible: true, order: index }
+      return acc
+    }, {} as WorkoutSectionSettings)
+  )
+
+  function goBack() {
+    router.back()
+  }
+
+  const plannedKJ = computed(() => {
+    if (!workout.value?.plannedWorkout) return null
+    const pw = workout.value.plannedWorkout
+    return Math.round((pw.tss || 100) * 8.5)
+  })
+
+  const kJDelta = computed(() => {
+    if (!workout.value?.kilojoules || !plannedKJ.value) return 0
+    return Math.round(((workout.value.kilojoules - plannedKJ.value) / plannedKJ.value) * 100)
+  })
+
+  const recoveryCarbBump = computed(() => {
+    if (kJDelta.value < 10) return 0
+    return Math.round((kJDelta.value / 15) * 40)
+  })
+
+  async function updateStomachFeel(val: number) {
+    stomachFeel.value = val
+    try {
+      await $fetch(`/api/workouts/${workout.value.id}/metadata`, {
+        method: 'POST' as any,
+        body: { stomachFeel: val }
+      })
+      toast.add({
+        title: 'Feedback Saved',
+        color: 'success'
+      })
+    } catch (e) {
+      console.error('Failed to save stomach feel:', e)
+    }
   }
 
   // Load data on mount
