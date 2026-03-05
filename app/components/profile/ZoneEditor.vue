@@ -7,9 +7,9 @@
       </h5>
       <div class="flex gap-2">
         <slot name="actions"></slot>
-        <UButton size="xs" color="primary" variant="soft" icon="i-lucide-plus" @click="addZone">{{
-          t('zones_button_add')
-        }}</UButton>
+        <UButton size="xs" color="primary" variant="soft" icon="i-lucide-plus" @click="addZone"
+          >Add Zone</UButton
+        >
       </div>
     </div>
 
@@ -20,9 +20,9 @@
       <div
         class="grid grid-cols-12 gap-2 bg-gray-50 dark:bg-gray-800/50 p-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider"
       >
-        <div class="col-span-5 pl-1">{{ t('zones_header_name') }}</div>
-        <div class="col-span-3">{{ t('zones_header_min', { unit: units }) }}</div>
-        <div class="col-span-3">{{ t('zones_header_max', { unit: units }) }}</div>
+        <div class="col-span-5 pl-1">Zone Name</div>
+        <div class="col-span-3">Min ({{ units }})</div>
+        <div class="col-span-3">Max ({{ units }})</div>
         <div class="col-span-1 text-center"></div>
       </div>
 
@@ -44,12 +44,7 @@
                 name="i-lucide-grip-vertical"
                 class="drag-handle w-4 h-4 text-gray-300 cursor-move opacity-0 group-hover:opacity-100 transition-opacity"
               />
-              <UInput
-                v-model="zone.name"
-                size="xs"
-                class="w-full"
-                :placeholder="t('zones_header_name')"
-              />
+              <UInput v-model="zone.name" size="xs" class="w-full" placeholder="Zone Name" />
             </div>
             <div class="col-span-3">
               <UInput v-model.number="zone.min" type="number" size="xs" class="w-full" />
@@ -72,17 +67,14 @@
       </draggable>
 
       <div v-if="!modelValue.length" class="p-6 text-center text-sm text-gray-500 italic">
-        {{ t('zones_empty') }}
+        No zones defined. Click "Add Zone" or "Calculate" to start.
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
   import draggable from 'vuedraggable'
-
-  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     modelValue: any[]

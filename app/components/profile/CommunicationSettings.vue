@@ -1,9 +1,7 @@
 <script setup lang="ts">
   import { z } from 'zod'
-  import { useTranslate } from '@tolgee/vue'
   import type { FormSubmitEvent } from '#ui/types'
 
-  const { t } = useTranslate('profile')
   const toast = useToast()
 
   const daysEnums = [
@@ -118,8 +116,8 @@
         body: event.data
       })
       toast.add({
-        title: t.value('comm_toast_updated_title'),
-        description: t.value('comm_toast_updated_desc'),
+        title: 'Preferences Updated',
+        description: 'Your communication preferences have been saved.',
         color: 'success'
       })
     } catch (error) {
@@ -158,7 +156,7 @@
             <div class="flex items-center gap-2">
               <UIcon name="i-heroicons-no-symbol" class="w-5 h-5 text-error-500" />
               <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                {{ t('comm_header_override') }}
+                Communication Override
               </h3>
             </div>
           </template>
@@ -166,8 +164,8 @@
           <UFormField name="globalUnsubscribe">
             <UCheckbox
               v-model="state.globalUnsubscribe"
-              :label="t('comm_label_unsubscribe_all')"
-              :description="t('comm_desc_unsubscribe_all')"
+              label="Unsubscribe from all optional emails"
+              description="Instantly opt-out of all coaching nudges and product updates. You will still receive critical billing notices."
               color="error"
             />
           </UFormField>
@@ -179,7 +177,7 @@
             <div class="flex items-center gap-2">
               <UIcon name="i-heroicons-academic-cap" class="w-5 h-5 text-primary-500" />
               <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                {{ t('comm_header_insights') }}
+                Training Insights
               </h3>
             </div>
           </template>
@@ -190,8 +188,8 @@
               <UFormField name="dailyCoach">
                 <UCheckbox
                   v-model="state.dailyCoach"
-                  :label="t('comm_label_daily_coach')"
-                  :description="t('comm_desc_daily_coach')"
+                  label="Daily Training Recommendation"
+                  description="Receive an email every morning with your AI-powered training guidance."
                   :disabled="state.globalUnsubscribe"
                 />
               </UFormField>
@@ -202,15 +200,15 @@
               >
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <UFormField
-                    :label="t('comm_form_preferred_time')"
+                    label="Preferred Time"
                     name="dailyCoachTime"
-                    :help="t('comm_help_preferred_time')"
+                    help="When should we send your daily brief?"
                   >
                     <UInput v-model="state.dailyCoachTime" type="time" class="w-32" />
                   </UFormField>
                 </div>
 
-                <UFormField :label="t('comm_form_scheduled_days')" name="dailyCoachDays">
+                <UFormField label="Scheduled Days" name="dailyCoachDays">
                   <div class="flex flex-wrap gap-2 pt-1">
                     <UButton
                       v-for="day in days"
@@ -230,82 +228,106 @@
             <UFormField name="workoutAnalysis">
               <UCheckbox
                 v-model="state.workoutAnalysis"
-                :label="t('comm_label_workout_analysis')"
-                :description="t('comm_desc_workout_analysis')"
+                label="Workout Analysis"
+                description="Receive an email when your AI workout analysis is ready."
                 :disabled="state.globalUnsubscribe"
               />
             </UFormField>
             <UFormField name="thresholdUpdates">
               <UCheckbox
                 v-model="state.thresholdUpdates"
-                :label="t('comm_label_threshold_updates')"
-                :description="t('comm_desc_threshold_updates')"
+                label="Threshold Updates"
+                description="Get notified when a new FTP or LTHR improvement is detected."
                 :disabled="state.globalUnsubscribe"
               />
             </UFormField>
             <UFormField name="planUpdates">
               <UCheckbox
                 v-model="state.planUpdates"
-                :label="t('comm_label_plan_updates')"
-                :description="t('comm_desc_plan_updates')"
-                :disabled="state.globalUnsubscribe"
-              />
-            </UFormField>
-          </div>
-        </UCard>
-
-        <!-- Product Card -->
-        <UCard>
-          <template #header>
-            <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5 text-primary-500" />
-              <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                {{ t('comm_header_account') }}
-              </h3>
-            </div>
-          </template>
-
-          <div class="space-y-6">
-            <UFormField name="billing">
-              <UCheckbox
-                v-model="state.billing"
-                :label="t('comm_label_billing')"
-                :description="t('comm_desc_billing')"
-              />
-            </UFormField>
-            <UFormField name="productUpdates">
-              <UCheckbox
-                v-model="state.productUpdates"
-                :label="t('comm_label_product_updates')"
-                :description="t('comm_desc_product_updates')"
-                :disabled="state.globalUnsubscribe"
-              />
-            </UFormField>
-            <UFormField name="marketing">
-              <UCheckbox
-                v-model="state.marketing"
-                :label="t('comm_label_marketing')"
-                :description="t('comm_desc_marketing')"
+                label="Plan Updates"
+                description="Get notified when your upcoming training plan is generated or adjusted."
                 :disabled="state.globalUnsubscribe"
               />
             </UFormField>
             <UFormField name="retentionNudges">
               <UCheckbox
                 v-model="state.retentionNudges"
-                :label="t('comm_label_retention')"
-                :description="t('comm_desc_retention')"
+                label="Coaching Nudges"
+                description="Weekly summaries, check-ins, and reminders to stay on track."
                 :disabled="state.globalUnsubscribe"
               />
             </UFormField>
           </div>
         </UCard>
 
-        <div class="flex justify-end pt-4">
-          <UButton type="submit" color="primary" :loading="isSaving">
-            {{ t('basic_save_button') }}
+        <!-- Product & Marketing Card -->
+        <UCard>
+          <template #header>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-warning-500" />
+              <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                Product & Marketing
+              </h3>
+            </div>
+          </template>
+
+          <div class="space-y-6">
+            <UFormField name="productUpdates">
+              <UCheckbox
+                v-model="state.productUpdates"
+                label="Product Updates"
+                description="News about new features, integrations, and platform improvements."
+                :disabled="state.globalUnsubscribe"
+              />
+            </UFormField>
+            <UFormField name="marketing">
+              <UCheckbox
+                v-model="state.marketing"
+                label="Marketing & Offers"
+                description="Promotions, discounts, and partnership offers."
+                :disabled="state.globalUnsubscribe"
+              />
+            </UFormField>
+          </div>
+        </UCard>
+
+        <!-- Required Card -->
+        <UCard :ui="{ body: 'opacity-75' }">
+          <template #header>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-heroicons-credit-card" class="w-5 h-5 text-gray-400" />
+              <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                Account & Billing
+              </h3>
+            </div>
+          </template>
+
+          <UFormField name="billing">
+            <UCheckbox
+              v-model="state.billing"
+              label="Billing Notices"
+              description="Receipts, failed payment alerts, and subscription updates. (Mandatory)"
+              disabled
+            />
+          </UFormField>
+        </UCard>
+
+        <!-- Action Bar -->
+        <div class="flex justify-end pt-2">
+          <UButton
+            type="submit"
+            color="primary"
+            size="lg"
+            :loading="isSaving"
+            icon="i-heroicons-check"
+          >
+            Save Preferences
           </UButton>
         </div>
       </div>
     </UForm>
+  </div>
+  <div v-else class="flex justify-center p-12">
+    <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 animate-spin text-primary-500" />
   </div>
 </template>

@@ -5,10 +5,10 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              {{ t('sports_header') }}
+              Configure Sports
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('sports_description') }}
+              Manage thresholds and zones for specific activity types.
             </p>
           </div>
           <div class="flex gap-2 shrink-0">
@@ -18,7 +18,7 @@
               variant="soft"
               color="primary"
               :loading="autodetecting"
-              :label="t('sports_autodetect')"
+              label="Auto-detect"
               class="flex-1 sm:flex-none justify-center"
               @click="autodetectProfile"
             />
@@ -27,7 +27,7 @@
               size="sm"
               variant="soft"
               color="primary"
-              :label="t('sports_add_sport')"
+              label="Add Sport"
               class="flex-1 sm:flex-none justify-center"
               @click="openAddModal"
             />
@@ -45,14 +45,12 @@
         >
           <UIcon name="i-lucide-award" class="w-8 h-8 text-gray-400" />
         </div>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-          {{ t('sports_empty_title') }}
-        </h3>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">No Sport Settings Found</h3>
         <p class="text-gray-500 mt-2 max-w-sm mx-auto mb-6">
-          {{ t('sports_empty_desc') }}
+          Connect to Intervals.icu to sync your profile or add a sport manually.
         </p>
         <UButton icon="i-lucide-plus" size="md" color="primary" @click="openAddModal">
-          {{ t('sports_empty_button') }}
+          Add Your First Sport
         </UButton>
       </div>
 
@@ -71,10 +69,10 @@
                 class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6"
               >
                 <div v-if="editingIndex === index" class="w-full sm:flex-1">
-                  <UFormField :label="t('sports_form_profile_name')" name="name">
+                  <UFormField label="Profile Name" name="name">
                     <UInput
                       v-model="editForm.name"
-                      :placeholder="t('sports_form_profile_name_placeholder')"
+                      placeholder="e.g. Road Cycling"
                       size="xs"
                       class="w-full"
                       :disabled="item.content.isDefault"
@@ -87,12 +85,8 @@
                     class="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2"
                   >
                     {{ item.content.name }}
-                    <UBadge
-                      v-if="item.content.isDefault"
-                      color="primary"
-                      variant="subtle"
-                      size="xs"
-                      >{{ t('sports_badge_default') }}</UBadge
+                    <UBadge v-if="item.content.isDefault" color="primary" variant="subtle" size="xs"
+                      >Default</UBadge
                     >
                   </h4>
                 </div>
@@ -106,7 +100,7 @@
                       color="error"
                       @click="deleteSport(index)"
                     >
-                      {{ t('sports_button_delete') }}
+                      Delete
                     </UButton>
 
                     <UDropdownMenu
@@ -115,7 +109,7 @@
                       :content="{ align: 'end' }"
                     >
                       <UButton icon="i-lucide-copy" size="xs" variant="ghost" color="neutral">
-                        {{ t('sports_button_copy') }}
+                        Copy from
                       </UButton>
                     </UDropdownMenu>
 
@@ -126,7 +120,7 @@
                       color="primary"
                       @click="startEdit(index, item.content)"
                     >
-                      {{ t('sports_button_edit') }}
+                      Edit Sport
                     </UButton>
                   </template>
                   <div v-else class="flex gap-2">
@@ -137,7 +131,7 @@
                       color="neutral"
                       @click="cancelEdit"
                     >
-                      {{ t('banner_exit') }}
+                      Cancel
                     </UButton>
                     <UButton
                       icon="i-lucide-check"
@@ -146,7 +140,7 @@
                       color="primary"
                       @click="saveEdit(index)"
                     >
-                      {{ t('sports_button_save') }}
+                      Save Changes
                     </UButton>
                   </div>
                 </div>
@@ -154,12 +148,12 @@
 
               <!-- Activity Types (Edit mode only) -->
               <section v-if="editingIndex === index && !item.content.isDefault" class="space-y-4">
-                <UFormField :label="t('sports_form_assign_types')" name="types" required>
+                <UFormField label="Assign to Activity Types" name="types" required>
                   <USelectMenu
                     v-model="editForm.types"
                     :items="availableSports"
                     multiple
-                    :placeholder="t('sports_form_assign_types_placeholder')"
+                    placeholder="Choose sports..."
                     class="w-full"
                     :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
                   />
@@ -171,15 +165,15 @@
                 <h4
                   class="text-sm font-medium text-gray-500 uppercase tracking-wider border-b pb-2 dark:border-gray-800"
                 >
-                  {{ t('sports_section_general') }}
+                  General
                 </h4>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <!-- Warmup -->
                   <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
                       <UFormField
-                        :label="t('sports_form_warmup')"
-                        :help="t('sports_form_warmup_help')"
+                        label="Warmup"
+                        help="Auto-shrink warmup segments to this duration (min)."
                       >
                         <UInput
                           v-model.number="editForm.warmupTime"
@@ -190,9 +184,7 @@
                       </UFormField>
                     </template>
                     <template v-else>
-                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        {{ t('sports_form_warmup') }}
-                      </div>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Warmup</div>
                       <div class="text-xl font-semibold h-7">
                         {{ item.content.warmupTime || '-' }}
                         <span v-if="item.content.warmupTime" class="text-xs text-gray-400"
@@ -207,8 +199,8 @@
                   <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
                       <UFormField
-                        :label="t('sports_form_cooldown')"
-                        :help="t('sports_form_cooldown_help')"
+                        label="Cooldown"
+                        help="Auto-shrink cooldown segments to this duration (min)."
                       >
                         <UInput
                           v-model.number="editForm.cooldownTime"
@@ -220,7 +212,7 @@
                     </template>
                     <template v-else>
                       <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        {{ t('sports_form_cooldown') }}
+                        Cooldown
                       </div>
                       <div class="text-xl font-semibold h-7">
                         {{ item.content.cooldownTime || '-' }}
@@ -232,14 +224,12 @@
                     </template>
                   </div>
 
-                  <!-- Load Preference -->
-                  <div
-                    class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg col-span-1 sm:col-span-2"
-                  >
+                  <!-- Load Priority -->
+                  <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg md:col-span-2">
                     <template v-if="editingIndex === index">
                       <UFormField
-                        :label="t('sports_form_load_priority')"
-                        :help="t('sports_form_load_priority_help')"
+                        label="Load Priority"
+                        help="Order of preference for calculating training load."
                       >
                         <USelectMenu
                           v-model="editForm.loadPreference"
@@ -251,12 +241,12 @@
                     </template>
                     <template v-else>
                       <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        {{ t('sports_form_load_priority') }}
+                        Load Priority
                       </div>
-                      <div class="text-base font-semibold h-7 truncate">
-                        {{ item.content.loadPreference?.replace(/_/g, ' ') || 'POWER HR PACE' }}
+                      <div class="text-sm font-medium h-7 flex items-center">
+                        {{ item.content.loadPreference || '-' }}
                       </div>
-                      <div class="text-[10px] text-gray-400 mt-1">Source priority</div>
+                      <div class="text-[10px] text-gray-400 mt-1">Load calculation order</div>
                     </template>
                   </div>
                 </div>
@@ -264,19 +254,17 @@
 
               <!-- Power Settings -->
               <section class="space-y-4">
-                <div class="flex items-center justify-between border-b pb-2 dark:border-gray-800">
-                  <h4
-                    class="text-sm font-medium text-gray-500 uppercase tracking-wider flex items-center gap-2"
-                  >
-                    <UIcon name="i-lucide-zap" class="w-4 h-4 text-yellow-500" />
-                    {{ t('sports_section_power') }}
-                  </h4>
-                </div>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <h4
+                  class="text-sm font-medium text-gray-500 uppercase tracking-wider border-b pb-2 dark:border-gray-800 flex items-center gap-2"
+                >
+                  <UIcon name="i-lucide-zap" class="w-4 h-4 text-yellow-500" />
+                  Power Settings
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <!-- FTP -->
                   <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
-                      <UFormField :label="t('sports_form_ftp')" :help="t('sports_form_ftp_help')">
+                      <UFormField label="FTP" help="Functional Threshold Power (Watts).">
                         <UInput
                           v-model.number="editForm.ftp"
                           type="number"
@@ -292,16 +280,36 @@
                         {{ item.content.ftp || '-' }}
                         <span v-if="item.content.ftp" class="text-xs text-gray-400">W</span>
                       </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Functional Threshold Power</div>
+                    </template>
+                  </div>
+
+                  <!-- eFTP -->
+                  <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <template v-if="editingIndex === index">
+                      <UFormField label="eFTP" help="Estimated FTP from recent efforts.">
+                        <UInput
+                          v-model.number="editForm.eFtp"
+                          type="number"
+                          size="xs"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+                    <template v-else>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">eFTP</div>
+                      <div class="text-xl font-semibold h-7">
+                        {{ item.content.eFtp || '-' }}
+                        <span v-if="item.content.eFtp" class="text-xs text-gray-400">W</span>
+                      </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Estimated FTP</div>
                     </template>
                   </div>
 
                   <!-- Indoor FTP -->
                   <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
-                      <UFormField
-                        :label="t('sports_form_indoor_ftp')"
-                        :help="t('sports_form_indoor_ftp_help')"
-                      >
+                      <UFormField label="Indoor FTP" help="Override for indoor workouts.">
                         <UInput
                           v-model.number="editForm.indoorFtp"
                           type="number"
@@ -318,23 +326,100 @@
                         {{ item.content.indoorFtp || '-' }}
                         <span v-if="item.content.indoorFtp" class="text-xs text-gray-400">W</span>
                       </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Indoor override</div>
+                    </template>
+                  </div>
+
+                  <!-- W' -->
+                  <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <template v-if="editingIndex === index">
+                      <UFormField label="W' (Joules)" help="Anaerobic work capacity above FTP.">
+                        <UInput
+                          v-model.number="editForm.wPrime"
+                          type="number"
+                          size="xs"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+                    <template v-else>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">W'</div>
+                      <div class="text-xl font-semibold h-7">
+                        {{ item.content.wPrime ? (item.content.wPrime / 1000).toFixed(1) : '-' }}
+                        <span v-if="item.content.wPrime" class="text-xs text-gray-400">kJ</span>
+                      </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Anaerobic capacity</div>
+                    </template>
+                  </div>
+
+                  <!-- Pmax -->
+                  <div
+                    v-if="editingIndex === index || item.content.pMax"
+                    class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                  >
+                    <template v-if="editingIndex === index">
+                      <UFormField label="Pmax" help="Maximum power for 1 second.">
+                        <UInput
+                          v-model.number="editForm.pMax"
+                          type="number"
+                          size="xs"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+                    <template v-else>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Pmax</div>
+                      <div class="text-xl font-semibold h-7">
+                        {{ item.content.pMax || '-' }}
+                        <span v-if="item.content.pMax" class="text-xs text-gray-400">W</span>
+                      </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Max power (1s)</div>
+                    </template>
+                  </div>
+
+                  <!-- Power Spikes -->
+                  <div
+                    v-if="editingIndex === index || item.content.powerSpikeThreshold"
+                    class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                  >
+                    <template v-if="editingIndex === index">
+                      <UFormField label="Spikes %" help="Filter data exceeding FTP by this %.">
+                        <UInput
+                          v-model.number="editForm.powerSpikeThreshold"
+                          type="number"
+                          size="xs"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+                    <template v-else>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                        Power Spikes
+                      </div>
+                      <div class="text-xl font-semibold h-7">
+                        {{ item.content.powerSpikeThreshold || '-' }}
+                        <span v-if="item.content.powerSpikeThreshold" class="text-xs text-gray-400"
+                          >%</span
+                        >
+                      </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Spike threshold</div>
                     </template>
                   </div>
                 </div>
 
-                <!-- Power Zones -->
+                <!-- Power Zones Editor -->
                 <div v-if="editingIndex === index" class="mt-4">
                   <ProfileZoneEditor
                     v-model="editForm.powerZones"
-                    :title="t('zones_title_power')"
+                    title="Power Zones"
                     units="W"
                     icon="i-lucide-zap"
                     icon-color="text-yellow-500"
                   >
                     <template #actions>
-                      <UButton size="xs" variant="soft" @click="recalculateZones('power', 'edit')">
-                        {{ t('sports_button_recalculate') }}
-                      </UButton>
+                      <UButton size="xs" variant="soft" @click="recalculateZones('power', 'edit')"
+                        >Calculate Default</UButton
+                      >
                     </template>
                   </ProfileZoneEditor>
                 </div>
@@ -342,10 +427,8 @@
                   v-else-if="item.content.powerZones?.length"
                   class="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl"
                 >
-                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">
-                    {{ t('zones_title_power') }}
-                  </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">Power Zones</div>
+                  <div class="space-y-2">
                     <div
                       v-for="(zone, zIdx) in item.content.powerZones"
                       :key="zIdx"
@@ -363,19 +446,17 @@
 
               <!-- Heart Rate Settings -->
               <section class="space-y-4">
-                <div class="flex items-center justify-between border-b pb-2 dark:border-gray-800">
-                  <h4
-                    class="text-sm font-medium text-gray-500 uppercase tracking-wider flex items-center gap-2"
-                  >
-                    <UIcon name="i-lucide-heart" class="w-4 h-4 text-red-500" />
-                    {{ t('sports_section_hr') }}
-                  </h4>
-                </div>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <h4
+                  class="text-sm font-medium text-gray-500 uppercase tracking-wider border-b pb-2 dark:border-gray-800 flex items-center gap-2"
+                >
+                  <UIcon name="i-lucide-heart" class="w-4 h-4 text-red-500" />
+                  Heart Rate Settings
+                </h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <!-- LTHR -->
                   <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
-                      <UFormField :label="t('sports_form_lthr')" :help="t('sports_form_lthr_help')">
+                      <UFormField label="LTHR" help="Lactate Threshold HR (bpm).">
                         <UInput
                           v-model.number="editForm.lthr"
                           type="number"
@@ -391,16 +472,14 @@
                         {{ item.content.lthr || '-' }}
                         <span v-if="item.content.lthr" class="text-xs text-gray-400">bpm</span>
                       </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Lactate Threshold HR</div>
                     </template>
                   </div>
 
                   <!-- Max HR -->
                   <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
-                      <UFormField
-                        :label="t('sports_form_max_hr')"
-                        :help="t('sports_form_max_hr_help')"
-                      >
+                      <UFormField label="Max HR" help="Maximum Heart Rate.">
                         <UInput
                           v-model.number="editForm.maxHr"
                           type="number"
@@ -416,23 +495,74 @@
                         {{ item.content.maxHr || '-' }}
                         <span v-if="item.content.maxHr" class="text-xs text-gray-400">bpm</span>
                       </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Maximum Heart Rate</div>
+                    </template>
+                  </div>
+
+                  <!-- Resting HR -->
+                  <div
+                    v-if="editingIndex === index || item.content.restingHr"
+                    class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                  >
+                    <template v-if="editingIndex === index">
+                      <UFormField label="Resting HR" help="Activity-specific resting HR.">
+                        <UInput
+                          v-model.number="editForm.restingHr"
+                          type="number"
+                          size="xs"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+                    <template v-else>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                        Resting HR
+                      </div>
+                      <div class="text-xl font-semibold h-7">
+                        {{ item.content.restingHr || '-' }}
+                        <span v-if="item.content.restingHr" class="text-xs text-gray-400">bpm</span>
+                      </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Resting Heart Rate</div>
+                    </template>
+                  </div>
+
+                  <!-- HR Load Type -->
+                  <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <template v-if="editingIndex === index">
+                      <UFormField label="Load Type" help="Model for HR training load.">
+                        <USelectMenu
+                          v-model="editForm.hrLoadType"
+                          :items="['HRSS', 'AVG_HR', 'HR_ZONES']"
+                          size="xs"
+                          class="w-full"
+                        />
+                      </UFormField>
+                    </template>
+                    <template v-else>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                        Load Type
+                      </div>
+                      <div class="text-sm font-medium h-7 flex items-center">
+                        {{ item.content.hrLoadType || '-' }}
+                      </div>
+                      <div class="text-[10px] text-gray-400 mt-1">Load calculation model</div>
                     </template>
                   </div>
                 </div>
 
-                <!-- HR Zones -->
+                <!-- HR Zones Editor -->
                 <div v-if="editingIndex === index" class="mt-4">
                   <ProfileZoneEditor
                     v-model="editForm.hrZones"
-                    :title="t('zones_title_hr')"
+                    title="Heart Rate Zones"
                     units="bpm"
                     icon="i-lucide-heart"
                     icon-color="text-red-500"
                   >
                     <template #actions>
-                      <UButton size="xs" variant="soft" @click="recalculateZones('hr', 'edit')">
-                        {{ t('sports_button_recalculate') }}
-                      </UButton>
+                      <UButton size="xs" variant="soft" @click="recalculateZones('hr', 'edit')"
+                        >Calculate Default</UButton
+                      >
                     </template>
                   </ProfileZoneEditor>
                 </div>
@@ -440,9 +570,7 @@
                   v-else-if="item.content.hrZones?.length"
                   class="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl"
                 >
-                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">
-                    {{ t('zones_title_hr') }}
-                  </div>
+                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">Heart Rate Zones</div>
                   <div class="space-y-2">
                     <div
                       v-for="(zone, zIdx) in item.content.hrZones"
@@ -469,10 +597,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
-                      <UFormField
-                        :label="t('sports_form_threshold_pace')"
-                        :help="t('sports_form_threshold_pace_help_hint')"
-                      >
+                      <UFormField label="Threshold Pace" help="m/s (e.g. 4.0 = 4:10/km).">
                         <UInput
                           v-model.number="editForm.thresholdPace"
                           type="number"
@@ -484,7 +609,7 @@
                     </template>
                     <template v-else>
                       <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        {{ t('sports_form_threshold_pace') }}
+                        Threshold Pace
                       </div>
                       <div class="text-xl font-semibold h-7">
                         {{ formatPace(item.content.thresholdPace) }}
@@ -505,8 +630,8 @@
     <!-- Autodetect Confirmation Modal -->
     <UModal
       v-model:open="showConfirmModal"
-      :title="t('sports_modal_autodetect_title')"
-      :description="t('sports_modal_autodetect_desc')"
+      title="Confirm Sport Profile Updates"
+      description="We found changes in your connected apps (like Intervals.icu) for your sport profiles. Review them below:"
     >
       <template #body>
         <div class="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
@@ -522,10 +647,10 @@
                   sport.name || sport.types.join(', ')
                 }}</span>
                 <UBadge v-if="!sport.id" color="success" variant="subtle" size="xs" class="ml-auto">
-                  {{ t('sports_badge_new_profile') }}
+                  New Profile
                 </UBadge>
                 <UBadge v-else color="warning" variant="subtle" size="xs" class="ml-auto">
-                  {{ t('sports_badge_updated') }}
+                  Updated
                 </UBadge>
               </div>
 
@@ -568,9 +693,9 @@
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="ghost" @click="showConfirmModal = false">{{
-            t('banner_exit')
-          }}</UButton>
+          <UButton color="neutral" variant="ghost" @click="showConfirmModal = false"
+            >Cancel</UButton
+          >
           <UButton color="primary" @click="confirmAutodetect">Apply Changes</UButton>
         </div>
       </template>
@@ -579,7 +704,7 @@
     <!-- Add Sport Slideover -->
     <USlideover
       v-model:open="showAddModal"
-      :title="t('sports_add_sport')"
+      title="Add New Sport Profile"
       description="Configure metrics and thresholds for a specific activity type."
     >
       <template #content>
@@ -590,29 +715,26 @@
               <h4
                 class="text-sm font-medium text-gray-500 uppercase tracking-wider border-b pb-2 dark:border-gray-800"
               >
-                {{ t('sports_section_general') }}
+                General Info
               </h4>
               <UFormField
-                :label="t('sports_form_profile_name')"
+                label="Profile Name"
                 name="name"
                 help="Give this settings profile a name (e.g. 'Road Cycling')"
               >
-                <UInput
-                  v-model="addForm.name"
-                  :placeholder="t('sports_form_profile_name_placeholder')"
-                />
+                <UInput v-model="addForm.name" placeholder="e.g. Road Cycling" />
               </UFormField>
               <UFormField
-                :label="t('sports_form_assign_types')"
+                label="Assign to Activity Types"
                 name="types"
                 required
-                :help="t('sports_form_warmup_help')"
+                help="Select the activity types this profile applies to."
               >
                 <USelectMenu
                   v-model="addForm.types"
                   :items="availableSports"
                   multiple
-                  :placeholder="t('sports_form_assign_types_placeholder')"
+                  placeholder="Choose sports..."
                   class="w-full"
                   :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
                 />
@@ -626,15 +748,11 @@
                   class="text-sm font-medium text-gray-500 uppercase tracking-wider flex items-center gap-2"
                 >
                   <UIcon name="i-lucide-zap" class="w-4 h-4 text-yellow-500" />
-                  {{ t('sports_section_power') }}
+                  Power Settings
                 </h4>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <UFormField
-                  :label="t('sports_form_ftp')"
-                  name="ftp"
-                  :help="t('sports_form_ftp_help')"
-                >
+                <UFormField label="FTP (Watts)" name="ftp" help="Functional Threshold Power">
                   <UInput
                     v-model.number="addForm.ftp"
                     type="number"
@@ -643,9 +761,9 @@
                   />
                 </UFormField>
                 <UFormField
-                  :label="t('sports_form_indoor_ftp')"
+                  label="Indoor FTP"
                   name="indoorFtp"
-                  :help="t('sports_form_indoor_ftp_help')"
+                  help="Power target override for indoor sessions"
                 >
                   <UInput v-model.number="addForm.indoorFtp" type="number" />
                 </UFormField>
@@ -655,15 +773,15 @@
               <div class="mt-4">
                 <ProfileZoneEditor
                   v-model="addForm.powerZones"
-                  :title="t('zones_title_power')"
+                  title="Power Zones"
                   units="W"
                   icon="i-lucide-zap"
                   icon-color="text-yellow-500"
                 >
                   <template #actions>
-                    <UButton size="xs" variant="soft" @click="recalculateZones('power', 'add')">
-                      {{ t('sports_button_recalculate') }}
-                    </UButton>
+                    <UButton size="xs" variant="soft" @click="recalculateZones('power', 'add')"
+                      >Recalculate</UButton
+                    >
                   </template>
                 </ProfileZoneEditor>
               </div>
@@ -676,15 +794,11 @@
                   class="text-sm font-medium text-gray-500 uppercase tracking-wider flex items-center gap-2"
                 >
                   <UIcon name="i-lucide-heart" class="w-4 h-4 text-red-500" />
-                  {{ t('sports_section_hr') }}
+                  Heart Rate Settings
                 </h4>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <UFormField
-                  :label="t('sports_form_lthr')"
-                  name="lthr"
-                  :help="t('sports_form_lthr_help')"
-                >
+                <UFormField label="LTHR (bpm)" name="lthr" help="Lactate Threshold HR">
                   <UInput
                     v-model.number="addForm.lthr"
                     type="number"
@@ -692,11 +806,7 @@
                     @update:model-value="handleThresholdChange('hr', 'add')"
                   />
                 </UFormField>
-                <UFormField
-                  :label="t('sports_form_max_hr')"
-                  name="maxHr"
-                  :help="t('sports_form_max_hr_help')"
-                >
+                <UFormField label="Max HR (bpm)" name="maxHr" help="Maximum Heart Rate">
                   <UInput
                     v-model.number="addForm.maxHr"
                     type="number"
@@ -710,15 +820,15 @@
               <div class="mt-4">
                 <ProfileZoneEditor
                   v-model="addForm.hrZones"
-                  :title="t('zones_title_hr')"
+                  title="Heart Rate Zones"
                   units="bpm"
                   icon="i-lucide-heart"
                   icon-color="text-red-500"
                 >
                   <template #actions>
-                    <UButton size="xs" variant="soft" @click="recalculateZones('hr', 'add')">
-                      {{ t('sports_button_recalculate') }}
-                    </UButton>
+                    <UButton size="xs" variant="soft" @click="recalculateZones('hr', 'add')"
+                      >Recalculate</UButton
+                    >
                   </template>
                 </ProfileZoneEditor>
               </div>
@@ -728,7 +838,7 @@
             <UAccordion
               :items="[
                 {
-                  label: t('sports_section_advanced'),
+                  label: 'Advanced Metrics & General',
                   slot: 'advanced',
                   icon: 'i-lucide-settings-2'
                 }
@@ -738,30 +848,30 @@
               <template #advanced>
                 <div class="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 text-xs">
                   <UFormField
-                    :label="t('sports_form_eftp')"
+                    label="eFTP (Watts)"
                     name="eFtp"
-                    :help="t('sports_form_eftp_help')"
+                    help="Estimated FTP based on your best efforts from activity data."
                   >
                     <UInput v-model.number="addForm.eFtp" type="number" />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_pmax')"
+                    label="Pmax (Watts)"
                     name="pMax"
-                    :help="t('sports_form_pmax_help')"
+                    help="The maximum power you can generate for 1 second."
                   >
                     <UInput v-model.number="addForm.pMax" type="number" />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_wprime')"
+                    label="W' (Joules)"
                     name="wPrime"
-                    :help="t('sports_form_wprime_help')"
+                    help="Anaerobic work capacity: the total work you can do above FTP."
                   >
                     <UInput v-model.number="addForm.wPrime" type="number" />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_spikes')"
+                    label="Power Spikes %"
                     name="powerSpikeThreshold"
-                    :help="t('sports_form_spikes_help')"
+                    help="Data points exceeding FTP by this % will be filtered."
                   >
                     <UInput
                       v-model.number="addForm.powerSpikeThreshold"
@@ -770,16 +880,16 @@
                     />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_resting_hr')"
+                    label="Resting HR"
                     name="restingHr"
-                    :help="t('sports_form_resting_hr_help')"
+                    help="Activity-specific resting HR if different from global."
                   >
                     <UInput v-model.number="addForm.restingHr" type="number" />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_hr_load_type')"
+                    label="HR Load Type"
                     name="hrLoadType"
-                    :help="t('sports_form_hr_load_type_help')"
+                    help="Model used to calculate HR training load (HRSS is recommended)."
                   >
                     <USelectMenu
                       v-model="addForm.hrLoadType"
@@ -788,16 +898,16 @@
                     />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_threshold_pace')"
+                    label="Threshold Pace"
                     name="thresholdPace"
-                    :help="t('sports_form_threshold_pace_help')"
+                    help="Your threshold pace in m/s (used for pace-based load)."
                   >
                     <UInput v-model.number="addForm.thresholdPace" type="number" step="0.01" />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_load_priority')"
+                    label="Load Priority"
                     name="loadPreference"
-                    :help="t('sports_form_load_priority_help')"
+                    help="Which data source to prioritize for training load calculation."
                   >
                     <USelectMenu
                       v-model="addForm.loadPreference"
@@ -806,16 +916,16 @@
                     />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_warmup')"
+                    label="Warmup (min)"
                     name="warmupTime"
-                    :help="t('sports_form_warmup_help')"
+                    help="Auto-shrink warmup segments to this duration in charts."
                   >
                     <UInput v-model.number="addForm.warmupTime" type="number" />
                   </UFormField>
                   <UFormField
-                    :label="t('sports_form_cooldown')"
+                    label="Cooldown (min)"
                     name="cooldownTime"
-                    :help="t('sports_form_cooldown_help')"
+                    help="Auto-shrink cooldown segments to this duration in charts."
                   >
                     <UInput v-model.number="addForm.cooldownTime" type="number" />
                   </UFormField>
@@ -826,10 +936,10 @@
             <div
               class="pt-6 flex justify-end gap-3 border-t dark:border-gray-800 sticky bottom-0 bg-white dark:bg-gray-900 pb-2 z-10"
             >
-              <UButton color="neutral" variant="ghost" @click="showAddModal = false">{{
-                t('banner_exit')
-              }}</UButton>
-              <UButton type="submit" color="primary">{{ t('sports_button_create') }}</UButton>
+              <UButton color="neutral" variant="ghost" @click="showAddModal = false"
+                >Cancel</UButton
+              >
+              <UButton type="submit" color="primary">Create Sport Profile</UButton>
             </div>
           </UForm>
         </div>
@@ -839,10 +949,7 @@
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
   import { WORKOUT_ICONS } from '~/utils/activity-types'
-
-  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     settings: any[]
@@ -898,8 +1005,7 @@
     })
 
     return sorted.map((s, i) => ({
-      label:
-        s.name || (s.isDefault ? t.value('sports_badge_default') + ' Profile' : s.types.join(', ')),
+      label: s.name || (s.isDefault ? 'Default Profile' : s.types.join(', ')),
       icon: s.isDefault ? 'i-lucide-globe' : getIconForTypes(s.types),
       content: s,
       value: String(i),
@@ -971,7 +1077,7 @@
     // Ensure name exists
     if (!editForm.value.name)
       editForm.value.name = content.isDefault
-        ? t.value('sports_badge_default') + ' Profile'
+        ? 'Default Profile'
         : content.types?.join(', ') || 'Sport Profile'
   }
 
@@ -1009,11 +1115,11 @@
 
     const itemToDelete = item.content
     if (itemToDelete.isDefault) {
-      toast.add({ title: t.value('sports_error_delete_default'), color: 'error' })
+      alert('Cannot delete the default profile.')
       return
     }
 
-    if (confirm(t.value('sports_confirm_delete'))) {
+    if (confirm('Are you sure you want to remove this sport profile?')) {
       const newSettings = props.settings.filter(
         (s) =>
           s !== itemToDelete &&
@@ -1070,10 +1176,10 @@
     })
 
     toast.add({
-      title: t.value('sports_toast_settings_copied_title'),
-      description: t.value('sports_toast_settings_copied_desc', {
-        name: sourceProfile.name || sourceProfile.types?.join(', ') || 'another profile'
-      }),
+      title: 'Settings Copied',
+      description: `Copied settings from ${
+        sourceProfile.name || sourceProfile.types?.join(', ') || 'another profile'
+      }. Review and save changes.`,
       color: 'primary'
     })
   }
@@ -1090,9 +1196,7 @@
 
     return [
       otherSports.map((s) => ({
-        label:
-          s.name ||
-          (s.isDefault ? t.value('sports_badge_default') + ' Profile' : s.types.join(', ')),
+        label: s.name || (s.isDefault ? 'Default Profile' : s.types.join(', ')),
         icon: s.isDefault ? 'i-lucide-globe' : getIconForTypes(s.types),
         onSelect: () => copySettings(index, s)
       }))
@@ -1218,28 +1322,31 @@
         pendingDetectedProfile.value = response.detected
         showConfirmModal.value = true
       } else if (response.success && Object.keys(response.diff).length > 0) {
+        // Detected changes in basic settings but not sport settings
+        // Notify user to check Basic Settings tab
         toast.add({
-          title: t.value('sports_toast_autodetect_basic_title'),
-          description: t.value('sports_toast_autodetect_basic_desc'),
+          title: 'Basic Settings Found',
+          description:
+            'Updates found for basic profile stats. Switch to the Basic Settings tab to review.',
           color: 'primary',
           actions: [
             {
-              label: t.value('sports_toast_autodetect_basic_action'),
-              onClick: () => emit('autodetect', null)
+              label: 'Switch Tab',
+              onClick: () => emit('autodetect', null) // Signal parent to maybe switch tab? Or just let user do it
             }
           ]
         })
       } else {
         toast.add({
-          title: t.value('sports_toast_autodetect_none_title'),
-          description: response.message || t.value('sports_toast_autodetect_none_desc'),
+          title: 'No Updates Found',
+          description: response.message || 'Your sport profiles are already in sync.',
           color: 'neutral'
         })
       }
     } catch (error: any) {
       toast.add({
-        title: t.value('sports_toast_autodetect_failed_title'),
-        description: error.message || t.value('sports_toast_autodetect_failed_desc'),
+        title: 'Autodetect Failed',
+        description: error.message || 'Failed to sync with apps.',
         color: 'error'
       })
     } finally {
@@ -1249,8 +1356,20 @@
 
   function confirmAutodetect() {
     if (pendingDetectedProfile.value.sportSettings) {
+      // Merge detected sport settings into current settings
+      // We need to be careful: are we replacing or merging?
+      // The logic in autodetect.post.ts returns the *changes*.
+      // But typically we might just want to replace the list or update specific items.
+
+      // Actually, autodetect logic on parent 'handleAutodetect' does:
+      // if (updatedProfile.sportSettings) sportSettings.value = updatedProfile.sportSettings
+      // So we should emit the FULL detected profile if possible, OR just the changes.
+      // Parent handleAutodetect expects 'updatedProfile' object.
+
+      // We emit 'autodetect' event which parent listens to
       emit('autodetect', pendingDetectedProfile.value)
     }
+
     showConfirmModal.value = false
   }
 </script>

@@ -1,8 +1,5 @@
 <script setup lang="ts">
   import { formatDistanceToNow, isToday, isYesterday } from 'date-fns'
-  import { useTranslate } from '@tolgee/vue'
-
-  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     personalBests: any[]
@@ -135,12 +132,12 @@
           <h3
             class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
           >
-            {{ t('trophy_hall_of_fame', { category: cat.label }) }}
+            {{ cat.label }} Hall of Fame
           </h3>
           <p
             class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em]"
           >
-            {{ t('trophy_hall_of_fame_desc') }}
+            Elite performances from your history
           </p>
         </div>
         <div class="flex-1 border-b border-dashed border-gray-200 dark:border-gray-800 ml-2" />
@@ -177,9 +174,7 @@
                     class="absolute inset-0 -translate-x-full animate-[shimmer_3s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-12"
                   />
                   <UIcon name="i-heroicons-sparkles" class="w-5 h-5 animate-spin-slow" />
-                  <span class="text-xs font-black uppercase tracking-[0.2em]">{{
-                    t('trophy_new_record')
-                  }}</span>
+                  <span class="text-xs font-black uppercase tracking-[0.2em]">New Record</span>
                 </div>
               </div>
 
@@ -234,7 +229,7 @@
                   <div
                     class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5"
                   >
-                    {{ t('trophy_stat_avg_hr') }}
+                    Avg Heart Rate
                   </div>
                   <span class="text-base font-black text-gray-700 dark:text-gray-400 tabular-nums">
                     {{ pb.metadata?.avgHr || pb.workout?.averageHr }}
@@ -255,7 +250,7 @@
                   <div
                     class="text-[9px] font-bold text-gray-500 dark:text-gray-600 uppercase tracking-widest mb-0.5"
                   >
-                    {{ t('trophy_stat_avg_cadence') }}
+                    Avg Cadence
                   </div>
                   <span class="text-base font-black text-gray-700 dark:text-gray-400 tabular-nums">
                     {{ pb.metadata?.avgCadence || pb.workout?.averageCadence }}
@@ -274,7 +269,7 @@
               <div
                 class="text-[10px] font-black text-gray-500 dark:text-gray-600 uppercase tracking-[0.3em]"
               >
-                {{ t('trophy_achieved') }}
+                Achieved
               </div>
               <div class="text-base font-black text-gray-700 dark:text-gray-500 italic">
                 {{ getHumanDate(pb.date) }}
@@ -306,10 +301,11 @@
         <UIcon name="i-heroicons-trophy" class="w-12 h-12 text-gray-200" />
       </div>
       <h3 class="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tight italic">
-        {{ t('trophy_empty_title') }}
+        The Case is Empty
       </h3>
       <p class="text-base text-gray-500 max-w-sm mx-auto mt-3 font-medium leading-relaxed">
-        {{ t('trophy_empty_desc') }}
+        Your peak performances are waiting. Go out, push your limits, and Coach Watts will celebrate
+        you here.
       </p>
       <UButton
         color="primary"
@@ -318,7 +314,7 @@
         class="mt-10 font-black uppercase tracking-widest rounded-2xl px-10 py-4 shadow-xl shadow-primary-500/20"
         to="/activities"
       >
-        {{ t('trophy_empty_button') }}
+        Ignite Training
       </UButton>
     </div>
   </div>

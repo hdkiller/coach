@@ -1,41 +1,101 @@
 <template>
-  <div class="space-y-6 animate-fade-in pb-24">
-    <!-- Metabolic Profile -->
+  <div class="space-y-6">
     <UCard>
-      <template #header>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
           <div>
-            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              {{ t('nutrition_header_metabolic') }}
+            <h3 class="text-base font-bold text-gray-900 dark:text-white">
+              Enable Nutrition System
             </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('nutrition_desc_metabolic') }}
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Activate periodized fueling guidance and metabolic tracking.
             </p>
           </div>
-          <UButton
-            icon="i-heroicons-calculator"
-            size="sm"
-            variant="soft"
-            color="primary"
-            :label="t('nutrition_button_calculate_bmr')"
-            @click="calculateBMR"
-          />
+        </div>
+        <USwitch
+          v-model="localSettings.nutritionTrackingEnabled"
+          size="lg"
+          @update:model-value="saveSettings"
+        />
+      </div>
+    </UCard>
+
+    <UAlert
+      v-if="isProfileDataMissing"
+      icon="i-heroicons-exclamation-triangle"
+      color="warning"
+      variant="soft"
+      title="Missing Profile Information"
+      description="Weight, Height, Date of Birth, and Sex are required to automatically calculate your BMR. Please update them in Basic Settings."
+      :actions="[
+        {
+          label: 'Go to Basic Settings',
+          color: 'warning',
+          variant: 'solid',
+          onClick: () => $emit('navigate', 'basic')
+        }
+      ]"
+    />
+
+    <UCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+              Metabolic Profile
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Your physiological baseline for nutrition calculations.
+            </p>
+          </div>
         </div>
       </template>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UFormField :label="t('nutrition_form_bmr')" name="bmr" :help="t('nutrition_help_bmr')">
-          <UInput v-model.number="localSettings.bmr" type="number" class="w-full">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <UFormField
+          label="Current Weight"
+          name="weight"
+          help="Foundation for relative macro targets (g/kg). Managed in Basic Settings."
+        >
+          <UInput :model-value="displayWeight" type="number" disabled class="w-full">
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                props.profile?.weightUnits === 'Pounds' ? 'lbs' : 'kg'
+              }}</span>
             </template>
           </UInput>
         </UFormField>
 
+        <UFormField label="Basal Metabolic Rate (BMR)" name="bmr" help="Calories burned at rest.">
+          <div class="flex gap-2">
+            <UInput
+              v-model.number="localSettings.bmr"
+              type="number"
+              :min="500"
+              :max="5000"
+              placeholder="1600"
+              class="flex-1"
+            >
+              <template #trailing>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+              </template>
+            </UInput>
+            <UButton
+              icon="i-heroicons-calculator"
+              color="neutral"
+              variant="subtle"
+              @click="calculateBMR"
+            >
+              Set BMR
+            </UButton>
+          </div>
+        </UFormField>
+
         <UFormField
-          :label="t('nutrition_form_activity_level')"
+          label="Daily Activity Level"
           name="activityLevel"
-          :help="t('nutrition_help_activity_level')"
+          class="md:col-span-1"
+          help="Your non-exercise daily movement (NEAT)."
         >
           <USelectMenu
             v-model="localSettings.activityLevel"
@@ -47,9 +107,9 @@
         </UFormField>
 
         <UFormField
-          :label="t('nutrition_form_calories_mode')"
+          label="Base Calories Method"
           name="baseCaloriesMode"
-          :help="t('nutrition_help_calories_mode')"
+          help="Choose how your non-exercise daily calorie baseline is defined."
         >
           <USelectMenu
             v-model="localSettings.baseCaloriesMode"
@@ -62,60 +122,463 @@
 
         <UFormField
           v-if="localSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'"
-          :label="t('nutrition_form_manual_calories')"
+          label="Daily Calories Without Structured Exercise"
           name="nonExerciseBaseCalories"
-          :help="t('nutrition_help_manual_calories')"
+          help="Your known maintenance calories on a day with no structured training (for example: 1900 kcal)."
         >
           <UInput
             v-model.number="localSettings.nonExerciseBaseCalories"
             type="number"
+            :min="800"
+            :max="6000"
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
+          label="Estimated TDEE"
+          name="tdee"
+          :help="
+            localSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
+              ? 'Using your manual non-exercise baseline.'
+              : 'Total Daily Energy Expenditure (BMR × Activity)'
+          "
+        >
+          <UInput
+            :model-value="tdee"
+            type="number"
+            disabled
+            class="w-full"
+            :ui="{ base: 'bg-gray-50 dark:bg-gray-800' }"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
+          label="Metabolic Safety Floor"
+          name="metabolicFloor"
+          help="The default glycogen level used when data chain is broken (e.g. 60% = 0.6)."
+        >
+          <div class="flex items-center gap-4">
+            <UInput
+              v-model.number="localSettings.metabolicFloor"
+              type="number"
+              :step="0.05"
+              :min="0.1"
+              :max="0.95"
+              class="flex-1"
+            >
+              <template #trailing>
+                <span class="text-gray-500 dark:text-gray-400 text-xs"
+                  >{{ Math.round(localSettings.metabolicFloor * 100) }}%</span
+                >
+              </template>
+            </UInput>
+          </div>
+        </UFormField>
+
+        <div class="md:col-span-2 space-y-4">
+          <UFormField
+            label="Goal Profile"
+            name="goalProfile"
+            help="Your primary objective for body composition."
+          >
+            <USelectMenu
+              v-model="localSettings.goalProfile"
+              :items="goalProfiles"
+              value-key="value"
+              class="w-full"
+              :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
+            />
+          </UFormField>
+
+          <div
+            v-if="localSettings.goalProfile !== 'MAINTAIN'"
+            class="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800"
+          >
+            <div class="flex justify-between mb-2">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                Aggressiveness ({{ localSettings.targetAdjustmentPercent > 0 ? '+' : ''
+                }}{{ localSettings.targetAdjustmentPercent }}%)
+              </label>
+              <span class="text-xs text-gray-500">
+                {{ localSettings.goalProfile === 'LOSE' ? 'Deficit' : 'Surplus' }}
+              </span>
+            </div>
+            <USlider
+              v-model.number="localSettings.targetAdjustmentPercent"
+              :min="adjustmentRange.min"
+              :max="adjustmentRange.max"
+              :step="adjustmentRange.step"
+              :color="localSettings.goalProfile === 'LOSE' ? 'warning' : 'success'"
+            />
+            <p class="text-xs text-gray-500 mt-2">
+              {{
+                localSettings.goalProfile === 'LOSE'
+                  ? 'Higher deficit speeds up weight loss but risks muscle loss.'
+                  : 'Higher surplus maximizes muscle gain but risks fat gain.'
+              }}
+            </p>
+          </div>
+        </div>
+
+        <UFormField
+          label="Target Daily Calories"
+          name="targetCalories"
+          help="Your starting point for nutrition planning."
+        >
+          <UInput
+            :model-value="targetCalories"
+            type="number"
+            disabled
+            class="w-full"
+            :ui="{ base: 'font-bold text-primary-600 dark:text-primary-400' }"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
             </template>
           </UInput>
         </UFormField>
       </div>
+    </UCard>
 
-      <!-- Resulting TDEE Info -->
-      <div
-        class="mt-8 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800 flex flex-col sm:flex-row justify-around items-center text-center gap-6"
-      >
-        <div class="space-y-1">
-          <p
-            class="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest"
+    <UCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+              Meal Schedule
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Define your typical daily meal pattern to help AI slot fueling windows.
+            </p>
+          </div>
+          <UButton
+            icon="i-heroicons-plus"
+            size="xs"
+            color="primary"
+            variant="soft"
+            label="Add Meal"
+            @click="addMeal"
+          />
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <div
+          v-for="(meal, index) in localSettings.mealPattern"
+          :key="index"
+          class="flex items-center gap-4"
+        >
+          <UInput v-model="meal.name" placeholder="Meal Name (e.g. Breakfast)" class="flex-1" />
+          <UInput v-model="meal.time" type="time" class="w-32" />
+          <UButton
+            icon="i-heroicons-trash"
+            color="error"
+            variant="ghost"
+            size="sm"
+            @click="removeMeal(index)"
+          />
+        </div>
+        <p v-if="!localSettings.mealPattern?.length" class="text-sm text-gray-500 italic">
+          No meals defined. Add one to get started.
+        </p>
+      </div>
+    </UCard>
+
+    <UCard>
+      <template #header>
+        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+          Dietary Constraints (Non-Negotiables)
+        </h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Define food intolerances and preferences to ensure AI advice is safe and relevant.
+        </p>
+      </template>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <UFormField
+          label="Dietary Profile"
+          name="dietaryProfile"
+          help="General dietary patterns (e.g. Vegan, Keto)."
+        >
+          <USelectMenu
+            v-model="localSettings.dietaryProfile"
+            :items="dietaryOptions"
+            multiple
+            value-key="value"
+            placeholder="Select patterns..."
+            class="w-full"
+            size="lg"
           >
-            {{ t('nutrition_summary_tdee') }}
-          </p>
-          <p class="text-3xl font-black text-primary-700 dark:text-primary-300">
-            {{ tdee }} <span class="text-sm font-bold opacity-70">kcal</span>
+            <template #leading>
+              <UIcon name="i-heroicons-user-circle" class="w-4 h-4 text-primary-500" />
+            </template>
+          </USelectMenu>
+        </UFormField>
+
+        <UFormField
+          label="Food Allergies"
+          name="foodAllergies"
+          help="Must-avoid foods (triggers immune response)."
+        >
+          <USelectMenu
+            v-model="localSettings.foodAllergies"
+            :items="allergyOptions"
+            multiple
+            value-key="value"
+            placeholder="Select allergies..."
+            class="w-full"
+            size="lg"
+          >
+            <template #leading>
+              <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4 text-error-500" />
+            </template>
+          </USelectMenu>
+        </UFormField>
+
+        <UFormField
+          label="Food Intolerances"
+          name="foodIntolerances"
+          help="Avoid foods that cause digestive or metabolic distress."
+        >
+          <USelectMenu
+            v-model="localSettings.foodIntolerances"
+            :items="intoleranceOptions"
+            multiple
+            value-key="value"
+            placeholder="Select intolerances..."
+            class="w-full"
+            size="lg"
+          >
+            <template #leading>
+              <UIcon name="i-heroicons-no-symbol" class="w-4 h-4 text-warning-500" />
+            </template>
+          </USelectMenu>
+        </UFormField>
+
+        <UFormField
+          label="Lifestyle Exclusions"
+          name="lifestyleExclusions"
+          help="Strictly avoid specific ingredients or substances for health/performance."
+        >
+          <USelectMenu
+            v-model="localSettings.lifestyleExclusions"
+            :items="lifestyleOptions"
+            multiple
+            value-key="value"
+            placeholder="Select exclusions..."
+            class="w-full"
+            size="lg"
+          >
+            <template #leading>
+              <UIcon name="i-heroicons-shield-exclamation" class="w-4 h-4 text-neutral-500" />
+            </template>
+          </USelectMenu>
+        </UFormField>
+      </div>
+    </UCard>
+
+    <UCard class="border-primary-200 dark:border-primary-800 border-2">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div>
+            <h3
+              class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
+            >
+              Fuel State Calibration
+              <UBadge size="xs" color="primary" variant="subtle">PRO</UBadge>
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Define the intensity triggers and carbohydrate ranges for each physiological state.
+            </p>
+          </div>
+        </div>
+      </template>
+
+      <div class="space-y-8">
+        <div
+          class="bg-primary-50 dark:bg-primary-950/20 p-4 rounded-lg border border-primary-100 dark:border-primary-900/30"
+        >
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-sm font-semibold text-primary-900 dark:text-primary-100">
+              Fueling Sensitivity ({{ Math.round(localSettings.fuelingSensitivity * 100) }}%)
+            </label>
+            <span class="text-xs text-primary-700 dark:text-primary-300 font-medium">
+              {{
+                localSettings.fuelingSensitivity < 1
+                  ? 'Fat Adapted'
+                  : localSettings.fuelingSensitivity > 1
+                    ? 'Sugar Burner'
+                    : 'Standard'
+              }}
+            </span>
+          </div>
+          <USlider
+            v-model="localSettings.fuelingSensitivity"
+            :min="0.8"
+            :max="1.2"
+            :step="0.05"
+            color="primary"
+          />
+          <p class="text-xs text-gray-500 mt-2">
+            Scales all carbohydrate targets globally. Decreasing moves toward fat-adaptation;
+            increasing moves toward high glycolytic demand.
           </p>
         </div>
-        <div class="h-12 w-px bg-primary-200 dark:bg-primary-800 hidden sm:block" />
-        <div class="space-y-1">
-          <p
-            class="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest"
+
+        <div class="grid grid-cols-1 gap-6">
+          <!-- State 1 -->
+          <div
+            class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
           >
-            {{ t('nutrition_summary_target') }}
-          </p>
-          <p class="text-3xl font-black text-primary-700 dark:text-primary-300">
-            {{ targetCalories }} <span class="text-sm font-bold opacity-70">kcal</span>
-          </p>
+            <div class="flex items-center gap-2 mb-4">
+              <div
+                class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-700 dark:text-green-400 font-bold text-sm"
+              >
+                1
+              </div>
+              <div>
+                <h4 class="text-sm font-bold">Fuel State 1: Eco / Recovery</h4>
+                <p class="text-xs text-gray-500">Low glycogen demand (Zone 1-2).</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <UFormField label="Trigger (IF <)" name="fuelState1Trigger">
+                <UInput
+                  v-model.number="localSettings.fuelState1Trigger"
+                  type="number"
+                  :step="0.05"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Min Carbs (g/kg)" name="fuelState1Min">
+                <UInput
+                  v-model.number="localSettings.fuelState1Min"
+                  type="number"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Max Carbs (g/kg)" name="fuelState1Max">
+                <UInput
+                  v-model.number="localSettings.fuelState1Max"
+                  type="number"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+          </div>
+
+          <!-- State 2 -->
+          <div
+            class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
+          >
+            <div class="flex items-center gap-2 mb-4">
+              <div
+                class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-sm"
+              >
+                2
+              </div>
+              <div>
+                <h4 class="text-sm font-bold">Fuel State 2: Steady / Endurance</h4>
+                <p class="text-xs text-gray-500">Moderate demand (Zone 2-3).</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <UFormField label="Trigger (IF <)" name="fuelState2Trigger">
+                <UInput
+                  v-model.number="localSettings.fuelState2Trigger"
+                  type="number"
+                  :step="0.05"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Min Carbs (g/kg)" name="fuelState2Min">
+                <UInput
+                  v-model.number="localSettings.fuelState2Min"
+                  type="number"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Max Carbs (g/kg)" name="fuelState2Max">
+                <UInput
+                  v-model.number="localSettings.fuelState2Max"
+                  type="number"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+          </div>
+
+          <!-- State 3 -->
+          <div
+            class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
+          >
+            <div class="flex items-center gap-2 mb-4">
+              <div
+                class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-700 dark:text-orange-400 font-bold text-sm"
+              >
+                3
+              </div>
+              <div>
+                <h4 class="text-sm font-bold">Fuel State 3: Performance / Race</h4>
+                <p class="text-xs text-gray-500">High demand (Threshold & above).</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <UFormField label="Trigger (IF >)" name="fuelState2Trigger_repeat">
+                <UInput
+                  :model-value="localSettings.fuelState2Trigger"
+                  disabled
+                  type="number"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Min Carbs (g/kg)" name="fuelState3Min">
+                <UInput
+                  v-model.number="localSettings.fuelState3Min"
+                  type="number"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField label="Max Carbs (g/kg)" name="fuelState3Max">
+                <UInput
+                  v-model.number="localSettings.fuelState3Max"
+                  type="number"
+                  :step="0.1"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+          </div>
         </div>
       </div>
     </UCard>
 
-    <!-- Fueling Strategy -->
-    <UCard>
+    <UCard class="border-primary-200 dark:border-primary-800 border-2">
       <template #header>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              {{ t('nutrition_header_periodization') }}
+            <h3
+              class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
+            >
+              Adaptive Metabolic Engine
+              <UBadge size="xs" color="primary" variant="subtle">PRO</UBadge>
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('nutrition_desc_periodization') }}
+              Fine-tune gut training limits and carb-to-intensity scaling coefficients.
             </p>
           </div>
         </div>
@@ -125,9 +588,9 @@
         class="mb-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
       >
         <UFormField
-          :label="t('nutrition_form_training_phase')"
+          label="Season Block / Training Phase"
           name="trainingPhase"
-          :help="t('nutrition_help_training_phase')"
+          help="Apply metabolic presets based on your current training focus."
         >
           <USelectMenu
             v-model="selectedPhase"
@@ -154,9 +617,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField
-          :label="t('nutrition_form_carb_limit')"
+          label="Current Max Carb Intake (Gut Limit)"
           name="currentCarbMax"
-          :help="t('nutrition_help_carb_limit')"
+          help="What your gut can currently handle comfortably during high intensity."
         >
           <UInput
             v-model.number="localSettings.currentCarbMax"
@@ -172,9 +635,9 @@
         </UFormField>
 
         <UFormField
-          :label="t('nutrition_form_carb_goal')"
+          label="Target Intake Goal"
           name="ultimateCarbGoal"
-          :help="t('nutrition_help_carb_goal')"
+          help="Your long-term objective for carb adaptation/gut training."
         >
           <UInput
             v-model.number="localSettings.ultimateCarbGoal"
@@ -190,9 +653,9 @@
         </UFormField>
 
         <UFormField
-          :label="t('nutrition_form_carb_slope')"
+          label="Carb-to-Intensity Slope"
           name="carbScalingFactor"
-          :help="t('nutrition_help_carb_slope')"
+          help="Global multiplier for how aggressively carbs scale with intensity (1.0 = Standard)."
         >
           <UInput
             v-model.number="localSettings.carbScalingFactor"
@@ -208,11 +671,11 @@
           </UInput>
         </UFormField>
 
-        <div class="md:col-span-2 space-y-4">
+        <div class="md:col-span-1 space-y-4">
           <UFormField
-            :label="t('nutrition_form_supplements')"
+            label="Bio-Optimization Stack"
             name="enabledSupplements"
-            :help="t('nutrition_help_supplements')"
+            help="Select the supplements you currently use for personalized timing advice."
           >
             <USelectMenu
               v-model="localSettings.enabledSupplements"
@@ -235,9 +698,9 @@
         class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800"
       >
         <UFormField
-          :label="t('nutrition_form_protein')"
+          label="Daily Protein Baseline"
           name="baseProteinPerKg"
-          :help="t('nutrition_help_protein')"
+          help="Target grams of protein per kg of body weight."
         >
           <UInput
             v-model.number="localSettings.baseProteinPerKg"
@@ -254,9 +717,9 @@
         </UFormField>
 
         <UFormField
-          :label="t('nutrition_form_fat')"
+          label="Daily Fat Baseline"
           name="baseFatPerKg"
-          :help="t('nutrition_help_fat')"
+          help="Target grams of fat per kg of body weight."
         >
           <UInput
             v-model.number="localSettings.baseFatPerKg"
@@ -275,9 +738,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <UFormField
-          :label="t('nutrition_form_pre_window')"
+          label="Pre-Workout Window"
           name="preWorkoutWindow"
-          :help="t('nutrition_help_pre_window')"
+          help="Minutes before exercise for final fueling."
         >
           <UInput
             v-model.number="localSettings.preWorkoutWindow"
@@ -294,9 +757,270 @@
         </UFormField>
 
         <UFormField
-          :label="t('nutrition_form_post_window')"
+          label="Post-Workout Recovery Window"
           name="postWorkoutWindow"
-          :help="t('nutrition_help_post_window')"
+          help="Duration of prioritized protein/carb intake after exercise."
+        >
+          <UInput
+            v-model.number="localSettings.postWorkoutWindow"
+            type="number"
+            :step="15"
+            :min="30"
+            :max="240"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">min</span>
+            </template>
+          </UInput>
+        </UFormField>
+      </div>
+    </UCard>
+
+    <UCard>
+      <template #header>
+        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+          Hydration Precision
+        </h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Optimize your fluid and electrolyte replacement strategy.
+        </p>
+      </template>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <UFormField
+          label="Sweat Rate"
+          name="sweatRate"
+          help="Fluid loss per hour during exercise (L/hr)."
+        >
+          <UInput
+            v-model.number="localSettings.sweatRate"
+            type="number"
+            :step="0.1"
+            :min="0"
+            :max="5.0"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">L/hr</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
+          label="Sodium Concentration"
+          name="sodiumTarget"
+          help="Sodium lost per liter of sweat (mg/L)."
+        >
+          <UInput
+            v-model.number="localSettings.sodiumTarget"
+            type="number"
+            :step="50"
+            :min="0"
+            :max="2000"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">mg/L</span>
+            </template>
+          </UInput>
+        </UFormField>
+      </div>
+    </UCard>
+
+    <UCard class="border-primary-200 dark:border-primary-800 border-2">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div>
+            <h3
+              class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
+            >
+              Adaptive Metabolic Engine
+              <UBadge size="xs" color="primary" variant="subtle">PRO</UBadge>
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Fine-tune coefficients and carbohydrate scaling for specific training blocks.
+            </p>
+          </div>
+        </div>
+      </template>
+
+      <div
+        class="mb-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
+      >
+        <UFormField
+          label="Season Block / Training Phase"
+          name="trainingPhase"
+          help="Apply metabolic presets based on your current training focus."
+        >
+          <USelectMenu
+            v-model="selectedPhase"
+            :items="trainingPhases"
+            value-key="value"
+            class="w-full"
+            :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
+          >
+            <template #leading>
+              <UIcon
+                :name="
+                  selectedPhase === 'RACE'
+                    ? 'i-heroicons-trophy'
+                    : selectedPhase === 'BUILD'
+                      ? 'i-heroicons-bolt'
+                      : 'i-heroicons-calendar'
+                "
+                class="w-4 h-4 text-primary-500"
+              />
+            </template>
+          </USelectMenu>
+        </UFormField>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <UFormField
+          label="Current Max Carb Intake (Gut Limit)"
+          name="currentCarbMax"
+          help="What your gut can currently handle comfortably during high intensity."
+        >
+          <UInput
+            v-model.number="localSettings.currentCarbMax"
+            type="number"
+            :min="0"
+            :max="150"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">g/hr</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
+          label="Target Intake Goal"
+          name="ultimateCarbGoal"
+          help="Your long-term objective for carb adaptation/gut training."
+        >
+          <UInput
+            v-model.number="localSettings.ultimateCarbGoal"
+            type="number"
+            :min="0"
+            :max="150"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">g/hr</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
+          label="Carb-to-Intensity Slope"
+          name="carbScalingFactor"
+          help="Global multiplier for how aggressively carbs scale with intensity (1.0 = Standard)."
+        >
+          <UInput
+            v-model.number="localSettings.carbScalingFactor"
+            type="number"
+            :step="0.05"
+            :min="0.5"
+            :max="2.0"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">x</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <div class="md:col-span-2 space-y-4">
+          <UFormField
+            label="Bio-Optimization Stack"
+            name="enabledSupplements"
+            help="Select the supplements you currently use for personalized timing advice."
+          >
+            <USelectMenu
+              v-model="localSettings.enabledSupplements"
+              :items="supplementOptions"
+              multiple
+              value-key="value"
+              placeholder="Select supplements..."
+              class="w-full"
+              size="lg"
+            >
+              <template #leading>
+                <UIcon name="i-heroicons-beaker" class="w-4 h-4 text-primary-500" />
+              </template>
+            </USelectMenu>
+          </UFormField>
+        </div>
+      </div>
+
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800"
+      >
+        <UFormField
+          label="Daily Protein Baseline"
+          name="baseProteinPerKg"
+          help="Target grams of protein per kg of body weight."
+        >
+          <UInput
+            v-model.number="localSettings.baseProteinPerKg"
+            type="number"
+            :step="0.1"
+            :min="1.0"
+            :max="3.0"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">g/kg</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
+          label="Daily Fat Baseline"
+          name="baseFatPerKg"
+          help="Target grams of fat per kg of body weight."
+        >
+          <UInput
+            v-model.number="localSettings.baseFatPerKg"
+            type="number"
+            :step="0.1"
+            :min="0.5"
+            :max="2.0"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">g/kg</span>
+            </template>
+          </UInput>
+        </UFormField>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <UFormField
+          label="Pre-Workout Window"
+          name="preWorkoutWindow"
+          help="Minutes before exercise for final fueling."
+        >
+          <UInput
+            v-model.number="localSettings.preWorkoutWindow"
+            type="number"
+            :step="15"
+            :min="30"
+            :max="180"
+            class="w-full"
+          >
+            <template #trailing>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">min</span>
+            </template>
+          </UInput>
+        </UFormField>
+
+        <UFormField
+          label="Post-Workout Recovery Window"
+          name="postWorkoutWindow"
+          help="Duration of prioritized protein/carb intake after exercise."
         >
           <UInput
             v-model.number="localSettings.postWorkoutWindow"
@@ -317,7 +1041,7 @@
     <div class="flex justify-end pt-4">
       <UButton
         :loading="loading"
-        :label="t('nutrition_button_save')"
+        label="Save Nutrition Settings"
         color="primary"
         @click="saveSettings"
       />
@@ -326,10 +1050,7 @@
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
   import { ftInToCm, cmToFtIn, LBS_TO_KG } from '~/utils/metrics'
-
-  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     settings?: any
@@ -617,8 +1338,9 @@
   function calculateBMR() {
     if (isProfileDataMissing.value) {
       toast.add({
-        title: t.value('nutrition_toast_missing_data_title'),
-        description: t.value('nutrition_toast_missing_data_desc'),
+        title: 'Missing Profile Data',
+        description:
+          'Please ensure weight, height, date of birth, and sex are set in Basic Settings.',
         color: 'warning'
       })
       return
@@ -651,8 +1373,8 @@
     localSettings.value.bmr = Math.round(bmr)
 
     toast.add({
-      title: t.value('nutrition_toast_bmr_calc_title'),
-      description: t.value('nutrition_toast_bmr_calc_desc', { bmr: localSettings.value.bmr }),
+      title: 'BMR Calculated',
+      description: `Your BMR has been set to ${localSettings.value.bmr} kcal/day based on your profile.`,
       color: 'success'
     })
   }
@@ -699,8 +1421,8 @@
       })
 
       toast.add({
-        title: t.value('nutrition_toast_saved_title'),
-        description: t.value('nutrition_toast_saved_desc'),
+        title: 'Nutrition Settings Saved',
+        description: 'Your metabolic profile has been updated.',
         color: 'success'
       })
 
