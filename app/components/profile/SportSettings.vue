@@ -237,7 +237,7 @@
                   </div>
 
                   <!-- Load Priority -->
-                  <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg md:col-span-2">
+                  <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                     <template v-if="editingIndex === index">
                       <UFormField
                         :label="t('sports_form_load_priority')"
@@ -260,6 +260,190 @@
                       </div>
                       <div class="text-[10px] text-gray-400 mt-1">
                         {{ t('sports_form_load_priority_help') }}
+                      </div>
+                    </template>
+                  </div>
+
+                  <!-- Target Policy -->
+                  <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg md:col-span-3">
+                    <template v-if="editingIndex === index">
+                      <div class="space-y-3">
+                        <UFormField
+                          label="Targeting Policy"
+                          help="Controls how workout steps choose HR/Power/Pace targets."
+                        >
+                          <USelectMenu
+                            v-model="editForm.targetPolicy.primaryMetric"
+                            :items="TARGET_METRICS"
+                            size="xs"
+                            class="w-full"
+                          />
+                        </UFormField>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <UFormField
+                            label="Default Target Style"
+                            help="Choose how targets are written by default. 'range' creates a min-max zone (recommended for steady work); 'value' creates a single fixed target."
+                          >
+                            <USelectMenu
+                              v-model="editForm.targetPolicy.defaultTargetStyle"
+                              :items="TARGET_STYLES"
+                              size="xs"
+                              class="w-full"
+                            />
+                          </UFormField>
+                          <UFormField
+                            label="Prefer Ranges for Steady Work"
+                            help="For endurance/steady blocks, prefer ranges (for example 70-80%) instead of single-point targets."
+                          >
+                            <div class="h-8 flex items-center">
+                              <USwitch v-model="editForm.targetPolicy.preferRangesForSteady" />
+                            </div>
+                          </UFormField>
+                          <UFormField
+                            label="Strict Primary Metric"
+                            help="Force generation to use only the primary metric when possible, instead of falling back to other metrics."
+                          >
+                            <div class="h-8 flex items-center">
+                              <USwitch v-model="editForm.targetPolicy.strictPrimary" />
+                            </div>
+                          </UFormField>
+                          <UFormField
+                            label="Allow Mixed Targets Per Step"
+                            help="Allow a single step to include multiple metrics (for example HR + Pace). Disable to keep one metric per step."
+                          >
+                            <div class="h-8 flex items-center">
+                              <USwitch v-model="editForm.targetPolicy.allowMixedTargetsPerStep" />
+                            </div>
+                          </UFormField>
+                          <UFormField
+                            label="HR Target Format"
+                            help="How HR targets are represented in steps."
+                          >
+                            <USelectMenu
+                              v-model="editForm.targetFormatPolicy.heartRate.mode"
+                              :items="HR_TARGET_FORMATS"
+                              size="xs"
+                              class="w-full"
+                            />
+                          </UFormField>
+                          <UFormField
+                            label="Power Target Format"
+                            help="How power targets are represented in steps."
+                          >
+                            <USelectMenu
+                              v-model="editForm.targetFormatPolicy.power.mode"
+                              :items="POWER_TARGET_FORMATS"
+                              size="xs"
+                              class="w-full"
+                            />
+                          </UFormField>
+                          <UFormField
+                            label="Pace Target Format"
+                            help="How pace targets are represented in steps."
+                          >
+                            <USelectMenu
+                              v-model="editForm.targetFormatPolicy.pace.mode"
+                              :items="PACE_TARGET_FORMATS"
+                              size="xs"
+                              class="w-full"
+                            />
+                          </UFormField>
+                          <UFormField
+                            label="Cadence Target Format"
+                            help="Choose if cadence is omitted, single RPM, or RPM range."
+                          >
+                            <USelectMenu
+                              v-model="editForm.targetFormatPolicy.cadence.mode"
+                              :items="CADENCE_TARGET_FORMATS"
+                              size="xs"
+                              class="w-full"
+                            />
+                          </UFormField>
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                        Targeting Policy
+                      </div>
+                      <div class="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                        <div class="grid grid-cols-[120px_1fr] gap-x-2 items-center">
+                          <div class="text-gray-500">Primary</div>
+                          <div class="font-semibold">
+                            {{ formatMetricTarget(item.content.targetPolicy?.primaryMetric) }}
+                          </div>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-x-2 items-center">
+                          <div class="text-gray-500">Style</div>
+                          <div class="font-semibold">
+                            {{ formatTargetStyle(item.content.targetPolicy?.defaultTargetStyle) }}
+                          </div>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-x-2 items-center">
+                          <div class="text-gray-500">Strict Primary</div>
+                          <div class="font-semibold">
+                            {{ item.content.targetPolicy?.strictPrimary ? 'Yes' : 'No' }}
+                          </div>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-x-2 items-center">
+                          <div class="text-gray-500">Mixed Targets</div>
+                          <div class="font-semibold">
+                            {{
+                              item.content.targetPolicy?.allowMixedTargetsPerStep
+                                ? 'Allowed'
+                                : 'Single Metric'
+                            }}
+                          </div>
+                        </div>
+                        <div class="grid grid-cols-[120px_1fr] gap-x-2 items-start">
+                          <div class="text-gray-500 pt-0.5">Formats</div>
+                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            <div
+                              class="rounded bg-white dark:bg-gray-900 px-2 py-1 border border-gray-200 dark:border-gray-700"
+                            >
+                              <span class="text-gray-500">HR:</span>
+                              <span class="font-semibold ml-1">{{
+                                formatTargetFormat(
+                                  'hr',
+                                  item.content.targetFormatPolicy?.heartRate?.mode || 'percentLthr'
+                                )
+                              }}</span>
+                            </div>
+                            <div
+                              class="rounded bg-white dark:bg-gray-900 px-2 py-1 border border-gray-200 dark:border-gray-700"
+                            >
+                              <span class="text-gray-500">Power:</span>
+                              <span class="font-semibold ml-1">{{
+                                formatTargetFormat(
+                                  'power',
+                                  item.content.targetFormatPolicy?.power?.mode || 'percentFtp'
+                                )
+                              }}</span>
+                            </div>
+                            <div
+                              class="rounded bg-white dark:bg-gray-900 px-2 py-1 border border-gray-200 dark:border-gray-700"
+                            >
+                              <span class="text-gray-500">Pace:</span>
+                              <span class="font-semibold ml-1">{{
+                                formatTargetFormat(
+                                  'pace',
+                                  item.content.targetFormatPolicy?.pace?.mode || 'percentPace'
+                                )
+                              }}</span>
+                            </div>
+                            <div
+                              class="rounded bg-white dark:bg-gray-900 px-2 py-1 border border-gray-200 dark:border-gray-700"
+                            >
+                              <span class="text-gray-500">Cadence:</span>
+                              <span class="font-semibold ml-1">{{
+                                formatTargetFormat(
+                                  'cadence',
+                                  item.content.targetFormatPolicy?.cadence?.mode || 'rpm'
+                                )
+                              }}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </template>
                   </div>
@@ -689,6 +873,34 @@
                     </template>
                   </div>
                 </div>
+                <div v-if="editingIndex === index" class="mt-4">
+                  <ProfileZoneEditor
+                    v-model="editForm.paceZones"
+                    title="Pace Zones"
+                    units="m/s"
+                    icon="i-lucide-gauge"
+                    icon-color="text-emerald-500"
+                  />
+                </div>
+                <div
+                  v-else-if="item.content.paceZones?.length"
+                  class="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-xl"
+                >
+                  <div class="text-xs font-bold uppercase text-gray-400 mb-3">Pace Zones</div>
+                  <div class="space-y-2">
+                    <div
+                      v-for="(zone, zIdx) in item.content.paceZones"
+                      :key="zIdx"
+                      class="p-2 border dark:border-gray-800 rounded text-xs flex justify-between bg-white dark:bg-gray-900"
+                    >
+                      <span class="text-muted truncate mr-1">{{ zone.name }}</span>
+                      <span class="font-mono font-bold"
+                        >{{ zone.min }}-{{ zone.max
+                        }}<span class="text-[10px] ml-0.5 text-gray-400">m/s</span></span
+                      >
+                    </div>
+                  </div>
+                </div>
               </section>
             </div>
           </template>
@@ -989,6 +1201,99 @@
                     <UInput v-model.number="addForm.thresholdPace" type="number" step="0.01" />
                   </UFormField>
                   <UFormField
+                    label="Primary Target Metric"
+                    name="targetPolicy.primaryMetric"
+                    help="Preferred metric for step targeting."
+                  >
+                    <USelectMenu
+                      v-model="addForm.targetPolicy.primaryMetric"
+                      :items="TARGET_METRICS"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
+                    label="Default Target Style"
+                    name="targetPolicy.defaultTargetStyle"
+                    help="Choose how targets are written by default. 'range' creates a min-max zone (recommended for steady work); 'value' creates a single fixed target."
+                  >
+                    <USelectMenu
+                      v-model="addForm.targetPolicy.defaultTargetStyle"
+                      :items="TARGET_STYLES"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
+                    label="Strict Primary Metric"
+                    name="targetPolicy.strictPrimary"
+                    help="Force generation to use only the primary metric when possible, instead of falling back to other metrics."
+                  >
+                    <div class="h-10 flex items-center">
+                      <USwitch v-model="addForm.targetPolicy.strictPrimary" />
+                    </div>
+                  </UFormField>
+                  <UFormField
+                    label="Allow Mixed Targets Per Step"
+                    name="targetPolicy.allowMixedTargetsPerStep"
+                    help="Allow a single step to include multiple metrics (for example HR + Pace). Disable to keep one metric per step."
+                  >
+                    <div class="h-10 flex items-center">
+                      <USwitch v-model="addForm.targetPolicy.allowMixedTargetsPerStep" />
+                    </div>
+                  </UFormField>
+                  <UFormField
+                    label="Prefer Ranges for Steady Work"
+                    name="targetPolicy.preferRangesForSteady"
+                    help="For endurance/steady blocks, prefer ranges (for example 70-80%) instead of single-point targets."
+                  >
+                    <div class="h-10 flex items-center">
+                      <USwitch v-model="addForm.targetPolicy.preferRangesForSteady" />
+                    </div>
+                  </UFormField>
+                  <UFormField
+                    label="HR Target Format"
+                    name="targetFormatPolicy.heartRate.mode"
+                    help="How HR targets are represented in steps."
+                  >
+                    <USelectMenu
+                      v-model="addForm.targetFormatPolicy.heartRate.mode"
+                      :items="HR_TARGET_FORMATS"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
+                    label="Power Target Format"
+                    name="targetFormatPolicy.power.mode"
+                    help="How power targets are represented in steps."
+                  >
+                    <USelectMenu
+                      v-model="addForm.targetFormatPolicy.power.mode"
+                      :items="POWER_TARGET_FORMATS"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
+                    label="Pace Target Format"
+                    name="targetFormatPolicy.pace.mode"
+                    help="How pace targets are represented in steps."
+                  >
+                    <USelectMenu
+                      v-model="addForm.targetFormatPolicy.pace.mode"
+                      :items="PACE_TARGET_FORMATS"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
+                    label="Cadence Target Format"
+                    name="targetFormatPolicy.cadence.mode"
+                    help="Choose if cadence is omitted, single RPM, or RPM range."
+                  >
+                    <USelectMenu
+                      v-model="addForm.targetFormatPolicy.cadence.mode"
+                      :items="CADENCE_TARGET_FORMATS"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField
                     :label="t('sports_form_load_priority')"
                     name="loadPreference"
                     :help="t('sports_form_load_priority_help')"
@@ -1013,6 +1318,15 @@
                   >
                     <UInput v-model.number="addForm.cooldownTime" type="number" />
                   </UFormField>
+                </div>
+                <div class="pt-4">
+                  <ProfileZoneEditor
+                    v-model="addForm.paceZones"
+                    title="Pace Zones"
+                    units="m/s"
+                    icon="i-lucide-gauge"
+                    icon-color="text-emerald-500"
+                  />
                 </div>
               </template>
             </UAccordion>
@@ -1068,9 +1382,23 @@
     restingHr: null,
     hrLoadType: 'HRSS',
     thresholdPace: null,
+    paceZones: [],
     warmupTime: 10,
     cooldownTime: 10,
     loadPreference: 'POWER_HR_PACE',
+    targetPolicy: {
+      primaryMetric: 'power',
+      strictPrimary: false,
+      allowMixedTargetsPerStep: false,
+      defaultTargetStyle: 'range',
+      preferRangesForSteady: true
+    },
+    targetFormatPolicy: {
+      heartRate: { mode: 'percentLthr', preferRange: true },
+      power: { mode: 'percentFtp', preferRange: true },
+      pace: { mode: 'percentPace', preferRange: true },
+      cadence: { mode: 'rpm' }
+    },
     powerZones: [],
     hrZones: []
   })
@@ -1132,6 +1460,12 @@
     'PACE_POWER_HR',
     'PACE_HR_POWER'
   ]
+  const TARGET_METRICS = ['heartRate', 'power', 'pace', 'rpe']
+  const TARGET_STYLES = ['range', 'value']
+  const HR_TARGET_FORMATS = ['percentLthr', 'percentMaxHr', 'zone', 'bpm']
+  const POWER_TARGET_FORMATS = ['percentFtp', 'zone', 'watts']
+  const PACE_TARGET_FORMATS = ['percentPace', 'zone', 'absolutePace']
+  const CADENCE_TARGET_FORMATS = ['none', 'rpm', 'rpmRange']
 
   function openAddModal() {
     showAddModal.value = true
@@ -1161,6 +1495,69 @@
     // Ensure zones exist
     if (!editForm.value.powerZones) editForm.value.powerZones = []
     if (!editForm.value.hrZones) editForm.value.hrZones = []
+    if (!editForm.value.paceZones) editForm.value.paceZones = []
+    if (!editForm.value.targetPolicy || typeof editForm.value.targetPolicy !== 'object') {
+      editForm.value.targetPolicy = {}
+    }
+    if (
+      !editForm.value.targetFormatPolicy ||
+      typeof editForm.value.targetFormatPolicy !== 'object'
+    ) {
+      editForm.value.targetFormatPolicy = {}
+    }
+    if (!editForm.value.targetPolicy.primaryMetric) {
+      editForm.value.targetPolicy.primaryMetric = derivePrimaryMetric(editForm.value.loadPreference)
+    }
+    if (!editForm.value.targetPolicy.defaultTargetStyle) {
+      editForm.value.targetPolicy.defaultTargetStyle = 'range'
+    }
+    if (typeof editForm.value.targetPolicy.strictPrimary !== 'boolean') {
+      editForm.value.targetPolicy.strictPrimary = false
+    }
+    if (typeof editForm.value.targetPolicy.allowMixedTargetsPerStep !== 'boolean') {
+      editForm.value.targetPolicy.allowMixedTargetsPerStep = false
+    }
+    if (typeof editForm.value.targetPolicy.preferRangesForSteady !== 'boolean') {
+      editForm.value.targetPolicy.preferRangesForSteady = true
+    }
+    if (
+      !editForm.value.targetFormatPolicy.heartRate ||
+      typeof editForm.value.targetFormatPolicy.heartRate !== 'object'
+    ) {
+      editForm.value.targetFormatPolicy.heartRate = {}
+    }
+    if (
+      !editForm.value.targetFormatPolicy.power ||
+      typeof editForm.value.targetFormatPolicy.power !== 'object'
+    ) {
+      editForm.value.targetFormatPolicy.power = {}
+    }
+    if (
+      !editForm.value.targetFormatPolicy.pace ||
+      typeof editForm.value.targetFormatPolicy.pace !== 'object'
+    ) {
+      editForm.value.targetFormatPolicy.pace = {}
+    }
+    if (
+      !editForm.value.targetFormatPolicy.cadence ||
+      typeof editForm.value.targetFormatPolicy.cadence !== 'object'
+    ) {
+      editForm.value.targetFormatPolicy.cadence = {}
+    }
+    if (!editForm.value.targetFormatPolicy.heartRate.mode)
+      editForm.value.targetFormatPolicy.heartRate.mode = 'percentLthr'
+    if (typeof editForm.value.targetFormatPolicy.heartRate.preferRange !== 'boolean')
+      editForm.value.targetFormatPolicy.heartRate.preferRange = true
+    if (!editForm.value.targetFormatPolicy.power.mode)
+      editForm.value.targetFormatPolicy.power.mode = 'percentFtp'
+    if (typeof editForm.value.targetFormatPolicy.power.preferRange !== 'boolean')
+      editForm.value.targetFormatPolicy.power.preferRange = true
+    if (!editForm.value.targetFormatPolicy.pace.mode)
+      editForm.value.targetFormatPolicy.pace.mode = 'percentPace'
+    if (typeof editForm.value.targetFormatPolicy.pace.preferRange !== 'boolean')
+      editForm.value.targetFormatPolicy.pace.preferRange = true
+    if (!editForm.value.targetFormatPolicy.cadence.mode)
+      editForm.value.targetFormatPolicy.cadence.mode = 'rpm'
     // Ensure name exists
     if (!editForm.value.name)
       editForm.value.name = content.isDefault
@@ -1249,9 +1646,12 @@
       'restingHr',
       'hrLoadType',
       'thresholdPace',
+      'paceZones',
       'warmupTime',
       'cooldownTime',
       'loadPreference',
+      'targetPolicy',
+      'targetFormatPolicy',
       'powerZones',
       'hrZones'
     ]
@@ -1365,9 +1765,23 @@
       restingHr: null,
       hrLoadType: 'HRSS',
       thresholdPace: null,
+      paceZones: [],
       warmupTime: 10,
       cooldownTime: 10,
       loadPreference: 'POWER_HR_PACE',
+      targetPolicy: {
+        primaryMetric: 'power',
+        strictPrimary: false,
+        allowMixedTargetsPerStep: false,
+        defaultTargetStyle: 'range',
+        preferRangesForSteady: true
+      },
+      targetFormatPolicy: {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'percentPace', preferRange: true },
+        cadence: { mode: 'rpm' }
+      },
       powerZones: [],
       hrZones: []
     }
@@ -1390,6 +1804,49 @@
     const mins = Math.floor(secondsPerKm / 60)
     const secs = Math.round(secondsPerKm % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  function derivePrimaryMetric(loadPreference?: string): string {
+    if (!loadPreference) return 'power'
+    const first = loadPreference.split('_')[0]?.toUpperCase()
+    if (first === 'HR') return 'heartRate'
+    if (first === 'PACE') return 'pace'
+    if (first === 'RPE') return 'rpe'
+    return 'power'
+  }
+
+  function formatMetricTarget(metric?: string): string {
+    if (metric === 'heartRate') return 'Heart Rate'
+    if (metric === 'power') return 'Power'
+    if (metric === 'pace') return 'Pace'
+    if (metric === 'rpe') return 'RPE'
+    return 'Power'
+  }
+
+  function formatTargetStyle(style?: string): string {
+    return style === 'value' ? 'Single Value' : 'Range'
+  }
+
+  function formatTargetFormat(kind: 'hr' | 'power' | 'pace' | 'cadence', mode?: string): string {
+    if (kind === 'hr') {
+      if (mode === 'percentMaxHr') return '% Max HR'
+      if (mode === 'zone') return 'Zone'
+      if (mode === 'bpm') return 'BPM'
+      return '% LTHR'
+    }
+    if (kind === 'power') {
+      if (mode === 'zone') return 'Zone'
+      if (mode === 'watts') return 'Watts'
+      return '% FTP'
+    }
+    if (kind === 'pace') {
+      if (mode === 'zone') return 'Zone'
+      if (mode === 'absolutePace') return 'Absolute Pace'
+      return '% Pace'
+    }
+    if (mode === 'none') return 'None'
+    if (mode === 'rpmRange') return 'RPM Range'
+    return 'RPM'
   }
 
   async function autodetectProfile() {
