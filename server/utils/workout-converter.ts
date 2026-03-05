@@ -459,6 +459,7 @@ export const WorkoutConverter = {
     ) => {
       if (!target) return ''
       const units = target.units?.toLowerCase()
+      const isHrZoneUnit = units === 'hr_zone' || units === 'zone'
       const inferredPowerUnits = (() => {
         if (kind !== 'power' || units) return units
         const values: number[] = []
@@ -482,6 +483,7 @@ export const WorkoutConverter = {
         }
         if (kind === 'hr') {
           if (units === 'bpm') return formatHrZoneFromBpm(Math.round(value))
+          if (isHrZoneUnit) return `Z${Math.max(1, Math.round(value))} HR`
           return `${toValuePct(value)}% ${hrLabel}`
         }
         if (units && units.includes('/')) return `${value}${units}`
@@ -499,6 +501,10 @@ export const WorkoutConverter = {
         }
         if (kind === 'hr') {
           if (units === 'bpm') return formatHrZoneFromBpm(Math.round(start), Math.round(end))
+          if (isHrZoneUnit) {
+            const midpoint = (start + end) / 2
+            return `Z${Math.max(1, Math.round(midpoint))} HR`
+          }
           const pct = toRangePct(start, end)
           return `${pct.start}-${pct.end}% ${hrLabel}`
         }

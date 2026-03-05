@@ -401,6 +401,39 @@ describe('WorkoutConverter', () => {
       expect(result).toContain('- Steady 20m 78-82% LTHR')
     })
 
+    it('formats hr_zone heart-rate targets as zone labels', () => {
+      const workout = {
+        title: 'Run Zones',
+        type: 'Run',
+        steps: [
+          {
+            type: 'Warmup',
+            durationSeconds: 300,
+            heartRate: { value: 1, units: 'hr_zone' },
+            name: 'Easy Jog Warmup'
+          },
+          {
+            type: 'Active',
+            durationSeconds: 360,
+            heartRate: { value: 4, units: 'hr_zone' },
+            name: 'Threshold Run'
+          },
+          {
+            type: 'Active',
+            durationSeconds: 720,
+            heartRate: { value: 2, units: 'hr_zone' },
+            name: 'Steady Endurance'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+      expect(result).toContain('- Easy Jog Warmup 5m Z1 HR')
+      expect(result).toContain('- Threshold Run 6m Z4 HR')
+      expect(result).toContain('- Steady Endurance 12m Z2 HR')
+      expect(result).not.toContain('% LTHR')
+    })
+
     it('cleans up description preamble correctly', () => {
       const workout = {
         title: 'Clean Desc',

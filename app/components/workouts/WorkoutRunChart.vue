@@ -444,17 +444,20 @@
       return { start: Number(zone.min), end: Number(zone.max) }
     }
 
-    // Fallback to computed zone distribution if explicit HR zones are unavailable.
-    const distZone = zoneDistribution.value[index - 1]
-    if (
-      distZone &&
-      Number.isFinite(Number(distZone.min)) &&
-      Number.isFinite(Number(distZone.max))
-    ) {
+    // Avoid circular reads against zoneDistribution while it is being computed.
+    const defaultZoneRatios = [
+      { min: 0, max: 0.75 },
+      { min: 0.75, max: 0.85 },
+      { min: 0.85, max: 0.95 },
+      { min: 0.95, max: 1.05 },
+      { min: 1.05, max: 1.25 }
+    ]
+    const fallbackZone = defaultZoneRatios[index - 1]
+    if (fallbackZone) {
       const reference = getHeartRateReference()
       return {
-        start: Number(distZone.min) * reference,
-        end: Number(distZone.max) * reference
+        start: fallbackZone.min * reference,
+        end: fallbackZone.max * reference
       }
     }
 
