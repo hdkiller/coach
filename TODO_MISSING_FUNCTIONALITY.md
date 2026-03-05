@@ -4,6 +4,7 @@ Baseline commit: `ad3f27cd0a0f893c328978d12cffa80c4b589c75` (2026-03-03 23:59:22
 Comparison target: current working tree (HEAD + uncommitted changes)
 
 ## Progress
+
 - [x] Build affected file list from git diff
 - [x] Review each affected file diff for removed functionality/sections (non-i18n completed)
 - [x] Restore missing functionality (critical profile/settings and pages restored)
@@ -11,10 +12,12 @@ Comparison target: current working tree (HEAD + uncommitted changes)
 - [ ] Verify with tests/smoke checks
 
 ## Review Outcome
+
 - [x] Remaining non-language files reviewed
 - [x] No additional functionality removals found in the remaining set
 - [x] Previously restored regressions preserved
 - [x] Meal Schedule and Nutrition settings strings extracted to translation keys
+- [x] Sport settings section strings extracted (General/Power/HR/Pace cards and related modal labels)
 
 ## Full Affected Files Checklist
 
