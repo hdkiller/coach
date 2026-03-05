@@ -14,7 +14,7 @@
                 variant="outline"
                 size="sm"
                 square
-                aria-label="Share Coach Watts"
+                :aria-label="t('share_footer_button')"
                 @click="showShareCoachWattsModal = true"
               />
               <DashboardTriggerMonitorButton />
@@ -460,8 +460,9 @@
   const checkinStore = useCheckinStore()
   const trialAccessTitle = computed(() => {
     const daysRemaining = userStore.trialDaysRemaining || 0
-    if (typeof t !== 'function') return `${daysRemaining} Days of Full Access Remaining`
-    return t.value('trial_access_remaining', { count: daysRemaining })
+    return typeof t.value === 'function'
+      ? t.value('trial_access_remaining', { count: daysRemaining })
+      : String(daysRemaining)
   })
   const nutritionEnabled = computed(
     () =>

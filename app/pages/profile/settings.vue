@@ -42,10 +42,10 @@
               <UCard :ui="{ body: 'p-0 sm:p-0' }">
                 <template #header>
                   <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-                    Training Schedule
+                    {{ t('availability_header_title') }}
                   </h3>
                   <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Define your weekly rhythm to help the AI Coach plan your workouts effectively.
+                    {{ t('availability_header_desc') }}
                   </p>
                 </template>
 

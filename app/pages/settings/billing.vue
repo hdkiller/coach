@@ -1,17 +1,22 @@
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { format } from 'date-fns'
   import type { SubscriptionStatus, SubscriptionTier } from '@prisma/client'
+
+  const { t } = useTranslate('settings')
+  const tr = (key: string, fallback: string, params?: Record<string, any>) =>
+    typeof t.value === 'function' ? t.value(key, params) : fallback
 
   definePageMeta({
     middleware: 'auth'
   })
 
   useHead({
-    title: 'Billing & Subscription',
+    title: tr('billing_header', 'Billing & Subscription'),
     meta: [
       {
         name: 'description',
-        content: 'Manage your subscription and billing information.'
+        content: tr('billing_description', 'Manage your subscription and billing information.')
       }
     ]
   })
@@ -45,7 +50,7 @@
   const subscriptionsEnabled = computed(() => config.public.subscriptionsEnabled)
   const welcomeName = computed(() => {
     const name = userStore.user?.name?.trim()
-    return name ? name.split(' ')[0] : 'Athlete'
+    return name ? name.split(' ')[0] : tr('billing_welcome_fallback_name', 'Athlete')
   })
 
   // Always refresh user data on mount to ensure latest subscription status.
@@ -203,79 +208,92 @@
     }
   })
 
-  const billingTrustSignals = [
-    {
-      icon: 'i-heroicons-shield-check',
-      title: 'Secure billing',
-      description: 'Powered by Stripe with encrypted payment processing.'
-    },
-    {
-      icon: 'i-heroicons-arrows-right-left',
-      title: 'Prorated upgrades',
-      description: 'Move to Pro anytime and only pay the difference.'
-    },
-    {
-      icon: 'i-heroicons-x-circle',
-      title: 'Cancel anytime',
-      description: 'Downgrade in one click and keep your training history.'
-    }
-  ] as const
+  const billingTrustSignals = computed(
+    () =>
+      [
+        {
+          icon: 'i-heroicons-shield-check',
+          title: t.value('billing_trust_secure_title'),
+          description: t.value('billing_trust_secure_desc')
+        },
+        {
+          icon: 'i-heroicons-arrows-right-left',
+          title: t.value('billing_trust_prorated_title'),
+          description: t.value('billing_trust_prorated_desc')
+        },
+        {
+          icon: 'i-heroicons-x-circle',
+          title: t.value('billing_trust_cancel_title'),
+          description: t.value('billing_trust_cancel_desc')
+        }
+      ] as const
+  )
 
-  const billingComparisonRows = [
-    {
-      feature: 'AI coaching depth',
-      free: 'Quick',
-      supporter: 'Quick + automation',
-      pro: 'Thoughtful + scenario planning'
-    },
-    {
-      feature: 'Analysis timing',
-      free: 'On demand',
-      supporter: 'Always on',
-      pro: 'Always on + proactive alerts'
-    },
-    {
-      feature: 'Planning support',
-      free: 'Basic',
-      supporter: 'Weekly summaries',
-      pro: 'Adaptive race strategy'
-    },
-    {
-      feature: 'Insights horizon',
-      free: 'Recent trends',
-      supporter: 'Weekly trends',
-      pro: 'Long-horizon forecasting'
-    }
-  ] as const
+  const billingComparisonRows = computed(
+    () =>
+      [
+        {
+          feature: t.value('billing_compare_row_coaching_feature'),
+          free: t.value('billing_compare_row_coaching_free'),
+          supporter: t.value('billing_compare_row_coaching_supporter'),
+          pro: t.value('billing_compare_row_coaching_pro')
+        },
+        {
+          feature: t.value('billing_compare_row_analysis_feature'),
+          free: t.value('billing_compare_row_analysis_free'),
+          supporter: t.value('billing_compare_row_analysis_supporter'),
+          pro: t.value('billing_compare_row_analysis_pro')
+        },
+        {
+          feature: t.value('billing_compare_row_planning_feature'),
+          free: t.value('billing_compare_row_planning_free'),
+          supporter: t.value('billing_compare_row_planning_supporter'),
+          pro: t.value('billing_compare_row_planning_pro')
+        },
+        {
+          feature: t.value('billing_compare_row_insights_feature'),
+          free: t.value('billing_compare_row_insights_free'),
+          supporter: t.value('billing_compare_row_insights_supporter'),
+          pro: t.value('billing_compare_row_insights_pro')
+        }
+      ] as const
+  )
 
-  const billingFaqs = [
-    {
-      question: 'Can I cancel anytime?',
-      answer:
-        'Yes. You can cancel from the billing portal at any time and your plan will remain active through the paid period.'
-    },
-    {
-      question: 'What happens when I downgrade?',
-      answer:
-        'Your account returns to Free features, but your workouts, history, and connected data remain available.'
-    },
-    {
-      question: 'What makes Pro different from Supporter?',
-      answer:
-        'Pro adds deeper coaching intelligence, scenario planning, proactive readiness alerts, and advanced long-horizon insights.'
-    },
-    {
-      question: 'Do upgrades apply immediately?',
-      answer:
-        'Yes. Upgrades are applied right away and Stripe handles prorated billing automatically.'
-    }
-  ] as const
+  const billingFaqs = computed(
+    () =>
+      [
+        {
+          question: t.value('billing_faq_cancel_q'),
+          answer: t.value('billing_faq_cancel_a')
+        },
+        {
+          question: t.value('billing_faq_downgrade_q'),
+          answer: t.value('billing_faq_downgrade_a')
+        },
+        {
+          question: t.value('billing_faq_pro_supporter_q'),
+          answer: t.value('billing_faq_pro_supporter_a')
+        },
+        {
+          question: t.value('billing_faq_upgrade_immediate_q'),
+          answer: t.value('billing_faq_upgrade_immediate_a')
+        }
+      ] as const
+  )
 
   // Methods
   function formatStatus(status: SubscriptionStatus | undefined): string {
-    if (!status) return 'None'
-    if (status === 'CONTRIBUTOR') return 'Contributor'
-    return status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')
+    if (!status) return t.value('billing_status_none')
+    if (status === 'CONTRIBUTOR') return t.value('billing_status_contributor')
+    const map: Partial<Record<SubscriptionStatus, string>> = {
+      ACTIVE: t.value('billing_status_active'),
+      CANCELED: t.value('billing_status_canceled'),
+      PAST_DUE: t.value('billing_status_past_due'),
+      UNPAID: t.value('billing_status_unpaid'),
+      TRIALING: t.value('billing_status_trialing'),
+      INCOMPLETE: t.value('billing_status_incomplete')
+    }
+    return map[status] || status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')
   }
 
   function getStatusColor(status: SubscriptionStatus | undefined): string {
@@ -295,8 +313,10 @@
     }
   }
   function formatTier(tier: SubscriptionTier | undefined): string {
-    if (!tier) return 'Free'
-    return tier.charAt(0) + tier.slice(1).toLowerCase()
+    if (!tier) return t.value('billing_tier_free')
+    if (tier === 'PRO') return t.value('billing_tier_pro')
+    if (tier === 'SUPPORTER') return t.value('billing_tier_supporter')
+    return t.value('billing_tier_free')
   }
 
   function getTierIcon(tier: SubscriptionTier | undefined): string {
@@ -313,16 +333,16 @@
   function getTierDescription(tier: SubscriptionTier | undefined): string {
     switch (tier) {
       case 'PRO':
-        return 'Your full-service Digital Twin and Coach.'
+        return t.value('billing_tier_desc_pro')
       case 'SUPPORTER':
-        return 'Automated insights for the self-coached athlete.'
+        return t.value('billing_tier_desc_supporter')
       default:
-        return "The smartest logbook you've ever used."
+        return t.value('billing_tier_desc_free')
     }
   }
 
   function formatDate(date: string | Date | undefined): string {
-    if (!date) return 'N/A'
+    if (!date) return t.value('common_na')
     return format(new Date(date), 'MMMM d, yyyy')
   }
 
@@ -347,8 +367,8 @@
       if (!silent) {
         const toast = useToast()
         toast.add({
-          title: 'Subscription Synced',
-          description: 'Your subscription status has been updated from Stripe.',
+          title: t.value('billing_sync_success_title'),
+          description: t.value('billing_sync_success_desc'),
           color: 'success'
         })
       }
@@ -356,8 +376,8 @@
       if (!silent) {
         const toast = useToast()
         toast.add({
-          title: 'Sync Failed',
-          description: 'Could not sync subscription status. Please try again later.',
+          title: t.value('billing_sync_failed_title'),
+          description: t.value('billing_sync_failed_desc'),
           color: 'error'
         })
       }
@@ -403,9 +423,9 @@
       <template #header>
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-xl font-bold uppercase tracking-tight">Billing & Subscription</h2>
+            <h2 class="text-xl font-bold uppercase tracking-tight">{{ t('billing_header') }}</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">
-              Manage your subscription and billing information.
+              {{ t('billing_description') }}
             </p>
           </div>
           <div v-if="userStore.user?.subscriptionStatus" class="hidden sm:block">
@@ -425,7 +445,7 @@
     <div class="space-y-4">
       <UAlert
         v-if="userStore.user?.subscriptionStatus === 'PAST_DUE'"
-        title="Action Required"
+        :title="t('billing_past_due_title')"
         icon="i-heroicons-exclamation-triangle"
         color="error"
         variant="subtle"
@@ -436,8 +456,7 @@
         }"
       >
         <template #description>
-          Your subscription upgrade or payment requires confirmation. Please visit the secure
-          billing portal to complete the process.
+          {{ t('billing_past_due_desc') }}
         </template>
         <template #actions>
           <UButton
@@ -448,7 +467,7 @@
             :loading="loadingPortal"
             @click="handleManageSubscription"
           >
-            Complete Verification
+            {{ t('billing_past_due_action') }}
           </UButton>
         </template>
       </UAlert>
@@ -474,39 +493,49 @@
         <div class="relative z-10 space-y-5">
           <div class="flex items-start justify-between gap-3">
             <div class="space-y-2">
-              <UBadge color="success" variant="soft" size="sm">Upgrade complete</UBadge>
+              <UBadge color="success" variant="soft" size="sm">{{
+                t('billing_success_badge')
+              }}</UBadge>
               <h3 class="text-2xl font-bold">
-                Welcome, {{ welcomeName }}. Your AI Coach is now fully unlocked.
+                {{ t('billing_success_title', { name: welcomeName }) }}
               </h3>
               <p class="text-sm text-gray-600 dark:text-gray-300">
-                Set your preferences once, then let coaching run automatically.
+                {{ t('billing_success_desc') }}
               </p>
             </div>
             <UButton
               color="neutral"
               variant="ghost"
               icon="i-heroicons-x-mark"
-              aria-label="Dismiss success message"
+              :aria-label="t('billing_dismiss')"
               @click="dismissSuccessMessage"
             />
           </div>
 
           <div class="grid gap-2 sm:grid-cols-3">
             <div class="rounded-lg border border-success/20 bg-success/5 p-3">
-              <div class="text-xs uppercase tracking-wide text-success">Automations</div>
+              <div class="text-xs uppercase tracking-wide text-success">
+                {{ t('billing_success_card_automations') }}
+              </div>
               <div class="text-sm font-semibold">
-                Turn on auto-analysis for workouts, nutrition, and readiness.
+                {{ t('billing_success_card_automations_desc') }}
               </div>
             </div>
             <div class="rounded-lg border border-success/20 bg-success/5 p-3">
-              <div class="text-xs uppercase tracking-wide text-success">Model Controls</div>
+              <div class="text-xs uppercase tracking-wide text-success">
+                {{ t('billing_success_card_models') }}
+              </div>
               <div class="text-sm font-semibold">
-                Pick Quick, Thoughtful, or Experimental reasoning.
+                {{ t('billing_success_card_models_desc') }}
               </div>
             </div>
             <div class="rounded-lg border border-success/20 bg-success/5 p-3">
-              <div class="text-xs uppercase tracking-wide text-success">Proactive Coaching</div>
-              <div class="text-sm font-semibold">Enable alerts and forward-looking guidance.</div>
+              <div class="text-xs uppercase tracking-wide text-success">
+                {{ t('billing_success_card_proactive') }}
+              </div>
+              <div class="text-sm font-semibold">
+                {{ t('billing_success_card_proactive_desc') }}
+              </div>
             </div>
           </div>
 
@@ -517,27 +546,29 @@
               icon="i-heroicons-sparkles"
               trailing-icon="i-heroicons-arrow-right"
             >
-              Open AI Settings
+              {{ t('billing_success_open_ai_settings') }}
             </UButton>
             <UButton color="neutral" variant="ghost" @click="dismissSuccessMessage">
-              Dismiss
+              {{ t('billing_dismiss') }}
             </UButton>
           </div>
 
           <div class="space-y-2">
-            <div class="text-xs uppercase tracking-wide text-gray-500">Quick start checklist</div>
+            <div class="text-xs uppercase tracking-wide text-gray-500">
+              {{ t('billing_quick_start_title') }}
+            </div>
             <div class="space-y-1 text-sm">
               <div class="flex items-center gap-2">
                 <UIcon name="i-heroicons-check-circle" class="h-4 w-4 text-success" />
-                <span>Subscription activated</span>
+                <span>{{ t('billing_quick_start_item_1') }}</span>
               </div>
               <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                 <UIcon name="i-heroicons-circle-stack" class="h-4 w-4" />
-                <span>Review AI settings presets</span>
+                <span>{{ t('billing_quick_start_item_2') }}</span>
               </div>
               <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                 <UIcon name="i-heroicons-cpu-chip" class="h-4 w-4" />
-                <span>Enable one automation to start</span>
+                <span>{{ t('billing_quick_start_item_3') }}</span>
               </div>
             </div>
           </div>
@@ -546,11 +577,11 @@
 
       <UAlert
         v-if="(showSuccessMessage || showRefreshMessage) && polling"
-        title="Verifying Subscription..."
+        :title="t('billing_verifying_title')"
         color="info"
         variant="soft"
-        :close="{ color: 'info', variant: 'link', label: 'Dismiss' }"
-        description="We are checking the latest status from Stripe. This may take a few seconds..."
+        :close="{ color: 'info', variant: 'link', label: t('billing_dismiss') }"
+        :description="t('billing_verifying_desc')"
         @update:open="dismissSuccessMessage"
       >
         <template #icon>
@@ -560,12 +591,12 @@
 
       <UAlert
         v-if="showCanceledMessage"
-        title="Checkout Canceled"
+        :title="t('billing_checkout_canceled_title')"
         icon="i-heroicons-information-circle"
         color="info"
         variant="soft"
-        :close="{ color: 'info', variant: 'link', label: 'Dismiss' }"
-        description="You can upgrade anytime by selecting a plan below."
+        :close="{ color: 'info', variant: 'link', label: t('billing_dismiss') }"
+        :description="t('billing_checkout_canceled_desc')"
         @update:open="showCanceledMessage = false"
       />
     </div>
@@ -583,7 +614,7 @@
         <UCard class="lg:col-span-2" :ui="{ body: 'p-4 sm:p-6' }">
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold">Active Subscription</h3>
+              <h3 class="text-lg font-semibold">{{ t('billing_active_subscription') }}</h3>
               <UIcon
                 :name="getTierIcon(userStore.user?.subscriptionTier)"
                 class="w-5 h-5 text-primary"
@@ -601,7 +632,9 @@
               </div>
               <div>
                 <div class="text-xl font-bold">
-                  {{ formatTier(userStore.user?.subscriptionTier) }} Plan
+                  {{
+                    t('billing_plan_name', { tier: formatTier(userStore.user?.subscriptionTier) })
+                  }}
                 </div>
                 <p class="text-sm text-neutral-500">
                   {{ getTierDescription(userStore.user?.subscriptionTier) }}
@@ -612,7 +645,11 @@
                   class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/5 border border-primary/20 text-xs font-semibold text-primary"
                 >
                   <UIcon name="i-heroicons-arrow-path" class="w-3 h-3 animate-spin-slow" />
-                  Scheduled switch to {{ formatTier(userStore.user?.pendingSubscriptionTier) }}
+                  {{
+                    t('billing_scheduled_switch_to', {
+                      tier: formatTier(userStore.user?.pendingSubscriptionTier)
+                    })
+                  }}
                 </div>
               </div>
             </div>
@@ -621,7 +658,9 @@
               class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800"
             >
               <div>
-                <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Status</dt>
+                <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  {{ t('billing_status_label') }}
+                </dt>
                 <dd class="mt-1 flex items-center gap-2">
                   <UBadge
                     :color="getStatusColor(userStore.user?.subscriptionStatus) as any"
@@ -631,7 +670,7 @@
                   </UBadge>
                   <UTooltip
                     v-if="userStore.user?.pendingSubscriptionTier"
-                    text="Your plan change is confirmed and will process automatically."
+                    :text="t('billing_pending_change_tooltip')"
                   >
                     <UIcon name="i-heroicons-information-circle" class="w-4 h-4 text-gray-400" />
                   </UTooltip>
@@ -642,8 +681,8 @@
                   {{
                     userStore.user?.subscriptionStatus === 'CANCELED' ||
                     userStore.user?.pendingSubscriptionTier
-                      ? 'Access Expires'
-                      : 'Next Billing Date'
+                      ? t('billing_access_expires')
+                      : t('billing_period_end')
                   }}
                 </dt>
                 <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -652,7 +691,7 @@
               </div>
               <div v-if="userStore.user?.stripeCustomerId">
                 <dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Customer ID
+                  {{ t('billing_customer_id') }}
                 </dt>
                 <dd class="mt-1 text-xs font-mono text-gray-500">
                   {{ userStore.user.stripeCustomerId }}
@@ -674,7 +713,7 @@
                   @click="handleManageSubscription"
                 >
                   <UIcon name="i-heroicons-cog-6-tooth" class="w-4 h-4" />
-                  Manage
+                  {{ t('billing_button_portal_manage') }}
                 </UButton>
 
                 <!-- New Change Plan Button for Premium Users -->
@@ -685,7 +724,7 @@
                   @click="showPlansModal = true"
                 >
                   <UIcon name="i-heroicons-arrow-path-rounded-square" class="w-4 h-4" />
-                  Change Plan
+                  {{ t('billing_button_change_plan') }}
                 </UButton>
 
                 <UButton
@@ -696,19 +735,19 @@
                   @click="handleViewInvoices"
                 >
                   <UIcon name="i-heroicons-document-text" class="w-4 h-4" />
-                  Invoices
+                  {{ t('billing_button_invoices') }}
                 </UButton>
 
                 <UButton color="neutral" variant="ghost" :loading="syncing" @click="handleSync()">
                   <UIcon name="i-heroicons-arrow-path" class="w-4 h-4" />
-                  Sync
+                  {{ t('billing_button_sync') }}
                 </UButton>
 
                 <p
                   v-if="userStore.user?.subscriptionTier === 'FREE'"
                   class="text-xs text-neutral-500 italic mt-2 w-full"
                 >
-                  Subscribe to a plan below to manage billing.
+                  {{ t('billing_subscribe_hint') }}
                 </p>
               </div>
 
@@ -716,7 +755,7 @@
                 v-if="userStore.user?.stripeCustomerId"
                 class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-neutral-500"
               >
-                <span>Need invoices, payment methods, or subscription changes?</span>
+                <span>{{ t('billing_portal_hint') }}</span>
                 <UButton
                   color="primary"
                   variant="link"
@@ -724,7 +763,7 @@
                   :loading="loadingPortal"
                   @click="handleManageSubscription"
                 >
-                  Open Stripe billing portal
+                  {{ t('billing_button_portal') }}
                 </UButton>
               </div>
             </div>
@@ -734,46 +773,62 @@
         <!-- Entitlements Summary -->
         <UCard :ui="{ body: 'p-4 sm:p-6' }">
           <template #header>
-            <h3 class="text-lg font-semibold text-center">Your Entitlements</h3>
+            <h3 class="text-lg font-semibold text-center">{{ t('billing_entitlements_title') }}</h3>
           </template>
 
           <div class="space-y-4">
             <div
               class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
             >
-              <span class="text-sm">Sync Mode</span>
+              <span class="text-sm">{{ t('billing_entitlements_sync_mode') }}</span>
               <UBadge :color="entitlements?.autoSync ? 'success' : 'neutral'" size="xs">
-                {{ entitlements?.autoSync ? 'Automatic' : 'Manual' }}
+                {{
+                  entitlements?.autoSync
+                    ? t('billing_entitlements_automatic')
+                    : t('billing_entitlements_manual')
+                }}
               </UBadge>
             </div>
             <div
               class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
             >
-              <span class="text-sm">Analysis</span>
+              <span class="text-sm">{{ t('billing_entitlements_analysis') }}</span>
               <UBadge :color="entitlements?.autoAnalysis ? 'success' : 'neutral'" size="xs">
-                {{ entitlements?.autoAnalysis ? 'Always-On' : 'On-Demand' }}
+                {{
+                  entitlements?.autoAnalysis
+                    ? t('billing_entitlements_always_on')
+                    : t('billing_entitlements_on_demand')
+                }}
               </UBadge>
             </div>
             <div
               class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
             >
-              <span class="text-sm">AI Engine</span>
+              <span class="text-sm">{{ t('billing_entitlements_ai_engine') }}</span>
               <UBadge :color="entitlements?.aiModel === 'pro' ? 'primary' : 'info'" size="xs">
-                {{ entitlements?.aiModel === 'pro' ? 'Deep' : 'Standard' }}
+                {{
+                  entitlements?.aiModel === 'pro'
+                    ? t('billing_feature_deep')
+                    : t('billing_feature_standard')
+                }}
               </UBadge>
             </div>
             <div
               class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800"
             >
-              <span class="text-sm">Priority</span>
+              <span class="text-sm">{{ t('billing_entitlements_priority') }}</span>
               <UBadge :color="entitlements?.priorityProcessing ? 'success' : 'neutral'" size="xs">
-                {{ entitlements?.priorityProcessing ? 'Yes' : 'No' }}
+                {{
+                  entitlements?.priorityProcessing
+                    ? t('billing_feature_yes')
+                    : t('billing_feature_no')
+                }}
               </UBadge>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">Proactive AI</span>
+              <span class="text-sm">{{ t('billing_entitlements_proactive_ai') }}</span>
               <UBadge :color="entitlements?.proactivity ? 'success' : 'neutral'" size="xs">
-                {{ entitlements?.proactivity ? 'Yes' : 'No' }}
+                {{ entitlements?.proactivity ? t('billing_feature_yes') : t('billing_feature_no') }}
               </UBadge>
             </div>
           </div>
@@ -787,12 +842,14 @@
         class="space-y-4 order-1 lg:order-1 pt-8 lg:pt-0 border-t lg:border-t-0 border-gray-200 dark:border-gray-800"
       >
         <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
-          <h3 class="text-2xl font-black uppercase tracking-tight">Subscription Plans</h3>
+          <h3 class="text-2xl font-black uppercase tracking-tight">
+            {{ t('billing_plans_title') }}
+          </h3>
           <p
             v-if="userStore.user?.subscriptionTier !== 'PRO'"
             class="text-sm text-primary font-medium"
           >
-            Upgrade to unlock advanced features
+            {{ t('billing_button_upgrade') }}
           </p>
         </div>
 
@@ -822,7 +879,7 @@
           <summary
             class="billing-summary cursor-pointer list-none px-4 py-3 text-sm font-semibold flex items-center justify-between"
           >
-            Compare all plan highlights
+            {{ t('billing_compare_header') }}
             <UIcon name="i-heroicons-chevron-down" class="billing-chevron w-4 h-4 text-gray-500" />
           </summary>
           <div class="billing-details-content">
@@ -830,10 +887,10 @@
               <table class="w-full text-sm">
                 <thead>
                   <tr class="text-left border-b border-gray-200 dark:border-gray-800">
-                    <th class="py-2 font-semibold">Feature</th>
-                    <th class="py-2 font-semibold">Free</th>
-                    <th class="py-2 font-semibold">Supporter</th>
-                    <th class="py-2 font-semibold text-primary">Pro</th>
+                    <th class="py-2 font-semibold">{{ t('billing_compare_feature') }}</th>
+                    <th class="py-2 font-semibold">{{ t('billing_tier_free') }}</th>
+                    <th class="py-2 font-semibold">{{ t('billing_tier_supporter') }}</th>
+                    <th class="py-2 font-semibold text-primary">{{ t('billing_tier_pro') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -855,7 +912,7 @@
 
         <UCard :ui="{ body: 'p-4 sm:p-6' }">
           <template #header>
-            <h4 class="text-base font-semibold">Billing FAQ</h4>
+            <h4 class="text-base font-semibold">{{ t('billing_faq_header') }}</h4>
           </template>
           <div class="divide-y divide-gray-200 dark:divide-gray-800">
             <details v-for="item in billingFaqs" :key="item.question" class="billing-faq-item py-3">
@@ -881,8 +938,8 @@
             icon="i-heroicons-information-circle"
             color="info"
             variant="soft"
-            title="Subscriptions Temporarily Unavailable"
-            description="We are currently performing maintenance on our subscription system. New subscriptions and plan changes are temporarily disabled, but existing subscriptions remain active and functional."
+            :title="t('billing_unavailable_title')"
+            :description="t('billing_unavailable_desc')"
           />
         </div>
       </div>
@@ -892,14 +949,14 @@
     <UModal
       v-model:open="showPlansModal"
       :ui="{ content: 'sm:max-w-5xl' }"
-      title="Coach Watts Subscription Plans"
-      description="Explore our tiered subscription options and find the plan that best fits your training needs."
+      :title="t('billing_modal_title')"
+      :description="t('billing_modal_desc')"
     >
       <template #content>
         <UCard :ui="{ body: 'p-6 sm:p-8' }">
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-xl font-bold">Change Your Plan</h3>
+              <h3 class="text-xl font-bold">{{ t('billing_modal_change_title') }}</h3>
               <UButton
                 color="neutral"
                 variant="ghost"
@@ -920,8 +977,8 @@
               icon="i-heroicons-information-circle"
               color="info"
               variant="soft"
-              title="Subscriptions Temporarily Unavailable"
-              description="New plan selections and changes are temporarily disabled while we perform system maintenance. Existing subscriptions remain active."
+              :title="t('billing_unavailable_title')"
+              :description="t('billing_unavailable_modal_desc')"
             />
           </div>
         </UCard>
