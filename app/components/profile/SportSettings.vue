@@ -1388,7 +1388,7 @@
     loadPreference: 'POWER_HR_PACE',
     targetPolicy: {
       primaryMetric: 'power',
-      strictPrimary: false,
+      strictPrimary: true,
       allowMixedTargetsPerStep: false,
       defaultTargetStyle: 'range',
       preferRangesForSteady: true
@@ -1512,7 +1512,7 @@
       editForm.value.targetPolicy.defaultTargetStyle = 'range'
     }
     if (typeof editForm.value.targetPolicy.strictPrimary !== 'boolean') {
-      editForm.value.targetPolicy.strictPrimary = false
+      editForm.value.targetPolicy.strictPrimary = true
     }
     if (typeof editForm.value.targetPolicy.allowMixedTargetsPerStep !== 'boolean') {
       editForm.value.targetPolicy.allowMixedTargetsPerStep = false
@@ -1771,7 +1771,7 @@
       loadPreference: 'POWER_HR_PACE',
       targetPolicy: {
         primaryMetric: 'power',
-        strictPrimary: false,
+        strictPrimary: true,
         allowMixedTargetsPerStep: false,
         defaultTargetStyle: 'range',
         preferRangesForSteady: true
