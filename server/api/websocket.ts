@@ -211,19 +211,38 @@ async function handleChatMessage(
     const aiSettings = await getUserAiSettings(userId)
     const tools = getToolsWithContext(userId, timezone, aiSettings, roomId)
 
-    // 3. Fetch History
-    const history = await prisma.chatMessage.findMany({
-      where: { roomId },
-      orderBy: { createdAt: 'desc' },
-      take: 50
+    // 3. Fetch History — use existing room summary to reduce context size
+    const room = await prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      select: { metadata: true }
     })
-    const chronologicalHistory = history.reverse()
+    const roomMeta = (room?.metadata as any) || {}
+    const historySummary = roomMeta.historySummary as string | undefined
+    const lastSummarizedMessageId = roomMeta.lastSummarizedMessageId as string | undefined
+
+    let chronologicalHistory: any[]
+    if (lastSummarizedMessageId) {
+      // Only fetch unsummarized messages — the summary covers everything before
+      const cutoff = await prisma.chatMessage.findUnique({
+        where: { id: lastSummarizedMessageId },
+        select: { createdAt: true }
+      })
+      const recent = await prisma.chatMessage.findMany({
+        where: { roomId, ...(cutoff ? { createdAt: { gt: cutoff.createdAt } } : {}) },
+        orderBy: { createdAt: 'desc' },
+        take: 30
+      })
+      chronologicalHistory = recent.reverse()
+    } else {
+      const recent = await prisma.chatMessage.findMany({
+        where: { roomId },
+        orderBy: { createdAt: 'desc' },
+        take: 30
+      })
+      chronologicalHistory = recent.reverse()
+    }
 
     // 4. Prepare History for AI SDK
-    // Convert DB messages to AI SDK CoreMessage format
-    // Simple conversion for now: map user/model roles.
-    // Note: This simplistic conversion might lose tool call history in legacy messages.
-    // A robust converter would parse metadata for toolCalls.
     const historyForModel = chronologicalHistory.map((msg: any) => ({
       role: msg.senderId === 'ai_agent' ? 'assistant' : 'user',
       content: msg.content
@@ -237,6 +256,11 @@ async function handleChatMessage(
     ) {
       historyForModel.shift()
     }
+
+    // Inject summary into system instruction if available
+    const finalSystemInstruction = historySummary
+      ? `${systemInstruction}\n\n## Earlier Conversation Summary\nThe following summarises earlier parts of this conversation. Use it for continuity but focus on the recent messages.\n\n${historySummary}`
+      : systemInstruction
 
     // 5. Initialize Provider
     const google = createGoogleGenerativeAI({
@@ -270,12 +294,50 @@ async function handleChatMessage(
 
     const result = await streamText({
       model: google(modelName),
-      system: systemInstruction,
+      system: finalSystemInstruction,
       messages: historyForModel,
       tools,
       stopWhen: stepCountIs(opSettings.maxSteps), // Enable multi-step tool calls automatically
       providerOptions,
       onStepFinish: async ({ text, toolCalls, toolResults, finishReason, usage }) => {
+        // Log each step individually — each step is a separate Gemini API call
+        try {
+          const promptTokens = usage.inputTokens || 0
+          const completionTokens = usage.outputTokens || 0
+          const cachedTokens = usage.inputTokenDetails?.cacheReadTokens || 0
+          const reasoningTokens = (usage as any).outputTokenDetails?.reasoningTokens || 0
+          const estimatedCost = calculateLlmCost(
+            modelName,
+            promptTokens,
+            completionTokens + reasoningTokens,
+            cachedTokens
+          )
+          await prisma.llmUsage.create({
+            data: {
+              userId,
+              provider: 'gemini',
+              model: modelName,
+              modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
+              operation: 'chat_ws',
+              entityType: 'ChatMessage',
+              entityId: userMessage.id,
+              promptTokens,
+              completionTokens,
+              cachedTokens,
+              reasoningTokens,
+              totalTokens: promptTokens + completionTokens,
+              estimatedCost,
+              durationMs: Date.now() - startTime,
+              retryCount: 0,
+              success: true,
+              promptPreview: content.substring(0, 500),
+              responsePreview: (text || '').substring(0, 500)
+            }
+          })
+        } catch (e) {
+          console.error('[WS Chat] LLM step usage log failed:', e)
+        }
+
         // Notify client about tool execution
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {
@@ -309,7 +371,7 @@ async function handleChatMessage(
         }
       },
       onFinish: async (event) => {
-        const { text, usage } = event
+        const { text } = event
         const durationMs = Date.now() - startTime
 
         // 8. Save AI Response
@@ -402,45 +464,6 @@ async function handleChatMessage(
           })
         )
 
-        // Log usage
-        try {
-          const promptTokens = usage.inputTokens || 0
-          const completionTokens = usage.outputTokens || 0
-          const cachedTokens = usage.inputTokenDetails?.cacheReadTokens || 0
-          const reasoningTokens = (usage as any).outputTokenDetails?.reasoningTokens || 0
-          const estimatedCost = calculateLlmCost(
-            modelName,
-            promptTokens,
-            completionTokens + reasoningTokens,
-            cachedTokens
-          )
-
-          await prisma.llmUsage.create({
-            data: {
-              userId,
-              provider: 'gemini',
-              model: modelName,
-              modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
-              operation: 'chat_ws',
-              entityType: 'ChatMessage',
-              entityId: aiMessage.id,
-              promptTokens,
-              completionTokens,
-              cachedTokens,
-              reasoningTokens,
-              totalTokens: promptTokens + completionTokens,
-              estimatedCost,
-              durationMs,
-              retryCount: 0,
-              success: true,
-              promptPreview: content.substring(0, 500),
-              responsePreview: (text || '').substring(0, 500)
-            }
-          })
-        } catch (e) {
-          console.error('[WS Chat] LLM usage log failed:', e)
-        }
-
         // 11. Auto-rename room
         try {
           const messageCount = await prisma.chatMessage.count({ where: { roomId } })
@@ -461,6 +484,14 @@ async function handleChatMessage(
           }
         } catch (e) {
           // Ignore rename errors
+        }
+
+        // 12. Trigger background summarization to keep summaries up to date
+        try {
+          const { summarizeChatTask } = await import('../../trigger/summarize-chat')
+          await summarizeChatTask.trigger({ roomId, userId }, { tags: [`user:${userId}`] })
+        } catch (e) {
+          // Non-critical — don't block the response
         }
       }
     })
