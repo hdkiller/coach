@@ -14,6 +14,17 @@ import { sportSettingsRepository } from '../server/utils/repositories/sportSetti
 import { getUserTimezone, getUserLocalDate } from '../server/utils/date'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { enforceCyclingCadenceVariation, resolveCyclingCadence } from './utils/cadence'
+import {
+  resolveWorkoutTargeting,
+  formatTargetPolicyPrompt,
+  formatTargetFormatPolicyPrompt,
+  STEP_INTENTS,
+  applyRunTargetPolicyToStep,
+  applyTargetFormatPolicyToStep,
+  applyStepIntentGuard,
+  buildPlannedWorkoutSettingsSnapshot,
+  buildPlannedWorkoutGenerationContext
+} from './utils/workout-targeting'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -50,6 +61,12 @@ const workoutStructureSchema = {
                 durationSeconds: { type: 'integer', minimum: 1 },
                 distance: { type: 'integer', minimum: 1 },
                 name: { type: 'string' },
+                intent: {
+                  type: 'string',
+                  enum: STEP_INTENTS,
+                  description:
+                    'Language-independent interval intent (e.g. endurance, tempo, threshold, vo2).'
+                },
                 primaryTarget: {
                   type: 'string',
                   enum: ['power', 'heartRate', 'pace', 'rpe'],
@@ -110,6 +127,12 @@ const workoutStructureSchema = {
           durationSeconds: { type: 'integer', minimum: 1 },
           distance: { type: 'integer', minimum: 1, description: 'Distance in meters (Swim/Run)' },
           description: { type: 'string', description: 'Pace or stroke description' },
+          intent: {
+            type: 'string',
+            enum: STEP_INTENTS,
+            description:
+              'Language-independent interval intent (e.g. endurance, tempo, threshold, vo2).'
+          },
           primaryTarget: {
             type: 'string',
             enum: ['power', 'heartRate', 'pace', 'rpe'],
@@ -370,6 +393,65 @@ function inferPowerUnits(power: any): '%' | 'w' {
   return maxAbs > 3 ? 'w' : '%'
 }
 
+function toIntensityFactorFromTarget(
+  target: any,
+  kind: 'heartRate' | 'power' | 'pace',
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+): number | null {
+  if (!target) return null
+  const value =
+    typeof target?.value === 'number'
+      ? target.value
+      : typeof target?.range?.start === 'number' && typeof target?.range?.end === 'number'
+        ? (target.range.start + target.range.end) / 2
+        : null
+  if (value === null || !Number.isFinite(value)) return null
+  const units = String(target?.units || '')
+    .trim()
+    .toLowerCase()
+  const clamp = (n: number) => Math.max(0.3, Math.min(1.8, n))
+  const zoneToFactor = (z: number) => clamp(0.45 + Math.max(1, Math.min(7, z)) * 0.1)
+
+  if (kind === 'heartRate') {
+    if (units === 'bpm') {
+      if (refs.lthr > 0) return clamp(value / refs.lthr)
+      if (refs.maxHr > 0) return clamp(value / refs.maxHr)
+      return clamp(value > 2 ? value / 100 : value)
+    }
+    if (units.includes('zone')) return zoneToFactor(value)
+    return clamp(value > 2 ? value / 100 : value)
+  }
+
+  if (kind === 'power') {
+    if (units === 'w' || units === 'watts') {
+      if (refs.ftp > 0) return clamp(value / refs.ftp)
+      return clamp(value > 3 ? value / 250 : value)
+    }
+    if (units === 'power_zone' || units.includes('zone') || units.startsWith('z')) {
+      return zoneToFactor(value)
+    }
+    return clamp(value > 3 ? value / 100 : value)
+  }
+
+  // pace
+  if (units.includes('/')) {
+    // absolute pace in min/km
+    if (refs.thresholdPace > 0) {
+      const secondsPerKm = value * 60
+      const metersPerSecond = secondsPerKm > 0 ? 1000 / secondsPerKm : 0
+      if (metersPerSecond > 0) return clamp(metersPerSecond / refs.thresholdPace)
+    }
+    return null
+  }
+  if (units === 'm/s') {
+    if (refs.thresholdPace > 0) return clamp(value / refs.thresholdPace)
+    return null
+  }
+  if (units.includes('zone')) return zoneToFactor(value)
+  if (refs.thresholdPace > 0 && value > 3) return clamp(value / refs.thresholdPace)
+  return clamp(value > 2 ? value / 100 : value)
+}
+
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
@@ -453,11 +535,15 @@ export const generateStructuredWorkoutTask = task({
       workout.userId,
       workout.type || ''
     )
+    const { targetPolicy, targetFormatPolicy, loadPreference, priorityText } =
+      resolveWorkoutTargeting(sportSettings)
     logStage('loaded-sport-settings', {
       hasSettings: Boolean(sportSettings),
       hasHrZones: Boolean((sportSettings?.hrZones as any)?.length),
       hasPowerZones: Boolean((sportSettings?.powerZones as any)?.length),
-      loadPreference: sportSettings?.loadPreference || null
+      hasPaceZones: Boolean((sportSettings?.paceZones as any)?.length),
+      loadPreference,
+      targetPolicyPrimary: targetPolicy.primaryMetric
     })
 
     // Build context
@@ -532,6 +618,20 @@ export const generateStructuredWorkoutTask = task({
         zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} Watts\n`
       })
     }
+    if (sportSettings?.paceZones && Array.isArray(sportSettings.paceZones)) {
+      zoneDefinitions += `\n**${workout.type} Pace Zones:**\n`
+      sportSettings.paceZones.forEach((z: any) => {
+        zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} m/s\n`
+      })
+    }
+
+    const formatThresholdPace = (metersPerSecond: number) => {
+      if (!metersPerSecond || metersPerSecond <= 0) return null
+      const secondsPerKm = 1000 / metersPerSecond
+      const minutes = Math.floor(secondsPerKm / 60)
+      const seconds = Math.round(secondsPerKm % 60)
+      return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
+    }
 
     if (lthr) {
       zoneDefinitions += `\n**Reference LTHR:** ${lthr} bpm\n`
@@ -539,10 +639,10 @@ export const generateStructuredWorkoutTask = task({
     if (ftp) {
       zoneDefinitions += `**Reference FTP:** ${ftp} Watts\n`
     }
-    const loadPreference = sportSettings?.loadPreference || 'HR_POWER_PACE'
-    if (sportSettings?.loadPreference) {
-      zoneDefinitions += `**Preferred Load Metric:** ${loadPreference}\n`
+    if (sportSettings?.thresholdPace) {
+      zoneDefinitions += `**Reference Threshold Pace:** ${sportSettings.thresholdPace} m/s (${formatThresholdPace(sportSettings.thresholdPace)})\n`
     }
+    zoneDefinitions += `**Preferred Load Metric:** ${loadPreference}\n`
 
     const warmupTime = sportSettings?.warmupTime || 10
     const cooldownTime = sportSettings?.cooldownTime || 5
@@ -553,6 +653,8 @@ export const generateStructuredWorkoutTask = task({
     if (sportSettings?.cooldownTime) {
       zoneDefinitions += `**Default Cooldown Duration:** ${sportSettings.cooldownTime} minutes\n`
     }
+    const targetPolicyPrompt = formatTargetPolicyPrompt(targetPolicy, loadPreference)
+    const targetFormatPolicyPrompt = formatTargetFormatPolicyPrompt(targetFormatPolicy)
 
     const prompt = `Design a structured ${workout.type} workout for ${workout.user.name || 'Athlete'}.
     
@@ -564,6 +666,7 @@ export const generateStructuredWorkoutTask = task({
     USER LTHR: ${lthr} bpm
     TYPE: ${workout.type}
     PREFERRED INTENSITY METRIC: ${loadPreference}
+    METRIC PRIORITY ORDER: ${priorityText}
     PREFERRED LANGUAGE: ${workout.user.language || 'English'} (CRITICAL: ALL text fields like "description" and "coachInstructions" MUST be written in this language)
     
     CONTEXT:
@@ -579,6 +682,10 @@ export const generateStructuredWorkoutTask = task({
     CRITICAL: ALWAYS use the user's specific zones defined below for this activity type.
 
     ${zoneDefinitions}
+
+    ${targetPolicyPrompt}
+
+    ${targetFormatPolicyPrompt}
 
     When generating "[Zone 2]" workouts, target ONLY the user's defined Z2 range for this specific sport. Never use generic percentages - always reference the provided zones first.
     
@@ -599,11 +706,14 @@ export const generateStructuredWorkoutTask = task({
     - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
     - If a step name implies a focus change (e.g. cadence focus), at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
     - Include specific execution cues in "coachInstructions" (breathing, pacing, cadence control, form focus).
-    - **METRIC PRIORITY**: Respect the user's PREFERRED INTENSITY METRIC (${loadPreference}). 
-      - Priority Order: ${loadPreference.split('_').join(' > ')}.
-      - Use the FIRST available metric from this list for each step as the primary target object. 
+    - **METRIC PRIORITY**: Respect the user's TARGET POLICY and preferred order (${loadPreference}).
+      - Priority Order: ${priorityText}.
+      - Primary metric for each step should be: ${targetPolicy.primaryMetric}.
+      - ${targetPolicy.strictPrimary ? 'Strict primary is enabled: avoid fallback metrics unless absolutely necessary.' : 'Fallback metrics are allowed when the primary metric is not usable for a specific step.'}
+      - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed targets in one step are allowed when they add useful execution context.' : 'Do not include multiple intensity targets in a single step unless explicitly requested.'}
       - NEVER duplicate a workout step just to provide a different intensity metric. One step = one time block.
     - **steps**: All rules below (targets, etc.) apply to BOTH top-level steps AND nested steps inside repeats.
+    - MANDATORY: Every step MUST include an \`intent\` enum value (warmup/recovery/easy/endurance/tempo/threshold/vo2/anaerobic/sprint/cooldown/drills/strides).
     - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
     - **coachInstructions**: Provide a personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the "${persona}" persona tone.
     - **Warmup/Cooldown**: Use the user's default durations (${warmupTime} minutes for Warmup, ${cooldownTime} minutes for Cooldown) unless the workout TITLE or DESCRIPTION explicitly asks for a different specific duration.
@@ -624,13 +734,10 @@ export const generateStructuredWorkoutTask = task({
     FOR RUNNING (Run):
     - Steps should have 'type', 'durationSeconds', 'name'.
     - ALWAYS include 'distance' (meters) for each step. If duration-based, ESTIMATE the distance based on the intensity/pace.
-    - Use 'power' object if it's a power-based run (e.g. Stryd).
-    - Use the user's PREFERRED INTENSITY METRIC (${loadPreference}) as the primary target.
-    - If HR is preferred, ensure 'heartRate' is populated. If PACE is preferred, ensure 'pace' is populated.
-    - Set 'heartRate.units' to "LTHR" by default for percentage targets.
-    - If 'pace' is used as percentage, set 'pace.units' to "Pace".
-    - Do NOT mix HR and Pace targets in the same step unless specifically requested in the description.
-    - Prefer 'heartRate.range' or 'pace.range' for steady aerobic/endurance/tempo blocks (e.g. Zone 2 -> start: 0.70, end: 0.80). 
+    - Target selection MUST follow TARGET POLICY priority order: ${priorityText}.
+    - Use 'heartRate.units' = "LTHR" for percentage HR targets and 'pace.units' = "Pace" for percentage pace targets.
+    - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but the policy primary metric must still be explicit as primaryTarget.' : 'Use one intensity metric per step unless the workout request explicitly asks for mixed cues.'}
+    - ${targetPolicy.defaultTargetStyle === 'range' || targetPolicy.preferRangesForSteady ? "Prefer 'heartRate.range', 'pace.range', or 'power.range' for steady aerobic/endurance/tempo blocks." : 'Single-value targets are acceptable for steady blocks unless range is explicitly requested.'}
     - DO NOT rely solely on description for intensity. Provide an estimated target object for every step.
     - Respect quality spacing: avoid stacking maximal efforts without enough recovery.
     
@@ -739,16 +846,40 @@ export const generateStructuredWorkoutTask = task({
           recoverTarget('heartRate')
           recoverTarget('pace')
           recoverTarget('power')
-          const hasHr = step.heartRate && (step.heartRate.value || step.heartRate.range)
-          const hasPace = step.pace && (step.pace.value || step.pace.range)
-          const hasPower = step.power && (step.power.value || step.power.range)
-          if (!hasHr && !hasPace && !hasPower) {
-            if (step.type === 'Warmup') step.heartRate = { value: 0.6 }
-            else if (step.type === 'Rest') step.heartRate = { value: 0.5 }
-            else if (step.type === 'Cooldown') step.heartRate = { value: 0.55 }
-            else step.heartRate = { value: 0.75 }
-          }
+          if (step.heartRate && !step.heartRate.units) step.heartRate.units = 'LTHR'
+          if (step.pace && !step.pace.units) step.pace.units = 'Pace'
+          if (step.power && !step.power.units) step.power.units = inferPowerUnits(step.power)
+          applyRunTargetPolicyToStep(step, targetPolicy)
+          applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
+            ftp,
+            lthr,
+            maxHr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0),
+            hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+            powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+            paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+          })
+          applyStepIntentGuard(step, {
+            ftp,
+            lthr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0)
+          })
           if (step.distance) step.distance = Number(step.distance)
+        } else {
+          applyTargetFormatPolicyToStep(step, targetFormatPolicy, {
+            ftp,
+            lthr,
+            maxHr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0),
+            hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+            powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+            paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+          })
+          applyStepIntentGuard(step, {
+            ftp,
+            lthr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0)
+          })
         }
 
         // 3. Structural Fixes
@@ -781,14 +912,29 @@ export const generateStructuredWorkoutTask = task({
           }
 
           let intensity = 0.5
-          if (step.heartRate) {
-            if (typeof step.heartRate.value === 'number') intensity = step.heartRate.value
-            else if (step.heartRate.range)
-              intensity = (step.heartRate.range.start + step.heartRate.range.end) / 2
-          } else if (step.power) {
-            if (typeof step.power.value === 'number') intensity = step.power.value
-            else if (step.power.range)
-              intensity = (step.power.range.start + step.power.range.end) / 2
+          const hrIntensity = toIntensityFactorFromTarget(step.heartRate, 'heartRate', {
+            ftp,
+            lthr,
+            maxHr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0)
+          })
+          const powerIntensity = toIntensityFactorFromTarget(step.power, 'power', {
+            ftp,
+            lthr,
+            maxHr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0)
+          })
+          const paceIntensity = toIntensityFactorFromTarget(step.pace, 'pace', {
+            ftp,
+            lthr,
+            maxHr,
+            thresholdPace: Number(sportSettings?.thresholdPace || 0)
+          })
+          if (hrIntensity !== null) intensity = hrIntensity
+          else if (powerIntensity !== null) intensity = powerIntensity
+          else if (paceIntensity !== null) intensity = paceIntensity
+          else if (typeof step.rpe === 'number') {
+            intensity = Math.max(0.3, Math.min(1.3, step.rpe / 10))
           } else {
             switch (step.type) {
               case 'Warmup':
@@ -883,10 +1029,36 @@ export const generateStructuredWorkoutTask = task({
       throw new Error('Generated structured workout has zero total TSS')
     }
 
+    const settingsSnapshot = buildPlannedWorkoutSettingsSnapshot(
+      sportSettings,
+      { ftp, lthr, maxHr },
+      targetPolicy,
+      targetFormatPolicy
+    )
+    const generationContext = buildPlannedWorkoutGenerationContext({
+      operation: 'generate',
+      workout,
+      targetPolicy,
+      targetFormatPolicy,
+      loadPreference,
+      timezone,
+      model: 'flash',
+      recentWorkoutsCount: recentWorkouts.length,
+      goal,
+      phase,
+      focus,
+      persona
+    })
+
     const updateData: any = { structuredWorkout: structure as any }
     if (totalDistance > 0) updateData.distanceMeters = totalDistance
     if (totalDuration > 0) updateData.durationSec = totalDuration
     if (totalTSS > 0) updateData.tss = Math.round(totalTSS)
+    updateData.lastGenerationSettingsSnapshot = settingsSnapshot
+    updateData.lastGenerationContext = generationContext
+    if (!(workout as any).createdFromSettingsSnapshot) {
+      updateData.createdFromSettingsSnapshot = settingsSnapshot
+    }
 
     if (totalTSS > 0 && totalDuration > 0) {
       const calculatedIntensity = Math.sqrt((36 * totalTSS) / totalDuration)
@@ -921,7 +1093,8 @@ export const generateStructuredWorkoutTask = task({
         exercises: structure.exercises,
         messages: [],
         ftp: workout.user.ftp || 250,
-        sportSettings: sportSettings || undefined
+        sportSettings: sportSettings || undefined,
+        generationSettingsSnapshot: settingsSnapshot
       }
       const workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
       const syncResult = await syncPlannedWorkoutToIntervals(
