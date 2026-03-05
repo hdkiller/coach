@@ -5,10 +5,10 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              Configure Sports
+              {{ t('sports_header') }}
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage thresholds and zones for specific activity types.
+              {{ t('sports_description') }}
             </p>
           </div>
           <div class="flex gap-2 shrink-0">
@@ -18,7 +18,7 @@
               variant="soft"
               color="primary"
               :loading="autodetecting"
-              label="Auto-detect"
+              :label="t('sports_autodetect')"
               class="flex-1 sm:flex-none justify-center"
               @click="autodetectProfile"
             />
@@ -27,7 +27,7 @@
               size="sm"
               variant="soft"
               color="primary"
-              label="Add Sport"
+              :label="t('sports_add_sport')"
               class="flex-1 sm:flex-none justify-center"
               @click="openAddModal"
             />
@@ -45,12 +45,12 @@
         >
           <UIcon name="i-lucide-award" class="w-8 h-8 text-gray-400" />
         </div>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">No Sport Settings Found</h3>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('sports_empty_title') }}</h3>
         <p class="text-gray-500 mt-2 max-w-sm mx-auto mb-6">
-          Connect to Intervals.icu to sync your profile or add a sport manually.
+          {{ t('sports_empty_desc') }}
         </p>
         <UButton icon="i-lucide-plus" size="md" color="primary" @click="openAddModal">
-          Add Your First Sport
+          {{ t('sports_empty_button') }}
         </UButton>
       </div>
 
@@ -949,7 +949,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { WORKOUT_ICONS } from '~/utils/activity-types'
+
+  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     settings: any[]

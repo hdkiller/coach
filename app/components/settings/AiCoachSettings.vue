@@ -3,16 +3,16 @@
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
-        <h2 class="text-xl font-semibold">AI Coach Configuration</h2>
+        <h2 class="text-xl font-semibold">{{ t('ai_coach_header') }}</h2>
       </div>
     </template>
 
     <div class="space-y-6">
       <!-- Coach Personality -->
       <div>
-        <label class="block text-sm font-medium mb-2">Coach Personality</label>
+        <label class="block text-sm font-medium mb-2">{{ t('coach_section_personality') }}</label>
         <p class="text-sm text-muted mb-3">
-          Choose the tone and style of feedback from your AI coach
+          {{ t('coach_section_personality_desc') }}
         </p>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
           <USelect
@@ -26,7 +26,7 @@
             color="neutral"
             variant="soft"
             icon="i-heroicons-speaker-wave"
-            label="Voice settings"
+            :label="t('coach_voice_button')"
             @click="isVoiceSettingsOpen = true"
           />
         </div>
@@ -34,8 +34,8 @@
 
       <!-- Analysis Levels Selection -->
       <div>
-        <label class="block text-sm font-medium mb-2">AI Analysis Levels</label>
-        <p class="text-sm text-muted mb-3">Choose the depth of analysis for your training data</p>
+        <label class="block text-sm font-medium mb-2">{{ t('coach_analysis_levels') }}</label>
+        <p class="text-sm text-muted mb-3">{{ t('coach_analysis_levels_desc') }}</p>
         <div class="space-y-3">
           <div
             v-for="model in modelOptions"
@@ -57,7 +57,7 @@
               <div class="flex items-center gap-2">
                 <div class="font-medium">{{ model.label }}</div>
                 <div v-if="shouldShowLock(model)" class="flex items-center gap-2">
-                  <UBadge color="primary" variant="subtle" size="sm">Pro</UBadge>
+                  <UBadge color="primary" variant="subtle" size="sm">{{ t('billing_tier_pro') }}</UBadge>
                   <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-neutral-500" />
                 </div>
               </div>
@@ -69,13 +69,13 @@
 
       <!-- Communication Preferences -->
       <div>
-        <label class="block text-sm font-medium mb-2">Communication</label>
-        <p class="text-sm text-muted mb-3">Control how the AI coach interacts with you in chat</p>
+        <label class="block text-sm font-medium mb-2">{{ t('coach_communication') }}</label>
+        <p class="text-sm text-muted mb-3">{{ t('coach_communication_desc') }}</p>
         <div class="space-y-3">
           <USwitch
             v-model="localSettings.aiConversationalEngagement"
-            label="Conversational Engagement"
-            description="Allow the coach to ask proactive follow-up questions to keep the session moving"
+            :label="t('coach_conversational_label')"
+            :description="t('coach_conversational_desc')"
             @update:model-value="handleChange"
           />
         </div>
@@ -83,21 +83,19 @@
 
       <!-- Data & Privacy Settings -->
       <div>
-        <label class="block text-sm font-medium mb-2">Data & Privacy</label>
-        <p class="text-sm text-muted mb-3">
-          Control what data the AI coach can access for analysis
-        </p>
+        <label class="block text-sm font-medium mb-2">{{ t('coach_data_privacy') }}</label>
+        <p class="text-sm text-muted mb-3">{{ t('coach_data_privacy_desc') }}</p>
         <div class="space-y-3">
           <USwitch
             v-model="localSettings.nutritionTrackingEnabled"
-            label="Enable Nutrition Analysis"
-            description="Allow the AI to analyze your nutrition data and provide feedback"
+            :label="t('coach_nutrition_analysis_label')"
+            :description="t('coach_nutrition_analysis_desc')"
             @update:model-value="handleChange"
           />
           <USwitch
             v-model="localSettings.updateWorkoutNotesEnabled"
-            label="Update Workout Notes"
-            description="Allow AI workout summaries to be captured as notes"
+            :label="t('coach_update_notes_label')"
+            :description="t('coach_update_notes_desc')"
             @update:model-value="handleChange"
           />
         </div>
@@ -105,7 +103,7 @@
 
       <!-- Save Button -->
       <div class="flex justify-end">
-        <UButton :loading="saving" @click="saveSettings"> Save Changes </UButton>
+        <UButton :loading="saving" @click="saveSettings"> {{ t('settings_save_changes') }} </UButton>
       </div>
     </div>
   </UCard>
@@ -120,6 +118,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('settings')
+
   const props = defineProps<{
     forceUnlocked?: boolean
     settings: {
@@ -153,29 +155,29 @@
   const upgradeModal = useUpgradeModal()
 
   const personaOptions = [
-    { value: 'Analytical', label: 'Analytical - Data-driven, technical insights' },
-    { value: 'Supportive', label: 'Supportive - Encouraging and positive' },
-    { value: 'Drill Sergeant', label: 'Drill Sergeant - Direct and demanding' },
-    { value: 'Motivational', label: 'Motivational - Inspirational and uplifting' }
+    { value: 'Analytical', label: t.value('coach_persona_analytical') },
+    { value: 'Supportive', label: t.value('coach_persona_supportive') },
+    { value: 'Drill Sergeant', label: t.value('coach_persona_drill') },
+    { value: 'Motivational', label: t.value('coach_persona_motivational') }
   ]
 
   const modelOptions = [
     {
       value: 'flash',
-      label: 'Quick',
-      description: 'A well balanced experience with rapid-fire feedback.',
+      label: t.value('coach_model_quick_label'),
+      description: t.value('coach_model_quick_desc'),
       minTier: 'FREE'
     },
     {
       value: 'pro',
-      label: 'Thoughtful',
-      description: 'State of the art, elite level intelligence for deep-dive strategy.',
+      label: t.value('coach_model_thoughtful_label'),
+      description: t.value('coach_model_thoughtful_desc'),
       minTier: 'PRO'
     },
     {
       value: 'experimental',
-      label: 'Experimental',
-      description: "What we're cooking in the lab. Cutting-edge but potentially unstable.",
+      label: t.value('coach_model_experimental_label'),
+      description: t.value('coach_model_experimental_desc'),
       minTier: 'PRO'
     }
   ]
@@ -200,8 +202,8 @@
     }
 
     upgradeModal.show({
-      featureTitle: model.label + ' Analysis',
-      featureDescription: 'Unlock our most advanced AI analysis engines.',
+      featureTitle: `${model.label} ${t.value('coach_upgrade_analysis_suffix')}`,
+      featureDescription: t.value('coach_upgrade_analysis_desc'),
       recommendedTier: 'pro'
     })
   }

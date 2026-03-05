@@ -5,10 +5,10 @@
         <div class="flex items-center gap-3">
           <div>
             <h3 class="text-base font-bold text-gray-900 dark:text-white">
-              Enable Nutrition System
+              {{ t('nutrition_header_enable') }}
             </h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">
-              Activate periodized fueling guidance and metabolic tracking.
+              {{ t('nutrition_desc_enable') }}
             </p>
           </div>
         </div>
@@ -25,11 +25,11 @@
       icon="i-heroicons-exclamation-triangle"
       color="warning"
       variant="soft"
-      title="Missing Profile Information"
-      description="Weight, Height, Date of Birth, and Sex are required to automatically calculate your BMR. Please update them in Basic Settings."
+      :title="t('nutrition_alert_missing_data_title')"
+      :description="t('nutrition_alert_missing_data_desc')"
       :actions="[
         {
-          label: 'Go to Basic Settings',
+          label: t('nutrition_alert_missing_data_action'),
           color: 'warning',
           variant: 'solid',
           onClick: () => $emit('navigate', 'basic')
@@ -42,10 +42,10 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              Metabolic Profile
+              {{ t('nutrition_header_metabolic') }}
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Your physiological baseline for nutrition calculations.
+              {{ t('nutrition_desc_metabolic') }}
             </p>
           </div>
         </div>
@@ -53,9 +53,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <UFormField
-          label="Current Weight"
+          :label="t('nutrition_form_weight')"
           name="weight"
-          help="Foundation for relative macro targets (g/kg). Managed in Basic Settings."
+          :help="t('nutrition_help_weight')"
         >
           <UInput :model-value="displayWeight" type="number" disabled class="w-full">
             <template #trailing>
@@ -66,7 +66,11 @@
           </UInput>
         </UFormField>
 
-        <UFormField label="Basal Metabolic Rate (BMR)" name="bmr" help="Calories burned at rest.">
+        <UFormField
+          :label="t('nutrition_form_bmr')"
+          name="bmr"
+          :help="t('nutrition_help_bmr')"
+        >
           <div class="flex gap-2">
             <UInput
               v-model.number="localSettings.bmr"
@@ -77,7 +81,9 @@
               class="flex-1"
             >
               <template #trailing>
-                <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">{{
+                  t('nutrition_unit_kcal_day')
+                }}</span>
               </template>
             </UInput>
             <UButton
@@ -86,16 +92,16 @@
               variant="subtle"
               @click="calculateBMR"
             >
-              Set BMR
+              {{ t('nutrition_button_set_bmr') }}
             </UButton>
           </div>
         </UFormField>
 
         <UFormField
-          label="Daily Activity Level"
+          :label="t('nutrition_form_activity_level')"
           name="activityLevel"
           class="md:col-span-1"
-          help="Your non-exercise daily movement (NEAT)."
+          :help="t('nutrition_help_activity_level')"
         >
           <USelectMenu
             v-model="localSettings.activityLevel"
@@ -107,9 +113,9 @@
         </UFormField>
 
         <UFormField
-          label="Base Calories Method"
+          :label="t('nutrition_form_calories_mode')"
           name="baseCaloriesMode"
-          help="Choose how your non-exercise daily calorie baseline is defined."
+          :help="t('nutrition_help_calories_mode')"
         >
           <USelectMenu
             v-model="localSettings.baseCaloriesMode"
@@ -122,9 +128,9 @@
 
         <UFormField
           v-if="localSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'"
-          label="Daily Calories Without Structured Exercise"
+          :label="t('nutrition_form_manual_calories')"
           name="nonExerciseBaseCalories"
-          help="Your known maintenance calories on a day with no structured training (for example: 1900 kcal)."
+          :help="t('nutrition_help_manual_calories')"
         >
           <UInput
             v-model.number="localSettings.nonExerciseBaseCalories"
@@ -134,18 +140,18 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_kcal_day') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Estimated TDEE"
+          :label="t('nutrition_form_tdee')"
           name="tdee"
           :help="
             localSettings.baseCaloriesMode === 'MANUAL_NON_EXERCISE'
-              ? 'Using your manual non-exercise baseline.'
-              : 'Total Daily Energy Expenditure (BMR × Activity)'
+              ? t('nutrition_help_tdee_manual')
+              : t('nutrition_help_tdee_auto')
           "
         >
           <UInput
@@ -156,15 +162,15 @@
             :ui="{ base: 'bg-gray-50 dark:bg-gray-800' }"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_kcal_day') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Metabolic Safety Floor"
+          :label="t('nutrition_form_metabolic_floor')"
           name="metabolicFloor"
-          help="The default glycogen level used when data chain is broken (e.g. 60% = 0.6)."
+          :help="t('nutrition_help_metabolic_floor')"
         >
           <div class="flex items-center gap-4">
             <UInput
@@ -186,9 +192,9 @@
 
         <div class="md:col-span-2 space-y-4">
           <UFormField
-            label="Goal Profile"
+            :label="t('nutrition_form_goal_profile')"
             name="goalProfile"
-            help="Your primary objective for body composition."
+            :help="t('nutrition_help_goal_profile')"
           >
             <USelectMenu
               v-model="localSettings.goalProfile"
@@ -205,11 +211,18 @@
           >
             <div class="flex justify-between mb-2">
               <label class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                Aggressiveness ({{ localSettings.targetAdjustmentPercent > 0 ? '+' : ''
-                }}{{ localSettings.targetAdjustmentPercent }}%)
+                {{
+                  t('nutrition_label_aggressiveness', {
+                    pct: `${localSettings.targetAdjustmentPercent > 0 ? '+' : ''}${localSettings.targetAdjustmentPercent}`
+                  })
+                }}
               </label>
               <span class="text-xs text-gray-500">
-                {{ localSettings.goalProfile === 'LOSE' ? 'Deficit' : 'Surplus' }}
+                {{
+                  localSettings.goalProfile === 'LOSE'
+                    ? t('nutrition_badge_deficit')
+                    : t('nutrition_badge_surplus')
+                }}
               </span>
             </div>
             <USlider
@@ -222,17 +235,17 @@
             <p class="text-xs text-gray-500 mt-2">
               {{
                 localSettings.goalProfile === 'LOSE'
-                  ? 'Higher deficit speeds up weight loss but risks muscle loss.'
-                  : 'Higher surplus maximizes muscle gain but risks fat gain.'
+                  ? t('nutrition_help_deficit_desc')
+                  : t('nutrition_help_surplus_desc')
               }}
             </p>
           </div>
         </div>
 
         <UFormField
-          label="Target Daily Calories"
+          :label="t('nutrition_form_target_calories')"
           name="targetCalories"
-          help="Your starting point for nutrition planning."
+          :help="t('nutrition_help_target_calories')"
         >
           <UInput
             :model-value="targetCalories"
@@ -242,7 +255,7 @@
             :ui="{ base: 'font-bold text-primary-600 dark:text-primary-400' }"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">kcal/day</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_kcal_day') }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -254,10 +267,10 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-              Meal Schedule
+              {{ t('nutrition_header_meal_schedule') }}
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Define your typical daily meal pattern to help AI slot fueling windows.
+              {{ t('nutrition_desc_meal_schedule') }}
             </p>
           </div>
           <UButton
@@ -265,7 +278,7 @@
             size="xs"
             color="primary"
             variant="soft"
-            label="Add Meal"
+            :label="t('nutrition_button_add_meal')"
             @click="addMeal"
           />
         </div>
@@ -277,7 +290,11 @@
           :key="index"
           class="flex items-center gap-4"
         >
-          <UInput v-model="meal.name" placeholder="Meal Name (e.g. Breakfast)" class="flex-1" />
+          <UInput
+            v-model="meal.name"
+            :placeholder="t('nutrition_placeholder_meal_name')"
+            class="flex-1"
+          />
           <UInput v-model="meal.time" type="time" class="w-32" />
           <UButton
             icon="i-heroicons-trash"
@@ -288,7 +305,7 @@
           />
         </div>
         <p v-if="!localSettings.mealPattern?.length" class="text-sm text-gray-500 italic">
-          No meals defined. Add one to get started.
+          {{ t('nutrition_empty_meal_schedule') }}
         </p>
       </div>
     </UCard>
@@ -296,25 +313,25 @@
     <UCard>
       <template #header>
         <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-          Dietary Constraints (Non-Negotiables)
+          {{ t('nutrition_header_constraints') }}
         </h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Define food intolerances and preferences to ensure AI advice is safe and relevant.
+          {{ t('nutrition_desc_constraints') }}
         </p>
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField
-          label="Dietary Profile"
+          :label="t('nutrition_form_dietary_profile')"
           name="dietaryProfile"
-          help="General dietary patterns (e.g. Vegan, Keto)."
+          :help="t('nutrition_help_dietary_profile')"
         >
           <USelectMenu
             v-model="localSettings.dietaryProfile"
             :items="dietaryOptions"
             multiple
             value-key="value"
-            placeholder="Select patterns..."
+            :placeholder="t('nutrition_placeholder_select_patterns')"
             class="w-full"
             size="lg"
           >
@@ -325,16 +342,16 @@
         </UFormField>
 
         <UFormField
-          label="Food Allergies"
+          :label="t('nutrition_form_food_allergies')"
           name="foodAllergies"
-          help="Must-avoid foods (triggers immune response)."
+          :help="t('nutrition_help_food_allergies')"
         >
           <USelectMenu
             v-model="localSettings.foodAllergies"
             :items="allergyOptions"
             multiple
             value-key="value"
-            placeholder="Select allergies..."
+            :placeholder="t('nutrition_placeholder_select_allergies')"
             class="w-full"
             size="lg"
           >
@@ -345,16 +362,16 @@
         </UFormField>
 
         <UFormField
-          label="Food Intolerances"
+          :label="t('nutrition_form_food_intolerances')"
           name="foodIntolerances"
-          help="Avoid foods that cause digestive or metabolic distress."
+          :help="t('nutrition_help_food_intolerances')"
         >
           <USelectMenu
             v-model="localSettings.foodIntolerances"
             :items="intoleranceOptions"
             multiple
             value-key="value"
-            placeholder="Select intolerances..."
+            :placeholder="t('nutrition_placeholder_select_intolerances')"
             class="w-full"
             size="lg"
           >
@@ -365,16 +382,16 @@
         </UFormField>
 
         <UFormField
-          label="Lifestyle Exclusions"
+          :label="t('nutrition_form_lifestyle_exclusions')"
           name="lifestyleExclusions"
-          help="Strictly avoid specific ingredients or substances for health/performance."
+          :help="t('nutrition_help_lifestyle_exclusions')"
         >
           <USelectMenu
             v-model="localSettings.lifestyleExclusions"
             :items="lifestyleOptions"
             multiple
             value-key="value"
-            placeholder="Select exclusions..."
+            :placeholder="t('nutrition_placeholder_select_exclusions')"
             class="w-full"
             size="lg"
           >
@@ -393,11 +410,11 @@
             <h3
               class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
             >
-              Fuel State Calibration
-              <UBadge size="xs" color="primary" variant="subtle">PRO</UBadge>
+              {{ t('nutrition_header_fuel_calibration') }}
+              <UBadge size="xs" color="primary" variant="subtle">{{ t('nutrition_badge_pro') }}</UBadge>
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Define the intensity triggers and carbohydrate ranges for each physiological state.
+              {{ t('nutrition_desc_fuel_calibration') }}
             </p>
           </div>
         </div>
@@ -409,15 +426,15 @@
         >
           <div class="flex justify-between items-center mb-2">
             <label class="text-sm font-semibold text-primary-900 dark:text-primary-100">
-              Fueling Sensitivity ({{ Math.round(localSettings.fuelingSensitivity * 100) }}%)
+              {{ t('nutrition_label_fueling_sensitivity', { pct: Math.round(localSettings.fuelingSensitivity * 100) }) }}
             </label>
             <span class="text-xs text-primary-700 dark:text-primary-300 font-medium">
               {{
                 localSettings.fuelingSensitivity < 1
-                  ? 'Fat Adapted'
+                  ? t('nutrition_badge_fat_adapted')
                   : localSettings.fuelingSensitivity > 1
-                    ? 'Sugar Burner'
-                    : 'Standard'
+                    ? t('nutrition_badge_sugar_burner')
+                    : t('nutrition_badge_standard')
               }}
             </span>
           </div>
@@ -429,8 +446,7 @@
             color="primary"
           />
           <p class="text-xs text-gray-500 mt-2">
-            Scales all carbohydrate targets globally. Decreasing moves toward fat-adaptation;
-            increasing moves toward high glycolytic demand.
+            {{ t('nutrition_help_fueling_sensitivity') }}
           </p>
         </div>
 
@@ -446,12 +462,12 @@
                 1
               </div>
               <div>
-                <h4 class="text-sm font-bold">Fuel State 1: Eco / Recovery</h4>
-                <p class="text-xs text-gray-500">Low glycogen demand (Zone 1-2).</p>
+                <h4 class="text-sm font-bold">{{ t('nutrition_state1_title') }}</h4>
+                <p class="text-xs text-gray-500">{{ t('nutrition_state1_desc') }}</p>
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <UFormField label="Trigger (IF <)" name="fuelState1Trigger">
+              <UFormField :label="t('nutrition_form_trigger_if_lt')" name="fuelState1Trigger">
                 <UInput
                   v-model.number="localSettings.fuelState1Trigger"
                   type="number"
@@ -459,7 +475,7 @@
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="Min Carbs (g/kg)" name="fuelState1Min">
+              <UFormField :label="t('nutrition_form_min_carbs_gkg')" name="fuelState1Min">
                 <UInput
                   v-model.number="localSettings.fuelState1Min"
                   type="number"
@@ -467,7 +483,7 @@
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="Max Carbs (g/kg)" name="fuelState1Max">
+              <UFormField :label="t('nutrition_form_max_carbs_gkg')" name="fuelState1Max">
                 <UInput
                   v-model.number="localSettings.fuelState1Max"
                   type="number"
@@ -489,12 +505,12 @@
                 2
               </div>
               <div>
-                <h4 class="text-sm font-bold">Fuel State 2: Steady / Endurance</h4>
-                <p class="text-xs text-gray-500">Moderate demand (Zone 2-3).</p>
+                <h4 class="text-sm font-bold">{{ t('nutrition_state2_title') }}</h4>
+                <p class="text-xs text-gray-500">{{ t('nutrition_state2_desc') }}</p>
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <UFormField label="Trigger (IF <)" name="fuelState2Trigger">
+              <UFormField :label="t('nutrition_form_trigger_if_lt')" name="fuelState2Trigger">
                 <UInput
                   v-model.number="localSettings.fuelState2Trigger"
                   type="number"
@@ -502,7 +518,7 @@
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="Min Carbs (g/kg)" name="fuelState2Min">
+              <UFormField :label="t('nutrition_form_min_carbs_gkg')" name="fuelState2Min">
                 <UInput
                   v-model.number="localSettings.fuelState2Min"
                   type="number"
@@ -510,7 +526,7 @@
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="Max Carbs (g/kg)" name="fuelState2Max">
+              <UFormField :label="t('nutrition_form_max_carbs_gkg')" name="fuelState2Max">
                 <UInput
                   v-model.number="localSettings.fuelState2Max"
                   type="number"
@@ -532,12 +548,12 @@
                 3
               </div>
               <div>
-                <h4 class="text-sm font-bold">Fuel State 3: Performance / Race</h4>
-                <p class="text-xs text-gray-500">High demand (Threshold & above).</p>
+                <h4 class="text-sm font-bold">{{ t('nutrition_state3_title') }}</h4>
+                <p class="text-xs text-gray-500">{{ t('nutrition_state3_desc') }}</p>
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <UFormField label="Trigger (IF >)" name="fuelState2Trigger_repeat">
+              <UFormField :label="t('nutrition_form_trigger_if_gt')" name="fuelState2Trigger_repeat">
                 <UInput
                   :model-value="localSettings.fuelState2Trigger"
                   disabled
@@ -545,7 +561,7 @@
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="Min Carbs (g/kg)" name="fuelState3Min">
+              <UFormField :label="t('nutrition_form_min_carbs_gkg')" name="fuelState3Min">
                 <UInput
                   v-model.number="localSettings.fuelState3Min"
                   type="number"
@@ -553,7 +569,7 @@
                   class="w-full"
                 />
               </UFormField>
-              <UFormField label="Max Carbs (g/kg)" name="fuelState3Max">
+              <UFormField :label="t('nutrition_form_max_carbs_gkg')" name="fuelState3Max">
                 <UInput
                   v-model.number="localSettings.fuelState3Max"
                   type="number"
@@ -574,11 +590,11 @@
             <h3
               class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
             >
-              Adaptive Metabolic Engine
-              <UBadge size="xs" color="primary" variant="subtle">PRO</UBadge>
+              {{ t('nutrition_header_adaptive_engine') }}
+              <UBadge size="xs" color="primary" variant="subtle">{{ t('nutrition_badge_pro') }}</UBadge>
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Fine-tune gut training limits and carb-to-intensity scaling coefficients.
+              {{ t('nutrition_desc_adaptive_engine') }}
             </p>
           </div>
         </div>
@@ -588,9 +604,9 @@
         class="mb-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
       >
         <UFormField
-          label="Season Block / Training Phase"
+          :label="t('nutrition_form_training_phase')"
           name="trainingPhase"
-          help="Apply metabolic presets based on your current training focus."
+          :help="t('nutrition_help_training_phase')"
         >
           <USelectMenu
             v-model="selectedPhase"
@@ -617,9 +633,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField
-          label="Current Max Carb Intake (Gut Limit)"
+          :label="t('nutrition_form_carb_limit')"
           name="currentCarbMax"
-          help="What your gut can currently handle comfortably during high intensity."
+          :help="t('nutrition_help_carb_limit')"
         >
           <UInput
             v-model.number="localSettings.currentCarbMax"
@@ -629,15 +645,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/hr</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Target Intake Goal"
+          :label="t('nutrition_form_carb_goal')"
           name="ultimateCarbGoal"
-          help="Your long-term objective for carb adaptation/gut training."
+          :help="t('nutrition_help_carb_goal')"
         >
           <UInput
             v-model.number="localSettings.ultimateCarbGoal"
@@ -647,15 +663,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/hr</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Carb-to-Intensity Slope"
+          :label="t('nutrition_form_carb_slope')"
           name="carbScalingFactor"
-          help="Global multiplier for how aggressively carbs scale with intensity (1.0 = Standard)."
+          :help="t('nutrition_help_carb_slope')"
         >
           <UInput
             v-model.number="localSettings.carbScalingFactor"
@@ -666,23 +682,23 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">x</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_multiplier') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <div class="md:col-span-1 space-y-4">
           <UFormField
-            label="Bio-Optimization Stack"
+            :label="t('nutrition_form_supplements')"
             name="enabledSupplements"
-            help="Select the supplements you currently use for personalized timing advice."
+            :help="t('nutrition_help_supplements')"
           >
             <USelectMenu
               v-model="localSettings.enabledSupplements"
               :items="supplementOptions"
               multiple
               value-key="value"
-              placeholder="Select supplements..."
+              :placeholder="t('nutrition_placeholder_select_supplements')"
               class="w-full"
               size="lg"
             >
@@ -698,9 +714,9 @@
         class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800"
       >
         <UFormField
-          label="Daily Protein Baseline"
+          :label="t('nutrition_form_protein')"
           name="baseProteinPerKg"
-          help="Target grams of protein per kg of body weight."
+          :help="t('nutrition_help_protein')"
         >
           <UInput
             v-model.number="localSettings.baseProteinPerKg"
@@ -711,15 +727,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/kg</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Daily Fat Baseline"
+          :label="t('nutrition_form_fat')"
           name="baseFatPerKg"
-          help="Target grams of fat per kg of body weight."
+          :help="t('nutrition_help_fat')"
         >
           <UInput
             v-model.number="localSettings.baseFatPerKg"
@@ -730,7 +746,7 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/kg</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -738,9 +754,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <UFormField
-          label="Pre-Workout Window"
+          :label="t('nutrition_form_pre_window')"
           name="preWorkoutWindow"
-          help="Minutes before exercise for final fueling."
+          :help="t('nutrition_help_pre_window')"
         >
           <UInput
             v-model.number="localSettings.preWorkoutWindow"
@@ -751,15 +767,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">min</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Post-Workout Recovery Window"
+          :label="t('nutrition_form_post_window')"
           name="postWorkoutWindow"
-          help="Duration of prioritized protein/carb intake after exercise."
+          :help="t('nutrition_help_post_window')"
         >
           <UInput
             v-model.number="localSettings.postWorkoutWindow"
@@ -770,7 +786,7 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">min</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -780,18 +796,18 @@
     <UCard>
       <template #header>
         <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-          Hydration Precision
+          {{ t('nutrition_header_hydration') }}
         </h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Optimize your fluid and electrolyte replacement strategy.
+          {{ t('nutrition_desc_hydration') }}
         </p>
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField
-          label="Sweat Rate"
+          :label="t('nutrition_form_sweat_rate')"
           name="sweatRate"
-          help="Fluid loss per hour during exercise (L/hr)."
+          :help="t('nutrition_help_sweat_rate')"
         >
           <UInput
             v-model.number="localSettings.sweatRate"
@@ -802,15 +818,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">L/hr</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_liters_per_hour') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Sodium Concentration"
+          :label="t('nutrition_form_sodium')"
           name="sodiumTarget"
-          help="Sodium lost per liter of sweat (mg/L)."
+          :help="t('nutrition_help_sodium')"
         >
           <UInput
             v-model.number="localSettings.sodiumTarget"
@@ -821,7 +837,7 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">mg/L</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_mg_per_liter') }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -835,11 +851,11 @@
             <h3
               class="text-lg font-medium leading-6 text-gray-900 dark:text-white flex items-center gap-2"
             >
-              Adaptive Metabolic Engine
-              <UBadge size="xs" color="primary" variant="subtle">PRO</UBadge>
+              {{ t('nutrition_header_adaptive_engine') }}
+              <UBadge size="xs" color="primary" variant="subtle">{{ t('nutrition_badge_pro') }}</UBadge>
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Fine-tune coefficients and carbohydrate scaling for specific training blocks.
+              {{ t('nutrition_desc_adaptive_engine_secondary') }}
             </p>
           </div>
         </div>
@@ -849,9 +865,9 @@
         class="mb-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800"
       >
         <UFormField
-          label="Season Block / Training Phase"
+          :label="t('nutrition_form_training_phase')"
           name="trainingPhase"
-          help="Apply metabolic presets based on your current training focus."
+          :help="t('nutrition_help_training_phase')"
         >
           <USelectMenu
             v-model="selectedPhase"
@@ -878,9 +894,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField
-          label="Current Max Carb Intake (Gut Limit)"
+          :label="t('nutrition_form_carb_limit')"
           name="currentCarbMax"
-          help="What your gut can currently handle comfortably during high intensity."
+          :help="t('nutrition_help_carb_limit')"
         >
           <UInput
             v-model.number="localSettings.currentCarbMax"
@@ -890,15 +906,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/hr</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Target Intake Goal"
+          :label="t('nutrition_form_carb_goal')"
           name="ultimateCarbGoal"
-          help="Your long-term objective for carb adaptation/gut training."
+          :help="t('nutrition_help_carb_goal')"
         >
           <UInput
             v-model.number="localSettings.ultimateCarbGoal"
@@ -908,15 +924,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/hr</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_hour') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Carb-to-Intensity Slope"
+          :label="t('nutrition_form_carb_slope')"
           name="carbScalingFactor"
-          help="Global multiplier for how aggressively carbs scale with intensity (1.0 = Standard)."
+          :help="t('nutrition_help_carb_slope')"
         >
           <UInput
             v-model.number="localSettings.carbScalingFactor"
@@ -927,23 +943,23 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">x</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_multiplier') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <div class="md:col-span-2 space-y-4">
           <UFormField
-            label="Bio-Optimization Stack"
+            :label="t('nutrition_form_supplements')"
             name="enabledSupplements"
-            help="Select the supplements you currently use for personalized timing advice."
+            :help="t('nutrition_help_supplements')"
           >
             <USelectMenu
               v-model="localSettings.enabledSupplements"
               :items="supplementOptions"
               multiple
               value-key="value"
-              placeholder="Select supplements..."
+              :placeholder="t('nutrition_placeholder_select_supplements')"
               class="w-full"
               size="lg"
             >
@@ -959,9 +975,9 @@
         class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800"
       >
         <UFormField
-          label="Daily Protein Baseline"
+          :label="t('nutrition_form_protein')"
           name="baseProteinPerKg"
-          help="Target grams of protein per kg of body weight."
+          :help="t('nutrition_help_protein')"
         >
           <UInput
             v-model.number="localSettings.baseProteinPerKg"
@@ -972,15 +988,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/kg</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Daily Fat Baseline"
+          :label="t('nutrition_form_fat')"
           name="baseFatPerKg"
-          help="Target grams of fat per kg of body weight."
+          :help="t('nutrition_help_fat')"
         >
           <UInput
             v-model.number="localSettings.baseFatPerKg"
@@ -991,7 +1007,7 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">g/kg</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_grams_per_kg') }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -999,9 +1015,9 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <UFormField
-          label="Pre-Workout Window"
+          :label="t('nutrition_form_pre_window')"
           name="preWorkoutWindow"
-          help="Minutes before exercise for final fueling."
+          :help="t('nutrition_help_pre_window')"
         >
           <UInput
             v-model.number="localSettings.preWorkoutWindow"
@@ -1012,15 +1028,15 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">min</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
             </template>
           </UInput>
         </UFormField>
 
         <UFormField
-          label="Post-Workout Recovery Window"
+          :label="t('nutrition_form_post_window')"
           name="postWorkoutWindow"
-          help="Duration of prioritized protein/carb intake after exercise."
+          :help="t('nutrition_help_post_window')"
         >
           <UInput
             v-model.number="localSettings.postWorkoutWindow"
@@ -1031,7 +1047,7 @@
             class="w-full"
           >
             <template #trailing>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">min</span>
+              <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t('nutrition_unit_minutes') }}</span>
             </template>
           </UInput>
         </UFormField>
@@ -1041,7 +1057,7 @@
     <div class="flex justify-end pt-4">
       <UButton
         :loading="loading"
-        label="Save Nutrition Settings"
+        :label="t('nutrition_button_save')"
         color="primary"
         @click="saveSettings"
       />
@@ -1050,7 +1066,10 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { ftInToCm, cmToFtIn, LBS_TO_KG } from '~/utils/metrics'
+
+  const { t } = useTranslate('profile')
 
   const props = defineProps<{
     settings?: any
@@ -1058,6 +1077,8 @@
   }>()
 
   const emit = defineEmits(['update:settings', 'navigate', 'saved'])
+  const tr = (key: string, fallback: string, params?: Record<string, any>) =>
+    typeof t.value === 'function' ? t.value(key, params) : fallback
 
   const localSettings = ref({
     nutritionTrackingEnabled: props.profile?.nutritionTrackingEnabled ?? true,
@@ -1088,10 +1109,10 @@
     goalProfile: 'MAINTAIN',
     targetAdjustmentPercent: 0.0,
     mealPattern: [
-      { name: 'Breakfast', time: '07:00' },
-      { name: 'Lunch', time: '12:00' },
-      { name: 'Dinner', time: '18:00' },
-      { name: 'Snack', time: '15:00' }
+      { name: tr('nutrition_meal_breakfast', 'Breakfast'), time: '07:00' },
+      { name: tr('nutrition_meal_lunch', 'Lunch'), time: '12:00' },
+      { name: tr('nutrition_meal_dinner', 'Dinner'), time: '18:00' },
+      { name: tr('nutrition_meal_snack', 'Snack'), time: '15:00' }
     ],
     dietaryProfile: [],
     foodAllergies: [],
@@ -1103,136 +1124,202 @@
   const loading = ref(false)
   const toast = useToast()
 
-  const activityLevels = [
-    { label: 'Sedentary', value: 'SEDENTARY' },
-    { label: 'Lightly Active', value: 'LIGHTLY_ACTIVE' },
-    { label: 'Active', value: 'ACTIVE' },
-    { label: 'Moderately Active', value: 'MODERATELY_ACTIVE' },
-    { label: 'Very Active', value: 'VERY_ACTIVE' },
-    { label: 'Extra Active', value: 'EXTRA_ACTIVE' }
-  ]
-
-  const baseCaloriesModes = [
-    { label: 'Auto (BMR × Activity)', value: 'AUTO' },
-    { label: 'Manual (No Exercise Baseline)', value: 'MANUAL_NON_EXERCISE' }
-  ]
-
-  const goalProfiles = [
-    { label: 'Lose Weight (-300 to -500 kcal)', value: 'LOSE' },
-    { label: 'Maintain (Energy Balance)', value: 'MAINTAIN' },
-    { label: 'Gain Muscle (+200 to +500 kcal)', value: 'GAIN' }
-  ]
-
-  const dietaryOptions = [
-    { label: 'Vegan', value: 'VEGAN' },
-    { label: 'Vegetarian', value: 'VEGETARIAN' },
-    { label: 'Gluten-Free', value: 'GLUTEN_FREE' },
-    { label: 'Dairy-Free', value: 'DAIRY_FREE' },
-    { label: 'Low-FODMAP', value: 'LOW_FODMAP' },
-    { label: 'Keto', value: 'KETO' },
-    { label: 'Paleo', value: 'PALEO' },
-    { label: 'Mediterranean', value: 'MEDITERRANEAN' },
-    { label: 'Halal', value: 'HALAL' },
-    { label: 'Kosher', value: 'KOSHER' }
-  ]
-
-  const lifestyleOptions = [
-    { label: 'No Alcohol', value: 'NO_ALCOHOL' },
-    { label: 'No Caffeine', value: 'NO_CAFFEINE' },
-    { label: 'No Refined Sugar', value: 'NO_REFINED_SUGAR' },
-    { label: 'No Seed Oils', value: 'NO_SEED_OILS' },
-    { label: 'No Processed Foods', value: 'NO_PROCESSED_FOODS' },
-    { label: 'No Artificial Sweeteners', value: 'NO_SWEETENERS' },
-    { label: 'No Carbonated Drinks', value: 'NO_SODA' },
-    { label: 'No Pork', value: 'NO_PORK' },
-    { label: 'No Red Meat', value: 'NO_RED_MEAT' }
-  ]
-
-  const allergyOptions = [
-    { label: 'Peanuts', value: 'PEANUTS' },
-    { label: 'Tree Nuts (Almonds, Walnuts, etc.)', value: 'TREE_NUTS' },
-    { label: 'Milk / Dairy', value: 'MILK' },
-    { label: 'Eggs', value: 'EGGS' },
-    { label: 'Wheat', value: 'WHEAT' },
-    { label: 'Soy', value: 'SOY' },
-    { label: 'Fish', value: 'FISH' },
-    { label: 'Shellfish', value: 'SHELLFISH' },
-    { label: 'Sesame', value: 'SESAME' },
-    { label: 'Mustard', value: 'MUSTARD' },
-    { label: 'Celery', value: 'CELERY' }
-  ]
-
-  const intoleranceOptions = [
-    { label: 'Lactose', value: 'LACTOSE' },
-    { label: 'Fructose', value: 'FRUCTOSE' },
-    { label: 'Histamine', value: 'HISTAMINE' },
-    { label: 'Nightshades (Tomatoes, Peppers, etc.)', value: 'NIGHTSHADES' },
-    { label: 'Sulfites', value: 'SULFITES' },
-    { label: 'Yeast', value: 'YEAST' },
-    { label: 'Legumes / Beans', value: 'LEGUMES' },
-    { label: 'Artificial Sweeteners', value: 'SWEETENERS' }
-  ]
-
-  const supplementOptions = [
+  const activityLevels = computed(() => [
+    { label: tr('nutrition_activity_sedentary', 'Sedentary'), value: 'SEDENTARY' },
+    { label: tr('nutrition_activity_lightly_active', 'Lightly Active'), value: 'LIGHTLY_ACTIVE' },
+    { label: tr('nutrition_activity_active', 'Active'), value: 'ACTIVE' },
     {
-      label: 'Caffeine',
+      label: tr('nutrition_activity_moderately_active', 'Moderately Active'),
+      value: 'MODERATELY_ACTIVE'
+    },
+    { label: tr('nutrition_activity_very_active', 'Very Active'), value: 'VERY_ACTIVE' },
+    { label: tr('nutrition_activity_extra_active', 'Extra Active'), value: 'EXTRA_ACTIVE' }
+  ])
+
+  const baseCaloriesModes = computed(() => [
+    { label: tr('nutrition_mode_auto', 'Auto (BMR × Activity)'), value: 'AUTO' },
+    {
+      label: tr('nutrition_mode_manual', 'Manual (No Exercise Baseline)'),
+      value: 'MANUAL_NON_EXERCISE'
+    }
+  ])
+
+  const goalProfiles = computed(() => [
+    { label: tr('nutrition_goal_lose', 'Lose Weight (-300 to -500 kcal)'), value: 'LOSE' },
+    { label: tr('nutrition_goal_maintain', 'Maintain (Energy Balance)'), value: 'MAINTAIN' },
+    { label: tr('nutrition_goal_gain', 'Gain Muscle (+200 to +500 kcal)'), value: 'GAIN' }
+  ])
+
+  const dietaryOptions = computed(() => [
+    { label: tr('nutrition_diet_vegan', 'Vegan'), value: 'VEGAN' },
+    { label: tr('nutrition_diet_vegetarian', 'Vegetarian'), value: 'VEGETARIAN' },
+    { label: tr('nutrition_diet_gluten_free', 'Gluten-Free'), value: 'GLUTEN_FREE' },
+    { label: tr('nutrition_diet_dairy_free', 'Dairy-Free'), value: 'DAIRY_FREE' },
+    { label: tr('nutrition_diet_low_fodmap', 'Low-FODMAP'), value: 'LOW_FODMAP' },
+    { label: tr('nutrition_diet_keto', 'Keto'), value: 'KETO' },
+    { label: tr('nutrition_diet_paleo', 'Paleo'), value: 'PALEO' },
+    { label: tr('nutrition_diet_mediterranean', 'Mediterranean'), value: 'MEDITERRANEAN' },
+    { label: tr('nutrition_diet_halal', 'Halal'), value: 'HALAL' },
+    { label: tr('nutrition_diet_kosher', 'Kosher'), value: 'KOSHER' }
+  ])
+
+  const lifestyleOptions = computed(() => [
+    { label: tr('nutrition_lifestyle_no_alcohol', 'No Alcohol'), value: 'NO_ALCOHOL' },
+    { label: tr('nutrition_lifestyle_no_caffeine', 'No Caffeine'), value: 'NO_CAFFEINE' },
+    {
+      label: tr('nutrition_lifestyle_no_refined_sugar', 'No Refined Sugar'),
+      value: 'NO_REFINED_SUGAR'
+    },
+    { label: tr('nutrition_lifestyle_no_seed_oils', 'No Seed Oils'), value: 'NO_SEED_OILS' },
+    {
+      label: tr('nutrition_lifestyle_no_processed_foods', 'No Processed Foods'),
+      value: 'NO_PROCESSED_FOODS'
+    },
+    {
+      label: tr('nutrition_lifestyle_no_sweeteners', 'No Artificial Sweeteners'),
+      value: 'NO_SWEETENERS'
+    },
+    { label: tr('nutrition_lifestyle_no_soda', 'No Carbonated Drinks'), value: 'NO_SODA' },
+    { label: tr('nutrition_lifestyle_no_pork', 'No Pork'), value: 'NO_PORK' },
+    { label: tr('nutrition_lifestyle_no_red_meat', 'No Red Meat'), value: 'NO_RED_MEAT' }
+  ])
+
+  const allergyOptions = computed(() => [
+    { label: tr('nutrition_allergy_peanuts', 'Peanuts'), value: 'PEANUTS' },
+    {
+      label: tr('nutrition_allergy_tree_nuts', 'Tree Nuts (Almonds, Walnuts, etc.)'),
+      value: 'TREE_NUTS'
+    },
+    { label: tr('nutrition_allergy_milk', 'Milk / Dairy'), value: 'MILK' },
+    { label: tr('nutrition_allergy_eggs', 'Eggs'), value: 'EGGS' },
+    { label: tr('nutrition_allergy_wheat', 'Wheat'), value: 'WHEAT' },
+    { label: tr('nutrition_allergy_soy', 'Soy'), value: 'SOY' },
+    { label: tr('nutrition_allergy_fish', 'Fish'), value: 'FISH' },
+    { label: tr('nutrition_allergy_shellfish', 'Shellfish'), value: 'SHELLFISH' },
+    { label: tr('nutrition_allergy_sesame', 'Sesame'), value: 'SESAME' },
+    { label: tr('nutrition_allergy_mustard', 'Mustard'), value: 'MUSTARD' },
+    { label: tr('nutrition_allergy_celery', 'Celery'), value: 'CELERY' }
+  ])
+
+  const intoleranceOptions = computed(() => [
+    { label: tr('nutrition_intolerance_lactose', 'Lactose'), value: 'LACTOSE' },
+    { label: tr('nutrition_intolerance_fructose', 'Fructose'), value: 'FRUCTOSE' },
+    { label: tr('nutrition_intolerance_histamine', 'Histamine'), value: 'HISTAMINE' },
+    {
+      label: tr('nutrition_intolerance_nightshades', 'Nightshades (Tomatoes, Peppers, etc.)'),
+      value: 'NIGHTSHADES'
+    },
+    { label: tr('nutrition_intolerance_sulfites', 'Sulfites'), value: 'SULFITES' },
+    { label: tr('nutrition_intolerance_yeast', 'Yeast'), value: 'YEAST' },
+    { label: tr('nutrition_intolerance_legumes', 'Legumes / Beans'), value: 'LEGUMES' },
+    {
+      label: tr('nutrition_intolerance_sweeteners', 'Artificial Sweeteners'),
+      value: 'SWEETENERS'
+    }
+  ])
+
+  const supplementOptions = computed(() => [
+    {
+      label: tr('nutrition_supp_caffeine', 'Caffeine'),
       value: 'caffeine',
-      description: 'Pre-workout stimulant for focus and fatigue reduction'
+      description: tr(
+        'nutrition_supp_caffeine_desc',
+        'Pre-workout stimulant for focus and fatigue reduction'
+      )
     },
     {
-      label: 'Nitrates / Beetroot',
+      label: tr('nutrition_supp_nitrates', 'Nitrates / Beetroot'),
       value: 'nitrates',
-      description: 'Improves blood flow and oxygen delivery'
+      description: tr('nutrition_supp_nitrates_desc', 'Improves blood flow and oxygen delivery')
     },
     {
-      label: 'Beta-Alanine',
+      label: tr('nutrition_supp_beta_alanine', 'Beta-Alanine'),
       value: 'beta_alanine',
-      description: 'Buffers muscle acidity during high intensity'
+      description: tr(
+        'nutrition_supp_beta_alanine_desc',
+        'Buffers muscle acidity during high intensity'
+      )
     },
-    { label: 'Creatine', value: 'creatine', description: 'Increases power output and recovery' },
     {
-      label: 'Sodium Bicarbonate',
+      label: tr('nutrition_supp_creatine', 'Creatine'),
+      value: 'creatine',
+      description: tr('nutrition_supp_creatine_desc', 'Increases power output and recovery')
+    },
+    {
+      label: tr('nutrition_supp_bicarb', 'Sodium Bicarbonate'),
       value: 'sodium_bicarbonate',
-      description: 'Intracellular buffer for high-intensity efforts'
+      description: tr(
+        'nutrition_supp_bicarb_desc',
+        'Intracellular buffer for high-intensity efforts'
+      )
     },
     {
-      label: 'Glycerol',
+      label: tr('nutrition_supp_glycerol', 'Glycerol'),
       value: 'glycerol',
-      description: 'Hyperhydration agent for hot conditions'
+      description: tr('nutrition_supp_glycerol_desc', 'Hyperhydration agent for hot conditions')
     },
     {
-      label: 'Electrolytes',
+      label: tr('nutrition_supp_electrolytes', 'Electrolytes'),
       value: 'electrolytes',
-      description: 'Crucial for fluid balance and nerve function'
+      description: tr(
+        'nutrition_supp_electrolytes_desc',
+        'Crucial for fluid balance and nerve function'
+      )
     },
-    { label: 'Omega-3', value: 'omega_3', description: 'Supports heart and joint health' },
     {
-      label: 'Vitamin D',
+      label: tr('nutrition_supp_omega3', 'Omega-3'),
+      value: 'omega_3',
+      description: tr('nutrition_supp_omega3_desc', 'Supports heart and joint health')
+    },
+    {
+      label: tr('nutrition_supp_vitamin_d', 'Vitamin D'),
       value: 'vitamin_d',
-      description: 'Essential for bone health and immune function'
+      description: tr(
+        'nutrition_supp_vitamin_d_desc',
+        'Essential for bone health and immune function'
+      )
     },
-    { label: 'Iron', value: 'iron', description: 'Oxygen transport (crucial for endurance)' },
-    { label: 'Magnesium', value: 'magnesium', description: 'Nerve function and muscle relaxation' },
     {
-      label: 'Tart Cherry',
+      label: tr('nutrition_supp_iron', 'Iron'),
+      value: 'iron',
+      description: tr('nutrition_supp_iron_desc', 'Oxygen transport (crucial for endurance)')
+    },
+    {
+      label: tr('nutrition_supp_magnesium', 'Magnesium'),
+      value: 'magnesium',
+      description: tr('nutrition_supp_magnesium_desc', 'Nerve function and muscle relaxation')
+    },
+    {
+      label: tr('nutrition_supp_tart_cherry', 'Tart Cherry'),
       value: 'tart_cherry',
-      description: 'Potent antioxidant for muscle recovery'
+      description: tr('nutrition_supp_tart_cherry_desc', 'Potent antioxidant for muscle recovery')
     },
-    { label: 'Collagen', value: 'collagen', description: 'Supports tendon and ligament integrity' },
     {
-      label: 'Probiotics',
-      value: 'probiotics',
-      description: 'Optimizes gut health and nutrient absorption'
+      label: tr('nutrition_supp_collagen', 'Collagen'),
+      value: 'collagen',
+      description: tr('nutrition_supp_collagen_desc', 'Supports tendon and ligament integrity')
     },
-    { label: 'CoQ10', value: 'coq10', description: 'Supports mitochondrial energy production' }
-  ]
+    {
+      label: tr('nutrition_supp_probiotics', 'Probiotics'),
+      value: 'probiotics',
+      description: tr(
+        'nutrition_supp_probiotics_desc',
+        'Optimizes gut health and nutrient absorption'
+      )
+    },
+    {
+      label: tr('nutrition_supp_coq10', 'CoQ10'),
+      value: 'coq10',
+      description: tr('nutrition_supp_coq10_desc', 'Supports mitochondrial energy production')
+    }
+  ])
 
-  const trainingPhases = [
-    { label: 'Base Phase (Fat Adapted / Recovery)', value: 'BASE' },
-    { label: 'Build Phase (High Performance)', value: 'BUILD' },
-    { label: 'Taper / Race Week (High Carb Loading)', value: 'RACE' },
-    { label: 'Custom', value: 'CUSTOM' }
-  ]
+  const trainingPhases = computed(() => [
+    { label: tr('nutrition_phase_base', 'Base Phase (Fat Adapted / Recovery)'), value: 'BASE' },
+    { label: tr('nutrition_phase_build', 'Build Phase (High Performance)'), value: 'BUILD' },
+    { label: tr('nutrition_phase_race', 'Taper / Race Week (High Carb Loading)'), value: 'RACE' },
+    { label: tr('nutrition_phase_custom', 'Custom'), value: 'CUSTOM' }
+  ])
 
   const phasePresets: Record<string, any> = {
     BASE: { baseProteinPerKg: 1.8, baseFatPerKg: 1.2, carbScalingFactor: 0.8 },
@@ -1325,7 +1412,7 @@
     if (!localSettings.value.mealPattern) {
       localSettings.value.mealPattern = []
     }
-    localSettings.value.mealPattern.push({ name: 'New Meal', time: '08:00' })
+    localSettings.value.mealPattern.push({ name: tr('nutrition_meal_new', 'New Meal'), time: '08:00' })
   }
 
   function removeMeal(index: number | string) {
@@ -1338,9 +1425,8 @@
   function calculateBMR() {
     if (isProfileDataMissing.value) {
       toast.add({
-        title: 'Missing Profile Data',
-        description:
-          'Please ensure weight, height, date of birth, and sex are set in Basic Settings.',
+        title: t.value('nutrition_toast_missing_data_title'),
+        description: t.value('nutrition_toast_missing_data_desc'),
         color: 'warning'
       })
       return
@@ -1373,8 +1459,8 @@
     localSettings.value.bmr = Math.round(bmr)
 
     toast.add({
-      title: 'BMR Calculated',
-      description: `Your BMR has been set to ${localSettings.value.bmr} kcal/day based on your profile.`,
+      title: t.value('nutrition_toast_bmr_calc_title'),
+      description: t.value('nutrition_toast_bmr_calc_desc', { bmr: localSettings.value.bmr }),
       color: 'success'
     })
   }
@@ -1421,8 +1507,8 @@
       })
 
       toast.add({
-        title: 'Nutrition Settings Saved',
-        description: 'Your metabolic profile has been updated.',
+        title: t.value('nutrition_toast_saved_title'),
+        description: t.value('nutrition_toast_saved_desc'),
         color: 'success'
       })
 
@@ -1430,7 +1516,7 @@
       emit('saved')
     } catch (err: any) {
       toast.add({
-        title: 'Save Failed',
+        title: t.value('nutrition_toast_save_failed_title'),
         description: err.data?.message || err.message,
         color: 'error'
       })

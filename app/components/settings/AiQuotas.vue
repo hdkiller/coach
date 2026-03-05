@@ -4,7 +4,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-shield-check" class="w-5 h-5 text-primary" />
-          <h2 class="text-xl font-semibold">LLM Quotas</h2>
+          <h2 class="text-xl font-semibold">{{ t('quotas_header') }}</h2>
         </div>
         <div class="flex items-center gap-2">
           <UBadge
@@ -13,10 +13,10 @@
             variant="solid"
             class="font-black uppercase tracking-widest text-[9px] animate-pulse"
           >
-            Performance Trial Active
+            {{ t('quotas_trial_active_badge') }}
           </UBadge>
           <UBadge :color="tierColor" variant="soft" class="font-bold">
-            {{ data?.tier || 'FREE' }}
+            {{ tierLabel }}
           </UBadge>
         </div>
       </div>
@@ -31,11 +31,11 @@
         <div v-for="quota in sortedQuotas" :key="quota.operation" class="space-y-2">
           <div class="flex items-center justify-between text-sm">
             <span class="font-medium text-gray-900 dark:text-white capitalize">
-              {{ (quota.operation || 'Unknown').replace(/_/g, ' ') }}
+              {{ (quota.operation || t('quotas_unknown')).replace(/_/g, ' ') }}
             </span>
             <span class="text-xs text-muted">
               {{ quota.used }} / {{ quota.limit }} ({{
-                quota.window === 'calendar day' ? 'per day' : 'per ' + quota.window
+                quota.window === 'calendar day' ? t('quotas_per_day') : t('quotas_per_window', { window: quota.window })
               }})
             </span>
           </div>
@@ -53,7 +53,7 @@
           <div
             class="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold"
           >
-            <span>{{ quota.remaining }} remaining</span>
+            <span>{{ t('quotas_remaining', { count: quota.remaining }) }}</span>
             <span v-if="quota.resetsAt">
               {{ getQuotaResetLabel(quota) }}
             </span>
@@ -61,12 +61,12 @@
         </div>
 
         <div v-if="data.quotas.length === 0" class="text-center py-4 text-sm text-muted">
-          No active quotas found for your tier.
+          {{ t('quotas_empty') }}
         </div>
       </div>
 
       <div v-else class="text-center py-4 text-sm text-red-500">
-        Failed to load quota information.
+        {{ t('quotas_load_failed') }}
       </div>
     </div>
 
@@ -82,11 +82,10 @@
               <p
                 class="text-xs font-black uppercase tracking-tight text-primary-900 dark:text-primary-100"
               >
-                You are on an active Performance Trial
+                {{ t('quotas_trial_active_title') }}
               </p>
               <p class="text-[10px] text-primary-700 dark:text-primary-400 leading-tight mt-0.5">
-                Enjoy Supporter-level quotas for unrestricted exploration until
-                {{ trialEndsAtLabel }}.
+                {{ t('quotas_trial_active_desc', { date: trialEndsAtLabel }) }}
               </p>
             </div>
           </div>
@@ -99,10 +98,10 @@
           <div class="flex items-center justify-between gap-3">
             <div class="flex-1">
               <p class="text-xs font-bold text-primary-700 dark:text-primary-400 mb-0.5">
-                Running low on AI power?
+                {{ t('quotas_upgrade_title') }}
               </p>
               <p class="text-[10px] text-primary-600 dark:text-primary-500 leading-tight">
-                Upgrade your plan to get higher quotas and advanced coaching features.
+                {{ t('quotas_upgrade_desc') }}
               </p>
             </div>
             <UButton
@@ -110,23 +109,25 @@
               size="xs"
               color="primary"
               variant="solid"
-              label="Increase Quota"
+              :label="t('quotas_upgrade_button')"
               icon="i-heroicons-arrow-trending-up"
             />
           </div>
         </div>
 
         <p class="text-[11px] text-muted leading-relaxed">
-          Calendar-day quotas reset at midnight. Rolling quotas refill gradually as older usage
-          falls out of the time window shown above.
+          {{ t('quotas_footer_note') }}
         </p>
       </div>
     </template>
   </UCard>
 </template>
 
-<script setup lang="ts">
+  <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import type { QuotaStatus } from '~/../types/quotas'
+
+  const { t } = useTranslate('settings')
 
   const { formatRelativeTime, formatUserDate, timezone } = useFormat()
 
@@ -167,6 +168,13 @@
     return 'neutral'
   })
 
+  const tierLabel = computed(() => {
+    const tier = (data.value?.tier || 'FREE').toUpperCase()
+    if (tier === 'PRO') return t.value('billing_tier_pro')
+    if (tier === 'SUPPORTER') return t.value('billing_tier_supporter')
+    return t.value('billing_tier_free')
+  })
+
   function getProgressBarColor(used: number, limit: number) {
     const ratio = used / limit
     if (ratio >= 1) return 'bg-red-500'
@@ -177,7 +185,7 @@
 
   function getQuotaResetLabel(quota: QuotaStatus) {
     if (!quota.resetsAt) return ''
-    if (quota.window === 'calendar day') return 'Resets at Midnight'
-    return 'Oldest usage expires ' + formatRelativeTime(quota.resetsAt)
+    if (quota.window === 'calendar day') return t.value('quotas_resets_midnight')
+    return t.value('quotas_resets_oldest', { time: formatRelativeTime(quota.resetsAt) })
   }
 </script>

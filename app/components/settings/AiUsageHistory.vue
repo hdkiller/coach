@@ -4,11 +4,11 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-clock" class="w-5 h-5 text-primary" />
-          <h2 class="text-xl font-semibold">Recent Activity</h2>
+          <h2 class="text-xl font-semibold">{{ t('usage_history_header') }}</h2>
         </div>
         <UButton size="sm" variant="ghost" :loading="refreshing" @click="refresh">
           <UIcon name="i-heroicons-arrow-path" />
-          Refresh
+          {{ t('usage_refresh') }}
         </UButton>
       </div>
     </template>
@@ -19,7 +19,7 @@
         <UInput
           v-model="globalFilter"
           class="max-w-sm min-w-[12ch]"
-          placeholder="Filter operations..."
+          :placeholder="t('usage_filter_placeholder')"
           icon="i-heroicons-magnifying-glass"
         />
 
@@ -32,7 +32,7 @@
           @click="refresh"
         >
           <UIcon name="i-heroicons-arrow-path" />
-          Refresh
+          {{ t('usage_refresh') }}
         </UButton>
       </div>
 
@@ -56,8 +56,13 @@
         class="flex items-center justify-between px-4 py-3.5 border-t border-accented text-sm"
       >
         <div class="text-muted">
-          Showing {{ data.pagination.from }} to {{ data.pagination.to }} of
-          {{ data.pagination.total }} records
+          {{
+            t('usage_pagination_summary', {
+              from: data.pagination.from,
+              to: data.pagination.to,
+              total: data.pagination.total
+            })
+          }}
         </div>
         <div class="flex gap-2">
           <UButton
@@ -68,7 +73,7 @@
             icon="i-heroicons-chevron-left"
             @click="goToPage(currentPage - 1)"
           >
-            Previous
+            {{ t('usage_previous') }}
           </UButton>
           <UButton
             size="sm"
@@ -78,7 +83,7 @@
             trailing-icon="i-heroicons-chevron-right"
             @click="goToPage(currentPage + 1)"
           >
-            Next
+            {{ t('usage_next') }}
           </UButton>
         </div>
       </div>
@@ -89,7 +94,9 @@
 <script setup lang="ts">
   import { h, resolveComponent } from 'vue'
   import type { TableColumn } from '@nuxt/ui'
+  import { useTranslate } from '@tolgee/vue'
 
+  const { t } = useTranslate('settings')
   const { formatDateTime } = useFormat()
 
   const UBadge = resolveComponent('UBadge')
@@ -124,7 +131,7 @@
   ])
   const table = useTemplateRef('table')
 
-  const emptyState = 'No AI usage data yet. Start using AI features to see analytics here.'
+  const emptyState = computed(() => t.value('usage_history_empty'))
 
   const {
     data,
@@ -150,7 +157,7 @@
         return h(UButton, {
           color: 'neutral',
           variant: 'ghost',
-          label: 'Timestamp',
+          label: t.value('usage_col_timestamp'),
           icon: isSorted
             ? isSorted === 'asc'
               ? 'i-heroicons-arrow-up'
@@ -166,7 +173,7 @@
     },
     {
       accessorKey: 'operation',
-      header: 'Operation',
+      header: t.value('usage_col_operation'),
       cell: ({ row }) => {
         const item = row.original
         return h(
@@ -181,7 +188,7 @@
     },
     {
       accessorKey: 'model',
-      header: 'Model',
+      header: t.value('usage_col_model'),
       cell: ({ row }) => {
         const model = row.getValue('model') as string | null
         const isFlash = model?.toLowerCase().includes('flash')
@@ -193,7 +200,7 @@
             color: isFlash ? 'info' : 'secondary',
             size: 'xs'
           },
-          () => (isFlash ? 'Flash' : 'Pro')
+          () => (isFlash ? t.value('usage_model_flash') : t.value('billing_tier_pro'))
         )
       }
     },
@@ -207,7 +214,7 @@
           h(UButton, {
             color: 'neutral',
             variant: 'ghost',
-            label: 'Tokens',
+            label: t.value('usage_col_tokens'),
             icon: isSorted
               ? isSorted === 'asc'
                 ? 'i-heroicons-arrow-up'
@@ -232,7 +239,7 @@
           h(UButton, {
             color: 'neutral',
             variant: 'ghost',
-            label: 'Duration',
+            label: t.value('usage_col_duration'),
             icon: isSorted
               ? isSorted === 'asc'
                 ? 'i-heroicons-arrow-up'
@@ -254,7 +261,7 @@
     },
     {
       accessorKey: 'success',
-      header: () => h('div', { class: 'text-center' }, 'Status'),
+      header: () => h('div', { class: 'text-center' }, t.value('usage_col_status')),
       cell: ({ row }) => {
         const success = row.getValue('success') as boolean
         return h(
@@ -267,14 +274,14 @@
               variant: 'subtle',
               size: 'xs'
             },
-            () => (success ? 'Success' : 'Failed')
+            () => (success ? t.value('usage_status_success') : t.value('usage_status_failed'))
           )
         )
       }
     },
     {
       id: 'actions',
-      header: () => h('div', { class: 'text-center' }, 'Actions'),
+      header: () => h('div', { class: 'text-center' }, t.value('usage_col_actions')),
       cell: ({ row }) => {
         return h(
           'div',
@@ -284,7 +291,7 @@
             color: 'neutral',
             variant: 'ghost',
             size: 'xs',
-            'aria-label': 'View details',
+            'aria-label': t.value('usage_action_view_details'),
             onClick: () => viewDetails(row.original.id)
           })
         )
