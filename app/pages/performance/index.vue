@@ -964,7 +964,7 @@
 
   // Map display titles to metric names
   const getWorkoutMetricName = (title: string): string => {
-    const isTReady = typeof t === 'function'
+    const isTReady = typeof t.value === 'function'
     if (!isTReady) return 'overall'
 
     if (title === t.value('workout_overall_full')) return 'overall'
@@ -1036,7 +1036,7 @@
 
   // Map display titles to metric names
   const getNutritionMetricName = (title: string): string => {
-    const isTReady = typeof t === 'function'
+    const isTReady = typeof t.value === 'function'
     if (!isTReady) return 'overall'
 
     if (title === t.value('nutrition_overall_full')) return 'overall'

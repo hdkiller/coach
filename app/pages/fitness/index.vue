@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="fitness">
     <template #header>
-      <UDashboardNavbar :title="t('page_title')">
+      <UDashboardNavbar title="Fitness Integrity">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -18,7 +18,7 @@
               size="sm"
               @click="isSettingsModalOpen = true"
             >
-              {{ t('nav_customize') }}
+              Customize
             </UButton>
 
             <USelect
@@ -55,7 +55,7 @@
               <span
                 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
               >
-                {{ tc('attribution_garmin') }}
+                Dashboard may include data from
               </span>
               <img
                 src="/images/logos/Garmin-Tag-black-high-res.png"
@@ -73,12 +73,12 @@
           <!-- Dashboard Branding -->
           <div class="px-4 sm:px-0">
             <h1 class="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-              {{ t('branding_title') }}
+              Fitness
             </h1>
             <p
               class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mt-1 italic"
             >
-              {{ t('branding_subtitle') }}
+              Wellness Biometrics & Recovery Integrity
             </p>
           </div>
 
@@ -121,85 +121,85 @@
             <FitnessTrendChart
               v-if="showRecoveryChart"
               metric-key="recovery"
-              :title="t('chart_recovery_title')"
+              title="Recovery Trajectory"
               :loading="loading"
               :data="recoveryTrendData"
               :options="getChartOptions('recovery')"
               :settings="chartSettings.recovery"
               :plugins="[ChartDataLabels]"
-              @settings="openChartSettings('recovery', t('chart_label_recovery'))"
+              @settings="openChartSettings('recovery', 'Recovery')"
             />
 
             <FitnessTrendChart
               v-if="showReadinessEstimateChart"
               metric-key="readinessEstimate"
-              :title="t('chart_readiness_title')"
+              title="Readiness Estimate (HRV + RHR)"
               :loading="loading"
               :data="readinessEstimateTrendData"
               :options="getChartOptions('readinessEstimate')"
               :settings="chartSettings.readinessEstimate"
               :plugins="[ChartDataLabels]"
-              @settings="openChartSettings('readinessEstimate', t('chart_label_readiness'))"
+              @settings="openChartSettings('readinessEstimate', 'Readiness Estimate')"
             />
 
             <FitnessTrendChart
               v-if="showSleepChart"
               metric-key="sleep"
-              :title="t('chart_sleep_title')"
+              title="Sleep Duration"
               :loading="loading"
               :data="sleepTrendData"
               :options="getChartOptions('sleep')"
               :settings="chartSettings.sleep"
               :plugins="[ChartDataLabels]"
-              @settings="openChartSettings('sleep', t('chart_label_sleep'))"
+              @settings="openChartSettings('sleep', 'Sleep')"
             />
 
             <FitnessTrendChart
               v-if="showHrvChart"
               metric-key="hrv"
-              :title="t('chart_hrv_title')"
+              title="Heart Rate Variability"
               :loading="loading"
               :data="hrvTrendData"
               :options="getChartOptions('hrv')"
               :settings="chartSettings.hrv"
               :plugins="[ChartDataLabels]"
-              @settings="openChartSettings('hrv', t('chart_label_hrv'))"
+              @settings="openChartSettings('hrv', 'HRV')"
             />
 
             <FitnessTrendChart
               v-if="showRestingHrChart"
               metric-key="restingHr"
-              :title="t('chart_rhr_title')"
+              title="Resting Heart Rate"
               :loading="loading"
               :data="restingHrTrendData"
               :options="getChartOptions('restingHr')"
               :settings="chartSettings.restingHr"
               :plugins="[ChartDataLabels]"
-              @settings="openChartSettings('restingHr', t('chart_label_rhr'))"
+              @settings="openChartSettings('restingHr', 'Resting HR')"
             />
 
             <FitnessTrendChart
               v-if="showWeightChart"
               metric-key="weight"
-              :title="t('chart_weight_title')"
+              title="Mass Progression"
               :loading="loading"
               :data="weightTrendData"
               :options="getChartOptions('weight')"
               :settings="chartSettings.weight"
               :plugins="[ChartDataLabels]"
-              @settings="openChartSettings('weight', t('chart_label_weight'))"
+              @settings="openChartSettings('weight', 'Weight')"
             />
 
             <FitnessTrendChart
               v-if="showBpChart"
               metric-key="bp"
-              :title="t('chart_bp_title')"
+              title="Blood Pressure"
               :loading="loading"
               :data="bpTrendData"
               :options="getChartOptions('bp')"
               :settings="chartSettings.bp"
               :plugins="[ChartDataLabels]"
-              @settings="openChartSettings('bp', t('chart_label_bp'))"
+              @settings="openChartSettings('bp', 'Blood Pressure')"
             />
           </div>
 
@@ -213,12 +213,12 @@
                 <span
                   class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
                 >
-                  {{ t('filter_recovery_label') }}
+                  Recovery
                 </span>
                 <USelect
                   v-model="filterRecovery"
                   :items="recoveryStatusOptions"
-                  :placeholder="t('filter_all_status')"
+                  placeholder="All Status"
                   size="sm"
                   color="neutral"
                   variant="outline"
@@ -230,12 +230,12 @@
                 <span
                   class="text-[10px] font-black uppercase tracking-widest text-gray-400 shrink-0"
                 >
-                  {{ t('filter_sleep_label') }}
+                  Sleep
                 </span>
                 <USelect
                   v-model="filterSleep"
                   :items="sleepQualityOptions"
-                  :placeholder="t('filter_all_quality')"
+                  placeholder="All Quality"
                   size="sm"
                   color="neutral"
                   variant="outline"
@@ -261,7 +261,7 @@
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
+  import { Line, Bar } from 'vue-chartjs'
   import ChartDataLabels from 'chartjs-plugin-datalabels'
   import FitnessSettingsModal from '~/components/fitness/FitnessSettingsModal.vue'
   import FitnessHrvRhrSettingsModal from '~/components/fitness/FitnessHrvRhrSettingsModal.vue'
@@ -283,9 +283,6 @@
     Legend,
     Filler
   } from 'chart.js'
-
-  const { t } = useTranslate('fitness')
-  const { t: tc } = useTranslate('common')
 
   ChartJS.register(
     CategoryScale,
@@ -423,14 +420,14 @@
   }
 
   const selectedPeriod = ref<string | number>(30)
-  const periodOptions = computed(() => [
-    { label: t.value('period_7_days'), value: 7 },
-    { label: t.value('period_14_days'), value: 14 },
-    { label: t.value('period_30_days'), value: 30 },
-    { label: t.value('period_90_days'), value: 90 },
-    { label: t.value('period_year_to_date'), value: 'YTD' },
-    { label: t.value('period_all_time'), value: 3650 }
-  ])
+  const periodOptions = [
+    { label: '7 Days', value: 7 },
+    { label: '14 Days', value: 14 },
+    { label: '30 Days', value: 30 },
+    { label: '90 Days', value: 90 },
+    { label: 'Year to Date', value: 'YTD' },
+    { label: 'All Time', value: 3650 }
+  ]
 
   // Period-aware fetching for additional metrics
   const { data: ftpData, pending: loadingFTP } = await useFetch<any>(
@@ -514,21 +511,21 @@
   const filterSleep = ref<string | undefined>(undefined)
 
   // Filter options
-  const recoveryStatusOptions = computed(() => [
-    { label: t.value('filter_all_status'), value: undefined },
-    { label: `${t.value('filter_excellent')} (>80)`, value: 'excellent' },
-    { label: `${t.value('filter_good')} (60-80)`, value: 'good' },
-    { label: `${t.value('filter_fair')} (40-60)`, value: 'fair' },
-    { label: `${t.value('filter_poor')} (<40)`, value: 'poor' }
-  ])
+  const recoveryStatusOptions = [
+    { label: 'All Status', value: undefined },
+    { label: 'Excellent (>80)', value: 'excellent' },
+    { label: 'Good (60-80)', value: 'good' },
+    { label: 'Fair (40-60)', value: 'fair' },
+    { label: 'Poor (<40)', value: 'poor' }
+  ]
 
-  const sleepQualityOptions = computed(() => [
-    { label: t.value('filter_all_quality'), value: undefined },
-    { label: `${t.value('filter_excellent')} (>8h)`, value: 'excellent' },
-    { label: `${t.value('filter_good')} (7-8h)`, value: 'good' },
-    { label: `${t.value('filter_fair')} (6-7h)`, value: 'fair' },
-    { label: `${t.value('filter_poor')} (<6h)`, value: 'poor' }
-  ])
+  const sleepQualityOptions = [
+    { label: 'All Quality', value: undefined },
+    { label: 'Excellent (>8h)', value: 'excellent' },
+    { label: 'Good (7-8h)', value: 'good' },
+    { label: 'Fair (6-7h)', value: 'fair' },
+    { label: 'Poor (<6h)', value: 'poor' }
+  ]
 
   // Fetch all wellness data
   async function fetchWellness() {
@@ -541,8 +538,8 @@
     } catch (error) {
       console.error('Error fetching wellness:', error)
       toast.add({
-        title: t.value('status_error_title'),
-        description: t.value('status_error_load_failed'),
+        title: 'Error',
+        description: 'Failed to load wellness data',
         color: 'error'
       })
     } finally {
@@ -655,7 +652,7 @@
     const datasets: any[] = [
       {
         type: settings.type || 'line',
-        label: t.value('chart_label_recovery'),
+        label: 'Recovery Score',
         data: recentWellness.map((w) => w.recoveryScore),
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: `rgba(34, 197, 94, ${settings.opacity ?? 0.5})`,
@@ -668,8 +665,114 @@
       }
     ]
 
-    // ... rolling average datasets ...
-    return { labels, datasets }
+    // 7d Rolling Average
+    if (settings.show7dAvg) {
+      const avgData = recentWellness.map((_, index) => {
+        const start = Math.max(0, index - 6)
+        const window = recentWellness.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr.recoveryScore, 0)
+        return sum / window.length
+      })
+
+      datasets.push({
+        type: 'line',
+        label: '7d Avg',
+        data: avgData,
+        borderColor: 'rgba(34, 197, 94, 0.4)',
+        backgroundColor: 'transparent',
+        borderDash: [5, 5],
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: settings.smooth ? 0.4 : 0,
+        fill: false,
+        spanGaps: true
+      })
+    }
+
+    // 30d Rolling Average (Baseline)
+    if (settings.show30dAvg || settings.showStdDev) {
+      const avgData = recentWellness.map((_, index) => {
+        const start = Math.max(0, index - 29)
+        const window = recentWellness.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr.recoveryScore, 0)
+        return sum / window.length
+      })
+
+      if (settings.show30dAvg) {
+        datasets.push({
+          type: 'line',
+          label: '30d Avg',
+          data: avgData,
+          borderColor: 'rgba(34, 197, 94, 0.3)',
+          backgroundColor: 'transparent',
+          borderDash: [2, 2],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+      }
+
+      // 1 Standard Deviation Band
+      if (settings.showStdDev) {
+        const stdDevData = recentWellness.map((_, index) => {
+          const start = Math.max(0, index - 29)
+          const window = recentWellness.slice(start, index + 1)
+          const mean = window.reduce((a, b) => a + b.recoveryScore, 0) / window.length
+          const variance =
+            window.reduce((a, b) => a + Math.pow(b.recoveryScore - mean, 2), 0) / window.length
+          return Math.sqrt(variance)
+        })
+
+        const upperBand = avgData.map((avg, i) => avg + (stdDevData[i] || 0))
+        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - (stdDevData[i] || 0)))
+
+        datasets.push({
+          type: 'line',
+          label: 'Range Upper',
+          data: upperBand,
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(34, 197, 94, 0.2)',
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+
+        datasets.push({
+          type: 'line',
+          label: 'Normal Range',
+          data: lowerBand,
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(34, 197, 94, 0.2)',
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: '-1',
+          spanGaps: true
+        })
+      }
+    }
+
+    // Target Line
+    if (settings.showTarget && settings.targetValue !== undefined) {
+      datasets.push({
+        type: 'line',
+        label: 'Target',
+        data: new Array(labels.length).fill(settings.targetValue),
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderDash: [2, 2],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+        spanGaps: true
+      })
+    }
+
+    return {
+      labels,
+      datasets
+    }
   })
 
   const readinessEstimateTrendData = computed(() => {
@@ -707,7 +810,7 @@
         'readinessEstimate',
         estimates,
         'rgb(16, 185, 129)',
-        t.value('chart_label_readiness')
+        'Readiness Estimate'
       )
     }
   })
@@ -731,7 +834,118 @@
       }
     ]
 
-    // Rolling averages and target logic remain same but use t() where appropriate
+    // 7d Rolling Average
+    if (settings.show7dAvg) {
+      const avgData = data.map((_, index) => {
+        const start = Math.max(0, index - 6)
+        const window = data.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr, 0)
+        return sum / window.length
+      })
+
+      datasets.push({
+        type: 'line',
+        label: '7d Avg',
+        data: avgData,
+        borderColor: color.replace('rgb', 'rgba').replace(')', ', 0.4)'),
+        backgroundColor: 'transparent',
+        borderDash: [5, 5],
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: settings.smooth ? 0.4 : 0,
+        fill: false,
+        spanGaps: true
+      })
+    }
+
+    // 30d Rolling Average (Baseline)
+    if (settings.show30dAvg || settings.showStdDev) {
+      const avgData = data.map((_, index) => {
+        const start = Math.max(0, index - 29)
+        const window = data.slice(start, index + 1)
+        const sum = window.reduce((acc, curr) => acc + curr, 0)
+        return sum / window.length
+      })
+
+      if (settings.show30dAvg) {
+        datasets.push({
+          type: 'line',
+          label: '30d Avg',
+          data: avgData,
+          borderColor: color.replace('rgb', 'rgba').replace(')', ', 0.3)'),
+          backgroundColor: 'transparent',
+          borderDash: [2, 2],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+      }
+
+      // 1 Standard Deviation Band
+      if (settings.showStdDev) {
+        const stdDevData = data.map((_, index) => {
+          const start = Math.max(0, index - 29)
+          const window = data.slice(start, index + 1)
+          const mean = window.reduce((a, b) => a + b, 0) / window.length
+          const variance = window.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / window.length
+          return Math.sqrt(variance)
+        })
+
+        const upperBand = avgData.map((avg, i) => avg + (stdDevData[i] || 0))
+        const lowerBand = avgData.map((avg, i) => Math.max(0, avg - (stdDevData[i] || 0)))
+
+        datasets.push({
+          type: 'line',
+          label: 'Range Upper',
+          data: upperBand,
+          borderColor: 'transparent',
+          backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.2)'),
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: false,
+          spanGaps: true
+        })
+
+        datasets.push({
+          type: 'line',
+          label: 'Normal Range',
+          data: lowerBand,
+          borderColor: 'transparent',
+          backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.2)'),
+          pointRadius: 0,
+          tension: settings.smooth ? 0.4 : 0,
+          fill: '-1',
+          spanGaps: true
+        })
+      }
+    }
+
+    // Determine target value: prioritize manual setting, fallback to weight goal for weight chart
+    let targetValue = settings.targetValue
+    if (
+      key === 'weight' &&
+      (!targetValue || targetValue === 0) &&
+      weightGoal.value?.targetValue !== undefined
+    ) {
+      targetValue = toDisplayWeight(weightGoal.value.targetValue)
+    }
+
+    if (settings.showTarget && targetValue !== undefined) {
+      datasets.push({
+        type: 'line',
+        label: 'Target',
+        data: new Array(data.length).fill(targetValue),
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderDash: [2, 2],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+        spanGaps: true
+      })
+    }
+
     return datasets
   }
 
@@ -750,7 +964,7 @@
         'sleep',
         recentWellness.map((w) => w.sleepHours),
         'rgb(59, 130, 246)',
-        t.value('chart_label_sleep')
+        'Hours'
       )
     }
   })
@@ -770,7 +984,7 @@
         'hrv',
         recentWellness.map((w) => w.hrv),
         'rgb(168, 85, 247)',
-        t.value('chart_label_hrv')
+        'HRV (rMSSD)'
       )
     }
   })
@@ -790,7 +1004,7 @@
         'restingHr',
         recentWellness.map((w) => w.restingHr),
         'rgb(239, 68, 68)',
-        t.value('chart_label_rhr')
+        'Resting HR (bpm)'
       )
     }
   })
@@ -817,7 +1031,7 @@
         'weight',
         weights,
         'rgb(249, 115, 22)',
-        t.value('chart_label_weight') + ` (${userStore.weightUnitLabel})`
+        `Weight (${userStore.weightUnitLabel})`
       )
     }
   })
@@ -861,6 +1075,20 @@
       fill: settings.type === 'line' ? 'origin' : false,
       spanGaps: true
     })
+
+    if (settings.showTarget && settings.targetValue !== undefined) {
+      datasets.push({
+        type: 'line',
+        label: 'Target',
+        data: new Array(labels.length).fill(settings.targetValue),
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderDash: [2, 2],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+        spanGaps: true
+      })
+    }
 
     return {
       labels,
@@ -1021,7 +1249,7 @@
       }
     }
 
-    // Metric specific tooltips and scales mapping to t()
+    // Metric specific overrides
     const labelFormatter = (context: any) => {
       const label = context.dataset.label || ''
       const value = context.parsed.y
@@ -1029,13 +1257,13 @@
 
       let unit = ''
       let fixed = 0
-      if (key === 'recovery') unit = t.value('recovery_unit')
-      else if (key === 'readinessEstimate') unit = t.value('recovery_unit')
+      if (key === 'recovery') unit = '%'
+      else if (key === 'readinessEstimate') unit = '%'
       else if (key === 'sleep') {
-        unit = t.value('sleep_unit')
+        unit = 'h'
         fixed = 1
-      } else if (key === 'hrv') unit = ' ' + t.value('hrv_unit')
-      else if (key === 'restingHr') unit = ' ' + t.value('rhr_unit')
+      } else if (key === 'hrv') unit = 'ms'
+      else if (key === 'restingHr') unit = ' bpm'
       else if (key === 'weight') {
         unit = ' ' + userStore.weightUnitLabel
         fixed = 1
@@ -1048,48 +1276,93 @@
       label: labelFormatter
     }
 
+    // Determine target value for scaling: prioritize manual setting, fallback to goal
+    let targetValue = settings.targetValue
+    if (
+      key === 'weight' &&
+      (!targetValue || targetValue === 0) &&
+      weightGoal.value?.targetValue !== undefined
+    ) {
+      targetValue = toDisplayWeight(weightGoal.value.targetValue)
+    }
+
     if (key === 'recovery' || key === 'readinessEstimate') {
       opts.scales.y.title = {
         display: true,
-        text: key === 'recovery' ? t.value('chart_y_recovery') : t.value('chart_y_readiness'),
+        text: key === 'recovery' ? 'Recovery %' : 'Readiness Estimate %',
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
       }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.suggestedMax = settings.yScale === 'fixed' ? 100 : undefined
     } else if (key === 'sleep') {
       opts.scales.y.title = {
         display: true,
-        text: t.value('chart_y_sleep'),
+        text: 'Hours (h)',
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
       }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.suggestedMax = settings.yScale === 'fixed' ? 12 : undefined
+      opts.scales.y.beginAtZero = false
     } else if (key === 'hrv') {
       opts.scales.y.title = {
         display: true,
-        text: t.value('chart_y_hrv'),
+        text: 'Variability (ms)',
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
       }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.beginAtZero = false
     } else if (key === 'restingHr') {
       opts.scales.y.title = {
         display: true,
-        text: t.value('chart_y_rhr'),
+        text: 'Resting HR (bpm)',
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
       }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.beginAtZero = false
     } else if (key === 'weight') {
       opts.scales.y.title = {
         display: true,
-        text: t.value('chart_y_weight', { unit: userStore.weightUnitLabel }),
+        text: `Mass (${userStore.weightUnitLabel})`,
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
+      }
+      opts.scales.y.min = settings.yScale === 'fixed' ? settings.yMin || 0 : undefined
+      opts.scales.y.beginAtZero = false
+      opts.scales.y.ticks.maxTicksLimit = 8
+      opts.scales.y.grace = '1%'
+
+      // If showing target, ensure it's visible in dynamic scale
+      if (settings.showTarget && targetValue !== undefined && settings.yScale !== 'fixed') {
+        const weights = filteredWellness.value
+          .filter((w) => w.weight)
+          .map((w) => {
+            if (userStore.profile?.weightUnits === 'Pounds') {
+              return w.weight / LBS_TO_KG
+            }
+            return w.weight
+          })
+        if (weights.length > 0) {
+          const minWeight = Math.min(...weights)
+          const maxWeight = Math.max(...weights)
+          opts.scales.y.suggestedMin = Math.min(minWeight, targetValue)
+          opts.scales.y.suggestedMax = Math.max(maxWeight, targetValue)
+        } else {
+          opts.scales.y.suggestedMin = targetValue
+          opts.scales.y.suggestedMax = targetValue
+        }
       }
     } else if (key === 'bp') {
       opts.scales.y.title = {
         display: true,
-        text: t.value('chart_y_bp'),
+        text: 'Pressure (mmHg)',
         color: '#94a3b8',
         font: { size: 10, weight: 'bold' }
       }
+      opts.scales.y.beginAtZero = false
     }
 
     return opts

@@ -113,32 +113,33 @@
   const tabs = computed(() => [
     {
       id: 'basic',
-      label: typeof t === 'function' ? t.value('settings_tabs_basic') : 'Basic Settings',
+      label: typeof t.value === 'function' ? t.value('settings_tabs_basic') : 'Basic Settings',
       icon: 'i-heroicons-user-circle'
     },
     {
       id: 'sports',
-      label: typeof t === 'function' ? t.value('settings_tabs_sports') : 'Sport Settings',
+      label: typeof t.value === 'function' ? t.value('settings_tabs_sports') : 'Sport Settings',
       icon: 'i-heroicons-bolt'
     },
     {
       id: 'measurements',
-      label: typeof t === 'function' ? t.value('settings_tabs_measurements') : 'Measurements',
+      label: typeof t.value === 'function' ? t.value('settings_tabs_measurements') : 'Measurements',
       icon: 'i-heroicons-scale'
     },
     {
       id: 'availability',
-      label: typeof t === 'function' ? t.value('settings_tabs_availability') : 'Availability',
+      label: typeof t.value === 'function' ? t.value('settings_tabs_availability') : 'Availability',
       icon: 'i-lucide-calendar-clock'
     },
     {
       id: 'nutrition',
-      label: typeof t === 'function' ? t.value('settings_tabs_nutrition') : 'Nutrition',
+      label: typeof t.value === 'function' ? t.value('settings_tabs_nutrition') : 'Nutrition',
       icon: 'i-heroicons-fire'
     },
     {
       id: 'communication',
-      label: typeof t === 'function' ? t.value('settings_tabs_communication') : 'Communication',
+      label:
+        typeof t.value === 'function' ? t.value('settings_tabs_communication') : 'Communication',
       icon: 'i-heroicons-envelope'
     }
   ])
