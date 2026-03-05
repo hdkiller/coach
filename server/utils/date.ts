@@ -189,6 +189,20 @@ const resolveWeekdayReference = (
   return shiftUtcCalendarDate(baseDate, delta)
 }
 
+const resolveBareWeekdayReference = (baseDate: Date, weekday: string) => {
+  const targetDay = WEEKDAY_INDEX[weekday.toLowerCase()]
+  if (targetDay === undefined) return null
+
+  const currentDay = baseDate.getUTCDay()
+  let delta = targetDay - currentDay
+
+  // Bare weekday names are interpreted as the next upcoming occurrence,
+  // including today when it already matches.
+  if (delta < 0) delta += 7
+
+  return shiftUtcCalendarDate(baseDate, delta)
+}
+
 export function resolveRelativeDateReference(
   reference: string,
   timezone: string,
@@ -240,6 +254,8 @@ export function resolveRelativeDateReference(
         weekdayMatch[2]!,
         weekdayMatch[1]! as 'this' | 'next' | 'last'
       )
+    } else if (WEEKDAY_INDEX[normalized] !== undefined) {
+      resolvedDate = resolveBareWeekdayReference(baseDate, normalized)
     }
   }
 

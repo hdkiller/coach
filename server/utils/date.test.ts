@@ -42,4 +42,22 @@ describe('date utilities', () => {
       expect(result.resolvedDateString).toBe('2026-02-28')
     }
   })
+
+  it('resolves bare weekday references to the next upcoming day', () => {
+    const result = resolveRelativeDateReference('Saturday', 'Europe/Budapest', '2026-03-01')
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.resolvedDateString).toBe('2026-03-07')
+    }
+  })
+
+  it('rolls bare weekday references to next week when the day already passed', () => {
+    const result = resolveRelativeDateReference('Monday', 'Europe/Budapest', '2026-03-04')
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.resolvedDateString).toBe('2026-03-09')
+    }
+  })
 })
