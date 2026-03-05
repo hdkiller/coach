@@ -18,6 +18,13 @@ Comparison target: current working tree (HEAD + uncommitted changes)
 - [x] Previously restored regressions preserved
 - [x] Meal Schedule and Nutrition settings strings extracted to translation keys
 - [x] Sport settings section strings extracted (General/Power/HR/Pace cards and related modal labels)
+- [x] Measurements settings and history strings extracted (header, forms, table, modal, toasts, metric labels)
+- [x] Communication tab strings extracted (override, insights, product/account cards, toggles, schedule labels, toasts)
+- [x] Availability card strings extracted on profile settings page (training schedule title/description)
+- [x] Dashboard trial access string hardcoded fallback removed (`trial_access_remaining` now key-only)
+- [x] Navbar button labels extracted (`Tasks`, `Notifications`, `What's New`)
+- [x] Help Us Grow card + share modal strings extracted to dashboard translation keys
+- [x] Billing page full pass completed (trust cards, comparison matrix rows, FAQs, plan title text)
 
 ## Full Affected Files Checklist
 
