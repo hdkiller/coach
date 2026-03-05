@@ -1,5 +1,8 @@
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import { h } from 'vue'
+
+  const { t } = useTranslate('dashboard')
 
   const {
     hasNewRelease,
@@ -42,11 +45,11 @@
         color="neutral"
         variant="outline"
         size="sm"
-        aria-label="New Release"
+        :aria-label="t('navbar_whats_new')"
         class="font-bold"
         @click="openReleaseModal"
       >
-        <span class="hidden sm:inline">What's New</span>
+        <span class="hidden sm:inline">{{ t('navbar_whats_new') }}</span>
       </UButton>
       <!-- Notification Badge -->
       <span
@@ -58,13 +61,13 @@
     <UModal
       v-model:open="isReleaseModalOpen"
       :ui="{ content: 'sm:max-w-2xl' }"
-      title="What's New in Coach Watts"
-      description="Summary of the latest features, improvements, and fixes in this release."
+      :title="t('release_modal_title')"
+      :description="t('release_modal_desc')"
     >
       <template #title>
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-sparkles" class="w-6 h-6 text-primary-500" />
-          What's New
+          {{ t('navbar_whats_new') }}
         </div>
       </template>
 
@@ -78,12 +81,12 @@
       <template #footer>
         <div class="flex justify-end gap-2">
           <UButton
-            label="Close"
+            :label="t('common_close')"
             color="neutral"
             variant="ghost"
             @click="isReleaseModalOpen = false"
           />
-          <UButton label="Got it" color="primary" @click="markAsSeen" />
+          <UButton :label="t('release_modal_ack')" color="primary" @click="markAsSeen" />
         </div>
       </template>
     </UModal>

@@ -121,7 +121,7 @@
           </UButton>
         </div>
 
-        <UDivider />
+        <USeparator />
 
         <div>
           <h3 class="font-medium mb-1">Wipe Wellness Data</h3>
@@ -139,7 +139,7 @@
           </UButton>
         </div>
 
-        <UDivider />
+        <USeparator />
 
         <div>
           <h3 class="font-medium mb-1">Wipe Nutrition Logs</h3>

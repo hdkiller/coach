@@ -1,4 +1,7 @@
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
   const notificationStore = useNotificationStore()
   const { notifications, unreadCount, loading } = storeToRefs(notificationStore)
 
@@ -27,9 +30,9 @@
       variant="outline"
       size="sm"
       class="font-bold"
-      aria-label="Notifications"
+      :aria-label="t('navbar_notifications')"
     >
-      <span class="hidden md:inline">Notifications</span>
+      <span class="hidden md:inline">{{ t('navbar_notifications') }}</span>
       <template v-if="unreadCount > 0" #trailing>
         <UBadge color="error" size="xs" :ui="{ base: 'rounded-full' }" class="-ml-1">
           {{ unreadCount > 9 ? '9+' : unreadCount }}
@@ -42,7 +45,9 @@
         <div
           class="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-white dark:bg-gray-900 sticky top-0 z-10 rounded-t-lg"
         >
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+            {{ t('navbar_notifications') }}
+          </h3>
           <UButton
             v-if="unreadCount > 0"
             variant="link"

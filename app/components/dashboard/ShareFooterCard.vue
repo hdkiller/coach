@@ -9,10 +9,10 @@
             class="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500"
           >
             <UIcon name="i-heroicons-heart" class="h-3.5 w-3.5" />
-            Help Us Grow
+            {{ t('share_footer_title') }}
           </div>
           <p class="text-sm text-gray-600 dark:text-gray-300">
-            If Coach Watts has been useful, share it with a friend or post it on your socials.
+            {{ t('share_footer_desc') }}
           </p>
         </div>
 
@@ -24,7 +24,7 @@
           class="shrink-0 font-medium"
           @click="isOpen = true"
         >
-          Share Coach Watts
+          {{ t('share_footer_button') }}
         </UButton>
       </div>
     </div>
@@ -34,5 +34,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
+
+  const { t } = useTranslate('dashboard')
   const isOpen = ref(false)
 </script>

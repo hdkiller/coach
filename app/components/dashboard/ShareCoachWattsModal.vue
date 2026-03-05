@@ -1,7 +1,7 @@
 <template>
   <UModal
     v-model:open="open"
-    :title="rewardEnabled ? 'Share Coach Watts' : 'Help Coach Watts Grow'"
+    :title="rewardEnabled ? t('share_modal_title_reward') : t('share_modal_title_default')"
     :ui="{
       width: 'max-w-md',
       content: 'overflow-hidden'
@@ -21,7 +21,7 @@
               <img
                 v-if="qrCodeDataUrl"
                 :src="qrCodeDataUrl"
-                :alt="`QR code linking to ${shareLink}`"
+                :alt="t('share_modal_qr_alt', { link: shareLink })"
                 class="h-[72vw] w-[72vw] max-h-72 max-w-72 rounded-lg sm:h-48 sm:w-48"
               />
               <USkeleton
@@ -48,12 +48,12 @@
               <p
                 class="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight italic"
               >
-                Share your evolution
+                {{ t('share_modal_hero_title') }}
               </p>
               <p
                 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]"
               >
-                Scan to invite your team
+                {{ t('share_modal_hero_subtitle') }}
               </p>
             </div>
           </div>
@@ -65,7 +65,7 @@
           v-if="rewardEnabled"
           class="rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900 dark:border-primary-900/60 dark:bg-primary-950/30 dark:text-primary-100"
         >
-          Help us grow by sharing Coach Watts. After you share, you can claim your bonus trial time.
+          {{ t('share_modal_reward_desc') }}
         </div>
 
         <ShareAccessPanel
@@ -86,14 +86,10 @@
           <p
             class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-relaxed"
           >
-            {{
-              hasShareIntent
-                ? 'Action detected. Claim your reward.'
-                : 'Copy link or click share to unlock reward.'
-            }}
+            {{ hasShareIntent ? t('share_modal_intent_detected') : t('share_modal_intent_prompt') }}
           </p>
           <UButton
-            label="Claim Extension"
+            :label="t('share_modal_claim_button')"
             color="primary"
             variant="solid"
             class="font-black uppercase tracking-widest rounded-xl"
@@ -108,6 +104,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useTranslate } from '@tolgee/vue'
   import QRCode from 'qrcode'
 
   const open = defineModel<boolean>('open', { default: false })
@@ -124,6 +121,7 @@
   const hasShareIntent = ref(false)
   const claimingReward = ref(false)
   const qrCodeDataUrl = ref('')
+  const { t } = useTranslate('dashboard')
   const userStore = useUserStore()
   const toast = useToast()
   const runtimeConfig = useRuntimeConfig()
@@ -146,7 +144,7 @@
     url.searchParams.set('utm_campaign', 'share_coach_watts')
     return url.toString()
   })
-  const shareTitle = 'Coach Watts - AI Endurance Coaching'
+  const shareTitle = computed(() => t.value('share_modal_share_title'))
 
   async function generateQrCode() {
     try {
@@ -202,8 +200,8 @@
     } catch (error) {
       console.error('Failed to generate share QR code:', error)
       toast.add({
-        title: 'QR code unavailable',
-        description: 'Could not generate the QR code right now.',
+        title: t.value('share_modal_qr_unavailable_title'),
+        description: t.value('share_modal_qr_unavailable_desc'),
         color: 'error'
       })
     }
@@ -215,15 +213,15 @@
       hasShareIntent.value = true
       trackShareLinkCopy()
       toast.add({
-        title: 'Copied',
-        description: 'Share link copied to clipboard.',
+        title: t.value('share_modal_copied_title'),
+        description: t.value('share_modal_copied_desc'),
         color: 'success'
       })
     } catch (error) {
       console.error('Failed to copy share link:', error)
       toast.add({
-        title: 'Copy failed',
-        description: 'Could not copy the share link. Please try again.',
+        title: t.value('share_modal_copy_failed_title'),
+        description: t.value('share_modal_copy_failed_desc'),
         color: 'error'
       })
     }
@@ -251,8 +249,8 @@
       trackShareRewardClaim(response.daysGranted)
       await userStore.fetchUser(true)
       toast.add({
-        title: 'Reward claimed',
-        description: `Your trial was extended by ${response.daysGranted} days.`,
+        title: t.value('share_modal_reward_claimed_title'),
+        description: t.value('share_modal_reward_claimed_desc', { days: response.daysGranted }),
         color: 'success'
       })
       open.value = false
@@ -260,10 +258,15 @@
     } catch (error: any) {
       const statusCode = error?.statusCode || error?.data?.statusCode
       const description =
-        error?.data?.statusMessage || error?.statusMessage || 'Failed to claim your reward.'
+        error?.data?.statusMessage ||
+        error?.statusMessage ||
+        t.value('share_modal_reward_claim_failed_fallback')
       trackShareRewardClaimRejected(String(statusCode || 'unknown'))
       toast.add({
-        title: statusCode === 409 ? 'Reward already claimed' : 'Could not claim reward',
+        title:
+          statusCode === 409
+            ? t.value('share_modal_reward_already_claimed')
+            : t.value('share_modal_reward_claim_failed_title'),
         description,
         color: 'error'
       })
