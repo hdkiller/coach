@@ -130,7 +130,8 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
   it('applies delta update without sync when payload is thin but workout exists', async () => {
     vi.mocked(workoutRepository.getByExternalId).mockResolvedValue({
       id: 'w-thin',
-      rawJson: { existing: true }
+      rawJson: { existing: true },
+      tags: ['local-tag', 'icu:old']
     } as any)
 
     const syncSpy = vi.spyOn(IntervalsService, 'syncActivities').mockResolvedValue(0)
@@ -139,7 +140,8 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
       activity: {
         id: 'i999',
         name: 'Indoor Cycling',
-        description: 'Updated title only'
+        description: 'Updated title only',
+        tags: ['RECOVERY']
       }
     }
 
@@ -152,6 +154,7 @@ describe('IntervalsService ACTIVITY_UPDATED', () => {
       expect.objectContaining({
         title: 'Indoor Cycling',
         description: 'Updated title only',
+        tags: ['icu:recovery', 'local-tag'],
         rawJson: expect.objectContaining({
           existing: true,
           id: 'i999'

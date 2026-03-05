@@ -1,6 +1,7 @@
 import type { Integration } from '@prisma/client'
 import { formatUserDate } from './date'
 import { roundToTwoDecimals } from './number'
+import { mergeWorkoutTags } from './workout-tags'
 
 import { WorkoutConverter } from './workout-converter'
 
@@ -1026,6 +1027,7 @@ export function normalizeIntervalsWorkout(activity: IntervalsActivity, userId: s
     commute: false, // Intervals.icu doesn't track commute flag
     isPrivate: false, // Intervals.icu doesn't provide privacy flag
     gearId: null, // Intervals.icu doesn't provide gear info
+    tags: mergeWorkoutTags([], { incomingIntervalsTags: activity.tags }),
 
     // Store raw data
     rawJson: activity

@@ -41,6 +41,7 @@ import { shouldIngestWellness } from '../integration-settings'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
 import { bodyMeasurementService } from './bodyMeasurementService'
+import { mergeWorkoutTags } from '../workout-tags'
 
 function parseIntervalsActivityDate(activity: any): Date | null {
   const rawDate = activity?.start_date || activity?.start_date_local
@@ -1388,6 +1389,12 @@ export const IntervalsService = {
             deltaData.rawJson = {
               ...((existing.rawJson as any) || {}),
               ...(activity || {})
+            }
+
+            if (Object.prototype.hasOwnProperty.call(activity || {}, 'tags')) {
+              deltaData.tags = mergeWorkoutTags((existing.tags as string[]) || [], {
+                incomingIntervalsTags: activity.tags
+              })
             }
 
             if (Object.keys(deltaData).length > 0) {

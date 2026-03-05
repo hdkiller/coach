@@ -501,6 +501,7 @@ model Workout {
   maxHr                           Int?
   tss                             Float?
   kilojoules                      Int?
+  tags                            String[]          @default([])
   rawJson                         Json?
   atl                             Float?
   averageCadence                  Int?
@@ -568,6 +569,8 @@ model Workout {
   plannedWorkout                  PlannedWorkout?   @relation(fields: [plannedWorkoutId], references: [id])
   user                            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises                       WorkoutExercise[]
+
+  @@index([tags], type: Gin)
   streams                         WorkoutStream?
   metricHistory                   MetricHistory[]
   personalBests                   PersonalBest[]
