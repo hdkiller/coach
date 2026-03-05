@@ -925,6 +925,29 @@
               </div>
             </div>
 
+            <div
+              v-if="nutritionEstimate"
+              class="mb-6 bg-gray-50 dark:bg-gray-950 p-4 rounded-xl border border-gray-100 dark:border-gray-800"
+            >
+              <div class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
+                Estimated Fuel Cost
+              </div>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div
+                  v-for="item in nutritionEstimate"
+                  :key="item.label"
+                  class="bg-white dark:bg-gray-900 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-800"
+                >
+                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                    {{ item.label }}
+                  </div>
+                  <div class="text-sm font-black text-gray-900 dark:text-white">
+                    {{ item.value }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <!-- Actual vs Planned -->
               <div class="space-y-4">
@@ -3301,6 +3324,31 @@
   const recoveryCarbBump = computed(() => {
     if (kJDelta.value < 10) return 0
     return Math.round((kJDelta.value / 15) * 40)
+  })
+
+  const nutritionEstimate = computed(() => {
+    const caloriesFromWorkout = Number(workout.value?.calories || 0)
+    const kilojoules = Number(workout.value?.kilojoules || 0)
+    const estimatedCalories = Math.round(
+      caloriesFromWorkout > 0 ? caloriesFromWorkout : kilojoules > 0 ? kilojoules / 4.184 : 0
+    )
+
+    if (estimatedCalories <= 0) return null
+
+    const reportedCarbs = Number(workout.value?.carbsUsed || 0)
+    const estimatedCarbs = Math.round(
+      reportedCarbs > 0 ? reportedCarbs : (estimatedCalories * 0.6) / 4
+    )
+    const nonCarbCalories = Math.max(estimatedCalories - estimatedCarbs * 4, 0)
+    const estimatedFat = Math.round((nonCarbCalories * 0.8) / 9)
+    const estimatedProtein = Math.round((nonCarbCalories * 0.2) / 4)
+
+    return [
+      { label: 'Calories', value: `${estimatedCalories} kcal` },
+      { label: 'Carbs', value: `${estimatedCarbs} g` },
+      { label: 'Fat', value: `${estimatedFat} g` },
+      { label: 'Protein', value: `${estimatedProtein} g` }
+    ]
   })
 
   async function updateStomachFeel(val: number) {
