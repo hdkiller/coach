@@ -938,7 +938,8 @@
                   :key="item.label"
                   class="bg-white dark:bg-gray-900 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-800"
                 >
-                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5">
+                    <UIcon :name="item.icon" class="w-3.5 h-3.5" :class="item.iconClass" />
                     {{ item.label }}
                   </div>
                   <div class="text-sm font-black text-gray-900 dark:text-white">
@@ -3344,10 +3345,30 @@
     const estimatedProtein = Math.round((nonCarbCalories * 0.2) / 4)
 
     return [
-      { label: 'Calories', value: `${estimatedCalories} kcal` },
-      { label: 'Carbs', value: `${estimatedCarbs} g` },
-      { label: 'Fat', value: `${estimatedFat} g` },
-      { label: 'Protein', value: `${estimatedProtein} g` }
+      {
+        label: 'Calories',
+        value: `${estimatedCalories} kcal`,
+        icon: 'i-tabler-flame',
+        iconClass: 'text-orange-500'
+      },
+      {
+        label: 'Carbs',
+        value: `${estimatedCarbs} g`,
+        icon: 'i-tabler-bread',
+        iconClass: 'text-yellow-500'
+      },
+      {
+        label: 'Fat',
+        value: `${estimatedFat} g`,
+        icon: 'i-tabler-droplet',
+        iconClass: 'text-cyan-500'
+      },
+      {
+        label: 'Protein',
+        value: `${estimatedProtein} g`,
+        icon: 'i-tabler-egg',
+        iconClass: 'text-blue-500'
+      }
     ]
   })
 
