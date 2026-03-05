@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../db'
 import type { QuotaOperation } from './registry'
 import { QUOTA_REGISTRY, mapOperationToQuota } from './registry'
@@ -12,87 +13,91 @@ export async function getQuotaStatus(
   userId: string,
   operation: string
 ): Promise<QuotaStatus | null> {
-  const canonicalOp = mapOperationToQuota(operation)
-  if (!canonicalOp) return null
+  try {
+    const canonicalOp = mapOperationToQuota(operation)
+    if (!canonicalOp) return null
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { subscriptionTier: true, trialEndsAt: true, timezone: true }
-  })
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { subscriptionTier: true, trialEndsAt: true, timezone: true }
+    })
 
-  if (!user) return null
+    if (!user) return null
 
-  // Trial Logic: If user is FREE but has an active trial, they get SUPPORTER quotas
-  const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
-  const effectiveTier: SubscriptionTier =
-    user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
+    // Trial Logic: If user is FREE but has an active trial, they get SUPPORTER quotas
+    const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
+    const effectiveTier: SubscriptionTier =
+      user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
 
-  const quotaDef = QUOTA_REGISTRY[effectiveTier][canonicalOp]
+    const quotaDef = QUOTA_REGISTRY[effectiveTier][canonicalOp]
 
-  if (!quotaDef) return null
+    if (!quotaDef) return null
 
-  const timezone = user.timezone || 'UTC'
-  const isCalendarReset = quotaDef.resetType === 'CALENDAR'
+    const timezone = user.timezone || 'UTC'
+    const isCalendarReset = quotaDef.resetType === 'CALENDAR'
 
-  // Calculate usage within the window
-  let usageCount: any[]
+    // Calculate usage within the window
+    let usageCount: any[]
 
-  if (isCalendarReset) {
-    const startOfToday = getStartOfDayUTC(timezone)
-    usageCount = await prisma.$queryRawUnsafe(
+    if (isCalendarReset) {
+      const startOfToday = getStartOfDayUTC(timezone)
+      usageCount = await prisma.$queryRaw`
+        SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
+        FROM "LlmUsage"
+        WHERE "userId" = ${userId}
+          AND "operation" = ${operation}
+          AND "success" = true
+          AND "counted" = true
+          AND "createdAt" >= ${startOfToday}
       `
-      SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
-      FROM "LlmUsage"
-      WHERE "userId" = $1
-        AND "operation" = $2
-        AND "success" = true
-        AND "counted" = true
-        AND "createdAt" >= $3
-    `,
-      userId,
-      operation,
-      startOfToday
-    )
-  } else {
-    // Using raw query for flexible interval support
-    usageCount = await prisma.$queryRawUnsafe(
+    } else {
+      usageCount = await prisma.$queryRaw`
+        SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
+        FROM "LlmUsage"
+        WHERE "userId" = ${userId}
+          AND "operation" = ${operation}
+          AND "success" = true
+          AND "counted" = true
+          AND "createdAt" >= NOW() - CAST(${quotaDef.window} AS interval)
       `
-      SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
-      FROM "LlmUsage"
-      WHERE "userId" = $1
-        AND "operation" = $2
-        AND "success" = true
-        AND "counted" = true
-        AND "createdAt" >= NOW() - CAST($3 AS interval)
-    `,
-      userId,
+    }
+
+    const used = usageCount[0]?.count || 0
+    const remaining = Math.max(0, quotaDef.limit - used)
+
+    // Estimate reset time
+    let resetsAt = null
+    if (isCalendarReset) {
+      // For calendar reset, it resets at midnight tonight in user's timezone
+      resetsAt = getEndOfDayUTC(timezone)
+    } else if (used > 0 && usageCount[0]?.firstUsedAt) {
+      const firstUsedAt = new Date(usageCount[0].firstUsedAt)
+      resetsAt = new Date(firstUsedAt.getTime() + parseIntervalToMs(quotaDef.window))
+    }
+
+    return {
       operation,
-      quotaDef.window
-    )
-  }
-
-  const used = usageCount[0]?.count || 0
-  const remaining = Math.max(0, quotaDef.limit - used)
-
-  // Estimate reset time
-  let resetsAt = null
-  if (isCalendarReset) {
-    // For calendar reset, it resets at midnight tonight in user's timezone
-    resetsAt = getEndOfDayUTC(timezone)
-  } else if (used > 0 && usageCount[0]?.firstUsedAt) {
-    const firstUsedAt = new Date(usageCount[0].firstUsedAt)
-    resetsAt = new Date(firstUsedAt.getTime() + parseIntervalToMs(quotaDef.window))
-  }
-
-  return {
-    operation,
-    allowed: quotaDef.enforcement === 'MEASURE' || used < quotaDef.limit,
-    used,
-    limit: quotaDef.limit,
-    remaining,
-    window: isCalendarReset ? 'calendar day' : quotaDef.window,
-    resetsAt,
-    enforcement: quotaDef.enforcement
+      allowed: quotaDef.enforcement === 'MEASURE' || used < quotaDef.limit,
+      used,
+      limit: quotaDef.limit,
+      remaining,
+      window: isCalendarReset ? 'calendar day' : quotaDef.window,
+      resetsAt,
+      enforcement: quotaDef.enforcement
+    }
+  } catch (error) {
+    console.error(`Failed to get quota status for ${operation}:`, error)
+    // Return a dummy "allowed" status on error so we don't break the app
+    return {
+      operation,
+      allowed: true,
+      used: 0,
+      limit: 0,
+      remaining: 0,
+      window: 'error',
+      resetsAt: null,
+      enforcement: 'MEASURE'
+    }
   }
 }
 
@@ -149,19 +154,36 @@ function parseIntervalToMs(interval: string): number {
  * Get all quota statuses for a user
  */
 export async function getQuotaSummary(userId: string): Promise<QuotaStatus[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { subscriptionTier: true, trialEndsAt: true }
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { subscriptionTier: true, trialEndsAt: true }
+    })
+
+    if (!user) return []
+
+    const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
+    const effectiveTier: SubscriptionTier =
+      user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
+
+    const ops = Object.keys(QUOTA_REGISTRY[effectiveTier]) as QuotaOperation[]
+
+    // Use a race to ensure we don't hang forever if DB is slow
+    const results = await promiseTimeout(
+      Promise.all(ops.map((op) => getQuotaStatus(userId, op))),
+      5000 // 5 second timeout for summary
+    )
+
+    return (results || []).filter((r): r is QuotaStatus => r !== null)
+  } catch (err) {
+    console.error('getQuotaSummary failed:', err)
+    return []
+  }
+}
+
+function promiseTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Quota summary request timed out')), ms)
   })
-
-  if (!user) return []
-
-  const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
-  const effectiveTier: SubscriptionTier =
-    user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
-
-  const ops = Object.keys(QUOTA_REGISTRY[effectiveTier]) as QuotaOperation[]
-
-  const results = await Promise.all(ops.map((op) => getQuotaStatus(userId, op)))
-  return results.filter((r): r is QuotaStatus => r !== null)
+  return Promise.race([promise, timeout])
 }
