@@ -33,13 +33,69 @@ import {
   buildInvalidCalendarDateResult
 } from '../../utils/date'
 import { checkQuota } from '../../utils/quotas/engine'
+import {
+  resolveWorkoutTargeting,
+  applyTargetFormatPolicyToStep,
+  applyStepIntentGuard
+} from '../../../trigger/utils/workout-targeting'
+
+const STEP_INTENT_VALUES = [
+  'warmup',
+  'recovery',
+  'easy',
+  'endurance',
+  'tempo',
+  'threshold',
+  'vo2',
+  'anaerobic',
+  'sprint',
+  'cooldown',
+  'drills',
+  'strides'
+] as const
+
+const PRIMARY_TARGET_VALUES = ['power', 'heartRate', 'pace', 'rpe'] as const
+
+const structuredMessageSchema = z.union([
+  z.string(),
+  z.object({
+    timestamp: z.number().int().nonnegative().optional(),
+    text: z.string(),
+    duration: z.number().int().positive().optional()
+  })
+])
+
+const structuredStepSchema: z.ZodType<any> = z.lazy(() =>
+  z
+    .object({
+      type: z.enum(['Warmup', 'Active', 'Rest', 'Cooldown']).optional(),
+      intent: z.enum(STEP_INTENT_VALUES).optional(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      durationSeconds: z.number().int().positive().optional(),
+      duration: z.number().int().positive().optional(),
+      distance: z.number().positive().optional(),
+      reps: z.number().int().positive().optional(),
+      repeat: z.number().int().positive().optional(),
+      intervals: z.number().int().positive().optional(),
+      primaryTarget: z.enum(PRIMARY_TARGET_VALUES).optional(),
+      power: z.record(z.string(), z.unknown()).optional(),
+      heartRate: z.record(z.string(), z.unknown()).optional(),
+      pace: z.record(z.string(), z.unknown()).optional(),
+      rpe: z.number().optional(),
+      cadence: z.number().optional(),
+      cadenceRange: z.record(z.string(), z.unknown()).optional(),
+      steps: z.array(structuredStepSchema).optional()
+    })
+    .passthrough()
+)
 
 const structuredWorkoutSchema = z
   .object({
     description: z.string().optional(),
     coachInstructions: z.string().optional(),
-    messages: z.array(z.string()).optional(),
-    steps: z.array(z.record(z.string(), z.unknown())).optional(),
+    messages: z.array(structuredMessageSchema).optional(),
+    steps: z.array(structuredStepSchema).optional(),
     exercises: z.array(z.record(z.string(), z.unknown())).optional()
   })
   .passthrough()
@@ -97,6 +153,198 @@ const normalizeStructuredWorkoutRepetition = (structuredWorkout: any) => {
 
   visit(normalized)
   return normalized
+}
+
+const hasMetricTarget = (step: any, metric: 'power' | 'heartRate' | 'pace' | 'rpe') => {
+  if (metric === 'rpe') return typeof step?.rpe === 'number'
+  const target = step?.[metric]
+  return Boolean(target && (typeof target.value === 'number' || target.range))
+}
+
+const normalizePrimaryTarget = (
+  step: any,
+  fallbackOrder: Array<'power' | 'heartRate' | 'pace' | 'rpe'>
+) => {
+  const current = String(step?.primaryTarget || '')
+  if (PRIMARY_TARGET_VALUES.includes(current as any)) {
+    return current as 'power' | 'heartRate' | 'pace' | 'rpe'
+  }
+  for (const metric of fallbackOrder) {
+    if (hasMetricTarget(step, metric)) return metric
+  }
+  return undefined
+}
+
+const getTargetMidpoint = (target: any): number | null => {
+  if (!target || typeof target !== 'object') return null
+  if (typeof target.value === 'number') return target.value
+  if (
+    target.range &&
+    typeof target.range.start === 'number' &&
+    typeof target.range.end === 'number'
+  ) {
+    return (target.range.start + target.range.end) / 2
+  }
+  return null
+}
+
+const toIntensityFactorFromTarget = (
+  target: any,
+  kind: 'heartRate' | 'power' | 'pace',
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+): number | null => {
+  const value = getTargetMidpoint(target)
+  if (value === null || !Number.isFinite(value)) return null
+  const units = String(target?.units || '')
+    .trim()
+    .toLowerCase()
+  const clamp = (n: number) => Math.max(0.3, Math.min(1.8, n))
+
+  if (kind === 'heartRate') {
+    if (units === 'bpm') {
+      if (refs.lthr > 0) return clamp(value / refs.lthr)
+      if (refs.maxHr > 0) return clamp(value / refs.maxHr)
+      return clamp(value > 2 ? value / 100 : value)
+    }
+    if (units.includes('zone')) return clamp(0.45 + Math.max(1, Math.min(7, value)) * 0.1)
+    return clamp(value > 2 ? value / 100 : value)
+  }
+
+  if (kind === 'power') {
+    if (units === 'w' || units === 'watts') {
+      if (refs.ftp > 0) return clamp(value / refs.ftp)
+      return clamp(value > 3 ? value / 250 : value)
+    }
+    if (units === 'power_zone' || units.includes('zone') || units.startsWith('z')) {
+      return clamp(0.45 + Math.max(1, Math.min(7, value)) * 0.1)
+    }
+    return clamp(value > 3 ? value / 100 : value)
+  }
+
+  if (units.includes('/')) {
+    if (refs.thresholdPace > 0) {
+      const secondsPerKm = value * 60
+      const metersPerSecond = secondsPerKm > 0 ? 1000 / secondsPerKm : 0
+      if (metersPerSecond > 0) return clamp(metersPerSecond / refs.thresholdPace)
+    }
+    return null
+  }
+  if (units === 'm/s') {
+    if (refs.thresholdPace > 0) return clamp(value / refs.thresholdPace)
+    return null
+  }
+  if (units.includes('zone')) return clamp(0.45 + Math.max(1, Math.min(7, value)) * 0.1)
+  if (refs.thresholdPace > 0 && value > 3) return clamp(value / refs.thresholdPace)
+  return clamp(value > 2 ? value / 100 : value)
+}
+
+const normalizeStructuredWorkoutForPersistence = (
+  structuredWorkout: any,
+  context: {
+    refs: {
+      ftp: number
+      lthr: number
+      maxHr: number
+      thresholdPace: number
+      hrZones: any[]
+      powerZones: any[]
+      paceZones: any[]
+    }
+    fallbackOrder: Array<'power' | 'heartRate' | 'pace' | 'rpe'>
+    targetFormatPolicy: any
+  }
+) => {
+  const normalized = normalizeStructuredWorkoutRepetition(structuredWorkout)
+  const visitStep = (step: any) => {
+    if (!step || typeof step !== 'object') return
+    if (step.durationSeconds === undefined && step.duration !== undefined) {
+      const duration = toPositiveInt(step.duration)
+      if (duration) step.durationSeconds = duration
+    }
+
+    const primaryTarget = normalizePrimaryTarget(step, context.fallbackOrder)
+    if (primaryTarget) step.primaryTarget = primaryTarget
+
+    applyTargetFormatPolicyToStep(step, context.targetFormatPolicy, {
+      ftp: context.refs.ftp,
+      lthr: context.refs.lthr,
+      maxHr: context.refs.maxHr,
+      thresholdPace: context.refs.thresholdPace,
+      hrZones: context.refs.hrZones,
+      powerZones: context.refs.powerZones,
+      paceZones: context.refs.paceZones
+    })
+    applyStepIntentGuard(step, {
+      ftp: context.refs.ftp,
+      lthr: context.refs.lthr,
+      thresholdPace: context.refs.thresholdPace
+    })
+
+    if (Array.isArray(step.steps)) {
+      step.steps.forEach((child: any) => visitStep(child))
+    }
+  }
+
+  if (Array.isArray(normalized?.steps)) {
+    normalized.steps.forEach((step: any) => visitStep(step))
+  }
+  return normalized
+}
+
+const computeStructuredWorkoutMetrics = (
+  structuredWorkout: any,
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+) => {
+  const walk = (steps: any[]): { duration: number; tss: number } => {
+    let duration = 0
+    let tss = 0
+    for (const step of steps || []) {
+      const reps = toPositiveInt(step?.reps) || 1
+      let stepDuration = 0
+      let stepTss = 0
+
+      if (Array.isArray(step?.steps) && step.steps.length > 0) {
+        const nested = walk(step.steps)
+        stepDuration = nested.duration
+        stepTss = nested.tss
+      } else {
+        stepDuration = Number(step?.durationSeconds || step?.duration || 0)
+        if (stepDuration <= 0 && Number(step?.distance) > 0) {
+          stepDuration = Math.round(Number(step.distance) * 3)
+        } else if (stepDuration <= 0 && step?.type !== 'Rest') {
+          stepDuration = 60
+        }
+
+        let intensity = 0.5
+        const hr = toIntensityFactorFromTarget(step?.heartRate, 'heartRate', refs)
+        const power = toIntensityFactorFromTarget(step?.power, 'power', refs)
+        const pace = toIntensityFactorFromTarget(step?.pace, 'pace', refs)
+        if (hr !== null) intensity = hr
+        else if (power !== null) intensity = power
+        else if (pace !== null) intensity = pace
+        else if (typeof step?.rpe === 'number')
+          intensity = Math.max(0.3, Math.min(1.3, step.rpe / 10))
+        else if (step?.type === 'Rest' || step?.type === 'Cooldown') intensity = 0.4
+        else if (step?.type === 'Warmup') intensity = 0.5
+        else intensity = 0.75
+
+        if (stepDuration > 0) {
+          stepTss = ((stepDuration * intensity * intensity) / 3600) * 100
+        }
+      }
+
+      duration += stepDuration * reps
+      tss += stepTss * reps
+    }
+    return { duration, tss }
+  }
+
+  const totals = walk(structuredWorkout?.steps || [])
+  const durationSec = Math.round(totals.duration)
+  const tss = Math.round(totals.tss)
+  const workIntensity =
+    durationSec > 0 && tss > 0 ? Number(Math.sqrt((36 * tss) / durationSec).toFixed(2)) : null
+  return { durationSec, tss, workIntensity }
 }
 
 const getPendingSyncStatus = (syncStatus: string | null | undefined) => {
@@ -579,16 +827,39 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       const existing = (await plannedWorkoutRepository.getById(workout_id, userId, {
         select: {
           id: true,
-          syncStatus: true
+          syncStatus: true,
+          type: true,
+          user: { select: { ftp: true, lthr: true, maxHr: true } }
         }
       })) as any
 
       if (!existing) return { error: 'Planned workout not found' }
-
-      const normalized = normalizeStructuredWorkoutRepetition(structured_workout)
+      const sportSettings = await sportSettingsRepository.getForActivityType(
+        userId,
+        existing.type || ''
+      )
+      const { targetPolicy, targetFormatPolicy } = resolveWorkoutTargeting(sportSettings)
+      const refs = {
+        ftp: Number(existing.user?.ftp || sportSettings?.ftp || 250),
+        lthr: Number(sportSettings?.lthr || existing.user?.lthr || 0),
+        maxHr: Number(sportSettings?.maxHr || existing.user?.maxHr || 0),
+        thresholdPace: Number(sportSettings?.thresholdPace || 0),
+        hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+        powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+        paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+      }
+      const normalized = normalizeStructuredWorkoutForPersistence(structured_workout, {
+        refs,
+        fallbackOrder: targetPolicy.fallbackOrder as Array<'power' | 'heartRate' | 'pace' | 'rpe'>,
+        targetFormatPolicy
+      })
+      const metrics = computeStructuredWorkoutMetrics(normalized, refs)
 
       const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
         structuredWorkout: normalized as any,
+        durationSec: metrics.durationSec > 0 ? metrics.durationSec : undefined,
+        tss: metrics.tss > 0 ? metrics.tss : undefined,
+        workIntensity: metrics.workIntensity ?? undefined,
         modifiedLocally: true,
         syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
         syncError: null
@@ -618,7 +889,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         select: {
           id: true,
           syncStatus: true,
-          structuredWorkout: true
+          structuredWorkout: true,
+          type: true,
+          user: { select: { ftp: true, lthr: true, maxHr: true } }
         }
       })) as any
 
@@ -636,10 +909,34 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           applyStructurePatchOperation(patched, operation)
         }
 
-        const normalized = normalizeStructuredWorkoutRepetition(patched)
+        const sportSettings = await sportSettingsRepository.getForActivityType(
+          userId,
+          existing.type || ''
+        )
+        const { targetPolicy, targetFormatPolicy } = resolveWorkoutTargeting(sportSettings)
+        const refs = {
+          ftp: Number(existing.user?.ftp || sportSettings?.ftp || 250),
+          lthr: Number(sportSettings?.lthr || existing.user?.lthr || 0),
+          maxHr: Number(sportSettings?.maxHr || existing.user?.maxHr || 0),
+          thresholdPace: Number(sportSettings?.thresholdPace || 0),
+          hrZones: Array.isArray(sportSettings?.hrZones) ? sportSettings.hrZones : [],
+          powerZones: Array.isArray(sportSettings?.powerZones) ? sportSettings.powerZones : [],
+          paceZones: Array.isArray(sportSettings?.paceZones) ? sportSettings.paceZones : []
+        }
+        const normalized = normalizeStructuredWorkoutForPersistence(patched, {
+          refs,
+          fallbackOrder: targetPolicy.fallbackOrder as Array<
+            'power' | 'heartRate' | 'pace' | 'rpe'
+          >,
+          targetFormatPolicy
+        })
+        const metrics = computeStructuredWorkoutMetrics(normalized, refs)
 
         const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
           structuredWorkout: normalized as any,
+          durationSec: metrics.durationSec > 0 ? metrics.durationSec : undefined,
+          tss: metrics.tss > 0 ? metrics.tss : undefined,
+          workIntensity: metrics.workIntensity ?? undefined,
           modifiedLocally: true,
           syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
           syncError: null
