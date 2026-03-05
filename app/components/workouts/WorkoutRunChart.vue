@@ -122,7 +122,7 @@
                 </div>
               </div>
               <div
-                v-if="getStepEstimatedDistanceLabel(step)"
+                v-if="!showDistanceColumn && getStepEstimatedDistanceLabel(step)"
                 class="text-[10px] leading-tight text-muted pl-5"
               >
                 {{ getStepEstimatedDistanceLabel(step) }}
@@ -131,10 +131,10 @@
               <div class="flex flex-wrap items-center gap-2 text-xs pl-5">
                 <span class="text-muted">{{ step.type }}</span>
                 <span
-                  v-if="showDistanceColumn && hasDistance(step)"
+                  v-if="showDistanceColumn && getStepDistanceLabel(step)"
                   class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
                 >
-                  {{ formatDistance(step.distance) }}
+                  {{ getStepDistanceLabel(step) }}
                 </span>
                 <span
                   v-if="showPowerColumn && hasMetricTarget(step.power)"
@@ -189,7 +189,7 @@
                   {{ formatDuration(step.durationSeconds || step.duration || 0) }}
                 </div>
                 <div
-                  v-if="getStepEstimatedDistanceLabel(step)"
+                  v-if="!showDistanceColumn && getStepEstimatedDistanceLabel(step)"
                   class="text-[10px] text-muted whitespace-nowrap"
                 >
                   {{ getStepEstimatedDistanceLabel(step) }}
@@ -199,7 +199,7 @@
                 v-if="showDistanceColumn"
                 class="text-center text-sm text-muted whitespace-nowrap"
               >
-                <span v-if="hasDistance(step)">{{ formatDistance(step.distance) }}</span>
+                <span v-if="getStepDistanceLabel(step)">{{ getStepDistanceLabel(step) }}</span>
                 <span v-else class="text-gray-300 dark:text-gray-700">-</span>
               </div>
               <div
@@ -721,6 +721,11 @@
     const meters = Math.max(0, Math.round(durationSec * estimateStepSpeedMps(step)))
     if (meters <= 0) return null
     return `~${formatDistance(meters)} est.`
+  }
+
+  function getStepDistanceLabel(step: any): string | null {
+    if (hasDistance(step)) return formatDistance(step.distance)
+    return getStepEstimatedDistanceLabel(step)
   }
 
   function hasMetricTarget(target: any): boolean {
