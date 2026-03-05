@@ -327,6 +327,7 @@
               :generating="generating"
               class="rounded-none sm:rounded-xl"
               @add-messages="openMessageModal"
+              @view="openViewModal"
               @adjust="openAdjustModal"
               @regenerate="generateStructure"
             />
@@ -419,6 +420,69 @@
   </UDashboardPanel>
 
   <!-- Modals -->
+  <UModal
+    v-if="showViewModal"
+    v-model:open="showViewModal"
+    title="Workout View"
+    description="Preview the Intervals.icu description and inspect the raw planned workout JSON."
+  >
+    <template #body>
+      <div class="p-6 space-y-4">
+        <UTabs v-model="viewTab" :items="viewTabs" />
+
+        <div v-if="viewTab === 'intervals'" class="space-y-3">
+          <div v-if="loadingViewPreview" class="space-y-2">
+            <USkeleton class="h-4 w-full" />
+            <USkeleton class="h-4 w-5/6" />
+            <USkeleton class="h-4 w-2/3" />
+          </div>
+          <UAlert
+            v-else-if="viewPreviewError"
+            color="error"
+            variant="soft"
+            :title="viewPreviewError"
+            icon="i-heroicons-exclamation-triangle"
+          />
+          <pre
+            v-else
+            class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
+            >{{ intervalsPreviewText || 'No Intervals.icu description available.' }}</pre
+          >
+          <div class="flex justify-end">
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="soft"
+              icon="i-heroicons-clipboard-document"
+              :disabled="!intervalsPreviewText"
+              @click="copyViewContent('intervals')"
+            >
+              Copy Text
+            </UButton>
+          </div>
+        </div>
+
+        <div v-else class="space-y-3">
+          <pre
+            class="text-xs whitespace-pre-wrap break-words max-h-[60vh] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 text-gray-800 dark:text-gray-100"
+            >{{ plannedWorkoutRawJson }}</pre
+          >
+          <div class="flex justify-end">
+            <UButton
+              size="xs"
+              color="neutral"
+              variant="soft"
+              icon="i-heroicons-clipboard-document"
+              @click="copyViewContent('raw')"
+            >
+              Copy JSON
+            </UButton>
+          </div>
+        </div>
+      </div>
+    </template>
+  </UModal>
+
   <UModal
     v-if="showAdjustModal"
     v-model:open="showAdjustModal"
@@ -773,6 +837,7 @@
   const generatingMessages = ref(false)
   const showDeleteModal = ref(false)
   const deleting = ref(false)
+  const showViewModal = ref(false)
   const showAdjustModal = ref(false)
   const showTimeModal = ref(false)
   const updatingTime = ref(false)
@@ -882,6 +947,15 @@
   const showStructureModal = ref(false)
   const structureText = ref('')
   const savingStructure = ref(false)
+  const loadingViewPreview = ref(false)
+  const intervalsPreviewText = ref('')
+  const viewPreviewError = ref('')
+  const viewTab = ref('intervals')
+  const viewTabs = [
+    { label: 'Intervals.icu', value: 'intervals' },
+    { label: 'Raw JSON', value: 'raw' }
+  ]
+  const plannedWorkoutRawJson = computed(() => JSON.stringify(workout.value || {}, null, 2))
 
   const secondaryMenuItems = computed(() => {
     const items = []
@@ -1074,8 +1148,14 @@
 
   const workoutKpis = computed(() => {
     const durationMin = Math.round(displayDuration.value / 60)
-    const tss = Math.round(displayTss.value || 0)
-    const intensity = workout.value?.workIntensity || 0
+    const rawIntensity = workout.value?.workIntensity || 0
+    const intensity = rawIntensity > 5 ? rawIntensity / 100 : rawIntensity
+    const fallbackTssFromIntensity =
+      displayDuration.value > 0 && intensity > 0
+        ? (displayDuration.value * intensity * intensity * 100) / 3600
+        : 0
+    const tssValue = Number(displayTss.value || 0)
+    const tss = Math.round(tssValue > 5000 ? fallbackTssFromIntensity : tssValue)
     const intensityPct = Math.round(intensity * 100)
 
     return [
@@ -1295,96 +1375,24 @@
     window.location.href = `/api/workouts/planned/${workout.value.id}/download/${format}`
   }
 
-  function editStructure() {
+  async function editStructure() {
     if (!workout.value) return
-
-    // Convert current JSON structure to text
-    const workoutData = {
-      title: workout.value.title,
-      description: workout.value.description || '',
-      type: workout.value.type || '',
-      steps: workout.value.structuredWorkout?.steps || [],
-      exercises: workout.value.structuredWorkout?.exercises || [],
-      messages: []
-    }
-
-    // Since we're in Nuxt, we can import WorkoutConverter if exported from utils
-    // or just implement a simple conversion here.
-    // Actually WorkoutConverter is in server/utils, not app/utils.
-    // I should move it or implement a local version.
-    // Wait, let's see if WorkoutConverter is already used in frontend.
-    // It's not. I'll use a simple manual conversion for now or just trust the API will handle it if I send text.
-    // But I need to SHOW the text to the user.
-
-    // I'll define a simple local toIntervalsText function.
-    structureText.value = toIntervalsText(workoutData)
+    structureText.value = ''
     showStructureModal.value = true
-  }
-
-  function toIntervalsText(data: any): string {
-    const lines: string[] = []
-
-    if (data.type === 'Gym' || data.type === 'WeightTraining') {
-      if (data.exercises && data.exercises.length > 0) {
-        data.exercises.forEach((ex: any) => {
-          lines.push(`- **${ex.name}**`)
-          let details = ''
-          if (ex.sets) details += `${ex.sets} sets`
-          if (ex.reps) details += ` x ${ex.reps} reps`
-          if (ex.weight) details += ` @ ${ex.weight}`
-          if (details) lines.push(`  - ${details}`)
-          if (ex.rest) lines.push(`  - Rest: ${ex.rest}`)
-          if (ex.notes) lines.push(`  - Note: ${ex.notes}`)
-        })
-        return lines.join('\n')
-      }
-    }
-
-    const formatSteps = (steps: any[], indent = '') => {
-      steps.forEach((step: any) => {
-        if (step.steps && step.steps.length > 0) {
-          const reps = Number(step.reps ?? step.repeat ?? step.intervals) || 1
-          lines.push(`${indent}${reps}x`)
-          formatSteps(step.steps, indent + '  ')
-          return
-        }
-
-        let line = `${indent}-`
-        if (step.name) line += ` ${step.name}`
-
-        // Duration
-        if (step.durationSeconds) {
-          const mins = Math.floor(step.durationSeconds / 60)
-          const secs = step.durationSeconds % 60
-          if (mins > 0 && secs === 0) line += ` ${mins}m`
-          else if (mins === 0) line += ` ${secs}s`
-          else line += ` ${mins}m${secs}s`
-        } else if (step.distance) {
-          line += ` ${step.distance}m`
-        }
-
-        // Intensity
-        if (step.power) {
-          if (step.power.range)
-            line += ` ${Math.round(step.power.range.start * 100)}-${Math.round(step.power.range.end * 100)}%`
-          else if (step.power.value) line += ` ${Math.round(step.power.value * 100)}%`
-        } else if (step.heartRate) {
-          if (step.heartRate.range)
-            line += ` ${Math.round(step.heartRate.range.start * 100)}-${Math.round(step.heartRate.range.end * 100)}% LTHR`
-          else if (step.heartRate.value) line += ` ${Math.round(step.heartRate.value * 100)}% LTHR`
-        }
-
-        if (step.cadence) line += ` ${step.cadence}rpm`
-
-        lines.push(line)
+    try {
+      const response = await $fetch<{ intervalsDescription: string }>(
+        `/api/workouts/planned/${workout.value.id}/intervals-preview`
+      )
+      structureText.value = response?.intervalsDescription || ''
+    } catch (error: any) {
+      toast.add({
+        title: 'Preview Failed',
+        description: error?.data?.message || 'Failed to load structured text preview',
+        color: 'error'
       })
+      // Fallback to the existing structured text if preview fails
+      structureText.value = ''
     }
-
-    if (data.steps && data.steps.length > 0) {
-      formatSteps(data.steps)
-    }
-
-    return lines.join('\n')
   }
 
   async function saveStructure() {
@@ -1511,6 +1519,52 @@
                 : 'recovery'
     }
     showAdjustModal.value = true
+  }
+
+  async function openViewModal() {
+    showViewModal.value = true
+    viewTab.value = 'intervals'
+    intervalsPreviewText.value = ''
+    viewPreviewError.value = ''
+
+    if (!workout.value?.id || !workout.value?.structuredWorkout) {
+      intervalsPreviewText.value = ''
+      return
+    }
+
+    loadingViewPreview.value = true
+    try {
+      const response = await $fetch<{ intervalsDescription: string }>(
+        `/api/workouts/planned/${workout.value.id}/intervals-preview`
+      )
+      intervalsPreviewText.value = response?.intervalsDescription || ''
+    } catch (error: any) {
+      viewPreviewError.value = error?.data?.message || 'Failed to load Intervals.icu preview.'
+    } finally {
+      loadingViewPreview.value = false
+    }
+  }
+
+  async function copyViewContent(kind: 'intervals' | 'raw') {
+    const text = kind === 'intervals' ? intervalsPreviewText.value : plannedWorkoutRawJson.value
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.add({
+        title: kind === 'intervals' ? 'Text Copied' : 'JSON Copied',
+        description:
+          kind === 'intervals'
+            ? 'Intervals.icu description copied to clipboard.'
+            : 'Raw planned workout JSON copied to clipboard.',
+        color: 'success'
+      })
+    } catch {
+      toast.add({
+        title: 'Copy Failed',
+        description: 'Unable to copy to clipboard.',
+        color: 'error'
+      })
+    }
   }
 
   function openTimeModal() {
