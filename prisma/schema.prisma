@@ -177,6 +177,8 @@ model SportSettings {
   restingHr           Int?
   warmupTime          Int?
   zoneConfiguration   Json?
+  targetPolicy        Json?
+  targetFormatPolicy  Json?
   name                String?
   isDefault           Boolean  @default(false)
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -704,6 +706,9 @@ model PlannedWorkout {
   managedBy         String                   @default("USER")
   fuelingStrategy   String?
   startTime         String?
+  createdFromSettingsSnapshot   Json?
+  lastGenerationSettingsSnapshot Json?
+  lastGenerationContext         Json?
   recommendations   ActivityRecommendation[]
   planAdherences    PlanAdherence[]
   publishTargets    PlannedWorkoutPublishTarget[]
