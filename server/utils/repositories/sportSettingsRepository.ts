@@ -1,5 +1,13 @@
 import { prisma as globalPrisma } from '../db'
-import { getUserLocalDate } from '../date'
+import { normalizeTargetPolicy, toLegacyLoadPreference } from '../workout-target-policy'
+import { normalizeTargetFormatPolicy } from '../workout-target-format-policy'
+
+function resolveTargetPolicyAndLoadPreference(setting: any) {
+  const targetPolicy = normalizeTargetPolicy(setting?.targetPolicy, setting?.loadPreference)
+  const loadPreference = toLegacyLoadPreference(targetPolicy.fallbackOrder)
+  const targetFormatPolicy = normalizeTargetFormatPolicy(setting?.targetFormatPolicy)
+  return { targetPolicy, loadPreference, targetFormatPolicy }
+}
 
 export const sportSettingsRepository = {
   /**
@@ -46,6 +54,10 @@ export const sportSettingsRepository = {
    */
   async createDefault(userId: string, legacyProfile: any, prismaOverride?: any) {
     const prisma = prismaOverride || globalPrisma
+    const { targetPolicy, loadPreference, targetFormatPolicy } =
+      resolveTargetPolicyAndLoadPreference({
+        loadPreference: 'POWER_HR_PACE'
+      })
     return await prisma.sportSettings.create({
       data: {
         userId,
@@ -60,9 +72,12 @@ export const sportSettingsRepository = {
         restingHr: legacyProfile.restingHr,
         hrZones: [], // Clean slate
         powerZones: [], // Clean slate
+        paceZones: [],
         warmupTime: 10,
         cooldownTime: 10,
-        loadPreference: 'POWER_HR_PACE'
+        loadPreference,
+        targetPolicy,
+        targetFormatPolicy
       }
     })
   },
@@ -118,6 +133,8 @@ export const sportSettingsRepository = {
       if (setting.id) {
         const existing = await prisma.sportSettings.findUnique({ where: { id: setting.id } })
         if (existing) {
+          const { targetPolicy, loadPreference, targetFormatPolicy } =
+            resolveTargetPolicyAndLoadPreference(setting)
           const updated = await prisma.sportSettings.update({
             where: { id: existing.id },
             data: {
@@ -128,17 +145,24 @@ export const sportSettingsRepository = {
               wPrime: setting.wPrime,
               powerZones: setting.powerZones || undefined,
               eFtp: setting.eFtp,
+              eWPrime: setting.eWPrime,
               pMax: setting.pMax,
+              ePMax: setting.ePMax,
               powerSpikeThreshold: setting.powerSpikeThreshold,
+              eftpMinDuration: setting.eftpMinDuration,
               lthr: setting.lthr,
               maxHr: setting.maxHr,
               hrZones: setting.hrZones || undefined,
               restingHr: setting.restingHr,
               hrLoadType: setting.hrLoadType,
               thresholdPace: setting.thresholdPace,
+              paceZones: setting.paceZones || undefined,
               warmupTime: setting.warmupTime,
               cooldownTime: setting.cooldownTime,
-              loadPreference: setting.loadPreference
+              loadPreference,
+              zoneConfiguration: setting.zoneConfiguration || undefined,
+              targetPolicy,
+              targetFormatPolicy
             }
           })
 
@@ -161,6 +185,8 @@ export const sportSettingsRepository = {
       }
 
       if (setting.externalId && setting.source) {
+        const { targetPolicy, loadPreference, targetFormatPolicy } =
+          resolveTargetPolicyAndLoadPreference(setting)
         // Use upsert to handle race conditions
         const upserted = await prisma.sportSettings.upsert({
           where: {
@@ -178,23 +204,33 @@ export const sportSettingsRepository = {
             wPrime: setting.wPrime,
             powerZones: setting.powerZones || undefined,
             eFtp: setting.eFtp,
+            eWPrime: setting.eWPrime,
             pMax: setting.pMax,
+            ePMax: setting.ePMax,
             powerSpikeThreshold: setting.powerSpikeThreshold,
+            eftpMinDuration: setting.eftpMinDuration,
             lthr: setting.lthr,
             maxHr: setting.maxHr,
             hrZones: setting.hrZones || undefined,
             restingHr: setting.restingHr,
             hrLoadType: setting.hrLoadType,
             thresholdPace: setting.thresholdPace,
+            paceZones: setting.paceZones || undefined,
             warmupTime: setting.warmupTime,
             cooldownTime: setting.cooldownTime,
-            loadPreference: setting.loadPreference
+            loadPreference,
+            zoneConfiguration: setting.zoneConfiguration || undefined,
+            targetPolicy,
+            targetFormatPolicy
           },
           create: {
             userId,
             ...setting,
+            loadPreference,
             source: setting.source,
-            externalId: setting.externalId
+            externalId: setting.externalId,
+            targetPolicy,
+            targetFormatPolicy
           }
         })
 
@@ -216,10 +252,15 @@ export const sportSettingsRepository = {
       }
 
       // Create new (Fallback)
+      const { targetPolicy, loadPreference, targetFormatPolicy } =
+        resolveTargetPolicyAndLoadPreference(setting)
       const created = await prisma.sportSettings.create({
         data: {
           userId,
           ...setting,
+          loadPreference,
+          targetPolicy,
+          targetFormatPolicy,
           source: setting.source || 'manual',
           externalId: setting.externalId || `manual_${Date.now()}`
         }

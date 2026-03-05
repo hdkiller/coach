@@ -41,20 +41,51 @@ export function getPreferredMetric(
   availableData: { hasHr: boolean; hasPower: boolean; hasPace?: boolean }
 ): 'hr' | 'power' | 'pace' {
   const { hasHr, hasPower, hasPace } = availableData
-
-  // Both available, check preference
-  const preference = settings?.loadPreference || 'POWER_HR_PACE'
-
-  if (preference.startsWith('HR') && hasHr) {
-    return 'hr'
+  const toMetricToken = (value: unknown): 'HR' | 'POWER' | 'PACE' | null => {
+    if (typeof value !== 'string') return null
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'hr' || normalized === 'heart_rate' || normalized === 'heartrate') {
+      return 'HR'
+    }
+    if (normalized === 'power') return 'POWER'
+    if (normalized === 'pace') return 'PACE'
+    return null
   }
 
-  if (preference.startsWith('POWER') && hasPower) {
-    return 'power'
+  const order: Array<'HR' | 'POWER' | 'PACE'> = []
+  const fallbackOrder = Array.isArray(settings?.targetPolicy?.fallbackOrder)
+    ? settings.targetPolicy.fallbackOrder
+    : []
+  for (const item of fallbackOrder) {
+    const metric = toMetricToken(item)
+    if (metric && !order.includes(metric)) order.push(metric)
   }
 
-  if (preference.includes('PACE') && hasPace) {
-    return 'pace'
+  if (order.length === 0) {
+    const legacy = String(settings?.loadPreference || 'POWER_HR_PACE')
+      .split('_')
+      .map((token) => token.trim().toUpperCase())
+    for (const token of legacy) {
+      if ((token === 'HR' || token === 'POWER' || token === 'PACE') && !order.includes(token)) {
+        order.push(token)
+      }
+    }
+  }
+
+  const primaryMetric = toMetricToken(settings?.targetPolicy?.primaryMetric)
+  if (primaryMetric) {
+    const rest = order.filter((metric) => metric !== primaryMetric)
+    order.splice(0, order.length, primaryMetric, ...rest)
+  }
+
+  for (const metric of ['POWER', 'HR', 'PACE'] as const) {
+    if (!order.includes(metric)) order.push(metric)
+  }
+
+  for (const metric of order) {
+    if (metric === 'HR' && hasHr) return 'hr'
+    if (metric === 'POWER' && hasPower) return 'power'
+    if (metric === 'PACE' && hasPace) return 'pace'
   }
 
   // Fallbacks if preferred not available

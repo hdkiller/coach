@@ -61,11 +61,55 @@ export const profileUpdateSchema = z.object({
 
         // Pace
         thresholdPace: z.number().nullable().optional(),
+        paceZones: z.any().optional(),
 
         // General
         warmupTime: z.number().nullable().optional(),
         cooldownTime: z.number().nullable().optional(),
         loadPreference: z.string().nullable().optional(),
+        targetPolicy: z
+          .object({
+            primaryMetric: z.enum(['heartRate', 'power', 'pace', 'rpe']).optional(),
+            fallbackOrder: z
+              .array(z.enum(['heartRate', 'power', 'pace', 'rpe']))
+              .min(1)
+              .max(4)
+              .optional(),
+            strictPrimary: z.boolean().optional(),
+            allowMixedTargetsPerStep: z.boolean().optional(),
+            defaultTargetStyle: z.enum(['value', 'range']).optional(),
+            preferRangesForSteady: z.boolean().optional()
+          })
+          .nullable()
+          .optional(),
+        targetFormatPolicy: z
+          .object({
+            heartRate: z
+              .object({
+                mode: z.enum(['percentLthr', 'percentMaxHr', 'zone', 'bpm']).optional(),
+                preferRange: z.boolean().optional()
+              })
+              .optional(),
+            power: z
+              .object({
+                mode: z.enum(['percentFtp', 'zone', 'watts']).optional(),
+                preferRange: z.boolean().optional()
+              })
+              .optional(),
+            pace: z
+              .object({
+                mode: z.enum(['percentPace', 'zone', 'absolutePace']).optional(),
+                preferRange: z.boolean().optional()
+              })
+              .optional(),
+            cadence: z
+              .object({
+                mode: z.enum(['none', 'rpm', 'rpmRange']).optional()
+              })
+              .optional()
+          })
+          .nullable()
+          .optional(),
 
         // Metadata
         source: z.string().optional(),
