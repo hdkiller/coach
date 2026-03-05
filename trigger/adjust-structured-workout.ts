@@ -11,6 +11,7 @@ import { syncPlannedWorkoutToIntervals } from '../server/utils/intervals-sync'
 import { enforceCyclingCadenceVariation, resolveCyclingCadence } from './utils/cadence'
 import {
   resolveWorkoutTargeting,
+  type WorkoutTargetingOverride,
   formatTargetPolicyPrompt,
   formatTargetFormatPolicyPrompt,
   STEP_INTENTS,
@@ -377,7 +378,11 @@ export const adjustStructuredWorkoutTask = task({
   id: 'adjust-structured-workout',
   queue: userReportsQueue,
   maxDuration: 90,
-  run: async (payload: { plannedWorkoutId: string; adjustments: any }) => {
+  run: async (payload: {
+    plannedWorkoutId: string
+    adjustments: any
+    targetingOverride?: WorkoutTargetingOverride | null
+  }) => {
     const { plannedWorkoutId, adjustments } = payload
     const startedAtMs = Date.now()
     const MAX_DURATION_MS = 90_000
@@ -442,7 +447,7 @@ export const adjustStructuredWorkoutTask = task({
       workout.type || ''
     )
     const { targetPolicy, targetFormatPolicy, loadPreference, priorityText } =
-      resolveWorkoutTargeting(sportSettings)
+      resolveWorkoutTargeting(sportSettings, payload?.targetingOverride || null)
     logStage('loaded-sport-settings', {
       hasSettings: Boolean(sportSettings),
       hasHrZones: Boolean((sportSettings?.hrZones as any)?.length),

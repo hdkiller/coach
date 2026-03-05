@@ -16,6 +16,7 @@ import { checkQuota } from '../server/utils/quotas/engine'
 import { enforceCyclingCadenceVariation, resolveCyclingCadence } from './utils/cadence'
 import {
   resolveWorkoutTargeting,
+  type WorkoutTargetingOverride,
   formatTargetPolicyPrompt,
   formatTargetFormatPolicyPrompt,
   STEP_INTENTS,
@@ -456,7 +457,7 @@ export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
   maxDuration: 90,
-  run: async (payload: { plannedWorkoutId: string }) => {
+  run: async (payload: { plannedWorkoutId: string; targetingOverride?: WorkoutTargetingOverride | null }) => {
     const { plannedWorkoutId } = payload
     const startedAtMs = Date.now()
     const MAX_DURATION_MS = 90_000
@@ -536,7 +537,7 @@ export const generateStructuredWorkoutTask = task({
       workout.type || ''
     )
     const { targetPolicy, targetFormatPolicy, loadPreference, priorityText } =
-      resolveWorkoutTargeting(sportSettings)
+      resolveWorkoutTargeting(sportSettings, payload?.targetingOverride || null)
     logStage('loaded-sport-settings', {
       hasSettings: Boolean(sportSettings),
       hasHrZones: Boolean((sportSettings?.hrZones as any)?.length),

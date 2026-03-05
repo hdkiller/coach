@@ -39,6 +39,12 @@ export const STEP_INTENTS: StepIntent[] = [
   'strides'
 ]
 
+export interface WorkoutTargetingOverride {
+  targetPolicy?: Partial<TargetPolicy> | null
+  targetFormatPolicy?: Partial<TargetFormatPolicy> | null
+  loadPreference?: string | null
+}
+
 function toMetricToken(metric: MetricTarget): string {
   if (metric === 'heartRate') return 'HR'
   if (metric === 'power') return 'POWER'
@@ -272,12 +278,39 @@ export function applyStepIntentGuard(
   if (!step.primaryTarget) step.primaryTarget = selectedMetric
 }
 
-export function resolveWorkoutTargeting(sportSettings: any) {
+export function resolveWorkoutTargeting(
+  sportSettings: any,
+  override?: WorkoutTargetingOverride | null
+) {
+  const mergedTargetPolicy = {
+    ...(sportSettings?.targetPolicy || {}),
+    ...(override?.targetPolicy || {})
+  }
+  const mergedTargetFormatPolicy = {
+    ...(sportSettings?.targetFormatPolicy || {}),
+    ...(override?.targetFormatPolicy || {}),
+    heartRate: {
+      ...(sportSettings?.targetFormatPolicy?.heartRate || {}),
+      ...(override?.targetFormatPolicy?.heartRate || {})
+    },
+    power: {
+      ...(sportSettings?.targetFormatPolicy?.power || {}),
+      ...(override?.targetFormatPolicy?.power || {})
+    },
+    pace: {
+      ...(sportSettings?.targetFormatPolicy?.pace || {}),
+      ...(override?.targetFormatPolicy?.pace || {})
+    },
+    cadence: {
+      ...(sportSettings?.targetFormatPolicy?.cadence || {}),
+      ...(override?.targetFormatPolicy?.cadence || {})
+    }
+  }
   const targetPolicy = normalizeTargetPolicy(
-    sportSettings?.targetPolicy,
-    sportSettings?.loadPreference
+    mergedTargetPolicy,
+    override?.loadPreference || sportSettings?.loadPreference
   )
-  const targetFormatPolicy = normalizeTargetFormatPolicy(sportSettings?.targetFormatPolicy)
+  const targetFormatPolicy = normalizeTargetFormatPolicy(mergedTargetFormatPolicy)
   const loadPreference = toLegacyLoadPreference(targetPolicy.fallbackOrder)
   const loadOrderTokens = targetPolicy.fallbackOrder.map(toMetricToken)
   const priorityText = loadOrderTokens.join(' > ')

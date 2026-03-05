@@ -65,6 +65,53 @@ const structuredMessageSchema = z.union([
   })
 ])
 
+const targetingOverrideSchema = z
+  .object({
+    loadPreference: z.string().optional(),
+    targetPolicy: z
+      .object({
+        primaryMetric: z.enum(['heartRate', 'power', 'pace', 'rpe']).optional(),
+        fallbackOrder: z
+          .array(z.enum(['heartRate', 'power', 'pace', 'rpe']))
+          .min(1)
+          .max(4)
+          .optional(),
+        strictPrimary: z.boolean().optional(),
+        allowMixedTargetsPerStep: z.boolean().optional(),
+        defaultTargetStyle: z.enum(['value', 'range']).optional(),
+        preferRangesForSteady: z.boolean().optional()
+      })
+      .optional(),
+    targetFormatPolicy: z
+      .object({
+        heartRate: z
+          .object({
+            mode: z.enum(['percentLthr', 'percentMaxHr', 'zone', 'bpm']).optional(),
+            preferRange: z.boolean().optional()
+          })
+          .optional(),
+        power: z
+          .object({
+            mode: z.enum(['percentFtp', 'zone', 'watts']).optional(),
+            preferRange: z.boolean().optional()
+          })
+          .optional(),
+        pace: z
+          .object({
+            mode: z.enum(['percentPace', 'zone', 'absolutePace']).optional(),
+            preferRange: z.boolean().optional()
+          })
+          .optional(),
+        cadence: z
+          .object({
+            mode: z.enum(['none', 'rpm', 'rpmRange']).optional()
+          })
+          .optional()
+      })
+      .optional()
+  })
+  .optional()
+
 const structuredStepSchema: z.ZodType<any> = z.lazy(() =>
   z
     .object({
@@ -979,7 +1026,10 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         .default(true)
         .describe(
           'Set to false to skip structured interval generation (e.g. for rest days, holidays, or simple unstructured events)'
-        )
+        ),
+      targeting_override: targetingOverrideSchema.describe(
+        'Optional per-workout targeting override for this generation only (does not change profile defaults).'
+      )
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
@@ -1026,7 +1076,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         try {
           const handle = await generateStructuredWorkoutTask.trigger(
             {
-              plannedWorkoutId: workout.id // Pass plannedWorkoutId
+              plannedWorkoutId: workout.id, // Pass plannedWorkoutId
+              targetingOverride: args.targeting_override || null
             },
             {
               tags: [`user:${userId}`, `planned-workout:${workout.id}`],
@@ -1068,7 +1119,10 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         .optional()
         .describe(
           'Set to false to skip structured interval regeneration (e.g. for rest days, holidays, or minor updates)'
-        )
+        ),
+      targeting_override: targetingOverrideSchema.describe(
+        'Optional per-workout targeting override for this regeneration only (does not change profile defaults).'
+      )
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
     execute: async (args) => {
@@ -1109,7 +1163,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         try {
           const handle = await generateStructuredWorkoutTask.trigger(
             {
-              plannedWorkoutId: workout.id
+              plannedWorkoutId: workout.id,
+              targetingOverride: args.targeting_override || null
             },
             {
               tags: [`user:${userId}`, `planned-workout:${workout.id}`],
@@ -1253,9 +1308,12 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         .string()
         .describe('Instructions for adjustment (e.g. "make it harder", "add intervals")'),
       duration_minutes: z.number().optional(),
-      intensity: z.enum(['recovery', 'easy', 'moderate', 'hard', 'very_hard']).optional()
+      intensity: z.enum(['recovery', 'easy', 'moderate', 'hard', 'very_hard']).optional(),
+      targeting_override: targetingOverrideSchema.describe(
+        'Optional per-workout targeting override for this adjustment only (does not change profile defaults).'
+      )
     }),
-    execute: async ({ workout_id, instructions, duration_minutes, intensity }) => {
+    execute: async ({ workout_id, instructions, duration_minutes, intensity, targeting_override }) => {
       // 0. Quota Check
       await checkQuota(userId, 'generate_structured_workout')
 
@@ -1268,7 +1326,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
               feedback: instructions,
               durationMinutes: duration_minutes,
               intensity: intensity
-            }
+            },
+            targetingOverride: targeting_override || null
           },
           {
             tags: [`user:${userId}`, `planned-workout:${workout_id}`],
@@ -1291,15 +1350,18 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
   generate_planned_workout_structure: tool({
     description: 'Generate or update the structured intervals for a planned workout.',
     inputSchema: z.object({
-      workout_id: z.string()
+      workout_id: z.string(),
+      targeting_override: targetingOverrideSchema.describe(
+        'Optional per-workout targeting override for this generation only (does not change profile defaults).'
+      )
     }),
-    execute: async ({ workout_id }) => {
+    execute: async ({ workout_id, targeting_override }) => {
       // 0. Quota Check
       await checkQuota(userId, 'generate_structured_workout')
 
       try {
         const handle = await generateStructuredWorkoutTask.trigger(
-          { plannedWorkoutId: workout_id },
+          { plannedWorkoutId: workout_id, targetingOverride: targeting_override || null },
           {
             tags: [`user:${userId}`, `planned-workout:${workout_id}`],
             concurrencyKey: userId
