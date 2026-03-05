@@ -533,6 +533,43 @@ export const adjustStructuredWorkoutTask = task({
     zoneDefinitions += `\n**Preferred Load Metric:** ${loadPreference}\n`
     const targetPolicyPrompt = formatTargetPolicyPrompt(targetPolicy, loadPreference)
     const targetFormatPolicyPrompt = formatTargetFormatPolicyPrompt(targetFormatPolicy)
+    const workoutType = String(workout.type || '').toLowerCase()
+    const isCycling = workoutType.includes('ride')
+    const isRun = workoutType.includes('run')
+    const isSwim = workoutType.includes('swim')
+    const isStrength = workoutType.includes('gym') || workoutType.includes('weight')
+    const sportSpecificInstructions = isCycling
+      ? `FOR CYCLING (Ride/VirtualRide):
+    - Use % of FTP for power targets (e.g. 0.95 = 95%).
+    - Set \`power.units\` to "%" unless the user explicitly requested watts.
+    - Include target cadence (RPM).
+    - For cadence-focus steps, cadence MUST differ from surrounding steady steps.
+    - If HR zones are available, include at least one HR guardrail in coachInstructions.
+    - Keep hard interval work recoverable and repeatable.`
+      : isRun
+        ? `FOR RUNNING (Run):
+    - ALWAYS include 'distance' (meters) for each step (estimate if needed).
+    - Target selection MUST follow TARGET POLICY priority order: ${priorityText}.
+    - Use \`heartRate.units\` = "LTHR" for percentage HR targets and \`pace.units\` = "Pace" for percentage pace targets.
+    - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but primaryTarget still must follow policy.' : 'Use one intensity metric per step unless user feedback explicitly asks for mixed cues.'}
+    - ${targetPolicy.defaultTargetStyle === 'range' || targetPolicy.preferRangesForSteady ? 'Prefer metric ranges for steady aerobic/endurance/tempo blocks.' : 'Single-value targets are acceptable for steady blocks unless range is explicitly requested.'}
+    - If user specifies "Zone 2", refer to the provided zones before using generic percentages.
+    - Do not stack maximal efforts without sufficient recovery.`
+        : isSwim
+          ? `FOR SWIMMING (Swim):
+    - ALWAYS include 'distance' (meters) for each step (estimate if needed).
+    - Use 'stroke' to specify: Free, Back, Breast, Fly, IM, Choice, Kick, Pull.
+    - Use 'equipment' array for gear: Fins, Paddles, Snorkel, Pull Buoy.
+    - CRITICAL: You MUST include a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for EVERY step.
+    - Set \`heartRate.units\` to "LTHR" unless using explicit bpm.
+    - RECOMMENDED: Include a 'pace' object with 'value' (target % of threshold pace) for main set intervals.`
+          : isStrength
+            ? `FOR STRENGTH (Gym/WeightTraining):
+    - Instead of 'steps', provide a list of 'exercises'.
+    - Each exercise should include practical loading guidance and rest.`
+            : `FOR THIS SPORT TYPE:
+    - Use only sport-relevant fields and targets.
+    - Keep steps explicit, measurable, and safe with clear work/recovery structure.`
 
     const prompt = `Adjust this structured ${workout.type} workout based on user feedback.
     
@@ -586,34 +623,7 @@ export const adjustStructuredWorkoutTask = task({
     - **coachInstructions**: Provide an updated personalized message (2-3 sentences) explaining what changed, why it changed, and how to execute the key set.
     - For aerobic/endurance sessions, keep main-set blocks distinct (settle/sustain/technique) rather than generic duplicates.
 
-    FOR CYCLING (Ride/VirtualRide):
-    - Use % of FTP for power targets (e.g. 0.95 = 95%).
-    - Set \`power.units\` to "%" unless the user explicitly requested watts.
-    - Include target cadence (RPM).
-    - For cadence-focus steps, cadence MUST differ from surrounding steady steps.
-    - If HR zones are available, include at least one HR guardrail in coachInstructions.
-    - Keep hard interval work recoverable and repeatable.
-
-    FOR RUNNING (Run):
-    - ALWAYS include 'distance' (meters) for each step (estimate if needed).
-    - Target selection MUST follow TARGET POLICY priority order: ${priorityText}.
-    - Use \`heartRate.units\` = "LTHR" for percentage HR targets and \`pace.units\` = "Pace" for percentage pace targets.
-    - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but primaryTarget still must follow policy.' : 'Use one intensity metric per step unless user feedback explicitly asks for mixed cues.'}
-    - ${targetPolicy.defaultTargetStyle === 'range' || targetPolicy.preferRangesForSteady ? 'Prefer metric ranges for steady aerobic/endurance/tempo blocks.' : 'Single-value targets are acceptable for steady blocks unless range is explicitly requested.'}
-    - If user specifies "Zone 2", refer to the provided zones before using generic percentages.
-    - Do not stack maximal efforts without sufficient recovery.
-
-    FOR SWIMMING (Swim):
-    - ALWAYS include 'distance' (meters) for each step (estimate if needed).
-    - Use 'stroke' to specify: Free, Back, Breast, Fly, IM, Choice, Kick, Pull.
-    - Use 'equipment' array for gear: Fins, Paddles, Snorkel, Pull Buoy.
-    - CRITICAL: You MUST include a 'heartRate' object with 'value' (target % of LTHR, e.g. 0.85) for EVERY step.
-    - Set \`heartRate.units\` to "LTHR" unless using explicit bpm.
-    - RECOMMENDED: Include a 'pace' object with 'value' (target % of threshold pace) for main set intervals.
-    
-    FOR STRENGTH (Gym/WeightTraining):
-    - Instead of 'steps', provide a list of 'exercises'.
-    - Each exercise should include practical loading guidance and rest.
+    ${sportSpecificInstructions}
 
     FINAL SELF-CHECK BEFORE OUTPUT:
     - Total duration equals target duration.
