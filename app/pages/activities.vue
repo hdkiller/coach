@@ -1059,11 +1059,11 @@
   const isLinking = ref(false)
 
   const activityMenuItems = computed(() => {
-    const isTReady = typeof t === 'function'
+    const isTReady = typeof t.value === 'function'
     const items = []
 
     items.push({
-      label: isTReady ? t('header_menu_deduplicate') : 'Deduplicate',
+      label: isTReady ? t.value('header_menu_deduplicate') : 'Deduplicate',
       icon: 'i-heroicons-document-duplicate',
       onSelect: () => {
         showDeduplicateModal.value = true
@@ -1071,7 +1071,7 @@
     })
 
     items.push({
-      label: isTReady ? t('header_menu_manage') : 'Manage',
+      label: isTReady ? t.value('header_menu_manage') : 'Manage',
       icon: 'i-heroicons-trash',
       onSelect: () => {
         showBulkDeleteModal.value = true
@@ -1099,15 +1099,15 @@
   )
   const mobileDragTargetDateKey = ref<string | null>(null)
   const weekDays = computed(() => {
-    const isTReady = typeof t === 'function'
+    const isTReady = typeof t.value === 'function'
     return [
-      isTReady ? t('controls_days_mon') : 'Mon',
-      isTReady ? t('controls_days_tue') : 'Tue',
-      isTReady ? t('controls_days_wed') : 'Wed',
-      isTReady ? t('controls_days_thu') : 'Thu',
-      isTReady ? t('controls_days_fri') : 'Fri',
-      isTReady ? t('controls_days_sat') : 'Sat',
-      isTReady ? t('controls_days_sun') : 'Sun'
+      isTReady ? t.value('controls_days_mon') : 'Mon',
+      isTReady ? t.value('controls_days_tue') : 'Tue',
+      isTReady ? t.value('controls_days_wed') : 'Wed',
+      isTReady ? t.value('controls_days_thu') : 'Thu',
+      isTReady ? t.value('controls_days_fri') : 'Fri',
+      isTReady ? t.value('controls_days_sat') : 'Sat',
+      isTReady ? t.value('controls_days_sun') : 'Sun'
     ]
   })
 
@@ -1752,128 +1752,136 @@
   const table = useTemplateRef('table')
 
   const availableColumns = computed(() => {
-    const isTReady = typeof t === 'function'
+    const isTReady = typeof t.value === 'function'
     return [
       {
         accessorKey: 'type',
-        header: isTReady ? t('controls_table_columns_type') : 'Type',
+        header: isTReady ? t.value('controls_table_columns_type') : 'Type',
         id: 'type'
       },
       {
         accessorKey: 'date',
-        header: isTReady ? t('controls_table_columns_date') : 'Date',
+        header: isTReady ? t.value('controls_table_columns_date') : 'Date',
         id: 'date'
       },
       {
         accessorKey: 'chart',
-        header: isTReady ? t('controls_table_columns_chart') : 'Structure',
+        header: isTReady ? t.value('controls_table_columns_chart') : 'Structure',
         id: 'chart'
       },
       {
         accessorKey: 'title',
-        header: isTReady ? t('controls_table_columns_title') : 'Name',
+        header: isTReady ? t.value('controls_table_columns_title') : 'Name',
         id: 'title'
       },
       {
         accessorKey: 'duration',
-        header: isTReady ? t('controls_table_columns_duration') : 'Duration',
+        header: isTReady ? t.value('controls_table_columns_duration') : 'Duration',
         id: 'duration'
       },
       {
         accessorKey: 'distance',
-        header: isTReady ? t('controls_table_columns_distance') : 'Distance',
+        header: isTReady ? t.value('controls_table_columns_distance') : 'Distance',
         id: 'distance'
       },
       {
         accessorKey: 'averageHr',
-        header: isTReady ? t('controls_table_columns_averageHr') : 'Avg HR',
+        header: isTReady ? t.value('controls_table_columns_averageHr') : 'Avg HR',
         id: 'averageHr'
       },
       {
         accessorKey: 'intensity',
-        header: isTReady ? t('controls_table_columns_intensity') : 'Intensity',
+        header: isTReady ? t.value('controls_table_columns_intensity') : 'Intensity',
         id: 'intensity'
       },
-      { accessorKey: 'tss', header: isTReady ? t('controls_table_columns_tss') : 'TSS', id: 'tss' },
+      {
+        accessorKey: 'tss',
+        header: isTReady ? t.value('controls_table_columns_tss') : 'TSS',
+        id: 'tss'
+      },
       {
         accessorKey: 'trainingLoad',
-        header: isTReady ? t('controls_table_columns_trainingLoad') : 'Training Load',
+        header: isTReady ? t.value('controls_table_columns_trainingLoad') : 'Training Load',
         id: 'trainingLoad'
       },
       {
         accessorKey: 'trimp',
-        header: isTReady ? t('controls_table_columns_trimp') : 'TRIMP',
+        header: isTReady ? t.value('controls_table_columns_trimp') : 'TRIMP',
         id: 'trimp'
       },
-      { accessorKey: 'rpe', header: isTReady ? t('controls_table_columns_rpe') : 'RPE', id: 'rpe' },
+      {
+        accessorKey: 'rpe',
+        header: isTReady ? t.value('controls_table_columns_rpe') : 'RPE',
+        id: 'rpe'
+      },
       {
         accessorKey: 'sessionRpe',
-        header: isTReady ? t('controls_table_columns_sessionRpe') : 'Session RPE',
+        header: isTReady ? t.value('controls_table_columns_sessionRpe') : 'Session RPE',
         id: 'sessionRpe'
       },
       {
         accessorKey: 'feel',
-        header: isTReady ? t('controls_table_columns_feel') : 'Feel',
+        header: isTReady ? t.value('controls_table_columns_feel') : 'Feel',
         id: 'feel'
       },
       {
         accessorKey: 'averageWatts',
-        header: isTReady ? t('controls_table_columns_averageWatts') : 'Avg Power',
+        header: isTReady ? t.value('controls_table_columns_averageWatts') : 'Avg Power',
         id: 'averageWatts'
       },
       {
         accessorKey: 'normalizedPower',
-        header: isTReady ? t('controls_table_columns_normalizedPower') : 'NP',
+        header: isTReady ? t.value('controls_table_columns_normalizedPower') : 'NP',
         id: 'normalizedPower'
       },
       {
         accessorKey: 'weightedAvgWatts',
-        header: isTReady ? t('controls_table_columns_weightedAvgWatts') : 'Weighted Power',
+        header: isTReady ? t.value('controls_table_columns_weightedAvgWatts') : 'Weighted Power',
         id: 'weightedAvgWatts'
       },
       {
         accessorKey: 'kilojoules',
-        header: isTReady ? t('controls_table_columns_kilojoules') : 'kJ',
+        header: isTReady ? t.value('controls_table_columns_kilojoules') : 'kJ',
         id: 'kilojoules'
       },
       {
         accessorKey: 'calories',
-        header: isTReady ? t('controls_table_columns_calories') : 'Calories',
+        header: isTReady ? t.value('controls_table_columns_calories') : 'Calories',
         id: 'calories'
       },
       {
         accessorKey: 'elapsedTime',
-        header: isTReady ? t('controls_table_columns_elapsedTime') : 'Elapsed Time',
+        header: isTReady ? t.value('controls_table_columns_elapsedTime') : 'Elapsed Time',
         id: 'elapsedTime'
       },
       {
         accessorKey: 'deviceName',
-        header: isTReady ? t('controls_table_columns_deviceName') : 'Device',
+        header: isTReady ? t.value('controls_table_columns_deviceName') : 'Device',
         id: 'deviceName'
       },
       {
         accessorKey: 'commute',
-        header: isTReady ? t('controls_table_columns_commute') : 'Commute',
+        header: isTReady ? t.value('controls_table_columns_commute') : 'Commute',
         id: 'commute'
       },
       {
         accessorKey: 'isPrivate',
-        header: isTReady ? t('controls_table_columns_isPrivate') : 'Private',
+        header: isTReady ? t.value('controls_table_columns_isPrivate') : 'Private',
         id: 'isPrivate'
       },
       {
         accessorKey: 'gearId',
-        header: isTReady ? t('controls_table_columns_gearId') : 'Gear',
+        header: isTReady ? t.value('controls_table_columns_gearId') : 'Gear',
         id: 'gearId'
       },
       {
         accessorKey: 'source',
-        header: isTReady ? t('controls_table_columns_source') : 'Source',
+        header: isTReady ? t.value('controls_table_columns_source') : 'Source',
         id: 'source'
       },
       {
         accessorKey: 'status',
-        header: isTReady ? t('controls_table_columns_status') : 'Status',
+        header: isTReady ? t.value('controls_table_columns_status') : 'Status',
         id: 'status'
       }
     ]
@@ -2061,18 +2069,17 @@
 
   /* Success Shimmer for active week */
   .active-week-indicator {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(34, 197, 94, 0.05),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.05), transparent);
     background-size: 200% 100%;
     animation: shimmer 3s infinite;
   }
 
   @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
 </style>

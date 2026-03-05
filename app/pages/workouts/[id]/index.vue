@@ -2203,7 +2203,7 @@
       // Localize common PB types
       let label = pb.type.replace(/_/g, ' ').replace('RUN ', '').replace('POWER ', 'Peak ')
       const typeKey = `achievement_${pb.type.toLowerCase()}`
-      if (typeof t === 'function' && t.value(typeKey) !== typeKey) {
+      if (typeof t.value === 'function' && t.value(typeKey) !== typeKey) {
         label = t.value(typeKey)
       }
 
@@ -3162,7 +3162,7 @@
       icon: string
       anchorId: string
     }> => {
-      const isTReady = typeof t === 'function'
+      const isTReady = typeof t.value === 'function'
       return [
         {
           key: 'overview',

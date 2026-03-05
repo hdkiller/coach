@@ -166,7 +166,7 @@
 
   const { t } = useTranslate('support')
   function translate(key: string): string {
-    return (t.value as (key: string) => string)(key)
+    return t.value(key)
   }
   const { status, data: session } = useAuth()
   const isAuthenticated = computed(() => status.value === 'authenticated')

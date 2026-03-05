@@ -460,7 +460,7 @@
   const checkinStore = useCheckinStore()
   const trialAccessTitle = computed(() => {
     const daysRemaining = userStore.trialDaysRemaining || 0
-    if (typeof t !== 'function' || !t.value) return `${daysRemaining} Days of Full Access Remaining`
+    if (typeof t !== 'function') return `${daysRemaining} Days of Full Access Remaining`
     return t.value('trial_access_remaining', { count: daysRemaining })
   })
   const nutritionEnabled = computed(
