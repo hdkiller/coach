@@ -880,12 +880,12 @@
           </UFormField>
 
           <UFormField
-            label="Automatic Planned Workout Upload"
-            description="Automatically upload future planned workouts to Intervals.icu and keep changes in sync."
+            label="Planned Workouts Sync"
+            description="Enable bidirectional synchronization of planned workouts with Intervals.icu."
           >
             <UCheckbox
               :model-value="getProviderSettings('intervals')?.importPlannedWorkouts !== false"
-              label="Enable automatic upload"
+              label="Enable Sync"
               @update:model-value="
                 (checked: any) =>
                   $emit('updateSetting', 'intervals', 'settings', {

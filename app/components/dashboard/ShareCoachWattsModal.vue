@@ -13,18 +13,21 @@
         <!-- Hero Section: QR Code -->
         <div class="relative group">
           <div
-            class="floating-card-base grain-overlay p-8 rounded-[32px] flex flex-col items-center gap-6 !bg-white dark:!bg-[#111111] !border-gray-200 dark:!border-white/5"
+            class="floating-card-base grain-overlay rounded-[32px] p-4 sm:p-8 flex flex-col items-center gap-4 sm:gap-6 !bg-white dark:!bg-[#111111] !border-gray-200 dark:!border-white/5"
           >
             <div
-              class="relative flex items-center justify-center rounded-2xl bg-white p-4 shadow-inner ring-1 ring-gray-900/5 dark:bg-white"
+              class="relative flex items-center justify-center rounded-2xl bg-white p-2 sm:p-4 shadow-inner ring-1 ring-gray-900/5 dark:bg-white"
             >
               <img
                 v-if="qrCodeDataUrl"
                 :src="qrCodeDataUrl"
                 :alt="`QR code linking to ${shareLink}`"
-                class="h-48 w-48 rounded-lg"
+                class="h-[72vw] w-[72vw] max-h-72 max-w-72 rounded-lg sm:h-48 sm:w-48"
               />
-              <USkeleton v-else class="h-48 w-48 rounded-lg" />
+              <USkeleton
+                v-else
+                class="h-[72vw] w-[72vw] max-h-72 max-w-72 rounded-lg sm:h-48 sm:w-48"
+              />
 
               <!-- Decorative Corner Accents -->
               <div

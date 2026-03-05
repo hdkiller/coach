@@ -5,15 +5,16 @@
       <template #header>
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-warning" />
-          <h2 class="text-xl font-semibold">{{ t('danger_schedule_header') }}</h2>
+          <h2 class="text-xl font-semibold">Training Schedule</h2>
         </div>
       </template>
 
       <div class="space-y-4">
         <div>
-          <h3 class="font-medium mb-1">{{ t('danger_schedule_clear_title') }}</h3>
+          <h3 class="font-medium mb-1">Clear Schedule</h3>
           <p class="text-sm text-muted mb-3">
-            {{ t('danger_schedule_clear_desc') }}
+            Remove planned workouts from your schedule. This is useful if you want to regenerate
+            your plan or clean up old entries.
           </p>
           <div class="flex flex-wrap gap-2">
             <UButton
@@ -22,7 +23,7 @@
               :loading="clearingSchedule"
               @click="isClearScheduleModalOpen = true"
             >
-              {{ t('danger_button_clear_future') }}
+              Clear Future Workouts
             </UButton>
             <UButton
               color="warning"
@@ -30,7 +31,7 @@
               :loading="clearingPastSchedule"
               @click="isClearPastScheduleModalOpen = true"
             >
-              {{ t('danger_button_clear_past') }}
+              Clear Past Planned (Non-Completed) Workouts
             </UButton>
           </div>
         </div>
@@ -42,15 +43,16 @@
       <template #header>
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-user-circle" class="w-5 h-5 text-warning" />
-          <h2 class="text-xl font-semibold">{{ t('danger_athlete_header') }}</h2>
+          <h2 class="text-xl font-semibold">Athlete Profile</h2>
         </div>
       </template>
 
       <div class="space-y-4">
         <div>
-          <h3 class="font-medium mb-1">{{ t('danger_athlete_wipe_title') }}</h3>
+          <h3 class="font-medium mb-1">Wipe Athlete Profiles</h3>
           <p class="text-sm text-muted mb-3">
-            {{ t('danger_athlete_wipe_desc') }}
+            Remove all AI-generated athlete profiles and clear cached performance scores. This is
+            useful if your scores were calculated using duplicate workout data.
           </p>
           <UButton
             color="warning"
@@ -58,7 +60,7 @@
             :loading="wipingProfiles"
             @click="isWipeProfilesModalOpen = true"
           >
-            {{ t('danger_button_wipe_profiles') }}
+            Wipe Profiles & Scores
           </UButton>
         </div>
       </div>
@@ -69,15 +71,16 @@
       <template #header>
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-warning" />
-          <h2 class="text-xl font-semibold">{{ t('danger_ai_header') }}</h2>
+          <h2 class="text-xl font-semibold">AI Analysis Data</h2>
         </div>
       </template>
 
       <div class="space-y-4">
         <div>
-          <h3 class="font-medium mb-1">{{ t('danger_ai_wipe_title') }}</h3>
+          <h3 class="font-medium mb-1">Wipe AI Recommendations & Analysis</h3>
           <p class="text-sm text-muted mb-3">
-            {{ t('danger_ai_wipe_desc') }}
+            Remove all AI-generated workout analysis, recommendations, and reports. This will not
+            delete your actual workout data, only the AI insights.
           </p>
           <UButton
             color="warning"
@@ -85,7 +88,7 @@
             :loading="wipingAnalysis"
             @click="isWipeAnalysisModalOpen = true"
           >
-            {{ t('danger_button_wipe_ai') }}
+            Wipe AI Data
           </UButton>
         </div>
       </div>
@@ -96,15 +99,17 @@
       <template #header>
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-circle-stack" class="w-5 h-5 text-warning" />
-          <h2 class="text-xl font-semibold">{{ t('danger_imported_header') }}</h2>
+          <h2 class="text-xl font-semibold">Imported Data Management</h2>
         </div>
       </template>
 
       <div class="space-y-6">
         <div>
-          <h3 class="font-medium mb-1">{{ t('danger_activities_wipe_title') }}</h3>
+          <h3 class="font-medium mb-1">Wipe Synced Activities</h3>
           <p class="text-sm text-muted mb-3">
-            {{ t('danger_activities_wipe_desc') }}
+            Remove all actual activity data imported from external sources (Strava, Garmin,
+            Intervals.icu, etc.). This is useful for resolving integration conflicts or clearing
+            duplicate activities.
           </p>
           <UButton
             color="warning"
@@ -112,16 +117,17 @@
             :loading="wipingSyncedActivities"
             @click="isWipeSyncedActivitiesModalOpen = true"
           >
-            {{ t('danger_button_wipe_activities') }}
+            Wipe Synced Activities
           </UButton>
         </div>
 
         <UDivider />
 
         <div>
-          <h3 class="font-medium mb-1">{{ t('danger_wellness_wipe_title') }}</h3>
+          <h3 class="font-medium mb-1">Wipe Wellness Data</h3>
           <p class="text-sm text-muted mb-3">
-            {{ t('danger_wellness_wipe_desc') }}
+            Clear all imported health metrics including HRV, RHR, SpO2, and Sleep logs. This does
+            not affect your workout data.
           </p>
           <UButton
             color="warning"
@@ -129,16 +135,17 @@
             :loading="wipingWellness"
             @click="isWipeWellnessModalOpen = true"
           >
-            {{ t('danger_button_wipe_wellness') }}
+            Wipe Wellness Data
           </UButton>
         </div>
 
         <UDivider />
 
         <div>
-          <h3 class="font-medium mb-1">{{ t('danger_nutrition_wipe_title') }}</h3>
+          <h3 class="font-medium mb-1">Wipe Nutrition Logs</h3>
           <p class="text-sm text-muted mb-3">
-            {{ t('danger_nutrition_wipe_desc') }}
+            Clear all imported calorie, macro, and hydration data. This will also remove any
+            AI-generated nutrition plans or recommendations.
           </p>
           <UButton
             color="warning"
@@ -146,7 +153,7 @@
             :loading="wipingNutrition"
             @click="isWipeNutritionModalOpen = true"
           >
-            {{ t('danger_button_wipe_nutrition') }}
+            Wipe Nutrition Logs
           </UButton>
         </div>
       </div>
@@ -157,13 +164,13 @@
       <template #header>
         <div class="flex items-center gap-2">
           <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-error" />
-          <h2 class="text-xl font-semibold text-error">{{ t('danger_account_header') }}</h2>
+          <h2 class="text-xl font-semibold text-error">Account Deletion</h2>
         </div>
       </template>
 
       <div class="space-y-4">
         <p class="text-sm text-muted">
-          {{ t('danger_account_desc') }}
+          Once you delete your account, there is no going back. Please be certain.
         </p>
         <p v-if="accountDeletionBlocked" class="text-sm text-warning">
           {{ accountDeletionBlockReason }}
@@ -175,7 +182,7 @@
           :disabled="accountDeletionBlocked"
           @click="openDeleteAccountModal"
         >
-          {{ t('danger_button_delete_account') }}
+          Delete Account
         </UButton>
       </div>
     </UCard>
@@ -183,23 +190,24 @@
     <!-- Clear Schedule Confirmation Modal -->
     <UModal
       v-model:open="isClearScheduleModalOpen"
-      :title="t('danger_modal_clear_future_title')"
-      :description="t('danger_modal_clear_future_desc')"
+      title="Clear Future Schedule"
+      description="Confirm the removal of upcoming training sessions."
     >
       <template #body>
         <p>
-          {{ t('danger_modal_clear_future_body') }}
+          Are you sure? This will delete ALL future planned workouts from your schedule AND remove
+          them from Intervals.icu.
         </p>
       </template>
 
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isClearScheduleModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="clearingSchedule" @click="executeClearSchedule">{{
-            t('danger_button_clear_future')
-          }}</UButton>
+          <UButton color="neutral" variant="ghost" @click="isClearScheduleModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="clearingSchedule" @click="executeClearSchedule"
+            >Clear Future Workouts</UButton
+          >
         </div>
       </template>
     </UModal>
@@ -207,25 +215,23 @@
     <!-- Clear Past Schedule Confirmation Modal -->
     <UModal
       v-model:open="isClearPastScheduleModalOpen"
-      :title="t('danger_modal_clear_past_title')"
-      :description="t('danger_modal_clear_past_desc')"
+      title="Clear Past Schedule"
+      description="Confirm the removal of non-completed past training sessions."
     >
       <template #body>
         <p>
-          {{ t('danger_modal_clear_past_body') }}
+          Are you sure? This will delete ALL past planned workouts that were NOT completed. This
+          only affects workouts managed by CoachWatts.
         </p>
       </template>
 
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isClearPastScheduleModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton
-            color="warning"
-            :loading="clearingPastSchedule"
-            @click="executeClearPastSchedule"
-            >{{ t('danger_button_clear_past') }}</UButton
+          <UButton color="neutral" variant="ghost" @click="isClearPastScheduleModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="clearingPastSchedule" @click="executeClearPastSchedule"
+            >Clear Past Workouts</UButton
           >
         </div>
       </template>
@@ -234,22 +240,24 @@
     <!-- Wipe Profiles Confirmation Modal -->
     <UModal
       v-model:open="isWipeProfilesModalOpen"
-      :title="t('danger_modal_wipe_profiles_title')"
-      :description="t('danger_modal_wipe_profiles_desc')"
+      title="Wipe Athlete Profiles"
+      description="Confirm the irreversible deletion of AI athlete profiles and scores."
     >
       <template #body>
         <p>
-          {{ t('danger_modal_wipe_profiles_body') }}
+          Are you sure? This will permanently delete all AI athlete profiles and reset your
+          performance scores (Fitness, Recovery, etc.). You will need to regenerate them from the
+          dashboard.
         </p>
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeProfilesModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingProfiles" @click="executeWipeProfiles">{{
-            t('danger_button_wipe_profiles')
-          }}</UButton>
+          <UButton color="neutral" variant="ghost" @click="isWipeProfilesModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="wipingProfiles" @click="executeWipeProfiles"
+            >Wipe Profiles & Scores</UButton
+          >
         </div>
       </template>
     </UModal>
@@ -257,22 +265,23 @@
     <!-- Wipe AI Analysis Confirmation Modal -->
     <UModal
       v-model:open="isWipeAnalysisModalOpen"
-      :title="t('danger_modal_wipe_ai_title')"
-      :description="t('danger_modal_wipe_ai_desc')"
+      title="Wipe AI Analysis Data"
+      description="Confirm the removal of AI-generated insights and reports."
     >
       <template #body>
         <p>
-          {{ t('danger_modal_wipe_ai_body') }}
+          Are you sure? This will delete all AI-generated workout analyses, recommendations, and
+          reports. You can regenerate them individually.
         </p>
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeAnalysisModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingAnalysis" @click="executeWipeAnalysis">{{
-            t('danger_button_wipe_ai')
-          }}</UButton>
+          <UButton color="neutral" variant="ghost" @click="isWipeAnalysisModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="wipingAnalysis" @click="executeWipeAnalysis"
+            >Wipe AI Data</UButton
+          >
         </div>
       </template>
     </UModal>
@@ -280,30 +289,28 @@
     <!-- Wipe Synced Activities Confirmation Modal -->
     <UModal
       v-model:open="isWipeSyncedActivitiesModalOpen"
-      :title="t('danger_modal_wipe_activities_title')"
-      :description="t('danger_modal_wipe_activities_desc')"
+      title="Wipe Synced Activities"
+      description="Dangerous: This will delete ALL actual workout data and raw files."
     >
       <template #body>
         <div class="space-y-2">
-          <p class="text-error font-semibold">{{ t('danger_modal_warning_irreversible') }}</p>
+          <p class="text-error font-semibold">Warning: This action is irreversible.</p>
           <p>
-            {{ t('danger_modal_wipe_activities_body') }}
+            All imported workouts, performance scores, and FIT files will be permanently removed
+            from your account. You will need to re-sync your integrations to recover this data.
           </p>
         </div>
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton
-            color="neutral"
-            variant="ghost"
-            @click="isWipeSyncedActivitiesModalOpen = false"
-            >{{ t('banner_exit') }}</UButton
+          <UButton color="neutral" variant="ghost" @click="isWipeSyncedActivitiesModalOpen = false"
+            >Cancel</UButton
           >
           <UButton
             color="warning"
             :loading="wipingSyncedActivities"
             @click="executeWipeSyncedActivities"
-            >{{ t('danger_button_wipe_activities') }}</UButton
+            >Wipe Synced Activities</UButton
           >
         </div>
       </template>
@@ -312,25 +319,26 @@
     <!-- Wipe Wellness Confirmation Modal -->
     <UModal
       v-model:open="isWipeWellnessModalOpen"
-      :title="t('danger_modal_wipe_wellness_title')"
-      :description="t('danger_modal_wipe_wellness_desc')"
+      title="Wipe Wellness Data"
+      description="Confirm the removal of imported health metrics."
     >
       <template #body>
         <div class="space-y-2">
-          <p class="text-error font-semibold">{{ t('danger_modal_warning_irreversible') }}</p>
+          <p class="text-error font-semibold">Warning: This action is irreversible.</p>
           <p>
-            {{ t('danger_modal_wipe_wellness_body') }}
+            All HRV, RHR, and Sleep logs will be permanently deleted. This is typically used to fix
+            ingestion errors from specific sources.
           </p>
         </div>
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeWellnessModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingWellness" @click="executeWipeWellness">{{
-            t('danger_button_wipe_wellness')
-          }}</UButton>
+          <UButton color="neutral" variant="ghost" @click="isWipeWellnessModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="wipingWellness" @click="executeWipeWellness"
+            >Wipe Wellness Data</UButton
+          >
         </div>
       </template>
     </UModal>
@@ -338,25 +346,26 @@
     <!-- Wipe Nutrition Confirmation Modal -->
     <UModal
       v-model:open="isWipeNutritionModalOpen"
-      :title="t('danger_modal_wipe_nutrition_title')"
-      :description="t('danger_modal_wipe_nutrition_desc')"
+      title="Wipe Nutrition Logs"
+      description="Confirm the removal of imported nutrition data."
     >
       <template #body>
         <div class="space-y-2">
-          <p class="text-error font-semibold">{{ t('danger_modal_warning_irreversible') }}</p>
+          <p class="text-error font-semibold">Warning: This action is irreversible.</p>
           <p>
-            {{ t('danger_modal_wipe_nutrition_body') }}
+            All calorie, macro, and hydration data will be permanently deleted. Related AI plans and
+            recommendations will also be cleared.
           </p>
         </div>
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isWipeNutritionModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
-          <UButton color="warning" :loading="wipingNutrition" @click="executeWipeNutrition">{{
-            t('danger_button_wipe_nutrition')
-          }}</UButton>
+          <UButton color="neutral" variant="ghost" @click="isWipeNutritionModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="warning" :loading="wipingNutrition" @click="executeWipeNutrition"
+            >Wipe Nutrition Logs</UButton
+          >
         </div>
       </template>
     </UModal>
@@ -364,30 +373,30 @@
     <!-- Delete Account Confirmation Modal -->
     <UModal
       v-model:open="isDeleteAccountModalOpen"
-      :title="t('danger_modal_delete_account_title')"
-      :description="t('danger_modal_delete_account_desc')"
+      title="Delete Account"
+      description="Dangerous: This will permanently delete your entire account and all data."
     >
       <template #body>
         <p v-if="accountDeletionBlocked" class="text-warning font-semibold mb-2">
           {{ accountDeletionBlockReason }}
         </p>
         <template v-else>
-          <p class="text-error font-semibold mb-2">{{ t('danger_modal_warning_irreversible') }}</p>
-          <p>{{ t('danger_modal_delete_account_body') }}</p>
+          <p class="text-error font-semibold mb-2">Warning: This action is irreversible.</p>
+          <p>All your data including workouts, metrics, and reports will be permanently deleted.</p>
         </template>
       </template>
       <template #footer>
         <div class="flex gap-2 justify-end w-full">
-          <UButton color="neutral" variant="ghost" @click="isDeleteAccountModalOpen = false">{{
-            t('banner_exit')
-          }}</UButton>
+          <UButton color="neutral" variant="ghost" @click="isDeleteAccountModalOpen = false"
+            >Cancel</UButton
+          >
           <UButton
             color="error"
             :loading="deletingAccount"
             :disabled="accountDeletionBlocked"
             @click="executeDeleteAccount"
           >
-            {{ t('danger_button_delete_account') }}</UButton
+            Delete Account</UButton
           >
         </div>
       </template>
@@ -396,9 +405,6 @@
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
-
-  const { t } = useTranslate('settings')
   const toast = useToast()
   const { signOut } = useAuth()
   const coachingStore = useCoachingStore()
@@ -427,11 +433,11 @@
 
   const accountDeletionBlockReason = computed(() => {
     if (impersonationMeta.value) {
-      return t.value('danger_error_impersonating')
+      return 'Stop impersonating before using account deletion.'
     }
 
     if (coachingStore.isCoachingMode) {
-      return t.value('danger_error_coaching')
+      return 'Exit coaching mode before using account deletion.'
     }
 
     return null
@@ -461,8 +467,8 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_schedule_cleared_title'),
-        description: t.value('danger_toast_schedule_cleared_desc', { count: result.count }),
+        title: 'Schedule Cleared',
+        description: `Removed ${result.count} future planned workouts.`,
         color: 'success'
       })
       isClearScheduleModalOpen.value = false
@@ -486,8 +492,8 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_schedule_cleared_title'),
-        description: t.value('danger_toast_schedule_cleared_desc', { count: result.count }),
+        title: 'Schedule Cleared',
+        description: `Removed ${result.count} past planned workouts.`,
         color: 'success'
       })
       isClearPastScheduleModalOpen.value = false
@@ -511,11 +517,8 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_ai_wiped_title'),
-        description: t.value('danger_toast_ai_wiped_desc', {
-          workouts: result.counts.workouts,
-          recommendations: result.counts.recommendations
-        }),
+        title: 'AI Data Wiped',
+        description: `Cleared ${result.counts.workouts} analyses and ${result.counts.recommendations} recommendations.`,
         color: 'success'
       })
       isWipeAnalysisModalOpen.value = false
@@ -539,8 +542,8 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_profiles_wiped_title'),
-        description: t.value('danger_toast_profiles_wiped_desc', { count: result.count }),
+        title: 'Profiles Wiped',
+        description: `Removed ${result.count} profile records and reset scores.`,
         color: 'success'
       })
       isWipeProfilesModalOpen.value = false
@@ -564,11 +567,8 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_activities_wiped_title'),
-        description: t.value('danger_toast_activities_wiped_desc', {
-          workouts: result.counts.workouts,
-          fitFiles: result.counts.fitFiles
-        }),
+        title: 'Activities Wiped',
+        description: `Permanently deleted ${result.counts.workouts} workouts and ${result.counts.fitFiles} raw files.`,
         color: 'success'
       })
       isWipeSyncedActivitiesModalOpen.value = false
@@ -592,8 +592,8 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_wellness_wiped_title'),
-        description: t.value('danger_toast_wellness_wiped_desc', { count: result.counts.wellness }),
+        title: 'Wellness Data Wiped',
+        description: `Cleared ${result.counts.wellness} logs.`,
         color: 'success'
       })
       isWipeWellnessModalOpen.value = false
@@ -617,11 +617,8 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_nutrition_wiped_title'),
-        description: t.value('danger_toast_nutrition_wiped_desc', {
-          nutrition: result.counts.nutrition,
-          plans: result.counts.plans
-        }),
+        title: 'Nutrition Logs Wiped',
+        description: `Removed ${result.counts.nutrition} logs and ${result.counts.plans} plans.`,
         color: 'success'
       })
       isWipeNutritionModalOpen.value = false
@@ -655,11 +652,12 @@
       })
 
       toast.add({
-        title: t.value('danger_toast_account_deleted_title'),
-        description: t.value('danger_toast_account_deleted_desc'),
+        title: 'Account Deleted',
+        description: 'Your account has been scheduled for deletion. Signing out...',
         color: 'success'
       })
 
+      // Give a moment for the toast to be seen? No, just sign out.
       await signOut({ callbackUrl: '/login' })
     } catch (error) {
       console.error('Failed to delete account', error)
