@@ -237,9 +237,52 @@ describe('WorkoutConverter', () => {
       expect(result).not.toContain('80%')
     })
 
-    it('preserves absolute target units for Intervals export', () => {
+    it('prefers generation snapshot targeting policy over current sport settings', () => {
+      const workout = {
+        title: 'Snapshot Policy',
+        type: 'Run',
+        sportSettings: { loadPreference: 'POWER_HR_PACE' },
+        generationSettingsSnapshot: {
+          loadPreference: 'HR_POWER_PACE',
+          targetPolicy: {
+            primaryMetric: 'heartRate',
+            fallbackOrder: ['heartRate', 'power', 'pace'],
+            strictPrimary: true,
+            allowMixedTargetsPerStep: false,
+            defaultTargetStyle: 'range',
+            preferRangesForSteady: true
+          }
+        },
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 600,
+            power: { value: 0.8 },
+            heartRate: { value: 0.75 },
+            pace: { value: 0.9 },
+            name: 'Steady'
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain('75% LTHR')
+      expect(result).not.toContain('80%')
+      expect(result).not.toContain('90% Pace')
+    })
+
+    it('exports heart-rate BPM targets as HR zones for Intervals export', () => {
       const workout = {
         title: 'Absolute Units',
+        sportSettings: {
+          hrZones: [
+            { name: 'Z1', min: 120, max: 139 },
+            { name: 'Z2', min: 140, max: 159 },
+            { name: 'Z3', min: 160, max: 169 },
+            { name: 'Z4', min: 170, max: 179 }
+          ]
+        },
         steps: [
           {
             type: 'Active',
@@ -252,13 +295,20 @@ describe('WorkoutConverter', () => {
             durationSeconds: 300,
             heartRate: { value: 165, units: 'bpm' },
             name: 'HR Push'
+          },
+          {
+            type: 'Active',
+            durationSeconds: 300,
+            heartRate: { range: { start: 167, end: 172 }, units: 'bpm' },
+            name: 'HR Build'
           }
         ]
       }
 
       const result = WorkoutConverter.toIntervalsICU(workout as any)
       expect(result).toContain('- Steady 10m 220-260w')
-      expect(result).toContain('- HR Push 5m 165bpm')
+      expect(result).toContain('- HR Push 5m Z3 HR')
+      expect(result).toContain('- HR Build 5m Z3 HR')
     })
 
     it('infers watts for absolute power values when units are missing', () => {

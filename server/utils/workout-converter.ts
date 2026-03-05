@@ -1,5 +1,6 @@
 import { create } from 'xmlbuilder2'
 import { FitWriter } from '@markw65/fit-file-writer'
+import { normalizeTargetPolicy } from './workout-target-policy'
 
 interface WorkoutStep {
   type: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'
@@ -21,6 +22,7 @@ interface WorkoutStep {
     range?: { start: number; end: number }
     units?: string
   }
+  rpe?: number
   cadence?: number
   name?: string
   steps?: WorkoutStep[]
@@ -44,8 +46,21 @@ interface WorkoutData {
   ftp?: number // Optional, for calculating absolute watts if needed
   sportSettings?: {
     loadPreference?: string | null
+    targetPolicy?: any
     intervalsHrRangeTolerancePct?: number | null
+    lthr?: number | null
+    hrZones?: Array<{ name?: string; min?: number; max?: number }> | null
   }
+  generationSettingsSnapshot?: {
+    loadPreference?: string | null
+    targetPolicy?: any
+    thresholds?: {
+      lthr?: number | null
+    } | null
+    zones?: {
+      heartRate?: Array<{ name?: string; min?: number; max?: number }> | null
+    } | null
+  } | null
 }
 
 export const WorkoutConverter = {
@@ -312,6 +327,58 @@ export const WorkoutConverter = {
 
   toIntervalsICU(workout: WorkoutData): string {
     const lines: string[] = []
+    const hrZonesRaw =
+      workout.generationSettingsSnapshot?.zones?.heartRate || workout.sportSettings?.hrZones || []
+    const hrZones = (Array.isArray(hrZonesRaw) ? hrZonesRaw : [])
+      .map((zone: any, index: number) => ({
+        index: index + 1,
+        min: Number(zone?.min),
+        max: Number(zone?.max)
+      }))
+      .filter((zone) => Number.isFinite(zone.min) && Number.isFinite(zone.max))
+    const lthrRef = Number(
+      workout.generationSettingsSnapshot?.thresholds?.lthr || workout.sportSettings?.lthr || 0
+    )
+    const bpmToLthrPct = (bpm: number) => {
+      if (!Number.isFinite(bpm) || bpm <= 0 || !Number.isFinite(lthrRef) || lthrRef <= 0)
+        return null
+      return Math.round((bpm / lthrRef) * 100)
+    }
+    const zoneForBpm = (bpm: number) => {
+      if (!Number.isFinite(bpm) || hrZones.length === 0) return null
+      const exact = hrZones.find((zone) => bpm >= zone.min && bpm <= zone.max)
+      if (exact) return exact.index
+
+      // If BPM is outside explicit bounds, choose the closest zone by midpoint.
+      const closest = hrZones.reduce(
+        (best, zone) => {
+          const midpoint = (zone.min + zone.max) / 2
+          const distance = Math.abs(midpoint - bpm)
+          if (!best || distance < best.distance) return { index: zone.index, distance }
+          return best
+        },
+        null as { index: number; distance: number } | null
+      )
+      return closest?.index || null
+    }
+    const formatHrZoneFromBpm = (start: number, end?: number) => {
+      if (end !== undefined) {
+        // Keep export consistent with the UI "Zone" column: classify by midpoint.
+        const midpointZone = zoneForBpm((start + end) / 2)
+        if (midpointZone) return `Z${midpointZone} HR`
+      } else {
+        const singleZone = zoneForBpm(start)
+        if (singleZone) return `Z${singleZone} HR`
+      }
+
+      // No zones available: fallback to %LTHR instead of BPM for Intervals text.
+      const startPct = bpmToLthrPct(start)
+      const endPct = end !== undefined ? bpmToLthrPct(end) : startPct
+      if (startPct && endPct) {
+        return startPct === endPct ? `${startPct}% LTHR` : `${startPct}-${endPct}% LTHR`
+      }
+      return 'HR'
+    }
     const normalizeUnits = (units: unknown): string | undefined => {
       if (typeof units !== 'string') return undefined
       const v = units.trim().toLowerCase()
@@ -414,7 +481,7 @@ export const WorkoutConverter = {
           return `${toValuePct(value)}%`
         }
         if (kind === 'hr') {
-          if (units === 'bpm') return `${Math.round(value)}bpm`
+          if (units === 'bpm') return formatHrZoneFromBpm(Math.round(value))
           return `${toValuePct(value)}% ${hrLabel}`
         }
         if (units && units.includes('/')) return `${value}${units}`
@@ -431,7 +498,7 @@ export const WorkoutConverter = {
           return `ramp ${pct.start}-${pct.end}%`
         }
         if (kind === 'hr') {
-          if (units === 'bpm') return `${Math.round(start)}-${Math.round(end)}bpm`
+          if (units === 'bpm') return formatHrZoneFromBpm(Math.round(start), Math.round(end))
           const pct = toRangePct(start, end)
           return `${pct.start}-${pct.end}% ${hrLabel}`
         }
@@ -470,9 +537,23 @@ export const WorkoutConverter = {
     const sportType = workout.type?.toLowerCase() || ''
     const isSwim = sportType.includes('swim')
     const isRun = !isSwim && sportType.includes('run')
-    const loadPref =
-      workout.sportSettings?.loadPreference?.toLowerCase() ||
-      (isRun ? 'hr_pace_power' : isSwim ? 'hr_pace_power' : 'power_hr_pace')
+    const fallbackLoadPreference = isRun || isSwim ? 'HR_PACE_POWER' : 'POWER_HR_PACE'
+    const hasGenerationPolicy =
+      Boolean(workout.generationSettingsSnapshot?.targetPolicy) ||
+      Boolean(workout.generationSettingsSnapshot?.loadPreference)
+    const policySource = hasGenerationPolicy
+      ? workout.generationSettingsSnapshot
+      : workout.sportSettings
+    const normalizedPolicy = normalizeTargetPolicy(
+      policySource?.targetPolicy,
+      policySource?.loadPreference || fallbackLoadPreference
+    )
+    const metricPriority = normalizedPolicy.fallbackOrder.map((metric) => {
+      if (metric === 'heartRate') return 'hr'
+      if (metric === 'power') return 'power'
+      if (metric === 'pace') return 'pace'
+      return 'rpe'
+    })
     const rawHrTolerancePct = Number(workout.sportSettings?.intervalsHrRangeTolerancePct || 0)
     const hrTolerancePct =
       rawHrTolerancePct > 1 ? rawHrTolerancePct / 100 : Math.max(0, rawHrTolerancePct)
@@ -568,7 +649,9 @@ export const WorkoutConverter = {
         const getPowerStr = () => formatMetric(power, 'power')
         const getHrStr = () => formatMetric(heartRate, 'hr')
         const getPaceStr = () => formatMetric(pace, 'pace')
-        const metrics = loadPref.split('_')
+        const getRpeStr = () =>
+          typeof step.rpe === 'number' && Number.isFinite(step.rpe) ? `RPE ${step.rpe}` : ''
+        const metrics = metricPriority
         let primaryFound = false
 
         for (const metric of metrics) {
@@ -590,12 +673,18 @@ export const WorkoutConverter = {
               intensities.push(s)
               primaryFound = true
             }
+          } else if (metric === 'rpe') {
+            const s = getRpeStr()
+            if (s) {
+              intensities.push(s)
+              primaryFound = true
+            }
           }
           if (primaryFound && isRun) break
         }
 
         if (intensities.length === 0) {
-          const fallback = getHrStr() || getPowerStr() || getPaceStr()
+          const fallback = getHrStr() || getPowerStr() || getPaceStr() || getRpeStr()
           if (fallback) {
             intensities.push(fallback)
           } else if (isRun && step.type !== 'Rest') {
