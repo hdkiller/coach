@@ -218,13 +218,37 @@
     const steps = props.workout.structuredWorkout?.steps
     if (!steps?.length) return 0
 
+    const normalizeHrIntensity = (heartRate: any) => {
+      if (!heartRate) return null
+      const units = String(heartRate?.units || '')
+        .trim()
+        .toLowerCase()
+      if (units === 'hr_zone' || units === 'zone') {
+        const zone = Number(heartRate?.value)
+        if (Number.isFinite(zone) && zone > 0) {
+          return Math.max(0.45, Math.min(1.25, 0.45 + zone * 0.1))
+        }
+      }
+      if (typeof heartRate?.value === 'number') {
+        const value = Number(heartRate.value)
+        return value > 2 ? value / 100 : value
+      }
+      return null
+    }
+
     let totalWeighted = 0
     let totalDuration = 0
 
     steps.forEach((step: any) => {
       const duration = step.durationSeconds || step.duration || 60
       const intensity =
-        step.heartRate?.value || step.power?.value || (step.type === 'Rest' ? 0.5 : 0.75)
+        normalizeHrIntensity(step.heartRate) ||
+        (typeof step.power?.value === 'number'
+          ? step.power.value > 3
+            ? step.power.value / 100
+            : step.power.value
+          : null) ||
+        (step.type === 'Rest' ? 0.5 : 0.75)
       totalWeighted += intensity * duration
       totalDuration += duration
     })

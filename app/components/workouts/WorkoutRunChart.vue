@@ -436,12 +436,66 @@
     return value / getHeartRateReference()
   }
 
+  function getHrZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
+    const index = Math.max(1, Math.round(indexRaw))
+    const zones = Array.isArray(props.sportSettings?.hrZones) ? props.sportSettings.hrZones : []
+    const zone = zones[index - 1]
+    if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
+      return { start: Number(zone.min), end: Number(zone.max) }
+    }
+
+    // Fallback to computed zone distribution if explicit HR zones are unavailable.
+    const distZone = zoneDistribution.value[index - 1]
+    if (
+      distZone &&
+      Number.isFinite(Number(distZone.min)) &&
+      Number.isFinite(Number(distZone.max))
+    ) {
+      const reference = getHeartRateReference()
+      return {
+        start: Number(distZone.min) * reference,
+        end: Number(distZone.max) * reference
+      }
+    }
+
+    return null
+  }
+
   function normalizeMetricTarget(
     target: { value?: number; range?: { start: number; end: number } } | undefined,
     metric: 'hr' | 'power' | 'pace'
   ): { value?: number; range?: { start: number; end: number } } | undefined {
     if (!target) return undefined
     if (metric !== 'hr') return target
+    const units = String((target as any)?.units || '')
+      .trim()
+      .toLowerCase()
+
+    if (units === 'hr_zone' || units === 'zone') {
+      if (target.range) {
+        const startZone = getHrZoneBoundsByIndex(target.range.start)
+        const endZone = getHrZoneBoundsByIndex(target.range.end)
+        if (startZone && endZone) {
+          return {
+            range: {
+              start: toNormalizedHeartRate(startZone.start),
+              end: toNormalizedHeartRate(endZone.end)
+            }
+          }
+        }
+      }
+      if (typeof target.value === 'number') {
+        const zoneBounds = getHrZoneBoundsByIndex(target.value)
+        if (zoneBounds) {
+          return {
+            range: {
+              start: toNormalizedHeartRate(zoneBounds.start),
+              end: toNormalizedHeartRate(zoneBounds.end)
+            }
+          }
+        }
+      }
+    }
 
     if (target.range) {
       return {
@@ -560,6 +614,18 @@
     if (!target) return null
 
     if (metric === 'hr') {
+      const hrUnits = String((target as any)?.units || '')
+        .trim()
+        .toLowerCase()
+      if (hrUnits === 'hr_zone' || hrUnits === 'zone') {
+        if (typeof target.value === 'number') {
+          return `Z${Math.round(target.value)} HR`
+        }
+        if (target.range) {
+          return `Z${Math.round(target.range.start)}-Z${Math.round(target.range.end)} HR`
+        }
+      }
+
       const normalized = normalizeMetricTarget(target, 'hr')
       if (!normalized) return null
 
