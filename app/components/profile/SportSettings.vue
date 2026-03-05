@@ -120,6 +120,18 @@
                     </UDropdownMenu>
 
                     <UButton
+                      v-if="item.content.id"
+                      icon="i-lucide-activity"
+                      size="xs"
+                      variant="ghost"
+                      color="neutral"
+                      :loading="detectingSportId === item.content.id"
+                      @click="detectFromWorkouts(item.content)"
+                    >
+                      Detect from Workouts
+                    </UButton>
+
+                    <UButton
                       icon="i-lucide-pencil"
                       size="xs"
                       variant="ghost"
@@ -851,13 +863,28 @@
                         :label="t('sports_form_threshold_pace')"
                         :help="t('sports_form_threshold_pace_help_hint')"
                       >
-                        <UInput
-                          v-model.number="editForm.thresholdPace"
-                          type="number"
-                          step="0.01"
-                          size="xs"
-                          class="w-full"
-                        />
+                        <div class="flex gap-2">
+                          <UInput
+                            :model-value="editThresholdPaceInput"
+                            placeholder="e.g. 4:10"
+                            size="xs"
+                            class="w-full"
+                            @update:model-value="
+                              onThresholdPaceInputChange('edit', $event as string)
+                            "
+                          />
+                          <USelectMenu
+                            :model-value="getPaceUnitForForm(editForm)"
+                            :items="PACE_DISPLAY_UNITS"
+                            value-key="value"
+                            label-key="label"
+                            size="xs"
+                            class="w-28"
+                            @update:model-value="
+                              (val) => onThresholdPaceUnitChange('edit', val as PaceDisplayUnit)
+                            "
+                          />
+                        </div>
                       </UFormField>
                     </template>
                     <template v-else>
@@ -865,10 +892,7 @@
                         {{ t('sports_form_threshold_pace') }}
                       </div>
                       <div class="text-xl font-semibold h-7">
-                        {{ formatPace(item.content.thresholdPace) }}
-                        <span v-if="item.content.thresholdPace" class="text-xs text-gray-400"
-                          >/km</span
-                        >
+                        {{ formatThresholdPaceDisplay(item.content) }}
                       </div>
                     </template>
                   </div>
@@ -880,7 +904,13 @@
                     units="m/s"
                     icon="i-lucide-gauge"
                     icon-color="text-emerald-500"
-                  />
+                  >
+                    <template #actions>
+                      <UButton size="xs" variant="soft" @click="recalculateZones('pace', 'edit')">
+                        {{ t('sports_button_recalculate') }}
+                      </UButton>
+                    </template>
+                  </ProfileZoneEditor>
                 </div>
                 <div
                   v-else-if="item.content.paceZones?.length"
@@ -978,6 +1008,99 @@
             >Cancel</UButton
           >
           <UButton color="primary" @click="confirmAutodetect">Apply Changes</UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="showWorkoutDetectModal"
+      title="Detect from Workouts"
+      description="Review detected threshold updates from recent workouts before applying."
+    >
+      <template #body>
+        <div v-if="workoutDetectionResult" class="space-y-4">
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            Analyzed {{ workoutDetectionResult.workoutsAnalyzed }} workouts in last
+            {{ workoutDetectionResult.lookbackDays }} days.
+          </div>
+
+          <div class="space-y-3">
+            <div class="border rounded-lg p-3 border-gray-200 dark:border-gray-700">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-medium">FTP</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ formatDetectedDelta('ftp') }}
+                  </div>
+                </div>
+                <UCheckbox v-model="workoutDetectApply.ftp" :disabled="!canApplyDetection('ftp')" />
+              </div>
+            </div>
+
+            <div class="border rounded-lg p-3 border-gray-200 dark:border-gray-700">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-medium">LTHR</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ formatDetectedDelta('lthr') }}
+                  </div>
+                </div>
+                <UCheckbox
+                  v-model="workoutDetectApply.lthr"
+                  :disabled="!canApplyDetection('lthr')"
+                />
+              </div>
+            </div>
+
+            <div class="border rounded-lg p-3 border-gray-200 dark:border-gray-700">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-medium">Max HR</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ formatDetectedDelta('maxHr') }}
+                  </div>
+                </div>
+                <UCheckbox
+                  v-model="workoutDetectApply.maxHr"
+                  :disabled="!canApplyDetection('maxHr')"
+                />
+              </div>
+            </div>
+
+            <div class="border rounded-lg p-3 border-gray-200 dark:border-gray-700">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-medium">Threshold Pace</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ formatDetectedDelta('thresholdPace') }}
+                  </div>
+                </div>
+                <UCheckbox
+                  v-model="workoutDetectApply.thresholdPace"
+                  :disabled="!canApplyDetection('thresholdPace')"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t pt-3 dark:border-gray-800">
+            <UCheckbox
+              v-model="workoutDetectApply.recalculatePowerZones"
+              label="Recalculate Power Zones from FTP"
+            />
+            <UCheckbox
+              v-model="workoutDetectApply.recalculateHrZones"
+              label="Recalculate HR Zones from LTHR/Max HR"
+            />
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton color="neutral" variant="ghost" @click="showWorkoutDetectModal = false">
+            Cancel
+          </UButton>
+          <UButton color="primary" @click="applyWorkoutDetection">Apply Selected</UButton>
         </div>
       </template>
     </UModal>
@@ -1198,7 +1321,23 @@
                     name="thresholdPace"
                     :help="t('sports_form_threshold_pace_help')"
                   >
-                    <UInput v-model.number="addForm.thresholdPace" type="number" step="0.01" />
+                    <div class="flex gap-2">
+                      <UInput
+                        :model-value="addThresholdPaceInput"
+                        placeholder="e.g. 4:10"
+                        @update:model-value="onThresholdPaceInputChange('add', $event as string)"
+                      />
+                      <USelectMenu
+                        :model-value="getPaceUnitForForm(addForm)"
+                        :items="PACE_DISPLAY_UNITS"
+                        value-key="value"
+                        label-key="label"
+                        class="w-28"
+                        @update:model-value="
+                          (val) => onThresholdPaceUnitChange('add', val as PaceDisplayUnit)
+                        "
+                      />
+                    </div>
                   </UFormField>
                   <UFormField
                     label="Primary Target Metric"
@@ -1326,7 +1465,13 @@
                     units="m/s"
                     icon="i-lucide-gauge"
                     icon-color="text-emerald-500"
-                  />
+                  >
+                    <template #actions>
+                      <UButton size="xs" variant="soft" @click="recalculateZones('pace', 'add')">
+                        {{ t('sports_button_recalculate') }}
+                      </UButton>
+                    </template>
+                  </ProfileZoneEditor>
                 </div>
               </template>
             </UAccordion>
@@ -1362,9 +1507,11 @@
   const toast = useToast()
   const editingIndex = ref<number | null>(null)
   const editForm = ref<any>({})
+  const editThresholdPaceInput = ref('')
 
   const showAddModal = ref(false)
   const openItems = ref<string[]>(['0']) // Open the first item (Default) by default
+  const addThresholdPaceInput = ref('')
   const addForm = ref<any>({
     name: '',
     types: [],
@@ -1383,6 +1530,9 @@
     hrLoadType: 'HRSS',
     thresholdPace: null,
     paceZones: [],
+    zoneConfiguration: {
+      paceDisplayUnit: 'PER_KM'
+    },
     warmupTime: 10,
     cooldownTime: 10,
     loadPreference: 'POWER_HR_PACE',
@@ -1408,6 +1558,17 @@
   const showConfirmModal = ref(false)
   const pendingDiffs = ref<any>({})
   const pendingDetectedProfile = ref<any>({})
+  const detectingSportId = ref<string | null>(null)
+  const showWorkoutDetectModal = ref(false)
+  const workoutDetectionResult = ref<any | null>(null)
+  const workoutDetectApply = ref({
+    ftp: false,
+    lthr: false,
+    maxHr: false,
+    thresholdPace: false,
+    recalculatePowerZones: true,
+    recalculateHrZones: true
+  })
 
   const availableSports = Object.keys(WORKOUT_ICONS).sort()
 
@@ -1466,6 +1627,23 @@
   const POWER_TARGET_FORMATS = ['percentFtp', 'zone', 'watts']
   const PACE_TARGET_FORMATS = ['percentPace', 'zone', 'absolutePace']
   const CADENCE_TARGET_FORMATS = ['none', 'rpm', 'rpmRange']
+  const PACE_ZONE_PCT = [0.78, 0.88, 0.95, 1.02, 1.08, 1.15]
+  const PACE_ZONE_NAMES = [
+    'Z1 Easy',
+    'Z2 Endurance',
+    'Z3 Tempo',
+    'Z4 Threshold',
+    'Z5 VO2',
+    'Z6 Fast'
+  ]
+  const PACE_DISPLAY_UNITS = [
+    { label: 'min/km', value: 'PER_KM' },
+    { label: 'min/mi', value: 'PER_MILE' },
+    { label: 'min/500m', value: 'PER_500M' },
+    { label: 'min/250m', value: 'PER_250M' }
+  ] as const
+
+  type PaceDisplayUnit = 'PER_KM' | 'PER_MILE' | 'PER_500M' | 'PER_250M'
 
   function openAddModal() {
     showAddModal.value = true
@@ -1485,6 +1663,11 @@
         recalculateZones('hr', 'add')
       }
     }
+    ensurePaceConfig(addForm.value)
+    addThresholdPaceInput.value = formatThresholdPaceForInput(
+      addForm.value.thresholdPace,
+      getPaceUnitForForm(addForm.value)
+    )
   }
 
   function startEdit(index: number, content: any) {
@@ -1496,6 +1679,7 @@
     if (!editForm.value.powerZones) editForm.value.powerZones = []
     if (!editForm.value.hrZones) editForm.value.hrZones = []
     if (!editForm.value.paceZones) editForm.value.paceZones = []
+    ensurePaceConfig(editForm.value)
     if (!editForm.value.targetPolicy || typeof editForm.value.targetPolicy !== 'object') {
       editForm.value.targetPolicy = {}
     }
@@ -1563,6 +1747,11 @@
       editForm.value.name = content.isDefault
         ? 'Default Profile'
         : content.types?.join(', ') || 'Sport Profile'
+
+    editThresholdPaceInput.value = formatThresholdPaceForInput(
+      editForm.value.thresholdPace,
+      getPaceUnitForForm(editForm.value)
+    )
   }
 
   function cancelEdit() {
@@ -1614,7 +1803,7 @@
     }
   }
 
-  function handleThresholdChange(type: 'power' | 'hr', mode: 'add' | 'edit') {
+  function handleThresholdChange(type: 'power' | 'hr' | 'pace', mode: 'add' | 'edit') {
     recalculateZones(type, mode)
   }
 
@@ -1690,46 +1879,162 @@
     ]
   }
 
-  function recalculateZones(type: 'power' | 'hr', mode: 'add' | 'edit') {
+  function paceUnitDistanceMeters(unit: PaceDisplayUnit) {
+    if (unit === 'PER_MILE') return 1609.344
+    if (unit === 'PER_500M') return 500
+    if (unit === 'PER_250M') return 250
+    return 1000
+  }
+
+  function ensurePaceConfig(form: any) {
+    if (!form.zoneConfiguration || typeof form.zoneConfiguration !== 'object') {
+      form.zoneConfiguration = {}
+    }
+    if (!form.zoneConfiguration.paceDisplayUnit) {
+      form.zoneConfiguration.paceDisplayUnit = 'PER_KM'
+    }
+  }
+
+  function getPaceUnitForForm(form: any): PaceDisplayUnit {
+    ensurePaceConfig(form)
+    return form.zoneConfiguration.paceDisplayUnit
+  }
+
+  function parsePaceTextToMps(value: string, unit: PaceDisplayUnit): number | null {
+    const raw = value.trim()
+    if (!raw) return null
+
+    let totalSeconds = NaN
+    if (raw.includes(':')) {
+      const [mRaw, sRaw] = raw.split(':')
+      const minutes = Number(mRaw)
+      const seconds = Number(sRaw)
+      if (Number.isFinite(minutes) && Number.isFinite(seconds) && minutes >= 0 && seconds >= 0) {
+        totalSeconds = minutes * 60 + seconds
+      }
+    } else {
+      totalSeconds = Number(raw)
+    }
+
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return null
+
+    const meters = paceUnitDistanceMeters(unit)
+    return meters / totalSeconds
+  }
+
+  function formatSecondsAsPace(totalSeconds: number) {
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '-'
+    const mins = Math.floor(totalSeconds / 60)
+    const secs = Math.round(totalSeconds % 60)
+    const normalizedMins = secs === 60 ? mins + 1 : mins
+    const normalizedSecs = secs === 60 ? 0 : secs
+    return `${normalizedMins}:${String(normalizedSecs).padStart(2, '0')}`
+  }
+
+  function formatThresholdPaceForInput(
+    metersPerSecond: number | null | undefined,
+    unit: PaceDisplayUnit
+  ) {
+    if (!metersPerSecond || metersPerSecond <= 0) return ''
+    const totalSeconds = paceUnitDistanceMeters(unit) / metersPerSecond
+    return formatSecondsAsPace(totalSeconds)
+  }
+
+  function formatThresholdPaceDisplay(sport: any) {
+    const mps = Number(sport?.thresholdPace || 0)
+    if (!mps) return '-'
+
+    const unit = (sport?.zoneConfiguration?.paceDisplayUnit || 'PER_KM') as PaceDisplayUnit
+    const suffixMap: Record<PaceDisplayUnit, string> = {
+      PER_KM: '/km',
+      PER_MILE: '/mi',
+      PER_500M: '/500m',
+      PER_250M: '/250m'
+    }
+
+    return `${formatThresholdPaceForInput(mps, unit)}${suffixMap[unit] || '/km'}`
+  }
+
+  function onThresholdPaceInputChange(mode: 'add' | 'edit', value: string) {
+    const form = mode === 'add' ? addForm.value : editForm.value
+    const unit = getPaceUnitForForm(form)
+    const parsed = parsePaceTextToMps(value || '', unit)
+
+    if (mode === 'add') addThresholdPaceInput.value = value || ''
+    else editThresholdPaceInput.value = value || ''
+
+    form.thresholdPace = parsed ? Number(parsed.toFixed(3)) : null
+  }
+
+  function onThresholdPaceUnitChange(mode: 'add' | 'edit', unit: PaceDisplayUnit) {
+    const form = mode === 'add' ? addForm.value : editForm.value
+    ensurePaceConfig(form)
+    form.zoneConfiguration.paceDisplayUnit = unit
+
+    const formatted = formatThresholdPaceForInput(form.thresholdPace, unit)
+    if (mode === 'add') addThresholdPaceInput.value = formatted
+    else editThresholdPaceInput.value = formatted
+  }
+
+  function buildPowerZonesFromFtp(ftp: number) {
+    const zones = POWER_PCT.map((pct, i) => {
+      const prevPct = i === 0 ? 0 : (POWER_PCT[i - 1] ?? 0)
+      return {
+        name: POWER_NAMES[i],
+        min: Math.round(ftp * prevPct) + (i === 0 ? 0 : 1),
+        max: pct > 5 ? 2000 : Math.round(ftp * pct)
+      }
+    })
+
+    if (SS_PCT.length >= 2) {
+      zones.push({
+        name: 'SS Sweet Spot',
+        min: Math.round(ftp * (SS_PCT[0] ?? 0)),
+        max: Math.round(ftp * (SS_PCT[1] ?? 0))
+      })
+    }
+
+    return zones
+  }
+
+  function buildHrZonesFromThreshold(lthr?: number | null, maxHrInput?: number | null) {
+    const threshold = lthr || (maxHrInput ? Math.round(maxHrInput * 0.85) : 160)
+    const maxHr = maxHrInput || Math.round(threshold * 1.1)
+
+    return HR_PCT.map((pct, i) => {
+      const prevPct = i === 0 ? 0 : (HR_PCT[i - 1] ?? 0)
+      return {
+        name: HR_NAMES[i],
+        min: Math.round(threshold * prevPct) + (i === 0 ? 0 : 1),
+        max: i === HR_PCT.length - 1 ? maxHr : Math.round(threshold * pct)
+      }
+    })
+  }
+
+  function buildPaceZonesFromThreshold(thresholdPace: number) {
+    return PACE_ZONE_PCT.map((pct, i) => {
+      const prevPct = i === 0 ? 0.6 : (PACE_ZONE_PCT[i - 1] ?? 0.6)
+      return {
+        name: PACE_ZONE_NAMES[i],
+        min: Number((thresholdPace * prevPct).toFixed(2)),
+        max: Number((thresholdPace * pct).toFixed(2))
+      }
+    })
+  }
+
+  function recalculateZones(type: 'power' | 'hr' | 'pace', mode: 'add' | 'edit') {
     const form = mode === 'add' ? addForm.value : editForm.value
 
     if (type === 'power' && form.ftp) {
-      const ftp = form.ftp
-      const zones = POWER_PCT.map((pct, i) => {
-        const prevPct = i === 0 ? 0 : (POWER_PCT[i - 1] ?? 0)
-        return {
-          name: POWER_NAMES[i],
-          min: Math.round(ftp * prevPct) + (i === 0 ? 0 : 1),
-          max: pct > 5 ? 2000 : Math.round(ftp * pct)
-        }
-      })
-
-      // Add Sweet Spot
-      if (SS_PCT.length >= 2) {
-        zones.push({
-          name: 'SS Sweet Spot',
-          min: Math.round(ftp * (SS_PCT[0] ?? 0)),
-          max: Math.round(ftp * (SS_PCT[1] ?? 0))
-        })
-      }
-
-      form.powerZones = zones
+      form.powerZones = buildPowerZonesFromFtp(form.ftp)
     }
 
     if (type === 'hr' && (form.lthr || form.maxHr)) {
-      const threshold = form.lthr || (form.maxHr ? Math.round(form.maxHr * 0.85) : 160)
-      const maxHr = form.maxHr || Math.round(threshold * 1.1)
+      form.hrZones = buildHrZonesFromThreshold(form.lthr, form.maxHr)
+    }
 
-      const zones = HR_PCT.map((pct, i) => {
-        const prevPct = i === 0 ? 0 : (HR_PCT[i - 1] ?? 0)
-        return {
-          name: HR_NAMES[i],
-          min: Math.round(threshold * prevPct) + (i === 0 ? 0 : 1),
-          max: i === HR_PCT.length - 1 ? maxHr : Math.round(threshold * pct)
-        }
-      })
-
-      form.hrZones = zones
+    if (type === 'pace' && form.thresholdPace) {
+      form.paceZones = buildPaceZonesFromThreshold(form.thresholdPace)
     }
   }
 
@@ -1766,6 +2071,9 @@
       hrLoadType: 'HRSS',
       thresholdPace: null,
       paceZones: [],
+      zoneConfiguration: {
+        paceDisplayUnit: 'PER_KM'
+      },
       warmupTime: 10,
       cooldownTime: 10,
       loadPreference: 'POWER_HR_PACE',
@@ -1796,14 +2104,6 @@
     if (types.some((t) => t.toLowerCase().includes('ride'))) return 'i-lucide-bike'
     if (types.some((t) => t.toLowerCase().includes('swim'))) return 'i-lucide-waves'
     return 'i-lucide-settings-2'
-  }
-
-  function formatPace(metersPerSecond: number) {
-    if (!metersPerSecond) return '-'
-    const secondsPerKm = 1000 / metersPerSecond
-    const mins = Math.floor(secondsPerKm / 60)
-    const secs = Math.round(secondsPerKm % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   function derivePrimaryMetric(loadPreference?: string): string {
@@ -1847,6 +2147,161 @@
     if (mode === 'none') return 'None'
     if (mode === 'rpmRange') return 'RPM Range'
     return 'RPM'
+  }
+
+  function formatDetectedMetricValue(metric: string, value: number | null | undefined) {
+    if (value === null || value === undefined) return '-'
+    if (metric === 'ftp') return `${Math.round(value)}W`
+    if (metric === 'lthr' || metric === 'maxHr') return `${Math.round(value)} bpm`
+    if (metric === 'thresholdPace') {
+      const detectUnit =
+        (workoutDetectionResult.value?.sportSetting?.paceDisplayUnit as PaceDisplayUnit) || 'PER_KM'
+      const suffixMap: Record<PaceDisplayUnit, string> = {
+        PER_KM: '/km',
+        PER_MILE: '/mi',
+        PER_500M: '/500m',
+        PER_250M: '/250m'
+      }
+      return `${formatThresholdPaceForInput(value, detectUnit)}${suffixMap[detectUnit] || '/km'}`
+    }
+    return String(value)
+  }
+
+  function canApplyDetection(metric: 'ftp' | 'lthr' | 'maxHr' | 'thresholdPace') {
+    return Boolean(workoutDetectionResult.value?.detections?.[metric]?.detected)
+  }
+
+  function formatDetectedDelta(metric: 'ftp' | 'lthr' | 'maxHr' | 'thresholdPace') {
+    const d = workoutDetectionResult.value?.detections?.[metric]
+    if (!d) return 'No data'
+
+    if (!d.available) return d.reason || 'No suitable data found.'
+
+    const oldText = formatDetectedMetricValue(metric, d.oldValue)
+    const newText = formatDetectedMetricValue(metric, d.newValue)
+    const confidence =
+      typeof d.confidence === 'number' ? ` (${Math.round(d.confidence * 100)}% confidence)` : ''
+
+    if (!d.detected) {
+      if (d.reason) return d.reason
+      return `No improvement detected: ${oldText} -> ${newText}${confidence}`
+    }
+
+    return `${oldText} -> ${newText}${confidence}`
+  }
+
+  async function detectFromWorkouts(sport: any) {
+    if (!sport?.id) {
+      toast.add({
+        title: 'Save Profile First',
+        description: 'Save this sport profile before running workout-based detection.',
+        color: 'warning'
+      })
+      return
+    }
+
+    detectingSportId.value = sport.id
+    try {
+      const result: any = await $fetch(
+        `/api/profile/sport-settings/${sport.id}/detect-from-workouts`,
+        {
+          method: 'POST'
+        }
+      )
+
+      workoutDetectionResult.value = result
+      workoutDetectApply.value = {
+        ftp: Boolean(result?.detections?.ftp?.detected),
+        lthr: Boolean(result?.detections?.lthr?.detected),
+        maxHr: Boolean(result?.detections?.maxHr?.detected),
+        thresholdPace: Boolean(result?.detections?.thresholdPace?.detected),
+        recalculatePowerZones: true,
+        recalculateHrZones: true
+      }
+      showWorkoutDetectModal.value = true
+
+      if (!result?.detectedAny) {
+        toast.add({
+          title: 'No Updates Found',
+          description:
+            'No stronger workout-derived thresholds were detected in the lookback window.',
+          color: 'neutral'
+        })
+      }
+    } catch (error: any) {
+      toast.add({
+        title: 'Detection Failed',
+        description: error.message || 'Could not detect thresholds from workouts.',
+        color: 'error'
+      })
+    } finally {
+      detectingSportId.value = null
+    }
+  }
+
+  function applyWorkoutDetection() {
+    const result = workoutDetectionResult.value
+    if (!result?.sportSetting?.id) return
+
+    const detections = result.detections || {}
+    let appliedAny = false
+
+    const newSettings = props.settings.map((setting) => {
+      if (setting.id !== result.sportSetting.id) return setting
+
+      const updated = { ...setting }
+
+      if (workoutDetectApply.value.ftp && detections.ftp?.detected && detections.ftp?.newValue) {
+        updated.ftp = detections.ftp.newValue
+        appliedAny = true
+      }
+      if (workoutDetectApply.value.lthr && detections.lthr?.detected && detections.lthr?.newValue) {
+        updated.lthr = detections.lthr.newValue
+        appliedAny = true
+      }
+      if (
+        workoutDetectApply.value.maxHr &&
+        detections.maxHr?.detected &&
+        detections.maxHr?.newValue
+      ) {
+        updated.maxHr = detections.maxHr.newValue
+        appliedAny = true
+      }
+      if (
+        workoutDetectApply.value.thresholdPace &&
+        detections.thresholdPace?.detected &&
+        detections.thresholdPace?.newValue
+      ) {
+        updated.thresholdPace = detections.thresholdPace.newValue
+        appliedAny = true
+      }
+
+      if (workoutDetectApply.value.recalculatePowerZones && updated.ftp) {
+        updated.powerZones = buildPowerZonesFromFtp(updated.ftp)
+      }
+      if (workoutDetectApply.value.recalculateHrZones && (updated.lthr || updated.maxHr)) {
+        updated.hrZones = buildHrZonesFromThreshold(updated.lthr, updated.maxHr)
+      }
+
+      return updated
+    })
+
+    if (!appliedAny) {
+      toast.add({
+        title: 'Nothing Applied',
+        description: 'No detected updates were selected.',
+        color: 'warning'
+      })
+      return
+    }
+
+    emit('update:settings', newSettings)
+    showWorkoutDetectModal.value = false
+    toast.add({
+      title: 'Detected Updates Applied',
+      description: 'Sport profile thresholds were updated from workout-derived detections.',
+      color: 'success'
+    })
   }
 
   async function autodetectProfile() {
