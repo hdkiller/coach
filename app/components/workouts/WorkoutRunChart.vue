@@ -86,6 +86,21 @@
       <!-- Step breakdown -->
       <div class="space-y-2">
         <h4 class="text-sm font-semibold text-muted">Workout Steps</h4>
+        <div
+          class="hidden sm:grid items-center gap-4 px-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+          :style="{ gridTemplateColumns: stepTableGridTemplate }"
+        >
+          <div />
+          <div>Step</div>
+          <div
+            v-for="column in stepTableColumns"
+            :key="column.key"
+            class="text-center"
+            :class="{ 'text-right': column.align === 'right' }"
+          >
+            {{ column.label }}
+          </div>
+        </div>
         <div class="space-y-1">
           <div
             v-for="(step, index) in normalizedSteps"
@@ -102,39 +117,63 @@
                   />
                   <span class="text-sm font-medium truncate">{{ step.name }}</span>
                 </div>
-                <div class="text-xs font-mono text-muted flex-shrink-0">
+                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0">
                   {{ formatDuration(step.durationSeconds || step.duration || 0) }}
                 </div>
               </div>
+              <div
+                v-if="getStepEstimatedDistanceLabel(step)"
+                class="text-[10px] leading-tight text-muted pl-5"
+              >
+                {{ getStepEstimatedDistanceLabel(step) }}
+              </div>
 
-              <div class="flex items-center justify-between text-xs pl-5">
-                <div class="text-muted">{{ step.type }}</div>
-
-                <div class="flex items-center text-right">
-                  <!-- Zone -->
-                  <div
-                    class="w-8 text-center font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0"
-                  >
-                    {{ getZoneName(getStepIntensity(step)) }}
-                  </div>
-
-                  <!-- Cadence -->
-                  <div class="w-16 text-blue-500 flex-shrink-0">
-                    <span v-if="step.cadence">{{ step.cadence }} spm</span>
-                    <span v-else class="opacity-0">-</span>
-                  </div>
-
-                  <!-- Intensity % -->
-                  <div class="w-24 font-bold flex-shrink-0">
-                    {{ getStepIntensityLabel(step) }}
-                  </div>
+              <div class="flex flex-wrap items-center gap-2 text-xs pl-5">
+                <span class="text-muted">{{ step.type }}</span>
+                <span
+                  v-if="showDistanceColumn && hasDistance(step)"
+                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                >
+                  {{ formatDistance(step.distance) }}
+                </span>
+                <span
+                  v-if="showPowerColumn && hasMetricTarget(step.power)"
+                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                >
+                  {{ getPowerLabel(step) }}
+                </span>
+                <span
+                  v-if="showHrColumn && hasMetricTarget(step.heartRate)"
+                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                >
+                  {{ getHrZoneLabel(step) }}
+                </span>
+                <span
+                  v-if="showPaceColumn && hasMetricTarget(step.pace)"
+                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                >
+                  {{ getPaceLabel(step) }}
+                </span>
+                <span
+                  v-if="showCadenceColumn && step.cadence"
+                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-blue-500"
+                >
+                  {{ step.cadence }} SPM
+                </span>
+                <div
+                  v-if="showHrColumn && hasMetricTarget(step.heartRate) && getStepBpmLabel(step)"
+                  class="basis-full text-[10px] leading-tight text-muted"
+                >
+                  {{ getStepBpmLabel(step) }}
                 </div>
               </div>
             </div>
 
             <!-- Desktop View -->
-            <!-- Desktop View -->
-            <div class="hidden sm:grid grid-cols-[12px_1fr_54px_80px_140px] items-center gap-4">
+            <div
+              class="hidden sm:grid items-center gap-4"
+              :style="{ gridTemplateColumns: stepTableGridTemplate }"
+            >
               <div
                 class="w-3 h-3 rounded-full flex-shrink-0 mt-1"
                 :style="{ backgroundColor: getStepColor(getStepIntensity(step)) }"
@@ -143,21 +182,58 @@
                 <div class="text-sm font-medium truncate">{{ step.name }}</div>
                 <div class="text-xs text-muted">{{ step.type }}</div>
               </div>
-              <div class="text-center text-sm font-bold text-gray-500 dark:text-gray-400">
-                {{ getZoneName(getStepIntensity(step)) }}
-              </div>
-              <div class="text-sm text-blue-500 font-semibold text-center whitespace-nowrap">
-                <!-- Placeholder for pace or cadence if available -->
-                <span v-if="step.cadence">{{ step.cadence }} SPM</span>
-                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
-              </div>
-              <div class="text-right">
-                <div class="text-sm font-bold whitespace-nowrap">
-                  {{ getStepIntensityLabel(step) }}
-                </div>
-                <div class="text-[10px] text-muted">
+              <div class="text-center">
+                <div
+                  class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap"
+                >
                   {{ formatDuration(step.durationSeconds || step.duration || 0) }}
                 </div>
+                <div
+                  v-if="getStepEstimatedDistanceLabel(step)"
+                  class="text-[10px] text-muted whitespace-nowrap"
+                >
+                  {{ getStepEstimatedDistanceLabel(step) }}
+                </div>
+              </div>
+              <div
+                v-if="showDistanceColumn"
+                class="text-center text-sm text-muted whitespace-nowrap"
+              >
+                <span v-if="hasDistance(step)">{{ formatDistance(step.distance) }}</span>
+                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+              </div>
+              <div
+                v-if="showPowerColumn"
+                class="text-center text-sm font-semibold whitespace-nowrap"
+              >
+                <span v-if="hasMetricTarget(step.power)">{{ getPowerLabel(step) }}</span>
+                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+              </div>
+              <div v-if="showHrColumn" class="text-center">
+                <div class="text-sm font-semibold whitespace-nowrap">
+                  <span v-if="hasMetricTarget(step.heartRate)">{{ getHrZoneLabel(step) }}</span>
+                  <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+                </div>
+                <div
+                  v-if="hasMetricTarget(step.heartRate) && getStepBpmLabel(step)"
+                  class="text-[10px] text-muted whitespace-nowrap"
+                >
+                  {{ getStepBpmLabel(step) }}
+                </div>
+              </div>
+              <div
+                v-if="showPaceColumn"
+                class="text-center text-sm font-semibold whitespace-nowrap"
+              >
+                <span v-if="hasMetricTarget(step.pace)">{{ getPaceLabel(step) }}</span>
+                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+              </div>
+              <div
+                v-if="showCadenceColumn"
+                class="text-sm text-blue-500 font-semibold text-center whitespace-nowrap"
+              >
+                <span v-if="step.cadence">{{ step.cadence }} SPM</span>
+                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
               </div>
             </div>
           </div>
@@ -235,6 +311,39 @@
       (sum: number, step: any) => sum + (step.durationSeconds || step.duration || 0),
       0
     )
+  })
+
+  const showDistanceColumn = computed(() =>
+    normalizedSteps.value.some((step: any) => hasDistance(step))
+  )
+  const showPowerColumn = computed(() =>
+    normalizedSteps.value.some((step: any) => hasMetricTarget(step.power))
+  )
+  const showHrColumn = computed(() =>
+    normalizedSteps.value.some((step: any) => hasMetricTarget(step.heartRate))
+  )
+  const showPaceColumn = computed(() =>
+    normalizedSteps.value.some((step: any) => hasMetricTarget(step.pace))
+  )
+  const showCadenceColumn = computed(() =>
+    normalizedSteps.value.some((step: any) => Number(step.cadence) > 0)
+  )
+
+  const stepTableColumns = computed(() => {
+    const columns: Array<{ key: string; label: string; width: string; align?: 'left' | 'right' }> =
+      [{ key: 'duration', label: 'Duration', width: '72px' }]
+    if (showDistanceColumn.value)
+      columns.push({ key: 'distance', label: 'Distance', width: '80px' })
+    if (showPowerColumn.value) columns.push({ key: 'power', label: 'Power', width: '120px' })
+    if (showHrColumn.value) columns.push({ key: 'hr', label: 'HR', width: '140px' })
+    if (showPaceColumn.value) columns.push({ key: 'pace', label: 'Pace', width: '120px' })
+    if (showCadenceColumn.value) columns.push({ key: 'cadence', label: 'Cadence', width: '90px' })
+    return columns
+  })
+
+  const stepTableGridTemplate = computed(() => {
+    const widths = ['12px', 'minmax(0, 1fr)', ...stepTableColumns.value.map((col) => col.width)]
+    return widths.join(' ')
   })
 
   const chartMaxPower = computed(() => {
@@ -382,7 +491,9 @@
 
   function normalizeTarget(
     target: any
-  ): { value?: number; range?: { start: number; end: number }; ramp?: boolean } | undefined {
+  ):
+    | { value?: number; range?: { start: number; end: number }; ramp?: boolean; units?: string }
+    | undefined {
     if (target === null || target === undefined) return undefined
 
     if (Array.isArray(target)) {
@@ -408,7 +519,8 @@
             start: Number(start) || 0,
             end: Number(end) || 0
           },
-          ramp: target.ramp
+          ramp: target.ramp,
+          units: typeof target.units === 'string' ? target.units : undefined
         }
       }
       if (target.start !== undefined && target.end !== undefined) {
@@ -417,11 +529,15 @@
             start: Number(target.start) || 0,
             end: Number(target.end) || 0
           },
-          ramp: target.ramp
+          ramp: target.ramp,
+          units: typeof target.units === 'string' ? target.units : undefined
         }
       }
       if (target.value !== undefined) {
-        return { value: Number(target.value) || 0 }
+        return {
+          value: Number(target.value) || 0,
+          units: typeof target.units === 'string' ? target.units : undefined
+        }
       }
     }
 
@@ -475,6 +591,105 @@
     return null
   }
 
+  function parsePaceToMps(value: number, units?: string): number | null {
+    if (!Number.isFinite(value) || value <= 0) return null
+    const normalizedUnits = String(units || '')
+      .trim()
+      .toLowerCase()
+
+    if (normalizedUnits.includes('/km')) {
+      const secondsPerKm = value * 60
+      return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+    }
+    if (normalizedUnits === 'm/s') return value
+    if (value > 2.5 && value < 8) return value
+    return null
+  }
+
+  function estimateStepSpeedMps(step: any): number {
+    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
+    const lthr = Number(props.sportSettings?.lthr || 0)
+    const ftp = Number(props.sportSettings?.ftp || 0)
+
+    const paceMid = getTargetValue(step.pace)
+    if (paceMid !== undefined) {
+      const paceMps = parsePaceToMps(paceMid, step.pace?.units)
+      if (paceMps) return paceMps
+      if (thresholdPace > 0) {
+        const factor = paceMid > 3 ? paceMid / thresholdPace : paceMid
+        return Math.max(1.4, Math.min(7.5, factor * thresholdPace))
+      }
+    }
+
+    const hrMid = getTargetValue(normalizeMetricTarget(step.heartRate, 'hr'))
+    if (hrMid !== undefined && thresholdPace > 0) {
+      let factor = hrMid
+      const hrUnits = String(step.heartRate?.units || '')
+        .trim()
+        .toLowerCase()
+      if (hrUnits === 'bpm' && lthr > 0) factor = hrMid / lthr
+      return Math.max(1.4, Math.min(7.5, Math.max(0.5, Math.min(1.3, factor)) * thresholdPace))
+    }
+
+    const powerMid = getTargetValue(step.power)
+    if (powerMid !== undefined && thresholdPace > 0) {
+      const units = String(step.power?.units || '')
+        .trim()
+        .toLowerCase()
+      let factor = powerMid
+      if ((units === 'w' || units === 'watts') && ftp > 0) factor = powerMid / ftp
+      else if (powerMid > 3) factor = powerMid / 100
+      return Math.max(1.4, Math.min(7.5, Math.max(0.5, Math.min(1.4, factor)) * thresholdPace))
+    }
+
+    return step.type === 'Rest' ? 2.2 : 2.7
+  }
+
+  function getStepEstimatedDistanceLabel(step: any): string | null {
+    if (hasDistance(step)) return null
+    const durationSec = Number(step.durationSeconds || step.duration || 0)
+    if (!Number.isFinite(durationSec) || durationSec <= 0) return null
+    const meters = Math.max(0, Math.round(durationSec * estimateStepSpeedMps(step)))
+    if (meters <= 0) return null
+    return `~${formatDistance(meters)} est.`
+  }
+
+  function hasMetricTarget(target: any): boolean {
+    const normalized = normalizeTarget(target)
+    if (!normalized) return false
+    if (typeof normalized.value === 'number') return true
+    return Boolean(normalized.range)
+  }
+
+  function hasDistance(step: any): boolean {
+    return Number(step?.distance) > 0
+  }
+
+  function formatDistance(distance: number): string {
+    const meters = Number(distance || 0)
+    if (!Number.isFinite(meters) || meters <= 0) return '-'
+    if (meters >= 1000) {
+      if (meters % 1000 === 0) return `${meters / 1000} km`
+      return `${(meters / 1000).toFixed(1)} km`
+    }
+    return `${Math.round(meters)} m`
+  }
+
+  function getPowerLabel(step: any): string {
+    return formatTargetLabel(step.power, 'power') || '-'
+  }
+
+  function getPaceLabel(step: any): string {
+    return formatTargetLabel(step.pace, 'pace') || '-'
+  }
+
+  function getHrZoneLabel(step: any): string {
+    const normalized = normalizeMetricTarget(step.heartRate, 'hr')
+    const value = getTargetValue(normalized)
+    if (value === undefined) return '-'
+    return `${getZoneName(value)} HR`
+  }
+
   function getStepIntensityLabel(step: any): string {
     const targetByMetric: Record<'hr' | 'power' | 'pace', any> = {
       hr: step.heartRate,
@@ -497,6 +712,22 @@
     const preferenceUnit =
       props.preference === 'hr' ? 'LTHR' : props.preference === 'pace' ? 'Pace' : 'FTP'
     return `${Math.round(getInferredIntensity(step) * 100)}% ${preferenceUnit}`
+  }
+
+  function getStepBpmLabel(step: any): string | null {
+    const normalized = normalizeMetricTarget(step.heartRate, 'hr')
+    if (!normalized) return null
+
+    const reference = getHeartRateReference()
+    if (normalized.range) {
+      const low = Math.round(normalized.range.start * reference)
+      const high = Math.round(normalized.range.end * reference)
+      return `${low}-${high} bpm`
+    }
+    if (typeof normalized.value === 'number') {
+      return `${Math.round(normalized.value * reference)} bpm`
+    }
+    return null
   }
 
   function getStepIntensity(step: any): number {

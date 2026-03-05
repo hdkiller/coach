@@ -9,6 +9,15 @@
           size="sm"
           color="neutral"
           variant="ghost"
+          icon="i-heroicons-eye"
+          @click="$emit('view')"
+        >
+          View
+        </UButton>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="ghost"
           icon="i-heroicons-adjustments-horizontal"
           @click="$emit('adjust')"
         >
@@ -61,7 +70,7 @@
     generating?: boolean
   }>()
 
-  defineEmits(['adjust', 'regenerate'])
+  defineEmits(['view', 'adjust', 'regenerate'])
 
   const hasStructure = computed(() => !!props.workout.structuredWorkout?.steps?.length)
 
@@ -96,6 +105,83 @@
     return getPreferredMetric(props.sportSettings, availability)
   })
 
+  function getTargetMidpoint(target: any): number | null {
+    if (!target) return null
+    if (typeof target.value === 'number') return target.value
+    if (
+      target.range &&
+      typeof target.range.start === 'number' &&
+      typeof target.range.end === 'number'
+    ) {
+      return (target.range.start + target.range.end) / 2
+    }
+    return null
+  }
+
+  function parsePaceToMps(value: number, units?: string): number | null {
+    if (!Number.isFinite(value) || value <= 0) return null
+    const normalizedUnits = String(units || '')
+      .trim()
+      .toLowerCase()
+
+    if (normalizedUnits.includes('/km')) {
+      const secondsPerKm = value * 60
+      return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+    }
+
+    if (normalizedUnits === 'm/s') return value
+
+    // If no explicit unit and value is already in realistic speed range, treat as m/s
+    if (value > 2.5 && value < 8) return value
+
+    return null
+  }
+
+  function clamp(n: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, n))
+  }
+
+  function estimateStepSpeedMps(step: any): number {
+    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
+    const lthr = Number(props.sportSettings?.lthr || 0)
+    const ftp = Number(props.sportSettings?.ftp || 0)
+
+    const paceMid = getTargetMidpoint(step.pace)
+    if (paceMid !== null) {
+      const explicitMps = parsePaceToMps(paceMid, step.pace?.units)
+      if (explicitMps) return explicitMps
+      if (thresholdPace > 0) {
+        const factor = paceMid > 3 ? paceMid / thresholdPace : paceMid
+        return clamp(factor, 0.5, 1.5) * thresholdPace
+      }
+    }
+
+    const hrMid = getTargetMidpoint(step.heartRate)
+    if (hrMid !== null && thresholdPace > 0) {
+      const units = String(step.heartRate?.units || '')
+        .trim()
+        .toLowerCase()
+      let factor = hrMid
+      if (units === 'bpm' && lthr > 0) factor = hrMid / lthr
+      else if (hrMid > 2) factor = hrMid / 100
+      return clamp(factor, 0.5, 1.3) * thresholdPace
+    }
+
+    const powerMid = getTargetMidpoint(step.power)
+    if (powerMid !== null && thresholdPace > 0) {
+      const units = String(step.power?.units || '')
+        .trim()
+        .toLowerCase()
+      let factor = powerMid
+      if ((units === 'w' || units === 'watts') && ftp > 0) factor = powerMid / ftp
+      else if (powerMid > 3) factor = powerMid / 100
+      return clamp(factor, 0.5, 1.4) * thresholdPace
+    }
+
+    // Generic fallback (~6:10 min/km)
+    return 2.7
+  }
+
   const totalDistance = computed(() => {
     if (!props.workout.structuredWorkout?.steps) return 0
 
@@ -107,7 +193,18 @@
         if (step.steps && Array.isArray(step.steps) && step.steps.length > 0) {
           stepDist = calculateRecursiveDistance(step.steps)
         } else {
-          stepDist = Number(step.distance) || 0
+          const explicitDistance = Number(step.distance) || 0
+          if (explicitDistance > 0) {
+            stepDist = explicitDistance
+          } else {
+            const durationSec = Number(step.durationSeconds || step.duration || 0)
+            if (durationSec > 0) {
+              const speedMps = estimateStepSpeedMps(step)
+              stepDist = Math.max(0, Math.round(durationSec * speedMps))
+            } else {
+              stepDist = 0
+            }
+          }
         }
 
         return sum + stepDist * reps

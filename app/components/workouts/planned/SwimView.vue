@@ -9,6 +9,15 @@
           size="sm"
           color="neutral"
           variant="ghost"
+          icon="i-heroicons-eye"
+          @click="$emit('view')"
+        >
+          View
+        </UButton>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="ghost"
           icon="i-heroicons-adjustments-horizontal"
           @click="$emit('adjust')"
         >
@@ -61,7 +70,7 @@
     generating?: boolean
   }>()
 
-  defineEmits(['adjust', 'regenerate'])
+  defineEmits(['view', 'adjust', 'regenerate'])
 
   function formatDuration(seconds: number) {
     const mins = Math.floor(seconds / 60)
