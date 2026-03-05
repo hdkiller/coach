@@ -1071,7 +1071,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           exercises: (workout.structuredWorkout as any).exercises,
           messages: (workout.structuredWorkout as any).messages || [],
           ftp: (workout.user as any).ftp || 250,
-          sportSettings: sportSettings || undefined
+          sportSettings: sportSettings || undefined,
+          generationSettingsSnapshot:
+            workout.lastGenerationSettingsSnapshot || workout.createdFromSettingsSnapshot || null
         }
         workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
       }

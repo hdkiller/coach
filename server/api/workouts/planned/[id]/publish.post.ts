@@ -74,7 +74,11 @@ export default defineEventHandler(async (event) => {
       exercises: (workout.structuredWorkout as any).exercises, // Add this
       messages: (workout.structuredWorkout as any).messages || [],
       ftp: (workout.user as any).ftp || 250,
-      sportSettings: sportSettings || undefined
+      sportSettings: sportSettings || undefined,
+      generationSettingsSnapshot:
+        (workout as any).lastGenerationSettingsSnapshot ||
+        (workout as any).createdFromSettingsSnapshot ||
+        null
     }
     workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
   }
