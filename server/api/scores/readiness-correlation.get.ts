@@ -4,6 +4,7 @@ import { getServerSession } from '../../utils/session'
 import { subDays, format, isSameDay } from 'date-fns'
 import { prisma } from '../../utils/db'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 defineRouteMeta({
   openAPI: {
@@ -15,6 +16,11 @@ defineRouteMeta({
         name: 'days',
         in: 'query',
         schema: { type: ['integer', 'string'], default: 30 }
+      },
+      {
+        name: 'tags',
+        in: 'query',
+        schema: { type: 'string' }
       }
     ],
     responses: {
@@ -61,6 +67,7 @@ export default defineEventHandler(async (event) => {
 
   const userId = user.id
   const query = getQuery(event)
+  const tags = parseTagQueryParam(query.tags)
 
   const now = new Date()
   let startDate = new Date()
@@ -77,6 +84,7 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate: now,
+    tags,
     includeDuplicates: false
   })
 

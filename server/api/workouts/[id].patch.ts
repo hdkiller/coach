@@ -3,6 +3,11 @@ import { getServerSession } from '../../utils/session'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
+import {
+  hasProtectedIntervalsTags,
+  mergeWorkoutTags,
+  normalizeTagList
+} from '../../utils/workout-tags'
 
 const patchSchema = z.object({
   title: z.string().optional(),
@@ -14,7 +19,10 @@ const patchSchema = z.object({
   trainingLoad: z.number().optional().nullable(),
   tss: z.number().optional().nullable(),
   calories: z.number().int().optional().nullable(),
-  elevationGain: z.number().int().optional().nullable()
+  elevationGain: z.number().int().optional().nullable(),
+  addTags: z.array(z.string()).optional(),
+  removeTags: z.array(z.string()).optional(),
+  setLocalTags: z.array(z.string()).optional()
 })
 
 defineRouteMeta({
@@ -46,7 +54,10 @@ defineRouteMeta({
               trainingLoad: { type: 'number', nullable: true },
               tss: { type: 'number', nullable: true },
               calories: { type: 'integer', nullable: true },
-              elevationGain: { type: 'integer', nullable: true }
+              elevationGain: { type: 'integer', nullable: true },
+              addTags: { type: 'array', items: { type: 'string' } },
+              removeTags: { type: 'array', items: { type: 'string' } },
+              setLocalTags: { type: 'array', items: { type: 'string' } }
             }
           }
         }
@@ -105,7 +116,10 @@ export default defineEventHandler(async (event) => {
     trainingLoad,
     tss,
     calories,
-    elevationGain
+    elevationGain,
+    addTags,
+    removeTags,
+    setLocalTags
   } = body
 
   // Ensure workout belongs to user
@@ -129,6 +143,31 @@ export default defineEventHandler(async (event) => {
   if (tss !== undefined) updateData.tss = tss
   if (calories !== undefined) updateData.calories = calories
   if (elevationGain !== undefined) updateData.elevationGain = elevationGain
+
+  if (hasProtectedIntervalsTags(addTags) || hasProtectedIntervalsTags(removeTags)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Intervals tags are read-only. Only local tags can be edited.'
+    })
+  }
+
+  if (
+    setLocalTags &&
+    normalizeTagList(setLocalTags, 'mixed').some((tag) => tag.startsWith('icu:'))
+  ) {
+    throw createError({
+      statusCode: 400,
+      message: 'Intervals tags are read-only. setLocalTags must not include icu: tags.'
+    })
+  }
+
+  if (addTags !== undefined || removeTags !== undefined || setLocalTags !== undefined) {
+    updateData.tags = mergeWorkoutTags((workout.tags as string[]) || [], {
+      addLocalTags: addTags,
+      removeTags,
+      setLocalTags
+    })
+  }
 
   if (Object.keys(updateData).length === 0) {
     return { success: true, workout }

@@ -190,6 +190,7 @@
   const props = defineProps<{
     months?: number | string
     sport?: string
+    tags?: string[]
     settings?: any
   }>()
 
@@ -217,7 +218,8 @@
       const data = await $fetch('/api/performance/ftp-evolution', {
         query: {
           months: props.months || 12,
-          sport: props.sport
+          sport: props.sport,
+          tags: props.tags?.join(',')
         }
       })
       ftpData.value = data
@@ -406,7 +408,7 @@
 
   // Watch for prop changes
   watch(
-    () => [props.months, props.sport],
+    () => [props.months, props.sport, props.tags?.join(',')],
     () => {
       fetchFTPData()
     }

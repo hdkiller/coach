@@ -308,7 +308,7 @@
               }"
               class="bg-gray-50/50 dark:bg-gray-900/40 border-dashed border-gray-200 dark:border-gray-800"
             >
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
                 <USelect
                   v-model="filterType"
                   :items="activityTypeOptions"
@@ -329,6 +329,20 @@
                   v-model="filterSource"
                   :items="sourceOptions"
                   placeholder="Filter Source"
+                  size="sm"
+                  color="neutral"
+                  variant="outline"
+                />
+                <USelectMenu
+                  v-if="tagOptions.length > 0"
+                  v-model="selectedWorkoutTags"
+                  :items="tagOptions"
+                  value-key="value"
+                  label-key="label"
+                  multiple
+                  searchable
+                  clear
+                  placeholder="Filter Tags"
                   size="sm"
                   color="neutral"
                   variant="outline"
@@ -656,6 +670,7 @@
   const filterType = ref<string | undefined>(undefined)
   const filterAnalysis = ref<string | undefined>(undefined)
   const filterSource = ref<string | undefined>(undefined)
+  const selectedWorkoutTags = ref<string[]>([])
 
   // Filter options
   const activityTypeOptions = [
@@ -682,6 +697,16 @@
     { label: 'Garmin', value: 'garmin' }
   ]
 
+  const { data: workoutTagsData } =
+    await useFetch<Array<{ value: string; count: number }>>('/api/workouts/tags')
+
+  const tagOptions = computed(() =>
+    (workoutTagsData.value || []).map((tag) => ({
+      label: `${tag.value} (${tag.count})`,
+      value: tag.value
+    }))
+  )
+
   // Fetch all workouts
   async function fetchWorkouts() {
     loading.value = true
@@ -689,7 +714,10 @@
       // Fetch up to 1000 workouts for better history in charts
       // The payload is now optimized (COACH-WATTS-7) so this is safe
       const workouts = await $fetch('/api/workouts', {
-        query: { limit: 1000 }
+        query: {
+          limit: 1000,
+          tags: selectedWorkoutTags.value.join(',') || undefined
+        }
       })
       allWorkouts.value = workouts
     } catch (error) {
@@ -1009,7 +1037,10 @@
   const { data: workoutTrendsData, pending: workoutTrendsLoading } = await useFetch(
     '/api/scores/workout-trends',
     {
-      query: { days: selectedPeriod }
+      query: computed(() => ({
+        days: selectedPeriod.value,
+        tags: selectedWorkoutTags.value.join(',') || undefined
+      }))
     }
   )
 
@@ -1077,6 +1108,12 @@
       color: color as any
     }
     showModal.value = true
+
+    if (selectedWorkoutTags.value.length > 0) {
+      modalData.value.explanation =
+        'Detailed AI insights are currently unavailable for tag-filtered subsets.'
+      return
+    }
 
     try {
       const response: any = await $fetch('/api/scores/explanation', {
@@ -1770,8 +1807,12 @@
   ]
 
   // Watch filters and reset to page 1
-  watch([filterType, filterAnalysis, filterSource], () => {
+  watch([filterType, filterAnalysis, filterSource, selectedWorkoutTags], () => {
     currentPage.value = 1
+  })
+
+  watch(selectedWorkoutTags, async () => {
+    await Promise.all([fetchWorkouts(), refreshNuxtData('workout-trends')])
   })
 
   // Load data on mount

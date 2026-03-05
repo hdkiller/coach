@@ -86,12 +86,14 @@
   const props = defineProps<{
     period: number | string
     sport?: string
+    tags?: string[]
   }>()
 
   const { data, refresh } = await useFetch('/api/activity/highlights', {
     query: computed(() => ({
       days: props.period,
-      sport: props.sport
+      sport: props.sport,
+      tags: props.tags?.join(',')
     }))
   })
 

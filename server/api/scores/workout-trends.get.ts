@@ -4,6 +4,7 @@ import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { defineEventHandler, createError, getQuery } from 'h3'
 import { eachDayOfInterval, format, isSameDay } from 'date-fns'
 import { getUserTimezone, getStartOfYearUTC, getUserLocalDate } from '../../utils/date'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 defineRouteMeta({
   openAPI: {
@@ -18,6 +19,11 @@ defineRouteMeta({
       },
       {
         name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
+      },
+      {
+        name: 'tags',
         in: 'query',
         schema: { type: 'string' }
       }
@@ -78,6 +84,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
+  const tags = parseTagQueryParam(query.tags)
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email }
@@ -103,6 +110,7 @@ export default defineEventHandler(async (event) => {
 
   const workouts = await workoutRepository.getForUser(user.id, {
     startDate,
+    tags,
     where: sport ? { type: sport } : undefined,
     orderBy: { date: 'asc' }
   })

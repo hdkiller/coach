@@ -11,6 +11,7 @@ import {
 } from '../../utils/date'
 import { analyzeWorkoutTask } from '../../../trigger/analyze-workout'
 import type { AiSettings } from '../ai-user-settings'
+import { hasProtectedIntervalsTags, mergeWorkoutTags } from '../workout-tags'
 
 export const workoutTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
   get_recent_workouts: tool({
@@ -48,6 +49,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
           date: formatUserDate(w.date, timezone),
           title: w.title,
           sport: w.source === 'strava' ? w.type : w.type, // Map types if needed
+          tags: w.tags,
           duration: w.durationSec,
           tss: w.tss,
           intensity: w.intensity,
@@ -98,6 +100,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         date: formatUserDate(w.date, timezone),
         title: w.title,
         sport: w.type,
+        tags: w.tags,
         duration: w.durationSec,
         tss: w.tss,
         calories: w.calories
@@ -266,7 +269,7 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
 
   update_workout: tool({
     description:
-      'Update a completed workout metadata (rename/retag/date/description/metrics). Use this when the user asks to rename or retag an existing activity.',
+      'Update a completed workout metadata (rename/date/description/metrics). Use update_workout_tags for tag changes.',
     inputSchema: z.object({
       workout_id: z.string().describe('The ID of the workout to update'),
       title: z.string().optional().describe('New workout title'),
@@ -334,6 +337,57 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         }
       } catch (e: any) {
         return { error: `Failed to update workout: ${e.message}` }
+      }
+    }
+  }),
+
+  update_workout_tags: tool({
+    description:
+      'Update local tags for a completed workout. Intervals-imported tags prefixed with icu: are read-only and cannot be changed manually.',
+    inputSchema: z.object({
+      workout_id: z.string().describe('The ID of the workout to update tags for'),
+      add_tags: z.array(z.string()).optional().describe('Local tags to add'),
+      remove_tags: z.array(z.string()).optional().describe('Tags to remove'),
+      set_local_tags: z
+        .array(z.string())
+        .optional()
+        .describe('Replace the local tag set while preserving icu: source tags'),
+      clear_local: z
+        .boolean()
+        .optional()
+        .describe('Remove all local tags while preserving icu: tags')
+    }),
+    needsApproval: async () => true,
+    execute: async ({ workout_id, add_tags, remove_tags, set_local_tags, clear_local }) => {
+      const workout = await workoutRepository.getById(workout_id, userId)
+      if (!workout) return { error: 'Workout not found' }
+
+      if (
+        hasProtectedIntervalsTags(add_tags) ||
+        hasProtectedIntervalsTags(remove_tags) ||
+        hasProtectedIntervalsTags(set_local_tags)
+      ) {
+        return { error: 'Intervals tags are read-only. Only local tags can be edited.' }
+      }
+
+      const nextTags = mergeWorkoutTags((workout.tags as string[]) || [], {
+        addLocalTags: add_tags,
+        removeTags: remove_tags,
+        setLocalTags: clear_local ? [] : set_local_tags
+      })
+
+      const updatedWorkout = await workoutRepository.update(workout_id, {
+        tags: nextTags
+      })
+
+      return {
+        success: true,
+        message: 'Workout tag update prepared successfully.',
+        workout: {
+          id: updatedWorkout.id,
+          title: updatedWorkout.title,
+          tags: updatedWorkout.tags
+        }
       }
     }
   }),

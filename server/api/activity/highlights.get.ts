@@ -3,6 +3,7 @@ import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { subDays } from 'date-fns'
 import { getServerSession } from '../../utils/session'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 defineRouteMeta({
   openAPI: {
@@ -17,6 +18,11 @@ defineRouteMeta({
       },
       {
         name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
+      },
+      {
+        name: 'tags',
         in: 'query',
         schema: { type: 'string' }
       }
@@ -70,6 +76,7 @@ export default defineEventHandler(async (event) => {
   const userId = user.id
   const query = getQuery(event)
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
+  const tags = parseTagQueryParam(query.tags)
 
   const now = new Date()
   let startDate = new Date()
@@ -90,6 +97,7 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate: now,
+    tags,
     includeDuplicates: false,
     where: sport ? { type: sport } : undefined
   })
@@ -113,6 +121,7 @@ export default defineEventHandler(async (event) => {
   const acuteWorkouts = await workoutRepository.getForUser(userId, {
     startDate: acuteStartDate,
     endDate: now,
+    tags,
     includeDuplicates: false,
     where: sport ? { type: sport } : undefined
   })
@@ -120,6 +129,7 @@ export default defineEventHandler(async (event) => {
   const chronicWorkouts = await workoutRepository.getForUser(userId, {
     startDate: chronicStartDate,
     endDate: now,
+    tags,
     includeDuplicates: false,
     where: sport ? { type: sport } : undefined
   })

@@ -274,6 +274,19 @@
                       <div v-if="workout.type" class="flex items-center gap-1">
                         <span class="i-heroicons-tag w-3.5 h-3.5" />
                         {{ workout.type }}
+                        <UButton
+                          color="neutral"
+                          variant="ghost"
+                          size="xs"
+                          icon="i-heroicons-hashtag"
+                          class="ml-1"
+                          :ui="{ base: 'px-1.5' }"
+                          @click="showTagEditor = !showTagEditor"
+                        >
+                          <span v-if="workout.tags?.length" class="text-[9px] font-black">
+                            {{ workout.tags.length }}
+                          </span>
+                        </UButton>
                       </div>
 
                       <!-- Personal Best Badges -->
@@ -290,6 +303,75 @@
                             </div>
                           </UTooltip>
                         </template>
+                      </div>
+                    </div>
+
+                    <div v-if="showTagEditor" class="mt-5 space-y-3">
+                      <div
+                        class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"
+                      >
+                        <div class="min-w-0 flex-1">
+                          <div
+                            class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2"
+                          >
+                            Workout tags
+                          </div>
+                          <UInputTags
+                            v-model="localTagDraft"
+                            placeholder="Add local tags"
+                            color="neutral"
+                            variant="outline"
+                            size="sm"
+                          />
+                          <p
+                            class="mt-2 text-[10px] font-bold uppercase tracking-widest text-gray-400"
+                          >
+                            Local tags can be edited here. Intervals tags stay read-only.
+                          </p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                          <UButton
+                            color="neutral"
+                            variant="ghost"
+                            size="sm"
+                            :disabled="!hasLocalTagChanges || savingTags"
+                            @click="resetLocalTags"
+                          >
+                            Reset
+                          </UButton>
+                          <UButton
+                            color="primary"
+                            variant="solid"
+                            size="sm"
+                            icon="i-heroicons-tag"
+                            :loading="savingTags"
+                            :disabled="!hasLocalTagChanges"
+                            @click="saveLocalTags"
+                          >
+                            Save Tags
+                          </UButton>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="intervalsSourceTags.length > 0"
+                        class="flex flex-wrap items-center gap-2"
+                      >
+                        <span
+                          class="text-[10px] font-black uppercase tracking-widest text-gray-400"
+                        >
+                          Intervals
+                        </span>
+                        <UBadge
+                          v-for="tag in intervalsSourceTags"
+                          :key="tag"
+                          color="neutral"
+                          variant="subtle"
+                          size="sm"
+                          class="font-black tracking-tight lowercase"
+                        >
+                          {{ tag }}
+                        </UBadge>
                       </div>
                     </div>
                   </div>
@@ -938,7 +1020,9 @@
                   :key="item.label"
                   class="bg-white dark:bg-gray-900 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-800"
                 >
-                  <div class="text-[9px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5">
+                  <div
+                    class="text-[9px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5"
+                  >
                     <UIcon :name="item.icon" class="w-3.5 h-3.5" :class="item.iconClass" />
                     {{ item.label }}
                   </div>
@@ -2096,6 +2180,8 @@
   const workout = ref<any>(null)
   const loading = ref(true)
   const error = ref<string | null>(null)
+  const savingTags = ref(false)
+  const showTagEditor = ref(false)
   const analyzingWorkout = ref(false)
   const analyzingAdherence = ref(false)
   const promoting = ref(false)
@@ -2137,6 +2223,52 @@
     if (!workout.value?.aiAnalysis) return ''
     return marked(workout.value.aiAnalysis)
   })
+
+  const splitWorkoutTags = (tags: unknown) => {
+    const values = Array.isArray(tags)
+      ? tags.filter((tag): tag is string => typeof tag === 'string')
+      : []
+
+    return {
+      intervals: values.filter((tag) => tag.startsWith('icu:')),
+      local: values.filter((tag) => !tag.startsWith('icu:'))
+    }
+  }
+
+  const localTagDraft = ref<string[]>([])
+
+  const intervalsSourceTags = computed(() => splitWorkoutTags(workout.value?.tags).intervals)
+  const localWorkoutTags = computed(() => splitWorkoutTags(workout.value?.tags).local)
+  const normalizedLocalTagDraft = computed(() =>
+    Array.from(
+      new Set(
+        localTagDraft.value
+          .map((tag) => tag.trim().replace(/\s+/g, ' ').toLowerCase())
+          .filter((tag) => tag.length > 0 && !tag.startsWith('icu:'))
+      )
+    )
+  )
+  const hasLocalTagChanges = computed(() => {
+    if (normalizedLocalTagDraft.value.length !== localWorkoutTags.value.length) return true
+
+    return normalizedLocalTagDraft.value.some((tag, index) => tag !== localWorkoutTags.value[index])
+  })
+
+  const syncLocalTagDraft = () => {
+    localTagDraft.value = [...localWorkoutTags.value]
+  }
+
+  const resetLocalTags = () => {
+    syncLocalTagDraft()
+  }
+
+  watch(
+    () => workout.value?.tags,
+    () => {
+      syncLocalTagDraft()
+    },
+    { immediate: true }
+  )
 
   const isOnboarded = computed(() => {
     // 1. Check if ANY data (Workouts, Nutrition, or Wellness)
@@ -2704,6 +2836,43 @@
       console.error('Error fetching workout:', e)
     } finally {
       loading.value = false
+    }
+  }
+
+  async function saveLocalTags() {
+    if (!workout.value || savingTags.value || !hasLocalTagChanges.value) return
+
+    savingTags.value = true
+    try {
+      const response = await $fetch<{ success: boolean; workout: any }>(
+        `/api/workouts/${workout.value.id}`,
+        {
+          method: 'PATCH',
+          body: {
+            setLocalTags: normalizedLocalTagDraft.value
+          }
+        }
+      )
+
+      workout.value = response.workout
+      syncLocalTagDraft()
+
+      toast.add({
+        title: 'Tags updated',
+        description: 'Workout tags have been saved.',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+    } catch (e: any) {
+      console.error('Error updating workout tags:', e)
+      toast.add({
+        title: 'Failed to update tags',
+        description: e.data?.message || e.message || 'Could not save workout tags.',
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
+      })
+    } finally {
+      savingTags.value = false
     }
   }
 

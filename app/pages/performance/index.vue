@@ -81,10 +81,12 @@
               {{ t('highlights_header') }}
             </h2>
             <div class="flex gap-2">
-              <USelect
-                v-model="highlightsSport"
-                :items="sportOptions"
-                class="w-32 sm:w-36"
+              <USelectMenu
+                v-model="highlightsScope"
+                :items="workoutScopeOptions"
+                value-key="value"
+                label-key="label"
+                class="w-40 sm:w-52"
                 size="xs"
                 color="neutral"
                 variant="outline"
@@ -99,7 +101,11 @@
               />
             </div>
           </div>
-          <ActivityHighlights :period="highlightsPeriod" :sport="highlightsSport" />
+          <ActivityHighlights
+            :period="highlightsPeriod"
+            :sport="scopeToSport(highlightsScope)"
+            :tags="scopeToTags(highlightsScope)"
+          />
         </div>
 
         <!-- 2. Athlete Profile Scores -->
@@ -258,9 +264,11 @@
         <div v-if="sectionSettings.efficiency?.visible !== false" class="space-y-4">
           <PerformanceEfficiencyCard
             v-model:period="efficiencyPeriod"
-            v-model:sport="efficiencySport"
+            v-model:scope="efficiencyScope"
             :period-options="periodOptions"
-            :sport-options="sportOptions"
+            :scope-options="workoutScopeOptions"
+            :sport="scopeToSport(efficiencyScope)"
+            :tags="scopeToTags(efficiencyScope)"
             :settings="chartSettings.efficiency"
             @settings="
               openChartSettings('efficiency', t('efficiency_title'), {
@@ -276,9 +284,11 @@
         <div v-if="sectionSettings.ftp?.visible !== false" class="space-y-4">
           <PerformanceFtpEvolutionCard
             v-model:period="ftpPeriod"
-            v-model:sport="ftpSport"
+            v-model:scope="ftpScope"
             :period-options="ftpPeriodOptions"
-            :sport-options="sportOptions"
+            :scope-options="workoutScopeOptions"
+            :sport="scopeToSport(ftpScope)"
+            :tags="scopeToTags(ftpScope)"
             :settings="chartSettings.ftp"
             @settings="
               openChartSettings('ftp', t('ftp_evolution_title'), {
@@ -318,10 +328,12 @@
               {{ t('workout_header') }}
             </h2>
             <div class="flex gap-2">
-              <USelect
-                v-model="workoutSport"
-                :items="sportOptions"
-                class="w-32 sm:w-36"
+              <USelectMenu
+                v-model="workoutScope"
+                :items="workoutScopeOptions"
+                value-key="value"
+                label-key="label"
+                class="w-40 sm:w-52"
                 size="xs"
                 color="neutral"
                 variant="outline"
@@ -790,15 +802,17 @@
 
   const selectedPeriod = ref<number | string>(30)
   const highlightsPeriod = ref<number | string>(30)
-  const highlightsSport = ref<string>('all')
+  const highlightsScope = ref<string>('all')
   const efficiencyPeriod = ref<number | string>(90)
-  const efficiencySport = ref<string>('all')
+  const efficiencyScope = ref<string>('all')
   const readinessPeriod = ref<number | string>(30)
   const powerCurvePeriod = ref<number | string>(90)
   const powerCurveSport = ref<string>('all')
 
   // Fetch available sports
   const { data: sportsData } = await useFetch<string[]>('/api/workouts/sports')
+  const { data: workoutTagsData } =
+    await useFetch<Array<{ value: string; count: number }>>('/api/workouts/tags')
   const sportOptions = computed(() => {
     const options = [{ label: t.value('highlights_all_sports'), value: 'all' }]
     if (sportsData.value) {
@@ -808,6 +822,39 @@
     }
     return options
   })
+
+  const availableWorkoutTags = computed(() =>
+    (workoutTagsData.value || []).map((tag) => ({
+      label: `${tag.value} (${tag.count})`,
+      value: tag.value
+    }))
+  )
+
+  const workoutScopeOptions = computed(() => {
+    const groups: Array<Array<{ label: string; value?: string; type?: 'label' }>> = [
+      [
+        { label: 'Sports', type: 'label' },
+        ...sportOptions.value.map((option) => ({ label: option.label, value: option.value }))
+      ]
+    ]
+
+    if (availableWorkoutTags.value.length > 0) {
+      groups.push([
+        { label: 'Tags', type: 'label' },
+        ...availableWorkoutTags.value.map((tag) => ({
+          label: tag.label,
+          value: `tag:${tag.value}`
+        }))
+      ])
+    }
+
+    return groups
+  })
+
+  const scopeToSport = (scope: string) =>
+    scope === 'all' || scope.startsWith('tag:') ? 'all' : scope
+
+  const scopeToTags = (scope: string) => (scope.startsWith('tag:') ? [scope.slice(4)] : [])
 
   const periodOptions = computed(() => [
     { label: t.value('period_7_days'), value: 7 },
@@ -829,7 +876,7 @@
   ])
 
   const ftpPeriod = ref<number | string>(12)
-  const ftpSport = ref<string>('all')
+  const ftpScope = ref<string>('all')
   const ftpPeriodOptions = computed(() => [
     { label: t.value('period_3_months'), value: 3 },
     { label: t.value('period_6_months'), value: 6 },
@@ -850,7 +897,7 @@
     { label: t.value('period_all_time'), value: 3650 }
   ])
 
-  const workoutSport = ref<string>('all')
+  const workoutScope = ref<string>('all')
 
   const hasPersonalBests = computed(() => {
     return (profileData.value?.personalBests?.length || 0) > 0
@@ -886,7 +933,8 @@
     {
       query: computed(() => ({
         days: selectedPeriod.value,
-        sport: workoutSport.value
+        sport: scopeToSport(workoutScope.value),
+        tags: scopeToTags(workoutScope.value).join(',')
       }))
     }
   )
@@ -989,6 +1037,13 @@
     }
     showModal.value = true
     loadingExplanation.value = true
+
+    if (scopeToTags(workoutScope.value).length > 0) {
+      modalData.value.explanation =
+        'Detailed AI insights are currently unavailable for tag-filtered subsets.'
+      loadingExplanation.value = false
+      return
+    }
 
     const metric = getWorkoutMetricName(title)
     const cacheKey = `${selectedPeriod.value}-${metric}`
@@ -1183,6 +1238,10 @@
       refreshes.push(refreshNuxtData('nutrition-trends'))
     }
     await Promise.all(refreshes)
+  })
+
+  watch(workoutScope, async () => {
+    await refreshNuxtData('workout-trends')
   })
 
   const formatDateLocal = (date: string) => {

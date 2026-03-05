@@ -3,6 +3,7 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 const FTP_FRESHNESS_THRESHOLDS = {
   fresh: 30,
@@ -88,6 +89,11 @@ defineRouteMeta({
         name: 'sport',
         in: 'query',
         schema: { type: 'string' }
+      },
+      {
+        name: 'tags',
+        in: 'query',
+        schema: { type: 'string' }
       }
     ],
     responses: {
@@ -142,6 +148,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const userId = (session.user as any).id
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
+  const tags = parseTagQueryParam(query.tags)
   const sportTypeWhere = buildSportTypeWhere(sport)
 
   // Get user
@@ -175,6 +182,7 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(user.id, {
     startDate,
     endDate,
+    tags,
     where: {
       ftp: {
         not: null
@@ -261,6 +269,7 @@ export default defineEventHandler(async (event) => {
   const estimationWorkouts = (await workoutRepository.getForUser(user.id, {
     startDate,
     endDate,
+    tags,
     includeDuplicates: false,
     where: sport ? { type: sportTypeWhere } : undefined,
     include: {
@@ -361,6 +370,7 @@ export default defineEventHandler(async (event) => {
     const powerWorkouts = (await workoutRepository.getForUser(user.id, {
       startDate: ftpValidationLookbackStart,
       endDate,
+      tags,
       includeDuplicates: false,
       where: sport ? { type: sportTypeWhere } : undefined,
       include: {

@@ -12,6 +12,7 @@ export const workoutRepository = {
     options: {
       startDate?: Date
       endDate?: Date
+      tags?: string[]
       limit?: number
       offset?: number
       includeDuplicates?: boolean
@@ -33,6 +34,7 @@ export const workoutRepository = {
         gte: options.startDate,
         lte: options.endDate
       },
+      tags: options.tags?.length ? { hasSome: options.tags } : undefined,
       ...options.where
     }
 
@@ -93,6 +95,7 @@ export const workoutRepository = {
     options: {
       startDate?: Date
       endDate?: Date
+      tags?: string[]
       includeDuplicates?: boolean
       where?: Prisma.WorkoutWhereInput
     } = {}
@@ -104,6 +107,7 @@ export const workoutRepository = {
         gte: options.startDate,
         lte: options.endDate
       },
+      tags: options.tags?.length ? { hasSome: options.tags } : undefined,
       ...options.where
     }
 

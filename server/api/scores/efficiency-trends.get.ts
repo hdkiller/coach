@@ -3,6 +3,7 @@ import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getServerSession } from '../../utils/session'
 import { subDays, format } from 'date-fns'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 defineRouteMeta({
   openAPI: {
@@ -17,6 +18,11 @@ defineRouteMeta({
       },
       {
         name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
+      },
+      {
+        name: 'tags',
         in: 'query',
         schema: { type: 'string' }
       }
@@ -69,6 +75,7 @@ export default defineEventHandler(async (event) => {
   const now = new Date()
   let startDate = new Date()
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
+  const tags = parseTagQueryParam(query.tags)
 
   if (query.days === 'YTD') {
     const timezone = await getUserTimezone(userId)
@@ -82,6 +89,7 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate: now,
+    tags,
     includeDuplicates: false,
     where: sport ? { type: sport } : undefined
   })

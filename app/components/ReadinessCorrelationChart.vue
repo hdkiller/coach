@@ -46,6 +46,7 @@
 
   const props = defineProps<{
     days?: number | string
+    tags?: string[]
   }>()
 
   const loading = ref(true)
@@ -56,7 +57,7 @@
 
     try {
       const data = await $fetch('/api/scores/readiness-correlation', {
-        query: { days: props.days || 30 }
+        query: { days: props.days || 30, tags: props.tags?.join(',') }
       })
       correlationData.value = data
     } catch (e: any) {
@@ -68,7 +69,7 @@
   }
 
   watch(
-    () => props.days,
+    () => [props.days, props.tags?.join(',')],
     () => {
       fetchCorrelationData()
     }

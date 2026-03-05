@@ -1,5 +1,6 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { getEffectiveUserId } from '../../utils/coaching'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 defineRouteMeta({
   openAPI: {
@@ -16,6 +17,7 @@ defineRouteMeta({
               date: { type: 'string', format: 'date-time' },
               title: { type: 'string' },
               description: { type: 'string', nullable: true },
+              tags: { type: 'array', items: { type: 'string' } },
               type: { type: 'string', nullable: true },
               durationSec: { type: 'integer' },
               distanceMeters: { type: 'number', nullable: true },
@@ -71,6 +73,12 @@ defineRouteMeta({
         schema: { type: 'string' }
       },
       {
+        name: 'tags',
+        in: 'query',
+        description: 'Filter workouts by comma-separated tags (ANY match)',
+        schema: { type: 'string' }
+      },
+      {
         name: 'x-act-as-user',
         in: 'header',
         description: 'Athlete user ID to act as (for coaches)',
@@ -118,10 +126,12 @@ export default defineEventHandler(async (event) => {
   const endDate = query.endDate ? new Date(query.endDate as string) : undefined
   const includeDuplicates = query.includeDuplicates === 'true'
   const sportType = query.type === 'all' ? undefined : (query.type as string)
+  const tags = parseTagQueryParam(query.tags)
 
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate,
+    tags,
     limit,
     offset,
     includeDuplicates,
@@ -135,6 +145,7 @@ export default defineEventHandler(async (event) => {
       source: true,
       date: true,
       title: true,
+      tags: true,
       type: true,
       durationSec: true,
       distanceMeters: true,

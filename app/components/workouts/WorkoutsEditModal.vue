@@ -51,6 +51,42 @@
                 class="w-full"
               />
             </UFormField>
+
+            <UFormField
+              label="Local Tags"
+              name="localTags"
+              description="Editable tags used for filtering and organization."
+            >
+              <UInputTags
+                v-model="localTags"
+                placeholder="Add local tags"
+                size="lg"
+                color="neutral"
+                variant="outline"
+                class="w-full"
+              />
+            </UFormField>
+
+            <div v-if="intervalsTags.length > 0" class="space-y-2">
+              <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Intervals tags
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <UBadge
+                  v-for="tag in intervalsTags"
+                  :key="tag"
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                  class="font-black tracking-tight lowercase"
+                >
+                  {{ tag }}
+                </UBadge>
+              </div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Source tags are read-only and remain managed by the Intervals import.
+              </p>
+            </div>
           </section>
 
           <!-- Section: Time & Distance -->
@@ -353,6 +389,7 @@
   const durationHours = ref(0)
   const durationMinutes = ref(0)
   const durationSeconds = ref(0)
+  const localTags = ref<string[]>([])
 
   const activityOptions = [
     { label: 'Cycling', value: 'Ride' },
@@ -375,6 +412,28 @@
     { label: 'Generic Workout', value: 'Workout' },
     { label: 'Other', value: 'Other' }
   ]
+
+  const splitWorkoutTags = (tags: unknown) => {
+    const values = Array.isArray(tags)
+      ? tags.filter((tag): tag is string => typeof tag === 'string')
+      : []
+
+    return {
+      intervals: values.filter((tag) => tag.startsWith('icu:')),
+      local: values.filter((tag) => !tag.startsWith('icu:'))
+    }
+  }
+
+  const intervalsTags = computed(() => splitWorkoutTags(props.workout?.tags).intervals)
+  const normalizedLocalTags = computed(() =>
+    Array.from(
+      new Set(
+        localTags.value
+          .map((tag) => tag.trim().replace(/\s+/g, ' ').toLowerCase())
+          .filter((tag) => tag.length > 0 && !tag.startsWith('icu:'))
+      )
+    )
+  )
 
   // Initialize state from props
   watch(
@@ -407,6 +466,8 @@
           durationMinutes.value = 0
           durationSeconds.value = 0
         }
+
+        localTags.value = [...splitWorkoutTags(newWorkout.tags).local]
       }
     },
     { immediate: true }
@@ -493,6 +554,7 @@
           type: normalizedType,
           date: utcDate.toISOString(),
           description: state.description,
+          setLocalTags: normalizedLocalTags.value,
           durationSec: totalSeconds,
           distanceMeters: distanceMeters,
           trainingLoad: state.trainingLoad,
