@@ -1,103 +1,236 @@
 <template>
-  <UCard :ui="{ body: 'space-y-6' }">
+  <UCard>
     <template #header>
       <div class="flex items-center gap-2">
-        <UIcon name="i-heroicons-user-circle" class="w-5 h-5 text-primary" />
-        <div>
-          <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-            {{ t('coach_section_personality') }}
-          </h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('coach_section_personality_desc') }}
-          </p>
+        <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
+        <h2 class="text-xl font-semibold">AI Coach Configuration</h2>
+      </div>
+    </template>
+
+    <div class="space-y-6">
+      <!-- Coach Personality -->
+      <div>
+        <label class="block text-sm font-medium mb-2">Coach Personality</label>
+        <p class="text-sm text-muted mb-3">
+          Choose the tone and style of feedback from your AI coach
+        </p>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <USelect
+            v-model="localSettings.aiPersona"
+            :items="personaOptions"
+            size="lg"
+            class="min-w-0 flex-1"
+            @update:model-value="handleChange"
+          />
+          <UButton
+            color="neutral"
+            variant="soft"
+            icon="i-heroicons-speaker-wave"
+            label="Voice settings"
+            @click="isVoiceSettingsOpen = true"
+          />
         </div>
       </div>
-    </template>
 
-    <UFormField :label="t('coach_form_name')" name="coachName" :help="t('coach_help_name')">
-      <UInput v-model="localSettings.coachName" placeholder="e.g. Coach Watts" class="w-full" />
-    </UFormField>
-
-    <UFormField :label="t('coach_form_tone')" name="coachTone" :help="t('coach_help_tone')">
-      <USelectMenu
-        v-model="localSettings.coachTone"
-        :items="toneOptions"
-        value-key="value"
-        class="w-full"
-      />
-    </UFormField>
-
-    <UFormField :label="t('coach_form_voice')" name="voicePersona" :help="t('coach_help_voice')">
-      <div class="flex items-center gap-3">
-        <UBadge color="neutral" variant="soft" class="font-mono">
-          {{ localSettings.voicePersona || 'Default' }}
-        </UBadge>
-        <UButton
-          size="xs"
-          variant="soft"
-          color="primary"
-          icon="i-heroicons-speaker-wave"
-          @click="showVoiceModal = true"
-        >
-          {{ t('coach_voice_button') }}
-        </UButton>
+      <!-- Analysis Levels Selection -->
+      <div>
+        <label class="block text-sm font-medium mb-2">AI Analysis Levels</label>
+        <p class="text-sm text-muted mb-3">Choose the depth of analysis for your training data</p>
+        <div class="space-y-3">
+          <div
+            v-for="model in modelOptions"
+            :key="model.value"
+            class="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:border-primary transition-colors relative"
+            :class="{
+              'border-primary bg-primary/5': localSettings.aiModelPreference === model.value,
+              'opacity-60 grayscale-[0.5]': !isModelAvailable(model)
+            }"
+            @click="handleModelClick(model)"
+          >
+            <input
+              type="radio"
+              :checked="localSettings.aiModelPreference === model.value"
+              :disabled="!isModelAvailable(model)"
+              class="mt-1"
+            />
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <div class="font-medium">{{ model.label }}</div>
+                <div v-if="shouldShowLock(model)" class="flex items-center gap-2">
+                  <UBadge color="primary" variant="subtle" size="sm">Pro</UBadge>
+                  <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 text-neutral-500" />
+                </div>
+              </div>
+              <div class="text-sm text-muted mt-1">{{ model.description }}</div>
+            </div>
+          </div>
+        </div>
       </div>
-    </UFormField>
 
-    <template #footer>
+      <!-- Communication Preferences -->
+      <div>
+        <label class="block text-sm font-medium mb-2">Communication</label>
+        <p class="text-sm text-muted mb-3">Control how the AI coach interacts with you in chat</p>
+        <div class="space-y-3">
+          <USwitch
+            v-model="localSettings.aiConversationalEngagement"
+            label="Conversational Engagement"
+            description="Allow the coach to ask proactive follow-up questions to keep the session moving"
+            @update:model-value="handleChange"
+          />
+        </div>
+      </div>
+
+      <!-- Data & Privacy Settings -->
+      <div>
+        <label class="block text-sm font-medium mb-2">Data & Privacy</label>
+        <p class="text-sm text-muted mb-3">
+          Control what data the AI coach can access for analysis
+        </p>
+        <div class="space-y-3">
+          <USwitch
+            v-model="localSettings.nutritionTrackingEnabled"
+            label="Enable Nutrition Analysis"
+            description="Allow the AI to analyze your nutrition data and provide feedback"
+            @update:model-value="handleChange"
+          />
+          <USwitch
+            v-model="localSettings.updateWorkoutNotesEnabled"
+            label="Update Workout Notes"
+            description="Allow AI workout summaries to be captured as notes"
+            @update:model-value="handleChange"
+          />
+        </div>
+      </div>
+
+      <!-- Save Button -->
       <div class="flex justify-end">
-        <UButton
-          :label="t('basic_save_button')"
-          color="primary"
-          :loading="saving"
-          @click="handleSave"
-        />
+        <UButton :loading="saving" @click="saveSettings"> Save Changes </UButton>
       </div>
-    </template>
-
-    <SettingsAiVoiceSettingsModal
-      v-model:open="showVoiceModal"
-      v-model:voice-persona="localSettings.voicePersona"
-    />
+    </div>
   </UCard>
+
+  <SettingsAiVoiceSettingsModal
+    v-model:open="isVoiceSettingsOpen"
+    v-model:gemini-voice-name="localSettings.aiTtsVoiceName"
+    v-model:voice-style="localSettings.aiTtsStyle"
+    v-model:voice-speed="localSettings.aiTtsSpeed"
+    v-model:auto-read-messages="localSettings.aiTtsAutoReadMessages"
+  />
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
-
-  const { t } = useTranslate('settings')
-
   const props = defineProps<{
-    settings: any
     forceUnlocked?: boolean
+    settings: {
+      aiPersona: string
+      aiModelPreference: string
+      aiAutoAnalyzeWorkouts: boolean
+      aiAutoAnalyzeNutrition: boolean
+      aiAutoAnalyzeReadiness: boolean
+      aiProactivityEnabled: boolean
+      aiConversationalEngagement: boolean
+      aiDeepAnalysisEnabled: boolean
+      aiContext?: string | null
+      nutritionTrackingEnabled: boolean
+      updateWorkoutNotesEnabled: boolean
+      nickname?: string | null
+      aiTtsStyle: 'coach' | 'calm' | 'direct' | 'energetic'
+      aiTtsVoiceName: string
+      aiTtsSpeed: 'slow' | 'normal' | 'fast'
+      aiTtsAutoReadMessages: boolean
+    }
   }>()
 
-  const emit = defineEmits(['save'])
+  const emit = defineEmits<{
+    save: [settings: typeof props.settings]
+  }>()
 
   const localSettings = ref({ ...props.settings })
   const saving = ref(false)
-  const showVoiceModal = ref(false)
+  const isVoiceSettingsOpen = ref(false)
+  const userStore = useUserStore()
+  const upgradeModal = useUpgradeModal()
 
-  const toneOptions = computed(() => [
-    { label: t.value('coach_tone_supportive'), value: 'SUPPORTIVE' },
-    { label: t.value('coach_tone_tough'), value: 'TOUGH' },
-    { label: t.value('coach_tone_analytical'), value: 'ANALYTICAL' },
-    { label: t.value('coach_tone_minimal'), value: 'MINIMAL' }
-  ])
+  const personaOptions = [
+    { value: 'Analytical', label: 'Analytical - Data-driven, technical insights' },
+    { value: 'Supportive', label: 'Supportive - Encouraging and positive' },
+    { value: 'Drill Sergeant', label: 'Drill Sergeant - Direct and demanding' },
+    { value: 'Motivational', label: 'Motivational - Inspirational and uplifting' }
+  ]
 
+  const modelOptions = [
+    {
+      value: 'flash',
+      label: 'Quick',
+      description: 'A well balanced experience with rapid-fire feedback.',
+      minTier: 'FREE'
+    },
+    {
+      value: 'pro',
+      label: 'Thoughtful',
+      description: 'State of the art, elite level intelligence for deep-dive strategy.',
+      minTier: 'PRO'
+    },
+    {
+      value: 'experimental',
+      label: 'Experimental',
+      description: "What we're cooking in the lab. Cutting-edge but potentially unstable.",
+      minTier: 'PRO'
+    }
+  ]
+
+  const isContributor = computed(() => userStore.user?.subscriptionStatus === 'CONTRIBUTOR')
+
+  function isModelAvailable(model: any) {
+    if (props.forceUnlocked) return true
+    if (model.minTier === 'FREE') return true
+    if (isContributor.value) return true
+    return userStore.hasMinimumTier(model.minTier as any)
+  }
+
+  function shouldShowLock(model: any) {
+    return model.minTier === 'PRO' && !isModelAvailable(model)
+  }
+
+  function handleModelClick(model: any) {
+    if (isModelAvailable(model)) {
+      selectModel(model.value)
+      return
+    }
+
+    upgradeModal.show({
+      featureTitle: model.label + ' Analysis',
+      featureDescription: 'Unlock our most advanced AI analysis engines.',
+      recommendedTier: 'pro'
+    })
+  }
+
+  function selectModel(value: string) {
+    localSettings.value.aiModelPreference = value
+    handleChange()
+  }
+
+  function handleChange() {
+    // Auto-save on change (optional, can be removed if you want explicit save only)
+    // For now, just mark as changed
+  }
+
+  async function saveSettings() {
+    saving.value = true
+    try {
+      emit('save', { ...localSettings.value })
+    } finally {
+      saving.value = false
+    }
+  }
+
+  // Watch for prop changes to update local state
   watch(
     () => props.settings,
-    (newVal) => {
-      localSettings.value = { ...newVal }
+    (newSettings) => {
+      localSettings.value = { ...newSettings }
     },
     { deep: true }
   )
-
-  const handleSave = async () => {
-    saving.value = true
-    emit('save', localSettings.value)
-    setTimeout(() => {
-      saving.value = false
-    }, 500)
-  }
 </script>

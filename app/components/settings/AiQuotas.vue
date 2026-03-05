@@ -1,81 +1,183 @@
 <template>
   <UCard>
     <template #header>
-      <div class="flex items-center gap-2">
-        <UIcon name="i-heroicons-chart-pie" class="w-5 h-5 text-primary" />
-        <div>
-          <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-            {{ t('quotas_header') }}
-          </h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            {{ t('quotas_desc') }}
-          </p>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <UIcon name="i-heroicons-shield-check" class="w-5 h-5 text-primary" />
+          <h2 class="text-xl font-semibold">LLM Quotas</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <UBadge
+            v-if="isTrialActive"
+            color="primary"
+            variant="solid"
+            class="font-black uppercase tracking-widest text-[9px] animate-pulse"
+          >
+            Performance Trial Active
+          </UBadge>
+          <UBadge :color="tierColor" variant="soft" class="font-bold">
+            {{ data?.tier || 'FREE' }}
+          </UBadge>
         </div>
       </div>
     </template>
 
-    <div v-if="loading" class="space-y-6">
-      <div v-for="i in 3" :key="i" class="space-y-2">
-        <div class="flex justify-between">
-          <USkeleton class="h-3 w-24" />
-          <USkeleton class="h-3 w-12" />
+    <div class="space-y-6">
+      <div v-if="pending" class="flex items-center justify-center py-8">
+        <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 animate-spin text-primary" />
+      </div>
+
+      <div v-else-if="data?.quotas" class="space-y-5">
+        <div v-for="quota in sortedQuotas" :key="quota.operation" class="space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-medium text-gray-900 dark:text-white capitalize">
+              {{ (quota.operation || 'Unknown').replace(/_/g, ' ') }}
+            </span>
+            <span class="text-xs text-muted">
+              {{ quota.used }} / {{ quota.limit }} ({{
+                quota.window === 'calendar day' ? 'per day' : 'per ' + quota.window
+              }})
+            </span>
+          </div>
+
+          <div
+            class="relative w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden"
+          >
+            <div
+              class="h-full rounded-full transition-all duration-500"
+              :class="getProgressBarColor(quota.used, quota.limit)"
+              :style="{ width: `${Math.min(100, (quota.used / quota.limit) * 100)}%` }"
+            ></div>
+          </div>
+
+          <div
+            class="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold"
+          >
+            <span>{{ quota.remaining }} remaining</span>
+            <span v-if="quota.resetsAt">
+              {{ getQuotaResetLabel(quota) }}
+            </span>
+          </div>
         </div>
-        <USkeleton class="h-2 w-full rounded-full" />
+
+        <div v-if="data.quotas.length === 0" class="text-center py-4 text-sm text-muted">
+          No active quotas found for your tier.
+        </div>
+      </div>
+
+      <div v-else class="text-center py-4 text-sm text-red-500">
+        Failed to load quota information.
       </div>
     </div>
 
-    <div v-else-if="quotas" class="space-y-6">
-      <!-- Requests -->
-      <div class="space-y-2">
-        <div class="flex justify-between items-end">
-          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{
-            t('quotas_label_requests')
-          }}</span>
-          <span class="text-sm font-black"
-            >{{ quotas.requests.used }} / {{ quotas.requests.limit }}</span
-          >
+    <template #footer>
+      <div class="space-y-4">
+        <div
+          v-if="isTrialActive"
+          class="p-3 rounded-lg bg-primary-50 dark:bg-primary-950/30 border border-primary-500/50"
+        >
+          <div class="flex items-center gap-3">
+            <UIcon name="i-heroicons-bolt" class="w-5 h-5 text-primary-500" />
+            <div class="flex-1">
+              <p
+                class="text-xs font-black uppercase tracking-tight text-primary-900 dark:text-primary-100"
+              >
+                You are on an active Performance Trial
+              </p>
+              <p class="text-[10px] text-primary-700 dark:text-primary-400 leading-tight mt-0.5">
+                Enjoy Supporter-level quotas for unrestricted exploration until
+                {{ trialEndsAtLabel }}.
+              </p>
+            </div>
+          </div>
         </div>
-        <UMeter :value="quotas.requests.used" :max="quotas.requests.limit" color="primary" />
-      </div>
 
-      <!-- Tokens -->
-      <div class="space-y-2">
-        <div class="flex justify-between items-end">
-          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{
-            t('quotas_label_tokens')
-          }}</span>
-          <span class="text-sm font-black"
-            >{{ formatTokens(quotas.tokens.used) }} / {{ formatTokens(quotas.tokens.limit) }}</span
-          >
+        <div
+          v-if="data?.tier === 'FREE' && !isTrialActive"
+          class="p-3 rounded-lg bg-primary-50 dark:bg-primary-950/30 border border-primary-100 dark:border-primary-900"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex-1">
+              <p class="text-xs font-bold text-primary-700 dark:text-primary-400 mb-0.5">
+                Running low on AI power?
+              </p>
+              <p class="text-[10px] text-primary-600 dark:text-primary-500 leading-tight">
+                Upgrade your plan to get higher quotas and advanced coaching features.
+              </p>
+            </div>
+            <UButton
+              to="/settings/billing"
+              size="xs"
+              color="primary"
+              variant="solid"
+              label="Increase Quota"
+              icon="i-heroicons-arrow-trending-up"
+            />
+          </div>
         </div>
-        <UMeter :value="quotas.tokens.used" :max="quotas.tokens.limit" color="blue" />
-      </div>
 
-      <!-- Deep Analysis -->
-      <div class="space-y-2">
-        <div class="flex justify-between items-end">
-          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">{{
-            t('quotas_label_analysis')
-          }}</span>
-          <span class="text-sm font-black"
-            >{{ quotas.analysis.used }} / {{ quotas.analysis.limit }}</span
-          >
-        </div>
-        <UMeter :value="quotas.analysis.used" :max="quotas.analysis.limit" color="purple" />
+        <p class="text-[11px] text-muted leading-relaxed">
+          Calendar-day quotas reset at midnight. Rolling quotas refill gradually as older usage
+          falls out of the time window shown above.
+        </p>
       </div>
-    </div>
+    </template>
   </UCard>
 </template>
 
 <script setup lang="ts">
-  import { useTranslate } from '@tolgee/vue'
+  import type { QuotaStatus } from '~/../types/quotas'
 
-  const { t } = useTranslate('settings')
-  const { data: quotas, pending: loading } = await useFetch<any>('/api/settings/ai/quotas')
+  const { formatRelativeTime, formatUserDate, timezone } = useFormat()
 
-  function formatTokens(val: number) {
-    if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M'
-    if (val >= 1000) return (val / 1000).toFixed(0) + 'K'
-    return val
+  const { data, pending } = useFetch<{
+    tier: string
+    trialEndsAt: string | null
+    quotas: QuotaStatus[]
+  }>('/api/profile/quotas', {
+    server: false,
+    lazy: true
+  })
+
+  const isTrialActive = computed(() => {
+    if (!data.value?.trialEndsAt) return false
+    return new Date(data.value.trialEndsAt) > new Date()
+  })
+
+  const trialEndsAtLabel = computed(() => {
+    if (!data.value?.trialEndsAt) return ''
+    return formatUserDate(data.value.trialEndsAt, timezone.value)
+  })
+
+  const sortedQuotas = computed(() => {
+    const quotas = data.value?.quotas
+    if (!quotas) return []
+    // Sort by usage percentage descending
+    return [...quotas].sort((a, b) => {
+      const bPct = b.used / b.limit
+      const aPct = a.used / a.limit
+      return bPct - aPct
+    })
+  })
+
+  const tierColor = computed(() => {
+    const tier = data.value?.tier || 'FREE'
+    if (tier === 'PRO') return 'primary'
+    if (tier === 'SUPPORTER') return 'info'
+    return 'neutral'
+  })
+
+  function getProgressBarColor(used: number, limit: number) {
+    const ratio = used / limit
+    if (ratio >= 1) return 'bg-red-500'
+    if (ratio >= 0.8) return 'bg-amber-500'
+    if (ratio >= 0.5) return 'bg-blue-500'
+    return 'bg-emerald-500'
+  }
+
+  function getQuotaResetLabel(quota: QuotaStatus) {
+    if (!quota.resetsAt) return ''
+    if (quota.window === 'calendar day') return 'Resets at Midnight'
+    return 'Oldest usage expires ' + formatRelativeTime(quota.resetsAt)
   }
 </script>
