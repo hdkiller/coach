@@ -251,6 +251,20 @@ const toIntensityFactorFromTarget = (
     .trim()
     .toLowerCase()
   const clamp = (n: number) => Math.max(0.3, Math.min(1.8, n))
+  const paceValueToMps = (paceValue: number) => {
+    if (!Number.isFinite(paceValue) || paceValue <= 0) return null
+    if (units.includes('/')) {
+      const secondsPerKm = paceValue * 60
+      return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+    }
+    if (units === 'm/s') return paceValue
+    if (paceValue > 1.5 && paceValue < 8) return paceValue
+    if (refs.thresholdPace > 0) {
+      if (paceValue > 3) return paceValue / refs.thresholdPace
+      return paceValue * refs.thresholdPace
+    }
+    return null
+  }
 
   if (kind === 'heartRate') {
     if (units === 'bpm') {
@@ -273,20 +287,10 @@ const toIntensityFactorFromTarget = (
     return clamp(value > 3 ? value / 100 : value)
   }
 
-  if (units.includes('/')) {
-    if (refs.thresholdPace > 0) {
-      const secondsPerKm = value * 60
-      const metersPerSecond = secondsPerKm > 0 ? 1000 / secondsPerKm : 0
-      if (metersPerSecond > 0) return clamp(metersPerSecond / refs.thresholdPace)
-    }
-    return null
-  }
-  if (units === 'm/s') {
-    if (refs.thresholdPace > 0) return clamp(value / refs.thresholdPace)
-    return null
-  }
   if (units.includes('zone')) return clamp(0.45 + Math.max(1, Math.min(7, value)) * 0.1)
-  if (refs.thresholdPace > 0 && value > 3) return clamp(value / refs.thresholdPace)
+  const metersPerSecond = paceValueToMps(value)
+  if (metersPerSecond !== null && refs.thresholdPace > 0)
+    return clamp(metersPerSecond / refs.thresholdPace)
   return clamp(value > 2 ? value / 100 : value)
 }
 

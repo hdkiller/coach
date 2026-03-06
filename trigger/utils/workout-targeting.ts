@@ -221,14 +221,9 @@ function targetFactor(
   }
 
   if (metric === 'pace') {
-    if (units.includes('/km')) {
-      if (refs.thresholdPace <= 0) return null
-      const secondsPerKm = value * 60
-      const mps = secondsPerKm > 0 ? 1000 / secondsPerKm : 0
-      return mps > 0 ? mps / refs.thresholdPace : null
-    }
-    if (units === 'm/s') return refs.thresholdPace > 0 ? value / refs.thresholdPace : null
-    if (value > 3 && refs.thresholdPace > 0) return value / refs.thresholdPace
+    if (units.includes('zone')) return clamp(0.45 + Math.max(1, Math.min(7, value)) * 0.1, 0.3, 1.5)
+    const mps = paceValueToMps(value, units, refs.thresholdPace)
+    if (mps !== null && refs.thresholdPace > 0) return mps / refs.thresholdPace
     if (value > 2) return value / 100
     return value
   }
@@ -383,6 +378,34 @@ function inferZoneIndexFromBounds(value: number, zones: any[]): number | null {
   return idx >= 0 ? idx + 1 : null
 }
 
+function paceValueToMps(
+  value: number,
+  units: string | undefined,
+  thresholdPace: number
+): number | null {
+  if (!Number.isFinite(value) || value <= 0) return null
+  const normalizedUnits = String(units || '')
+    .trim()
+    .toLowerCase()
+
+  if (normalizedUnits.includes('/km')) {
+    const secondsPerKm = value * 60
+    return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+  }
+
+  if (normalizedUnits === 'm/s') return value
+
+  // Some model outputs carry absolute running speed while still labeling units as "Pace".
+  if (value > 1.5 && value < 8) return value
+
+  if (thresholdPace > 0) {
+    if (value > 3) return value / thresholdPace
+    return value * thresholdPace
+  }
+
+  return null
+}
+
 function normalizeHeartRateTarget(
   step: any,
   targetFormatPolicy: TargetFormatPolicy,
@@ -529,8 +552,8 @@ function normalizePaceTarget(
 
   if (mode === 'absolutePace' && thresholdPace > 0) {
     const toMinPerKm = (value: number) => {
-      const relative = value > 3 ? value : value * thresholdPace
-      const secondsPerKm = 1000 / Math.max(0.01, relative)
+      const metersPerSecond = paceValueToMps(value, target.units, thresholdPace)
+      const secondsPerKm = 1000 / Math.max(0.01, metersPerSecond || thresholdPace)
       return Number((secondsPerKm / 60).toFixed(2))
     }
     if (target.range) {
@@ -549,13 +572,21 @@ function normalizePaceTarget(
   if (mode === 'zone' && Array.isArray(refs.paceZones) && refs.paceZones.length > 0) {
     const midpoint = targetMidpoint(target)
     if (midpoint !== null) {
-      const paceMps = midpoint > 3 ? midpoint : midpoint * Math.max(0.01, thresholdPace || 1)
-      const zoneIdx = inferZoneIndexFromBounds(paceMps, refs.paceZones)
+      const normalizedUnits = String(target.units || '')
+        .trim()
+        .toLowerCase()
+      const explicitZone = normalizedUnits.includes('zone')
+        ? Math.max(1, Math.round(midpoint))
+        : null
+      const paceMps = explicitZone ? null : paceValueToMps(midpoint, target.units, thresholdPace)
+      const zoneIdx =
+        explicitZone ||
+        (paceMps !== null ? inferZoneIndexFromBounds(paceMps, refs.paceZones) : null)
       if (zoneIdx && refs.paceZones[zoneIdx - 1]) {
         const zone = refs.paceZones[zoneIdx - 1]
         target.range = {
-          start: Number(zone.min || paceMps),
-          end: Number(zone.max || paceMps)
+          start: Number(zone.min || paceMps || midpoint),
+          end: Number(zone.max || paceMps || midpoint)
         }
         target.value = undefined
         target.units = 'm/s'
@@ -567,7 +598,11 @@ function normalizePaceTarget(
 
   // percentPace
   if (thresholdPace > 0) {
-    const toRelative = (value: number) => (value > 3 ? value / thresholdPace : value)
+    const toRelative = (value: number) => {
+      const metersPerSecond = paceValueToMps(value, target.units, thresholdPace)
+      if (metersPerSecond !== null) return metersPerSecond / thresholdPace
+      return value
+    }
     if (target.range) {
       target.range = {
         start: Math.max(0, toRelative(target.range.start)),

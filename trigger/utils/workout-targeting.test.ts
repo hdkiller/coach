@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyStepIntentGuard } from './workout-targeting'
+import { applyStepIntentGuard, applyTargetFormatPolicyToStep } from './workout-targeting'
 
 function midpointOfRange(target: any) {
   if (!target) return null
@@ -95,5 +95,83 @@ describe('applyStepIntentGuard', () => {
 
     expect(step.power).toEqual({ value: 1.1, units: '%' })
     expect(step.intent).toBe('vo2')
+  })
+})
+
+describe('applyTargetFormatPolicyToStep', () => {
+  it('maps pace zone index targets to configured zone bounds in zone mode', () => {
+    const step: any = {
+      type: 'Active',
+      primaryTarget: 'pace',
+      pace: { value: 1, units: 'zone' }
+    }
+
+    applyTargetFormatPolicyToStep(
+      step,
+      {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'zone', preferRange: true },
+        cadence: { mode: 'rpm' }
+      },
+      {
+        ftp: 250,
+        lthr: 168,
+        maxHr: 185,
+        thresholdPace: 2.345,
+        hrZones: [],
+        powerZones: [],
+        paceZones: [
+          { min: 1.41, max: 1.83, name: 'Z1 Easy' },
+          { min: 1.83, max: 2.06, name: 'Z2 Endurance' }
+        ]
+      }
+    )
+
+    expect(step.pace).toMatchObject({
+      range: { start: 1.41, end: 1.83 },
+      units: 'm/s'
+    })
+  })
+
+  it('treats ambiguous high Pace values as absolute speed in zone mode', () => {
+    const step: any = {
+      type: 'Active',
+      primaryTarget: 'pace',
+      pace: {
+        range: { start: 2.44, end: 2.48 },
+        units: 'Pace'
+      }
+    }
+
+    applyTargetFormatPolicyToStep(
+      step,
+      {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'zone', preferRange: true },
+        cadence: { mode: 'rpm' }
+      },
+      {
+        ftp: 250,
+        lthr: 168,
+        maxHr: 185,
+        thresholdPace: 2.345,
+        hrZones: [],
+        powerZones: [],
+        paceZones: [
+          { min: 1.41, max: 1.83, name: 'Z1 Easy' },
+          { min: 1.83, max: 2.06, name: 'Z2 Endurance' },
+          { min: 2.06, max: 2.23, name: 'Z3 Tempo' },
+          { min: 2.23, max: 2.39, name: 'Z4 Threshold' },
+          { min: 2.39, max: 2.53, name: 'Z5 VO2' }
+        ]
+      }
+    )
+
+    expect(step.pace).toMatchObject({
+      range: { start: 2.39, end: 2.53 },
+      units: 'm/s'
+    })
   })
 })
