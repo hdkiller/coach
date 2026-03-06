@@ -719,6 +719,15 @@ model PlannedWorkout {
   user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   completedWorkouts Workout[]
 
+  lastStructureEditedAt DateTime?
+  lastStructureEditSource String?
+  lastStructurePublishedAt DateTime?
+  lastRemoteStructureSeenAt DateTime?
+  structureHash     String?
+  remoteStructureHash String?
+  syncConflict      Boolean                  @default(false)
+  pendingRemoteStructuredWorkout Json?
+
   @@unique([userId, externalId])
   @@index([userId, date])
   @@index([userId, syncStatus])
@@ -1795,11 +1804,3 @@ model PersonalBest {
   @@index([userId])
   @@index([category])
 }
-  lastStructureEditedAt DateTime?
-  lastStructureEditSource String?
-  lastStructurePublishedAt DateTime?
-  lastRemoteStructureSeenAt DateTime?
-  structureHash     String?
-  remoteStructureHash String?
-  syncConflict      Boolean                  @default(false)
-  pendingRemoteStructuredWorkout Json?
