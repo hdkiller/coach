@@ -4,7 +4,9 @@ import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
-import { getQuotaSummary } from '../../server/utils/quotas/engine'
+import type { SubscriptionTier } from '@prisma/client'
+import { QUOTA_REGISTRY, type QuotaOperation } from '../../server/utils/quotas/registry'
+import { getStartOfDayUTC, getEndOfDayUTC } from '../../server/utils/date'
 
 const quotaCommand = new Command('quota')
   .description("Check a user's LLM usage and quotas")
@@ -25,9 +27,6 @@ const quotaCommand = new Command('quota')
       process.exit(1)
     }
 
-    // Set DATABASE_URL for the engine to use
-    process.env.DATABASE_URL = connectionString
-
     const pool = new pg.Pool({ connectionString })
     const adapter = new PrismaPg(pool)
     const prisma = new PrismaClient({ adapter })
@@ -35,7 +34,13 @@ const quotaCommand = new Command('quota')
     try {
       const user = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, email: true, subscriptionTier: true, trialEndsAt: true }
+        select: {
+          id: true,
+          email: true,
+          subscriptionTier: true,
+          trialEndsAt: true,
+          timezone: true
+        }
       })
 
       if (!user) {
@@ -53,7 +58,7 @@ const quotaCommand = new Command('quota')
       }
 
       console.log(chalk.bold('\nQuota Status:'))
-      const quotas = await getQuotaSummary(user.id)
+      const quotas = await getQuotaSummaryForUser(prisma, user)
 
       if (quotas.length === 0) {
         console.log(chalk.yellow('No active quotas found for this user.'))
@@ -143,3 +148,100 @@ const quotaCommand = new Command('quota')
   })
 
 export default quotaCommand
+
+async function getQuotaSummaryForUser(
+  prisma: PrismaClient,
+  user: {
+    id: string
+    subscriptionTier: SubscriptionTier
+    trialEndsAt: Date | null
+    timezone: string | null
+  }
+) {
+  const isTrialActive = user.trialEndsAt && new Date(user.trialEndsAt) > new Date()
+  const effectiveTier: SubscriptionTier =
+    user.subscriptionTier === 'FREE' && isTrialActive ? 'SUPPORTER' : user.subscriptionTier
+  const operations = Object.keys(QUOTA_REGISTRY[effectiveTier]) as QuotaOperation[]
+
+  return Promise.all(
+    operations.map((operation) => getQuotaStatusForUser(prisma, user, effectiveTier, operation))
+  )
+}
+
+async function getQuotaStatusForUser(
+  prisma: PrismaClient,
+  user: {
+    id: string
+    timezone: string | null
+  },
+  tier: SubscriptionTier,
+  operation: QuotaOperation
+) {
+  const quotaDef = QUOTA_REGISTRY[tier][operation]
+  if (!quotaDef) return null
+
+  const timezone = user.timezone || 'UTC'
+  const isCalendarReset = quotaDef.resetType === 'CALENDAR'
+
+  let usageCount: Array<{ count: number; firstUsedAt: Date | null }>
+
+  if (isCalendarReset) {
+    const startOfToday = getStartOfDayUTC(timezone)
+    usageCount = await prisma.$queryRaw`
+      SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
+      FROM "LlmUsage"
+      WHERE "userId" = ${user.id}
+        AND "operation" = ${operation}
+        AND "success" = true
+        AND "counted" = true
+        AND "createdAt" >= ${startOfToday}
+    `
+  } else {
+    usageCount = await prisma.$queryRaw`
+      SELECT COUNT(*)::int as count, MIN("createdAt") as "firstUsedAt"
+      FROM "LlmUsage"
+      WHERE "userId" = ${user.id}
+        AND "operation" = ${operation}
+        AND "success" = true
+        AND "counted" = true
+        AND "createdAt" >= NOW() - CAST(${quotaDef.window} AS interval)
+    `
+  }
+
+  const used = usageCount[0]?.count || 0
+  const remaining = Math.max(0, quotaDef.limit - used)
+
+  let resetsAt = null
+  if (isCalendarReset) {
+    resetsAt = getEndOfDayUTC(timezone)
+  } else if (used > 0 && usageCount[0]?.firstUsedAt) {
+    const firstUsedAt = new Date(usageCount[0].firstUsedAt)
+    resetsAt = new Date(firstUsedAt.getTime() + parseIntervalToMs(quotaDef.window))
+  }
+
+  return {
+    operation,
+    allowed: quotaDef.enforcement === 'MEASURE' || used < quotaDef.limit,
+    used,
+    limit: quotaDef.limit,
+    remaining,
+    window: isCalendarReset ? 'calendar day' : quotaDef.window,
+    resetsAt,
+    enforcement: quotaDef.enforcement
+  }
+}
+
+function parseIntervalToMs(interval: string): number {
+  const parts = interval.split(' ')
+  if (parts.length < 2) return 0
+
+  const value = parseInt(parts[0] || '0')
+  const unit = (parts[1] || '').toLowerCase()
+
+  if (unit.includes('hour')) return value * 60 * 60 * 1000
+  if (unit.includes('day')) return value * 24 * 60 * 60 * 1000
+  if (unit.includes('week')) return value * 7 * 24 * 60 * 60 * 1000
+  if (unit.includes('month')) return value * 30 * 24 * 60 * 60 * 1000
+
+  return value * 60 * 1000
+}
