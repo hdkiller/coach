@@ -5,7 +5,14 @@ export function getMoodLabel(score: number): string {
   return 'Grumpy'
 }
 
+export function normalizeStressScore(score: number | null | undefined): number | null {
+  if (score === null || score === undefined) return null
+  if (score > 10) return Math.max(0, Math.min(10, Math.round(score) / 10))
+  return score
+}
+
 export function getStressLabel(score: number): string {
+  score = normalizeStressScore(score) ?? 0
   if (score >= 8) return 'Extreme'
   if (score >= 6) return 'High'
   if (score >= 4) return 'Average'

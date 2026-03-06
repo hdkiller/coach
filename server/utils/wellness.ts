@@ -6,7 +6,20 @@ export function getMoodLabel(score: number | null | undefined): string {
   return 'Grumpy'
 }
 
+export function normalizeStressScore(score: number | null | undefined): number | null {
+  if (score === null || score === undefined) return null
+  if (score > 10) return Math.max(0, Math.min(10, Math.round(score) / 10))
+  return score
+}
+
+export function normalizeStressScoreForStorage(score: number | null | undefined): number | null {
+  const normalized = normalizeStressScore(score)
+  if (normalized === null) return null
+  return Math.round(normalized)
+}
+
 export function getStressLabel(score: number | null | undefined): string {
+  score = normalizeStressScore(score)
   if (score === null || score === undefined || score === 0) return 'N/A'
   if (score >= 8) return 'Extreme'
   if (score >= 6) return 'High'
