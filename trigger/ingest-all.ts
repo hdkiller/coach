@@ -13,6 +13,7 @@ import { ingestPolarTask } from './ingest-polar'
 import { ingestGarminTask } from './ingest-garmin'
 import { ingestRouvyTask } from './ingest-rouvy'
 import { ingestWahooTask } from './ingest-wahoo'
+import { ingestUltrahumanTask } from './ingest-ultrahuman'
 import { generateAthleteProfileTask } from './generate-athlete-profile'
 import { processSyncQueueTask } from './process-sync-queue'
 import { deduplicateWorkoutsTask } from './deduplicate-workouts'
@@ -156,6 +157,12 @@ export const ingestAllTask = task({
             payload: { userId, startDate, endDate }
           })
           break
+        case 'ultrahuman':
+          tasksTrigger.push({
+            task: ingestUltrahumanTask,
+            payload: { userId, startDate, endDate }
+          })
+          break
         default:
           logger.warn(`Unknown provider: ${integration.provider}`)
       }
@@ -194,6 +201,7 @@ export const ingestAllTask = task({
         if (item.task.id === ingestGarminTask.id && i.provider === 'garmin') return true
         if (item.task.id === ingestRouvyTask.id && i.provider === 'rouvy') return true
         if (item.task.id === ingestWahooTask.id && i.provider === 'wahoo') return true
+        if (item.task.id === ingestUltrahumanTask.id && i.provider === 'ultrahuman') return true
         return false
       })
 
