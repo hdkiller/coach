@@ -215,6 +215,62 @@ describe('WorkoutConverter', () => {
       expect(result).toContain(' - Hard 100mtrs 90% Pace')
       expect(result).toContain(' - Rest 30s')
     })
+
+    it('formats running pace zones as zone labels instead of percentages', () => {
+      const workout = {
+        title: 'Easy Run',
+        type: 'Run',
+        steps: [
+          { type: 'Active', durationSeconds: 1800, pace: { value: 1, units: 'zone' }, name: 'Easy' }
+        ],
+        generationSettingsSnapshot: {
+          thresholds: { thresholdPace: 2.345 },
+          zones: {
+            pace: [
+              { min: 1.41, max: 1.83, name: 'Z1 Easy' },
+              { min: 1.83, max: 2.06, name: 'Z2 Endurance' }
+            ]
+          }
+        }
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain('- Easy 30m Z1 Pace')
+      expect(result).not.toContain('100% Pace')
+    })
+
+    it('formats absolute pace zone bounds as zone labels in running exports', () => {
+      const workout = {
+        title: 'VO2 Run',
+        type: 'Run',
+        steps: [
+          {
+            type: 'Active',
+            durationSeconds: 120,
+            pace: { range: { start: 2.39, end: 2.53 }, units: 'm/s' },
+            name: 'Rep'
+          }
+        ],
+        generationSettingsSnapshot: {
+          thresholds: { thresholdPace: 2.345 },
+          zones: {
+            pace: [
+              { min: 1.41, max: 1.83, name: 'Z1 Easy' },
+              { min: 1.83, max: 2.06, name: 'Z2 Endurance' },
+              { min: 2.06, max: 2.23, name: 'Z3 Tempo' },
+              { min: 2.23, max: 2.39, name: 'Z4 Threshold' },
+              { min: 2.39, max: 2.53, name: 'Z5 VO2' }
+            ]
+          }
+        }
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain('- Rep 2m Z5 Pace')
+      expect(result).not.toContain('% Pace')
+    })
     it('prioritizes Heart Rate when sportSettings loadPreference is hr', () => {
       const workout = {
         title: 'HR Focus',

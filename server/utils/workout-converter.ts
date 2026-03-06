@@ -50,15 +50,19 @@ interface WorkoutData {
     intervalsHrRangeTolerancePct?: number | null
     lthr?: number | null
     hrZones?: Array<{ name?: string; min?: number; max?: number }> | null
+    thresholdPace?: number | null
+    paceZones?: Array<{ name?: string; min?: number; max?: number }> | null
   }
   generationSettingsSnapshot?: {
     loadPreference?: string | null
     targetPolicy?: any
     thresholds?: {
       lthr?: number | null
+      thresholdPace?: number | null
     } | null
     zones?: {
       heartRate?: Array<{ name?: string; min?: number; max?: number }> | null
+      pace?: Array<{ name?: string; min?: number; max?: number }> | null
     } | null
   } | null
 }
@@ -453,6 +457,72 @@ export const WorkoutConverter = {
       start: toValuePct(start),
       end: toValuePct(end)
     })
+    const paceZones =
+      workout.generationSettingsSnapshot?.zones?.pace || workout.sportSettings?.paceZones || []
+    const thresholdPace =
+      Number(
+        workout.generationSettingsSnapshot?.thresholds?.thresholdPace ||
+          workout.sportSettings?.thresholdPace ||
+          0
+      ) || 0
+    const getPaceZoneBoundsByIndex = (indexRaw: number) => {
+      const index = Math.max(1, Math.round(indexRaw))
+      const zone = Array.isArray(paceZones) ? paceZones[index - 1] : null
+      if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
+        return { start: Number(zone.min), end: Number(zone.max) }
+      }
+      return null
+    }
+    const paceValueToMps = (value: number, units?: string) => {
+      if (!Number.isFinite(value) || value <= 0) return null
+      const normalizedUnits = String(units || '')
+        .trim()
+        .toLowerCase()
+      if (normalizedUnits.includes('/')) {
+        const secondsPerKm = value * 60
+        return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+      }
+      if (normalizedUnits === 'm/s') return value
+      if (value > 1.5 && value < 8) return value
+      if (thresholdPace > 0) {
+        if (value > 3) return value / thresholdPace
+        return value * thresholdPace
+      }
+      return null
+    }
+    const paceTargetToZoneLabel = (target: {
+      value?: number
+      range?: { start: number; end: number }
+      units?: string
+    }) => {
+      const units = String(target.units || '')
+        .trim()
+        .toLowerCase()
+      if (units === 'pace_zone' || units === 'zone') {
+        const zoneValue =
+          typeof target.value === 'number'
+            ? Math.round(target.value)
+            : target.range
+              ? Math.round((target.range.start + target.range.end) / 2)
+              : null
+        return zoneValue ? `Z${zoneValue} Pace` : null
+      }
+
+      const midpoint = target.range
+        ? (target.range.start + target.range.end) / 2
+        : typeof target.value === 'number'
+          ? target.value
+          : null
+      if (midpoint === null) return null
+      const speedMps = paceValueToMps(midpoint, target.units)
+      if (speedMps === null || !Array.isArray(paceZones) || paceZones.length === 0) return null
+      const zoneIdx = paceZones.findIndex((zone: any) => {
+        const min = Number(zone?.min)
+        const max = Number(zone?.max)
+        return Number.isFinite(min) && Number.isFinite(max) && speedMps >= min && speedMps <= max
+      })
+      return zoneIdx >= 0 ? `Z${zoneIdx + 1} Pace` : null
+    }
     const formatMetric = (
       target: { value?: number; range?: { start: number; end: number }; units?: string } | null,
       kind: 'power' | 'hr' | 'pace'
@@ -486,6 +556,13 @@ export const WorkoutConverter = {
           if (isHrZoneUnit) return `Z${Math.max(1, Math.round(value))} HR`
           return `${toValuePct(value)}% ${hrLabel}`
         }
+        if (kind === 'pace') {
+          const zoneLabel = paceTargetToZoneLabel(target)
+          if (zoneLabel) return zoneLabel
+          const paceMps = paceValueToMps(value, target.units)
+          if (String(units || '').includes('/')) return `${value}${units}`
+          if (paceMps !== null && String(units || '') === 'm/s') return `${value.toFixed(2)} m/s`
+        }
         if (units && units.includes('/')) return `${value}${units}`
         return `${toValuePct(value)}% Pace`
       }
@@ -507,6 +584,18 @@ export const WorkoutConverter = {
           }
           const pct = toRangePct(start, end)
           return `${pct.start}-${pct.end}% ${hrLabel}`
+        }
+        if (kind === 'pace') {
+          const zoneLabel = paceTargetToZoneLabel(target)
+          if (zoneLabel) return zoneLabel
+          if (units === 'pace_zone' || units === 'zone') {
+            const startBounds = getPaceZoneBoundsByIndex(start)
+            const endBounds = getPaceZoneBoundsByIndex(end)
+            if (startBounds && endBounds) {
+              return `${startBounds.start.toFixed(2)}-${endBounds.end.toFixed(2)} m/s`
+            }
+          }
+          if (units === 'm/s') return `${start.toFixed(2)}-${end.toFixed(2)} m/s`
         }
         if (units && units.includes('/')) return `${start}-${end}${units}`
         const pct = toRangePct(start, end)
