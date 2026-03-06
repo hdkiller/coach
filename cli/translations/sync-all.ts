@@ -85,14 +85,14 @@ const syncAllCommand = new Command('sync-all')
           body: JSON.stringify({ key, namespace: ns, translations: { en: value } })
         })
         if ((res.status === 444 || res.status >= 500) && retries > 0) {
-          await sleep(3000)
+          await sleep(5000)
           return putTranslation(key, value, retries - 1)
         }
         return res
       }
 
       for (const [key, value] of entries) {
-        await sleep(30)
+        await sleep(60)
         try {
           let res = await putTranslation(key, value)
 
@@ -108,7 +108,7 @@ const syncAllCommand = new Command('sync-all')
               continue
             }
 
-            await sleep(30)
+            await sleep(60)
             res = await putTranslation(key, value)
 
             if (res.ok) nsCreated++
