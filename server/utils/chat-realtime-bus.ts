@@ -8,7 +8,7 @@ type ChatRealtimeEnvelope = {
 }
 
 const CHAT_REALTIME_CHANNEL = 'chat:realtime'
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'
+const REDIS_URL = process.env.REDIS_URL
 const INSTANCE_ID = process.env.HOSTNAME || randomUUID()
 
 let publisher: IORedis | null = null
@@ -16,10 +16,20 @@ let subscriber: IORedis | null = null
 let subscriberHandler: ((channel: string, payload: string) => void) | null = null
 let subscriptionPromise: Promise<void> | null = null
 
+export function isChatRealtimeBusEnabled() {
+  return !!REDIS_URL && !process.env.NITRO_BUILD
+}
+
 function createRedisClient(name: string) {
+  if (!REDIS_URL) {
+    throw new Error('REDIS_URL is not configured')
+  }
+
   const client = new IORedis(REDIS_URL, {
     lazyConnect: true,
-    maxRetriesPerRequest: null
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    retryStrategy: () => null
   })
 
   client.on('error', (error) => {
@@ -33,7 +43,12 @@ function createRedisClient(name: string) {
 
 async function ensureConnected(client: IORedis) {
   if (client.status === 'wait') {
-    await client.connect()
+    try {
+      await client.connect()
+    } catch (error) {
+      client.disconnect()
+      throw error
+    }
   }
 }
 
@@ -56,6 +71,10 @@ async function getSubscriber() {
 }
 
 export async function publishChatRealtimeEvent(userId: string, data: any) {
+  if (!isChatRealtimeBusEnabled()) {
+    return
+  }
+
   try {
     const client = await getPublisher()
     const envelope: ChatRealtimeEnvelope = {
@@ -72,6 +91,10 @@ export async function publishChatRealtimeEvent(userId: string, data: any) {
 export async function startChatRealtimeSubscription(
   onEvent: (event: { userId: string; data: any }) => void
 ) {
+  if (!isChatRealtimeBusEnabled()) {
+    return
+  }
+
   if (subscriptionPromise) {
     return subscriptionPromise
   }
