@@ -460,6 +460,119 @@ function toIntensityFactorFromTarget(
   return clamp(value > 2 ? value / 100 : value)
 }
 
+function getStepIntensity(
+  step: any,
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number },
+  fallbackOrder: Array<'power' | 'heartRate' | 'pace' | 'rpe'>
+) {
+  const metrics: Array<'heartRate' | 'power' | 'pace' | 'rpe'> = []
+  const primaryTarget = String(step?.primaryTarget || '')
+  if (
+    primaryTarget === 'heartRate' ||
+    primaryTarget === 'power' ||
+    primaryTarget === 'pace' ||
+    primaryTarget === 'rpe'
+  ) {
+    metrics.push(primaryTarget)
+  }
+  for (const metric of fallbackOrder) {
+    if (!metrics.includes(metric)) metrics.push(metric)
+  }
+
+  for (const metric of metrics) {
+    if (metric === 'rpe') {
+      if (typeof step?.rpe === 'number') return Math.max(0.3, Math.min(1.3, step.rpe / 10))
+      continue
+    }
+    const intensity = toIntensityFactorFromTarget(step?.[metric], metric, refs)
+    if (intensity !== null) return intensity
+  }
+
+  switch (step?.type) {
+    case 'Warmup':
+      return 0.5
+    case 'Cooldown':
+    case 'Rest':
+      return 0.4
+    default:
+      return 0.75
+  }
+}
+
+function getCoverageThreshold(plannedDurationSec: number) {
+  if (plannedDurationSec <= 30 * 60) return 0.8
+  if (plannedDurationSec <= 60 * 60) return 0.85
+  return 0.9
+}
+
+function countWorkBlocks(steps: any[]): number {
+  let count = 0
+  const visit = (nodes: any[]) => {
+    for (const step of nodes || []) {
+      if (Array.isArray(step?.steps) && step.steps.length > 0) {
+        visit(step.steps)
+        continue
+      }
+      if (step?.type === 'Active') count += 1
+    }
+  }
+  visit(steps)
+  return count
+}
+
+function hasRepeatBlock(steps: any[]): boolean {
+  return (steps || []).some(
+    (step: any) =>
+      (Number(step?.reps) || Number(step?.repeat) || Number(step?.intervals) || 0) > 1 ||
+      (Array.isArray(step?.steps) && hasRepeatBlock(step.steps))
+  )
+}
+
+function looksLikeIntervalWorkout(workout: any) {
+  const text = `${workout?.title || ''} ${workout?.description || ''}`.toLowerCase()
+  return /\b(vo2|threshold|tempo|interval|repeats?|x\d+|\d+x)\b/.test(text)
+}
+
+function validateStructuredCoverage(params: {
+  plannedDurationSec: number
+  actualDurationSec: number
+  steps: any[]
+  workout: any
+}) {
+  const { plannedDurationSec, actualDurationSec, steps, workout } = params
+  if (plannedDurationSec <= 0) {
+    return { valid: actualDurationSec > 0, reason: actualDurationSec > 0 ? null : 'zero_duration' }
+  }
+
+  const coverage = actualDurationSec / plannedDurationSec
+  const minCoverage = getCoverageThreshold(plannedDurationSec)
+  if (coverage < minCoverage) {
+    return {
+      valid: false,
+      reason: `duration coverage too low (${Math.round(coverage * 100)}% < ${Math.round(minCoverage * 100)}%)`
+    }
+  }
+  if (coverage > 1.1) {
+    return {
+      valid: false,
+      reason: `duration overshoot too high (${Math.round(coverage * 100)}% > 110%)`
+    }
+  }
+
+  if (looksLikeIntervalWorkout(workout)) {
+    const workBlocks = countWorkBlocks(steps)
+    const repeated = hasRepeatBlock(steps)
+    if (!repeated && workBlocks < 3) {
+      return {
+        valid: false,
+        reason: 'interval workout is missing enough repeated/main-set work blocks'
+      }
+    }
+  }
+
+  return { valid: true, reason: null }
+}
+
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
@@ -789,31 +902,57 @@ export const generateStructuredWorkoutTask = task({
     })
 
     let structure: any
-    try {
-      const aiStartedAt = Date.now()
-      structure = await generateStructuredAnalysis(prompt, workoutStructureSchema, 'flash', {
-        userId: workout.userId,
-        operation: 'generate_structured_workout',
-        entityType: 'PlannedWorkout',
-        entityId: plannedWorkoutId,
-        disableThinking: true
+    let promptToUse = prompt
+    let totals: { distance: number; duration: number; tss: number } | null = null
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const aiStartedAt = Date.now()
+        structure = await generateStructuredAnalysis(promptToUse, workoutStructureSchema, 'flash', {
+          userId: workout.userId,
+          operation: 'generate_structured_workout',
+          entityType: 'PlannedWorkout',
+          entityId: plannedWorkoutId,
+          disableThinking: true
+        })
+        const aiDurationMs = Date.now() - aiStartedAt
+        logStage('ai-structure-generated', {
+          aiDurationMs,
+          attempt,
+          hasSteps: Array.isArray(structure?.steps),
+          stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
+          exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
+        })
+      } catch (aiError: any) {
+        logStage('ai-generation-failed', {
+          error: aiError.message,
+          stack: aiError.stack,
+          attempt
+        })
+        throw aiError
+      }
+
+      totals = normalizeAndCalculate(structure.steps || [])
+      const coverageValidation = validateStructuredCoverage({
+        plannedDurationSec: Number(workout.durationSec || 0),
+        actualDurationSec: totals.duration,
+        steps: structure.steps || [],
+        workout
       })
-      const aiDurationMs = Date.now() - aiStartedAt
-      logStage('ai-structure-generated', {
-        aiDurationMs,
-        hasSteps: Array.isArray(structure?.steps),
-        stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
-        exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
+      if (coverageValidation.valid) break
+      if (attempt >= 2) {
+        throw new Error(
+          `Generated structured workout failed validation: ${coverageValidation.reason}`
+        )
+      }
+
+      promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous structure was rejected because ${coverageValidation.reason}.\n- You MUST keep the workout within the allowed duration tolerance and include a complete main set matching the workout objective.\n- Retry with a complete structure now.`
+      logStage('ai-structure-retry-requested', {
+        attempt,
+        reason: coverageValidation.reason
       })
-    } catch (aiError: any) {
-      logStage('ai-generation-failed', {
-        error: aiError.message,
-        stack: aiError.stack
-      })
-      throw aiError
     }
 
-    const normalizeAndCalculate = (steps: any[], depth = 0, parentStep: any = null) => {
+    function normalizeAndCalculate(steps: any[], depth = 0, parentStep: any = null) {
       let distance = 0
       let duration = 0
       let tss = 0
@@ -845,9 +984,16 @@ export const generateStructuredWorkoutTask = task({
           }
         }
 
+        const ensureTargetObject = (fieldName: 'power' | 'heartRate' | 'pace') => {
+          if (typeof step[fieldName] === 'number' && Number.isFinite(step[fieldName])) {
+            step[fieldName] = { value: step[fieldName] }
+          }
+        }
+
         // 2. Sport-Specific Normalization
         if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
           recoverTarget('power')
+          ensureTargetObject('power')
           if (!step.power || (step.power.value === undefined && !step.power.range)) {
             if (step.type === 'Warmup') step.power = { value: 0.5 }
             else if (step.type === 'Rest') step.power = { value: 0.45 }
@@ -867,6 +1013,9 @@ export const generateStructuredWorkoutTask = task({
           recoverTarget('heartRate')
           recoverTarget('pace')
           recoverTarget('power')
+          ensureTargetObject('heartRate')
+          ensureTargetObject('pace')
+          ensureTargetObject('power')
           if (step.heartRate && !step.heartRate.units) step.heartRate.units = 'LTHR'
           if (step.pace && !step.pace.units) step.pace.units = 'Pace'
           if (step.power && !step.power.units) step.power.units = inferPowerUnits(step.power)
@@ -932,46 +1081,16 @@ export const generateStructuredWorkoutTask = task({
             }
           }
 
-          let intensity = 0.5
-          const hrIntensity = toIntensityFactorFromTarget(step.heartRate, 'heartRate', {
-            ftp,
-            lthr,
-            maxHr,
-            thresholdPace: Number(sportSettings?.thresholdPace || 0)
-          })
-          const powerIntensity = toIntensityFactorFromTarget(step.power, 'power', {
-            ftp,
-            lthr,
-            maxHr,
-            thresholdPace: Number(sportSettings?.thresholdPace || 0)
-          })
-          const paceIntensity = toIntensityFactorFromTarget(step.pace, 'pace', {
-            ftp,
-            lthr,
-            maxHr,
-            thresholdPace: Number(sportSettings?.thresholdPace || 0)
-          })
-          if (hrIntensity !== null) intensity = hrIntensity
-          else if (powerIntensity !== null) intensity = powerIntensity
-          else if (paceIntensity !== null) intensity = paceIntensity
-          else if (typeof step.rpe === 'number') {
-            intensity = Math.max(0.3, Math.min(1.3, step.rpe / 10))
-          } else {
-            switch (step.type) {
-              case 'Warmup':
-                intensity = 0.5
-                break
-              case 'Cooldown':
-                intensity = 0.4
-                break
-              case 'Rest':
-                intensity = 0.4
-                break
-              case 'Active':
-                intensity = 0.75
-                break
-            }
-          }
+          const intensity = getStepIntensity(
+            step,
+            {
+              ftp,
+              lthr,
+              maxHr,
+              thresholdPace: Number(sportSettings?.thresholdPace || 0)
+            },
+            targetPolicy.fallbackOrder as Array<'power' | 'heartRate' | 'pace' | 'rpe'>
+          )
           if (stepDuration > 0) {
             stepTSS = ((stepDuration * intensity * intensity) / 3600) * 100
           }
@@ -992,13 +1111,13 @@ export const generateStructuredWorkoutTask = task({
       return { distance, duration, tss }
     }
 
-    const totals = normalizeAndCalculate(structure.steps || [])
+    const computedTotals = totals || normalizeAndCalculate(structure.steps || [])
     if (workout.type === 'Ride' || workout.type === 'VirtualRide') {
       enforceCyclingCadenceVariation(structure)
     }
-    const totalDistance = totals.distance
-    let totalDuration = totals.duration
-    let totalTSS = totals.tss
+    const totalDistance = computedTotals.distance
+    let totalDuration = computedTotals.duration
+    let totalTSS = computedTotals.tss
 
     if (structure.exercises && Array.isArray(structure.exercises)) {
       let gymDuration = 0
