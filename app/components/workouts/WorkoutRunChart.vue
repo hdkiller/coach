@@ -1,7 +1,7 @@
 <template>
   <div class="workout-chart-container">
     <div
-      v-if="!workout || !workout.steps || workout.steps.length === 0"
+      v-if="!workoutData || !workoutData.steps || workoutData.steps.length === 0"
       class="text-center py-8 text-muted text-sm"
     >
       No structured workout data available.
@@ -290,6 +290,10 @@
 
 <script setup lang="ts">
   import { ZONE_COLORS } from '~/utils/zone-colors'
+  import {
+    getStructuredWorkoutPayload,
+    resolveWorkoutChartSportSettings
+  } from '~/utils/workoutChartContext'
 
   const props = withDefaults(
     defineProps<{
@@ -304,7 +308,11 @@
   )
 
   // Computed properties
-  const normalizedSteps = computed(() => flattenWorkoutSteps(props.workout?.steps || []))
+  const workoutData = computed(() => getStructuredWorkoutPayload(props.workout))
+  const effectiveSportSettings = computed(() =>
+    resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
+  )
+  const normalizedSteps = computed(() => flattenWorkoutSteps(workoutData.value?.steps || []))
 
   const totalDuration = computed(() => {
     return normalizedSteps.value.reduce(
@@ -381,13 +389,31 @@
     ]
 
     // Use sport specific HR zones if available and preferred
-    if (props.preference === 'hr' && props.sportSettings?.hrZones && props.sportSettings.lthr) {
-      const lthr = props.sportSettings.lthr
-      distribution = props.sportSettings.hrZones.map((z: any, i: number) => ({
+    if (
+      props.preference === 'hr' &&
+      effectiveSportSettings.value?.hrZones &&
+      effectiveSportSettings.value.lthr
+    ) {
+      const lthr = effectiveSportSettings.value.lthr
+      distribution = effectiveSportSettings.value.hrZones.map((z: any, i: number) => ({
         name: `Z${i + 1}`,
         longName: z.name || `Zone ${i + 1}`,
         min: z.min / lthr,
         max: z.max / lthr,
+        duration: 0,
+        color: ZONE_COLORS[i] || '#9ca3af'
+      }))
+    } else if (
+      props.preference === 'pace' &&
+      effectiveSportSettings.value?.paceZones &&
+      effectiveSportSettings.value.thresholdPace
+    ) {
+      const thresholdPace = effectiveSportSettings.value.thresholdPace
+      distribution = effectiveSportSettings.value.paceZones.map((z: any, i: number) => ({
+        name: `Z${i + 1}`,
+        longName: z.name || `Zone ${i + 1}`,
+        min: z.min / thresholdPace,
+        max: z.max / thresholdPace,
         duration: 0,
         color: ZONE_COLORS[i] || '#9ca3af'
       }))
@@ -415,10 +441,10 @@
   }
 
   function getHeartRateReference(): number {
-    const lthr = Number(props.sportSettings?.lthr)
+    const lthr = Number(effectiveSportSettings.value?.lthr)
     if (Number.isFinite(lthr) && lthr > 0) return lthr
 
-    const maxHr = Number(props.sportSettings?.maxHr)
+    const maxHr = Number(effectiveSportSettings.value?.maxHr)
     if (Number.isFinite(maxHr) && maxHr > 0) return maxHr
 
     return 200
@@ -432,7 +458,9 @@
 
   function getHrZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
     const index = Math.max(1, Math.round(indexRaw))
-    const zones = Array.isArray(props.sportSettings?.hrZones) ? props.sportSettings.hrZones : []
+    const zones = Array.isArray(effectiveSportSettings.value?.hrZones)
+      ? effectiveSportSettings.value.hrZones
+      : []
     const zone = zones[index - 1]
     if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
       return { start: Number(zone.min), end: Number(zone.max) }
@@ -460,7 +488,9 @@
 
   function getPaceZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
     const index = Math.max(1, Math.round(indexRaw))
-    const zones = Array.isArray(props.sportSettings?.paceZones) ? props.sportSettings.paceZones : []
+    const zones = Array.isArray(effectiveSportSettings.value?.paceZones)
+      ? effectiveSportSettings.value.paceZones
+      : []
     const zone = zones[index - 1]
     if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
       return { start: Number(zone.min), end: Number(zone.max) }
@@ -469,7 +499,9 @@
   }
 
   function getPaceZoneIndexFromMps(speedMps: number): number | null {
-    const zones = Array.isArray(props.sportSettings?.paceZones) ? props.sportSettings.paceZones : []
+    const zones = Array.isArray(effectiveSportSettings.value?.paceZones)
+      ? effectiveSportSettings.value.paceZones
+      : []
     if (!Number.isFinite(speedMps) || speedMps <= 0 || zones.length === 0) return null
     const idx = zones.findIndex((zone: any) => {
       const min = Number(zone?.min)
@@ -484,7 +516,7 @@
     const normalizedUnits = String(units || '')
       .trim()
       .toLowerCase()
-    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
+    const thresholdPace = Number(effectiveSportSettings.value?.thresholdPace || 0)
 
     if (normalizedUnits.includes('/km')) {
       const secondsPerKm = value * 60
@@ -827,9 +859,9 @@
   }
 
   function estimateStepSpeedMps(step: any): number {
-    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
-    const lthr = Number(props.sportSettings?.lthr || 0)
-    const ftp = Number(props.sportSettings?.ftp || 0)
+    const thresholdPace = Number(effectiveSportSettings.value?.thresholdPace || 0)
+    const lthr = Number(effectiveSportSettings.value?.lthr || 0)
+    const ftp = Number(effectiveSportSettings.value?.ftp || 0)
 
     const paceMid = getTargetValue(normalizeMetricTarget(step.pace, 'pace'))
     if (paceMid !== undefined) {

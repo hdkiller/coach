@@ -153,6 +153,52 @@
     { start: 1.5, end: 2, color: ZONE_COLORS[6] }
   ]
 
+  const resolvedZoneRanges = computed(() => {
+    if (props.preference === 'power') {
+      const ftp = Number(effectiveSportSettings.value?.ftp || 0)
+      const powerZones = Array.isArray(effectiveSportSettings.value?.powerZones)
+        ? effectiveSportSettings.value.powerZones
+        : []
+      if (ftp > 0 && powerZones.length > 0) {
+        return powerZones.map((zone: any, index: number) => ({
+          start: Number(zone?.min || 0) / ftp,
+          end: Number(zone?.max || 0) / ftp,
+          color: ZONE_COLORS[index] || FALLBACK_ZONE_COLOR
+        }))
+      }
+    }
+
+    if (props.preference === 'hr') {
+      const lthr = Number(effectiveSportSettings.value?.lthr || 0)
+      const hrZones = Array.isArray(effectiveSportSettings.value?.hrZones)
+        ? effectiveSportSettings.value.hrZones
+        : []
+      if (lthr > 0 && hrZones.length > 0) {
+        return hrZones.map((zone: any, index: number) => ({
+          start: Number(zone?.min || 0) / lthr,
+          end: Number(zone?.max || 0) / lthr,
+          color: ZONE_COLORS[index] || FALLBACK_ZONE_COLOR
+        }))
+      }
+    }
+
+    if (props.preference === 'pace') {
+      const thresholdPace = Number(effectiveSportSettings.value?.thresholdPace || 0)
+      const paceZones = Array.isArray(effectiveSportSettings.value?.paceZones)
+        ? effectiveSportSettings.value.paceZones
+        : []
+      if (thresholdPace > 0 && paceZones.length > 0) {
+        return paceZones.map((zone: any, index: number) => ({
+          start: Number(zone?.min || 0) / thresholdPace,
+          end: Number(zone?.max || 0) / thresholdPace,
+          color: ZONE_COLORS[index] || FALLBACK_ZONE_COLOR
+        }))
+      }
+    }
+
+    return defaultZoneRanges
+  })
+
   const showCadenceLine = computed(() => {
     if (!props.showCadence) return false
     return steps.value.some((step: any) => Number(step?.cadence) > 0)
@@ -252,8 +298,8 @@
   function getStepColor(step: any): string {
     const intensity = getStepIntensity(step)
     const zone =
-      defaultZoneRanges.find((range) => intensity <= range.end) ||
-      defaultZoneRanges[defaultZoneRanges.length - 1]
+      resolvedZoneRanges.value.find((range) => intensity <= range.end) ||
+      resolvedZoneRanges.value[resolvedZoneRanges.value.length - 1]
     return zone?.color || FALLBACK_ZONE_COLOR
   }
 
@@ -359,9 +405,7 @@
     return undefined
   }
 
-  function normalizeTarget(
-    target: any
-  ): {
+  function normalizeTarget(target: any): {
     value?: number
     range?: { start: number; end: number }
     ramp?: boolean

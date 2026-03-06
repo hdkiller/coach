@@ -327,6 +327,10 @@
 
 <script setup lang="ts">
   import { ZONE_COLORS } from '~/utils/zone-colors'
+  import {
+    getStructuredWorkoutPayload,
+    resolveWorkoutChartSportSettings
+  } from '~/utils/workoutChartContext'
 
   const props = defineProps<{
     workout: any // structuredWorkout JSON
@@ -334,7 +338,11 @@
     sportSettings?: any
   }>()
 
-  const normalizedSteps = computed(() => flattenWorkoutSteps(props.workout?.steps || []))
+  const workoutData = computed(() => getStructuredWorkoutPayload(props.workout))
+  const effectiveSportSettings = computed(() =>
+    resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
+  )
+  const normalizedSteps = computed(() => flattenWorkoutSteps(workoutData.value?.steps || []))
 
   const defaultZoneRanges: Array<{ start: number; end: number }> = [
     { start: 0, end: 0.55 },
@@ -450,9 +458,9 @@
     ]
 
     // Use sport specific Power zones if available
-    if (props.sportSettings?.powerZones && props.sportSettings.ftp) {
-      const ftp = props.sportSettings.ftp
-      distribution = props.sportSettings.powerZones.map((z: any, i: number) => ({
+    if (effectiveSportSettings.value?.powerZones && effectiveSportSettings.value.ftp) {
+      const ftp = effectiveSportSettings.value.ftp
+      distribution = effectiveSportSettings.value.powerZones.map((z: any, i: number) => ({
         name: `Z${i + 1}`,
         longName: z.name || `Zone ${i + 1}`,
         min: z.min / ftp,
@@ -538,8 +546,8 @@
     if (!Number.isFinite(zone)) return null
     const zoneIndex = Math.max(1, Math.round(zone)) - 1
 
-    const sportZones = props.sportSettings?.powerZones
-    const referenceFtp = Number(props.sportSettings?.ftp || props.userFtp || 0)
+    const sportZones = effectiveSportSettings.value?.powerZones
+    const referenceFtp = Number(effectiveSportSettings.value?.ftp || props.userFtp || 0)
     if (
       Array.isArray(sportZones) &&
       sportZones[zoneIndex] &&
