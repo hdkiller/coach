@@ -349,19 +349,13 @@
   const chartMaxPower = computed(() => {
     let maxTarget = 0
     normalizedSteps.value.forEach((step: any) => {
-      let target: any
-      if (props.preference === 'hr') target = step.heartRate
-      else if (props.preference === 'power') target = step.power
-      else if (props.preference === 'pace') target = step.pace
-
-      const normalizedTarget = normalizeMetricTarget(target, props.preference)
-      if (normalizedTarget) {
-        if (normalizedTarget.value !== undefined) {
-          maxTarget = Math.max(maxTarget, normalizedTarget.value)
-        } else if (normalizedTarget.range) {
-          maxTarget = Math.max(maxTarget, normalizedTarget.range.end)
-        }
+      const range = getStepRange(step)
+      if (range) {
+        maxTarget = Math.max(maxTarget, range.end)
+        return
       }
+
+      maxTarget = Math.max(maxTarget, getStepIntensity(step))
     })
     // Ensure a minimum scale and add a buffer
     return Math.max(1.2, maxTarget * 1.1)
