@@ -123,6 +123,15 @@
                   >
                     {{ formatDateUTC(workout.date, 'EEEE, MMMM d, yyyy') }}
                   </UBadge>
+                  <UBadge
+                    v-if="structureJobStatusLabel"
+                    color="primary"
+                    variant="soft"
+                    size="sm"
+                    class="font-black uppercase tracking-widest text-[10px]"
+                  >
+                    {{ structureJobStatusLabel }}
+                  </UBadge>
                   <UButton
                     color="neutral"
                     variant="ghost"
@@ -899,8 +908,12 @@
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()
-  const { onTaskCompleted } = useUserRunsState()
+  const { runs, onTaskCompleted } = useUserRunsState()
   const upgradeModal = useUpgradeModal()
+  const STRUCTURE_TASK_IDENTIFIERS = new Set([
+    'generate-structured-workout',
+    'adjust-structured-workout'
+  ])
 
   function handleQuotaError(error: any, featureTitle: string, featureDescription: string) {
     if (
@@ -1125,6 +1138,28 @@
     }
 
     return ''
+  })
+
+  const activeStructureRun = computed(() => {
+    const workoutId = workout.value?.id
+    if (!workoutId) return null
+
+    return (
+      runs.value.find((run) => {
+        return (
+          STRUCTURE_TASK_IDENTIFIERS.has(run.taskIdentifier) &&
+          Array.isArray(run.tags) &&
+          run.tags.includes(`planned-workout:${workoutId}`)
+        )
+      }) || null
+    )
+  })
+
+  const structureJobStatusLabel = computed(() => {
+    const taskIdentifier = activeStructureRun.value?.taskIdentifier
+    if (!taskIdentifier) return null
+    if (taskIdentifier === 'adjust-structured-workout') return 'Structure update running'
+    return 'Structure generation running'
   })
 
   const displayDuration = computed(() => {

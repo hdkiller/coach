@@ -223,28 +223,15 @@
       return props.response?.error || 'Operation failed'
     }
 
-    const parts: string[] = []
-    if (props.response?.success) {
-      parts.push('Operation successful')
-    }
-
-    if (runStatusLabel.value) {
-      parts.push(runStatusLabel.value)
-    }
-
-    if (syncStatusLabel.value) {
-      parts.push(syncStatusLabel.value)
-    }
-
-    if (runError.value) {
-      parts.push(runError.value)
-    }
-
-    if (!parts.length) {
-      return null
-    }
-
-    return parts.join(' • ')
+    if (runError.value) return runError.value
+    if (pollError.value) return pollError.value
+    if (syncStatusLabel.value === 'Structure generation running') return syncStatusLabel.value
+    if (runStatusLabel.value === 'Job running') return runStatusLabel.value
+    if (syncStatusLabel.value) return syncStatusLabel.value
+    if (runStatusLabel.value && runStatusLabel.value !== 'Job completed')
+      return runStatusLabel.value
+    if (props.response?.success) return 'Operation successful'
+    return null
   })
 
   const currentSyncStatus = computed(() =>
