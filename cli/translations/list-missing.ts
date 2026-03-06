@@ -45,7 +45,8 @@ function extractKeysFromFile(source: string): Map<string, Set<string>> {
     const keys = result.get(ns)!
 
     for (const call of source.matchAll(callPattern)) {
-      keys.add(call[1])
+      // Skip string prefixes used in dynamic key construction e.g. t('scenario.' + id + '.name')
+      if (!call[1].endsWith('.')) keys.add(call[1])
     }
   }
 
