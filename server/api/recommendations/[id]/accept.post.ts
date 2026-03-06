@@ -87,6 +87,8 @@ export default defineEventHandler(async (event) => {
   }
 
   let updatedWorkout
+  const nextSyncStatus = (syncStatus: string | null | undefined) =>
+    syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING'
 
   if (targetPlannedWorkoutId) {
     // UPDATE existing workout
@@ -99,7 +101,9 @@ export default defineEventHandler(async (event) => {
           : undefined,
         tss: modifications.new_tss,
         description: newDescription,
-        modifiedLocally: true
+        modifiedLocally: true,
+        syncStatus: nextSyncStatus(recommendation.plannedWorkout?.syncStatus),
+        syncError: null
       }
     })
   } else {
@@ -122,7 +126,8 @@ export default defineEventHandler(async (event) => {
         syncStatus: 'LOCAL_ONLY',
         externalId: `ai_gen_${userId}_${recommendation.date.toISOString().split('T')[0]}_${Date.now()}`,
         managedBy: 'COACH_WATTS',
-        modifiedLocally: true
+        modifiedLocally: true,
+        syncError: null
       }
     })
     targetPlannedWorkoutId = updatedWorkout.id
@@ -134,26 +139,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Trigger regeneration of structured workout based on the new description/title/params
-  // (Skip for Rest days as they don't have structure)
-  if (updatedWorkout.type !== 'Rest') {
-    await tasks.trigger(
-      'generate-structured-workout',
-      {
-        plannedWorkoutId: targetPlannedWorkoutId
-      },
-      {
-        concurrencyKey: userId,
-        tags: [`user:${userId}`]
-      }
-    )
-  }
+  const requiresStructure = updatedWorkout.type !== 'Rest'
 
-  // Sync to Intervals.icu if already published, otherwise auto-upload when enabled in settings
+  // For newly created local workouts, publish the shell first when auto-upload is enabled
+  // so the background structure generation can sync the final intervals back to the same event.
   const isLocal =
     updatedWorkout.syncStatus === 'LOCAL_ONLY' || !isIntervalsEventId(updatedWorkout.externalId)
-
-  if (isLocal) {
+  if (requiresStructure && isLocal) {
     await autoUploadPlannedWorkoutToIntervalsIfEnabled({
       id: updatedWorkout.id,
       userId,
@@ -167,7 +159,28 @@ export default defineEventHandler(async (event) => {
       tss: updatedWorkout.tss,
       managedBy: updatedWorkout.managedBy
     })
-  } else {
+
+    updatedWorkout =
+      (await prisma.plannedWorkout.findUnique({
+        where: { id: updatedWorkout.id }
+      })) || updatedWorkout
+  }
+
+  // Trigger regeneration of structured workout based on the new description/title/params.
+  // The generation task is responsible for syncing the final structure to Intervals.
+  if (requiresStructure) {
+    await tasks.trigger(
+      'generate-structured-workout',
+      {
+        plannedWorkoutId: targetPlannedWorkoutId
+      },
+      {
+        concurrencyKey: userId,
+        tags: [`user:${userId}`]
+      }
+    )
+  } else if (!isLocal) {
+    // Rest-day or metadata-only updates can sync immediately because no structured steps are pending.
     await syncPlannedWorkoutToIntervals(
       'UPDATE',
       {
