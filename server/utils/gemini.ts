@@ -394,6 +394,7 @@ export interface LlmTrackingContext {
   entityId?: string
   onUsageLogged?: (usageId: string) => void | Promise<void>
   disableThinking?: boolean
+  maxRetries?: number
 }
 
 /**
@@ -529,7 +530,7 @@ export async function generateStructuredAnalysis<T>(
       model: google(modelName),
       prompt: prompt,
       schema: jsonSchema(schema),
-      maxRetries: 3,
+      maxRetries: trackingContext?.maxRetries ?? 3,
       providerOptions
     })
     if (trackingContext) {

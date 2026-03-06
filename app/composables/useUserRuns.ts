@@ -9,6 +9,7 @@ export interface TriggerRun {
   output?: any
   error?: any
   isTest?: boolean
+  tags?: string[]
 }
 
 // Global Singleton State
@@ -229,7 +230,8 @@ export function useUserRuns() {
       startedAt: update.startedAt || existing?.startedAt || new Date().toISOString(),
       finishedAt: update.finishedAt || existing?.finishedAt,
       output: update.output !== undefined ? update.output : existing?.output,
-      error: update.error !== undefined ? update.error : existing?.error
+      error: update.error !== undefined ? update.error : existing?.error,
+      tags: Array.isArray(update.tags) ? update.tags : existing?.tags
     }
 
     const newRuns = [...runs.value]

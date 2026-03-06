@@ -63,7 +63,8 @@ export default defineEventHandler(async (event) => {
       status: run.status,
       startedAt: run.startedAt,
       finishedAt: run.finishedAt,
-      isTest: run.isTest
+      isTest: run.isTest,
+      tags: Array.isArray((run as any).tags) ? (run as any).tags : []
     }))
   } catch (error: any) {
     console.error(`Failed to list active runs for user ${session.user.id}:`, error)
