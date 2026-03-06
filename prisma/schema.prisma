@@ -42,6 +42,7 @@ model User {
   sex                                String?
   state                              String?
   temperatureUnits                   String?                      @default("Celsius")
+  uiLanguage                         String?                      @default("en")
   timezone                           String?
   visibility                         String?                      @default("Private")
   weightUnits                        String?                      @default("Kilograms")
