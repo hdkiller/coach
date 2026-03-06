@@ -11,10 +11,12 @@
           Intensity Distribution
         </h2>
         <div class="flex gap-2">
-          <USelect
-            v-model="sport"
-            :items="sportOptions"
-            class="w-32 sm:w-36"
+          <USelectMenu
+            v-model="scope"
+            :items="scopeOptions"
+            value-key="value"
+            label-key="label"
+            class="w-40 sm:w-52"
             size="xs"
             color="neutral"
             variant="outline"
@@ -38,7 +40,7 @@
       </div>
     </template>
 
-    <WeeklyZoneChart :weeks="period" :sport="sport" :settings="settings" />
+    <WeeklyZoneChart :weeks="period" :sport="sport" :tags="tags" :settings="settings" />
   </UCard>
 </template>
 
@@ -47,11 +49,13 @@
 
   defineProps<{
     settings: any
-    sportOptions: any[]
+    scopeOptions: any[]
     periodOptions: any[]
+    sport?: string
+    tags?: string[]
   }>()
 
-  const sport = defineModel<string>('sport')
+  const scope = defineModel<string>('scope')
   const period = defineModel<number | string>('period')
 
   defineEmits(['settings'])
