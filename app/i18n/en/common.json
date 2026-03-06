@@ -1,4 +1,5 @@
 {
+  "attribution_garmin": "Powered by Garmin",
   "banner_exit": "Exit",
   "coaching_banner_active": "Viewing as {name}",
   "cta": {
@@ -46,6 +47,7 @@
   "help_action_report_bug": "Report a Bug",
   "help_action_report_bug_desc": "Encountered an issue? Tell us about it.",
   "help_ai_assistant_button_chat": "Open AI Chat",
+  "help_ai_assistant_button_tickets": "Manage Tickets",
   "help_ai_assistant_desc": "You can create and manage support tickets directly in chat. Tell the AI what happened, what you expected, and what actually happened. It will draft the ticket in clean wording, show it to you for review when approval is enabled, and then publish it.",
   "help_ai_assistant_tip": "Tip: If you decline a draft, AI will ask what to change.",
   "help_ai_assistant_title": "AI Ticket Assistant",
@@ -56,8 +58,14 @@
   "help_diagnostics_id_hint": "Click to copy your unique Account ID.",
   "help_diagnostics_id_title": "Account ID",
   "help_header": "Help Center",
+  "help_resource_discord_desc": "Connect with our community and get help from other users",
+  "help_resource_discord_title": "Discord Community",
+  "help_resource_docs_desc": "Read our documentation and guides",
+  "help_resource_docs_title": "Documentation",
   "help_resource_github_desc": "View public feature requests and system-wide bugs.",
   "help_resource_github_title": "GitHub Issues",
+  "help_resources_header": "Resources",
+  "help_ticket_commands_button": "Learn More",
   "help_ticket_commands_desc": "Ask the AI to show you how to use ticket commands",
   "help_ticket_commands_title": "Ticket Commands",
   "help_toast_id_copied_desc": "Account ID copied to clipboard.",
