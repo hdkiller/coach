@@ -1,4 +1,5 @@
 {
+  "attribution_garmin": "Bereitgestellt von Garmin",
   "banner_exit": "Beenden",
   "coaching_banner_active": "Ansicht als {name}",
   "cta": {
@@ -46,6 +47,7 @@
   "help_action_report_bug": "Fehler melden",
   "help_action_report_bug_desc": "Ein Problem aufgetreten? Berichte uns davon.",
   "help_ai_assistant_button_chat": "KI-Chat öffnen",
+  "help_ai_assistant_button_tickets": "Tickets verwalten",
   "help_ai_assistant_desc": "Sie können Support-Tickets direkt im Chat erstellen und verwalten. Sagen Sie der KI, was passiert ist, was Sie erwartet haben und was tatsächlich passiert ist. Sie wird das Ticket klar formulieren, es Ihnen zur Überprüfung anzeigen, wenn die Genehmigung aktiviert ist, und es dann veröffentlichen.",
   "help_ai_assistant_tip": "Tipp: Wenn Sie einen Entwurf ablehnen, fragt die KI, was geändert werden soll.",
   "help_ai_assistant_title": "KI-Ticket-Assistent",
@@ -56,8 +58,14 @@
   "help_diagnostics_id_hint": "Klicken, um Ihre eindeutige Konto-ID zu kopieren.",
   "help_diagnostics_id_title": "Konto-ID",
   "help_header": "Hilfe-Center",
+  "help_resource_discord_desc": "Vernetzen Sie sich mit unserer Community und erhalten Sie Hilfe von anderen Nutzern",
+  "help_resource_discord_title": "Discord Community",
+  "help_resource_docs_desc": "Unsere Dokumentation und Leitfäden lesen",
+  "help_resource_docs_title": "Dokumentation",
   "help_resource_github_desc": "Öffentliche Feature-Requests und systemweite Bugs ansehen.",
   "help_resource_github_title": "GitHub Issues",
+  "help_resources_header": "Ressourcen",
+  "help_ticket_commands_button": "Mehr erfahren",
   "help_ticket_commands_desc": "Frage die KI, dir zu zeigen, wie man Ticket-Befehle verwendet",
   "help_ticket_commands_title": "Ticket-Befehle",
   "help_toast_id_copied_desc": "Account-ID in die Zwischenablage kopiert.",
