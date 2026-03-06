@@ -39,6 +39,8 @@
 </template>
 
 <script setup lang="ts">
+  import { ZONE_COLORS, FALLBACK_ZONE_COLOR } from '~/utils/zone-colors'
+
   const props = withDefaults(
     defineProps<{
       workout: any // structuredWorkout JSON
@@ -101,6 +103,16 @@
     return steps.value.reduce((sum: number, step: any) => sum + getStepDuration(step), 0)
   })
 
+  const defaultZoneRanges: Array<{ start: number; end: number; color: string }> = [
+    { start: 0, end: 0.55, color: ZONE_COLORS[0] },
+    { start: 0.55, end: 0.75, color: ZONE_COLORS[1] },
+    { start: 0.75, end: 0.9, color: ZONE_COLORS[2] },
+    { start: 0.9, end: 1.05, color: ZONE_COLORS[3] },
+    { start: 1.05, end: 1.2, color: ZONE_COLORS[4] },
+    { start: 1.2, end: 1.5, color: ZONE_COLORS[5] },
+    { start: 1.5, end: 2, color: ZONE_COLORS[6] }
+  ]
+
   const showCadenceLine = computed(() => {
     if (!props.showCadence) return false
     return steps.value.some((step: any) => Number(step?.cadence) > 0)
@@ -154,7 +166,7 @@
   }
 
   function getStepStyle(step: any) {
-    const color = getStepColor(step.type)
+    const color = getStepColor(step)
     const maxScale = 1.2 // 120% is top of chart
 
     // Intensity range (ramp) support
@@ -212,14 +224,12 @@
     }
   }
 
-  function getStepColor(type: string): string {
-    const colors: Record<string, string> = {
-      Warmup: '#10b981', // green
-      Active: '#f59e0b', // amber
-      Rest: '#6366f1', // indigo
-      Cooldown: '#06b6d4' // cyan
-    }
-    return colors[type] || '#9ca3af' // gray default
+  function getStepColor(step: any): string {
+    const intensity = getStepIntensity(step)
+    const zone =
+      defaultZoneRanges.find((range) => intensity <= range.end) ||
+      defaultZoneRanges[defaultZoneRanges.length - 1]
+    return zone?.color || FALLBACK_ZONE_COLOR
   }
 
   function formatDuration(seconds: number): string {
