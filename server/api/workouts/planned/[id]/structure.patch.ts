@@ -1,8 +1,11 @@
 import { getServerSession } from '../../../../utils/session'
 import { prisma } from '../../../../utils/db'
 import { WorkoutParser } from '../../../../utils/workout-parser'
-import { WorkoutConverter } from '../../../../utils/workout-converter'
 import { syncPlannedWorkoutToIntervals } from '../../../../utils/intervals-sync'
+import {
+  buildStructureEditFields,
+  buildStructurePublishFields
+} from '../../../../utils/planned-workout-structure-sync'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -48,11 +51,13 @@ export default defineEventHandler(async (event) => {
   const updatedWorkout = await prisma.plannedWorkout.update({
     where: { id },
     data: {
-      structuredWorkout: {
-        ...(workout.structuredWorkout as any || {}),
-        steps
-      },
-      modifiedLocally: true,
+      ...buildStructureEditFields(
+        {
+          ...((workout.structuredWorkout as any) || {}),
+          steps
+        },
+        'USER'
+      ),
       syncStatus: workout.syncStatus === 'SYNCED' ? 'SYNCED' : workout.syncStatus
     }
   })
@@ -61,7 +66,7 @@ export default defineEventHandler(async (event) => {
   if (workout.syncStatus === 'SYNCED') {
     // Convert structure back to text to ensure it's clean (or just send the raw text from user)
     // Sending the raw text from user is better as it preserves comments/formatting Intervals might like.
-    await syncPlannedWorkoutToIntervals(
+    const syncResult = await syncPlannedWorkoutToIntervals(
       'UPDATE',
       {
         ...updatedWorkout,
@@ -69,6 +74,18 @@ export default defineEventHandler(async (event) => {
       },
       userId
     )
+
+    if (syncResult.synced) {
+      await prisma.plannedWorkout.update({
+        where: { id },
+        data: {
+          ...buildStructurePublishFields(updatedWorkout.structuredWorkout),
+          syncStatus: 'SYNCED',
+          lastSyncedAt: new Date(),
+          syncError: null
+        }
+      })
+    }
   }
 
   return {

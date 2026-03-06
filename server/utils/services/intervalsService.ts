@@ -38,6 +38,10 @@ import { deduplicationService } from './deduplicationService'
 import { deduplicateWorkoutsTask } from '../../../trigger/deduplicate-workouts'
 import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settings'
 import { shouldIngestWellness } from '../integration-settings'
+import {
+  buildRemoteStructureCreateFields,
+  buildRemoteStructureMergeFields
+} from '../planned-workout-structure-sync'
 import { roundToTwoDecimals } from '../number'
 import { summarizePowerFromWatts } from '../power-metrics'
 import { bodyMeasurementService } from './bodyMeasurementService'
@@ -954,9 +958,17 @@ export const IntervalsService = {
         userId,
         externalId: { in: externalIds }
       },
-      select: { externalId: true, structuredWorkout: true }
+      select: {
+        id: true,
+        externalId: true,
+        structuredWorkout: true,
+        modifiedLocally: true,
+        lastStructureEditedAt: true,
+        lastStructurePublishedAt: true,
+        structureHash: true
+      }
     })
-    const existingMap = new Map(existingWorkouts.map((w) => [w.externalId, w.structuredWorkout]))
+    const existingMap = new Map(existingWorkouts.map((w) => [w.externalId, w]))
 
     let plannedUpserted = 0
     let eventsUpserted = 0
@@ -1016,7 +1028,8 @@ export const IntervalsService = {
       const normalizedPlanned = normalizeIntervalsPlannedWorkout(planned, userId)
 
       // Preserve local exercises/instructions if remote has no structure (Text-only sync)
-      const existingStruct = existingMap.get(normalizedPlanned.externalId) as any
+      const existingRecord = existingMap.get(normalizedPlanned.externalId) as any
+      const existingStruct = existingRecord?.structuredWorkout as any
       const newStruct = normalizedPlanned.structuredWorkout as any
 
       if (existingStruct?.exercises?.length > 0) {
@@ -1035,16 +1048,35 @@ export const IntervalsService = {
         }
       }
 
-      await prisma.plannedWorkout.upsert({
-        where: {
-          userId_externalId: {
-            userId,
-            externalId: normalizedPlanned.externalId
+      const seenAt = new Date()
+      if (existingRecord) {
+        const updateData: Record<string, any> = { ...normalizedPlanned }
+        if (newStruct && typeof newStruct === 'object') {
+          const remoteMerge = buildRemoteStructureMergeFields(existingRecord, newStruct, seenAt)
+          if (!('structuredWorkout' in remoteMerge.fields)) {
+            delete updateData.structuredWorkout
           }
-        },
-        update: normalizedPlanned,
-        create: normalizedPlanned
-      })
+          Object.assign(updateData, remoteMerge.fields)
+        } else {
+          updateData.lastRemoteStructureSeenAt = seenAt
+        }
+        await prisma.plannedWorkout.update({
+          where: {
+            userId_externalId: {
+              userId,
+              externalId: normalizedPlanned.externalId
+            }
+          },
+          data: updateData
+        })
+      } else {
+        await prisma.plannedWorkout.create({
+          data: {
+            ...normalizedPlanned,
+            ...buildRemoteStructureCreateFields(normalizedPlanned.structuredWorkout, seenAt)
+          }
+        })
+      }
       plannedUpserted++
 
       // Ensure it doesn't exist as a CalendarNote (if type changed)
@@ -1512,11 +1544,17 @@ export const IntervalsService = {
               userId,
               externalId: { in: externalIds }
             },
-            select: { externalId: true, structuredWorkout: true }
+            select: {
+              id: true,
+              externalId: true,
+              structuredWorkout: true,
+              modifiedLocally: true,
+              lastStructureEditedAt: true,
+              lastStructurePublishedAt: true,
+              structureHash: true
+            }
           })
-          const existingMap = new Map(
-            existingWorkouts.map((w) => [w.externalId, w.structuredWorkout])
-          )
+          const existingMap = new Map(existingWorkouts.map((w) => [w.externalId, w]))
 
           for (const planned of changedEvents) {
             if (!planned?.id) continue
@@ -1559,7 +1597,8 @@ export const IntervalsService = {
 
             const normalizedPlanned = normalizeIntervalsPlannedWorkout(planned, userId)
 
-            const existingStruct = existingMap.get(normalizedPlanned.externalId) as any
+            const existingRecord = existingMap.get(normalizedPlanned.externalId) as any
+            const existingStruct = existingRecord?.structuredWorkout as any
             const newStruct = normalizedPlanned.structuredWorkout as any
 
             // Preserve local parsed exercises when webhook payload has only text/steps.
@@ -1574,16 +1613,39 @@ export const IntervalsService = {
               }
             }
 
-            await prisma.plannedWorkout.upsert({
-              where: {
-                userId_externalId: {
-                  userId,
-                  externalId: normalizedPlanned.externalId
+            const seenAt = new Date()
+            if (existingRecord) {
+              const updateData: Record<string, any> = { ...normalizedPlanned }
+              if (newStruct && typeof newStruct === 'object') {
+                const remoteMerge = buildRemoteStructureMergeFields(
+                  existingRecord,
+                  newStruct,
+                  seenAt
+                )
+                if (!('structuredWorkout' in remoteMerge.fields)) {
+                  delete updateData.structuredWorkout
                 }
-              },
-              update: normalizedPlanned,
-              create: normalizedPlanned
-            })
+                Object.assign(updateData, remoteMerge.fields)
+              } else {
+                updateData.lastRemoteStructureSeenAt = seenAt
+              }
+              await prisma.plannedWorkout.update({
+                where: {
+                  userId_externalId: {
+                    userId,
+                    externalId: normalizedPlanned.externalId
+                  }
+                },
+                data: updateData
+              })
+            } else {
+              await prisma.plannedWorkout.create({
+                data: {
+                  ...normalizedPlanned,
+                  ...buildRemoteStructureCreateFields(normalizedPlanned.structuredWorkout, seenAt)
+                }
+              })
+            }
 
             await calendarNoteRepository.deleteExternal(userId, 'intervals', [
               normalizedPlanned.externalId

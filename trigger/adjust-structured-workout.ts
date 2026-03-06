@@ -21,6 +21,10 @@ import {
   buildPlannedWorkoutSettingsSnapshot,
   buildPlannedWorkoutGenerationContext
 } from './utils/workout-targeting'
+import {
+  buildStructureEditFields,
+  buildStructurePublishFields
+} from '../server/utils/planned-workout-structure-sync'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -876,7 +880,7 @@ export const adjustStructuredWorkoutTask = task({
     })
 
     const updateData: any = {
-      structuredWorkout: structure as any
+      ...buildStructureEditFields(structure, 'AI')
     }
 
     if (totalDistance > 0) updateData.distanceMeters = totalDistance
@@ -921,7 +925,7 @@ export const adjustStructuredWorkoutTask = task({
         generationSettingsSnapshot: settingsSnapshot
       }
       const workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
-      await syncPlannedWorkoutToIntervals(
+      const syncResult = await syncPlannedWorkoutToIntervals(
         'UPDATE',
         {
           id: updatedWorkout.id,
@@ -938,6 +942,17 @@ export const adjustStructuredWorkoutTask = task({
         },
         workout.userId
       )
+      if (syncResult.synced) {
+        await prisma.plannedWorkout.update({
+          where: { id: plannedWorkoutId },
+          data: {
+            ...buildStructurePublishFields(structure),
+            syncStatus: 'SYNCED',
+            lastSyncedAt: new Date(),
+            syncError: null
+          }
+        })
+      }
       logStage('intervals-sync-finished')
     }
 

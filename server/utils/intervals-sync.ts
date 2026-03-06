@@ -9,6 +9,7 @@ import {
   deleteIntervalsEvent,
   isIntervalsEventId
 } from './intervals'
+import { buildStructurePublishFields } from './planned-workout-structure-sync'
 
 /**
  * Sync a planned workout to Intervals.icu with retry logic
@@ -365,7 +366,10 @@ export async function processSyncQueueItem(queueItem: any): Promise<boolean> {
         data: {
           syncStatus: 'SYNCED',
           lastSyncedAt: new Date(),
-          syncError: null
+          syncError: null,
+          ...((payload?.structuredWorkout || payload?.workout_doc) && payload?.structuredWorkout
+            ? buildStructurePublishFields(payload.structuredWorkout)
+            : {})
         }
       })
     } else if (queueItem.entityType === 'racing_event') {

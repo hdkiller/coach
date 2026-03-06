@@ -10,6 +10,7 @@ import { WorkoutConverter } from '../../../../utils/workout-converter'
 import { getServerSession } from '../../../../utils/session'
 import { sportSettingsRepository } from '../../../../utils/repositories/sportSettingsRepository'
 import { plannedWorkoutPublishRepository } from '../../../../utils/repositories/plannedWorkoutPublishRepository'
+import { buildStructurePublishFields } from '../../../../utils/planned-workout-structure-sync'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -114,7 +115,8 @@ export default defineEventHandler(async (event) => {
         data: {
           externalId: String(intervalsWorkout.id),
           syncStatus: 'SYNCED',
-          lastSyncedAt: syncedAt
+          lastSyncedAt: syncedAt,
+          ...buildStructurePublishFields(workout.structuredWorkout, syncedAt)
         }
       })
       await plannedWorkoutPublishRepository.upsert(id, provider, {
@@ -154,7 +156,8 @@ export default defineEventHandler(async (event) => {
           where: { id },
           data: {
             syncStatus: 'SYNCED',
-            lastSyncedAt: syncedAt
+            lastSyncedAt: syncedAt,
+            ...buildStructurePublishFields(workout.structuredWorkout, syncedAt)
           }
         })
         await plannedWorkoutPublishRepository.upsert(id, provider, {
@@ -194,7 +197,8 @@ export default defineEventHandler(async (event) => {
             data: {
               externalId: String(intervalsWorkout.id),
               syncStatus: 'SYNCED',
-              lastSyncedAt: syncedAt
+              lastSyncedAt: syncedAt,
+              ...buildStructurePublishFields(workout.structuredWorkout, syncedAt)
             }
           })
           await plannedWorkoutPublishRepository.upsert(id, provider, {

@@ -26,6 +26,10 @@ import {
   buildPlannedWorkoutSettingsSnapshot,
   buildPlannedWorkoutGenerationContext
 } from './utils/workout-targeting'
+import {
+  buildStructureEditFields,
+  buildStructurePublishFields
+} from '../server/utils/planned-workout-structure-sync'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -457,7 +461,10 @@ export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
   maxDuration: 90,
-  run: async (payload: { plannedWorkoutId: string; targetingOverride?: WorkoutTargetingOverride | null }) => {
+  run: async (payload: {
+    plannedWorkoutId: string
+    targetingOverride?: WorkoutTargetingOverride | null
+  }) => {
     const { plannedWorkoutId } = payload
     const startedAtMs = Date.now()
     const MAX_DURATION_MS = 90_000
@@ -1061,7 +1068,9 @@ export const generateStructuredWorkoutTask = task({
       persona
     })
 
-    const updateData: any = { structuredWorkout: structure as any }
+    const updateData: any = {
+      ...buildStructureEditFields(structure, 'AI')
+    }
     if (totalDistance > 0) updateData.distanceMeters = totalDistance
     if (totalDuration > 0) updateData.durationSec = totalDuration
     if (totalTSS > 0) updateData.tss = Math.round(totalTSS)
@@ -1133,7 +1142,12 @@ export const generateStructuredWorkoutTask = task({
       if (syncResult.synced) {
         await (prisma as any).plannedWorkout.update({
           where: { id: plannedWorkoutId },
-          data: { syncStatus: 'SYNCED', lastSyncedAt: new Date(), syncError: null }
+          data: {
+            ...buildStructurePublishFields(structure),
+            syncStatus: 'SYNCED',
+            lastSyncedAt: new Date(),
+            syncError: null
+          }
         })
       } else {
         await (prisma as any).plannedWorkout.update({

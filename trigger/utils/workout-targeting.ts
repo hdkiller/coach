@@ -165,6 +165,39 @@ function intentBand(intent: StepIntent): { low: number; high: number } {
   }
 }
 
+function inferIntentFromFactor(
+  factor: number,
+  fallbackIntent: StepIntent,
+  stepType?: string
+): StepIntent {
+  if (!Number.isFinite(factor)) return fallbackIntent
+  const candidates = STEP_INTENTS.filter((intent) => {
+    if (stepType === 'Warmup') return intent === 'warmup'
+    if (stepType === 'Cooldown') return intent === 'cooldown'
+    if (stepType === 'Rest') return intent === 'recovery'
+    return !['warmup', 'cooldown'].includes(intent)
+  })
+
+  const containing = candidates.find((intent) => {
+    const band = intentBand(intent)
+    return factor >= band.low && factor <= band.high
+  })
+  if (containing) return containing
+
+  let closest = fallbackIntent
+  let smallestDistance = Number.POSITIVE_INFINITY
+  for (const intent of candidates) {
+    const band = intentBand(intent)
+    const midpoint = (band.low + band.high) / 2
+    const distance = Math.abs(midpoint - factor)
+    if (distance < smallestDistance) {
+      smallestDistance = distance
+      closest = intent
+    }
+  }
+  return closest
+}
+
 function targetFactor(
   target: any,
   metric: TargetStepMetric,
@@ -204,50 +237,6 @@ function targetFactor(
   return null
 }
 
-function writeFactorToTarget(
-  step: any,
-  metric: TargetStepMetric,
-  factor: number,
-  spread: number,
-  refs: { ftp: number; lthr: number; thresholdPace: number }
-) {
-  if (metric === 'rpe') {
-    step.rpe = Math.round(clamp(factor, 0.3, 1.5) * 10)
-    return
-  }
-
-  const key = metric === 'heartRate' ? 'heartRate' : metric === 'power' ? 'power' : 'pace'
-  step[key] = step[key] || {}
-  const units = String(step[key].units || '').toLowerCase()
-  const low = Math.max(0, factor - spread)
-  const high = Math.max(low, factor + spread)
-
-  const toStored = (v: number) => {
-    if (metric === 'heartRate') {
-      if (units === 'bpm') return Math.round(v * Math.max(1, refs.lthr))
-      if (v > 2) return v
-      return Number(v.toFixed(3))
-    }
-    if (metric === 'power') {
-      if (units === 'w' || units === 'watts') return Math.round(v * Math.max(1, refs.ftp))
-      return Number(v.toFixed(3))
-    }
-    // pace
-    if (units.includes('/km')) {
-      const mps = v * Math.max(0.01, refs.thresholdPace || 1)
-      const secondsPerKm = 1000 / Math.max(0.01, mps)
-      return Number((secondsPerKm / 60).toFixed(2))
-    }
-    if (units === 'm/s') {
-      return Number((v * Math.max(0.01, refs.thresholdPace || 1)).toFixed(2))
-    }
-    return Number(v.toFixed(3))
-  }
-
-  step[key].range = { start: toStored(low), end: toStored(high) }
-  delete step[key].value
-}
-
 export function applyStepIntentGuard(
   step: any,
   refs: { ftp: number; lthr: number; thresholdPace: number }
@@ -272,9 +261,9 @@ export function applyStepIntentGuard(
   const band = intentBand(intent)
   if (factor >= band.low && factor <= band.high) return
 
-  const corrected = clamp(factor, band.low, band.high)
-  const spread = Math.min(0.05, Math.max(0.015, (band.high - band.low) / 4))
-  writeFactorToTarget(step, selectedMetric, corrected, spread, refs)
+  // Preserve explicit targets; if they conflict with the labeled intent,
+  // fix the intent instead of silently downgrading the prescribed load.
+  step.intent = inferIntentFromFactor(factor, intent, step?.type)
   if (!step.primaryTarget) step.primaryTarget = selectedMetric
 }
 

@@ -1795,3 +1795,11 @@ model PersonalBest {
   @@index([userId])
   @@index([category])
 }
+  lastStructureEditedAt DateTime?
+  lastStructureEditSource String?
+  lastStructurePublishedAt DateTime?
+  lastRemoteStructureSeenAt DateTime?
+  structureHash     String?
+  remoteStructureHash String?
+  syncConflict      Boolean                  @default(false)
+  pendingRemoteStructuredWorkout Json?
