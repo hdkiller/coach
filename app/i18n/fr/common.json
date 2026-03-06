@@ -1,4 +1,5 @@
 {
+  "attribution_garmin": "Propulsé par Garmin",
   "banner_exit": "Quitter",
   "coaching_banner_active": "Affichage en tant que {name}",
   "cta": {
@@ -46,6 +47,7 @@
   "help_action_report_bug": "Signaler un bug",
   "help_action_report_bug_desc": "Vous avez rencontré un problème ? Dites-le-nous.",
   "help_ai_assistant_button_chat": "Ouvrir la discussion IA",
+  "help_ai_assistant_button_tickets": "Gérer les tickets",
   "help_ai_assistant_desc": "Vous pouvez créer et gérer des tickets de support directement dans le chat. Expliquez à l'IA ce qui s'est passé, ce que vous attendiez et ce qui s'est réellement produit. Elle rédigera le ticket de manière claire, vous le soumettra pour révision si l'approbation est activée, puis le publiera.",
   "help_ai_assistant_tip": "Astuce : si vous refusez un brouillon, l'IA demandera quoi modifier.",
   "help_ai_assistant_title": "Assistant de tickets IA",
@@ -56,8 +58,14 @@
   "help_diagnostics_id_hint": "Cliquez pour copier votre identifiant de compte unique.",
   "help_diagnostics_id_title": "ID de compte",
   "help_header": "Centre d'aide",
+  "help_resource_discord_desc": "Rejoignez notre communauté et obtenez de l'aide d'autres utilisateurs",
+  "help_resource_discord_title": "Communauté Discord",
+  "help_resource_docs_desc": "Consultez notre documentation et nos guides",
+  "help_resource_docs_title": "Documentation",
   "help_resource_github_desc": "Consulter les demandes de fonctionnalités publiques et les bogues à l'échelle du système.",
   "help_resource_github_title": "Tickets GitHub",
+  "help_resources_header": "Ressources",
+  "help_ticket_commands_button": "En savoir plus",
   "help_ticket_commands_desc": "Demander à l'IA de vous montrer comment utiliser les commandes de ticket",
   "help_ticket_commands_title": "Commandes de tickets",
   "help_toast_id_copied_desc": "ID de compte copié dans le presse-papiers.",
