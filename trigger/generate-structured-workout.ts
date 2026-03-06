@@ -1,10 +1,6 @@
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
-import {
-  generateStructuredAnalysis,
-  buildWorkoutSummary,
-  buildConciseWorkoutSummary
-} from '../server/utils/gemini'
+import { generateStructuredAnalysis, buildConciseWorkoutSummary } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
 import { syncPlannedWorkoutToIntervals } from '../server/utils/intervals-sync'
@@ -573,6 +569,76 @@ function validateStructuredCoverage(params: {
   return { valid: true, reason: null }
 }
 
+function buildCompactZoneDefinitions(params: {
+  workoutType: string
+  sportSettings: any
+  primaryMetric: string
+  loadPreference: string
+  ftp: number
+  lthr: number
+}) {
+  const { workoutType, sportSettings, primaryMetric, loadPreference, ftp, lthr } = params
+  const parts: string[] = []
+  const addZones = (label: string, zones: any[], unit: string, limit = 5) => {
+    if (!Array.isArray(zones) || zones.length === 0) return
+    const compact = zones
+      .slice(0, limit)
+      .map((z: any) => `${z.name}: ${z.min}-${z.max}${unit}`)
+      .join(' | ')
+    if (compact) parts.push(`${label}: ${compact}`)
+  }
+
+  if (primaryMetric === 'heartRate')
+    addZones(`${workoutType} HR Zones`, sportSettings?.hrZones, ' bpm')
+  if (primaryMetric === 'power')
+    addZones(`${workoutType} Power Zones`, sportSettings?.powerZones, ' W')
+  if (primaryMetric === 'pace')
+    addZones(`${workoutType} Pace Zones`, sportSettings?.paceZones, ' m/s')
+
+  if (
+    primaryMetric !== 'heartRate' &&
+    Array.isArray(sportSettings?.hrZones) &&
+    sportSettings.hrZones.length > 0
+  ) {
+    addZones(`${workoutType} HR Zones`, sportSettings.hrZones, ' bpm', 3)
+  }
+  if (
+    primaryMetric !== 'power' &&
+    Array.isArray(sportSettings?.powerZones) &&
+    sportSettings.powerZones.length > 0
+  ) {
+    addZones(`${workoutType} Power Zones`, sportSettings.powerZones, ' W', 3)
+  }
+  if (
+    primaryMetric !== 'pace' &&
+    Array.isArray(sportSettings?.paceZones) &&
+    sportSettings.paceZones.length > 0
+  ) {
+    addZones(`${workoutType} Pace Zones`, sportSettings.paceZones, ' m/s', 3)
+  }
+
+  if (lthr) parts.push(`Reference LTHR: ${lthr} bpm`)
+  if (ftp) parts.push(`Reference FTP: ${ftp} W`)
+  if (sportSettings?.thresholdPace) {
+    const metersPerSecond = Number(sportSettings.thresholdPace)
+    if (metersPerSecond > 0) {
+      const secondsPerKm = 1000 / metersPerSecond
+      const minutes = Math.floor(secondsPerKm / 60)
+      const seconds = Math.round(secondsPerKm % 60)
+      parts.push(
+        `Reference Threshold Pace: ${metersPerSecond} m/s (${minutes}:${seconds
+          .toString()
+          .padStart(2, '0')}/km)`
+      )
+    }
+  }
+  parts.push(`Preferred Load Metric: ${loadPreference}`)
+  if (sportSettings?.warmupTime) parts.push(`Default Warmup: ${sportSettings.warmupTime} min`)
+  if (sportSettings?.cooldownTime) parts.push(`Default Cooldown: ${sportSettings.cooldownTime} min`)
+
+  return parts.join('\n')
+}
+
 export const generateStructuredWorkoutTask = task({
   id: 'generate-structured-workout',
   queue: userReportsQueue,
@@ -685,7 +751,7 @@ export const generateStructuredWorkoutTask = task({
 
     // Fetch recent workouts for context (Limit to 7 with concise summary to balance context vs speed)
     const recentWorkouts = await workoutRepository.getForUser(workout.userId, {
-      limit: 7,
+      limit: 4,
       orderBy: { date: 'desc' },
       include: {
         streams: {
@@ -727,56 +793,16 @@ export const generateStructuredWorkoutTask = task({
     }
     logStage('subscription-check-passed', { subscriptionTier: workout.user.subscriptionTier })
 
-    // Build zone definitions
-    let zoneDefinitions = ''
-    if (sportSettings?.hrZones && Array.isArray(sportSettings.hrZones)) {
-      zoneDefinitions += `**${workout.type} Heart Rate Zones:**\n`
-      sportSettings.hrZones.forEach((z: any) => {
-        zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} bpm\n`
-      })
-    }
-
-    if (sportSettings?.powerZones && Array.isArray(sportSettings.powerZones)) {
-      zoneDefinitions += `\n**${workout.type} Power Zones:**\n`
-      sportSettings.powerZones.forEach((z: any) => {
-        zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} Watts\n`
-      })
-    }
-    if (sportSettings?.paceZones && Array.isArray(sportSettings.paceZones)) {
-      zoneDefinitions += `\n**${workout.type} Pace Zones:**\n`
-      sportSettings.paceZones.forEach((z: any) => {
-        zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} m/s\n`
-      })
-    }
-
-    const formatThresholdPace = (metersPerSecond: number) => {
-      if (!metersPerSecond || metersPerSecond <= 0) return null
-      const secondsPerKm = 1000 / metersPerSecond
-      const minutes = Math.floor(secondsPerKm / 60)
-      const seconds = Math.round(secondsPerKm % 60)
-      return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
-    }
-
-    if (lthr) {
-      zoneDefinitions += `\n**Reference LTHR:** ${lthr} bpm\n`
-    }
-    if (ftp) {
-      zoneDefinitions += `**Reference FTP:** ${ftp} Watts\n`
-    }
-    if (sportSettings?.thresholdPace) {
-      zoneDefinitions += `**Reference Threshold Pace:** ${sportSettings.thresholdPace} m/s (${formatThresholdPace(sportSettings.thresholdPace)})\n`
-    }
-    zoneDefinitions += `**Preferred Load Metric:** ${loadPreference}\n`
-
     const warmupTime = sportSettings?.warmupTime || 10
     const cooldownTime = sportSettings?.cooldownTime || 5
-
-    if (sportSettings?.warmupTime) {
-      zoneDefinitions += `**Default Warmup Duration:** ${sportSettings.warmupTime} minutes\n`
-    }
-    if (sportSettings?.cooldownTime) {
-      zoneDefinitions += `**Default Cooldown Duration:** ${sportSettings.cooldownTime} minutes\n`
-    }
+    const zoneDefinitions = buildCompactZoneDefinitions({
+      workoutType: workout.type || '',
+      sportSettings,
+      primaryMetric: targetPolicy.primaryMetric,
+      loadPreference,
+      ftp,
+      lthr
+    })
     const targetPolicyPrompt = formatTargetPolicyPrompt(targetPolicy, loadPreference)
     const targetFormatPolicyPrompt = formatTargetFormatPolicyPrompt(targetFormatPolicy)
     const workoutType = String(workout.type || '').toLowerCase()
@@ -843,10 +869,10 @@ export const generateStructuredWorkoutTask = task({
     - Coach Persona: ${persona}
     ${aiContext ? `- User Preferences/Context: ${aiContext}` : ''}
     
-    RECENT WORKOUTS:
+    RECENT WORKOUTS (brief):
     ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
 
-    CRITICAL: ALWAYS use the user's specific zones defined below for this activity type.
+    Use the user's specific zones and references below for this activity type.
 
     ${zoneDefinitions}
 
@@ -856,23 +882,21 @@ export const generateStructuredWorkoutTask = task({
 
     When generating "[Zone 2]" workouts, target ONLY the user's defined Z2 range for this specific sport. Never use generic percentages - always reference the provided zones first.
     
-    JSON HYGIENE RULES:
-    1. OMIT properties with null or empty values. If a metric (e.g. power) is not relevant for a step, do not include the key at all.
-    2. NEVER repeat keys within the same object.
-    3. MANDATORY: Every step (including nested steps) MUST have a non-zero durationSeconds.
-    4. Ensure the structure is VALID JSON.
-    5. NEVER output placeholder values such as "N/A", "none", "-", or empty strings.
-    6. Include only sport-relevant keys for this workout type. Do not include swim/run-only fields in cycling workouts.
+    JSON RULES:
+    - Omit null/empty properties.
+    - Every step must have non-zero durationSeconds.
+    - Output valid JSON only.
+    - No placeholder values.
+    - Include only sport-relevant keys.
 
     INSTRUCTIONS:
     - Create a JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration exactly.
-    - **REPEATS/LOOPS**: For workouts longer than 60 minutes, and especially for interval sets, use the "steps" array with a "reps" property to group repetitive blocks. This keeps the JSON structure manageable.
+    - Use repeat blocks with "reps" for repetitive interval sets.
     - Every workout must have a clear physiological objective (e.g. aerobic endurance, threshold, VO2, neuromuscular, recovery) and each block should support that objective.
     - Sequence intensity logically (warm-up -> quality work -> recovery -> cooldown). Avoid random intensity jumps.
     - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
     - If a step name implies a focus change (e.g. cadence focus), at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
-    - Include specific execution cues in "coachInstructions" (breathing, pacing, cadence control, form focus).
     - **METRIC PRIORITY**: Respect the user's TARGET POLICY and preferred order (${loadPreference}).
       - Priority Order: ${priorityText}.
       - Primary metric for each step should be: ${targetPolicy.primaryMetric}.
@@ -882,20 +906,16 @@ export const generateStructuredWorkoutTask = task({
     - **steps**: All rules below (targets, etc.) apply to BOTH top-level steps AND nested steps inside repeats.
     - MANDATORY: Every step MUST include an \`intent\` enum value (warmup/recovery/easy/endurance/tempo/threshold/vo2/anaerobic/sprint/cooldown/drills/strides).
     - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
-    - **coachInstructions**: Provide a personalized message (2-3 sentences) explaining WHY this workout matters for their goal (${goal}) and how to execute it (e.g. "Focus on smooth cadence during the efforts"). Use the "${persona}" persona tone.
+    - **coachInstructions**: Provide a personalized 2-3 sentence message explaining why this workout matters and the key execution cue. Use the "${persona}" persona tone.
     - **Warmup/Cooldown**: Use the user's default durations (${warmupTime} minutes for Warmup, ${cooldownTime} minutes for Cooldown) unless the workout TITLE or DESCRIPTION explicitly asks for a different specific duration.
     - For aerobic/endurance workouts, create at least 2 distinct main-set sub-blocks with clear purpose (settle, sustain, technique/cadence or control), not one repeated generic block.
     - For Zone 2 workouts, keep primary targets inside the user's provided endurance/aerobic zones whenever available.
 
     ${sportSpecificInstructions}
 
-    FINAL SELF-CHECK BEFORE OUTPUT:
-    - Total duration equals target duration.
-    - No redundant adjacent steps.
-    - Every step has a clear purpose and a valid primary target.
-    - Output contains no placeholder or irrelevant sport fields.
-    
-    OUTPUT JSON format matching the schema.`
+    Final check: stay within target duration, avoid redundant adjacent steps, give every step a clear purpose and valid primary target.
+
+    OUTPUT JSON matching the schema.`
     logStage('prompt-built', {
       promptChars: prompt.length,
       targetDurationMinutes: Math.round((workout.durationSec || 3600) / 60)
@@ -912,7 +932,7 @@ export const generateStructuredWorkoutTask = task({
           operation: 'generate_structured_workout',
           entityType: 'PlannedWorkout',
           entityId: plannedWorkoutId,
-          disableThinking: true
+          maxRetries: 1
         })
         const aiDurationMs = Date.now() - aiStartedAt
         logStage('ai-structure-generated', {

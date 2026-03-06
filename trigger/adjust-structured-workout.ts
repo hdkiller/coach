@@ -1,6 +1,6 @@
 import './init'
 import { logger, task } from '@trigger.dev/sdk/v3'
-import { generateStructuredAnalysis, buildWorkoutSummary } from '../server/utils/gemini'
+import { generateStructuredAnalysis, buildConciseWorkoutSummary } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
 import { calculateAge, getUserTimezone } from '../server/utils/date'
@@ -495,6 +495,74 @@ function validateStructuredCoverage(params: {
   return { valid: true, reason: null }
 }
 
+function buildCompactZoneDefinitions(params: {
+  workoutType: string
+  sportSettings: any
+  primaryMetric: string
+  loadPreference: string
+  ftp: number
+  lthr: number
+}) {
+  const { workoutType, sportSettings, primaryMetric, loadPreference, ftp, lthr } = params
+  const parts: string[] = []
+  const addZones = (label: string, zones: any[], unit: string, limit = 5) => {
+    if (!Array.isArray(zones) || zones.length === 0) return
+    const compact = zones
+      .slice(0, limit)
+      .map((z: any) => `${z.name}: ${z.min}-${z.max}${unit}`)
+      .join(' | ')
+    if (compact) parts.push(`${label}: ${compact}`)
+  }
+
+  if (primaryMetric === 'heartRate')
+    addZones(`${workoutType} HR Zones`, sportSettings?.hrZones, ' bpm')
+  if (primaryMetric === 'power')
+    addZones(`${workoutType} Power Zones`, sportSettings?.powerZones, ' W')
+  if (primaryMetric === 'pace')
+    addZones(`${workoutType} Pace Zones`, sportSettings?.paceZones, ' m/s')
+
+  if (
+    primaryMetric !== 'heartRate' &&
+    Array.isArray(sportSettings?.hrZones) &&
+    sportSettings.hrZones.length > 0
+  ) {
+    addZones(`${workoutType} HR Zones`, sportSettings.hrZones, ' bpm', 3)
+  }
+  if (
+    primaryMetric !== 'power' &&
+    Array.isArray(sportSettings?.powerZones) &&
+    sportSettings.powerZones.length > 0
+  ) {
+    addZones(`${workoutType} Power Zones`, sportSettings.powerZones, ' W', 3)
+  }
+  if (
+    primaryMetric !== 'pace' &&
+    Array.isArray(sportSettings?.paceZones) &&
+    sportSettings.paceZones.length > 0
+  ) {
+    addZones(`${workoutType} Pace Zones`, sportSettings.paceZones, ' m/s', 3)
+  }
+
+  if (lthr) parts.push(`Reference LTHR: ${lthr} bpm`)
+  if (ftp) parts.push(`Reference FTP: ${ftp} W`)
+  if (sportSettings?.thresholdPace) {
+    const metersPerSecond = Number(sportSettings.thresholdPace)
+    if (metersPerSecond > 0) {
+      const secondsPerKm = 1000 / metersPerSecond
+      const minutes = Math.floor(secondsPerKm / 60)
+      const seconds = Math.round(secondsPerKm % 60)
+      parts.push(
+        `Reference Threshold Pace: ${metersPerSecond} m/s (${minutes}:${seconds
+          .toString()
+          .padStart(2, '0')}/km)`
+      )
+    }
+  }
+  parts.push(`Preferred Load Metric: ${loadPreference}`)
+
+  return parts.join('\n')
+}
+
 export const adjustStructuredWorkoutTask = task({
   id: 'adjust-structured-workout',
   queue: userReportsQueue,
@@ -608,7 +676,7 @@ export const adjustStructuredWorkoutTask = task({
 
     // Fetch recent workouts for context
     const recentWorkouts = await workoutRepository.getForUser(workout.userId, {
-      limit: 5,
+      limit: 4,
       orderBy: { date: 'desc' },
       include: {
         streams: {
@@ -626,37 +694,14 @@ export const adjustStructuredWorkoutTask = task({
     const lthr = sportSettings?.lthr || workout.user.lthr || 160
     const maxHr = sportSettings?.maxHr || workout.user.maxHr || 190
 
-    // Build zone definitions
-    let zoneDefinitions = ''
-    if (sportSettings?.hrZones && Array.isArray(sportSettings.hrZones)) {
-      zoneDefinitions += `**${workout.type} Heart Rate Zones:**\n`
-      sportSettings.hrZones.forEach((z: any) => {
-        zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} bpm\n`
-      })
-    }
-    if (sportSettings?.powerZones && Array.isArray(sportSettings.powerZones)) {
-      zoneDefinitions += `\n**${workout.type} Power Zones:**\n`
-      sportSettings.powerZones.forEach((z: any) => {
-        zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} Watts\n`
-      })
-    }
-    if (sportSettings?.paceZones && Array.isArray(sportSettings.paceZones)) {
-      zoneDefinitions += `\n**${workout.type} Pace Zones:**\n`
-      sportSettings.paceZones.forEach((z: any) => {
-        zoneDefinitions += `- ${z.name}: ${z.min}-${z.max} m/s\n`
-      })
-    }
-    const formatThresholdPace = (metersPerSecond: number) => {
-      if (!metersPerSecond || metersPerSecond <= 0) return null
-      const secondsPerKm = 1000 / metersPerSecond
-      const minutes = Math.floor(secondsPerKm / 60)
-      const seconds = Math.round(secondsPerKm % 60)
-      return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
-    }
-    if (sportSettings?.thresholdPace) {
-      zoneDefinitions += `\n**Reference Threshold Pace:** ${sportSettings.thresholdPace} m/s (${formatThresholdPace(sportSettings.thresholdPace)})\n`
-    }
-    zoneDefinitions += `\n**Preferred Load Metric:** ${loadPreference}\n`
+    const zoneDefinitions = buildCompactZoneDefinitions({
+      workoutType: workout.type || '',
+      sportSettings,
+      primaryMetric: targetPolicy.primaryMetric,
+      loadPreference,
+      ftp,
+      lthr
+    })
     const targetPolicyPrompt = formatTargetPolicyPrompt(targetPolicy, loadPreference)
     const targetFormatPolicyPrompt = formatTargetFormatPolicyPrompt(targetFormatPolicy)
     const workoutType = String(workout.type || '').toLowerCase()
@@ -722,21 +767,21 @@ export const adjustStructuredWorkoutTask = task({
 
     ${targetFormatPolicyPrompt}
 
-    RECENT WORKOUTS:
-    ${buildWorkoutSummary(recentWorkouts, timezone)}
+    RECENT WORKOUTS (brief):
+    ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
     
-    JSON HYGIENE RULES:
-    - OMIT properties with null/empty values.
-    - NEVER output placeholder values such as "N/A", "none", "-", or empty strings.
-    - Include only sport-relevant keys for this workout type.
-    - Ensure valid JSON with no duplicate keys.
+    JSON RULES:
+    - Omit null/empty properties.
+    - No placeholder values.
+    - Include only sport-relevant keys.
+    - Output valid JSON.
 
     INSTRUCTIONS:
     - Create a NEW JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration (${Math.round((workout.durationSec || 3600) / 60)}m).
     - Respect the user's feedback.
     - Preserve the workout's core objective unless the user explicitly requests changing it.
-    - Ensure each block has a clear physiological purpose and a logical sequence of stress and recovery.
+    - Ensure each block has a clear physiological purpose and logical stress/recovery flow.
     - Do NOT create adjacent steps with identical duration + intensity + cadence unless they are explicitly nested in a repeat block.
     - If a step name implies a focus change, at least one target (power/HR/pace/cadence/RPE) MUST differ from the prior step.
     - **METRIC PRIORITY**:
@@ -746,18 +791,14 @@ export const adjustStructuredWorkoutTask = task({
       - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed targets in one step are allowed when useful.' : 'Keep one intensity metric per step unless explicitly requested.'}
     - **description**: Use ONLY complete sentences to describe the overall purpose and strategy. **NEVER use bullet points or list the steps here**.
     - MANDATORY: Every step MUST include an \`intent\` enum value (warmup/recovery/easy/endurance/tempo/threshold/vo2/anaerobic/sprint/cooldown/drills/strides).
-    - **coachInstructions**: Provide an updated personalized message (2-3 sentences) explaining what changed, why it changed, and how to execute the key set.
+    - **coachInstructions**: Provide a personalized 2-3 sentence message explaining what changed, why, and the key execution cue.
     - For aerobic/endurance sessions, keep main-set blocks distinct (settle/sustain/technique) rather than generic duplicates.
 
     ${sportSpecificInstructions}
 
-    FINAL SELF-CHECK BEFORE OUTPUT:
-    - Total duration equals target duration.
-    - No redundant adjacent steps.
-    - Every step has a clear purpose and valid target.
-    - Output contains no placeholder or irrelevant sport fields.
-    
-    OUTPUT JSON format matching the schema.`
+    Final check: stay within target duration, avoid redundant adjacent steps, and give every step a clear purpose and valid target.
+
+    OUTPUT JSON matching the schema.`
     logStage('prompt-built', {
       promptChars: prompt.length,
       targetDurationMinutes: Math.round((workout.durationSec || 3600) / 60)
@@ -771,7 +812,8 @@ export const adjustStructuredWorkoutTask = task({
         userId: workout.userId,
         operation: 'adjust_structured_workout',
         entityType: 'PlannedWorkout',
-        entityId: plannedWorkoutId
+        entityId: plannedWorkoutId,
+        maxRetries: 1
       })) as any
       logStage('ai-structure-generated', {
         attempt,
