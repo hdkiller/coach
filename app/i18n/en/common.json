@@ -58,6 +58,8 @@
   "help_header": "Help Center",
   "help_resource_github_desc": "View public feature requests and system-wide bugs.",
   "help_resource_github_title": "GitHub Issues",
+  "help_ticket_commands_desc": "Ask the AI to show you how to use ticket commands",
+  "help_ticket_commands_title": "Ticket Commands",
   "help_toast_id_copied_desc": "Account ID copied to clipboard.",
   "help_toast_id_copied_title": "ID Copied",
   "impersonation_banner_active": "Impersonating {email}",
@@ -177,15 +179,5 @@
   "quick_capture_placeholder_ask": "Ask anything or log data...",
   "quick_capture_placeholder_reply": "Type a reply...",
   "quick_capture_preview_header": "Coach Preview",
-  "quick_capture_thinking": "Coach is thinking...",
-  "attribution_garmin": "Powered by Garmin",
-  "help_ai_assistant_button_tickets": "Manage Tickets",
-  "help_resource_discord_desc": "Connect with our community and get help from other users",
-  "help_resource_discord_title": "Discord Community",
-  "help_resource_docs_desc": "Read our documentation and guides",
-  "help_resource_docs_title": "Documentation",
-  "help_resources_header": "Resources",
-  "help_ticket_commands_button": "Learn More",
-  "help_ticket_commands_desc": "Ask the AI to show you how to use ticket commands",
-  "help_ticket_commands_title": "Ticket Commands"
+  "quick_capture_thinking": "Coach is thinking..."
 }

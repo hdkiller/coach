@@ -1,5 +1,8 @@
 {
+  "banner_exit": "Exit",
   "chat_title": "AI Coach",
+  "common_error_title": "Error",
+  "controls_chat": "Chat",
   "input_action_add_files": "Add photos & files",
   "input_action_record_video": "Record video",
   "input_action_take_photo": "Take photo",
@@ -34,6 +37,7 @@
   "modal_rename_title": "Rename Chat",
   "modal_share_copy": "Copy",
   "modal_share_desc": "Anyone with this link can view this chat history. The link will expire in 30 days.",
+  "modal_share_history_desc": "Share the chat history with others",
   "modal_share_note": "This link provides read-only access to this specific chat history.",
   "modal_share_title": "Share Chat: {name}",
   "modal_webcam_capture": "Capture",
@@ -59,6 +63,8 @@
   "sidebar_room_id_copied_desc": "The chat room ID has been copied.",
   "sidebar_share_chat": "Share Chat",
   "sidebar_summarize_optimize": "Summarize & Optimize",
+  "toast_copied": "Copied",
+  "toast_copied_desc": "Link copied to clipboard.",
   "toast_generating_name_desc": "Analyzing conversation to suggest a new title...",
   "toast_generating_name_title": "Generating Name",
   "toast_naming_started_desc": "The AI is generating a title in the background. It will update shortly.",
@@ -73,11 +79,5 @@
   "welcome_tip_fresh_title": "Start Fresh",
   "welcome_tip_specific_desc": "Ask about specific workouts, health metrics, or race goals for the most accurate analysis.",
   "welcome_tip_specific_title": "Be Specific",
-  "welcome_title": "Welcome to your AI Coach!",
-  "banner_exit": "Exit",
-  "common_error_title": "Error",
-  "controls_chat": "Chat",
-  "modal_share_history_desc": "Share the chat history with others",
-  "toast_copied": "Copied",
-  "toast_copied_desc": "Link copied to clipboard."
+  "welcome_title": "Welcome to your AI Coach!"
 }

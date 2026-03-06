@@ -54,10 +54,13 @@
   "comm_desc_plan_updates": "Receive notifications when your training plan is adapted or updated.",
   "comm_desc_product_updates": "Be the first to know about new features and major improvements.",
   "comm_desc_retention": "Gentle reminders if you haven't logged wellness data or workouts recently.",
+  "comm_desc_threshold_updates": "Receive notifications when your fitness thresholds change",
   "comm_desc_unsubscribe_all": "Instantly opt-out of all coaching nudges and product updates. You will still receive critical billing notices.",
+  "comm_desc_workout_analysis": "Receive AI analysis of your completed workouts",
   "comm_header_account": "Account & Product",
   "comm_header_insights": "Training Insights",
   "comm_header_override": "Communication Override",
+  "comm_header_product_marketing": "Product & Marketing",
   "comm_help_daily_time": "When should we send your daily brief?",
   "comm_label_billing": "Billing & Subscription",
   "comm_label_daily_coach": "Daily Training Recommendation",
@@ -446,8 +449,5 @@
   "zones_header_min": "Min ({unit})",
   "zones_header_name": "Zone Name",
   "zones_title_hr": "Heart Rate Zones",
-  "zones_title_power": "Power Zones",
-  "comm_desc_threshold_updates": "Receive notifications when your fitness thresholds change",
-  "comm_desc_workout_analysis": "Receive AI analysis of your completed workouts",
-  "comm_header_product_marketing": "Product & Marketing"
+  "zones_title_power": "Power Zones"
 }
