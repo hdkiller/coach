@@ -236,7 +236,8 @@ export function applyStepIntentGuard(
   step: any,
   refs: { ftp: number; lthr: number; thresholdPace: number }
 ) {
-  const intent = normalizeIntent(step?.intent) || defaultIntentForStepType(step?.type)
+  const explicitIntent = normalizeIntent(step?.intent)
+  const intent = explicitIntent || defaultIntentForStepType(step?.type)
   step.intent = intent
 
   const primary = (step?.primaryTarget || 'heartRate') as TargetStepMetric
@@ -254,10 +255,82 @@ export function applyStepIntentGuard(
   if (factor === null) return
 
   const band = intentBand(intent)
+  if (explicitIntent) {
+    const inferredIntent = inferIntentFromFactor(factor, intent, step?.type)
+    step.intent = inferredIntent
+    if (!step.primaryTarget) step.primaryTarget = selectedMetric
+    return
+  }
+
   if (factor >= band.low && factor <= band.high) return
 
-  // Preserve explicit targets; if they conflict with the labeled intent,
-  // fix the intent instead of silently downgrading the prescribed load.
+  const shouldClampInferredTarget =
+    !explicitIntent && ['Warmup', 'Cooldown', 'Rest'].includes(String(step?.type || ''))
+
+  if (shouldClampInferredTarget) {
+    if (selectedMetric === 'heartRate') {
+      const nextValue = refs.lthr > 0 ? clamp(factor, band.low, band.high) * refs.lthr : null
+      if (nextValue !== null) {
+        if (step.heartRate?.range) {
+          const width = Math.max(0, (step.heartRate.range.end - step.heartRate.range.start) / 2)
+          const clampedMid = Math.floor(nextValue)
+          step.heartRate = {
+            range: {
+              start: Math.max(0, Math.floor(clampedMid - width)),
+              end: Math.max(0, Math.floor(clampedMid + width))
+            },
+            units: step.heartRate.units || 'bpm'
+          }
+        } else {
+          step.heartRate = {
+            value: Math.floor(nextValue),
+            units: step.heartRate?.units || 'bpm'
+          }
+        }
+      }
+      return
+    }
+
+    if (selectedMetric === 'power') {
+      const nextFactor = clamp(factor, band.low, band.high)
+      if (step.power?.range) {
+        const width = Math.max(0, (step.power.range.end - step.power.range.start) / 2)
+        step.power = {
+          range: {
+            start: Math.max(0, nextFactor - width),
+            end: nextFactor + width
+          },
+          units: step.power.units || '%'
+        }
+      } else {
+        step.power = { value: nextFactor, units: step.power?.units || '%' }
+      }
+      return
+    }
+
+    if (selectedMetric === 'pace') {
+      const nextFactor = clamp(factor, band.low, band.high)
+      if (step.pace?.range) {
+        const width = Math.max(0, (step.pace.range.end - step.pace.range.start) / 2)
+        step.pace = {
+          range: {
+            start: Math.max(0, nextFactor - width),
+            end: nextFactor + width
+          },
+          units: step.pace.units || 'Pace'
+        }
+      } else {
+        step.pace = { value: nextFactor, units: step.pace?.units || 'Pace' }
+      }
+      return
+    }
+
+    if (selectedMetric === 'rpe') {
+      step.rpe = Math.min(10, Math.max(1, Math.round(clamp(factor, band.low, band.high) * 10)))
+      return
+    }
+  }
+
   step.intent = inferIntentFromFactor(factor, intent, step?.type)
   if (!step.primaryTarget) step.primaryTarget = selectedMetric
 }

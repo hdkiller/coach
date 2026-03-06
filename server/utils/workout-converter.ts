@@ -495,6 +495,7 @@ export const WorkoutConverter = {
       range?: { start: number; end: number }
       units?: string
     }) => {
+      const epsilon = 1e-6
       const units = String(target.units || '')
         .trim()
         .toLowerCase()
@@ -506,6 +507,20 @@ export const WorkoutConverter = {
               ? Math.round((target.range.start + target.range.end) / 2)
               : null
         return zoneValue ? `Z${zoneValue} Pace` : null
+      }
+
+      if (units === 'm/s' && target.range && Array.isArray(paceZones) && paceZones.length > 0) {
+        const directZoneIdx = paceZones.findIndex((zone: any) => {
+          const min = Number(zone?.min)
+          const max = Number(zone?.max)
+          return (
+            Number.isFinite(min) &&
+            Number.isFinite(max) &&
+            Math.abs(target.range!.start - min) <= epsilon &&
+            Math.abs(target.range!.end - max) <= epsilon
+          )
+        })
+        if (directZoneIdx >= 0) return `Z${directZoneIdx + 1} Pace`
       }
 
       const midpoint = target.range
@@ -747,35 +762,35 @@ export const WorkoutConverter = {
         const getRpeStr = () =>
           typeof step.rpe === 'number' && Number.isFinite(step.rpe) ? `RPE ${step.rpe}` : ''
         const metrics = metricPriority
-        let primaryFound = false
+        const shouldExportSinglePrimaryMetric =
+          normalizedPolicy.strictPrimary || !normalizedPolicy.allowMixedTargetsPerStep
 
         for (const metric of metrics) {
           if (metric === 'hr') {
             const s = getHrStr()
             if (s) {
               intensities.push(s)
-              primaryFound = true
+              if (shouldExportSinglePrimaryMetric) break
             }
           } else if (metric === 'power') {
             const s = getPowerStr()
             if (s) {
               intensities.push(s)
-              primaryFound = true
+              if (shouldExportSinglePrimaryMetric) break
             }
           } else if (metric === 'pace') {
             const s = getPaceStr()
             if (s) {
               intensities.push(s)
-              primaryFound = true
+              if (shouldExportSinglePrimaryMetric) break
             }
           } else if (metric === 'rpe') {
             const s = getRpeStr()
             if (s) {
               intensities.push(s)
-              primaryFound = true
+              if (shouldExportSinglePrimaryMetric) break
             }
           }
-          if (primaryFound && isRun) break
         }
 
         if (intensities.length === 0) {
