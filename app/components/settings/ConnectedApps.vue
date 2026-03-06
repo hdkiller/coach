@@ -430,9 +430,7 @@
     <!-- Garmin -->
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
-        <div
-          class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
-        >
+        <div class="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden">
           <img
             src="/images/logos/Garmin_Connect_app_1024x1024.png"
             alt="Garmin Logo"
@@ -730,11 +728,9 @@
     <!-- Ultrahuman -->
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
-        <div
-          class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
-        >
+        <div class="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden">
           <img
-            src="/images/logos/ultrahuman.svg"
+            src="/images/logos/ultrahuman_logo.png"
             alt="Ultrahuman Logo"
             class="w-full h-full object-cover"
           />

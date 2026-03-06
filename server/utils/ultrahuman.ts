@@ -25,7 +25,7 @@ export async function refreshUltrahumanToken(integration: Integration): Promise<
 
   console.log('Refreshing Ultrahuman token for integration:', integration.id)
 
-  const response = await fetch('https://vision.ultrahuman.com/oauth/token', {
+  const response = await fetch('https://vision.ultrahuman.com/m7/v1/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -91,11 +91,14 @@ export async function fetchUltrahumanDaily(integration: Integration, date: Date)
   const validIntegration = await ensureValidToken(integration)
   const dateStr = date.toISOString().split('T')[0]
 
-  const response = await fetch(`https://api.ultrahuman.com/v1/vision/daily?date=${dateStr}`, {
-    headers: {
-      Authorization: `Bearer ${validIntegration.accessToken}`
+  const response = await fetch(
+    `https://vision.ultrahuman.com/api/v1/vision/daily?date=${dateStr}`,
+    {
+      headers: {
+        Authorization: `Bearer ${validIntegration.accessToken}`
+      }
     }
-  })
+  )
 
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
@@ -127,7 +130,7 @@ export async function fetchUltrahumanProfile(tokenOrIntegration: string | Integr
     accessToken = validIntegration.accessToken
   }
 
-  const response = await fetch('https://api.ultrahuman.com/v1/vision/profile', {
+  const response = await fetch('https://vision.ultrahuman.com/api/v1/vision/profile', {
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
