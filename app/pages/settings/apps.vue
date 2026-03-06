@@ -60,6 +60,8 @@
       :garmin-ingest-workouts="garminIngestWorkouts"
       :wahoo-connected="wahooConnected"
       :wahoo-ingest-workouts="wahooIngestWorkouts"
+      :ultrahuman-connected="ultrahumanConnected"
+      :ultrahuman-ingest-workouts="ultrahumanIngestWorkouts"
       :telegram-connected="telegramConnected"
       :syncing-providers="syncingProviders"
       :integration-settings="integrationSettings"
@@ -391,6 +393,13 @@
 
   const wahooIngestWorkouts = computed(() => getIntegration('wahoo')?.ingestWorkouts ?? false)
 
+  const ultrahumanConnected = computed(
+    () =>
+      integrationStatus.value?.integrations?.some((i: any) => i.provider === 'ultrahuman') ?? false
+  )
+
+  const ultrahumanIngestWorkouts = computed(() => isActivityIngestionEnabled('ultrahuman'))
+
   const telegramConnected = computed(
     () =>
       integrationStatus.value?.integrations?.some((i: any) => i.provider === 'telegram') ?? false
@@ -407,7 +416,8 @@
       'hevy',
       'polar',
       'garmin',
-      'wahoo'
+      'wahoo',
+      'ultrahuman'
     ]
 
     return Object.fromEntries(
@@ -807,6 +817,7 @@
       route.query.polar_success ||
       route.query.garmin_success ||
       route.query.wahoo_success ||
+      route.query.ultrahuman_success ||
       route.query.connected === 'yazio'
     ) {
       if (route.query.whoop_success) {
@@ -881,6 +892,14 @@
           color: 'success'
         })
         refreshIntegrations()
+      } else if (route.query.ultrahuman_success) {
+        trackIntegrationConnectSuccess('ultrahuman')
+        toast.add({
+          title: 'Connected!',
+          description: 'Successfully connected to Ultrahuman',
+          color: 'success'
+        })
+        refreshIntegrations()
       } else if (route.query.connected === 'yazio') {
         trackIntegrationConnectSuccess('yazio')
         toast.add({
@@ -900,6 +919,7 @@
       route.query.fitbit_error ||
       route.query.garmin_error ||
       route.query.wahoo_error ||
+      route.query.ultrahuman_error ||
       route.query.polar_error
     ) {
       const errorMsg = (route.query.whoop_error ||
@@ -910,6 +930,7 @@
         route.query.fitbit_error ||
         route.query.garmin_error ||
         route.query.wahoo_error ||
+        route.query.ultrahuman_error ||
         route.query.polar_error) as string
       const provider = route.query.whoop_error
         ? 'WHOOP'
@@ -929,7 +950,9 @@
                       ? 'Garmin'
                       : route.query.wahoo_error
                         ? 'Wahoo'
-                        : 'Strava'
+                        : route.query.ultrahuman_error
+                          ? 'Ultrahuman'
+                          : 'Strava'
       const description =
         errorMsg === 'no_code'
           ? 'Authorization was cancelled or no code was received'

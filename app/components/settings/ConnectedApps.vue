@@ -727,6 +727,65 @@
       </div>
     </UCard>
 
+    <!-- Ultrahuman -->
+    <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
+      <div class="flex items-start gap-4">
+        <div
+          class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-200 dark:ring-gray-700"
+        >
+          <img
+            src="/images/logos/ultrahuman.svg"
+            alt="Ultrahuman Logo"
+            class="w-full h-full object-cover"
+          />
+        </div>
+        <div>
+          <h3 class="font-semibold">Ultrahuman</h3>
+          <p class="text-sm text-muted">Metabolic health, sleep, and recovery data</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
+        <div class="flex items-center justify-end gap-2">
+          <div v-if="!ultrahumanConnected">
+            <UButton
+              color="neutral"
+              variant="outline"
+              @click="
+                () => {
+                  trackIntegrationConnectStart('ultrahuman')
+                  navigateTo('/api/integrations/ultrahuman/authorize', { external: true })
+                }
+              "
+            >
+              Connect
+            </UButton>
+          </div>
+          <div v-else class="flex items-center gap-2">
+            <UButton
+              color="success"
+              variant="solid"
+              size="sm"
+              class="font-bold"
+              icon="i-heroicons-arrow-path"
+              :loading="syncingProviders.has('ultrahuman')"
+              @click="$emit('sync', 'ultrahuman')"
+            >
+              Sync Now
+            </UButton>
+            <UDropdownMenu :items="ultrahumanActions">
+              <UButton
+                color="neutral"
+                variant="outline"
+                size="sm"
+                icon="i-heroicons-ellipsis-vertical"
+              />
+            </UDropdownMenu>
+          </div>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Telegram -->
     <UCard :ui="{ body: 'flex flex-col h-full justify-between gap-4' }">
       <div class="flex items-start gap-4">
@@ -1040,6 +1099,8 @@
     polarIngestWorkouts: boolean
     garminConnected: boolean
     garminIngestWorkouts: boolean
+    ultrahumanConnected: boolean
+    ultrahumanIngestWorkouts: boolean
     telegramConnected: boolean
     syncingProviders: Set<string>
     integrationSettings: Record<string, any>
@@ -1223,6 +1284,20 @@
           target: 'settings'
         }
       ]
+    },
+    ultrahuman: {
+      provider: 'ultrahuman',
+      title: 'Ultrahuman Settings',
+      description: 'Choose which Ultrahuman data Coach Watts should import.',
+      options: [
+        {
+          key: 'ingestWellness',
+          title: 'Wellness',
+          description: 'Import sleep, recovery, biometrics, and activity indexes from Ultrahuman.',
+          label: 'Ingest Wellness Data',
+          target: 'settings'
+        }
+      ]
     }
   }
 
@@ -1269,6 +1344,8 @@
           return props.polarIngestWorkouts
         case 'garmin':
           return props.garminIngestWorkouts
+        case 'ultrahuman':
+          return props.ultrahumanIngestWorkouts
         case 'hevy':
           return props.hevyIngestWorkouts
         case 'strava':
@@ -1514,6 +1591,24 @@
         icon: 'i-heroicons-trash',
         color: 'error' as const,
         onSelect: () => emit('disconnect', 'garmin')
+      }
+    ]
+  ])
+
+  const ultrahumanActions = computed(() => [
+    [
+      {
+        label: 'Settings',
+        icon: 'i-heroicons-cog-6-tooth',
+        onSelect: () => openProviderSettings('ultrahuman')
+      }
+    ],
+    [
+      {
+        label: 'Disconnect',
+        icon: 'i-heroicons-trash',
+        color: 'error' as const,
+        onSelect: () => emit('disconnect', 'ultrahuman')
       }
     ]
   ])
