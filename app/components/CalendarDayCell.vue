@@ -292,14 +292,9 @@
                 class="mt-1.5"
               >
                 <MiniWorkoutChart
-                  :workout="activity.structuredWorkout"
-                  :preference="
-                    getPreferredMetric(getActivityZones(activity), {
-                      hasHr: !!activity.structuredWorkout.steps?.some((s: any) => s.heartRate),
-                      hasPower: !!activity.structuredWorkout.steps?.some((s: any) => s.power),
-                      hasPace: !!activity.structuredWorkout.steps?.some((s: any) => s.pace)
-                    })
-                  "
+                  :workout="activity"
+                  :sport-settings="getActivityZones(activity)"
+                  :preference="getActivityChartPreference(activity)"
                   class="w-full h-6 opacity-75"
                 />
               </div>
@@ -430,7 +425,8 @@
   import type { CalendarActivity } from '../../types/calendar'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import MiniZoneChart from '~/components/MiniZoneChart.vue'
-  import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
+  import { getSportSettingsForActivity } from '~/utils/sportSettings'
+  import { getWorkoutChartPreference } from '~/utils/workoutChartContext'
   import { formatDistance as formatDist } from '~/utils/metrics'
 
   const { formatDateUTC, getUserLocalDate, formatWeight } = useFormat()
@@ -462,10 +458,32 @@
     if (!settings) return props.userZones
 
     return {
+      ...settings,
       hrZones: settings.hrZones,
       powerZones: settings.powerZones,
+      paceZones: settings.paceZones,
+      ftp: settings.ftp,
+      lthr: settings.lthr,
+      maxHr: settings.maxHr,
+      thresholdPace: settings.thresholdPace,
+      targetPolicy: settings.targetPolicy,
       loadPreference: settings.loadPreference
     }
+  }
+
+  function collectStructuredMetricAvailability(activity: CalendarActivity) {
+    const hasHr = !!activity.structuredWorkout?.steps?.some((s: any) => s.heartRate)
+    const hasPower = !!activity.structuredWorkout?.steps?.some((s: any) => s.power)
+    const hasPace = !!activity.structuredWorkout?.steps?.some((s: any) => s.pace)
+    return { hasHr, hasPower, hasPace }
+  }
+
+  function getActivityChartPreference(activity: CalendarActivity): 'hr' | 'power' | 'pace' {
+    return getWorkoutChartPreference(
+      activity,
+      getActivityZones(activity),
+      collectStructuredMetricAvailability(activity)
+    )
   }
 
   const dayNumber = computed(() => formatDateUTC(props.date, 'd'))

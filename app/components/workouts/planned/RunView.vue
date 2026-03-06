@@ -52,7 +52,7 @@
     <div v-if="hasStructure" class="mb-6">
       <h4 class="text-sm font-semibold text-muted mb-3">Structure Profile</h4>
       <WorkoutRunChart
-        :workout="workout.structuredWorkout"
+        :workout="workout"
         :sport-settings="sportSettings"
         :preference="chartPreference"
       />
@@ -62,7 +62,10 @@
 
 <script setup lang="ts">
   import WorkoutRunChart from '~/components/workouts/WorkoutRunChart.vue'
-  import { getPreferredMetric } from '~/utils/sportSettings'
+  import {
+    getWorkoutChartPreference,
+    resolveWorkoutChartSportSettings
+  } from '~/utils/workoutChartContext'
 
   const props = defineProps<{
     workout: any
@@ -102,8 +105,12 @@
   const chartPreference = computed<'hr' | 'power' | 'pace'>(() => {
     const steps = props.workout.structuredWorkout?.steps || []
     const availability = collectMetricAvailability(steps)
-    return getPreferredMetric(props.sportSettings, availability)
+    return getWorkoutChartPreference(props.workout, props.sportSettings, availability)
   })
+
+  const effectiveSportSettings = computed(() =>
+    resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
+  )
 
   function getTargetMidpoint(target: any): number | null {
     if (!target) return null
@@ -139,7 +146,9 @@
 
   function getPaceZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
     const index = Math.max(1, Math.round(indexRaw))
-    const zones = Array.isArray(props.sportSettings?.paceZones) ? props.sportSettings.paceZones : []
+    const zones = Array.isArray(effectiveSportSettings.value?.paceZones)
+      ? effectiveSportSettings.value.paceZones
+      : []
     const zone = zones[index - 1]
     if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
       return { start: Number(zone.min), end: Number(zone.max) }
@@ -189,7 +198,7 @@
     const normalizedUnits = String(units || '')
       .trim()
       .toLowerCase()
-    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
+    const thresholdPace = Number(effectiveSportSettings.value?.thresholdPace || 0)
 
     if (normalizedUnits.includes('/km')) {
       const secondsPerKm = value * 60
@@ -213,9 +222,9 @@
   }
 
   function estimateStepSpeedMps(step: any): number {
-    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
-    const lthr = Number(props.sportSettings?.lthr || 0)
-    const ftp = Number(props.sportSettings?.ftp || 0)
+    const thresholdPace = Number(effectiveSportSettings.value?.thresholdPace || 0)
+    const lthr = Number(effectiveSportSettings.value?.lthr || 0)
+    const ftp = Number(effectiveSportSettings.value?.ftp || 0)
 
     const normalizedPace = normalizePaceTarget(step.pace)
     const paceMid = getTargetMidpoint(normalizedPace)
@@ -324,8 +333,12 @@
           const normalizedPace = normalizePaceTarget(step.pace)
           const paceMid = getTargetMidpoint(normalizedPace)
           const paceMps = paceMid !== null ? paceValueToMps(paceMid, normalizedPace?.units) : null
-          if (paceMps !== null && Number(props.sportSettings?.thresholdPace || 0) > 0) {
-            return clamp(paceMps / Number(props.sportSettings?.thresholdPace || 0), 0.3, 1.8)
+          if (paceMps !== null && Number(effectiveSportSettings.value?.thresholdPace || 0) > 0) {
+            return clamp(
+              paceMps / Number(effectiveSportSettings.value?.thresholdPace || 0),
+              0.3,
+              1.8
+            )
           }
           return null
         })() ||

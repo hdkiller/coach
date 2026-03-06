@@ -47,11 +47,7 @@
         </UButton>
       </div>
     </div>
-    <WorkoutChart
-      :workout="workout.structuredWorkout"
-      :user-ftp="userFtp"
-      :sport-settings="sportSettings"
-    />
+    <WorkoutChart :workout="workout" :user-ftp="userFtp" :sport-settings="sportSettings" />
   </div>
 </template>
 
