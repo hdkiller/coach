@@ -202,7 +202,15 @@
 
   const syncStatusLabel = computed(() => {
     const status = (plannedWorkout.value?.syncStatus || props.response?.status || '').toUpperCase()
+    const waitingForStructure = expectsStructure.value && !hasVisualization.value
+    const structureJobActive = Boolean(runStatus.value && ACTIVE_RUN_STATUSES.has(runStatus.value))
+
+    if (structureJobActive && waitingForStructure) return 'Structure generation running'
+    if (waitingForStructure) return 'Waiting for structured workout'
     if (!status) return null
+    if (expectsStructure.value && status === 'SYNCED' && !isOperationComplete.value) {
+      return 'Waiting for structure sync'
+    }
     if (status === 'SYNCED') return 'Synced to Intervals'
     if (status === 'LOCAL_ONLY') return 'Local only'
     if (SYNC_PENDING_STATUSES.has(status)) return 'Waiting for sync'
