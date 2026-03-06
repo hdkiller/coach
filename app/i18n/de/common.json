@@ -58,6 +58,8 @@
   "help_header": "Hilfe-Center",
   "help_resource_github_desc": "Öffentliche Feature-Requests und systemweite Bugs ansehen.",
   "help_resource_github_title": "GitHub Issues",
+  "help_ticket_commands_desc": "Frage die KI, dir zu zeigen, wie man Ticket-Befehle verwendet",
+  "help_ticket_commands_title": "Ticket-Befehle",
   "help_toast_id_copied_desc": "Account-ID in die Zwischenablage kopiert.",
   "help_toast_id_copied_title": "ID kopiert",
   "impersonation_banner_active": "Identitätswechsel als {email}",
