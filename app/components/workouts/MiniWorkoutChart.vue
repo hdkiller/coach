@@ -443,6 +443,18 @@
     return Number(effectiveSportSettings.value?.lthr || 0) || 200
   }
 
+  function getHrZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
+    const index = Math.max(1, Math.round(indexRaw))
+    const zones = Array.isArray(effectiveSportSettings.value?.hrZones)
+      ? effectiveSportSettings.value.hrZones
+      : []
+    const zone = zones[index - 1]
+    if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
+      return { start: Number(zone.min), end: Number(zone.max) }
+    }
+    return null
+  }
+
   function toNormalizedHeartRate(value: number): number {
     if (!Number.isFinite(value) || value <= 0) return 0
     if (value <= 3) return value
@@ -577,15 +589,34 @@
 
     if (units === 'hr_zone' || units === 'zone') {
       if (normalized.range) {
+        const startZone = getHrZoneBoundsByIndex(normalized.range.start)
+        const endZone = getHrZoneBoundsByIndex(normalized.range.end)
+        if (startZone && endZone) {
+          return {
+            range: {
+              start: toNormalizedHeartRate(startZone.start),
+              end: toNormalizedHeartRate(endZone.end)
+            }
+          }
+        }
         return {
           range: {
-            start: Math.max(0, normalized.range.start),
-            end: Math.max(0, normalized.range.end)
+            start: toNormalizedHeartRate(normalized.range.start),
+            end: toNormalizedHeartRate(normalized.range.end)
           }
         }
       }
       if (typeof normalized.value === 'number') {
-        return { value: Math.max(0, normalized.value) }
+        const zoneBounds = getHrZoneBoundsByIndex(normalized.value)
+        if (zoneBounds) {
+          return {
+            range: {
+              start: toNormalizedHeartRate(zoneBounds.start),
+              end: toNormalizedHeartRate(zoneBounds.end)
+            }
+          }
+        }
+        return { value: toNormalizedHeartRate(normalized.value) }
       }
     }
 
