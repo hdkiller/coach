@@ -1,4 +1,5 @@
 {
+  "attribution_garmin": "A Garmin technológiájával",
   "banner_exit": "Kilépés",
   "coaching_banner_active": "Megtekintés mint {name}",
   "cta": {
@@ -46,6 +47,7 @@
   "help_action_report_bug": "Hiba bejelentése",
   "help_action_report_bug_desc": "Hibát tapasztalt? Mondja el nekünk.",
   "help_ai_assistant_button_chat": "AI Csevegés megnyitása",
+  "help_ai_assistant_button_tickets": "Jegyek kezelése",
   "help_ai_assistant_desc": "Közvetlenül a csevegésben hozhat létre és kezelhet támogatási jegyeket. Mondja el az AI-nak, mi történt, mit várt, és mi történt valójában. Világos megfogalmazással elkészíti a jegy vázlatát, megmutatja ellenőrzésre, ha a jóváhagyás engedélyezve van, majd közzéteszi.",
   "help_ai_assistant_tip": "Tipp: Ha elutasítasz egy tervezetet, az MI megkérdezi, mit módosítson.",
   "help_ai_assistant_title": "AI Jegyasszisztens",
@@ -56,8 +58,14 @@
   "help_diagnostics_id_hint": "Kattints az egyedi fiókazonosítód másolásához.",
   "help_diagnostics_id_title": "Fiókazonosító",
   "help_header": "Súgóközpont",
+  "help_resource_discord_desc": "Csatlakozz közösségünkhöz, és kérj segítséget más felhasználóktól",
+  "help_resource_discord_title": "Discord közösség",
+  "help_resource_docs_desc": "Olvasd el dokumentációnkat és útmutatóinkat",
+  "help_resource_docs_title": "Dokumentáció",
   "help_resource_github_desc": "Nyilvános funkcióigények és rendszerszintű hibák megtekintése.",
   "help_resource_github_title": "GitHub Issues",
+  "help_resources_header": "Erőforrások",
+  "help_ticket_commands_button": "Tudj meg többet",
   "help_ticket_commands_desc": "Kérd meg a MI-t, hogy mutassa meg a ticket parancsok használatát",
   "help_ticket_commands_title": "Jegyparancsok",
   "help_toast_id_copied_desc": "Fiókazonosító a vágólapra másolva.",
