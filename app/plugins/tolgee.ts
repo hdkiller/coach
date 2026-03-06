@@ -310,9 +310,15 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   // If no cookie, try to use session data (even on server)
   if (!localeCookie.value && session.value?.user) {
-    const userLang = (session.value.user as any).language
-    if (userLang && LANGUAGE_MAP[userLang]) {
-      initialLanguage = LANGUAGE_MAP[userLang]
+    const userUiLang = (session.value.user as any).uiLanguage
+    if (userUiLang) {
+      initialLanguage = userUiLang
+    } else {
+      // Fallback to mapping legacy language if uiLanguage is missing
+      const userLang = (session.value.user as any).language
+      if (userLang && LANGUAGE_MAP[userLang]) {
+        initialLanguage = LANGUAGE_MAP[userLang]
+      }
     }
   }
 
@@ -581,19 +587,29 @@ export default defineNuxtPlugin((nuxtApp) => {
       // Watch for user language preference changes
       const userStore = useUserStore()
       watch(
-        [() => userStore.user?.language, () => userStore.profile?.language],
-        ([userLang, profileLang]) => {
-          const newLang = profileLang || userLang
-          if (!newLang) return
-          const isoCode = LANGUAGE_MAP[newLang]
-          if (isoCode) {
+        [
+          () => userStore.user?.uiLanguage,
+          () => userStore.profile?.uiLanguage,
+          () => userStore.user?.language,
+          () => userStore.profile?.language
+        ],
+        ([userUiLang, profileUiLang, userLang, profileLang]) => {
+          let newIsoCode = profileUiLang || userUiLang
+          if (!newIsoCode) {
+            const fallbackLang = profileLang || userLang
+            if (fallbackLang) {
+              newIsoCode = LANGUAGE_MAP[fallbackLang]
+            }
+          }
+
+          if (newIsoCode) {
             // Update Cookie for SSR
-            if (localeCookie.value !== isoCode) {
-              localeCookie.value = isoCode
+            if (localeCookie.value !== newIsoCode) {
+              localeCookie.value = newIsoCode
             }
             // Update Tolgee Instance
-            if (tolgee.getLanguage() !== isoCode) {
-              void tolgee.changeLanguage(isoCode)
+            if (tolgee.getLanguage() !== newIsoCode) {
+              void tolgee.changeLanguage(newIsoCode)
             }
           }
         },
