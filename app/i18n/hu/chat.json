@@ -73,5 +73,11 @@
   "welcome_tip_fresh_title": "Kezdj tiszta lappal",
   "welcome_tip_specific_desc": "A legpontosabb elemzés érdekében kérdezz konkrét edzésekről, egészségügyi mutatókról vagy versenycélokról.",
   "welcome_tip_specific_title": "Légy konkrét",
-  "welcome_title": "Üdvözöljük az AI Coach-nál!"
+  "welcome_title": "Üdvözöljük az AI Coach-nál!",
+  "banner_exit": "Exit",
+  "common_error_title": "Error",
+  "controls_chat": "Chat",
+  "modal_share_history_desc": "Share the chat history with others",
+  "toast_copied": "Copied",
+  "toast_copied_desc": "Link copied to clipboard."
 }

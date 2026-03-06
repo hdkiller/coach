@@ -63,5 +63,12 @@
   "workout_pacing_full": "Iramstratégia",
   "workout_pacing_title": "Iram",
   "workout_technical_full": "Technikai kivitelezés",
-  "workout_technical_title": "Technikai"
+  "workout_technical_title": "Technikai",
+  "efficiency_title": "Efficiency",
+  "ftp_evolution_title": "FTP Evolution",
+  "intensity_dist_title": "Intensity Distribution",
+  "pmc_title": "PMC",
+  "power_curve_title": "Power Curve",
+  "workout_header": "Workouts",
+  "workout_overall_title": "Overall"
 }

@@ -216,5 +216,13 @@
   "upcoming_workouts_header": "Upcoming Workouts",
   "upcoming_workouts_plan_part_of": "Part of plan: {name}",
   "upcoming_workouts_view_plans": "View Plans",
-  "weekly_training_load": "Weekly Training Load"
+  "weekly_training_load": "Weekly Training Load",
+  "banner_exit": "Exit",
+  "navigation_cycling": "Cycling",
+  "navigation_performance": "Performance",
+  "navigation_running": "Running",
+  "navigation_search_nutrition_today": "Today",
+  "navigation_search_nutrition_yesterday": "Yesterday",
+  "navigation_strength": "Strength",
+  "navigation_swimming": "Swimming"
 }

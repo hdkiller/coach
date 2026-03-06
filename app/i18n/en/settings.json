@@ -342,5 +342,11 @@
   "usage_previous": "Previous",
   "usage_refresh": "Refresh",
   "usage_status_failed": "Failed",
-  "usage_status_success": "Success"
+  "usage_status_success": "Success",
+  "automation_nutrition_upgrade_desc": "Upgrade to a premium plan to unlock automatic nutrition analysis.",
+  "automation_tool_approval_desc": "Require approval before AI tools make changes to your data.",
+  "automation_tool_approval_label": "Require Tool Approval",
+  "automation_tools_header": "Automation Tools",
+  "banner_exit": "Exit",
+  "quick_capture_preview_header": "Coach Preview"
 }

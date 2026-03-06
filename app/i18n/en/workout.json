@@ -132,5 +132,20 @@
   "version_original_ref": "Original Workout Reference:",
   "version_prescribed_desc": "This activity successfully completed the following planned workout.",
   "version_prescribed_plan": "Prescribed Plan Match",
-  "version_promote_button": "Promote to Primary"
+  "version_promote_button": "Promote to Primary",
+  "banner_exit": "Exit",
+  "legend_plan": "Planned",
+  "modal_delete_action_desc": "This action cannot be undone.",
+  "modal_delete_desc": "Are you sure you want to delete this workout?",
+  "modal_delete_sure": "Are you sure?",
+  "modal_delete_sync_note_title": "Note",
+  "modal_delete_title": "Delete Workout",
+  "modal_extras_desc": "Extra metadata from the FIT file",
+  "modal_extras_empty": "No extra metadata available",
+  "modal_extras_title": "Extra Metadata",
+  "sections_duplicates": "Versions",
+  "sections_nutrition": "Nutrition",
+  "sections_power_curve": "Power Curve",
+  "sections_raw_data": "Raw Data",
+  "sections_timeline": "Timeline"
 }

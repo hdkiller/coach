@@ -73,5 +73,11 @@
   "welcome_tip_fresh_title": "Start Fresh",
   "welcome_tip_specific_desc": "Ask about specific workouts, health metrics, or race goals for the most accurate analysis.",
   "welcome_tip_specific_title": "Be Specific",
-  "welcome_title": "Welcome to your AI Coach!"
+  "welcome_title": "Welcome to your AI Coach!",
+  "banner_exit": "Exit",
+  "common_error_title": "Error",
+  "controls_chat": "Chat",
+  "modal_share_history_desc": "Share the chat history with others",
+  "toast_copied": "Copied",
+  "toast_copied_desc": "Link copied to clipboard."
 }

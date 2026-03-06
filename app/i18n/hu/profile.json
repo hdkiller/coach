@@ -446,5 +446,8 @@
   "zones_header_min": "Min ({unit})",
   "zones_header_name": "Zóna neve",
   "zones_title_hr": "Pulzuszónák",
-  "zones_title_power": "Teljesítményzónák"
+  "zones_title_power": "Teljesítményzónák",
+  "comm_desc_threshold_updates": "Receive notifications when your fitness thresholds change",
+  "comm_desc_workout_analysis": "Receive AI analysis of your completed workouts",
+  "comm_header_product_marketing": "Product & Marketing"
 }

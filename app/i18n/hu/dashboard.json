@@ -216,5 +216,13 @@
   "upcoming_workouts_header": "Közelgő edzések",
   "upcoming_workouts_plan_part_of": "Terv része: {name}",
   "upcoming_workouts_view_plans": "Tervek megtekintése",
-  "weekly_training_load": "Heti edzésterhelés"
+  "weekly_training_load": "Heti edzésterhelés",
+  "banner_exit": "Exit",
+  "navigation_cycling": "Cycling",
+  "navigation_performance": "Performance",
+  "navigation_running": "Running",
+  "navigation_search_nutrition_today": "Today",
+  "navigation_search_nutrition_yesterday": "Yesterday",
+  "navigation_strength": "Strength",
+  "navigation_swimming": "Swimming"
 }
