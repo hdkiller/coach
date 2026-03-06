@@ -161,6 +161,7 @@
     name: user.value?.name || 'Athlete',
     nickname: '',
     language: 'English',
+    uiLanguage: 'en',
     weight: 0,
     weightUnits: 'Kilograms',
     height: 0,

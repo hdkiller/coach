@@ -171,7 +171,35 @@
       </template>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UFormField :label="t('basic_localization_language')" name="language">
+        <UFormField
+          :label="t('basic_localization_ui_language')"
+          name="uiLanguage"
+          :help="t('basic_localization_ui_language_help')"
+        >
+          <USelectMenu
+            v-model="localProfile.uiLanguage"
+            :items="[
+              { label: 'English', value: 'en' },
+              { label: 'Magyar', value: 'hu' },
+              { label: 'Deutsch', value: 'de' },
+              { label: 'Français', value: 'fr' },
+              { label: 'Italiano', value: 'it' },
+              { label: 'Nederlands', value: 'nl' },
+              { label: 'Русский', value: 'ru' },
+              { label: '日本語', value: 'ja' },
+              { label: '中文', value: 'zh' }
+            ]"
+            value-key="value"
+            class="w-full"
+            :ui="{ content: 'w-full min-w-[var(--reka-popper-anchor-width)]' }"
+          />
+        </UFormField>
+
+        <UFormField
+          :label="t('basic_localization_ai_language')"
+          name="language"
+          :help="t('basic_localization_ai_language_help')"
+        >
           <USelectMenu
             v-model="localProfile.language"
             :items="[
