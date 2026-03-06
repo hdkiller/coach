@@ -1,22 +1,36 @@
 import { Command } from 'commander'
-import { readdirSync, existsSync, readFileSync } from 'fs'
+import { readdirSync, existsSync, readFileSync, writeFileSync } from 'fs'
 import { resolve, basename } from 'path'
 import chalk from 'chalk'
 
 /**
- * Flattens a nested JSON object into dot-separated keys.
+ * Recursively sorts all keys in a JSON object alphabetically.
  */
-function flatten(obj: Record<string, unknown>, prefix = ''): Record<string, string> {
-  const result: Record<string, string> = {}
-  for (const [k, v] of Object.entries(obj)) {
-    const key = prefix ? `${prefix}.${k}` : k
+function sortKeys(obj: Record<string, unknown>): Record<string, unknown> {
+  const sorted: Record<string, unknown> = {}
+  for (const k of Object.keys(obj).sort()) {
+    const v = obj[k]
+    sorted[k] =
+      typeof v === 'object' && v !== null && !Array.isArray(v)
+        ? sortKeys(v as Record<string, unknown>)
+        : v
+  }
+  return sorted
+}
+
+/**
+ * Counts leaf keys in a (possibly nested) JSON object.
+ */
+function countKeys(obj: Record<string, unknown>): number {
+  let count = 0
+  for (const v of Object.values(obj)) {
     if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-      Object.assign(result, flatten(v as Record<string, unknown>, key))
+      count += countKeys(v as Record<string, unknown>)
     } else {
-      result[key] = String(v)
+      count++
     }
   }
-  return result
+  return count
 }
 
 const syncAllCommand = new Command('sync-all')
@@ -52,101 +66,81 @@ const syncAllCommand = new Command('sync-all')
 
     if (dryRun) {
       console.log(chalk.yellow('Dry run mode — no API calls or pulls will be made.\n'))
+      for (const ns of namespaces) {
+        const raw = JSON.parse(readFileSync(resolve(`app/i18n/en/${ns}.json`), 'utf8')) as Record<
+          string,
+          unknown
+        >
+        console.log(chalk.bold(`  ${ns}`) + chalk.gray(` — ${countKeys(raw)} key(s)`))
+      }
+      return
     }
 
-    // 2. Push English values for all namespaces
-    const headers = { 'Content-Type': 'application/json', 'X-API-Key': apiKey }
-    const base = `${apiUrl}/v2/projects/${projectId}`
-
-    let totalUpdated = 0
-    let totalCreated = 0
-    let totalFailed = 0
-
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
+    // 2. Sort all en/*.json files alphabetically before pushing
     for (const ns of namespaces) {
       const jsonPath = resolve(`app/i18n/en/${ns}.json`)
       const raw = JSON.parse(readFileSync(jsonPath, 'utf8')) as Record<string, unknown>
-      const entries = Object.entries(flatten(raw))
+      writeFileSync(jsonPath, JSON.stringify(sortKeys(raw), null, 2) + '\n')
+    }
+    console.log(chalk.gray('✓ Sorted en/*.json keys alphabetically\n'))
 
-      if (dryRun) {
-        console.log(chalk.bold(`  ${ns}`) + chalk.gray(` — ${entries.length} key(s) [dry-run]`))
-        continue
-      }
+    // 3. Push all namespaces in a single multipart request (same as `tolgee push`)
+    console.log(chalk.bold('📤 Pushing English translations...\n'))
 
-      let nsUpdated = 0
-      let nsCreated = 0
-      let nsFailed = 0
+    const formData = new FormData()
+    const fileMappings: Array<{
+      fileName: string
+      format: string
+      languageTag: string
+      namespace: string
+    }> = []
+    let totalKeys = 0
 
-      const putTranslation = async (key: string, value: string, retries = 2): Promise<Response> => {
-        const res = await fetch(`${base}/translations`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({ key, namespace: ns, translations: { en: value } })
-        })
-        if ((res.status === 444 || res.status >= 500) && retries > 0) {
-          await sleep(5000)
-          return putTranslation(key, value, retries - 1)
-        }
-        return res
-      }
-
-      for (const [key, value] of entries) {
-        await sleep(60)
-        try {
-          let res = await putTranslation(key, value)
-
-          if (!res.ok && res.status === 404) {
-            const createRes = await fetch(`${base}/keys`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({ name: key, namespace: ns })
-            })
-
-            if (!createRes.ok) {
-              nsFailed++
-              continue
-            }
-
-            await sleep(60)
-            res = await putTranslation(key, value)
-
-            if (res.ok) nsCreated++
-            else nsFailed++
-            continue
-          }
-
-          if (res.ok) nsUpdated++
-          else nsFailed++
-        } catch {
-          nsFailed++
-        }
-      }
-
-      const parts = []
-      if (nsUpdated > 0) parts.push(chalk.green(`${nsUpdated} updated`))
-      if (nsCreated > 0) parts.push(chalk.blue(`${nsCreated} created`))
-      if (nsFailed > 0) parts.push(chalk.red(`${nsFailed} failed`))
-
-      console.log(chalk.bold(`  ${ns}`) + '  ' + parts.join(', '))
-      totalUpdated += nsUpdated
-      totalCreated += nsCreated
-      totalFailed += nsFailed
+    for (const ns of namespaces) {
+      const content = readFileSync(resolve(`app/i18n/en/${ns}.json`), 'utf8')
+      const raw = JSON.parse(content) as Record<string, unknown>
+      totalKeys += countKeys(raw)
+      formData.append('files', new Blob([content], { type: 'application/json' }), `${ns}.json`)
+      fileMappings.push({
+        fileName: `${ns}.json`,
+        format: 'JSON_ICU',
+        languageTag: 'en',
+        namespace: ns
+      })
     }
 
-    if (!dryRun) {
-      console.log()
+    formData.append(
+      'params',
+      JSON.stringify({
+        createNewKeys: true,
+        forceMode: 'OVERRIDE',
+        convertPlaceholdersToIcu: false,
+        fileMappings
+      })
+    )
+
+    const base = `${apiUrl}/v2/projects/${projectId}`
+    const res = await fetch(`${base}/single-step-import`, {
+      method: 'POST',
+      headers: { 'X-API-Key': apiKey },
+      body: formData
+    })
+
+    if (res.ok) {
       console.log(
-        chalk.bold('Push summary: ') +
-          chalk.green(`${totalUpdated} updated`) +
-          ', ' +
-          chalk.blue(`${totalCreated} created`) +
-          (totalFailed > 0 ? ', ' + chalk.red(`${totalFailed} failed`) : '')
+        chalk.green(
+          `✓ ${totalKeys} keys across ${namespaces.length} namespaces pushed successfully\n`
+        )
       )
+    } else {
+      const body = await res.text()
+      console.error(chalk.red(`\nPush failed: HTTP ${res.status}`))
+      console.error(chalk.gray(body.slice(0, 500)))
+      process.exit(1)
     }
 
-    // 3. Check plugin registration
-    console.log(chalk.bold('\n🔍 Checking plugin registration...\n'))
+    // 4. Check plugin registration
+    console.log(chalk.bold('🔍 Checking plugin registration...\n'))
 
     const pluginPath = resolve('app/plugins/tolgee.ts')
     const pluginSource = existsSync(pluginPath) ? readFileSync(pluginPath, 'utf8') : ''
@@ -184,21 +178,15 @@ const syncAllCommand = new Command('sync-all')
       )
     }
 
-    // 4. Pull translations
-    if (!dryRun) {
-      console.log(chalk.bold('\n📥 Pulling translations from platform...\n'))
-      const { execSync } = await import('child_process')
-      try {
-        execSync(`npx tolgee pull --api-url "${apiUrl}" --api-key "${apiKey}"`, {
-          stdio: 'inherit'
-        })
-      } catch {
-        console.error(chalk.red('Pull failed — run `pnpm i18n:pull` manually'))
-        process.exit(1)
-      }
+    // 5. Pull translations
+    console.log(chalk.bold('\n📥 Pulling translations from platform...\n'))
+    const { execSync } = await import('child_process')
+    try {
+      execSync(`npx tolgee pull --api-url "${apiUrl}" --api-key "${apiKey}"`, { stdio: 'inherit' })
+    } catch {
+      console.error(chalk.red('Pull failed — run `pnpm i18n:pull` manually'))
+      process.exit(1)
     }
-
-    if (totalFailed > 0) process.exit(1)
   })
 
 export default syncAllCommand
