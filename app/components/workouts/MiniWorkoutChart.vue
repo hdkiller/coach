@@ -43,13 +43,15 @@
 
   const props = withDefaults(
     defineProps<{
-      workout: any // structuredWorkout JSON
+      workout: any // structuredWorkout JSON or full planned workout row
       preference?: 'hr' | 'power' | 'pace'
       showCadence?: boolean
+      sportSettings?: any
     }>(),
     {
       preference: 'power',
-      showCadence: false
+      showCadence: false,
+      sportSettings: undefined
     }
   )
 
@@ -61,6 +63,12 @@
         return JSON.parse(workout)
       } catch {
         return null
+      }
+    }
+    if (workout?.structuredWorkout && typeof workout.structuredWorkout === 'object') {
+      return {
+        ...workout.structuredWorkout,
+        _workoutContext: workout
       }
     }
     return workout
@@ -101,6 +109,38 @@
 
   const totalDuration = computed(() => {
     return steps.value.reduce((sum: number, step: any) => sum + getStepDuration(step), 0)
+  })
+
+  const effectiveSportSettings = computed(() => {
+    const source =
+      props.sportSettings ||
+      normalizedWorkout.value?._workoutContext?.lastGenerationSettingsSnapshot ||
+      normalizedWorkout.value?._workoutContext?.generationSettingsSnapshot ||
+      normalizedWorkout.value?._workoutContext?.createdFromSettingsSnapshot ||
+      null
+
+    if (!source) return null
+
+    return {
+      ftp: Number(source?.ftp || source?.thresholds?.ftp || 0),
+      lthr: Number(source?.lthr || source?.thresholds?.lthr || 0),
+      thresholdPace: Number(source?.thresholdPace || source?.thresholds?.thresholdPace || 0),
+      hrZones: Array.isArray(source?.hrZones)
+        ? source.hrZones
+        : Array.isArray(source?.zones?.heartRate)
+          ? source.zones.heartRate
+          : [],
+      powerZones: Array.isArray(source?.powerZones)
+        ? source.powerZones
+        : Array.isArray(source?.zones?.power)
+          ? source.zones.power
+          : [],
+      paceZones: Array.isArray(source?.paceZones)
+        ? source.paceZones
+        : Array.isArray(source?.zones?.pace)
+          ? source.zones.pace
+          : []
+    }
   })
 
   const defaultZoneRanges: Array<{ start: number; end: number; color: string }> = [
@@ -169,15 +209,7 @@
     const color = getStepColor(step)
     const maxScale = 1.2 // 120% is top of chart
 
-    // Intensity range (ramp) support
-    let range = null
-    if (props.preference === 'hr') {
-      range = step.heartRate?.range || step.pace?.range || step.power?.range
-    } else if (props.preference === 'pace') {
-      range = step.pace?.range || step.heartRate?.range || step.power?.range
-    } else {
-      range = step.power?.range || step.pace?.range || step.heartRate?.range
-    }
+    const range = getStepRange(step)
 
     const isRamp = Boolean(
       step.ramp === true || step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp
@@ -207,14 +239,7 @@
     }
 
     // Flat intensity support
-    let value = 0
-    if (props.preference === 'hr') {
-      value = step.heartRate?.value || step.pace?.value || step.power?.value || 0
-    } else if (props.preference === 'pace') {
-      value = step.pace?.value || step.heartRate?.value || step.power?.value || 0
-    } else {
-      value = step.power?.value || step.pace?.value || step.heartRate?.value || 0
-    }
+    const value = getStepIntensity(step)
 
     const height = Math.min((value * 100) / maxScale, 100)
     return {
@@ -293,20 +318,36 @@
 
   function getStepIntensity(step: any): number {
     const power = normalizeTarget(step?.power)
-    const hr = normalizeTarget(step?.heartRate)
-    const pace = normalizeTarget(step?.pace)
+    const hr = normalizeHrTarget(step?.heartRate)
+    const pace = getRelativePaceTarget(step?.pace)
 
     const powerValue = getTargetValue(power)
-    if (powerValue !== undefined) return powerValue
-
     const hrValue = getTargetValue(hr)
-    if (hrValue !== undefined) return hrValue
-
     const paceValue = getTargetValue(pace)
+
+    if (props.preference === 'power' && powerValue !== undefined) return powerValue
+    if (props.preference === 'hr' && hrValue !== undefined) return hrValue
+    if (props.preference === 'pace' && paceValue !== undefined) return paceValue
+
+    if (powerValue !== undefined) return powerValue
+    if (hrValue !== undefined) return hrValue
     if (paceValue !== undefined) return paceValue
 
     if (step?.type === 'Rest') return 0.55
     return 0.75
+  }
+
+  function getStepRange(step: any): { start: number; end: number } | null {
+    if (props.preference === 'power') return normalizeTarget(step?.power)?.range || null
+    if (props.preference === 'hr') return normalizeHrTarget(step?.heartRate)?.range || null
+    if (props.preference === 'pace') return getRelativePaceTarget(step?.pace)?.range || null
+
+    return (
+      normalizeTarget(step?.power)?.range ||
+      normalizeHrTarget(step?.heartRate)?.range ||
+      getRelativePaceTarget(step?.pace)?.range ||
+      null
+    )
   }
 
   function getTargetValue(
@@ -320,7 +361,12 @@
 
   function normalizeTarget(
     target: any
-  ): { value?: number; range?: { start: number; end: number }; ramp?: boolean } | null {
+  ): {
+    value?: number
+    range?: { start: number; end: number }
+    ramp?: boolean
+    units?: string
+  } | null {
     if (target === null || target === undefined) return null
 
     if (typeof target === 'number') {
@@ -334,15 +380,172 @@
             start: Number(target.range.start) || 0,
             end: Number(target.range.end) || 0
           },
-          ramp: target.ramp
+          ramp: target.ramp,
+          units: typeof target.units === 'string' ? target.units : target.range.units
         }
       }
       if (target.value !== undefined) {
-        return { value: Number(target.value) || 0 }
+        return {
+          value: Number(target.value) || 0,
+          units: typeof target.units === 'string' ? target.units : undefined
+        }
       }
     }
 
     return null
+  }
+
+  function getHeartRateReference() {
+    return Number(effectiveSportSettings.value?.lthr || 0) || 200
+  }
+
+  function toNormalizedHeartRate(value: number): number {
+    if (!Number.isFinite(value) || value <= 0) return 0
+    if (value <= 3) return value
+    return value / getHeartRateReference()
+  }
+
+  function getPaceZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
+    const index = Math.max(1, Math.round(indexRaw))
+    const zones = Array.isArray(effectiveSportSettings.value?.paceZones)
+      ? effectiveSportSettings.value?.paceZones
+      : []
+    const zone = zones[index - 1]
+    if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
+      return { start: Number(zone.min), end: Number(zone.max) }
+    }
+    return null
+  }
+
+  function paceValueToMps(value: number, units?: string): number | null {
+    if (!Number.isFinite(value) || value <= 0) return null
+    const normalizedUnits = String(units || '')
+      .trim()
+      .toLowerCase()
+    const thresholdPace = Number(effectiveSportSettings.value?.thresholdPace || 0)
+
+    if (normalizedUnits.includes('/km')) {
+      const secondsPerKm = value * 60
+      return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+    }
+
+    if (normalizedUnits === 'm/s') return value
+    if (value > 1.5 && value < 8) return value
+
+    if (thresholdPace > 0) {
+      if (value > 3) return value / thresholdPace
+      return value * thresholdPace
+    }
+
+    return null
+  }
+
+  function normalizePaceTarget(
+    target: { value?: number; range?: { start: number; end: number }; units?: string } | null
+  ): { value?: number; range?: { start: number; end: number }; units?: string } | null {
+    if (!target) return null
+    const units = String(target.units || '')
+      .trim()
+      .toLowerCase()
+
+    if (units === 'pace_zone' || units === 'zone') {
+      if (target.range) {
+        const startZone = getPaceZoneBoundsByIndex(target.range.start)
+        const endZone = getPaceZoneBoundsByIndex(target.range.end)
+        if (startZone && endZone) {
+          return {
+            range: {
+              start: startZone.start,
+              end: endZone.end
+            },
+            units: 'm/s'
+          }
+        }
+      }
+      if (typeof target.value === 'number') {
+        const zoneBounds = getPaceZoneBoundsByIndex(target.value)
+        if (zoneBounds) {
+          return {
+            range: {
+              start: zoneBounds.start,
+              end: zoneBounds.end
+            },
+            units: 'm/s'
+          }
+        }
+      }
+    }
+
+    return target
+  }
+
+  function getRelativePaceTarget(
+    target: { value?: number; range?: { start: number; end: number }; units?: string } | null
+  ): { value?: number; range?: { start: number; end: number } } | null {
+    const normalized = normalizePaceTarget(normalizeTarget(target))
+    if (!normalized) return null
+    const thresholdPace = Number(effectiveSportSettings.value?.thresholdPace || 0)
+    const convert = (value: number) => {
+      const speedMps = paceValueToMps(value, normalized.units)
+      if (speedMps !== null && thresholdPace > 0) return speedMps / thresholdPace
+      if (value > 2) return value / 100
+      return value
+    }
+
+    if (normalized.range) {
+      return {
+        range: {
+          start: convert(normalized.range.start),
+          end: convert(normalized.range.end)
+        }
+      }
+    }
+
+    if (typeof normalized.value === 'number') {
+      return { value: convert(normalized.value) }
+    }
+
+    return null
+  }
+
+  function normalizeHrTarget(
+    target: { value?: number; range?: { start: number; end: number }; units?: string } | null
+  ): { value?: number; range?: { start: number; end: number } } | null {
+    const normalized = normalizeTarget(target)
+    if (!normalized) return null
+    const units = String(normalized.units || '')
+      .trim()
+      .toLowerCase()
+
+    if (units === 'bpm') {
+      if (normalized.range) {
+        return {
+          range: {
+            start: toNormalizedHeartRate(normalized.range.start),
+            end: toNormalizedHeartRate(normalized.range.end)
+          }
+        }
+      }
+      if (typeof normalized.value === 'number') {
+        return { value: toNormalizedHeartRate(normalized.value) }
+      }
+    }
+
+    if (units === 'hr_zone' || units === 'zone') {
+      if (normalized.range) {
+        return {
+          range: {
+            start: Math.max(0, normalized.range.start),
+            end: Math.max(0, normalized.range.end)
+          }
+        }
+      }
+      if (typeof normalized.value === 'number') {
+        return { value: Math.max(0, normalized.value) }
+      }
+    }
+
+    return normalized
   }
 
   function getStepDuration(step: any): number {

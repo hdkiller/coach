@@ -142,7 +142,7 @@
                 v-if="workout.structuredWorkout && workout.type !== 'Rest'"
                 class="absolute right-0 bottom-0 w-32 h-12 opacity-15 dark:opacity-25 pointer-events-none -mb-1 translate-y-1"
               >
-                <MiniWorkoutChart :workout="workout.structuredWorkout" />
+                <MiniWorkoutChart :workout="workout" :preference="getChartPreference(workout)" />
               </div>
             </div>
           </div>
@@ -362,6 +362,59 @@
       !recommendationStore.todayRecommendation?.userAccepted
     )
   })
+
+  function getChartPreference(workout: any): 'power' | 'hr' | 'pace' {
+    const primaryMetric = String(
+      workout?.lastGenerationSettingsSnapshot?.targetPolicy?.primaryMetric ||
+        workout?.createdFromSettingsSnapshot?.targetPolicy?.primaryMetric ||
+        ''
+    ).toLowerCase()
+
+    if (primaryMetric === 'heartrate') return 'hr'
+    if (primaryMetric === 'pace') return 'pace'
+    if (primaryMetric === 'power') return 'power'
+
+    const flattenedSteps = flattenWorkoutSteps(workout?.structuredWorkout?.steps || [])
+    const primaryTargets = flattenedSteps
+      .map((step: any) => String(step?.primaryTarget || '').toLowerCase())
+      .filter(Boolean)
+
+    if (primaryTargets.length > 0) {
+      const counts = primaryTargets.reduce((acc: Record<string, number>, metric: string) => {
+        acc[metric] = (acc[metric] || 0) + 1
+        return acc
+      }, {})
+      if ((counts.power || 0) >= Math.max(counts.heartrate || 0, counts.pace || 0)) return 'power'
+      if ((counts.heartrate || 0) >= Math.max(counts.power || 0, counts.pace || 0)) return 'hr'
+      if ((counts.pace || 0) > 0) return 'pace'
+    }
+
+    if (flattenedSteps.some((step: any) => step?.power)) return 'power'
+    if (flattenedSteps.some((step: any) => step?.heartRate)) return 'hr'
+    if (flattenedSteps.some((step: any) => step?.pace)) return 'pace'
+
+    return 'power'
+  }
+
+  function flattenWorkoutSteps(steps: any[]): any[] {
+    if (!Array.isArray(steps)) return []
+
+    const flattened: any[] = []
+    for (const step of steps) {
+      const children = Array.isArray(step?.steps) ? step.steps : []
+      if (children.length > 0) {
+        const repsRaw = Number(step?.reps ?? step?.repeat ?? step?.intervals)
+        const reps = repsRaw > 1 ? repsRaw : 1
+        for (let i = 0; i < reps; i++) {
+          flattened.push(...flattenWorkoutSteps(children))
+        }
+      } else {
+        flattened.push(step)
+      }
+    }
+
+    return flattened
+  }
 
   function openCreateAdHoc() {
     showCreateAdHoc.value = true
