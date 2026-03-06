@@ -28,6 +28,7 @@ import enChat from '../i18n/en/chat.json'
 import enPerformance from '../i18n/en/performance.json'
 import enFitness from '../i18n/en/fitness.json'
 import enSettings from '../i18n/en/settings.json'
+import enIntegrations from '../i18n/en/integrations.json'
 
 import huCommon from '../i18n/hu/common.json'
 import huDashboard from '../i18n/hu/dashboard.json'
@@ -55,6 +56,7 @@ import huChat from '../i18n/hu/chat.json'
 import huPerformance from '../i18n/hu/performance.json'
 import huFitness from '../i18n/hu/fitness.json'
 import huSettings from '../i18n/hu/settings.json'
+import huIntegrations from '../i18n/hu/integrations.json'
 
 import deCommon from '../i18n/de/common.json'
 import deDashboard from '../i18n/de/dashboard.json'
@@ -82,6 +84,7 @@ import deWorkoutTooltips from '../i18n/de/workout-tooltips.json'
 import deHuBento from '../i18n/de/hu-bento.json'
 import deTestDynamic from '../i18n/de/test-dynamic.json'
 import deWorksWith from '../i18n/de/works-with.json'
+import deIntegrations from '../i18n/de/integrations.json'
 
 import frCommon from '../i18n/fr/common.json'
 import frDashboard from '../i18n/fr/dashboard.json'
@@ -109,6 +112,7 @@ import frStories from '../i18n/fr/stories.json'
 import frSupport from '../i18n/fr/support.json'
 import frTestDynamic from '../i18n/fr/test-dynamic.json'
 import frWorksWith from '../i18n/fr/works-with.json'
+import frIntegrations from '../i18n/fr/integrations.json'
 
 import itCommon from '../i18n/it/common.json'
 import itDashboard from '../i18n/it/dashboard.json'
@@ -136,6 +140,7 @@ import itStories from '../i18n/it/stories.json'
 import itSupport from '../i18n/it/support.json'
 import itTestDynamic from '../i18n/it/test-dynamic.json'
 import itWorksWith from '../i18n/it/works-with.json'
+import itIntegrations from '../i18n/it/integrations.json'
 
 import nlCommon from '../i18n/nl/common.json'
 import nlDashboard from '../i18n/nl/dashboard.json'
@@ -163,6 +168,7 @@ import nlStories from '../i18n/nl/stories.json'
 import nlSupport from '../i18n/nl/support.json'
 import nlTestDynamic from '../i18n/nl/test-dynamic.json'
 import nlWorksWith from '../i18n/nl/works-with.json'
+import nlIntegrations from '../i18n/nl/integrations.json'
 
 import ruCommon from '../i18n/ru/common.json'
 import ruDashboard from '../i18n/ru/dashboard.json'
@@ -190,6 +196,7 @@ import ruStories from '../i18n/ru/stories.json'
 import ruSupport from '../i18n/ru/support.json'
 import ruTestDynamic from '../i18n/ru/test-dynamic.json'
 import ruWorksWith from '../i18n/ru/works-with.json'
+import ruIntegrations from '../i18n/ru/integrations.json'
 
 import jaCommon from '../i18n/ja/common.json'
 import jaDashboard from '../i18n/ja/dashboard.json'
@@ -217,6 +224,7 @@ import jaStories from '../i18n/ja/stories.json'
 import jaSupport from '../i18n/ja/support.json'
 import jaTestDynamic from '../i18n/ja/test-dynamic.json'
 import jaWorksWith from '../i18n/ja/works-with.json'
+import jaIntegrations from '../i18n/ja/integrations.json'
 
 import zhCommon from '../i18n/zh/common.json'
 import zhDashboard from '../i18n/zh/dashboard.json'
@@ -244,6 +252,7 @@ import zhStories from '../i18n/zh/stories.json'
 import zhSupport from '../i18n/zh/support.json'
 import zhTestDynamic from '../i18n/zh/test-dynamic.json'
 import zhWorksWith from '../i18n/zh/works-with.json'
+import zhIntegrations from '../i18n/zh/integrations.json'
 
 const LANGUAGE_MAP: Record<string, string> = {
   English: 'en',
@@ -336,6 +345,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'en:performance': enPerformance,
       'en:fitness': enFitness,
       'en:settings': enSettings,
+      'en:integrations': enIntegrations,
 
       'hu:common': huCommon,
       'hu:dashboard': huDashboard,
@@ -363,6 +373,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'hu:performance': huPerformance,
       'hu:fitness': huFitness,
       'hu:settings': huSettings,
+      'hu:integrations': huIntegrations,
 
       'de:common': deCommon,
       'de:dashboard': deDashboard,
@@ -390,6 +401,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'de:onboarding': deOnboarding,
       'de:performance': dePerformance,
       'de:workout-tooltips': deWorkoutTooltips,
+      'de:integrations': deIntegrations,
 
       'fr:common': frCommon,
       'fr:dashboard': frDashboard,
@@ -417,6 +429,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'fr:onboarding': frOnboarding,
       'fr:performance': frPerformance,
       'fr:workout-tooltips': frWorkoutTooltips,
+      'fr:integrations': frIntegrations,
 
       'it:common': itCommon,
       'it:dashboard': itDashboard,
@@ -444,6 +457,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'it:legend': itLegend,
       'it:onboarding': itOnboarding,
       'it:performance': itPerformance,
+      'it:integrations': itIntegrations,
 
       'nl:common': nlCommon,
       'nl:dashboard': nlDashboard,
@@ -471,6 +485,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'nl:legend': nlLegend,
       'nl:onboarding': nlOnboarding,
       'nl:performance': nlPerformance,
+      'nl:integrations': nlIntegrations,
 
       'ru:common': ruCommon,
       'ru:dashboard': ruDashboard,
@@ -498,6 +513,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'ru:legend': ruLegend,
       'ru:onboarding': ruOnboarding,
       'ru:performance': ruPerformance,
+      'ru:integrations': ruIntegrations,
 
       'ja:common': jaCommon,
       'ja:dashboard': jaDashboard,
@@ -525,6 +541,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       'ja:legend': jaLegend,
       'ja:onboarding': jaOnboarding,
       'ja:performance': jaPerformance,
+      'ja:integrations': jaIntegrations,
 
       'zh:common': zhCommon,
       'zh:dashboard': zhDashboard,
@@ -551,7 +568,8 @@ export default defineNuxtPlugin((nuxtApp) => {
       'zh:workout-tooltips': zhWorkoutTooltips,
       'zh:legend': zhLegend,
       'zh:onboarding': zhOnboarding,
-      'zh:performance': zhPerformance
+      'zh:performance': zhPerformance,
+      'zh:integrations': zhIntegrations
     },
     ...(canUseDevTools ? { apiUrl, apiKey } : {})
   })
