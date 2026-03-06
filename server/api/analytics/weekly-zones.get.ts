@@ -6,6 +6,7 @@ import { sportSettingsRepository } from '../../utils/repositories/sportSettingsR
 import { calculatePowerZones, calculateHrZones } from '../../utils/zones'
 import { getServerSession } from '../../utils/session'
 import { getUserTimezone, getStartOfYearUTC, getUserLocalDate } from '../../utils/date'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 defineRouteMeta({
   openAPI: {
@@ -20,6 +21,11 @@ defineRouteMeta({
       },
       {
         name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
+      },
+      {
+        name: 'tags',
         in: 'query',
         schema: { type: 'string' }
       }
@@ -37,6 +43,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
+  const tags = parseTagQueryParam(query.tags)
   const endDate = getUserLocalDate(timezone)
   let startDate = getUserLocalDate(timezone)
   let numWeeks = 0
@@ -64,6 +71,7 @@ export default defineEventHandler(async (event) => {
   const workouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate,
+    tags,
     where: sport ? { type: sport } : undefined,
     select: {
       date: true,

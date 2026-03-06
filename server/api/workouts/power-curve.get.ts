@@ -3,6 +3,7 @@ import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getServerSession } from '../../utils/session'
 import { subDays } from 'date-fns'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
+import { parseTagQueryParam } from '../../utils/workout-tags'
 
 const DURATIONS = [5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600]
 const FRESHNESS_THRESHOLDS = {
@@ -61,6 +62,11 @@ defineRouteMeta({
       },
       {
         name: 'sport',
+        in: 'query',
+        schema: { type: 'string' }
+      },
+      {
+        name: 'tags',
         in: 'query',
         schema: { type: 'string' }
       }
@@ -123,11 +129,13 @@ export default defineEventHandler(async (event) => {
       ? getStartOfYearUTC(await getUserTimezone(userId))
       : subDays(now, Number(query.days) || 90)
   const sport = query.sport === 'all' ? undefined : (query.sport as string)
+  const tags = parseTagQueryParam(query.tags)
 
   // 1. Fetch workouts for the selected period (Current Curve)
   const currentWorkouts = await workoutRepository.getForUser(userId, {
     startDate,
     endDate: now,
+    tags,
     includeDuplicates: false,
     where: sport ? { type: sport } : undefined,
     include: {
@@ -144,6 +152,7 @@ export default defineEventHandler(async (event) => {
   const allTimeWorkouts = await workoutRepository.getForUser(userId, {
     startDate: allTimeStartDate,
     endDate: now,
+    tags,
     includeDuplicates: false,
     where: sport ? { type: sport } : undefined,
     include: {
