@@ -12,7 +12,8 @@ import {
   getSorenessLabel,
   getMotivationLabel,
   getHydrationLabel,
-  getInjuryLabel
+  getInjuryLabel,
+  normalizeStressScore
 } from '../wellness'
 
 // Define the schema for the AI analysis
@@ -243,7 +244,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
 
         - Subjective:
 
-          * Stress: ${wellness.stress ? wellness.stress + '/10' : 'N/A'} (${getStressLabel(wellness.stress)})
+          * Stress: ${wellness.stress ? normalizeStressScore(wellness.stress) + '/10' : 'N/A'} (${getStressLabel(wellness.stress)})
 
           * Fatigue: ${wellness.fatigue ? wellness.fatigue + '/10' : 'N/A'} (${getFatigueLabel(wellness.fatigue)})
 

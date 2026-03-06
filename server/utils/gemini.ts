@@ -9,7 +9,8 @@ import {
   getSorenessLabel,
   getMotivationLabel,
   getHydrationLabel,
-  getInjuryLabel
+  getInjuryLabel,
+  normalizeStressScore
 } from './wellness'
 
 import type { GeminiModel } from './ai-config'
@@ -806,7 +807,8 @@ export function buildMetricsSummary(metrics: any[], timezone?: string): string {
       if (m.fatigue !== null) parts.push(`Fatigue ${m.fatigue}/10 (${getFatigueLabel(m.fatigue)})`)
       if (m.soreness !== null)
         parts.push(`Soreness ${m.soreness}/10 (${getSorenessLabel(m.soreness)})`)
-      if (m.stress !== null) parts.push(`Stress ${m.stress}/10 (${getStressLabel(m.stress)})`)
+      if (m.stress !== null)
+        parts.push(`Stress ${normalizeStressScore(m.stress)}/10 (${getStressLabel(m.stress)})`)
       if (m.mood !== null) parts.push(`Mood ${m.mood}/10 (${getMoodLabel(m.mood)})`)
       if (m.motivation !== null)
         parts.push(`Motivation ${m.motivation}/10 (${getMotivationLabel(m.motivation)})`)

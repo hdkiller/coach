@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { getWorkoutIcon } from '../../utils/activity-types'
+import { normalizeStressScore } from '../../utils/wellness'
 
 defineRouteMeta({
   openAPI: {
@@ -278,10 +279,11 @@ export default defineEventHandler(async (event) => {
         })
       }
       if (entry.stress) {
-        description.push(`Stress: ${entry.stress}/10`)
+        const stress = normalizeStressScore(entry.stress)
+        description.push(`Stress: ${stress}/10`)
         details.push({
           label: 'Stress',
-          value: `${entry.stress}/10`,
+          value: `${stress}/10`,
           icon: 'i-tabler-scale',
           color: 'text-orange-500'
         })

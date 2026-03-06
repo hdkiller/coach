@@ -13,6 +13,7 @@ import { shouldAutoDeduplicateWorkoutsAfterIngestion } from '../ingestion-settin
 import { shouldIngestActivities, shouldIngestWellness } from '../integration-settings'
 import { normalizeGarminActivityType } from '../activity-mapping'
 import { bodyMeasurementService } from './bodyMeasurementService'
+import { normalizeStressScoreForStorage } from '../wellness'
 import crypto from 'crypto'
 
 function normalizeDeviceName(name: unknown): string | null {
@@ -252,7 +253,7 @@ export const GarminService = {
         userId,
         date: utcDate,
         restingHr: record.restingHeartRateInBeatsPerMinute || null,
-        stress: record.averageStressLevel || null,
+        stress: normalizeStressScoreForStorage(record.averageStressLevel),
         spO2: record.averagePulseOx || null,
         respiration: record.averageRespiration || null,
         rawJson: record

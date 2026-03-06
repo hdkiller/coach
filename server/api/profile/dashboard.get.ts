@@ -6,6 +6,7 @@ import { nutritionRepository } from '../../utils/repositories/nutritionRepositor
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getEndOfDayUTC, getUserTimezone } from '../../utils/date'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
+import { normalizeStressScore } from '../../utils/wellness'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -287,7 +288,7 @@ export default defineEventHandler(async (event) => {
     const recentDiastolic = wellnessData?.diastolic ?? null
     const recentReadiness = wellnessData?.readiness ?? null
     const recentFatigue = wellnessData?.fatigue ?? null
-    const recentStress = wellnessData?.stress ?? null
+    const recentStress = normalizeStressScore(wellnessData?.stress ?? null)
     const recentMood = wellnessData?.mood ?? null
 
     // Calculate 7-day HRV average if we have wellness data
