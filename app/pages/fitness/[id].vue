@@ -521,8 +521,8 @@
               <WellnessMetricRow
                 v-if="wellness.stress"
                 label="Stress"
-                :value="`${wellness.stress}/10`"
-                :sub-label="getStressLabel(wellness.stress)"
+                :value="`${normalizedStress}/10`"
+                :sub-label="getStressLabel(normalizedStress ?? 0)"
               />
               <WellnessMetricRow
                 v-if="wellness.mood"
@@ -651,6 +651,7 @@
   import SleepAnalysis from '~/components/fitness/SleepAnalysis.vue'
   import JsonViewer from '~/components/JsonViewer.vue'
   import { formatHeight, formatTemperature } from '~/utils/metrics'
+  import { normalizeStressScore } from '~/utils/wellness'
 
   definePageMeta({
     middleware: 'auth',
@@ -683,6 +684,7 @@
     if (!wellness.value) return 'Wellness Detail'
     return formatDateUTC(wellness.value.date, 'MMM do, yyyy')
   })
+  const normalizedStress = computed(() => normalizeStressScore(wellness.value?.stress))
 
   const sleepData = computed(() => {
     if (wellness.value?.rawJson?.sleep?.score?.stage_summary) return wellness.value.rawJson.sleep
@@ -917,6 +919,7 @@
   }
 
   function getStressLabel(val: number) {
+    val = normalizeStressScore(val) ?? 0
     if (val <= 2) return 'Calm'
     if (val <= 4) return 'Nominal'
     if (val <= 6) return 'Elevated'

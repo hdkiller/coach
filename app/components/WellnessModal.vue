@@ -285,15 +285,15 @@
               >
             </div>
             <div class="text-2xl font-bold text-orange-900 dark:text-orange-50">
-              {{ wellnessData.stress }}/10
+              {{ normalizedStress }}/10
               <span class="text-xs font-medium opacity-70 block mt-0.5">{{
-                getStressLabel(wellnessData.stress)
+                getStressLabel(normalizedStress ?? 0)
               }}</span>
             </div>
             <div v-if="trendData.length > 0" class="mt-2">
               <TrendIndicator
-                :current="wellnessData.stress"
-                :previous="trendData.map((d) => d.stress).filter((v) => v != null)"
+                :current="normalizedStress"
+                :previous="normalizedStressTrend"
                 type="lower-is-better"
                 compact
                 show-value
@@ -681,6 +681,7 @@
 
 <script setup lang="ts">
   import { subDays, format as formatDateFns } from 'date-fns'
+  import { getMoodLabel, getStressLabel, normalizeStressScore } from '~/utils/wellness'
 
   const props = defineProps<{
     open: boolean
@@ -723,6 +724,10 @@
   const wellnessData = ref<any>(null)
   const trendData = ref<any[]>([])
   const analyzingWellness = ref(false)
+  const normalizedStress = computed(() => normalizeStressScore(wellnessData.value?.stress))
+  const normalizedStressTrend = computed(() =>
+    trendData.value.map((d) => normalizeStressScore(d.stress)).filter((v) => v != null)
+  )
 
   // Background Task Monitoring
   const { refresh: refreshRuns } = useUserRuns()

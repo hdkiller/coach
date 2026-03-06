@@ -167,8 +167,9 @@
       range = step.power?.range || step.pace?.range || step.heartRate?.range
     }
 
-    const isRamp =
-      step.ramp === true || (range && step.ramp === undefined && props.preference === 'power')
+    const isRamp = Boolean(
+      step.ramp === true || step.power?.ramp || step.heartRate?.ramp || step.pace?.ramp
+    )
 
     if (range && isRamp) {
       const startH = Math.max(Math.min(range.start / maxScale, 1) * 100, 10)

@@ -268,7 +268,7 @@
           <WellnessMetricRow
             v-if="wellness.stress"
             label="Stress"
-            :value="`${wellness.stress}/10`"
+            :value="`${normalizedStress}/10`"
           />
           <WellnessMetricRow v-if="wellness.mood" label="Mood" :value="`${wellness.mood}/10`" />
           <WellnessMetricRow
@@ -283,6 +283,8 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeStressScore } from '~/utils/wellness'
+
   const { formatDate: baseFormatDate, formatDateTime, formatWeight } = useFormat()
 
   // Public share page - accessible to everyone
@@ -301,6 +303,7 @@
 
   const wellness = computed(() => shareData.value?.data)
   const user = computed(() => shareData.value?.user)
+  const normalizedStress = computed(() => normalizeStressScore(wellness.value?.stress))
 
   const error = computed(() => {
     if (fetchError.value) {

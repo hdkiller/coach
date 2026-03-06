@@ -493,7 +493,7 @@
                   {{ userStore.profile.recentFatigue || 'N/A' }}
                 </template>
                 <template v-else-if="metric.key === 'stress'">
-                  {{ userStore.profile.recentStress || 'N/A' }}
+                  {{ normalizeStressScore(userStore.profile.recentStress) || 'N/A' }}
                 </template>
                 <template v-else-if="metric.key === 'mood'">
                   {{ userStore.profile.recentMood || 'N/A' }}
@@ -695,6 +695,7 @@
   import { useTranslate } from '@tolgee/vue'
   import { countries } from '~/utils/countries'
   import { formatHeight, LBS_TO_KG } from '~/utils/metrics'
+  import { normalizeStressScore } from '~/utils/wellness'
 
   const { t } = useTranslate('dashboard')
   const userStore = useUserStore()
@@ -1075,7 +1076,7 @@
     if (key === 'recovery') return userStore.profile.recentRecoveryScore
     if (key === 'readiness') return userStore.profile.recentReadiness
     if (key === 'fatigue') return userStore.profile.recentFatigue
-    if (key === 'stress') return userStore.profile.recentStress
+    if (key === 'stress') return normalizeStressScore(userStore.profile.recentStress)
     if (key === 'mood') return userStore.profile.recentMood
     if (key === 'spO2') return userStore.profile.recentSpO2
     if (key === 'bloodPressure') return userStore.profile.recentSystolic // Use systolic for trend
@@ -1102,7 +1103,9 @@
     if (key === 'fatigue')
       return wellnessHistory.value.map((d: any) => d.fatigue).filter((v: any) => v != null)
     if (key === 'stress')
-      return wellnessHistory.value.map((d: any) => d.stress).filter((v: any) => v != null)
+      return wellnessHistory.value
+        .map((d: any) => normalizeStressScore(d.stress))
+        .filter((v: any) => v != null)
     if (key === 'mood')
       return wellnessHistory.value.map((d: any) => d.mood).filter((v: any) => v != null)
     if (key === 'spO2')
