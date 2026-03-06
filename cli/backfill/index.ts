@@ -22,6 +22,7 @@ import backfillElevationGainCommand from './elevation-gain'
 import backfillPBCommand from './pb'
 import backfillThresholdsCommand from './thresholds'
 import backfillBodyMeasurementsCommand from './body-measurements'
+import backfillWorkoutTagsCommand from './workout-tags'
 
 const backfill = new Command('backfill')
 
@@ -50,5 +51,6 @@ backfill
   .addCommand(backfillPBCommand)
   .addCommand(backfillThresholdsCommand)
   .addCommand(backfillBodyMeasurementsCommand)
+  .addCommand(backfillWorkoutTagsCommand)
 
 export default backfill
