@@ -464,11 +464,154 @@
     return null
   }
 
+  function getPaceZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
+    const index = Math.max(1, Math.round(indexRaw))
+    const zones = Array.isArray(props.sportSettings?.paceZones) ? props.sportSettings.paceZones : []
+    const zone = zones[index - 1]
+    if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
+      return { start: Number(zone.min), end: Number(zone.max) }
+    }
+    return null
+  }
+
+  function getPaceZoneIndexFromMps(speedMps: number): number | null {
+    const zones = Array.isArray(props.sportSettings?.paceZones) ? props.sportSettings.paceZones : []
+    if (!Number.isFinite(speedMps) || speedMps <= 0 || zones.length === 0) return null
+    const idx = zones.findIndex((zone: any) => {
+      const min = Number(zone?.min)
+      const max = Number(zone?.max)
+      return Number.isFinite(min) && Number.isFinite(max) && speedMps >= min && speedMps <= max
+    })
+    return idx >= 0 ? idx + 1 : null
+  }
+
+  function paceValueToMps(value: number, units?: string): number | null {
+    if (!Number.isFinite(value) || value <= 0) return null
+    const normalizedUnits = String(units || '')
+      .trim()
+      .toLowerCase()
+    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
+
+    if (normalizedUnits.includes('/km')) {
+      const secondsPerKm = value * 60
+      return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+    }
+
+    if (normalizedUnits === 'm/s') return value
+
+    // Model output may sometimes use "Pace" while values are already absolute m/s.
+    if (value > 1.5 && value < 8) return value
+
+    if (thresholdPace > 0) {
+      if (value > 3) return value / thresholdPace
+      return value * thresholdPace
+    }
+
+    return null
+  }
+
+  function normalizePaceTarget(
+    target: { value?: number; range?: { start: number; end: number }; units?: string } | undefined
+  ): { value?: number; range?: { start: number; end: number }; units?: string } | undefined {
+    if (!target) return undefined
+    const units = String((target as any)?.units || '')
+      .trim()
+      .toLowerCase()
+
+    if (units === 'pace_zone' || units === 'zone') {
+      if (target.range) {
+        const startZone = getPaceZoneBoundsByIndex(target.range.start)
+        const endZone = getPaceZoneBoundsByIndex(target.range.end)
+        if (startZone && endZone) {
+          return {
+            range: {
+              start: startZone.start,
+              end: endZone.end
+            },
+            units: 'm/s'
+          }
+        }
+      }
+      if (typeof target.value === 'number') {
+        const zoneBounds = getPaceZoneBoundsByIndex(target.value)
+        if (zoneBounds) {
+          return {
+            range: {
+              start: zoneBounds.start,
+              end: zoneBounds.end
+            },
+            units: 'm/s'
+          }
+        }
+      }
+    }
+
+    return target
+  }
+
+  function getRelativePaceTarget(
+    target: { value?: number; range?: { start: number; end: number }; units?: string } | undefined
+  ): { value?: number; range?: { start: number; end: number } } | undefined {
+    const normalized = normalizePaceTarget(target)
+    if (!normalized) return undefined
+    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
+    const convert = (value: number) => {
+      const speedMps = paceValueToMps(value, normalized.units)
+      if (speedMps !== null && thresholdPace > 0) return speedMps / thresholdPace
+      if (value > 2) return value / 100
+      return value
+    }
+
+    if (normalized.range) {
+      return {
+        range: {
+          start: convert(normalized.range.start),
+          end: convert(normalized.range.end)
+        }
+      }
+    }
+
+    if (typeof normalized.value === 'number') {
+      return { value: convert(normalized.value) }
+    }
+
+    return undefined
+  }
+
+  function getPaceZoneLabel(
+    target: { value?: number; range?: { start: number; end: number }; units?: string } | undefined
+  ): string | null {
+    const normalized = normalizePaceTarget(target)
+    if (!normalized) return null
+    const units = String(normalized.units || '')
+      .trim()
+      .toLowerCase()
+    if (units === 'pace_zone' || units === 'zone') {
+      const zoneValue =
+        typeof normalized.value === 'number'
+          ? Math.round(normalized.value)
+          : normalized.range
+            ? Math.round((normalized.range.start + normalized.range.end) / 2)
+            : null
+      return zoneValue ? `Z${zoneValue}` : null
+    }
+
+    const speedMps = normalized.range
+      ? (normalized.range.start + normalized.range.end) / 2
+      : typeof normalized.value === 'number'
+        ? paceValueToMps(normalized.value, normalized.units)
+        : null
+    if (speedMps === null) return null
+    const zoneIdx = getPaceZoneIndexFromMps(speedMps)
+    return zoneIdx ? `Z${zoneIdx}` : null
+  }
+
   function normalizeMetricTarget(
     target: { value?: number; range?: { start: number; end: number } } | undefined,
     metric: 'hr' | 'power' | 'pace'
-  ): { value?: number; range?: { start: number; end: number } } | undefined {
+  ): { value?: number; range?: { start: number; end: number }; units?: string } | undefined {
     if (!target) return undefined
+    if (metric === 'pace') return normalizePaceTarget(target as any)
     if (metric !== 'hr') return target
     const units = String((target as any)?.units || '')
       .trim()
@@ -651,6 +794,20 @@
       return null
     }
 
+    const paceZoneLabel = getPaceZoneLabel(target as any)
+    if (paceZoneLabel) return `${paceZoneLabel} Pace`
+
+    const normalizedPace = normalizeMetricTarget(target as any, 'pace')
+    if (String(normalizedPace?.units || '').toLowerCase() === 'm/s' && normalizedPace?.range) {
+      return `${normalizedPace.range.start.toFixed(2)}-${normalizedPace.range.end.toFixed(2)} m/s`
+    }
+    if (
+      String(normalizedPace?.units || '').toLowerCase() === 'm/s' &&
+      typeof normalizedPace?.value === 'number'
+    ) {
+      return `${normalizedPace.value.toFixed(2)} m/s`
+    }
+
     if (target.range) {
       return `${Math.round(target.range.start * 100)}-${Math.round(target.range.end * 100)}% Pace`
     }
@@ -680,9 +837,12 @@
     const lthr = Number(props.sportSettings?.lthr || 0)
     const ftp = Number(props.sportSettings?.ftp || 0)
 
-    const paceMid = getTargetValue(step.pace)
+    const paceMid = getTargetValue(normalizeMetricTarget(step.pace, 'pace'))
     if (paceMid !== undefined) {
-      const paceMps = parsePaceToMps(paceMid, step.pace?.units)
+      const paceMps = paceValueToMps(
+        paceMid,
+        (normalizeMetricTarget(step.pace, 'pace') as any)?.units
+      )
       if (paceMps) return paceMps
       if (thresholdPace > 0) {
         const factor = paceMid > 3 ? paceMid / thresholdPace : paceMid
@@ -807,7 +967,7 @@
   function getStepIntensity(step: any): number {
     const hr = getTargetValue(normalizeMetricTarget(step.heartRate, 'hr'))
     const pwr = getTargetValue(step.power)
-    const pace = getTargetValue(step.pace)
+    const pace = getTargetValue(getRelativePaceTarget(step.pace))
 
     if (props.preference === 'hr' && hr !== undefined) return hr
     if (props.preference === 'pace' && pace !== undefined) return pace
@@ -833,10 +993,12 @@
 
   function getStepRange(step: any) {
     if (props.preference === 'hr') return normalizeMetricTarget(step.heartRate, 'hr')?.range
-    if (props.preference === 'pace') return step.pace?.range
+    if (props.preference === 'pace') return getRelativePaceTarget(step.pace)?.range
     if (props.preference === 'power') return step.power?.range
     return (
-      normalizeMetricTarget(step.heartRate, 'hr')?.range || step.power?.range || step.pace?.range
+      normalizeMetricTarget(step.heartRate, 'hr')?.range ||
+      step.power?.range ||
+      getRelativePaceTarget(step.pace)?.range
     )
   }
 

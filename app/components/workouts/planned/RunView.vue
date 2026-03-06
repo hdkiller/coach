@@ -137,6 +137,77 @@
     return null
   }
 
+  function getPaceZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
+    const index = Math.max(1, Math.round(indexRaw))
+    const zones = Array.isArray(props.sportSettings?.paceZones) ? props.sportSettings.paceZones : []
+    const zone = zones[index - 1]
+    if (zone && Number.isFinite(Number(zone.min)) && Number.isFinite(Number(zone.max))) {
+      return { start: Number(zone.min), end: Number(zone.max) }
+    }
+    return null
+  }
+
+  function normalizePaceTarget(target: any): any {
+    if (!target) return null
+    const units = String(target?.units || '')
+      .trim()
+      .toLowerCase()
+    if (units !== 'zone' && units !== 'pace_zone') return target
+
+    if (target.range) {
+      const startZone = getPaceZoneBoundsByIndex(target.range.start)
+      const endZone = getPaceZoneBoundsByIndex(target.range.end)
+      if (startZone && endZone) {
+        return {
+          range: {
+            start: startZone.start,
+            end: endZone.end
+          },
+          units: 'm/s'
+        }
+      }
+    }
+
+    if (typeof target.value === 'number') {
+      const zoneBounds = getPaceZoneBoundsByIndex(target.value)
+      if (zoneBounds) {
+        return {
+          range: {
+            start: zoneBounds.start,
+            end: zoneBounds.end
+          },
+          units: 'm/s'
+        }
+      }
+    }
+
+    return target
+  }
+
+  function paceValueToMps(value: number, units?: string): number | null {
+    if (!Number.isFinite(value) || value <= 0) return null
+    const normalizedUnits = String(units || '')
+      .trim()
+      .toLowerCase()
+    const thresholdPace = Number(props.sportSettings?.thresholdPace || 0)
+
+    if (normalizedUnits.includes('/km')) {
+      const secondsPerKm = value * 60
+      return secondsPerKm > 0 ? 1000 / secondsPerKm : null
+    }
+
+    if (normalizedUnits === 'm/s') return value
+
+    if (value > 1.5 && value < 8) return value
+
+    if (thresholdPace > 0) {
+      if (value > 3) return value / thresholdPace
+      return value * thresholdPace
+    }
+
+    return null
+  }
+
   function clamp(n: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, n))
   }
@@ -146,9 +217,10 @@
     const lthr = Number(props.sportSettings?.lthr || 0)
     const ftp = Number(props.sportSettings?.ftp || 0)
 
-    const paceMid = getTargetMidpoint(step.pace)
+    const normalizedPace = normalizePaceTarget(step.pace)
+    const paceMid = getTargetMidpoint(normalizedPace)
     if (paceMid !== null) {
-      const explicitMps = parsePaceToMps(paceMid, step.pace?.units)
+      const explicitMps = paceValueToMps(paceMid, normalizedPace?.units)
       if (explicitMps) return explicitMps
       if (thresholdPace > 0) {
         const factor = paceMid > 3 ? paceMid / thresholdPace : paceMid
@@ -248,6 +320,15 @@
             ? step.power.value / 100
             : step.power.value
           : null) ||
+        (() => {
+          const normalizedPace = normalizePaceTarget(step.pace)
+          const paceMid = getTargetMidpoint(normalizedPace)
+          const paceMps = paceMid !== null ? paceValueToMps(paceMid, normalizedPace?.units) : null
+          if (paceMps !== null && Number(props.sportSettings?.thresholdPace || 0) > 0) {
+            return clamp(paceMps / Number(props.sportSettings?.thresholdPace || 0), 0.3, 1.8)
+          }
+          return null
+        })() ||
         (step.type === 'Rest' ? 0.5 : 0.75)
       totalWeighted += intensity * duration
       totalDuration += duration
