@@ -26,6 +26,7 @@ defineRouteMeta({
                     maxHr: { type: 'integer', nullable: true },
                     weight: { type: 'number', nullable: true },
                     language: { type: 'string' },
+                    uiLanguage: { type: 'string' },
                     distanceUnits: { type: 'string' },
                     city: { type: 'string', nullable: true },
                     country: { type: 'string', nullable: true }
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
         weight: true,
         dob: true,
         language: true,
+        uiLanguage: true,
         weightUnits: true,
         weightSourceMode: true,
         height: true,
@@ -138,6 +140,7 @@ export default defineEventHandler(async (event) => {
         nickname: user.nickname,
         email: user.email,
         language: user.language || 'English',
+        uiLanguage: user.uiLanguage || 'en',
         weight: user.weight,
         weightUnits: user.weightUnits || 'Kilograms',
         weightSourceMode: (user as any).weightSourceMode || 'AUTO',

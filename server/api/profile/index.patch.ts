@@ -24,7 +24,8 @@ defineRouteMeta({
               dob: { type: 'string', format: 'date', description: 'Date of Birth (YYYY-MM-DD)' },
               sex: { type: 'string', enum: ['Male', 'Female', 'M', 'F'] },
               city: { type: 'string' },
-              country: { type: 'string' }
+              country: { type: 'string' },
+              uiLanguage: { type: 'string' }
             }
           }
         }
@@ -112,6 +113,11 @@ export default defineEventHandler(async (event) => {
         updatePayload.dob = new Date(updatePayload.dob)
       }
 
+      // Explicitly include uiLanguage if provided
+      if (data.uiLanguage !== undefined) {
+        updatePayload.uiLanguage = data.uiLanguage
+      }
+
       await prisma.user.update({
         where: { id: userId },
         data: updatePayload
@@ -158,6 +164,7 @@ export default defineEventHandler(async (event) => {
         weightSourceMode: true,
         dob: true,
         language: true,
+        uiLanguage: true,
         height: true,
         heightUnits: true,
         distanceUnits: true,

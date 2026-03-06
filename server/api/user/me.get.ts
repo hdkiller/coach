@@ -29,7 +29,8 @@ export default defineEventHandler(async (event) => {
       nutritionTrackingEnabled: true,
       dashboardSettings: true,
       isAdmin: true,
-      language: true
+      language: true,
+      uiLanguage: true
     }
   })
 

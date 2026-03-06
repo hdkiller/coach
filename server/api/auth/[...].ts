@@ -229,6 +229,8 @@ export default NuxtAuthHandler({
         ;(session.user as any).id = user.id
         session.user.isAdmin = user.isAdmin || false
         session.user.timezone = user.timezone || null
+        session.user.language = user.language || 'English'
+        session.user.uiLanguage = user.uiLanguage || 'en'
         session.user.termsAcceptedAt = user.termsAcceptedAt || null
       }
       return session
