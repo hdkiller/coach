@@ -360,13 +360,14 @@
             <DashboardShareFooterCard />
 
             <!-- App Info Footer -->
-            <div class="flex justify-center pt-8 pb-4">
+            <div class="flex justify-center pt-8 pb-12 sm:pb-4">
               <UButton
                 to="/settings/changelog"
-                variant="ghost"
+                variant="link"
                 color="neutral"
                 size="xs"
-                class="text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
+                :padded="false"
+                class="text-gray-400 dark:text-gray-500 font-normal hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
               >
                 {{ buildVersionDisplay }}
               </UButton>
@@ -440,7 +441,7 @@
   const buildVersionDisplay = computed(
     () =>
       (config.public.buildVersion as string) ||
-      `v${config.public.version}+${config.public.buildDate}.${config.public.commitHash}`
+      `v${config.public.version}+${config.public.buildDate}.${config.public.commitHash}.${config.public.buildCodename}`
   )
   const toast = useToast()
 

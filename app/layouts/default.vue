@@ -26,6 +26,16 @@
   // Background Task Monitor State
   const { isOpen: showTriggerMonitor } = useTriggerMonitor()
 
+  const buildVersionDisplay = computed(
+    () =>
+      (config.public.buildVersion as string) ||
+      `v${config.public.version}+${config.public.buildDate}.${config.public.commitHash}.${config.public.buildCodename}`
+  )
+
+  const sidebarVersionDisplay = computed(() => {
+    return `v${config.public.version}+${config.public.buildCodename}`
+  })
+
   const userStore = useUserStore()
   const { formatDate, getUserLocalDate } = useFormat()
   const nutritionEnabled = computed(
@@ -816,6 +826,27 @@
               </UButton>
             </div>
             <ColorModeButton />
+          </div>
+
+          <div v-if="!collapsed" class="px-4 pb-0 flex justify-center">
+            <UButton
+              to="/settings/changelog"
+              variant="link"
+              color="neutral"
+              size="xs"
+              :padded="false"
+              class="text-gray-400 dark:text-gray-500 font-normal hover:text-gray-600 dark:hover:text-gray-400 transition-colors text-[10px]"
+            >
+              {{ sidebarVersionDisplay }}
+            </UButton>
+          </div>
+
+          <div v-if="collapsed" class="flex justify-center pb-0">
+            <UTooltip :text="buildVersionDisplay" :popper="{ placement: 'right' }">
+              <span class="text-[10px] text-gray-400 dark:text-gray-500 font-mono cursor-default">
+                {{ config.public.version }}
+              </span>
+            </UTooltip>
           </div>
         </div>
       </template>

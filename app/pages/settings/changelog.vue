@@ -26,7 +26,7 @@
   const buildVersionDisplay = computed(
     () =>
       (config.public.buildVersion as string) ||
-      `v${config.public.version}+${config.public.buildDate}.${config.public.commitHash}`
+      `v${config.public.version}+${config.public.buildDate}.${config.public.commitHash}.${config.public.buildCodename}`
   )
   const { data, pending, error } = useFetch('/api/changelog')
 
