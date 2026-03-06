@@ -1,0 +1,71 @@
+{
+  "badge": {
+    "best_value": "性价比最高",
+    "current_plan": "当前计划",
+    "most_popular": "最受欢迎",
+    "smart_start": "智能启动"
+  },
+  "billing": {
+    "annual": "年度的",
+    "billed_annually": "按年计费，每月费用为 xx0xx 美元",
+    "billed_monthly": "按月计费",
+    "monthly": "月度",
+    "per_month": "/ 月",
+    "per_year": "/ 年",
+    "save_pct": "节省 {pct}%"
+  },
+  "btn": {
+    "choose_supporter": "选择支持者",
+    "current_plan": "当前计划",
+    "downgrade_free": "降级至免费版",
+    "get_pro": "获取专业版",
+    "get_supporter": "获取支持者",
+    "sign_up": "报名",
+    "stay_free": "免费入住",
+    "switch_pro": "切换到专业版",
+    "switch_supporter": "转为支持者",
+    "unavailable": "暂时不可用",
+    "upgrade_pro": "升级到专业版"
+  },
+  "cancel_anytime": "随时取消。立即降级为免费版。",
+  "description": "从简单的追踪训练到专业的AI教练指导，应有尽有。免费开始，随着技能提升逐步升级。",
+  "guarantee": "所有套餐均提供14天退款保证。免费套餐无需信用卡。",
+  "headline": "为每位运动员制定的计划",
+  "label": "定价",
+  "modal": {
+    "confirm_change": "确认更改",
+    "description": "查看您的订阅计划变更",
+    "keep_plan": "维持我目前的计划",
+    "stripe_note": "Stripe 会自动计算您未使用时间的积分，并将其应用于您未来的账单。",
+    "switch_to": "切换到 {name}？",
+    "title": "确认降级",
+    "warning": "您即将降级。部分功能（例如深度人工智能分析）将在变更完成后受到限制。"
+  },
+  "plan": {
+    "free": {
+      "description": "你用过的最智能的日志簿。",
+      "feature_1": "无限数据历史记录",
+      "feature_2": "手动同步模式",
+      "feature_3": "按需分析",
+      "feature_4": "快速人工智能分析",
+      "name": "自由的"
+    },
+    "pro": {
+      "description": "您的全方位数字孪生和教练。",
+      "feature_1": "适应性比赛策略和周期性计划",
+      "feature_2": "深思熟虑的人工智能教练，结合情景分析",
+      "feature_3": "主动预警，以应对准备不足和风险超标问题",
+      "feature_4": "具备长期预测能力的高级趋势情报",
+      "feature_5": "快速通道优先处理和响应",
+      "name": "专业版"
+    },
+    "supporter": {
+      "description": "为自主训练运动员提供自动化分析。",
+      "feature_1": "自动同步锻炼和健康指标",
+      "feature_2": "新活动后的持续人工智能分析",
+      "feature_3": "高峰时段优先处理",
+      "feature_4": "可靠的趋势追踪和每周总结",
+      "name": "支持者"
+    }
+  }
+}

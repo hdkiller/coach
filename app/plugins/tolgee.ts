@@ -164,6 +164,87 @@ import nlSupport from '../i18n/nl/support.json'
 import nlTestDynamic from '../i18n/nl/test-dynamic.json'
 import nlWorksWith from '../i18n/nl/works-with.json'
 
+import ruCommon from '../i18n/ru/common.json'
+import ruDashboard from '../i18n/ru/dashboard.json'
+import ruActivities from '../i18n/ru/activities.json'
+import ruWorkout from '../i18n/ru/workout.json'
+import ruProfile from '../i18n/ru/profile.json'
+import ruHero from '../i18n/ru/hero.json'
+import ruNutrition from '../i18n/ru/nutrition.json'
+import ruHowItWorks from '../i18n/ru/how-it-works.json'
+import ruArchitecture from '../i18n/ru/architecture.json'
+import ruBento from '../i18n/ru/bento.json'
+import ruGoals from '../i18n/ru/goals.json'
+import ruCommunity from '../i18n/ru/community.json'
+import ruPricing from '../i18n/ru/pricing.json'
+import ruAuth from '../i18n/ru/auth.json'
+import ruChat from '../i18n/ru/chat.json'
+import ruFitness from '../i18n/ru/fitness.json'
+import ruSettings from '../i18n/ru/settings.json'
+import ruWorkoutTooltips from '../i18n/ru/workout-tooltips.json'
+import ruLegend from '../i18n/ru/legend.json'
+import ruOnboarding from '../i18n/ru/onboarding.json'
+import ruPerformance from '../i18n/ru/performance.json'
+import ruHuBento from '../i18n/ru/hu-bento.json'
+import ruStories from '../i18n/ru/stories.json'
+import ruSupport from '../i18n/ru/support.json'
+import ruTestDynamic from '../i18n/ru/test-dynamic.json'
+import ruWorksWith from '../i18n/ru/works-with.json'
+
+import jaCommon from '../i18n/ja/common.json'
+import jaDashboard from '../i18n/ja/dashboard.json'
+import jaActivities from '../i18n/ja/activities.json'
+import jaWorkout from '../i18n/ja/workout.json'
+import jaProfile from '../i18n/ja/profile.json'
+import jaHero from '../i18n/ja/hero.json'
+import jaNutrition from '../i18n/ja/nutrition.json'
+import jaHowItWorks from '../i18n/ja/how-it-works.json'
+import jaArchitecture from '../i18n/ja/architecture.json'
+import jaBento from '../i18n/ja/bento.json'
+import jaGoals from '../i18n/ja/goals.json'
+import jaCommunity from '../i18n/ja/community.json'
+import jaPricing from '../i18n/ja/pricing.json'
+import jaAuth from '../i18n/ja/auth.json'
+import jaChat from '../i18n/ja/chat.json'
+import jaFitness from '../i18n/ja/fitness.json'
+import jaSettings from '../i18n/ja/settings.json'
+import jaWorkoutTooltips from '../i18n/ja/workout-tooltips.json'
+import jaLegend from '../i18n/ja/legend.json'
+import jaOnboarding from '../i18n/ja/onboarding.json'
+import jaPerformance from '../i18n/ja/performance.json'
+import jaHuBento from '../i18n/ja/hu-bento.json'
+import jaStories from '../i18n/ja/stories.json'
+import jaSupport from '../i18n/ja/support.json'
+import jaTestDynamic from '../i18n/ja/test-dynamic.json'
+import jaWorksWith from '../i18n/ja/works-with.json'
+
+import zhCommon from '../i18n/zh/common.json'
+import zhDashboard from '../i18n/zh/dashboard.json'
+import zhActivities from '../i18n/zh/activities.json'
+import zhWorkout from '../i18n/zh/workout.json'
+import zhProfile from '../i18n/zh/profile.json'
+import zhHero from '../i18n/zh/hero.json'
+import zhNutrition from '../i18n/zh/nutrition.json'
+import zhHowItWorks from '../i18n/zh/how-it-works.json'
+import zhArchitecture from '../i18n/zh/architecture.json'
+import zhBento from '../i18n/zh/bento.json'
+import zhGoals from '../i18n/zh/goals.json'
+import zhCommunity from '../i18n/zh/community.json'
+import zhPricing from '../i18n/zh/pricing.json'
+import zhAuth from '../i18n/zh/auth.json'
+import zhChat from '../i18n/zh/chat.json'
+import zhFitness from '../i18n/zh/fitness.json'
+import zhSettings from '../i18n/zh/settings.json'
+import zhWorkoutTooltips from '../i18n/zh/workout-tooltips.json'
+import zhLegend from '../i18n/zh/legend.json'
+import zhOnboarding from '../i18n/zh/onboarding.json'
+import zhPerformance from '../i18n/zh/performance.json'
+import zhHuBento from '../i18n/zh/hu-bento.json'
+import zhStories from '../i18n/zh/stories.json'
+import zhSupport from '../i18n/zh/support.json'
+import zhTestDynamic from '../i18n/zh/test-dynamic.json'
+import zhWorksWith from '../i18n/zh/works-with.json'
+
 const LANGUAGE_MAP: Record<string, string> = {
   English: 'en',
   Spanish: 'es',
@@ -177,6 +258,7 @@ const LANGUAGE_MAP: Record<string, string> = {
   Swedish: 'sv',
   Finnish: 'fi',
   Polish: 'pl',
+  Russian: 'ru',
   Turkish: 'tr',
   Hungarian: 'hu',
   Romanian: 'ro',
@@ -388,7 +470,88 @@ export default defineNuxtPlugin((nuxtApp) => {
       'nl:workout-tooltips': nlWorkoutTooltips,
       'nl:legend': nlLegend,
       'nl:onboarding': nlOnboarding,
-      'nl:performance': nlPerformance
+      'nl:performance': nlPerformance,
+
+      'ru:common': ruCommon,
+      'ru:dashboard': ruDashboard,
+      'ru:activities': ruActivities,
+      'ru:workout': ruWorkout,
+      'ru:profile': ruProfile,
+      'ru:hero': ruHero,
+      'ru:nutrition': ruNutrition,
+      'ru:how-it-works': ruHowItWorks,
+      'ru:architecture': ruArchitecture,
+      'ru:bento': ruBento,
+      'ru:goals': ruGoals,
+      'ru:community': ruCommunity,
+      'ru:pricing': ruPricing,
+      'ru:auth': ruAuth,
+      'ru:chat': ruChat,
+      'ru:hu-bento': ruHuBento,
+      'ru:stories': ruStories,
+      'ru:support': ruSupport,
+      'ru:test-dynamic': ruTestDynamic,
+      'ru:works-with': ruWorksWith,
+      'ru:fitness': ruFitness,
+      'ru:settings': ruSettings,
+      'ru:workout-tooltips': ruWorkoutTooltips,
+      'ru:legend': ruLegend,
+      'ru:onboarding': ruOnboarding,
+      'ru:performance': ruPerformance,
+
+      'ja:common': jaCommon,
+      'ja:dashboard': jaDashboard,
+      'ja:activities': jaActivities,
+      'ja:workout': jaWorkout,
+      'ja:profile': jaProfile,
+      'ja:hero': jaHero,
+      'ja:nutrition': jaNutrition,
+      'ja:how-it-works': jaHowItWorks,
+      'ja:architecture': jaArchitecture,
+      'ja:bento': jaBento,
+      'ja:goals': jaGoals,
+      'ja:community': jaCommunity,
+      'ja:pricing': jaPricing,
+      'ja:auth': jaAuth,
+      'ja:chat': jaChat,
+      'ja:hu-bento': jaHuBento,
+      'ja:stories': jaStories,
+      'ja:support': jaSupport,
+      'ja:test-dynamic': jaTestDynamic,
+      'ja:works-with': jaWorksWith,
+      'ja:fitness': jaFitness,
+      'ja:settings': jaSettings,
+      'ja:workout-tooltips': jaWorkoutTooltips,
+      'ja:legend': jaLegend,
+      'ja:onboarding': jaOnboarding,
+      'ja:performance': jaPerformance,
+
+      'zh:common': zhCommon,
+      'zh:dashboard': zhDashboard,
+      'zh:activities': zhActivities,
+      'zh:workout': zhWorkout,
+      'zh:profile': zhProfile,
+      'zh:hero': zhHero,
+      'zh:nutrition': zhNutrition,
+      'zh:how-it-works': zhHowItWorks,
+      'zh:architecture': zhArchitecture,
+      'zh:bento': zhBento,
+      'zh:goals': zhGoals,
+      'zh:community': zhCommunity,
+      'zh:pricing': zhPricing,
+      'zh:auth': zhAuth,
+      'zh:chat': zhChat,
+      'zh:hu-bento': zhHuBento,
+      'zh:stories': zhStories,
+      'zh:support': zhSupport,
+      'zh:test-dynamic': zhTestDynamic,
+      'zh:works-with': zhWorksWith,
+      'zh:fitness': zhFitness,
+      'zh:settings': zhSettings,
+      'zh:workout-tooltips': zhWorkoutTooltips,
+      'zh:legend': zhLegend,
+      'zh:onboarding': zhOnboarding,
+      'zh:performance': zhPerformance
     },
     ...(canUseDevTools ? { apiUrl, apiKey } : {})
   })

@@ -29,7 +29,11 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField :label="t('basic_form_name')" name="name">
-          <UInput v-model="localProfile.name" :placeholder="t('basic_form_name_placeholder')" class="w-full" />
+          <UInput
+            v-model="localProfile.name"
+            :placeholder="t('basic_form_name_placeholder')"
+            class="w-full"
+          />
         </UFormField>
 
         <UFormField :label="t('basic_form_email')" name="email" :help="t('basic_form_email_help')">
@@ -183,6 +187,7 @@
               'Swedish',
               'Finnish',
               'Polish',
+              'Russian',
               'Turkish',
               'Hungarian',
               'Romanian',
@@ -237,7 +242,9 @@
     <!-- Location Card -->
     <UCard>
       <template #header>
-        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">{{ t('basic_location_title') }}</h3>
+        <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+          {{ t('basic_location_title') }}
+        </h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {{ t('basic_location_description') }}
         </p>
@@ -245,11 +252,19 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UFormField :label="t('basic_location_city')" name="city">
-          <UInput v-model="localProfile.city" :placeholder="t('basic_location_city_placeholder')" class="w-full" />
+          <UInput
+            v-model="localProfile.city"
+            :placeholder="t('basic_location_city_placeholder')"
+            class="w-full"
+          />
         </UFormField>
 
         <UFormField :label="t('basic_location_state')" name="state">
-          <UInput v-model="localProfile.state" :placeholder="t('basic_location_state_placeholder')" class="w-full" />
+          <UInput
+            v-model="localProfile.state"
+            :placeholder="t('basic_location_state_placeholder')"
+            class="w-full"
+          />
         </UFormField>
 
         <UFormField :label="t('basic_location_country')" name="country">
@@ -288,9 +303,9 @@
             </p>
           </div>
           <div class="flex flex-col items-end gap-1">
-            <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500"
-              >{{ t('basic_login_methods_athlete_id') }}</span
-            >
+            <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500">{{
+              t('basic_login_methods_athlete_id')
+            }}</span>
             <div class="flex items-center gap-2">
               <code
                 class="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded"
@@ -340,12 +355,16 @@
                 </p>
               </div>
               <p v-else-if="method.isIntegrated" class="flex flex-col">
-                <span class="text-xs text-amber-500 font-medium">{{ t('basic_login_methods_linked') }}</span>
+                <span class="text-xs text-amber-500 font-medium">{{
+                  t('basic_login_methods_linked')
+                }}</span>
                 <span v-if="method.profileId" class="text-[10px] font-mono text-zinc-500 mt-0.5"
                   >ID: {{ method.profileId }}</span
                 >
               </p>
-              <p v-else class="text-xs text-gray-500 dark:text-gray-400">{{ t('basic_login_methods_not_connected') }}</p>
+              <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('basic_login_methods_not_connected') }}
+              </p>
             </div>
           </div>
 
@@ -357,9 +376,15 @@
               size="sm"
               @click="linkAccount(method.id)"
             >
-              {{ method.isIntegrated ? t('basic_login_methods_link_for_login') : t('basic_login_methods_link_account') }}
+              {{
+                method.isIntegrated
+                  ? t('basic_login_methods_link_for_login')
+                  : t('basic_login_methods_link_account')
+              }}
             </UButton>
-            <UBadge v-else color="success" variant="subtle" size="sm"> {{ t('basic_login_methods_active') }} </UBadge>
+            <UBadge v-else color="success" variant="subtle" size="sm">
+              {{ t('basic_login_methods_active') }}
+            </UBadge>
           </div>
         </div>
       </div>

@@ -1,0 +1,71 @@
+{
+  "badge": {
+    "best_value": "最高の価値",
+    "current_plan": "現在の計画",
+    "most_popular": "最も人気のある",
+    "smart_start": "スマートスタート"
+  },
+  "billing": {
+    "annual": "年間",
+    "billed_annually": "{price}/月（年間請求）",
+    "billed_monthly": "毎月請求",
+    "monthly": "毎月",
+    "per_month": "/ 月",
+    "per_year": "/ 年",
+    "save_pct": "{pct}% 節約"
+  },
+  "btn": {
+    "choose_supporter": "サポーターを選択",
+    "current_plan": "現在の計画",
+    "downgrade_free": "無料にダウングレード",
+    "get_pro": "プロになる",
+    "get_supporter": "サポーターを獲得",
+    "sign_up": "サインアップ",
+    "stay_free": "自由に過ごす",
+    "switch_pro": "プロに切り替える",
+    "switch_supporter": "サポーターに切り替える",
+    "unavailable": "一時的に利用できません",
+    "upgrade_pro": "プロにアップグレード"
+  },
+  "cancel_anytime": "いつでもキャンセルできます。無料版にすぐにダウングレードできます。",
+  "description": "カジュアルなトラッキングからプロフェッショナルなAIコーチングまで。まずは無料で始めて、成長に合わせてアップグレードしましょう。",
+  "guarantee": "すべてのプランに14日間の返金保証が付いています。無料プランはクレジットカード不要です。",
+  "headline": "すべてのアスリートのためのプラン",
+  "label": "価格",
+  "modal": {
+    "confirm_change": "変更を確認",
+    "description": "サブスクリプションプランの変更を確認する",
+    "keep_plan": "現在のプランを維持する",
+    "stripe_note": "Stripe は未使用時間のクレジットを自動的に計算し、将来の請求に適用します。",
+    "switch_to": "{name} に切り替えますか?",
+    "title": "ダウングレードの確認",
+    "warning": "下位プランへの移行となります。変更処理が完了すると、一部の機能（ディープAI分析など）が制限されます。"
+  },
+  "plan": {
+    "free": {
+      "description": "これまで使った中で最もスマートなログブック。",
+      "feature_1": "無制限のデータ履歴",
+      "feature_2": "手動同期モード",
+      "feature_3": "オンデマンド分析",
+      "feature_4": "クイックAI分析",
+      "name": "無料"
+    },
+    "pro": {
+      "description": "フルサービスのデジタルツインとコーチ。",
+      "feature_1": "適応型レース戦略と周期的計画",
+      "feature_2": "シナリオ分析による思慮深いAIコーチング",
+      "feature_3": "準備状況と過剰なリスクに関するプロアクティブなアラート",
+      "feature_4": "長期予測を備えた高度なトレンド情報",
+      "feature_5": "高速レーンの優先処理と応答",
+      "name": "プロ"
+    },
+    "supporter": {
+      "description": "自己指導を行うアスリートのための自動化された洞察。",
+      "feature_1": "ワークアウトと健康指標の自動同期",
+      "feature_2": "新しいアクティビティ後の常時AI分析",
+      "feature_3": "ピーク時の優先処理",
+      "feature_4": "信頼性の高いトレンド追跡と週次サマリー",
+      "name": "サポーター"
+    }
+  }
+}

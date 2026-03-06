@@ -1,0 +1,37 @@
+{
+  "community": {
+    "btn": "加入我们的 Discord",
+    "desc": "加入我们的 Discord 服务器，提出问题、分享反馈并与其他用户交流。这是获得帮助的最快方式。",
+    "title": "社区支持"
+  },
+  "email": {
+    "btn": "联系客服",
+    "desc": "遇到具体问题或需要私人帮助？请给我们发送电子邮件，我们会尽快回复您。",
+    "title": "电子邮件支持"
+  },
+  "form": {
+    "email": "电子邮件",
+    "message": "信息",
+    "message_placeholder": "请描述您的问题或反馈……",
+    "name": "姓名",
+    "name_placeholder": "你的名字",
+    "sending_as": "发送为",
+    "subject": "主题",
+    "subject_placeholder": "这是怎么回事？",
+    "submit": "发送消息",
+    "title": "给我们留言"
+  },
+  "github": {
+    "btn": "提交问题",
+    "desc": "发现漏洞或有功能建议？请在我们的 GitHub 代码仓库中提交 issue，以便跟踪进度并做出贡献。",
+    "title": "GitHub 问题"
+  },
+  "subtitle": "我们随时为您提供帮助。请选择最适合您的渠道。",
+  "title": "支持",
+  "toast": {
+    "error": "消息发送失败",
+    "missing_content": "主题和正文必须填写。",
+    "missing_fields": "姓名和电子邮件地址为必填项",
+    "success": "信息发送成功！"
+  }
+}
