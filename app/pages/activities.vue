@@ -541,17 +541,9 @@
                                 <div class="flex items-center gap-2 shrink-0">
                                   <MiniWorkoutChart
                                     v-if="activity.structuredWorkout"
-                                    :workout="activity.structuredWorkout"
-                                    :preference="
-                                      getPreferredMetric(userZones, {
-                                        hasHr: !!activity.structuredWorkout.steps?.some(
-                                          (s: any) => s.heartRate
-                                        ),
-                                        hasPower: !!activity.structuredWorkout.steps?.some(
-                                          (s: any) => s.power
-                                        )
-                                      })
-                                    "
+                                    :workout="activity"
+                                    :sport-settings="getActivityZones(activity)"
+                                    :preference="getActivityChartPreference(activity)"
                                     class="w-12 h-8 opacity-75"
                                   />
                                   <UButton
@@ -637,17 +629,9 @@
                 <template #chart-cell="{ row }">
                   <div v-if="row.original.structuredWorkout" class="w-24 h-10">
                     <MiniWorkoutChart
-                      :workout="row.original.structuredWorkout"
-                      :preference="
-                        getPreferredMetric(userZones, {
-                          hasHr: !!row.original.structuredWorkout.steps?.some(
-                            (s: any) => s.heartRate
-                          ),
-                          hasPower: !!row.original.structuredWorkout.steps?.some(
-                            (s: any) => s.power
-                          )
-                        })
-                      "
+                      :workout="row.original"
+                      :sport-settings="getActivityZones(row.original)"
+                      :preference="getActivityChartPreference(row.original)"
                     />
                   </div>
                   <span v-else class="text-gray-400 text-xs">-</span>
@@ -976,7 +960,8 @@
   import CalendarMetabolicWave from '~/components/activities/CalendarMetabolicWave.vue'
   import CalendarSettingsModal from '~/components/activities/CalendarSettingsModal.vue'
   import MilestoneModal from '~/components/activities/MilestoneModal.vue'
-  import { getDefaultSportSettings, getPreferredMetric } from '~/utils/sportSettings'
+  import { getDefaultSportSettings, getSportSettingsForActivity } from '~/utils/sportSettings'
+  import { getWorkoutChartPreference } from '~/utils/workoutChartContext'
   import { formatDistance as formatDist } from '~/utils/metrics'
 
   const { t } = useTranslate('activities')
@@ -1221,9 +1206,50 @@
     return {
       hrZones: defaultProfile?.hrZones || getDefaultHrZones(),
       powerZones: defaultProfile?.powerZones || getDefaultPowerZones(),
+      paceZones: defaultProfile?.paceZones || [],
+      ftp: defaultProfile?.ftp,
+      lthr: defaultProfile?.lthr,
+      maxHr: defaultProfile?.maxHr,
+      thresholdPace: defaultProfile?.thresholdPace,
+      targetPolicy: defaultProfile?.targetPolicy,
       loadPreference: defaultProfile?.loadPreference
     }
   })
+
+  function getActivityZones(activity: any) {
+    const settings = getSportSettingsForActivity(allSportSettings.value, activity?.type || '')
+    if (!settings) return userZones.value
+
+    return {
+      ...settings,
+      hrZones: settings.hrZones,
+      powerZones: settings.powerZones,
+      paceZones: settings.paceZones,
+      ftp: settings.ftp,
+      lthr: settings.lthr,
+      maxHr: settings.maxHr,
+      thresholdPace: settings.thresholdPace,
+      targetPolicy: settings.targetPolicy,
+      loadPreference: settings.loadPreference
+    }
+  }
+
+  function collectStructuredMetricAvailability(activity: any) {
+    const steps = activity?.structuredWorkout?.steps
+    return {
+      hasHr: !!steps?.some((s: any) => s.heartRate),
+      hasPower: !!steps?.some((s: any) => s.power),
+      hasPace: !!steps?.some((s: any) => s.pace)
+    }
+  }
+
+  function getActivityChartPreference(activity: any): 'hr' | 'power' | 'pace' {
+    return getWorkoutChartPreference(
+      activity,
+      getActivityZones(activity),
+      collectStructuredMetricAvailability(activity)
+    )
+  }
 
   function getDefaultHrZones() {
     return [

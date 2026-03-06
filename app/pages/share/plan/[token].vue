@@ -154,10 +154,7 @@
                   </div>
 
                   <div v-if="workout.structuredWorkout" class="shrink-0">
-                    <MiniWorkoutChart
-                      :workout="workout.structuredWorkout"
-                      class="w-20 h-10 opacity-75"
-                    />
+                    <MiniWorkoutChart :workout="workout" class="w-20 h-10 opacity-75" />
                   </div>
                 </div>
 

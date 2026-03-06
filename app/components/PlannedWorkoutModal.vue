@@ -212,14 +212,15 @@
           </div>
           <WorkoutRunChart
             v-if="isRunWorkout"
-            :workout="plannedWorkout.structuredWorkout"
+            :workout="plannedWorkout"
             :preference="preference"
+            :sport-settings="effectiveSportSettings"
           />
           <WorkoutChart
             v-else
-            :workout="plannedWorkout.structuredWorkout"
-            :user-ftp="userFtp"
-            :sport-settings="applicableSettings"
+            :workout="plannedWorkout"
+            :user-ftp="effectiveSportSettings?.ftp || userFtp"
+            :sport-settings="effectiveSportSettings"
           />
         </div>
 
@@ -578,7 +579,12 @@
   import WorkoutChart from '~/components/workouts/WorkoutChart.vue'
   import WorkoutRunChart from '~/components/workouts/WorkoutRunChart.vue'
   import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
-  import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
+  import { getSportSettingsForActivity } from '~/utils/sportSettings'
+  import {
+    getStructuredWorkoutPayload,
+    getWorkoutChartPreference,
+    resolveWorkoutChartSportSettings
+  } from '~/utils/workoutChartContext'
 
   const { formatDate, formatDateUTC } = useFormat()
   const toast = useToast()
@@ -668,13 +674,24 @@
     return getSportSettingsForActivity(props.allSportSettings, props.plannedWorkout.type)
   })
 
-  const preference = computed(() => {
-    if (!props.plannedWorkout?.structuredWorkout) return 'power'
-    const hasHr = props.plannedWorkout.structuredWorkout.steps?.some((s: any) => s.heartRate)
-    const hasPower = props.plannedWorkout.structuredWorkout.steps?.some((s: any) => s.power)
-    const hasPace = props.plannedWorkout.structuredWorkout.steps?.some((s: any) => s.pace)
+  const effectiveSportSettings = computed(() => {
+    if (!props.plannedWorkout) return applicableSettings.value
+    return resolveWorkoutChartSportSettings(props.plannedWorkout, applicableSettings.value)
+  })
 
-    return getPreferredMetric(applicableSettings.value, { hasHr, hasPower, hasPace })
+  const preference = computed(() => {
+    const workoutData = getStructuredWorkoutPayload(props.plannedWorkout)
+    if (!workoutData?.steps?.length) return 'power'
+
+    const hasHr = workoutData.steps.some((s: any) => s.heartRate)
+    const hasPower = workoutData.steps.some((s: any) => s.power)
+    const hasPace = workoutData.steps.some((s: any) => s.pace)
+
+    return getWorkoutChartPreference(props.plannedWorkout, applicableSettings.value, {
+      hasHr,
+      hasPower,
+      hasPace
+    })
   })
 
   async function generateStructure() {

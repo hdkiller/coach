@@ -721,7 +721,7 @@
                     <div class="flex justify-center">
                       <MiniWorkoutChart
                         v-if="workout.structuredWorkout && workout.type !== 'Rest'"
-                        :workout="workout.structuredWorkout"
+                        :workout="workout"
                       />
                       <UButton
                         v-else-if="workout.type !== 'Rest'"
@@ -890,7 +890,7 @@
                     class="mt-2.5"
                     @click.stop
                   >
-                    <MiniWorkoutChart :workout="workout.structuredWorkout" class="h-10 w-full" />
+                    <MiniWorkoutChart :workout="workout" class="h-10 w-full" />
                   </div>
                   <div
                     v-else-if="workout.type !== 'Rest' && workout.type !== 'Active Recovery'"

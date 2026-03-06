@@ -12,7 +12,9 @@
       <div
         class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
         @click="
-          navigateTo(isCompleted(workout) ? `/workouts/${workout.id}` : `/workouts/planned/${workout.id}`)
+          navigateTo(
+            isCompleted(workout) ? `/workouts/${workout.id}` : `/workouts/planned/${workout.id}`
+          )
         "
       >
         <div class="space-y-1 flex-1 min-w-0">
@@ -60,14 +62,9 @@
             <!-- Mini Workout Chart (Structured Planned) -->
             <div v-if="!isCompleted(workout) && workout.structuredWorkout" class="opacity-75">
               <MiniWorkoutChart
-                :workout="workout.structuredWorkout"
-                :preference="
-                  getPreferredMetric(getActivityZones(workout), {
-                    hasHr: !!workout.structuredWorkout.steps?.some((s: any) => s.heartRate),
-                    hasPower: !!workout.structuredWorkout.steps?.some((s: any) => s.power),
-                    hasPace: !!workout.structuredWorkout.steps?.some((s: any) => s.pace)
-                  })
-                "
+                :workout="workout"
+                :sport-settings="getActivityZones(workout)"
+                :preference="getActivityChartPreference(workout)"
                 class="w-full h-6 sm:h-8"
               />
             </div>
@@ -92,7 +89,9 @@
               >
                 Start
               </div>
-              <div class="text-[10px] font-bold text-gray-900 dark:text-white uppercase leading-none">
+              <div
+                class="text-[10px] font-bold text-gray-900 dark:text-white uppercase leading-none"
+              >
                 {{ formatTime(startTime) }}
               </div>
             </div>
@@ -126,7 +125,8 @@
 <script setup lang="ts">
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import MiniZoneChart from '~/components/MiniZoneChart.vue'
-  import { getSportSettingsForActivity, getPreferredMetric } from '~/utils/sportSettings'
+  import { getSportSettingsForActivity } from '~/utils/sportSettings'
+  import { getWorkoutChartPreference } from '~/utils/workoutChartContext'
 
   const userStore = useUserStore()
 
@@ -150,14 +150,39 @@
   function getActivityZones(workout: any) {
     if (!userStore.profile?.sportSettings) return null
 
-    const settings = getSportSettingsForActivity(userStore.profile.sportSettings, workout.type || '')
+    const settings = getSportSettingsForActivity(
+      userStore.profile.sportSettings,
+      workout.type || ''
+    )
     if (!settings) return null
 
     return {
+      ...settings,
       hrZones: settings.hrZones,
       powerZones: settings.powerZones,
+      paceZones: settings.paceZones,
+      ftp: settings.ftp,
+      lthr: settings.lthr,
+      maxHr: settings.maxHr,
+      thresholdPace: settings.thresholdPace,
+      targetPolicy: settings.targetPolicy,
       loadPreference: settings.loadPreference
     }
+  }
+
+  function collectStructuredMetricAvailability(workout: any) {
+    const hasHr = !!workout.structuredWorkout?.steps?.some((s: any) => s.heartRate)
+    const hasPower = !!workout.structuredWorkout?.steps?.some((s: any) => s.power)
+    const hasPace = !!workout.structuredWorkout?.steps?.some((s: any) => s.pace)
+    return { hasHr, hasPower, hasPace }
+  }
+
+  function getActivityChartPreference(workout: any): 'hr' | 'power' | 'pace' {
+    return getWorkoutChartPreference(
+      workout,
+      getActivityZones(workout),
+      collectStructuredMetricAvailability(workout)
+    )
   }
 
   const strategyLabel = computed(() => {
