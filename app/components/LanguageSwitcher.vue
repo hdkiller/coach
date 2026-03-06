@@ -3,14 +3,16 @@
   import { useTolgee } from '@tolgee/vue'
 
   const tolgee = useTolgee(['language'])
-  const locales = [en, hu, de, fr, it, nl, ru, ja, { ...zh_cn, code: 'zh' }]
+  const locales = [en, hu, de, fr, it, nl, ru, ja, zh_cn]
   const selectedLanguage = computed({
-    get: () => tolgee.value.getLanguage() || 'en',
+    get: () => {
+      const lang = tolgee.value.getLanguage() || 'en'
+      return lang === 'zh' ? 'zh-CN' : lang
+    },
     set: (language: string) => {
-      // Tolgee uses 'zh', but Nuxt UI uses 'zh_cn' for internal mapping in ULocaleSelect if we are not careful.
-      // Actually ULocaleSelect expects the locale object.
-      // We need to make sure the value bound to v-model matches what Tolgee expects.
-      void tolgee.value.changeLanguage(language)
+      // Tolgee uses 'zh', but Nuxt UI uses 'zh-CN' for flag rendering.
+      const tolgeeLang = language === 'zh-CN' ? 'zh' : language
+      void tolgee.value.changeLanguage(tolgeeLang)
     }
   })
 </script>
