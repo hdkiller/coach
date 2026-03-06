@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { planningTools } from '../../../../../server/utils/ai-tools/planning'
 import { plannedWorkoutRepository } from '../../../../../server/utils/repositories/plannedWorkoutRepository'
+import { sportSettingsRepository } from '../../../../../server/utils/repositories/sportSettingsRepository'
 import { trainingWeekRepository } from '../../../../../server/utils/repositories/trainingWeekRepository'
 import { workoutRepository } from '../../../../../server/utils/repositories/workoutRepository'
 import { metabolicService } from '../../../../../server/utils/services/metabolicService'
@@ -29,6 +30,12 @@ vi.mock('../../../../../server/utils/repositories/workoutRepository', () => ({
   }
 }))
 
+vi.mock('../../../../../server/utils/repositories/sportSettingsRepository', () => ({
+  sportSettingsRepository: {
+    getForActivityType: vi.fn()
+  }
+}))
+
 vi.mock('../../../../../server/utils/services/metabolicService', () => ({
   metabolicService: {
     calculateFuelingPlanForDate: vi.fn()
@@ -42,6 +49,29 @@ describe('planningTools', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(sportSettingsRepository.getForActivityType).mockResolvedValue({
+      ftp: 250,
+      lthr: 168,
+      maxHr: 185,
+      thresholdPace: 2.345,
+      hrZones: [],
+      powerZones: [],
+      paceZones: [],
+      targetPolicy: {
+        primaryMetric: 'power',
+        fallbackOrder: ['power', 'heartRate', 'pace', 'rpe'],
+        strictPrimary: true,
+        allowMixedTargetsPerStep: false,
+        defaultTargetStyle: 'range',
+        preferRangesForSteady: true
+      },
+      targetFormatPolicy: {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'percentPace', preferRange: true },
+        cadence: { mode: 'rpm' }
+      }
+    } as any)
   })
 
   describe('get_planned_workout_structure', () => {
