@@ -244,9 +244,11 @@
         <div v-if="sectionSettings.powerCurve?.visible !== false" class="space-y-4">
           <PerformancePowerCurveCard
             v-model:period="powerCurvePeriod"
-            v-model:sport="powerCurveSport"
+            v-model:scope="powerCurveScope"
             :period-options="periodOptions"
-            :sport-options="sportOptions"
+            :scope-options="workoutScopeOptions"
+            :sport="scopeToSport(powerCurveScope)"
+            :tags="scopeToTags(powerCurveScope)"
             :settings="chartSettings.powerCurve"
             @settings="
               openChartSettings('powerCurve', t('power_curve_title'), {
@@ -306,9 +308,11 @@
         <div v-if="sectionSettings.distribution?.visible !== false" class="space-y-4">
           <PerformanceIntensityDistributionCard
             v-model:period="distributionPeriod"
-            v-model:sport="distributionSport"
+            v-model:scope="distributionScope"
             :period-options="distributionPeriodOptions"
-            :sport-options="sportOptions"
+            :scope-options="workoutScopeOptions"
+            :sport="scopeToSport(distributionScope)"
+            :tags="scopeToTags(distributionScope)"
             :settings="chartSettings.distribution"
             @settings="
               openChartSettings('distribution', t('intensity_dist_title'), {
@@ -807,7 +811,7 @@
   const efficiencyScope = ref<string>('all')
   const readinessPeriod = ref<number | string>(30)
   const powerCurvePeriod = ref<number | string>(90)
-  const powerCurveSport = ref<string>('all')
+  const powerCurveScope = ref<string>('all')
 
   // Fetch available sports
   const { data: sportsData } = await useFetch<string[]>('/api/workouts/sports')
@@ -887,7 +891,7 @@
   ])
 
   const distributionPeriod = ref<number | string>(12)
-  const distributionSport = ref<string>('all')
+  const distributionScope = ref<string>('all')
   const distributionPeriodOptions = computed(() => [
     { label: t.value('period_4_weeks'), value: 4 },
     { label: t.value('period_8_weeks'), value: 8 },
