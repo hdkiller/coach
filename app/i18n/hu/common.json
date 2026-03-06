@@ -58,6 +58,8 @@
   "help_header": "Súgóközpont",
   "help_resource_github_desc": "Nyilvános funkcióigények és rendszerszintű hibák megtekintése.",
   "help_resource_github_title": "GitHub Issues",
+  "help_ticket_commands_desc": "Kérd meg a MI-t, hogy mutassa meg a ticket parancsok használatát",
+  "help_ticket_commands_title": "Jegyparancsok",
   "help_toast_id_copied_desc": "Fiókazonosító a vágólapra másolva.",
   "help_toast_id_copied_title": "Azonosító másolva",
   "impersonation_banner_active": "{email} megszemélyesítése",
@@ -177,15 +179,5 @@
   "quick_capture_placeholder_ask": "Kérdezz bármit vagy rögzíts adatokat...",
   "quick_capture_placeholder_reply": "Válasz írása...",
   "quick_capture_preview_header": "Coach előnézet",
-  "quick_capture_thinking": "A coach gondolkodik...",
-  "attribution_garmin": "Powered by Garmin",
-  "help_ai_assistant_button_tickets": "Manage Tickets",
-  "help_resource_discord_desc": "Connect with our community and get help from other users",
-  "help_resource_discord_title": "Discord Community",
-  "help_resource_docs_desc": "Read our documentation and guides",
-  "help_resource_docs_title": "Documentation",
-  "help_resources_header": "Resources",
-  "help_ticket_commands_button": "Learn More",
-  "help_ticket_commands_desc": "Ask the AI to show you how to use ticket commands",
-  "help_ticket_commands_title": "Ticket Commands"
+  "quick_capture_thinking": "A coach gondolkodik..."
 }

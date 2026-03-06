@@ -54,10 +54,13 @@
   "comm_desc_plan_updates": "Értesítések fogadása az edzésterv módosításakor vagy frissítésekor.",
   "comm_desc_product_updates": "Értesüljön elsőként az új funkciókról és a jelentősebb fejlesztésekről.",
   "comm_desc_retention": "Kedves emlékeztetők, ha mostanában nem rögzítettél wellness-adatokat vagy edzéseket.",
+  "comm_desc_threshold_updates": "Értesítések fogadása, ha a fitnesz küszöbértékei megváltoznak",
   "comm_desc_unsubscribe_all": "Azonnali leiratkozás az összes coaching-tippről és termékfrissítésről. A kritikus számlázási értesítéseket továbbra is megkapja.",
+  "comm_desc_workout_analysis": "Kapj MI-elemzést az elvégzett edzéseidről",
   "comm_header_account": "Fiók & termék",
   "comm_header_insights": "Edzési elemzések",
   "comm_header_override": "Kommunikáció felülbírálása",
+  "comm_header_product_marketing": "Termék és marketing",
   "comm_help_daily_time": "Mikor küldjük el a napi összefoglalódat?",
   "comm_label_billing": "Számlázás és előfizetés",
   "comm_label_daily_coach": "Napi edzésjavaslat",
@@ -446,8 +449,5 @@
   "zones_header_min": "Min ({unit})",
   "zones_header_name": "Zóna neve",
   "zones_title_hr": "Pulzuszónák",
-  "zones_title_power": "Teljesítményzónák",
-  "comm_desc_threshold_updates": "Receive notifications when your fitness thresholds change",
-  "comm_desc_workout_analysis": "Receive AI analysis of your completed workouts",
-  "comm_header_product_marketing": "Product & Marketing"
+  "zones_title_power": "Teljesítményzónák"
 }

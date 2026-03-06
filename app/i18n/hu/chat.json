@@ -1,5 +1,8 @@
 {
+  "banner_exit": "Kilépés",
   "chat_title": "AI Coach",
+  "common_error_title": "Hiba",
+  "controls_chat": "Csevegés",
   "input_action_add_files": "Fotók és fájlok hozzáadása",
   "input_action_record_video": "Videó rögzítése",
   "input_action_take_photo": "Fotó készítése",
@@ -34,6 +37,7 @@
   "modal_rename_title": "Csevegés átnevezése",
   "modal_share_copy": "Másolás",
   "modal_share_desc": "A link birtokában bárki megtekintheti ezt a csevegési előzményt. A link 30 nap múlva lejár.",
+  "modal_share_history_desc": "Csevegési előzmények megosztása másokkal",
   "modal_share_note": "Ez a link csak olvasható hozzáférést biztosít ehhez a konkrét beszélgetési előzményhez.",
   "modal_share_title": "Csevegés megosztása: {name}",
   "modal_webcam_capture": "Rögzítés",
@@ -59,6 +63,8 @@
   "sidebar_room_id_copied_desc": "A csevegőszoba azonosítója kimásolva.",
   "sidebar_share_chat": "Csevegés megosztása",
   "sidebar_summarize_optimize": "Összefoglalás és optimalizálás",
+  "toast_copied": "Másolva",
+  "toast_copied_desc": "Hivatkozás a vágólapra másolva.",
   "toast_generating_name_desc": "Beszélgetés elemzése új cím javaslásához...",
   "toast_generating_name_title": "Név generálása",
   "toast_naming_started_desc": "Az MI a háttérben generálja a címet. Hamarosan frissülni fog.",
@@ -73,11 +79,5 @@
   "welcome_tip_fresh_title": "Kezdj tiszta lappal",
   "welcome_tip_specific_desc": "A legpontosabb elemzés érdekében kérdezz konkrét edzésekről, egészségügyi mutatókról vagy versenycélokról.",
   "welcome_tip_specific_title": "Légy konkrét",
-  "welcome_title": "Üdvözöljük az AI Coach-nál!",
-  "banner_exit": "Exit",
-  "common_error_title": "Error",
-  "controls_chat": "Chat",
-  "modal_share_history_desc": "Share the chat history with others",
-  "toast_copied": "Copied",
-  "toast_copied_desc": "Link copied to clipboard."
+  "welcome_title": "Üdvözöljük az AI Coach-nál!"
 }

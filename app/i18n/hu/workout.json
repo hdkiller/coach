@@ -132,20 +132,5 @@
   "version_original_ref": "Eredeti edzés hivatkozás:",
   "version_prescribed_desc": "Ez a tevékenység sikeresen teljesítette a következő tervezett edzést.",
   "version_prescribed_plan": "Előírt terv egyezés",
-  "version_promote_button": "Előléptetés elsődlegessé",
-  "banner_exit": "Exit",
-  "legend_plan": "Planned",
-  "modal_delete_action_desc": "This action cannot be undone.",
-  "modal_delete_desc": "Are you sure you want to delete this workout?",
-  "modal_delete_sure": "Are you sure?",
-  "modal_delete_sync_note_title": "Note",
-  "modal_delete_title": "Delete Workout",
-  "modal_extras_desc": "Extra metadata from the FIT file",
-  "modal_extras_empty": "No extra metadata available",
-  "modal_extras_title": "Extra Metadata",
-  "sections_duplicates": "Versions",
-  "sections_nutrition": "Nutrition",
-  "sections_power_curve": "Power Curve",
-  "sections_raw_data": "Raw Data",
-  "sections_timeline": "Timeline"
+  "version_promote_button": "Előléptetés elsődlegessé"
 }
