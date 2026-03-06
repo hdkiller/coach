@@ -1,64 +1,246 @@
 # Chat Development Guide
 
-This guide outlines the strict requirements for working with the AI Chat system, which uses the **Vercel AI SDK v5** and **Google Gemini** models. Adherence to these patterns is critical for stability and preventing sequence validation errors.
+This guide describes the current rules for modifying Coach Watts chat.
 
-## 1. Message Schemas
+The main constraint is simple: chat is no longer a single HTTP request/response flow. It is a durable workflow built around persisted `ChatTurn` state, in-app execution, websocket delivery, and database-backed recovery.
 
-The system distinguishes between two primary message formats:
+## 1. Mental Model
 
-### `UIMessage` (Database & Frontend)
+When a user sends a message:
 
-- **Role**: Only `user`, `assistant`, or `system`. **Role `tool` is invalid here.**
-- **Parts**: Content is always an array of `parts`.
-- **Tool Handling**: Tool calls and results must be stored as parts within an `assistant` message.
-- **Part Type**: Must use the typed format: `tool-TOOLNAME`.
-- **Tool State**:
-  - `approval-requested`: For pending tool calls needing user confirmation.
-  - `output-available`: For executed tool calls with results.
+1. the triggering message is persisted
+2. a `ChatTurn` is created
+3. the app runner claims and executes that turn
+4. assistant drafts, tool results, and turn state are persisted incrementally
+5. websocket events deliver live updates
+6. HTTP message reloads act as recovery/fallback
 
-### `ModelMessage` (Internal LLM logic)
+Do not design chat code as if the request itself owns the entire response lifecycle.
 
-- **Role**: `user`, `assistant`, `tool`, or `system`.
-- **Tool Handling**: Uses specific `tool-call` and `tool-result` roles/parts.
-- **Conversion**: ALWAYS use `convertToModelMessages(messages, { tools })` to transform `UIMessages` to `ModelMessages`. **Never attempt to build the tool sequence manually.**
+## 2. Source of Truth
 
-## 2. Strict Sequence Rules (Gemini)
+There are three different representations in the system, and they are not interchangeable.
 
-Gemini requires a perfect alternation of roles for tool usage:
+### Persisted Chat History
 
-1. `user`: "Analyze my ride."
-2. `assistant` (calls): Contains tool call parts.
-3. `tool` (results): Contains tool result parts (mapped from `output-available` parts in history).
-4. `assistant` (text): Final response summarizing the data.
+Stored in the database as:
 
-### Validation Failures
+- `ChatMessage`
+- `ChatTurn`
+- `ChatTurnEvent`
+- `ChatTurnToolExecution`
 
-If this sequence is broken (e.g., Turn N ends with calls, and Turn N+1 starts with a User message), Gemini will throw an `Invalid prompt` error.
+This is the recovery source of truth.
 
-**Rule**: Assistant messages with tool calls MUST be followed by tool results before any other role appears.
+### UI Message State
 
-## 3. Normalization Pipeline
+Used by the page and chat components.
 
-All history sent to the model in `server/api/chat/messages.post.ts` must pass through the normalization pipeline:
+- optimistic user messages may exist briefly
+- realtime deltas may update drafts before the next DB fetch
+- UI must be able to recover from DB state at any time
 
-1.  **Merge Consecutive Roles**: If a user sends three messages in a row, they must be merged into one single message.
-2.  **Flatten Text**: Gemini prefers a single string `content` or a single text part per message. Multiple text parts should be concatenated with `\n\n`.
-3.  **Strip Orphaned Calls**: If an `assistant` message contains tool calls but is followed by a `user` message (broken turn), the tool calls MUST be stripped to maintain a valid sequence.
-4.  **No Empty Content**: Ensure all messages have at least a single space `' '` if they would otherwise be empty.
+### Model History
 
-## 4. Documentation References
+Used only for LLM execution.
 
-Before modifying chat logic or tools, consult the local documentation in `vercel-ai-docs/`:
+- built from persisted room history
+- normalized before sending to the model
+- must preserve valid assistant/tool sequencing
 
-- `07-reference/01-ai-sdk-core/30-model-message.mdx`
-- `07-reference/01-ai-sdk-core/31-ui-message.mdx`
-- `04-ai-sdk-ui/03-chatbot-tool-usage.mdx`
-- `08-migration-guides/26-migration-guide-5-0.mdx`
+## 3. Message Rules
 
-## 5. Tool Implementation
+### `ChatMessage`
 
-When creating new tools in `server/utils/ai-tools/`:
+Persisted roles in practice:
 
-- Always use the `tool()` helper from `ai`.
-- Ensure `execute` functions return JSON-serializable objects.
-- If a tool is added/renamed, ensure the icon is updated in `app/components/ChatToolCall.vue`.
+- `user`
+- `assistant` (`senderId = ai_agent`)
+- canonical `tool` (`senderId = system_tool`)
+
+### Tool Results
+
+Do not rely only on assistant metadata for tool history.
+
+Tool results must be durably representable as canonical tool messages so future turns can rebuild valid model context.
+
+Relevant files:
+
+- [`server/utils/chat/history.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/history.ts)
+- [`server/utils/ai-history.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/ai-history.ts)
+- [`server/utils/services/chatTurnService.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/services/chatTurnService.ts)
+
+## 4. Turn Lifecycle Rules
+
+All execution-aware changes must respect `ChatTurn` lifecycle state.
+
+Active states:
+
+- `RECEIVED`
+- `QUEUED`
+- `RUNNING`
+- `STREAMING`
+- `WAITING_FOR_TOOLS`
+
+Terminal states:
+
+- `COMPLETED`
+- `FAILED`
+- `INTERRUPTED`
+- `CANCELLED`
+
+Rules:
+
+- do not leave turns without a terminal outcome
+- interrupted turns must remain resumable or retryable
+- partial assistant content should be persisted, not lost
+- UI typing state should follow turn state, not just transport state
+
+## 5. Tool Calling Rules
+
+### Live Turn
+
+Within the same turn, tool results are returned directly into the model loop via the AI SDK tool system.
+
+### Future Turns
+
+For later context reconstruction, canonical tool messages must exist in persisted history.
+
+### Idempotency
+
+Mutating tools must remain idempotent across retries and restarts.
+
+Use the turn-aware execution ledger:
+
+- [`server/utils/chat/tool-execution.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/tool-execution.ts)
+
+Do not add a mutating chat tool without checking:
+
+- stable `toolCallId`
+- lineage-aware idempotency behavior
+- retry behavior
+- duplicate side-effect safety
+
+## 6. History Normalization Rules
+
+Before sending history to the model:
+
+1. remove invalid or duplicate assistant-side tool outputs if canonical tool messages exist
+2. preserve valid assistant/tool ordering
+3. merge consecutive roles where needed
+4. avoid empty invalid message content
+5. strip broken/orphan tool-call sequences if they would violate provider rules
+
+Do not manually handcraft Gemini tool sequencing in random endpoints. Use the existing normalization helpers.
+
+## 7. Transport Rules
+
+### Current Intent
+
+The intended chat transport model is:
+
+- HTTP for submission
+- websocket for live deltas and upserts
+- HTTP polling only as fallback
+
+### Important Consequence
+
+A connected websocket is not the same as healthy chat realtime.
+
+Chat polling should only back off when actual `chat_*` websocket events are being received, not merely because the socket is open.
+
+Relevant files:
+
+- [`server/utils/ws-state.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/ws-state.ts)
+- [`server/api/websocket.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/websocket.ts)
+- [`app/pages/chat.vue`](/Users/hdkiller/Develop/coach-wattz/app/pages/chat.vue)
+
+## 8. Frontend Rules
+
+### Status
+
+Do not trust `chat.status` alone for assistant progress.
+
+The frontend may submit via the AI SDK transport, but the real assistant lifecycle is now detached and driven by persisted turn state.
+
+### Realtime Merge
+
+Client merge logic must:
+
+- accept realtime text deltas
+- merge persisted upserts
+- avoid regressing terminal turn states back to active states
+- avoid duplicate assistant drafts
+- recover cleanly from a full room reload
+
+### Typing Indicator
+
+Typing state should disappear when:
+
+- no active turn remains, and
+- the temporary post-submit waiting gap has been cleared
+
+### Scroll
+
+Scrolling should react to:
+
+- new user messages
+- assistant text deltas
+- tool-call/result updates
+- typing-indicator appearance/disappearance
+
+Do not key scroll behavior only off message count.
+
+## 9. In-App Runner Rules
+
+Interactive chat execution now happens in the app process, not Trigger.dev.
+
+When modifying the runner:
+
+- maintain atomic queue claim behavior
+- keep bounded concurrency
+- preserve stale-turn recovery
+- avoid request-coupled execution assumptions
+
+Relevant files:
+
+- [`server/utils/chat/turn-runner.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/turn-runner.ts)
+- [`server/plugins/chat-turn-runner.ts`](/Users/hdkiller/Develop/coach-wattz/server/plugins/chat-turn-runner.ts)
+
+## 10. When You Change Chat
+
+If you touch chat logic, check these areas explicitly:
+
+1. submit path
+2. turn creation / dedupe
+3. runner claim / execution
+4. websocket event delivery
+5. polling fallback
+6. tool idempotency
+7. history reconstruction
+8. typing/scroll UX
+9. retry/resume flow
+
+If you only check one layer, you will miss regressions.
+
+## 11. Files to Read First
+
+Backend:
+
+- [`server/api/chat/messages.post.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/messages.post.ts)
+- [`server/utils/chat/turn-executor.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/turn-executor.ts)
+- [`server/utils/chat/history.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/history.ts)
+- [`server/utils/ai-history.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/ai-history.ts)
+- [`server/utils/chat/tool-execution.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/tool-execution.ts)
+- [`server/utils/services/chatTurnService.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/services/chatTurnService.ts)
+- [`server/utils/ws-state.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/ws-state.ts)
+
+Frontend:
+
+- [`app/pages/chat.vue`](/Users/hdkiller/Develop/coach-wattz/app/pages/chat.vue)
+- [`app/components/chat/ChatMessageList.vue`](/Users/hdkiller/Develop/coach-wattz/app/components/chat/ChatMessageList.vue)
+- [`app/components/chat/ChatMessageContent.vue`](/Users/hdkiller/Develop/coach-wattz/app/components/chat/ChatMessageContent.vue)
+
+## 12. Documentation References
+
+The legacy docs and migration notes still contain useful background, but they describe older phases of the system. Treat them as historical context, not as the current architecture contract.

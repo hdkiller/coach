@@ -13,19 +13,21 @@ import { availabilityTools } from './ai-tools/availability'
 import { timeTools } from './ai-tools/time'
 import { temporalTools } from './ai-tools/temporal'
 import type { AiSettings } from './ai-user-settings'
-import { getUserAiSettings } from './ai-user-settings'
+import type { ChatToolExecutionContext } from './chat/turns'
+import { wrapChatToolsForExecution } from './chat/tool-execution'
 
 export const getToolsWithContext = (
   userId: string,
   timezone: string,
   settings: AiSettings,
-  chatRoomId?: string
+  chatRoomId?: string,
+  executionContext?: Partial<ChatToolExecutionContext>
 ) => {
   const conditionalNutritionTools = settings.nutritionTrackingEnabled
     ? nutritionTools(userId, timezone, settings)
     : {}
 
-  return {
+  const tools = {
     ...workoutTools(userId, timezone, settings),
     ...planningTools(userId, timezone, settings),
     ...recommendationTools(userId, timezone),
@@ -41,4 +43,6 @@ export const getToolsWithContext = (
     ...timeTools(userId, timezone),
     ...temporalTools(userId, timezone)
   }
+
+  return executionContext ? wrapChatToolsForExecution(tools, executionContext) : tools
 }

@@ -94,7 +94,19 @@ function normalizeStoredToolCalls(metadata: any, messageId?: string) {
 }
 
 export function expandStoredChatMessage(message: any) {
-  const metadata = (message.metadata as any) || {}
+  const turnMetadata = message.turn
+    ? {
+        turnId: message.turn.id,
+        turnStatus: message.turn.status,
+        turnFailureReason: message.turn.failureReason,
+        turnStartedAt: message.turn.startedAt,
+        turnFinishedAt: message.turn.finishedAt
+      }
+    : {}
+  const metadata = {
+    ...((message.metadata as any) || {}),
+    ...turnMetadata
+  }
   const role =
     message.senderId === 'ai_agent'
       ? 'assistant'
@@ -165,8 +177,10 @@ export function expandStoredChatMessage(message: any) {
     })
   })
 
-  if (message.content) {
+  if (message.content && message.content.trim()) {
     parts.push({ type: 'text', text: message.content })
+  } else if (metadata.turnStatus === 'INTERRUPTED') {
+    parts.push({ type: 'text', text: 'Response interrupted before completion.' })
   }
 
   if (parts.length === 0) {

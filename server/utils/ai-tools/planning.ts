@@ -38,6 +38,11 @@ import {
   applyTargetFormatPolicyToStep,
   applyStepIntentGuard
 } from '../../../trigger/utils/workout-targeting'
+import { buildToolIdempotencyKey, hashToolArgs, type ChatToolExecutionContext } from '../chat/turns'
+import {
+  buildStructureEditFields,
+  buildStructurePublishFields
+} from '../planned-workout-structure-sync'
 
 const STEP_INTENT_VALUES = [
   'warmup',
@@ -903,13 +908,12 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       const metrics = computeStructuredWorkoutMetrics(normalized, refs)
 
       const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
-        structuredWorkout: normalized as any,
         durationSec: metrics.durationSec > 0 ? metrics.durationSec : undefined,
         tss: metrics.tss > 0 ? metrics.tss : undefined,
         workIntensity: metrics.workIntensity ?? undefined,
-        modifiedLocally: true,
         syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
-        syncError: null
+        syncError: null,
+        ...buildStructureEditFields(normalized, 'USER')
       })) as any
 
       return {
@@ -980,13 +984,12 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         const metrics = computeStructuredWorkoutMetrics(normalized, refs)
 
         const updated = (await plannedWorkoutRepository.update(workout_id, userId, {
-          structuredWorkout: normalized as any,
           durationSec: metrics.durationSec > 0 ? metrics.durationSec : undefined,
           tss: metrics.tss > 0 ? metrics.tss : undefined,
           workIntensity: metrics.workIntensity ?? undefined,
-          modifiedLocally: true,
           syncStatus: existing.syncStatus === 'LOCAL_ONLY' ? 'LOCAL_ONLY' : 'PENDING',
-          syncError: null
+          syncError: null,
+          ...buildStructureEditFields(normalized, 'USER')
         })) as any
 
         return {
@@ -1032,7 +1035,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
       )
     }),
     needsApproval: async () => aiSettings.aiRequireToolApproval,
-    execute: async (args) => {
+    execute: async (args, options) => {
       // 0. Quota Check
       if (args.generate_structure !== false) {
         await checkQuota(userId, 'generate_structured_workout')
@@ -1040,6 +1043,37 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
       const parsedDate = parsePlanningDateInput('date', args.date, args)
       if ('error' in parsedDate) return parsedDate.error
+
+      const chatContext = (options?.experimental_context || {}) as Partial<ChatToolExecutionContext>
+      const deterministicExternalId = chatContext.lineageId
+        ? `ai-turn-${hashToolArgs(
+            buildToolIdempotencyKey(
+              chatContext.lineageId,
+              'create_planned_workout',
+              hashToolArgs(args)
+            )
+          ).slice(0, 24)}`
+        : `ai-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+      const existingByExternalId = await prisma.plannedWorkout.findUnique({
+        where: {
+          userId_externalId: {
+            userId,
+            externalId: deterministicExternalId
+          }
+        }
+      })
+
+      if (existingByExternalId) {
+        return {
+          success: true,
+          workout_id: existingByExternalId.id,
+          message:
+            args.generate_structure !== false
+              ? 'Planned workout already exists for this chat turn.'
+              : 'Planned workout already exists.'
+        }
+      }
 
       // Create a PlannedWorkout, not a Workout
       const workout = await plannedWorkoutRepository.create({
@@ -1051,7 +1085,7 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         type: args.type,
         durationSec: args.duration_minutes * 60,
         tss: args.tss,
-        externalId: `ai-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
+        externalId: deterministicExternalId,
         syncStatus: 'LOCAL_ONLY',
         completionStatus: 'PENDING'
       })
@@ -1313,7 +1347,13 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
         'Optional per-workout targeting override for this adjustment only (does not change profile defaults).'
       )
     }),
-    execute: async ({ workout_id, instructions, duration_minutes, intensity, targeting_override }) => {
+    execute: async ({
+      workout_id,
+      instructions,
+      duration_minutes,
+      intensity,
+      targeting_override
+    }) => {
       // 0. Quota Check
       await checkQuota(userId, 'generate_structured_workout')
 
@@ -1456,7 +1496,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
           await plannedWorkoutRepository.update(workout_id, userId, {
             externalId: String(intervalsWorkout.id),
             syncStatus: 'SYNCED',
-            lastSyncedAt: new Date()
+            lastSyncedAt: new Date(),
+            ...buildStructurePublishFields(workout.structuredWorkout)
           })
           await plannedWorkoutPublishRepository.upsert(workout_id, provider, {
             externalId: String(intervalsWorkout.id),
@@ -1480,7 +1521,8 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
 
           await plannedWorkoutRepository.update(workout_id, userId, {
             syncStatus: 'SYNCED',
-            lastSyncedAt: new Date()
+            lastSyncedAt: new Date(),
+            ...buildStructurePublishFields(workout.structuredWorkout)
           })
           await plannedWorkoutPublishRepository.upsert(workout_id, provider, {
             externalId: existingExternalId!,

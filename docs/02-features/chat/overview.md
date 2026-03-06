@@ -1,249 +1,201 @@
-# AI Chat Feature Documentation
+# AI Chat System Overview
 
-## Overview
+## Summary
 
-The Chat with Coach Watts feature allows users to have an interactive conversation with an AI-powered coaching assistant. It leverages Google Gemini for generating responses based on the user's context and conversation history.
+Coach Watts chat is now a durable, turn-based system built around persisted `ChatTurn` state, in-app background execution, websocket-first delivery, and database-backed recovery.
 
-## Architecture
+This replaced the older request-bound chat model where the HTTP request owned the full LLM lifecycle.
 
-The chat system is built using the following components:
+## Core Architecture
 
-- **Frontend**: `vue-advanced-chat` component for the UI (client-side only).
-- **Backend**: Nuxt server API endpoints (`/api/chat/...`).
-- **Database**: PostgreSQL with Prisma ORM for storing chat history.
-- **AI**: Google Gemini (via **Vercel AI SDK** with `@ai-sdk/google`) for response generation.
+The current chat stack has five layers:
 
-## Database Schema
+- **Frontend UI**: [`app/pages/chat.vue`](/Users/hdkiller/Develop/coach-wattz/app/pages/chat.vue), [`app/components/chat/ChatMessageList.vue`](/Users/hdkiller/Develop/coach-wattz/app/components/chat/ChatMessageList.vue), and related chat components.
+- **Submission API**: [`server/api/chat/messages.post.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/messages.post.ts) persists the triggering message and creates a `ChatTurn`.
+- **Turn Execution**: [`server/utils/chat/turn-executor.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/turn-executor.ts) runs the LLM/tool loop and persists incremental progress.
+- **In-App Worker**: [`server/utils/chat/turn-runner.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/turn-runner.ts) claims queued turns from the database and executes them inside the Node app.
+- **Realtime Delivery**: websocket fanout via [`server/api/websocket.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/websocket.ts) and [`server/utils/ws-state.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/ws-state.ts), with HTTP polling only as fallback.
 
-Three main models support the chat system:
+## Persistence Model
 
-1.  **ChatRoom**: Represents a conversation thread.
-    - `id`: UUID
-    - `name`: Room name (e.g., "Coach Watts")
-    - `avatar`: Room avatar URL
-    - `users`: Relation to participants
-    - `messages`: Relation to messages
+The chat system no longer treats a message send as a single request/response operation. Each submitted message becomes a persisted turn with explicit lifecycle state.
 
-2.  **ChatParticipant**: Links users to rooms.
-    - `userId`: Foreign key to User
-    - `roomId`: Foreign key to ChatRoom
-    - `lastSeen`: Timestamp for read status
+### Main Models
 
-3.  **ChatMessage**: Individual messages.
-    - `content`: Text content
-    - `senderId`: User ID or 'ai_agent' for the bot
-    - `roomId`: Foreign key to ChatRoom
-    - `seen`: JSON map of user IDs to timestamps
-    - `createdAt`: Timestamp
+- **`ChatRoom`**: conversation thread.
+- **`ChatParticipant`**: room membership.
+- **`ChatMessage`**: persisted user, assistant, and canonical tool messages.
+- **`ChatTurn`**: durable execution record for one submitted user/tool-triggering message.
+- **`ChatTurnEvent`**: append-only event log for deltas, tool lifecycle, and interruptions.
+- **`ChatTurnToolExecution`**: idempotent ledger for mutating tool calls.
+- **`LlmUsage`**: per-turn LLM accounting, including early in-progress records.
 
-## API Endpoints
+### `ChatTurn` Lifecycle
 
-### 1. Fetch Rooms
+Non-terminal states:
 
-- **Endpoint**: `GET /api/chat/rooms`
-- **Purpose**: Retrieves all chat rooms for the current user.
-- **Response**: Array of room objects formatted for `vue-advanced-chat`.
-- **Logic**: If no rooms exist, it automatically creates a default "Coach Watts" room.
+- `RECEIVED`
+- `QUEUED`
+- `RUNNING`
+- `STREAMING`
+- `WAITING_FOR_TOOLS`
 
-### 2. Create Room
+Terminal states:
 
-- **Endpoint**: `POST /api/chat/rooms`
-- **Purpose**: Creates a new chat room.
-- **Response**: The new room object formatted for `vue-advanced-chat`.
+- `COMPLETED`
+- `FAILED`
+- `INTERRUPTED`
+- `CANCELLED`
 
-### 3. Fetch Messages
+Every message that enters execution should be associated with exactly one terminal turn outcome unless the user explicitly retries.
 
-- **Endpoint**: `GET /api/chat/messages`
-- **Query Params**: `roomId` (required)
-- **Purpose**: Retrieves message history for a specific room.
-- **Response**: Array of message objects formatted for `vue-advanced-chat`.
+## Request and Execution Flow
 
-### 4. Send Message
+### 1. Submission
 
-- **Endpoint**: `POST /api/chat/messages`
-- **Body**: `{ roomId, content, files, replyMessage }`
-- **Purpose**:
-  1.  Saves the user's message to the database.
-  2.  Fetches the user's athlete profile for context (physical metrics, scores, insights).
-  3.  Fetches recent conversation history (last 10 messages).
-  4.  Initializes Gemini 2.0 model with function calling tools.
-  5.  Sends message to AI with full context.
-  6.  **Handles tool calls iteratively** (up to 5 iterations):
-      - If AI requests data, executes the tool function
-      - Returns results to AI
-      - AI processes and may request more data or provide final response
-  7.  Saves the AI's final response to the database.
-  8.  Returns the AI's response to the frontend.
+`POST /api/chat/messages`:
 
-## Frontend Integration (`vue-advanced-chat`)
+- validates auth, quota, and room access
+- persists the triggering user/tool message if needed
+- creates a `ChatTurn`
+- associates the triggering message with that turn
+- enqueues the turn into the in-app DB-backed runner
+- returns immediately
 
-The `vue-advanced-chat` component is a Web Component wrapper. To make it work with Nuxt 3:
+The HTTP request no longer owns model execution.
 
-1.  **Client-Only Loading**: The component is strictly loaded on the client side using `onMounted` and dynamic import (`await import('vue-advanced-chat')`). It is wrapped in `<ClientOnly>` and a `v-if="isClient"` guard.
-2.  **Vite Config**: We updated `nuxt.config.ts` to treat `vue-advanced-chat` and `emoji-picker` as custom elements via `vue.template.compilerOptions.isCustomElement`. This prevents Vue from throwing "failed to resolve component" warnings.
-3.  **Theme**: The `theme` prop is bound to a computed property that switches between 'light' and 'dark' based on the Nuxt Color Mode.
-4.  **Layout**: The component is wrapped in a `div` with `h-full` and passed `height="100%"` to ensure it fills the available dashboard panel space.
+### 2. In-App Turn Runner
 
-## AI Integration
+[`server/plugins/chat-turn-runner.ts`](/Users/hdkiller/Develop/coach-wattz/server/plugins/chat-turn-runner.ts) starts a singleton runner inside the app process.
 
-The system uses Google Gemini 2.0 with advanced function calling capabilities to provide dynamic, data-driven coaching.
+The runner:
 
-- **Model**: `gemini-2.0-flash-exp` with function calling support
-- **Context**: Athlete profile + conversation history + dynamic data access via tools
-- **Tools**: 5 specialized functions for fetching workout, nutrition, and wellness data
+- polls for queued turns
+- claims them atomically
+- executes them with bounded concurrency
+- runs stale-turn recovery on an interval
 
-### Athlete Profile Integration
+This keeps chat low-latency without depending on Trigger.dev for the interactive response path.
 
-When a user sends a message, the system automatically fetches their profile data including:
+### 3. Turn Execution
 
-- **Physical Metrics**: FTP (Functional Threshold Power), Max Heart Rate, Weight, Age
-- **Performance Scores** (1-10 scale):
-  - Current Fitness Score
-  - Recovery Capacity Score
-  - Nutrition Compliance Score
-  - Training Consistency Score
-- **AI-Generated Insights**: Detailed explanations for each score, including current status and improvement recommendations
+[`server/utils/chat/turn-executor.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/turn-executor.ts):
 
-This context is embedded into the system prompt so that Coach Watts is aware of the athlete's current state, capabilities, and areas for improvement in every conversation.
+- reconstructs model history from persisted room state
+- creates or reuses an assistant draft message
+- streams text with `streamText`
+- persists draft updates incrementally
+- executes tools with idempotent wrappers
+- writes canonical `tool` messages for tool results
+- updates `ChatTurn` and `LlmUsage`
+- broadcasts websocket updates
 
-### Function Calling / Tool Use
+## Tool Calling
 
-Coach Watts can dynamically fetch data from the database using 6 specialized tools. All tools provide comprehensive data including raw JSON from source platforms.
+### Same-Turn Tool Use
 
-#### 1. `get_recent_workouts`
+During a live turn, tools execute inline through the AI SDK tool loop. Their results are immediately available to subsequent model steps in the same turn.
 
-Fetches recent workout summaries with key metrics.
+### Durable Tool History
 
-- **Parameters**: `limit` (number, max 20), `type` (workout type), `days` (time window)
-- **Returns**: ID, date, title, type, duration, distance, power, HR, cadence, TSS, intensity, training load, kilojoules, elevation, speed, RPE, feel, description
-- **Use Case**: "How did my last 3 rides go?"
+For future turns, tool results are not reconstructed only from assistant metadata anymore.
 
-#### 2. `get_workout_details`
+The system now persists canonical `system_tool` chat messages so later prompts can rebuild proper `tool` history. This is more reliable than relying purely on assistant-side `output-available` parts.
 
-Gets comprehensive details for a specific workout. Can search by ID OR by natural language description.
+Relevant files:
 
-**Search Parameters**:
+- [`server/utils/chat/tool-execution.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/tool-execution.ts)
+- [`server/utils/chat/history.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/history.ts)
+- [`server/utils/ai-history.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/ai-history.ts)
 
-- `workout_id` - Exact ID if known
-- `title_search` - Search by workout title (e.g., "Morning Elliptical")
-- `type` - Filter by workout type (Ride, Run, Walk, etc.)
-- `date` - Specific date (YYYY-MM-DD)
-- `relative_position` - "latest", "longest", "hardest", "fastest"
+### Idempotency
 
-**Returns ALL Available Data** (58+ fields):
+Mutating tools are wrapped with a turn-aware execution ledger:
 
-- **Basic Info**: ID, date, title, description, type, source, duration, distance
-- **Power Metrics**: Average, normalized, max, weighted average watts
-- **Heart Rate**: Average and max HR
-- **Cadence & Speed**: Average/max cadence, average speed
-- **Training Load**: TSS, training load, intensity factor, kilojoules, TRIMP
-- **Performance Analysis**: FTP at time, variability index, power/HR ratio, efficiency factor, decoupling, polarization index
-- **Fitness Tracking**: CTL (fitness), ATL (fatigue)
-- **Scores** (1-10 scale): Overall, technical, effort, pacing, execution
-- **Score Explanations**: AI-generated detailed insights for each score
-- **Subjective**: RPE, session RPE, feel rating
-- **Environmental**: Temperature, indoor trainer flag
-- **Balance**: Left/Right power balance
-- **Duplicate Info**: Is duplicate, duplicate of ID, completeness score
-- **Metadata**: External platform ID, timestamps, AI analysis status
-- **AI Analysis**: Text version AND structured JSON
-- **Raw Data**: Complete original JSON from source platform (Strava, Intervals.icu, etc.)
+- duplicate delivery within the same turn is deduped by `turnId + toolCallId`
+- retries across the same lineage can reuse previously completed mutating results
+- side effects like planned workout creation or publishing should not repeat on retry
 
-**Use Cases**:
+## Realtime Delivery
 
-- "Tell me about the morning elliptical" → Searches by title
-- "Show me my latest ride" → Finds most recent Ride
-- "What about yesterday's longest walk?" → Finds longest Walk from yesterday
-- "My hardest workout this week" → Finds workout with highest TSS
-- "Give me all the details on that 2-hour ride" → Returns complete data including raw JSON
+### Intended Model
 
-#### 3. `get_nutrition_log`
+The intended transport model is:
 
-Retrieves nutrition data for date ranges.
+1. HTTP submits the message
+2. websocket delivers `chat_assistant_text_delta` and `chat_message_upsert`
+3. HTTP polling only catches up if websocket delivery is missing or reconnecting
 
-- **Parameters**: `start_date`, `end_date` (optional)
-- **Use Case**: "What did I eat yesterday?"
+### Current Client Behavior
 
-#### 4. `get_wellness_metrics`
+The chat page:
 
-Fetches recovery and wellness data.
+- connects to `/api/websocket`
+- authenticates with `/api/websocket-token`
+- listens for live chat events
+- applies text deltas to the active assistant draft
+- merges persisted upserts into room state
+- uses silent `GET /api/chat/messages` polling as recovery/fallback
 
-- **Parameters**: `start_date`, `end_date` (optional)
-- **Use Case**: "How's my recovery been this week?"
+The websocket path is primary, but polling remains important because persisted DB state is still the source of truth.
 
-#### 5. `search_workouts`
+## Recovery and Resilience
 
-Advanced workout search with filters.
+### Interrupted Turns
 
-- **Parameters**: `query`, `min_duration_minutes`, `max_duration_minutes`, `min_tss`, `date_from`, `date_to`, `limit`
-- **Use Case**: "Find my hardest workouts from last month"
+If the process dies or a deploy interrupts execution:
 
-#### 6. `get_performance_metrics`
+- the turn remains persisted
+- partial assistant draft content remains persisted
+- stale active turns are later marked `INTERRUPTED`
+- the UI can offer `Resume` or `Retry`
 
-Get comprehensive performance analytics and trends.
+### Resume / Retry
 
-- **Parameters**:
-  - `period_days` - Analysis period (default: 30, options: 7, 14, 30, 60, 90)
-  - `include_activity_distribution` - Breakdown by workout type
-  - `include_training_load` - Daily training load trends
-  - `include_weekly_hours` - Weekly training hours (last 8 weeks)
-  - `include_intensity_analysis` - Intensity distribution analysis
-- **Returns**:
-  - Activity distribution (count, %, hours, TSS by type)
-  - Training load trends (daily TSS, training load, duration)
-  - Weekly training hours (last 8 weeks breakdown)
-  - Intensity analysis (high/moderate/low intensity counts)
-  - Fitness metrics (CTL, ATL, TSB if available)
-  - Summary stats (total hours, distance, TSS, workouts/week)
-- **Use Cases**:
-  - "How's my training been going this month?"
-  - "Show me my activity distribution"
-  - "What are my training load trends?"
-  - "How many hours am I training per week?"
-  - "Analyze my performance over the last 30 days"
+- [`server/api/chat/turns/[id]/resume.post.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/turns/[id]/resume.post.ts)
+- [`server/api/chat/turns/[id]/retry.post.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/turns/[id]/retry.post.ts)
 
-### How It Works
+`Resume` is for interrupted turns that can continue from existing state.
 
-1. **User Message**: Athlete asks a question
-2. **AI Analysis**: Gemini determines if it needs data
-3. **Tool Call**: AI requests specific data via function call
-4. **Data Fetch**: Backend queries database and returns results
-5. **AI Response**: Gemini analyzes the data and provides insights
-6. **Iterative**: AI can make multiple tool calls (up to 5) if needed
+`Retry` clones the original triggering message into a new turn in the same lineage.
 
-### Example Conversation Flow
+## Frontend UX Notes
 
-**User**: "How did my last 3 rides compare?"
+The chat UI now differs from the older implementation in a few important ways:
 
-**Behind the scenes**:
+- assistant waiting state is derived from durable turn state, not just the SDK request state
+- the page can show a typing indicator before a final assistant message is complete
+- scrolling behavior is explicitly managed in the message list
+- interrupted/failed turns render recovery controls
 
-1. AI calls: `get_recent_workouts(type: "Ride", limit: 3)`
-2. System returns 3 ride summaries with power, HR, TSS
-3. AI analyzes the data
-4. AI responds: "Your last three rides show great progression..."
+## Important Files
 
-**User**: "Tell me more about the morning elliptical"
+Backend:
 
-**Behind the scenes**:
+- [`server/api/chat/messages.post.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/messages.post.ts)
+- [`server/api/chat/messages.get.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/messages.get.ts)
+- [`server/api/chat/turns/[id]/resume.post.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/turns/[id]/resume.post.ts)
+- [`server/api/chat/turns/[id]/retry.post.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/chat/turns/[id]/retry.post.ts)
+- [`server/api/websocket.ts`](/Users/hdkiller/Develop/coach-wattz/server/api/websocket.ts)
+- [`server/utils/chat/turn-executor.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/turn-executor.ts)
+- [`server/utils/chat/turn-runner.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/turn-runner.ts)
+- [`server/utils/chat/history.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/history.ts)
+- [`server/utils/chat/tool-execution.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/chat/tool-execution.ts)
+- [`server/utils/services/chatTurnService.ts`](/Users/hdkiller/Develop/coach-wattz/server/utils/services/chatTurnService.ts)
 
-1. AI recognizes title reference
-2. AI calls: `get_workout_details(title_search: "Morning Elliptical")`
-3. System searches by title and returns workout data
-4. AI responds with detailed analysis
+Frontend:
 
-**User**: "What about my latest ride?"
+- [`app/pages/chat.vue`](/Users/hdkiller/Develop/coach-wattz/app/pages/chat.vue)
+- [`app/components/chat/ChatMessageList.vue`](/Users/hdkiller/Develop/coach-wattz/app/components/chat/ChatMessageList.vue)
+- [`app/components/chat/ChatMessageContent.vue`](/Users/hdkiller/Develop/coach-wattz/app/components/chat/ChatMessageContent.vue)
 
-**Behind the scenes**:
+## What This Is Not
 
-1. AI understands "latest ride" means most recent Ride
-2. AI calls: `get_workout_details(type: "Ride", relative_position: "latest")`
-3. System finds most recent Ride workout
-4. AI provides insights
+The current chat architecture is not:
 
-This creates a natural, conversational experience where the AI can reference actual training data rather than making assumptions.
+- request-bound streaming from the original `POST /api/chat/messages`
+- Trigger.dev-managed interactive chat execution
+- assistant-metadata-only tool history
+- websocket-only with no persistence fallback
 
-## Troubleshooting
-
-- **Room list spinning forever**: Check the console for backend errors. Ensure `loadingRooms` is set to `false` after the API call completes (success or fail).
-- **"getServerSession is not defined"**: Ensure `#auth` is imported in server API files.
-- **Styling issues**: The component relies on its own CSS. Dark mode issues are usually resolved by correctly passing the `theme` prop.
+It is a hybrid durable system: persisted turns first, realtime delivery second, polling as safety net.

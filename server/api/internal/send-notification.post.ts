@@ -1,5 +1,5 @@
 import { getInternalApiToken } from '../../utils/internal-api-token'
-import { sendToUser } from '../../utils/ws-state'
+import { sendToUserLocal } from '../../utils/ws-state'
 
 /**
  * Internal API to send a real-time WebSocket notification to a user.
@@ -29,9 +29,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Send via the memory-resident WebSocket connections
-    sendToUser(userId, data)
+    const deliveredCount = sendToUserLocal(userId, data)
 
-    return { success: true }
+    return { success: true, deliveredCount }
   } catch (err: any) {
     console.error(`[InternalNotification] Error sending to user ${userId}:`, err)
     throw createError({

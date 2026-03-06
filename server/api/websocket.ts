@@ -1,34 +1,15 @@
 import { defineWebSocketHandler } from 'h3'
-import { runs } from '@trigger.dev/sdk/v3'
 import { verifyWsToken } from '../utils/ws-auth'
-import { buildAthleteContext } from '../utils/services/chatContextService'
 import { prisma } from '../utils/db'
-import { MODEL_NAMES, calculateLlmCost } from '../utils/ai-config'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { streamText, convertToModelMessages, stepCountIs } from 'ai'
-import { getToolsWithContext } from '../utils/ai-tools'
-import { getUserTimezone } from '../utils/date'
-import { getUserAiSettings } from '../utils/ai-user-settings'
-import { getLlmOperationSettings } from '../utils/ai-operation-settings'
 import { checkQuota } from '../utils/quotas/engine'
-import { peerContext, sendToUser } from '../utils/ws-state'
-import { generateCoachAnalysis } from '../utils/gemini'
-
-// Map to store active subscriptions cancel functions per peer
-const subscriptions = new Map<any, Set<() => void>>()
+import { peerContext } from '../utils/ws-state'
+import { expandStoredChatMessages, truncateMessages } from '../utils/chat/history'
+import { chatService } from '../utils/services/chatService'
+import { chatTurnService } from '../utils/services/chatTurnService'
 
 export default defineWebSocketHandler({
   open(peer) {
-    // SECURITY: Clean up any existing state for this peer object if it's being reused
-    // This prevents "orphaned" subscription loops from leaking data between different users
-    // who might be assigned the same memory object for their socket connection.
-    const existingSubs = subscriptions.get(peer)
-    if (existingSubs) {
-      existingSubs.forEach((cancel) => cancel())
-    }
-
     peer.send(JSON.stringify({ type: 'welcome', message: 'Connected to Coach Watts WebSocket' }))
-    subscriptions.set(peer, new Set())
     peerContext.set(peer, {})
   },
 
@@ -43,7 +24,6 @@ export default defineWebSocketHandler({
     try {
       const data = JSON.parse(text)
 
-      // Handle Authentication
       if (data.type === 'authenticate') {
         const userId = verifyWsToken(data.token)
         if (userId) {
@@ -63,34 +43,6 @@ export default defineWebSocketHandler({
         return
       }
 
-      if (data.type === 'subscribe_run') {
-        const runId = data.runId
-        if (!runId) return
-
-        startSubscription(peer, () => runs.subscribeToRun(runId), runId)
-      }
-
-      if (data.type === 'subscribe_user') {
-        // Enforce Authentication
-        const ctx = peerContext.get(peer)
-        if (!ctx?.userId) {
-          peer.send(
-            JSON.stringify({
-              type: 'error',
-              code: 'UNAUTHORIZED',
-              message: 'Authentication required'
-            })
-          )
-          return
-        }
-
-        // Use the authenticated user ID, ignore payload to prevent snooping
-        const userId = ctx.userId
-        const tag = `user:${userId}`
-        startSubscription(peer, () => runs.subscribeToRunsWithTag(tag), `tag:${tag}`)
-      }
-
-      // Handle Chat Message
       if (data.type === 'chat_message') {
         const ctx = peerContext.get(peer)
         if (!ctx?.userId) {
@@ -109,63 +61,20 @@ export default defineWebSocketHandler({
 
         await handleChatMessage(peer, ctx.userId, roomId, content, replyMessage)
       }
-    } catch (e) {
-      // Ignore JSON parse errors
-      console.error('WebSocket message error:', e)
+    } catch (error) {
+      console.error('WebSocket message error:', error)
     }
   },
 
-  close(peer, event) {
-    const peerSubs = subscriptions.get(peer)
-    if (peerSubs) {
-      peerSubs.forEach((cancel) => cancel())
-      subscriptions.delete(peer)
-    }
+  close(peer) {
     peerContext.delete(peer)
   },
 
-  error(peer, error) {
-    // WebSocket error
+  error() {
+    // WebSocket errors are handled by the peer/client.
   }
 })
 
-// Helper to handle subscription loops
-function startSubscription(peer: any, iteratorFn: () => AsyncIterable<any>, subId: string) {
-  let isSubscribed = true
-  const cancel = () => {
-    isSubscribed = false
-  }
-
-  const peerSubs = subscriptions.get(peer)
-  if (peerSubs) peerSubs.add(cancel)
-  ;(async () => {
-    try {
-      for await (const run of iteratorFn()) {
-        if (!isSubscribed) break
-
-        peer.send(
-          JSON.stringify({
-            type: 'run_update',
-            runId: run.id,
-            taskIdentifier: run.taskIdentifier,
-            status: run.status,
-            output: run.output,
-            error: run.error,
-            tags: run.tags,
-            startedAt: run.startedAt,
-            finishedAt: run.finishedAt
-          })
-        )
-      }
-    } catch (err) {
-      // Subscription error
-    } finally {
-      if (peerSubs) peerSubs.delete(cancel)
-    }
-  })()
-}
-
-// Chat Message Handler with Streaming (Vercel AI SDK)
 async function handleChatMessage(
   peer: any,
   userId: string,
@@ -174,27 +83,17 @@ async function handleChatMessage(
   replyMessage?: any
 ) {
   try {
-    // 0. Check Quota
     await checkQuota(userId, 'chat_ws')
+    await chatService.validateRoomAccess(userId, roomId)
 
-    // 1. Save User Message (async)
-    const userMessage = await prisma.chatMessage.create({
-      data: {
-        content,
-        roomId,
-        senderId: userId,
-        replyToId: replyMessage?._id || undefined,
-        seen: { [userId]: new Date() }
-      }
+    const userMessage = await chatService.saveUserMessage({
+      userId,
+      roomId,
+      content,
+      role: 'user',
+      replyToId: replyMessage?._id || undefined
     })
 
-    // Update room activity for sorting
-    await prisma.chatRoom.update({
-      where: { id: roomId },
-      data: { lastMessageAt: new Date() }
-    })
-
-    // Notify client that message was saved
     peer.send(
       JSON.stringify({
         type: 'chat_message_saved',
@@ -205,311 +104,69 @@ async function handleChatMessage(
       })
     )
 
-    // 2. Build Context & Tools
-    const { userProfile, systemInstruction } = await buildAthleteContext(userId)
-    const timezone = await getUserTimezone(userId)
-    const aiSettings = await getUserAiSettings(userId)
-    const tools = getToolsWithContext(userId, timezone, aiSettings, roomId)
-
-    // 3. Fetch History — use existing room summary to reduce context size
-    const room = await prisma.chatRoom.findUnique({
-      where: { id: roomId },
-      select: { metadata: true }
-    })
-    const roomMeta = (room?.metadata as any) || {}
-    const historySummary = roomMeta.historySummary as string | undefined
-    const lastSummarizedMessageId = roomMeta.lastSummarizedMessageId as string | undefined
-
-    let chronologicalHistory: any[]
-    if (lastSummarizedMessageId) {
-      // Only fetch unsummarized messages — the summary covers everything before
-      const cutoff = await prisma.chatMessage.findUnique({
-        where: { id: lastSummarizedMessageId },
-        select: { createdAt: true }
-      })
-      const recent = await prisma.chatMessage.findMany({
-        where: { roomId, ...(cutoff ? { createdAt: { gt: cutoff.createdAt } } : {}) },
-        orderBy: { createdAt: 'desc' },
-        take: 30
-      })
-      chronologicalHistory = recent.reverse()
-    } else {
-      const recent = await prisma.chatMessage.findMany({
-        where: { roomId },
-        orderBy: { createdAt: 'desc' },
-        take: 30
-      })
-      chronologicalHistory = recent.reverse()
-    }
-
-    // 4. Prepare History for AI SDK
-    const historyForModel = chronologicalHistory.map((msg: any) => ({
-      role: msg.senderId === 'ai_agent' ? 'assistant' : 'user',
-      content: msg.content
-    })) as any[]
-
-    // Remove leading assistant messages (invalid for some models)
-    while (
-      historyForModel.length > 0 &&
-      historyForModel[0] &&
-      historyForModel[0].role === 'assistant'
-    ) {
-      historyForModel.shift()
-    }
-
-    // Inject summary into system instruction if available
-    const finalSystemInstruction = historySummary
-      ? `${systemInstruction}\n\n## Earlier Conversation Summary\nThe following summarises earlier parts of this conversation. Use it for continuity but focus on the recent messages.\n\n${historySummary}`
-      : systemInstruction
-
-    // 5. Initialize Provider
-    const google = createGoogleGenerativeAI({
-      apiKey: process.env.GEMINI_API_KEY
-    })
-    const opSettings = await getLlmOperationSettings(userId, 'chat_ws')
-    const modelName = opSettings.modelId
-
-    // 6. Stream Text with Tools
-    const allToolResults: any[] = []
-    const historyToolCalls = new Map<string, any>()
-    const currentTurnToolCalls = new Map<string, any>()
-    let fullResponseText = ''
-    const startTime = Date.now()
-
-    // Configure thinking based on model version and tier settings.
-    // thinkingBudget: 0 disables thinking entirely for both model families.
-    const providerOptions: any = {}
-    if (opSettings.thinkingBudget === 0) {
-      // Thinking disabled for this operation
-    } else if (modelName.includes('gemini-3')) {
-      providerOptions.google = {
-        thinkingConfig: { thinkingLevel: opSettings.thinkingLevel }
-      }
-    } else {
-      // Gemini 2.5
-      providerOptions.google = {
-        thinkingConfig: { thinkingBudget: opSettings.thinkingBudget }
-      }
-    }
-
-    const result = await streamText({
-      model: google(modelName),
-      system: finalSystemInstruction,
-      messages: historyForModel,
-      tools,
-      stopWhen: stepCountIs(opSettings.maxSteps), // Enable multi-step tool calls automatically
-      providerOptions,
-      onStepFinish: async ({ text, toolCalls, toolResults, finishReason, usage }) => {
-        // Log each step individually — each step is a separate Gemini API call
-        try {
-          const promptTokens = usage.inputTokens || 0
-          const completionTokens = usage.outputTokens || 0
-          const cachedTokens = usage.inputTokenDetails?.cacheReadTokens || 0
-          const reasoningTokens = (usage as any).outputTokenDetails?.reasoningTokens || 0
-          const estimatedCost = calculateLlmCost(
-            modelName,
-            promptTokens,
-            completionTokens + reasoningTokens,
-            cachedTokens
-          )
-          await prisma.llmUsage.create({
-            data: {
-              userId,
-              provider: 'gemini',
-              model: modelName,
-              modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
-              operation: 'chat_ws',
-              entityType: 'ChatMessage',
-              entityId: userMessage.id,
-              promptTokens,
-              completionTokens,
-              cachedTokens,
-              reasoningTokens,
-              totalTokens: promptTokens + completionTokens,
-              estimatedCost,
-              durationMs: Date.now() - startTime,
-              retryCount: 0,
-              success: true,
-              promptPreview: content.substring(0, 500),
-              responsePreview: (text || '').substring(0, 500)
-            }
-          })
-        } catch (e) {
-          console.error('[WS Chat] LLM step usage log failed:', e)
-        }
-
-        // Notify client about tool execution
-        if (toolCalls && toolCalls.length > 0) {
-          toolCalls.forEach((tc) => {
-            historyToolCalls.set(tc.toolCallId, tc)
-            currentTurnToolCalls.set(tc.toolCallId, tc)
-          })
-          peer.send(
-            JSON.stringify({
-              type: 'tool_start',
-              roomId,
-              tools: toolCalls.map((tc) => tc.toolName)
-            })
-          )
-        }
-
-        if (toolResults && toolResults.length > 0) {
-          // Collect results for metadata
-          const detailedResults = toolResults.map((tr: any) => {
-            const call = toolCalls?.find((tc) => tc.toolCallId === tr.toolCallId)
-            return {
-              ...tr,
-              args: tr.args || (call as any)?.args || (call as any)?.input,
-              toolName: tr.toolName || call?.toolName,
-              result: tr.result || (tr as any).output
-            }
-          })
-          allToolResults.push(...detailedResults)
-
-          // Notify client tool finished
-          peer.send(JSON.stringify({ type: 'tool_end', roomId }))
-        }
-      },
-      onFinish: async (event) => {
-        const { text } = event
-        const durationMs = Date.now() - startTime
-
-        // 8. Save AI Response
-        const aiMessage = await prisma.chatMessage.create({
-          data: {
-            content: text || ' ',
-            roomId,
-            senderId: 'ai_agent',
-            seen: {}
+    const roomMessages = await prisma.chatMessage.findMany({
+      where: { roomId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        createdAt: true,
+        senderId: true,
+        content: true,
+        files: true,
+        turnId: true,
+        metadata: true,
+        turn: {
+          select: {
+            id: true,
+            status: true,
+            failureReason: true,
+            startedAt: true,
+            finishedAt: true
           }
-        })
-
-        // Update room activity for sorting
-        await prisma.chatRoom.update({
-          where: { id: roomId },
-          data: { lastMessageAt: new Date() }
-        })
-
-        // 9. Extract Charts & Metadata
-        const toolCallMap = new Map<string, any>()
-
-        const registerToolCall = (entry: any) => {
-          if (!entry?.toolCallId) return
-          const existing = toolCallMap.get(entry.toolCallId) || {}
-          toolCallMap.set(entry.toolCallId, {
-            toolCallId: entry.toolCallId,
-            name: entry.name || existing.name,
-            args: entry.args ?? existing.args,
-            response:
-              entry.response !== undefined
-                ? entry.response
-                : existing.response !== undefined
-                  ? existing.response
-                  : null,
-            timestamp: existing.timestamp || entry.timestamp || new Date().toISOString()
-          })
-        }
-
-        Array.from(currentTurnToolCalls.values()).forEach((tc: any) => {
-          registerToolCall({
-            toolCallId: tc.toolCallId,
-            name: tc.toolName,
-            args: tc.args || tc.input
-          })
-        })
-
-        allToolResults.forEach((tr: any) => {
-          registerToolCall({
-            toolCallId: tr.toolCallId,
-            name: tr.toolName || historyToolCalls.get(tr.toolCallId)?.toolName,
-            args: tr.args || historyToolCalls.get(tr.toolCallId)?.args,
-            response: tr.result
-          })
-        })
-
-        const toolCallsUsed = Array.from(toolCallMap.values()).filter((tc: any) => tc.name)
-
-        const charts = toolCallsUsed
-          .filter((t) => t.name === 'create_chart')
-          .map((call, index) => ({
-            id: `chart-${aiMessage.id}-${index}`,
-            ...call.args
-          }))
-
-        if (charts.length > 0 || toolCallsUsed.length > 0) {
-          await prisma.chatMessage.update({
-            where: { id: aiMessage.id },
-            data: {
-              metadata: {
-                charts,
-                toolCalls: toolCallsUsed,
-                toolsUsed: toolCallsUsed.map((t) => t.name),
-                toolCallCount: toolCallsUsed.length
-              } as any
-            }
-          })
-        }
-
-        // 10. Send Completion Event
-        peer.send(
-          JSON.stringify({
-            type: 'chat_complete',
-            roomId,
-            messageId: aiMessage.id,
-            content: text,
-            metadata: {
-              charts,
-              toolCalls: toolCallsUsed
-            }
-          })
-        )
-
-        // 11. Auto-rename room
-        try {
-          const messageCount = await prisma.chatMessage.count({ where: { roomId } })
-          if (messageCount === 2) {
-            const titlePrompt = `Based on this conversation, generate a very concise, descriptive title (max 6 words). Just return the title, nothing else.\n\nUser: ${content}\nAI: ${text.substring(0, 500)}\n\nTitle:`
-            let roomTitle = await generateCoachAnalysis(titlePrompt, 'flash', {
-              userId,
-              operation: 'chat_title_generation',
-              entityType: 'ChatRoom',
-              entityId: roomId
-            })
-            roomTitle = roomTitle
-              .trim()
-              .replace(/^["']|["']$/g, '')
-              .substring(0, 60)
-            await prisma.chatRoom.update({ where: { id: roomId }, data: { name: roomTitle } })
-            peer.send(JSON.stringify({ type: 'room_renamed', roomId, name: roomTitle }))
-          }
-        } catch (e) {
-          // Ignore rename errors
-        }
-
-        // 12. Trigger background summarization to keep summaries up to date
-        try {
-          const { summarizeChatTask } = await import('../../trigger/summarize-chat')
-          await summarizeChatTask.trigger({ roomId, userId }, { tags: [`user:${userId}`] })
-        } catch (e) {
-          // Non-critical — don't block the response
         }
       }
     })
 
-    // 7. Iterate Stream for Tokens
-    for await (const part of result.fullStream) {
-      if (part.type === 'text-delta') {
-        const textDelta = (part as any).text || (part as any).textDelta
-        fullResponseText += textDelta
-        peer.send(
-          JSON.stringify({
-            type: 'chat_token',
-            roomId,
-            text: textDelta
-          })
-        )
-      }
+    const requestMessages = truncateMessages(expandStoredChatMessages(roomMessages), 25)
+
+    let turn = await chatTurnService.findLatestTurnForMessage(userMessage.id)
+
+    if (!turn) {
+      turn = await chatTurnService.createTurn({
+        roomId,
+        userId,
+        userMessageId: userMessage.id,
+        request: {
+          messages: requestMessages,
+          replyMessage,
+          lastMessageId: userMessage.id,
+          content
+        }
+      })
+
+      await prisma.chatMessage.update({
+        where: { id: userMessage.id },
+        data: {
+          turnId: turn.id,
+          metadata: {
+            ...((userMessage.metadata as any) || {}),
+            turnId: turn.id,
+            turnStatus: turn.status
+          } as any
+        }
+      })
+
+      await chatTurnService.enqueueTurn(turn.id, userId)
     }
+
+    peer.send(
+      JSON.stringify({
+        type: 'chat_turn_queued',
+        roomId,
+        turnId: turn.id,
+        status: turn.status
+      })
+    )
   } catch (error: any) {
     console.error('[WS Chat] Error:', error)
     peer.send(

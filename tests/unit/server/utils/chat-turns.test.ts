@@ -1,0 +1,39 @@
+import { describe, expect, it } from 'vitest'
+import {
+  buildToolIdempotencyKey,
+  CHAT_TURN_STATUS,
+  hashToolArgs,
+  isActiveChatTurnStatus,
+  isMutatingChatTool,
+  isTerminalChatTurnStatus,
+  stableStringify
+} from '../../../../server/utils/chat/turns'
+
+describe('chat turn helpers', () => {
+  it('stableStringify is order independent for object keys', () => {
+    expect(stableStringify({ b: 2, a: 1 })).toBe(stableStringify({ a: 1, b: 2 }))
+  })
+
+  it('hashToolArgs is stable for semantically identical objects', () => {
+    expect(hashToolArgs({ b: [2, 3], a: 1 })).toBe(hashToolArgs({ a: 1, b: [2, 3] }))
+  })
+
+  it('builds deterministic idempotency keys', () => {
+    expect(buildToolIdempotencyKey('lineage-1', 'create_planned_workout', 'abc123')).toBe(
+      'lineage-1:create_planned_workout:abc123'
+    )
+  })
+
+  it('classifies active and terminal statuses correctly', () => {
+    expect(isActiveChatTurnStatus(CHAT_TURN_STATUS.QUEUED)).toBe(true)
+    expect(isActiveChatTurnStatus(CHAT_TURN_STATUS.INTERRUPTED)).toBe(false)
+    expect(isTerminalChatTurnStatus(CHAT_TURN_STATUS.INTERRUPTED)).toBe(true)
+    expect(isTerminalChatTurnStatus(CHAT_TURN_STATUS.RUNNING)).toBe(false)
+  })
+
+  it('detects mutating chat tools', () => {
+    expect(isMutatingChatTool('create_planned_workout')).toBe(true)
+    expect(isMutatingChatTool('ticket_update')).toBe(true)
+    expect(isMutatingChatTool('get_workout_details')).toBe(false)
+  })
+})

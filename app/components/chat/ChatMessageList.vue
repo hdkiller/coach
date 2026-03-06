@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import ChatMessageContent from '~/components/chat/ChatMessageContent.vue'
   import ChatWelcomeTips from '~/components/chat/ChatWelcomeTips.vue'
 
@@ -18,10 +18,13 @@
     'edit-message',
     'update:editing-content',
     'save-edit',
-    'cancel-edit'
+    'cancel-edit',
+    'resume-turn',
+    'retry-turn'
   ])
   const toast = useToast()
   const messageListRef = ref<HTMLElement | null>(null)
+  const bottomAnchorRef = ref<HTMLElement | null>(null)
   const isTouchDevice = ref(false)
   const revealedActionsMessageId = ref<string | null>(null)
   const ttsLoadingMessageId = ref<string | null>(null)
@@ -189,6 +192,79 @@
   const isEditingMessage = (message: any) => props.editingMessageId === message?.id
   const isActionsVisible = (message: any) =>
     !!message?.id && (isTouchDevice.value ? revealedActionsMessageId.value === message.id : true)
+  const normalizedStatus = computed(() =>
+    typeof props.status === 'string' ? props.status : String(props.status || '')
+  )
+  const showTypingIndicator = computed(() => normalizedStatus.value === 'streaming')
+  const scrollSignature = computed(() =>
+    JSON.stringify({
+      status: normalizedStatus.value,
+      typing: showTypingIndicator.value,
+      messages: filteredMessages.value.map((message: any) => ({
+        id: message?.id,
+        role: message?.role,
+        content: typeof message?.content === 'string' ? message.content : '',
+        parts: Array.isArray(message?.parts)
+          ? message.parts.map((part: any) => ({
+              type: part?.type,
+              text: typeof part?.text === 'string' ? part.text : '',
+              state: part?.state,
+              toolCallId: part?.toolCallId
+            }))
+          : [],
+        turnStatus: message?.metadata?.turnStatus,
+        toolCalls: message?.metadata?.toolCalls || [],
+        toolResults: message?.metadata?.toolResults || []
+      }))
+    })
+  )
+  const scrollToBottom = async (behavior: ScrollBehavior = 'smooth') => {
+    await nextTick()
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+    if (messageListRef.value) {
+      messageListRef.value.scrollTo({
+        top: messageListRef.value.scrollHeight,
+        behavior
+      })
+    }
+    bottomAnchorRef.value?.scrollIntoView({
+      block: 'end',
+      behavior
+    })
+  }
+  const getTurnStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'INTERRUPTED':
+        return 'Interrupted'
+      case 'FAILED':
+        return 'Failed'
+      default:
+        return ''
+    }
+  }
+  const getTurnStatusColor = (status?: string) => {
+    switch (status) {
+      case 'INTERRUPTED':
+      case 'FAILED':
+        return 'error'
+      case 'COMPLETED':
+        return 'success'
+      default:
+        return 'neutral'
+    }
+  }
+  const canShowTurnStatus = (message: any) =>
+    message?.role === 'assistant' &&
+    ['INTERRUPTED', 'FAILED'].includes(message?.metadata?.turnStatus)
+  const resumeTurn = (turnId?: string) => {
+    if (!turnId) return
+    emit('resume-turn', turnId)
+  }
+  const retryTurn = (turnId?: string) => {
+    if (!turnId) return
+    emit('retry-turn', turnId)
+  }
 
   const editorRows = () => {
     const text = props.editingContent || ''
@@ -473,6 +549,8 @@
         didHydrateTtsPrefs.value = true
       }
     })()
+
+    void scrollToBottom('auto')
   })
 
   onBeforeUnmount(() => {
@@ -526,6 +604,20 @@
       pendingAutoReadMessageKey.value = null
       void playAssistantMessage(message, defaultVoicePreset.value, voiceSpeed.value)
     }
+  )
+
+  watch(
+    scrollSignature,
+    async (nextSignature, previousSignature) => {
+      if (!import.meta.client) return
+      if (!previousSignature) {
+        await scrollToBottom('auto')
+        return
+      }
+
+      await scrollToBottom('smooth')
+    },
+    { flush: 'post' }
   )
 
   const copyMessage = async (message: any) => {
@@ -621,6 +713,37 @@
               @click="handleMessageTap(message)"
               @tool-approval="handleToolApproval"
             />
+            <div
+              v-if="canShowTurnStatus(message)"
+              class="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500"
+            >
+              <UBadge
+                :color="getTurnStatusColor(message.metadata?.turnStatus)"
+                variant="soft"
+                size="sm"
+              >
+                {{ getTurnStatusLabel(message.metadata?.turnStatus) }}
+              </UBadge>
+              <span v-if="message.metadata?.turnFailureReason">
+                {{ message.metadata.turnFailureReason }}
+              </span>
+              <UButton
+                v-if="message.metadata?.turnStatus === 'INTERRUPTED'"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                label="Resume"
+                @click="resumeTurn(message.metadata?.turnId)"
+              />
+              <UButton
+                v-if="message.metadata?.turnStatus === 'INTERRUPTED'"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                label="Retry"
+                @click="retryTurn(message.metadata?.turnId)"
+              />
+            </div>
           </template>
           <template #actions="{ message }">
             <template v-if="canSpeakMessage(message)">
@@ -690,6 +813,23 @@
             </template>
           </template>
         </UChatMessages>
+        <div
+          v-if="showTypingIndicator"
+          class="pointer-events-none flex items-start gap-3 px-4 pb-4 pt-2"
+        >
+          <div
+            class="flex items-center gap-2 rounded-[1.2rem] px-4 py-3 text-gray-500 dark:text-gray-400"
+          >
+            <span
+              class="h-2.5 w-2.5 animate-[bounce_1s_infinite] rounded-full bg-current [animation-delay:-0.3s]"
+            />
+            <span
+              class="h-2.5 w-2.5 animate-[bounce_1s_infinite] rounded-full bg-current [animation-delay:-0.15s]"
+            />
+            <span class="h-2.5 w-2.5 animate-[bounce_1s_infinite] rounded-full bg-current" />
+          </div>
+        </div>
+        <div ref="bottomAnchorRef" class="h-px w-full shrink-0" />
       </div>
     </UContainer>
   </div>

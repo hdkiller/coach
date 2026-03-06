@@ -52,6 +52,14 @@
   let visualViewportListener: (() => void) | null = null
   let previousDocumentOverflow = ''
   let previousBodyOverflow = ''
+  let turnPollingTimer: ReturnType<typeof setInterval> | null = null
+  let turnPollingGraceUntil = 0
+  let chatWs: WebSocket | null = null
+  let chatWsReconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let chatWsPingTimer: ReturnType<typeof setInterval> | null = null
+  const isRealtimeConnected = ref(false)
+  const lastChatRealtimeEventAt = ref(0)
+  const awaitingTurnStart = ref(false)
 
   // Fetch session
   const { data: session } = await useFetch('/api/auth/session')
@@ -71,8 +79,12 @@
         roomId: currentRoomId.value
       })
     }),
-    onFinish: ({ message }) => {
+    onFinish: async () => {
       refreshRuns()
+      if (currentRoomId.value) {
+        await loadMessages(currentRoomId.value, { silent: true })
+        restartTurnPolling({ forceForMs: 15000 })
+      }
     },
     onError: (error) => {
       // Track chat error
@@ -117,8 +129,259 @@
     }
   })
 
-  const chatMessages = computed(() => chat.messages)
+  const sanitizeDisplayMessage = (message: any) => {
+    const sanitizeText = (value: unknown) => {
+      if (typeof value !== 'string') return ''
+      return /^(undefined)+$/.test(value) ? '' : value
+    }
+
+    const parts = Array.isArray(message?.parts)
+      ? message.parts
+          .map((part: any) =>
+            part?.type === 'text'
+              ? {
+                  ...part,
+                  text: sanitizeText(part.text)
+                }
+              : part
+          )
+          .filter((part: any) => part?.type !== 'text' || part.text)
+      : []
+
+    const sanitizedContent = sanitizeText(message?.content)
+    const hasMeaningfulText = sanitizedContent.trim().length > 0
+    const hasRenderableParts = parts.length > 0
+
+    if (
+      message?.role === 'assistant' &&
+      !message?.metadata?.turnId &&
+      !hasMeaningfulText &&
+      !hasRenderableParts
+    ) {
+      return null
+    }
+
+    return {
+      ...message,
+      content: sanitizedContent,
+      parts
+    }
+  }
   const chatStatus = computed(() => chat.status)
+  const activeTurnStatuses = ['RECEIVED', 'QUEUED', 'RUNNING', 'STREAMING', 'WAITING_FOR_TOOLS']
+  const terminalTurnStatuses = ['COMPLETED', 'FAILED', 'INTERRUPTED', 'CANCELLED']
+  const getLatestAssistantMessage = (messages: any[]) =>
+    [...messages]
+      .reverse()
+      .find((message) => message?.role === 'assistant' && !message?.metadata?.syntheticTyping)
+  const hasActiveTurn = (messages: any[]) =>
+    activeTurnStatuses.includes(getLatestAssistantMessage(messages)?.metadata?.turnStatus)
+  const chatMessages = computed(() => {
+    const sanitizedMessages = (chat.messages as any[])
+      .map((message) => sanitizeDisplayMessage(message))
+      .filter(Boolean) as any[]
+    const hasVisibleActiveAssistant = activeTurnStatuses.includes(
+      getLatestAssistantMessage(sanitizedMessages)?.metadata?.turnStatus
+    )
+    const needsTypingPlaceholder =
+      awaitingTurnStart.value ||
+      (hasActiveTurn(chat.messages as any[]) && !hasVisibleActiveAssistant)
+
+    if (!needsTypingPlaceholder) {
+      return sanitizedMessages
+    }
+
+    return [
+      ...sanitizedMessages,
+      {
+        id: `typing-${currentRoomId.value || 'room'}`,
+        role: 'assistant',
+        content: '',
+        parts: [],
+        createdAt: new Date(),
+        metadata: {
+          syntheticTyping: true,
+          turnStatus: 'STREAMING'
+        }
+      }
+    ]
+  })
+  const areMessageListsEquivalent = (left: any[], right: any[]) => {
+    if (left.length !== right.length) return false
+
+    for (let index = 0; index < left.length; index += 1) {
+      const leftMessage = left[index]
+      const rightMessage = right[index]
+
+      if (
+        leftMessage?.id !== rightMessage?.id ||
+        leftMessage?.role !== rightMessage?.role ||
+        leftMessage?.content !== rightMessage?.content ||
+        String(leftMessage?.createdAt || '') !== String(rightMessage?.createdAt || '')
+      ) {
+        return false
+      }
+
+      if (
+        JSON.stringify(leftMessage?.metadata || {}) !== JSON.stringify(rightMessage?.metadata || {})
+      ) {
+        return false
+      }
+    }
+
+    return true
+  }
+  const transformStoredMessage = (msg: any) => ({
+    id: msg.id,
+    role: msg.role,
+    content: msg.content,
+    parts: msg.parts || [{ type: 'text', text: msg.content }],
+    createdAt: new Date(msg.createdAt || msg.metadata?.createdAt || Date.now()),
+    metadata: msg.metadata
+  })
+  const applyAssistantTextDelta = (event: {
+    roomId: string
+    turnId: string
+    messageId: string
+    textDelta: string
+    status?: string
+  }) => {
+    if (!event.textDelta || event.roomId !== currentRoomId.value) return
+    awaitingTurnStart.value = false
+
+    const existingMessages = [...(chat.messages as any[])]
+    const existingIndex = existingMessages.findIndex((entry) => entry?.id === event.messageId)
+
+    if (existingIndex >= 0) {
+      const existingMessage = existingMessages[existingIndex]
+      const existingParts = Array.isArray(existingMessage?.parts) ? existingMessage.parts : []
+      const nonTextParts = existingParts.filter((part: any) => part?.type !== 'text')
+      const nextText = `${typeof existingMessage?.content === 'string' ? existingMessage.content : ''}${event.textDelta}`
+      const nextMessages = [...existingMessages]
+      nextMessages[existingIndex] = {
+        ...existingMessage,
+        content: nextText,
+        parts: [
+          ...nonTextParts,
+          {
+            type: 'text',
+            text: nextText
+          }
+        ],
+        metadata: {
+          ...(existingMessage?.metadata || {}),
+          turnId: event.turnId,
+          turnStatus: event.status || 'STREAMING'
+        }
+      }
+      chat.messages = nextMessages as any
+      return
+    }
+
+    chat.messages = [
+      ...existingMessages,
+      {
+        id: event.messageId,
+        role: 'assistant',
+        content: event.textDelta,
+        parts: [{ type: 'text', text: event.textDelta }],
+        createdAt: new Date(),
+        metadata: {
+          turnId: event.turnId,
+          turnStatus: event.status || 'STREAMING',
+          isDraft: true,
+          isRealtimeDraft: true
+        }
+      }
+    ] as any
+  }
+  const mergeRealtimeMessage = (existingMessage: any, incomingMessage: any) => {
+    const existingStatus = existingMessage?.metadata?.turnStatus
+    const incomingStatus = incomingMessage?.metadata?.turnStatus
+    const existingParts = Array.isArray(existingMessage?.parts) ? existingMessage.parts : []
+    const incomingParts = Array.isArray(incomingMessage?.parts) ? incomingMessage.parts : []
+    const existingNonTextParts = existingParts.filter((part: any) => part?.type !== 'text')
+    const incomingHasNonTextParts = incomingParts.some((part: any) => part?.type !== 'text')
+
+    if (!incomingHasNonTextParts && existingNonTextParts.length > 0) {
+      const incomingTextPart = incomingParts.find((part: any) => part?.type === 'text')
+      incomingMessage = {
+        ...incomingMessage,
+        parts: [
+          ...existingNonTextParts,
+          ...(incomingTextPart
+            ? [incomingTextPart]
+            : typeof incomingMessage?.content === 'string'
+              ? [{ type: 'text', text: incomingMessage.content }]
+              : [])
+        ],
+        metadata: {
+          ...(existingMessage?.metadata || {}),
+          ...(incomingMessage?.metadata || {}),
+          toolCalls:
+            incomingMessage?.metadata?.toolCalls || existingMessage?.metadata?.toolCalls || [],
+          toolResults:
+            incomingMessage?.metadata?.toolResults || existingMessage?.metadata?.toolResults || []
+        }
+      }
+    }
+
+    if (
+      terminalTurnStatuses.includes(existingStatus) &&
+      activeTurnStatuses.includes(incomingStatus)
+    ) {
+      return {
+        ...incomingMessage,
+        content:
+          typeof existingMessage?.content === 'string' && existingMessage.content.trim()
+            ? existingMessage.content
+            : incomingMessage.content,
+        parts:
+          Array.isArray(existingMessage?.parts) && existingMessage.parts.length > 0
+            ? existingMessage.parts
+            : incomingMessage.parts,
+        metadata: {
+          ...(incomingMessage?.metadata || {}),
+          ...(existingMessage?.metadata || {}),
+          turnStatus: existingStatus
+        }
+      }
+    }
+
+    return incomingMessage
+  }
+  const upsertChatMessage = (message: any) => {
+    const transformedMessage = transformStoredMessage(message)
+    if (
+      transformedMessage?.role === 'assistant' ||
+      activeTurnStatuses.includes(transformedMessage?.metadata?.turnStatus)
+    ) {
+      awaitingTurnStart.value = false
+    }
+    const existingMessages = [...(chat.messages as any[])]
+    const existingIndex = existingMessages.findIndex((entry) => entry?.id === transformedMessage.id)
+
+    if (existingIndex >= 0) {
+      const nextMessages = [...existingMessages]
+      nextMessages[existingIndex] = mergeRealtimeMessage(
+        existingMessages[existingIndex],
+        transformedMessage
+      )
+      if (!areMessageListsEquivalent(existingMessages, nextMessages)) {
+        chat.messages = nextMessages as any
+      }
+      return
+    }
+
+    const nextMessages = [...existingMessages, transformedMessage].sort(
+      (left, right) =>
+        new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime()
+    )
+    chat.messages = nextMessages as any
+  }
+  const uiChatStatus = computed(() =>
+    hasActiveTurn(chat.messages as any[]) || awaitingTurnStart.value ? 'streaming' : 'ready'
+  )
 
   // Form submission handler
   const onSubmit = (
@@ -180,6 +443,8 @@
             text: submittedText
           }
     )
+    awaitingTurnStart.value = true
+    restartTurnPolling({ forceForMs: 15000 })
     input.value = ''
   }
 
@@ -220,7 +485,7 @@
     if (
       !message ||
       message.role !== 'user' ||
-      chatStatus.value !== 'ready' ||
+      uiChatStatus.value !== 'ready' ||
       isCurrentRoomReadOnly.value
     )
       return
@@ -308,6 +573,7 @@
     }
 
     await loadChat()
+    connectChatWebSocket()
     nextTick(() => {
       chatInputRef.value?.focus()
     })
@@ -325,7 +591,159 @@
       window.removeEventListener('resize', visualViewportListener)
       visualViewportListener = null
     }
+
+    stopTurnPolling()
+    cleanupChatWebSocket()
   })
+
+  function cleanupChatWebSocket() {
+    if (chatWsReconnectTimer) {
+      clearTimeout(chatWsReconnectTimer)
+      chatWsReconnectTimer = null
+    }
+    if (chatWsPingTimer) {
+      clearInterval(chatWsPingTimer)
+      chatWsPingTimer = null
+    }
+    if (chatWs) {
+      chatWs.close()
+      chatWs = null
+    }
+    isRealtimeConnected.value = false
+  }
+
+  function connectChatWebSocket() {
+    if (!import.meta.client || chatWs || !(session.value?.user as any)?.id) {
+      return
+    }
+
+    isRealtimeConnected.value = false
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    chatWs = new WebSocket(`${protocol}//${window.location.host}/api/websocket`)
+
+    chatWs.onopen = async () => {
+      try {
+        const { token } = await ($fetch as any)('/api/websocket-token')
+        chatWs?.send(JSON.stringify({ type: 'authenticate', token }))
+
+        if (chatWsPingTimer) {
+          clearInterval(chatWsPingTimer)
+        }
+        chatWsPingTimer = setInterval(() => {
+          if (chatWs?.readyState === WebSocket.OPEN) {
+            chatWs.send('ping')
+          }
+        }, 30000)
+      } catch (error) {
+        console.error('[Chat] WebSocket auth failed:', error)
+      }
+    }
+
+    chatWs.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'authenticated') {
+          isRealtimeConnected.value = true
+          stopTurnPolling()
+          if (currentRoomId.value) {
+            void loadMessages(currentRoomId.value, { silent: true })
+          }
+          return
+        }
+        if (
+          data.type === 'chat_assistant_text_delta' &&
+          data.roomId === currentRoomId.value &&
+          typeof data.textDelta === 'string'
+        ) {
+          lastChatRealtimeEventAt.value = Date.now()
+          applyAssistantTextDelta(data)
+          return
+        }
+        if (
+          data.type === 'chat_message_upsert' &&
+          data.roomId === currentRoomId.value &&
+          data.message
+        ) {
+          lastChatRealtimeEventAt.value = Date.now()
+          upsertChatMessage(data.message)
+          return
+        }
+      } catch (error) {
+        console.error('[Chat] WebSocket message handling failed:', error)
+      }
+    }
+
+    chatWs.onclose = () => {
+      chatWs = null
+      isRealtimeConnected.value = false
+
+      if (chatWsPingTimer) {
+        clearInterval(chatWsPingTimer)
+        chatWsPingTimer = null
+      }
+
+      if (hasActiveTurn(chat.messages as any[])) {
+        restartTurnPolling({ forceForMs: 15000 })
+      }
+
+      if (import.meta.client) {
+        chatWsReconnectTimer = setTimeout(() => {
+          chatWsReconnectTimer = null
+          connectChatWebSocket()
+        }, 3000)
+      }
+    }
+
+    chatWs.onerror = () => {
+      chatWs?.close()
+    }
+  }
+
+  function stopTurnPolling() {
+    if (turnPollingTimer) {
+      clearInterval(turnPollingTimer)
+      turnPollingTimer = null
+    }
+  }
+
+  function restartTurnPolling(options?: { forceForMs?: number }) {
+    if (options?.forceForMs && options.forceForMs > 0) {
+      turnPollingGraceUntil = Date.now() + options.forceForMs
+    }
+
+    stopTurnPolling()
+    const activeTurn = hasActiveTurn(chat.messages as any[])
+    const hasAssistantMessage = (chat.messages as any[]).some(
+      (message) => message?.role === 'assistant'
+    )
+    const hasRecentRealtimeChatEvent =
+      isRealtimeConnected.value && Date.now() - lastChatRealtimeEventAt.value < 3000
+    if (
+      !currentRoomId.value ||
+      (activeTurn && hasRecentRealtimeChatEvent) ||
+      (!activeTurn && (hasAssistantMessage || Date.now() >= turnPollingGraceUntil))
+    ) {
+      return
+    }
+
+    turnPollingTimer = setInterval(async () => {
+      if (!currentRoomId.value) {
+        stopTurnPolling()
+        return
+      }
+
+      await loadMessages(currentRoomId.value, { silent: true })
+
+      const nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
+      const nextHasAssistantMessage = (chat.messages as any[]).some(
+        (message) => message?.role === 'assistant'
+      )
+
+      if (!nextHasActiveTurn && (nextHasAssistantMessage || Date.now() >= turnPollingGraceUntil)) {
+        stopTurnPolling()
+      }
+    }, 1500)
+  }
 
   async function loadRooms(selectFirst = true) {
     try {
@@ -344,9 +762,13 @@
     }
   }
 
-  async function loadMessages(roomId: string) {
+  async function loadMessages(roomId: string, options?: { silent?: boolean }) {
+    const silent = options?.silent ?? false
+
     try {
-      loadingMessages.value = true
+      if (!silent) {
+        loadingMessages.value = true
+      }
       const loadedMessages = (await ($fetch as any)(`/api/chat/messages?roomId=${roomId}`)) as any[]
 
       // Transform DB messages to AI SDK format (UIMessage)
@@ -359,12 +781,27 @@
         metadata: msg.metadata
       }))
 
-      // Update chat messages
-      chat.messages = transformedMessages as any
+      // Avoid replacing the entire message list when nothing material changed,
+      // because that retriggers internal scroll behavior in the chat UI.
+      if (!areMessageListsEquivalent(chat.messages as any[], transformedMessages)) {
+        chat.messages = transformedMessages as any
+      }
+      if (
+        transformedMessages.some(
+          (message: any) =>
+            message?.role === 'assistant' ||
+            activeTurnStatuses.includes(message?.metadata?.turnStatus)
+        )
+      ) {
+        awaitingTurnStart.value = false
+      }
+      restartTurnPolling()
     } catch (err: any) {
       console.error('Failed to load messages:', err)
     } finally {
-      loadingMessages.value = false
+      if (!silent) {
+        loadingMessages.value = false
+      }
     }
   }
 
@@ -575,6 +1012,54 @@
   watch(currentRoomId, () => {
     shareLink.value = ''
   })
+
+  async function resumeTurn(turnId: string) {
+    if (!turnId) return
+
+    try {
+      await $fetch(`/api/chat/turns/${turnId}/resume`, {
+        method: 'POST'
+      })
+      if (currentRoomId.value) {
+        await loadMessages(currentRoomId.value)
+      }
+      restartTurnPolling({ forceForMs: 15000 })
+      toast.add({
+        title: 'Response resumed',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Resume failed',
+        description: error?.data?.message || 'Could not resume that response.',
+        color: 'error'
+      })
+    }
+  }
+
+  async function retryTurn(turnId: string) {
+    if (!turnId) return
+
+    try {
+      await $fetch(`/api/chat/turns/${turnId}/retry`, {
+        method: 'POST'
+      })
+      if (currentRoomId.value) {
+        await loadMessages(currentRoomId.value)
+      }
+      restartTurnPolling({ forceForMs: 15000 })
+      toast.add({
+        title: 'Retry queued',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Retry failed',
+        description: error?.data?.message || 'Could not retry that response.',
+        color: 'error'
+      })
+    }
+  }
 </script>
 
 <template>
@@ -683,9 +1168,9 @@
           <!-- Messages -->
           <ChatMessageList
             :messages="chatMessages as any"
-            :status="chatStatus"
+            :status="uiChatStatus"
             :loading="loadingMessages"
-            :can-edit-messages="chatStatus === 'ready' && !isCurrentRoomReadOnly"
+            :can-edit-messages="uiChatStatus === 'ready' && !isCurrentRoomReadOnly"
             :editing-message-id="editingMessage?.id || null"
             :editing-content="editingContent"
             :saving-edited-message="savingEditedMessage"
@@ -694,13 +1179,15 @@
             @update:editing-content="editingContent = $event"
             @save-edit="saveEditedMessage"
             @cancel-edit="cancelEditedMessage"
+            @resume-turn="resumeTurn"
+            @retry-turn="retryTurn"
           />
 
           <!-- Input -->
           <ChatInput
             ref="chatInputRef"
             v-model="input"
-            :status="chatStatus"
+            :status="uiChatStatus"
             :error="chat.error"
             :disabled="isCurrentRoomReadOnly"
             mobile-enter-behavior="newline"

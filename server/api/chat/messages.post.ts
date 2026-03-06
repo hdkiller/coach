@@ -1,16 +1,10 @@
+import { createUIMessageStream, createUIMessageStreamResponse } from 'ai'
 import { getServerSession } from '../../utils/session'
-import { streamText, convertToModelMessages, stepCountIs } from 'ai'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { getToolsWithContext } from '../../utils/ai-tools'
-import { generateCoachAnalysis } from '../../utils/gemini'
-import { buildAthleteContext } from '../../utils/services/chatContextService'
 import { prisma } from '../../utils/db'
-import { getUserTimezone } from '../../utils/date'
-import { getUserAiSettings } from '../../utils/ai-user-settings'
-import { getLlmOperationSettings } from '../../utils/ai-operation-settings'
-import { MODEL_NAMES, calculateLlmCost } from '../../utils/ai-config'
 import { checkQuota } from '../../utils/quotas/engine'
 import { truncateMessages } from '../../utils/chat/history'
+import { chatService } from '../../utils/services/chatService'
+import { chatTurnService } from '../../utils/services/chatTurnService'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -23,7 +17,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'User ID not found' })
   }
 
-  // 0. Check Quota
   try {
     await checkQuota(userId, 'chat')
   } catch (error: any) {
@@ -38,18 +31,14 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const { roomId, messages, files, replyMessage } = body
-
-  // Truncate history to avoid massive context windows
-  // Keeping last 20 messages is usually plenty for conversation context
   const truncatedMessages = truncateMessages(messages || [], 25)
 
-  // Block messages in legacy rooms (pre-migration)
-  const MIGRATION_CUTOFF = new Date('2026-01-22T00:00:00Z')
   const room = await prisma.chatRoom.findUnique({
     where: { id: roomId },
     select: { createdAt: true }
   })
 
+  const MIGRATION_CUTOFF = new Date('2026-01-22T00:00:00Z')
   if (room && new Date(room.createdAt) < MIGRATION_CUTOFF) {
     throw createError({
       statusCode: 403,
@@ -57,8 +46,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Vercel AI SDK sends the full conversation history in 'messages'
-  // The last message is the new user input
   const lastMessage = truncatedMessages?.[truncatedMessages.length - 1]
   const messageParts = Array.isArray(lastMessage?.parts)
     ? lastMessage.parts
@@ -109,63 +96,6 @@ export default defineEventHandler(async (event) => {
       (part: any) => part?.type?.startsWith('tool-') && part?.state === 'approval-responded'
     )
 
-  // Convert legacy tool-role approval messages into assistant approval states.
-  // AI SDK v6 convertToModelMessages accepts only system/user/assistant UI roles.
-  const normalizeMessagesForSdk = (inputMessages: any[]) => {
-    const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
-
-    for (const msg of inputMessages) {
-      if (msg.role !== 'tool') continue
-      const parts = Array.isArray(msg.parts)
-        ? msg.parts
-        : Array.isArray(msg.content)
-          ? msg.content
-          : []
-      for (const part of parts) {
-        if (part?.type !== 'tool-approval-response' || !part.approvalId) continue
-        approvalResponses.set(part.approvalId, {
-          approved: !!part.approved,
-          reason: part.reason || part.result
-        })
-      }
-    }
-
-    return inputMessages
-      .filter((msg) => msg.role !== 'tool')
-      .map((msg) => {
-        if (msg.role !== 'assistant' || !Array.isArray(msg.parts)) return msg
-
-        const parts = msg.parts.map((part: any) => {
-          if (!part?.type?.startsWith('tool-')) return part
-
-          const approvalId = part.approvalId || part.approval?.id
-          if (!approvalId) return part
-
-          const response = approvalResponses.get(approvalId)
-          if (!response) return part
-
-          return {
-            ...part,
-            state: 'approval-responded',
-            approval: {
-              ...(part.approval || {}),
-              id: approvalId,
-              approved: response.approved,
-              reason: response.reason
-            }
-          }
-        })
-
-        return {
-          ...msg,
-          parts
-        }
-      })
-  }
-
-  const historyMessages = normalizeMessagesForSdk(truncatedMessages)
-
-  // Allow empty content for non-text continuation turns triggered by tool approval.
   const isToolContinuationTurn =
     lastMessage?.role === 'tool' || hasToolApprovalResponse || isAssistantApprovalContinuation
 
@@ -173,490 +103,93 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Room ID and content required' })
   }
 
-  // Verify user is in the room and room is not deleted
-  const participant = await prisma.chatParticipant.findUnique({
-    where: {
-      userId_roomId: {
-        userId,
-        roomId
-      }
-    },
-    include: {
-      room: {
-        select: {
-          deletedAt: true,
-          metadata: true,
-          _count: {
-            select: { messages: true }
-          },
-          name: true
-        }
-      }
-    }
-  })
+  await chatService.validateRoomAccess(userId, roomId)
 
-  if (!participant || participant.room.deletedAt) {
-    throw createError({ statusCode: 404, message: 'Room not found or access denied' })
-  }
-
-  // 1. Save User/Tool Message to DB if it's not already persisted
-  const userMessageId = lastMessage?.id
-
-  const existingMessage = userMessageId
+  const incomingMessageId = lastMessage?.id
+  const existingMessage = incomingMessageId
     ? await prisma.chatMessage.findUnique({
-        where: { id: userMessageId }
+        where: { id: incomingMessageId }
       })
     : null
 
   const shouldPersistIncomingMessage = !!lastMessage && ['user', 'tool'].includes(lastMessage.role)
+  let persistedMessage = existingMessage
 
   if (shouldPersistIncomingMessage && !existingMessage) {
-    try {
-      const metadata: any = {}
-      if (lastMessage.role === 'tool' && Array.isArray(lastMessage.content)) {
-        metadata.toolResponse = lastMessage.content
-      }
+    const metadata: any = {}
+    if (lastMessage.role === 'tool' && Array.isArray(lastMessage.content)) {
+      metadata.toolResponse = lastMessage.content
+    }
 
-      await prisma.chatMessage.create({
+    persistedMessage = await chatService.saveUserMessage({
+      userId,
+      roomId,
+      content: typeof content === 'string' ? content : '',
+      role: lastMessage.role,
+      metadata,
+      id: incomingMessageId || undefined,
+      replyToId: replyMessage?._id || undefined,
+      files: attachedFiles.length > 0 ? attachedFiles : undefined
+    })
+  }
+
+  const triggerMessageId =
+    persistedMessage?.id ||
+    [...truncatedMessages]
+      .reverse()
+      .find((msg: any) => ['user', 'tool'].includes(msg?.role) && typeof msg?.id === 'string')?.id
+
+  if (!triggerMessageId) {
+    throw createError({ statusCode: 400, message: 'Could not identify the triggering message.' })
+  }
+
+  let turn = await chatTurnService.findLatestTurnForMessage(triggerMessageId)
+
+  if (!turn) {
+    turn = await chatTurnService.createTurn({
+      roomId,
+      userId,
+      userMessageId: triggerMessageId,
+      request: {
+        messages: truncatedMessages,
+        files: attachedFiles,
+        replyMessage,
+        lastMessageId: triggerMessageId,
+        content: typeof content === 'string' ? content : ''
+      }
+    })
+
+    await prisma.chatMessage
+      .updateMany({
+        where: {
+          id: triggerMessageId
+        },
         data: {
-          id: userMessageId || undefined,
-          content: typeof content === 'string' ? content : '',
-          roomId,
-          senderId: lastMessage.role === 'tool' ? 'system_tool' : userId,
-          files: attachedFiles.length > 0 ? attachedFiles : undefined,
-          replyToId: replyMessage?._id || undefined,
-          seen: { [userId]: new Date() },
-          metadata
+          turnId: turn.id,
+          metadata: {
+            ...(((persistedMessage?.metadata as any) || {}) ?? {}),
+            turnId: turn.id,
+            turnStatus: turn.status
+          } as any
         }
       })
+      .catch(() => null)
 
-      // Update room activity for sorting
-      await prisma.chatRoom.update({
-        where: { id: roomId },
-        data: { lastMessageAt: new Date() }
-      })
-    } catch (err: any) {
-      if (err.code !== 'P2002') {
-        console.error('[Chat] Message save failed:', err)
-      }
+    await chatTurnService.enqueueTurn(turn.id, userId)
+  }
+
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      writer.write({
+        type: 'data-chat-turn',
+        data: {
+          turnId: turn.id,
+          status: turn.status
+        },
+        transient: true
+      } as any)
     }
-  }
-
-  // 2. Build Athlete Context
-  const { userProfile, systemInstruction: baseSystemInstruction } =
-    await buildAthleteContext(userId)
-
-  // Prepend history summary if it exists in room metadata
-  const roomMetadata = (participant.room.metadata as any) || {}
-  let finalSystemInstruction = baseSystemInstruction
-  if (roomMetadata?.historySummary) {
-    finalSystemInstruction = `## Previous Conversation Summary\n${roomMetadata.historySummary}\n\n${baseSystemInstruction}`
-  }
-
-  const timezone = await getUserTimezone(userId)
-  const aiSettings = await getUserAiSettings(userId)
-
-  // 3. Proactive Summarization Trigger
-  const messageCount = participant.room._count.messages
-  const currentMessageCount =
-    messageCount + (shouldPersistIncomingMessage && !existingMessage ? 1 : 0)
-  const roomName = participant.room.name
-  const hasGeneratedTitle = Boolean(roomMetadata?.titleGeneratedAt)
-  const lastSummaryTriggerMessageCount = Number(roomMetadata?.lastSummaryTriggerMessageCount || 0)
-  const messagesSinceLastSummaryTrigger = Math.max(
-    0,
-    currentMessageCount - lastSummaryTriggerMessageCount
-  )
-
-  let hasLargeMessage = false
-  const estimatedTokens = (messages || []).reduce((acc: number, msg: any) => {
-    const tokens = typeof msg.content === 'string' ? msg.content.length / 4 : 0
-    if (tokens > 5000) hasLargeMessage = true
-    return acc + tokens
-  }, 0)
-
-  // Trigger strategy:
-  // - Early trigger for room naming once we have minimal context.
-  // - Rolling summary only every N messages (or very large token growth), not every message.
-  const isNewChat = !roomName || roomName === 'New Chat'
-  const shouldTriggerRename = isNewChat && !hasGeneratedTitle && currentMessageCount >= 2
-  const shouldTriggerRollingSummary =
-    currentMessageCount >= 6 &&
-    (messagesSinceLastSummaryTrigger >= 12 ||
-      (estimatedTokens >= 12000 && messagesSinceLastSummaryTrigger >= 4) ||
-      hasLargeMessage)
-  const shouldSummarize = shouldTriggerRename || shouldTriggerRollingSummary
-
-  if (shouldSummarize) {
-    // Trigger background summarization
-    try {
-      const nextMetadata = {
-        ...roomMetadata,
-        lastSummaryTriggerAt: new Date().toISOString(),
-        lastSummaryTriggerMessageCount: currentMessageCount
-      }
-      await prisma.chatRoom.update({
-        where: { id: roomId },
-        data: { metadata: nextMetadata as any }
-      })
-
-      const { summarizeChatTask } = await import('../../../trigger/summarize-chat')
-      await summarizeChatTask.trigger({ roomId, userId }, { tags: [`user:${userId}`] })
-    } catch (err) {
-      console.error('[Chat API] Failed to trigger background summarization:', err)
-    }
-  }
-
-  // 4. Initialize Model and Tools
-  const google = createGoogleGenerativeAI({
-    apiKey: process.env.GEMINI_API_KEY
   })
-  const opSettings = await getLlmOperationSettings(userId, 'chat')
-  const modelName = opSettings.modelId
-  const tools = getToolsWithContext(userId, timezone, aiSettings, roomId)
 
-  // 4. Stream Text
-  try {
-    const startTime = Date.now()
-    const allToolResults: any[] = []
-
-    // Map approval IDs to tool call IDs to ensure consistency
-    const approvalIdMap = new Map<string, string>()
-    for (const m of historyMessages) {
-      if (m.role === 'assistant' && Array.isArray(m.parts)) {
-        m.parts.forEach((p: any) => {
-          if (
-            (p.type === 'tool-approval-request' || p.type.startsWith('tool-')) &&
-            p.approvalId &&
-            p.toolCallId
-          ) {
-            approvalIdMap.set(p.approvalId, p.toolCallId)
-          }
-        })
-      }
-      if (m.role === 'assistant' && m.metadata?.toolApprovals) {
-        const approvals = m.metadata.toolApprovals
-        if (Array.isArray(approvals)) {
-          approvals.forEach((approval: any) => {
-            if (approval.approvalId && approval.toolCallId) {
-              approvalIdMap.set(approval.approvalId, approval.toolCallId)
-            }
-          })
-        }
-      }
-    }
-
-    // Step 1: Convert UIMessages to ModelMessages using the SDK's standard converter
-    // Passing tools ensures that tool-NAME parts are correctly expanded into turns.
-    const coreMessages = await convertToModelMessages(historyMessages, { tools: tools as any })
-
-    /**
-     * STAGE 2: Final Normalization and Schema Validation
-     * 1. Merges consecutive messages of the same role.
-     * 2. Concatenates multiple text parts in user messages (Gemini preference).
-     * 3. STRIPS pending tool calls if Turn N stopped with them and Turn N+1 starts with a User message.
-     */
-    const normalizedMessages = (() => {
-      const merged: any[] = []
-
-      // Pass A: Merge consecutive roles
-      for (const msg of coreMessages) {
-        const last = merged[merged.length - 1]
-        if (last && last.role === msg.role) {
-          if (msg.role === 'tool') {
-            last.content = [...(last.content as any[]), ...(msg.content as any[])]
-          } else if (typeof last.content === 'string' && typeof msg.content === 'string') {
-            last.content = `${last.content} \n\n${msg.content} `
-          } else {
-            const lastParts = Array.isArray(last.content)
-              ? last.content
-              : [{ type: 'text', text: last.content }]
-            const msgParts = Array.isArray(msg.content)
-              ? msg.content
-              : [{ type: 'text', text: msg.content }]
-
-            // Concatenate consecutive text parts within the same merged message
-            const combinedParts: any[] = []
-            for (const part of [...lastParts, ...msgParts]) {
-              const lastCombined = combinedParts[combinedParts.length - 1]
-              if (lastCombined?.type === 'text' && part.type === 'text') {
-                lastCombined.text = `${lastCombined.text} \n\n${part.text} `
-              } else {
-                combinedParts.push(part)
-              }
-            }
-            last.content = combinedParts
-          }
-          continue
-        }
-        merged.push(msg)
-      }
-
-      // Pass B: Clean and Enforce strict sequencing
-      const final: any[] = []
-      for (let i = 0; i < merged.length; i++) {
-        const msg = merged[i]
-        const nextMsg = merged[i + 1]
-
-        // 1. Clean parts (strip empty text)
-        if (Array.isArray(msg.content)) {
-          msg.content = msg.content.filter((p: any) => {
-            if (p.type === 'text' && !p.text?.trim()) return false
-            return true
-          })
-
-          // 2. Concatenate multiple text parts (final sweep)
-          if (msg.role === 'user' || msg.role === 'system') {
-            const textParts = msg.content.filter((p: any) => p.type === 'text')
-            if (textParts.length > 1) {
-              const mergedText = textParts.map((p: any) => p.text).join('\n\n')
-              const otherParts = msg.content.filter((p: any) => p.type !== 'text')
-              msg.content = [{ type: 'text', text: mergedText }, ...otherParts]
-            }
-            if (msg.content.length === 1 && msg.content[0].type === 'text') {
-              msg.content = msg.content[0].text
-            }
-          }
-
-          // 4. Fallback for empty assistant
-          if (msg.content.length === 0) {
-            if (msg.role === 'assistant') msg.content = [{ type: 'text', text: ' ' }]
-            else continue
-          }
-        } else if (typeof msg.content === 'string' && !msg.content.trim()) {
-          if (msg.role === 'assistant') msg.content = ' '
-          else continue
-        }
-
-        final.push(msg)
-      }
-      return final
-    })()
-
-    const historyToolCalls = new Map<string, any>()
-    const currentTurnToolCalls = new Map<string, any>()
-    normalizedMessages.forEach((m) => {
-      if (m.role === 'assistant' && Array.isArray(m.content)) {
-        m.content.forEach((p: any) => {
-          if (p.type === 'tool-call' && p.toolCallId) {
-            historyToolCalls.set(p.toolCallId, p)
-          }
-        })
-      }
-    })
-
-    // Configure thinking based on model version and tier settings.
-    // thinkingBudget: 0 disables thinking entirely for both model families.
-    const providerOptions: any = {}
-    if (opSettings.thinkingBudget === 0) {
-      // Thinking disabled for this operation
-    } else if (modelName.includes('gemini-3')) {
-      providerOptions.google = {
-        thinkingConfig: { thinkingLevel: opSettings.thinkingLevel }
-      }
-    } else {
-      // Gemini 2.5
-      providerOptions.google = {
-        thinkingConfig: { thinkingBudget: opSettings.thinkingBudget }
-      }
-    }
-
-    const result = await streamText({
-      model: google(modelName),
-      system: finalSystemInstruction,
-      messages: normalizedMessages,
-      tools,
-      stopWhen: stepCountIs(opSettings.maxSteps),
-      providerOptions,
-      onStepFinish: async ({ toolCalls, toolResults }) => {
-        if (toolCalls) {
-          toolCalls.forEach((tc) => {
-            historyToolCalls.set(tc.toolCallId, tc)
-            currentTurnToolCalls.set(tc.toolCallId, tc)
-          })
-        }
-        if (toolResults) {
-          const detailed = toolResults.map((tr) => {
-            const call = historyToolCalls.get(tr.toolCallId)
-            return {
-              ...tr,
-              args: (tr as any).args || (tr as any).input || call?.args || call?.input,
-              toolName: tr.toolName || call?.toolName,
-              result: (tr as any).result || (tr as any).output
-            }
-          })
-          allToolResults.push(...detailed)
-        }
-      },
-      onFinish: async (event) => {
-        const { text, toolResults: finalStepResults, usage, toolCalls: finalCalls } = event
-        const hasMeaningfulText = typeof text === 'string' && text.trim().length > 0
-        const hasToolActivity =
-          (finalStepResults?.length || 0) > 0 ||
-          (finalCalls?.length || 0) > 0 ||
-          allToolResults.length > 0
-        const shouldFallbackForEmptyResponse = !hasMeaningfulText && !hasToolActivity
-        const finalText = shouldFallbackForEmptyResponse
-          ? 'I hit a response issue while processing that. Please retry your last message.'
-          : text || ' '
-        let aiMessage: any
-        try {
-          aiMessage = await prisma.chatMessage.create({
-            data: { content: finalText, roomId, senderId: 'ai_agent', seen: {} }
-          })
-          // Update room activity for sorting
-          await prisma.chatRoom.update({
-            where: { id: roomId },
-            data: { lastMessageAt: new Date() }
-          })
-
-          try {
-            const resultsToSave = finalStepResults?.length ? finalStepResults : allToolResults
-            const enrichedResults = resultsToSave.map((tr: any) => {
-              if (tr.toolName && (tr.args || tr.input)) return tr
-              const call =
-                finalCalls?.find((tc: any) => tc.toolCallId === tr.toolCallId) ||
-                historyToolCalls.get(tr.toolCallId)
-              return {
-                ...tr,
-                toolName: tr.toolName || call?.toolName,
-                args: tr.args || call?.args || call?.input
-              }
-            })
-
-            // Persist tool calls even when a provider returns sparse/empty toolResults on the final step.
-            // This keeps tool cards visible after reload by reconstructing from final/tool-call history.
-            const toolCallMap = new Map<string, any>()
-
-            const registerToolCall = (entry: any) => {
-              if (!entry?.toolCallId) return
-              const existing = toolCallMap.get(entry.toolCallId) || {}
-              toolCallMap.set(entry.toolCallId, {
-                toolCallId: entry.toolCallId,
-                name: entry.name || existing.name,
-                args: entry.args ?? existing.args,
-                response:
-                  entry.response !== undefined
-                    ? entry.response
-                    : existing.response !== undefined
-                      ? existing.response
-                      : null,
-                timestamp: existing.timestamp || entry.timestamp || new Date().toISOString()
-              })
-            }
-
-            ;(finalCalls || []).forEach((tc: any) => {
-              registerToolCall({
-                toolCallId: tc.toolCallId,
-                name: tc.toolName,
-                args: tc.args || tc.input
-              })
-            })
-
-            Array.from(currentTurnToolCalls.values()).forEach((tc: any) => {
-              registerToolCall({
-                toolCallId: tc.toolCallId,
-                name: tc.toolName,
-                args: tc.args || tc.input
-              })
-            })
-
-            enrichedResults.forEach((tr: any) => {
-              registerToolCall({
-                toolCallId: tr.toolCallId,
-                name: tr.toolName,
-                args: tr.args,
-                response: tr.result || tr.output
-              })
-            })
-
-            const toolCallsUsed = Array.from(toolCallMap.values()).filter((tc: any) => tc.name)
-
-            const charts = enrichedResults
-              .filter(
-                (tr: any) =>
-                  tr.toolName === 'create_chart' && (tr.result?.success || tr.output?.success)
-              )
-              .map((tr: any, index: number) => ({
-                id: `chart-${aiMessage.id}-${index}`,
-                ...tr.args
-              }))
-
-            if (charts.length > 0 || toolCallsUsed.length > 0) {
-              await prisma.chatMessage.update({
-                where: { id: aiMessage.id },
-                data: {
-                  metadata: {
-                    charts,
-                    toolCalls: toolCallsUsed,
-                    toolsUsed: toolCallsUsed.map((t) => t.name),
-                    toolCallCount: toolCallsUsed.length
-                  } as any
-                }
-              })
-            }
-
-            // Log usage
-            try {
-              const promptTokens = usage.inputTokens || 0
-              const completionTokens = usage.outputTokens || 0
-              const cachedTokens = usage.inputTokenDetails?.cacheReadTokens || 0
-              const reasoningTokens = (usage as any).outputTokenDetails?.reasoningTokens || 0
-
-              const estimatedCost = calculateLlmCost(
-                modelName,
-                promptTokens,
-                completionTokens + reasoningTokens,
-                cachedTokens
-              )
-
-              await prisma.llmUsage.create({
-                data: {
-                  userId,
-                  provider: 'gemini',
-                  model: modelName,
-                  modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
-                  operation: 'chat',
-                  entityType: 'ChatMessage',
-                  entityId: aiMessage.id,
-                  promptTokens,
-                  completionTokens,
-                  cachedTokens,
-                  reasoningTokens,
-                  totalTokens: promptTokens + completionTokens,
-                  estimatedCost,
-                  durationMs: 0,
-                  retryCount: 0,
-                  success: !shouldFallbackForEmptyResponse,
-                  errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
-                  errorMessage: shouldFallbackForEmptyResponse
-                    ? 'LLM response finished with empty text and no tool activity.'
-                    : null,
-                  promptPreview:
-                    typeof content === 'string'
-                      ? content.substring(0, 500)
-                      : JSON.stringify(content).substring(0, 500),
-                  responsePreview: finalText.substring(0, 500)
-                }
-              })
-            } catch (e) {
-              console.error('[Chat API] LLM usage log failed:', e)
-            }
-          } catch (err) {
-            console.error('[Chat API] Metadata capture error:', err)
-          }
-        } catch (err) {
-          console.error('[Chat API] Failed to process finish event:', err)
-        }
-      }
-    })
-
-    return result.toUIMessageStreamResponse({
-      onError: (error: any) => {
-        return `An error occurred while generating the response: ${error?.message || 'Unknown error'} `
-      }
-    })
-  } catch (error: any) {
-    throw createError({ statusCode: 500, message: 'Failed to generate response: ' + error.message })
-  }
+  return createUIMessageStreamResponse({ stream })
 })

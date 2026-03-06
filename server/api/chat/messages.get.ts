@@ -84,9 +84,19 @@ export default defineEventHandler(async (event) => {
       id: true,
       content: true,
       senderId: true,
+      turnId: true,
       createdAt: true,
       files: true,
-      metadata: true
+      metadata: true,
+      turn: {
+        select: {
+          id: true,
+          status: true,
+          failureReason: true,
+          startedAt: true,
+          finishedAt: true
+        }
+      }
     }
   })
 

@@ -100,6 +100,7 @@ model User {
   auditLogs                          AuditLog[]
   calendarNotes                      CalendarNote[]
   chatParticipations                 ChatParticipant[]
+  chatTurns                          ChatTurn[]
   invites                            CoachingInvite[]
   coaches                            CoachingRelationship[]       @relation("AthleteRelation")
   athletes                           CoachingRelationship[]       @relation("CoachRelation")
@@ -699,6 +700,14 @@ model PlannedWorkout {
   updatedAt         DateTime                 @updatedAt
   lastSyncedAt      DateTime?
   modifiedLocally   Boolean                  @default(false)
+  lastStructureEditedAt DateTime?
+  lastStructureEditSource String?
+  lastStructurePublishedAt DateTime?
+  lastRemoteStructureSeenAt DateTime?
+  structureHash     String?
+  remoteStructureHash String?
+  syncConflict      Boolean                  @default(false)
+  pendingRemoteStructuredWorkout Json?
   syncError         String?
   syncStatus        String?                  @default("SYNCED")
   shareToken        String?                  @unique
@@ -718,15 +727,6 @@ model PlannedWorkout {
   trainingWeek      TrainingWeek?            @relation(fields: [trainingWeekId], references: [id])
   user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   completedWorkouts Workout[]
-
-  lastStructureEditedAt DateTime?
-  lastStructureEditSource String?
-  lastStructurePublishedAt DateTime?
-  lastRemoteStructureSeenAt DateTime?
-  structureHash     String?
-  remoteStructureHash String?
-  syncConflict      Boolean                  @default(false)
-  pendingRemoteStructuredWorkout Json?
 
   @@unique([userId, externalId])
   @@index([userId, date])
@@ -1332,6 +1332,7 @@ model ChatRoom {
   lastMessageAt DateTime?         @default(now())
   metadata      Json?
   messages      ChatMessage[]
+  turns         ChatTurn[]
   users         ChatParticipant[]
   bugReports    BugReport[]
 
@@ -1353,6 +1354,7 @@ model ChatMessage {
   id        String   @id @default(uuid())
   content   String
   roomId    String
+  turnId    String?
   senderId  String
   files     Json?
   replyToId String?
@@ -1361,8 +1363,75 @@ model ChatMessage {
   updatedAt DateTime @updatedAt
   metadata  Json?
   room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  turn      ChatTurn? @relation(fields: [turnId], references: [id], onDelete: SetNull)
 
   @@index([roomId, createdAt])
+  @@index([turnId])
+}
+
+model ChatTurn {
+  id                String                  @id @default(uuid())
+  roomId            String
+  userId            String
+  userMessageId     String
+  assistantMessageId String?
+  status            String
+  lineageId         String
+  retryOfTurnId     String?
+  runId             String?
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  failureReason     String?
+  lastHeartbeatAt   DateTime?
+  providerRequestId String?
+  metadata          Json?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  room              ChatRoom                @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages          ChatMessage[]
+  llmUsage          LlmUsage[]
+  events            ChatTurnEvent[]
+  toolExecutions    ChatTurnToolExecution[]
+
+  @@index([roomId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, lastHeartbeatAt])
+  @@index([lineageId, createdAt])
+}
+
+model ChatTurnEvent {
+  id        String   @id @default(uuid())
+  turnId     String
+  type      String
+  data      Json?
+  createdAt DateTime @default(now())
+  turn      ChatTurn @relation(fields: [turnId], references: [id], onDelete: Cascade)
+
+  @@index([turnId, createdAt])
+  @@index([type, createdAt])
+}
+
+model ChatTurnToolExecution {
+  id             String   @id @default(uuid())
+  turnId         String
+  lineageId      String
+  toolCallId     String
+  toolName       String
+  argsHash       String
+  idempotencyKey String
+  status         String
+  result         Json?
+  error          String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  turn           ChatTurn @relation(fields: [turnId], references: [id], onDelete: Cascade)
+
+  @@unique([turnId, toolCallId])
+  @@index([lineageId, toolName, argsHash, status])
+  @@index([turnId, status])
+  @@index([idempotencyKey])
 }
 
 model SyncQueue {
@@ -1388,6 +1457,7 @@ model SyncQueue {
 model LlmUsage {
   id               String   @id @default(uuid())
   userId           String?
+  turnId           String?
   provider         String
   model            String
   modelType        String?
@@ -1415,8 +1485,10 @@ model LlmUsage {
   feedbackText     String?
   counted          Boolean  @default(true)
   user             User?    @relation(fields: [userId], references: [id])
+  turn             ChatTurn? @relation(fields: [turnId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
+  @@index([turnId])
   @@index([operation, createdAt])
   @@index([provider, model, createdAt])
   @@index([success, createdAt])
