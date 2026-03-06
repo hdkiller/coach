@@ -58,6 +58,8 @@
   "help_header": "Centre d'aide",
   "help_resource_github_desc": "Consulter les demandes de fonctionnalités publiques et les bogues à l'échelle du système.",
   "help_resource_github_title": "Tickets GitHub",
+  "help_ticket_commands_desc": "Demander à l'IA de vous montrer comment utiliser les commandes de ticket",
+  "help_ticket_commands_title": "Commandes de tickets",
   "help_toast_id_copied_desc": "ID de compte copié dans le presse-papiers.",
   "help_toast_id_copied_title": "ID copié",
   "impersonation_banner_active": "Impersonnalisation de {email}",
