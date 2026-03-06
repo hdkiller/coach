@@ -4,6 +4,7 @@ import { sportSettingsRepository } from '../../utils/repositories/sportSettingsR
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { getEndOfDayUTC, getUserTimezone } from '../../utils/date'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 
 export default defineEventHandler(async (event) => {
@@ -50,12 +51,17 @@ export default defineEventHandler(async (event) => {
     // Get Sport Settings via Repository (ensures Default exists)
     const sportSettings = await sportSettingsRepository.getByUserId(user.id)
     const defaultProfile = sportSettings.find((s: any) => s.isDefault)
+    const timezone = await getUserTimezone(user.id)
+    const latestAllowedDate = getEndOfDayUTC(timezone, new Date())
 
     const [wellness, dailyMetric, latestBodyFatWellness] = await Promise.all([
       // Query most recent wellness record with any meaningful values (not only resting HR)
       prisma.wellness.findFirst({
         where: {
           userId: user.id,
+          date: {
+            lte: latestAllowedDate
+          },
           OR: [
             { restingHr: { not: null } },
             { hrv: { not: null } },
@@ -111,6 +117,9 @@ export default defineEventHandler(async (event) => {
       prisma.dailyMetric.findFirst({
         where: {
           userId: user.id,
+          date: {
+            lte: latestAllowedDate
+          },
           OR: [
             { restingHr: { not: null } },
             { hrv: { not: null } },
@@ -138,9 +147,24 @@ export default defineEventHandler(async (event) => {
           source: true
         }
       }),
+
       prisma.wellness.findFirst({
         where: {
           userId: user.id,
+          date: {
+            lte: latestAllowedDate
+          },
+          weight: { not: null }
+        },
+        orderBy: { date: 'desc' },
+        select: { weight: true }
+      }),
+      prisma.wellness.findFirst({
+        where: {
+          userId: user.id,
+          date: {
+            lte: latestAllowedDate
+          },
           bodyFat: { not: null }
         },
         orderBy: { date: 'desc' },

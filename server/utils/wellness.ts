@@ -61,3 +61,79 @@ export function getInjuryLabel(val: string | number | null | undefined): string 
   }
   return map[score] || ''
 }
+
+export interface FitbitRecoveryAlertInput {
+  lastSource?: string | null
+  hrv?: number | null
+  sleepHours?: number | null
+  sleepQuality?: number | null
+  sleepScore?: number | null
+  atl?: number | null
+  recentHrvValues?: Array<number | null | undefined>
+}
+
+export interface FitbitRecoveryAlertResult {
+  isFitbit: boolean
+  lowHrv: boolean
+  poorSleep: boolean
+  highAtl: boolean
+  triggered: boolean
+  baselineHrv: number | null
+  summary: string
+}
+
+function toFiniteNumber(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+export function evaluateFitbitRecoveryAlert(
+  input: FitbitRecoveryAlertInput
+): FitbitRecoveryAlertResult {
+  const source = `${input.lastSource || ''}`.toLowerCase()
+  const isFitbit = source === 'fitbit'
+
+  const currentHrv = toFiniteNumber(input.hrv)
+  const sleepHours = toFiniteNumber(input.sleepHours)
+  const sleepQuality = toFiniteNumber(input.sleepQuality)
+  const sleepScore = toFiniteNumber(input.sleepScore)
+  const atl = toFiniteNumber(input.atl)
+
+  const recentHrvValues = (input.recentHrvValues || [])
+    .map((value) => toFiniteNumber(value))
+    .filter((value): value is number => value !== null)
+
+  const baselineHrv =
+    recentHrvValues.length >= 5
+      ? recentHrvValues.reduce((sum, value) => sum + value, 0) / recentHrvValues.length
+      : null
+
+  const lowHrv =
+    currentHrv !== null &&
+    ((baselineHrv !== null && currentHrv < baselineHrv * 0.85) ||
+      (baselineHrv === null && currentHrv < 35))
+
+  const poorSleep =
+    (sleepHours !== null && sleepHours < 6.5) ||
+    (sleepScore !== null && sleepScore < 70) ||
+    (sleepQuality !== null && sleepQuality < 75)
+
+  const highAtl = atl !== null && atl >= 95
+  const triggered = isFitbit && lowHrv && poorSleep && highAtl
+
+  const baselineText = baselineHrv !== null ? `${baselineHrv.toFixed(1)}ms` : 'unknown'
+  const summary = triggered
+    ? `FITBIT RECOVERY ALERT: low HRV + poor sleep + high ATL detected (HRV ${currentHrv ?? 'n/a'}ms vs baseline ${baselineText}, ATL ${atl ?? 'n/a'}). Bias recommendation to rest/reduce intensity today.`
+    : isFitbit
+      ? `Fitbit recovery flags — lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}. No Fitbit recovery alert triggered.`
+      : `Not a Fitbit-sourced wellness day; Fitbit recovery alert not evaluated. Flags — lowHRV:${lowHrv ? 'yes' : 'no'}, poorSleep:${poorSleep ? 'yes' : 'no'}, highATL:${highAtl ? 'yes' : 'no'}.`
+
+  return {
+    isFitbit,
+    lowHrv,
+    poorSleep,
+    highAtl,
+    triggered,
+    baselineHrv,
+    summary
+  }
+}

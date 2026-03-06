@@ -19,6 +19,8 @@ import {
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { filterGoalsForContext } from '../server/utils/goal-context'
 import { isWithinPreferredEmailTime } from '../server/utils/email-schedule'
+import { getCurrentFitnessSummary } from '../server/utils/training-stress'
+import { evaluateFitbitRecoveryAlert } from '../server/utils/wellness'
 
 const suggestionSchema = {
   type: 'object',
@@ -61,72 +63,107 @@ export const dailyCoachTask = task({
     const todayEnd = getEndOfDayUTC(timezone, todayStart)
 
     // Fetch data including email preferences
-    const [yesterdayWorkout, todayMetric, user, athleteProfile, rawActiveGoals, emailPrefs] =
-      await Promise.all([
-        workoutRepository
-          .getForUser(userId, {
-            startDate: yesterdayStart,
-            endDate: yesterdayEnd,
-            limit: 1,
-            orderBy: { date: 'desc' },
-            includeDuplicates: false
-          })
-          .then((workouts) => workouts[0]),
-        wellnessRepository.getByDate(userId, todayDateOnly),
-        prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            ftp: true,
-            weight: true,
-            weightUnits: true,
-            height: true,
-            heightUnits: true,
-            maxHr: true,
-            language: true,
-            aiAutoAnalyzeReadiness: true
-          }
-        }),
-
-        // Latest athlete profile
-        prisma.report.findFirst({
-          where: {
-            userId,
-            type: 'ATHLETE_PROFILE',
-            status: 'COMPLETED'
-          },
-          orderBy: { createdAt: 'desc' },
-          select: { analysisJson: true, createdAt: true }
-        }),
-
-        // Active goals
-        prisma.goal.findMany({
-          where: {
-            userId,
-            status: 'ACTIVE'
-          },
-          orderBy: { priority: 'desc' },
-          select: {
-            title: true,
-            type: true,
-            description: true,
-            targetDate: true,
-            eventDate: true,
-            priority: true
-          }
-        }),
-
-        // Email Preferences
-        prisma.emailPreference.findUnique({
-          where: { userId_channel: { userId, channel: 'EMAIL' } }
+    const [
+      yesterdayWorkout,
+      todayMetric,
+      recentWellness,
+      currentFitness,
+      user,
+      athleteProfile,
+      rawActiveGoals,
+      emailPrefs
+    ] = await Promise.all([
+      workoutRepository
+        .getForUser(userId, {
+          startDate: yesterdayStart,
+          endDate: yesterdayEnd,
+          limit: 1,
+          orderBy: { date: 'desc' },
+          includeDuplicates: false
         })
-      ])
+        .then((workouts) => workouts[0]),
+      wellnessRepository.getByDate(userId, todayDateOnly),
+      wellnessRepository.getForUser(userId, {
+        startDate: getStartOfDaysAgoUTC(timezone, 14),
+        endDate: todayEnd,
+        where: {
+          lastSource: 'fitbit'
+        },
+        select: {
+          date: true,
+          hrv: true
+        },
+        orderBy: { date: 'desc' }
+      }),
+      getCurrentFitnessSummary(userId),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          ftp: true,
+          weight: true,
+          weightUnits: true,
+          height: true,
+          heightUnits: true,
+          maxHr: true,
+          language: true,
+          aiAutoAnalyzeReadiness: true
+        }
+      }),
+
+      // Latest athlete profile
+      prisma.report.findFirst({
+        where: {
+          userId,
+          type: 'ATHLETE_PROFILE',
+          status: 'COMPLETED'
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { analysisJson: true, createdAt: true }
+      }),
+
+      // Active goals
+      prisma.goal.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE'
+        },
+        orderBy: { priority: 'desc' },
+        select: {
+          title: true,
+          type: true,
+          description: true,
+          targetDate: true,
+          eventDate: true,
+          priority: true
+        }
+      }),
+
+      // Email Preferences
+      prisma.emailPreference.findUnique({
+        where: { userId_channel: { userId, channel: 'EMAIL' } }
+      })
+    ])
     const activeGoals = filterGoalsForContext(rawActiveGoals, timezone, todayDateOnly)
+    const priorHrvValues = recentWellness
+      .filter((metric) => metric.date.getTime() < todayDateOnly.getTime())
+      .map((metric) => metric.hrv)
+
+    const fitbitRecoveryAlert = evaluateFitbitRecoveryAlert({
+      lastSource: todayMetric?.lastSource,
+      hrv: todayMetric?.hrv,
+      sleepHours: todayMetric?.sleepHours,
+      sleepQuality: todayMetric?.sleepQuality,
+      sleepScore: todayMetric?.sleepScore,
+      atl: currentFitness?.atl,
+      recentHrvValues: priorHrvValues
+    })
 
     logger.log('Data fetched', {
       hasYesterdayWorkout: !!yesterdayWorkout,
       hasTodayMetric: !!todayMetric,
       hasAthleteProfile: !!athleteProfile,
-      activeGoals: activeGoals.length
+      activeGoals: activeGoals.length,
+      fitbitRecoveryAlert
     })
 
     // Logic Check: If AUTOMATIC, ensure aiAutoAnalyzeReadiness is enabled
@@ -228,6 +265,9 @@ ${todayMetric.spO2 ? `- SpO2: ${todayMetric.spO2}%` : ''}`
     : 'No recovery data available'
 }
 
+FITBIT RECOVERY ALERT CHECK:
+- ${fitbitRecoveryAlert.summary}
+
 DECISION LOGIC:
 Use Training Stress Balance (TSB/Form) as primary indicator:
 - TSB > 25: Detraining risk - need more training stimulus
@@ -247,6 +287,7 @@ Also consider:
 - Multiple high-load days increase fatigue risk
 - Low HRV combined with high HR indicates stress
 - Poor sleep (<7h) reduces training capacity
+- If Fitbit recovery alert is triggered, prefer 'rest' or 'reduce_intensity' unless user explicitly overrides with strong justification
 ${activeGoals.length > 0 ? `- Consider how today's recommendation impacts progress toward active goals` : ''}
 
 CRITICAL: Base your recommendation on the comprehensive training load data above, especially TSB (Form), not just today's recovery metrics. If Recovery Score is "Unknown", rely on TSB, HRV trend, and Sleep.
