@@ -30,6 +30,34 @@ import enFitness from '../i18n/en/fitness.json'
 import enSettings from '../i18n/en/settings.json'
 import enIntegrations from '../i18n/en/integrations.json'
 
+import esCommon from '../i18n/es/common.json'
+import esDashboard from '../i18n/es/dashboard.json'
+import esActivities from '../i18n/es/activities.json'
+import esWorkout from '../i18n/es/workout.json'
+import esProfile from '../i18n/es/profile.json'
+import esHero from '../i18n/es/hero.json'
+import esNutrition from '../i18n/es/nutrition.json'
+import esHowItWorks from '../i18n/es/how-it-works.json'
+import esArchitecture from '../i18n/es/architecture.json'
+import esBento from '../i18n/es/bento.json'
+import esGoals from '../i18n/es/goals.json'
+import esCommunity from '../i18n/es/community.json'
+import esPricing from '../i18n/es/pricing.json'
+import esAuth from '../i18n/es/auth.json'
+import esSupport from '../i18n/es/support.json'
+import esStories from '../i18n/es/stories.json'
+import esWorksWith from '../i18n/es/works-with.json'
+import esLegend from '../i18n/es/legend.json'
+import esOnboarding from '../i18n/es/onboarding.json'
+import esHuBento from '../i18n/es/hu-bento.json'
+import esTestDynamic from '../i18n/es/test-dynamic.json'
+import esWorkoutTooltips from '../i18n/es/workout-tooltips.json'
+import esChat from '../i18n/es/chat.json'
+import esPerformance from '../i18n/es/performance.json'
+import esFitness from '../i18n/es/fitness.json'
+import esSettings from '../i18n/es/settings.json'
+import esIntegrations from '../i18n/es/integrations.json'
+
 import huCommon from '../i18n/hu/common.json'
 import huDashboard from '../i18n/hu/dashboard.json'
 import huActivities from '../i18n/hu/activities.json'
@@ -352,6 +380,34 @@ export default defineNuxtPlugin((nuxtApp) => {
       'en:fitness': enFitness,
       'en:settings': enSettings,
       'en:integrations': enIntegrations,
+
+      'es:common': esCommon,
+      'es:dashboard': esDashboard,
+      'es:activities': esActivities,
+      'es:workout': esWorkout,
+      'es:profile': esProfile,
+      'es:hero': esHero,
+      'es:nutrition': esNutrition,
+      'es:how-it-works': esHowItWorks,
+      'es:architecture': esArchitecture,
+      'es:bento': esBento,
+      'es:goals': esGoals,
+      'es:community': esCommunity,
+      'es:pricing': esPricing,
+      'es:auth': esAuth,
+      'es:support': esSupport,
+      'es:stories': esStories,
+      'es:works-with': esWorksWith,
+      'es:legend': esLegend,
+      'es:onboarding': esOnboarding,
+      'es:hu-bento': esHuBento,
+      'es:test-dynamic': esTestDynamic,
+      'es:workout-tooltips': esWorkoutTooltips,
+      'es:chat': esChat,
+      'es:performance': esPerformance,
+      'es:fitness': esFitness,
+      'es:settings': esSettings,
+      'es:integrations': esIntegrations,
 
       'hu:common': huCommon,
       'hu:dashboard': huDashboard,

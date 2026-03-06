@@ -1,9 +1,11 @@
 <script setup lang="ts">
-  import { en, hu, de, fr, it, nl, ru, ja, zh_cn } from '@nuxt/ui/locale'
+  import { en, hu, de, fr, it, nl, ru, ja, zh_cn, es } from '@nuxt/ui/locale'
   import { useTolgee } from '@tolgee/vue'
 
   const tolgee = useTolgee(['language'])
-  const locales = [en, hu, de, fr, it, nl, ru, ja, zh_cn]
+  const locales = [en, es, de, fr, hu, it, nl, ru, ja, zh_cn].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
   const selectedLanguage = computed({
     get: () => {
       const lang = tolgee.value.getLanguage() || 'en'

@@ -1,0 +1,71 @@
+{
+  "badge": {
+    "best_value": "La mejor relación calidad-precio",
+    "current_plan": "Plan actual",
+    "most_popular": "Los más populares",
+    "smart_start": "Inicio inteligente"
+  },
+  "billing": {
+    "annual": "Anual",
+    "billed_annually": "{price}/mes facturado anualmente",
+    "billed_monthly": "Facturación mensual",
+    "monthly": "Mensual",
+    "per_month": "/ mes",
+    "per_year": "/ año",
+    "save_pct": "Ahorre {pct}%"
+  },
+  "btn": {
+    "choose_supporter": "Elija un partidario",
+    "current_plan": "Plan actual",
+    "downgrade_free": "Cambiar a versión gratuita",
+    "get_pro": "Obtener Pro",
+    "get_supporter": "Conseguir apoyo",
+    "sign_up": "Inscribirse",
+    "stay_free": "Mantente libre",
+    "switch_pro": "Cambiar a Pro",
+    "switch_supporter": "Cambiar a Supporter",
+    "unavailable": "Temporalmente no disponible",
+    "upgrade_pro": "Actualizar a Pro"
+  },
+  "cancel_anytime": "Cancela cuando quieras. Baja a versión gratuita al instante.",
+  "description": "Desde seguimiento casual hasta coaching profesional con IA. Empieza gratis y mejora tu experiencia a medida que creces.",
+  "guarantee": "Todos los planes incluyen una garantía de reembolso de 14 días. No se requiere tarjeta de crédito para el plan gratuito.",
+  "headline": "Planes para cada deportista",
+  "label": "PRECIOS",
+  "modal": {
+    "confirm_change": "Confirmar cambio",
+    "description": "Revisar los cambios en su plan de suscripción",
+    "keep_plan": "Mantener mi plan actual",
+    "stripe_note": "Stripe calculará automáticamente los créditos por el tiempo no utilizado y los aplicará a tus facturas futuras.",
+    "switch_to": "¿Cambiar a {name}?",
+    "title": "Confirmar degradación",
+    "warning": "Estás migrando a un nivel inferior. Algunas funciones (como el Análisis Profundo de IA) estarán restringidas una vez procesado el cambio."
+  },
+  "plan": {
+    "free": {
+      "description": "El libro de registro más inteligente que hayas usado jamás.",
+      "feature_1": "Historial de datos ilimitado",
+      "feature_2": "Modo de sincronización manual",
+      "feature_3": "Análisis bajo demanda",
+      "feature_4": "Análisis rápido de IA",
+      "name": "Gratis"
+    },
+    "pro": {
+      "description": "Su gemelo digital y coach de servicio completo.",
+      "feature_1": "Estrategia de carrera adaptativa y planificación periodizada",
+      "feature_2": "Coaching de IA reflexivo con análisis de escenarios",
+      "feature_3": "Alertas proactivas de preparación y riesgo de extralimitación",
+      "feature_4": "Inteligencia de tendencias avanzada con pronósticos a largo plazo",
+      "feature_5": "Procesamiento y respuesta prioritarios de vía rápida",
+      "name": "Pro"
+    },
+    "supporter": {
+      "description": "Información automatizada para el atleta autoentrenado.",
+      "feature_1": "Sincronización automática de entrenamientos y métricas de salud.",
+      "feature_2": "Análisis de IA siempre activo después de nuevas actividades",
+      "feature_3": "Procesamiento prioritario durante picos de uso",
+      "feature_4": "Seguimiento confiable de tendencias y resúmenes semanales",
+      "name": "Seguidor"
+    }
+  }
+}

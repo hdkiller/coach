@@ -1,0 +1,17 @@
+{
+  "description": "No solo te mostramos gráficos. Procesamos toda tu fisiología digital, analizamos los patrones ocultos y creamos una estrategia de entrenamiento que incluye entrenamiento y alimentación.",
+  "headline": "De los datos brutos a la estrategia de la medalla de oro",
+  "label": "EL PROCESO",
+  "step1_desc": "Conecta tus apps de entrenamiento y nutrición. Combinamos Strava, Whoop, Garmin, Yazio y más en una sola cronología de rendimiento.",
+  "step1_title": "Conectar datos",
+  "step2_desc": "Nuestros modelos de IA modelan la fatiga, la recuperación y la disponibilidad de combustible para que usted pueda ver lo que los gráficos estándar no detectan.",
+  "step2_status": "Estado: Fatiga profunda detectada",
+  "step2_title": "Preparación del modelo",
+  "step3_desc": "Obtén objetivos de alimentación antes, durante y después del entrenamiento con carbohidratos, líquidos y sodio según tu carga de entrenamiento real.",
+  "step3_status1": "Combustible: Optimizado",
+  "step3_status2": "Recuperación: Equilibrada",
+  "step3_title": "Plan de abastecimiento de combustible",
+  "step4_desc": "Recibe acciones específicas para tu entrenamiento y nutrición. Descubre si debes esforzarte, recuperarte o reponer fuerzas antes de tu próxima sesión clave.",
+  "step4_quote": "\"Combustible bajo para trabajo de umbral. Agregar 60 g de carbohidratos 90 minutos antes del recorrido\".",
+  "step4_title": "Ejecutar diariamente"
+}

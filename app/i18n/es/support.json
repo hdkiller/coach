@@ -1,0 +1,37 @@
+{
+  "community": {
+    "btn": "Únete a nuestro Discord",
+    "desc": "Únete a nuestro servidor de Discord para hacer preguntas, compartir comentarios y conectar con otros usuarios. Es la forma más rápida de obtener ayuda.",
+    "title": "Apoyo comunitario"
+  },
+  "email": {
+    "btn": "Contactar con soporte técnico",
+    "desc": "¿Tiene algún problema específico o necesita asistencia privada? Envíenos un correo electrónico y le responderemos lo antes posible.",
+    "title": "Soporte por correo electrónico"
+  },
+  "form": {
+    "email": "Correo electrónico",
+    "message": "Mensaje",
+    "message_placeholder": "Describe tu problema o comentario...",
+    "name": "Nombre",
+    "name_placeholder": "Su nombre",
+    "sending_as": "Enviando como",
+    "subject": "Sujeto",
+    "subject_placeholder": "¿De qué se trata esto?",
+    "submit": "Enviar mensaje",
+    "title": "Envíanos un mensaje"
+  },
+  "github": {
+    "btn": "Abrir un problema",
+    "desc": "¿Encontraste un error o tienes una solicitud de función? Abre un problema en nuestro repositorio de GitHub para seguir su progreso y contribuir.",
+    "title": "Problemas de GitHub"
+  },
+  "subtitle": "Estamos aquí para ayudarte. Elige el canal que mejor se adapte a ti.",
+  "title": "Apoyo",
+  "toast": {
+    "error": "No se pudo enviar el mensaje",
+    "missing_content": "El asunto y el mensaje son obligatorios",
+    "missing_fields": "Se requieren nombre y correo electrónico",
+    "success": "¡Mensaje enviado exitosamente!"
+  }
+}
