@@ -495,7 +495,17 @@ function normalizePowerTarget(
   const target = { ...original }
   const ftp = refs.ftp > 0 ? refs.ftp : 250
   const mode = targetFormatPolicy.power.mode
-  const toWatts = (value: number) => (value <= 3 ? value * ftp : value)
+  const originalUnits = String(original.units || '')
+    .trim()
+    .toLowerCase()
+  const toWatts = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return 0
+    if (originalUnits.includes('%')) {
+      return (value > 3 ? value / 100 : value) * ftp
+    }
+    if (originalUnits === 'w' || originalUnits === 'watts') return value
+    return value <= 3 ? value * ftp : value
+  }
 
   if (mode === 'watts') {
     if (target.range) {

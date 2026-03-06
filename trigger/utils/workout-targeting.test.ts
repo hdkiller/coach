@@ -174,4 +174,39 @@ describe('applyTargetFormatPolicyToStep', () => {
       units: 'm/s'
     })
   })
+
+  it('preserves explicit percent FTP ranges above 100%', () => {
+    const step: any = {
+      type: 'Active',
+      primaryTarget: 'power',
+      power: {
+        range: { start: 108, end: 110 },
+        units: '%'
+      }
+    }
+
+    applyTargetFormatPolicyToStep(
+      step,
+      {
+        heartRate: { mode: 'percentLthr', preferRange: true },
+        power: { mode: 'percentFtp', preferRange: true },
+        pace: { mode: 'percentPace', preferRange: true },
+        cadence: { mode: 'rpm' }
+      },
+      {
+        ftp: 290,
+        lthr: 168,
+        maxHr: 185,
+        thresholdPace: 2.345,
+        hrZones: [],
+        powerZones: [],
+        paceZones: []
+      }
+    )
+
+    expect(step.power).toMatchObject({
+      range: { start: 1.08, end: 1.1 },
+      units: '%'
+    })
+  })
 })
