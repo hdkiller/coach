@@ -5,6 +5,7 @@ export const profileUpdateSchema = z.object({
   name: z.string().min(2).nullable().optional(),
   nickname: z.string().max(50).nullable().optional(),
   language: z.string().optional(),
+  uiLanguage: z.string().optional(),
   weight: z.number().nullable().optional(),
   weightUnits: z.enum(['Kilograms', 'Pounds']).optional(),
   weightSourceMode: z.enum(['AUTO', 'PROFILE_LOCK']).optional(),

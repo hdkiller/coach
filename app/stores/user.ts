@@ -21,6 +21,7 @@ interface User {
   dashboardSettings?: any
   isAdmin?: boolean
   language?: string
+  uiLanguage?: string
 }
 
 interface UserEntitlements {
