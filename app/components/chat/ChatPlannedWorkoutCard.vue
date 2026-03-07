@@ -504,14 +504,14 @@
   }
 
   watch(
-    () => [
-      workoutId.value,
-      runId.value,
-      props.response?.status,
-      props.response?.success,
-      props.toolName,
-      props.args?.date,
-      props.args?.title
+    [
+      workoutId,
+      runId,
+      () => props.response?.status,
+      () => props.response?.success,
+      () => props.toolName,
+      () => props.args?.date,
+      () => props.args?.title
     ],
     () => {
       startPolling()
