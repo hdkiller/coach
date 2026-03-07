@@ -160,6 +160,10 @@ export async function fetchUltrahumanProfile(tokenOrIntegration: string | Integr
 // --- Normalization ---
 
 export function normalizeUltrahumanWellness(dailyData: any, userId: string, date: Date) {
+  if (dailyData?.data) {
+    dailyData = dailyData.data
+  }
+
   if (!dailyData || !dailyData.metric_data || !Array.isArray(dailyData.metric_data)) return null
 
   const metrics: Record<string, any> = {}
