@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Exchange authorization code for access token
-    const tokenResponse = await fetch('https://vision.ultrahuman.com/m7/v1/token', {
+    const tokenResponse = await fetch('https://partner.ultrahuman.com/api/partners/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'

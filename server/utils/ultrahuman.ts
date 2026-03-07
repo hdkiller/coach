@@ -25,7 +25,7 @@ export async function refreshUltrahumanToken(integration: Integration): Promise<
 
   console.log('Refreshing Ultrahuman token for integration:', integration.id)
 
-  const response = await fetch('https://vision.ultrahuman.com/m7/v1/token', {
+  const response = await fetch('https://partner.ultrahuman.com/api/partners/oauth/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -87,12 +87,18 @@ async function ensureValidToken(integration: Integration): Promise<Integration> 
 
 // --- Data Fetching ---
 
+/**
+ * Fetches daily metrics from Ultrahuman
+ * Based on docs: /api/partners/v1/user_data/metrics?date=YYYY-MM-DD
+ * Alternatively: /api/v1/partner/daily_metrics?date=YYYY-MM-DD
+ */
 export async function fetchUltrahumanDaily(integration: Integration, date: Date) {
   const validIntegration = await ensureValidToken(integration)
   const dateStr = date.toISOString().split('T')[0]
 
+  // The documentation mentions two possible endpoints, we'll try the specific metrics one first
   const response = await fetch(
-    `https://vision.ultrahuman.com/api/v1/vision/daily?date=${dateStr}`,
+    `https://partner.ultrahuman.com/api/partners/v1/user_data/metrics?date=${dateStr}`,
     {
       headers: {
         Authorization: `Bearer ${validIntegration.accessToken}`
@@ -118,7 +124,9 @@ export async function fetchUltrahumanDaily(integration: Integration, date: Date)
     throw new Error(`Ultrahuman API error: ${response.status} ${response.statusText}`)
   }
 
-  return await response.json()
+  const result = await response.json()
+  // The data is usually wrapped in a 'data' field or 'metrics' field
+  return result.data || result
 }
 
 export async function fetchUltrahumanProfile(tokenOrIntegration: string | Integration) {
@@ -130,11 +138,14 @@ export async function fetchUltrahumanProfile(tokenOrIntegration: string | Integr
     accessToken = validIntegration.accessToken
   }
 
-  const response = await fetch('https://vision.ultrahuman.com/api/v1/vision/profile', {
-    headers: {
-      Authorization: `Bearer ${accessToken}`
+  const response = await fetch(
+    'https://partner.ultrahuman.com/api/partners/v1/user_data/user_info',
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
     }
-  })
+  )
 
   if (!response.ok) {
     throw new Error(`Ultrahuman API error: ${response.status} ${response.statusText}`)
@@ -148,58 +159,46 @@ export async function fetchUltrahumanProfile(tokenOrIntegration: string | Integr
 export function normalizeUltrahumanWellness(dailyData: any, userId: string, date: Date) {
   if (!dailyData) return null
 
-  const scores = dailyData.scores || {}
-  const metrics = dailyData.metrics || {}
-  const sleep = metrics.sleep || {}
-  const heartRate = metrics.heart_rate || {}
-  const movement = metrics.movement || {}
-  const biometrics = metrics.biometrics || {}
-
-  // Recovery Score (0-100 to 1-10)
-  const recoveryScore = scores.recovery_score ? Math.round(scores.recovery_score) : null
-  const readiness = recoveryScore ? Math.round(recoveryScore / 10) : null
-
-  // Sleep Metrics
-  const sleepSecs = sleep.total_sleep_duration || null
+  // Based on provided fields: sleep_score, total_sleep, sleep_efficiency, etc.
+  // Note: Recovery score is often 'recovery_index' or 'morning_alertness' in their system
+  const sleepScore = dailyData.sleep_score ?? null
+  const sleepSecs = dailyData.total_sleep ?? null
   const sleepHours = sleepSecs ? Math.round((sleepSecs / 3600) * 10) / 10 : null
-  const sleepScore = scores.sleep_index || null
 
-  const sleepDeepSecs = sleep.stages?.deep ?? null
-  const sleepRemSecs = sleep.stages?.rem ?? null
-  const sleepLightSecs = sleep.stages?.light ?? null
-  const sleepAwakeSecs = sleep.stages?.awake ?? null
+  const deepSecs = dailyData.deep_sleep ?? null
+  const remSecs = dailyData.rem_sleep ?? null
+  const lightSecs = dailyData.light_sleep ?? null
 
   // Biometrics
-  const restingHr = heartRate.resting_hr || null
-  const avgHrv = heartRate.hrv || null
+  const avgHrv = dailyData.hrv?.average ?? dailyData.hrv ?? null
+  const restingHr = dailyData.resting_hr ?? null
+  const bodyTemp = dailyData.average_body_temperature ?? null
 
-  // Movement/Activity
-  const steps = movement.steps || null
-  const distance = movement.distance || null
+  // Recovery/Readiness
+  // Ultrahuman's 'morning_alertness' or 'restorative_sleep' can be used as readiness indicators
+  const recoveryScore = dailyData.recovery_index ?? dailyData.morning_alertness ?? null
+  const readiness = recoveryScore ? Math.round(recoveryScore / 10) : null
+
+  // Movement
+  const steps = dailyData.steps ?? null
+  const distance = dailyData.distance ?? null
 
   return {
     userId,
     date,
     hrv: avgHrv,
     restingHr: restingHr ? Math.round(restingHr) : null,
-    avgSleepingHr: heartRate.avg_hr || null,
     sleepSecs,
     sleepHours,
     sleepScore,
-    sleepDeepSecs,
-    sleepRemSecs,
-    sleepLightSecs,
-    sleepAwakeSecs,
+    sleepDeepSecs: deepSecs,
+    sleepRemSecs: remSecs,
+    sleepLightSecs: lightSecs,
     readiness,
     recoveryScore,
-    stress: null,
-    weight: metrics.weight || null,
-    spO2: biometrics.spo2 || null,
-    respiration: biometrics.respiration || null,
-    skinTemp: biometrics.skin_temperature || null,
-    vo2max: metrics.vo2_max || null,
-    totalCaloriesBurned: movement.total_calories || null,
-    activeCaloriesBurned: movement.active_calories || null,
+    skinTemp: bodyTemp,
+    totalCaloriesBurned: dailyData.total_calories || null,
+    activeCaloriesBurned: dailyData.active_calories || null,
     rawJson: dailyData,
     comments:
       `Ultrahuman: ${steps ? steps + ' steps' : ''}${distance ? ', ' + (distance / 1000).toFixed(1) + 'km' : ''}`.trim()

@@ -39,9 +39,9 @@ export default defineEventHandler(async (event) => {
     maxAge: 600 // 10 minutes
   })
 
-  const scopes = ['read:daily', 'read:profile']
+  const scopes = ['ring_data', 'cgm_data', 'profile']
 
-  const authUrl = new URL('https://vision.ultrahuman.com/m7/v1/authorize')
+  const authUrl = new URL('https://auth.ultrahuman.com/authorise')
   authUrl.searchParams.set('client_id', clientId)
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('response_type', 'code')
