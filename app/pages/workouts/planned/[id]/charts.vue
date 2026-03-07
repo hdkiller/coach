@@ -87,12 +87,31 @@
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div
+                class="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4"
+              >
                 <div
-                  class="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4"
+                  class="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400 mb-3"
                 >
-                  <div
-                    class="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400 mb-3"
+                  Today&apos;s Plan
+                </div>
+                <div
+                  class="relative w-32 h-12 opacity-15 dark:opacity-25 pointer-events-none -mb-1 translate-y-1"
+                >
+                  <MiniWorkoutChart
+                    :workout="workout"
+                    :sport-settings="effectiveSportSettings"
+                    :preference="preference"
+                  />
+                </div>
+              </div>
+
+              <div
+                class="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4"
+              >
+                <div
+                  class="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400 mb-3"
                   >
                     Calendar Size
                   </div>
@@ -146,7 +165,7 @@
       <div class="max-w-6xl mx-auto w-full p-4 sm:p-6 space-y-4">
         <USkeleton class="h-10 w-64" />
         <USkeleton class="h-80 w-full rounded-xl" />
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <USkeleton v-for="i in 3" :key="i" class="h-28 w-full rounded-xl" />
         </div>
       </div>

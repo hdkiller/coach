@@ -142,7 +142,11 @@
                 v-if="workout.structuredWorkout && workout.type !== 'Rest'"
                 class="absolute right-0 bottom-0 w-32 h-12 opacity-15 dark:opacity-25 pointer-events-none -mb-1 translate-y-1"
               >
-                <MiniWorkoutChart :workout="workout" :preference="getChartPreference(workout)" />
+                <MiniWorkoutChart
+                  :workout="workout"
+                  :sport-settings="getChartSportSettings(workout)"
+                  :preference="getChartPreference(workout)"
+                />
               </div>
             </div>
           </div>
@@ -312,6 +316,7 @@
   import DashboardRefineRecommendationModal from '~/components/dashboard/DashboardRefineRecommendationModal.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
+  import { getDefaultSportSettings, getSportSettingsForActivity } from '~/utils/sportSettings'
   import {
     getWorkoutIcon,
     getWorkoutColorClass,
@@ -394,6 +399,26 @@
     if (flattenedSteps.some((step: any) => step?.pace)) return 'pace'
 
     return 'power'
+  }
+
+  function getChartSportSettings(workout: any) {
+    const allSportSettings = userStore.profile?.profile?.sportSettings || []
+    const specific = getSportSettingsForActivity(allSportSettings, workout?.type || '')
+    const fallback = getDefaultSportSettings(allSportSettings)
+
+    return (
+      specific || {
+        ftp: userStore.currentFtp,
+        lthr: fallback?.lthr,
+        maxHr: fallback?.maxHr,
+        thresholdPace: fallback?.thresholdPace,
+        hrZones: fallback?.hrZones || [],
+        powerZones: fallback?.powerZones || [],
+        paceZones: fallback?.paceZones || [],
+        targetPolicy: fallback?.targetPolicy,
+        loadPreference: fallback?.loadPreference
+      }
+    )
   }
 
   function flattenWorkoutSteps(steps: any[]): any[] {
