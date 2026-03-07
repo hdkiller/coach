@@ -26,6 +26,10 @@ import {
   shouldCondenseHeartRateSection
 } from './utils/workout-metric-priority'
 import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
+import {
+  buildWorkoutAnalysisFacts,
+  type WorkoutAnalysisFacts
+} from '../server/utils/workout-analysis-facts'
 
 // TypeScript interface for the structured analysis
 interface StructuredAnalysis {
@@ -380,6 +384,16 @@ export const analyzeWorkoutTask = task({
 
       // Build comprehensive workout data for analysis
       const workoutData = buildWorkoutAnalysisData(workout)
+      const analysisFacts = buildWorkoutAnalysisFacts({
+        workout,
+        sportSettings,
+        plannedWorkout: workout.plannedWorkout,
+        userProfile: {
+          weight: user?.weight || null,
+          weightUnits: user?.weightUnits || null,
+          language: user?.language || null
+        }
+      })
 
       // Generate the prompt
       const prompt = buildWorkoutAnalysisPrompt(
@@ -398,7 +412,8 @@ export const analyzeWorkoutTask = task({
           temperatureUnits: user?.temperatureUnits || null
         },
         aiSettings.aiContext,
-        workout.plannedWorkout
+        workout.plannedWorkout,
+        analysisFacts
       )
 
       logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
@@ -861,6 +876,113 @@ function formatPromptWeight(
   return `${weight.toFixed(1)} kg`
 }
 
+function getFactValueByPath(facts: WorkoutAnalysisFacts, path: string): unknown {
+  return path.split('.').reduce<unknown>((acc, key) => {
+    if (!acc || typeof acc !== 'object') return undefined
+    return (acc as Record<string, unknown>)[key]
+  }, facts)
+}
+
+function formatPromptFactValue(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2)
+  if (Array.isArray(value)) return value.length > 0 ? value.join('; ') : null
+  if (typeof value === 'string') return value.length > 0 ? value : null
+  return String(value)
+}
+
+function buildAnalysisFactsPromptBlock(analysisFacts?: WorkoutAnalysisFacts): string {
+  if (!analysisFacts) return ''
+
+  const promptDecisions = analysisFacts.debugMeta.promptDecisions || {}
+  const preferredPaths = [
+    'telemetry.analysisMode',
+    'telemetry.hrUsable',
+    'telemetry.powerSourceType',
+    'telemetry.powerAbsoluteUsable',
+    'telemetry.powerRelativeUsable',
+    'physiology.normalHrLagExpected',
+    'physiology.normalHrLagDetected',
+    'physiology.decouplingValid',
+    'physiology.decouplingEffective',
+    'physiology.decouplingDirection',
+    'lrBalance.interpretationMode',
+    'lrBalance.correctionReason',
+    'lrBalance.correctedLeftPct',
+    'lrBalance.correctedRightPct',
+    'erg.detected',
+    'erg.powerControlMode',
+    'debugMeta.disabledInterpretations'
+  ]
+  const labels: Record<string, string> = {
+    'telemetry.analysisMode': 'Analysis Mode',
+    'telemetry.hrUsable': 'HR Usable',
+    'telemetry.powerSourceType': 'Power Source Type',
+    'telemetry.powerAbsoluteUsable': 'Power Absolute Usable',
+    'telemetry.powerRelativeUsable': 'Power Relative Usable',
+    'physiology.normalHrLagExpected': 'Normal HR Lag Expected',
+    'physiology.normalHrLagDetected': 'Normal HR Lag Detected',
+    'physiology.decouplingValid': 'Decoupling Valid',
+    'physiology.decouplingEffective': 'Decoupling Effective',
+    'physiology.decouplingDirection': 'Decoupling Direction',
+    'lrBalance.interpretationMode': 'L/R Interpretation Mode',
+    'lrBalance.correctionReason': 'L/R Correction Reason',
+    'lrBalance.correctedLeftPct': 'Corrected Left %',
+    'lrBalance.correctedRightPct': 'Corrected Right %',
+    'erg.detected': 'ERG Detected',
+    'erg.powerControlMode': 'Power Control Mode',
+    'debugMeta.disabledInterpretations': 'Disabled Interpretations'
+  }
+
+  const lines: string[] = []
+  const disabledInterpretations: string[] = []
+
+  for (const path of preferredPaths) {
+    const decision = promptDecisions[path]
+    if (!decision?.include) continue
+    const rawValue = getFactValueByPath(analysisFacts, path)
+
+    if (path === 'debugMeta.disabledInterpretations') {
+      if (Array.isArray(rawValue)) {
+        disabledInterpretations.push(
+          ...rawValue.filter((item): item is string => typeof item === 'string' && item.length > 0)
+        )
+      }
+      continue
+    }
+
+    const formatted = formatPromptFactValue(rawValue)
+    if (!formatted) continue
+    lines.push(`- ${labels[path] || path}: ${formatted}`)
+  }
+
+  if (disabledInterpretations.length > 0) {
+    lines.push('- Disabled Interpretations:')
+    disabledInterpretations.forEach((reason) => {
+      lines.push(`  - ${reason}`)
+    })
+  }
+
+  if (lines.length === 0) return ''
+
+  return `
+## Calculated Workout Facts
+
+Use the following computed interpretation facts as higher-priority context for this analysis.
+
+${lines.join('\n')}
+
+Rules for these facts:
+- Treat these calculated facts as authoritative guardrails for interpretation.
+- Do not infer meaning from omitted facts.
+- If a metric is marked unusable or disabled, do not analyze it.
+- If HR lag is expected, do not call early HR/power mismatch a sensor problem.
+- If L/R interpretation mode is disabled, do not discuss left/right balance.
+- If ERG is detected, do not over-credit pacing discipline that may have been trainer-enforced.
+`
+}
+
 export function buildWorkoutAnalysisPrompt(
   workoutData: any,
 
@@ -883,7 +1005,9 @@ export function buildWorkoutAnalysisPrompt(
 
   aiContext?: string | null,
 
-  plannedWorkout?: any
+  plannedWorkout?: any,
+
+  analysisFacts?: WorkoutAnalysisFacts
 ): string {
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
@@ -979,6 +1103,8 @@ ATHLETE CONTEXT:
 ${userProfile?.weight ? `- Weight: ${formatPromptWeight(userProfile.weight, userProfile.weightUnits)}` : ''}
 
 ${aiContext ? `\n## Global Athlete Context / About Me / Special Instructions\n${aiContext}\n` : ''}
+
+${buildAnalysisFactsPromptBlock(analysisFacts)}
 
 
 

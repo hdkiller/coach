@@ -1618,6 +1618,184 @@
                 </div>
               </div>
             </div>
+
+            <div
+              v-if="analysisFacts"
+              class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+            >
+              <div class="flex flex-col gap-5">
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                  <div class="flex items-center gap-2">
+                    <UIcon name="i-heroicons-beaker" class="w-5 h-5 text-amber-500" />
+                    <div class="flex flex-col">
+                      <h3
+                        class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white"
+                      >
+                        Calculated Workout Facts
+                      </h3>
+                      <div
+                        class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500"
+                      >
+                        Derived training interpretation signals for this workout
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <UBadge
+                      color="success"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      Included: {{ includedPromptFactsCount }}
+                    </UBadge>
+                    <UBadge
+                      color="neutral"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      Ignored: {{ ignoredPromptFactsCount }}
+                    </UBadge>
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      size="sm"
+                      class="font-black uppercase tracking-widest text-[10px]"
+                      :icon="
+                        analysisFactsOpen ? 'i-heroicons-chevron-up' : 'i-heroicons-chevron-down'
+                      "
+                      :label="analysisFactsOpen ? 'Hide Facts' : 'Show Facts'"
+                      @click="analysisFactsOpen = !analysisFactsOpen"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  v-if="!analysisFactsOpen"
+                  class="rounded-xl bg-amber-50/70 dark:bg-amber-950/20 p-4 border border-amber-100 dark:border-amber-900/40"
+                >
+                  <div
+                    class="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-2"
+                  >
+                    Collapsed Summary
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <UBadge
+                      :color="getFactBadgeColor(analysisFacts.telemetry.hrUsable)"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      HR usable: {{ formatFactValue(analysisFacts.telemetry.hrUsable) }}
+                    </UBadge>
+                    <UBadge
+                      color="neutral"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      Analysis mode: {{ formatFactValue(analysisFacts.telemetry.analysisMode) }}
+                    </UBadge>
+                    <UBadge
+                      color="neutral"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      L/R mode: {{ formatFactValue(analysisFacts.lrBalance.interpretationMode) }}
+                    </UBadge>
+                  </div>
+                </div>
+
+                <div v-else class="space-y-4">
+                  <div class="flex flex-wrap gap-2 mb-1">
+                    <UBadge
+                      :color="getFactBadgeColor(analysisFacts.telemetry.hrUsable)"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      HR usable: {{ formatFactValue(analysisFacts.telemetry.hrUsable) }}
+                    </UBadge>
+                    <UBadge
+                      :color="getFactBadgeColor(analysisFacts.erg.detected)"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      ERG detected: {{ formatFactValue(analysisFacts.erg.detected) }}
+                    </UBadge>
+                    <UBadge
+                      color="neutral"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      Power source: {{ formatFactValue(analysisFacts.telemetry.powerSourceType) }}
+                    </UBadge>
+                    <UBadge
+                      :color="getFactBadgeColor(analysisFacts.physiology.decouplingValid)"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      Decoupling valid:
+                      {{ formatFactValue(analysisFacts.physiology.decouplingValid) }}
+                    </UBadge>
+                    <UBadge
+                      color="neutral"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      L/R mode: {{ formatFactValue(analysisFacts.lrBalance.interpretationMode) }}
+                    </UBadge>
+                  </div>
+
+                  <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div
+                      v-for="group in analysisFactsGroups"
+                      :key="group.key"
+                      class="rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+                    >
+                      <div
+                        class="px-4 py-3 bg-gray-50/70 dark:bg-gray-950/50 border-b border-gray-100 dark:border-gray-800"
+                      >
+                        <h4
+                          class="text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white"
+                        >
+                          {{ group.label }}
+                        </h4>
+                      </div>
+                      <div class="px-4 py-3 space-y-2">
+                        <div
+                          v-for="entry in group.entries"
+                          :key="entry.key"
+                          class="flex items-start justify-between gap-4 text-xs"
+                        >
+                          <UTooltip
+                            :text="analysisFactTooltips[entry.key] || entry.label"
+                            :popper="{ placement: 'top' }"
+                            :ui="{ content: 'w-[280px] h-auto whitespace-normal' }"
+                            arrow
+                          >
+                            <div
+                              class="font-black uppercase tracking-widest text-gray-400 border-b border-dashed border-gray-300 dark:border-gray-700 inline-block cursor-help"
+                            >
+                              {{ entry.label }}
+                            </div>
+                          </UTooltip>
+                          <UTooltip
+                            :text="getPromptDecisionReason(entry.path)"
+                            :popper="{ placement: 'left' }"
+                            :ui="{ content: 'w-[260px] h-auto whitespace-normal' }"
+                            arrow
+                          >
+                            <div
+                              class="text-right font-medium cursor-help"
+                              :class="getPromptDecisionValueClass(entry.path)"
+                            >
+                              {{ formatFactValue(entry.value) }}
+                            </div>
+                          </UTooltip>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Data Streams Section -->
@@ -2182,6 +2360,7 @@
   const error = ref<string | null>(null)
   const savingTags = ref(false)
   const showTagEditor = ref(false)
+  const analysisFactsOpen = ref(false)
   const analyzingWorkout = ref(false)
   const analyzingAdherence = ref(false)
   const promoting = ref(false)
@@ -2223,6 +2402,376 @@
     if (!workout.value?.aiAnalysis) return ''
     return marked(workout.value.aiAnalysis)
   })
+
+  const analysisFacts = computed(() => workout.value?.analysisFacts || null)
+  const analysisFactTooltips: Record<string, string> = {
+    rpe: 'The athlete-reported intensity of the full session on the RPE scale.',
+    sessionRpeLoad:
+      'Session RPE multiplied by duration in minutes. This reflects total subjective toll, not a heart-rate zone.',
+    subjectiveObjectiveGap:
+      'How far the athlete’s subjective load diverges from objective load markers like TSS or training load.',
+    musculoskeletalToll:
+      'Estimated impact and tissue stress from the session, especially useful for running and strength work.',
+    impactProfile:
+      'Baseline mechanical impact expectation for the sport, used to contextualize subjective load.',
+    analysisMode:
+      'Which signal family should lead interpretation for this workout: power, pace, RPE, or a mixed view.',
+    hrUsable:
+      'Whether heart-rate telemetry is trustworthy enough to support physiological conclusions.',
+    hrZeroRatio:
+      'Share of HR samples that were literal zero values, which are treated as invalid telemetry.',
+    hrMissingRatio:
+      'Share of HR samples that were missing or invalid, indicating unreliable heart-rate coverage.',
+    hrArtifactFlag:
+      'True when the heart-rate stream shows enough placeholder or invalid data to treat it as artifact-prone.',
+    powerSourceType:
+      'Whether power is treated as direct measured mechanical power, estimated/modelled power, or unknown.',
+    powerAbsoluteUsable:
+      'Whether the absolute power number is reliable enough to use as a benchmark, not just a relative trend.',
+    powerRelativeUsable:
+      'Whether available power can still be used for within-athlete trend tracking even if absolute accuracy is uncertain.',
+    lrBalanceUsable:
+      'Whether left/right balance can be interpreted safely after checking source semantics and possible channel issues.',
+    normalHrLagExpected:
+      'Whether delayed HR response should be expected physiologically for this workout type and effort profile.',
+    normalHrLagDetected:
+      'Whether the workout shows a normal delayed HR rise after power or pace increases rather than a sensor problem.',
+    steadyStateSegmentsAvailable:
+      'Whether there is enough sustained steady work after warm-up to support durability-style physiology checks.',
+    warmupExcludedMinutes:
+      'Minutes excluded from decoupling logic so warm-up kinetics do not create false positives.',
+    decouplingValid:
+      'Whether decoupling should be interpreted at all for this session based on duration and telemetry quality.',
+    decouplingEffective:
+      'The effective post-warm-up decoupling value used for debugging. Negative values can indicate efficiency gain.',
+    decouplingDirection:
+      'Classifies the session as positive drift, stable, or efficiency gain after excluding the warm-up phase.',
+    decouplingConfidence:
+      'Confidence in the decoupling reading based on workout duration and signal quality.',
+    sourceSemantics:
+      'Describes what the L/R balance channels likely represent: true left/right legs, human-vs-motor, or unknown.',
+    inversionSuspected:
+      'True when the balance channels appear reversed and need correction before interpretation.',
+    correctedLeftPct:
+      'Left-side percentage after any sanity correction or inversion handling has been applied.',
+    correctedRightPct:
+      'Right-side percentage after any sanity correction or inversion handling has been applied.',
+    interpretationMode:
+      'Whether L/R balance is used normally, corrected first, or disabled entirely.',
+    correctionReason: 'Short explanation for why L/R interpretation was corrected or disabled.',
+    detected:
+      'Whether ERG mode was detected from explicit metadata or a strong inferred trainer-control signature.',
+    confidence:
+      'Confidence level for the current diagnostic group, especially ERG and decoupling inference.',
+    source:
+      'Whether the ERG inference came from explicit metadata, heuristic inference, or remains unknown.',
+    powerControlMode:
+      'The likely trainer control mode: ERG, resistance/slope-style control, free ride, or unknown.',
+    reasons: 'Short reasons explaining why the system inferred the current ERG status.',
+    computedFrom: 'Inputs used to compute this fact payload for the current workout.',
+    unavailableInputs: 'Inputs that were missing, so some facts may be downgraded or unavailable.',
+    disabledInterpretations:
+      'Interpretations intentionally suppressed because the available data is not trustworthy enough.'
+  }
+
+  const analysisFactsGroups = computed(() => {
+    if (!analysisFacts.value) return []
+
+    return [
+      {
+        key: 'subjective',
+        label: 'Subjective',
+        entries: [
+          {
+            key: 'rpe',
+            path: 'subjective.rpe',
+            label: 'RPE',
+            value: analysisFacts.value.subjective.rpe
+          },
+          {
+            key: 'sessionRpeLoad',
+            path: 'subjective.sessionRpeLoad',
+            label: 'Session RPE Load',
+            value: analysisFacts.value.subjective.sessionRpeLoad
+          },
+          {
+            key: 'subjectiveObjectiveGap',
+            path: 'subjective.subjectiveObjectiveGap',
+            label: 'Subjective vs Objective Gap',
+            value: analysisFacts.value.subjective.subjectiveObjectiveGap
+          },
+          {
+            key: 'musculoskeletalToll',
+            path: 'subjective.musculoskeletalToll',
+            label: 'Musculoskeletal Toll',
+            value: analysisFacts.value.subjective.musculoskeletalToll
+          },
+          {
+            key: 'impactProfile',
+            path: 'subjective.impactProfile',
+            label: 'Impact Profile',
+            value: analysisFacts.value.subjective.impactProfile
+          }
+        ]
+      },
+      {
+        key: 'telemetry',
+        label: 'Telemetry',
+        entries: [
+          {
+            key: 'analysisMode',
+            path: 'telemetry.analysisMode',
+            label: 'Analysis Mode',
+            value: analysisFacts.value.telemetry.analysisMode
+          },
+          {
+            key: 'hrUsable',
+            path: 'telemetry.hrUsable',
+            label: 'HR Usable',
+            value: analysisFacts.value.telemetry.hrUsable
+          },
+          {
+            key: 'hrZeroRatio',
+            path: 'telemetry.hrZeroRatio',
+            label: 'HR Zero Ratio',
+            value: analysisFacts.value.telemetry.hrZeroRatio
+          },
+          {
+            key: 'hrMissingRatio',
+            path: 'telemetry.hrMissingRatio',
+            label: 'HR Missing Ratio',
+            value: analysisFacts.value.telemetry.hrMissingRatio
+          },
+          {
+            key: 'hrArtifactFlag',
+            path: 'telemetry.hrArtifactFlag',
+            label: 'HR Artifact Flag',
+            value: analysisFacts.value.telemetry.hrArtifactFlag
+          },
+          {
+            key: 'powerSourceType',
+            path: 'telemetry.powerSourceType',
+            label: 'Power Source Type',
+            value: analysisFacts.value.telemetry.powerSourceType
+          },
+          {
+            key: 'powerAbsoluteUsable',
+            path: 'telemetry.powerAbsoluteUsable',
+            label: 'Power Absolute Usable',
+            value: analysisFacts.value.telemetry.powerAbsoluteUsable
+          },
+          {
+            key: 'powerRelativeUsable',
+            path: 'telemetry.powerRelativeUsable',
+            label: 'Power Relative Usable',
+            value: analysisFacts.value.telemetry.powerRelativeUsable
+          },
+          {
+            key: 'lrBalanceUsable',
+            path: 'telemetry.lrBalanceUsable',
+            label: 'L/R Balance Usable',
+            value: analysisFacts.value.telemetry.lrBalanceUsable
+          }
+        ]
+      },
+      {
+        key: 'physiology',
+        label: 'Physiology',
+        entries: [
+          {
+            key: 'normalHrLagExpected',
+            path: 'physiology.normalHrLagExpected',
+            label: 'Normal HR Lag Expected',
+            value: analysisFacts.value.physiology.normalHrLagExpected
+          },
+          {
+            key: 'normalHrLagDetected',
+            path: 'physiology.normalHrLagDetected',
+            label: 'Normal HR Lag Detected',
+            value: analysisFacts.value.physiology.normalHrLagDetected
+          },
+          {
+            key: 'steadyStateSegmentsAvailable',
+            path: 'physiology.steadyStateSegmentsAvailable',
+            label: 'Steady-State Segments',
+            value: analysisFacts.value.physiology.steadyStateSegmentsAvailable
+          },
+          {
+            key: 'warmupExcludedMinutes',
+            path: 'physiology.warmupExcludedMinutes',
+            label: 'Warmup Excluded Minutes',
+            value: analysisFacts.value.physiology.warmupExcludedMinutes
+          },
+          {
+            key: 'decouplingValid',
+            path: 'physiology.decouplingValid',
+            label: 'Decoupling Valid',
+            value: analysisFacts.value.physiology.decouplingValid
+          },
+          {
+            key: 'decouplingEffective',
+            path: 'physiology.decouplingEffective',
+            label: 'Decoupling Effective',
+            value: analysisFacts.value.physiology.decouplingEffective
+          },
+          {
+            key: 'decouplingDirection',
+            path: 'physiology.decouplingDirection',
+            label: 'Decoupling Direction',
+            value: analysisFacts.value.physiology.decouplingDirection
+          },
+          {
+            key: 'decouplingConfidence',
+            path: 'physiology.decouplingConfidence',
+            label: 'Decoupling Confidence',
+            value: analysisFacts.value.physiology.decouplingConfidence
+          }
+        ]
+      },
+      {
+        key: 'lrBalance',
+        label: 'L/R Balance',
+        entries: [
+          {
+            key: 'sourceSemantics',
+            path: 'lrBalance.sourceSemantics',
+            label: 'Source Semantics',
+            value: analysisFacts.value.lrBalance.sourceSemantics
+          },
+          {
+            key: 'inversionSuspected',
+            path: 'lrBalance.inversionSuspected',
+            label: 'Inversion Suspected',
+            value: analysisFacts.value.lrBalance.inversionSuspected
+          },
+          {
+            key: 'correctedLeftPct',
+            path: 'lrBalance.correctedLeftPct',
+            label: 'Corrected Left %',
+            value: analysisFacts.value.lrBalance.correctedLeftPct
+          },
+          {
+            key: 'correctedRightPct',
+            path: 'lrBalance.correctedRightPct',
+            label: 'Corrected Right %',
+            value: analysisFacts.value.lrBalance.correctedRightPct
+          },
+          {
+            key: 'interpretationMode',
+            path: 'lrBalance.interpretationMode',
+            label: 'Interpretation Mode',
+            value: analysisFacts.value.lrBalance.interpretationMode
+          },
+          {
+            key: 'correctionReason',
+            path: 'lrBalance.correctionReason',
+            label: 'Correction Reason',
+            value: analysisFacts.value.lrBalance.correctionReason
+          }
+        ]
+      },
+      {
+        key: 'erg',
+        label: 'ERG',
+        entries: [
+          {
+            key: 'detected',
+            path: 'erg.detected',
+            label: 'Detected',
+            value: analysisFacts.value.erg.detected
+          },
+          {
+            key: 'confidence',
+            path: 'erg.confidence',
+            label: 'Confidence',
+            value: analysisFacts.value.erg.confidence
+          },
+          {
+            key: 'source',
+            path: 'erg.source',
+            label: 'Source',
+            value: analysisFacts.value.erg.source
+          },
+          {
+            key: 'powerControlMode',
+            path: 'erg.powerControlMode',
+            label: 'Power Control Mode',
+            value: analysisFacts.value.erg.powerControlMode
+          },
+          {
+            key: 'reasons',
+            path: 'erg.reasons',
+            label: 'Reasons',
+            value: analysisFacts.value.erg.reasons
+          }
+        ]
+      },
+      {
+        key: 'debugMeta',
+        label: 'Debug Meta',
+        entries: [
+          {
+            key: 'computedFrom',
+            path: 'debugMeta.computedFrom',
+            label: 'Computed From',
+            value: analysisFacts.value.debugMeta.computedFrom
+          },
+          {
+            key: 'unavailableInputs',
+            path: 'debugMeta.unavailableInputs',
+            label: 'Unavailable Inputs',
+            value: analysisFacts.value.debugMeta.unavailableInputs
+          },
+          {
+            key: 'disabledInterpretations',
+            path: 'debugMeta.disabledInterpretations',
+            label: 'Disabled Interpretations',
+            value: analysisFacts.value.debugMeta.disabledInterpretations
+          }
+        ]
+      }
+    ]
+  })
+
+  function formatFactValue(value: unknown) {
+    if (value === null || value === undefined || value === '') return 'Unavailable'
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+    if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2)
+    if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : 'None'
+    return String(value)
+  }
+
+  function getFactBadgeColor(value: boolean) {
+    return value ? 'success' : 'warning'
+  }
+
+  const promptDecisions = computed(() => analysisFacts.value?.debugMeta?.promptDecisions || {})
+  const includedPromptFactsCount = computed(
+    () => Object.values(promptDecisions.value).filter((decision: any) => decision.include).length
+  )
+  const ignoredPromptFactsCount = computed(
+    () => Object.values(promptDecisions.value).filter((decision: any) => !decision.include).length
+  )
+
+  function getPromptDecision(path: string) {
+    return (
+      promptDecisions.value[path] || { include: false, reason: 'No prompt decision available.' }
+    )
+  }
+
+  function getPromptDecisionInclude(path: string) {
+    return getPromptDecision(path).include
+  }
+
+  function getPromptDecisionReason(path: string) {
+    return getPromptDecision(path).reason
+  }
+
+  function getPromptDecisionValueClass(path: string) {
+    return getPromptDecisionInclude(path)
+      ? 'text-emerald-700 dark:text-emerald-300'
+      : 'text-gray-500 dark:text-gray-400'
+  }
 
   const splitWorkoutTags = (tags: unknown) => {
     const values = Array.isArray(tags)

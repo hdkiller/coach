@@ -1,4 +1,6 @@
 import { getServerSession } from '../../utils/session'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
+import { buildWorkoutAnalysisFacts } from '../../utils/workout-analysis-facts'
 
 defineRouteMeta({
   openAPI: {
@@ -117,8 +119,28 @@ export default defineEventHandler(async (event) => {
     })
   ])
 
+  const [sportSettings, userProfile] = await Promise.all([
+    sportSettingsRepository.getForActivityType((session.user as any).id, workout.type || ''),
+    prisma.user.findUnique({
+      where: { id: (session.user as any).id },
+      select: {
+        weight: true,
+        weightUnits: true,
+        language: true
+      }
+    })
+  ])
+
+  const analysisFacts = buildWorkoutAnalysisFacts({
+    workout,
+    sportSettings,
+    plannedWorkout: workout.plannedWorkout,
+    userProfile
+  })
+
   return {
     ...workout,
+    analysisFacts,
     llmUsageId: llmUsage?.id,
     feedback: llmUsage?.feedback,
     feedbackText: llmUsage?.feedbackText,
