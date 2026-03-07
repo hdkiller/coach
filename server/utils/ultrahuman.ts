@@ -1,5 +1,11 @@
 import type { Integration } from '@prisma/client'
 
+export interface UltrahumanSettings {
+  autoSync: boolean
+  preferredSyncTime: string // HH:mm format, e.g., "08:00"
+  ingestWellness: boolean
+}
+
 interface UltrahumanTokenResponse {
   access_token: string
   expires_in: number

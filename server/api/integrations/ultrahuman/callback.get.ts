@@ -131,7 +131,12 @@ export default defineEventHandler(async (event) => {
           expiresAt,
           syncStatus: 'SUCCESS',
           lastSyncAt: new Date(),
-          ingestWorkouts: false // Ultrahuman is primarily wellness
+          ingestWorkouts: false, // Ultrahuman is primarily wellness
+          settings: {
+            autoSync: true,
+            preferredSyncTime: '08:00',
+            ingestWellness: true
+          }
         }
       })
     }

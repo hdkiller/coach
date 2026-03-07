@@ -169,10 +169,11 @@ export default defineEventHandler(async (event) => {
             ? 7
             : provider === 'garmin'
               ? 1
-              : provider === 'wahoo'
-                ? 90
-                : 90
-
+              : provider === 'ultrahuman'
+                ? 7
+                : provider === 'wahoo'
+                  ? 90
+                  : 90
     // Logic for Intervals.icu:
     // If it's the first sync (initialSyncCompleted is false), fetch 90 days history
     // Otherwise, just fetch the last 7 days to save resources

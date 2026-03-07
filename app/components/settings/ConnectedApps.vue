@@ -883,6 +883,54 @@
     </UModal>
 
     <UModal
+      v-model:open="ultrahumanAdvancedSyncModalOpen"
+      title="Ultrahuman Advanced Sync"
+      description="Select the historical range for data synchronization."
+    >
+      <template #body>
+        <div class="space-y-4">
+          <p>Select how many days of historical data you would like to sync from Ultrahuman.</p>
+          <USelectMenu
+            v-model="selectedDays"
+            :items="[
+              { label: 'Last 30 Days', value: 30 },
+              { label: 'Last 90 Days', value: 90 },
+              { label: 'Last 180 Days', value: 180 },
+              { label: 'Last 365 Days', value: 365 }
+            ]"
+            value-key="value"
+            label-key="label"
+            placeholder="Select duration"
+          />
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            @click="ultrahumanAdvancedSyncModalOpen = false"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            color="primary"
+            :disabled="!selectedDays"
+            @click="
+              () => {
+                $emit('sync', 'ultrahuman', selectedDays)
+                ultrahumanAdvancedSyncModalOpen = false
+              }
+            "
+          >
+            Sync
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
       v-model:open="intervalsSettingsModalOpen"
       title="Intervals.icu Settings"
       description="Configure data mapping and synchronization preferences for Intervals.icu."
@@ -1025,13 +1073,35 @@
             :label="option.title"
             :description="option.description"
           >
-            <UCheckbox
-              :model-value="getProviderOptionValue(selectedProviderKey, option)"
-              :label="option.label"
-              @update:model-value="
-                (checked: any) => updateProviderOption(selectedProviderKey, option, !!checked)
-              "
-            />
+            <template v-if="option.type === 'select'">
+              <USelectMenu
+                :model-value="getProviderOptionValue(selectedProviderKey, option)"
+                :items="option.options || []"
+                class="w-full"
+                value-key="value"
+                @update:model-value="
+                  (item: any) => updateProviderOption(selectedProviderKey, option, item.value)
+                "
+              />
+            </template>
+            <template v-else-if="option.type === 'switch'">
+              <USwitch
+                :model-value="getProviderOptionValue(selectedProviderKey, option)"
+                :label="option.label"
+                @update:model-value="
+                  (checked: any) => updateProviderOption(selectedProviderKey, option, !!checked)
+                "
+              />
+            </template>
+            <template v-else>
+              <UCheckbox
+                :model-value="getProviderOptionValue(selectedProviderKey, option)"
+                :label="option.label"
+                @update:model-value="
+                  (checked: any) => updateProviderOption(selectedProviderKey, option, !!checked)
+                "
+              />
+            </template>
           </UFormField>
 
           <p class="text-xs text-muted">
@@ -1054,18 +1124,20 @@
 <script setup lang="ts">
   type ProviderSettingOption =
     | {
-        key: 'ingestWorkouts'
+        key: string
         title: string
         description: string
         label: string
         target: 'root'
       }
     | {
-        key: 'ingestWellness' | 'ingestNutrition'
+        key: string
         title: string
         description: string
         label: string
         target: 'settings'
+        type?: 'switch' | 'select'
+        options?: { label: string; value: any }[]
       }
 
   type ProviderSettingsDefinition = {
@@ -1107,6 +1179,7 @@
   const { signIn } = useAuth()
   const { trackIntegrationConnectStart } = useAnalytics()
   const advancedSyncModalOpen = ref(false)
+  const ultrahumanAdvancedSyncModalOpen = ref(false)
   const intervalsSettingsModalOpen = ref(false)
   const providerSettingsModalOpen = ref(false)
   const selectedProvider = ref<string | null>(null)
@@ -1292,6 +1365,26 @@
           description: 'Import sleep, recovery, biometrics, and activity indexes from Ultrahuman.',
           label: 'Ingest Wellness Data',
           target: 'settings'
+        },
+        {
+          key: 'autoSync',
+          title: 'Daily Auto-Sync',
+          description: 'Automatically sync your data in the background.',
+          label: 'Enabled',
+          target: 'settings',
+          type: 'switch'
+        },
+        {
+          key: 'preferredSyncTime',
+          title: 'Preferred Sync Time',
+          description: 'When should we perform the daily background sync?',
+          label: 'Select Time',
+          target: 'settings',
+          type: 'select',
+          options: Array.from({ length: 24 }, (_, i) => ({
+            label: `${i.toString().padStart(2, '0')}:00`,
+            value: `${i.toString().padStart(2, '0')}:00`
+          }))
         }
       ]
     }
@@ -1351,19 +1444,31 @@
       }
     }
 
-    return isProviderSettingEnabled(provider, option.key)
-  }
+    const settings = getProviderSettings(provider)
+    const value = settings?.[option.key]
 
-  function updateProviderOption(provider: string, option: ProviderSettingOption, value: boolean) {
-    if (option.target === 'root') {
-      emit('updateSetting', provider, option.key, value)
-      return
+    if (value === undefined || value === null) {
+      // Defaults for Ultrahuman
+      if (provider === 'ultrahuman') {
+        if (option.key === 'autoSync') return true
+        if (option.key === 'preferredSyncTime') return '08:00'
+        if (option.key === 'ingestWellness') return true
+      }
+      return false
     }
 
-    emit('updateSetting', provider, 'settings', {
-      ...getProviderSettings(provider),
-      [option.key]: value
-    })
+    return value
+  }
+
+  function updateProviderOption(provider: string, option: ProviderSettingOption, value: any) {
+    if (option.target === 'root') {
+      emit('updateSetting', provider, option.key, value)
+    } else {
+      emit('updateSetting', provider, 'settings', {
+        ...getProviderSettings(provider),
+        [option.key]: value
+      })
+    }
   }
 
   const intervalsActions = computed(() => [
@@ -1593,6 +1698,13 @@
 
   const ultrahumanActions = computed(() => [
     [
+      {
+        label: 'Advanced Sync',
+        icon: 'i-heroicons-arrow-path-rounded-square',
+        onSelect: () => {
+          ultrahumanAdvancedSyncModalOpen.value = true
+        }
+      },
       {
         label: 'Settings',
         icon: 'i-heroicons-cog-6-tooth',
