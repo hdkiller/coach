@@ -637,6 +637,41 @@
     }
   }
 
+  const getProviderName = (provider: string) => {
+    switch (provider) {
+      case 'intervals':
+        return 'Intervals.icu'
+      case 'whoop':
+        return 'WHOOP'
+      case 'withings':
+        return 'Withings'
+      case 'yazio':
+        return 'Yazio'
+      case 'fitbit':
+        return 'Fitbit'
+      case 'hevy':
+        return 'Hevy'
+      case 'polar':
+        return 'Polar'
+      case 'garmin':
+        return 'Garmin'
+      case 'oura':
+        return 'Oura'
+      case 'ultrahuman':
+        return 'Ultrahuman'
+      case 'wahoo':
+        return 'Wahoo'
+      case 'telegram':
+        return 'Telegram'
+      case 'rouvy':
+        return 'ROUVY'
+      case 'strava':
+        return 'Strava'
+      default:
+        return provider.charAt(0).toUpperCase() + provider.slice(1)
+    }
+  }
+
   const syncIntegration = async (provider: string, days?: number) => {
     syncingProviders.value.add(provider)
 
@@ -646,30 +681,7 @@
         body: { provider, days }
       })
 
-      const providerName =
-        provider === 'intervals'
-          ? 'Intervals.icu'
-          : provider === 'whoop'
-            ? 'WHOOP'
-            : provider === 'withings'
-              ? 'Withings'
-              : provider === 'yazio'
-                ? 'Yazio'
-                : provider === 'fitbit'
-                  ? 'Fitbit'
-                  : provider === 'hevy'
-                    ? 'Hevy'
-                    : provider === 'polar'
-                      ? 'Polar'
-                      : provider === 'garmin'
-                        ? 'Garmin'
-                        : provider === 'oura'
-                          ? 'Oura'
-                          : provider === 'telegram'
-                            ? 'Telegram'
-                            : provider === 'rouvy'
-                              ? 'ROUVY'
-                              : 'Strava'
+      const providerName = getProviderName(provider)
 
       toast.add({
         title: 'Sync Started',
@@ -704,30 +716,7 @@
         method: 'DELETE'
       })
 
-      const providerName =
-        provider === 'intervals'
-          ? 'Intervals.icu'
-          : provider === 'whoop'
-            ? 'WHOOP'
-            : provider === 'withings'
-              ? 'Withings'
-              : provider === 'yazio'
-                ? 'Yazio'
-                : provider === 'fitbit'
-                  ? 'Fitbit'
-                  : provider === 'polar'
-                    ? 'Polar'
-                    : provider === 'garmin'
-                      ? 'Garmin'
-                      : provider === 'oura'
-                        ? 'Oura'
-                        : provider === 'hevy'
-                          ? 'Hevy'
-                          : provider === 'telegram'
-                            ? 'Telegram'
-                            : provider === 'rouvy'
-                              ? 'ROUVY'
-                              : 'Strava'
+      const providerName = getProviderName(provider)
 
       toast.add({
         title: 'Disconnected',
@@ -764,30 +753,7 @@
         body
       })
 
-      const providerName =
-        provider === 'intervals'
-          ? 'Intervals.icu'
-          : provider === 'whoop'
-            ? 'WHOOP'
-            : provider === 'withings'
-              ? 'Withings'
-              : provider === 'yazio'
-                ? 'Yazio'
-                : provider === 'fitbit'
-                  ? 'Fitbit'
-                  : provider === 'polar'
-                    ? 'Polar'
-                    : provider === 'garmin'
-                      ? 'Garmin'
-                      : provider === 'oura'
-                        ? 'Oura'
-                        : provider === 'hevy'
-                          ? 'Hevy'
-                          : provider === 'telegram'
-                            ? 'Telegram'
-                            : provider === 'rouvy'
-                              ? 'ROUVY'
-                              : 'Strava'
+      const providerName = getProviderName(provider)
 
       toast.add({
         title: 'Settings Updated',
