@@ -2,7 +2,6 @@ import { createUIMessageStream, createUIMessageStreamResponse } from 'ai'
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { checkQuota } from '../../utils/quotas/engine'
-import { truncateMessages } from '../../utils/chat/history'
 import { chatService } from '../../utils/services/chatService'
 import { chatTurnService } from '../../utils/services/chatTurnService'
 
@@ -31,7 +30,8 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const { roomId, messages, files, replyMessage } = body
-  const truncatedMessages = truncateMessages(messages || [], 25)
+  const clientMessages = Array.isArray(messages) ? messages : []
+  const truncatedMessages = clientMessages.slice(-25)
 
   const room = await prisma.chatRoom.findUnique({
     where: { id: roomId },
@@ -151,7 +151,7 @@ export default defineEventHandler(async (event) => {
       userId,
       userMessageId: triggerMessageId,
       request: {
-        messages: truncatedMessages,
+        messages: await chatTurnService.buildStableRequestMessages(roomId, triggerMessageId, 25),
         files: attachedFiles,
         replyMessage,
         lastMessageId: triggerMessageId,

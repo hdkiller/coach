@@ -1,9 +1,7 @@
 import { defineWebSocketHandler } from 'h3'
 import { verifyWsToken } from '../utils/ws-auth'
-import { prisma } from '../utils/db'
 import { checkQuota } from '../utils/quotas/engine'
 import { peerContext } from '../utils/ws-state'
-import { expandStoredChatMessages, truncateMessages } from '../utils/chat/history'
 import { chatService } from '../utils/services/chatService'
 import { chatTurnService } from '../utils/services/chatTurnService'
 
@@ -104,31 +102,6 @@ async function handleChatMessage(
       })
     )
 
-    const roomMessages = await prisma.chatMessage.findMany({
-      where: { roomId },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        createdAt: true,
-        senderId: true,
-        content: true,
-        files: true,
-        turnId: true,
-        metadata: true,
-        turn: {
-          select: {
-            id: true,
-            status: true,
-            failureReason: true,
-            startedAt: true,
-            finishedAt: true
-          }
-        }
-      }
-    })
-
-    const requestMessages = truncateMessages(expandStoredChatMessages(roomMessages), 25)
-
     let turn = await chatTurnService.findLatestTurnForMessage(userMessage.id)
 
     if (!turn) {
@@ -137,7 +110,7 @@ async function handleChatMessage(
         userId,
         userMessageId: userMessage.id,
         request: {
-          messages: requestMessages,
+          messages: await chatTurnService.buildStableRequestMessages(roomId, userMessage.id, 25),
           replyMessage,
           lastMessageId: userMessage.id,
           content

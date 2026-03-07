@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '../db'
+import { expandStoredChatMessages, truncateMessages } from '../chat/history'
 import {
   CHAT_TURN_EVENT_TYPE,
   CHAT_TURN_HEARTBEAT_TIMEOUT_MS,
@@ -94,12 +95,42 @@ class ChatTurnService {
 
   async claimNextQueuedTurn(workerId: string) {
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const candidate = await prisma.chatTurn.findFirst({
+      const candidates = await prisma.chatTurn.findMany({
         where: {
           status: CHAT_TURN_STATUS.QUEUED
         },
-        orderBy: [{ createdAt: 'asc' }]
+        orderBy: [{ createdAt: 'asc' }],
+        take: 25
       })
+
+      if (candidates.length === 0) {
+        return null
+      }
+
+      let candidate: (typeof candidates)[number] | null = null
+
+      for (const queuedTurn of candidates) {
+        const roomHasAnotherActiveTurn = await prisma.chatTurn.findFirst({
+          where: {
+            roomId: queuedTurn.roomId,
+            id: { not: queuedTurn.id },
+            status: {
+              in: [
+                CHAT_TURN_STATUS.RECEIVED,
+                CHAT_TURN_STATUS.RUNNING,
+                CHAT_TURN_STATUS.STREAMING,
+                CHAT_TURN_STATUS.WAITING_FOR_TOOLS
+              ]
+            }
+          },
+          select: { id: true }
+        })
+
+        if (!roomHasAnotherActiveTurn) {
+          candidate = queuedTurn
+          break
+        }
+      }
 
       if (!candidate) {
         return null
@@ -312,6 +343,45 @@ class ChatTurnService {
       },
       orderBy: { createdAt: 'desc' }
     })
+  }
+
+  async buildStableRequestMessages(roomId: string, lastMessageId: string, limit = 25) {
+    const roomMessages = await prisma.chatMessage.findMany({
+      where: { roomId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        createdAt: true,
+        senderId: true,
+        content: true,
+        files: true,
+        turnId: true,
+        metadata: true,
+        turn: {
+          select: {
+            id: true,
+            status: true,
+            failureReason: true,
+            startedAt: true,
+            finishedAt: true
+          }
+        }
+      }
+    })
+
+    const stableMessages = roomMessages.filter((message) => {
+      if (message.id === lastMessageId) {
+        return true
+      }
+
+      if (!message.turn) {
+        return true
+      }
+
+      return !isActiveChatTurnStatus(message.turn.status)
+    })
+
+    return truncateMessages(expandStoredChatMessages(stableMessages), limit)
   }
 
   async markStaleTurnsInterrupted(now = new Date()) {
