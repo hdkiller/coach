@@ -90,13 +90,11 @@ async function ensureValidToken(integration: Integration): Promise<Integration> 
 /**
  * Fetches daily metrics from Ultrahuman
  * Based on docs: /api/partners/v1/user_data/metrics?date=YYYY-MM-DD
- * Alternatively: /api/v1/partner/daily_metrics?date=YYYY-MM-DD
  */
 export async function fetchUltrahumanDaily(integration: Integration, date: Date) {
   const validIntegration = await ensureValidToken(integration)
   const dateStr = date.toISOString().split('T')[0]
 
-  // The documentation mentions two possible endpoints, we'll try the specific metrics one first
   const response = await fetch(
     `https://partner.ultrahuman.com/api/partners/v1/user_data/metrics?date=${dateStr}`,
     {
@@ -125,8 +123,7 @@ export async function fetchUltrahumanDaily(integration: Integration, date: Date)
   }
 
   const result = await response.json()
-  // The data is usually wrapped in a 'data' field or 'metrics' field
-  return result.data || result
+  return result
 }
 
 export async function fetchUltrahumanProfile(tokenOrIntegration: string | Integration) {
@@ -157,48 +154,91 @@ export async function fetchUltrahumanProfile(tokenOrIntegration: string | Integr
 // --- Normalization ---
 
 export function normalizeUltrahumanWellness(dailyData: any, userId: string, date: Date) {
-  if (!dailyData) return null
+  if (!dailyData || !dailyData.metric_data || !Array.isArray(dailyData.metric_data)) return null
 
-  // Based on provided fields: sleep_score, total_sleep, sleep_efficiency, etc.
-  // Note: Recovery score is often 'recovery_index' or 'morning_alertness' in their system
-  const sleepScore = dailyData.sleep_score ?? null
-  const sleepSecs = dailyData.total_sleep ?? null
+  const metrics: Record<string, any> = {}
+  for (const item of dailyData.metric_data) {
+    if (item.type && item.object) {
+      metrics[item.type] = item.object
+    }
+  }
+
+  // Sleep Data (Capital S!)
+  const sleepObj = metrics['Sleep'] || {}
+  const sleepScore = sleepObj.score_trend?.day_avg ?? null
+
+  let sleepSecs = null
+  let sleepDeepSecs = null
+  let sleepRemSecs = null
+  let sleepLightSecs = null
+  let sleepAwakeSecs = null
+
+  if (sleepObj.quick_metrics) {
+    const totalSleepMetric = sleepObj.quick_metrics.find((m: any) => m.type === 'total_sleep')
+    if (totalSleepMetric) {
+      sleepSecs = totalSleepMetric.value
+    }
+  }
+
+  if (sleepObj.sleep_stages) {
+    sleepDeepSecs =
+      sleepObj.sleep_stages.find((s: any) => s.type === 'deep_sleep')?.stage_time ?? null
+    sleepRemSecs =
+      sleepObj.sleep_stages.find((s: any) => s.type === 'rem_sleep')?.stage_time ?? null
+    sleepLightSecs =
+      sleepObj.sleep_stages.find((s: any) => s.type === 'light_sleep')?.stage_time ?? null
+    sleepAwakeSecs = sleepObj.sleep_stages.find((s: any) => s.type === 'awake')?.stage_time ?? null
+  }
+
   const sleepHours = sleepSecs ? Math.round((sleepSecs / 3600) * 10) / 10 : null
 
-  const deepSecs = dailyData.deep_sleep ?? null
-  const remSecs = dailyData.rem_sleep ?? null
-  const lightSecs = dailyData.light_sleep ?? null
+  // HRV
+  // Prefer avg_sleep_hrv if available, otherwise hrv.avg
+  const hrv = metrics['avg_sleep_hrv']?.value ?? metrics['hrv']?.avg ?? null
 
-  // Biometrics
-  const avgHrv = dailyData.hrv?.average ?? dailyData.hrv ?? null
-  const restingHr = dailyData.resting_hr ?? null
-  const bodyTemp = dailyData.average_body_temperature ?? null
+  // Resting HR
+  // Prefer night_rhr or sleep_rhr
+  const restingHr =
+    metrics['night_rhr']?.avg ?? metrics['sleep_rhr']?.value ?? metrics['hr']?.last_reading ?? null
 
   // Recovery/Readiness
-  // Ultrahuman's 'morning_alertness' or 'restorative_sleep' can be used as readiness indicators
-  const recoveryScore = dailyData.recovery_index ?? dailyData.morning_alertness ?? null
+  const recoveryScore = metrics['recovery_index']?.value ?? null
   const readiness = recoveryScore ? Math.round(recoveryScore / 10) : null
 
+  // Body Temp
+  const skinTemp = metrics['temp']?.gist_object?.avg ?? metrics['temp']?.last_reading ?? null
+
   // Movement
-  const steps = dailyData.steps ?? null
-  const distance = dailyData.distance ?? null
+  const steps = metrics['steps']?.total ?? null
+  // Note: distance and calories not found in sample payload but keeping as fallbacks
+  const distance = metrics['distance']?.total ?? null
+
+  // VO2 Max
+  const vo2max = metrics['vo2_max']?.value ?? null
+
+  // If we have no significant data, return null to avoid creating empty records
+  if (!hrv && !restingHr && !sleepSecs && !sleepScore && !recoveryScore && !steps) {
+    return null
+  }
 
   return {
     userId,
     date,
-    hrv: avgHrv,
+    hrv,
     restingHr: restingHr ? Math.round(restingHr) : null,
     sleepSecs,
     sleepHours,
     sleepScore,
-    sleepDeepSecs: deepSecs,
-    sleepRemSecs: remSecs,
-    sleepLightSecs: lightSecs,
+    sleepDeepSecs,
+    sleepRemSecs,
+    sleepLightSecs,
+    sleepAwakeSecs,
     readiness,
     recoveryScore,
-    skinTemp: bodyTemp,
-    totalCaloriesBurned: dailyData.total_calories || null,
-    activeCaloriesBurned: dailyData.active_calories || null,
+    skinTemp,
+    vo2max,
+    totalCaloriesBurned: metrics['calories']?.total || null,
+    activeCaloriesBurned: metrics['calories']?.active || null,
     rawJson: dailyData,
     comments:
       `Ultrahuman: ${steps ? steps + ' steps' : ''}${distance ? ', ' + (distance / 1000).toFixed(1) + 'km' : ''}`.trim()
