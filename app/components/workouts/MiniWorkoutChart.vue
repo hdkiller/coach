@@ -371,7 +371,7 @@
   }
 
   function getStepIntensity(step: any): number {
-    const power = normalizeTarget(step?.power)
+    const power = normalizePowerTarget(step?.power)
     const hr = normalizeHrTarget(step?.heartRate)
     const pace = getRelativePaceTarget(step?.pace)
 
@@ -392,12 +392,12 @@
   }
 
   function getStepRange(step: any): { start: number; end: number } | null {
-    if (props.preference === 'power') return normalizeTarget(step?.power)?.range || null
+    if (props.preference === 'power') return normalizePowerTarget(step?.power)?.range || null
     if (props.preference === 'hr') return normalizeHrTarget(step?.heartRate)?.range || null
     if (props.preference === 'pace') return getRelativePaceTarget(step?.pace)?.range || null
 
     return (
-      normalizeTarget(step?.power)?.range ||
+      normalizePowerTarget(step?.power)?.range ||
       normalizeHrTarget(step?.heartRate)?.range ||
       getRelativePaceTarget(step?.pace)?.range ||
       null
@@ -449,6 +449,10 @@
 
   function getHeartRateReference() {
     return Number(effectiveSportSettings.value?.lthr || 0) || 200
+  }
+
+  function getPowerReference() {
+    return Number(effectiveSportSettings.value?.ftp || 0) || 0
   }
 
   function getHrZoneBoundsByIndex(indexRaw: number): { start: number; end: number } | null {
@@ -570,6 +574,79 @@
     }
 
     return null
+  }
+
+  function resolvePowerZoneRange(zoneRaw: number): { start: number; end: number } | null {
+    const index = Math.max(1, Math.round(zoneRaw)) - 1
+    const powerZones = Array.isArray(effectiveSportSettings.value?.powerZones)
+      ? effectiveSportSettings.value.powerZones
+      : []
+    const ftp = getPowerReference()
+    const zone = powerZones[index]
+    if (!zone || ftp <= 0) return null
+
+    const minW = Number(zone?.min)
+    const maxW = Number(zone?.max)
+    if (!Number.isFinite(minW) || !Number.isFinite(maxW) || maxW <= 0) return null
+
+    return {
+      start: minW / ftp,
+      end: maxW / ftp
+    }
+  }
+
+  function normalizePowerTarget(
+    target: { value?: number; range?: { start: number; end: number }; units?: string } | null
+  ): { value?: number; range?: { start: number; end: number } } | null {
+    const normalized = normalizeTarget(target)
+    if (!normalized) return null
+
+    const units = String(normalized.units || '')
+      .trim()
+      .toLowerCase()
+    const ftp = getPowerReference()
+
+    if ((units === 'w' || units === 'watts') && ftp > 0) {
+      if (normalized.range) {
+        return {
+          range: {
+            start: normalized.range.start / ftp,
+            end: normalized.range.end / ftp
+          }
+        }
+      }
+      if (typeof normalized.value === 'number') {
+        return { value: normalized.value / ftp }
+      }
+    }
+
+    if (units === 'power_zone') {
+      if (normalized.range) {
+        const startZone = resolvePowerZoneRange(normalized.range.start)
+        const endZone = resolvePowerZoneRange(normalized.range.end)
+        if (startZone && endZone) {
+          return {
+            range: {
+              start: Math.min(startZone.start, endZone.start),
+              end: Math.max(startZone.end, endZone.end)
+            }
+          }
+        }
+      }
+      if (typeof normalized.value === 'number') {
+        const zoneRange = resolvePowerZoneRange(normalized.value)
+        if (zoneRange) {
+          return {
+            range: {
+              start: zoneRange.start,
+              end: zoneRange.end
+            }
+          }
+        }
+      }
+    }
+
+    return normalized
   }
 
   function normalizeHrTarget(

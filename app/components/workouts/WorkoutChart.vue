@@ -571,12 +571,45 @@
         ramp?: boolean
         units?: string
         zone?: number
+        originalUnits?: string
+        originalValue?: number
+        originalRange?: { start: number; end: number }
       }
     | undefined {
     const normalized = normalizeTarget(target)
     if (!normalized) return undefined
 
     const units = normalized.units?.toLowerCase()
+    const referenceFtp = Number(effectiveSportSettings.value?.ftp || props.userFtp || 0)
+
+    if (units === 'w' || units === 'watts') {
+      if (normalized.range && referenceFtp > 0) {
+        return {
+          range: {
+            start: normalized.range.start / referenceFtp,
+            end: normalized.range.end / referenceFtp
+          },
+          ramp: normalized.ramp,
+          units: 'ratio',
+          originalUnits: units,
+          originalRange: {
+            start: normalized.range.start,
+            end: normalized.range.end
+          }
+        }
+      }
+      if (typeof normalized.value === 'number' && referenceFtp > 0) {
+        return {
+          value: normalized.value / referenceFtp,
+          ramp: normalized.ramp,
+          units: 'ratio',
+          originalUnits: units,
+          originalValue: normalized.value
+        }
+      }
+      return normalized
+    }
+
     if (units !== 'power_zone') return normalized
 
     if (typeof normalized.value === 'number') {
@@ -815,6 +848,12 @@
   }
 
   function getAvgWatts(step: any, ftp: number): number {
+    if (step.power?.originalRange) {
+      return Math.round((step.power.originalRange.start + step.power.originalRange.end) / 2)
+    }
+    if (typeof step.power?.originalValue === 'number') {
+      return Math.round(step.power.originalValue)
+    }
     if (step.power?.range) {
       return Math.round(((step.power.range.start + step.power.range.end) / 2) * ftp)
     }
@@ -836,6 +875,12 @@
     const power = step?.power
     if (!power) return 'N/A'
     if (typeof power.zone === 'number') return `Z${power.zone}`
+    if (power.originalRange && power.originalUnits) {
+      return `${Math.round(power.originalRange.start)}-${Math.round(power.originalRange.end)}W`
+    }
+    if (typeof power.originalValue === 'number' && power.originalUnits) {
+      return `${Math.round(power.originalValue)}W`
+    }
     if (power.range) {
       return `${Math.round(power.range.start * 100)}-${Math.round(power.range.end * 100)}% FTP`
     }
