@@ -88,13 +88,43 @@
           <div
             class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 overflow-hidden relative"
           >
-            <div class="flex items-start gap-4 mb-6">
-              <div
-                class="w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/40 flex items-center justify-center flex-shrink-0"
-              >
-                <UIcon name="i-heroicons-calendar-days" class="w-6 h-6 text-primary-500" />
+            <div
+              class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-800"
+            >
+              <div class="flex items-center gap-4">
+                <UButton
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                  icon="i-heroicons-chevron-left"
+                  class="rounded-lg"
+                  :disabled="!previousWorkout"
+                  @click="navigateToNeighbor('previous')"
+                />
+                <div class="flex flex-col">
+                  <div class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">
+                    {{ formatDateUTC(workout.date, 'EEEE') }}
+                  </div>
+                  <div
+                    class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                  >
+                    {{ formatDateUTC(workout.date, 'MMMM d, yyyy') }}
+                  </div>
+                </div>
+                <UButton
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                  icon="i-heroicons-chevron-right"
+                  class="rounded-lg"
+                  :disabled="!nextWorkout"
+                  @click="navigateToNeighbor('next')"
+                />
               </div>
-              <div class="min-w-0 flex-1">
+            </div>
+
+            <div class="mb-6">
+              <div class="min-w-0">
                 <h1 class="text-2xl sm:text-3xl font-black tracking-tight break-words uppercase">
                   {{ workout.title }}
                 </h1>
@@ -869,6 +899,9 @@
     context: ''
   })
   const workout = ref<any>(null)
+  const { previousWorkout, nextWorkout } = usePlannedWorkoutNeighbors(
+    computed(() => workout.value?.id)
+  )
   const loadError = ref<{ statusCode?: number; message?: string } | null>(null)
   const userFtp = ref<number | undefined>(undefined)
   const llmUsageId = ref<string | undefined>(undefined)
@@ -1771,6 +1804,12 @@
 
   function goBack() {
     router.back()
+  }
+
+  function navigateToNeighbor(direction: 'previous' | 'next') {
+    const neighbor = direction === 'previous' ? previousWorkout.value : nextWorkout.value
+    if (!neighbor?.id) return
+    navigateTo(`/workouts/planned/${neighbor.id}`)
   }
 
   // Chat about workout
