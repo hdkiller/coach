@@ -516,6 +516,24 @@
       .trim()
       .toLowerCase()
 
+    if (units === '%pace' || units === 'percentpace') {
+      if (target.range) {
+        return {
+          range: {
+            start: target.range.start / 100,
+            end: target.range.end / 100
+          },
+          units: 'pace'
+        }
+      }
+      if (typeof target.value === 'number') {
+        return {
+          value: target.value / 100,
+          units: 'pace'
+        }
+      }
+    }
+
     if (units === 'pace_zone' || units === 'zone') {
       if (target.range) {
         const startZone = getPaceZoneBoundsByIndex(target.range.start)

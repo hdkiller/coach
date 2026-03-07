@@ -161,6 +161,25 @@
     const units = String(target?.units || '')
       .trim()
       .toLowerCase()
+
+    if (units === '%pace' || units === 'percentpace') {
+      if (target.range) {
+        return {
+          range: {
+            start: Number(target.range.start || 0) / 100,
+            end: Number(target.range.end || 0) / 100
+          },
+          units: 'pace'
+        }
+      }
+      if (typeof target.value === 'number') {
+        return {
+          value: target.value / 100,
+          units: 'pace'
+        }
+      }
+    }
+
     if (units !== 'zone' && units !== 'pace_zone') return target
 
     if (target.range) {

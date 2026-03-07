@@ -544,6 +544,24 @@
       .trim()
       .toLowerCase()
 
+    if (units === '%pace' || units === 'percentpace') {
+      if (target.range) {
+        return {
+          range: {
+            start: target.range.start / 100,
+            end: target.range.end / 100
+          },
+          units: 'pace'
+        }
+      }
+      if (typeof target.value === 'number') {
+        return {
+          value: target.value / 100,
+          units: 'pace'
+        }
+      }
+    }
+
     if (units === 'pace_zone' || units === 'zone') {
       if (target.range) {
         const startZone = getPaceZoneBoundsByIndex(target.range.start)
@@ -824,6 +842,7 @@
     if (paceZoneLabel) return `${paceZoneLabel} Pace`
 
     const normalizedPace = normalizeMetricTarget(target as any, 'pace')
+    if (!normalizedPace) return null
     if (String(normalizedPace?.units || '').toLowerCase() === 'm/s' && normalizedPace?.range) {
       return `${normalizedPace.range.start.toFixed(2)}-${normalizedPace.range.end.toFixed(2)} m/s`
     }
@@ -834,11 +853,11 @@
       return `${normalizedPace.value.toFixed(2)} m/s`
     }
 
-    if (target.range) {
-      return `${Math.round(target.range.start * 100)}-${Math.round(target.range.end * 100)}% Pace`
+    if (normalizedPace.range) {
+      return `${Math.round(normalizedPace.range.start * 100)}-${Math.round(normalizedPace.range.end * 100)}% Pace`
     }
-    if (typeof target.value === 'number') {
-      return `${Math.round(target.value * 100)}% Pace`
+    if (typeof normalizedPace.value === 'number') {
+      return `${Math.round(normalizedPace.value * 100)}% Pace`
     }
     return null
   }
