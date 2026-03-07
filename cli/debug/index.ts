@@ -40,6 +40,8 @@ import garminWebhookCommand from './webhook-garmin'
 import elevationAnomaliesCommand from './elevation-anomalies'
 import thresholdCheckCommand from './threshold-check'
 import pbCheckCommand from './pb-check'
+import workoutFactsCommand from './workout-facts'
+import ultrahumanIngestCommand from './ultrahuman-ingest'
 
 const debugCommand = new Command('debug').description('Debugging utilities')
 
@@ -84,5 +86,7 @@ debugCommand.addCommand(garminIngestCommand)
 debugCommand.addCommand(elevationAnomaliesCommand)
 debugCommand.addCommand(thresholdCheckCommand)
 debugCommand.addCommand(pbCheckCommand)
+debugCommand.addCommand(workoutFactsCommand)
+debugCommand.addCommand(ultrahumanIngestCommand)
 
 export default debugCommand

@@ -77,6 +77,7 @@ Deep debugging and analysis of nutrition data and metabolic calculations.
 
 - `debug env`: Verify environment variables (masked).
 - `debug ping`: Test external URL connectivity.
+- `debug workout-facts --id <uuid> [--json] [--prod]`: Compute the shared workout analysis facts payload used for workout-detail debugging.
 - `check env`: Validates the local `.env` setup.
 - `monitor [--prod]`: Checks the `/api/health` and Trigger.dev status endpoints.
 
