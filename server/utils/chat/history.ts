@@ -1,4 +1,5 @@
 import { convertToModelMessages } from 'ai'
+import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
 
 /**
  * Truncates message history to stay within a reasonable context window.
@@ -208,53 +209,7 @@ export function expandStoredChatMessages(messages: any[]) {
 export async function buildModelMessagesFromStoredChatMessages(messages: any[], tools: any) {
   const historyMessages = expandStoredChatMessages(messages)
   const coreMessages = await convertToModelMessages(historyMessages as any, { tools: tools as any })
-
-  const merged: any[] = []
-  for (const msg of coreMessages) {
-    const last = merged[merged.length - 1]
-    if (last && last.role === msg.role) {
-      if (msg.role === 'tool') {
-        last.content = [...(last.content as any[]), ...(msg.content as any[])]
-      } else if (typeof last.content === 'string' && typeof msg.content === 'string') {
-        last.content = `${last.content}\n\n${msg.content}`
-      } else {
-        const lastParts = Array.isArray(last.content)
-          ? last.content
-          : [{ type: 'text', text: last.content }]
-        const nextParts = Array.isArray(msg.content)
-          ? msg.content
-          : [{ type: 'text', text: msg.content }]
-        last.content = [...lastParts, ...nextParts]
-      }
-      continue
-    }
-
-    merged.push(msg)
-  }
-
-  const normalized: any[] = []
-  for (const msg of merged) {
-    if (Array.isArray(msg.content)) {
-      msg.content = msg.content.filter((part: any) => part.type !== 'text' || part.text?.trim())
-      if (msg.content.length === 0) {
-        if (msg.role === 'assistant') {
-          msg.content = [{ type: 'text', text: ' ' }]
-        } else {
-          continue
-        }
-      }
-    } else if (typeof msg.content === 'string' && !msg.content.trim()) {
-      if (msg.role === 'assistant') {
-        msg.content = ' '
-      } else {
-        continue
-      }
-    }
-
-    normalized.push(msg)
-  }
-
-  return normalized
+  return normalizeCoreMessagesForGemini(coreMessages)
 }
 
 export function buildPersistedToolCalls(toolCalls: any[] = [], toolResults: any[] = []) {

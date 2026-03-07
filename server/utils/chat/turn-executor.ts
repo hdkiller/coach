@@ -13,6 +13,7 @@ import { chatTurnService } from '../services/chatTurnService'
 import { checkQuota } from '../quotas/engine'
 import { sendToUser } from '../ws-state'
 import { transformHistoryToCoreMessages } from '../ai-history'
+import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
 
 function normalizeMessagesForSdk(inputMessages: any[]) {
   const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
@@ -64,72 +65,6 @@ function normalizeMessagesForSdk(inputMessages: any[]) {
         parts
       }
     })
-}
-
-function normalizeCoreMessages(coreMessages: any[]) {
-  const merged: any[] = []
-
-  for (const msg of coreMessages) {
-    const last = merged[merged.length - 1]
-    if (last && last.role === msg.role) {
-      if (msg.role === 'tool') {
-        last.content = [...(last.content as any[]), ...(msg.content as any[])]
-      } else if (typeof last.content === 'string' && typeof msg.content === 'string') {
-        last.content = `${last.content} \n\n${msg.content} `
-      } else {
-        const lastParts = Array.isArray(last.content)
-          ? last.content
-          : [{ type: 'text', text: last.content }]
-        const msgParts = Array.isArray(msg.content)
-          ? msg.content
-          : [{ type: 'text', text: msg.content }]
-
-        const combinedParts: any[] = []
-        for (const part of [...lastParts, ...msgParts]) {
-          const lastCombined = combinedParts[combinedParts.length - 1]
-          if (lastCombined?.type === 'text' && part.type === 'text') {
-            lastCombined.text = `${lastCombined.text} \n\n${part.text} `
-          } else {
-            combinedParts.push(part)
-          }
-        }
-        last.content = combinedParts
-      }
-      continue
-    }
-    merged.push(msg)
-  }
-
-  const final: any[] = []
-  for (let i = 0; i < merged.length; i++) {
-    const msg = merged[i]
-    if (Array.isArray(msg.content)) {
-      msg.content = msg.content.filter((p: any) => !(p.type === 'text' && !p.text?.trim()))
-
-      if (msg.role === 'user' || msg.role === 'system') {
-        const textParts = msg.content.filter((p: any) => p.type === 'text')
-        if (textParts.length > 1) {
-          const mergedText = textParts.map((p: any) => p.text).join('\n\n')
-          const otherParts = msg.content.filter((p: any) => p.type !== 'text')
-          msg.content = [{ type: 'text', text: mergedText }, ...otherParts]
-        }
-        if (msg.content.length === 1 && msg.content[0].type === 'text') {
-          msg.content = msg.content[0].text
-        }
-      }
-
-      if (msg.content.length === 0) {
-        if (msg.role === 'assistant') msg.content = [{ type: 'text', text: ' ' }]
-        else continue
-      }
-    } else if (typeof msg.content === 'string' && !msg.content.trim()) {
-      if (msg.role === 'assistant') msg.content = ' '
-      else continue
-    }
-
-    final.push(msg)
-  }
-  return final
 }
 
 function stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages: any[]) {
@@ -267,7 +202,7 @@ export async function executeChatTurn(turnId: string) {
     normalizeMessagesForSdk(submittedMessages)
   )
   const coreMessages = await transformHistoryToCoreMessages(historyMessages)
-  const normalizedMessages = normalizeCoreMessages(coreMessages)
+  const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
 
   const historyToolCalls = new Map<string, any>()
   const currentTurnToolCalls = new Map<string, any>()
