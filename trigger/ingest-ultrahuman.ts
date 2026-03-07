@@ -76,12 +76,21 @@ export const ingestUltrahumanTask = task({
         logger.log(`[Ultrahuman Ingest] Fetching data for ${utcDate.toISOString().split('T')[0]}`)
 
         const dailyData = await fetchUltrahumanDaily(integration, utcDate)
+        logger.log(
+          `[Ultrahuman Ingest] Data received for ${utcDate.toISOString().split('T')[0]}: ${dailyData ? 'YES' : 'NULL'}`
+        )
 
         const wellness = normalizeUltrahumanWellness(dailyData, userId, utcDate)
 
         if (!wellness) {
+          logger.log(
+            `[Ultrahuman Ingest] Normalization returned NULL for ${utcDate.toISOString().split('T')[0]}`
+          )
           wellnessSkippedCount++
         } else {
+          logger.log(
+            `[Ultrahuman Ingest] Normalization success for ${utcDate.toISOString().split('T')[0]}. HRV: ${wellness.hrv}, SleepScore: ${wellness.sleepScore}`
+          )
           await wellnessRepository.upsert(
             userId,
             wellness.date,
