@@ -18,11 +18,15 @@
       status: any
       error?: any
       disabled?: boolean
+      queuedCount?: number
+      hasActiveTurn?: boolean
       mobileEnterBehavior?: 'newline' | 'send'
     }>(),
     {
       error: undefined,
       disabled: false,
+      queuedCount: 0,
+      hasActiveTurn: false,
       mobileEnterBehavior: 'newline'
     }
   )
@@ -76,6 +80,10 @@
   const canUseDesktopWebcam = computed(() => {
     if (!import.meta.client) return false
     return !isLikelyMobile() && !!navigator.mediaDevices?.getUserMedia
+  })
+  const queueLabel = computed(() => {
+    if (!props.queuedCount) return ''
+    return props.queuedCount === 1 ? '1 message queued' : `${props.queuedCount} messages queued`
   })
   const attachmentMenuItems = computed(() => [
     [
@@ -795,6 +803,9 @@
         <span v-if="uploadingCount > 0">{{ t('input_uploading_attachment') }}</span>
         <span v-else-if="isRecording">{{ t('input_recording_voice') }}</span>
         <span v-else-if="isTranscribing">{{ t('input_transcribing') }}</span>
+        <span v-else-if="props.queuedCount">
+          {{ queueLabel }}{{ props.hasActiveTurn ? ' while the current reply finishes' : '' }}
+        </span>
         <span v-else-if="isRecordingWebcamVideo">
           {{ t('input_recording_webcam', { time: webcamRecordingLabel }) }}
         </span>

@@ -1,16 +1,16 @@
 <template>
   <div class="mini-chart-container h-8 w-24 relative">
     <div class="absolute inset-0 flex items-end gap-px">
-      <UTooltip
+      <div
         v-for="(step, index) in steps"
         :key="index"
-        :text="tooltipText(step)"
-        :popper="{ placement: 'top' }"
-        :style="{ width: getStepWidth(step) + '%' }"
+        :style="getStepContainerStyle(step)"
         class="h-full flex items-end"
       >
-        <div class="rounded-xs w-full" :style="getStepStyle(step)" />
-      </UTooltip>
+        <UTooltip :text="tooltipText(step)" :popper="{ placement: 'top' }" class="h-full w-full">
+          <div class="rounded-xs w-full" :style="getStepStyle(step)" />
+        </UTooltip>
+      </div>
     </div>
 
     <svg
@@ -249,6 +249,14 @@
     if (totalDuration.value > 0) return (duration / totalDuration.value) * 100
     if (steps.value.length > 0) return 100 / steps.value.length
     return 0
+  }
+
+  function getStepContainerStyle(step: any) {
+    const width = getStepWidth(step)
+    return {
+      width: `${width}%`,
+      flex: `0 0 ${width}%`
+    }
   }
 
   function getStepStyle(step: any) {

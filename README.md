@@ -41,10 +41,12 @@ Unlike static dashboards, Coach Watts understands context—analyzing not just y
 - **🤖 AI Coach:**
   - **Workout Analysis:** Detailed breakdown of every session with execution scores.
   - **Daily Recommendations:** Smart suggestions ("Push hard" vs "Rest") based on HRV and sleep.
-  - **Interactive Chat:** Ask questions like _"How is my fatigue compared to last month?"_ and get data-backed answers.
+  - **Interactive Chat:** High-performance AI SDK v5 powered chat for data-backed answers to your training questions.
 - **📈 Advanced Analytics:** Track Fitness (CTL), Fatigue (ATL), Form (TSB), and Power Curves with intuitive visualizations.
-- **🥗 Nutrition Tracking:** AI analysis of your macro intake vs. training demands.
+- **🥗 Nutrition Tracking:** Metabolic fueling logic (Eco/Steady/Performance) based on training intensity.
 - **📅 Smart Planning:** Generate adaptive training plans that fit your schedule and goals.
+- **🌍 Global Localization:** Fully localized platform supporting over 10 languages with smart timezone handling.
+- **📢 System Messages:** Stay informed with important updates and coaching alerts directly in your dashboard.
 
 ## 🖼️ Visual Tour
 
@@ -62,25 +64,40 @@ Unlike static dashboards, Coach Watts understands context—analyzing not just y
 
 ## 🔌 Integrations
 
-Coach Watts connects seamlessly with:
+Coach Watts connects with your favorite endurance and wellness platforms:
 
 | Platform          | Features Synced                                    |
 | ----------------- | -------------------------------------------------- |
-| **Intervals.icu** | Workouts, Calendar, Power Metrics, Fitness/Fatigue |
+| **Intervals.icu** | Workouts, Calendar, Power Metrics, Wellness/Weight |
 | **Strava**        | Activity Data, GPS Streams, Heart Rate             |
 | **Whoop**         | Recovery, HRV, Sleep, Strain                       |
-| **Yazio**         | Nutrition Logs, Macros, Hydration                  |
+| **Oura**          | Readiness, Sleep, HRV, SpO2, Stress, VO2 Max       |
 | **Withings**      | Body Composition (Weight, Fat %), Sleep, Wellness  |
+| **Garmin**        | Activity Data, Wellness, Health Metrics            |
+| **Wahoo**         | Activity Data, Workouts                            |
+| **Polar**         | Training Sessions, Wellness, Recovery              |
+| **Yazio**         | Nutrition Logs, Macros, Hydration                  |
 | **Hevy**          | Strength Training, Exercises, Sets & Reps          |
 | **Fitbit**        | Steps, Sleep, Activity, Heart Rate                 |
-| **Oura**          | Readiness, Sleep, Activity, HRV                    |
-| **Polar**         | Training Sessions, Wellness, Recovery              |
+| **Rouvy**         | Indoor Cycling Workouts                            |
+| **Ultrahuman**    | CGM Data, Glucose Monitoring                       |
+| **Telegram**      | AI Coaching via Chat, Notifications                |
+
+## 🌍 Localization
+
+Coach Watts is built for the global endurance community. We currently support:
+
+- **English** (en), **German** (de), **Spanish** (es), **French** (fr)
+- **Hungarian** (hu), **Italian** (it), **Japanese** (ja), **Dutch** (nl)
+- **Russian** (ru), **Chinese** (zh)
+
+We use **Tolgee** for managing translations. If you'd like to help translate Coach Watts into your language, please join our [Discord](https://discord.gg/dPYkzg49T9)!
 
 ## ⚡ Quick Start
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+ (LTS)
 - Docker (for PostgreSQL)
 - Google Cloud Account (for Auth & Gemini API)
 
@@ -127,15 +144,33 @@ pnpm dev
 
 Visit `http://localhost:3099` and log in!
 
+### 🛠️ CLI Tools
+
+Coach Watts includes a powerful CLI for administrative tasks:
+
+```bash
+# General help
+pnpm cw:cli --help
+
+# Monitor Trigger.dev status
+pnpm cw:cli trigger list --prod
+
+# Manage users and locations
+pnpm cw:cli users location list-missing
+```
+
 ## 📚 Documentation
 
 We have extensive documentation available in the [`docs/`](./docs) directory:
 
 - [**Architecture**](./docs/01-architecture/system-overview.md): System design and data flow.
 - [**Database Schema**](./docs/01-architecture/database-schema.md): Detailed Prisma models.
+- [**Timezone Handling**](./docs/04-guides/timezone-handling.md): How we manage global athlete data.
+- [**Chat Development**](./docs/04-guides/chat-development.md): Strict AI SDK & Gemini sequencing rules.
 - [**Release Notes**](./public/content/releases): Detailed change logs for each version.
 - **Feature Guides**:
   - [AI Chat System](./docs/02-features/chat/overview.md)
+  - [Nutrition Logic](./docs/02-features/nutrition/fueling-logic.md)
   - [Scoring System](./docs/02-features/analytics/scoring-system.md)
   - [Integration Guides](./docs/INDEX.md#03-integrations)
 

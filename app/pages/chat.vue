@@ -57,9 +57,24 @@
   let chatWs: WebSocket | null = null
   let chatWsReconnectTimer: ReturnType<typeof setTimeout> | null = null
   let chatWsPingTimer: ReturnType<typeof setInterval> | null = null
+  const queueReconcileTimersByRoom: Record<string, ReturnType<typeof setTimeout> | undefined> = {}
   const isRealtimeConnected = ref(false)
   const lastChatRealtimeEventAt = ref(0)
   const awaitingTurnStart = ref(false)
+  type QueuedAttachment = {
+    url: string
+    mediaType: string
+    filename?: string
+  }
+  type QueuedOutgoingMessage = {
+    id: string
+    roomId: string
+    text: string
+    attachments: QueuedAttachment[]
+    createdAt: Date
+  }
+  const queuedOutgoingByRoom = ref<Record<string, QueuedOutgoingMessage[]>>({})
+  const queueDispatchInFlightByRoom = ref<Record<string, boolean>>({})
 
   // Fetch session
   const { data: session } = await useFetch('/api/auth/session')
@@ -84,6 +99,7 @@
       if (currentRoomId.value) {
         await loadMessages(currentRoomId.value, { silent: true })
         restartTurnPolling({ forceForMs: 15000 })
+        void processQueuedMessagesForRoom(currentRoomId.value)
       }
     },
     onError: (error) => {
@@ -176,23 +192,147 @@
       .find((message) => message?.role === 'assistant' && !message?.metadata?.syntheticTyping)
   const hasActiveTurn = (messages: any[]) =>
     activeTurnStatuses.includes(getLatestAssistantMessage(messages)?.metadata?.turnStatus)
+  const getQueuedOutgoingMessages = (roomId: string) =>
+    roomId ? queuedOutgoingByRoom.value[roomId] || [] : []
+  const queuedOutgoingMessages = computed(() => getQueuedOutgoingMessages(currentRoomId.value))
+  const queuedMessageCount = computed(() => queuedOutgoingMessages.value.length)
+  const buildMessageParts = (text: string, attachments: QueuedAttachment[]) => {
+    const parts: Array<Record<string, any>> = []
+
+    if (text.trim()) {
+      parts.push({ type: 'text', text })
+    }
+
+    attachments.forEach((attachment) => {
+      if (!attachment?.url || !attachment?.mediaType) return
+      parts.push({
+        type: 'file',
+        url: attachment.url,
+        mediaType: attachment.mediaType,
+        filename: attachment.filename
+      })
+    })
+
+    return parts
+  }
+  const setQueuedOutgoingMessages = (roomId: string, messages: QueuedOutgoingMessage[]) => {
+    queuedOutgoingByRoom.value = {
+      ...queuedOutgoingByRoom.value,
+      [roomId]: messages
+    }
+  }
+  const enqueueOutgoingMessage = (message: QueuedOutgoingMessage) => {
+    setQueuedOutgoingMessages(message.roomId, [
+      ...getQueuedOutgoingMessages(message.roomId),
+      message
+    ])
+  }
+  const removeQueuedOutgoingMessage = (roomId: string, messageId: string) => {
+    setQueuedOutgoingMessages(
+      roomId,
+      getQueuedOutgoingMessages(roomId).filter((message) => message.id !== messageId)
+    )
+  }
+  const setQueueDispatchInFlight = (roomId: string, inFlight: boolean) => {
+    queueDispatchInFlightByRoom.value = {
+      ...queueDispatchInFlightByRoom.value,
+      [roomId]: inFlight
+    }
+  }
+  const clearQueueReconcileTimer = (roomId: string) => {
+    const timer = queueReconcileTimersByRoom[roomId]
+    if (!timer) return
+    clearTimeout(timer)
+    queueReconcileTimersByRoom[roomId] = undefined
+  }
+  const scheduleQueueReconcile = (roomId: string, delayMs = 12000) => {
+    if (!roomId) return
+    clearQueueReconcileTimer(roomId)
+    queueReconcileTimersByRoom[roomId] = setTimeout(() => {
+      queueReconcileTimersByRoom[roomId] = undefined
+      if (!currentRoomId.value || roomId !== currentRoomId.value) return
+      void loadMessages(roomId, { silent: true })
+    }, delayMs)
+  }
+  const sendOutgoingMessage = async (message: {
+    text: string
+    attachments: QueuedAttachment[]
+  }) => {
+    const parts = buildMessageParts(message.text, message.attachments)
+    await Promise.resolve(
+      (chat as any).sendMessage(
+        parts.length > 0
+          ? {
+              role: 'user',
+              parts
+            }
+          : {
+              text: message.text
+            }
+      )
+    )
+    awaitingTurnStart.value = true
+    restartTurnPolling({ forceForMs: 15000 })
+  }
+  const processQueuedMessagesForRoom = async (roomId: string) => {
+    if (!roomId || roomId !== currentRoomId.value) return
+    if (queueDispatchInFlightByRoom.value[roomId]) return
+    if (awaitingTurnStart.value || hasActiveTurn(chat.messages as any[])) return
+
+    const nextQueuedMessage = getQueuedOutgoingMessages(roomId)[0]
+    if (!nextQueuedMessage) return
+
+    setQueueDispatchInFlight(roomId, true)
+
+    try {
+      await sendOutgoingMessage({
+        text: nextQueuedMessage.text,
+        attachments: nextQueuedMessage.attachments
+      })
+      removeQueuedOutgoingMessage(roomId, nextQueuedMessage.id)
+      scheduleQueueReconcile(roomId)
+    } catch (error: any) {
+      toast.add({
+        title: 'Queued message failed',
+        description: error?.message || 'Could not send the next queued message.',
+        color: 'error'
+      })
+    } finally {
+      setQueueDispatchInFlight(roomId, false)
+    }
+  }
   const chatMessages = computed(() => {
     const sanitizedMessages = (chat.messages as any[])
       .map((message) => sanitizeDisplayMessage(message))
       .filter(Boolean) as any[]
+    const queuedMessages = queuedOutgoingMessages.value.map((message) => ({
+      id: message.id,
+      role: 'user',
+      content: message.text,
+      parts: buildMessageParts(message.text, message.attachments),
+      createdAt: message.createdAt,
+      metadata: {
+        localOnly: true,
+        localQueueState: 'QUEUED'
+      }
+    }))
+    const combinedMessages = [...sanitizedMessages, ...queuedMessages].sort(
+      (left, right) =>
+        new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime()
+    )
     const hasVisibleActiveAssistant = activeTurnStatuses.includes(
-      getLatestAssistantMessage(sanitizedMessages)?.metadata?.turnStatus
+      getLatestAssistantMessage(combinedMessages)?.metadata?.turnStatus
     )
     const needsTypingPlaceholder =
       awaitingTurnStart.value ||
       (hasActiveTurn(chat.messages as any[]) && !hasVisibleActiveAssistant)
 
     if (!needsTypingPlaceholder) {
-      return sanitizedMessages
+      return combinedMessages
     }
 
     return [
-      ...sanitizedMessages,
+      ...combinedMessages,
       {
         id: `typing-${currentRoomId.value || 'room'}`,
         role: 'assistant',
@@ -370,6 +510,13 @@
       if (!areMessageListsEquivalent(existingMessages, nextMessages)) {
         chat.messages = nextMessages as any
       }
+      if (
+        transformedMessage?.role === 'assistant' &&
+        terminalTurnStatuses.includes(transformedMessage?.metadata?.turnStatus)
+      ) {
+        clearQueueReconcileTimer(currentRoomId.value)
+        void processQueuedMessagesForRoom(currentRoomId.value)
+      }
       return
     }
 
@@ -378,13 +525,25 @@
         new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime()
     )
     chat.messages = nextMessages as any
+
+    if (
+      transformedMessage?.role === 'assistant' &&
+      terminalTurnStatuses.includes(transformedMessage?.metadata?.turnStatus)
+    ) {
+      clearQueueReconcileTimer(currentRoomId.value)
+      void processQueuedMessagesForRoom(currentRoomId.value)
+    }
   }
   const uiChatStatus = computed(() =>
     hasActiveTurn(chat.messages as any[]) || awaitingTurnStart.value ? 'streaming' : 'ready'
   )
+  const composerStatus = computed(() => {
+    if (queuedMessageCount.value > 0) return 'submitted'
+    return uiChatStatus.value
+  })
 
   // Form submission handler
-  const onSubmit = (
+  const onSubmit = async (
     payload?:
       | Event
       | string
@@ -420,31 +579,27 @@
       trackChatSessionStart(currentRoomId.value)
     }
 
-    const parts = []
-    if (submittedText?.trim()) {
-      parts.push({ type: 'text', text: submittedText })
+    const outgoingMessage: QueuedOutgoingMessage = {
+      id: crypto.randomUUID(),
+      roomId: currentRoomId.value,
+      text: submittedText,
+      attachments,
+      createdAt: new Date()
     }
-    attachments.forEach((attachment) => {
-      if (!attachment?.url || !attachment?.mediaType) return
-      parts.push({
-        type: 'file',
-        url: attachment.url,
-        mediaType: attachment.mediaType,
-        filename: attachment.filename
+
+    if (
+      awaitingTurnStart.value ||
+      hasActiveTurn(chat.messages as any[]) ||
+      queuedMessageCount.value
+    ) {
+      enqueueOutgoingMessage(outgoingMessage)
+    } else {
+      await sendOutgoingMessage({
+        text: submittedText,
+        attachments
       })
-    })
-    ;(chat as any).sendMessage(
-      parts.length > 0
-        ? {
-            role: 'user',
-            parts
-          }
-        : {
-            text: submittedText
-          }
-    )
-    awaitingTurnStart.value = true
-    restartTurnPolling({ forceForMs: 15000 })
+    }
+
     input.value = ''
   }
 
@@ -594,6 +749,7 @@
 
     stopTurnPolling()
     cleanupChatWebSocket()
+    Object.keys(queueReconcileTimersByRoom).forEach((roomId) => clearQueueReconcileTimer(roomId))
   })
 
   function cleanupChatWebSocket() {
@@ -796,6 +952,7 @@
         awaitingTurnStart.value = false
       }
       restartTurnPolling()
+      void processQueuedMessagesForRoom(roomId)
     } catch (err: any) {
       console.error('Failed to load messages:', err)
     } finally {
@@ -1013,6 +1170,15 @@
     shareLink.value = ''
   })
 
+  watch(
+    () => [uiChatStatus.value, queuedMessageCount.value] as const,
+    ([status, queueCount]) => {
+      if (!currentRoomId.value || status !== 'ready' || queueCount === 0) return
+      void processQueuedMessagesForRoom(currentRoomId.value)
+    },
+    { flush: 'post' }
+  )
+
   async function resumeTurn(turnId: string) {
     if (!turnId) return
 
@@ -1170,7 +1336,9 @@
             :messages="chatMessages as any"
             :status="uiChatStatus"
             :loading="loadingMessages"
-            :can-edit-messages="uiChatStatus === 'ready' && !isCurrentRoomReadOnly"
+            :can-edit-messages="
+              uiChatStatus === 'ready' && queuedMessageCount === 0 && !isCurrentRoomReadOnly
+            "
             :editing-message-id="editingMessage?.id || null"
             :editing-content="editingContent"
             :saving-edited-message="savingEditedMessage"
@@ -1187,9 +1355,11 @@
           <ChatInput
             ref="chatInputRef"
             v-model="input"
-            :status="uiChatStatus"
+            :status="composerStatus"
             :error="chat.error"
             :disabled="isCurrentRoomReadOnly"
+            :queued-count="queuedMessageCount"
+            :has-active-turn="uiChatStatus === 'streaming'"
             mobile-enter-behavior="newline"
             @submit="onSubmit"
           />

@@ -257,6 +257,8 @@
   const canShowTurnStatus = (message: any) =>
     message?.role === 'assistant' &&
     ['INTERRUPTED', 'FAILED'].includes(message?.metadata?.turnStatus)
+  const isQueuedUserMessage = (message: any) =>
+    message?.role === 'user' && message?.metadata?.localQueueState === 'QUEUED'
   const resumeTurn = (turnId?: string) => {
     if (!turnId) return
     emit('resume-turn', turnId)
@@ -660,8 +662,7 @@
             side: 'right',
             variant: 'soft',
             ui: {
-              content:
-                'rounded-[1.75rem] rounded-tr-lg px-4 py-2 min-h-0 bg-gray-800/95 text-white dark:bg-gray-700/95 dark:text-gray-50',
+              content: 'min-h-0 bg-transparent p-0 text-white shadow-none dark:text-gray-50',
               container:
                 'relative w-fit flex items-center ltr:justify-end ms-auto max-w-[75%] gap-2 !pb-0',
               actions:
@@ -706,13 +707,23 @@
                 />
               </div>
             </div>
-            <ChatMessageContent
+            <div
               v-else
-              :message="message"
-              :all-messages="messages"
-              @click="handleMessageTap(message)"
-              @tool-approval="handleToolApproval"
-            />
+              :class="
+                message.role === 'user'
+                  ? isQueuedUserMessage(message)
+                    ? 'animate-pulse rounded-[1.75rem] rounded-tr-lg bg-amber-500/22 px-4 py-2 text-white ring-1 ring-inset ring-amber-300/35 dark:bg-amber-400/16 dark:ring-amber-200/20'
+                    : 'rounded-[1.75rem] rounded-tr-lg bg-gray-800/95 px-4 py-2 text-white dark:bg-gray-700/95 dark:text-gray-50'
+                  : ''
+              "
+            >
+              <ChatMessageContent
+                :message="message"
+                :all-messages="messages"
+                @click="handleMessageTap(message)"
+                @tool-approval="handleToolApproval"
+              />
+            </div>
             <div
               v-if="canShowTurnStatus(message)"
               class="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500"
