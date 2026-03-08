@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 defineRouteMeta({
   openAPI: {
@@ -68,6 +69,8 @@ export default defineEventHandler(async (event) => {
         tags: [`user:${userId}`]
       }
     )
+
+    await publishTaskRunStartedEvent(userId, 'review-goals', handle)
 
     return {
       success: true,

@@ -1,6 +1,7 @@
 import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../utils/session'
 import { trainingPlanRepository } from '../../utils/repositories/trainingPlanRepository'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -33,6 +34,8 @@ export default defineEventHandler(async (event) => {
       tags: [`user:${userId}`]
     }
   )
+
+  await publishTaskRunStartedEvent(userId, 'adapt-training-plan', handle)
 
   return {
     success: true,

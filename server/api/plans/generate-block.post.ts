@@ -2,6 +2,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '../../utils/session'
 import { trainingBlockRepository } from '../../utils/repositories/trainingBlockRepository'
 import { checkQuota } from '../../utils/quotas/engine'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -48,6 +49,8 @@ export default defineEventHandler(async (event) => {
       tags: [`user:${userId}`]
     }
   )
+
+  await publishTaskRunStartedEvent(userId, 'generate-training-block', handle)
 
   return {
     success: true,

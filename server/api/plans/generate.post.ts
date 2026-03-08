@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 defineRouteMeta({
   openAPI: {
@@ -70,6 +71,8 @@ export default defineEventHandler(async (event) => {
       tags: [`user:${userId}`]
     }
   )
+
+  await publishTaskRunStartedEvent(userId, 'generate-weekly-plan', handle)
 
   return {
     success: true,
