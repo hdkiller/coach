@@ -12,6 +12,18 @@ export interface TriggerRun {
   tags?: string[]
 }
 
+export interface RealtimeDomainEvent {
+  type: 'domain_event'
+  channel?: string
+  event?: {
+    scope?: string
+    entityType?: string
+    entityId?: string
+    reason?: string
+    occurredAt?: string
+  }
+}
+
 // Global Singleton State
 const runs = ref<TriggerRun[]>([])
 const isConnected = ref(false)
@@ -21,6 +33,8 @@ let activeSubscribers = 0
 let initPromise: Promise<void> | null = null
 let pollInterval: NodeJS.Timeout | null = null
 let pingInterval: NodeJS.Timeout | null = null
+const realtimeListeners = new Set<(event: RealtimeDomainEvent) => void>()
+let lastPollAt = 0
 
 export const ACTIVE_STATUSES = [
   'EXECUTING',
@@ -31,6 +45,9 @@ export const ACTIVE_STATUSES = [
   'PENDING_VERSION',
   'DELAYED'
 ]
+
+const FAST_POLL_INTERVAL_MS = 5000
+const IDLE_POLL_INTERVAL_MS = 15000
 
 function cleanupUserRunsConnection() {
   if (ws) {
@@ -63,9 +80,10 @@ export function useUserRuns() {
       return
     }
 
-    if (isLoading.value && !pollInterval) return
+    if (isLoading.value) return
 
     isLoading.value = true
+    lastPollAt = Date.now()
     try {
       const data = (await ($fetch as any)('/api/runs/active')) as TriggerRun[]
 
@@ -114,10 +132,17 @@ export function useUserRuns() {
   const startPolling = () => {
     if (pollInterval) return
     pollInterval = setInterval(() => {
-      if (!isConnected.value && activeSubscribers > 0 && hasUserSession.value) {
+      if (activeSubscribers <= 0 || !hasUserSession.value) {
+        return
+      }
+
+      const hasActiveRuns = runs.value.some((run) => ACTIVE_STATUSES.includes(run.status))
+      const minInterval = hasActiveRuns ? FAST_POLL_INTERVAL_MS : IDLE_POLL_INTERVAL_MS
+
+      if (Date.now() - lastPollAt >= minInterval) {
         fetchActiveRuns()
       }
-    }, 5000)
+    }, 1000)
   }
 
   const stopPolling = () => {
@@ -159,7 +184,7 @@ export function useUserRuns() {
 
     ws.onopen = async () => {
       isConnected.value = true
-      stopPolling()
+      startPolling()
       startPing()
       if (session.value?.user && (session.value.user as any).id) {
         try {
@@ -177,23 +202,27 @@ export function useUserRuns() {
         const data = JSON.parse(event.data)
         if (data.type === 'run_update') {
           handleRunUpdate(data)
+        } else if (data.type === 'domain_event') {
+          realtimeListeners.forEach((listener) => listener(data))
         } else if (data.type === 'notification_new') {
           const notificationStore = useNotificationStore()
-          notificationStore.addNotification(data.notification)
+          const inserted = notificationStore.addNotification(data.notification)
 
           // Show toast for new notification
-          const toast = useToast()
-          toast.add({
-            title: data.notification.title,
-            description: data.notification.message,
-            icon: data.notification.icon || 'i-heroicons-bell',
-            color: 'primary',
-            onClick: () => {
-              if (data.notification.link) {
-                navigateTo(data.notification.link)
+          if (inserted) {
+            const toast = useToast()
+            toast.add({
+              title: data.notification.title,
+              description: data.notification.message,
+              icon: data.notification.icon || 'i-heroicons-bell',
+              color: 'primary',
+              onClick: () => {
+                if (data.notification.link) {
+                  navigateTo(data.notification.link)
+                }
               }
-            }
-          })
+            })
+          }
         }
       } catch (e) {
         // Ignore
@@ -260,9 +289,7 @@ export function useUserRuns() {
     }
     await initPromise
     connectWebSocket()
-    if (!isConnected.value) {
-      startPolling()
-    }
+    startPolling()
   }
 
   if (import.meta.client) {
@@ -316,6 +343,28 @@ export function useUserRuns() {
     isLoading,
     refresh: fetchActiveRuns,
     cancelRun
+  }
+}
+
+export function useRealtimeEvents() {
+  useUserRuns()
+
+  const onEvent = (callback: (event: RealtimeDomainEvent) => void) => {
+    realtimeListeners.add(callback)
+
+    const dispose = () => {
+      realtimeListeners.delete(callback)
+    }
+
+    if (getCurrentScope()) {
+      onScopeDispose(dispose)
+    }
+
+    return dispose
+  }
+
+  return {
+    onEvent
   }
 }
 

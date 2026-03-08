@@ -4,6 +4,7 @@
   const { t } = useTranslate('dashboard')
   const notificationStore = useNotificationStore()
   const { notifications, unreadCount, loading } = storeToRefs(notificationStore)
+  useUserRuns()
 
   const isOpen = ref(false)
 

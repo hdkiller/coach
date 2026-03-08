@@ -1138,7 +1138,11 @@
   })
 
   // Metabolic Wave Fetch (Consolidated to fix N+1)
-  const { data: metabolicWaveResponse, status: metabolicWaveStatus } = await useAsyncData(
+  const {
+    data: metabolicWaveResponse,
+    status: metabolicWaveStatus,
+    refresh: refreshMetabolicWave
+  } = await useAsyncData(
     'metabolic-wave',
     async () => {
       if (!nutritionEnabled.value || !calendarSettings.value.showMetabolicWave) return null
@@ -1148,6 +1152,13 @@
     },
     { watch: [currentDate, nutritionEnabled, () => calendarSettings.value.showMetabolicWave] }
   )
+
+  useActivityRealtime(async () => {
+    await refresh()
+    if (nutritionEnabled.value && calendarSettings.value.showMetabolicWave) {
+      await refreshMetabolicWave()
+    }
+  })
 
   const metabolicWavePoints = computed(() => metabolicWaveResponse.value?.points || [])
 

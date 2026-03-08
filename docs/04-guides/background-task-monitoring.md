@@ -1,22 +1,32 @@
 # Background Task Monitoring Guide
 
-Coach Watts uses a robust, real-time system for monitoring long-running background tasks (Trigger.dev jobs). This system replaces legacy client-side polling with a hybrid WebSocket + Server-Side Events approach.
+Coach Watts uses a hybrid realtime + polling system for monitoring long-running Trigger.dev jobs.
+
+The canonical transport is documented in [Realtime Message Bus](../01-architecture/realtime-message-bus.md). This guide focuses on how task monitoring works in the UI.
 
 ## 🚀 Overview
 
 The monitoring system consists of three layers:
 
-1.  **Server-Side WebSocket (`server/api/websocket.ts`)**: Connects to Trigger.dev's real-time stream and forwards run updates to the client.
-2.  **Global Client State (`app/composables/useUserRuns.ts`)**: A singleton composable that maintains the list of active runs, handles WebSocket connections, and merges updates intelligently.
-3.  **UI Components**:
-    - `DashboardTriggerMonitor`: A floating/collapsible widget that shows the status of all running tasks.
-    - `TriggerMonitorButton`: A button in the navbar/sidebar that toggles the monitor and shows a badge count.
+1. **Server-side publish path**
+   - User-facing API routes call `tasks.trigger(...)`
+   - After a successful trigger, the route publishes an immediate `run_update`
+   - This gives the client instant visibility of a newly started run
+2. **Global client state (`app/composables/useUserRuns.ts`)**
+   - Singleton socket + shared run list
+   - Merges realtime updates with `/api/runs/active` fetch results
+   - Falls back to polling if realtime is unavailable or disconnected
+3. **UI components**
+   - `DashboardTriggerMonitor`: floating/collapsible run monitor
+   - `TriggerMonitorButton`: navbar button with active run count badge
 
 ## 🛠️ How to Use
 
 ### 1. Triggering a Task
 
-When you trigger a task from a component (e.g., "Generate Report"), you don't need to manually start polling. Instead, just trigger the API endpoint and refresh the global run list.
+When you trigger a task from a component, you usually do not need to manually force the monitor to notice it. The server publishes a run-start event in the main task routes.
+
+You can still call `refreshUserRuns()` as a conservative fallback if your route does not yet publish a task event.
 
 ```typescript
 // In your component (e.g., pages/recommendations/index.vue)
@@ -26,7 +36,7 @@ async function startTask() {
   try {
     const res = await $fetch('/api/my-task/trigger', { method: 'POST' })
 
-    // Crucial: Refresh the global list immediately so the new run appears in the monitor
+    // Optional fallback if this route does not yet publish run-start events
     refreshUserRuns()
 
     toast.add({ title: 'Task Started', color: 'info' })
@@ -91,13 +101,23 @@ The `useUserRuns` composable uses a singleton pattern. The `runs` state and `Web
 
 The system is designed to be resilient:
 
-1.  **WebSocket First**: Attempts to connect for real-time updates.
-2.  **API Fallback**: `fetchActiveRuns` is called on mount to get the initial state.
-3.  **Smart Merging**: If the API returns "EXECUTING" but the WebSocket has already pushed "COMPLETED", the local state preserves "COMPLETED". This prevents the UI from "flickering" back to a running state due to API latency.
-4.  **Manual Refresh**: The monitor widget includes a refresh button that re-fetches the active run list from the API.
+1. **Realtime First**: if the shared WebSocket is connected, `run_update` messages are merged immediately.
+2. **API Fallback**: `fetchActiveRuns` provides initial state and recovery.
+3. **Smart Merging**: if the API is behind but local state already saw a final status, the final status wins.
+4. **Polling Fallback**: when the socket disconnects, the composable polls `/api/runs/active`.
+5. **Manual Refresh**: the monitor widget still offers a manual refresh button.
+
+### Redis Dependency
+
+Cross-instance task monitor updates depend on `REDIS_URL`.
+
+- With `REDIS_URL`, task-start and other bus messages can reach browser sockets connected to other app instances.
+- Without `REDIS_URL`, the monitor still works through local delivery and polling, but you should not expect full cross-instance realtime behavior.
 
 ### Troubleshooting
 
-- **Task not appearing?** Ensure you call `refreshUserRuns()` after the API call returns the `jobId`.
-- **Status stuck?** Check the browser console for `[useUserRuns]` logs. The WebSocket might have disconnected. The system auto-reconnects, but a manual refresh might be needed in extreme network conditions.
+- **Task not appearing immediately?** Confirm the route publishes a task-start event after `tasks.trigger(...)`. If not, add `publishTaskRunStartedEvent(...)`.
+- **Cross-instance updates missing?** Confirm `REDIS_URL` is configured for the environment.
+- **Need delivery traces?** Enable realtime debug logging with `REALTIME_DEBUG=true`.
+- **Status stuck?** The socket may be disconnected or the route may not publish later-state updates yet. Polling/manual refresh should still recover.
 - **Run ID vs Task Identifier**: `onTaskCompleted` listens for the `taskIdentifier` (e.g., `generate-weekly-report`), NOT the specific `runId` (e.g., `run_123`). This allows it to catch _any_ instance of that task completing.
