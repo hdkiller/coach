@@ -84,25 +84,37 @@
 
         <USeparator />
 
-        <div class="flex flex-col gap-3">
-          <UButton
-            label="Authorize"
-            color="primary"
-            block
-            size="lg"
-            class="font-bold"
-            :loading="processing"
-            @click="handleAction('approve')"
-          />
-          <UButton
-            label="Cancel"
-            color="neutral"
-            variant="ghost"
-            block
-            class="font-bold"
-            @click="handleAction('deny')"
-          />
-        </div>
+        <form
+          :action="approveActionUrl"
+          method="post"
+          class="flex flex-col gap-3"
+          @submit="processing = true"
+        >
+          <button
+            type="submit"
+            name="action"
+            value="approve"
+            :disabled="processing"
+            class="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-3 text-sm font-bold text-inverted shadow-xs transition-opacity disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <UIcon
+              v-if="processing"
+              name="i-heroicons-arrow-path"
+              class="mr-2 h-4 w-4 animate-spin"
+            />
+            <span>Authorize</span>
+          </button>
+          <button
+            type="submit"
+            name="action"
+            value="deny"
+            :formaction="denyActionUrl"
+            :disabled="processing"
+            class="inline-flex w-full items-center justify-center rounded-md px-4 py-3 text-sm font-bold text-gray-700 transition-opacity hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-70 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            <span>Cancel</span>
+          </button>
+        </form>
 
         <p
           class="text-[10px] text-gray-400 dark:text-gray-500 text-center font-medium leading-relaxed"
@@ -123,7 +135,6 @@
 
   const { data: authData, signOut } = useAuth()
   const route = useRoute()
-  const toast = useToast()
 
   const user = computed(() => authData.value?.user)
   const loading = ref(true)
@@ -132,6 +143,24 @@
   const app = ref<any>(null)
 
   const query = route.query as any
+  const authorizeQuery = computed(() => {
+    const params = new URLSearchParams()
+
+    if (query.client_id) params.set('client_id', String(query.client_id))
+    if (query.redirect_uri) params.set('redirect_uri', String(query.redirect_uri))
+    params.set('scope', String(query.scope || 'profile:read'))
+    if (query.state) params.set('state', String(query.state))
+    if (query.code_challenge) params.set('code_challenge', String(query.code_challenge))
+    if (query.code_challenge_method) {
+      params.set('code_challenge_method', String(query.code_challenge_method))
+    }
+
+    return params.toString()
+  })
+  const approveActionUrl = computed(
+    () => `/api/oauth/authorize?${authorizeQuery.value}&action=approve`
+  )
+  const denyActionUrl = computed(() => `/api/oauth/authorize?${authorizeQuery.value}&action=deny`)
 
   const scopeMap: Record<string, any> = {
     'profile:read': {
@@ -230,30 +259,6 @@
       error.value = err.data?.message || 'Failed to load application details.'
     } finally {
       loading.value = false
-    }
-  }
-
-  async function handleAction(action: 'approve' | 'deny') {
-    processing.value = true
-    try {
-      const response: any = await $fetch('/api/oauth/authorize', {
-        method: 'POST',
-        body: {
-          ...query,
-          action
-        }
-      })
-
-      if (response.redirect) {
-        window.location.href = response.redirect
-      }
-    } catch (err: any) {
-      toast.add({
-        title: 'Error',
-        description: err.data?.message || 'Authorization failed',
-        color: 'error'
-      })
-      processing.value = false
     }
   }
 
