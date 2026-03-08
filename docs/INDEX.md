@@ -9,6 +9,7 @@ Core system design, database schemas, and infrastructure.
 - [**System Overview**](./01-architecture/system-overview.md) - High-level architecture, tech stack, and core modules.
 - [**Database Schema**](./01-architecture/database-schema.md) - Complete database structure (Prisma).
 - [**Project Structure**](./01-architecture/project-structure.md) - File organization and conventions.
+- [**Realtime Message Bus**](./01-architecture/realtime-message-bus.md) - Redis-gated cross-instance delivery for activities, task monitoring, notifications, and chat.
 - [**Task Dependency System**](./01-architecture/task-dependency-system.md) - Orchestration of data processing tasks.
 - [**Queue Concurrency**](./01-architecture/trigger-queue-concurrency.md) - How Trigger.dev queues are managed per user.
 
@@ -112,6 +113,7 @@ Instructional documents for developers.
 - [**LLM Quotas & Limits**](./04-guides/llm-quotas-and-limits.md) - Tier-based usage tracking and enforcement.
 - [**Timezone Handling**](./04-guides/timezone-handling.md) - Architecture for multi-source date consistency.
 - [**Chat Development**](./04-guides/chat-development.md) - Strict AI SDK sequencing and message normalization.
+- [**Background Task Monitoring**](./04-guides/background-task-monitoring.md) - How task runs appear in the UI and how realtime/polling interact.
 - [**CLI Reference**](./04-guides/cli-reference.md) - Guide to using and extending the project CLI (`cw:cli`).
 - [**TSS Calculation**](./04-guides/tss-calculation.md) - How TSS is calculated from stream data.
 - [**Score Explanations**](./04-guides/score-explanations.md) - Guide to implementing score explanation features.

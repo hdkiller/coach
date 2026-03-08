@@ -21,6 +21,12 @@ Learn about the high-level system architecture, including:
 
 **Read this first** to understand the overall system design and how different components work together.
 
+Additional architecture references:
+
+- [Realtime Message Bus](./01-architecture/realtime-message-bus.md)
+- [Task Dependency System](./01-architecture/task-dependency-system.md)
+- [Queue Concurrency](./01-architecture/trigger-queue-concurrency.md)
+
 ### [Database Schema](./01-architecture/database-schema.md)
 
 **Complete database structure and design**
