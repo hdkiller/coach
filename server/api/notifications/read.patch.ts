@@ -1,5 +1,5 @@
 import { getServerSession } from '../../utils/session'
-import { prisma } from '../../utils/db'
+import { markAllNotificationsAsRead, markNotificationAsRead } from '../../utils/notifications'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -12,18 +12,18 @@ export default defineEventHandler(async (event) => {
   const { id, all } = body
 
   if (all) {
-    await prisma.userNotification.updateMany({
-      where: { userId, read: false },
-      data: { read: true }
-    })
+    await markAllNotificationsAsRead(userId)
     return { success: true }
   }
 
   if (id) {
-    await prisma.userNotification.update({
-      where: { id, userId },
-      data: { read: true }
-    })
+    const result = await markNotificationAsRead(userId, id)
+    if (result.count === 0) {
+      throw createError({
+        statusCode: 404,
+        message: 'Notification not found'
+      })
+    }
     return { success: true }
   }
 

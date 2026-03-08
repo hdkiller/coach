@@ -26,6 +26,7 @@ export async function createUserNotification(userId: string, data: NotificationD
     // Send real-time update via WebSocket
     await sendToUser(userId, {
       type: 'notification_new',
+      channel: 'notification',
       notification: {
         id: notification.id,
         title: notification.title,
@@ -58,7 +59,7 @@ export async function markAllNotificationsAsRead(userId: string) {
  * Marks a single notification as read.
  */
 export async function markNotificationAsRead(userId: string, notificationId: string) {
-  return await prisma.userNotification.update({
+  return await prisma.userNotification.updateMany({
     where: { id: notificationId, userId },
     data: { read: true }
   })

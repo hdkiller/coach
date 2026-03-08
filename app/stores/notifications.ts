@@ -63,9 +63,17 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   const addNotification = (notification: UserNotification) => {
+    const existingIndex = notifications.value.findIndex((item) => item.id === notification.id)
+
+    if (existingIndex !== -1) {
+      notifications.value[existingIndex] = notification
+      return false
+    }
+
     notifications.value.unshift(notification)
     unreadCount.value++
     total.value++
+    return true
   }
 
   return {
