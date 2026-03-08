@@ -3,6 +3,7 @@ import { getUserTimezone, getUserLocalDate } from '../../utils/date'
 import { tasks } from '@trigger.dev/sdk/v3'
 import type { generateDailyCheckinTask } from '../../../trigger/daily-checkin'
 import { checkQuota } from '../../utils/quotas/engine'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -54,6 +55,8 @@ export default defineEventHandler(async (event) => {
       idempotencyKeyTTL: '1m'
     }
   )
+
+  await publishTaskRunStartedEvent(userId, 'generate-daily-checkin', handle)
 
   // Return existing checkin if available, otherwise a placeholder
   // The UI will switch to "Loading" because of the task trigger + WebSocket

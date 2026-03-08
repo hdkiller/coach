@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -41,6 +42,8 @@ export default defineEventHandler(async (event) => {
         tags: [`user:${(session.user as any).id}`]
       }
     )
+
+    await publishTaskRunStartedEvent((session.user as any).id, 'analyze-plan-adherence', handle)
 
     return {
       success: true,

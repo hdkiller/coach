@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { checkQuota } from '../../../utils/quotas/engine'
+import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
 defineRouteMeta({
   openAPI: {
@@ -98,6 +99,8 @@ export default defineEventHandler(async (event) => {
         idempotencyKeyTTL: '5m'
       }
     )
+
+    await publishTaskRunStartedEvent(userId, 'analyze-workout', handle)
 
     return {
       success: true,

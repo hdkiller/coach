@@ -1,6 +1,7 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 import { checkQuota } from '../../../utils/quotas/engine'
 
 export default defineEventHandler(async (event) => {
@@ -52,6 +53,8 @@ export default defineEventHandler(async (event) => {
         idempotencyKeyTTL: '5m'
       }
     )
+
+    await publishTaskRunStartedEvent(userId, 'analyze-wellness', handle)
 
     return {
       status: 'PROCESSING',

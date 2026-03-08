@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 defineRouteMeta({
   openAPI: {
@@ -37,7 +38,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const config = useRuntimeConfig()
   const user = await prisma.user.findUnique({
     where: { email: session.user.email }
   })
@@ -59,6 +59,8 @@ export default defineEventHandler(async (event) => {
         tags: [`user:${user.id}`]
       }
     )
+
+    await publishTaskRunStartedEvent(user.id, 'generate-score-explanations', handle)
 
     return {
       success: true,

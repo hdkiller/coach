@@ -2,6 +2,7 @@ import { prisma } from '../../../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { z } from 'zod'
 import { getServerSession } from '../../../../utils/session'
+import { publishTaskRunStartedEvent } from '../../../../utils/task-run-events'
 
 const messageRequestSchema = z.object({
   tone: z.string().optional(),
@@ -40,6 +41,8 @@ export default defineEventHandler(async (event) => {
       tags: [`user:${(session.user as any).id}`]
     }
   )
+
+  await publishTaskRunStartedEvent((session.user as any).id, 'generate-workout-messages', handle)
 
   return { success: true, jobId: handle.id }
 })
