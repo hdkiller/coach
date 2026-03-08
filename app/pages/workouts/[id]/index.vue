@@ -2371,7 +2371,7 @@
   const isShareModalOpen = ref(false)
   const isExtrasMetaModalOpen = ref(false)
   const isWorkoutSectionsModalOpen = ref(false)
-  const shareExpiryValue = ref('604800') // default 7 days
+  const shareExpiryValue = ref('never')
 
   const stomachFeel = ref<number | null>(null)
 
