@@ -555,6 +555,7 @@ model Workout {
   gearId                          String?
   isPrivate                       Boolean?          @default(false)
   shareToken                      String?           @unique
+  summaryPolyline                 String?           @db.Text
   carbsUsed                       Int?
   hrLoad                          Float?
   strainScore                     Float?
