@@ -1,6 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { checkQuota } from '../../../utils/quotas/engine'
+import { assertQuotaAllowed } from '../../../utils/quotas/http'
 import { publishTaskRunStartedEvent } from '../../../utils/task-run-events'
 
 defineRouteMeta({
@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
-  await checkQuota(userId, 'workout_analysis')
+  await assertQuotaAllowed(userId, 'workout_analysis')
 
   // Fetch the workout
   const workout = await workoutRepository.getById(id, userId)

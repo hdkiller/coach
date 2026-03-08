@@ -124,9 +124,19 @@ export async function checkQuota(userId: string, operation: string): Promise<Quo
   if (!status.allowed && status.enforcement === 'STRICT') {
     const error = new Error(
       `Quota exceeded for ${operation}. Upgrade your plan for higher limits.`
-    ) as Error & { statusCode?: number; statusMessage?: string }
+    ) as Error & {
+      statusCode?: number
+      statusMessage?: string
+      data?: Record<string, unknown>
+      quotaExceeded?: boolean
+    }
     error.statusCode = 429
     error.statusMessage = `Quota exceeded for ${operation}. Upgrade your plan for higher limits.`
+    error.data = {
+      operation,
+      quotaExceeded: true
+    }
+    error.quotaExceeded = true
     throw error
   }
 

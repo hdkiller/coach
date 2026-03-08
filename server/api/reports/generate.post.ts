@@ -2,7 +2,7 @@ import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
 import { getUserTimezone, getStartOfDaysAgoUTC, getStartOfYearUTC } from '../../utils/date'
-import { checkQuota } from '../../utils/quotas/engine'
+import { assertQuotaAllowed } from '../../utils/quotas/http'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 defineRouteMeta({
@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
   const userId = (session.user as any).id
 
   // 0. Quota Check
-  await checkQuota(userId, 'unified_report_generation')
+  await assertQuotaAllowed(userId, 'unified_report_generation')
 
   const body = await readBody(event)
   const reportType = body.type || 'WEEKLY_ANALYSIS'

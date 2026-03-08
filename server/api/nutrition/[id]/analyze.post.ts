@@ -1,6 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
-import { checkQuota } from '../../../utils/quotas/engine'
+import { assertQuotaAllowed } from '../../../utils/quotas/http'
 
 defineRouteMeta({
   openAPI: {
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = (session.user as any).id
-  await checkQuota(userId, 'nutrition_analysis')
+  await assertQuotaAllowed(userId, 'nutrition_analysis')
 
   // Fetch the nutrition record
   const nutrition = await nutritionRepository.getById(id, userId)

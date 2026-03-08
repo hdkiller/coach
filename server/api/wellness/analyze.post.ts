@@ -3,7 +3,7 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { tasks } from '@trigger.dev/sdk/v3'
 import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
-import { checkQuota } from '../../utils/quotas/engine'
+import { assertQuotaAllowed } from '../../utils/quotas/http'
 
 const analyzeSchema = z.object({
   wellnessId: z.string().uuid()
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const { wellnessId } = await readValidatedBody(event, analyzeSchema.parse)
   const userId = (session.user as any).id
 
-  await checkQuota(userId, 'wellness_analysis')
+  await assertQuotaAllowed(userId, 'wellness_analysis')
 
   const wellness = await prisma.wellness.findUnique({
     where: { id: wellnessId }
