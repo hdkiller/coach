@@ -981,13 +981,23 @@ export const generateStructuredWorkoutTask = task({
       if (!Array.isArray(steps)) return { distance, duration, tss }
 
       steps.forEach((step: any, stepIndex: number) => {
+        if (!step || typeof step !== 'object' || Array.isArray(step)) {
+          logger.warn('Skipping malformed structured workout step during generation', {
+            workoutType: workout.type,
+            depth,
+            stepIndex,
+            stepType: typeof step
+          })
+          return
+        }
+
         // 1. Recover misplaced targets (AI sometimes puts 'value' or 'range' at top level)
         const recoverTarget = (fieldName: string) => {
           if (typeof step[fieldName] === 'string') {
             step[fieldName] = undefined
           }
 
-          const hasOwnTarget = step.range || step.value
+          const hasOwnTarget = step.range !== undefined || step.value !== undefined
 
           if (
             !step[fieldName] ||

@@ -852,12 +852,22 @@ export const adjustStructuredWorkoutTask = task({
       if (!Array.isArray(steps)) return { distance, duration, tss }
 
       steps.forEach((step: any, stepIndex: number) => {
+        if (!step || typeof step !== 'object' || Array.isArray(step)) {
+          logger.warn('Skipping malformed structured workout step during adjustment', {
+            workoutId: workout.id,
+            depth,
+            stepIndex,
+            stepType: typeof step
+          })
+          return
+        }
+
         const recoverTarget = (fieldName: string) => {
           if (typeof step[fieldName] === 'string') {
             step[fieldName] = undefined
           }
 
-          const hasOwnTarget = step.range || step.value
+          const hasOwnTarget = step.range !== undefined || step.value !== undefined
           if (
             !step[fieldName] ||
             (typeof step[fieldName] === 'object' && Object.keys(step[fieldName]).length === 0)
