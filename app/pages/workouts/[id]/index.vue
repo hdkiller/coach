@@ -130,7 +130,7 @@
         <div v-if="workout && !loading" class="hidden sm:flex flex-col gap-6">
           <!-- TOP SECTION: TITLE, MAP & ACTIONS -->
           <div
-            class="relative overflow-hidden rounded-3xl bg-[#09090B] border border-white/5 p-8 flex flex-col gap-6 group/header"
+            class="relative overflow-hidden rounded-3xl bg-white dark:bg-[#09090B] border border-gray-100 dark:border-white/5 p-8 flex flex-col gap-6 group/header shadow-sm dark:shadow-2xl"
           >
             <!-- GHOST BACKGROUND ROUTE -->
             <UiWorkoutRoutePreview
@@ -142,7 +142,7 @@
 
             <!-- SCRIM -->
             <div
-              class="absolute inset-0 bg-gradient-to-r from-[#09090B] via-[#09090B]/80 to-transparent z-[1] pointer-events-none"
+              class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent dark:from-[#09090B] dark:via-[#09090B]/80 dark:to-transparent z-[1] pointer-events-none"
             />
 
             <div class="relative z-10 flex items-start justify-between">
@@ -161,14 +161,14 @@
                       {{ formatDatePrimary(workout.date) }}
                     </span>
                   </div>
-                  <div class="h-8 w-px bg-white/10" />
+                  <div class="h-8 w-px bg-gray-200 dark:bg-white/10" />
                   <div class="flex items-center gap-2">
                     <UButton
                       icon="i-heroicons-chevron-left"
                       color="neutral"
                       variant="subtle"
                       size="xs"
-                      class="rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
+                      class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10"
                       @click="navigateDate(-1)"
                     />
                     <UButton
@@ -176,7 +176,7 @@
                       color="neutral"
                       variant="subtle"
                       size="xs"
-                      class="rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
+                      class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10"
                       @click="navigateDate(1)"
                     />
                   </div>
@@ -186,7 +186,7 @@
                 <div class="flex flex-col gap-3">
                   <div class="flex items-center gap-6">
                     <h1
-                      class="font-black uppercase tracking-tighter text-white leading-none drop-shadow-2xl transition-all duration-500"
+                      class="font-black uppercase tracking-tighter text-gray-900 dark:text-white leading-none drop-shadow-2xl transition-all duration-500"
                       :class="[
                         workout.title.length > 25 ? 'text-2xl lg:text-3xl' : 'text-3xl lg:text-5xl'
                       ]"
@@ -379,7 +379,7 @@
 
           <!-- HERO HUD ROW: UNIFIED COMMAND CENTER -->
           <div
-            class="relative overflow-hidden rounded-2xl bg-[#09090B] border border-white/5 p-1 flex items-stretch group/hero shadow-2xl"
+            class="relative overflow-hidden rounded-2xl bg-white dark:bg-[#09090B] border border-gray-100 dark:border-white/5 p-1 flex items-stretch group/hero shadow-lg dark:shadow-2xl"
           >
             <div
               class="absolute inset-0 ring-1 ring-inset ring-primary-500/10 opacity-0 group-hover/hero:opacity-100 transition-opacity duration-500 pointer-events-none"
@@ -389,37 +389,40 @@
             <div class="flex flex-1 items-center justify-around py-6 px-4">
               <div v-if="workout.distanceMeters" class="flex-1 flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Distance</span
                 >
                 <div class="flex items-baseline gap-1.5">
                   <span
-                    class="text-4xl font-black text-white tabular-nums tracking-tighter drop-shadow-md"
+                    class="text-4xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter drop-shadow-md"
                   >
                     {{ (workout.distanceMeters / 1000).toFixed(1) }}
                   </span>
-                  <span class="text-xs font-bold text-zinc-600 uppercase opacity-50">km</span>
+                  <span
+                    class="text-xs font-bold text-zinc-400 dark:text-zinc-600 uppercase opacity-50"
+                    >km</span
+                  >
                 </div>
               </div>
-              <div class="w-px h-12 bg-white/5" />
+              <div class="w-px h-12 bg-gray-100 dark:bg-white/5" />
               <div class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Time</span
                 >
                 <span
-                  class="text-4xl font-black text-white tabular-nums tracking-tighter drop-shadow-md"
+                  class="text-4xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter drop-shadow-md"
                 >
                   {{ formatDurationShort(workout.durationSec) }}
                 </span>
               </div>
-              <div class="w-px h-12 bg-white/5" />
+              <div class="w-px h-12 bg-gray-100 dark:bg-white/5" />
               <div
                 v-if="workout.tss || workout.trainingLoad"
                 class="flex flex-col items-center gap-1"
               >
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >TSS/Load</span
                 >
                 <span
@@ -432,56 +435,72 @@
             </div>
 
             <!-- SECONDARY GROUP DIVIDER -->
-            <div class="w-px bg-white/10 my-4" />
+            <div class="w-px bg-gray-100 dark:bg-white/10 my-4" />
 
             <!-- Secondary Group: Power, HR, Gain -->
-            <div class="flex flex-1 items-center justify-around py-6 px-4 bg-white/[0.01]">
+            <div
+              class="flex flex-1 items-center justify-around py-6 px-4 bg-gray-50/50 dark:bg-white/[0.01]"
+            >
               <div v-if="workout.averageWatts" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Power</span
                 >
                 <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-black text-purple-400 tabular-nums">{{
-                    workout.averageWatts
-                  }}</span>
-                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">W</span>
+                  <span
+                    class="text-2xl font-black text-purple-600 dark:text-purple-400 tabular-nums"
+                    >{{ workout.averageWatts }}</span
+                  >
+                  <span
+                    class="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase opacity-50"
+                    >W</span
+                  >
                 </div>
               </div>
               <div v-if="workout.normalizedPower" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >NP</span
                 >
                 <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-black text-indigo-400 tabular-nums">{{
-                    workout.normalizedPower
-                  }}</span>
-                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">W</span>
+                  <span
+                    class="text-2xl font-black text-indigo-600 dark:text-indigo-400 tabular-nums"
+                    >{{ workout.normalizedPower }}</span
+                  >
+                  <span
+                    class="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase opacity-50"
+                    >W</span
+                  >
                 </div>
               </div>
               <div v-if="workout.averageHr" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Heart</span
                 >
                 <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-black text-pink-400 tabular-nums">{{
+                  <span class="text-2xl font-black text-pink-600 dark:text-pink-400 tabular-nums">{{
                     workout.averageHr
                   }}</span>
-                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">BPM</span>
+                  <span
+                    class="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase opacity-50"
+                    >BPM</span
+                  >
                 </div>
               </div>
               <div v-if="workout.elevationGain" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Gain</span
                 >
                 <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-black text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-gray-900 dark:text-white tabular-nums">{{
                     workout.elevationGain
                   }}</span>
-                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">m</span>
+                  <span
+                    class="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase opacity-50"
+                    >m</span
+                  >
                 </div>
               </div>
             </div>
@@ -490,13 +509,16 @@
           <!-- PERFORMANCE & IMPACT SIDE-BY-SIDE -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <!-- Performance Summary -->
-            <div class="bg-[#09090B] rounded-2xl border border-white/5 p-6 flex flex-col shadow-xl">
+            <div
+              class="bg-white dark:bg-[#09090B] rounded-2xl border border-gray-100 dark:border-white/5 p-6 flex flex-col shadow-lg dark:shadow-xl"
+            >
               <h2
-                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500"
+                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 text-primary-500" />
                 Performance Metrics
               </h2>
+
               <div class="flex-1 min-h-[220px]">
                 <PerformanceScoreChart
                   v-if="workout.overallScore || workout.technicalScore"
@@ -521,13 +543,16 @@
             </div>
 
             <!-- System Impact Grid (Condensed 2x2) -->
-            <div class="bg-[#09090B] rounded-2xl border border-white/5 p-6 flex flex-col shadow-xl">
+            <div
+              class="bg-white dark:bg-[#09090B] rounded-2xl border border-gray-100 dark:border-white/5 p-6 flex flex-col shadow-lg dark:shadow-xl"
+            >
               <h2
-                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500"
+                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-heart" class="w-4 h-4 text-orange-500" />
                 {{ t('impact_calc_title') }}
               </h2>
+
               <div class="grid grid-cols-2 gap-4 flex-1">
                 <!-- CTL -->
                 <div
@@ -658,7 +683,7 @@
         <!-- MOBILE HUD HEADER (sm:hidden) -->
         <div
           v-if="workout && !loading"
-          class="sm:hidden flex flex-col bg-[#09090B] relative overflow-hidden"
+          class="sm:hidden flex flex-col bg-white dark:bg-[#09090B] relative overflow-hidden"
         >
           <!-- GHOST BACKGROUND ROUTE FOR HUD -->
           <UiWorkoutRoutePreview
@@ -679,7 +704,7 @@
                     color="neutral"
                     variant="subtle"
                     size="xs"
-                    class="rounded-lg bg-white/5 border-white/10"
+                    class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10"
                     @click="navigateDate(-1)"
                   />
                   <div class="flex flex-col">
@@ -689,7 +714,7 @@
                       {{ formatDateWeekday(workout.date) }}
                     </span>
                     <span
-                      class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest font-black"
+                      class="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 uppercase tracking-widest font-black"
                     >
                       {{ formatDatePrimary(workout.date) }}
                     </span>
@@ -699,7 +724,7 @@
                     color="neutral"
                     variant="subtle"
                     size="xs"
-                    class="rounded-lg bg-white/5 border-white/10"
+                    class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10"
                     @click="navigateDate(1)"
                   />
                 </div>
@@ -727,14 +752,13 @@
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1 min-w-0">
                   <h1
-                    class="font-black uppercase tracking-tighter text-white leading-tight mb-1 transition-all duration-500"
+                    class="font-black uppercase tracking-tighter text-gray-900 dark:text-white leading-tight mb-1 transition-all duration-500"
                     :class="[
                       workout.title.length > 25 ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
                     ]"
                   >
                     {{ workout.title }}
                   </h1>
-
                   <div
                     class="flex items-center gap-2 font-mono text-[9px] text-zinc-500 uppercase tracking-widest"
                   >
@@ -961,12 +985,14 @@
             <!-- Performance Metrics Chart (Mobile) -->
             <div class="flex flex-col gap-4">
               <h2
-                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500"
+                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-chart-bar" class="w-3.5 h-3.5 text-primary-500" />
                 Performance Metrics
               </h2>
-              <div class="p-4 rounded-2xl bg-[#09090B] border border-white/5 min-h-[200px]">
+              <div
+                class="p-4 rounded-2xl bg-zinc-50 dark:bg-[#09090B] border border-zinc-200 dark:border-white/5 min-h-[200px] shadow-sm dark:shadow-none"
+              >
                 <PerformanceScoreChart
                   v-if="workout.overallScore || workout.technicalScore"
                   :scores="{
@@ -982,7 +1008,10 @@
                   class="h-full flex flex-col items-center justify-center text-center opacity-40 py-8"
                 >
                   <UIcon name="i-heroicons-sparkles" class="w-6 h-6 mb-2" />
-                  <span class="text-[8px] font-black uppercase tracking-widest">No Score Data</span>
+                  <span
+                    class="text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                    >No Score Data</span
+                  >
                 </div>
               </div>
             </div>
@@ -990,7 +1019,7 @@
             <!-- System Impact Grid (Mobile 2x2) -->
             <div class="flex flex-col gap-4">
               <h2
-                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500"
+                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-heart" class="w-3.5 h-3.5 text-orange-500" />
                 {{ t('impact_calc_title') }}
@@ -998,7 +1027,7 @@
               <div class="grid grid-cols-2 gap-3">
                 <!-- CTL -->
                 <div
-                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-[#00DC82]/[0.05] transition-all"
+                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-white dark:bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-[#00DC82]/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
                     handleOpenMetric({
                       key: 'Fitness (CTL)',
@@ -1008,17 +1037,18 @@
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-heart" class="w-3 h-3 text-[#00DC82]" />
-                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                    <span
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
                       >Fitness</span
                     >
                   </div>
-                  <span class="text-2xl font-black text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums">{{
                     workout.ctl ? Math.round(workout.ctl) : '-'
                   }}</span>
                 </div>
                 <!-- ATL -->
                 <div
-                  class="p-4 rounded-xl border border-orange-500/10 bg-orange-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-orange-500/[0.05] transition-all"
+                  class="p-4 rounded-xl border border-orange-500/10 bg-white dark:bg-orange-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-orange-500/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
                     handleOpenMetric({
                       key: 'Fatigue (ATL)',
@@ -1028,17 +1058,18 @@
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-fire" class="w-3 h-3 text-orange-500" />
-                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                    <span
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
                       >Fatigue</span
                     >
                   </div>
-                  <span class="text-2xl font-black text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums">{{
                     workout.atl ? Math.round(workout.atl) : '-'
                   }}</span>
                 </div>
                 <!-- TSS -->
                 <div
-                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-[#00DC82]/[0.05] transition-all"
+                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-white dark:bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-[#00DC82]/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
                     handleOpenMetric({
                       key: 'TSS (Load)',
@@ -1048,28 +1079,30 @@
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-bolt" class="w-3 h-3 text-[#00DC82]" />
-                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                    <span
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
                       >Load</span
                     >
                   </div>
-                  <span class="text-2xl font-black text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums">{{
                     Math.round(workout.tss || workout.trainingLoad || 0)
                   }}</span>
                 </div>
                 <!-- TSB -->
                 <div
-                  class="p-4 rounded-xl border border-blue-500/10 bg-blue-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-blue-500/[0.05] transition-all"
+                  class="p-4 rounded-xl border border-blue-500/10 bg-white dark:bg-blue-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-zinc-100 dark:active:bg-blue-500/[0.05] transition-all shadow-sm dark:shadow-none"
                   @click="
                     handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
                   "
                 >
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-scale" class="w-3 h-3 text-blue-500" />
-                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                    <span
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
                       >Form</span
                     >
                   </div>
-                  <span class="text-2xl font-black text-blue-400 tabular-nums">
+                  <span class="text-2xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
                     {{
                       calculateForm(workout) !== null
                         ? (calculateForm(workout)! > 0 ? '+' : '') + calculateForm(workout)
@@ -1760,12 +1793,12 @@
           <div
             v-if="isSectionEnabled('nutrition')"
             id="nutrition"
-            class="scroll-mt-20 bg-[#09090B] rounded-none sm:rounded-3xl shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-white/5 relative overflow-hidden flex flex-col gap-8"
+            class="scroll-mt-20 bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden flex flex-col gap-8"
             :style="sectionStyle('nutrition')"
           >
-            <!-- GHOST DECORATION -->
+            <!-- GHOST DECORATION (Dark Only) -->
             <div
-              class="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px] pointer-events-none -mr-32 -mt-32"
+              class="hidden dark:block absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px] pointer-events-none -mr-32 -mt-32"
             />
 
             <div class="flex items-center justify-between relative z-10">
@@ -1776,10 +1809,13 @@
                   <UIcon name="i-heroicons-beaker" class="w-6 h-6 text-orange-500" />
                 </div>
                 <div class="flex flex-col">
-                  <h2 class="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white">
+                  <h2
+                    class="text-xl sm:text-2xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white"
+                  >
                     {{ t('nutrition_header') }}
                   </h2>
-                  <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest"
+                  <span
+                    class="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 uppercase tracking-widest"
                     >Metabolic & Intake Balance</span
                   >
                 </div>
@@ -1787,7 +1823,7 @@
 
               <div v-if="workout.plannedWorkout?.tss" class="text-right flex flex-col items-end">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1"
+                  class="font-mono text-[9px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mb-1"
                   >{{ t('nutrition_energy_delta') }}</span
                 >
                 <div
@@ -1806,7 +1842,7 @@
                 <div
                   v-for="item in nutritionEstimate"
                   :key="item.label"
-                  class="relative group/tile overflow-hidden p-4 rounded-2xl bg-white/[0.02] border border-white/5 shadow-inner transition-all hover:bg-white/[0.04]"
+                  class="relative group/tile overflow-hidden p-4 rounded-2xl bg-white dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 shadow-sm dark:shadow-inner transition-all hover:bg-zinc-100 dark:hover:bg-white/[0.04]"
                 >
                   <!-- 1px Gradient Border Overlay -->
                   <div
@@ -1817,17 +1853,19 @@
                     <div class="flex items-center gap-2 mb-2">
                       <UIcon :name="item.icon" class="w-3.5 h-3.5" :class="item.iconClass" />
                       <span
-                        class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-widest"
+                        class="font-mono text-[8px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest"
                         >{{ item.label }}</span
                       >
                     </div>
                     <div class="flex items-baseline gap-1">
-                      <span class="text-2xl font-black text-white tabular-nums tracking-tighter">{{
-                        item.value.split(' ')[0]
-                      }}</span>
-                      <span class="text-[10px] font-bold text-zinc-500 uppercase opacity-60">{{
-                        item.value.split(' ')[1]
-                      }}</span>
+                      <span
+                        class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums tracking-tighter"
+                        >{{ item.value.split(' ')[0] }}</span
+                      >
+                      <span
+                        class="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase opacity-60"
+                        >{{ item.value.split(' ')[1] }}</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -1838,17 +1876,19 @@
                 <div class="flex flex-col gap-2">
                   <div class="flex justify-between items-end">
                     <span
-                      class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-widest"
+                      class="font-mono text-[9px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest"
                       >{{ t('nutrition_actual_energy') }} /
                       {{ t('nutrition_planned_energy') }}</span
                     >
-                    <span class="font-mono text-[9px] font-bold text-zinc-400 tabular-nums">
+                    <span
+                      class="font-mono text-[9px] font-bold text-zinc-600 dark:text-zinc-400 tabular-nums"
+                    >
                       {{ workout.kilojoules || 0 }} / {{ plannedKJ || 0 }} kJ
                     </span>
                   </div>
 
                   <div
-                    class="relative h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/5"
+                    class="relative h-4 w-full bg-zinc-200 dark:bg-white/5 rounded-full overflow-hidden border border-zinc-300 dark:border-white/5"
                   >
                     <!-- Progress Bar -->
                     <div
@@ -1864,36 +1904,36 @@
 
                     <!-- Demand Marker (Plan) -->
                     <div
-                      class="absolute inset-y-0 border-l border-white/20 z-20"
+                      class="absolute inset-y-0 border-l border-zinc-400 dark:border-white/20 z-20"
                       style="left: 100%"
                     />
                   </div>
 
                   <div
-                    class="flex justify-between text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1"
+                    class="flex justify-between text-[8px] font-black text-zinc-500 dark:text-zinc-600 uppercase tracking-widest px-1"
                   >
-                    <span>{{ t('nutrition_digestion_poor') }}</span>
-                    <span>{{ t('nutrition_digestion_great') }}</span>
+                    <span>Deficit</span>
+                    <span>Surplus</span>
                   </div>
                 </div>
 
                 <!-- STOMACH FEEL HUD -->
                 <div
-                  class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-4 shadow-inner"
+                  class="p-5 rounded-2xl bg-white dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 flex flex-col gap-4 shadow-sm dark:shadow-inner"
                 >
                   <span
-                    class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-widest text-center"
+                    class="font-mono text-[9px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest text-center"
                     >{{ t('nutrition_digestion_header') }}</span
                   >
                   <div class="flex items-center justify-center gap-3">
                     <button
                       v-for="i in 5"
                       :key="i"
-                      class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg transition-all duration-300 relative group/pill"
+                      class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg transition-all duration-300 relative group/pill shadow-sm"
                       :class="[
                         stomachFeel === i
                           ? 'bg-[#00DC82] text-black scale-110 shadow-[0_0_20px_rgba(0,220,130,0.4)] z-20'
-                          : 'bg-white/5 text-zinc-500 hover:bg-white/10'
+                          : 'bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-500 hover:bg-zinc-200 dark:hover:bg-white/10'
                       ]"
                       @click="updateStomachFeel(i)"
                     >
@@ -1902,11 +1942,11 @@
                   </div>
                   <div class="flex justify-between px-2">
                     <span
-                      class="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em] opacity-40"
+                      class="text-[8px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em] opacity-60"
                       >{{ t('nutrition_digestion_poor') }}</span
                     >
                     <span
-                      class="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em] opacity-40"
+                      class="text-[8px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em] opacity-60"
                       >{{ t('nutrition_digestion_great') }}</span
                     >
                   </div>
@@ -1924,10 +1964,12 @@
                 class="w-6 h-6 text-red-500 shrink-0"
               />
               <div class="flex flex-col">
-                <h3 class="font-black text-red-400 text-xs uppercase tracking-widest mb-1">
+                <h3
+                  class="font-black text-red-600 dark:text-red-400 text-xs uppercase tracking-widest mb-1"
+                >
                   {{ t('nutrition_adjustment_title') }}
                 </h3>
-                <p class="text-[11px] text-zinc-400 font-medium leading-relaxed">
+                <p class="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
                   {{ t('nutrition_adjustment_desc', { delta: kJDelta, carbs: recoveryCarbBump }) }}
                 </p>
               </div>
@@ -1938,15 +1980,17 @@
           <div
             v-if="isSectionEnabled('analysis')"
             id="analysis"
-            class="scroll-mt-20 space-y-4"
+            class="scroll-mt-20 space-y-0 sm:space-y-8"
             :style="sectionStyle('analysis')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
+            <h2
+              class="hidden sm:block text-base font-black uppercase tracking-[0.25em] text-zinc-500 px-5 sm:px-0 mb-4 sm:mb-0"
+            >
               {{ t('analysis_header') }}
             </h2>
 
-            <!-- Plan Adherence (if linked) -->
-            <div v-if="workout.plannedWorkout">
+            <!-- Plan Adherence HUD -->
+            <div v-if="workout.plannedWorkout" class="px-0 sm:px-0">
               <PlanAdherence
                 :adherence="workout.planAdherence"
                 :regenerating="analyzingAdherence"
@@ -1955,26 +1999,31 @@
               />
             </div>
 
+            <!-- DETAILED INSIGHT HUD -->
             <div
-              class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+              class="bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
             >
-              <div class="flex items-center justify-between mb-8">
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
+              <div class="flex items-center justify-between mb-10 relative z-10">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-500/10 border border-primary-500/20"
+                  >
+                    <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
+                  </div>
                   <h3
-                    class="text-sm font-black uppercase tracking-widest text-gray-900 dark:text-white"
+                    class="text-lg sm:text-xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white"
                   >
                     {{ t('analysis_detail_title') }}
                   </h3>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3">
                   <UButton
                     v-if="!workout.aiAnalysis"
                     icon="i-heroicons-sparkles"
                     color="primary"
                     variant="solid"
-                    size="sm"
-                    class="font-black uppercase tracking-widest text-[10px]"
+                    size="md"
+                    class="font-black uppercase tracking-widest text-[11px] px-6"
                     :loading="analyzingWorkout"
                     :disabled="analyzingWorkout"
                     @click="analyzeWorkout"
@@ -1985,9 +2034,9 @@
                     v-else
                     icon="i-heroicons-arrow-path"
                     color="neutral"
-                    variant="ghost"
+                    variant="subtle"
                     size="sm"
-                    class="font-black uppercase tracking-widest text-[10px]"
+                    class="font-black uppercase tracking-widest text-[10px] bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
                     :loading="analyzingWorkout"
                     :disabled="analyzingWorkout"
                     @click="analyzeWorkout"
@@ -2000,7 +2049,7 @@
                     color="primary"
                     variant="outline"
                     size="sm"
-                    class="font-black uppercase tracking-widest text-[10px]"
+                    class="font-black uppercase tracking-widest text-[10px] hidden sm:flex"
                     :loading="publishingSummary"
                     :disabled="publishingSummary || analyzingWorkout"
                     @click="publishSummaryToIntervals"
@@ -2010,105 +2059,122 @@
                 </div>
               </div>
 
-              <!-- Structured Analysis Display -->
-              <div v-if="workout.aiAnalysisJson" class="space-y-8">
-                <!-- Executive Summary -->
+              <!-- Structured Analysis HUD Layers -->
+              <div v-if="workout.aiAnalysisJson" class="space-y-12 relative z-10">
+                <!-- Coach's Briefing (Executive Summary) -->
                 <div
-                  class="-mx-6 border-y border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-6 dark:border-blue-900/30 dark:from-blue-900/10 dark:to-indigo-900/10 sm:mx-0 sm:rounded-xl sm:border sm:p-6"
+                  class="bg-white dark:bg-white/[0.03] backdrop-blur-md rounded-2xl p-8 border border-zinc-200 dark:border-white/10 relative overflow-hidden group/briefing shadow-sm dark:shadow-none"
                 >
+                  <div
+                    class="absolute top-0 left-0 w-1.5 h-full bg-primary-500 shadow-[0_0_15px_#00DC82]"
+                  />
                   <h3
-                    class="text-[10px] font-black uppercase tracking-widest text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2"
+                    class="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-500 mb-5 flex items-center gap-2"
                   >
-                    <span class="i-heroicons-light-bulb w-4 h-4" />
-                    {{ t('performance_summary_header') }}
+                    <UIcon
+                      name="i-heroicons-light-bulb"
+                      class="w-4 h-4 text-primary-500 animate-pulse"
+                    />
+                    Key Strategic Takeaway
                   </h3>
-                  <p class="text-base text-gray-800 dark:text-gray-200 leading-relaxed font-medium">
+                  <p
+                    class="text-lg text-zinc-800 dark:text-zinc-100 leading-relaxed font-medium drop-shadow-sm"
+                  >
                     {{ workout.aiAnalysisJson.executive_summary }}
                   </p>
                 </div>
 
-                <!-- Analysis Sections -->
+                <!-- Analysis Grid (HUD Cards) -->
                 <div
                   v-if="workout.aiAnalysisJson.sections"
-                  class="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  class="grid grid-cols-1 md:grid-cols-2 gap-6"
                 >
                   <div
                     v-for="(section, index) in workout.aiAnalysisJson.sections"
                     :key="index"
-                    class="-mx-6 overflow-hidden border-y border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:mx-0 sm:rounded-xl sm:border"
+                    class="overflow-hidden border border-zinc-200 dark:border-white/5 bg-white dark:bg-white/[0.01] rounded-2xl group/section hover:bg-zinc-50 dark:hover:bg-white/[0.03] transition-all duration-500 shadow-sm dark:shadow-none"
                   >
                     <div
-                      class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-900/30"
+                      class="px-6 py-4 border-b border-zinc-100 dark:border-white/5 flex items-center justify-between bg-zinc-50/50 dark:bg-white/[0.02]"
                     >
                       <h3
-                        class="text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white"
+                        class="font-mono text-[9px] font-black uppercase tracking-[0.25em] text-zinc-500 dark:text-zinc-400"
                       >
                         {{ section.title }}
                       </h3>
-                      <UBadge
-                        :color="getStatusColor(section.status)"
-                        variant="soft"
-                        size="xs"
-                        class="font-black uppercase tracking-widest text-[9px]"
+                      <div
+                        class="px-2 py-0.5 rounded border font-black uppercase tracking-widest text-[8px] transition-colors duration-500"
+                        :class="[
+                          section.status?.toLowerCase().includes('good') ||
+                          section.status?.toLowerCase().includes('excellent')
+                            ? 'border-[#00DC82]/30 text-[#00DC82] bg-[#00DC82]/5'
+                            : section.status?.toLowerCase().includes('poor') ||
+                                section.status?.toLowerCase().includes('bad')
+                              ? 'border-red-500/30 text-red-500 dark:text-red-400 bg-red-500/5'
+                              : 'border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/5'
+                        ]"
                       >
                         {{ section.status_label || section.status }}
-                      </UBadge>
+                      </div>
                     </div>
-                    <div class="px-5 py-4">
-                      <ul class="space-y-3">
+                    <div class="px-6 py-6">
+                      <ul class="space-y-4">
                         <li
                           v-for="(point, pIndex) in section.analysis_points"
                           :key="pIndex"
-                          class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300"
+                          class="flex items-start gap-3 text-sm text-zinc-700 dark:text-zinc-300 font-medium leading-relaxed"
                         >
                           <span
-                            class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500 flex-shrink-0"
+                            class="i-heroicons-chevron-right w-4 h-4 mt-0.5 text-primary-500/50 flex-shrink-0"
                           />
-                          <span class="leading-tight font-medium">{{ point }}</span>
+                          <span v-html="highlightTechnicalData(point)"></span>
                         </li>
                       </ul>
                     </div>
                   </div>
                 </div>
 
-                <!-- Recommendations -->
+                <!-- Strategic Recommendations HUD -->
                 <div
                   v-if="workout.aiAnalysisJson.recommendations?.length"
-                  class="-mx-6 overflow-hidden border-y border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:mx-0 sm:rounded-xl sm:border"
+                  class="overflow-hidden border border-zinc-200 dark:border-white/5 bg-white dark:bg-white/[0.01] rounded-2xl shadow-sm dark:shadow-inner"
                 >
                   <div
-                    class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50"
+                    class="px-8 py-5 border-b border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]"
                   >
                     <h3
-                      class="text-[10px] font-black uppercase tracking-widest text-gray-900 dark:text-white flex items-center gap-2"
+                      class="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400 flex items-center gap-2"
                     >
-                      <span class="i-heroicons-clipboard-document-list w-4 h-4" />
-                      {{ t('analysis_strategic_recom') }}
+                      <UIcon
+                        name="i-heroicons-clipboard-document-list"
+                        class="w-4 h-4 text-primary-500"
+                      />
+                      Command Corrections
                     </h3>
                   </div>
-                  <div class="px-5 py-6 space-y-4">
+                  <div class="px-8 py-10 space-y-8">
                     <div
                       v-for="(rec, index) in workout.aiAnalysisJson.recommendations"
                       :key="index"
-                      class="border-l-4 pl-4 py-1"
+                      class="border-l-4 pl-6 py-1 relative group/rec"
                       :class="getPriorityBorderClass(rec.priority)"
                     >
-                      <div class="flex items-center gap-2 mb-1.5">
+                      <div class="flex items-center gap-3 mb-2">
                         <h4
-                          class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                          class="text-base font-black text-zinc-900 dark:text-white uppercase tracking-tight"
                         >
                           {{ rec.title }}
                         </h4>
                         <span
                           v-if="rec.priority"
                           :class="getPriorityBadgeClass(rec.priority)"
-                          class="text-[9px] px-1.5 py-0 rounded font-black uppercase tracking-widest"
+                          class="text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5"
                         >
                           {{ rec.priority }}
                         </span>
                       </div>
                       <p
-                        class="text-xs text-gray-700 dark:text-gray-400 leading-relaxed font-medium"
+                        class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium"
                       >
                         {{ rec.description }}
                       </p>
@@ -2116,31 +2182,38 @@
                   </div>
                 </div>
 
-                <!-- Strengths & Weaknesses -->
+                <!-- Physical Response Matrix (Strengths & Weaknesses) -->
                 <div
                   v-if="
                     workout.aiAnalysisJson.strengths?.length ||
                     workout.aiAnalysisJson.weaknesses?.length
                   "
-                  class="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  class="grid grid-cols-1 md:grid-cols-2 gap-6"
                 >
                   <div
                     v-if="workout.aiAnalysisJson.strengths?.length"
-                    class="-mx-6 border-y border-green-100 bg-green-50 px-6 py-6 dark:border-green-900/50 dark:bg-green-950/20 sm:mx-0 sm:rounded-xl sm:border sm:p-6"
+                    class="rounded-2xl p-8 border border-[#00DC82]/10 bg-white dark:bg-[#00DC82]/[0.02] relative overflow-hidden group/str shadow-sm dark:shadow-none"
                   >
-                    <h3
-                      class="text-[10px] font-black uppercase tracking-widest text-green-700 dark:text-green-400 mb-4 flex items-center gap-2"
+                    <div
+                      class="absolute top-0 right-0 p-4 opacity-5 group-hover/str:opacity-10 transition-opacity"
                     >
-                      <span class="i-heroicons-check-circle w-4 h-4" />
-                      {{ t('analysis_strengths') }}
+                      <UIcon name="i-heroicons-bolt" class="w-20 h-20 text-[#00DC82]" />
+                    </div>
+                    <h3
+                      class="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-[#00DC82] mb-6 flex items-center gap-2"
+                    >
+                      Performance Strengths
                     </h3>
-                    <ul class="space-y-2">
+                    <ul class="space-y-4">
                       <li
                         v-for="(strength, index) in workout.aiAnalysisJson.strengths"
                         :key="index"
-                        class="flex items-start gap-2 text-xs font-bold text-green-800 dark:text-green-300"
+                        class="flex items-start gap-3 text-xs font-bold text-zinc-700 dark:text-zinc-200"
                       >
-                        <span class="i-heroicons-plus-circle w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                        <UIcon
+                          name="i-heroicons-check-circle"
+                          class="w-4 h-4 text-[#00DC82] shrink-0"
+                        />
                         <span>{{ strength }}</span>
                       </li>
                     </ul>
@@ -2148,22 +2221,27 @@
 
                   <div
                     v-if="workout.aiAnalysisJson.weaknesses?.length"
-                    class="-mx-6 border-y border-orange-100 bg-orange-50 px-6 py-6 dark:border-orange-900/50 dark:bg-orange-950/20 sm:mx-0 sm:rounded-xl sm:border sm:p-6"
+                    class="rounded-2xl p-8 border border-orange-500/10 bg-white dark:bg-orange-500/[0.02] relative overflow-hidden group/weak shadow-sm dark:shadow-none"
                   >
-                    <h3
-                      class="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 mb-4 flex items-center gap-2"
+                    <div
+                      class="absolute top-0 right-0 p-4 opacity-5 group-hover/weak:opacity-10 transition-opacity"
                     >
-                      <span class="i-heroicons-exclamation-triangle w-4 h-4" />
-                      {{ t('analysis_weaknesses') }}
+                      <UIcon name="i-heroicons-fire" class="w-20 h-20 text-orange-500" />
+                    </div>
+                    <h3
+                      class="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400 mb-6 flex items-center gap-2"
+                    >
+                      Technical Limitors
                     </h3>
-                    <ul class="space-y-2">
+                    <ul class="space-y-4">
                       <li
                         v-for="(weakness, index) in workout.aiAnalysisJson.weaknesses"
                         :key="index"
-                        class="flex items-start gap-2 text-xs font-bold text-orange-800 dark:text-orange-300"
+                        class="flex items-start gap-3 text-xs font-bold text-zinc-700 dark:text-zinc-200"
                       >
-                        <span
-                          class="i-heroicons-arrow-trending-up w-3.5 h-3.5 mt-0.5 flex-shrink-0"
+                        <UIcon
+                          name="i-heroicons-arrow-trending-up"
+                          class="w-4 h-4 text-orange-500 shrink-0"
                         />
                         <span>{{ weakness }}</span>
                       </li>
@@ -2171,13 +2249,15 @@
                   </div>
                 </div>
 
-                <!-- Timestamp -->
+                <!-- Telemetry Validation -->
                 <div
                   v-if="workout.aiAnalyzedAt"
-                  class="flex justify-between items-center pt-6 border-t border-gray-100 dark:border-gray-800"
+                  class="flex justify-between items-center pt-8 border-t border-zinc-100 dark:border-white/5"
                 >
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    {{ t('analysis_sync_analysis', { date: formatDate(workout.aiAnalyzedAt) }) }}
+                  <div
+                    class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em]"
+                  >
+                    Intelligence Sync Completed • {{ formatDate(workout.aiAnalyzedAt) }}
                   </div>
                   <AiFeedback
                     v-if="workout.llmUsageId"
@@ -2188,22 +2268,22 @@
                 </div>
               </div>
 
-              <!-- Fallback to Markdown -->
-              <div v-else-if="workout.aiAnalysis" class="space-y-4">
-                <div class="prose prose-sm dark:prose-invert max-w-none">
-                  <!-- eslint-disable vue/no-v-html -->
+              <!-- Legacy Fallback -->
+              <div v-else-if="workout.aiAnalysis" class="space-y-6 relative z-10">
+                <div class="prose prose-sm dark:prose-invert max-w-none px-2">
                   <div
-                    class="text-gray-700 dark:text-gray-300 font-medium"
+                    class="text-zinc-300 font-medium leading-relaxed"
                     v-html="renderedAnalysis"
                   />
-                  <!-- eslint-enable vue/no-v-html -->
                 </div>
                 <div
                   v-if="workout.aiAnalyzedAt"
-                  class="flex justify-between items-center pt-6 border-t border-gray-100 dark:border-gray-800"
+                  class="flex justify-between items-center pt-8 border-t border-white/5"
                 >
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    {{ t('analysis_legacy_analysis', { date: formatDate(workout.aiAnalyzedAt) }) }}
+                  <div
+                    class="font-mono text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em]"
+                  >
+                    Legacy Audit Sync • {{ formatDate(workout.aiAnalyzedAt) }}
                   </div>
                   <AiFeedback
                     v-if="workout.llmUsageId"
@@ -2214,30 +2294,52 @@
                 </div>
               </div>
 
-              <div v-else-if="!analyzingWorkout" class="text-center py-12">
-                <div class="text-gray-500 dark:text-gray-400">
-                  <div
-                    class="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4"
-                  >
-                    <UIcon name="i-heroicons-bolt" class="w-8 h-8 opacity-40" />
-                  </div>
-                  <p class="text-sm font-black uppercase tracking-widest">
-                    {{ t('analysis_pending_title') }}
-                  </p>
-                  <p class="text-xs mt-2 text-gray-400 max-w-xs mx-auto">
-                    {{ t('analysis_pending_desc') }}
-                  </p>
+              <!-- PENDING STATES -->
+              <div v-else-if="!analyzingWorkout" class="text-center py-24 relative z-10">
+                <div
+                  class="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/10 group-hover:border-primary-500/30 transition-colors"
+                >
+                  <UIcon
+                    name="i-heroicons-bolt"
+                    class="w-10 h-10 text-zinc-600 opacity-40 group-hover:text-primary-500 transition-colors"
+                  />
                 </div>
+                <p class="text-sm font-black uppercase tracking-[0.3em] text-white mb-2">
+                  Intelligence Audit Pending
+                </p>
+                <p class="text-xs text-zinc-500 max-w-sm mx-auto leading-relaxed">
+                  Run deep multi-channel analysis to identify technical limitors and metabolic
+                  breakthroughs.
+                </p>
+                <UButton
+                  size="lg"
+                  color="primary"
+                  variant="solid"
+                  class="mt-10 font-black uppercase tracking-[0.2em] text-[11px] px-10 py-4 shadow-[0_0_30px_rgba(0,220,130,0.2)] rounded-xl"
+                  @click="analyzeWorkout"
+                >
+                  {{ t('analysis_button_analyze') }}
+                </UButton>
               </div>
 
-              <div v-else class="text-center py-12">
-                <div
-                  class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
-                />
-                <p
-                  class="text-sm text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest"
-                >
+              <div v-else class="text-center py-24 relative z-10">
+                <div class="relative w-20 h-20 mx-auto mb-8">
+                  <div
+                    class="absolute inset-0 rounded-full border-2 border-primary-500/20 animate-ping"
+                  />
+                  <div
+                    class="absolute inset-0 rounded-full border-t-2 border-primary-500 animate-spin"
+                  />
+                  <UIcon
+                    name="i-heroicons-cpu-chip"
+                    class="absolute inset-0 m-auto w-8 h-8 text-primary-500 animate-pulse"
+                  />
+                </div>
+                <p class="text-sm text-white font-black uppercase tracking-[0.3em] animate-pulse">
                   {{ t('analysis_analyzing') }}
+                </p>
+                <p class="text-[10px] font-mono text-zinc-500 uppercase mt-2 tracking-widest">
+                  Cross-referencing metabolic zones
                 </p>
               </div>
             </div>
@@ -2247,26 +2349,41 @@
           <div
             v-if="isSectionEnabled('power-curve')"
             id="power-curve"
-            class="scroll-mt-20 space-y-4"
+            class="scroll-mt-20 space-y-6"
             :style="sectionStyle('power-curve')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
+            <h2
+              class="text-base font-black uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500 px-5 sm:px-0"
+            >
               {{ t('sections_power_curve') }}
             </h2>
-            <PowerCurveChart :workout-id="workout.id" />
+            <div
+              class="bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
+            >
+              <PowerCurveChart :workout-id="workout.id" />
+            </div>
           </div>
 
           <!-- Interval Analysis Section -->
           <div
             v-if="isSectionEnabled('intervals')"
             id="intervals"
-            class="scroll-mt-20 space-y-4"
+            class="scroll-mt-20 space-y-6"
             :style="sectionStyle('intervals')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
+            <h2
+              class="text-base font-black uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500 px-5 sm:px-0"
+            >
               {{ t('sections_intervals') }}
             </h2>
-            <IntervalsAnalysis :workout-id="workout.id" />
+            <div
+              class="bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-0 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
+            >
+              <IntervalsAnalysis
+                :workout-id="workout.id"
+                class="!bg-transparent !border-none !shadow-none !p-6 sm:!p-10"
+              />
+            </div>
           </div>
 
           <!-- Advanced Analytics Section -->
@@ -4722,6 +4839,18 @@
     if (form >= -30)
       return 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100' // Optimal Training
     return 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-900 dark:text-red-100' // High Risk
+  }
+
+  function highlightTechnicalData(text: string): string {
+    if (!text) return ''
+    // Regex to match numbers followed by units or specific technical terms
+    // Matches: 0.980 VI, 66 rpm, -22 min, 250W, 180bpm, 10.5km, etc.
+    const technicalRegex =
+      /(\b-?\d+(?:\.\d+)?\s*(?:VI|EF|IF|rpm|min|sec|W|bpm|km|m|kJ|kg|%|TSS|CTL|ATL|TSB)\b)/gi
+    return text.replace(
+      technicalRegex,
+      '<span class="text-[#00DC82] font-black tabular-nums">$1</span>'
+    )
   }
 
   // Scroll to section

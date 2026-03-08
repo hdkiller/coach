@@ -1,21 +1,24 @@
 <template>
   <div class="h-full w-full relative">
     <div v-if="loading" class="flex flex-col justify-center items-center h-[300px]">
-      <div
-        class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mb-4"
-      />
-      <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 italic">
+      <div class="relative w-12 h-12 mb-6">
+        <div class="absolute inset-0 rounded-full border-2 border-primary-500/20 animate-ping" />
+        <div class="absolute inset-0 rounded-full border-t-2 border-primary-500 animate-spin" />
+      </div>
+      <p
+        class="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 animate-pulse"
+      >
         Auditing Power Profile...
       </p>
     </div>
 
     <div
       v-else-if="!powerData || !chartData.datasets.length"
-      class="flex flex-col items-center justify-center h-[300px] bg-gray-50/50 dark:bg-gray-950/20 rounded-xl border border-dashed border-gray-200 dark:border-gray-800"
+      class="flex flex-col items-center justify-center h-[300px] bg-white/[0.02] dark:bg-black rounded-2xl border border-dashed border-white/10"
     >
-      <UIcon name="i-heroicons-bolt-slash" class="w-8 h-8 mb-3 text-gray-400 opacity-50" />
+      <UIcon name="i-heroicons-bolt-slash" class="w-10 h-10 mb-4 text-zinc-600 opacity-40" />
       <p
-        class="text-[10px] text-gray-500 font-black uppercase tracking-widest leading-relaxed text-center"
+        class="font-mono text-[9px] text-zinc-500 font-black uppercase tracking-[0.2em] leading-relaxed text-center"
       >
         Power Telemetry Unavailable
       </p>
