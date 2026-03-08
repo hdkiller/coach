@@ -415,6 +415,7 @@ export function normalizeStravaActivity(activity: StravaActivity, userId: string
     commute: activity.commute || false,
     isPrivate: activity.private || false,
     gearId: activity.gear_id || null,
+    summaryPolyline: activity.map?.summary_polyline || null,
 
     // Store raw data with all fields
     rawJson: activity

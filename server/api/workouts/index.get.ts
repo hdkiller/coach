@@ -149,15 +149,20 @@ export default defineEventHandler(async (event) => {
       type: true,
       durationSec: true,
       distanceMeters: true,
+      elevationGain: true,
       averageWatts: true,
+      maxWatts: true,
       averageHr: true,
       maxHr: true,
+      averageCadence: true,
       tss: true,
       trainingLoad: true,
       intensity: true,
       overallScore: true,
+      deviceName: true,
       aiAnalysisStatus: true,
       isDuplicate: true,
+      summaryPolyline: true,
       streams: {
         select: {
           id: true
