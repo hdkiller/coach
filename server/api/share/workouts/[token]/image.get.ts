@@ -1,4 +1,9 @@
-import { imageGenerator } from '../../../../utils/sharing/image-generator'
+import {
+  imageGenerator,
+  normalizeWorkoutImageRatio,
+  normalizeWorkoutImageStyle,
+  normalizeWorkoutImageVariant
+} from '../../../../utils/sharing/image-generator'
 import { workoutRepository } from '../../../../utils/repositories/workoutRepository'
 
 defineRouteMeta({
@@ -30,10 +35,17 @@ defineRouteMeta({
 
 export default defineEventHandler(async (event) => {
   const token = getRouterParam(event, 'token')
+  const query = getQuery(event)
 
   if (!token) {
     throw createError({ statusCode: 400, message: 'Token is required' })
   }
+
+  const variant = normalizeWorkoutImageVariant(
+    typeof query.variant === 'string' ? query.variant : null
+  )
+  const style = normalizeWorkoutImageStyle(typeof query.style === 'string' ? query.style : null)
+  const ratio = normalizeWorkoutImageRatio(typeof query.ratio === 'string' ? query.ratio : null)
 
   const shareToken = await prisma.shareToken.findUnique({
     where: { token }
@@ -48,14 +60,22 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 410, message: 'Share link has expired' })
   }
 
-  const workout = await workoutRepository.getById(shareToken.resourceId, shareToken.userId)
+  const workout = await workoutRepository.getById(shareToken.resourceId, shareToken.userId, {
+    include: {
+      streams: true
+    }
+  })
 
   if (!workout) {
     throw createError({ statusCode: 404, message: 'Workout not found' })
   }
 
   try {
-    const pngBuffer = await imageGenerator.generateWorkoutImage(workout as any)
+    const pngBuffer = await imageGenerator.generateWorkoutImage(workout as any, {
+      variant,
+      style,
+      ratio
+    })
 
     // Set cache headers (1 day)
     setResponseHeader(event, 'Content-Type', 'image/png')
