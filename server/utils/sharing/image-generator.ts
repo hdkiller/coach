@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
 import { formatPace } from '../pacing'
 import { buildHeartRateChartSvg } from './hr-chart'
@@ -126,6 +127,25 @@ const THEMES: Record<WorkoutImageStyle, ThemeSpec> = {
   }
 }
 
+const FONT_FILES = [
+  path.resolve(
+    process.cwd(),
+    'node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2'
+  ),
+  path.resolve(
+    process.cwd(),
+    'node_modules/@fontsource-variable/inter/files/inter-latin-standard-italic.woff2'
+  ),
+  path.resolve(
+    process.cwd(),
+    'node_modules/@fontsource/oswald/files/oswald-latin-700-normal.woff2'
+  ),
+  path.resolve(process.cwd(), 'node_modules/@fontsource/oswald/files/oswald-latin-400-normal.woff2')
+]
+
+const FONT_FAMILY_DISPLAY = 'Oswald'
+const FONT_FAMILY_BODY = 'Inter Variable'
+
 export function selectWorkoutImageTemplate(
   workout: WorkoutData
 ): 'activity-map' | 'activity-modern' {
@@ -179,6 +199,11 @@ export const imageGenerator = {
       fitTo: {
         mode: 'width',
         value: spec.width
+      },
+      font: {
+        fontFiles: FONT_FILES,
+        loadSystemFonts: false,
+        defaultFontFamily: FONT_FAMILY_BODY
       }
     })
 
@@ -748,7 +773,7 @@ function renderTitle(
 ) {
   const textAnchor = anchor === 'middle' ? 'middle' : 'start'
   return [
-    `<text x="${round(x)}" y="${round(y)}" text-anchor="${textAnchor}" fill="#FFFFFF" font-family="'Arial Narrow','Helvetica Neue',Helvetica,sans-serif" font-weight="900" font-style="italic" font-size="${options.fontSize}" letter-spacing="-2" text-transform="uppercase">`,
+    `<text x="${round(x)}" y="${round(y)}" text-anchor="${textAnchor}" fill="#FFFFFF" font-family="'${FONT_FAMILY_DISPLAY}'" font-weight="700" font-size="${options.fontSize}" letter-spacing="-1.5" text-transform="uppercase">`,
     `<tspan x="${round(x)}">${escapeSvgText(data.titleLine1)}</tspan>`,
     data.titleLine2
       ? `<tspan x="${round(x)}" dy="${options.lineHeight}">${escapeSvgText(data.titleLine2)}</tspan>`
@@ -767,8 +792,8 @@ function renderHero(
 ) {
   return [
     `<text x="${round(x)}" y="${round(y)}" text-anchor="${anchor === 'middle' ? 'middle' : 'start'}" fill="#FFFFFF" filter="url(#textShadow)">`,
-    `<tspan font-family="'Arial Narrow','Helvetica Neue',Helvetica,sans-serif" font-weight="900" font-style="italic" font-size="${options.valueSize}" letter-spacing="${options.tracking || 0}">${escapeSvgText(value)}</tspan>`,
-    `<tspan dx="16" font-family="'Arial','Helvetica Neue',Helvetica,sans-serif" font-weight="700" font-size="${options.unitSize}" fill="#9AA1AE" letter-spacing="3">${escapeSvgText(unit)}</tspan>`,
+    `<tspan font-family="'${FONT_FAMILY_DISPLAY}'" font-weight="700" font-size="${options.valueSize}" letter-spacing="${options.tracking || 0}">${escapeSvgText(value)}</tspan>`,
+    `<tspan dx="16" font-family="'${FONT_FAMILY_BODY}'" font-weight="700" font-size="${options.unitSize}" fill="#9AA1AE" letter-spacing="3">${escapeSvgText(unit)}</tspan>`,
     '</text>'
   ].join('')
 }
@@ -808,8 +833,8 @@ function renderMetricColumn(
       uppercase: true
     }),
     `<text x="${round(x)}" y="${round(baselineY)}" fill="#FFFFFF">`,
-    `<tspan font-family="'Arial Narrow','Helvetica Neue',Helvetica,sans-serif" font-weight="900" font-style="italic" font-size="${valueSize}">${escapeSvgText(value)}</tspan>`,
-    `<tspan dx="10" font-family="'Arial','Helvetica Neue',Helvetica,sans-serif" font-weight="700" font-size="${unitSize}" fill="#A1A1AA" letter-spacing="2">${escapeSvgText(unit)}</tspan>`,
+    `<tspan font-family="'${FONT_FAMILY_DISPLAY}'" font-weight="700" font-size="${valueSize}">${escapeSvgText(value)}</tspan>`,
+    `<tspan dx="10" font-family="'${FONT_FAMILY_BODY}'" font-weight="700" font-size="${unitSize}" fill="#A1A1AA" letter-spacing="2">${escapeSvgText(unit)}</tspan>`,
     '</text>'
   ].join('')
 }
@@ -827,11 +852,11 @@ function text(
     uppercase?: boolean
   }
 ) {
-  return `<text x="${round(x)}" y="${round(y)}" text-anchor="${options.anchor || 'start'}" fill="${options.fill || '#FFFFFF'}" font-family="'Arial','Helvetica Neue',Helvetica,sans-serif" font-size="${options.size || 24}" font-weight="${options.weight || 600}" letter-spacing="${options.letterSpacing || 0}"${options.uppercase ? ' text-transform="uppercase"' : ''}>${escapeSvgText(options.uppercase ? value.toUpperCase() : value)}</text>`
+  return `<text x="${round(x)}" y="${round(y)}" text-anchor="${options.anchor || 'start'}" fill="${options.fill || '#FFFFFF'}" font-family="'${FONT_FAMILY_BODY}'" font-size="${options.size || 24}" font-weight="${options.weight || 600}" letter-spacing="${options.letterSpacing || 0}"${options.uppercase ? ' text-transform="uppercase"' : ''}>${escapeSvgText(options.uppercase ? value.toUpperCase() : value)}</text>`
 }
 
 function renderWatermark(ratio: RatioSpec, theme: ThemeSpec) {
-  return `<text x="${round(ratio.width / 2)}" y="${round(ratio.height - 48)}" text-anchor="middle" fill="${theme.watermark}" opacity="0.4" font-family="'Arial','Helvetica Neue',Helvetica,sans-serif" font-size="${ratio.ratio === 'square' ? 20 : 26}" font-weight="700" letter-spacing="6" text-transform="uppercase">CoachWatts.com</text>`
+  return `<text x="${round(ratio.width / 2)}" y="${round(ratio.height - 48)}" text-anchor="middle" fill="${theme.watermark}" opacity="0.4" font-family="'${FONT_FAMILY_BODY}'" font-size="${ratio.ratio === 'square' ? 20 : 26}" font-weight="700" letter-spacing="6" text-transform="uppercase">CoachWatts.com</text>`
 }
 
 function fitTitle(title: string) {
