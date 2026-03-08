@@ -25,6 +25,7 @@ import {
   buildStructureEditFields,
   buildStructurePublishFields
 } from '../server/utils/planned-workout-structure-sync'
+import { publishActivityEvent } from '../server/utils/activity-realtime'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -1061,6 +1062,12 @@ export const adjustStructuredWorkoutTask = task({
       where: { id: plannedWorkoutId },
       data: updateData
     })
+    await publishActivityEvent(updatedWorkout.userId, {
+      scope: 'calendar',
+      entityType: 'planned_workout',
+      entityId: updatedWorkout.id,
+      reason: 'updated'
+    })
     logStage('workout-updated', {
       updatedDurationSec: updatedWorkout.durationSec,
       updatedTss: updatedWorkout.tss,
@@ -1105,7 +1112,7 @@ export const adjustStructuredWorkoutTask = task({
         workout.userId
       )
       if (syncResult.synced) {
-        await prisma.plannedWorkout.update({
+        const syncedWorkout = await prisma.plannedWorkout.update({
           where: { id: plannedWorkoutId },
           data: {
             ...buildStructurePublishFields(structure),
@@ -1113,6 +1120,12 @@ export const adjustStructuredWorkoutTask = task({
             lastSyncedAt: new Date(),
             syncError: null
           }
+        })
+        await publishActivityEvent(syncedWorkout.userId, {
+          scope: 'calendar',
+          entityType: 'planned_workout',
+          entityId: syncedWorkout.id,
+          reason: 'updated'
         })
       }
       logStage('intervals-sync-finished')

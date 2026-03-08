@@ -26,6 +26,7 @@ import {
   buildStructureEditFields,
   buildStructurePublishFields
 } from '../server/utils/planned-workout-structure-sync'
+import { publishActivityEvent } from '../server/utils/activity-realtime'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -1233,6 +1234,12 @@ export const generateStructuredWorkoutTask = task({
       where: { id: plannedWorkoutId },
       data: updateData
     })
+    await publishActivityEvent(updatedWorkout.userId, {
+      scope: 'calendar',
+      entityType: 'planned_workout',
+      entityId: updatedWorkout.id,
+      reason: 'updated'
+    })
     logStage('workout-updated', {
       updatedDurationSec: updatedWorkout.durationSec,
       updatedTss: updatedWorkout.tss,
@@ -1282,7 +1289,7 @@ export const generateStructuredWorkoutTask = task({
       })
 
       if (syncResult.synced) {
-        await (prisma as any).plannedWorkout.update({
+        const syncedWorkout = await (prisma as any).plannedWorkout.update({
           where: { id: plannedWorkoutId },
           data: {
             ...buildStructurePublishFields(structure),
@@ -1291,10 +1298,22 @@ export const generateStructuredWorkoutTask = task({
             syncError: null
           }
         })
+        await publishActivityEvent(syncedWorkout.userId, {
+          scope: 'calendar',
+          entityType: 'planned_workout',
+          entityId: syncedWorkout.id,
+          reason: 'updated'
+        })
       } else {
-        await (prisma as any).plannedWorkout.update({
+        const failedWorkout = await (prisma as any).plannedWorkout.update({
           where: { id: plannedWorkoutId },
           data: { syncError: syncResult.error || 'Failed to sync structured intervals' }
+        })
+        await publishActivityEvent(failedWorkout.userId, {
+          scope: 'calendar',
+          entityType: 'planned_workout',
+          entityId: failedWorkout.id,
+          reason: 'updated'
         })
       }
     }

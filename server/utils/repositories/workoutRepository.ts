@@ -1,6 +1,7 @@
 import { prisma } from '../db'
 import type { Prisma } from '@prisma/client'
 import { queueWorkoutInsightEmail } from '../workout-insight-email'
+import { publishActivityEvent } from '../activity-realtime'
 
 export const workoutRepository = {
   /**
@@ -210,6 +211,13 @@ export const workoutRepository = {
       })
     }
 
+    await publishActivityEvent(created.userId, {
+      scope: 'calendar',
+      entityType: 'workout',
+      entityId: created.id,
+      reason: 'created'
+    })
+
     return created
   },
 
@@ -217,20 +225,38 @@ export const workoutRepository = {
    * Update a workout by ID
    */
   async update(id: string, data: Prisma.WorkoutUpdateInput) {
-    return prisma.workout.update({
+    const updated = await prisma.workout.update({
       where: { id },
       data
     })
+
+    await publishActivityEvent(updated.userId, {
+      scope: 'calendar',
+      entityType: 'workout',
+      entityId: updated.id,
+      reason: 'updated'
+    })
+
+    return updated
   },
 
   /**
    * Update a workout status (e.g. for analysis)
    */
   async updateStatus(id: string, status: string) {
-    return prisma.workout.update({
+    const updated = await prisma.workout.update({
       where: { id },
       data: { aiAnalysisStatus: status }
     })
+
+    await publishActivityEvent(updated.userId, {
+      scope: 'calendar',
+      entityType: 'workout',
+      entityId: updated.id,
+      reason: 'updated'
+    })
+
+    return updated
   },
 
   /**
@@ -273,6 +299,13 @@ export const workoutRepository = {
       }
     }
 
+    await publishActivityEvent(record.userId, {
+      scope: 'calendar',
+      entityType: 'workout',
+      entityId: record.id,
+      reason: existing ? 'updated' : 'created'
+    })
+
     return {
       record,
       isNew: !existing
@@ -293,8 +326,17 @@ export const workoutRepository = {
    * Delete a workout by ID
    */
   async delete(id: string, userId: string) {
-    return prisma.workout.delete({
+    const deleted = await prisma.workout.delete({
       where: { id, userId }
     })
+
+    await publishActivityEvent(userId, {
+      scope: 'calendar',
+      entityType: 'workout',
+      entityId: deleted.id,
+      reason: 'deleted'
+    })
+
+    return deleted
   }
 }

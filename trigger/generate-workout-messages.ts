@@ -3,6 +3,7 @@ import { logger, task } from '@trigger.dev/sdk/v3'
 import { generateStructuredAnalysis } from '../server/utils/gemini'
 import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
+import { publishActivityEvent } from '../server/utils/activity-realtime'
 
 const messageGenerationSchema = {
   type: 'object',
@@ -90,11 +91,18 @@ export const generateWorkoutMessagesTask = task({
       messages: result.messages
     }
 
-    await prisma.plannedWorkout.update({
+    const updatedWorkout = await prisma.plannedWorkout.update({
       where: { id: plannedWorkoutId },
       data: {
         structuredWorkout: updatedStructure as any
       }
+    })
+
+    await publishActivityEvent(updatedWorkout.userId, {
+      scope: 'calendar',
+      entityType: 'planned_workout',
+      entityId: updatedWorkout.id,
+      reason: 'updated'
     })
 
     return { success: true, count: result.messages.length }

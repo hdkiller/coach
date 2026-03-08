@@ -1,5 +1,6 @@
 import { prisma } from '../db'
 import type { Prisma } from '@prisma/client'
+import { publishActivityEvent } from '../activity-realtime'
 
 export const plannedWorkoutRepository = {
   /**
@@ -29,9 +30,18 @@ export const plannedWorkoutRepository = {
    * Create a new planned workout
    */
   async create(data: Prisma.PlannedWorkoutUncheckedCreateInput) {
-    return prisma.plannedWorkout.create({
+    const created = await prisma.plannedWorkout.create({
       data
     })
+
+    await publishActivityEvent(created.userId, {
+      scope: 'calendar',
+      entityType: 'planned_workout',
+      entityId: created.id,
+      reason: 'created'
+    })
+
+    return created
   },
 
   /**
@@ -39,19 +49,37 @@ export const plannedWorkoutRepository = {
    * Enforces userId check if provided
    */
   async update(id: string, userId: string, data: Prisma.PlannedWorkoutUpdateInput) {
-    return prisma.plannedWorkout.update({
+    const updated = await prisma.plannedWorkout.update({
       where: { id, userId },
       data
     })
+
+    await publishActivityEvent(userId, {
+      scope: 'calendar',
+      entityType: 'planned_workout',
+      entityId: updated.id,
+      reason: 'updated'
+    })
+
+    return updated
   },
 
   /**
    * Delete a planned workout
    */
   async delete(id: string, userId: string) {
-    return prisma.plannedWorkout.delete({
+    const deleted = await prisma.plannedWorkout.delete({
       where: { id, userId }
     })
+
+    await publishActivityEvent(userId, {
+      scope: 'calendar',
+      entityType: 'planned_workout',
+      entityId: deleted.id,
+      reason: 'deleted'
+    })
+
+    return deleted
   },
 
   /**
