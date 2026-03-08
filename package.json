@@ -3,6 +3,8 @@
     "@ai-sdk/google": "^3.0.10",
     "@ai-sdk/vue": "^3.0.43",
     "@auth/core": "^0.34.3",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/oswald": "^5.2.8",
     "@google-cloud/storage": "^7.18.0",
     "@internationalized/date": "^3.10.1",
     "@markw65/fit-file-writer": "^0.1.7",
