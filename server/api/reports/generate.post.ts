@@ -3,6 +3,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
 import { getUserTimezone, getStartOfDaysAgoUTC, getStartOfYearUTC } from '../../utils/date'
 import { checkQuota } from '../../utils/quotas/engine'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 defineRouteMeta({
   openAPI: {
@@ -227,6 +228,18 @@ export default defineEventHandler(async (event) => {
         }
       )
     }
+
+    const triggeredTaskIdentifier = resolvedTemplateId
+      ? 'generate-report'
+      : reportType === 'CUSTOM'
+        ? 'generate-custom-report'
+        : reportType === 'LAST_3_NUTRITION'
+          ? 'analyze-last-3-nutrition'
+          : reportType === 'LAST_7_NUTRITION'
+            ? 'analyze-last-7-nutrition'
+            : 'generate-weekly-report'
+
+    await publishTaskRunStartedEvent(userId, triggeredTaskIdentifier, handle)
 
     return {
       success: true,

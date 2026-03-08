@@ -4,6 +4,7 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { prisma } from '../../utils/db'
 import { activityRecommendationRepository } from '../../utils/repositories/activityRecommendationRepository'
 import { checkQuota } from '../../utils/quotas/engine'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 
 defineRouteMeta({
   openAPI: {
@@ -90,6 +91,8 @@ export default defineEventHandler(async (event) => {
         tags: [`user:${userId}`]
       }
     )
+
+    await publishTaskRunStartedEvent(userId, 'recommend-today-activity', handle)
 
     return {
       success: true,

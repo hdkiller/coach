@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { tasks } from '@trigger.dev/sdk/v3'
+import { publishTaskRunStartedEvent } from '../../utils/task-run-events'
 import { prisma } from '../../utils/db'
 import { checkQuota } from '../../utils/quotas/engine'
 
@@ -81,6 +82,8 @@ export default defineEventHandler(async (event) => {
       tags: [`user:${userId}`]
     }
   )
+
+  await publishTaskRunStartedEvent(userId, 'generate-athlete-profile', handle)
 
   return {
     success: true,
