@@ -50,7 +50,8 @@ export default defineEventHandler(async (event) => {
     eventType: payload.type || 'UNKNOWN',
     payload,
     headers,
-    status: 'PENDING'
+    // Resend is processed by Trigger.dev directly, so avoid leaving it in the SQL poller backlog.
+    status: 'QUEUED'
   })
 
   // Trigger background task for processing if log was successful

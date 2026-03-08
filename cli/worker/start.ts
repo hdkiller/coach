@@ -20,6 +20,7 @@ export const startCommand = new Command('start')
   .action(async () => {
     const connectionString = process.env.REDIS_URL || 'redis://localhost:6379'
     const healthPort = parseInt(process.env.CW_WORKER_HEALTH_PORT || '8081')
+    const verboseWorkerLogs = process.env.CW_VERBOSE_WORKER_LOGS === '1'
 
     console.log(chalk.blue.bold('Initializing Webhook Worker...'))
     console.log(chalk.gray(`Using REDIS_URL connection string`))
@@ -447,15 +448,19 @@ export const startCommand = new Command('start')
         if (provider === 'resend') {
           const { type, data, createdAt, logId } = job.data
 
-          console.log(
-            chalk.cyan(`[ResendJob ${job.id}]`) +
-              ` Processing Resend event ${type} (LogID: ${logId})`
-          )
+          if (verboseWorkerLogs) {
+            console.log(
+              chalk.cyan(`[ResendJob ${job.id}]`) +
+                ` Processing Resend event ${type} (LogID: ${logId})`
+            )
+          }
 
           try {
             const result = await ResendService.processWebhookEvent(type, data, createdAt)
 
-            console.log(chalk.green(`[ResendJob ${job.id}] Completed: ${result.message}`))
+            if (verboseWorkerLogs) {
+              console.log(chalk.green(`[ResendJob ${job.id}] Completed: ${result.message}`))
+            }
             if (logId) await updateWebhookStatus(logId, 'PROCESSED', result.message)
             return result
           } catch (error: any) {
@@ -551,20 +556,14 @@ export const startCommand = new Command('start')
         })
 
         if (pendingLogs.length > 0) {
-          console.log(chalk.gray(`[Poller] Found ${pendingLogs.length} pending webhooks in SQL`))
+          if (verboseWorkerLogs) {
+            console.log(chalk.gray(`[Poller] Found ${pendingLogs.length} pending webhooks in SQL`))
+          }
 
           for (const log of pendingLogs) {
             let queueJobName = `${log.provider}-webhook`
             let provider = log.provider
-
-            if (provider === 'intervals-bulk' || provider === 'intervals') {
-              queueJobName = 'intervals-webhook-bulk'
-              provider = 'intervals-bulk' // Force bulk handler for both
-            } else if (provider === 'oauth-generic') {
-              queueJobName = 'oauth-webhook'
-            }
-
-            await webhookQueue.add(queueJobName, {
+            let jobData: Record<string, unknown> = {
               provider,
               type: log.eventType,
               payload: log.payload,
@@ -576,7 +575,26 @@ export const startCommand = new Command('start')
                 ? log.eventType.split(':')[1]
                 : 'unknown',
               secretMatched: log.error === 'SECRET_MATCHED'
-            })
+            }
+
+            if (provider === 'intervals-bulk' || provider === 'intervals') {
+              queueJobName = 'intervals-webhook-bulk'
+              provider = 'intervals-bulk' // Force bulk handler for both
+              jobData.provider = provider
+            } else if (provider === 'oauth-generic') {
+              queueJobName = 'oauth-webhook'
+            } else if (provider === 'resend') {
+              const payload = (log.payload || {}) as Record<string, any>
+              jobData = {
+                provider: 'resend',
+                type: payload.type || log.eventType,
+                data: payload.data,
+                createdAt: payload.created_at,
+                logId: log.id
+              }
+            }
+
+            await webhookQueue.add(queueJobName, jobData)
 
             await prisma.webhookLog.update({
               where: { id: log.id },
