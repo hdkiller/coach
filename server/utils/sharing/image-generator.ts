@@ -128,23 +128,13 @@ const THEMES: Record<WorkoutImageStyle, ThemeSpec> = {
 }
 
 const FONT_FILES = [
-  path.resolve(
-    process.cwd(),
-    'node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2'
-  ),
-  path.resolve(
-    process.cwd(),
-    'node_modules/@fontsource-variable/inter/files/inter-latin-standard-italic.woff2'
-  ),
-  path.resolve(
-    process.cwd(),
-    'node_modules/@fontsource/oswald/files/oswald-latin-700-normal.woff2'
-  ),
-  path.resolve(process.cwd(), 'node_modules/@fontsource/oswald/files/oswald-latin-400-normal.woff2')
+  path.resolve(process.cwd(), 'server/assets/fonts/Inter.ttf'),
+  path.resolve(process.cwd(), 'server/assets/fonts/Inter-Italic.ttf'),
+  path.resolve(process.cwd(), 'server/assets/fonts/Oswald.ttf')
 ]
 
 const FONT_FAMILY_DISPLAY = 'Oswald'
-const FONT_FAMILY_BODY = 'Inter Variable'
+const FONT_FAMILY_BODY = 'Inter'
 
 export function selectWorkoutImageTemplate(
   workout: WorkoutData
@@ -203,7 +193,8 @@ export const imageGenerator = {
       font: {
         fontFiles: FONT_FILES,
         loadSystemFonts: false,
-        defaultFontFamily: FONT_FAMILY_BODY
+        defaultFontFamily: FONT_FAMILY_BODY,
+        sansSerifFamily: FONT_FAMILY_BODY
       }
     })
 

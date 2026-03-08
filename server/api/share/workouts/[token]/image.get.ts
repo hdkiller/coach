@@ -4,6 +4,11 @@ import {
   normalizeWorkoutImageStyle,
   normalizeWorkoutImageVariant
 } from '../../../../utils/sharing/image-generator'
+import {
+  buildWorkoutImageCacheKey,
+  getCachedWorkoutImage,
+  setCachedWorkoutImage
+} from '../../../../utils/sharing/image-cache'
 import { workoutRepository } from '../../../../utils/repositories/workoutRepository'
 
 defineRouteMeta({
@@ -71,15 +76,32 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const cacheKey = buildWorkoutImageCacheKey({
+      workout: workout as any,
+      style,
+      variant,
+      ratio
+    })
+    const cachedPngBuffer = await getCachedWorkoutImage(cacheKey)
+
+    if (cachedPngBuffer) {
+      setResponseHeader(event, 'Content-Type', 'image/png')
+      setResponseHeader(event, 'Cache-Control', 'public, max-age=86400')
+      setResponseHeader(event, 'X-Share-Image-Cache', 'hit')
+      return cachedPngBuffer
+    }
+
     const pngBuffer = await imageGenerator.generateWorkoutImage(workout as any, {
       variant,
       style,
       ratio
     })
+    await setCachedWorkoutImage(cacheKey, pngBuffer)
 
     // Set cache headers (1 day)
     setResponseHeader(event, 'Content-Type', 'image/png')
     setResponseHeader(event, 'Cache-Control', 'public, max-age=86400')
+    setResponseHeader(event, 'X-Share-Image-Cache', 'miss')
 
     return pngBuffer
   } catch (error) {
