@@ -729,7 +729,7 @@
           <div v-if="!collapsed" class="px-4 pb-2">
             <div class="flex items-center justify-center gap-4 mb-4">
               <NuxtLink
-                to="https://www.strava.com"
+                to="https://www.strava.com/clubs/2004142"
                 target="_blank"
                 class="hover:opacity-100 transition-opacity"
               >

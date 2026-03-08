@@ -44,6 +44,7 @@ import {
   computeStructuredWorkoutMetrics,
   getPendingSyncStatus
 } from '../structured-workout-persistence'
+import { publishTaskRunStartedEvent } from '../task-run-events'
 
 const STEP_INTENT_VALUES = [
   'warmup',
@@ -886,6 +887,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
               concurrencyKey: userId
             }
           )
+          await publishTaskRunStartedEvent(userId, 'generate-structured-workout', handle, {
+            tags: [`user:${userId}`, `planned-workout:${workout.id}`]
+          })
           runId = handle.id
         } catch (e) {
           console.error('Failed to trigger structured workout generation:', e)
@@ -973,6 +977,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
               concurrencyKey: userId
             }
           )
+          await publishTaskRunStartedEvent(userId, 'generate-structured-workout', handle, {
+            tags: [`user:${userId}`, `planned-workout:${workout.id}`]
+          })
           runId = handle.id
         } catch (e) {
           console.error('Failed to trigger structured workout regeneration:', e)
@@ -1145,6 +1152,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             concurrencyKey: userId
           }
         )
+        await publishTaskRunStartedEvent(userId, 'adjust-structured-workout', handle, {
+          tags: [`user:${userId}`, `planned-workout:${workout_id}`]
+        })
         return {
           success: true,
           workout_id,
@@ -1179,6 +1189,9 @@ export const planningTools = (userId: string, timezone: string, aiSettings: AiSe
             concurrencyKey: userId
           }
         )
+        await publishTaskRunStartedEvent(userId, 'generate-structured-workout', handle, {
+          tags: [`user:${userId}`, `planned-workout:${workout_id}`]
+        })
         return {
           success: true,
           workout_id,

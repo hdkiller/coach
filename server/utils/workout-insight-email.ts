@@ -16,6 +16,7 @@ const WORKOUT_RECEIVED_ACTIVE_STATUSES = [
   'OPENED',
   'CLICKED'
 ] as const
+const verboseWorkoutInsightEmailLogs = process.env.CW_VERBOSE_WORKOUT_EMAIL_LOGS === '1'
 
 const COPY_SLOTS = ['heroTitle', 'introLine', 'ctaLabel', 'nextStepMessage', 'subject'] as const
 type CopySlot = (typeof COPY_SLOTS)[number]
@@ -36,6 +37,12 @@ type QueueWorkoutInsightEmailOptions = {
   adherenceSummary?: string
   adherenceScore?: number
   overallScore?: number
+}
+
+function logWorkoutInsightSkip(context: Record<string, unknown>) {
+  if (verboseWorkoutInsightEmailLogs) {
+    console.info('[WorkoutInsightEmail] Skipped', context)
+  }
 }
 
 function roundDateDownToFiveMinutes(date: Date) {
@@ -660,7 +667,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   const logContext = { workoutId, triggerType }
 
   if (process.env.CW_DISABLE_EMAILS === '1') {
-    console.info('[WorkoutInsightEmail] Skipped', {
+    logWorkoutInsightSkip({
       ...logContext,
       reason: 'emails_disabled_by_environment'
     })
@@ -707,7 +714,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   })
 
   if (!workout) {
-    console.info('[WorkoutInsightEmail] Skipped', { ...logContext, reason: 'workout_not_found' })
+    logWorkoutInsightSkip({ ...logContext, reason: 'workout_not_found' })
     return { queued: false, reason: 'workout_not_found' }
   }
 
@@ -727,7 +734,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   ])
 
   if (!user) {
-    console.info('[WorkoutInsightEmail] Skipped', {
+    logWorkoutInsightSkip({
       ...logContext,
       userId: workout.userId,
       reason: 'user_not_found'
@@ -736,7 +743,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   }
 
   if (pref?.globalUnsubscribe || pref?.workoutAnalysis === false) {
-    console.info('[WorkoutInsightEmail] Skipped', {
+    logWorkoutInsightSkip({
       ...logContext,
       userId: workout.userId,
       hasPreferenceRow: Boolean(pref),
@@ -926,7 +933,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
 
   if (triggerType === 'on-workout-received') {
     if (user.aiAutoAnalyzeWorkouts) {
-      console.info('[WorkoutInsightEmail] Skipped', {
+      logWorkoutInsightSkip({
         ...logContext,
         userId: workout.userId,
         aiAutoAnalyzeWorkouts: user.aiAutoAnalyzeWorkouts,
@@ -940,7 +947,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       workoutDate: workout.date
     })
     if (!eligibility.eligible) {
-      console.info('[WorkoutInsightEmail] Skipped', {
+      logWorkoutInsightSkip({
         ...logContext,
         userId: workout.userId,
         durationSec: workout.durationSec,
@@ -962,7 +969,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       select: { id: true, createdAt: true }
     })
     if (recentWorkoutReceived) {
-      console.info('[WorkoutInsightEmail] Skipped', {
+      logWorkoutInsightSkip({
         ...logContext,
         userId: workout.userId,
         reason: 'workout_received_cooldown_active',
@@ -978,7 +985,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       select: { id: true, createdAt: true, status: true }
     })
     if (duplicateActivityDelivery) {
-      console.info('[WorkoutInsightEmail] Skipped', {
+      logWorkoutInsightSkip({
         ...logContext,
         userId: workout.userId,
         reason: 'workout_received_activity_already_emailed',
@@ -1006,7 +1013,7 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
   }
 
   if (!user.aiAutoAnalyzeWorkouts) {
-    console.info('[WorkoutInsightEmail] Skipped', {
+    logWorkoutInsightSkip({
       ...logContext,
       userId: workout.userId,
       aiAutoAnalyzeWorkouts: user.aiAutoAnalyzeWorkouts,

@@ -8,6 +8,8 @@ import { calculateCTL, calculateATL, getStressScore } from './training-stress'
 import { userRepository } from './repositories/userRepository'
 import { normalizeTSS } from './normalize-tss'
 
+const verboseWorkoutStressLogs = process.env.CW_VERBOSE_WORKOUT_STRESS_LOGS === '1'
+
 /**
  * Calculate and update CTL/ATL for a new or updated workout
  * Should be called after a workout is created/updated
@@ -56,9 +58,11 @@ export async function calculateWorkoutStress(
 
   // Calculate stress score
   let tss = getStressScore(workout)
-  console.log(
-    `[calculateWorkoutStress] Workout ${workout.id}: Initial TSS=${tss} (from DB=${workout.tss}, TRIMP=${workout.trimp})`
-  )
+  if (verboseWorkoutStressLogs) {
+    console.log(
+      `[calculateWorkoutStress] Workout ${workout.id}: Initial TSS=${tss} (from DB=${workout.tss}, TRIMP=${workout.trimp})`
+    )
+  }
 
   if (tss === 0) {
     // If TSS is 0, try to calculate it from streams if available
@@ -66,9 +70,11 @@ export async function calculateWorkoutStress(
 
     // REFACTOR: Use userRepository to get the FTP correct for THIS workout's date
     const ftp = await userRepository.getFtpForDate(userId, workout.date)
-    console.log(
-      `[calculateWorkoutStress] Using FTP ${ftp}W for date ${workout.date.toISOString().split('T')[0]}`
-    )
+    if (verboseWorkoutStressLogs) {
+      console.log(
+        `[calculateWorkoutStress] Using FTP ${ftp}W for date ${workout.date.toISOString().split('T')[0]}`
+      )
+    }
 
     if (ftp > 0) {
       const workoutWithStreams = await prisma.workout.findUnique({
@@ -95,9 +101,11 @@ export async function calculateWorkoutStress(
         const durationSec = watts.length // assuming 1s recording
 
         const calculatedTss = ((durationSec * np * intensity) / (ftp * 3600)) * 100
-        console.log(
-          `[calculateWorkoutStress] Calculated TSS fallback: ${calculatedTss} (FTP=${ftp}, NP=${np}, IF=${intensity}, Duration=${durationSec})`
-        )
+        if (verboseWorkoutStressLogs) {
+          console.log(
+            `[calculateWorkoutStress] Calculated TSS fallback: ${calculatedTss} (FTP=${ftp}, NP=${np}, IF=${intensity}, Duration=${durationSec})`
+          )
+        }
 
         if (calculatedTss > 0) {
           // Update workout with calculated TSS
@@ -112,10 +120,14 @@ export async function calculateWorkoutStress(
           tss = Math.round(calculatedTss * 10) / 10
         }
       } else {
-        console.log(`[calculateWorkoutStress] No watts stream available for TSS calculation`)
+        if (verboseWorkoutStressLogs) {
+          console.log(`[calculateWorkoutStress] No watts stream available for TSS calculation`)
+        }
       }
     } else {
-      console.log(`[calculateWorkoutStress] User ${userId} has no FTP set, cannot calculate TSS`)
+      if (verboseWorkoutStressLogs) {
+        console.log(`[calculateWorkoutStress] User ${userId} has no FTP set, cannot calculate TSS`)
+      }
     }
 
     // If still zero, try full normalization pipeline (HR stream, TRIMP, duration estimate).
@@ -124,9 +136,11 @@ export async function calculateWorkoutStress(
         const normalized = await normalizeTSS(workoutId, userId, false)
         if (normalized.tss !== null && normalized.tss > 0) {
           tss = normalized.tss
-          console.log(
-            `[calculateWorkoutStress] Applied normalizeTSS fallback: ${tss} (source=${normalized.source}, method=${normalized.method})`
-          )
+          if (verboseWorkoutStressLogs) {
+            console.log(
+              `[calculateWorkoutStress] Applied normalizeTSS fallback: ${tss} (source=${normalized.source}, method=${normalized.method})`
+            )
+          }
         }
       } catch (error) {
         console.error(

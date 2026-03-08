@@ -1,6 +1,9 @@
 <template>
   <div
-    class="h-96 w-full rounded-none sm:rounded-xl overflow-hidden border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 z-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center shadow-none sm:shadow group"
+    :class="[
+      mapHeight,
+      'w-full rounded-none sm:rounded-xl overflow-hidden border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 z-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center shadow-none sm:shadow group'
+    ]"
   >
     <client-only>
       <div v-if="latLngs.length > 0" class="relative h-full w-full">
@@ -176,18 +179,26 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, watch } from 'vue'
 
-  const props = defineProps<{
-    coordinates: any[]
-    interactive?: boolean
-    scrollWheelZoom?: boolean
-    provider?: string
-    deviceName?: string
-    streams?: Record<string, any>
-    workoutId?: string
-    highlightIndex?: number | null
-    highlightRange?: [number, number] | null
-    highlightRanges?: [number, number][] | null
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      coordinates: any[]
+      interactive?: boolean
+      scrollWheelZoom?: boolean
+      provider?: string
+      deviceName?: string
+      streams?: Record<string, any>
+      workoutId?: string
+      highlightIndex?: number | null
+      highlightRange?: [number, number] | null
+      highlightRanges?: [number, number][] | null
+      mapHeight?: string
+    }>(),
+    {
+      interactive: true,
+      scrollWheelZoom: false,
+      mapHeight: 'h-96'
+    }
+  )
 
   const L = ref<any>(null)
 
