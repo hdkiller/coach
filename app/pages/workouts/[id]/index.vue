@@ -124,6 +124,532 @@
 
     <template #body>
       <div class="max-w-5xl mx-auto w-full p-0 sm:p-6 pb-24 space-y-0 sm:space-y-8">
+        <!-- DESKTOP COMMAND CENTER HUD (hidden sm:block) -->
+        <div v-if="workout && !loading" class="hidden sm:flex flex-col gap-6">
+          <!-- TOP SECTION: TITLE, MAP & ACTIONS -->
+          <div
+            class="relative overflow-hidden rounded-3xl bg-[#09090B] border border-white/5 p-8 flex flex-col gap-6 group/header"
+          >
+            <!-- GHOST BACKGROUND ROUTE -->
+            <UiWorkoutRoutePreview
+              v-if="workout.summaryPolyline"
+              :polyline="workout.summaryPolyline"
+              mode="background"
+              class="opacity-[0.05] group-hover/header:opacity-[0.15] z-0 transition-opacity duration-700"
+            />
+
+            <!-- SCRIM -->
+            <div
+              class="absolute inset-0 bg-gradient-to-r from-[#09090B] via-[#09090B]/80 to-transparent z-[1] pointer-events-none"
+            />
+
+            <div class="relative z-10 flex items-start justify-between">
+              <div class="flex flex-col gap-4 max-w-2xl">
+                <!-- Date & Nav -->
+                <div class="flex items-center gap-4">
+                  <div class="flex flex-col">
+                    <span
+                      class="font-mono text-[10px] text-primary-500 uppercase tracking-[0.4em] font-black"
+                    >
+                      {{ formatDateWeekday(workout.date) }}
+                    </span>
+                    <span
+                      class="font-mono text-xs text-zinc-500 uppercase tracking-widest font-black"
+                    >
+                      {{ formatDatePrimary(workout.date) }}
+                    </span>
+                  </div>
+                  <div class="h-8 w-px bg-white/10" />
+                  <div class="flex items-center gap-2">
+                    <UButton
+                      icon="i-heroicons-chevron-left"
+                      color="neutral"
+                      variant="subtle"
+                      size="xs"
+                      class="rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
+                      @click="navigateDate(-1)"
+                    />
+                    <UButton
+                      icon="i-heroicons-chevron-right"
+                      color="neutral"
+                      variant="subtle"
+                      size="xs"
+                      class="rounded-lg bg-white/5 border-white/10 hover:bg-white/10"
+                      @click="navigateDate(1)"
+                    />
+                  </div>
+                </div>
+
+                <!-- Title & Achievements -->
+                <div class="flex flex-col gap-3">
+                  <div class="flex items-center gap-6">
+                    <h1
+                      class="text-4xl font-black uppercase tracking-tighter text-white leading-none drop-shadow-2xl"
+                    >
+                      {{ workout.title }}
+                    </h1>
+
+                    <!-- Personal Best Badges -->
+                    <div v-if="achievements.length > 0" class="flex items-center gap-2">
+                      <template v-for="pb in achievements" :key="pb.type">
+                        <UTooltip
+                          :text="`${pb.label}: ${pb.displayValue}${pb.unit === 's' ? '' : pb.unit}`"
+                        >
+                          <div
+                            class="flex items-center gap-1.5 bg-yellow-500/10 text-yellow-500 px-2.5 py-1 rounded-full border border-yellow-500/20 font-black text-[10px] tracking-widest uppercase animate-pulse-slow"
+                          >
+                            <UIcon name="i-heroicons-trophy" class="w-3 h-3" />
+                            {{ pb.label }}
+                          </div>
+                        </UTooltip>
+                      </template>
+                    </div>
+                  </div>
+
+                  <!-- Meta Info & Tags Trigger -->
+                  <div
+                    class="flex items-center gap-4 font-mono text-[10px] text-zinc-500 uppercase tracking-[0.2em]"
+                  >
+                    <div class="flex items-center gap-2">
+                      <UIcon
+                        :name="getWorkoutIcon(workout.type)"
+                        class="w-4 h-4"
+                        :class="getWorkoutColorClass(workout.type)"
+                      />
+                      <span>{{ workout.type || 'Activity' }}</span>
+                    </div>
+                    <span class="opacity-30">•</span>
+                    <div class="flex items-center gap-1">
+                      <span class="i-heroicons-clock w-3.5 h-3.5 opacity-50" />
+                      {{ formatDuration(workout.durationSec) }}
+                    </div>
+                    <span class="opacity-30">•</span>
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      icon="i-heroicons-hashtag"
+                      class="hover:text-primary-500 p-0 h-auto font-black"
+                      @click="showTagEditor = !showTagEditor"
+                    >
+                      <span v-if="workout.tags?.length" class="ml-1"
+                        >{{ workout.tags.length }} TAGS</span
+                      >
+                      <span v-else class="ml-1 text-[8px]">ADD TAGS</span>
+                    </UButton>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Stack -->
+              <div class="flex items-center gap-4">
+                <!-- Map Preview -->
+                <NuxtLink
+                  v-if="workout.summaryPolyline"
+                  :to="`/workouts/${workout.id}/map`"
+                  class="shrink-0 w-24 h-24 rounded-2xl bg-black border border-white/10 overflow-hidden relative group shadow-2xl hover:border-primary-500/50 transition-all duration-500"
+                >
+                  <UiWorkoutRoutePreview
+                    :polyline="workout.summaryPolyline"
+                    size="w-full h-full"
+                    class="text-primary-500/40"
+                  />
+                  <div
+                    class="absolute inset-0 bg-primary-500/5 group-hover:bg-primary-500/10 transition-colors"
+                  />
+                  <div
+                    class="absolute bottom-0 left-0 right-0 py-1 bg-black/60 backdrop-blur-sm text-center"
+                  >
+                    <span class="text-[8px] font-black text-primary-400 uppercase tracking-widest"
+                      >ANALYSIS</span
+                    >
+                  </div>
+                </NuxtLink>
+
+                <div class="flex flex-col gap-2">
+                  <UButton
+                    icon="i-heroicons-pencil-square"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                    class="bg-white/5 border-white/5 hover:bg-white/10 font-bold"
+                    @click="isEditModalOpen = true"
+                  >
+                    Edit
+                  </UButton>
+                  <UButton
+                    icon="i-heroicons-share"
+                    color="neutral"
+                    variant="subtle"
+                    size="sm"
+                    class="bg-white/5 border-white/5 hover:bg-white/10 font-bold"
+                    @click="isShareModalOpen = true"
+                  >
+                    Share
+                  </UButton>
+                  <UButton
+                    icon="i-heroicons-trash"
+                    color="error"
+                    variant="subtle"
+                    size="sm"
+                    class="bg-red-500/5 border-red-500/10 hover:bg-red-500/10 font-bold"
+                    @click="isDeleteModalOpen = true"
+                  >
+                    Delete
+                  </UButton>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tag Editor Panel (Desktop) -->
+            <div
+              v-if="showTagEditor"
+              class="relative z-10 p-6 bg-white/[0.02] border border-white/5 rounded-2xl"
+            >
+              <div class="flex flex-col gap-4">
+                <div class="flex items-start justify-between gap-6">
+                  <div class="flex-1">
+                    <div
+                      class="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3"
+                    >
+                      Workout tags (Local)
+                    </div>
+                    <UInputTags
+                      v-model="localTagDraft"
+                      placeholder="Add local tags..."
+                      color="neutral"
+                      variant="outline"
+                      size="md"
+                    />
+                  </div>
+                  <div class="flex items-center gap-2 mt-7">
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      size="sm"
+                      :disabled="!hasLocalTagChanges || savingTags"
+                      @click="resetLocalTags"
+                      >Reset</UButton
+                    >
+                    <UButton
+                      color="primary"
+                      variant="solid"
+                      size="sm"
+                      icon="i-heroicons-tag"
+                      :loading="savingTags"
+                      :disabled="!hasLocalTagChanges"
+                      @click="saveLocalTags"
+                      >Save</UButton
+                    >
+                  </div>
+                </div>
+                <div
+                  v-if="intervalsSourceTags.length > 0"
+                  class="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5"
+                >
+                  <span class="text-[9px] font-black uppercase tracking-widest text-zinc-600"
+                    >Intervals Sync:</span
+                  >
+                  <UBadge
+                    v-for="tag in intervalsSourceTags"
+                    :key="tag"
+                    color="neutral"
+                    variant="subtle"
+                    size="xs"
+                    class="font-black tracking-tight lowercase"
+                    >#{{ tag }}</UBadge
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Description (Desktop) -->
+            <div
+              v-if="workout.description"
+              class="relative z-10 p-6 bg-white/[0.01] border-l-2 border-primary-500/20 rounded-r-2xl italic text-zinc-400 font-medium leading-relaxed"
+            >
+              {{ workout.description }}
+            </div>
+          </div>
+
+          <!-- HERO HUD ROW: UNIFIED COMMAND CENTER -->
+          <div
+            class="relative overflow-hidden rounded-2xl bg-[#09090B] border border-white/5 p-1 flex items-stretch group/hero shadow-2xl"
+          >
+            <div
+              class="absolute inset-0 ring-1 ring-inset ring-primary-500/10 opacity-0 group-hover/hero:opacity-100 transition-opacity duration-500 pointer-events-none"
+            />
+
+            <!-- Primary Group: Distance, Time, TSS -->
+            <div class="flex flex-1 items-center justify-around py-6 px-4">
+              <div v-if="workout.distanceMeters" class="flex-1 flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  >Distance</span
+                >
+                <div class="flex items-baseline gap-1.5">
+                  <span
+                    class="text-4xl font-black text-white tabular-nums tracking-tighter drop-shadow-md"
+                  >
+                    {{ (workout.distanceMeters / 1000).toFixed(1) }}
+                  </span>
+                  <span class="text-xs font-bold text-zinc-600 uppercase opacity-50">km</span>
+                </div>
+              </div>
+              <div class="w-px h-12 bg-white/5" />
+              <div class="flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  >Time</span
+                >
+                <span
+                  class="text-4xl font-black text-white tabular-nums tracking-tighter drop-shadow-md"
+                >
+                  {{ formatDurationShort(workout.durationSec) }}
+                </span>
+              </div>
+              <div class="w-px h-12 bg-white/5" />
+              <div
+                v-if="workout.tss || workout.trainingLoad"
+                class="flex flex-col items-center gap-1"
+              >
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  >TSS/Load</span
+                >
+                <span
+                  class="text-4xl font-black tabular-nums tracking-tighter drop-shadow-md animate-pulse-slow"
+                  :class="getIntensityColorClass(workout.intensity, 'text')"
+                >
+                  {{ Math.round(workout.tss || workout.trainingLoad) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- SECONDARY GROUP DIVIDER -->
+            <div class="w-px bg-white/10 my-4" />
+
+            <!-- Secondary Group: Power, HR, Gain -->
+            <div class="flex flex-1 items-center justify-around py-6 px-4 bg-white/[0.01]">
+              <div v-if="workout.averageWatts" class="flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  >Power</span
+                >
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-black text-purple-400 tabular-nums">{{
+                    workout.averageWatts
+                  }}</span>
+                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">W</span>
+                </div>
+              </div>
+              <div v-if="workout.normalizedPower" class="flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  >NP</span
+                >
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-black text-indigo-400 tabular-nums">{{
+                    workout.normalizedPower
+                  }}</span>
+                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">W</span>
+                </div>
+              </div>
+              <div v-if="workout.averageHr" class="flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  >Heart</span
+                >
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-black text-pink-400 tabular-nums">{{
+                    workout.averageHr
+                  }}</span>
+                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">BPM</span>
+                </div>
+              </div>
+              <div v-if="workout.elevationGain" class="flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em]"
+                  >Gain</span
+                >
+                <div class="flex items-baseline gap-1">
+                  <span class="text-2xl font-black text-white tabular-nums">{{
+                    workout.elevationGain
+                  }}</span>
+                  <span class="text-[10px] font-bold text-zinc-600 uppercase opacity-50">m</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PERFORMANCE & IMPACT SIDE-BY-SIDE -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            <!-- Performance Summary -->
+            <div class="bg-[#09090B] rounded-2xl border border-white/5 p-6 flex flex-col shadow-xl">
+              <h2
+                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500"
+              >
+                <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 text-primary-500" />
+                Performance Metrics
+              </h2>
+              <div class="flex-1 min-h-[220px]">
+                <PerformanceScoreChart
+                  v-if="workout.overallScore || workout.technicalScore"
+                  :scores="{
+                    overall: workout.overallScore,
+                    technical: workout.technicalScore,
+                    effort: workout.effortScore,
+                    pacing: workout.pacingScore,
+                    execution: workout.executionScore
+                  }"
+                />
+                <div
+                  v-else
+                  class="h-full flex flex-col items-center justify-center text-center opacity-40"
+                >
+                  <UIcon name="i-heroicons-sparkles" class="w-8 h-8 mb-2" />
+                  <span class="text-[10px] font-black uppercase tracking-widest"
+                    >No Score Data</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- System Impact Grid (Condensed 2x2) -->
+            <div class="bg-[#09090B] rounded-2xl border border-white/5 p-6 flex flex-col shadow-xl">
+              <h2
+                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500"
+              >
+                <UIcon name="i-heroicons-heart" class="w-4 h-4 text-orange-500" />
+                {{ t('impact_calc_title') }}
+              </h2>
+              <div class="grid grid-cols-2 gap-4 flex-1">
+                <!-- CTL -->
+                <div
+                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer hover:bg-[#00DC82]/[0.05] transition-all group"
+                  @click="
+                    handleOpenMetric({
+                      key: 'Fitness (CTL)',
+                      value: workout.ctl ? Math.round(workout.ctl) : 0
+                    })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60">
+                    <UIcon name="i-heroicons-heart" class="w-3 h-3 text-[#00DC82]" />
+                    <UTooltip
+                      :popper="{ placement: 'top' }"
+                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
+                      arrow
+                    >
+                      <span
+                        class="font-mono text-[8px] font-black uppercase tracking-widest border-b border-dashed border-zinc-700"
+                        >Fitness (CTL)</span
+                      >
+                      <template #content>
+                        <div class="text-left text-sm">{{ tt('fitness_ctl') }}</div>
+                      </template>
+                    </UTooltip>
+                  </div>
+                  <span class="text-3xl font-black text-white tabular-nums">{{
+                    workout.ctl ? Math.round(workout.ctl) : '-'
+                  }}</span>
+                </div>
+                <!-- ATL -->
+                <div
+                  class="p-4 rounded-xl border border-orange-500/10 bg-orange-500/[0.02] flex flex-col justify-between cursor-pointer hover:bg-orange-500/[0.05] transition-all group"
+                  @click="
+                    handleOpenMetric({
+                      key: 'Fatigue (ATL)',
+                      value: workout.atl ? Math.round(workout.atl) : 0
+                    })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60">
+                    <UIcon name="i-heroicons-fire" class="w-3 h-3 text-orange-500" />
+                    <UTooltip
+                      :popper="{ placement: 'top' }"
+                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
+                      arrow
+                    >
+                      <span
+                        class="font-mono text-[8px] font-black uppercase tracking-widest border-b border-dashed border-zinc-700"
+                        >Fatigue (ATL)</span
+                      >
+                      <template #content>
+                        <div class="text-left text-sm">{{ tt('fatigue_atl') }}</div>
+                      </template>
+                    </UTooltip>
+                  </div>
+                  <span class="text-3xl font-black text-white tabular-nums">{{
+                    workout.atl ? Math.round(workout.atl) : '-'
+                  }}</span>
+                </div>
+                <!-- TSS -->
+                <div
+                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer hover:bg-[#00DC82]/[0.05] transition-all group"
+                  @click="
+                    handleOpenMetric({
+                      key: 'TSS (Load)',
+                      value: Math.round(workout.tss || workout.trainingLoad || 0)
+                    })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60">
+                    <UIcon name="i-heroicons-bolt" class="w-3 h-3 text-[#00DC82]" />
+                    <UTooltip
+                      :popper="{ placement: 'top' }"
+                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
+                      arrow
+                    >
+                      <span
+                        class="font-mono text-[8px] font-black uppercase tracking-widest border-b border-dashed border-zinc-700"
+                        >Load (TSS)</span
+                      >
+                      <template #content>
+                        <div class="text-left text-sm">{{ tt('tss_load') }}</div>
+                      </template>
+                    </UTooltip>
+                  </div>
+                  <span class="text-3xl font-black text-white tabular-nums">{{
+                    Math.round(workout.tss || workout.trainingLoad || 0)
+                  }}</span>
+                </div>
+                <!-- TSB -->
+                <div
+                  class="p-4 rounded-xl border border-blue-500/10 bg-blue-500/[0.02] flex flex-col justify-between cursor-pointer hover:bg-blue-500/[0.05] transition-all group"
+                  @click="
+                    handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60">
+                    <UIcon name="i-heroicons-scale" class="w-3 h-3 text-blue-500" />
+                    <UTooltip
+                      :popper="{ placement: 'top' }"
+                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
+                      arrow
+                    >
+                      <span
+                        class="font-mono text-[8px] font-black uppercase tracking-widest border-b border-dashed border-zinc-700"
+                        >Form (TSB)</span
+                      >
+                      <template #content>
+                        <div class="text-left text-sm">{{ tt('form_tsb') }}</div>
+                      </template>
+                    </UTooltip>
+                  </div>
+                  <span class="text-3xl font-black text-blue-400 tabular-nums">
+                    {{
+                      calculateForm(workout) !== null
+                        ? (calculateForm(workout)! > 0 ? '+' : '') + calculateForm(workout)
+                        : '-'
+                    }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- MOBILE HUD HEADER (sm:hidden) -->
         <div
           v-if="workout && !loading"
@@ -211,6 +737,18 @@
                     <span>{{ workout.type || 'Activity' }}</span>
                     <span v-if="workout.deviceName" class="opacity-30">•</span>
                     <span v-if="workout.deviceName" class="truncate">{{ workout.deviceName }}</span>
+                  </div>
+
+                  <!-- Achievements (Mobile) -->
+                  <div v-if="achievements.length > 0" class="flex flex-wrap gap-1.5 mt-2">
+                    <template v-for="pb in achievements" :key="pb.type">
+                      <div
+                        class="flex items-center gap-1 bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded-full border border-yellow-500/20 font-black text-[8px] tracking-widest uppercase animate-pulse-slow"
+                      >
+                        <UIcon name="i-heroicons-trophy" class="w-2.5 h-2.5" />
+                        {{ pb.label }}
+                      </div>
+                    </template>
                   </div>
                 </div>
 
@@ -356,6 +894,213 @@
                 </div>
               </div>
             </div>
+
+            <!-- Tags (Mobile) -->
+            <div class="flex flex-col gap-3">
+              <UButton
+                color="neutral"
+                variant="subtle"
+                size="sm"
+                icon="i-heroicons-hashtag"
+                class="bg-white/5 border-white/10 font-bold uppercase tracking-widest text-[9px] py-2"
+                @click="showTagEditor = !showTagEditor"
+              >
+                {{
+                  showTagEditor
+                    ? 'Close Tag Editor'
+                    : workout.tags?.length
+                      ? `Manage ${workout.tags.length} Tags`
+                      : 'Add Tags'
+                }}
+              </UButton>
+
+              <div
+                v-if="showTagEditor"
+                class="p-4 bg-white/[0.02] border border-white/5 rounded-xl"
+              >
+                <UInputTags
+                  v-model="localTagDraft"
+                  placeholder="Add tags..."
+                  color="neutral"
+                  variant="outline"
+                  size="sm"
+                />
+                <div class="flex items-center justify-end gap-2 mt-3">
+                  <UButton color="neutral" variant="ghost" size="xs" @click="resetLocalTags"
+                    >Reset</UButton
+                  >
+                  <UButton
+                    color="primary"
+                    variant="solid"
+                    size="xs"
+                    :loading="savingTags"
+                    @click="saveLocalTags"
+                    >Save</UButton
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Description (Mobile) -->
+            <div
+              v-if="workout.description"
+              class="p-4 bg-white/[0.01] border-l-2 border-primary-500/20 rounded-r-xl italic text-zinc-400 text-xs leading-relaxed"
+            >
+              {{ workout.description }}
+            </div>
+
+            <!-- Performance Metrics Chart (Mobile) -->
+            <div class="flex flex-col gap-4">
+              <h2
+                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500"
+              >
+                <UIcon name="i-heroicons-chart-bar" class="w-3.5 h-3.5 text-primary-500" />
+                Performance Metrics
+              </h2>
+              <div class="p-4 rounded-2xl bg-[#09090B] border border-white/5 min-h-[200px]">
+                <PerformanceScoreChart
+                  v-if="workout.overallScore || workout.technicalScore"
+                  :scores="{
+                    overall: workout.overallScore,
+                    technical: workout.technicalScore,
+                    effort: workout.effortScore,
+                    pacing: workout.pacingScore,
+                    execution: workout.executionScore
+                  }"
+                />
+                <div
+                  v-else
+                  class="h-full flex flex-col items-center justify-center text-center opacity-40 py-8"
+                >
+                  <UIcon name="i-heroicons-sparkles" class="w-6 h-6 mb-2" />
+                  <span class="text-[8px] font-black uppercase tracking-widest">No Score Data</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- System Impact Grid (Mobile 2x2) -->
+            <div class="flex flex-col gap-4">
+              <h2
+                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500"
+              >
+                <UIcon name="i-heroicons-heart" class="w-3.5 h-3.5 text-orange-500" />
+                {{ t('impact_calc_title') }}
+              </h2>
+              <div class="grid grid-cols-2 gap-3">
+                <!-- CTL -->
+                <div
+                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-[#00DC82]/[0.05] transition-all"
+                  @click="
+                    handleOpenMetric({
+                      key: 'Fitness (CTL)',
+                      value: workout.ctl ? Math.round(workout.ctl) : 0
+                    })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60 mb-2">
+                    <UIcon name="i-heroicons-heart" class="w-3 h-3 text-[#00DC82]" />
+                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                      >Fitness</span
+                    >
+                  </div>
+                  <span class="text-2xl font-black text-white tabular-nums">{{
+                    workout.ctl ? Math.round(workout.ctl) : '-'
+                  }}</span>
+                </div>
+                <!-- ATL -->
+                <div
+                  class="p-4 rounded-xl border border-orange-500/10 bg-orange-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-orange-500/[0.05] transition-all"
+                  @click="
+                    handleOpenMetric({
+                      key: 'Fatigue (ATL)',
+                      value: workout.atl ? Math.round(workout.atl) : 0
+                    })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60 mb-2">
+                    <UIcon name="i-heroicons-fire" class="w-3 h-3 text-orange-500" />
+                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                      >Fatigue</span
+                    >
+                  </div>
+                  <span class="text-2xl font-black text-white tabular-nums">{{
+                    workout.atl ? Math.round(workout.atl) : '-'
+                  }}</span>
+                </div>
+                <!-- TSS -->
+                <div
+                  class="p-4 rounded-xl border border-[#00DC82]/10 bg-[#00DC82]/[0.02] flex flex-col justify-between cursor-pointer active:bg-[#00DC82]/[0.05] transition-all"
+                  @click="
+                    handleOpenMetric({
+                      key: 'TSS (Load)',
+                      value: Math.round(workout.tss || workout.trainingLoad || 0)
+                    })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60 mb-2">
+                    <UIcon name="i-heroicons-bolt" class="w-3 h-3 text-[#00DC82]" />
+                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                      >Load</span
+                    >
+                  </div>
+                  <span class="text-2xl font-black text-white tabular-nums">{{
+                    Math.round(workout.tss || workout.trainingLoad || 0)
+                  }}</span>
+                </div>
+                <!-- TSB -->
+                <div
+                  class="p-4 rounded-xl border border-blue-500/10 bg-blue-500/[0.02] flex flex-col justify-between cursor-pointer active:bg-blue-500/[0.05] transition-all"
+                  @click="
+                    handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
+                  "
+                >
+                  <div class="flex items-center gap-2 opacity-60 mb-2">
+                    <UIcon name="i-heroicons-scale" class="w-3 h-3 text-blue-500" />
+                    <span class="font-mono text-[8px] font-black uppercase tracking-widest"
+                      >Form</span
+                    >
+                  </div>
+                  <span class="text-2xl font-black text-blue-400 tabular-nums">
+                    {{
+                      calculateForm(workout) !== null
+                        ? (calculateForm(workout)! > 0 ? '+' : '') + calculateForm(workout)
+                        : '-'
+                    }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Explanation Accordion (Mobile) -->
+              <div class="mt-2">
+                <UAccordion
+                  :items="[{ label: t('impact_calc_title'), slot: 'explanation' }]"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  class="bg-white/5 rounded-lg"
+                >
+                  <template #explanation>
+                    <div class="px-4 pb-4 text-[11px] text-zinc-400 space-y-3 pt-2 font-medium">
+                      <p>
+                        <strong>{{ t('impact_source_label') }}</strong>
+                        <span v-if="workout.source === 'intervals'">
+                          {{ t('impact_source_intervals', { link: 'Intervals.icu' }) }}
+                        </span>
+                        <span v-else>
+                          {{ t('impact_source_local') }}
+                        </span>
+                      </p>
+                      <ul class="list-disc pl-5 space-y-1.5 opacity-80 leading-relaxed">
+                        <li>{{ tt('tss_load') }}</li>
+                        <li>{{ tt('fitness_ctl') }}</li>
+                        <li>{{ tt('fatigue_atl') }}</li>
+                        <li>{{ tt('form_tsb') }}</li>
+                      </ul>
+                    </div>
+                  </template>
+                </UAccordion>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -402,7 +1147,7 @@
           <!-- Header Section: Workout Info (2/3) + Performance Scores (1/3) -->
           <div id="header" class="scroll-mt-20" />
           <div
-            v-if="isSectionEnabled('overview')"
+            v-if="false"
             class="hidden sm:grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
             :style="sectionStyle('overview')"
           >
@@ -988,205 +1733,6 @@
               </div>
             </div>
           </template>
-
-          <!-- Training Impact Section (TSS, CTL, ATL, TSB) -->
-          <div
-            v-if="isSectionEnabled('training-impact')"
-            id="training-impact"
-            class="scroll-mt-20 space-y-4"
-            :style="sectionStyle('training-impact')"
-          >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              {{ t('impact_header') }}
-            </h2>
-            <div
-              v-if="hasTrainingMetrics(workout)"
-              class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
-            >
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <!-- TSS -->
-                <div
-                  class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 shadow-sm cursor-pointer hover:border-blue-500/50 transition-all active:scale-[0.98] group"
-                  @click="
-                    handleOpenMetric({
-                      key: 'TSS (Load)',
-                      value: Math.round(workout.tss || workout.trainingLoad || 0)
-                    })
-                  "
-                >
-                  <div class="flex items-center justify-between mb-2">
-                    <UTooltip
-                      :popper="{ placement: 'top' }"
-                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
-                      arrow
-                    >
-                      <span
-                        class="text-[10px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-300 border-b border-dashed border-blue-300 dark:border-blue-700 cursor-help"
-                        >TSS (Load)</span
-                      >
-                      <template #content>
-                        <div class="text-left text-sm">{{ tt('tss_load') }}</div>
-                      </template>
-                    </UTooltip>
-                    <UIcon
-                      name="i-heroicons-magnifying-glass-circle"
-                      class="w-4 h-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </div>
-                  <div class="text-2xl font-black text-blue-900 dark:text-blue-100 tracking-tight">
-                    {{ Math.round(workout.tss || workout.trainingLoad || 0) }}
-                  </div>
-                </div>
-
-                <!-- CTL (Fitness) -->
-                <div
-                  class="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 shadow-sm cursor-pointer hover:border-green-500/50 transition-all active:scale-[0.98] group"
-                  @click="
-                    handleOpenMetric({
-                      key: 'Fitness (CTL)',
-                      value: workout.ctl ? Math.round(workout.ctl) : 0
-                    })
-                  "
-                >
-                  <div class="flex items-center justify-between mb-2">
-                    <UTooltip
-                      :popper="{ placement: 'top' }"
-                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
-                      arrow
-                    >
-                      <span
-                        class="text-[10px] font-black uppercase tracking-widest text-green-700 dark:text-green-300 border-b border-dashed border-green-300 dark:border-green-700 cursor-help"
-                        >Fitness (CTL)</span
-                      >
-                      <template #content>
-                        <div class="text-left text-sm">{{ tt('fitness_ctl') }}</div>
-                      </template>
-                    </UTooltip>
-                    <UIcon
-                      name="i-heroicons-magnifying-glass-circle"
-                      class="w-4 h-4 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </div>
-                  <div
-                    class="text-2xl font-black text-green-900 dark:text-green-100 tracking-tight"
-                  >
-                    {{ workout.ctl ? Math.round(workout.ctl) : '-' }}
-                  </div>
-                </div>
-
-                <!-- ATL (Fatigue) -->
-                <div
-                  class="p-4 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/50 shadow-sm cursor-pointer hover:border-orange-500/50 transition-all active:scale-[0.98] group"
-                  @click="
-                    handleOpenMetric({
-                      key: 'Fatigue (ATL)',
-                      value: workout.atl ? Math.round(workout.atl) : 0
-                    })
-                  "
-                >
-                  <div class="flex items-center justify-between mb-2">
-                    <UTooltip
-                      :popper="{ placement: 'top' }"
-                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
-                      arrow
-                    >
-                      <span
-                        class="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-300 border-b border-dashed border-orange-300 dark:border-orange-700 cursor-help"
-                        >Fatigue (ATL)</span
-                      >
-                      <template #content>
-                        <div class="text-left text-sm">{{ tt('fatigue_atl') }}</div>
-                      </template>
-                    </UTooltip>
-                    <UIcon
-                      name="i-heroicons-magnifying-glass-circle"
-                      class="w-4 h-4 text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </div>
-                  <div
-                    class="text-2xl font-black text-orange-900 dark:text-orange-100 tracking-tight"
-                  >
-                    {{ workout.atl ? Math.round(workout.atl) : '-' }}
-                  </div>
-                </div>
-
-                <!-- TSB (Form) -->
-                <div
-                  class="p-4 rounded-xl border shadow-sm cursor-pointer hover:opacity-90 transition-all active:scale-[0.98] group"
-                  :class="getFormClass(calculateForm(workout))"
-                  @click="
-                    handleOpenMetric({ key: 'Form (TSB)', value: calculateForm(workout) || 0 })
-                  "
-                >
-                  <div class="flex items-center justify-between mb-2">
-                    <UTooltip
-                      :popper="{ placement: 'top' }"
-                      :ui="{ content: 'w-[300px] h-auto whitespace-normal' }"
-                      arrow
-                    >
-                      <span
-                        class="text-[10px] font-black uppercase tracking-widest opacity-80 border-b border-dashed border-gray-400 cursor-help"
-                        >Form (TSB)</span
-                      >
-                      <template #content>
-                        <div class="text-left text-sm">{{ tt('form_tsb') }}</div>
-                      </template>
-                    </UTooltip>
-                    <UIcon
-                      name="i-heroicons-magnifying-glass-circle"
-                      class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </div>
-                  <div class="text-2xl font-black tracking-tight">
-                    {{
-                      calculateForm(workout) !== null
-                        ? (calculateForm(workout)! > 0 ? '+' : '') + calculateForm(workout)
-                        : '-'
-                    }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Detailed Explanation Accordion -->
-              <div class="border-t border-gray-100 dark:border-gray-800 pt-4">
-                <UAccordion
-                  :items="[{ label: t('impact_calc_title'), slot: 'explanation' }]"
-                  color="gray"
-                  variant="ghost"
-                >
-                  <template #explanation>
-                    <div
-                      class="text-sm text-gray-600 dark:text-gray-400 space-y-3 pt-2 font-medium"
-                    >
-                      <p>
-                        <strong>{{ t('impact_source_label') }}</strong>
-                        <span v-if="workout.source === 'intervals'">
-                          {{ t('impact_source_intervals', { link: 'Intervals.icu' }) }}
-                        </span>
-                        <span v-else>
-                          {{ t('impact_source_local') }}
-                        </span>
-                      </p>
-                      <ul class="list-disc pl-5 space-y-2 leading-relaxed">
-                        <li>
-                          {{ tt('tss_load') }}
-                        </li>
-                        <li>
-                          {{ tt('fitness_ctl') }}
-                        </li>
-                        <li>
-                          {{ tt('fatigue_atl') }}
-                        </li>
-                        <li>
-                          {{ tt('form_tsb') }}
-                        </li>
-                      </ul>
-                    </div>
-                  </template>
-                </UAccordion>
-              </div>
-            </div>
-          </div>
 
           <!-- Exercises Section -->
           <div
@@ -4173,18 +4719,6 @@
     }> => {
       const isTReady = typeof t.value === 'function'
       return [
-        {
-          key: 'overview',
-          label: isTReady ? t.value('sections_overview') : 'Overview',
-          icon: 'i-lucide-file-text',
-          anchorId: 'header'
-        },
-        {
-          key: 'training-impact',
-          label: isTReady ? t.value('sections_training_impact') : 'Training Impact',
-          icon: 'i-lucide-activity-square',
-          anchorId: 'training-impact'
-        },
         {
           key: 'exercises',
           label: isTReady ? t.value('sections_exercises') : 'Exercises',
