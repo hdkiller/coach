@@ -4,8 +4,9 @@ export interface AttributionRule {
   requiresDeviceName: boolean
   // Function to format the text displayed next to the logo
   textFormat: (deviceName?: string) => string
-  // Optional width constraint for the logo to ensure visual consistency
+  // Height and width constraints to keep logos readable without overflowing narrow layouts
   logoHeightClass: string
+  logoWidthClass?: string
   // Whether to invert the logo colors in dark mode (useful for SVGs with black text)
   invertInDarkMode?: boolean
 }
@@ -23,14 +24,16 @@ export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
     logoDark: '/images/logos/strava_powered_by.png', // Strava usually has a single "Powered by" asset
     requiresDeviceName: false,
     textFormat: () => '',
-    logoHeightClass: 'h-6' // Normalized to h-6 for consistency in lists
+    logoHeightClass: 'h-5 sm:h-6',
+    logoWidthClass: 'max-w-[120px] sm:max-w-[150px]'
   },
   zwift: {
     logoLight: '/images/logos/zwift_dark.webp',
     logoDark: '/images/logos/zwift_white.webp',
     requiresDeviceName: false,
     textFormat: () => '',
-    logoHeightClass: 'h-6'
+    logoHeightClass: 'h-5 sm:h-6',
+    logoWidthClass: 'max-w-[104px] sm:max-w-[132px]'
   },
   whoop: {
     logoLight: '/images/logos/WHOOP_Logo_Black.svg',
@@ -74,7 +77,8 @@ export const ATTRIBUTION_RULES: Record<string, AttributionRule> = {
     logoDark: '/images/logos/apple-watch-logo.svg',
     requiresDeviceName: false,
     textFormat: () => '',
-    logoHeightClass: 'h-8',
+    logoHeightClass: 'h-6 sm:h-8',
+    logoWidthClass: 'max-w-[72px] sm:max-w-[96px]',
     invertInDarkMode: true
   },
   wahoo: {

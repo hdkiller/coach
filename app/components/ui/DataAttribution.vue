@@ -5,14 +5,19 @@
       <img
         :src="rule.logoLight"
         :alt="`Data from ${provider}`"
-        :class="[rule.logoHeightClass, 'w-auto object-contain dark:hidden']"
+        :class="[
+          rule.logoHeightClass,
+          rule.logoWidthClass,
+          'w-auto max-w-full object-contain dark:hidden'
+        ]"
       />
       <img
         :src="rule.logoDark"
         :alt="`Data from ${provider}`"
         :class="[
           rule.logoHeightClass,
-          'w-auto object-contain hidden dark:block',
+          rule.logoWidthClass,
+          'hidden w-auto max-w-full object-contain dark:block',
           rule.invertInDarkMode ? 'invert' : ''
         ]"
       />
