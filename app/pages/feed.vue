@@ -218,4 +218,9 @@
     // Basic refresh for now
     await refresh()
   }
+
+  useActivityRealtime(async () => {
+    offset.value = 0
+    await refresh()
+  })
 </script>
