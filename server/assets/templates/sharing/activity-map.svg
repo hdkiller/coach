@@ -1,0 +1,146 @@
+<svg viewBox="0 0 1080 1920" width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="card-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.12)" />
+      <stop offset="100%" stop-color="rgba(0, 220, 130, 0.28)" />
+    </linearGradient>
+
+    <radialGradient id="brand-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00DC82" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#00DC82" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
+    </filter>
+
+    <style>
+      .title {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 72px;
+        fill: #ffffff;
+        letter-spacing: -1px;
+        text-transform: uppercase;
+      }
+      .subtitle {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 600;
+        font-size: 28px;
+        fill: #00dc82;
+        letter-spacing: 5px;
+        text-transform: uppercase;
+      }
+      .label {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 600;
+        font-size: 24px;
+        fill: #71717a;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .hero-stat {
+        font-family: 'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 900;
+        font-style: italic;
+        font-size: 132px;
+        fill: #ffffff;
+      }
+      .hero-unit {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 600;
+        font-size: 42px;
+        fill: #71717a;
+      }
+      .sec-stat {
+        font-family: 'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 900;
+        font-style: italic;
+        font-size: 92px;
+        fill: #ffffff;
+      }
+      .sec-unit {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 600;
+        font-size: 32px;
+        fill: #71717a;
+      }
+      .brand-footer {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 28px;
+        fill: #00dc82;
+        letter-spacing: 7px;
+        text-transform: uppercase;
+        opacity: 0.5;
+      }
+    </style>
+  </defs>
+
+  {{pageBackground}} {{pageAccent}}
+
+  <rect
+    x="50"
+    y="80"
+    width="980"
+    height="1760"
+    rx="32"
+    fill="rgba(255, 255, 255, 0.02)"
+    stroke="url(#card-border)"
+    stroke-width="2"
+  />
+
+  <text
+    x="540"
+    y="{{titleYMap}}"
+    text-anchor="middle"
+    class="title"
+    style="font-size: {{titleFontSizeMap}}px;"
+  >
+    <tspan x="540">{{titleLine1}}</tspan>
+    <tspan x="540" dy="{{titleLineHeightMap}}">{{titleLine2}}</tspan>
+  </text>
+
+  <g transform="translate(120, 350)">{{mapPanel}}</g>
+
+  <line
+    x1="120"
+    y1="1190"
+    x2="960"
+    y2="1190"
+    stroke="rgba(0, 220, 130, 0.2)"
+    stroke-width="2"
+    stroke-dasharray="8 8"
+  />
+
+  <text x="540" y="1435" text-anchor="middle">
+    <tspan class="hero-stat" style="font-size: {{heroFontSizeMap}}px;">{{heroValue}}</tspan>
+    <tspan class="hero-unit" style="font-size: {{heroUnitFontSizeMap}}px;">{{heroUnit}}</tspan>
+  </text>
+  <text x="540" y="190" text-anchor="middle" class="subtitle">{{subtitle}}</text>
+  <text x="540" y="1290" text-anchor="middle" class="label">{{heroLabel}}</text>
+
+  <line x1="120" y1="1515" x2="960" y2="1515" stroke="rgba(0, 220, 130, 0.2)" stroke-width="2" />
+
+  <g transform="translate(0, 1630)">
+    <text x="240" y="0" text-anchor="middle" class="label">{{stat1Label}}</text>
+    <text x="240" y="98" text-anchor="middle">
+      <tspan class="sec-stat">{{stat1Value}}</tspan>
+      <tspan class="sec-unit">{{stat1Unit}}</tspan>
+    </text>
+
+    <text x="540" y="0" text-anchor="middle" class="label">{{stat2Label}}</text>
+    <text x="540" y="98" text-anchor="middle">
+      <tspan class="sec-stat">{{stat2Value}}</tspan>
+      <tspan class="sec-unit">{{stat2Unit}}</tspan>
+    </text>
+
+    <text x="840" y="0" text-anchor="middle" class="label">{{stat3Label}}</text>
+    <text x="840" y="98" text-anchor="middle">
+      <tspan class="sec-stat">{{stat3Value}}</tspan>
+      <tspan class="sec-unit">{{stat3Unit}}</tspan>
+    </text>
+  </g>
+
+  <text x="540" y="1805" text-anchor="middle" class="brand-footer">CoachWatts.com</text>
+</svg>

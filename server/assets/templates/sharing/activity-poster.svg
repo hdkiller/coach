@@ -1,0 +1,178 @@
+<svg viewBox="0 0 1080 1920" width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="poster-card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.12)" />
+      <stop offset="100%" stop-color="rgba(0,220,130,0.20)" />
+    </linearGradient>
+    <linearGradient id="poster-streak" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00DC82" />
+      <stop offset="100%" stop-color="#7CFFCB" />
+    </linearGradient>
+    <radialGradient id="poster-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00DC82" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#00DC82" stop-opacity="0" />
+    </radialGradient>
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
+    </filter>
+    <style>
+      .eyebrow {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 26px;
+        fill: #7cffcb;
+        letter-spacing: 7px;
+        text-transform: uppercase;
+      }
+      .title {
+        font-family: 'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 900;
+        font-style: italic;
+        font-size: 96px;
+        fill: #ffffff;
+        letter-spacing: -2px;
+        text-transform: uppercase;
+      }
+      .stat-label {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 20px;
+        fill: #8a8a94;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+      .distance {
+        font-family: 'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 900;
+        font-style: italic;
+        font-size: 164px;
+        fill: #ffffff;
+      }
+      .unit {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 38px;
+        fill: #a1a1aa;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+      }
+      .value {
+        font-family: 'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 900;
+        font-style: italic;
+        font-size: 78px;
+        fill: #ffffff;
+      }
+      .value-unit {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 28px;
+        fill: #a1a1aa;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+      }
+      .footer {
+        font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 28px;
+        fill: #00dc82;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+        opacity: 0.55;
+      }
+    </style>
+  </defs>
+
+  {{pageBackground}}
+  <circle cx="800" cy="360" r="340" fill="url(#poster-glow)" />
+
+  <rect
+    x="44"
+    y="70"
+    width="992"
+    height="1780"
+    rx="40"
+    fill="rgba(255,255,255,0.03)"
+    stroke="url(#poster-card)"
+    stroke-width="2"
+  />
+  <rect x="82" y="122" width="916" height="8" rx="4" fill="url(#poster-streak)" />
+
+  <text x="88" y="{{titleYPoster}}" class="title" style="font-size: {{titleFontSizePoster}}px;">
+    <tspan x="88">{{titleLine1}}</tspan>
+    <tspan x="88" dy="{{titleLineHeightPoster}}">{{titleLine2}}</tspan>
+  </text>
+
+  <g transform="translate(128, 410)">{{mapPanel}}</g>
+
+  <g transform="translate(88, 1225)">
+    <rect
+      x="0"
+      y="0"
+      width="904"
+      height="210"
+      rx="36"
+      fill="rgba(255,255,255,0.04)"
+      stroke="rgba(255,255,255,0.08)"
+    />
+    <text x="44" y="170">
+      <tspan class="distance" style="font-size: {{heroFontSizePoster}}px;">{{heroValue}}</tspan>
+      <tspan class="unit" style="font-size: {{heroUnitFontSizePoster}}px;">{{heroUnit}}</tspan>
+    </text>
+  </g>
+  <text x="88" y="200" class="eyebrow">{{subtitle}}</text>
+  <text x="132" y="1289" class="stat-label">{{heroLabel}}</text>
+
+  <g transform="translate(88, 1496)">
+    <rect
+      x="0"
+      y="0"
+      width="280"
+      height="228"
+      rx="30"
+      fill="rgba(255,255,255,0.04)"
+      stroke="rgba(255,255,255,0.07)"
+    />
+    <text x="34" y="52" class="stat-label">{{stat1Label}}</text>
+    <text x="34" y="142">
+      <tspan class="value">{{stat1Value}}</tspan>
+    </text>
+    <text x="34" y="186" class="value-unit">{{stat1Unit}}</text>
+  </g>
+
+  <g transform="translate(400, 1496)">
+    <rect
+      x="0"
+      y="0"
+      width="280"
+      height="228"
+      rx="30"
+      fill="rgba(255,255,255,0.04)"
+      stroke="rgba(255,255,255,0.07)"
+    />
+    <text x="34" y="52" class="stat-label">{{stat2Label}}</text>
+    <text x="34" y="142">
+      <tspan class="value">{{stat2Value}}</tspan>
+    </text>
+    <text x="34" y="186" class="value-unit">{{stat2Unit}}</text>
+  </g>
+
+  <g transform="translate(712, 1496)">
+    <rect
+      x="0"
+      y="0"
+      width="280"
+      height="228"
+      rx="30"
+      fill="rgba(255,255,255,0.04)"
+      stroke="rgba(255,255,255,0.07)"
+    />
+    <text x="34" y="52" class="stat-label">{{stat3Label}}</text>
+    <text x="34" y="142">
+      <tspan class="value">{{stat3Value}}</tspan>
+    </text>
+    <text x="34" y="186" class="value-unit">{{stat3Unit}}</text>
+  </g>
+
+  <text x="540" y="1816" text-anchor="middle" class="footer">CoachWatts.com</text>
+</svg>
