@@ -123,7 +123,242 @@
     </template>
 
     <template #body>
-      <div class="max-w-5xl mx-auto w-full p-0 sm:p-6 pb-24 space-y-4 sm:space-y-8">
+      <div class="max-w-5xl mx-auto w-full p-0 sm:p-6 pb-24 space-y-0 sm:space-y-8">
+        <!-- MOBILE HUD HEADER (sm:hidden) -->
+        <div
+          v-if="workout && !loading"
+          class="sm:hidden flex flex-col bg-[#09090B] relative overflow-hidden"
+        >
+          <!-- GHOST BACKGROUND ROUTE FOR HUD -->
+          <UiWorkoutRoutePreview
+            v-if="workout.summaryPolyline"
+            :polyline="workout.summaryPolyline"
+            mode="background"
+            class="opacity-[0.08] z-0"
+          />
+
+          <!-- HUD CONTENT -->
+          <div class="relative z-10 px-5 pt-6 pb-8 flex flex-col gap-8">
+            <!-- HUD TOP: Navigation, Title & Source -->
+            <div class="flex flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <UButton
+                    icon="i-heroicons-chevron-left"
+                    color="neutral"
+                    variant="subtle"
+                    size="xs"
+                    class="rounded-lg bg-white/5 border-white/10"
+                    @click="navigateDate(-1)"
+                  />
+                  <div class="flex flex-col">
+                    <span
+                      class="font-mono text-[8px] text-primary-500 uppercase tracking-[0.3em] font-black"
+                    >
+                      {{ formatDateWeekday(workout.date) }}
+                    </span>
+                    <span
+                      class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest font-black"
+                    >
+                      {{ formatDatePrimary(workout.date) }}
+                    </span>
+                  </div>
+                  <UButton
+                    icon="i-heroicons-chevron-right"
+                    color="neutral"
+                    variant="subtle"
+                    size="xs"
+                    class="rounded-lg bg-white/5 border-white/10"
+                    @click="navigateDate(1)"
+                  />
+                </div>
+
+                <div class="opacity-40 grayscale scale-75 origin-right">
+                  <UiDataAttribution
+                    v-if="
+                      [
+                        'strava',
+                        'garmin',
+                        'zwift',
+                        'apple_health',
+                        'whoop',
+                        'intervals',
+                        'withings',
+                        'hevy'
+                      ].includes(workout.source)
+                    "
+                    :provider="workout.source"
+                    mode="minimal"
+                  />
+                </div>
+              </div>
+
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <h1
+                    class="text-2xl font-black uppercase tracking-tighter text-white leading-tight mb-1 truncate"
+                  >
+                    {{ workout.title }}
+                  </h1>
+                  <div
+                    class="flex items-center gap-2 font-mono text-[9px] text-zinc-500 uppercase tracking-widest"
+                  >
+                    <UIcon
+                      :name="getWorkoutIcon(workout.type)"
+                      class="w-3.5 h-3.5"
+                      :class="getWorkoutColorClass(workout.type)"
+                    />
+                    <span>{{ workout.type || 'Activity' }}</span>
+                    <span v-if="workout.deviceName" class="opacity-30">•</span>
+                    <span v-if="workout.deviceName" class="truncate">{{ workout.deviceName }}</span>
+                  </div>
+                </div>
+
+                <!-- FLOATING MAP PREVIEW -->
+                <NuxtLink
+                  v-if="workout.summaryPolyline"
+                  :to="`/workouts/${workout.id}/map`"
+                  class="shrink-0 w-20 h-20 rounded-xl bg-black border border-white/10 overflow-hidden relative group shadow-2xl"
+                >
+                  <UiWorkoutRoutePreview
+                    :polyline="workout.summaryPolyline"
+                    size="w-full h-full"
+                    class="text-primary-500/40"
+                  />
+                  <div
+                    class="absolute inset-0 bg-primary-500/5 group-hover:bg-primary-500/10 transition-colors"
+                  />
+                  <div
+                    class="absolute bottom-0 left-0 right-0 py-1 px-1 bg-black/60 backdrop-blur-sm text-center"
+                  >
+                    <span class="text-[7px] font-black text-primary-400 uppercase tracking-widest"
+                      >MAP</span
+                    >
+                  </div>
+                </NuxtLink>
+              </div>
+            </div>
+
+            <!-- HERO DATA ROW -->
+            <div class="flex items-center justify-between py-2 border-y border-white/5">
+              <div v-if="workout.distanceMeters" class="flex-1 flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]"
+                  >Distance</span
+                >
+                <div class="flex items-baseline gap-1">
+                  <span class="text-3xl font-black text-white tabular-nums tracking-tighter">
+                    {{ (workout.distanceMeters / 1000).toFixed(1) }}
+                  </span>
+                  <span class="text-[9px] font-bold text-zinc-600 uppercase">km</span>
+                </div>
+              </div>
+
+              <div class="w-px h-10 bg-white/5" />
+
+              <div class="flex-1 flex flex-col items-center gap-1">
+                <span
+                  class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]"
+                  >Time</span
+                >
+                <span class="text-3xl font-black text-white tabular-nums tracking-tighter">
+                  {{ formatDurationShort(workout.durationSec) }}
+                </span>
+              </div>
+
+              <div class="w-px h-10 bg-white/5" />
+
+              <div
+                v-if="workout.tss || workout.trainingLoad"
+                class="flex-1 flex flex-col items-center gap-1"
+              >
+                <span
+                  class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]"
+                  >TSS</span
+                >
+                <span
+                  class="text-3xl font-black tabular-nums tracking-tighter animate-pulse-slow"
+                  :class="getIntensityColorClass(workout.intensity, 'text')"
+                >
+                  {{ Math.round(workout.tss || workout.trainingLoad) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- SECONDARY METRIC GRID -->
+            <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 shadow-inner">
+              <div class="grid grid-cols-3 gap-x-4 gap-y-8">
+                <div v-if="workout.averageWatts" class="flex flex-col items-center">
+                  <span
+                    class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1"
+                    >Power</span
+                  >
+                  <div class="flex items-baseline gap-0.5">
+                    <span class="text-base font-black text-purple-400 tabular-nums">{{
+                      workout.averageWatts
+                    }}</span>
+                    <span class="text-[8px] font-bold text-zinc-600 uppercase">W</span>
+                  </div>
+                </div>
+                <div v-if="workout.normalizedPower" class="flex flex-col items-center">
+                  <span
+                    class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1"
+                    >NP</span
+                  >
+                  <div class="flex items-baseline gap-0.5">
+                    <span class="text-base font-black text-indigo-400 tabular-nums">{{
+                      workout.normalizedPower
+                    }}</span>
+                    <span class="text-[8px] font-bold text-zinc-600 uppercase">W</span>
+                  </div>
+                </div>
+                <div v-if="workout.averageHr" class="flex flex-col items-center">
+                  <span
+                    class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1"
+                    >Heart</span
+                  >
+                  <div class="flex items-baseline gap-0.5">
+                    <span class="text-base font-black text-pink-400 tabular-nums">{{
+                      workout.averageHr
+                    }}</span>
+                    <span class="text-[8px] font-bold text-zinc-600 uppercase">BPM</span>
+                  </div>
+                </div>
+                <div v-if="workout.elevationGain" class="flex flex-col items-center">
+                  <span
+                    class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1"
+                    >Gain</span
+                  >
+                  <div class="flex items-baseline gap-0.5">
+                    <span class="text-base font-black text-white tabular-nums">{{
+                      workout.elevationGain
+                    }}</span>
+                    <span class="text-[8px] font-bold text-zinc-600 uppercase">m</span>
+                  </div>
+                </div>
+                <div v-if="workout.averageCadence" class="flex flex-col items-center">
+                  <span
+                    class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1"
+                    >RPM</span
+                  >
+                  <span class="text-base font-black text-white tabular-nums">{{
+                    workout.averageCadence
+                  }}</span>
+                </div>
+                <div v-if="workout.intensity" class="flex flex-col items-center">
+                  <span
+                    class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1"
+                    >IF</span
+                  >
+                  <span class="text-base font-black text-zinc-300 tabular-nums">{{
+                    workout.intensity.toFixed(2)
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Loading State -->
         <div v-if="loading" class="p-4 sm:p-0 space-y-6">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -168,7 +403,7 @@
           <div id="header" class="scroll-mt-20" />
           <div
             v-if="isSectionEnabled('overview')"
-            class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
+            class="hidden sm:grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6"
             :style="sectionStyle('overview')"
           >
             <!-- Workout Info Card - 2/3 -->
@@ -3722,6 +3957,22 @@
     return `${secs}s`
   }
 
+  function formatDurationShort(seconds: number): string {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
+  function getIntensityColorClass(intensity: number | null, type: 'text' | 'bg' = 'text') {
+    const val = intensity || 0
+    if (val < 0.75) return type === 'text' ? 'text-[#00DC82]' : 'bg-[#00DC82]'
+    if (val < 0.85) return type === 'text' ? 'text-yellow-500' : 'bg-yellow-500'
+    if (val < 0.95) return type === 'text' ? 'text-orange-500' : 'bg-orange-500'
+    return type === 'text' ? 'text-red-500' : 'bg-red-500'
+  }
+
   function formatDistance(meters: number) {
     return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
   }
@@ -4132,3 +4383,18 @@
     }
   })
 </script>
+
+<style scoped>
+  @keyframes pulse-slow {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  .animate-pulse-slow {
+    animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+</style>
