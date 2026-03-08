@@ -1,5 +1,5 @@
 <template>
-  <UDashboardPanel id="feed" class="overflow-x-hidden">
+  <UDashboardPanel id="feed" class="overflow-x-hidden" :ui="{ body: 'p-0' }">
     <template #header>
       <UDashboardNavbar title="Activity Feed">
         <template #leading>

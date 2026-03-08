@@ -1,5 +1,5 @@
 <template>
-  <UDashboardPanel id="workout-detail">
+  <UDashboardPanel id="workout-detail" :ui="{ body: 'p-0' }">
     <template #header>
       <UDashboardNavbar :title="workout ? `Workout: ${workout.title}` : t('details_title')">
         <template #leading>
@@ -123,7 +123,9 @@
     </template>
 
     <template #body>
-      <div class="max-w-5xl mx-auto w-full p-0 sm:p-6 pb-24 space-y-0 sm:space-y-8">
+      <div
+        class="max-w-5xl mx-auto w-full p-0 sm:p-6 pb-24 space-y-0 sm:space-y-8 overflow-x-hidden"
+      >
         <!-- DESKTOP COMMAND CENTER HUD (hidden sm:block) -->
         <div v-if="workout && !loading" class="hidden sm:flex flex-col gap-6">
           <!-- TOP SECTION: TITLE, MAP & ACTIONS -->
@@ -184,7 +186,10 @@
                 <div class="flex flex-col gap-3">
                   <div class="flex items-center gap-6">
                     <h1
-                      class="text-4xl font-black uppercase tracking-tighter text-white leading-none drop-shadow-2xl"
+                      class="font-black uppercase tracking-tighter text-white leading-none drop-shadow-2xl transition-all duration-500"
+                      :class="[
+                        workout.title.length > 25 ? 'text-2xl lg:text-3xl' : 'text-3xl lg:text-5xl'
+                      ]"
                     >
                       {{ workout.title }}
                     </h1>
@@ -722,10 +727,14 @@
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1 min-w-0">
                   <h1
-                    class="text-2xl font-black uppercase tracking-tighter text-white leading-tight mb-1 truncate"
+                    class="font-black uppercase tracking-tighter text-white leading-tight mb-1 transition-all duration-500"
+                    :class="[
+                      workout.title.length > 25 ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
+                    ]"
                   >
                     {{ workout.title }}
                   </h1>
+
                   <div
                     class="flex items-center gap-2 font-mono text-[9px] text-zinc-500 uppercase tracking-widest"
                   >
@@ -1741,153 +1750,186 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('exercises')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_exercises') }}
             </h2>
             <WorkoutsExerciseList :exercises="workout.exercises" />
           </div>
 
-          <!-- Nutrition Debrief -->
+          <!-- Fueling HUD (Nutrition Debrief) -->
           <div
             v-if="isSectionEnabled('nutrition')"
             id="nutrition"
-            class="scroll-mt-20 bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-l-4 border-orange-500 border-y sm:border-y sm:border-r border-gray-100 dark:border-gray-800"
+            class="scroll-mt-20 bg-[#09090B] rounded-none sm:rounded-3xl shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-white/5 relative overflow-hidden flex flex-col gap-8"
             :style="sectionStyle('nutrition')"
           >
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-orange-100 dark:bg-orange-950/40 rounded-xl">
-                  <UIcon
-                    name="i-heroicons-beaker"
-                    class="w-6 h-6 text-orange-600 dark:text-orange-400"
-                  />
-                </div>
-                <h2
-                  class="text-base font-black uppercase tracking-widest text-gray-900 dark:text-white"
-                >
-                  {{ t('nutrition_header') }}
-                </h2>
-              </div>
-              <div v-if="workout.plannedWorkout?.tss" class="text-right">
-                <div class="text-[10px] uppercase font-black text-gray-400 tracking-widest">
-                  {{ t('nutrition_energy_delta') }}
-                </div>
+            <!-- GHOST DECORATION -->
+            <div
+              class="absolute top-0 right-0 w-64 h-64 bg-orange-500/5 blur-[100px] pointer-events-none -mr-32 -mt-32"
+            />
+
+            <div class="flex items-center justify-between relative z-10">
+              <div class="flex items-center gap-4">
                 <div
-                  class="text-sm font-black tracking-tight"
-                  :class="kJDelta >= 10 ? 'text-red-500' : 'text-green-500'"
+                  class="w-12 h-12 rounded-2xl flex items-center justify-center bg-orange-500/10 border border-orange-500/20 shadow-inner"
+                >
+                  <UIcon name="i-heroicons-beaker" class="w-6 h-6 text-orange-500" />
+                </div>
+                <div class="flex flex-col">
+                  <h2 class="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white">
+                    {{ t('nutrition_header') }}
+                  </h2>
+                  <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest"
+                    >Metabolic & Intake Balance</span
+                  >
+                </div>
+              </div>
+
+              <div v-if="workout.plannedWorkout?.tss" class="text-right flex flex-col items-end">
+                <span
+                  class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1"
+                  >{{ t('nutrition_energy_delta') }}</span
+                >
+                <div
+                  class="text-xl font-black tabular-nums tracking-tighter"
+                  :class="kJDelta >= 10 ? 'text-red-500' : 'text-[#00DC82]'"
                 >
                   {{ t('nutrition_vs_plan', { delta: (kJDelta > 0 ? '+' : '') + kJDelta }) }}
                 </div>
               </div>
             </div>
 
-            <!-- Recovery Correction Banner -->
-            <div
-              v-if="kJDelta >= 10"
-              class="mb-6 p-4 bg-orange-50 dark:bg-orange-950 rounded-xl border border-orange-200 dark:border-orange-900/50 flex items-start gap-3"
-            >
-              <UIcon
-                name="i-heroicons-exclamation-triangle"
-                class="w-6 h-6 text-orange-500 shrink-0"
-              />
-              <div>
-                <h3
-                  class="font-black text-orange-900 dark:text-orange-100 text-sm uppercase tracking-tight"
-                >
-                  {{ t('nutrition_adjustment_title') }}
-                </h3>
-                <p
-                  class="text-xs text-orange-800 dark:text-orange-300 mt-0.5 font-medium leading-relaxed"
-                >
-                  {{ t('nutrition_adjustment_desc', { delta: kJDelta, carbs: recoveryCarbBump }) }}
-                </p>
-              </div>
-            </div>
-
-            <div
-              v-if="nutritionEstimate"
-              class="mb-6 bg-gray-50 dark:bg-gray-950 p-4 rounded-xl border border-gray-100 dark:border-gray-800"
-            >
-              <div class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
-                Estimated Fuel Cost
-              </div>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <!-- MAIN HUD CONTENT -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative z-10">
+              <!-- MACRO GRID -->
+              <div v-if="nutritionEstimate" class="grid grid-cols-2 gap-3 sm:gap-4">
                 <div
                   v-for="item in nutritionEstimate"
                   :key="item.label"
-                  class="bg-white dark:bg-gray-900 rounded-lg px-3 py-2 border border-gray-100 dark:border-gray-800"
+                  class="relative group/tile overflow-hidden p-4 rounded-2xl bg-white/[0.02] border border-white/5 shadow-inner transition-all hover:bg-white/[0.04]"
                 >
+                  <!-- 1px Gradient Border Overlay -->
                   <div
-                    class="text-[9px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5"
-                  >
-                    <UIcon :name="item.icon" class="w-3.5 h-3.5" :class="item.iconClass" />
-                    {{ item.label }}
+                    class="absolute inset-0 pointer-events-none opacity-0 group-hover/tile:opacity-100 transition-opacity border border-primary-500/30 rounded-2xl"
+                  />
+
+                  <div class="flex flex-col relative z-10">
+                    <div class="flex items-center gap-2 mb-2">
+                      <UIcon :name="item.icon" class="w-3.5 h-3.5" :class="item.iconClass" />
+                      <span
+                        class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-widest"
+                        >{{ item.label }}</span
+                      >
+                    </div>
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-2xl font-black text-white tabular-nums tracking-tighter">{{
+                        item.value.split(' ')[0]
+                      }}</span>
+                      <span class="text-[10px] font-bold text-zinc-500 uppercase opacity-60">{{
+                        item.value.split(' ')[1]
+                      }}</span>
+                    </div>
                   </div>
-                  <div class="text-sm font-black text-gray-900 dark:text-white">
-                    {{ item.value }}
+                </div>
+              </div>
+
+              <!-- ENERGY DELTA BAR -->
+              <div class="flex flex-col gap-6">
+                <div class="flex flex-col gap-2">
+                  <div class="flex justify-between items-end">
+                    <span
+                      class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-widest"
+                      >{{ t('nutrition_actual_energy') }} /
+                      {{ t('nutrition_planned_energy') }}</span
+                    >
+                    <span class="font-mono text-[9px] font-bold text-zinc-400 tabular-nums">
+                      {{ workout.kilojoules || 0 }} / {{ plannedKJ || 0 }} kJ
+                    </span>
+                  </div>
+
+                  <div
+                    class="relative h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/5"
+                  >
+                    <!-- Progress Bar -->
+                    <div
+                      class="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-600 to-orange-400 transition-all duration-1000 shadow-[0_0_15px_rgba(251,146,60,0.3)]"
+                      :style="{
+                        width:
+                          Math.min(((workout.kilojoules || 0) / (plannedKJ || 1)) * 100, 100) + '%'
+                      }"
+                    >
+                      <!-- Glowing Leading Edge -->
+                      <div class="absolute right-0 top-0 bottom-0 w-1 bg-white/40 blur-[2px]" />
+                    </div>
+
+                    <!-- Demand Marker (Plan) -->
+                    <div
+                      class="absolute inset-y-0 border-l border-white/20 z-20"
+                      style="left: 100%"
+                    />
+                  </div>
+
+                  <div
+                    class="flex justify-between text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1"
+                  >
+                    <span>{{ t('nutrition_digestion_poor') }}</span>
+                    <span>{{ t('nutrition_digestion_great') }}</span>
+                  </div>
+                </div>
+
+                <!-- STOMACH FEEL HUD -->
+                <div
+                  class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-4 shadow-inner"
+                >
+                  <span
+                    class="font-mono text-[9px] font-black text-zinc-500 uppercase tracking-widest text-center"
+                    >{{ t('nutrition_digestion_header') }}</span
+                  >
+                  <div class="flex items-center justify-center gap-3">
+                    <button
+                      v-for="i in 5"
+                      :key="i"
+                      class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg transition-all duration-300 relative group/pill"
+                      :class="[
+                        stomachFeel === i
+                          ? 'bg-[#00DC82] text-black scale-110 shadow-[0_0_20px_rgba(0,220,130,0.4)] z-20'
+                          : 'bg-white/5 text-zinc-500 hover:bg-white/10'
+                      ]"
+                      @click="updateStomachFeel(i)"
+                    >
+                      {{ i }}
+                    </button>
+                  </div>
+                  <div class="flex justify-between px-2">
+                    <span
+                      class="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em] opacity-40"
+                      >{{ t('nutrition_digestion_poor') }}</span
+                    >
+                    <span
+                      class="text-[8px] font-black text-zinc-600 uppercase tracking-[0.2em] opacity-40"
+                      >{{ t('nutrition_digestion_great') }}</span
+                    >
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <!-- Actual vs Planned -->
-              <div class="space-y-4">
-                <div
-                  class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest"
-                >
-                  <span class="text-gray-500">{{ t('nutrition_actual_energy') }}</span>
-                  <span class="text-gray-900 dark:text-white"
-                    >{{ workout.kilojoules || 0 }} kJ</span
-                  >
-                </div>
-                <div
-                  class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest"
-                >
-                  <span class="text-gray-500">{{ t('nutrition_planned_energy') }}</span>
-                  <span class="text-gray-400">{{
-                    plannedKJ ? plannedKJ + ' kJ' : t('nutrition_no_target')
-                  }}</span>
-                </div>
-                <div
-                  class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden mt-2"
-                >
-                  <div
-                    class="bg-orange-500 h-full transition-all duration-1000"
-                    :style="{
-                      width:
-                        Math.min(((workout.kilojoules || 0) / (plannedKJ || 1)) * 100, 100) + '%'
-                    }"
-                  />
-                </div>
-              </div>
-
-              <!-- Subjective Feedback -->
-              <div
-                class="bg-gray-50 dark:bg-gray-950 p-4 rounded-xl space-y-3 border border-gray-100 dark:border-gray-800"
-              >
-                <div class="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  {{ t('nutrition_digestion_header') }}
-                </div>
-                <div class="flex items-center gap-2">
-                  <UButton
-                    v-for="i in 5"
-                    :key="i"
-                    :color="stomachFeel === i ? 'primary' : 'neutral'"
-                    :variant="stomachFeel === i ? 'solid' : 'ghost'"
-                    size="sm"
-                    class="w-10 h-10 rounded-lg flex items-center justify-center font-black text-lg"
-                    @click="updateStomachFeel(i)"
-                  >
-                    {{ i }}
-                  </UButton>
-                </div>
-                <div
-                  class="flex justify-between text-[9px] text-gray-400 font-bold uppercase tracking-widest px-1"
-                >
-                  <span>{{ t('nutrition_digestion_poor') }}</span>
-                  <span>{{ t('nutrition_digestion_great') }}</span>
-                </div>
+            <!-- Recovery Correction Banner (Compact HUD Style) -->
+            <div
+              v-if="kJDelta >= 10"
+              class="p-4 bg-red-500/5 rounded-2xl border border-red-500/10 flex items-start gap-4 relative z-10"
+            >
+              <UIcon
+                name="i-heroicons-exclamation-triangle"
+                class="w-6 h-6 text-red-500 shrink-0"
+              />
+              <div class="flex flex-col">
+                <h3 class="font-black text-red-400 text-xs uppercase tracking-widest mb-1">
+                  {{ t('nutrition_adjustment_title') }}
+                </h3>
+                <p class="text-[11px] text-zinc-400 font-medium leading-relaxed">
+                  {{ t('nutrition_adjustment_desc', { delta: kJDelta, carbs: recoveryCarbBump }) }}
+                </p>
               </div>
             </div>
           </div>
@@ -1899,7 +1941,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('analysis')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('analysis_header') }}
             </h2>
 
@@ -2208,7 +2250,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('power-curve')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_power_curve') }}
             </h2>
             <PowerCurveChart :workout-id="workout.id" />
@@ -2221,7 +2263,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('intervals')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_intervals') }}
             </h2>
             <IntervalsAnalysis :workout-id="workout.id" />
@@ -2234,7 +2276,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('advanced')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_advanced') }}
             </h2>
             <AdvancedWorkoutMetrics :workout-id="workout.id" @open-metric="handleOpenMetric" />
@@ -2279,7 +2321,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('pacing')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_pacing') }}
             </h2>
             <PacingAnalysis :workout-id="workout.id" @open-metric="handleOpenMetric" />
@@ -2292,7 +2334,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('timeline')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_timeline') }}
             </h2>
             <WorkoutTimeline :workout-id="workout.id" />
@@ -2305,7 +2347,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('zones')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_zones') }}
             </h2>
             <ZoneChart
@@ -2322,7 +2364,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('efficiency')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_efficiency') }}
             </h2>
             <EfficiencyMetricsCard
@@ -2361,7 +2403,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('metrics')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_metrics') }}
             </h2>
             <div
@@ -2602,7 +2644,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('streams')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_streams') }}
             </h2>
             <div
@@ -2647,7 +2689,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('duplicates')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('version_header') }}
             </h2>
             <div
@@ -2892,7 +2934,7 @@
             class="scroll-mt-20 space-y-4"
             :style="sectionStyle('raw-data')"
           >
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
+            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('raw_data_header') }}
             </h2>
             <JsonViewer
