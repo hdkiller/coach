@@ -50,8 +50,8 @@ describe('buildWorkoutAnalysisPrompt', () => {
         trainingLoad: 100,
         trainer: false,
         streams: {
-          heartrate: [140, 142, 145, 147],
-          watts: [210, 220, 225, 230]
+          heartrate: Array.from({ length: 100 }, () => 145),
+          watts: Array.from({ length: 100 }, () => 220)
         }
       }
     })

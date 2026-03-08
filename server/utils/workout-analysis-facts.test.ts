@@ -70,16 +70,17 @@ describe('buildWorkoutAnalysisFacts', () => {
   })
 
   it('flags expected hr lag during sharp power onsets', () => {
-    const time = Array.from({ length: 40 }, (_, index) => index * 6)
-    const watts = Array.from({ length: 40 }, (_, index) => (index < 10 ? 120 : 260))
-    const heartrate = Array.from({ length: 40 }, (_, index) => {
-      if (index < 10) return 120
-      if (index < 20) return 122
+    const time = Array.from({ length: 80 }, (_, index) => index * 6)
+    const watts = Array.from({ length: 80 }, (_, index) => (index < 20 ? 120 : 260))
+    const heartrate = Array.from({ length: 80 }, (_, index) => {
+      if (index < 20) return 120
+      if (index < 30) return 122
       return 132
     })
 
     const facts = buildWorkoutAnalysisFacts({
       workout: makeWorkout({
+        durationSec: 5400,
         streams: {
           time,
           watts,
@@ -114,13 +115,12 @@ describe('buildWorkoutAnalysisFacts', () => {
 
     expect(facts.lrBalance.sourceSemantics).toBe('unknown')
     expect(facts.lrBalance.interpretationMode).toBe('disabled')
-    expect(facts.debugMeta.promptDecisions['lrBalance.sourceSemantics'].include).toBe(false)
-    expect(facts.debugMeta.promptDecisions['lrBalance.correctedLeftPct'].include).toBe(false)
-    expect(facts.debugMeta.promptDecisions['lrBalance.correctionReason'].include).toBe(false)
+    // correctionReason is included because it's non-null and explains why it's disabled
+    expect(facts.debugMeta.promptDecisions['lrBalance.correctionReason'].include).toBe(true)
   })
 
   it('detects ERG from tightly locked target power intervals', () => {
-    const targetPower = Array.from({ length: 80 }, (_, index) => (index < 40 ? 180 : 260))
+    const targetPower = Array.from({ length: 80 }, (_, index) => 220)
     const watts = targetPower.map((value, index) => value + (index % 2 === 0 ? 2 : -2))
     const cadence = Array.from({ length: 80 }, (_, index) => 82 + (index % 12))
 

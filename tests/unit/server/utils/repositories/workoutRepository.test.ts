@@ -91,6 +91,7 @@ describe('workoutRepository', () => {
 
   describe('updateStatus', () => {
     it('should update aiAnalysisStatus', async () => {
+      vi.mocked(prisma.workout.update).mockResolvedValue(mockWorkout as any)
       await workoutRepository.updateStatus(workoutId, 'COMPLETED')
 
       expect(prisma.workout.update).toHaveBeenCalledWith({

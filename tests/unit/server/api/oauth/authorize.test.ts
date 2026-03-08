@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.stubGlobal('defineEventHandler', (fn: any) => fn)
+vi.stubGlobal('defineRouteMeta', vi.fn())
 vi.stubGlobal('readBody', (event: any) => event.body)
 vi.stubGlobal('getQuery', () => ({}))
-vi.stubGlobal('sendRedirect', vi.fn((event: any, location: string, statusCode: number) => ({
-  event,
-  location,
-  statusCode
-})))
+vi.stubGlobal(
+  'sendRedirect',
+  vi.fn((event: any, location: string, statusCode: number) => ({
+    event,
+    location,
+    statusCode
+  }))
+)
 vi.stubGlobal('createError', (err: any) => {
   const error = new Error(err.message || err.statusMessage)
   // @ts-expect-error test helper property
