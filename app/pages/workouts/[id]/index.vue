@@ -22,18 +22,21 @@
         </template>
 
         <template #right>
-          <div class="flex gap-2">
-            <ClientOnly>
-              <DashboardTriggerMonitorButton />
-            </ClientOnly>
+          <div class="flex items-center gap-2">
+            <div class="hidden sm:block">
+              <ClientOnly>
+                <DashboardTriggerMonitorButton />
+              </ClientOnly>
+            </div>
             <UButton
               icon="i-heroicons-adjustments-horizontal"
               color="neutral"
               variant="outline"
               size="sm"
+              class="hidden sm:inline-flex"
               @click="isWorkoutSectionsModalOpen = true"
             >
-              <span class="hidden sm:inline">{{ t('controls_customize') }}</span>
+              <span>{{ t('controls_customize') }}</span>
             </UButton>
             <UButton
               icon="i-heroicons-share"
@@ -48,6 +51,12 @@
             <UDropdownMenu
               :items="[
                 [
+                  {
+                    label: t('controls_customize'),
+                    icon: 'i-heroicons-adjustments-horizontal',
+                    class: 'sm:hidden',
+                    onSelect: () => (isWorkoutSectionsModalOpen = true)
+                  },
                   {
                     label: t('controls_edit'),
                     icon: 'i-heroicons-pencil-square',
@@ -93,16 +102,21 @@
       </UDashboardNavbar>
 
       <UDashboardToolbar>
-        <div class="flex gap-2 overflow-x-auto">
+        <div
+          class="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <UButton
             v-for="section in workoutNavSections"
             :key="section.key"
             variant="ghost"
             color="neutral"
+            size="sm"
+            class="shrink-0 whitespace-nowrap px-3 sm:px-4"
+            :aria-label="section.label"
             @click="scrollToSection(section.anchorId)"
           >
-            <UIcon :name="section.icon" class="w-4 h-4 mr-2" />
-            {{ section.label }}
+            <UIcon :name="section.icon" class="h-4 w-4 sm:mr-2" />
+            <span class="hidden sm:inline">{{ section.label }}</span>
           </UButton>
         </div>
       </UDashboardToolbar>
@@ -160,13 +174,13 @@
             <!-- Workout Info Card - 2/3 -->
             <div class="lg:col-span-2">
               <div
-                class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 h-full border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
+                class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 h-full border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
               >
                 <!-- Navigation & Date -->
                 <div
-                  class="flex items-center justify-between mb-8 pb-6 border-b border-gray-100 dark:border-gray-800"
+                  class="mb-6 flex flex-col gap-4 border-b border-gray-100 pb-4 dark:border-gray-800 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:pb-6"
                 >
-                  <div class="flex items-center gap-4">
+                  <div class="flex w-full flex-wrap items-center gap-3 sm:gap-4">
                     <UButton
                       icon="i-heroicons-chevron-left"
                       color="neutral"
@@ -182,7 +196,7 @@
                         {{ formatDateWeekday(workout.date) }}
                       </div>
                       <div
-                        class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight"
+                        class="text-xs font-black uppercase tracking-tight text-gray-900 dark:text-white sm:text-sm"
                       >
                         {{ formatDatePrimary(workout.date) }}
                       </div>
@@ -203,69 +217,69 @@
                       color="primary"
                       variant="subtle"
                       size="sm"
-                      class="ml-2 font-bold"
+                      class="order-3 w-full justify-center font-bold sm:order-none sm:ml-2 sm:w-auto"
                     >
                       {{ t('map_analysis') }}
                     </UButton>
-                  </div>
 
-                  <div class="flex gap-2 items-end">
-                    <template v-if="workout.deviceName">
+                    <div class="ml-auto flex flex-wrap items-center justify-end gap-2 sm:items-end">
+                      <template v-if="workout.deviceName">
+                        <UiDataAttribution
+                          v-if="
+                            detectProvider(workout.deviceName) &&
+                            detectProvider(workout.deviceName) !== workout.source
+                          "
+                          :provider="detectProvider(workout.deviceName) || ''"
+                          :device-name="workout.deviceName"
+                        />
+                        <span
+                          v-else-if="
+                            !detectProvider(workout.deviceName) &&
+                            workout.source !== 'garmin' &&
+                            workout.source !== 'zwift'
+                          "
+                          class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                        >
+                          {{ workout.deviceName }}
+                        </span>
+                      </template>
+
                       <UiDataAttribution
                         v-if="
-                          detectProvider(workout.deviceName) &&
-                          detectProvider(workout.deviceName) !== workout.source
+                          [
+                            'strava',
+                            'garmin',
+                            'zwift',
+                            'apple_health',
+                            'whoop',
+                            'intervals',
+                            'withings',
+                            'hevy'
+                          ].includes(workout.source)
                         "
-                        :provider="detectProvider(workout.deviceName) || ''"
+                        :provider="workout.source"
                         :device-name="workout.deviceName"
                       />
                       <span
-                        v-else-if="
-                          !detectProvider(workout.deviceName) &&
-                          workout.source !== 'garmin' &&
-                          workout.source !== 'zwift'
-                        "
-                        class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                        v-else
+                        :class="getSourceBadgeClass(workout.source)"
+                        class="font-black uppercase tracking-widest text-[9px]"
                       >
-                        {{ workout.deviceName }}
+                        {{ t(`source_${workout.source}`) || workout.source }}
                       </span>
-                    </template>
-
-                    <UiDataAttribution
-                      v-if="
-                        [
-                          'strava',
-                          'garmin',
-                          'zwift',
-                          'apple_health',
-                          'whoop',
-                          'intervals',
-                          'withings',
-                          'hevy'
-                        ].includes(workout.source)
-                      "
-                      :provider="workout.source"
-                      :device-name="workout.deviceName"
-                    />
-                    <span
-                      v-else
-                      :class="getSourceBadgeClass(workout.source)"
-                      class="font-black uppercase tracking-widest text-[9px]"
-                    >
-                      {{ t(`source_${workout.source}`) || workout.source }}
-                    </span>
+                    </div>
                   </div>
                 </div>
 
-                <div class="flex items-start justify-between mb-6">
+                <div class="mb-4 flex items-start justify-between sm:mb-6">
                   <div class="flex-1">
                     <h1
-                      class="text-2xl font-black tracking-tight text-gray-900 dark:text-white mb-2 uppercase"
+                      class="mb-2 text-xl font-black uppercase tracking-tight text-gray-900 dark:text-white sm:text-2xl"
                     >
                       {{ workout.title }}
                     </h1>
                     <div
-                      class="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest text-[10px]"
+                      class="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400 sm:gap-3"
                     >
                       <div class="flex items-center gap-1">
                         <span class="i-heroicons-clock w-3.5 h-3.5" />
@@ -378,10 +392,12 @@
                 </div>
 
                 <!-- Key Stats Grid -->
-                <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div
+                  class="mt-4 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-4 sm:gap-4"
+                >
                   <div
                     v-if="workout.trainingLoad"
-                    class="rounded-xl p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 cursor-pointer hover:border-blue-500/50 transition-all active:scale-[0.98] group"
+                    class="group cursor-pointer rounded-xl border border-blue-100 bg-blue-50 p-3.5 transition-all hover:border-blue-500/50 active:scale-[0.98] dark:border-blue-800/50 dark:bg-blue-900/20 sm:p-4"
                     @click="
                       handleOpenMetric({
                         key: t('metrics_tss'),
@@ -411,14 +427,14 @@
                       />
                     </div>
                     <div
-                      class="text-2xl font-black text-blue-900 dark:text-blue-100 tracking-tight"
+                      class="text-xl font-black tracking-tight text-blue-900 dark:text-blue-100 sm:text-2xl"
                     >
                       {{ Math.round(workout.trainingLoad) }}
                     </div>
                   </div>
                   <div
                     v-if="workout.averageHr"
-                    class="rounded-xl p-4 bg-pink-50 dark:bg-pink-900/20 border border-pink-100 dark:border-pink-800/50 cursor-pointer hover:border-pink-500/50 transition-all active:scale-[0.98] group"
+                    class="group cursor-pointer rounded-xl border border-pink-100 bg-pink-50 p-3.5 transition-all hover:border-pink-500/50 active:scale-[0.98] dark:border-pink-800/50 dark:bg-pink-900/20 sm:p-4"
                     @click="
                       handleOpenMetric({
                         key: t('metrics_avg_hr'),
@@ -448,7 +464,7 @@
                       />
                     </div>
                     <div
-                      class="text-2xl font-black text-pink-900 dark:text-pink-100 tracking-tight"
+                      class="text-xl font-black tracking-tight text-pink-900 dark:text-pink-100 sm:text-2xl"
                     >
                       {{ workout.averageHr }}
                       <span class="text-xs font-bold text-pink-500 uppercase">BPM</span>
@@ -456,7 +472,7 @@
                   </div>
                   <div
                     v-if="workout.averageWatts"
-                    class="rounded-xl p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/50 cursor-pointer hover:border-purple-500/50 transition-all active:scale-[0.98] group"
+                    class="group cursor-pointer rounded-xl border border-purple-100 bg-purple-50 p-3.5 transition-all hover:border-purple-500/50 active:scale-[0.98] dark:border-purple-800/50 dark:bg-purple-900/20 sm:p-4"
                     @click="
                       handleOpenMetric({
                         key: t('metrics_avg_power'),
@@ -486,7 +502,7 @@
                       />
                     </div>
                     <div
-                      class="text-2xl font-black text-purple-900 dark:text-purple-100 tracking-tight"
+                      class="text-xl font-black tracking-tight text-purple-900 dark:text-purple-100 sm:text-2xl"
                     >
                       {{ workout.averageWatts
                       }}<span class="text-xs font-bold text-purple-500 uppercase">W</span>
@@ -494,7 +510,7 @@
                   </div>
                   <div
                     v-if="workout.normalizedPower"
-                    class="rounded-xl p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 cursor-pointer hover:border-indigo-500/50 transition-all active:scale-[0.98] group"
+                    class="group cursor-pointer rounded-xl border border-indigo-100 bg-indigo-50 p-3.5 transition-all hover:border-indigo-500/50 active:scale-[0.98] dark:border-indigo-800/50 dark:bg-indigo-900/20 sm:p-4"
                     @click="
                       handleOpenMetric({
                         key: t('metrics_np'),
@@ -524,7 +540,7 @@
                       />
                     </div>
                     <div
-                      class="text-2xl font-black text-indigo-900 dark:text-indigo-100 tracking-tight"
+                      class="text-xl font-black tracking-tight text-indigo-900 dark:text-indigo-100 sm:text-2xl"
                     >
                       {{ workout.normalizedPower
                       }}<span class="text-xs font-bold text-indigo-500 uppercase">W</span>
@@ -555,15 +571,15 @@
                   workout.pacingScore ||
                   workout.executionScore
                 "
-                class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 h-full"
+                class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 h-full"
               >
                 <h2
-                  class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2"
+                  class="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:mb-6"
                 >
                   <UIcon name="i-heroicons-star" class="w-4 h-4 text-amber-500" />
                   {{ t('performance_summary_header') }}
                 </h2>
-                <div style="height: 200px">
+                <div class="h-[180px] sm:h-[200px]">
                   <PerformanceScoreChart
                     :scores="{
                       overall: workout.overallScore,
@@ -578,7 +594,7 @@
               <!-- Placeholder for when analysis is missing -->
               <div
                 v-else
-                class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 h-full flex flex-col items-center justify-center text-center"
+                class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800 h-full flex flex-col items-center justify-center text-center"
               >
                 <div
                   class="w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4"
@@ -1107,7 +1123,7 @@
             </h2>
 
             <!-- Plan Adherence (if linked) -->
-            <div v-if="workout.plannedWorkout" class="px-4 sm:px-0">
+            <div v-if="workout.plannedWorkout">
               <PlanAdherence
                 :adherence="workout.planAdherence"
                 :regenerating="analyzingAdherence"
@@ -1175,7 +1191,7 @@
               <div v-if="workout.aiAnalysisJson" class="space-y-8">
                 <!-- Executive Summary -->
                 <div
-                  class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-900/30"
+                  class="-mx-6 border-y border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-6 dark:border-blue-900/30 dark:from-blue-900/10 dark:to-indigo-900/10 sm:mx-0 sm:rounded-xl sm:border sm:p-6"
                 >
                   <h3
                     class="text-[10px] font-black uppercase tracking-widest text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2"
@@ -1196,7 +1212,7 @@
                   <div
                     v-for="(section, index) in workout.aiAnalysisJson.sections"
                     :key="index"
-                    class="bg-white dark:bg-gray-950 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden"
+                    class="-mx-6 overflow-hidden border-y border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:mx-0 sm:rounded-xl sm:border"
                   >
                     <div
                       class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/30 dark:bg-gray-900/30"
@@ -1235,7 +1251,7 @@
                 <!-- Recommendations -->
                 <div
                   v-if="workout.aiAnalysisJson.recommendations?.length"
-                  class="bg-white dark:bg-gray-950 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden"
+                  class="-mx-6 overflow-hidden border-y border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:mx-0 sm:rounded-xl sm:border"
                 >
                   <div
                     class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50"
@@ -1287,7 +1303,7 @@
                 >
                   <div
                     v-if="workout.aiAnalysisJson.strengths?.length"
-                    class="bg-green-50 dark:bg-green-950/20 rounded-xl p-6 border border-green-100 dark:border-green-900/50"
+                    class="-mx-6 border-y border-green-100 bg-green-50 px-6 py-6 dark:border-green-900/50 dark:bg-green-950/20 sm:mx-0 sm:rounded-xl sm:border sm:p-6"
                   >
                     <h3
                       class="text-[10px] font-black uppercase tracking-widest text-green-700 dark:text-green-400 mb-4 flex items-center gap-2"
@@ -1309,7 +1325,7 @@
 
                   <div
                     v-if="workout.aiAnalysisJson.weaknesses?.length"
-                    class="bg-orange-50 dark:bg-orange-950/20 rounded-xl p-6 border border-orange-100 dark:border-orange-900/50"
+                    class="-mx-6 border-y border-orange-100 bg-orange-50 px-6 py-6 dark:border-orange-900/50 dark:bg-orange-950/20 sm:mx-0 sm:rounded-xl sm:border sm:p-6"
                   >
                     <h3
                       class="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-400 mb-4 flex items-center gap-2"
