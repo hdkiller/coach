@@ -1,4 +1,5 @@
-import { publishChatRealtimeEvent } from './chat-realtime-bus'
+import { publishRealtimeEvent } from './realtime-bus'
+import { logRealtimeEvent } from './realtime-logger'
 
 // Map to store peer authentication status
 export const peerContext = new Map<any, { userId?: string }>()
@@ -18,6 +19,16 @@ export function sendToUserLocal(userId: string, data: any) {
     }
   }
 
+  logRealtimeEvent(data?.channel || 'ws', 'local_deliver', {
+    userId,
+    type: data?.type,
+    deliveredCount,
+    reason: data?.event?.reason,
+    entityType: data?.event?.entityType,
+    entityId: data?.event?.entityId,
+    runId: data?.runId
+  })
+
   return deliveredCount
 }
 
@@ -27,5 +38,5 @@ export function sendToUserLocal(userId: string, data: any) {
  */
 export async function sendToUser(userId: string, data: any) {
   sendToUserLocal(userId, data)
-  await publishChatRealtimeEvent(userId, data)
+  await publishRealtimeEvent(userId, data)
 }

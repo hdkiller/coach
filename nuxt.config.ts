@@ -252,7 +252,7 @@ export default defineNuxtConfig({
     authBypassName: process.env.AUTH_BYPASS_NAME || '',
 
     // Redis / DragonflyDB
-    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+    redisUrl: process.env.REDIS_URL || '',
 
     // Resend
     resendApiKey: process.env.RESEND_API_KEY || '',
@@ -301,7 +301,8 @@ export default defineNuxtConfig({
       gtag: {
         id: process.env.NUXT_PUBLIC_GTAG_ID,
         enabled: !!process.env.NUXT_PUBLIC_GTAG_ID
-      }
+      },
+      realtimeBusEnabled: !!process.env.REDIS_URL
     }
   },
 
