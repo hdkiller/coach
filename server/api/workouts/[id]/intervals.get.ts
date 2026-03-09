@@ -1,6 +1,7 @@
-import { defineEventHandler, createError, getRouterParam } from 'h3'
+import { defineEventHandler, createError, getRouterParam, getQuery } from 'h3'
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { calculateRollingNormalizedPower } from '../../../utils/power-metrics'
 import {
   detectIntervals,
   findPeakEfforts,
@@ -30,6 +31,12 @@ defineRouteMeta({
         in: 'path',
         required: true,
         schema: { type: 'string' }
+      },
+      {
+        name: 'debug',
+        in: 'query',
+        required: false,
+        schema: { type: 'boolean' }
       }
     ],
     responses: {
@@ -47,6 +54,7 @@ defineRouteMeta({
                 recovery: { type: 'object', nullable: true },
                 advanced: { type: 'object' },
                 chartData: { type: 'object' },
+                audit: { type: 'object', nullable: true },
                 message: { type: 'string', nullable: true }
               }
             }
@@ -69,6 +77,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const workoutId = getRouterParam(event, 'id')
+  const query = getQuery(event)
+  const isDebug = query.debug === 'true' || query.debug === true
+
   if (!workoutId) {
     throw createError({
       statusCode: 400,
@@ -77,7 +88,6 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get user with integration profile settings if needed
-  // Note: user.ftp is a direct field on the User model
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: {
@@ -95,14 +105,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get workout with streams
+  // Get workout with streams and planned workout
   const workout = await prisma.workout.findFirst({
     where: {
       id: workoutId,
       userId: user.id
     },
     include: {
-      streams: true
+      streams: true,
+      plannedWorkout: true
     }
   })
 
@@ -116,7 +127,6 @@ export default defineEventHandler(async (event) => {
   // Check if workout has stream data
   if (!workout.streams) {
     console.log(`[Intervals API] Workout ${workoutId} has no streams relation`)
-    // Return standard object even if no data
     return {
       hasData: false,
       message: 'No timeline data available for this workout',
@@ -133,7 +143,6 @@ export default defineEventHandler(async (event) => {
   const getStreamData = (stream: any): number[] | null => {
     if (!stream) return null
     if (Array.isArray(stream)) return stream
-    // Handle old format or Prisma Json type wrapping
     if (stream.data && Array.isArray(stream.data)) return stream.data
     return null
   }
@@ -141,7 +150,6 @@ export default defineEventHandler(async (event) => {
   const time = getStreamData(streams.time)
 
   if (!time || time.length === 0) {
-    console.log(`[Intervals API] No time stream found or empty.`)
     return {
       hasData: false,
       message: 'No time stream available',
@@ -161,103 +169,108 @@ export default defineEventHandler(async (event) => {
   const hasHr = !!(hrStream && hrStream.length > 0)
   const hasCadence = !!(cadenceStream && cadenceStream.length > 0)
 
-  // Debug inputs for advanced metrics
-  // Advanced metrics heavily rely on FTP
-  // We use workout.ftp (snapshot) or user.ftp (current)
-  const effectiveFtp = workout.ftp || user.ftp
+  const calculationFtp = workout.ftp || user?.ftp || 250
 
-  // 1. Detect Intervals
-  // Priority: Use Intervals.icu data > Power > Pace (Velocity) > HR
-  let detectedIntervals: any[] = []
-  let detectionMetric = ''
+  // 1. INTERVAL DETECTION LOGIC
 
+  // A. Intervals from Sync (Intervals.icu / Strava)
   const raw = workout.rawJson as any
-  const icuIntervals = raw?.icu_intervals || raw?.intervals
+  const icuIntervalsRaw = raw?.icu_intervals || raw?.intervals
 
-  if (icuIntervals && Array.isArray(icuIntervals) && icuIntervals.length > 0) {
-    // USE SYNCED DATA
-    detectionMetric = 'intervals.icu' // Label to indicate source
-
-    detectedIntervals = icuIntervals.map((i: any) => {
-      // Map Intervals.icu format to our internal format
-      // Intervals.icu 'start_index' is array index. 'start_time' is seconds.
-      return {
-        start_index: i.start_index,
-        end_index: i.end_index,
-        start_time: i.start_time,
-        end_time: i.end_time,
-        duration: i.duration || i.end_time - i.start_time,
-        type: i.type, // WORK, RECOVERY, etc.
-
-        // Metrics
-        avg_power: i.average_watts,
-        max_power: i.max_watts,
-        avg_heartrate: i.average_heartrate,
-        max_heartrate: i.max_heartrate,
-        avg_pace: i.average_speed, // m/s
-        avg_cadence: i.average_cadence,
-        distance: i.distance,
-
-        label: i.label // e.g. "10m 200w"
-      }
-    })
-  } else if (hasWatts) {
-    // Detect based on Power
-    detectionMetric = 'power'
-    // Use FTP as threshold if available, otherwise auto-baseline
-    const ftp = workout.ftp || user.ftp
-    detectedIntervals = detectIntervals(time, wattsStream!, 'power', ftp || undefined)
-  } else if (velocityStream && velocityStream.length > 0) {
-    // Detect based on Pace (Velocity)
-    // Only for runs/swims typically
-    if (workout.type === 'Run' || workout.type === 'Swim' || workout.type === 'Walk') {
-      detectionMetric = 'pace'
-      detectedIntervals = detectIntervals(time, velocityStream!, 'pace')
-    }
-  } else if (hasHr) {
-    // Detect based on HR (least reliable for short intervals due to lag, but good for steady state)
-    detectionMetric = 'heartrate'
-    const maxHr = workout.maxHr || user.maxHr
-    const threshold = maxHr ? maxHr * 0.7 : undefined // approx Z2 border
-    detectedIntervals = detectIntervals(time, hrStream!, 'heartrate', threshold)
+  const mapSyncedIntervals = (intervals: any[]) => {
+    if (!intervals || !Array.isArray(intervals)) return []
+    return intervals.map((i: any) => ({
+      start_index: i.start_index,
+      end_index: i.end_index,
+      start_time: i.start_time,
+      end_time: i.end_time,
+      duration: i.duration || i.end_time - i.start_time,
+      type: i.type,
+      avg_power: i.average_watts,
+      max_power: i.max_watts,
+      avg_heartrate: i.average_heartrate,
+      max_heartrate: i.max_heartrate,
+      avg_pace: i.average_speed,
+      avg_cadence: i.average_cadence,
+      distance: i.distance,
+      label: i.label
+    }))
   }
 
-  // 2. Find Peak Efforts
+  const syncedIntervals = mapSyncedIntervals(icuIntervalsRaw)
+
+  const plannedSteps = (workout.plannedWorkout?.structuredWorkout as any)?.steps || []
+
+  // B. Intervals from our engine
+  let detectedEngineIntervals: any[] = []
+  let autoDetectionMetric = ''
+
+  if (hasWatts) {
+    autoDetectionMetric = 'power'
+    const smoothedPowerStream = calculateRollingNormalizedPower(wattsStream!)
+    detectedEngineIntervals = detectIntervals(
+      time,
+      wattsStream!,
+      'power',
+      calculationFtp,
+      plannedSteps,
+      smoothedPowerStream
+    )
+  } else if (
+    velocityStream &&
+    velocityStream.length > 0 &&
+    (workout.type === 'Run' || workout.type === 'Swim')
+  ) {
+    autoDetectionMetric = 'pace'
+    detectedEngineIntervals = detectIntervals(
+      time,
+      velocityStream!,
+      'pace',
+      undefined,
+      plannedSteps
+    )
+  } else if (hasHr) {
+    autoDetectionMetric = 'heartrate'
+    const maxHr = workout.maxHr || user.maxHr
+    const threshold = maxHr ? maxHr * 0.7 : undefined
+    detectedEngineIntervals = detectIntervals(time, hrStream!, 'heartrate', threshold, plannedSteps)
+  }
+
+  // C. Selection Logic
+  let finalIntervals = []
+  let detectionMetric = ''
+
+  if (syncedIntervals.length > 0) {
+    finalIntervals = syncedIntervals
+    detectionMetric = 'intervals.icu'
+  } else {
+    finalIntervals = detectedEngineIntervals
+    detectionMetric = autoDetectionMetric
+  }
+
+  // 2. PEAKS & RECOVERY
   const peakPower = hasWatts ? findPeakEfforts(time, wattsStream!, 'power') : []
   const peakHr = hasHr ? findPeakEfforts(time, hrStream!, 'heartrate') : []
   const peakPace = velocityStream ? findPeakEfforts(time, velocityStream!, 'pace') : []
-
-  // 3. Heart Rate Recovery
   const hrRecovery = hasHr ? calculateHeartRateRecovery(time, hrStream!) : null
 
-  // 4. Advanced Metrics (Drift, Coasting, Surges)
+  // 3. ADVANCED METRICS
   const decoupling =
     workout.decoupling ??
     (hasWatts && hasHr
       ? (calculateAerobicDecoupling(time, wattsStream!, hrStream!) || 0) * 100
       : null)
-
   const coasting = hasWatts
     ? calculateCoastingStats(time, wattsStream!, cadenceStream || [], velocityStream || [])
     : null
-
-  // Try to use workout-specific FTP if available, else user profile FTP
-  // Fallback to 250 for display if both are missing (can be refined later)
-  const calculationFtp = workout.ftp || user?.ftp || 250
-
-  const surges =
-    hasWatts && calculationFtp ? detectSurgesAndFades(time, wattsStream!, calculationFtp) : []
-
-  // 5. New Advanced Analytics (W' Bal, EF Decay, Quadrants)
-  // Fallback: If no FTP set, try to estimate from max power?
-  // No, dangerous. Instead, log the missing requirement clearly.
+  const surges = hasWatts ? detectSurgesAndFades(time, wattsStream!, calculationFtp) : []
 
   let wPrime = null
-  if (hasWatts && calculationFtp) {
+  if (hasWatts) {
     try {
       wPrime = calculateWPrimeBalance(wattsStream!, time, calculationFtp, 20000)
-    } catch (e) {
-      console.error(`[Intervals API] Error calculating W' Bal:`, e)
+    } catch {
+      // Calculation optional
     }
   }
 
@@ -265,87 +278,131 @@ export default defineEventHandler(async (event) => {
   if (hasWatts && hasHr) {
     try {
       efDecay = calculateEfficiencyFactorDecay(wattsStream!, hrStream!, time)
-    } catch (e) {
-      console.error(`[Intervals API] Error calculating EF Decay:`, e)
+    } catch {
+      // Calculation optional
     }
   }
 
   let quadrants = null
-  if (hasWatts && hasCadence && calculationFtp) {
+  if (hasWatts && hasCadence) {
     try {
       quadrants = calculateQuadrantAnalysis(wattsStream!, cadenceStream!, calculationFtp)
-    } catch (e) {
-      console.error(`[Intervals API] Error calculating Quadrants:`, e)
+    } catch {
+      // Calculation optional
     }
   }
 
-  // 5. New Extended Advanced Metrics (Fatigue sensitivity, Stability, Recovery Trend)
   const fatigueSensitivity =
     hasWatts && hasHr ? calculateFatigueSensitivity(wattsStream!, hrStream!, time) : null
-
-  const powerStability = hasWatts
-    ? calculateStabilityMetrics(wattsStream!, detectedIntervals)
-    : null
-
+  const powerStability = hasWatts ? calculateStabilityMetrics(wattsStream!, finalIntervals) : null
   const paceStability =
     velocityStream && velocityStream.length > 0
-      ? calculateStabilityMetrics(velocityStream!, detectedIntervals)
+      ? calculateStabilityMetrics(velocityStream!, finalIntervals)
       : null
+  const recoveryTrend = hasHr ? calculateRecoveryRateTrend(time, hrStream!, finalIntervals) : []
 
-  const recoveryTrend = hasHr ? calculateRecoveryRateTrend(time, hrStream!, detectedIntervals) : []
+  // 4. ENRICHMENT
+  const enrich = (intervals: any[]) => {
+    return intervals.map((interval) => {
+      const startIdx = interval.start_index
+      const endIdx = interval.end_index
+      const stats: any = { ...interval }
 
-  // Enrich intervals with stats from other streams
-  const enrichedIntervals = detectedIntervals.map((interval) => {
-    const startIdx = interval.start_index
-    const endIdx = interval.end_index
+      if (hasWatts && !stats.avg_power) {
+        const vals = wattsStream!.slice(startIdx, endIdx + 1)
+        stats.avg_power = vals.reduce((a, b) => a + b, 0) / vals.length
+        stats.max_power = Math.max(...vals)
+      }
+      if (hasHr && !stats.avg_heartrate) {
+        const vals = hrStream!.slice(startIdx, endIdx + 1)
+        stats.avg_heartrate = vals.reduce((a, b) => a + b, 0) / vals.length
+      }
+      if (velocityStream && !stats.avg_pace) {
+        const vals = velocityStream!.slice(startIdx, endIdx + 1)
+        stats.avg_pace = vals.reduce((a, b) => a + b, 0) / vals.length
+      }
+      if (hasCadence && !stats.avg_cadence) {
+        const vals = cadenceStream!.slice(startIdx, endIdx + 1)
+        stats.avg_cadence = vals.reduce((a, b) => a + b, 0) / vals.length
+      }
+      return stats
+    })
+  }
 
-    const stats: any = { ...interval }
+  const enrichedIntervals = enrich(finalIntervals)
 
-    // Add avg Power if available and not already set
-    if (hasWatts && detectionMetric !== 'power') {
-      const vals = wattsStream!.slice(startIdx, endIdx + 1)
-      stats.avg_power = vals.reduce((a, b) => a + b, 0) / vals.length
-      stats.max_power = Math.max(...vals)
-    }
-
-    // Add avg HR if available
-    if (hasHr) {
-      const vals = hrStream!.slice(startIdx, endIdx + 1)
-      stats.avg_heartrate = vals.reduce((a, b) => a + b, 0) / vals.length
-      stats.max_heartrate = Math.max(...vals)
-    }
-
-    // Add avg Pace if available
-    if (velocityStream) {
-      const vals = velocityStream!.slice(startIdx, endIdx + 1)
-      stats.avg_pace = vals.reduce((a, b) => a + b, 0) / vals.length
-    }
-
-    // Add avg Cadence if available
-    if (hasCadence) {
-      const vals = cadenceStream!.slice(startIdx, endIdx + 1)
-      stats.avg_cadence = vals.reduce((a, b) => a + b, 0) / vals.length
-    }
-
-    return stats
-  })
-
-  // Sample data for chart (return ~500 points for performance)
+  // 5. CHART DATA
   const sampleRate = Math.max(1, Math.floor(time.length / 500))
   const sample = (data: number[]) => (data ? data.filter((_, i) => i % sampleRate === 0) : [])
 
   const chartData = {
     time: sample(time),
     power: hasWatts ? sample(wattsStream!) : [],
+    smoothedPower: hasWatts ? sample(calculateRollingNormalizedPower(wattsStream!)) : [],
     heartrate: hasHr ? sample(hrStream!) : [],
     pace: velocityStream ? sample(velocityStream!) : [],
     wPrime: wPrime ? sample(wPrime.wPrimeBalance) : [],
     ef: efDecay ? sample(efDecay.efStream) : []
   }
 
-  const response = {
+  // 6. DEBUG AUDIT OBJECT
+  let audit = null
+  if (isDebug) {
+    const planned = workout.plannedWorkout?.structuredWorkout as any
+    const plannedIntervals: any[] = []
+
+    if (planned?.steps && Array.isArray(planned.steps)) {
+      let cumulativeTime = 0
+      planned.steps.forEach((step: any) => {
+        const duration = step.durationSeconds || step.duration || 0
+        const avg_power = step.power?.value ? step.power.value * calculationFtp : undefined
+
+        plannedIntervals.push({
+          type: step.type || 'WORK',
+          label: step.name,
+          start_time: cumulativeTime,
+          end_time: cumulativeTime + duration,
+          duration,
+          avg_power,
+          // Map indices if possible for highlighting, but planned don't have them
+          // We can approximate based on 1Hz sampling for the audit view
+          start_index: cumulativeTime,
+          end_index: cumulativeTime + duration
+        })
+        cumulativeTime += duration
+      })
+    }
+
+    audit = {
+      detected: enrich(detectedEngineIntervals),
+      synced: syncedIntervals, // Already enriched from rawJson usually
+      planned: plannedIntervals,
+      plannedRaw: planned,
+      plannedTitle: workout.plannedWorkout?.title || null,
+      calculationFtp,
+      autoDetectionMetric
+    }
+
+    // Generate a planned power stream that matches the recorded time samples
+    const plannedPowerStream = new Array(time.length).fill(null)
+    if (plannedIntervals.length > 0) {
+      plannedIntervals.forEach((p: any) => {
+        for (let i = 0; i < time.length; i++) {
+          const t = time[i]
+          if (t >= p.start_time && t <= p.end_time) {
+            plannedPowerStream[i] = p.avg_power || 0
+          }
+        }
+      })
+      chartData.plannedPower = sample(plannedPowerStream)
+    }
+  }
+
+  return {
     hasData: true,
     detectionMetric,
+    timeLength: time.length,
+    sampleRate,
     intervals: enrichedIntervals,
     peaks: {
       power: peakPower,
@@ -366,8 +423,7 @@ export default defineEventHandler(async (event) => {
       paceStability,
       recoveryTrend
     },
-    chartData
+    chartData,
+    audit
   }
-
-  return response
 })
