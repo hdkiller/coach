@@ -15,8 +15,20 @@ export interface Interval {
   avg_pace?: number
   max_power?: number
   max_heartrate?: number
-  type: 'WORK' | 'RECOVERY' | 'WARMUP' | 'COOLDOWN'
+  type: 'WORK' | 'RECOVERY' | 'WARMUP' | 'COOLDOWN' | 'STEADY'
   intensity_zone?: number // 1-7 for cycling power zones, 1-5 for HR/Pace
+  label?: string
+  match_score?: number // 0-1 score indicating how well it matches a planned step
+  planned_step_id?: string
+}
+
+export interface PlannedStep {
+  name?: string
+  durationSeconds?: number
+  duration?: number
+  type?: string
+  power?: { value?: number; range?: { start: number; end: number } }
+  heartRate?: { value?: number; range?: { start: number; end: number } }
 }
 
 export interface PeakEffort {
@@ -36,24 +48,27 @@ export function detectIntervals(
   times: number[],
   values: number[],
   metricType: 'power' | 'heartrate' | 'pace',
-  threshold?: number // FTP or Threshold Pace/HR
+  threshold?: number, // FTP or Threshold Pace/HR
+  plannedSteps?: PlannedStep[],
+  smoothedValues?: number[]
 ): Interval[] {
   if (!times || !values || times.length !== values.length || times.length === 0) {
     return []
   }
 
-  // 1. Smooth the data (Exponential Moving Average)
-  const smoothed = smoothData(values, 10) // 10-second smoothing
+  // 1. Smooth the data
+  // Use provided smoothedValues (e.g. rolling NP) or calculate centered SMA
+  const smoothed = smoothedValues || smoothData(values, 10)
 
   // 2. Determine threshold for "Work" vs "Recovery"
   // If no manual threshold provided, estimate baseline
   const baseline = threshold || calculateBaseline(smoothed)
 
-  // For power, work is typically > 75% FTP (Zone 2/3 border)
-  // For HR, work is > 70% Max (approx Z2)
-  const workThreshold = metricType === 'power' ? baseline * 0.75 : baseline * 0.7
+  // For power, work is typically > 70% FTP (Zone 2/3 border)
+  // For HR, work is > 65% Max (approx Z2)
+  const workThreshold = metricType === 'power' ? baseline * 0.7 : baseline * 0.65
 
-  const intervals: Interval[] = []
+  let intervals: Interval[] = []
   let inInterval = false
   let startIndex = 0
 
@@ -95,9 +110,9 @@ export function detectIntervals(
 
   // Handle case where workout ends during an interval
   const lastTime = times[times.length - 1]
-  const startTime = times[startIndex]
-  if (inInterval && lastTime !== undefined && startTime !== undefined) {
-    const duration = lastTime - startTime
+  const lastStartTime = times[startIndex]
+  if (inInterval && lastTime !== undefined && lastStartTime !== undefined) {
+    const duration = lastTime - lastStartTime
     if (duration >= minDuration) {
       candidates.push({ start: startIndex, end: times.length - 1 })
     }
@@ -105,8 +120,8 @@ export function detectIntervals(
 
   // Second pass: Merge close intervals
   const merged: { start: number; end: number }[] = []
-  if (candidates.length > 0 && candidates[0]) {
-    let current = candidates[0]
+  if (candidates.length > 0) {
+    let current = { ...candidates[0]! }
 
     for (let i = 1; i < candidates.length; i++) {
       const next = candidates[i]
@@ -123,11 +138,11 @@ export function detectIntervals(
           current.end = next.end
         } else {
           merged.push(current)
-          current = next
+          current = { ...next }
         }
       } else {
         merged.push(current)
-        current = next
+        current = { ...next }
       }
     }
     if (current) merged.push(current)
@@ -139,60 +154,99 @@ export function detectIntervals(
 
   let lastEndIndex = 0
 
-  merged.forEach((candidate, index) => {
-    // Add recovery/warmup segment before this work interval
-    if (candidate.start > lastEndIndex) {
-      const type = index === 0 ? 'WARMUP' : 'RECOVERY'
-      if (times[lastEndIndex] !== undefined && times[candidate.start] !== undefined) {
+  // SPECIAL CASE: If no intervals detected but the duration is long (> 15 min),
+  // and average is reasonable (> 40% FTP), classify the whole thing as STEADY.
+  if (merged.length === 0 && times.length > 0) {
+    const totalDuration = (times[times.length - 1] || 0) - (times[0] || 0)
+    const avgValue = values.reduce((a, b) => a + (b || 0), 0) / values.length
+    const isSteady =
+      totalDuration > 900 && // 15 mins
+      (metricType === 'power' ? avgValue >= baseline * 0.4 : avgValue >= baseline * 0.5)
+
+    if (isSteady) {
+      intervals = [
+        createIntervalObj(times, values, 0, times.length - 1, 'WORK', threshold, metricType)
+      ]
+    }
+  } else {
+    merged.forEach((candidate, index) => {
+      // Add recovery/warmup segment before this work interval
+      if (candidate.start > lastEndIndex) {
+        const type = index === 0 ? 'WARMUP' : 'RECOVERY'
+        if (times[lastEndIndex] !== undefined && times[candidate.start] !== undefined) {
+          intervals.push(
+            createIntervalObj(
+              times,
+              values,
+              lastEndIndex,
+              candidate.start,
+              type,
+              threshold,
+              metricType
+            )
+          )
+        }
+      }
+
+      // Add the work interval
+      if (times[candidate.start] !== undefined && times[candidate.end] !== undefined) {
         intervals.push(
           createIntervalObj(
             times,
             values,
-            lastEndIndex,
             candidate.start,
-            type,
+            candidate.end,
+            'WORK',
             threshold,
             metricType
           )
         )
       }
-    }
 
-    // Add the work interval
-    if (times[candidate.start] !== undefined && times[candidate.end] !== undefined) {
+      lastEndIndex = candidate.end
+    })
+
+    // Add cooldown if there's data after the last interval
+    if (
+      lastEndIndex < times.length - 1 &&
+      times[lastEndIndex] !== undefined &&
+      times[times.length - 1] !== undefined
+    ) {
       intervals.push(
         createIntervalObj(
           times,
           values,
-          candidate.start,
-          candidate.end,
-          'WORK',
+          lastEndIndex,
+          times.length - 1,
+          'COOLDOWN',
           threshold,
           metricType
         )
       )
     }
+  }
 
-    lastEndIndex = candidate.end
-  })
+  // 4. Guided Matching (if planned steps available)
+  if (plannedSteps && plannedSteps.length > 0 && intervals.length > 0) {
+    // Basic greedy matching for now: align "WORK" intervals with planned WORK steps
+    const plannedWorkSteps = plannedSteps.filter((s) => s.type === 'WORK' || !s.type)
+    const detectedWorkIntervals = intervals.filter((i) => i.type === 'WORK')
 
-  // Add cooldown if there's data after the last interval
-  if (
-    lastEndIndex < times.length - 1 &&
-    times[lastEndIndex] !== undefined &&
-    times[times.length - 1] !== undefined
-  ) {
-    intervals.push(
-      createIntervalObj(
-        times,
-        values,
-        lastEndIndex,
-        times.length - 1,
-        'COOLDOWN',
-        threshold,
-        metricType
-      )
-    )
+    if (plannedWorkSteps.length > 0 && detectedWorkIntervals.length > 0) {
+      detectedWorkIntervals.forEach((interval, idx) => {
+        const plannedStep = plannedWorkSteps[idx]
+        if (plannedStep) {
+          interval.label = plannedStep.name
+          // Calculate match score based on duration
+          const plannedDur = plannedStep.durationSeconds || plannedStep.duration || 0
+          if (plannedDur > 0) {
+            const ratio =
+              Math.min(interval.duration, plannedDur) / Math.max(interval.duration, plannedDur)
+            interval.match_score = ratio
+          }
+        }
+      })
+    }
   }
 
   return intervals

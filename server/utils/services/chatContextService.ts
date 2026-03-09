@@ -874,7 +874,6 @@ You MUST use tools to make changes to the training plan:
 - **RESCHEDULE workout (date/time move)** → call \`reschedule_planned_workout\`
 - **DELETE workout** → call \`delete_planned_workout\`
 - **CHANGE availability** → call \`update_training_availability\`
-- **GENERATE plan** → call \`generate_training_plan\` (requires confirmation)
 
 **DO NOT** describe the action without calling the tool.
 For date/time moves, **do not** delete + recreate unless the user explicitly asks for replacement.
