@@ -357,17 +357,21 @@
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
               Execution Plan
             </h2>
+
             <component
               :is="getWorkoutComponent(workout.type)"
               v-if="workout.structuredWorkout"
+              v-model:steps-tab="activeStepsTab"
               :workout="workout"
               :user-ftp="userFtp"
               :sport-settings="sportSettings"
               :generating="generating"
+              :allow-edit="true"
               class="rounded-none sm:rounded-xl"
               @add-messages="openMessageModal"
               @view="openViewModal"
               @adjust="openAdjustModal"
+              @save="handleSaveStructure"
               @regenerate="generateStructure"
             />
 
@@ -841,7 +845,7 @@
 
         <div class="flex justify-end pt-2 gap-2">
           <UButton variant="ghost" @click="showStructureModal = false">Cancel</UButton>
-          <UButton color="primary" :loading="savingStructure" @click="saveStructure"
+          <UButton color="primary" :loading="isSavingStructure" @click="saveStructure"
             >Save Structure</UButton
           >
         </div>
@@ -853,6 +857,7 @@
 <script setup lang="ts">
   import WorkoutChart from '~/components/workouts/WorkoutChart.vue'
   import WorkoutMessagesTimeline from '~/components/workouts/WorkoutMessagesTimeline.vue'
+  import WorkoutStepsEditor from '~/components/workouts/planned/WorkoutStepsEditor.vue'
   import RideView from '~/components/workouts/planned/RideView.vue'
   import RunView from '~/components/workouts/planned/RunView.vue'
   import SwimView from '~/components/workouts/planned/SwimView.vue'
@@ -885,6 +890,7 @@
   const showPublishModal = ref(false)
   const showFullDescription = ref(false)
   const showTrainingContextDetails = ref(false)
+  const activeStepsTab = ref<'view' | 'edit'>('view')
   const adjustForm = reactive({
     durationMinutes: 60,
     intensity: 'moderate',
@@ -992,7 +998,7 @@
 
   const showStructureModal = ref(false)
   const structureText = ref('')
-  const savingStructure = ref(false)
+  const isSavingStructure = ref(false)
   const loadingViewPreview = ref(false)
   const intervalsPreviewText = ref('')
   const viewPreviewError = ref('')
@@ -1465,7 +1471,7 @@
 
   async function saveStructure() {
     if (!workout.value?.id) return
-    savingStructure.value = true
+    isSavingStructure.value = true
     try {
       await $fetch(`/api/workouts/planned/${workout.value.id}/structure`, {
         method: 'PATCH',
@@ -1486,7 +1492,33 @@
         color: 'error'
       })
     } finally {
-      savingStructure.value = false
+      isSavingStructure.value = false
+    }
+  }
+
+  async function handleSaveStructure(steps: any[]) {
+    if (!workout.value?.id) return
+    isSavingStructure.value = true
+    try {
+      await $fetch(`/api/workouts/planned/${workout.value.id}/structure`, {
+        method: 'PATCH',
+        body: { steps }
+      })
+      toast.add({
+        title: 'Structure Updated',
+        description: 'Your changes have been saved.',
+        color: 'success'
+      })
+      activeStepsTab.value = 'view'
+      await fetchWorkout()
+    } catch (error: any) {
+      toast.add({
+        title: 'Save Failed',
+        description: error.data?.message || 'Failed to save changes',
+        color: 'error'
+      })
+    } finally {
+      isSavingStructure.value = false
     }
   }
 
