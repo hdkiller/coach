@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildZonedDateTimeFromUtcDate } from '../../../../server/utils/date'
+import { buildZonedDateTimeFromUtcDate, getTimestampDateKey } from '../../../../server/utils/date'
 
 describe('Date Utilities', () => {
   describe('buildZonedDateTimeFromUtcDate', () => {
@@ -57,6 +57,20 @@ describe('Date Utilities', () => {
       const result = buildZonedDateTimeFromUtcDate(baseDate, time, timezone)
 
       expect(result.toISOString()).toBe('2026-02-11T23:59:00.000Z')
+    })
+  })
+
+  describe('getTimestampDateKey', () => {
+    it('should group an evening EST workout under the prior local day', () => {
+      const result = getTimestampDateKey(new Date('2026-03-08T01:00:55.000Z'), 'America/New_York')
+
+      expect(result).toBe('2026-03-07')
+    })
+
+    it('should group a Sydney morning workout under the next local day', () => {
+      const result = getTimestampDateKey(new Date('2026-02-16T18:55:11.000Z'), 'Australia/Sydney')
+
+      expect(result).toBe('2026-02-17')
     })
   })
 })

@@ -2,16 +2,14 @@ import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import {
   getUserLocalDate,
-  getUserTimezone,
+  getTimestampDateKey,
   getStartOfDayUTC,
-  getEndOfDayUTC,
-  buildZonedDateTimeFromUtcDate
+  getEndOfDayUTC
 } from '../../utils/date'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { calendarNoteRepository } from '../../utils/repositories/calendarNoteRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
-import { calculateFuelingStrategy } from '../../utils/nutrition-domain'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
@@ -550,7 +548,7 @@ export default defineEventHandler(async (event) => {
 
   // Process Completed Workouts
   for (const w of workouts) {
-    const dateKey = w.date.toISOString().split('T')[0]
+    const dateKey = getTimestampDateKey(w.date, timezone)
     if (!activitiesByDate.has(dateKey)) {
       activitiesByDate.set(dateKey, [])
     }

@@ -962,6 +962,7 @@
   import MilestoneModal from '~/components/activities/MilestoneModal.vue'
   import { getDefaultSportSettings, getSportSettingsForActivity } from '~/utils/sportSettings'
   import { getWorkoutChartPreference } from '~/utils/workoutChartContext'
+  import { getCalendarActivityDateKey } from '~/utils/calendar'
   import { formatDistance as formatDist } from '~/utils/metrics'
 
   const { t } = useTranslate('activities')
@@ -1001,7 +1002,7 @@
   })
 
   const showCalendarSettingsModal = ref(false)
-  const { formatDate, formatDateUTC, formatDateTime, getUserLocalDate } = useFormat()
+  const { formatDate, formatDateUTC, formatDateTime, getUserLocalDate, timezone } = useFormat()
   const { onTaskCompleted } = useUserRunsState()
 
   // Auto-refresh when relevant background tasks complete
@@ -1327,7 +1328,7 @@
           return dayStr >= noteStart && dayStr <= noteEnd
         }
 
-        const dateStr = formatDateUTC(a.date, 'yyyy-MM-dd')
+        const dateStr = getCalendarActivityDateKey(a, timezone.value)
         return dateStr === dayStr
       })
 

@@ -129,6 +129,14 @@ export function formatUserDate(
 }
 
 /**
+ * Get the local calendar day key for a timestamped record.
+ * Timestamped entities like completed workouts should be grouped by the user's local day.
+ */
+export function getTimestampDateKey(date: Date, timezone: string): string {
+  return formatUserDate(date, timezone, 'yyyy-MM-dd')
+}
+
+/**
  * Format a date in UTC.
  * Useful for displaying dates that are stored as UTC Midnight (e.g. PlannedWorkout.date)
  * without shifting them to the user's timezone.
