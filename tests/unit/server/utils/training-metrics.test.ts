@@ -335,7 +335,7 @@ describe('Training Metrics Utils', () => {
       expect(context.loadTrend.trend).toBe('increasing')
     })
 
-    it('should subtract uncompleted planned TSS from today ATL in readiness mode', async () => {
+    it('should derive current load from previous source plus completed workouts in readiness mode', async () => {
       const today = new Date()
       today.setUTCHours(0, 0, 0, 0)
 
@@ -350,16 +350,37 @@ describe('Training Metrics Utils', () => {
           atl: 60,
           type: 'Run',
           intensity: 1.0
+        },
+        {
+          id: 'w2',
+          date: new Date(today.getTime() + 10 * 60 * 60 * 1000),
+          durationSec: 1800,
+          distanceMeters: 0,
+          tss: 30,
+          ctl: 70,
+          atl: 90,
+          type: 'Strength',
+          intensity: 1.0
         }
       ] as any)
 
-      vi.mocked(prisma.wellness.findFirst).mockResolvedValue({
-        date: today,
-        ctl: 70,
-        atl: 90
-      } as any)
+      vi.mocked(prisma.wellness.findFirst)
+        .mockResolvedValueOnce({
+          date: today,
+          ctl: 70,
+          atl: 90
+        } as any)
+        .mockResolvedValueOnce({
+          date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+          ctl: 60,
+          atl: 70
+        } as any)
 
-      vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([{ tss: 25 }, { tss: 15 }] as any)
+      vi.mocked(prisma.workout.findFirst).mockResolvedValue({
+        date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+        ctl: 50,
+        atl: 55
+      } as any)
 
       const context = await generateTrainingContext('user1', today, today, {
         includeZones: false,
@@ -367,9 +388,9 @@ describe('Training Metrics Utils', () => {
         adjustForTodayUncompletedPlannedTSS: true
       })
 
-      expect(context.loadTrend.currentCTL).toBeCloseTo(70.7317, 4)
-      expect(context.loadTrend.currentATL).toBeCloseTo(98.3333, 4)
-      expect(context.loadTrend.currentTSB).toBeCloseTo(-27.6016, 4)
+      expect(context.loadTrend.currentCTL).toBeCloseTo(59.2857, 4)
+      expect(context.loadTrend.currentATL).toBeCloseTo(64.2857, 4)
+      expect(context.loadTrend.currentTSB).toBeCloseTo(-5, 4)
     })
 
     it('should prefer wellness metrics when workout and wellness are on the same day', async () => {

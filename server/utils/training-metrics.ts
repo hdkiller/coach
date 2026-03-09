@@ -22,12 +22,6 @@ function calculateTSB(ctl: number | null, atl: number | null): number | null {
   return ctl - atl
 }
 
-function reverseEWMA(currentValue: number, todayTSS: number, timeConstant: number): number {
-  const numerator = timeConstant * currentValue - todayTSS
-  const denominator = timeConstant - 1
-  return denominator > 0 ? numerator / denominator : currentValue
-}
-
 // Default zone definitions matching frontend
 export const DEFAULT_HR_ZONES = [
   { name: 'Z1', min: 60, max: 120 },
@@ -139,14 +133,15 @@ export function getZoneIndex(value: number, zones: Zone[]): number {
  */
 export async function calculateZoneDistribution(
   workoutIds: string[],
-  userId: string
+  userId: string,
+  prismaClient: typeof prisma = prisma
 ): Promise<{ hr?: ZoneDistribution; power?: ZoneDistribution }> {
   if (workoutIds.length === 0) return {}
 
   const defaultProfile = await sportSettingsRepository.getDefault(userId)
   let zoneProfile = defaultProfile
 
-  const workouts = await prisma.workout.findMany({
+  const workouts = await prismaClient.workout.findMany({
     where: { id: { in: workoutIds } },
     select: {
       id: true,
@@ -177,7 +172,7 @@ export async function calculateZoneDistribution(
 
   // Fallback to legacy User zones if default profile zones are empty
   if (hrZones.length === 0 || powerZones.length === 0) {
-    const user = await prisma.user.findUnique({
+    const user = await prismaClient.user.findUnique({
       where: { id: userId },
       select: { hrZones: true, powerZones: true }
     })
@@ -187,7 +182,7 @@ export async function calculateZoneDistribution(
   }
 
   // Fetch streams for all workouts
-  const streams = await prisma.workoutStream.findMany({
+  const streams = await prismaClient.workoutStream.findMany({
     where: { workoutId: { in: workoutIds } },
     select: {
       heartrate: true,
@@ -357,9 +352,10 @@ export async function calculateLoadTrends(
 export async function calculateActivityBreakdown(
   userId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  prismaClient: typeof prisma = prisma
 ): Promise<ActivityBreakdown[]> {
-  const workouts = await prisma.workout.findMany({
+  const workouts = await prismaClient.workout.findMany({
     where: {
       userId,
       date: { gte: startDate, lte: endDate },
@@ -413,9 +409,10 @@ export async function calculateActivityBreakdown(
 export async function calculateIntensityDistribution(
   userId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  prismaClient: typeof prisma = prisma
 ): Promise<TrainingContext['intensityDistribution']> {
-  const workouts = await prisma.workout.findMany({
+  const workouts = await prismaClient.workout.findMany({
     where: {
       userId,
       date: { gte: startDate, lte: endDate },
@@ -507,17 +504,19 @@ export async function generateTrainingContext(
     period?: string
     timezone?: string
     adjustForTodayUncompletedPlannedTSS?: boolean
+    prismaClient?: typeof prisma
   } = {}
 ): Promise<TrainingContext> {
   const {
     includeZones = false,
     period = 'Recent Period',
     timezone = 'UTC',
-    adjustForTodayUncompletedPlannedTSS = false
+    adjustForTodayUncompletedPlannedTSS = false,
+    prismaClient = prisma
   } = options
 
   // Fetch workouts
-  const workouts = await prisma.workout.findMany({
+  const workouts = await prismaClient.workout.findMany({
     where: {
       userId,
       date: { gte: startDate, lte: endDate },
@@ -550,7 +549,7 @@ export async function generateTrainingContext(
   summary.avgTSS = summary.totalWorkouts > 0 ? summary.totalTSS / summary.totalWorkouts : 0
 
   // Fetch latest wellness for current load metrics (often more up to date than workouts)
-  const latestWellness = await prisma.wellness.findFirst({
+  const latestWellness = await prismaClient.wellness.findFirst({
     where: {
       userId,
       ctl: { not: null },
@@ -610,25 +609,75 @@ export async function generateTrainingContext(
         : formatUserDate(currentLoadDate, timezone)
 
     if (sourceDayKey === todayKey) {
-      const plannedForToday = await prisma.plannedWorkout.findMany({
-        where: {
-          userId,
-          date: todayDate,
-          completed: { not: true },
-          completionStatus: { not: 'COMPLETED' },
-          completedWorkouts: { none: {} }
-        },
-        select: { tss: true }
-      })
+      const [previousWorkout, previousWellness, completedTodayWorkouts] = await Promise.all([
+        prismaClient.workout.findFirst({
+          where: {
+            userId,
+            isDuplicate: false,
+            ctl: { not: null },
+            atl: { not: null },
+            date: { lt: todayDate }
+          },
+          orderBy: { date: 'desc' },
+          select: {
+            date: true,
+            ctl: true,
+            atl: true
+          }
+        }),
+        prismaClient.wellness.findFirst({
+          where: {
+            userId,
+            ctl: { not: null },
+            atl: { not: null },
+            date: { lt: todayDate }
+          },
+          orderBy: { date: 'desc' },
+          select: {
+            date: true,
+            ctl: true,
+            atl: true
+          }
+        }),
+        prismaClient.workout.findMany({
+          where: {
+            userId,
+            isDuplicate: false,
+            date: {
+              gte: todayDate,
+              lt: new Date(todayDate.getTime() + 24 * 60 * 60 * 1000)
+            }
+          },
+          select: {
+            tss: true,
+            trimp: true
+          }
+        })
+      ])
 
-      const pendingPlannedTSS = plannedForToday.reduce(
-        (sum, w) => sum + (typeof w.tss === 'number' ? w.tss : 0),
-        0
-      )
+      const previousWorkoutDay = previousWorkout?.date
+        ? formatUserDate(previousWorkout.date, timezone)
+        : ''
+      const previousWellnessDay = previousWellness?.date ? formatDateUTC(previousWellness.date) : ''
 
-      if (pendingPlannedTSS > 0) {
-        currentCTL = Math.max(0, reverseEWMA(currentCTL, pendingPlannedTSS, 42))
-        currentATL = Math.max(0, reverseEWMA(currentATL, pendingPlannedTSS, 7))
+      const baseline =
+        previousWellness &&
+        previousWellness.ctl !== null &&
+        previousWellness.atl !== null &&
+        (previousWellnessDay >= previousWorkoutDay || !previousWorkout)
+          ? { ctl: previousWellness.ctl, atl: previousWellness.atl }
+          : previousWorkout && previousWorkout.ctl !== null && previousWorkout.atl !== null
+            ? { ctl: previousWorkout.ctl, atl: previousWorkout.atl }
+            : null
+
+      if (baseline) {
+        const completedTodayTSS = completedTodayWorkouts.reduce(
+          (sum, workout) => sum + calculateTSS(workout),
+          0
+        )
+
+        currentCTL = baseline.ctl + (completedTodayTSS - baseline.ctl) / 42
+        currentATL = baseline.atl + (completedTodayTSS - baseline.atl) / 7
       }
     }
   }
@@ -652,17 +701,27 @@ export async function generateTrainingContext(
   }
 
   // Get activity breakdown
-  const activityBreakdown = await calculateActivityBreakdown(userId, startDate, endDate)
+  const activityBreakdown = await calculateActivityBreakdown(
+    userId,
+    startDate,
+    endDate,
+    prismaClient
+  )
 
   // Get intensity distribution
-  const intensityDistribution = await calculateIntensityDistribution(userId, startDate, endDate)
+  const intensityDistribution = await calculateIntensityDistribution(
+    userId,
+    startDate,
+    endDate,
+    prismaClient
+  )
 
   // Optionally get zone distribution (expensive operation)
   let hrZoneDistribution: ZoneDistribution | undefined
   let powerZoneDistribution: ZoneDistribution | undefined
   if (includeZones) {
     const workoutIds = workouts.map((w) => w.id)
-    const zones = await calculateZoneDistribution(workoutIds, userId)
+    const zones = await calculateZoneDistribution(workoutIds, userId, prismaClient)
     hrZoneDistribution = zones.hr
     powerZoneDistribution = zones.power
   }

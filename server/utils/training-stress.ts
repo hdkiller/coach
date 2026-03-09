@@ -40,12 +40,6 @@ export function calculateATL(previousATL: number, todayTSS: number): number {
   return previousATL + (todayTSS - previousATL) / timeConstant
 }
 
-function reverseEWMA(currentValue: number, todayTSS: number, timeConstant: number): number {
-  const numerator = timeConstant * currentValue - todayTSS
-  const denominator = timeConstant - 1
-  return denominator > 0 ? numerator / denominator : currentValue
-}
-
 /**
  * Calculate TSB (Training Stress Balance) - "Form"
  * TSB = CTL - ATL
@@ -415,24 +409,66 @@ export async function getCurrentFitnessSummary(
       loadSource === 'wellness' ? formatDateUTC(lastUpdated) : formatUserDate(lastUpdated, timezone)
 
     if (sourceDayKey === todayKey) {
-      const plannedForToday = await prisma.plannedWorkout.findMany({
-        where: {
-          userId,
-          date: todayDate,
-          completed: { not: true },
-          completionStatus: { not: 'COMPLETED' },
-          completedWorkouts: { none: {} }
-        },
-        select: { tss: true }
-      })
+      const [previousWorkout, previousWellness, completedTodayWorkouts] = await Promise.all([
+        prisma.workout.findFirst({
+          where: {
+            userId,
+            isDuplicate: false,
+            ctl: { not: null },
+            atl: { not: null },
+            date: { lt: todayDate }
+          },
+          orderBy: { date: 'desc' }
+        }),
+        prisma.wellness.findFirst({
+          where: {
+            userId,
+            ctl: { not: null },
+            atl: { not: null },
+            date: { lt: todayDate }
+          },
+          orderBy: { date: 'desc' }
+        }),
+        prisma.workout.findMany({
+          where: {
+            userId,
+            isDuplicate: false,
+            date: {
+              gte: todayDate,
+              lt: new Date(todayDate.getTime() + 24 * 60 * 60 * 1000)
+            }
+          },
+          select: {
+            tss: true,
+            trimp: true
+          }
+        })
+      ])
 
-      const pendingPlannedTSS = plannedForToday.reduce((sum: number, w: { tss: number | null }) => {
-        return sum + (w.tss || 0)
-      }, 0)
+      const previousWorkoutDay = previousWorkout?.date
+        ? formatUserDate(previousWorkout.date, timezone)
+        : ''
+      const previousWellnessDay = previousWellness?.date ? formatDateUTC(previousWellness.date) : ''
 
-      if (pendingPlannedTSS > 0) {
-        ctl = Math.max(0, reverseEWMA(ctl, pendingPlannedTSS, 42))
-        atl = Math.max(0, reverseEWMA(atl, pendingPlannedTSS, 7))
+      const baseline =
+        previousWellness &&
+        previousWellness.ctl !== null &&
+        previousWellness.atl !== null &&
+        (previousWellnessDay >= previousWorkoutDay || !previousWorkout)
+          ? { ctl: previousWellness.ctl, atl: previousWellness.atl, date: previousWellness.date }
+          : previousWorkout && previousWorkout.ctl !== null && previousWorkout.atl !== null
+            ? { ctl: previousWorkout.ctl, atl: previousWorkout.atl, date: previousWorkout.date }
+            : null
+
+      if (baseline) {
+        const completedTodayTSS = completedTodayWorkouts.reduce(
+          (sum: number, workout: any) => sum + getStressScore(workout),
+          0
+        )
+
+        ctl = calculateCTL(baseline.ctl, completedTodayTSS)
+        atl = calculateATL(baseline.atl, completedTodayTSS)
+        lastUpdated = baseline.date
       }
     }
   }

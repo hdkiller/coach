@@ -6,6 +6,8 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import { format } from 'date-fns'
 import {
+  calculateATL,
+  calculateCTL,
   calculateProjectedPMC,
   getCurrentFitnessSummary,
   getFormStatus
@@ -21,6 +23,10 @@ type LatestSource = {
   ctl: number
   atl: number
   label: string
+}
+
+function toUtcDateKey(date: Date) {
+  return date.toISOString().split('T')[0] || ''
 }
 
 function buildPrisma(connectionString: string) {
@@ -108,6 +114,67 @@ async function getLatestSource(prisma: PrismaClient, userId: string): Promise<La
   return null
 }
 
+async function getLatestSourceBeforeDay(
+  prisma: PrismaClient,
+  userId: string,
+  day: Date,
+  timezone: string
+): Promise<LatestSource | null> {
+  const [wellness, workouts] = await Promise.all([
+    prisma.wellness.findMany({
+      where: {
+        userId,
+        ctl: { not: null },
+        atl: { not: null },
+        date: { lt: day }
+      },
+      orderBy: { date: 'desc' },
+      select: { date: true, ctl: true, atl: true },
+      take: 3
+    }),
+    prisma.workout.findMany({
+      where: {
+        userId,
+        isDuplicate: false,
+        ctl: { not: null },
+        atl: { not: null },
+        date: { lt: new Date(day.getTime() + 24 * 60 * 60 * 1000) }
+      },
+      orderBy: { date: 'desc' },
+      select: { date: true, ctl: true, atl: true, title: true },
+      take: 10
+    })
+  ])
+
+  const targetDay = toUtcDateKey(day)
+  const priorWorkout = workouts.find((workout) => formatUserDate(workout.date, timezone) < targetDay)
+
+  const workoutDay = priorWorkout ? formatUserDate(priorWorkout.date, timezone) : ''
+  const wellnessDay = wellness[0] ? toUtcDateKey(wellness[0].date) : ''
+
+  if (wellness[0] && (wellnessDay >= workoutDay || !priorWorkout)) {
+    return {
+      kind: 'wellness',
+      date: wellness[0].date,
+      ctl: wellness[0].ctl ?? 0,
+      atl: wellness[0].atl ?? 0,
+      label: 'Wellness'
+    }
+  }
+
+  if (priorWorkout) {
+    return {
+      kind: 'workout',
+      date: priorWorkout.date,
+      ctl: priorWorkout.ctl ?? 0,
+      atl: priorWorkout.atl ?? 0,
+      label: priorWorkout.title ? `Workout: ${priorWorkout.title}` : 'Workout'
+    }
+  }
+
+  return null
+}
+
 formCommand
   .description('Explain current CTL/ATL/TSB for a user, including planned-load adjustments')
   .argument('<user_id_or_email>', 'User UUID or email')
@@ -144,9 +211,31 @@ formCommand
       const todayDate = getUserLocalDate(timezone)
       const projectionDays = Math.max(1, parseInt(options.days, 10) || 7)
 
-      const [latestSource, plannedForToday, futurePlanned, rawSummary, adjustedSummary] =
+      const tomorrowDate = new Date(todayDate)
+      tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1)
+      const [latestSource, previousSource, completedWorkoutsToday, plannedForToday, futurePlanned, rawSummary, adjustedSummary] =
         await Promise.all([
           getLatestSource(prisma, user.id),
+          getLatestSourceBeforeDay(prisma, user.id, todayDate, timezone),
+          prisma.workout.findMany({
+            where: {
+              userId: user.id,
+              isDuplicate: false,
+              date: {
+                gte: new Date(todayDate.getTime() - 24 * 60 * 60 * 1000),
+                lt: tomorrowDate
+              }
+            },
+            orderBy: { date: 'asc' },
+            select: {
+              id: true,
+              date: true,
+              title: true,
+              tss: true,
+              ctl: true,
+              atl: true
+            }
+          }),
           prisma.plannedWorkout.findMany({
             where: {
               userId: user.id,
@@ -186,11 +275,17 @@ formCommand
           })
         ])
 
+      const todayKey = toUtcDateKey(todayDate)
+      const completedToday = completedWorkoutsToday.filter(
+        (workout) => formatUserDate(workout.date, timezone) === todayKey
+      )
+
       const thirtyDaysAgo = new Date(todayDate)
       thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30)
       const rawTrainingContext = await generateTrainingContext(user.id, thirtyDaysAgo, todayDate, {
         includeZones: false,
-        timezone
+        timezone,
+        prismaClient: prisma as any
       })
       const adjustedTrainingContext = await generateTrainingContext(
         user.id,
@@ -199,7 +294,8 @@ formCommand
         {
           includeZones: false,
           timezone,
-          adjustForTodayUncompletedPlannedTSS: true
+          adjustForTodayUncompletedPlannedTSS: true,
+          prismaClient: prisma as any
         }
       )
 
@@ -224,6 +320,15 @@ formCommand
         adjustedSummary.atl,
         futurePlanned
       )
+
+      const completedTodayTSS = completedToday.reduce((sum, workout) => sum + (workout.tss || 0), 0)
+      const derivedFromPrevious =
+        previousSource && completedTodayTSS >= 0
+          ? {
+              ctl: calculateCTL(previousSource.ctl, completedTodayTSS),
+              atl: calculateATL(previousSource.atl, completedTodayTSS)
+            }
+          : null
 
       printSection('User')
       console.log(`Name:           ${chalk.white(user.name || 'N/A')}`)
@@ -261,6 +366,18 @@ formCommand
         }
       }
 
+      printSection("Today's Completed Workouts")
+      console.log(`Completed TSS:  ${chalk.white(completedTodayTSS.toFixed(1))}`)
+      if (completedToday.length === 0) {
+        console.log(chalk.gray('None'))
+      } else {
+        for (const workout of completedToday) {
+          console.log(
+            `- ${workout.title || 'Untitled'} | TSS ${chalk.white((workout.tss || 0).toFixed(1))} | ${formatUserDate(workout.date, timezone, 'HH:mm')}`
+          )
+        }
+      }
+
       printSection('Current Fitness Summary')
       console.log(chalk.gray('Raw app summary (no planned-load correction):'))
       console.log(formatMetricLine('CTL:', rawSummary.ctl))
@@ -283,6 +400,16 @@ formCommand
         console.log(formatMetricLine('CTL:', manuallyReversed.ctl))
         console.log(formatMetricLine('ATL:', manuallyReversed.atl))
         console.log(formatMetricLine('TSB:', manuallyReversed.ctl - manuallyReversed.atl))
+      }
+
+      if (previousSource && derivedFromPrevious) {
+        console.log(chalk.gray('\nDerived from previous source + completed workouts today:'))
+        console.log(
+          `Baseline:       ${chalk.white(previousSource.label)} @ ${formatUserDate(previousSource.date, timezone, 'yyyy-MM-dd HH:mm')}`
+        )
+        console.log(formatMetricLine('CTL:', derivedFromPrevious.ctl))
+        console.log(formatMetricLine('ATL:', derivedFromPrevious.atl))
+        console.log(formatMetricLine('TSB:', derivedFromPrevious.ctl - derivedFromPrevious.atl))
       }
 
       printSection('Prompt-Facing Training Context')

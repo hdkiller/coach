@@ -218,26 +218,38 @@ describe('Training Stress Utils', () => {
       const today = new Date()
       today.setUTCHours(0, 0, 0, 0)
 
-      vi.mocked(prisma.workout.findFirst).mockResolvedValue({
-        date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
-        ctl: 50,
-        atl: 50
-      } as any)
-      vi.mocked(prisma.wellness.findFirst).mockResolvedValue({
-        date: today,
-        ctl: 80,
-        atl: 100
-      } as any)
-      vi.mocked(prisma.plannedWorkout.findMany).mockResolvedValue([{ tss: 30 }] as any)
+      vi.mocked(prisma.workout.findFirst)
+        .mockResolvedValueOnce({
+          date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+          ctl: 50,
+          atl: 50
+        } as any)
+        .mockResolvedValueOnce({
+          date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+          ctl: 50,
+          atl: 50
+        } as any)
+      vi.mocked(prisma.wellness.findFirst)
+        .mockResolvedValueOnce({
+          date: today,
+          ctl: 80,
+          atl: 100
+        } as any)
+        .mockResolvedValueOnce({
+          date: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+          ctl: 60,
+          atl: 70
+        } as any)
+      vi.mocked(prisma.workout.findMany).mockResolvedValue([{ tss: 30 }] as any)
 
       const result = await getCurrentFitnessSummary('user1', undefined, {
         adjustForTodayUncompletedPlannedTSS: true,
         timezone: 'UTC'
       })
 
-      expect(result.ctl).toBeCloseTo(81.2195, 4)
-      expect(result.atl).toBeCloseTo(111.6667, 4)
-      expect(result.tsb).toBeCloseTo(-30.4472, 4)
+      expect(result.ctl).toBeCloseTo(59.2857, 4)
+      expect(result.atl).toBeCloseTo(64.2857, 4)
+      expect(result.tsb).toBeCloseTo(-5, 4)
     })
   })
 
