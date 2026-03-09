@@ -184,6 +184,31 @@
                       class="rounded-lg bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10"
                       @click="navigateDate(1)"
                     />
+
+                    <!-- Data Attribution (Desktop) -->
+                    <div
+                      class="ml-2 opacity-40 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300 scale-90 origin-left"
+                    >
+                      <UiDataAttribution
+                        v-if="
+                          [
+                            'strava',
+                            'garmin',
+                            'zwift',
+                            'apple_health',
+                            'whoop',
+                            'intervals',
+                            'withings',
+                            'hevy',
+                            'wahoo',
+                            'rouvy'
+                          ].includes(workout.source)
+                        "
+                        :provider="workout.source"
+                        :device-name="workout.deviceName"
+                        mode="minimal"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -233,6 +258,16 @@
                       <span class="i-heroicons-clock w-3.5 h-3.5 opacity-50" />
                       {{ formatDuration(workout.durationSec) }}
                     </div>
+
+                    <!-- Device Name (Desktop) -->
+                    <template v-if="workout.deviceName">
+                      <span class="opacity-30">•</span>
+                      <div class="flex items-center gap-1">
+                        <UIcon name="i-heroicons-cpu-chip" class="w-3.5 h-3.5 opacity-50" />
+                        <span class="truncate max-w-[150px]">{{ workout.deviceName }}</span>
+                      </div>
+                    </template>
+
                     <span class="opacity-30">•</span>
                     <UButton
                       color="neutral"
@@ -745,10 +780,13 @@
                         'whoop',
                         'intervals',
                         'withings',
-                        'hevy'
+                        'hevy',
+                        'wahoo',
+                        'rouvy'
                       ].includes(workout.source)
                     "
                     :provider="workout.source"
+                    :device-name="workout.deviceName"
                     mode="minimal"
                   />
                 </div>
@@ -2606,7 +2644,7 @@
             </div>
 
             <div
-              v-if="analysisFacts"
+              v-if="hasAnalysisFactsPanel"
               class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
             >
               <div class="flex flex-col gap-5">
@@ -2627,6 +2665,13 @@
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
+                    <UBadge
+                      color="primary"
+                      variant="soft"
+                      class="font-black uppercase tracking-widest text-[9px]"
+                    >
+                      Schema: {{ analysisFactsVersionLabel }}
+                    </UBadge>
                     <UBadge
                       color="success"
                       variant="soft"
@@ -2666,25 +2711,13 @@
                   </div>
                   <div class="flex flex-wrap gap-2">
                     <UBadge
-                      :color="getFactBadgeColor(analysisFacts.telemetry.hrUsable)"
+                      v-for="badge in analysisFactsSummaryBadges"
+                      :key="badge.key"
+                      :color="getSummaryBadgeColor(badge.value)"
                       variant="soft"
                       class="font-black uppercase tracking-widest text-[9px]"
                     >
-                      HR usable: {{ formatFactValue(analysisFacts.telemetry.hrUsable) }}
-                    </UBadge>
-                    <UBadge
-                      color="neutral"
-                      variant="soft"
-                      class="font-black uppercase tracking-widest text-[9px]"
-                    >
-                      Analysis mode: {{ formatFactValue(analysisFacts.telemetry.analysisMode) }}
-                    </UBadge>
-                    <UBadge
-                      color="neutral"
-                      variant="soft"
-                      class="font-black uppercase tracking-widest text-[9px]"
-                    >
-                      L/R mode: {{ formatFactValue(analysisFacts.lrBalance.interpretationMode) }}
+                      {{ badge.label }}: {{ formatFactValue(badge.value) }}
                     </UBadge>
                   </div>
                 </div>
@@ -2692,40 +2725,13 @@
                 <div v-else class="space-y-4">
                   <div class="flex flex-wrap gap-2 mb-1">
                     <UBadge
-                      :color="getFactBadgeColor(analysisFacts.telemetry.hrUsable)"
+                      v-for="badge in analysisFactsSummaryBadges"
+                      :key="badge.key"
+                      :color="getSummaryBadgeColor(badge.value)"
                       variant="soft"
                       class="font-black uppercase tracking-widest text-[9px]"
                     >
-                      HR usable: {{ formatFactValue(analysisFacts.telemetry.hrUsable) }}
-                    </UBadge>
-                    <UBadge
-                      :color="getFactBadgeColor(analysisFacts.erg.detected)"
-                      variant="soft"
-                      class="font-black uppercase tracking-widest text-[9px]"
-                    >
-                      ERG detected: {{ formatFactValue(analysisFacts.erg.detected) }}
-                    </UBadge>
-                    <UBadge
-                      color="neutral"
-                      variant="soft"
-                      class="font-black uppercase tracking-widest text-[9px]"
-                    >
-                      Power source: {{ formatFactValue(analysisFacts.telemetry.powerSourceType) }}
-                    </UBadge>
-                    <UBadge
-                      :color="getFactBadgeColor(analysisFacts.physiology.decouplingValid)"
-                      variant="soft"
-                      class="font-black uppercase tracking-widest text-[9px]"
-                    >
-                      Decoupling valid:
-                      {{ formatFactValue(analysisFacts.physiology.decouplingValid) }}
-                    </UBadge>
-                    <UBadge
-                      color="neutral"
-                      variant="soft"
-                      class="font-black uppercase tracking-widest text-[9px]"
-                    >
-                      L/R mode: {{ formatFactValue(analysisFacts.lrBalance.interpretationMode) }}
+                      {{ badge.label }}: {{ formatFactValue(badge.value) }}
                     </UBadge>
                   </div>
 
@@ -2872,7 +2878,9 @@
                         :to="`/workouts/${workout.canonicalWorkout.id}`"
                         class="block p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
                       >
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                        <div
+                          class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4"
+                        >
                           <div class="min-w-0 flex-1">
                             <div
                               class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
@@ -2885,7 +2893,9 @@
                               {{ formatDate(workout.canonicalWorkout.date) }}
                             </div>
                           </div>
-                          <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                          <div
+                            class="flex items-center justify-between sm:justify-end gap-4 shrink-0"
+                          >
                             <div class="flex justify-end">
                               <UiDataAttribution
                                 v-if="
@@ -2962,7 +2972,9 @@
                     :to="`/workouts/${dup.id}`"
                     class="block p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
                   >
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                    <div
+                      class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4"
+                    >
                       <div class="min-w-0 flex-1">
                         <div
                           class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
@@ -3040,7 +3052,9 @@
                   :to="`/workouts/planned/${workout.plannedWorkout.id}`"
                   class="block p-4 bg-primary-50 dark:bg-primary-950/20 rounded-xl border border-primary-100 dark:border-primary-900/50 hover:border-primary-500 dark:hover:border-primary-500 transition-all shadow-sm"
                 >
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                  <div
+                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4"
+                  >
                     <div class="min-w-0 flex-1">
                       <div
                         class="font-black text-gray-900 dark:text-white uppercase tracking-tight"
@@ -3390,6 +3404,11 @@
   })
 
   const analysisFacts = computed(() => workout.value?.analysisFacts || null)
+  const analysisFactsV2 = computed(() => workout.value?.analysisFactsV2 || null)
+  const hasAnalysisFactsPanel = computed(() =>
+    Boolean(analysisFactsV2.value || analysisFacts.value)
+  )
+  const analysisFactsVersionLabel = computed(() => (analysisFactsV2.value ? 'v2' : 'v1'))
   const analysisFactTooltips: Record<string, string> = {
     rpe: 'The athlete-reported intensity of the full session on the RPE scale.',
     sessionRpeLoad:
@@ -3457,10 +3476,356 @@
     computedFrom: 'Inputs used to compute this fact payload for the current workout.',
     unavailableInputs: 'Inputs that were missing, so some facts may be downgraded or unavailable.',
     disabledInterpretations:
-      'Interpretations intentionally suppressed because the available data is not trustworthy enough.'
+      'Interpretations intentionally suppressed because the available data is not trustworthy enough.',
+    primaryArchetype: 'High-level workout intent classification used to drive the AI analysis.',
+    executionEnvironment:
+      'Execution environment determines whether pacing is athlete-driven, trainer-enforced, or treadmill-based.',
+    primaryMetric:
+      'The primary metric the AI should prioritize for interpreting execution quality.',
+    sessionSteadiness:
+      'Describes whether the session is steady, rolling, stochastic, or interval-based.',
+    hrArtifactSeverity: 'How severe the HR telemetry artifacts are if present.',
+    paceUsable: 'Whether pace should be trusted as a meaningful execution signal.',
+    gpsConfidence: 'Confidence in pace/GPS interpretation, mainly for running-style sessions.',
+    suppressions: 'Signals the AI is explicitly instructed not to interpret from this workout.',
+    planLinked: 'Whether this workout was linked to a planned session.',
+    adherenceAssessable:
+      'Whether planned-vs-actual adherence can be scored defensibly with the available data.',
+    adherenceReason: 'Explanation for why adherence is or is not assessable.',
+    completionPct: 'Compact summary of how much of the planned session was completed.',
+    durationVsPlanPct: 'Actual duration as a percentage of planned duration.',
+    workIntervalHitRate:
+      'Percentage of planned work intervals that landed near their intended target.',
+    recoveryHitRate: 'Percentage of planned recovery intervals that matched the expected target.',
+    targetOvershootPct:
+      'Average amount the athlete overshot planned targets when they went too hard.',
+    targetUndershootPct:
+      'Average amount the athlete undershot planned targets when they went too easy.',
+    structureMatched:
+      'Whether the actual session structure resembled the planned work/recovery pattern.',
+    executionClassification:
+      'High-level classification of how the session was executed relative to the plan.',
+    decouplingInterpretable: 'Whether classic decoupling is valid to discuss for this workout.',
+    decouplingReason: 'Explanation for why classic decoupling was suppressed or allowed.',
+    lateSessionFadePct:
+      'Late-session change in the primary workload signal, used as a durability marker.',
+    firstVsLastIntervalDeltaPct:
+      'Change between the first and last hard interval, used as a repeatability signal.',
+    recoveryTrendScore: 'Normalized score for short-term recovery behavior between efforts.',
+    executionStabilityScore:
+      'Normalized score for how consistently the athlete delivered the session.',
+    repeatabilityScore: 'Normalized score for interval-to-interval repeatability.',
+    dominantPowerZone: 'Power zone containing the largest share of the session.',
+    dominantHrZone: 'Heart-rate zone containing the largest share of the session.',
+    timeAboveThresholdPct: 'Share of the session spent above threshold-like intensity bins.',
+    cadenceDriftPct: 'Change in cadence between early and late parts of the session.',
+    cadenceStabilityScore: 'Normalized score for cadence consistency.',
+    torqueProfile: 'Simple cadence-based characterization of pedaling style for cycling workouts.',
+    pacingDriftPct: 'Change in running pace/speed between early and late parts of the session.',
+    suppressedMetrics: 'Metrics intentionally hidden from AI interpretation for safety.',
+    overallConfidence: 'Confidence level for the entire v2 fact payload.'
   }
 
   const analysisFactsGroups = computed(() => {
+    if (analysisFactsV2.value) {
+      return [
+        {
+          key: 'guardrails',
+          label: 'Guardrails',
+          entries: [
+            {
+              key: 'analysisMode',
+              path: 'guardrails.analysisMode',
+              label: 'Analysis Mode',
+              value: analysisFactsV2.value.guardrails.analysisMode
+            },
+            {
+              key: 'primaryArchetype',
+              path: 'guardrails.archetype.primaryArchetype',
+              label: 'Primary Archetype',
+              value: analysisFactsV2.value.guardrails.archetype.primaryArchetype
+            },
+            {
+              key: 'executionEnvironment',
+              path: 'guardrails.archetype.executionEnvironment',
+              label: 'Execution Environment',
+              value: analysisFactsV2.value.guardrails.archetype.executionEnvironment
+            },
+            {
+              key: 'primaryMetric',
+              path: 'guardrails.archetype.primaryMetric',
+              label: 'Primary Metric',
+              value: analysisFactsV2.value.guardrails.archetype.primaryMetric
+            },
+            {
+              key: 'sessionSteadiness',
+              path: 'guardrails.archetype.sessionSteadiness',
+              label: 'Session Steadiness',
+              value: analysisFactsV2.value.guardrails.archetype.sessionSteadiness
+            },
+            {
+              key: 'hrUsable',
+              path: 'guardrails.telemetry.hrUsable',
+              label: 'HR Usable',
+              value: analysisFactsV2.value.guardrails.telemetry.hrUsable
+            },
+            {
+              key: 'hrArtifactSeverity',
+              path: 'guardrails.telemetry.hrArtifactSeverity',
+              label: 'HR Artifact Severity',
+              value: analysisFactsV2.value.guardrails.telemetry.hrArtifactSeverity
+            },
+            {
+              key: 'powerSourceType',
+              path: 'guardrails.telemetry.powerSourceType',
+              label: 'Power Source Type',
+              value: analysisFactsV2.value.guardrails.telemetry.powerSourceType
+            },
+            {
+              key: 'paceUsable',
+              path: 'guardrails.telemetry.paceUsable',
+              label: 'Pace Usable',
+              value: analysisFactsV2.value.guardrails.telemetry.paceUsable
+            },
+            {
+              key: 'gpsConfidence',
+              path: 'guardrails.telemetry.gpsConfidence',
+              label: 'GPS Confidence',
+              value: analysisFactsV2.value.guardrails.telemetry.gpsConfidence
+            },
+            {
+              key: 'lrBalanceUsable',
+              path: 'guardrails.telemetry.lrBalanceUsable',
+              label: 'L/R Balance Usable',
+              value: analysisFactsV2.value.guardrails.telemetry.lrBalanceUsable
+            },
+            {
+              key: 'detected',
+              path: 'guardrails.erg.detected',
+              label: 'ERG Detected',
+              value: analysisFactsV2.value.guardrails.erg.detected
+            },
+            {
+              key: 'powerControlMode',
+              path: 'guardrails.erg.powerControlMode',
+              label: 'Power Control Mode',
+              value: analysisFactsV2.value.guardrails.erg.powerControlMode
+            },
+            {
+              key: 'suppressions',
+              path: 'guardrails.suppressions',
+              label: 'Suppressions',
+              value: analysisFactsV2.value.guardrails.suppressions
+            }
+          ]
+        },
+        {
+          key: 'adherence',
+          label: 'Adherence',
+          entries: [
+            {
+              key: 'planLinked',
+              path: 'adherence.planLinked',
+              label: 'Plan Linked',
+              value: analysisFactsV2.value.adherence.planLinked
+            },
+            {
+              key: 'adherenceAssessable',
+              path: 'adherence.adherenceAssessable',
+              label: 'Adherence Assessable',
+              value: analysisFactsV2.value.adherence.adherenceAssessable
+            },
+            {
+              key: 'adherenceReason',
+              path: 'adherence.adherenceReason',
+              label: 'Adherence Reason',
+              value: analysisFactsV2.value.adherence.adherenceReason
+            },
+            {
+              key: 'completionPct',
+              path: 'adherence.completionPct',
+              label: 'Completion %',
+              value: analysisFactsV2.value.adherence.completionPct
+            },
+            {
+              key: 'durationVsPlanPct',
+              path: 'adherence.durationVsPlanPct',
+              label: 'Duration vs Plan %',
+              value: analysisFactsV2.value.adherence.durationVsPlanPct
+            },
+            {
+              key: 'workIntervalHitRate',
+              path: 'adherence.workIntervalHitRate',
+              label: 'Work Interval Hit Rate',
+              value: analysisFactsV2.value.adherence.workIntervalHitRate
+            },
+            {
+              key: 'recoveryHitRate',
+              path: 'adherence.recoveryHitRate',
+              label: 'Recovery Hit Rate',
+              value: analysisFactsV2.value.adherence.recoveryHitRate
+            },
+            {
+              key: 'targetOvershootPct',
+              path: 'adherence.targetOvershootPct',
+              label: 'Target Overshoot %',
+              value: analysisFactsV2.value.adherence.targetOvershootPct
+            },
+            {
+              key: 'targetUndershootPct',
+              path: 'adherence.targetUndershootPct',
+              label: 'Target Undershoot %',
+              value: analysisFactsV2.value.adherence.targetUndershootPct
+            },
+            {
+              key: 'structureMatched',
+              path: 'adherence.structureMatched',
+              label: 'Structure Matched',
+              value: analysisFactsV2.value.adherence.structureMatched
+            },
+            {
+              key: 'executionClassification',
+              path: 'adherence.executionClassification',
+              label: 'Execution Classification',
+              value: analysisFactsV2.value.adherence.executionClassification
+            }
+          ]
+        },
+        {
+          key: 'performanceSignals',
+          label: 'Performance Signals',
+          entries: [
+            {
+              key: 'decouplingInterpretable',
+              path: 'performanceSignals.decoupling.interpretable',
+              label: 'Decoupling Interpretable',
+              value: analysisFactsV2.value.performanceSignals.decoupling.interpretable
+            },
+            {
+              key: 'decouplingReason',
+              path: 'performanceSignals.decoupling.reason',
+              label: 'Decoupling Reason',
+              value: analysisFactsV2.value.performanceSignals.decoupling.reason
+            },
+            {
+              key: 'decouplingEffective',
+              path: 'performanceSignals.decoupling.effective',
+              label: 'Decoupling Effective',
+              value: analysisFactsV2.value.performanceSignals.decoupling.effective
+            },
+            {
+              key: 'decouplingDirection',
+              path: 'performanceSignals.decoupling.direction',
+              label: 'Decoupling Direction',
+              value: analysisFactsV2.value.performanceSignals.decoupling.direction
+            },
+            {
+              key: 'lateSessionFadePct',
+              path: 'performanceSignals.durability.lateSessionFadePct',
+              label: 'Late Session Fade %',
+              value: analysisFactsV2.value.performanceSignals.durability.lateSessionFadePct
+            },
+            {
+              key: 'firstVsLastIntervalDeltaPct',
+              path: 'performanceSignals.durability.firstVsLastIntervalDeltaPct',
+              label: 'First vs Last Interval Delta %',
+              value: analysisFactsV2.value.performanceSignals.durability.firstVsLastIntervalDeltaPct
+            },
+            {
+              key: 'recoveryTrendScore',
+              path: 'performanceSignals.durability.recoveryTrendScore',
+              label: 'Recovery Trend Score',
+              value: analysisFactsV2.value.performanceSignals.durability.recoveryTrendScore
+            },
+            {
+              key: 'executionStabilityScore',
+              path: 'performanceSignals.durability.executionStabilityScore',
+              label: 'Execution Stability Score',
+              value: analysisFactsV2.value.performanceSignals.durability.executionStabilityScore
+            },
+            {
+              key: 'repeatabilityScore',
+              path: 'performanceSignals.durability.repeatabilityScore',
+              label: 'Repeatability Score',
+              value: analysisFactsV2.value.performanceSignals.durability.repeatabilityScore
+            },
+            {
+              key: 'dominantPowerZone',
+              path: 'performanceSignals.zones.dominantPowerZone',
+              label: 'Dominant Power Zone',
+              value: analysisFactsV2.value.performanceSignals.zones.dominantPowerZone
+            },
+            {
+              key: 'dominantHrZone',
+              path: 'performanceSignals.zones.dominantHrZone',
+              label: 'Dominant HR Zone',
+              value: analysisFactsV2.value.performanceSignals.zones.dominantHrZone
+            },
+            {
+              key: 'timeAboveThresholdPct',
+              path: 'performanceSignals.zones.timeAboveThresholdPct',
+              label: 'Time Above Threshold %',
+              value: analysisFactsV2.value.performanceSignals.zones.timeAboveThresholdPct
+            },
+            {
+              key: 'cadenceDriftPct',
+              path: 'performanceSignals.sportSpecific.cadenceDriftPct',
+              label: 'Cadence Drift %',
+              value: analysisFactsV2.value.performanceSignals.sportSpecific.cadenceDriftPct
+            },
+            {
+              key: 'cadenceStabilityScore',
+              path: 'performanceSignals.sportSpecific.cadenceStabilityScore',
+              label: 'Cadence Stability Score',
+              value: analysisFactsV2.value.performanceSignals.sportSpecific.cadenceStabilityScore
+            },
+            {
+              key: 'torqueProfile',
+              path: 'performanceSignals.sportSpecific.torqueProfile',
+              label: 'Torque Profile',
+              value: analysisFactsV2.value.performanceSignals.sportSpecific.torqueProfile
+            },
+            {
+              key: 'pacingDriftPct',
+              path: 'performanceSignals.sportSpecific.pacingDriftPct',
+              label: 'Pacing Drift %',
+              value: analysisFactsV2.value.performanceSignals.sportSpecific.pacingDriftPct
+            }
+          ]
+        },
+        {
+          key: 'confidence',
+          label: 'Confidence',
+          entries: [
+            {
+              key: 'overallConfidence',
+              path: 'confidence.overall',
+              label: 'Overall Confidence',
+              value: analysisFactsV2.value.confidence.overall
+            },
+            {
+              key: 'computedFrom',
+              path: 'confidence.debugMeta.computedFrom',
+              label: 'Computed From',
+              value: analysisFactsV2.value.confidence.debugMeta.computedFrom
+            },
+            {
+              key: 'unavailableInputs',
+              path: 'confidence.debugMeta.unavailableInputs',
+              label: 'Unavailable Inputs',
+              value: analysisFactsV2.value.confidence.debugMeta.unavailableInputs
+            },
+            {
+              key: 'suppressedMetrics',
+              path: 'confidence.debugMeta.suppressedMetrics',
+              label: 'Suppressed Metrics',
+              value: analysisFactsV2.value.confidence.debugMeta.suppressedMetrics
+            }
+          ]
+        }
+      ]
+    }
+
     if (!analysisFacts.value) return []
 
     return [
@@ -3731,7 +4096,62 @@
     return value ? 'success' : 'warning'
   }
 
-  const promptDecisions = computed(() => analysisFacts.value?.debugMeta?.promptDecisions || {})
+  function getSummaryBadgeColor(value: unknown) {
+    return typeof value === 'boolean' ? getFactBadgeColor(value) : 'neutral'
+  }
+
+  const analysisFactsSummaryBadges = computed(() => {
+    if (analysisFactsV2.value) {
+      return [
+        {
+          key: 'hrUsable',
+          label: 'HR Usable',
+          value: analysisFactsV2.value.guardrails.telemetry.hrUsable
+        },
+        {
+          key: 'primaryArchetype',
+          label: 'Archetype',
+          value: analysisFactsV2.value.guardrails.archetype.primaryArchetype
+        },
+        {
+          key: 'executionClassification',
+          label: 'Execution',
+          value: analysisFactsV2.value.adherence.executionClassification
+        },
+        {
+          key: 'decouplingInterpretable',
+          label: 'Decoupling',
+          value: analysisFactsV2.value.performanceSignals.decoupling.interpretable
+        }
+      ]
+    }
+
+    if (!analysisFacts.value) return []
+    return [
+      {
+        key: 'hrUsable',
+        label: 'HR Usable',
+        value: analysisFacts.value.telemetry.hrUsable
+      },
+      {
+        key: 'analysisMode',
+        label: 'Analysis Mode',
+        value: analysisFacts.value.telemetry.analysisMode
+      },
+      {
+        key: 'lrMode',
+        label: 'L/R Mode',
+        value: analysisFacts.value.lrBalance.interpretationMode
+      }
+    ]
+  })
+
+  const promptDecisions = computed(
+    () =>
+      analysisFactsV2.value?.confidence?.debugMeta?.promptDecisions ||
+      analysisFacts.value?.debugMeta?.promptDecisions ||
+      {}
+  )
   const includedPromptFactsCount = computed(
     () => Object.values(promptDecisions.value).filter((decision: any) => decision.include).length
   )
