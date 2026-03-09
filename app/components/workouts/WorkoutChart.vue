@@ -134,8 +134,23 @@
 
       <!-- Step breakdown -->
       <div class="space-y-2">
-        <h4 class="text-sm font-semibold text-muted">Workout Steps</h4>
-        <div class="space-y-1">
+        <div
+          class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-2 mb-4"
+        >
+          <h4 class="text-sm font-semibold text-muted">Workout Steps</h4>
+          <UTabs
+            v-if="allowEdit"
+            v-model="activeStepsTab"
+            :items="[
+              { label: 'View', value: 'view', icon: 'i-heroicons-list-bullet' },
+              { label: 'Edit', value: 'edit', icon: 'i-heroicons-pencil-square' }
+            ]"
+            size="xs"
+            :ui="{ list: { width: 'w-auto' } }"
+          />
+        </div>
+
+        <div v-if="activeStepsTab === 'view'" class="space-y-1">
           <div
             v-for="(step, index) in normalizedSteps"
             :key="index"
@@ -253,6 +268,18 @@
             </div>
           </div>
         </div>
+
+        <!-- Editor Tab -->
+        <div v-else-if="activeStepsTab === 'edit'">
+          <WorkoutStepsEditor
+            :steps="getStructuredWorkoutPayload(workout)?.steps || []"
+            :user-ftp="userFtp"
+            :sport-settings="sportSettings"
+            @update:steps="handleStepsUpdate"
+            @save="$emit('save', $event)"
+            @cancel="activeStepsTab = 'view'"
+          />
+        </div>
       </div>
 
       <!-- Zone Distribution -->
@@ -331,18 +358,42 @@
     getStructuredWorkoutPayload,
     resolveWorkoutChartSportSettings
   } from '~/utils/workoutChartContext'
+  import WorkoutStepsEditor from './planned/WorkoutStepsEditor.vue'
 
   const props = defineProps<{
     workout: any // structuredWorkout JSON
     userFtp?: number
     sportSettings?: any
+    allowEdit?: boolean
+    stepsTab?: 'view' | 'edit'
   }>()
 
-  const workoutData = computed(() => getStructuredWorkoutPayload(props.workout))
+  const emit = defineEmits(['update:steps', 'save', 'cancel', 'update:stepsTab'])
+
+  const activeStepsTab = computed({
+    get: () => props.stepsTab || 'view',
+    set: (val) => emit('update:stepsTab', val)
+  })
+
+  const previewSteps = ref<any[] | null>(null)
+
+  const workoutData = computed(() => {
+    const base = getStructuredWorkoutPayload(props.workout)
+    if (activeStepsTab.value === 'edit' && previewSteps.value) {
+      return { ...base, steps: previewSteps.value }
+    }
+    return base
+  })
+
   const effectiveSportSettings = computed(() =>
     resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
   )
   const normalizedSteps = computed(() => flattenWorkoutSteps(workoutData.value?.steps || []))
+
+  function handleStepsUpdate(newSteps: any[]) {
+    previewSteps.value = newSteps
+    emit('update:steps', newSteps)
+  }
 
   const defaultZoneRanges: Array<{ start: number; end: number }> = [
     { start: 0, end: 0.55 },

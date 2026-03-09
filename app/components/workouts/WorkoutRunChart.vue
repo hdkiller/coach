@@ -85,158 +85,187 @@
 
       <!-- Step breakdown -->
       <div class="space-y-2">
-        <h4 class="text-sm font-semibold text-muted">Workout Steps</h4>
         <div
-          class="hidden sm:grid items-center gap-4 px-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
-          :style="{ gridTemplateColumns: stepTableGridTemplate }"
+          class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-2 mb-4"
         >
-          <div />
-          <div>Step</div>
-          <div
-            v-for="column in stepTableColumns"
-            :key="column.key"
-            class="text-center"
-            :class="{ 'text-right': column.align === 'right' }"
-          >
-            {{ column.label }}
-          </div>
+          <h4 class="text-sm font-semibold text-muted">Workout Steps</h4>
+          <UTabs
+            v-if="allowEdit"
+            v-model="activeStepsTab"
+            :items="[
+              { label: 'View', value: 'view', icon: 'i-heroicons-list-bullet' },
+              { label: 'Edit', value: 'edit', icon: 'i-heroicons-pencil-square' }
+            ]"
+            size="xs"
+            :ui="{ list: { width: 'w-auto' } }"
+          />
         </div>
-        <div class="space-y-1">
+
+        <div v-if="activeStepsTab === 'view'">
           <div
-            v-for="(step, index) in normalizedSteps"
-            :key="index"
-            class="rounded hover:bg-gray-50 dark:hover:bg-gray-950 transition-colors p-2"
+            class="hidden sm:grid items-center gap-4 px-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+            :style="{ gridTemplateColumns: stepTableGridTemplate }"
           >
-            <!-- Mobile View -->
-            <div class="flex flex-col gap-1.5 sm:hidden">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                  <div
-                    class="w-3 h-3 rounded-full flex-shrink-0"
-                    :style="{ backgroundColor: getStepColor(getStepIntensity(step)) }"
-                  />
-                  <span class="text-sm font-medium truncate">{{ step.name }}</span>
-                </div>
-                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0">
-                  {{ formatDuration(step.durationSeconds || step.duration || 0) }}
-                </div>
-              </div>
-              <div
-                v-if="!showDistanceColumn && getStepEstimatedDistanceLabel(step)"
-                class="text-[10px] leading-tight text-muted pl-5"
-              >
-                {{ getStepEstimatedDistanceLabel(step) }}
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2 text-xs pl-5">
-                <span class="text-muted">{{ step.type }}</span>
-                <span
-                  v-if="showDistanceColumn && getStepDistanceLabel(step)"
-                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
-                >
-                  {{ getStepDistanceLabel(step) }}
-                </span>
-                <span
-                  v-if="showPowerColumn && hasMetricTarget(step.power)"
-                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
-                >
-                  {{ getPowerLabel(step) }}
-                </span>
-                <span
-                  v-if="showHrColumn && hasMetricTarget(step.heartRate)"
-                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
-                >
-                  {{ getHrZoneLabel(step) }}
-                </span>
-                <span
-                  v-if="showPaceColumn && hasMetricTarget(step.pace)"
-                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
-                >
-                  {{ getPaceLabel(step) }}
-                </span>
-                <span
-                  v-if="showCadenceColumn && step.cadence"
-                  class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-blue-500"
-                >
-                  {{ step.cadence }} SPM
-                </span>
-                <div
-                  v-if="showHrColumn && hasMetricTarget(step.heartRate) && getStepBpmLabel(step)"
-                  class="basis-full text-[10px] leading-tight text-muted"
-                >
-                  {{ getStepBpmLabel(step) }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Desktop View -->
+            <div />
+            <div>Step</div>
             <div
-              class="hidden sm:grid items-center gap-4"
-              :style="{ gridTemplateColumns: stepTableGridTemplate }"
+              v-for="column in stepTableColumns"
+              :key="column.key"
+              class="text-center"
+              :class="{ 'text-right': column.align === 'right' }"
             >
-              <div
-                class="w-3 h-3 rounded-full flex-shrink-0 mt-1"
-                :style="{ backgroundColor: getStepColor(getStepIntensity(step)) }"
-              />
-              <div class="min-w-0">
-                <div class="text-sm font-medium truncate">{{ step.name }}</div>
-                <div class="text-xs text-muted">{{ step.type }}</div>
-              </div>
-              <div class="text-center">
-                <div
-                  class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap"
-                >
-                  {{ formatDuration(step.durationSeconds || step.duration || 0) }}
+              {{ column.label }}
+            </div>
+          </div>
+          <div class="space-y-1">
+            <div
+              v-for="(step, index) in normalizedSteps"
+              :key="index"
+              class="rounded hover:bg-gray-50 dark:hover:bg-gray-950 transition-colors p-2"
+            >
+              <!-- Mobile View -->
+              <div class="flex flex-col gap-1.5 sm:hidden">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div
+                      class="w-3 h-3 rounded-full flex-shrink-0"
+                      :style="{ backgroundColor: getStepColor(getStepIntensity(step)) }"
+                    />
+                    <span class="text-sm font-medium truncate">{{ step.name }}</span>
+                  </div>
+                  <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0">
+                    {{ formatDuration(step.durationSeconds || step.duration || 0) }}
+                  </div>
                 </div>
                 <div
                   v-if="!showDistanceColumn && getStepEstimatedDistanceLabel(step)"
-                  class="text-[10px] text-muted whitespace-nowrap"
+                  class="text-[10px] leading-tight text-muted pl-5"
                 >
                   {{ getStepEstimatedDistanceLabel(step) }}
                 </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-xs pl-5">
+                  <span class="text-muted">{{ step.type }}</span>
+                  <span
+                    v-if="showDistanceColumn && getStepDistanceLabel(step)"
+                    class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                  >
+                    {{ getStepDistanceLabel(step) }}
+                  </span>
+                  <span
+                    v-if="showPowerColumn && hasMetricTarget(step.power)"
+                    class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                  >
+                    {{ getPowerLabel(step) }}
+                  </span>
+                  <span
+                    v-if="showHrColumn && hasMetricTarget(step.heartRate)"
+                    class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                  >
+                    {{ getHrZoneLabel(step) }}
+                  </span>
+                  <span
+                    v-if="showPaceColumn && hasMetricTarget(step.pace)"
+                    class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800"
+                  >
+                    {{ getPaceLabel(step) }}
+                  </span>
+                  <span
+                    v-if="showCadenceColumn && step.cadence"
+                    class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-blue-500"
+                  >
+                    {{ step.cadence }} SPM
+                  </span>
+                  <div
+                    v-if="showHrColumn && hasMetricTarget(step.heartRate) && getStepBpmLabel(step)"
+                    class="basis-full text-[10px] leading-tight text-muted"
+                  >
+                    {{ getStepBpmLabel(step) }}
+                  </div>
+                </div>
               </div>
+
+              <!-- Desktop View -->
               <div
-                v-if="showDistanceColumn"
-                class="text-center text-sm text-muted whitespace-nowrap"
+                class="hidden sm:grid items-center gap-4"
+                :style="{ gridTemplateColumns: stepTableGridTemplate }"
               >
-                <span v-if="getStepDistanceLabel(step)">{{ getStepDistanceLabel(step) }}</span>
-                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
-              </div>
-              <div
-                v-if="showPowerColumn"
-                class="text-center text-sm font-semibold whitespace-nowrap"
-              >
-                <span v-if="hasMetricTarget(step.power)">{{ getPowerLabel(step) }}</span>
-                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
-              </div>
-              <div v-if="showHrColumn" class="text-center">
-                <div class="text-sm font-semibold whitespace-nowrap">
-                  <span v-if="hasMetricTarget(step.heartRate)">{{ getHrZoneLabel(step) }}</span>
+                <div
+                  class="w-3 h-3 rounded-full flex-shrink-0 mt-1"
+                  :style="{ backgroundColor: getStepColor(getStepIntensity(step)) }"
+                />
+                <div class="min-w-0">
+                  <div class="text-sm font-medium truncate">{{ step.name }}</div>
+                  <div class="text-xs text-muted">{{ step.type }}</div>
+                </div>
+                <div class="text-center">
+                  <div
+                    class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap"
+                  >
+                    {{ formatDuration(step.durationSeconds || step.duration || 0) }}
+                  </div>
+                  <div
+                    v-if="!showDistanceColumn && getStepEstimatedDistanceLabel(step)"
+                    class="text-[10px] text-muted whitespace-nowrap"
+                  >
+                    {{ getStepEstimatedDistanceLabel(step) }}
+                  </div>
+                </div>
+                <div
+                  v-if="showDistanceColumn"
+                  class="text-center text-sm text-muted whitespace-nowrap"
+                >
+                  <span v-if="getStepDistanceLabel(step)">{{ getStepDistanceLabel(step) }}</span>
                   <span v-else class="text-gray-300 dark:text-gray-700">-</span>
                 </div>
                 <div
-                  v-if="hasMetricTarget(step.heartRate) && getStepBpmLabel(step)"
-                  class="text-[10px] text-muted whitespace-nowrap"
+                  v-if="showPowerColumn"
+                  class="text-center text-sm font-semibold whitespace-nowrap"
                 >
-                  {{ getStepBpmLabel(step) }}
+                  <span v-if="hasMetricTarget(step.power)">{{ getPowerLabel(step) }}</span>
+                  <span v-else class="text-gray-300 dark:text-gray-700">-</span>
                 </div>
-              </div>
-              <div
-                v-if="showPaceColumn"
-                class="text-center text-sm font-semibold whitespace-nowrap"
-              >
-                <span v-if="hasMetricTarget(step.pace)">{{ getPaceLabel(step) }}</span>
-                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
-              </div>
-              <div
-                v-if="showCadenceColumn"
-                class="text-sm text-blue-500 font-semibold text-center whitespace-nowrap"
-              >
-                <span v-if="step.cadence">{{ step.cadence }} SPM</span>
-                <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+                <div v-if="showHrColumn" class="text-center">
+                  <div class="text-sm font-semibold whitespace-nowrap">
+                    <span v-if="hasMetricTarget(step.heartRate)">{{ getHrZoneLabel(step) }}</span>
+                    <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+                  </div>
+                  <div
+                    v-if="hasMetricTarget(step.heartRate) && getStepBpmLabel(step)"
+                    class="text-[10px] text-muted whitespace-nowrap"
+                  >
+                    {{ getStepBpmLabel(step) }}
+                  </div>
+                </div>
+                <div
+                  v-if="showPaceColumn"
+                  class="text-center text-sm font-semibold whitespace-nowrap"
+                >
+                  <span v-if="hasMetricTarget(step.pace)">{{ getPaceLabel(step) }}</span>
+                  <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+                </div>
+                <div
+                  v-if="showCadenceColumn"
+                  class="text-sm text-blue-500 font-semibold text-center whitespace-nowrap"
+                >
+                  <span v-if="step.cadence">{{ step.cadence }} SPM</span>
+                  <span v-else class="text-gray-300 dark:text-gray-700">-</span>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Editor Tab -->
+        <div v-else-if="activeStepsTab === 'edit'">
+          <WorkoutStepsEditor
+            :steps="getStructuredWorkoutPayload(workout)?.steps || []"
+            :user-ftp="userFtp"
+            :sport-settings="sportSettings"
+            @update:steps="handleStepsUpdate"
+            @save="$emit('save', $event)"
+            @cancel="activeStepsTab = 'view'"
+          />
         </div>
       </div>
 
@@ -294,12 +323,15 @@
     getStructuredWorkoutPayload,
     resolveWorkoutChartSportSettings
   } from '~/utils/workoutChartContext'
+  import WorkoutStepsEditor from './planned/WorkoutStepsEditor.vue'
 
   const props = withDefaults(
     defineProps<{
       workout: any // structuredWorkout JSON
       preference?: 'hr' | 'power' | 'pace'
       sportSettings?: any
+      allowEdit?: boolean
+      stepsTab?: 'view' | 'edit'
     }>(),
     {
       preference: 'hr',
@@ -307,12 +339,33 @@
     }
   )
 
+  const emit = defineEmits(['update:steps', 'save', 'cancel', 'update:stepsTab'])
+
+  const activeStepsTab = computed({
+    get: () => props.stepsTab || 'view',
+    set: (val) => emit('update:stepsTab', val)
+  })
+
+  const previewSteps = ref<any[] | null>(null)
+
   // Computed properties
-  const workoutData = computed(() => getStructuredWorkoutPayload(props.workout))
+  const workoutData = computed(() => {
+    const base = getStructuredWorkoutPayload(props.workout)
+    if (activeStepsTab.value === 'edit' && previewSteps.value) {
+      return { ...base, steps: previewSteps.value }
+    }
+    return base
+  })
+
   const effectiveSportSettings = computed(() =>
     resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
   )
   const normalizedSteps = computed(() => flattenWorkoutSteps(workoutData.value?.steps || []))
+
+  function handleStepsUpdate(newSteps: any[]) {
+    previewSteps.value = newSteps
+    emit('update:steps', newSteps)
+  }
 
   const totalDuration = computed(() => {
     return normalizedSteps.value.reduce(
