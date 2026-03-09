@@ -1,3 +1,6 @@
+import { calculateFatigueSensitivity, calculateStabilityMetrics } from './performance-metrics'
+import { toIntensityFactorFromTarget } from './structured-workout-persistence'
+
 type FactConfidence = 'low' | 'medium' | 'high'
 type FactSeverity = 'low' | 'moderate' | 'high' | 'unknown'
 type AnalysisMode = 'power' | 'pace' | 'rpe' | 'mixed'
@@ -7,6 +10,36 @@ type LrSourceSemantics = 'true_left_right' | 'human_vs_motor' | 'unknown'
 type LrInterpretationMode = 'normal' | 'corrected' | 'disabled'
 type ErgSource = 'explicit' | 'inferred' | 'unknown'
 type PowerControlMode = 'erg' | 'resistance' | 'free_ride' | 'unknown'
+type HrArtifactSeverity = 'none' | 'low' | 'moderate' | 'high'
+type PaceConfidence = FactConfidence | 'unknown'
+type ExecutionClassification =
+  | 'as_prescribed'
+  | 'shortened'
+  | 'intensity_reduced'
+  | 'intensity_inflated'
+  | 'unstructured_substitution'
+  | 'not_assessable'
+type PrimaryArchetype =
+  | 'endurance'
+  | 'tempo'
+  | 'threshold'
+  | 'vo2'
+  | 'anaerobic'
+  | 'sprint'
+  | 'race'
+  | 'recovery'
+  | 'mixed'
+  | 'strength'
+  | 'unknown'
+type ExecutionEnvironment =
+  | 'indoor_erg'
+  | 'indoor_resistance'
+  | 'outdoor_free'
+  | 'treadmill'
+  | 'mixed'
+  | 'unknown'
+type PrimaryMetric = 'power' | 'pace' | 'hr' | 'subjective' | 'mixed'
+type SessionSteadiness = 'steady' | 'rolling' | 'stochastic' | 'intervalled' | 'unknown'
 type PromptDecision = {
   include: boolean
   reason: string
@@ -62,6 +95,103 @@ export interface WorkoutAnalysisFacts {
     unavailableInputs: string[]
     disabledInterpretations: string[]
     promptDecisions: Record<string, PromptDecision>
+  }
+}
+
+export interface WorkoutAnalysisFactsV2 {
+  guardrails: {
+    analysisMode: AnalysisMode
+    archetype: {
+      primaryArchetype: PrimaryArchetype
+      executionEnvironment: ExecutionEnvironment
+      primaryMetric: PrimaryMetric
+      sessionSteadiness: SessionSteadiness
+      confidence: FactConfidence
+      rationale: string[]
+    }
+    telemetry: {
+      hrUsable: boolean
+      hrArtifactSeverity: HrArtifactSeverity
+      hrZeroRatio: number | null
+      hrMissingRatio: number | null
+      powerSourceType: PowerSourceType
+      powerSourceConfidence: FactConfidence
+      powerAbsoluteUsable: boolean
+      powerRelativeUsable: boolean
+      paceUsable: boolean
+      gpsConfidence: PaceConfidence
+      lrBalanceUsable: boolean
+      lrInterpretationMode: LrInterpretationMode
+    }
+    erg: {
+      detected: boolean
+      confidence: FactConfidence
+      source: ErgSource
+      powerControlMode: PowerControlMode
+      reasons: string[]
+    }
+    lrBalance: {
+      sourceSemantics: LrSourceSemantics
+      inversionSuspected: boolean
+      correctedLeftPct: number | null
+      correctedRightPct: number | null
+      interpretationMode: LrInterpretationMode
+      correctionReason: string | null
+    }
+    suppressions: string[]
+  }
+  adherence: {
+    planLinked: boolean
+    adherenceAssessable: boolean
+    adherenceReason: string | null
+    completionPct: number | null
+    durationVsPlanPct: number | null
+    workIntervalHitRate: number | null
+    recoveryHitRate: number | null
+    targetOvershootPct: number | null
+    targetUndershootPct: number | null
+    structureMatched: boolean
+    executionClassification: ExecutionClassification
+  }
+  performanceSignals: {
+    decoupling: {
+      interpretable: boolean
+      reason: string | null
+      effective: number | null
+      direction: DecouplingDirection | 'unknown'
+      confidence: FactConfidence
+    }
+    durability: {
+      lateSessionFadePct: number | null
+      firstVsLastIntervalDeltaPct: number | null
+      recoveryTrendScore: number | null
+      executionStabilityScore: number | null
+      repeatabilityScore: number | null
+    }
+    zones: {
+      dominantPowerZone: string | null
+      dominantHrZone: string | null
+      timeAboveThresholdPct: number | null
+    }
+    sportSpecific: {
+      cadenceDriftPct: number | null
+      cadenceStabilityScore: number | null
+      torqueProfile: 'low_cadence_force' | 'high_cadence_spin' | 'neutral' | 'unknown'
+      pacingDriftPct: number | null
+    }
+  }
+  confidence: {
+    overall: FactConfidence
+    guardrails: FactConfidence
+    adherence: FactConfidence
+    performanceSignals: FactConfidence
+    debugMeta: {
+      factVersion: string
+      computedFrom: string[]
+      unavailableInputs: string[]
+      suppressedMetrics: string[]
+      promptDecisions: Record<string, PromptDecision>
+    }
   }
 }
 
@@ -255,14 +385,14 @@ function deriveDecoupling(workout: any, hrUsable: boolean, warmupExcludedMinutes
     const startIndex = time.findIndex((value) => value >= warmupExcludedMinutes * 60)
     const effectiveStartIndex = startIndex >= 0 ? startIndex : 0
     const samples = time
-      .map((_, index) => ({ hr: hr[index], work: workload[index] }))
+      .map((_, index) => ({ hr: hr[index]!, work: workload[index]! }))
       .slice(effectiveStartIndex)
       .filter((sample) => sample.hr > 0 && sample.work > 0)
 
     if (samples.length >= 120) {
       const midpoint = Math.floor(samples.length / 2)
-      const firstHalf = samples.slice(0, midpoint)
-      const secondHalf = samples.slice(midpoint)
+      const firstHalf = samples.slice(0, midpoint) as Array<{ hr: number; work: number }>
+      const secondHalf = samples.slice(midpoint) as Array<{ hr: number; work: number }>
       const avgRatio = (segment: Array<{ hr: number; work: number }>) =>
         segment.reduce((sum, sample) => sum + sample.work / sample.hr, 0) / segment.length
       const firstRatio = avgRatio(firstHalf)
@@ -270,17 +400,17 @@ function deriveDecoupling(workout: any, hrUsable: boolean, warmupExcludedMinutes
       const effective = round(((firstRatio - secondRatio) / firstRatio) * 100, 1)
       const direction =
         effective === null
-          ? 'unknown'
+          ? ('unknown' as const)
           : effective < -3
-            ? 'efficiency_gain'
+            ? ('efficiency_gain' as const)
             : effective > 3
-              ? 'positive_drift'
-              : 'stable'
+              ? ('positive_drift' as const)
+              : ('stable' as const)
       return {
         valid: effective !== null,
         effective,
         direction,
-        confidence: durationMinutes >= 75 ? 'high' : 'medium',
+        confidence: (durationMinutes >= 75 ? 'high' : 'medium') as FactConfidence,
         steadyStateSegmentsAvailable: true
       }
     }
@@ -323,14 +453,14 @@ function detectNormalHrLag(
   if (time.length === 0 || watts.length !== time.length || hr.length !== time.length) return false
 
   for (let index = 10; index < time.length - 20; index++) {
-    const prevPower = watts[index - 1]
-    const nextPower = watts[index]
+    const prevPower = watts[index - 1]!
+    const nextPower = watts[index]!
     const jump = nextPower - prevPower
     if (jump < 60) continue
-    const baselineHr = hr[index - 1]
-    const immediateHr = hr[index]
+    const baselineHr = hr[index - 1]!
+    const immediateHr = hr[index]!
     const laterIndex = Math.min(time.length - 1, index + 10)
-    const laterHr = hr[laterIndex]
+    const laterHr = hr[laterIndex]!
     if (baselineHr > 0 && immediateHr > 0 && laterHr > 0) {
       if (immediateHr - baselineHr <= 3 && laterHr - baselineHr >= 5) {
         return true
@@ -428,17 +558,18 @@ function detectErg(workout: any, plannedWorkout: any) {
 
   if (targetPower.length > 30 && watts.length === targetPower.length) {
     const active = targetPower
-      .map((target, index) => ({ target, actual: watts[index] }))
+      .map((target, index) => ({ target, actual: watts[index]! }))
       .filter((entry) => entry.target > 0 && entry.actual > 0)
     if (active.length >= 30) {
       const meanAbsPctError =
         active.reduce(
-          (sum, entry) => sum + Math.abs(entry.actual - entry.target) / entry.target,
+          (sum, entry) => sum + Math.abs(entry.actual! - entry.target) / entry.target,
           0
         ) / active.length
-      const avgPower = active.reduce((sum, entry) => sum + entry.actual, 0) / active.length
+      const avgPower = active.reduce((sum, entry) => sum + entry.actual!, 0) / active.length
       const variance =
-        active.reduce((sum, entry) => sum + Math.pow(entry.actual - avgPower, 2), 0) / active.length
+        active.reduce((sum, entry) => sum + Math.pow(entry.actual! - avgPower, 2), 0) /
+        active.length
       const cov = avgPower > 0 ? Math.sqrt(variance) / avgPower : 1
       const cadenceSpread =
         cadence.length === watts.length ? Math.max(...cadence) - Math.min(...cadence) : 0
@@ -605,8 +736,8 @@ export function buildWorkoutAnalysisFacts({
       warmupExcludedMinutes,
       decouplingValid: decoupling.valid,
       decouplingEffective: decoupling.effective,
-      decouplingDirection: decoupling.direction,
-      decouplingConfidence: decoupling.confidence
+      decouplingDirection: decoupling.direction as DecouplingDirection | 'unknown',
+      decouplingConfidence: decoupling.confidence as FactConfidence
     },
     lrBalance,
     erg,
@@ -877,4 +1008,1186 @@ function buildPromptDecisions(facts: WorkoutAnalysisFacts): Record<string, Promp
   )
 
   return decisions
+}
+
+type FlattenedPlannedStep = {
+  type: string
+  durationSeconds: number
+  metric: 'power' | 'pace' | 'heartRate' | 'rpe' | null
+  targetValue: number | null
+  intensityFactor: number | null
+  classification: 'work' | 'recovery'
+}
+
+type ActualInterval = {
+  type: string
+  durationSeconds: number
+  avgPower: number | null
+  avgHr: number | null
+  avgSpeed: number | null
+  intensity: number | null
+  classification: 'work' | 'recovery'
+}
+
+function getPromptFactValueByPath(value: unknown, path: string) {
+  return path.split('.').reduce<unknown>((acc, key) => {
+    if (!acc || typeof acc !== 'object') return undefined
+    return (acc as Record<string, unknown>)[key]
+  }, value)
+}
+
+function inferHrArtifactSeverity(stats: ReturnType<typeof getHrStats>): HrArtifactSeverity {
+  const zeroRatio = stats.zeroRatio ?? 0
+  const missingRatio = stats.missingRatio ?? 0
+  const combined = Math.max(zeroRatio, missingRatio)
+  if (!stats.usable && combined >= 0.2) return 'high'
+  if (!stats.usable && combined >= 0.1) return 'moderate'
+  if (stats.artifactFlag || combined > 0) return 'low'
+  return 'none'
+}
+
+function inferPaceConfidence(
+  workout: any,
+  family: ReturnType<typeof getWorkoutFamily>
+): PaceConfidence {
+  const velocity = asNumberArray(workout?.streams?.velocity)
+  if (
+    family !== 'run' &&
+    !String(workout?.type || '')
+      .toLowerCase()
+      .includes('treadmill')
+  ) {
+    return velocity.length > 0 || workout?.averageSpeed ? 'medium' : 'unknown'
+  }
+  if (
+    String(workout?.type || '')
+      .toLowerCase()
+      .includes('treadmill')
+  )
+    return 'high'
+  if (velocity.length >= 120) return 'high'
+  if (velocity.length > 0 || workout?.averageSpeed) return 'medium'
+  return 'low'
+}
+
+function getStructuredSteps(structuredWorkout: any): any[] {
+  if (Array.isArray(structuredWorkout)) return structuredWorkout
+  if (
+    structuredWorkout &&
+    typeof structuredWorkout === 'object' &&
+    Array.isArray(structuredWorkout.steps)
+  ) {
+    return structuredWorkout.steps
+  }
+  return []
+}
+
+function getTargetValue(target: any): number | null {
+  if (!target || typeof target !== 'object') return null
+  if (typeof target.value === 'number' && Number.isFinite(target.value)) return target.value
+  if (
+    target.range &&
+    typeof target.range.start === 'number' &&
+    typeof target.range.end === 'number' &&
+    Number.isFinite(target.range.start) &&
+    Number.isFinite(target.range.end)
+  ) {
+    return (target.range.start + target.range.end) / 2
+  }
+  return null
+}
+
+function flattenPlannedSteps(
+  steps: any[],
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+): FlattenedPlannedStep[] {
+  const flattened: FlattenedPlannedStep[] = []
+
+  const visit = (nodes: any[]) => {
+    for (const step of nodes || []) {
+      if (!step || typeof step !== 'object') continue
+      const reps = Math.max(1, Math.trunc(Number(step.reps || 1)) || 1)
+      if (Array.isArray(step.steps) && step.steps.length > 0) {
+        for (let rep = 0; rep < reps; rep++) visit(step.steps)
+        continue
+      }
+
+      const durationSeconds =
+        Number(
+          step.durationSeconds || step.duration || step.duration_s || step.elapsed_time || 0
+        ) || 0
+      if (durationSeconds <= 0) continue
+
+      const stepType = String(step.type || 'Interval')
+      const normalizedType = stepType.toLowerCase()
+      const isRecovery = ['rest', 'recovery', 'cooldown', 'warmup'].some((token) =>
+        normalizedType.includes(token)
+      )
+      const metric = step.power
+        ? 'power'
+        : step.pace
+          ? 'pace'
+          : step.heartRate || step.hr
+            ? 'heartRate'
+            : typeof step.rpe === 'number'
+              ? 'rpe'
+              : null
+      const targetValue =
+        metric === 'power'
+          ? getTargetValue(step.power)
+          : metric === 'pace'
+            ? getTargetValue(step.pace)
+            : metric === 'heartRate'
+              ? getTargetValue(step.heartRate || step.hr)
+              : metric === 'rpe'
+                ? Number(step.rpe)
+                : null
+      let intensityFactor: number | null = null
+      if (metric === 'power')
+        intensityFactor = toIntensityFactorFromTarget(step.power, 'power', refs)
+      else if (metric === 'pace')
+        intensityFactor = toIntensityFactorFromTarget(step.pace, 'pace', refs)
+      else if (metric === 'heartRate')
+        intensityFactor = toIntensityFactorFromTarget(step.heartRate || step.hr, 'heartRate', refs)
+      else if (metric === 'rpe' && typeof step.rpe === 'number')
+        intensityFactor = clamp(step.rpe / 10, 0.3, 1.5)
+
+      flattened.push({
+        type: stepType,
+        durationSeconds,
+        metric,
+        targetValue,
+        intensityFactor,
+        classification: isRecovery ? 'recovery' : 'work'
+      })
+    }
+  }
+
+  visit(steps)
+  return flattened
+}
+
+function extractActualIntervals(workout: any): ActualInterval[] {
+  const rawIntervals = Array.isArray((workout?.rawJson as any)?.icu_intervals)
+    ? ((workout.rawJson as any).icu_intervals as any[])
+    : []
+
+  return rawIntervals
+    .map((interval) => {
+      const type = String(interval?.type || 'INTERVAL')
+      const lower = type.toLowerCase()
+      const classification =
+        lower.includes('rest') ||
+        lower.includes('recovery') ||
+        lower.includes('warm') ||
+        lower.includes('cool')
+          ? ('recovery' as const)
+          : ('work' as const)
+      return {
+        type,
+        durationSeconds:
+          Number(interval?.moving_time ?? interval?.elapsed_time ?? interval?.duration ?? 0) || 0,
+        avgPower: Number.isFinite(Number(interval?.average_watts))
+          ? Number(interval.average_watts)
+          : null,
+        avgHr: Number.isFinite(Number(interval?.average_heartrate))
+          ? Number(interval.average_heartrate)
+          : null,
+        avgSpeed: Number.isFinite(Number(interval?.average_speed))
+          ? Number(interval.average_speed)
+          : null,
+        intensity: Number.isFinite(Number(interval?.intensity)) ? Number(interval.intensity) : null,
+        classification
+      }
+    })
+    .filter((interval) => interval.durationSeconds > 0)
+}
+
+function rateConfidence(score: number): FactConfidence {
+  if (score >= 0.75) return 'high'
+  if (score >= 0.4) return 'medium'
+  return 'low'
+}
+
+function classifyArchetype(params: {
+  workout: any
+  family: ReturnType<typeof getWorkoutFamily>
+  analysisMode: AnalysisMode
+  erg: ReturnType<typeof detectErg>
+  plannedWorkout: any
+  powerSourceType: PowerSourceType
+  hrUsable: boolean
+}): WorkoutAnalysisFactsV2['guardrails']['archetype'] {
+  const { workout, family, analysisMode, erg, plannedWorkout, powerSourceType, hrUsable } = params
+  const rationale: string[] = []
+  const titleContext = `${workout?.title || ''} ${workout?.description || ''}`.toLowerCase()
+  const virtualContext =
+    `${workout?.source || ''} ${workout?.type || ''} ${workout?.deviceName || ''} ${workout?.title || ''} ${workout?.description || ''}`.toLowerCase()
+  const plannedSteps = flattenPlannedSteps(getStructuredSteps(plannedWorkout?.structuredWorkout), {
+    ftp: Number(workout?.ftp || 0),
+    lthr: 0,
+    maxHr: 0,
+    thresholdPace: 0
+  })
+  const workSteps = plannedSteps.filter((step) => step.classification === 'work')
+  const actualIntervals = extractActualIntervals(workout)
+  const intervalCount = actualIntervals.filter(
+    (interval) => interval.classification === 'work'
+  ).length
+  const vi = Number(workout?.variabilityIndex || 0)
+  const intensity = Number.isFinite(Number(workout?.intensity)) ? Number(workout.intensity) : null
+  const isRace = ['race', 'criterium', 'triathlon', 'marathon', 'event'].some((token) =>
+    titleContext.includes(token)
+  )
+
+  let primaryArchetype: PrimaryArchetype = 'unknown'
+  if (family === 'strength') primaryArchetype = 'strength'
+  else if (isRace) {
+    primaryArchetype = 'race'
+    rationale.push('Workout title or description indicates an event/race context.')
+  } else if (workSteps.some((step) => (step.intensityFactor || 0) >= 1.15) || intervalCount >= 6) {
+    primaryArchetype = 'vo2'
+    rationale.push('Repeated hard work intervals detected.')
+  } else if (workSteps.some((step) => (step.intensityFactor || 0) >= 1.03)) {
+    primaryArchetype = 'threshold'
+    rationale.push('Planned work steps cluster around threshold intensity.')
+  } else if (workSteps.some((step) => (step.intensityFactor || 0) >= 0.88)) {
+    primaryArchetype = 'tempo'
+    rationale.push('Planned work steps indicate sustained sub-threshold work.')
+  } else if (intensity !== null && intensity <= 0.7 && (workout?.durationSec || 0) >= 1800) {
+    primaryArchetype = 'recovery'
+    rationale.push('Low intensity with meaningful duration suggests a recovery session.')
+  } else if (
+    (intensity !== null && intensity <= 0.85) ||
+    analysisMode === 'pace' ||
+    ((family === 'ride' || family === 'run') &&
+      (workout?.durationSec || 0) >= 1800 &&
+      vi > 0 &&
+      vi <= 1.06)
+  ) {
+    primaryArchetype = 'endurance'
+    rationale.push('Intensity and signal mode align with aerobic endurance work.')
+  } else {
+    primaryArchetype = 'mixed'
+    rationale.push('Workout contains mixed signals without a single dominant intent.')
+  }
+
+  let executionEnvironment: ExecutionEnvironment = 'unknown'
+  if (
+    String(workout?.type || '')
+      .toLowerCase()
+      .includes('treadmill')
+  )
+    executionEnvironment = 'treadmill'
+  else if (erg.detected) executionEnvironment = 'indoor_erg'
+  else if (
+    [
+      'zwift',
+      'virtualride',
+      'virtual run',
+      'virtualrun',
+      'trainerroad',
+      'rouvy',
+      'bkool',
+      'wahoo systm'
+    ].some((token) => virtualContext.includes(token))
+  ) {
+    executionEnvironment = 'indoor_resistance'
+    rationale.push('Virtual platform context indicates an indoor trainer or treadmill session.')
+  } else if (workout?.trainer) executionEnvironment = 'indoor_resistance'
+  else if (family === 'ride' || family === 'run') executionEnvironment = 'outdoor_free'
+
+  let primaryMetric: PrimaryMetric = 'mixed'
+  if (powerSourceType === 'measured') primaryMetric = hrUsable ? 'mixed' : 'power'
+  else if (family === 'run') primaryMetric = 'pace'
+  else if (hrUsable) primaryMetric = 'hr'
+  else if (workout?.rpe || workout?.sessionRpe) primaryMetric = 'subjective'
+
+  let sessionSteadiness: SessionSteadiness = 'unknown'
+  if (intervalCount >= 3 || workSteps.length >= 3) sessionSteadiness = 'intervalled'
+  else if (vi >= 1.12) sessionSteadiness = 'stochastic'
+  else if (vi >= 1.06) sessionSteadiness = 'rolling'
+  else if (workout?.durationSec >= 1800) sessionSteadiness = 'steady'
+  else sessionSteadiness = 'rolling'
+
+  if (sessionSteadiness === 'intervalled')
+    rationale.push('Multiple work intervals indicate intervalled execution.')
+  else if (sessionSteadiness === 'stochastic')
+    rationale.push('High variability suggests stochastic pacing.')
+  else if (sessionSteadiness === 'steady')
+    rationale.push('Low variability suggests steady-state execution.')
+
+  return {
+    primaryArchetype,
+    executionEnvironment,
+    primaryMetric,
+    sessionSteadiness,
+    confidence: rateConfidence(
+      [
+        (primaryArchetype as string) !== 'unknown',
+        (executionEnvironment as string) !== 'unknown',
+        primaryMetric !== 'mixed' || analysisMode !== 'mixed',
+        (sessionSteadiness as string) !== 'unknown'
+      ].filter(Boolean).length / 4
+    ),
+    rationale
+  }
+}
+
+function deriveDecouplingV2(params: {
+  workout: any
+  family: ReturnType<typeof getWorkoutFamily>
+  hrUsable: boolean
+  warmupExcludedMinutes: number
+  archetype: WorkoutAnalysisFactsV2['guardrails']['archetype']
+}): WorkoutAnalysisFactsV2['performanceSignals']['decoupling'] {
+  const { workout, family, hrUsable, warmupExcludedMinutes, archetype } = params
+  const base = deriveDecoupling(workout, hrUsable, warmupExcludedMinutes)
+
+  if (family !== 'ride' && family !== 'run') {
+    return {
+      interpretable: false,
+      reason: 'Classic decoupling is only interpreted for cardio workouts.',
+      effective: null,
+      direction: 'unknown' as const,
+      confidence: 'low' as FactConfidence
+    }
+  }
+
+  if (!hrUsable) {
+    return {
+      interpretable: false,
+      reason: 'Heart-rate telemetry is not reliable enough for decoupling.',
+      effective: base.effective,
+      direction: 'unknown' as const,
+      confidence: 'low' as FactConfidence
+    }
+  }
+
+  if (!base.valid) {
+    return {
+      interpretable: false,
+      reason: 'Not enough reliable post-warmup workload data for decoupling.',
+      effective: base.effective,
+      direction: 'unknown' as const,
+      confidence: 'low' as FactConfidence
+    }
+  }
+
+  if (['intervalled', 'stochastic'].includes(archetype.sessionSteadiness)) {
+    return {
+      interpretable: false,
+      reason: `Session steadiness is ${archetype.sessionSteadiness}, so classic decoupling would be misleading.`,
+      effective: base.effective,
+      direction: base.direction as DecouplingDirection | 'unknown',
+      confidence: base.confidence as FactConfidence
+    }
+  }
+
+  if (archetype.primaryArchetype === 'race') {
+    return {
+      interpretable: false,
+      reason: 'Race-like sessions are too stochastic for classic decoupling.',
+      effective: base.effective,
+      direction: base.direction as DecouplingDirection | 'unknown',
+      confidence: base.confidence as FactConfidence
+    }
+  }
+
+  return {
+    interpretable: true,
+    reason: null,
+    effective: base.effective,
+    direction: base.direction as DecouplingDirection | 'unknown',
+    confidence: base.confidence as FactConfidence
+  }
+}
+
+function getZoneDominance(zoneTimes: unknown, prefix: 'Z' | 'HRZ') {
+  const values = asNumberArray(zoneTimes)
+  if (values.length === 0) return null
+  const total = values.reduce((sum, value) => sum + value, 0)
+  if (total <= 0) return null
+  let maxIndex = 0
+  values.forEach((value, index) => {
+    if (value > values[maxIndex]!) maxIndex = index
+  })
+  return `${prefix}${maxIndex + 1}`
+}
+
+function getTimeAboveThresholdPct(zoneTimes: unknown): number | null {
+  const values = asNumberArray(zoneTimes)
+  if (values.length < 4) return null
+  const total = values.reduce((sum, value) => sum + value, 0)
+  if (total <= 0) return null
+  const aboveThreshold = values.slice(3).reduce((sum, value) => sum + value, 0)
+  return round((aboveThreshold / total) * 100, 1)
+}
+
+function computeAverage(values: number[]): number | null {
+  if (values.length === 0) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function deriveDurabilitySignals(params: {
+  workout: any
+  family: ReturnType<typeof getWorkoutFamily>
+}): WorkoutAnalysisFactsV2['performanceSignals']['durability'] {
+  const { workout, family } = params
+  const time = asNumberArray(workout?.streams?.time)
+  const power = asNumberArray(workout?.streams?.watts)
+  const hr = asNumberArray(workout?.streams?.heartrate)
+  const speed = asNumberArray(workout?.streams?.velocity)
+  const cadence = asNumberArray(workout?.streams?.cadence)
+  const actualIntervals = extractActualIntervals(workout).filter(
+    (interval) => interval.classification === 'work'
+  )
+
+  let lateSessionFadePct: number | null = null
+  if (family === 'ride' && power.length >= 120) {
+    const chunk = Math.max(1, Math.floor(power.length * 0.2))
+    const first = computeAverage(power.slice(0, chunk).filter((value) => value > 0))
+    const last = computeAverage(power.slice(-chunk).filter((value) => value > 0))
+    if (first && last && first > 0) lateSessionFadePct = round(((first - last) / first) * 100, 1)
+  } else if (family === 'run' && speed.length >= 120) {
+    const chunk = Math.max(1, Math.floor(speed.length * 0.2))
+    const first = computeAverage(speed.slice(0, chunk).filter((value) => value > 0))
+    const last = computeAverage(speed.slice(-chunk).filter((value) => value > 0))
+    if (first && last && first > 0) lateSessionFadePct = round(((first - last) / first) * 100, 1)
+  } else if (power.length >= 120 && hr.length >= 120) {
+    const fatigue = calculateFatigueSensitivity(
+      power,
+      hr,
+      time.length ? time : power.map((_, index) => index)
+    )
+    lateSessionFadePct = round(fatigue?.decay, 1)
+  }
+
+  let firstVsLastIntervalDeltaPct: number | null = null
+  if (actualIntervals.length >= 2) {
+    const first = actualIntervals[0]!
+    const last = actualIntervals[actualIntervals.length - 1]!
+    const firstMetric =
+      family === 'run'
+        ? (first.avgSpeed ?? null)
+        : (first.avgPower ?? (first.intensity !== null ? first.intensity * 100 : null))
+    const lastMetric =
+      family === 'run'
+        ? (last.avgSpeed ?? null)
+        : (last.avgPower ?? (last.intensity !== null ? last.intensity * 100 : null))
+    if (firstMetric && lastMetric && firstMetric > 0) {
+      firstVsLastIntervalDeltaPct = round(((firstMetric - lastMetric) / firstMetric) * 100, 1)
+    }
+  }
+
+  const avgRecoveryDrop = Array.isArray(workout?.recoveryTrend)
+    ? computeAverage(
+        workout.recoveryTrend
+          .map((entry: any) => Number(entry?.drop60s))
+          .filter((value: number) => Number.isFinite(value) && value > 0)
+      )
+    : null
+  const recoveryTrendScore =
+    avgRecoveryDrop !== null ? round(clamp((avgRecoveryDrop / 35) * 100, 0, 100), 1) : null
+
+  let executionStabilityScore: number | null = null
+  if (family === 'ride' && power.length >= 120) {
+    const stability = calculateStabilityMetrics(power, [])
+    executionStabilityScore =
+      stability !== null ? round(clamp(100 - stability.overallCoV * 6, 0, 100), 1) : null
+  } else if (family === 'run' && speed.length >= 120) {
+    const stability = calculateStabilityMetrics(speed, [])
+    executionStabilityScore =
+      stability !== null ? round(clamp(100 - stability.overallCoV * 8, 0, 100), 1) : null
+  }
+
+  let repeatabilityScore: number | null = null
+  if (actualIntervals.length >= 3) {
+    const intervalMetrics = actualIntervals
+      .map((interval) => (family === 'run' ? interval.avgSpeed : interval.avgPower))
+      .filter((value): value is number => value !== null && Number.isFinite(value) && value > 0)
+    if (intervalMetrics.length >= 3) {
+      const mean = intervalMetrics.reduce((sum, value) => sum + value, 0) / intervalMetrics.length
+      const variance =
+        intervalMetrics.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) /
+        intervalMetrics.length
+      const cov = mean > 0 ? (Math.sqrt(variance) / mean) * 100 : null
+      if (cov !== null) repeatabilityScore = round(clamp(100 - cov * 8, 0, 100), 1)
+    }
+  }
+
+  return {
+    lateSessionFadePct,
+    firstVsLastIntervalDeltaPct,
+    recoveryTrendScore,
+    executionStabilityScore,
+    repeatabilityScore
+  }
+}
+
+function deriveSportSpecificSignals(params: {
+  workout: any
+  family: ReturnType<typeof getWorkoutFamily>
+}): WorkoutAnalysisFactsV2['performanceSignals']['sportSpecific'] {
+  const { workout, family } = params
+  const cadence = asNumberArray(workout?.streams?.cadence)
+  const speed = asNumberArray(workout?.streams?.velocity)
+  let cadenceDriftPct: number | null = null
+  let cadenceStabilityScore: number | null = null
+  let pacingDriftPct: number | null = null
+  let torqueProfile: WorkoutAnalysisFactsV2['performanceSignals']['sportSpecific']['torqueProfile'] =
+    'unknown'
+
+  if (cadence.length >= 120) {
+    const chunk = Math.max(1, Math.floor(cadence.length * 0.2))
+    const first = computeAverage(cadence.slice(0, chunk).filter((value) => value > 0))
+    const last = computeAverage(cadence.slice(-chunk).filter((value) => value > 0))
+    if (first && last && first > 0) cadenceDriftPct = round(((first - last) / first) * 100, 1)
+    const stability = calculateStabilityMetrics(cadence, [])
+    if (stability) cadenceStabilityScore = round(clamp(100 - stability.overallCoV * 5, 0, 100), 1)
+  }
+
+  if (speed.length >= 120) {
+    const chunk = Math.max(1, Math.floor(speed.length * 0.2))
+    const first = computeAverage(speed.slice(0, chunk).filter((value) => value > 0))
+    const last = computeAverage(speed.slice(-chunk).filter((value) => value > 0))
+    if (first && last && first > 0) pacingDriftPct = round(((first - last) / first) * 100, 1)
+  }
+
+  if (family === 'ride') {
+    const avgCadence = Number(
+      workout?.averageCadence || computeAverage(cadence.filter((value) => value > 0)) || 0
+    )
+    if (avgCadence > 0) {
+      if (avgCadence < 80) torqueProfile = 'low_cadence_force'
+      else if (avgCadence > 95) torqueProfile = 'high_cadence_spin'
+      else torqueProfile = 'neutral'
+    }
+  } else {
+    torqueProfile = 'unknown'
+  }
+
+  return {
+    cadenceDriftPct,
+    cadenceStabilityScore,
+    torqueProfile,
+    pacingDriftPct
+  }
+}
+
+function deriveAdherence(params: {
+  workout: any
+  plannedWorkout: any
+  family: ReturnType<typeof getWorkoutFamily>
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+}): WorkoutAnalysisFactsV2['adherence'] {
+  const { workout, plannedWorkout, family, refs } = params
+  if (!plannedWorkout) {
+    return {
+      planLinked: false,
+      adherenceAssessable: false,
+      adherenceReason: 'No linked planned workout is available.',
+      completionPct: null,
+      durationVsPlanPct: null,
+      workIntervalHitRate: null,
+      recoveryHitRate: null,
+      targetOvershootPct: null,
+      targetUndershootPct: null,
+      structureMatched: false,
+      executionClassification: 'not_assessable'
+    }
+  }
+
+  const plannedDuration = Number(plannedWorkout?.durationSec || 0)
+  const actualDuration = Number(workout?.durationSec || 0)
+  const durationVsPlanPct =
+    plannedDuration > 0 ? round((actualDuration / plannedDuration) * 100, 1) : null
+  const completionPct =
+    durationVsPlanPct !== null ? round(clamp(durationVsPlanPct, 0, 140), 1) : null
+
+  const plannedSteps = flattenPlannedSteps(
+    getStructuredSteps(plannedWorkout?.structuredWorkout),
+    refs
+  )
+  const actualIntervals = extractActualIntervals(workout)
+  const plannedWork = plannedSteps.filter((step) => step.classification === 'work')
+  const plannedRecovery = plannedSteps.filter((step) => step.classification === 'recovery')
+  const actualWork = actualIntervals.filter((step) => step.classification === 'work')
+  const actualRecovery = actualIntervals.filter((step) => step.classification === 'recovery')
+
+  if (plannedSteps.length === 0) {
+    return {
+      planLinked: true,
+      adherenceAssessable: false,
+      adherenceReason: 'Linked plan has no structured steps to compare.',
+      completionPct,
+      durationVsPlanPct,
+      workIntervalHitRate: null,
+      recoveryHitRate: null,
+      targetOvershootPct: null,
+      targetUndershootPct: null,
+      structureMatched: false,
+      executionClassification:
+        durationVsPlanPct !== null && durationVsPlanPct >= 60
+          ? 'unstructured_substitution'
+          : 'not_assessable'
+    }
+  }
+
+  if (actualIntervals.length === 0) {
+    return {
+      planLinked: true,
+      adherenceAssessable: false,
+      adherenceReason: 'Actual interval segmentation is unavailable for precise adherence scoring.',
+      completionPct,
+      durationVsPlanPct,
+      workIntervalHitRate: null,
+      recoveryHitRate: null,
+      targetOvershootPct: null,
+      targetUndershootPct: null,
+      structureMatched: false,
+      executionClassification:
+        durationVsPlanPct !== null &&
+        durationVsPlanPct >= 60 &&
+        (family === 'ride' || family === 'run')
+          ? 'unstructured_substitution'
+          : 'not_assessable'
+    }
+  }
+
+  const workPairs = Math.min(plannedWork.length, actualWork.length)
+  const recoveryPairs = Math.min(plannedRecovery.length, actualRecovery.length)
+  const pairMetric = (
+    planned: FlattenedPlannedStep,
+    actual: ActualInterval
+  ): { deltaPct: number | null; hit: boolean } => {
+    let target = planned.targetValue
+    let actualValue: number | null = null
+    let threshold = 10
+
+    if (planned.metric === 'power') {
+      actualValue = actual.avgPower
+    } else if (planned.metric === 'pace') {
+      actualValue = actual.avgSpeed
+      threshold = 8
+    } else if (planned.metric === 'heartRate') {
+      actualValue = actual.avgHr
+      threshold = 6
+    } else if (planned.metric === 'rpe') {
+      target = planned.intensityFactor
+      actualValue = actual.intensity
+      threshold = 10
+    } else {
+      target = planned.intensityFactor
+      actualValue = actual.intensity
+    }
+
+    if (
+      target === null ||
+      !Number.isFinite(target) ||
+      target <= 0 ||
+      actualValue === null ||
+      actualValue <= 0
+    ) {
+      return { deltaPct: null, hit: false }
+    }
+
+    const deltaPct = ((actualValue - target) / target) * 100
+    return { deltaPct, hit: Math.abs(deltaPct) <= threshold }
+  }
+
+  let workHits = 0
+  let recoveryHits = 0
+  const overshoots: number[] = []
+  const undershoots: number[] = []
+
+  for (let index = 0; index < workPairs; index++) {
+    const result = pairMetric(plannedWork[index]!, actualWork[index]!)
+    if (result.hit) workHits++
+    if (result.deltaPct !== null && result.deltaPct > 0) overshoots.push(result.deltaPct)
+    if (result.deltaPct !== null && result.deltaPct < 0) undershoots.push(Math.abs(result.deltaPct))
+  }
+
+  for (let index = 0; index < recoveryPairs; index++) {
+    const result = pairMetric(plannedRecovery[index]!, actualRecovery[index]!)
+    if (result.hit) recoveryHits++
+  }
+
+  const workIntervalHitRate =
+    plannedWork.length > 0 ? round((workHits / plannedWork.length) * 100, 1) : null
+  const recoveryHitRate =
+    plannedRecovery.length > 0 ? round((recoveryHits / plannedRecovery.length) * 100, 1) : null
+  const structureMatched =
+    plannedWork.length > 0 &&
+    actualWork.length > 0 &&
+    Math.abs(plannedWork.length - actualWork.length) <= 1 &&
+    Math.abs(plannedRecovery.length - actualRecovery.length) <= 1
+
+  const targetOvershootPct =
+    overshoots.length > 0
+      ? round(overshoots.reduce((a, b) => a + b, 0) / overshoots.length, 1)
+      : null
+  const targetUndershootPct =
+    undershoots.length > 0
+      ? round(undershoots.reduce((a, b) => a + b, 0) / undershoots.length, 1)
+      : null
+
+  let executionClassification: ExecutionClassification = 'as_prescribed'
+  if (!structureMatched) executionClassification = 'unstructured_substitution'
+  else if ((durationVsPlanPct ?? 100) < 85) executionClassification = 'shortened'
+  else if ((targetUndershootPct ?? 0) >= 8) executionClassification = 'intensity_reduced'
+  else if ((targetOvershootPct ?? 0) >= 8) executionClassification = 'intensity_inflated'
+
+  return {
+    planLinked: true,
+    adherenceAssessable: true,
+    adherenceReason: null,
+    completionPct,
+    durationVsPlanPct,
+    workIntervalHitRate,
+    recoveryHitRate,
+    targetOvershootPct,
+    targetUndershootPct,
+    structureMatched,
+    executionClassification
+  }
+}
+
+function buildPromptDecisionsV2(facts: WorkoutAnalysisFactsV2): Record<string, PromptDecision> {
+  const decisions: Record<string, PromptDecision> = {}
+  const set = (path: string, include: boolean, reason: string) => {
+    decisions[path] = { include, reason }
+  }
+
+  set('guardrails.analysisMode', true, 'Keep compatibility analysis mode visible during rollout.')
+  set(
+    'guardrails.archetype.primaryArchetype',
+    true,
+    'Primary workout archetype should guide interpretation.'
+  )
+  set(
+    'guardrails.archetype.executionEnvironment',
+    true,
+    'Execution environment changes how pacing discipline should be judged.'
+  )
+  set(
+    'guardrails.archetype.primaryMetric',
+    true,
+    'Primary metric tells the AI which signal family should lead the analysis.'
+  )
+  set(
+    'guardrails.archetype.sessionSteadiness',
+    true,
+    'Session steadiness controls decoupling and pacing interpretation.'
+  )
+  set('guardrails.telemetry.hrUsable', true, 'HR usability must always be explicit.')
+  set(
+    'guardrails.telemetry.hrArtifactSeverity',
+    facts.guardrails.telemetry.hrArtifactSeverity !== 'none',
+    facts.guardrails.telemetry.hrArtifactSeverity !== 'none'
+      ? 'HR artifact severity explains telemetry suppression.'
+      : 'No HR artifact severity needs to be shown.'
+  )
+  set(
+    'guardrails.telemetry.powerSourceType',
+    facts.guardrails.telemetry.powerSourceType !== 'unknown',
+    'Power provenance affects how strongly power claims can be made.'
+  )
+  set(
+    'guardrails.telemetry.powerAbsoluteUsable',
+    true,
+    'The prompt needs to know whether absolute power benchmarking is allowed.'
+  )
+  set(
+    'guardrails.telemetry.powerRelativeUsable',
+    true,
+    'Relative power usability helps preserve trend analysis when absolute power is uncertain.'
+  )
+  set(
+    'guardrails.telemetry.paceUsable',
+    facts.guardrails.telemetry.paceUsable,
+    facts.guardrails.telemetry.paceUsable
+      ? 'Pace can be trusted as a leading metric.'
+      : 'No pace signal is available.'
+  )
+  set(
+    'guardrails.telemetry.gpsConfidence',
+    facts.guardrails.telemetry.paceUsable,
+    facts.guardrails.telemetry.paceUsable
+      ? 'GPS/pace confidence calibrates how strongly to interpret pacing.'
+      : 'GPS confidence is irrelevant without pace.'
+  )
+  set(
+    'guardrails.telemetry.lrBalanceUsable',
+    true,
+    'The prompt should know whether L/R balance is safe to use.'
+  )
+  set(
+    'guardrails.telemetry.lrInterpretationMode',
+    true,
+    'L/R interpretation mode explains how balance data was handled.'
+  )
+  set('guardrails.erg.detected', true, 'ERG detection changes pacing judgment.')
+  set(
+    'guardrails.erg.powerControlMode',
+    facts.guardrails.erg.powerControlMode !== 'unknown',
+    'Trainer control mode provides environment context when known.'
+  )
+  set(
+    'guardrails.suppressions',
+    facts.guardrails.suppressions.length > 0,
+    facts.guardrails.suppressions.length > 0
+      ? 'Suppression reasons must be explicit in the prompt.'
+      : 'No suppressions need to be shown.'
+  )
+
+  set(
+    'adherence.planLinked',
+    facts.adherence.planLinked,
+    'Plan linkage is essential context for execution analysis.'
+  )
+  set(
+    'adherence.adherenceAssessable',
+    facts.adherence.planLinked,
+    'The model must know whether adherence claims are defensible.'
+  )
+  set(
+    'adherence.adherenceReason',
+    Boolean(facts.adherence.adherenceReason),
+    'A reason is useful when adherence cannot be assessed precisely.'
+  )
+  set(
+    'adherence.completionPct',
+    facts.adherence.completionPct !== null,
+    'Completion percentage provides a compact summary of plan completion.'
+  )
+  set(
+    'adherence.durationVsPlanPct',
+    facts.adherence.durationVsPlanPct !== null,
+    'Duration variance is a core adherence signal.'
+  )
+  set(
+    'adherence.workIntervalHitRate',
+    facts.adherence.workIntervalHitRate !== null,
+    'Work interval hit rate is the core structured adherence metric.'
+  )
+  set(
+    'adherence.recoveryHitRate',
+    facts.adherence.recoveryHitRate !== null,
+    'Recovery hit rate helps judge complete execution, not just hard efforts.'
+  )
+  set(
+    'adherence.targetOvershootPct',
+    facts.adherence.targetOvershootPct !== null,
+    'Overshoot quantifies intensity inflation when present.'
+  )
+  set(
+    'adherence.targetUndershootPct',
+    facts.adherence.targetUndershootPct !== null,
+    'Undershoot quantifies intensity reduction when present.'
+  )
+  set(
+    'adherence.structureMatched',
+    facts.adherence.planLinked,
+    'Structure matching distinguishes faithful execution from substitution.'
+  )
+  set(
+    'adherence.executionClassification',
+    facts.adherence.planLinked,
+    'Execution classification is the highest-level adherence summary.'
+  )
+
+  set(
+    'performanceSignals.decoupling.interpretable',
+    true,
+    'The prompt must know whether classic decoupling can be discussed.'
+  )
+  set(
+    'performanceSignals.decoupling.reason',
+    Boolean(facts.performanceSignals.decoupling.reason),
+    'A reason is useful when decoupling is suppressed.'
+  )
+  set(
+    'performanceSignals.decoupling.effective',
+    facts.performanceSignals.decoupling.interpretable &&
+      facts.performanceSignals.decoupling.effective !== null,
+    'Decoupling value is only useful when interpretable.'
+  )
+  set(
+    'performanceSignals.decoupling.direction',
+    facts.performanceSignals.decoupling.interpretable &&
+      facts.performanceSignals.decoupling.direction !== 'unknown',
+    'Decoupling direction is only useful when interpretable.'
+  )
+  set(
+    'performanceSignals.durability.lateSessionFadePct',
+    facts.performanceSignals.durability.lateSessionFadePct !== null,
+    'Late-session fade helps the AI talk about durability.'
+  )
+  set(
+    'performanceSignals.durability.firstVsLastIntervalDeltaPct',
+    facts.performanceSignals.durability.firstVsLastIntervalDeltaPct !== null,
+    'First-vs-last interval delta supports repeatability analysis.'
+  )
+  set(
+    'performanceSignals.durability.recoveryTrendScore',
+    facts.performanceSignals.durability.recoveryTrendScore !== null,
+    'Recovery trend score helps with fatigue interpretation.'
+  )
+  set(
+    'performanceSignals.durability.executionStabilityScore',
+    facts.performanceSignals.durability.executionStabilityScore !== null,
+    'Execution stability adds high-signal pacing consistency context.'
+  )
+  set(
+    'performanceSignals.durability.repeatabilityScore',
+    facts.performanceSignals.durability.repeatabilityScore !== null,
+    'Repeatability helps the model describe interval-to-interval consistency.'
+  )
+  set(
+    'performanceSignals.zones.dominantPowerZone',
+    facts.performanceSignals.zones.dominantPowerZone !== null,
+    'Dominant power zone gives concise intensity distribution context.'
+  )
+  set(
+    'performanceSignals.zones.dominantHrZone',
+    facts.performanceSignals.zones.dominantHrZone !== null,
+    'Dominant HR zone gives concise physiological distribution context.'
+  )
+  set(
+    'performanceSignals.zones.timeAboveThresholdPct',
+    facts.performanceSignals.zones.timeAboveThresholdPct !== null,
+    'Time above threshold helps characterize workout strain.'
+  )
+  set(
+    'performanceSignals.sportSpecific.cadenceDriftPct',
+    facts.performanceSignals.sportSpecific.cadenceDriftPct !== null,
+    'Cadence drift is useful when available.'
+  )
+  set(
+    'performanceSignals.sportSpecific.cadenceStabilityScore',
+    facts.performanceSignals.sportSpecific.cadenceStabilityScore !== null,
+    'Cadence stability adds sport-specific execution context.'
+  )
+  set(
+    'performanceSignals.sportSpecific.torqueProfile',
+    facts.performanceSignals.sportSpecific.torqueProfile !== 'unknown',
+    'Torque profile is useful for cycling-specific execution analysis.'
+  )
+  set(
+    'performanceSignals.sportSpecific.pacingDriftPct',
+    facts.performanceSignals.sportSpecific.pacingDriftPct !== null,
+    'Pacing drift is useful for running-specific execution analysis.'
+  )
+
+  set(
+    'confidence.debugMeta.computedFrom',
+    false,
+    'Input provenance is for UI/debugging, not the prompt.'
+  )
+  set(
+    'confidence.debugMeta.unavailableInputs',
+    false,
+    'Missing input inventory is for UI/debugging, not the prompt.'
+  )
+  set(
+    'confidence.debugMeta.suppressedMetrics',
+    facts.confidence.debugMeta.suppressedMetrics.length > 0,
+    'Suppressed metrics list explains what the prompt must not infer.'
+  )
+  set(
+    'confidence.overall',
+    true,
+    'Overall confidence calibrates how strongly the AI should state conclusions.'
+  )
+
+  return decisions
+}
+
+export function buildWorkoutAnalysisFactsV2({
+  workout,
+  sportSettings,
+  plannedWorkout,
+  userProfile
+}: BuildWorkoutAnalysisFactsOptions): WorkoutAnalysisFactsV2 {
+  const computedFrom = ['workout.summary']
+  const unavailableInputs: string[] = []
+  const suppressedMetrics: string[] = []
+
+  if (workout?.rawJson) computedFrom.push('workout.rawJson')
+  else unavailableInputs.push('workout.rawJson')
+
+  if (workout?.streams) computedFrom.push('workout.streams')
+  else unavailableInputs.push('workout.streams')
+
+  if (plannedWorkout) computedFrom.push('plannedWorkout')
+  else unavailableInputs.push('plannedWorkout')
+
+  if (sportSettings) computedFrom.push('sportSettings')
+  else unavailableInputs.push('sportSettings')
+
+  if (userProfile) computedFrom.push('userProfile')
+  else unavailableInputs.push('userProfile')
+
+  const family = getWorkoutFamily(workout?.type)
+  const rpe = workout?.sessionRpe ?? workout?.rpe ?? null
+  const hrStats = getHrStats(workout)
+  const powerSourceType = inferPowerSourceType(workout, family)
+  const powerAbsoluteUsable = powerSourceType === 'measured'
+  const powerRelativeUsable =
+    powerSourceType !== 'unknown' ||
+    Boolean(workout?.averageWatts) ||
+    Boolean(workout?.normalizedPower) ||
+    asNumberArray(workout?.streams?.watts).length > 0
+  const hasPace =
+    Boolean(workout?.averageSpeed) || asNumberArray(workout?.streams?.velocity).length > 0
+  const analysisMode = getAnalysisMode({
+    family,
+    powerSourceType,
+    hrUsable: hrStats.usable,
+    hasPace,
+    hasRpe: Boolean(rpe)
+  })
+  const warmupExcludedMinutes = clamp(Number(sportSettings?.warmupTime || 10), 10, 15)
+  const erg = detectErg(workout, plannedWorkout)
+  const lrBalance = deriveLrBalance(workout)
+  const archetype = classifyArchetype({
+    workout,
+    family,
+    analysisMode,
+    erg,
+    plannedWorkout,
+    powerSourceType,
+    hrUsable: hrStats.usable
+  })
+  const decoupling = deriveDecouplingV2({
+    workout,
+    family,
+    hrUsable: hrStats.usable,
+    warmupExcludedMinutes,
+    archetype
+  })
+
+  if (!hrStats.usable)
+    suppressedMetrics.push(
+      'Heart-rate-derived interpretation suppressed because HR telemetry is unreliable.'
+    )
+  if (!powerAbsoluteUsable && powerRelativeUsable)
+    suppressedMetrics.push(
+      'Absolute power benchmarking suppressed because power provenance is uncertain.'
+    )
+  if (!decoupling.interpretable)
+    suppressedMetrics.push(decoupling.reason || 'Classic decoupling interpretation suppressed.')
+  if (lrBalance.interpretationMode === 'disabled')
+    suppressedMetrics.push(lrBalance.correctionReason || 'L/R balance interpretation suppressed.')
+  if (lrBalance.interpretationMode === 'corrected')
+    suppressedMetrics.push('L/R balance channels were corrected before interpretation.')
+  if (erg.detected)
+    suppressedMetrics.push('Pacing discipline should be judged with ERG trainer control in mind.')
+
+  const refs = {
+    ftp: Number(sportSettings?.ftp || workout?.ftp || 0),
+    lthr: Number(sportSettings?.lthr || 0),
+    maxHr: Number(sportSettings?.maxHr || 0),
+    thresholdPace: Number(sportSettings?.thresholdPace || 0)
+  }
+
+  const adherence = deriveAdherence({
+    workout,
+    plannedWorkout,
+    family,
+    refs
+  })
+
+  const performanceSignals: WorkoutAnalysisFactsV2['performanceSignals'] = {
+    decoupling,
+    durability: deriveDurabilitySignals({ workout, family }),
+    zones: {
+      dominantPowerZone: getZoneDominance(workout?.streams?.powerZoneTimes, 'Z'),
+      dominantHrZone: getZoneDominance(workout?.streams?.hrZoneTimes, 'HRZ'),
+      timeAboveThresholdPct:
+        getTimeAboveThresholdPct(workout?.streams?.powerZoneTimes) ??
+        getTimeAboveThresholdPct(workout?.streams?.hrZoneTimes)
+    },
+    sportSpecific: deriveSportSpecificSignals({ workout, family })
+  }
+
+  const guardrails: WorkoutAnalysisFactsV2['guardrails'] = {
+    analysisMode,
+    archetype,
+    telemetry: {
+      hrUsable: hrStats.usable,
+      hrArtifactSeverity: inferHrArtifactSeverity(hrStats),
+      hrZeroRatio: hrStats.zeroRatio,
+      hrMissingRatio: hrStats.missingRatio,
+      powerSourceType,
+      powerSourceConfidence:
+        powerSourceType === 'measured'
+          ? 'high'
+          : powerSourceType === 'estimated'
+            ? 'medium'
+            : 'low',
+      powerAbsoluteUsable,
+      powerRelativeUsable,
+      paceUsable: hasPace,
+      gpsConfidence: inferPaceConfidence(workout, family),
+      lrBalanceUsable: lrBalance.interpretationMode !== 'disabled',
+      lrInterpretationMode: lrBalance.interpretationMode
+    },
+    erg,
+    lrBalance,
+    suppressions: suppressedMetrics
+  }
+
+  const guardrailsConfidence = rateConfidence(
+    [
+      guardrails.telemetry.hrUsable,
+      guardrails.telemetry.powerSourceType !== 'unknown',
+      guardrails.telemetry.paceUsable,
+      archetype.confidence !== 'low'
+    ].filter(Boolean).length / 4
+  )
+  const adherenceConfidence = !adherence.planLinked
+    ? 'medium'
+    : adherence.adherenceAssessable
+      ? 'high'
+      : adherence.executionClassification === 'unstructured_substitution'
+        ? 'medium'
+        : 'low'
+  const performanceConfidence = rateConfidence(
+    [
+      performanceSignals.decoupling.interpretable,
+      performanceSignals.durability.lateSessionFadePct !== null,
+      performanceSignals.durability.executionStabilityScore !== null,
+      performanceSignals.durability.repeatabilityScore !== null
+    ].filter(Boolean).length / 4
+  )
+
+  const facts: WorkoutAnalysisFactsV2 = {
+    guardrails,
+    adherence,
+    performanceSignals,
+    confidence: {
+      overall: rateConfidence(
+        [
+          guardrailsConfidence === 'high' ? 1 : guardrailsConfidence === 'medium' ? 0.6 : 0.2,
+          adherenceConfidence === 'high' ? 1 : adherenceConfidence === 'medium' ? 0.6 : 0.2,
+          performanceConfidence === 'high' ? 1 : performanceConfidence === 'medium' ? 0.6 : 0.2
+        ].reduce((sum, value) => sum + value, 0) / 3
+      ),
+      guardrails: guardrailsConfidence,
+      adherence: adherenceConfidence,
+      performanceSignals: performanceConfidence,
+      debugMeta: {
+        factVersion: 'v2',
+        computedFrom,
+        unavailableInputs,
+        suppressedMetrics,
+        promptDecisions: {}
+      }
+    }
+  }
+
+  facts.confidence.debugMeta.promptDecisions = buildPromptDecisionsV2(facts)
+  return facts
 }
