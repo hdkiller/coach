@@ -47,6 +47,7 @@
   "impact_source_local": "This data is calculated locally based on your workout intensity.",
   "impact_tsb_desc": "TSB (Form): Simply CTL - ATL. A positive TSB indicates you are tapered and ready for peak performance.",
   "impact_tss_desc": "TSS (Training Stress Score): Measures the physiological cost of a ride. 100 points is roughly equivalent to 1 hour at your threshold power (FTP).",
+  "interval_audit": "Interval Audit",
   "legend_plan": "Planned",
   "level_up_desc": "Based on your performance in this workout, your {label} has improved. Updating your threshold ensures your training zones and stress stats remain accurate.",
   "level_up_detected": "{sport} Level Up Detected",

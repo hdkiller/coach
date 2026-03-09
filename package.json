@@ -5,6 +5,7 @@
     "@auth/core": "^0.34.3",
     "@google-cloud/storage": "^7.18.0",
     "@googlemaps/polyline-codec": "^1.0.28",
+    "@iconify-json/ph": "^1.2.2",
     "@internationalized/date": "^3.10.1",
     "@markw65/fit-file-writer": "^0.1.7",
     "@next-auth/prisma-adapter": "^1.0.7",

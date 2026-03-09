@@ -25,6 +25,9 @@ importers:
       '@googlemaps/polyline-codec':
         specifier: ^1.0.28
         version: 1.0.28
+      '@iconify-json/ph':
+        specifier: ^1.2.2
+        version: 1.2.2
       '@internationalized/date':
         specifier: ^3.10.1
         version: 3.10.1
@@ -1838,6 +1841,12 @@ packages:
     resolution:
       {
         integrity: sha512-fHZWegspOZonl5GNTvOkHsjnTMdSslFh3EzpzUtRyLxO8bOonqk2OTU3hCl0k4VXzViMjqpRK3X1sotnuBXkFA==
+      }
+
+  '@iconify-json/ph@1.2.2':
+    resolution:
+      {
+        integrity: sha512-PgkEZNtqa8hBGjHXQa4pMwZa93hmfu8FUSjs/nv4oUU6yLsgv+gh9nu28Kqi8Fz9CCVu4hj1MZs9/60J57IzFw==
       }
 
   '@iconify-json/simple-icons@1.2.66':
@@ -17952,6 +17961,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-json/lucide@1.2.82':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/ph@1.2.2':
     dependencies:
       '@iconify/types': 2.0.0
 
