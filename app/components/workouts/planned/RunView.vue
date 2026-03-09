@@ -27,6 +27,16 @@
           size="sm"
           color="neutral"
           variant="ghost"
+          icon="i-heroicons-pencil-square"
+          :class="{ 'bg-primary-50 dark:bg-primary-900/20 text-primary': activeTab === 'edit' }"
+          @click="activeTab = activeTab === 'edit' ? 'view' : 'edit'"
+        >
+          Edit
+        </UButton>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="ghost"
           icon="i-heroicons-arrow-path"
           :loading="generating"
           @click="$emit('regenerate')"
@@ -48,13 +58,16 @@
       </div>
     </div>
 
-    <!-- Structure Chart -->
+    <!-- Structure Chart & Editor -->
     <div v-if="hasStructure" class="mb-6">
       <h4 class="text-sm font-semibold text-muted mb-3">Structure Profile</h4>
       <WorkoutRunChart
+        v-model:steps-tab="activeTab"
         :workout="workout"
         :sport-settings="sportSettings"
         :preference="chartPreference"
+        :allow-edit="allowEdit"
+        @save="$emit('save', $event)"
       />
     </div>
   </div>
@@ -71,9 +84,16 @@
     workout: any
     sportSettings?: any
     generating?: boolean
+    allowEdit?: boolean
+    stepsTab?: 'view' | 'edit'
   }>()
 
-  defineEmits(['view', 'adjust', 'regenerate'])
+  const emit = defineEmits(['view', 'adjust', 'regenerate', 'save', 'update:stepsTab'])
+
+  const activeTab = computed({
+    get: () => props.stepsTab || 'view',
+    set: (val) => emit('update:stepsTab', val)
+  })
 
   const hasStructure = computed(() => !!props.workout.structuredWorkout?.steps?.length)
 

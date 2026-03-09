@@ -38,6 +38,16 @@
           size="sm"
           color="neutral"
           variant="ghost"
+          icon="i-heroicons-pencil-square"
+          :class="{ 'bg-primary-50 dark:bg-primary-900/20 text-primary': activeTab === 'edit' }"
+          @click="activeTab = activeTab === 'edit' ? 'view' : 'edit'"
+        >
+          Edit
+        </UButton>
+        <UButton
+          size="sm"
+          color="neutral"
+          variant="ghost"
           icon="i-heroicons-arrow-path"
           :loading="generating"
           @click="$emit('regenerate')"
@@ -47,19 +57,40 @@
         </UButton>
       </div>
     </div>
-    <WorkoutChart :workout="workout" :user-ftp="userFtp" :sport-settings="sportSettings" />
+    <WorkoutChart
+      v-model:steps-tab="activeTab"
+      :workout="workout"
+      :user-ftp="userFtp"
+      :sport-settings="sportSettings"
+      :allow-edit="allowEdit"
+      @save="$emit('save', $event)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
   import WorkoutChart from '~/components/workouts/WorkoutChart.vue'
 
-  defineProps<{
+  const props = defineProps<{
     workout: any
     userFtp?: number
     sportSettings?: any
     generating?: boolean
+    allowEdit?: boolean
+    stepsTab?: 'view' | 'edit'
   }>()
 
-  defineEmits(['add-messages', 'view', 'adjust', 'regenerate'])
+  const emit = defineEmits([
+    'add-messages',
+    'view',
+    'adjust',
+    'regenerate',
+    'save',
+    'update:stepsTab'
+  ])
+
+  const activeTab = computed({
+    get: () => props.stepsTab || 'view',
+    set: (val) => emit('update:stepsTab', val)
+  })
 </script>
