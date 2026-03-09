@@ -57,6 +57,11 @@ export default defineEventHandler(async (event) => {
   })
 
   const requestSnapshot = chatTurnService.getRequestSnapshot(turn)
+  const rebuiltMessages = await chatTurnService.buildStableRequestMessages(
+    turn.roomId,
+    clonedMessage.id,
+    25
+  )
   const retryTurn = await chatTurnService.createTurn({
     roomId: turn.roomId,
     userId,
@@ -65,6 +70,7 @@ export default defineEventHandler(async (event) => {
     retryOfTurnId: turn.id,
     request: {
       ...requestSnapshot,
+      messages: rebuiltMessages,
       lastMessageId: clonedMessage.id
     }
   })

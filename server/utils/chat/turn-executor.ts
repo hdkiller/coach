@@ -1,4 +1,4 @@
-import { convertToModelMessages, stepCountIs, streamText } from 'ai'
+import { NoSuchToolError, stepCountIs, streamText } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { calculateLlmCost } from '../ai-config'
 import { getLlmOperationSettings } from '../ai-operation-settings'
@@ -14,6 +14,7 @@ import { checkQuota } from '../quotas/engine'
 import { sendToUser } from '../ws-state'
 import { transformHistoryToCoreMessages } from '../ai-history'
 import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
+import { findToolNameRepair } from './tool-call-repair'
 
 function normalizeMessagesForSdk(inputMessages: any[]) {
   const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
@@ -197,6 +198,7 @@ export async function executeChatTurn(turnId: string) {
     roomId: turn.roomId,
     userId: turn.userId
   })
+  const availableToolNames = Object.keys(tools)
 
   const historyMessages = stripAssistantToolOutputsWhenCanonicalToolMessagesExist(
     normalizeMessagesForSdk(submittedMessages)
@@ -324,6 +326,29 @@ export async function executeChatTurn(turnId: string) {
       system: finalSystemInstruction,
       messages: normalizedMessages,
       tools,
+      experimental_repairToolCall: async ({ toolCall, error }) => {
+        if (!NoSuchToolError.isInstance(error)) {
+          return null
+        }
+
+        const repair = findToolNameRepair(toolCall.toolName, availableToolNames)
+        if (!repair) {
+          return null
+        }
+
+        await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TOOL_CALL_REPAIRED, {
+          toolCallId: toolCall.toolCallId,
+          originalToolName: toolCall.toolName,
+          repairedToolName: repair.repairedName,
+          strategy: repair.strategy,
+          distance: repair.distance ?? null
+        } as any)
+
+        return {
+          ...toolCall,
+          toolName: repair.repairedName
+        }
+      },
       stopWhen: stepCountIs(opSettings.maxSteps),
       providerOptions,
       experimental_context: {

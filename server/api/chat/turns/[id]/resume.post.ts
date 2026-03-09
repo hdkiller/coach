@@ -31,9 +31,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Only interrupted turns can be resumed.' })
   }
 
+  const requestSnapshot = chatTurnService.getRequestSnapshot(turn)
+  const rebuiltMessages = await chatTurnService.buildStableRequestMessages(
+    turn.roomId,
+    turn.userMessageId,
+    25
+  )
+
   await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.QUEUED, {
     finishedAt: null,
-    failureReason: null
+    failureReason: null,
+    metadata: {
+      request: {
+        ...requestSnapshot,
+        messages: rebuiltMessages,
+        lastMessageId: requestSnapshot.lastMessageId || turn.userMessageId
+      }
+    } as any
   })
 
   if (turn.assistantMessageId) {
