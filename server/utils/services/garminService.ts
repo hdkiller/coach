@@ -14,6 +14,7 @@ import { shouldIngestActivities, shouldIngestWellness } from '../integration-set
 import { normalizeGarminActivityType } from '../activity-mapping'
 import { bodyMeasurementService } from './bodyMeasurementService'
 import { normalizeStressScoreForStorage } from '../wellness'
+import { parseCalendarDate } from '../date'
 import crypto from 'crypto'
 
 function normalizeDeviceName(name: unknown): string | null {
@@ -37,6 +38,23 @@ function inferDeviceNameFromFitData(fitData: any): string | null {
     if (candidate) return candidate
   }
   return null
+}
+
+function normalizeUtcDateFromTimestamp(
+  timestampSeconds: number,
+  offsetSeconds?: number | null
+): Date | null {
+  if (!Number.isFinite(timestampSeconds)) return null
+
+  const effectiveMs =
+    typeof offsetSeconds === 'number' && Number.isFinite(offsetSeconds)
+      ? (timestampSeconds + offsetSeconds) * 1000
+      : timestampSeconds * 1000
+
+  const date = new Date(effectiveMs)
+  if (Number.isNaN(date.getTime())) return null
+
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
 }
 
 export const GarminService = {
@@ -246,8 +264,11 @@ export const GarminService = {
    */
   async processWellness(userId: string, data: any[]) {
     for (const record of data) {
-      const date = new Date(record.startTimeInSeconds * 1000)
-      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+      const utcDate = this.resolveWellnessDate(record, {
+        timestampField: 'startTimeInSeconds',
+        offsetField: 'startTimeOffsetInSeconds'
+      })
+      if (!utcDate) continue
 
       const wellnessData: any = {
         userId,
@@ -268,8 +289,11 @@ export const GarminService = {
    */
   async processSleep(userId: string, data: any[]) {
     for (const record of data) {
-      const date = new Date(record.startTimeInSeconds * 1000)
-      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+      const utcDate = this.resolveWellnessDate(record, {
+        timestampField: 'startTimeInSeconds',
+        offsetField: 'startTimeOffsetInSeconds'
+      })
+      if (!utcDate) continue
 
       const sleepData: any = {
         userId,
@@ -291,8 +315,11 @@ export const GarminService = {
    */
   async processHRV(userId: string, data: any[]) {
     for (const record of data) {
-      const date = new Date(record.startTimeInSeconds * 1000)
-      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+      const utcDate = this.resolveWellnessDate(record, {
+        timestampField: 'startTimeInSeconds',
+        offsetField: 'startTimeOffsetInSeconds'
+      })
+      if (!utcDate) continue
 
       const hrvData: any = {
         userId,
@@ -310,8 +337,11 @@ export const GarminService = {
    */
   async processBodyComp(userId: string, data: any[]) {
     for (const record of data) {
-      const date = new Date(record.measurementTimeInSeconds * 1000)
-      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+      const utcDate = this.resolveWellnessDate(record, {
+        timestampField: 'measurementTimeInSeconds',
+        offsetField: 'measurementTimeOffsetInSeconds'
+      })
+      if (!utcDate) continue
 
       const weightData: any = {
         userId,
@@ -347,8 +377,12 @@ export const GarminService = {
    */
   async processUserMetrics(userId: string, data: any[]) {
     for (const record of data) {
-      const date = new Date(record.calendarDate)
-      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+      const utcDate = this.resolveWellnessDate(record, {
+        dateFields: ['calendarDate'],
+        timestampField: 'measurementTimeInSeconds',
+        offsetField: 'measurementTimeOffsetInSeconds'
+      })
+      if (!utcDate) continue
 
       const metricsData: any = {
         userId,
@@ -525,6 +559,36 @@ export const GarminService = {
     }
 
     return [...ids]
+  },
+
+  resolveWellnessDate(
+    record: Record<string, any>,
+    options: {
+      dateFields?: string[]
+      timestampField?: string
+      offsetField?: string
+    } = {}
+  ): Date | null {
+    const dateFields = options.dateFields ?? ['calendarDate', 'date']
+
+    for (const field of dateFields) {
+      const value = record?.[field]
+      if (typeof value === 'string' && value.trim()) {
+        const parsed = parseCalendarDate(value.trim())
+        if (parsed) return parsed
+      }
+    }
+
+    const timestampValue = options.timestampField ? record?.[options.timestampField] : undefined
+    if (typeof timestampValue === 'number' && Number.isFinite(timestampValue)) {
+      const offsetValue = options.offsetField ? record?.[options.offsetField] : undefined
+      return normalizeUtcDateFromTimestamp(
+        timestampValue,
+        typeof offsetValue === 'number' ? offsetValue : null
+      )
+    }
+
+    return null
   },
 
   async ingestFitArtifactsForWorkout(

@@ -47,3 +47,43 @@ describe('GarminService.getActivityFileExternalIds', () => {
     expect(GarminService.getActivityFileExternalIds({})).toEqual([])
   })
 })
+
+describe('GarminService.resolveWellnessDate', () => {
+  it('prefers Garmin calendarDate for date-only wellness records', () => {
+    const date = GarminService.resolveWellnessDate({
+      calendarDate: '2026-03-10',
+      startTimeInSeconds: 1773097200
+    })
+
+    expect(date?.toISOString()).toBe('2026-03-10T00:00:00.000Z')
+  })
+
+  it('uses Garmin startTimeOffsetInSeconds to keep the user local day', () => {
+    const date = GarminService.resolveWellnessDate(
+      {
+        startTimeInSeconds: Date.parse('2026-03-09T23:00:00.000Z') / 1000,
+        startTimeOffsetInSeconds: 3600
+      },
+      {
+        timestampField: 'startTimeInSeconds',
+        offsetField: 'startTimeOffsetInSeconds'
+      }
+    )
+
+    expect(date?.toISOString()).toBe('2026-03-10T00:00:00.000Z')
+  })
+
+  it('falls back to UTC timestamp normalization when no offset is provided', () => {
+    const date = GarminService.resolveWellnessDate(
+      {
+        startTimeInSeconds: Date.parse('2026-03-10T04:30:00.000Z') / 1000
+      },
+      {
+        timestampField: 'startTimeInSeconds',
+        offsetField: 'startTimeOffsetInSeconds'
+      }
+    )
+
+    expect(date?.toISOString()).toBe('2026-03-10T00:00:00.000Z')
+  })
+})
