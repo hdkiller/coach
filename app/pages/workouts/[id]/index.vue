@@ -63,6 +63,11 @@
                     onSelect: () => (isEditModalOpen = true)
                   },
                   {
+                    label: 'Debug Intervals',
+                    icon: 'i-heroicons-cpu-chip',
+                    onSelect: () => navigateTo(`/workouts/${route.params.id}/intervals`)
+                  },
+                  {
                     label: t('controls_share'),
                     icon: 'i-heroicons-share',
                     class: 'sm:hidden',
@@ -2387,9 +2392,19 @@
             :style="sectionStyle('intervals')"
           >
             <h2
-              class="text-base font-black uppercase tracking-[0.25em] text-zinc-600 dark:text-zinc-500 px-5 sm:px-0"
+              class="text-base font-black uppercase tracking-[0.25em] text-zinc-600 dark:text-zinc-500 px-5 sm:px-0 flex items-center justify-between w-full"
             >
-              {{ t('sections_intervals') }}
+              <span>{{ t('sections_intervals') }}</span>
+              <UButton
+                icon="i-heroicons-cpu-chip"
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                class="font-black uppercase tracking-widest text-[9px]"
+                :to="`/workouts/${workout.id}/intervals`"
+              >
+                {{ t('interval_audit') }}
+              </UButton>
             </h2>
             <div
               class="bg-zinc-50 dark:bg-gray-900 rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-0 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
