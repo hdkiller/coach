@@ -40,6 +40,12 @@ export function calculateATL(previousATL: number, todayTSS: number): number {
   return previousATL + (todayTSS - previousATL) / timeConstant
 }
 
+function reverseEWMA(currentValue: number, todayTSS: number, timeConstant: number): number {
+  const numerator = timeConstant * currentValue - todayTSS
+  const denominator = timeConstant - 1
+  return denominator > 0 ? numerator / denominator : currentValue
+}
+
 /**
  * Calculate TSB (Training Stress Balance) - "Form"
  * TSB = CTL - ATL
@@ -425,7 +431,8 @@ export async function getCurrentFitnessSummary(
       }, 0)
 
       if (pendingPlannedTSS > 0) {
-        atl = Math.max(0, atl - pendingPlannedTSS)
+        ctl = Math.max(0, reverseEWMA(ctl, pendingPlannedTSS, 42))
+        atl = Math.max(0, reverseEWMA(atl, pendingPlannedTSS, 7))
       }
     }
   }

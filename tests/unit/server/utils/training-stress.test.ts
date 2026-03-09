@@ -235,7 +235,9 @@ describe('Training Stress Utils', () => {
         timezone: 'UTC'
       })
 
-      expect(result).toMatchObject({ ctl: 80, atl: 70, tsb: 10 })
+      expect(result.ctl).toBeCloseTo(81.2195, 4)
+      expect(result.atl).toBeCloseTo(111.6667, 4)
+      expect(result.tsb).toBeCloseTo(-30.4472, 4)
     })
   })
 

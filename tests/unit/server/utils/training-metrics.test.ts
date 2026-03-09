@@ -367,9 +367,9 @@ describe('Training Metrics Utils', () => {
         adjustForTodayUncompletedPlannedTSS: true
       })
 
-      expect(context.loadTrend.currentCTL).toBe(70)
-      expect(context.loadTrend.currentATL).toBe(50)
-      expect(context.loadTrend.currentTSB).toBe(20)
+      expect(context.loadTrend.currentCTL).toBeCloseTo(70.7317, 4)
+      expect(context.loadTrend.currentATL).toBeCloseTo(98.3333, 4)
+      expect(context.loadTrend.currentTSB).toBeCloseTo(-27.6016, 4)
     })
 
     it('should prefer wellness metrics when workout and wellness are on the same day', async () => {

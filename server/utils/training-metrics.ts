@@ -22,6 +22,12 @@ function calculateTSB(ctl: number | null, atl: number | null): number | null {
   return ctl - atl
 }
 
+function reverseEWMA(currentValue: number, todayTSS: number, timeConstant: number): number {
+  const numerator = timeConstant * currentValue - todayTSS
+  const denominator = timeConstant - 1
+  return denominator > 0 ? numerator / denominator : currentValue
+}
+
 // Default zone definitions matching frontend
 export const DEFAULT_HR_ZONES = [
   { name: 'Z1', min: 60, max: 120 },
@@ -621,7 +627,8 @@ export async function generateTrainingContext(
       )
 
       if (pendingPlannedTSS > 0) {
-        currentATL = Math.max(0, currentATL - pendingPlannedTSS)
+        currentCTL = Math.max(0, reverseEWMA(currentCTL, pendingPlannedTSS, 42))
+        currentATL = Math.max(0, reverseEWMA(currentATL, pendingPlannedTSS, 7))
       }
     }
   }
