@@ -15,6 +15,7 @@ import streamCommand from './stream'
 import findAnyCommand from './find-any'
 import plannedCommand from './planned'
 import goalsCommand from './goals'
+import intervalsCommand from './intervals'
 import intervalsTypesCommand from './intervals-types'
 import intervalsWorkoutCommand from './intervals-workout'
 import calendarNotesCommand from './calendar-notes'
@@ -62,6 +63,7 @@ debugCommand.addCommand(streamCommand)
 debugCommand.addCommand(findAnyCommand)
 debugCommand.addCommand(plannedCommand)
 debugCommand.addCommand(goalsCommand)
+debugCommand.addCommand(intervalsCommand)
 debugCommand.addCommand(intervalsTypesCommand)
 debugCommand.addCommand(intervalsWorkoutCommand)
 debugCommand.addCommand(calendarNotesCommand)
