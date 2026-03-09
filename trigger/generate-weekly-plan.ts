@@ -396,7 +396,8 @@ export const generateWeeklyPlanTask = task({
       getEndOfDayUTC(timezone, new Date()),
       {
         includeZones: false,
-        timezone
+        timezone,
+        adjustForTodayUncompletedPlannedTSS: true
       }
     )
 

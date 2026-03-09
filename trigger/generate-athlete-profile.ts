@@ -709,7 +709,8 @@ Plan Summary: ${planData.weekSummary || 'N/A'}
       const trainingContext = await generateTrainingContext(userId, thirtyDaysAgo, todayEnd, {
         includeZones: true,
         period: 'Last 30 Days',
-        timezone
+        timezone,
+        adjustForTodayUncompletedPlannedTSS: true
       })
       const formattedContext = formatTrainingContextForPrompt(trainingContext)
 

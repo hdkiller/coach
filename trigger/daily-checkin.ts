@@ -193,7 +193,10 @@ export const generateDailyCheckinTask = task({
         }),
 
         // Current Fitness State
-        getCurrentFitnessSummary(userId),
+        getCurrentFitnessSummary(userId, undefined, {
+          adjustForTodayUncompletedPlannedTSS: true,
+          timezone
+        }),
 
         // Past 7 days check-ins
         dailyCheckinRepository.getHistory(

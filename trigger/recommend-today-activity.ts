@@ -364,7 +364,10 @@ export const recommendTodayActivityTask = task({
       }),
 
       // Keep prompt metrics aligned with the dashboard/source-of-truth widget values.
-      getCurrentFitnessSummary(userId),
+      getCurrentFitnessSummary(userId, undefined, {
+        adjustForTodayUncompletedPlannedTSS: true,
+        timezone: userTimezone
+      }),
 
       // Pinned/Focused recommendations
       recommendationRepository.list(userId, { isPinned: true, status: 'ACTIVE' }),

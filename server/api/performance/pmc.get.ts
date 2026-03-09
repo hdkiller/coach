@@ -79,7 +79,10 @@ export default defineEventHandler(async (event) => {
   const timezone = await getUserTimezone(userId)
 
   // Get current fitness summary first to determine the true end date
-  const summary = await getCurrentFitnessSummary(userId)
+  const summary = await getCurrentFitnessSummary(userId, undefined, {
+    adjustForTodayUncompletedPlannedTSS: true,
+    timezone
+  })
 
   // Default end date is today (User Local Time @ UTC Midnight)
   let endDate = getUserLocalDate(timezone)

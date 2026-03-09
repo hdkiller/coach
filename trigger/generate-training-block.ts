@@ -210,7 +210,10 @@ ${profile.planning_context?.opportunities?.length ? `Opportunities: ${profile.pl
 `
     }
 
-    const currentFitness = await getCurrentFitnessSummary(userId)
+    const currentFitness = await getCurrentFitnessSummary(userId, undefined, {
+      adjustForTodayUncompletedPlannedTSS: true,
+      timezone
+    })
 
     // 2. Prepare Context Data
     // Map existing weeks to get volume targets before we delete them
