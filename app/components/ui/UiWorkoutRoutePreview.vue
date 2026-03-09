@@ -5,16 +5,7 @@
       mode === 'background' ? 'absolute inset-0 w-full h-full' : size,
       mode === 'background' ? 'opacity-[0.06] group-hover:opacity-[0.20]' : ''
     ]"
-    :style="
-      mode === 'background'
-        ? {
-            maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
-            webkitMaskImage:
-              'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
-            filter: 'blur(1px)'
-          }
-        : {}
-    "
+    :style="containerStyle"
   >
     <svg
       v-if="pathData"
@@ -49,6 +40,15 @@
 
   const pathData = ref('')
   const viewBox = ref('0 0 100 100')
+
+  const containerStyle = computed(() => {
+    if (props.mode !== 'background') return {}
+    return {
+      maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+      webkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+      filter: 'blur(1px)'
+    }
+  })
 
   const generatePath = () => {
     if (!props.polyline) return
@@ -89,7 +89,7 @@
       }
 
       pathData.value =
-        `M ${project(points[0])} ` +
+        `M ${project(points[0]!)} ` +
         points
           .slice(1)
           .map((p) => `L ${project(p)}`)
