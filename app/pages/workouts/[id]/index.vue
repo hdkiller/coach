@@ -389,12 +389,12 @@
             <div class="flex flex-1 items-center justify-around py-6 px-4">
               <div v-if="workout.distanceMeters" class="flex-1 flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Distance</span
                 >
                 <div class="flex items-baseline gap-1.5">
                   <span
-                    class="text-4xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter drop-shadow-md"
+                    class="text-4xl font-black text-black dark:text-white tracking-tighter drop-shadow-md"
                   >
                     {{ (workout.distanceMeters / 1000).toFixed(1) }}
                   </span>
@@ -407,11 +407,11 @@
               <div class="w-px h-12 bg-gray-100 dark:bg-white/5" />
               <div class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Time</span
                 >
                 <span
-                  class="text-4xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter drop-shadow-md"
+                  class="text-4xl font-black text-black dark:text-white tracking-tighter drop-shadow-md"
                 >
                   {{ formatDurationShort(workout.durationSec) }}
                 </span>
@@ -422,7 +422,7 @@
                 class="flex flex-col items-center gap-1"
               >
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >TSS/Load</span
                 >
                 <span
@@ -443,7 +443,7 @@
             >
               <div v-if="workout.averageWatts" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Power</span
                 >
                 <div class="flex items-baseline gap-1">
@@ -459,7 +459,7 @@
               </div>
               <div v-if="workout.normalizedPower" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >NP</span
                 >
                 <div class="flex items-baseline gap-1">
@@ -475,7 +475,7 @@
               </div>
               <div v-if="workout.averageHr" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Heart</span
                 >
                 <div class="flex items-baseline gap-1">
@@ -490,11 +490,11 @@
               </div>
               <div v-if="workout.elevationGain" class="flex flex-col items-center gap-1">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em]"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.3em]"
                   >Gain</span
                 >
                 <div class="flex items-baseline gap-1">
-                  <span class="text-2xl font-black text-gray-900 dark:text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-black dark:text-white">{{
                     workout.elevationGain
                   }}</span>
                   <span
@@ -510,10 +510,10 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
             <!-- Performance Summary -->
             <div
-              class="bg-white dark:bg-[#09090B] rounded-2xl border border-gray-100 dark:border-white/5 p-6 flex flex-col shadow-lg dark:shadow-xl"
+              class="bg-zinc-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/5 p-6 flex flex-col shadow-lg dark:shadow-xl"
             >
               <h2
-                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
+                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 text-primary-500" />
                 Performance Metrics
@@ -544,10 +544,10 @@
 
             <!-- System Impact Grid (Condensed 2x2) -->
             <div
-              class="bg-white dark:bg-[#09090B] rounded-2xl border border-gray-100 dark:border-white/5 p-6 flex flex-col shadow-lg dark:shadow-xl"
+              class="bg-zinc-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-white/5 p-6 flex flex-col shadow-lg dark:shadow-xl"
             >
               <h2
-                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
+                class="mb-6 flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-heart" class="w-4 h-4 text-orange-500" />
                 {{ t('impact_calc_title') }}
@@ -580,7 +580,7 @@
                       </template>
                     </UTooltip>
                   </div>
-                  <span class="text-3xl font-black text-white tabular-nums">{{
+                  <span class="text-3xl font-black text-black dark:text-white">{{
                     workout.ctl ? Math.round(workout.ctl) : '-'
                   }}</span>
                 </div>
@@ -610,7 +610,7 @@
                       </template>
                     </UTooltip>
                   </div>
-                  <span class="text-3xl font-black text-white tabular-nums">{{
+                  <span class="text-3xl font-black text-black dark:text-white">{{
                     workout.atl ? Math.round(workout.atl) : '-'
                   }}</span>
                 </div>
@@ -640,7 +640,7 @@
                       </template>
                     </UTooltip>
                   </div>
-                  <span class="text-3xl font-black text-white tabular-nums">{{
+                  <span class="text-3xl font-black text-black dark:text-white">{{
                     Math.round(workout.tss || workout.trainingLoad || 0)
                   }}</span>
                 </div>
@@ -714,7 +714,7 @@
                       {{ formatDateWeekday(workout.date) }}
                     </span>
                     <span
-                      class="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 uppercase tracking-widest font-black"
+                      class="font-mono text-[10px] text-zinc-600 dark:text-zinc-500 uppercase tracking-widest font-black"
                     >
                       {{ formatDatePrimary(workout.date) }}
                     </span>
@@ -818,7 +818,7 @@
                   >Distance</span
                 >
                 <div class="flex items-baseline gap-1">
-                  <span class="text-3xl font-black text-white tabular-nums tracking-tighter">
+                  <span class="text-3xl font-black text-black dark:text-white tracking-tighter">
                     {{ (workout.distanceMeters / 1000).toFixed(1) }}
                   </span>
                   <span class="text-[9px] font-bold text-zinc-600 uppercase">km</span>
@@ -832,7 +832,7 @@
                   class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em]"
                   >Time</span
                 >
-                <span class="text-3xl font-black text-white tabular-nums tracking-tighter">
+                <span class="text-3xl font-black text-black dark:text-white tracking-tighter">
                   {{ formatDurationShort(workout.durationSec) }}
                 </span>
               </div>
@@ -901,7 +901,7 @@
                     >Gain</span
                   >
                   <div class="flex items-baseline gap-0.5">
-                    <span class="text-base font-black text-white tabular-nums">{{
+                    <span class="text-base font-black text-black dark:text-white">{{
                       workout.elevationGain
                     }}</span>
                     <span class="text-[8px] font-bold text-zinc-600 uppercase">m</span>
@@ -912,7 +912,7 @@
                     class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1"
                     >RPM</span
                   >
-                  <span class="text-base font-black text-white tabular-nums">{{
+                  <span class="text-base font-black text-black dark:text-white">{{
                     workout.averageCadence
                   }}</span>
                 </div>
@@ -985,7 +985,7 @@
             <!-- Performance Metrics Chart (Mobile) -->
             <div class="flex flex-col gap-4">
               <h2
-                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
+                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-chart-bar" class="w-3.5 h-3.5 text-primary-500" />
                 Performance Metrics
@@ -1007,9 +1007,12 @@
                   v-else
                   class="h-full flex flex-col items-center justify-center text-center opacity-40 py-8"
                 >
-                  <UIcon name="i-heroicons-sparkles" class="w-6 h-6 mb-2" />
+                  <UIcon
+                    name="i-heroicons-sparkles"
+                    class="w-6 h-6 mb-2 text-zinc-400 dark:text-zinc-600"
+                  />
                   <span
-                    class="text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                    class="text-[8px] font-black uppercase tracking-widest text-black dark:text-white"
                     >No Score Data</span
                   >
                 </div>
@@ -1019,7 +1022,7 @@
             <!-- System Impact Grid (Mobile 2x2) -->
             <div class="flex flex-col gap-4">
               <h2
-                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500"
+                class="flex items-center gap-2 font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-500"
               >
                 <UIcon name="i-heroicons-heart" class="w-3.5 h-3.5 text-orange-500" />
                 {{ t('impact_calc_title') }}
@@ -1038,11 +1041,11 @@
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-heart" class="w-3 h-3 text-[#00DC82]" />
                     <span
-                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400"
                       >Fitness</span
                     >
                   </div>
-                  <span class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-black dark:text-white tabular-nums">{{
                     workout.ctl ? Math.round(workout.ctl) : '-'
                   }}</span>
                 </div>
@@ -1059,11 +1062,11 @@
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-fire" class="w-3 h-3 text-orange-500" />
                     <span
-                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400"
                       >Fatigue</span
                     >
                   </div>
-                  <span class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-black dark:text-white tabular-nums">{{
                     workout.atl ? Math.round(workout.atl) : '-'
                   }}</span>
                 </div>
@@ -1080,11 +1083,11 @@
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-bolt" class="w-3 h-3 text-[#00DC82]" />
                     <span
-                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400"
                       >Load</span
                     >
                   </div>
-                  <span class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums">{{
+                  <span class="text-2xl font-black text-black dark:text-white tabular-nums">{{
                     Math.round(workout.tss || workout.trainingLoad || 0)
                   }}</span>
                 </div>
@@ -1098,7 +1101,7 @@
                   <div class="flex items-center gap-2 opacity-60 mb-2">
                     <UIcon name="i-heroicons-scale" class="w-3 h-3 text-blue-500" />
                     <span
-                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400"
+                      class="font-mono text-[8px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400"
                       >Form</span
                     >
                   </div>
@@ -1116,10 +1119,13 @@
               <div class="mt-2">
                 <UAccordion
                   :items="[{ label: t('impact_calc_title'), slot: 'explanation' }]"
-                  color="neutral"
+                  :ui="{
+                    trigger:
+                      'text-black dark:text-white font-black uppercase tracking-widest text-[9px]',
+                    root: 'bg-zinc-100 dark:bg-white/5 rounded-lg border border-zinc-200 dark:border-white/5 shadow-sm'
+                  }"
                   variant="ghost"
                   size="xs"
-                  class="bg-zinc-100 dark:bg-white/5 rounded-lg"
                 >
                   <template #explanation>
                     <div
@@ -1819,12 +1825,12 @@
                 </div>
                 <div class="flex flex-col">
                   <h2
-                    class="text-xl sm:text-2xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white"
+                    class="text-xl sm:text-2xl font-black uppercase tracking-tighter text-black dark:text-white"
                   >
                     {{ t('nutrition_header') }}
                   </h2>
                   <span
-                    class="font-mono text-[10px] text-zinc-500 dark:text-zinc-500 uppercase tracking-widest"
+                    class="font-mono text-[10px] text-zinc-600 dark:text-zinc-500 uppercase tracking-widest"
                     >Metabolic & Intake Balance</span
                   >
                 </div>
@@ -1832,7 +1838,7 @@
 
               <div v-if="workout.plannedWorkout?.tss" class="text-right flex flex-col items-end">
                 <span
-                  class="font-mono text-[9px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest mb-1"
+                  class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest mb-1"
                   >{{ t('nutrition_energy_delta') }}</span
                 >
                 <div
@@ -1862,17 +1868,17 @@
                     <div class="flex items-center gap-2 mb-2">
                       <UIcon :name="item.icon" class="w-3.5 h-3.5" :class="item.iconClass" />
                       <span
-                        class="font-mono text-[8px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest"
+                        class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest"
                         >{{ item.label }}</span
                       >
                     </div>
                     <div class="flex items-baseline gap-1">
                       <span
-                        class="text-2xl font-black text-zinc-900 dark:text-white tabular-nums tracking-tighter"
+                        class="text-2xl font-black text-black dark:text-white tracking-tighter"
                         >{{ item.value.split(' ')[0] }}</span
                       >
                       <span
-                        class="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase opacity-60"
+                        class="text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-60"
                         >{{ item.value.split(' ')[1] }}</span
                       >
                     </div>
@@ -1885,7 +1891,7 @@
                 <div class="flex flex-col gap-2">
                   <div class="flex justify-between items-end">
                     <span
-                      class="font-mono text-[9px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest"
+                      class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest"
                       >{{ t('nutrition_actual_energy') }} /
                       {{ t('nutrition_planned_energy') }}</span
                     >
@@ -1931,7 +1937,7 @@
                   class="p-5 rounded-2xl bg-white dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 flex flex-col gap-4 shadow-sm dark:shadow-inner"
                 >
                   <span
-                    class="font-mono text-[9px] font-black text-zinc-500 dark:text-zinc-500 uppercase tracking-widest text-center"
+                    class="font-mono text-[9px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-widest text-center"
                     >{{ t('nutrition_digestion_header') }}</span
                   >
                   <div class="flex items-center justify-center gap-3">
@@ -1942,7 +1948,7 @@
                       :class="[
                         stomachFeel === i
                           ? 'bg-[#00DC82] text-black scale-110 shadow-[0_0_20px_rgba(0,220,130,0.4)] z-20'
-                          : 'bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-zinc-500 hover:bg-zinc-200 dark:hover:bg-white/10'
+                          : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-500 hover:bg-zinc-200 dark:hover:bg-white/10'
                       ]"
                       @click="updateStomachFeel(i)"
                     >
@@ -2020,7 +2026,7 @@
                     <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary-500" />
                   </div>
                   <h3
-                    class="text-lg sm:text-xl font-black uppercase tracking-tighter text-zinc-900 dark:text-white"
+                    class="text-lg sm:text-xl font-black uppercase tracking-tighter text-black dark:text-white"
                   >
                     {{ t('analysis_detail_title') }}
                   </h3>
@@ -2078,7 +2084,7 @@
                     class="absolute top-0 left-0 w-1.5 h-full bg-primary-500 shadow-[0_0_15px_#00DC82]"
                   />
                   <h3
-                    class="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-500 mb-5 flex items-center gap-2"
+                    class="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 dark:text-zinc-500 mb-5 flex items-center gap-2"
                   >
                     <UIcon
                       name="i-heroicons-light-bulb"
@@ -2170,7 +2176,7 @@
                     >
                       <div class="flex items-center gap-3 mb-2">
                         <h4
-                          class="text-base font-black text-zinc-900 dark:text-white uppercase tracking-tight"
+                          class="text-base font-black text-black dark:text-white uppercase tracking-tight"
                         >
                           {{ rec.title }}
                         </h4>
@@ -2362,7 +2368,7 @@
             :style="sectionStyle('power-curve')"
           >
             <h2
-              class="text-base font-black uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500 px-5 sm:px-0"
+              class="text-base font-black uppercase tracking-[0.25em] text-zinc-600 dark:text-zinc-500 px-5 sm:px-0"
             >
               {{ t('sections_power_curve') }}
             </h2>
@@ -2381,7 +2387,7 @@
             :style="sectionStyle('intervals')"
           >
             <h2
-              class="text-base font-black uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500 px-5 sm:px-0"
+              class="text-base font-black uppercase tracking-[0.25em] text-zinc-600 dark:text-zinc-500 px-5 sm:px-0"
             >
               {{ t('sections_intervals') }}
             </h2>
@@ -2573,7 +2579,7 @@
                   </UBadge>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-black text-gray-900 dark:text-white tabular-nums">{{
+                  <span class="text-sm font-black text-black dark:text-white">{{
                     metric.value
                   }}</span>
                   <UIcon

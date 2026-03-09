@@ -1,7 +1,7 @@
 <template>
   <div
     :id="'workout-' + workout.id"
-    class="group cursor-pointer bg-white dark:bg-[#09090B] border-b border-gray-100 dark:border-gray-800 transition-all duration-500 overflow-hidden w-full max-w-full relative min-h-[340px] flex flex-col"
+    class="group cursor-pointer bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-all duration-500 overflow-hidden w-full max-w-full relative min-h-[340px] flex flex-col"
     @click="$emit('click')"
   >
     <!-- GHOST BACKGROUND ROUTE -->
@@ -14,7 +14,7 @@
 
     <!-- HEADER SCRIM FOR TITLE POP -->
     <div
-      class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/5 via-black/2 to-transparent dark:from-black/40 dark:via-black/10 dark:to-transparent z-[1] pointer-events-none"
+      class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white via-white/20 to-transparent dark:from-gray-900 dark:via-gray-900/10 dark:to-transparent z-[1] pointer-events-none"
     />
 
     <!-- HOVER GLOW BORDER -->
@@ -32,7 +32,7 @@
         <div class="flex-1 min-w-0 basis-full lg:basis-0">
           <div class="flex items-center gap-5 min-w-0">
             <div
-              class="w-14 h-14 rounded-2xl flex items-center justify-center bg-gray-950 dark:bg-black border border-white/10 shrink-0 shadow-2xl group-hover:border-primary-500/30 transition-colors duration-500"
+              class="w-14 h-14 rounded-2xl flex items-center justify-center bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-white/10 shrink-0 shadow-sm dark:shadow-2xl group-hover:border-primary-500/30 transition-colors duration-500"
             >
               <UIcon
                 :name="getWorkoutIcon(workout.type)"
@@ -42,12 +42,12 @@
             </div>
             <div class="flex flex-col min-w-0">
               <h3
-                class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter truncate group-hover:text-primary-500 transition-colors drop-shadow-md"
+                class="text-xl sm:text-2xl font-black text-black dark:text-white uppercase tracking-tighter truncate group-hover:text-primary-500 transition-colors drop-shadow-md"
               >
                 {{ workout.title }}
               </h3>
               <div
-                class="font-mono text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-[0.25em] flex items-center gap-2 mt-1"
+                class="font-mono text-[10px] text-zinc-600 dark:text-gray-500 uppercase tracking-[0.25em] flex items-center gap-2 mt-1"
               >
                 <span>{{ formatDateTime(workout.date) }}</span>
               </div>
@@ -62,26 +62,31 @@
             v-if="workout.distanceMeters"
             class="flex flex-col items-end sm:items-center gap-1 shrink-0 group/metric"
           >
-            <span class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em]"
+            <span
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em]"
               >Distance</span
             >
             <div class="flex items-baseline gap-1">
               <span
-                class="text-2xl sm:text-4xl font-black tabular-nums transition-all duration-300 group-hover/metric:drop-shadow-[0_0_15px_rgba(34,197,94,0.4)] text-gray-900 dark:text-white"
+                class="text-2xl sm:text-4xl font-black tabular-nums transition-all duration-300 group-hover/metric:drop-shadow-[0_0_15px_rgba(34,197,94,0.4)] text-black dark:text-white"
               >
                 {{ (workout.distanceMeters / 1000).toFixed(1) }}
               </span>
-              <span class="text-[10px] font-bold text-zinc-500 uppercase opacity-65">km</span>
+              <span
+                class="text-[10px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-65"
+                >km</span
+              >
             </div>
           </div>
 
           <!-- Time (Duration) -->
           <div class="flex flex-col items-end sm:items-center gap-1 shrink-0">
-            <span class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em]"
+            <span
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em]"
               >Time</span
             >
             <span
-              class="text-2xl sm:text-4xl font-black tabular-nums text-gray-900 dark:text-white drop-shadow-sm"
+              class="text-2xl sm:text-4xl font-black tabular-nums text-black dark:text-white drop-shadow-sm"
             >
               {{ formatDuration(workout.durationSec) }}
             </span>
@@ -92,7 +97,8 @@
             v-if="workout.tss"
             class="flex flex-col items-end sm:items-center gap-1 shrink-0 group/tss"
           >
-            <span class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em]"
+            <span
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em]"
               >TSS</span
             >
             <div class="flex items-baseline gap-1">
@@ -113,7 +119,7 @@
           <!-- Avg Power -->
           <div v-if="workout.averageWatts" class="flex flex-col items-center min-w-0">
             <span
-              class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
               >Avg Power</span
             >
             <div class="flex items-baseline gap-1 truncate">
@@ -121,29 +127,35 @@
                 class="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 tabular-nums"
                 >{{ workout.averageWatts }}</span
               >
-              <span class="text-[9px] font-bold text-zinc-500 uppercase opacity-65">W</span>
+              <span
+                class="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-65"
+                >W</span
+              >
             </div>
           </div>
 
           <!-- Max Power -->
           <div v-if="workout.maxWatts" class="flex flex-col items-center min-w-0">
             <span
-              class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
               >Max Power</span
             >
             <div class="flex items-baseline gap-1 truncate">
               <span
-                class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tabular-nums"
+                class="text-xl sm:text-2xl font-black text-black dark:text-white tabular-nums"
                 >{{ workout.maxWatts }}</span
               >
-              <span class="text-[9px] font-bold text-zinc-500 uppercase opacity-65">W</span>
+              <span
+                class="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-65"
+                >W</span
+              >
             </div>
           </div>
 
           <!-- Avg HR -->
           <div v-if="workout.averageHr" class="flex flex-col items-center min-w-0">
             <span
-              class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
               >Heart Rate</span
             >
             <div class="flex items-baseline gap-1 truncate">
@@ -151,37 +163,46 @@
                 class="text-xl sm:text-2xl font-black text-pink-600 dark:text-pink-400 tabular-nums"
                 >{{ workout.averageHr }}</span
               >
-              <span class="text-[9px] font-bold text-zinc-500 uppercase opacity-65">bpm</span>
+              <span
+                class="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-65"
+                >bpm</span
+              >
             </div>
           </div>
 
           <!-- Elevation -->
           <div v-if="workout.elevationGain" class="flex flex-col items-center min-w-0">
             <span
-              class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
               >Elev Gain</span
             >
             <div class="flex items-baseline gap-1 truncate">
               <span
-                class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tabular-nums"
+                class="text-xl sm:text-2xl font-black text-black dark:text-white tabular-nums"
                 >{{ workout.elevationGain }}</span
               >
-              <span class="text-[9px] font-bold text-zinc-500 uppercase opacity-65">m</span>
+              <span
+                class="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-65"
+                >m</span
+              >
             </div>
           </div>
 
           <!-- Avg Cadence -->
           <div v-if="workout.averageCadence" class="flex flex-col items-center min-w-0">
             <span
-              class="font-mono text-[8px] font-black text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
+              class="font-mono text-[8px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.25em] mb-2 truncate"
               >Cadence</span
             >
             <div class="flex items-baseline gap-1 truncate">
               <span
-                class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tabular-nums"
+                class="text-xl sm:text-2xl font-black text-black dark:text-white tabular-nums"
                 >{{ workout.averageCadence }}</span
               >
-              <span class="text-[9px] font-bold text-zinc-500 uppercase opacity-65">rpm</span>
+              <span
+                class="text-[9px] font-bold text-zinc-600 dark:text-zinc-500 uppercase opacity-65"
+                >rpm</span
+              >
             </div>
           </div>
         </div>
@@ -194,7 +215,7 @@
         <div class="flex flex-col gap-3 min-w-0">
           <div
             v-if="workout.deviceName"
-            class="font-mono text-[9px] text-gray-400 dark:text-zinc-500 uppercase tracking-[0.15em] flex items-center gap-2"
+            class="font-mono text-[9px] text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.15em] flex items-center gap-2"
           >
             <UIcon name="i-heroicons-cpu-chip" class="w-3.5 h-3.5 opacity-40" />
             <span class="truncate">{{ workout.deviceName }}</span>
