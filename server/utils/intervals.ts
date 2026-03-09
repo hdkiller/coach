@@ -1328,12 +1328,14 @@ export function normalizeIntervalsPlannedWorkout(event: IntervalsPlannedWorkout,
     }
   }
 
+  const localDatePart = event.start_date_local?.split('T')[0] || event.start_date_local
+
   const result = {
     userId,
     externalId: String(event.id), // Convert to string
-    // Parse the local date string (YYYY-MM-DDTHH:mm:ss) and force to UTC midnight
-    // This ensures that "2026-01-15T06:00:00" becomes 2026-01-15T00:00:00Z in our DB
-    date: new Date(new Date(event.start_date_local).toISOString().split('T')[0] + 'T00:00:00Z'),
+    // Planned workouts from Intervals use local calendar semantics, so we must keep the
+    // YYYY-MM-DD portion directly instead of round-tripping through Date parsing.
+    date: new Date(`${localDatePart}T00:00:00Z`),
     title: event.name || 'Unnamed Event',
     description: description,
     type: event.type || null,

@@ -1,4 +1,6 @@
 import { normalizeIntervalsPlannedWorkout } from './intervals'
+import { WorkoutConverter } from './workout-converter'
+import { WorkoutParser } from './workout-parser'
 import { describe, it, expect } from 'vitest'
 
 // Mock minimal event structure
@@ -119,6 +121,68 @@ describe('Intervals.icu Parsing Logic', () => {
       const innerStep = result.structuredWorkout.steps[0].steps[0].steps[0]
 
       expect(innerStep.power.value).toBe(1.5)
+    })
+
+    it('preserves rest steps labeled OFF after export/import round-trip', () => {
+      const text = WorkoutConverter.toIntervalsICU({
+        title: 'Bike Intervals',
+        description: '',
+        type: 'Ride',
+        steps: [
+          {
+            type: 'Active',
+            reps: 3,
+            steps: [
+              { type: 'Active', name: 'ON', durationSeconds: 120, power: { value: 1, units: '%' } },
+              { type: 'Rest', name: 'OFF', durationSeconds: 60, power: { value: 0.5, units: '%' } }
+            ]
+          }
+        ]
+      } as any)
+
+      const event = createEvent(WorkoutParser.parseIntervalsICU(text))
+      const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
+      const offStep = result.structuredWorkout.steps[0].steps[1]
+
+      expect(offStep.name).toBe('OFF')
+      expect(offStep.type).toBe('Rest')
+    })
+
+    it('preserves run recovery jog steps and removes metric label noise after round-trip', () => {
+      const text = WorkoutConverter.toIntervalsICU({
+        title: 'Run Intervals',
+        description: '',
+        type: 'Run',
+        steps: [
+          {
+            type: 'Active',
+            reps: 2,
+            steps: [
+              {
+                type: 'Active',
+                name: 'Tempo',
+                durationSeconds: 300,
+                heartRate: { range: { start: 0.82, end: 0.88 }, units: 'LTHR' }
+              },
+              {
+                type: 'Rest',
+                name: 'Jog',
+                durationSeconds: 120,
+                heartRate: { value: 0.65, units: 'LTHR' }
+              }
+            ]
+          }
+        ]
+      } as any)
+
+      const event = createEvent(WorkoutParser.parseIntervalsICU(text), 'Run')
+      const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
+      const steps = result.structuredWorkout.steps[0].steps
+
+      expect(steps[0].name).toBe('Tempo')
+      expect(steps[0].type).toBe('Active')
+      expect(steps[1].name).toBe('Jog')
+      expect(steps[1].type).toBe('Rest')
     })
   })
 

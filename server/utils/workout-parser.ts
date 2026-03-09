@@ -96,6 +96,7 @@ export const WorkoutParser = {
     text: string,
     defaultType: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'
   ): ParsedWorkoutStep {
+    const originalText = text
     const step: ParsedWorkoutStep = {
       type: defaultType,
       name: ''
@@ -174,6 +175,15 @@ export const WorkoutParser = {
       text = text.replace(bpmMatch[0] || '', '').trim()
     }
 
+    // Remove metric labels left behind after intensity extraction so they do not
+    // pollute the user-facing step name during round-trip sync.
+    text = text
+      .replace(/\bLTHR\b/gi, '')
+      .replace(/\bHR\b/gi, '')
+      .replace(/\bPACE\b/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+
     // 5. Cleanup Name
     // Remove redundant type names
     if (text.toLowerCase().startsWith('rest')) {
@@ -187,6 +197,43 @@ export const WorkoutParser = {
     if (text.toLowerCase().startsWith('cooldown')) {
       step.type = 'Cooldown'
       text = text.replace(/^cooldown/i, '').trim()
+    }
+
+    if (step.type === defaultType) {
+      const normalizedOriginal = originalText.trim().toLowerCase()
+      const normalizedName = text.toLowerCase()
+      const targetValue =
+        step.power?.value ??
+        (step.power?.range
+          ? (step.power.range.start + step.power.range.end) / 2
+          : step.heartRate?.value ??
+            (step.heartRate?.range
+              ? (step.heartRate.range.start + step.heartRate.range.end) / 2
+              : step.pace?.value ??
+                (step.pace?.range ? (step.pace.range.start + step.pace.range.end) / 2 : null)))
+      const recoveryLabels = [
+        'off',
+        'recover',
+        'recovery',
+        'easy',
+        'jog',
+        'float',
+        'rest'
+      ]
+      const hasRecoveryLabel = recoveryLabels.some(
+        (label) =>
+          normalizedName === label ||
+          normalizedName.startsWith(`${label} `) ||
+          normalizedOriginal.startsWith(`${label} `) ||
+          normalizedOriginal === label
+      )
+
+      if (
+        hasRecoveryLabel ||
+        (typeof targetValue === 'number' && Number.isFinite(targetValue) && targetValue < 0.6)
+      ) {
+        step.type = 'Rest'
+      }
     }
 
     step.name = text.trim() || undefined

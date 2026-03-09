@@ -57,6 +57,21 @@ It has multiple lines.
       // Should STILL be 2026-01-15T00:00:00.000Z
       expect(result.date.toISOString()).toBe('2026-01-15T00:00:00.000Z')
     })
+
+    it('preserves the intended local calendar day for midnight timestamps', () => {
+      const input = {
+        id: 'event-125',
+        start_date_local: '2026-03-14T00:00:00',
+        name: 'Midnight Run',
+        category: 'WORKOUT',
+        type: 'Run'
+      }
+
+      const result = normalizeIntervalsPlannedWorkout(input as any, USER_ID)
+
+      expect(result.date.toISOString()).toBe('2026-03-14T00:00:00.000Z')
+      expect(result.startTime).toBe('00:00')
+    })
   })
 
   describe('normalizeIntervalsWorkout (Completed / Type A)', () => {
