@@ -177,3 +177,9 @@ myCommand.description('Does something useful').action(() => {
 
 export default myCommand
 ```
+
+Useful production troubleshooting example:
+
+```bash
+pnpm cw:cli debug form <user-id-or-email> --prod
+```

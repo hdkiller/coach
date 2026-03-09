@@ -29,6 +29,7 @@ import authLogicCommand from './auth-logic'
 import subscriptionCommand from './subscription'
 import fixCheckinsCommand from './fix-checkins'
 import pmcCommand from './pmc'
+import formCommand from './form'
 import chatHistoryCommand from './chat-history'
 import quotasCommand from './quotas'
 import chartCommand from './chart'
@@ -77,6 +78,7 @@ debugCommand.addCommand(authLogicCommand)
 debugCommand.addCommand(subscriptionCommand)
 debugCommand.addCommand(fixCheckinsCommand)
 debugCommand.addCommand(pmcCommand)
+debugCommand.addCommand(formCommand)
 debugCommand.addCommand(chatHistoryCommand)
 debugCommand.addCommand(chatLogCommand)
 debugCommand.addCommand(quotasCommand)
