@@ -2872,7 +2872,7 @@
                         :to="`/workouts/${workout.canonicalWorkout.id}`"
                         class="block p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
                       >
-                        <div class="flex items-center justify-between">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                           <div class="min-w-0 flex-1">
                             <div
                               class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
@@ -2885,8 +2885,8 @@
                               {{ formatDate(workout.canonicalWorkout.date) }}
                             </div>
                           </div>
-                          <div class="flex items-center gap-4 ml-4 shrink-0">
-                            <div class="w-48 flex justify-end">
+                          <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                            <div class="flex justify-end">
                               <UiDataAttribution
                                 v-if="
                                   [
@@ -2962,7 +2962,7 @@
                     :to="`/workouts/${dup.id}`"
                     class="block p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
                   >
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                       <div class="min-w-0 flex-1">
                         <div
                           class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
@@ -2975,7 +2975,7 @@
                           {{ formatDate(dup.date) }}
                         </div>
                       </div>
-                      <div class="flex items-center gap-4 ml-4 shrink-0">
+                      <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0">
                         <UBadge
                           color="warning"
                           variant="subtle"
@@ -2983,7 +2983,7 @@
                           class="font-bold uppercase tracking-widest"
                           >{{ t('sections_duplicates') }}</UBadge
                         >
-                        <div class="w-48 flex justify-end">
+                        <div class="flex justify-end">
                           <UiDataAttribution
                             v-if="
                               [
@@ -3040,8 +3040,8 @@
                   :to="`/workouts/planned/${workout.plannedWorkout.id}`"
                   class="block p-4 bg-primary-50 dark:bg-primary-950/20 rounded-xl border border-primary-100 dark:border-primary-900/50 hover:border-primary-500 dark:hover:border-primary-500 transition-all shadow-sm"
                 >
-                  <div class="flex items-center justify-between">
-                    <div>
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                    <div class="min-w-0 flex-1">
                       <div
                         class="font-black text-gray-900 dark:text-white uppercase tracking-tight"
                       >
@@ -3059,7 +3059,7 @@
                         </span>
                       </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                       <UBadge
                         color="primary"
                         variant="solid"
