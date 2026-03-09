@@ -17,7 +17,7 @@
               color="neutral"
               variant="outline"
               size="sm"
-              class="hidden sm:flex font-black uppercase tracking-widest text-[10px]"
+              class="flex font-black uppercase tracking-widest text-[10px]"
             >
               <span class="hidden sm:inline">{{ t('header_upload') }}</span>
             </UButton>

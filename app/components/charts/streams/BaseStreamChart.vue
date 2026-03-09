@@ -208,9 +208,18 @@
 
   const chartData = computed(() => {
     if (props.datasets && props.datasets.length > 0) {
+      // Group unique units to define common axes
+      const unitMap = new Map<string, string>()
+      props.datasets.forEach((ds) => {
+        const unit = ds.unit || 'default'
+        if (!unitMap.has(unit)) {
+          unitMap.set(unit, `y-${unit}`)
+        }
+      })
+
       return {
         labels: props.labels,
-        datasets: props.datasets.map((ds, idx) => ({
+        datasets: props.datasets.map((ds) => ({
           label: ds.label,
           data: ds.data,
           borderColor: ds.color,
@@ -218,9 +227,9 @@
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 4,
-          fill: false, // Don't fill when multiple lines
+          fill: false,
           tension: 0.1,
-          yAxisID: `y${idx}`
+          yAxisID: unitMap.get(ds.unit || 'default')
         }))
       }
     }
@@ -243,113 +252,119 @@
     }
   })
 
-  const chartOptions = computed<any>(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false as const,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false
-    },
-    onHover: (event: any, elements: any[]) => {
-      if (elements && elements.length > 0) {
-        const index = elements[0].index
-        emit('chart-hover', index)
+  const chartOptions = computed<any>(() => {
+    // Generate scale configurations for each unique unit
+    const unitScales: Record<string, any> = {}
+    if (props.datasets && props.datasets.length > 0) {
+      const uniqueUnits = Array.from(new Set(props.datasets.map((ds) => ds.unit || 'default')))
+      uniqueUnits.forEach((unit, idx) => {
+        unitScales[`y-${unit}`] = {
+          type: 'linear',
+          display: idx === 0, // Only display first unit axis by default
+          position: 'left',
+          grid: {
+            drawOnChartArea: idx === 0
+          },
+          ticks: {
+            display: idx === 0
+          }
+        }
+      })
+    }
 
-        if (isSelecting.value && selectionStart.value !== null) {
-          selectionEnd.value = index
-        }
-      } else {
-        emit('chart-leave')
-      }
-    },
-    onClick: (event: any, elements: any[]) => {
-      // Logic handled by mouse events for drag selection
-    },
-    // Use raw canvas events for reliable drag selection
-    plugins: {
-      legend: {
-        display: true
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false as const,
+      interaction: {
+        mode: 'index' as const,
+        intersect: false
       },
-      tooltip: {
-        enabled: true,
-        callbacks: {
-          title: () => '', // Hide time from tooltip title
-          label: (context: any) => {
-            let label = context.dataset.label || ''
-            if (label) {
-              label += ': '
+      onHover: (event: any, elements: any[]) => {
+        if (elements && elements.length > 0) {
+          const index = elements[0].index
+          emit('chart-hover', index)
+
+          if (isSelecting.value && selectionStart.value !== null) {
+            selectionEnd.value = index
+          }
+        } else {
+          emit('chart-leave')
+        }
+      },
+      onClick: (event: any, elements: any[]) => {
+        // Logic handled by mouse events for drag selection
+      },
+      // Use raw canvas events for reliable drag selection
+      plugins: {
+        legend: {
+          display: true
+        },
+        tooltip: {
+          enabled: true,
+          callbacks: {
+            title: () => '', // Hide time from tooltip title
+            label: (context: any) => {
+              let label = context.dataset.label || ''
+              if (label) {
+                label += ': '
+              }
+              if (context.parsed.y !== null) {
+                const unit = props.datasets?.[context.datasetIndex]?.unit || props.yAxisLabel || ''
+                label += context.parsed.y + unit
+              }
+              return label
             }
-            if (context.parsed.y !== null) {
-              const unit = props.datasets?.[context.datasetIndex]?.unit || props.yAxisLabel || ''
-              label += context.parsed.y + unit
-            }
-            return label
           }
         }
-      }
-    },
-    scales: {
-      x: {
-        type: props.xAxisType as 'linear' | 'category',
-        display: props.showXAxis,
-        min: props.labels[0],
-        max: props.labels[props.labels.length - 1],
-        bounds: 'ticks',
-        ticks: {
-          callback: (value: any) => {
-            const seconds = Number(value)
-            const h = Math.floor(seconds / 3600)
-            const m = Math.floor((seconds % 3600) / 60)
-            const s = Math.floor(seconds % 60)
-            if (h > 0) {
-              return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-            }
-            return `${m}:${s.toString().padStart(2, '0')}`
-          }
-        },
-        title: {
+      },
+      scales: {
+        x: {
+          type: props.xAxisType as 'linear' | 'category',
           display: props.showXAxis,
-          text: props.xAxisLabel || 'Time'
-        }
-      },
-      ...Object.fromEntries(
-        (props.datasets || []).map((ds, idx) => [
-          `y${idx}`,
-          {
-            type: 'linear',
-            display: idx === 0, // Only show first axis ticks/grid to keep UI clean
-            position: 'left',
-            grid: {
-              drawOnChartArea: idx === 0
-            },
-            ticks: {
-              display: idx === 0
+          min: props.labels[0],
+          max: props.labels[props.labels.length - 1],
+          bounds: 'ticks',
+          ticks: {
+            callback: (value: any) => {
+              const seconds = Number(value)
+              const h = Math.floor(seconds / 3600)
+              const m = Math.floor((seconds % 3600) / 60)
+              const s = Math.floor(seconds % 60)
+              if (h > 0) {
+                return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+              }
+              return `${m}:${s.toString().padStart(2, '0')}`
             }
-          }
-        ])
-      ),
-      // Fallback/Standard Y axis for single-stream mode
-      y: {
-        display: !props.datasets?.length,
-        afterFit: (axis: any) => {
-          if (props.fixedYAxisWidth && !props.datasets?.length) {
-            axis.width = props.fixedYAxisWidth
+          },
+          title: {
+            display: props.showXAxis,
+            text: props.xAxisLabel || 'Time'
           }
         },
-        ticks: {
-          callback: (value: any) => {
-            if (props.datasets?.length) return value
-            return `${value}${props.yAxisLabel || ''}`
+        ...unitScales,
+        // Fallback/Standard Y axis for single-stream mode
+        y: {
+          display: !props.datasets?.length,
+          afterFit: (axis: any) => {
+            if (props.fixedYAxisWidth && !props.datasets?.length) {
+              axis.width = props.fixedYAxisWidth
+            }
+          },
+          ticks: {
+            callback: (value: any) => {
+              if (props.datasets?.length) return value
+              return `${value}${props.yAxisLabel || ''}`
+            }
+          },
+          title: {
+            display: false, // Hide title since we have unit on ticks
+            text: props.yAxisLabel
           }
-        },
-        title: {
-          display: false, // Hide title since we have unit on ticks
-          text: props.yAxisLabel
         }
       }
     }
-  }))
+  })
 
   const handleMouseDown = (e: MouseEvent) => {
     const chart = chartRef.value?.chart

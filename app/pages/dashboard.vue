@@ -27,7 +27,7 @@
               color="neutral"
               variant="outline"
               size="sm"
-              class="hidden sm:flex font-bold"
+              class="flex font-bold"
             >
               <span class="hidden sm:inline">{{ t('header_upload') }}</span>
             </UButton>
