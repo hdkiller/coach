@@ -28,7 +28,9 @@ import {
 import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
 import {
   buildWorkoutAnalysisFacts,
-  type WorkoutAnalysisFacts
+  buildWorkoutAnalysisFactsV2,
+  type WorkoutAnalysisFacts,
+  type WorkoutAnalysisFactsV2
 } from '../server/utils/workout-analysis-facts'
 
 // TypeScript interface for the structured analysis
@@ -394,6 +396,16 @@ export const analyzeWorkoutTask = task({
           language: user?.language || null
         }
       })
+      const analysisFactsV2 = buildWorkoutAnalysisFactsV2({
+        workout,
+        sportSettings,
+        plannedWorkout: workout.plannedWorkout,
+        userProfile: {
+          weight: user?.weight || null,
+          weightUnits: user?.weightUnits || null,
+          language: user?.language || null
+        }
+      })
 
       // Generate the prompt
       const prompt = buildWorkoutAnalysisPrompt(
@@ -413,7 +425,8 @@ export const analyzeWorkoutTask = task({
         },
         aiSettings.aiContext,
         workout.plannedWorkout,
-        analysisFacts
+        analysisFacts,
+        analysisFactsV2
       )
 
       logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
@@ -876,7 +889,7 @@ function formatPromptWeight(
   return `${weight.toFixed(1)} kg`
 }
 
-function getFactValueByPath(facts: WorkoutAnalysisFacts, path: string): unknown {
+function getFactValueByPath(facts: any, path: string): unknown {
   return path.split('.').reduce<unknown>((acc, key) => {
     if (!acc || typeof acc !== 'object') return undefined
     return (acc as Record<string, unknown>)[key]
@@ -892,94 +905,133 @@ function formatPromptFactValue(value: unknown): string | null {
   return String(value)
 }
 
-function buildAnalysisFactsPromptBlock(analysisFacts?: WorkoutAnalysisFacts): string {
+function buildAnalysisFactsPromptBlock(analysisFacts?: WorkoutAnalysisFactsV2): string {
   if (!analysisFacts) return ''
 
-  const promptDecisions = analysisFacts.debugMeta.promptDecisions || {}
-  const preferredPaths = [
-    'telemetry.analysisMode',
-    'telemetry.hrUsable',
-    'telemetry.powerSourceType',
-    'telemetry.powerAbsoluteUsable',
-    'telemetry.powerRelativeUsable',
-    'physiology.normalHrLagExpected',
-    'physiology.normalHrLagDetected',
-    'physiology.decouplingValid',
-    'physiology.decouplingEffective',
-    'physiology.decouplingDirection',
-    'lrBalance.interpretationMode',
-    'lrBalance.correctionReason',
-    'lrBalance.correctedLeftPct',
-    'lrBalance.correctedRightPct',
-    'erg.detected',
-    'erg.powerControlMode',
-    'debugMeta.disabledInterpretations'
-  ]
-  const labels: Record<string, string> = {
-    'telemetry.analysisMode': 'Analysis Mode',
-    'telemetry.hrUsable': 'HR Usable',
-    'telemetry.powerSourceType': 'Power Source Type',
-    'telemetry.powerAbsoluteUsable': 'Power Absolute Usable',
-    'telemetry.powerRelativeUsable': 'Power Relative Usable',
-    'physiology.normalHrLagExpected': 'Normal HR Lag Expected',
-    'physiology.normalHrLagDetected': 'Normal HR Lag Detected',
-    'physiology.decouplingValid': 'Decoupling Valid',
-    'physiology.decouplingEffective': 'Decoupling Effective',
-    'physiology.decouplingDirection': 'Decoupling Direction',
-    'lrBalance.interpretationMode': 'L/R Interpretation Mode',
-    'lrBalance.correctionReason': 'L/R Correction Reason',
-    'lrBalance.correctedLeftPct': 'Corrected Left %',
-    'lrBalance.correctedRightPct': 'Corrected Right %',
-    'erg.detected': 'ERG Detected',
-    'erg.powerControlMode': 'Power Control Mode',
-    'debugMeta.disabledInterpretations': 'Disabled Interpretations'
-  }
-
-  const lines: string[] = []
-  const disabledInterpretations: string[] = []
-
-  for (const path of preferredPaths) {
-    const decision = promptDecisions[path]
-    if (!decision?.include) continue
-    const rawValue = getFactValueByPath(analysisFacts, path)
-
-    if (path === 'debugMeta.disabledInterpretations') {
-      if (Array.isArray(rawValue)) {
-        disabledInterpretations.push(
-          ...rawValue.filter((item): item is string => typeof item === 'string' && item.length > 0)
-        )
-      }
-      continue
+  const promptDecisions = analysisFacts.confidence.debugMeta.promptDecisions || {}
+  const groups: Array<{ title: string; items: Array<{ path: string; label: string }> }> = [
+    {
+      title: 'Guardrails',
+      items: [
+        { path: 'guardrails.analysisMode', label: 'Analysis Mode' },
+        { path: 'guardrails.archetype.primaryArchetype', label: 'Primary Archetype' },
+        { path: 'guardrails.archetype.executionEnvironment', label: 'Execution Environment' },
+        { path: 'guardrails.archetype.primaryMetric', label: 'Primary Metric' },
+        { path: 'guardrails.archetype.sessionSteadiness', label: 'Session Steadiness' },
+        { path: 'guardrails.telemetry.hrUsable', label: 'HR Usable' },
+        { path: 'guardrails.telemetry.hrArtifactSeverity', label: 'HR Artifact Severity' },
+        { path: 'guardrails.telemetry.powerSourceType', label: 'Power Source Type' },
+        { path: 'guardrails.telemetry.powerAbsoluteUsable', label: 'Power Absolute Usable' },
+        { path: 'guardrails.telemetry.powerRelativeUsable', label: 'Power Relative Usable' },
+        { path: 'guardrails.telemetry.paceUsable', label: 'Pace Usable' },
+        { path: 'guardrails.telemetry.gpsConfidence', label: 'GPS Confidence' },
+        { path: 'guardrails.telemetry.lrBalanceUsable', label: 'L/R Balance Usable' },
+        { path: 'guardrails.telemetry.lrInterpretationMode', label: 'L/R Interpretation Mode' },
+        { path: 'guardrails.erg.detected', label: 'ERG Detected' },
+        { path: 'guardrails.erg.powerControlMode', label: 'Power Control Mode' },
+        { path: 'guardrails.suppressions', label: 'Suppressions' }
+      ]
+    },
+    {
+      title: 'Adherence',
+      items: [
+        { path: 'adherence.planLinked', label: 'Plan Linked' },
+        { path: 'adherence.adherenceAssessable', label: 'Adherence Assessable' },
+        { path: 'adherence.adherenceReason', label: 'Adherence Reason' },
+        { path: 'adherence.completionPct', label: 'Completion %' },
+        { path: 'adherence.durationVsPlanPct', label: 'Duration vs Plan %' },
+        { path: 'adherence.workIntervalHitRate', label: 'Work Interval Hit Rate' },
+        { path: 'adherence.recoveryHitRate', label: 'Recovery Hit Rate' },
+        { path: 'adherence.targetOvershootPct', label: 'Target Overshoot %' },
+        { path: 'adherence.targetUndershootPct', label: 'Target Undershoot %' },
+        { path: 'adherence.structureMatched', label: 'Structure Matched' },
+        { path: 'adherence.executionClassification', label: 'Execution Classification' }
+      ]
+    },
+    {
+      title: 'Performance Signals',
+      items: [
+        { path: 'performanceSignals.decoupling.interpretable', label: 'Decoupling Interpretable' },
+        { path: 'performanceSignals.decoupling.reason', label: 'Decoupling Reason' },
+        { path: 'performanceSignals.decoupling.effective', label: 'Decoupling Effective' },
+        { path: 'performanceSignals.decoupling.direction', label: 'Decoupling Direction' },
+        { path: 'performanceSignals.durability.lateSessionFadePct', label: 'Late Session Fade %' },
+        {
+          path: 'performanceSignals.durability.firstVsLastIntervalDeltaPct',
+          label: 'First vs Last Interval Delta %'
+        },
+        {
+          path: 'performanceSignals.durability.recoveryTrendScore',
+          label: 'Recovery Trend Score'
+        },
+        {
+          path: 'performanceSignals.durability.executionStabilityScore',
+          label: 'Execution Stability Score'
+        },
+        {
+          path: 'performanceSignals.durability.repeatabilityScore',
+          label: 'Repeatability Score'
+        },
+        { path: 'performanceSignals.zones.dominantPowerZone', label: 'Dominant Power Zone' },
+        { path: 'performanceSignals.zones.dominantHrZone', label: 'Dominant HR Zone' },
+        {
+          path: 'performanceSignals.zones.timeAboveThresholdPct',
+          label: 'Time Above Threshold %'
+        },
+        {
+          path: 'performanceSignals.sportSpecific.cadenceDriftPct',
+          label: 'Cadence Drift %'
+        },
+        {
+          path: 'performanceSignals.sportSpecific.cadenceStabilityScore',
+          label: 'Cadence Stability Score'
+        },
+        { path: 'performanceSignals.sportSpecific.torqueProfile', label: 'Torque Profile' },
+        {
+          path: 'performanceSignals.sportSpecific.pacingDriftPct',
+          label: 'Pacing Drift %'
+        }
+      ]
+    },
+    {
+      title: 'Confidence',
+      items: [
+        { path: 'confidence.overall', label: 'Overall Confidence' },
+        { path: 'confidence.debugMeta.suppressedMetrics', label: 'Suppressed Metrics' }
+      ]
     }
+  ]
 
-    const formatted = formatPromptFactValue(rawValue)
-    if (!formatted) continue
-    lines.push(`- ${labels[path] || path}: ${formatted}`)
-  }
+  const sections = groups
+    .map((group) => {
+      const lines = group.items
+        .filter((item) => promptDecisions[item.path]?.include)
+        .map((item) => {
+          const rawValue = getFactValueByPath(analysisFacts, item.path)
+          const formatted = formatPromptFactValue(rawValue)
+          return formatted ? `- ${item.label}: ${formatted}` : null
+        })
+        .filter((line): line is string => Boolean(line))
 
-  if (disabledInterpretations.length > 0) {
-    lines.push('- Disabled Interpretations:')
-    disabledInterpretations.forEach((reason) => {
-      lines.push(`  - ${reason}`)
+      if (lines.length === 0) return null
+      return `### ${group.title}\n${lines.join('\n')}`
     })
-  }
+    .filter((section): section is string => Boolean(section))
 
-  if (lines.length === 0) return ''
+  if (sections.length === 0) return ''
 
   return `
-## Calculated Workout Facts
+## Calculated Workout Facts v2
 
-Use the following computed interpretation facts as higher-priority context for this analysis.
+Use the following computed workout facts as the primary interpretation contract for this analysis.
 
-${lines.join('\n')}
+${sections.join('\n\n')}
 
 Rules for these facts:
-- Treat these calculated facts as authoritative guardrails for interpretation.
+- Treat these facts as authoritative guardrails and adherence summaries.
 - Do not infer meaning from omitted facts.
-- If a metric is marked unusable or disabled, do not analyze it.
-- If HR lag is expected, do not call early HR/power mismatch a sensor problem.
-- If L/R interpretation mode is disabled, do not discuss left/right balance.
-- If ERG is detected, do not over-credit pacing discipline that may have been trainer-enforced.
+- If a fact says a metric is suppressed, unusable, or not interpretable, do not analyze it.
+- Prefer these facts over generic coaching heuristics when they conflict.
 `
 }
 
@@ -1007,7 +1059,9 @@ export function buildWorkoutAnalysisPrompt(
 
   plannedWorkout?: any,
 
-  analysisFacts?: WorkoutAnalysisFacts
+  analysisFacts?: WorkoutAnalysisFacts,
+
+  analysisFactsV2?: WorkoutAnalysisFactsV2
 ): string {
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
@@ -1104,7 +1158,7 @@ ${userProfile?.weight ? `- Weight: ${formatPromptWeight(userProfile.weight, user
 
 ${aiContext ? `\n## Global Athlete Context / About Me / Special Instructions\n${aiContext}\n` : ''}
 
-${buildAnalysisFactsPromptBlock(analysisFacts)}
+${buildAnalysisFactsPromptBlock(analysisFactsV2)}
 
 
 
@@ -1266,14 +1320,12 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
     prompt += '\n## Performance Indicators\n'
     if (workoutData.variability_index) {
       prompt += `- Variability Index (VI): ${formatMetric(workoutData.variability_index, 3)}\n`
-      prompt += `  - 1.00-1.05 = Excellent pacing, 1.05-1.10 = Good, >1.10 = Poor pacing\n`
     }
     if (workoutData.efficiency_factor) {
       prompt += `- Efficiency Factor (EF): ${formatMetric(workoutData.efficiency_factor, 2)} (Watts/HR - higher is better)\n`
     }
     if (workoutData.decoupling !== undefined && workoutData.decoupling !== null) {
       prompt += `- Decoupling: ${formatMetric(workoutData.decoupling, 1)}%\n`
-      prompt += `  - <5% = Excellent aerobic efficiency (negative values also good), 5-10% = Good, >10% = Needs aerobic work\n`
     }
     if (workoutData.power_hr_ratio) {
       prompt += `- Power/HR Ratio: ${formatMetric(workoutData.power_hr_ratio, 2)}\n`
@@ -1284,22 +1336,17 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
       const dominantSide = leftPct > rightPct ? 'Left' : rightPct > leftPct ? 'Right' : 'Neither'
       prompt += `- L/R Balance (Left%/Right%): ${formatMetric(leftPct, 1)}/${formatMetric(rightPct, 1)}\n`
       prompt += `  - Interpretation: first value is LEFT leg share, second is RIGHT leg share\n`
-      prompt += `  - Dominance rule: >50% means that side is dominant; <50% means the other side is dominant\n`
       prompt += `  - Dominant side in this workout: ${dominantSide}\n`
-      prompt += `  - 48-52% = Acceptable, 50/50 = Ideal, >53% or <47% = Significant imbalance\n`
     }
 
     if (workoutData.fatigue_sensitivity) {
       prompt += `- Fatigue Sensitivity (Endurance Fade): ${formatMetric(workoutData.fatigue_sensitivity.decay, 1)}%\n`
-      prompt += `  - <5% = Excellent endurance, 5-10% = Good, >10% = Significant late-stage fatigue\n`
     }
 
     if (workoutData.power_stability) {
       prompt += `- Power Stability (CoV): ${formatMetric(workoutData.power_stability.overallCoV, 1)}%\n`
-      prompt += `  - Lower is better. <5% = Highly stable delivery, >10% = Erratic power application\n`
     } else if (workoutData.pace_stability) {
       prompt += `- Pace Stability (CoV): ${formatMetric(workoutData.pace_stability.overallCoV, 1)}%\n`
-      prompt += `  - Lower is better. <5% = Consistent pacing, >10% = Variable speed delivery\n`
     }
 
     if (workoutData.recovery_trend && workoutData.recovery_trend.length > 0) {

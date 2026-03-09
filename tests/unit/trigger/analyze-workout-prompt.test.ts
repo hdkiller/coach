@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { buildWorkoutAnalysisPrompt } from '../../../trigger/analyze-workout'
-import { buildWorkoutAnalysisFacts } from '../../../server/utils/workout-analysis-facts'
+import {
+  buildWorkoutAnalysisFacts,
+  buildWorkoutAnalysisFactsV2
+} from '../../../server/utils/workout-analysis-facts'
 
 describe('buildWorkoutAnalysisPrompt', () => {
   it('includes global ai context and converts stored kg weight to displayed pounds', () => {
@@ -55,6 +58,23 @@ describe('buildWorkoutAnalysisPrompt', () => {
         }
       }
     })
+    const analysisFactsV2 = buildWorkoutAnalysisFactsV2({
+      workout: {
+        id: 'w-1',
+        title: 'Tempo Ride',
+        type: 'Ride',
+        durationSec: 5400,
+        averageWatts: 220,
+        averageHr: 145,
+        trainingLoad: 100,
+        trainer: false,
+        variabilityIndex: 1.03,
+        streams: {
+          heartrate: Array.from({ length: 100 }, () => 145),
+          watts: Array.from({ length: 100 }, () => 220)
+        }
+      }
+    })
 
     const prompt = buildWorkoutAnalysisPrompt(
       {
@@ -79,14 +99,15 @@ describe('buildWorkoutAnalysisPrompt', () => {
       },
       null,
       undefined,
-      analysisFacts
+      analysisFacts,
+      analysisFactsV2
     )
 
-    expect(prompt).toContain('## Calculated Workout Facts')
-    expect(prompt).toContain('- Analysis Mode: mixed')
+    expect(prompt).toContain('## Calculated Workout Facts v2')
+    expect(prompt).toContain('### Guardrails')
+    expect(prompt).toContain('- Primary Archetype: endurance')
     expect(prompt).toContain('- HR Usable: Yes')
     expect(prompt).toContain('- Power Source Type: measured')
-    expect(prompt).not.toContain('HR Zero Ratio')
     expect(prompt).not.toContain('Computed From')
   })
 })
