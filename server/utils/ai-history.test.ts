@@ -186,4 +186,50 @@ describe('transformHistoryToCoreMessages', () => {
     expect(toolCalls[0].toolCallId).toBe('call_789')
     expect(toolCalls[0].toolName).toBe('fast_tool')
   })
+
+  it('merges duplicate consecutive tool result turns for the same tool call', async () => {
+    const history = [
+      {
+        id: '1',
+        role: 'assistant',
+        content: '',
+        parts: [
+          {
+            type: 'tool-invocation',
+            toolCallId: 'call_1',
+            toolName: 'lookup',
+            args: { q: 'foo' },
+            state: 'result',
+            result: { answer: 1 }
+          }
+        ]
+      },
+      {
+        id: '2',
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call_1',
+            toolName: 'lookup',
+            result: { answer: 1 }
+          }
+        ]
+      }
+    ]
+
+    const result = await transformHistoryToCoreMessages(history)
+
+    expect(result).toHaveLength(2)
+    expect(result[0].role).toBe('assistant')
+    expect(result[1].role).toBe('tool')
+    expect(result[1].content).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'call_1',
+        toolName: 'lookup',
+        result: { answer: 1 }
+      }
+    ])
+  })
 })

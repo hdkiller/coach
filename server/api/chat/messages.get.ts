@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { expandStoredChatMessages } from '../../utils/chat/history'
+import { prisma } from '../../utils/db'
 
 defineRouteMeta({
   openAPI: {

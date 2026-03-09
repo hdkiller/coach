@@ -1,5 +1,59 @@
 import { convertToModelMessages } from 'ai'
 
+function normalizeToolResultPart(part: any) {
+  const rawOutput =
+    part?.result !== undefined
+      ? part.result
+      : part?.output?.value !== undefined
+        ? part.output.value
+        : part?.output !== undefined
+          ? part.output
+          : undefined
+
+  const output =
+    rawOutput && typeof rawOutput === 'object' && typeof rawOutput.type === 'string'
+      ? rawOutput
+      : typeof rawOutput === 'string'
+        ? { type: 'text', value: rawOutput }
+        : { type: 'json', value: rawOutput ?? null }
+
+  return {
+    type: 'tool-result',
+    toolCallId: part?.toolCallId,
+    toolName: part?.toolName || part?.name || 'unknown',
+    output
+  }
+}
+
+function mergeToolResultParts(parts: any[]) {
+  const byToolCallId = new Map<string, any>()
+  const withoutIds: any[] = []
+
+  for (const rawPart of parts) {
+    if (!rawPart) continue
+    const part = normalizeToolResultPart(rawPart)
+
+    if (!part.toolCallId) {
+      withoutIds.push(part)
+      continue
+    }
+
+    const existing = byToolCallId.get(part.toolCallId)
+    if (!existing) {
+      byToolCallId.set(part.toolCallId, part)
+      continue
+    }
+
+    byToolCallId.set(part.toolCallId, {
+      ...existing,
+      toolName: existing.toolName || part.toolName,
+      output: existing.output !== undefined ? existing.output : part.output
+    })
+  }
+
+  return [...byToolCallId.values(), ...withoutIds]
+}
+
 /**
  * Transforms UI history messages (from Vercel AI SDK frontend) into CoreMessages
  * compatible with Google Generative AI (Gemini).
@@ -55,14 +109,22 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
             type: 'tool-result',
             toolCallId: resolvedId,
             toolName: p.toolName || p.name || 'unknown',
-            result: p.result || (p.approved ? 'User confirmed action.' : 'User denied action.')
+            output:
+              p.result !== undefined
+                ? typeof p.result === 'string'
+                  ? { type: 'text', value: p.result }
+                  : { type: 'json', value: p.result ?? null }
+                : {
+                    type: 'text',
+                    value: p.approved ? 'User confirmed action.' : 'User denied action.'
+                  }
           }
         })
 
       if (results.length > 0) {
         coreMessages.push({
           role: 'tool',
-          content: results
+          content: mergeToolResultParts(results)
         })
       }
       continue
@@ -106,8 +168,8 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
               part.toolName =
                 originalPart.toolCall?.toolName || originalPart.toolName || originalPart.name
               // Ensure args are present
-              if (!part.args || Object.keys(part.args).length === 0) {
-                part.args =
+              if (!part.input || Object.keys(part.input || {}).length === 0) {
+                part.input =
                   originalPart.toolCall?.args || originalPart.args || originalPart.input || {}
               }
             }
@@ -160,7 +222,7 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
                   type: 'tool-call',
                   toolCallId,
                   toolName,
-                  args: tp.toolCall?.args || tp.args || tp.input || {}
+                  input: tp.toolCall?.args || tp.args || tp.input || {}
                 })
               }
             })
@@ -223,12 +285,17 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
         if (!sdkProducedToolMsg) {
           coreMessages.push({
             role: 'tool',
-            content: toolResultParts.map((p: any) => ({
-              type: 'tool-result',
-              toolCallId: p.toolCallId,
-              toolName: p.toolName,
-              result: p.result
-            }))
+            content: mergeToolResultParts(
+              toolResultParts.map((p: any) => ({
+                type: 'tool-result',
+                toolCallId: p.toolCallId,
+                toolName: p.toolName,
+                output:
+                  typeof p.result === 'string'
+                    ? { type: 'text', value: p.result }
+                    : { type: 'json', value: p.result ?? null }
+              }))
+            )
           })
         }
       }
@@ -255,14 +322,17 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
   // Second pass: Filter messages
   for (const msg of coreMessages) {
     if (msg.role === 'tool') {
-      const content = msg.content as any[]
+      const content = mergeToolResultParts(msg.content as any[])
       // Filter out parts that don't have a matching call
-      const validContent = content.filter(
-        (p: any) => p.type === 'tool-result' && toolCallIds.has(p.toolCallId)
-      )
+      const validContent = content.filter((p: any) => toolCallIds.has(p.toolCallId))
 
       if (validContent.length > 0) {
-        validCoreMessages.push({ ...msg, content: validContent })
+        const previous = validCoreMessages[validCoreMessages.length - 1]
+        if (previous?.role === 'tool') {
+          previous.content = mergeToolResultParts([...(previous.content || []), ...validContent])
+        } else {
+          validCoreMessages.push({ ...msg, content: validContent })
+        }
       } else {
         // Drop the message entirely if it has no valid results
         // Alternatively, convert to text? For now, dropping is safer for schema.

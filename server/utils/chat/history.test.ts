@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPersistedToolCalls, expandStoredChatMessages } from './history'
+import { buildPersistedToolCalls, expandStoredChatMessages, truncateMessages } from './history'
 
 describe('chat history helpers', () => {
   it('reconstructs assistant tool parts from stored toolCalls and toolResults', () => {
@@ -71,5 +71,40 @@ describe('chat history helpers', () => {
         response: { local_time: '09:29' }
       })
     ])
+  })
+
+  it('backs up truncation to the previous user turn when a retained window would start with assistant tool calls', () => {
+    const result = truncateMessages(
+      [
+        { id: 'u1', role: 'user', content: 'Need help' },
+        {
+          id: 'a1',
+          role: 'assistant',
+          content: [{ type: 'tool-call', toolCallId: 'call-1', toolName: 'lookup', args: {} }]
+        },
+        {
+          id: 't1',
+          role: 'tool',
+          content: [{ type: 'tool-result', toolCallId: 'call-1', result: { ok: true } }]
+        },
+        { id: 'u2', role: 'user', content: 'Thanks' }
+      ],
+      3
+    )
+
+    expect(result.map((message) => message.id)).toEqual(['u1', 'a1', 't1', 'u2'])
+  })
+
+  it('backs up truncation to the previous user turn when a retained window would start with assistant text', () => {
+    const result = truncateMessages(
+      [
+        { id: 'u1', role: 'user', content: 'Question' },
+        { id: 'a1', role: 'assistant', content: 'Answer' },
+        { id: 'u2', role: 'user', content: 'Follow-up' }
+      ],
+      2
+    )
+
+    expect(result.map((message) => message.id)).toEqual(['u1', 'a1', 'u2'])
   })
 })

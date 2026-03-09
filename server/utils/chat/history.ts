@@ -15,9 +15,9 @@ export function truncateMessages(messages: any[], limit: number = 20): any[] {
   // 2. Take the last 'limit - 1' messages from history
   const truncatedHistory = history.slice(-(limit - 1))
 
-  // 3. Ensure we don't start with a 'tool' message (it must follow an 'assistant' tool call)
-  // If the first message in our truncated history is 'tool', we need to include the preceding assistant message.
-  while (truncatedHistory.length > 0 && truncatedHistory[0].role === 'tool') {
+  // 3. Gemini is strict about turn ordering. If truncation starts inside an
+  // assistant/tool exchange, back up until the retained window starts on a user turn.
+  while (truncatedHistory.length > 0 && truncatedHistory[0].role !== 'user') {
     const firstMsgIndexInOriginal = history.length - truncatedHistory.length
     if (firstMsgIndexInOriginal > 0) {
       truncatedHistory.unshift(history[firstMsgIndexInOriginal - 1])

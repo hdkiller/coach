@@ -19,6 +19,7 @@ export const CHAT_TURN_EVENT_TYPE = {
   TOOL_CALL_STARTED: 'tool_call_started',
   TOOL_CALL_COMPLETED: 'tool_call_completed',
   TOOL_CALL_FAILED: 'tool_call_failed',
+  TOOL_CALL_REPAIRED: 'tool_call_repaired',
   TURN_INTERRUPTED: 'turn_interrupted',
   TURN_COMPLETED: 'turn_completed'
 } as const

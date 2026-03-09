@@ -1,4 +1,5 @@
 import { defineWebSocketHandler } from 'h3'
+import { prisma } from '../utils/db'
 import { verifyWsToken } from '../utils/ws-auth'
 import { checkQuota } from '../utils/quotas/engine'
 import { peerContext } from '../utils/ws-state'
