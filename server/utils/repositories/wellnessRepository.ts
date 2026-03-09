@@ -1,6 +1,20 @@
 import { prisma } from '../db'
 import type { Prisma } from '@prisma/client'
 
+function normalizeWellnessFieldAliases<T extends Record<string, any>>(data: T): T {
+  if (!data || typeof data !== 'object') return data
+
+  const normalized = { ...data }
+
+  if ('vo2Max' in normalized && !('vo2max' in normalized)) {
+    normalized.vo2max = normalized.vo2Max
+  }
+
+  delete normalized.vo2Max
+
+  return normalized as T
+}
+
 export const wellnessRepository = {
   /**
    * Get wellness entries for a user
@@ -131,14 +145,10 @@ export const wellnessRepository = {
   ) {
     // Some provider normalizers include a `source` field for traceability,
     // but Wellness model stores this as `lastSource` (not `source`).
-    const { source: _createSource, ...sanitizedCreateData } = (createData || {}) as Record<
-      string,
-      any
-    >
-    const { source: _updateSource, ...sanitizedUpdateData } = (updateData || {}) as Record<
-      string,
-      any
-    >
+    const { source: _createSource, ...rawCreateData } = (createData || {}) as Record<string, any>
+    const { source: _updateSource, ...rawUpdateData } = (updateData || {}) as Record<string, any>
+    const sanitizedCreateData = normalizeWellnessFieldAliases(rawCreateData)
+    const sanitizedUpdateData = normalizeWellnessFieldAliases(rawUpdateData)
 
     // 1. Fetch existing record
     const existing = await prisma.wellness.findUnique({

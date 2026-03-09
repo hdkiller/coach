@@ -353,7 +353,7 @@ export const GarminService = {
       const metricsData: any = {
         userId,
         date: utcDate,
-        vo2Max: record.vo2Max || record.vo2MaxCycling || null,
+        vo2max: record.vo2Max || record.vo2MaxCycling || null,
         rawJson: record
       }
 

@@ -101,5 +101,32 @@ describe('wellnessRepository', () => {
       const upsertCall = vi.mocked(prisma.wellness.upsert).mock.calls[0][0]
       expect(upsertCall.update).not.toHaveProperty('history')
     })
+
+    it('should normalize vo2Max to vo2max before calling Prisma', async () => {
+      vi.mocked(prisma.wellness.findUnique).mockResolvedValue(null)
+
+      await wellnessRepository.upsert(
+        userId,
+        date,
+        { userId, date, vo2Max: 54.2 } as any,
+        { vo2Max: 54.2 } as any,
+        'garmin'
+      )
+
+      expect(prisma.wellness.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            vo2max: 54.2
+          }),
+          update: expect.objectContaining({
+            vo2max: 54.2
+          })
+        })
+      )
+
+      const upsertCall = vi.mocked(prisma.wellness.upsert).mock.calls[0][0]
+      expect(upsertCall.create).not.toHaveProperty('vo2Max')
+      expect(upsertCall.update).not.toHaveProperty('vo2Max')
+    })
   })
 })
