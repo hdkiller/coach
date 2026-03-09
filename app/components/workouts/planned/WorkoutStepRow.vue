@@ -5,143 +5,152 @@
     >
       <!-- Desktop Layout -->
       <div
-        class="hidden sm:grid items-center gap-4 grid-cols-[32px_12px_1fr_54px_90px_80px_140px_70px_32px]"
+        class="hidden sm:grid items-start gap-4 grid-cols-[32px_1fr_48px_70px_80px_150px_70px_32px]"
       >
         <!-- Col 0: Drag Handle -->
         <div
-          class="flex items-center justify-center cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 drag-handle"
+          class="flex items-center justify-center cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 drag-handle pt-1"
         >
           <UIcon name="i-heroicons-bars-2" class="w-4 h-4" />
         </div>
 
-        <!-- Col 1: Dot -->
-        <div
-          class="w-3 h-3 rounded-full flex-shrink-0 mt-1"
-          :style="{ backgroundColor: stepColor }"
-        />
-
-        <!-- Col 2: Name & Type -->
-        <div class="min-w-0" :style="indentStyle">
-          <UInput
-            v-model="step.name"
-            placeholder="Step Name"
-            size="xs"
-            variant="none"
-            class="p-0 font-bold placeholder:italic hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors focus:bg-white dark:focus:bg-gray-950"
-            ui="{ padding: { xs: 'px-1 py-0.5' } }"
-          />
-          <div class="flex items-center gap-1.5 mt-0.5">
+        <!-- Col 1: Combined Content (Dot, Name, Type) -->
+        <div class="min-w-0 space-y-1" :style="indentStyle">
+          <div class="flex items-center gap-2">
+            <!-- Dot -->
+            <div
+              class="w-3 h-3 rounded-full flex-shrink-0"
+              :style="{ backgroundColor: stepColor }"
+            />
+            <!-- Name -->
+            <UInput
+              v-model="localName"
+              placeholder="Step Name"
+              size="xs"
+              variant="none"
+              class="p-0 font-bold placeholder:italic hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors focus:bg-white dark:focus:bg-gray-950 flex-1"
+              ui="{ padding: { xs: 'px-1 py-0.5' } }"
+              @update:model-value="emitUpdate"
+            />
+          </div>
+          <!-- Type & Reps -->
+          <div class="flex items-center gap-1.5">
             <USelect
-              v-model="step.type"
+              v-model="localType"
               :items="['Warmup', 'Active', 'Rest', 'Cooldown']"
               size="xs"
               variant="none"
               class="p-0 text-muted uppercase text-[9px] font-black tracking-widest w-20"
               ui="{ padding: { xs: 'px-0 py-0' } }"
+              @update:model-value="emitUpdate"
             />
             <div v-if="hasNestedSteps" class="flex items-center gap-1">
               <span class="text-[9px] text-gray-400 font-bold uppercase">x</span>
               <UInput
-                v-model.number="step.reps"
+                v-model.number="localReps"
                 type="number"
                 size="xs"
                 variant="none"
                 class="w-14 p-0 font-black text-primary text-[10px]"
                 ui="{ padding: { xs: 'px-0 py-0' } }"
+                @update:model-value="emitUpdate"
               />
             </div>
           </div>
         </div>
 
-        <!-- Col 3: Zone -->
-        <div class="text-center text-sm font-black text-gray-500 dark:text-gray-400 tabular-nums">
+        <!-- Col 2: Zone -->
+        <div
+          class="text-center text-sm font-black text-gray-500 dark:text-gray-400 tabular-nums pt-0.5"
+        >
           {{ zoneName }}
         </div>
 
-        <!-- Col 4: Cadence -->
-        <div class="text-center">
+        <!-- Col 3: Cadence -->
+        <div class="text-center pt-0.5">
           <div class="flex items-center justify-center gap-0.5">
             <UInput
-              v-model.number="step.cadence"
+              v-model.number="localCadence"
               type="number"
               size="xs"
               variant="none"
               placeholder="--"
               class="w-12 p-0 text-blue-500 font-black text-center text-sm"
               ui="{ padding: { xs: 'px-0 py-0' } }"
+              @update:model-value="emitUpdate"
             />
             <span class="text-[9px] text-blue-400 uppercase font-bold tracking-tight">RPM</span>
           </div>
         </div>
 
-        <!-- Col 5: Duration -->
-        <div class="text-right">
+        <!-- Col 4: Duration -->
+        <div class="text-right pt-0.5">
           <div class="flex items-center justify-end gap-1">
             <UInput
-              v-model.number="step._durationMin"
+              v-model.number="localDurationMin"
               type="number"
               size="xs"
               variant="none"
               class="w-14 p-0 text-right text-muted font-bold text-[10px]"
               ui="{ padding: { xs: 'px-0 py-0' } }"
-              @update:model-value="$emit('update:duration')"
+              @update:model-value="emitUpdate"
             />
             <span class="text-[8px] text-gray-400 uppercase font-bold">MIN</span>
           </div>
         </div>
 
-        <!-- Col 6: Power (Ramp Support) -->
-        <div class="text-right">
+        <!-- Col 5: Power -->
+        <div class="text-right pt-0.5">
           <div class="flex items-center justify-end gap-1">
             <div class="flex flex-col items-end">
               <div class="flex items-center gap-1">
                 <UInput
-                  v-model.number="step._powerStartPct"
+                  v-model.number="localPowerStart"
                   type="number"
                   size="xs"
                   variant="none"
-                  class="w-12 p-0 text-right font-black text-sm"
+                  class="w-14 p-0 text-right font-black text-sm"
                   ui="{ padding: { xs: 'px-0 py-0' } }"
-                  @update:model-value="updatePower"
+                  @update:model-value="emitUpdate"
                 />
-                <template v-if="step._isRamp || step._powerStartPct !== step._powerEndPct">
+                <template v-if="localIsRamp || localPowerStart !== localPowerEnd">
                   <span class="text-[9px] text-gray-400 font-bold">-</span>
                   <UInput
-                    v-model.number="step._powerEndPct"
+                    v-model.number="localPowerEnd"
                     type="number"
                     size="xs"
                     variant="none"
-                    class="w-12 p-0 text-right font-black text-sm"
+                    class="w-14 p-0 text-right font-black text-sm"
                     ui="{ padding: { xs: 'px-0 py-0' } }"
-                    @update:model-value="updatePower"
+                    @update:model-value="emitUpdate"
                   />
                 </template>
                 <span class="text-[9px] text-gray-400 uppercase font-black">%</span>
               </div>
               <UButton
-                v-if="step.type !== 'Rest'"
+                v-if="localType !== 'Rest'"
                 variant="none"
                 size="xs"
                 class="p-0 h-auto text-[8px] font-black uppercase tracking-tighter"
-                :color="step._isRamp ? 'primary' : 'neutral'"
+                :color="localIsRamp ? 'primary' : 'neutral'"
                 @click="toggleRamp"
               >
-                {{ step._isRamp ? 'Ramp On' : 'Set Ramp' }}
+                {{ localIsRamp ? 'Ramp On' : 'Set Ramp' }}
               </UButton>
             </div>
           </div>
         </div>
 
-        <!-- Col 7: Avg Watts -->
-        <div class="text-right">
+        <!-- Col 6: Avg Watts -->
+        <div class="text-right pt-0.5">
           <div class="text-sm font-black text-primary tabular-nums">
             {{ avgWatts }}<span class="text-[9px] ml-0.5 opacity-60">W</span>
           </div>
         </div>
 
-        <!-- Col 8: Actions -->
+        <!-- Col 7: Actions -->
         <div
-          class="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity"
+          class="flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity pt-0.5"
         >
           <UDropdownMenu
             :items="[
@@ -187,23 +196,24 @@
               :style="{ backgroundColor: stepColor }"
             />
             <UInput
-              v-model="step.name"
+              v-model="localName"
               placeholder="Step Name"
               size="sm"
               variant="none"
               class="p-0 font-bold flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-1 transition-colors"
               ui="{ padding: { sm: 'px-0 py-0' } }"
+              @update:model-value="emitUpdate"
             />
           </div>
           <div class="flex items-center gap-2">
             <UInput
-              v-model.number="step._durationMin"
+              v-model.number="localDurationMin"
               type="number"
               size="xs"
               variant="none"
               class="w-14 p-0 text-right font-black"
               ui="{ padding: { xs: 'px-0 py-0' } }"
-              @update:model-value="$emit('update:duration')"
+              @update:model-value="emitUpdate"
             />
             <span class="text-[9px] text-gray-400 font-bold">MIN</span>
             <UButton
@@ -217,60 +227,63 @@
         </div>
         <div class="flex items-center gap-4 pl-4.5">
           <USelect
-            v-model="step.type"
+            v-model="localType"
             :items="['Warmup', 'Active', 'Rest', 'Cooldown']"
             size="xs"
             class="w-24"
+            @update:model-value="emitUpdate"
           />
           <div v-if="hasNestedSteps" class="flex items-center gap-1">
             <span class="text-[9px] text-gray-400 font-bold uppercase">x</span>
             <UInput
-              v-model.number="step.reps"
+              v-model.number="localReps"
               type="number"
               size="xs"
               variant="none"
-              class="w-10 p-0 font-black text-primary text-[10px]"
+              class="w-14 p-0 font-black text-primary text-[10px]"
               ui="{ padding: { xs: 'px-0 py-0' } }"
+              @update:model-value="emitUpdate"
             />
           </div>
           <div class="flex flex-col items-center gap-0.5">
             <div class="flex items-center gap-1">
               <UInput
-                v-model.number="step._powerStartPct"
+                v-model.number="localPowerStart"
                 type="number"
                 size="xs"
                 class="w-12 text-center font-black"
-                @update:model-value="updatePower"
+                @update:model-value="emitUpdate"
               />
-              <template v-if="step._isRamp">
+              <template v-if="localIsRamp || localPowerStart !== localPowerEnd">
                 <span class="text-[9px] text-gray-400">-</span>
                 <UInput
-                  v-model.number="step._powerEndPct"
+                  v-model.number="localPowerEnd"
                   type="number"
                   size="xs"
                   class="w-12 text-center font-black"
-                  @update:model-value="updatePower"
+                  @update:model-value="emitUpdate"
                 />
               </template>
               <span class="text-[9px] text-gray-400 font-bold">%</span>
             </div>
             <UButton
-              v-if="step.type !== 'Rest'"
+              v-if="localType !== 'Rest'"
               variant="none"
               size="xs"
               class="p-0 h-auto text-[8px] font-black uppercase"
-              :color="step._isRamp ? 'primary' : 'neutral'"
+              :color="localIsRamp ? 'primary' : 'neutral'"
               @click="toggleRamp"
             >
-              {{ step._isRamp ? 'Ramp' : '+ Ramp' }}
+              {{ localIsRamp ? 'Ramp' : '+ Ramp' }}
             </UButton>
           </div>
           <div class="flex items-center gap-1">
             <UInput
-              v-model.number="step.cadence"
+              v-model.number="localCadence"
               type="number"
               size="xs"
               class="w-16 text-center font-black text-blue-500"
+              @update:model-value="emitUpdate"
             />
             <span class="text-[9px] text-blue-400 font-bold uppercase">RPM</span>
           </div>
@@ -281,15 +294,16 @@
     <!-- Nested Steps -->
     <div v-if="hasNestedSteps" class="ml-2 border-l border-primary-500/20 pl-2 mt-1 space-y-1">
       <draggable
-        v-model="step.steps"
+        :model-value="step.steps"
         item-key="uid"
         handle=".drag-handle"
         ghost-class="opacity-50"
+        @update:model-value="updateStepsOrder"
         @change="$emit('update:duration')"
       >
         <template #item="{ element: child, index: cIdx }">
           <WorkoutStepRow
-            v-model:step="step.steps[cIdx]"
+            :step="child"
             :index="cIdx"
             :depth="depth + 1"
             :user-ftp="userFtp"
@@ -299,6 +313,7 @@
             @update:power="$emit('update:power')"
             @add-nested="addNestedToChild(child)"
             @add-after="addStepAfterNested(cIdx)"
+            @update:step="updateChildStep(cIdx, $event)"
           />
         </template>
       </draggable>
@@ -310,34 +325,59 @@
   import draggable from 'vuedraggable'
   import { ZONE_COLORS } from '~/utils/zone-colors'
 
-  const step = defineModel<any>('step', { required: true })
   const props = defineProps<{
+    step: any
     index: number
     depth: number
     userFtp?: number
     sportSettings?: any
   }>()
 
-  const emit = defineEmits(['remove', 'update:duration', 'update:power', 'add-nested', 'add-after'])
+  const emit = defineEmits([
+    'remove',
+    'update:duration',
+    'update:power',
+    'add-nested',
+    'add-after',
+    'update:step'
+  ])
+
+  // Local state for all editable fields to ensure reactivity and clean data flow
+  const localName = ref(props.step.name || '')
+  const localType = ref(props.step.type || 'Active')
+  const localDurationMin = ref(props.step._durationMin || 0)
+  const localPowerStart = ref(props.step._powerStartPct || 0)
+  const localPowerEnd = ref(props.step._powerEndPct || 0)
+  const localIsRamp = ref(!!props.step._isRamp)
+  const localCadence = ref(props.step.cadence || null)
+  const localReps = ref(props.step.reps || 1)
+
+  // Watch for external changes (like scaling)
+  watch(
+    () => props.step,
+    (newStep) => {
+      localName.value = newStep.name || ''
+      localType.value = newStep.type || 'Active'
+      localDurationMin.value = newStep._durationMin || 0
+      localPowerStart.value = newStep._powerStartPct || 0
+      localPowerEnd.value = newStep._powerEndPct || 0
+      localIsRamp.value = !!newStep._isRamp
+      localCadence.value = newStep.cadence || null
+      localReps.value = newStep.reps || 1
+    },
+    { deep: true }
+  )
 
   const hasNestedSteps = computed(
-    () => Array.isArray(step.value.steps) && step.value.steps.length > 0
+    () => Array.isArray(props.step.steps) && props.step.steps.length > 0
   )
-  const indentStyle = computed(() => ({ paddingLeft: `${Math.min(props.depth, 5) * 8}px` }))
-
-  const stepIntensity = computed(() => {
-    return (step.value._powerStartPct || 0) / 100
-  })
-
-  const stepEndIntensity = computed(() => {
-    return (step.value._powerEndPct || 0) / 100
-  })
+  const indentStyle = computed(() => ({ paddingLeft: `${Math.min(props.depth, 5) * 12}px` }))
 
   const zoneName = computed(() => {
-    const power = step.value._isRamp
-      ? (stepIntensity.value + stepEndIntensity.value) / 2
-      : stepIntensity.value
-    // Replicating WorkoutChart logic for zone names
+    const power = localIsRamp.value
+      ? (localPowerStart.value + localPowerEnd.value) / 200
+      : localPowerStart.value / 100
+
     if (props.sportSettings?.powerZones && props.sportSettings.ftp) {
       const ftp = props.sportSettings.ftp
       const absPower = power * ftp
@@ -345,7 +385,6 @@
       return idx !== -1 ? `Z${idx + 1}` : 'Z?'
     }
 
-    // Fallback
     if (power <= 0.55) return 'Z1'
     else if (power <= 0.75) return 'Z2'
     else if (power <= 0.9) return 'Z3'
@@ -355,9 +394,9 @@
   })
 
   const stepColor = computed(() => {
-    const power = step.value._isRamp
-      ? (stepIntensity.value + stepEndIntensity.value) / 2
-      : stepIntensity.value
+    const power = localIsRamp.value
+      ? (localPowerStart.value + localPowerEnd.value) / 200
+      : localPowerStart.value / 100
     let colorIdx = 0
     if (power <= 0.55) colorIdx = 0
     else if (power <= 0.75) colorIdx = 1
@@ -371,37 +410,110 @@
 
   const avgWatts = computed(() => {
     if (!props.userFtp) return '-'
-    const power = step.value._isRamp
-      ? (stepIntensity.value + stepEndIntensity.value) / 2
-      : stepIntensity.value
+    const power = localIsRamp.value
+      ? (localPowerStart.value + localPowerEnd.value) / 200
+      : localPowerStart.value / 100
     return Math.round(power * props.userFtp)
   })
 
+  function emitUpdate() {
+    const updatedStep = { ...props.step }
+    updatedStep.name = localName.value
+    updatedStep.type = localType.value
+    updatedStep.reps = localReps.value
+    updatedStep.cadence = localCadence.value
+    updatedStep.durationSeconds = localDurationMin.value * 60
+    updatedStep.duration = updatedStep.durationSeconds
+
+    // Internal state for editor
+    updatedStep._durationMin = localDurationMin.value
+    updatedStep._powerStartPct = localPowerStart.value
+    updatedStep._powerEndPct = localPowerEnd.value
+    updatedStep._isRamp = localIsRamp.value
+
+    // Power object for chart and backend
+    if (!updatedStep.power) updatedStep.power = { units: '%' }
+    if (localIsRamp.value || localPowerStart.value !== localPowerEnd.value) {
+      updatedStep.power.range = {
+        start: localPowerStart.value / 100,
+        end: localPowerEnd.value / 100
+      }
+      updatedStep.power.ramp = localIsRamp.value
+      delete updatedStep.power.value
+    } else {
+      updatedStep.power.value = localPowerStart.value / 100
+      delete updatedStep.power.range
+      delete updatedStep.power.ramp
+    }
+
+    emit('update:step', updatedStep)
+    emit('update:duration') // Trigger chart refresh
+  }
+
+  function toggleRamp() {
+    localIsRamp.value = !localIsRamp.value
+    if (!localIsRamp.value) {
+      localPowerEnd.value = localPowerStart.value
+    }
+    emitUpdate()
+  }
+
+  function updateStepsOrder(newSteps: any[]) {
+    const updatedStep = { ...props.step }
+    updatedStep.steps = newSteps
+    emit('update:step', updatedStep)
+  }
+
+  function updateChildStep(idx: number, child: any) {
+    if (props.step.steps) {
+      const updatedStep = { ...props.step }
+      updatedStep.steps = [...props.step.steps]
+      updatedStep.steps[idx] = child
+      emit('update:step', updatedStep)
+      emit('update:duration')
+    }
+  }
+
   function removeNested(idx: number) {
-    step.value.steps.splice(idx, 1)
+    const updatedStep = { ...props.step }
+    updatedStep.steps = [...props.step.steps]
+    updatedStep.steps.splice(idx, 1)
+    emit('update:step', updatedStep)
     emit('update:duration')
   }
 
   function addNestedToChild(child: any) {
-    if (!child.steps) child.steps = []
-    if (!child.reps) child.reps = 2
-    child.steps.push({
-      uid: Math.random().toString(36).substring(7),
-      type: 'Active',
-      name: 'Interval',
-      durationSeconds: 60,
-      duration: 60,
-      _durationMin: 1,
-      power: { value: 1.0, units: '%' },
-      _powerStartPct: 100,
-      _powerEndPct: 100,
-      _isRamp: false
-    })
-    emit('update:duration')
+    const updatedChild = { ...child }
+    if (!updatedChild.steps) updatedChild.steps = []
+    if (!updatedChild.reps) updatedChild.reps = 2
+
+    updatedChild.steps = [
+      ...updatedChild.steps,
+      {
+        uid: Math.random().toString(36).substring(7),
+        type: 'Active',
+        name: 'Interval',
+        durationSeconds: 60,
+        duration: 60,
+        _durationMin: 1,
+        power: { value: 1.0, units: '%' },
+        _powerStartPct: 100,
+        _powerEndPct: 100,
+        _isRamp: false
+      }
+    ]
+
+    // Find index of this child to update it via updateChildStep or similar logic
+    const idx = props.step.steps.findIndex((s: any) => s.uid === child.uid)
+    if (idx !== -1) {
+      updateChildStep(idx, updatedChild)
+    }
   }
 
   function addStepAfterNested(idx: number) {
-    step.value.steps.splice(idx + 1, 0, {
+    const updatedStep = { ...props.step }
+    updatedStep.steps = [...props.step.steps]
+    updatedStep.steps.splice(idx + 1, 0, {
       uid: Math.random().toString(36).substring(7),
       type: 'Active',
       name: 'New Step',
@@ -413,32 +525,7 @@
       _powerEndPct: 70,
       _isRamp: false
     })
+    emit('update:step', updatedStep)
     emit('update:duration')
-  }
-
-  function toggleRamp() {
-    step.value._isRamp = !step.value._isRamp
-    if (!step.value._isRamp) {
-      step.value._powerEndPct = step.value._powerStartPct
-    }
-    updatePower()
-  }
-
-  function updatePower() {
-    if (!step.value.power) step.value.power = { units: '%' }
-
-    if (step.value._isRamp || step.value._powerStartPct !== step.value._powerEndPct) {
-      step.value.power.range = {
-        start: step.value._powerStartPct / 100,
-        end: step.value._powerEndPct / 100
-      }
-      step.value.power.ramp = step.value._isRamp
-      delete step.value.power.value
-    } else {
-      step.value.power.value = step.value._powerStartPct / 100
-      delete step.value.power.range
-      delete step.value.power.ramp
-    }
-    emit('update:power')
   }
 </script>

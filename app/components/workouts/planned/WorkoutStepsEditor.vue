@@ -64,14 +64,13 @@
         >
           <template #item="{ element: step, index }">
             <WorkoutStepRow
-              v-model:step="editedSteps[index]"
+              :step="step"
               :index="index"
               :depth="0"
               :user-ftp="userFtp"
               :sport-settings="sportSettings"
               @remove="removeStep(index)"
-              @update:duration="updateStepDuration(step, index)"
-              @update:power="updateStepPower(step, index)"
+              @update:step="updateStep(index, $event)"
               @add-nested="addNestedStep(step)"
               @add-after="addStepAfter(index)"
             />
@@ -127,7 +126,7 @@
 
   function initializeSteps(sourceSteps: any[]) {
     return sourceSteps.map((step) => {
-      const s = { ...step }
+      const s = JSON.parse(JSON.stringify(step)) // Deep copy
       if (!s.uid) s.uid = generateUid()
       const dur = s.durationSeconds || s.duration || 0
       s._durationMin = Math.round(dur / 60)
@@ -135,7 +134,8 @@
       if (s.power?.range) {
         s._powerStartPct = Math.round(s.power.range.start * 100)
         s._powerEndPct = Math.round(s.power.range.end * 100)
-        s._isRamp = !!s.power.ramp
+        // If range exists but ramp is undefined, assume it's a ramp (backwards compatibility)
+        s._isRamp = s.power.ramp !== false
       } else {
         const p = s.power?.value || 0
         s._powerStartPct = Math.round(p * 100)
@@ -152,13 +152,16 @@
   originalSteps.value = JSON.parse(JSON.stringify(props.steps))
   editedSteps.value = initializeSteps(originalSteps.value)
 
-  // Watch for external changes if not currently editing
+  // Watch for external changes if not currently saving
   watch(
     () => props.steps,
     (newSteps) => {
       if (!props.saving) {
         originalSteps.value = JSON.parse(JSON.stringify(newSteps))
-        editedSteps.value = initializeSteps(originalSteps.value)
+        // If we haven't scaled yet, update edited steps too
+        if (durationFactor.value === 1) {
+          editedSteps.value = initializeSteps(originalSteps.value)
+        }
       }
     },
     { deep: true }
@@ -191,18 +194,20 @@
 
   function scaleStepsRecursive(steps: any[], factor: number): any[] {
     return steps.map((s) => {
-      const news = { ...s }
+      const news = JSON.parse(JSON.stringify(s)) // Deep copy
       if (!news.uid) news.uid = generateUid()
+
+      // Scale duration
       if (s.durationSeconds) news.durationSeconds = Math.round(s.durationSeconds * factor)
       if (s.duration) news.duration = Math.round(s.duration * factor)
       if (s.distance) news.distance = Math.round(s.distance * factor)
       news._durationMin = Math.round((news.durationSeconds || news.duration || 0) / 60)
 
-      // Intensity doesn't scale with duration, but we need to re-initialize internal values
+      // Initialize internal power fields (Intensity doesn't scale with duration)
       if (s.power?.range) {
         news._powerStartPct = Math.round(s.power.range.start * 100)
         news._powerEndPct = Math.round(s.power.range.end * 100)
-        news._isRamp = !!s.power.ramp
+        news._isRamp = s.power.ramp !== false
       } else {
         const p = s.power?.value || 0
         news._powerStartPct = Math.round(p * 100)
@@ -215,15 +220,13 @@
     })
   }
 
-  function updateStepDuration(step: any, index: number) {
-    step.durationSeconds = step._durationMin * 60
-    step.duration = step.durationSeconds
-  }
-
-  function updateStepPower(step: any, index: number) {
-    if (!step.power) step.power = { units: '%' }
-    step.power.value = step._powerPct / 100
-    delete step.power.range
+  function updateStep(idx: number, updatedStep: any) {
+    editedSteps.value[idx] = updatedStep
+    // If we are at 100% scaling, update the original baseline too
+    // This allows further scaling to be relative to this new manual edit
+    if (durationFactor.value === 1) {
+      originalSteps.value[idx] = JSON.parse(JSON.stringify(updatedStep))
+    }
   }
 
   function addStep() {
@@ -240,10 +243,13 @@
       _isRamp: false
     }
     editedSteps.value.push(newStep)
+    if (durationFactor.value === 1) {
+      originalSteps.value.push(JSON.parse(JSON.stringify(newStep)))
+    }
   }
 
   function addStepAfter(idx: number) {
-    editedSteps.value.splice(idx + 1, 0, {
+    const newStep = {
       uid: generateUid(),
       type: 'Active',
       name: 'New Step',
@@ -254,7 +260,11 @@
       _powerStartPct: 70,
       _powerEndPct: 70,
       _isRamp: false
-    })
+    }
+    editedSteps.value.splice(idx + 1, 0, newStep)
+    if (durationFactor.value === 1) {
+      originalSteps.value.splice(idx + 1, 0, JSON.parse(JSON.stringify(newStep)))
+    }
   }
 
   function addNestedStep(parent: any) {
@@ -272,10 +282,16 @@
       _powerEndPct: 100,
       _isRamp: false
     })
+    // For nested additions, we just update the edited steps.
+    // The baseline logic for nested steps is slightly more complex,
+    // but updating the parent in originalSteps is handled by updateStep.
   }
 
   function removeStep(index: number) {
     editedSteps.value.splice(index, 1)
+    if (durationFactor.value === 1) {
+      originalSteps.value.splice(index, 1)
+    }
   }
 
   function resetSteps() {
@@ -285,6 +301,7 @@
 
   function cleanForOutput(steps: any[]): any[] {
     return steps.map((s) => {
+      // Destructure internal properties to exclude them from output
       const { _durationMin, _powerStartPct, _powerEndPct, _isRamp, uid, ...rest } = s
       const cleaned: any = { ...rest }
       if (cleaned.steps) cleaned.steps = cleanForOutput(cleaned.steps)
