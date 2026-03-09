@@ -130,7 +130,7 @@
         <div v-if="workout && !loading" class="hidden sm:flex flex-col gap-6">
           <!-- TOP SECTION: TITLE, MAP & ACTIONS -->
           <div
-            class="relative overflow-hidden rounded-3xl bg-white dark:bg-[#09090B] border border-gray-100 dark:border-white/5 p-8 flex flex-col gap-6 group/header shadow-sm dark:shadow-2xl"
+            class="relative overflow-hidden rounded-3xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/5 p-8 flex flex-col gap-6 group/header shadow-sm dark:shadow-2xl"
           >
             <!-- GHOST BACKGROUND ROUTE -->
             <UiWorkoutRoutePreview
@@ -142,7 +142,7 @@
 
             <!-- SCRIM -->
             <div
-              class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent dark:from-[#09090B] dark:via-[#09090B]/80 dark:to-transparent z-[1] pointer-events-none"
+              class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent dark:from-gray-900 dark:via-gray-900/80 dark:to-transparent z-[1] pointer-events-none"
             />
 
             <div class="relative z-10 flex items-start justify-between">
@@ -379,7 +379,7 @@
 
           <!-- HERO HUD ROW: UNIFIED COMMAND CENTER -->
           <div
-            class="relative overflow-hidden rounded-2xl bg-white dark:bg-[#09090B] border border-gray-100 dark:border-white/5 p-1 flex items-stretch group/hero shadow-lg dark:shadow-2xl"
+            class="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/5 p-1 flex items-stretch group/hero shadow-lg dark:shadow-2xl"
           >
             <div
               class="absolute inset-0 ring-1 ring-inset ring-primary-500/10 opacity-0 group-hover/hero:opacity-100 transition-opacity duration-500 pointer-events-none"
@@ -683,7 +683,7 @@
         <!-- MOBILE HUD HEADER (sm:hidden) -->
         <div
           v-if="workout && !loading"
-          class="sm:hidden flex flex-col bg-white dark:bg-[#09090B] relative overflow-hidden"
+          class="sm:hidden flex flex-col bg-white dark:bg-gray-900 relative overflow-hidden"
         >
           <!-- GHOST BACKGROUND ROUTE FOR HUD -->
           <UiWorkoutRoutePreview
@@ -991,7 +991,7 @@
                 Performance Metrics
               </h2>
               <div
-                class="p-4 rounded-2xl bg-zinc-50 dark:bg-[#09090B] border border-zinc-200 dark:border-white/5 min-h-[200px] shadow-sm dark:shadow-none"
+                class="p-4 rounded-2xl bg-zinc-50 dark:bg-gray-900 border border-zinc-200 dark:border-white/5 min-h-[200px] shadow-sm dark:shadow-none"
               >
                 <PerformanceScoreChart
                   v-if="workout.overallScore || workout.technicalScore"
@@ -1119,20 +1119,29 @@
                   color="neutral"
                   variant="ghost"
                   size="xs"
-                  class="bg-white/5 rounded-lg"
+                  class="bg-zinc-100 dark:bg-white/5 rounded-lg"
                 >
                   <template #explanation>
-                    <div class="px-4 pb-4 text-[11px] text-zinc-400 space-y-3 pt-2 font-medium">
+                    <div
+                      class="px-4 pb-4 text-[11px] text-zinc-600 dark:text-zinc-400 space-y-3 pt-2 font-medium"
+                    >
                       <p>
-                        <strong>{{ t('impact_source_label') }}</strong>
-                        <span v-if="workout.source === 'intervals'">
+                        <strong class="text-zinc-900 dark:text-zinc-200">{{
+                          t('impact_source_label')
+                        }}</strong>
+                        <span
+                          v-if="workout.source === 'intervals'"
+                          class="text-zinc-600 dark:text-zinc-400"
+                        >
                           {{ t('impact_source_intervals', { link: 'Intervals.icu' }) }}
                         </span>
-                        <span v-else>
+                        <span v-else class="text-zinc-600 dark:text-zinc-400">
                           {{ t('impact_source_local') }}
                         </span>
                       </p>
-                      <ul class="list-disc pl-5 space-y-1.5 opacity-80 leading-relaxed">
+                      <ul
+                        class="list-disc pl-5 space-y-1.5 leading-relaxed text-zinc-600 dark:text-zinc-400"
+                      >
                         <li>{{ tt('tss_load') }}</li>
                         <li>{{ tt('fitness_ctl') }}</li>
                         <li>{{ tt('fatigue_atl') }}</li>
@@ -1793,7 +1802,7 @@
           <div
             v-if="isSectionEnabled('nutrition')"
             id="nutrition"
-            class="scroll-mt-20 bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden flex flex-col gap-8"
+            class="scroll-mt-20 bg-zinc-50 dark:bg-gray-900 rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden flex flex-col gap-8"
             :style="sectionStyle('nutrition')"
           >
             <!-- GHOST DECORATION (Dark Only) -->
@@ -2001,7 +2010,7 @@
 
             <!-- DETAILED INSIGHT HUD -->
             <div
-              class="bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
+              class="bg-zinc-50 dark:bg-gray-900 rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
             >
               <div class="flex items-center justify-between mb-10 relative z-10">
                 <div class="flex items-center gap-3">
@@ -2358,7 +2367,7 @@
               {{ t('sections_power_curve') }}
             </h2>
             <div
-              class="bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
+              class="bg-zinc-50 dark:bg-gray-900 rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
             >
               <PowerCurveChart :workout-id="workout.id" />
             </div>
@@ -2377,7 +2386,7 @@
               {{ t('sections_intervals') }}
             </h2>
             <div
-              class="bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-0 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
+              class="bg-zinc-50 dark:bg-gray-900 rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-0 border-x-0 sm:border-x border-y border-zinc-200 dark:border-white/5 relative overflow-hidden"
             >
               <IntervalsAnalysis
                 :workout-id="workout.id"

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-zinc-50 dark:bg-[#09090B] rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border border-zinc-200 dark:border-white/5 relative overflow-hidden flex flex-col gap-8"
+    class="bg-zinc-50 dark:bg-gray-900 rounded-none sm:rounded-3xl shadow-sm dark:shadow-2xl p-6 sm:p-10 border border-zinc-200 dark:border-white/5 relative overflow-hidden flex flex-col gap-8"
   >
     <!-- GHOST DECORATION -->
     <div
