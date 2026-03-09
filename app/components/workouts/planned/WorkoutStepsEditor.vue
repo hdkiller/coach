@@ -1,17 +1,32 @@
 <template>
   <div class="space-y-6">
-    <!-- Header with Scaling -->
+    <!-- Header with Scaling & Metric Selection -->
     <div
       class="bg-gray-50 dark:bg-gray-950 p-4 rounded-xl border border-gray-100 dark:border-gray-800"
     >
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div class="flex flex-col">
           <span class="text-[10px] font-black uppercase tracking-widest text-gray-400"
             >Duration Scaling</span
           >
           <span class="text-sm font-bold text-primary">{{ formatDuration(totalDuration) }}</span>
         </div>
+
+        <!-- Metric Toggle -->
         <div class="flex items-center gap-2">
+          <span class="text-[9px] font-black uppercase tracking-widest text-gray-400"
+            >Editing:</span
+          >
+          <USelect
+            v-model="activeMetric"
+            :items="[
+              { label: 'Power (% FTP)', value: 'power' },
+              { label: 'Heart Rate (% LTHR)', value: 'hr' },
+              { label: 'Pace (% Threshold)', value: 'pace' }
+            ]"
+            size="xs"
+            class="w-36"
+          />
           <UButton
             color="neutral"
             variant="ghost"
@@ -24,6 +39,7 @@
           </UButton>
         </div>
       </div>
+
       <USlider
         v-model="durationFactor"
         :min="0.5"
@@ -67,6 +83,7 @@
               :step="step"
               :index="index"
               :depth="0"
+              :metric="activeMetric"
               :user-ftp="userFtp"
               :sport-settings="sportSettings"
               @remove="removeStep(index)"
@@ -112,16 +129,99 @@
     userFtp?: number
     sportSettings?: any
     saving?: boolean
+    preference?: 'hr' | 'power' | 'pace'
   }>()
 
   const emit = defineEmits(['save', 'cancel', 'update:steps'])
 
+  const activeMetric = ref<'power' | 'hr' | 'pace'>(
+    props.preference || detectBestMetric(props.steps)
+  )
+
+  function detectBestMetric(steps: any[]): 'power' | 'hr' | 'pace' {
+    for (const step of steps) {
+      if (step.heartRate) return 'hr'
+      if (step.power) return 'power'
+      if (step.pace) return 'pace'
+      if (step.steps) {
+        const nested = detectBestMetric(step.steps)
+        if (nested) return nested
+      }
+    }
+    return 'power'
+  }
+
+  watch(
+    () => props.preference,
+    (newPref) => {
+      if (newPref) activeMetric.value = newPref
+    }
+  )
   const durationFactor = ref(1)
   const originalSteps = ref<any[]>([])
   const editedSteps = ref<any[]>([])
 
   function generateUid() {
     return Math.random().toString(36).substring(7)
+  }
+
+  function resolveIntensityPct(target: any, metric: 'power' | 'hr' | 'pace'): number {
+    if (!target) return 0
+    const val = target.value ?? 0
+    const units = String(target.units || '').toLowerCase()
+
+    // Handle zone-based targets
+    if (units.includes('zone')) {
+      const zoneIdx = Math.max(1, Math.round(val)) - 1
+      let zones = []
+      let refValue = 0
+
+      if (metric === 'power') {
+        zones = props.sportSettings?.powerZones || []
+        refValue = props.sportSettings?.ftp || props.userFtp || 0
+      } else if (metric === 'hr') {
+        zones = props.sportSettings?.hrZones || []
+        refValue = props.sportSettings?.lthr || 0
+      } else {
+        zones = props.sportSettings?.paceZones || []
+        refValue = props.sportSettings?.thresholdPace || 0
+      }
+
+      const zone = zones[zoneIdx]
+      if (zone && refValue > 0) {
+        const midpoint = (Number(zone.min) + Number(zone.max)) / 2
+        return Math.round((midpoint / refValue) * 100)
+      }
+
+      // Fallback midpoints if zones missing
+      const fallbacks = [0.5, 0.65, 0.82, 0.97, 1.12, 1.3]
+      return Math.round((fallbacks[zoneIdx] || 0.75) * 100)
+    }
+
+    // Handle absolute values (W, BPM, m/s)
+    if (units === 'w' || units === 'watts') {
+      const ftp = props.sportSettings?.ftp || props.userFtp || 0
+      return ftp > 0 ? Math.round((val / ftp) * 100) : val
+    }
+    if (units === 'bpm') {
+      const lthr = props.sportSettings?.lthr || 0
+      return lthr > 0 ? Math.round((val / lthr) * 100) : val
+    }
+    if (units === 'm/s') {
+      const threshold = props.sportSettings?.thresholdPace || 0
+      return threshold > 0 ? Math.round((val / threshold) * 100) : val
+    }
+
+    // Default: assume it's already a ratio (0.75) or percentage (75)
+    // If val is 1, it's very likely a ratio (100%) or a zone that missed the units check.
+    // However, if we are in this default block, we treat 1 as 100%.
+    return val > 3 ? Math.round(val) : Math.round(val * 100)
+  }
+
+  function getTargetForMetric(step: any, metric: 'power' | 'hr' | 'pace') {
+    if (metric === 'power') return step.power
+    if (metric === 'hr') return step.heartRate
+    return step.pace
   }
 
   function initializeSteps(sourceSteps: any[]) {
@@ -131,15 +231,21 @@
       const dur = s.durationSeconds || s.duration || 0
       s._durationMin = Math.round(dur / 60)
 
-      if (s.power?.range) {
-        s._powerStartPct = Math.round(s.power.range.start * 100)
-        s._powerEndPct = Math.round(s.power.range.end * 100)
-        // If range exists but ramp is undefined, assume it's a ramp (backwards compatibility)
-        s._isRamp = s.power.ramp !== false
+      const target = getTargetForMetric(s, activeMetric.value)
+
+      if (target?.range) {
+        s._intensityStartPct = resolveIntensityPct(
+          { ...target, value: target.range.start },
+          activeMetric.value
+        )
+        s._intensityEndPct = resolveIntensityPct(
+          { ...target, value: target.range.end },
+          activeMetric.value
+        )
+        s._isRamp = target.ramp !== false
       } else {
-        const p = s.power?.value || 0
-        s._powerStartPct = Math.round(p * 100)
-        s._powerEndPct = s._powerStartPct
+        s._intensityStartPct = resolveIntensityPct(target, activeMetric.value)
+        s._intensityEndPct = s._intensityStartPct
         s._isRamp = false
       }
 
@@ -158,7 +264,6 @@
     (newSteps) => {
       if (!props.saving) {
         originalSteps.value = JSON.parse(JSON.stringify(newSteps))
-        // If we haven't scaled yet, update edited steps too
         if (durationFactor.value === 1) {
           editedSteps.value = initializeSteps(originalSteps.value)
         }
@@ -166,6 +271,15 @@
     },
     { deep: true }
   )
+
+  // Re-initialize steps when metric changes to update internal start/end percentages
+  watch(activeMetric, () => {
+    editedSteps.value = initializeSteps(originalSteps.value)
+    // Also re-apply scaling if active
+    if (durationFactor.value !== 1) {
+      applyScaling()
+    }
+  })
 
   const totalDuration = computed(() => {
     const calc = (steps: any[]): number => {
@@ -203,15 +317,21 @@
       if (s.distance) news.distance = Math.round(s.distance * factor)
       news._durationMin = Math.round((news.durationSeconds || news.duration || 0) / 60)
 
-      // Initialize internal power fields (Intensity doesn't scale with duration)
-      if (s.power?.range) {
-        news._powerStartPct = Math.round(s.power.range.start * 100)
-        news._powerEndPct = Math.round(s.power.range.end * 100)
-        news._isRamp = s.power.ramp !== false
+      // Initialize internal intensity fields based on selected metric
+      const target = getTargetForMetric(s, activeMetric.value)
+      if (target?.range) {
+        news._intensityStartPct = resolveIntensityPct(
+          { ...target, value: target.range.start },
+          activeMetric.value
+        )
+        news._intensityEndPct = resolveIntensityPct(
+          { ...target, value: target.range.end },
+          activeMetric.value
+        )
+        news._isRamp = target.ramp !== false
       } else {
-        const p = s.power?.value || 0
-        news._powerStartPct = Math.round(p * 100)
-        news._powerEndPct = news._powerStartPct
+        news._intensityStartPct = resolveIntensityPct(target, activeMetric.value)
+        news._intensityEndPct = news._intensityStartPct
         news._isRamp = false
       }
 
@@ -222,8 +342,6 @@
 
   function updateStep(idx: number, updatedStep: any) {
     editedSteps.value[idx] = updatedStep
-    // If we are at 100% scaling, update the original baseline too
-    // This allows further scaling to be relative to this new manual edit
     if (durationFactor.value === 1) {
       originalSteps.value[idx] = JSON.parse(JSON.stringify(updatedStep))
     }
@@ -238,8 +356,10 @@
       duration: 300,
       _durationMin: 5,
       power: { value: 0.7, units: '%' },
-      _powerStartPct: 70,
-      _powerEndPct: 70,
+      heartRate: { value: 0.7, units: 'LTHR' },
+      pace: { value: 0.7, units: 'Pace' },
+      _intensityStartPct: 70,
+      _intensityEndPct: 70,
       _isRamp: false
     }
     editedSteps.value.push(newStep)
@@ -257,8 +377,10 @@
       duration: 300,
       _durationMin: 5,
       power: { value: 0.7, units: '%' },
-      _powerStartPct: 70,
-      _powerEndPct: 70,
+      heartRate: { value: 0.7, units: 'LTHR' },
+      pace: { value: 0.7, units: 'Pace' },
+      _intensityStartPct: 70,
+      _intensityEndPct: 70,
       _isRamp: false
     }
     editedSteps.value.splice(idx + 1, 0, newStep)
@@ -278,13 +400,12 @@
       duration: 60,
       _durationMin: 1,
       power: { value: 1.0, units: '%' },
-      _powerStartPct: 100,
-      _powerEndPct: 100,
+      heartRate: { value: 1.0, units: 'LTHR' },
+      pace: { value: 1.0, units: 'Pace' },
+      _intensityStartPct: 100,
+      _intensityEndPct: 100,
       _isRamp: false
     })
-    // For nested additions, we just update the edited steps.
-    // The baseline logic for nested steps is slightly more complex,
-    // but updating the parent in originalSteps is handled by updateStep.
   }
 
   function removeStep(index: number) {
@@ -302,7 +423,7 @@
   function cleanForOutput(steps: any[]): any[] {
     return steps.map((s) => {
       // Destructure internal properties to exclude them from output
-      const { _durationMin, _powerStartPct, _powerEndPct, _isRamp, uid, ...rest } = s
+      const { _durationMin, _intensityStartPct, _intensityEndPct, _isRamp, uid, ...rest } = s
       const cleaned: any = { ...rest }
       if (cleaned.steps) cleaned.steps = cleanForOutput(cleaned.steps)
       return cleaned

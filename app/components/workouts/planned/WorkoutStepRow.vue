@@ -63,12 +63,12 @@
         <div
           class="text-center text-sm font-black text-gray-500 dark:text-gray-400 tabular-nums pt-0.5"
         >
-          {{ zoneName }}
+          <template v-if="!hasNestedSteps">{{ zoneName }}</template>
         </div>
 
         <!-- Col 3: Cadence -->
         <div class="text-center pt-0.5">
-          <div class="flex items-center justify-center gap-0.5">
+          <div v-if="!hasNestedSteps" class="flex items-center justify-center gap-0.5">
             <UInput
               v-model.number="localCadence"
               type="number"
@@ -79,13 +79,15 @@
               ui="{ padding: { xs: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
-            <span class="text-[9px] text-blue-400 uppercase font-bold tracking-tight">RPM</span>
+            <span class="text-[9px] text-blue-400 uppercase font-bold tracking-tight">{{
+              cadenceUnit
+            }}</span>
           </div>
         </div>
 
         <!-- Col 4: Duration -->
         <div class="text-right pt-0.5">
-          <div class="flex items-center justify-end gap-1">
+          <div v-if="!hasNestedSteps" class="flex items-center justify-end gap-1">
             <UInput
               v-model.number="localDurationMin"
               type="number"
@@ -99,24 +101,24 @@
           </div>
         </div>
 
-        <!-- Col 5: Power -->
+        <!-- Col 5: Intensity (Ramp Support) -->
         <div class="text-right pt-0.5">
-          <div class="flex items-center justify-end gap-1">
+          <div v-if="!hasNestedSteps" class="flex items-center justify-end gap-1">
             <div class="flex flex-col items-end">
               <div class="flex items-center gap-1">
                 <UInput
-                  v-model.number="localPowerStart"
+                  v-model.number="localIntensityStart"
                   type="number"
                   size="xs"
                   variant="none"
                   class="w-14 p-0 text-right font-black text-sm"
                   ui="{ padding: { xs: 'px-0 py-0' } }"
-                  @update:model-value="emitUpdate"
+                  @update:model-value="handleIntensityStartChange"
                 />
-                <template v-if="localIsRamp || localPowerStart !== localPowerEnd">
+                <template v-if="localIsRamp">
                   <span class="text-[9px] text-gray-400 font-bold">-</span>
                   <UInput
-                    v-model.number="localPowerEnd"
+                    v-model.number="localIntensityEnd"
                     type="number"
                     size="xs"
                     variant="none"
@@ -125,7 +127,9 @@
                     @update:model-value="emitUpdate"
                   />
                 </template>
-                <span class="text-[9px] text-gray-400 uppercase font-black">%</span>
+                <span class="text-[9px] text-gray-400 uppercase font-black">{{
+                  intensityUnit
+                }}</span>
               </div>
               <UButton
                 v-if="localType !== 'Rest'"
@@ -141,10 +145,10 @@
           </div>
         </div>
 
-        <!-- Col 6: Avg Watts -->
+        <!-- Col 6: Metric Value (Watts/BPM/Pace) -->
         <div class="text-right pt-0.5">
-          <div class="text-sm font-black text-primary tabular-nums">
-            {{ avgWatts }}<span class="text-[9px] ml-0.5 opacity-60">W</span>
+          <div v-if="!hasNestedSteps" class="text-sm font-black text-primary tabular-nums">
+            {{ formattedValue }}<span class="text-[9px] ml-0.5 opacity-60">{{ valueUnit }}</span>
           </div>
         </div>
 
@@ -207,6 +211,7 @@
           </div>
           <div class="flex items-center gap-2">
             <UInput
+              v-if="!hasNestedSteps"
               v-model.number="localDurationMin"
               type="number"
               size="xs"
@@ -215,7 +220,7 @@
               ui="{ padding: { xs: 'px-0 py-0' } }"
               @update:model-value="emitUpdate"
             />
-            <span class="text-[9px] text-gray-400 font-bold">MIN</span>
+            <span v-if="!hasNestedSteps" class="text-[9px] text-gray-400 font-bold">MIN</span>
             <UButton
               color="neutral"
               variant="ghost"
@@ -225,7 +230,7 @@
             />
           </div>
         </div>
-        <div class="flex items-center gap-4 pl-4.5">
+        <div v-if="!hasNestedSteps" class="flex items-center gap-4 pl-4.5">
           <USelect
             v-model="localType"
             :items="['Warmup', 'Active', 'Rest', 'Cooldown']"
@@ -233,38 +238,26 @@
             class="w-24"
             @update:model-value="emitUpdate"
           />
-          <div v-if="hasNestedSteps" class="flex items-center gap-1">
-            <span class="text-[9px] text-gray-400 font-bold uppercase">x</span>
-            <UInput
-              v-model.number="localReps"
-              type="number"
-              size="xs"
-              variant="none"
-              class="w-14 p-0 font-black text-primary text-[10px]"
-              ui="{ padding: { xs: 'px-0 py-0' } }"
-              @update:model-value="emitUpdate"
-            />
-          </div>
           <div class="flex flex-col items-center gap-0.5">
             <div class="flex items-center gap-1">
               <UInput
-                v-model.number="localPowerStart"
+                v-model.number="localIntensityStart"
                 type="number"
                 size="xs"
                 class="w-12 text-center font-black"
-                @update:model-value="emitUpdate"
+                @update:model-value="handleIntensityStartChange"
               />
-              <template v-if="localIsRamp || localPowerStart !== localPowerEnd">
+              <template v-if="localIsRamp">
                 <span class="text-[9px] text-gray-400">-</span>
                 <UInput
-                  v-model.number="localPowerEnd"
+                  v-model.number="localIntensityEnd"
                   type="number"
                   size="xs"
                   class="w-12 text-center font-black"
                   @update:model-value="emitUpdate"
                 />
               </template>
-              <span class="text-[9px] text-gray-400 font-bold">%</span>
+              <span class="text-[9px] text-gray-400 font-bold">{{ intensityUnitShort }}</span>
             </div>
             <UButton
               v-if="localType !== 'Rest'"
@@ -285,7 +278,29 @@
               class="w-16 text-center font-black text-blue-500"
               @update:model-value="emitUpdate"
             />
-            <span class="text-[9px] text-blue-400 font-bold uppercase">RPM</span>
+            <span class="text-[9px] text-blue-400 font-bold uppercase">{{ cadenceUnit }}</span>
+          </div>
+        </div>
+        <!-- For repeats on mobile, just show the type/reps if it has children -->
+        <div v-else class="flex items-center gap-4 pl-4.5">
+          <USelect
+            v-model="localType"
+            :items="['Warmup', 'Active', 'Rest', 'Cooldown']"
+            size="xs"
+            class="w-24"
+            @update:model-value="emitUpdate"
+          />
+          <div class="flex items-center gap-1">
+            <span class="text-[9px] text-gray-400 font-bold uppercase">x</span>
+            <UInput
+              v-model.number="localReps"
+              type="number"
+              size="xs"
+              variant="none"
+              class="w-10 p-0 font-black text-primary text-[10px]"
+              ui="{ padding: { xs: 'px-0 py-0' } }"
+              @update:model-value="emitUpdate"
+            />
           </div>
         </div>
       </div>
@@ -306,6 +321,7 @@
             :step="child"
             :index="cIdx"
             :depth="depth + 1"
+            :metric="metric"
             :user-ftp="userFtp"
             :sport-settings="sportSettings"
             @remove="removeNested(cIdx)"
@@ -329,6 +345,7 @@
     step: any
     index: number
     depth: number
+    metric: 'power' | 'hr' | 'pace'
     userFtp?: number
     sportSettings?: any
   }>()
@@ -342,25 +359,25 @@
     'update:step'
   ])
 
-  // Local state for all editable fields to ensure reactivity and clean data flow
+  // Local state
   const localName = ref(props.step.name || '')
   const localType = ref(props.step.type || 'Active')
   const localDurationMin = ref(props.step._durationMin || 0)
-  const localPowerStart = ref(props.step._powerStartPct || 0)
-  const localPowerEnd = ref(props.step._powerEndPct || 0)
+  const localIntensityStart = ref(props.step._intensityStartPct || 0)
+  const localIntensityEnd = ref(props.step._intensityEndPct || 0)
   const localIsRamp = ref(!!props.step._isRamp)
   const localCadence = ref(props.step.cadence || null)
   const localReps = ref(props.step.reps || 1)
 
-  // Watch for external changes (like scaling)
+  // Watch for external changes
   watch(
     () => props.step,
     (newStep) => {
       localName.value = newStep.name || ''
       localType.value = newStep.type || 'Active'
       localDurationMin.value = newStep._durationMin || 0
-      localPowerStart.value = newStep._powerStartPct || 0
-      localPowerEnd.value = newStep._powerEndPct || 0
+      localIntensityStart.value = newStep._intensityStartPct || 0
+      localIntensityEnd.value = newStep._intensityEndPct || 0
       localIsRamp.value = !!newStep._isRamp
       localCadence.value = newStep.cadence || null
       localReps.value = newStep.reps || 1
@@ -373,48 +390,106 @@
   )
   const indentStyle = computed(() => ({ paddingLeft: `${Math.min(props.depth, 5) * 12}px` }))
 
-  const zoneName = computed(() => {
-    const power = localIsRamp.value
-      ? (localPowerStart.value + localPowerEnd.value) / 200
-      : localPowerStart.value / 100
+  const intensityUnit = computed(() => {
+    if (props.metric === 'power') return '%'
+    if (props.metric === 'hr') return '% LTHR'
+    return '% PACE'
+  })
 
-    if (props.sportSettings?.powerZones && props.sportSettings.ftp) {
-      const ftp = props.sportSettings.ftp
-      const absPower = power * ftp
-      const idx = props.sportSettings.powerZones.findIndex((z: any) => absPower <= z.max)
+  const intensityUnitShort = computed(() => {
+    if (props.metric === 'power') return '%'
+    if (props.metric === 'hr') return '%'
+    return '%'
+  })
+
+  const cadenceUnit = computed(() => {
+    return props.metric === 'pace' ? 'SPM' : 'RPM'
+  })
+
+  const valueUnit = computed(() => {
+    if (props.metric === 'power') return 'W'
+    if (props.metric === 'hr') return 'BPM'
+    return '/KM'
+  })
+
+  const currentIntensity = computed(() => {
+    return localIsRamp.value
+      ? (localIntensityStart.value + localIntensityEnd.value) / 200
+      : localIntensityStart.value / 100
+  })
+
+  const zoneName = computed(() => {
+    const intensity = currentIntensity.value
+    let zones = []
+    let refValue = 0
+
+    if (props.metric === 'power') {
+      zones = props.sportSettings?.powerZones || []
+      refValue = props.sportSettings?.ftp || props.userFtp || 0
+    } else if (props.metric === 'hr') {
+      zones = props.sportSettings?.hrZones || []
+      refValue = props.sportSettings?.lthr || 0
+    } else {
+      zones = props.sportSettings?.paceZones || []
+      refValue = props.sportSettings?.thresholdPace || 0
+    }
+
+    if (zones.length > 0 && refValue > 0) {
+      const absValue = intensity * refValue
+      const idx = zones.findIndex((z: any) => absValue <= Number(z.max))
       return idx !== -1 ? `Z${idx + 1}` : 'Z?'
     }
 
-    if (power <= 0.55) return 'Z1'
-    else if (power <= 0.75) return 'Z2'
-    else if (power <= 0.9) return 'Z3'
-    else if (power <= 1.05) return 'Z4'
-    else if (power <= 1.2) return 'Z5'
+    // Fallback
+    if (intensity <= 0.55) return 'Z1'
+    else if (intensity <= 0.75) return 'Z2'
+    else if (intensity <= 0.9) return 'Z3'
+    else if (intensity <= 1.05) return 'Z4'
+    else if (intensity <= 1.2) return 'Z5'
     return 'Z6'
   })
 
   const stepColor = computed(() => {
-    const power = localIsRamp.value
-      ? (localPowerStart.value + localPowerEnd.value) / 200
-      : localPowerStart.value / 100
+    if (hasNestedSteps.value) return 'transparent'
+    const intensity = currentIntensity.value
     let colorIdx = 0
-    if (power <= 0.55) colorIdx = 0
-    else if (power <= 0.75) colorIdx = 1
-    else if (power <= 0.9) colorIdx = 2
-    else if (power <= 1.05) colorIdx = 3
-    else if (power <= 1.2) colorIdx = 4
+    if (intensity <= 0.55) colorIdx = 0
+    else if (intensity <= 0.75) colorIdx = 1
+    else if (intensity <= 0.9) colorIdx = 2
+    else if (intensity <= 1.05) colorIdx = 3
+    else if (intensity <= 1.2) colorIdx = 4
     else colorIdx = 5
 
     return ZONE_COLORS[colorIdx] || '#9ca3af'
   })
 
-  const avgWatts = computed(() => {
-    if (!props.userFtp) return '-'
-    const power = localIsRamp.value
-      ? (localPowerStart.value + localPowerEnd.value) / 200
-      : localPowerStart.value / 100
-    return Math.round(power * props.userFtp)
+  const formattedValue = computed(() => {
+    const intensity = currentIntensity.value
+    let refValue = 0
+    if (props.metric === 'power') refValue = props.sportSettings?.ftp || props.userFtp || 0
+    else if (props.metric === 'hr') refValue = props.sportSettings?.lthr || 0
+    else refValue = props.sportSettings?.thresholdPace || 0
+
+    if (!refValue) return '-'
+
+    if (props.metric === 'pace') {
+      const speedMps = intensity * refValue
+      if (!speedMps) return '-'
+      const secondsPerKm = 1000 / speedMps
+      const mins = Math.floor(secondsPerKm / 60)
+      const secs = Math.round(secondsPerKm % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    return Math.round(intensity * refValue)
   })
+
+  function handleIntensityStartChange() {
+    if (!localIsRamp.value) {
+      localIntensityEnd.value = localIntensityStart.value
+    }
+    emitUpdate()
+  }
 
   function emitUpdate() {
     const updatedStep = { ...props.step }
@@ -427,33 +502,47 @@
 
     // Internal state for editor
     updatedStep._durationMin = localDurationMin.value
-    updatedStep._powerStartPct = localPowerStart.value
-    updatedStep._powerEndPct = localPowerEnd.value
+    updatedStep._intensityStartPct = localIntensityStart.value
+    updatedStep._intensityEndPct = localIntensityEnd.value
     updatedStep._isRamp = localIsRamp.value
 
-    // Power object for chart and backend
-    if (!updatedStep.power) updatedStep.power = { units: '%' }
-    if (localIsRamp.value || localPowerStart.value !== localPowerEnd.value) {
-      updatedStep.power.range = {
-        start: localPowerStart.value / 100,
-        end: localPowerEnd.value / 100
+    const target: any = {}
+    if (localIsRamp.value || localIntensityStart.value !== localIntensityEnd.value) {
+      target.range = {
+        start: localIntensityStart.value / 100,
+        end: localIntensityEnd.value / 100
       }
-      updatedStep.power.ramp = localIsRamp.value
-      delete updatedStep.power.value
+      target.ramp = localIsRamp.value
     } else {
-      updatedStep.power.value = localPowerStart.value / 100
-      delete updatedStep.power.range
-      delete updatedStep.power.ramp
+      target.value = localIntensityStart.value / 100
+    }
+
+    // Update the correct metric object and CLEAR others to prevent backend confusion
+    if (props.metric === 'power') {
+      updatedStep.power = { ...target, units: '%' }
+      delete updatedStep.heartRate
+      delete updatedStep.pace
+      updatedStep.primaryTarget = 'power'
+    } else if (props.metric === 'hr') {
+      updatedStep.heartRate = { ...target, units: 'LTHR' }
+      delete updatedStep.power
+      delete updatedStep.pace
+      updatedStep.primaryTarget = 'heartRate'
+    } else {
+      updatedStep.pace = { ...target, units: 'Pace' }
+      delete updatedStep.power
+      delete updatedStep.heartRate
+      updatedStep.primaryTarget = 'pace'
     }
 
     emit('update:step', updatedStep)
-    emit('update:duration') // Trigger chart refresh
+    emit('update:duration')
   }
 
   function toggleRamp() {
     localIsRamp.value = !localIsRamp.value
     if (!localIsRamp.value) {
-      localPowerEnd.value = localPowerStart.value
+      localIntensityEnd.value = localIntensityStart.value
     }
     emitUpdate()
   }
@@ -487,6 +576,11 @@
     if (!updatedChild.steps) updatedChild.steps = []
     if (!updatedChild.reps) updatedChild.reps = 2
 
+    const defaultTarget = {
+      value: 1.0,
+      units: props.metric === 'power' ? '%' : props.metric === 'hr' ? 'LTHR' : 'Pace'
+    }
+
     updatedChild.steps = [
       ...updatedChild.steps,
       {
@@ -496,14 +590,13 @@
         durationSeconds: 60,
         duration: 60,
         _durationMin: 1,
-        power: { value: 1.0, units: '%' },
-        _powerStartPct: 100,
-        _powerEndPct: 100,
+        [props.metric]: defaultTarget,
+        _intensityStartPct: 100,
+        _intensityEndPct: 100,
         _isRamp: false
       }
     ]
 
-    // Find index of this child to update it via updateChildStep or similar logic
     const idx = props.step.steps.findIndex((s: any) => s.uid === child.uid)
     if (idx !== -1) {
       updateChildStep(idx, updatedChild)
@@ -513,6 +606,11 @@
   function addStepAfterNested(idx: number) {
     const updatedStep = { ...props.step }
     updatedStep.steps = [...props.step.steps]
+    const defaultTarget = {
+      value: 0.7,
+      units: props.metric === 'power' ? '%' : props.metric === 'hr' ? 'LTHR' : 'Pace'
+    }
+
     updatedStep.steps.splice(idx + 1, 0, {
       uid: Math.random().toString(36).substring(7),
       type: 'Active',
@@ -520,9 +618,9 @@
       durationSeconds: 300,
       duration: 300,
       _durationMin: 5,
-      power: { value: 0.7, units: '%' },
-      _powerStartPct: 70,
-      _powerEndPct: 70,
+      [props.metric]: defaultTarget,
+      _intensityStartPct: 70,
+      _intensityEndPct: 70,
       _isRamp: false
     })
     emit('update:step', updatedStep)

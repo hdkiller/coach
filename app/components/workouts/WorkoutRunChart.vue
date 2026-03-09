@@ -262,6 +262,7 @@
             :steps="getStructuredWorkoutPayload(workout)?.steps || []"
             :user-ftp="userFtp"
             :sport-settings="sportSettings"
+            :preference="preference"
             @update:steps="handleStepsUpdate"
             @save="$emit('save', $event)"
             @cancel="activeStepsTab = 'view'"

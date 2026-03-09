@@ -275,6 +275,7 @@
             :steps="getStructuredWorkoutPayload(workout)?.steps || []"
             :user-ftp="userFtp"
             :sport-settings="sportSettings"
+            :preference="chartPreference"
             @update:steps="handleStepsUpdate"
             @save="$emit('save', $event)"
             @cancel="activeStepsTab = 'view'"
@@ -356,7 +357,8 @@
   import { ZONE_COLORS } from '~/utils/zone-colors'
   import {
     getStructuredWorkoutPayload,
-    resolveWorkoutChartSportSettings
+    resolveWorkoutChartSportSettings,
+    getWorkoutChartPreference
   } from '~/utils/workoutChartContext'
   import WorkoutStepsEditor from './planned/WorkoutStepsEditor.vue'
 
@@ -389,6 +391,29 @@
     resolveWorkoutChartSportSettings(props.workout, props.sportSettings)
   )
   const normalizedSteps = computed(() => flattenWorkoutSteps(workoutData.value?.steps || []))
+
+  const chartPreference = computed(() => {
+    const steps = workoutData.value?.steps || []
+    let hasHr = false
+    let hasPower = false
+    let hasPace = false
+
+    const visit = (nodes: any[]) => {
+      nodes.forEach((s: any) => {
+        if (s.heartRate) hasHr = true
+        if (s.power) hasPower = true
+        if (s.pace) hasPace = true
+        if (s.steps) visit(s.steps)
+      })
+    }
+    visit(steps)
+
+    return getWorkoutChartPreference(props.workout, props.sportSettings, {
+      hasHr,
+      hasPower,
+      hasPace
+    })
+  })
 
   function handleStepsUpdate(newSteps: any[]) {
     previewSteps.value = newSteps
