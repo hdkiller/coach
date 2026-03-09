@@ -1,6 +1,9 @@
 import { getServerSession } from '../../utils/session'
 import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
-import { buildWorkoutAnalysisFacts } from '../../utils/workout-analysis-facts'
+import {
+  buildWorkoutAnalysisFacts,
+  buildWorkoutAnalysisFactsV2
+} from '../../utils/workout-analysis-facts'
 
 defineRouteMeta({
   openAPI: {
@@ -132,15 +135,22 @@ export default defineEventHandler(async (event) => {
   ])
 
   const analysisFacts = buildWorkoutAnalysisFacts({
-    workout,
+    workout: workout as any,
     sportSettings,
-    plannedWorkout: workout.plannedWorkout,
-    userProfile
+    plannedWorkout: (workout as any).plannedWorkout,
+    userProfile: userProfile || undefined
+  })
+  const analysisFactsV2 = buildWorkoutAnalysisFactsV2({
+    workout: workout as any,
+    sportSettings,
+    plannedWorkout: (workout as any).plannedWorkout,
+    userProfile: userProfile || undefined
   })
 
   return {
     ...workout,
     analysisFacts,
+    analysisFactsV2,
     llmUsageId: llmUsage?.id,
     feedback: llmUsage?.feedback,
     feedbackText: llmUsage?.feedbackText,
