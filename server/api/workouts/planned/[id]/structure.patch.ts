@@ -27,10 +27,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  const { text } = body
+  const { text, steps: providedSteps } = body
 
-  if (typeof text !== 'string') {
-    throw createError({ statusCode: 400, message: 'Structure text is required' })
+  if (typeof text !== 'string' && !Array.isArray(providedSteps)) {
+    throw createError({ statusCode: 400, message: 'Structure text or steps array is required' })
   }
 
   // 1. Verify ownership
@@ -51,12 +51,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
 
-  // 2. Parse text to JSON
-  const steps = WorkoutParser.parseIntervalsICU(text)
+  // 2. Parse text to JSON or use provided steps
+  const steps = Array.isArray(providedSteps)
+    ? providedSteps
+    : WorkoutParser.parseIntervalsICU(text!)
   const structuredWorkout = {
     ...((workout.structuredWorkout as any) || {}),
     steps
   }
+  const syncText = text || WorkoutParser.toIntervalsICU(steps)
   const sportSettings = await sportSettingsRepository.getForActivityType(userId, workout.type || '')
   const { targetPolicy, targetFormatPolicy } = resolveWorkoutTargeting(sportSettings)
   const refs = {
@@ -100,7 +103,7 @@ export default defineEventHandler(async (event) => {
       'UPDATE',
       {
         ...updatedWorkout,
-        workout_doc: text // Preserving user's text exactly for Intervals
+        workout_doc: syncText // Preserving user's text exactly for Intervals
       },
       userId
     )
