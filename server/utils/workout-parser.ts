@@ -27,7 +27,9 @@ export const WorkoutParser = {
   parseIntervalsICU(text: string): ParsedWorkoutStep[] {
     const lines = text.split('\n')
     const rootSteps: ParsedWorkoutStep[] = []
-    const stack: { steps: ParsedWorkoutStep[]; indent: number }[] = [{ steps: rootSteps, indent: -1 }]
+    const stack: { steps: ParsedWorkoutStep[]; indent: number }[] = [
+      { steps: rootSteps, indent: -1 }
+    ]
 
     let currentType: 'Warmup' | 'Active' | 'Rest' | 'Cooldown' = 'Active'
 
@@ -90,7 +92,10 @@ export const WorkoutParser = {
     return rootSteps
   },
 
-  parseStepLine(text: string, defaultType: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'): ParsedWorkoutStep {
+  parseStepLine(
+    text: string,
+    defaultType: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'
+  ): ParsedWorkoutStep {
     const step: ParsedWorkoutStep = {
       type: defaultType,
       name: ''
@@ -188,5 +193,75 @@ export const WorkoutParser = {
     if (step.type === 'Rest' && !step.name) step.name = 'Rest'
 
     return step
+  },
+
+  toIntervalsICU(steps: ParsedWorkoutStep[], indent = 0): string {
+    let text = ''
+    const padding = '  '.repeat(indent)
+
+    for (const step of steps) {
+      if (step.reps && step.reps > 1) {
+        text += `${padding}${step.reps}x\n`
+        if (step.steps) {
+          text += this.toIntervalsICU(step.steps, indent + 1)
+        }
+        continue
+      }
+
+      let line = `${padding}- `
+
+      if (step.name && step.name !== step.type) {
+        line += `${step.name} `
+      } else if (step.type && step.type !== 'Active') {
+        line += `${step.type} `
+      }
+
+      if (step.durationSeconds) {
+        const h = Math.floor(step.durationSeconds / 3600)
+        const m = Math.floor((step.durationSeconds % 3600) / 60)
+        const s = step.durationSeconds % 60
+        if (h > 0) line += `${h}h`
+        if (m > 0) line += `${m}m`
+        if (s > 0) line += `${s}s`
+        line += ' '
+      } else if (step.distance) {
+        if (step.distance >= 1000) line += `${step.distance / 1000}km `
+        else line += `${step.distance}m `
+      }
+
+      if (step.power) {
+        if (step.power.range) {
+          line += `${step.power.ramp ? 'ramp ' : ''}${Math.round(step.power.range.start * 100)}-${Math.round(step.power.range.end * 100)}% `
+        } else if (step.power.value) {
+          if (step.power.units === 'w') line += `${step.power.value}w `
+          else line += `${Math.round(step.power.value * 100)}% `
+        }
+      }
+
+      if (step.heartRate) {
+        if (step.heartRate.range) {
+          line += `${Math.round(step.heartRate.range.start * 100)}-${Math.round(step.heartRate.range.end * 100)}%lthr `
+        } else if (step.heartRate.value) {
+          if (step.heartRate.units === 'bpm') line += `${step.heartRate.value}bpm `
+          else line += `${Math.round(step.heartRate.value * 100)}%lthr `
+        }
+      }
+
+      if (step.pace) {
+        if (step.pace.range) {
+          line += `${Math.round(step.pace.range.start * 100)}-${Math.round(step.pace.range.end * 100)}%pace `
+        } else if (step.pace.value) {
+          line += `${Math.round(step.pace.value * 100)}%pace `
+        }
+      }
+
+      if (step.cadence) {
+        line += `${step.cadence}rpm `
+      }
+
+      text += line.trim() + '\n'
+    }
+
+    return text
   }
 }
