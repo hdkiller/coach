@@ -62,6 +62,34 @@ export default defineEventHandler(async (event) => {
   }
 
   const userData = await userResponse.json()
+  const externalUserId = userData.userId as string | undefined
+
+  if (!externalUserId) {
+    throw createError({ statusCode: 400, message: 'Failed to fetch Garmin user profile' })
+  }
+
+  const existingOwner = await prisma.integration.findFirst({
+    where: {
+      provider: 'garmin',
+      externalUserId,
+      NOT: {
+        userId: session.user.id
+      }
+    },
+    select: {
+      userId: true
+    }
+  })
+
+  if (existingOwner) {
+    console.error('[GarminCallback] Garmin account already connected to another user', {
+      externalUserId,
+      currentUserId: session.user.id,
+      existingOwnerUserId: existingOwner.userId
+    })
+    deleteCookie(event, 'garmin_code_verifier')
+    return sendRedirect(event, '/settings/apps?garmin_error=account-already-linked')
+  }
 
   await prisma.integration.upsert({
     where: { userId_provider: { userId: session.user.id, provider: 'garmin' } },
@@ -71,7 +99,7 @@ export default defineEventHandler(async (event) => {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
-      externalUserId: userData.userId,
+      externalUserId,
       scope: tokenData.scope || null,
       ingestWorkouts: true
     },
@@ -79,7 +107,7 @@ export default defineEventHandler(async (event) => {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
-      externalUserId: userData.userId,
+      externalUserId,
       scope: tokenData.scope || null,
       ingestWorkouts: true
     }

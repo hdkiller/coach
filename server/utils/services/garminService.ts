@@ -135,13 +135,26 @@ export const GarminService = {
       return { handled: false, message: 'No userId found in payload' }
     }
 
-    const integration = await prisma.integration.findFirst({
+    const integrations = await prisma.integration.findMany({
       where: { externalUserId, provider: 'garmin' }
     })
 
-    if (!integration) {
+    if (integrations.length === 0) {
       return { handled: false, message: `No integration found for Garmin ID: ${externalUserId}` }
     }
+
+    if (integrations.length > 1) {
+      const mappedUserIds = integrations.map((integration) => integration.userId)
+      console.error('[GarminService] Duplicate Garmin external user mapping detected', {
+        externalUserId,
+        mappedUserIds
+      })
+      throw new Error(
+        `Duplicate Garmin externalUserId mapping for ${externalUserId}: ${mappedUserIds.join(', ')}`
+      )
+    }
+
+    const integration = integrations[0]
 
     const userId = integration.userId
     const settings = (integration.settings as Record<string, any> | null) || {}
