@@ -2,10 +2,9 @@ import { prisma } from '../../../utils/db'
 import { chatService } from '../../../utils/services/chatService'
 import { sendTelegramMessage, sendTelegramAction } from '../../../utils/telegram'
 import { generateText } from 'ai'
-import {
-  buildModelMessagesFromStoredChatMessages,
-  buildPersistedToolCalls
-} from '../../../utils/chat/history'
+import { buildPersistedToolCalls, expandStoredChatMessages } from '../../../utils/chat/history'
+import { transformHistoryToCoreMessages } from '../../../utils/ai-history'
+import { normalizeCoreMessagesForGemini } from '../../../utils/chat/core-message-normalizer'
 
 export default defineEventHandler(async (event) => {
   const secretToken = getHeader(event, 'x-telegram-bot-api-secret-token')
@@ -208,7 +207,9 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    const coreMessages = await buildModelMessagesFromStoredChatMessages(history.reverse(), tools)
+    const expandedHistory = expandStoredChatMessages(history.reverse())
+    const coreMessages = await transformHistoryToCoreMessages(expandedHistory)
+    const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
 
     // Generate Response
     let result
@@ -216,7 +217,7 @@ export default defineEventHandler(async (event) => {
       result = await generateText({
         model: google(modelName),
         system: systemInstruction,
-        messages: coreMessages as any,
+        messages: normalizedMessages as any,
         tools: tools as any,
         // @ts-expect-error - maxSteps is valid in AI SDK v6 but types are finicky with 'any' tools
         maxSteps: 5 // Allow multi-step tool use
