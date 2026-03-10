@@ -5,7 +5,13 @@ import { prisma } from '../server/utils/db'
 import { workoutRepository } from '../server/utils/repositories/workoutRepository'
 import { wellnessRepository } from '../server/utils/repositories/wellnessRepository'
 import { dailyCheckinRepository } from '../server/utils/repositories/dailyCheckinRepository'
-import { formatUserDate, formatDateUTC, getUserLocalDate, calculateAge } from '../server/utils/date'
+import {
+  formatUserDate,
+  formatDateUTC,
+  getUserLocalDate,
+  calculateAge,
+  getUserTimezone
+} from '../server/utils/date'
 import { calculateProjectedPMC, getCurrentFitnessSummary } from '../server/utils/training-stress'
 import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
@@ -107,6 +113,8 @@ export const generateDailyCheckinTask = task({
         model: aiSettings.aiModelPreference,
         persona: aiSettings.aiPersona
       })
+
+      const timezone = await getUserTimezone(userId)
 
       // Fetch all required data
       const [
