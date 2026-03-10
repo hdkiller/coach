@@ -447,6 +447,19 @@ class ChatTurnService {
             } as any
           }
         })
+
+        await tx.llmUsage.updateMany({
+          where: {
+            turnId: turn.id,
+            operation: 'chat_turn_start',
+            errorType: 'IN_PROGRESS'
+          },
+          data: {
+            success: false,
+            errorType: 'INTERRUPTED',
+            errorMessage: 'Turn interrupted after heartbeat timeout.'
+          }
+        })
       })
     }
 

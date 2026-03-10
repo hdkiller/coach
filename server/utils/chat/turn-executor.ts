@@ -16,6 +16,13 @@ import { transformHistoryToCoreMessages } from '../ai-history'
 import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
 import { findToolNameRepair } from './tool-call-repair'
 
+const CHAT_TURN_HEARTBEAT_INTERVAL_MS = Number(
+  process.env.CHAT_TURN_HEARTBEAT_INTERVAL_MS || 15_000
+)
+const CHAT_TURN_STREAM_TIMEOUT_MS = Number(
+  process.env.CHAT_TURN_STREAM_TIMEOUT_MS || 5 * 60 * 1000
+)
+
 function normalizeMessagesForSdk(inputMessages: any[]) {
   const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
 
@@ -168,6 +175,15 @@ export async function executeChatTurn(turnId: string) {
     finishedAt: null,
     failureReason: null
   })
+
+  const heartbeatTimer = setInterval(() => {
+    void chatTurnService.heartbeat(turn.id).catch((error) => {
+      console.error('[ChatTurn] Heartbeat keepalive failed:', {
+        turnId: turn.id,
+        error
+      })
+    })
+  }, CHAT_TURN_HEARTBEAT_INTERVAL_MS)
 
   const earlyUsage = await chatTurnService.startLlmUsage(turn.id, turn.userId, content || '')
 
@@ -326,6 +342,7 @@ export async function executeChatTurn(turnId: string) {
       system: finalSystemInstruction,
       messages: normalizedMessages,
       tools,
+      timeout: { totalMs: CHAT_TURN_STREAM_TIMEOUT_MS },
       experimental_repairToolCall: async ({ toolCall, error }) => {
         if (!NoSuchToolError.isInstance(error)) {
           return null
@@ -560,5 +577,7 @@ export async function executeChatTurn(turnId: string) {
       })
       .catch(() => null)
     throw error
+  } finally {
+    clearInterval(heartbeatTimer)
   }
 }
