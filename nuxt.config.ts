@@ -295,8 +295,14 @@ export default defineNuxtConfig({
       subscriptionsEnabled: process.env.NUXT_PUBLIC_SUBSCRIPTIONS_ENABLED !== 'false',
       stravaEnabled: process.env.NUXT_PUBLIC_STRAVA_ENABLED !== 'false',
       tolgee: {
-        apiUrl: process.env.NUXT_PUBLIC_TOLGEE_API_URL || process.env.TOLGEE_API_URL,
-        apiKey: process.env.NUXT_PUBLIC_TOLGEE_API_KEY || process.env.TOLGEE_API_KEY
+        apiUrl:
+          process.env.TOLGEE_API_ENABLED === 'true'
+            ? process.env.NUXT_PUBLIC_TOLGEE_API_URL || process.env.TOLGEE_API_URL
+            : undefined,
+        apiKey:
+          process.env.TOLGEE_API_ENABLED === 'true'
+            ? process.env.NUXT_PUBLIC_TOLGEE_API_KEY || process.env.TOLGEE_API_KEY
+            : undefined
       },
       gtag: {
         id: process.env.NUXT_PUBLIC_GTAG_ID,

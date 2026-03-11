@@ -11,6 +11,14 @@ const syncCommand = new Command('sync')
   .action((options) => {
     const apiUrl = process.env.TOLGEE_API_URL
     const apiKey = process.env.TOLGEE_API_KEY
+    const dryRun = Boolean(options.dryRun)
+
+    if (process.env.TOLGEE_API_ENABLED !== 'true' && !dryRun) {
+      console.error(
+        chalk.red('Error: TOLGEE_API_ENABLED must be set to "true" in .env to use the live API')
+      )
+      process.exit(1)
+    }
 
     if (!apiUrl || !apiKey) {
       console.error(chalk.red('Error: TOLGEE_API_URL and TOLGEE_API_KEY must be set in .env'))
