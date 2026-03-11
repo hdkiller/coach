@@ -62,6 +62,7 @@
     'log_hydration_intake',
     'delete_hydration',
     'delete_nutrition_item',
+    'patch_nutrition_items',
     'get_fueling_recommendations',
     'get_metabolic_strategy',
     'get_daily_fueling_status',
