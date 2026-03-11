@@ -13,6 +13,7 @@ import locationCommand from './location'
 import trialsCommand from './trials'
 import quotaCommand from './quota'
 import resetQuotaCommand from './reset-quota'
+import cleanupOrphansCommand from './cleanup-orphans'
 
 const usersCommand = new Command('users').description('User management commands')
 
@@ -25,6 +26,7 @@ usersCommand.addCommand(locationCommand)
 usersCommand.addCommand(trialsCommand)
 usersCommand.addCommand(quotaCommand)
 usersCommand.addCommand(resetQuotaCommand)
+usersCommand.addCommand(cleanupOrphansCommand)
 usersCommand
   .command('search')
   .description('Search for users by email or name (partial match)')

@@ -26,7 +26,6 @@ const syncCommand = new Command('sync')
     }
 
     const patterns = (options.patterns as string[]).map((p) => `"${p}"`).join(' ')
-    const dryRun = Boolean(options.dryRun)
 
     const cmd = [
       `npx tolgee sync`,
