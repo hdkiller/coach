@@ -60,6 +60,8 @@
   let chatWsPingTimer: ReturnType<typeof setInterval> | null = null
   const slowTurnNoticeIds = new Set<string>()
   const queueReconcileTimersByRoom: Record<string, ReturnType<typeof setTimeout> | undefined> = {}
+  const loadMessagesInFlight: Record<string, boolean> = {}
+  const loadMessagesPending: Record<string, boolean> = {}
   const isRealtimeConnected = ref(false)
   const lastChatRealtimeEventAt = ref(0)
   const awaitingTurnStart = ref(false)
@@ -116,6 +118,9 @@
       }
     },
     onError: (error) => {
+      // Always unblock the input — the turn is over whether it errored or not
+      awaitingTurnStart.value = false
+
       // Track chat error
       trackChatError(error.message || 'unknown')
 
@@ -353,9 +358,11 @@
       removeQueuedOutgoingMessage(roomId, nextQueuedMessage.id)
       scheduleQueueReconcile(roomId)
     } catch (error: any) {
+      // Remove the failing message so it doesn't block the queue indefinitely
+      removeQueuedOutgoingMessage(roomId, nextQueuedMessage.id)
       toast.add({
-        title: 'Queued message failed',
-        description: error?.message || 'Could not send the next queued message.',
+        title: 'Message failed to send',
+        description: error?.message || 'Could not send the queued message. Please try again.',
         color: 'error'
       })
     } finally {
@@ -748,9 +755,7 @@
       await loadMessages(currentRoomId.value)
 
       if (response?.regenerateFromEdit) {
-        ;(chat as any).sendMessage({
-          text: content
-        })
+        await sendOutgoingMessage({ text: content, attachments: [] })
       }
 
       toast.add({
@@ -861,7 +866,9 @@
         const data = JSON.parse(event.data)
         if (data.type === 'authenticated') {
           isRealtimeConnected.value = true
-          stopTurnPolling()
+          // Don't stop polling here — loadMessages will call restartTurnPolling()
+          // which correctly decides based on actual state after the fetch.
+          // Stopping eagerly risks missing a turn that completed during the gap.
           if (currentRoomId.value) {
             void loadMessages(currentRoomId.value, { silent: true })
           }
@@ -917,7 +924,7 @@
         chatWsPingTimer = null
       }
 
-      if (hasActiveTurn(chat.messages as any[])) {
+      if (hasActiveTurn(chat.messages as any[]) || awaitingTurnStart.value) {
         restartTurnPolling({ forceForMs: 15000 })
       }
 
@@ -1021,6 +1028,15 @@
   async function loadMessages(roomId: string, options?: { silent?: boolean }) {
     const silent = options?.silent ?? false
 
+    // Coalesce concurrent calls: if already inflight for this room, mark pending
+    // and let the current call handle the final state.
+    if (loadMessagesInFlight[roomId]) {
+      loadMessagesPending[roomId] = true
+      return
+    }
+
+    loadMessagesInFlight[roomId] = true
+
     try {
       if (!silent) {
         loadingMessages.value = true
@@ -1061,8 +1077,15 @@
     } catch (err: any) {
       console.error('Failed to load messages:', err)
     } finally {
+      loadMessagesInFlight[roomId] = false
       if (!silent) {
         loadingMessages.value = false
+      }
+      // If a refresh was requested while we were loading, run one more time
+      // to ensure we have the latest state.
+      if (loadMessagesPending[roomId]) {
+        loadMessagesPending[roomId] = false
+        void loadMessages(roomId, { silent: true })
       }
     }
   }
@@ -1137,6 +1160,7 @@
 
   async function selectRoom(roomId: string) {
     currentRoomId.value = roomId
+    awaitingTurnStart.value = false
     await loadMessages(roomId)
     isRoomListOpen.value = false
     // Focus input after room selection
