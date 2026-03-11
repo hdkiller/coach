@@ -24,7 +24,8 @@ vi.mock('../../../../server/utils/db', () => ({
       findMany: vi.fn()
     },
     workout: {
-      findMany: vi.fn()
+      findMany: vi.fn(),
+      findFirst: vi.fn()
     },
     plannedWorkout: {
       findMany: vi.fn()
@@ -47,6 +48,8 @@ vi.mock('../../../../server/utils/repositories/sportSettingsRepository', () => (
 describe('Training Metrics Utils', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.workout.findFirst).mockResolvedValue(null as any)
+    vi.mocked(prisma.wellness.findFirst).mockResolvedValue(null as any)
   })
 
   describe('calculateTSS', () => {
@@ -339,30 +342,37 @@ describe('Training Metrics Utils', () => {
       const today = new Date()
       today.setUTCHours(0, 0, 0, 0)
 
-      vi.mocked(prisma.workout.findMany).mockResolvedValue([
-        {
-          id: 'w1',
-          date: new Date('2023-01-06T10:00:00Z'),
-          durationSec: 3600,
-          distanceMeters: 10000,
-          tss: 100,
-          ctl: 50,
-          atl: 60,
-          type: 'Run',
-          intensity: 1.0
-        },
-        {
-          id: 'w2',
-          date: new Date(today.getTime() + 10 * 60 * 60 * 1000),
-          durationSec: 1800,
-          distanceMeters: 0,
-          tss: 30,
-          ctl: 70,
-          atl: 90,
-          type: 'Strength',
-          intensity: 1.0
-        }
-      ] as any)
+      vi.mocked(prisma.workout.findMany)
+        .mockResolvedValueOnce([
+          {
+            id: 'w1',
+            date: new Date('2023-01-06T10:00:00Z'),
+            durationSec: 3600,
+            distanceMeters: 10000,
+            tss: 100,
+            ctl: 50,
+            atl: 60,
+            type: 'Run',
+            intensity: 1.0
+          },
+          {
+            id: 'w2',
+            date: new Date(today.getTime() + 10 * 60 * 60 * 1000),
+            durationSec: 1800,
+            distanceMeters: 0,
+            tss: 30,
+            ctl: 70,
+            atl: 90,
+            type: 'Strength',
+            intensity: 1.0
+          }
+        ] as any)
+        .mockResolvedValueOnce([
+          {
+            tss: 30,
+            trimp: null
+          }
+        ] as any)
 
       vi.mocked(prisma.wellness.findFirst)
         .mockResolvedValueOnce({
