@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { transformHistoryToCoreMessages } from './ai-history'
+import { expandStoredChatMessage } from './chat/history'
 
 describe('transformHistoryToCoreMessages', () => {
   it('converts basic user and assistant text messages', async () => {
@@ -269,5 +270,130 @@ describe('transformHistoryToCoreMessages', () => {
         }
       ]
     })
+  })
+
+  it('preserves approved pending tool calls reconstructed from stored assistant messages', async () => {
+    const assistantMessage = expandStoredChatMessage({
+      id: 'assistant-1',
+      senderId: 'ai_agent',
+      content: '',
+      createdAt: new Date('2026-03-11T12:00:00Z'),
+      updatedAt: new Date('2026-03-11T12:00:00Z'),
+      metadata: {
+        toolCalls: [
+          {
+            toolCallId: 'call_approved',
+            toolName: 'test_tool',
+            args: { foo: 'bar' }
+          }
+        ],
+        pendingApprovals: [
+          {
+            toolCallId: 'call_approved',
+            toolName: 'test_tool',
+            args: { foo: 'bar' }
+          }
+        ]
+      }
+    })
+
+    assistantMessage.parts = [
+      ...(assistantMessage.parts || []),
+      {
+        type: 'tool-test_tool',
+        toolCallId: 'call_approved',
+        state: 'approval-responded',
+        input: { foo: 'bar' },
+        approval: {
+          id: 'call_approved',
+          approved: true,
+          reason: 'User confirmed action.'
+        }
+      }
+    ]
+
+    const result = await transformHistoryToCoreMessages([assistantMessage])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      role: 'assistant'
+    })
+    expect(result[0].content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call_approved',
+          toolName: 'test_tool',
+          input: { foo: 'bar' }
+        })
+      ])
+    )
+    expect((result[0].content as any[]).some((part) => part.type === 'tool-approval-request')).toBe(
+      false
+    )
+  })
+
+  it('does not retain unrelated pending approval calls when a later approval is responded', async () => {
+    const history = [
+      {
+        id: 'user-1',
+        role: 'user',
+        content: 'create ticket',
+        parts: [{ type: 'text', text: 'create ticket' }]
+      },
+      {
+        id: 'assistant-pending-1',
+        role: 'assistant',
+        content: ' ',
+        parts: [
+          {
+            type: 'tool-ticket_create',
+            toolCallId: 'call_old',
+            state: 'approval-requested',
+            input: { title: 'foo', description: 'test' },
+            approval: { id: 'call_old' }
+          }
+        ]
+      },
+      {
+        id: 'user-2',
+        role: 'user',
+        content: 'create ticket again',
+        parts: [{ type: 'text', text: 'create ticket again' }]
+      },
+      {
+        id: 'assistant-pending-2',
+        role: 'assistant',
+        content: ' ',
+        parts: [
+          {
+            type: 'tool-ticket_create',
+            toolCallId: 'call_new',
+            state: 'approval-responded',
+            input: { title: 'foo', description: 'test' },
+            approval: { id: 'call_new', approved: true, reason: 'User confirmed action.' }
+          }
+        ]
+      }
+    ]
+
+    const result = await transformHistoryToCoreMessages(history)
+
+    const allToolCalls = result.flatMap((message: any) =>
+      Array.isArray(message.content)
+        ? message.content.filter((part: any) => part.type === 'tool-call')
+        : []
+    )
+
+    expect(allToolCalls.some((part: any) => part.toolCallId === 'call_old')).toBe(false)
+    expect(allToolCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call_new',
+          toolName: 'ticket_create'
+        })
+      ])
+    )
   })
 })
