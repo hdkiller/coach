@@ -134,8 +134,14 @@ export default defineEventHandler(async (event) => {
 
   if (shouldPersistIncomingMessage && !existingMessage) {
     const metadata: any = {}
-    if (lastMessage.role === 'tool' && Array.isArray(lastMessage.content)) {
-      metadata.toolResponse = lastMessage.content
+    if (lastMessage.role === 'tool') {
+      // Prefer parts over content for tool messages — the client sends tool-approval-response
+      // in parts (not content), and expandStoredChatMessage reads from metadata.toolResponse.
+      if (Array.isArray(lastMessage.parts) && lastMessage.parts.length > 0) {
+        metadata.toolResponse = lastMessage.parts
+      } else if (Array.isArray(lastMessage.content)) {
+        metadata.toolResponse = lastMessage.content
+      }
     }
 
     persistedMessage = await chatService.saveUserMessage({
