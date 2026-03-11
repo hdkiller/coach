@@ -7,7 +7,13 @@ import { getUserAiSettings } from '../ai-user-settings'
 import { prisma } from '../db'
 import { getUserTimezone } from '../date'
 import { buildPersistedToolCalls, expandStoredChatMessage } from './history'
-import { CHAT_TURN_EVENT_TYPE, CHAT_TURN_STATUS } from './turns'
+import {
+  CHAT_TURN_EVENT_TYPE,
+  CHAT_TURN_EXECUTION_TIMEOUT_MS,
+  CHAT_TURN_SLOW_RESPONSE_THRESHOLD_MS,
+  CHAT_TURN_STATUS,
+  CHAT_TURN_TIMEOUT_REASON
+} from './turns'
 import { buildAthleteContext } from '../services/chatContextService'
 import { chatTurnService } from '../services/chatTurnService'
 import { checkQuota } from '../quotas/engine'
@@ -19,9 +25,48 @@ import { findToolNameRepair } from './tool-call-repair'
 const CHAT_TURN_HEARTBEAT_INTERVAL_MS = Number(
   process.env.CHAT_TURN_HEARTBEAT_INTERVAL_MS || 15_000
 )
-const CHAT_TURN_STREAM_TIMEOUT_MS = Number(
-  process.env.CHAT_TURN_STREAM_TIMEOUT_MS || 5 * 60 * 1000
+const CHAT_TURN_EXECUTION_TIMEOUT_LIMIT_MS = Number(
+  process.env.CHAT_TURN_EXECUTION_TIMEOUT_MS || CHAT_TURN_EXECUTION_TIMEOUT_MS
 )
+const CHAT_TURN_SLOW_RESPONSE_LIMIT_MS = Number(
+  process.env.CHAT_TURN_SLOW_RESPONSE_THRESHOLD_MS || CHAT_TURN_SLOW_RESPONSE_THRESHOLD_MS
+)
+
+function createAbortError(message: string) {
+  const error = new Error(message)
+  error.name = 'AbortError'
+  return error
+}
+
+function getTimeoutFailureMessage(reason: string) {
+  switch (reason) {
+    case CHAT_TURN_TIMEOUT_REASON.FIRST_OUTPUT_TIMEOUT:
+      return 'No response started within 60 seconds.'
+    case CHAT_TURN_TIMEOUT_REASON.EXECUTION_TIMEOUT:
+      return 'Response timed out before completion.'
+    default:
+      return 'Chat turn failed.'
+  }
+}
+
+function hasVisibleAssistantArtifacts(input: {
+  assistantText?: string
+  toolCalls?: any[]
+  toolApprovals?: any[]
+  toolResults?: any[]
+}) {
+  const assistantText = typeof input.assistantText === 'string' ? input.assistantText : ''
+  const toolCalls = Array.isArray(input.toolCalls) ? input.toolCalls : []
+  const toolApprovals = Array.isArray(input.toolApprovals) ? input.toolApprovals : []
+  const toolResults = Array.isArray(input.toolResults) ? input.toolResults : []
+
+  return (
+    assistantText.trim().length > 0 ||
+    toolCalls.length > 0 ||
+    toolApprovals.length > 0 ||
+    toolResults.length > 0
+  )
+}
 
 function normalizeMessagesForSdk(inputMessages: any[]) {
   const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
@@ -169,12 +214,33 @@ export async function executeChatTurn(turnId: string) {
           .map((p: any) => p.text)
           .join(''))
 
+  const startedAt = new Date()
+  const executionStartedAtMs = Date.now()
+  let currentPhase = 'preflight'
+  let slowResponseRecorded = false
+  let firstVisibleOutputAt: Date | null = null
+  let firstOutputLatencyMs: number | null = null
+  let terminalTimeoutReason: string | null = null
+  let terminalFailureReason: string | null = null
+  const executionAbortController = new AbortController()
+
   await checkQuota(turn.userId, 'chat')
   await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.RUNNING, {
-    startedAt: turn.startedAt || new Date(),
+    startedAt,
     finishedAt: null,
-    failureReason: null
+    failureReason: null,
+    metadata: chatTurnService.mergeTurnMetadata(turn, {
+      timeoutReason: null,
+      slowResponse: false,
+      firstOutputLatencyMs: null,
+      executionDurationMs: null,
+      executionPhase: currentPhase
+    })
   })
+  await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_STARTED, {
+    roomId: turn.roomId,
+    userMessageId: turn.userMessageId
+  } as any)
 
   const heartbeatTimer = setInterval(() => {
     void chatTurnService.heartbeat(turn.id).catch((error) => {
@@ -184,6 +250,14 @@ export async function executeChatTurn(turnId: string) {
       })
     })
   }, CHAT_TURN_HEARTBEAT_INTERVAL_MS)
+
+  const executionTimeoutTimer = setTimeout(() => {
+    terminalTimeoutReason = firstVisibleOutputAt
+      ? CHAT_TURN_TIMEOUT_REASON.EXECUTION_TIMEOUT
+      : CHAT_TURN_TIMEOUT_REASON.FIRST_OUTPUT_TIMEOUT
+    terminalFailureReason = getTimeoutFailureMessage(terminalTimeoutReason)
+    executionAbortController.abort(terminalFailureReason)
+  }, CHAT_TURN_EXECUTION_TIMEOUT_LIMIT_MS)
 
   const earlyUsage = await chatTurnService.startLlmUsage(turn.id, turn.userId, content || '')
 
@@ -195,8 +269,11 @@ export async function executeChatTurn(turnId: string) {
   })
 
   const { systemInstruction: baseSystemInstruction } = await buildAthleteContext(turn.userId)
+  ensureTurnNotAborted()
   const timezone = await getUserTimezone(turn.userId)
+  ensureTurnNotAborted()
   const aiSettings = await getUserAiSettings(turn.userId)
+  ensureTurnNotAborted()
   const roomMetadata = (turn.room.metadata as any) || {}
   let finalSystemInstruction = baseSystemInstruction
   if (roomMetadata?.historySummary) {
@@ -207,6 +284,7 @@ export async function executeChatTurn(turnId: string) {
     apiKey: process.env.GEMINI_API_KEY
   })
   const opSettings = await getLlmOperationSettings(turn.userId, 'chat')
+  ensureTurnNotAborted()
   const modelName = opSettings.modelId
   const tools = getToolsWithContext(turn.userId, timezone, aiSettings, turn.roomId, {
     turnId: turn.id,
@@ -220,6 +298,7 @@ export async function executeChatTurn(turnId: string) {
     normalizeMessagesForSdk(submittedMessages)
   )
   const coreMessages = await transformHistoryToCoreMessages(historyMessages)
+  ensureTurnNotAborted()
   const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
 
   const historyToolCalls = new Map<string, any>()
@@ -230,7 +309,6 @@ export async function executeChatTurn(turnId: string) {
   let persistedText = draft.content || ' '
   let lastPersistAt = 0
   let latestUsage: any = null
-  const startedAt = turn.startedAt || new Date()
   const persistToolResultMessages = async (toolResults: any[]) => {
     if (!toolResults.length) return
 
@@ -284,6 +362,17 @@ export async function executeChatTurn(turnId: string) {
     })
   }
 
+  const broadcastTurnStatus = async (reason: string, extra: Record<string, any> = {}) => {
+    await sendToUser(turn.userId, {
+      type: 'chat_turn_status',
+      roomId: turn.roomId,
+      turnId: turn.id,
+      status: CHAT_TURN_STATUS.RUNNING,
+      reason,
+      ...extra
+    })
+  }
+
   const persistDraft = async (
     status: string,
     force = false,
@@ -296,6 +385,20 @@ export async function executeChatTurn(turnId: string) {
       Array.from(currentTurnToolCalls.values()),
       allToolResults
     )
+    const toolApprovals = Array.isArray(extraMetadata.toolApprovals)
+      ? extraMetadata.toolApprovals
+      : []
+    const hasVisibleOutput = hasVisibleAssistantArtifacts({
+      assistantText,
+      toolCalls: toolCallsUsed,
+      toolApprovals,
+      toolResults: allToolResults
+    })
+    const executionDurationMs = Math.max(0, Date.now() - executionStartedAtMs)
+    const runtimeTimeoutReason =
+      extraMetadata.timeoutReason ||
+      terminalTimeoutReason ||
+      (slowResponseRecorded ? CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE : null)
 
     persistedText = assistantText || ' '
     lastPersistAt = now
@@ -310,6 +413,16 @@ export async function executeChatTurn(turnId: string) {
         toolCalls: toolCallsUsed,
         toolsUsed: toolCallsUsed.map((entry: any) => entry.name),
         toolCallCount: toolCallsUsed.length,
+        hideUntilContent: status === CHAT_TURN_STATUS.RUNNING && !hasVisibleOutput,
+        hiddenBecauseEmptyFailure:
+          status !== CHAT_TURN_STATUS.RUNNING &&
+          !hasVisibleOutput &&
+          !!extraMetadata.hiddenBecauseEmptyFailure,
+        slowResponse: slowResponseRecorded,
+        timeoutReason: runtimeTimeoutReason,
+        firstOutputLatencyMs,
+        executionDurationMs,
+        executionPhase: extraMetadata.executionPhase || currentPhase,
         ...extraMetadata
       } as any
     })
@@ -321,7 +434,65 @@ export async function executeChatTurn(turnId: string) {
     })
   }
 
+  const markSlowResponse = async () => {
+    if (slowResponseRecorded || firstVisibleOutputAt || terminalTimeoutReason) {
+      return
+    }
+
+    slowResponseRecorded = true
+    await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
+      thresholdMs: CHAT_TURN_SLOW_RESPONSE_LIMIT_MS,
+      reason: CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE,
+      phase: currentPhase
+    } as any)
+    await persistDraft(CHAT_TURN_STATUS.RUNNING, true, {
+      slowResponse: true,
+      timeoutReason: CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE,
+      executionPhase: currentPhase
+    })
+    await broadcastTurnStatus(CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE, {
+      phase: currentPhase,
+      thresholdMs: CHAT_TURN_SLOW_RESPONSE_LIMIT_MS
+    })
+  }
+
+  const slowResponseTimer = setTimeout(() => {
+    void markSlowResponse().catch((error) => {
+      console.error('[ChatTurn] Slow response marker failed:', {
+        turnId: turn.id,
+        error
+      })
+    })
+  }, CHAT_TURN_SLOW_RESPONSE_LIMIT_MS)
+
+  function ensureTurnNotAborted() {
+    if (executionAbortController.signal.aborted) {
+      throw createAbortError(terminalFailureReason || 'Turn aborted.')
+    }
+  }
+
+  const markFirstVisibleOutput = async (
+    source: 'text_delta' | 'tool_step',
+    extra: Record<string, any> = {}
+  ) => {
+    if (firstVisibleOutputAt) {
+      return
+    }
+
+    firstVisibleOutputAt = new Date()
+    firstOutputLatencyMs = Math.max(0, firstVisibleOutputAt.getTime() - startedAt.getTime())
+    currentPhase = source === 'text_delta' ? 'streaming' : 'tool_step'
+
+    await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.FIRST_OUTPUT_RECEIVED, {
+      source,
+      firstOutputLatencyMs,
+      ...extra
+    } as any)
+  }
+
   await broadcastAssistantMessage(draft, CHAT_TURN_STATUS.RUNNING)
+  ensureTurnNotAborted()
+  currentPhase = 'awaiting_first_output'
 
   const providerOptions: any = {}
   if (opSettings.thinkingBudget > 0) {
@@ -342,7 +513,7 @@ export async function executeChatTurn(turnId: string) {
       system: finalSystemInstruction,
       messages: normalizedMessages,
       tools,
-      timeout: { totalMs: CHAT_TURN_STREAM_TIMEOUT_MS },
+      abortSignal: executionAbortController.signal,
       experimental_repairToolCall: async ({ toolCall, error }) => {
         if (!NoSuchToolError.isInstance(error)) {
           return null
@@ -376,7 +547,9 @@ export async function executeChatTurn(turnId: string) {
       },
       onChunk: async ({ chunk }) => {
         if (chunk.type === 'text-delta') {
+          await markFirstVisibleOutput('text_delta')
           assistantText += chunk.textDelta
+          currentPhase = 'streaming'
           await broadcastAssistantTextDelta(chunk.textDelta, CHAT_TURN_STATUS.STREAMING)
           await persistDraft(CHAT_TURN_STATUS.STREAMING)
           await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.ASSISTANT_TEXT_DELTA, {
@@ -406,15 +579,31 @@ export async function executeChatTurn(turnId: string) {
           await persistToolResultMessages(allToolResults)
         }
 
+        if (
+          !firstVisibleOutputAt &&
+          ((toolCalls?.length || 0) > 0 || (toolResults?.length || 0) > 0)
+        ) {
+          await markFirstVisibleOutput('tool_step', {
+            toolCallCount: toolCalls?.length || 0,
+            toolResultCount: toolResults?.length || 0
+          })
+        }
+
+        currentPhase = toolCalls?.length ? 'tool_step' : 'streaming'
+
         await persistDraft(
           toolCalls?.length ? CHAT_TURN_STATUS.WAITING_FOR_TOOLS : CHAT_TURN_STATUS.STREAMING,
-          true
+          true,
+          {
+            executionPhase: currentPhase
+          }
         )
       },
       onFinish: async (event) => {
         const { text, toolResults: finalStepResults, usage, toolCalls: finalCalls } = event
         latestUsage = usage
         assistantText = text || assistantText
+        currentPhase = 'completed'
         const hasMeaningfulText =
           typeof assistantText === 'string' && assistantText.trim().length > 0
         const hasToolActivity =
@@ -444,12 +633,46 @@ export async function executeChatTurn(turnId: string) {
           await persistToolResultMessages(allToolResults)
         }
 
-        await persistDraft(CHAT_TURN_STATUS.COMPLETED, true)
+        if (
+          !firstVisibleOutputAt &&
+          hasVisibleAssistantArtifacts({
+            assistantText,
+            toolCalls: finalCalls,
+            toolResults: finalStepResults
+          })
+        ) {
+          await markFirstVisibleOutput(
+            assistantText.trim().length > 0 ? 'text_delta' : 'tool_step',
+            {
+              toolCallCount: finalCalls?.length || 0,
+              toolResultCount: finalStepResults?.length || 0
+            }
+          )
+        }
 
         const finishedAt = new Date()
+        const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
+
+        await persistDraft(CHAT_TURN_STATUS.COMPLETED, true, {
+          hideUntilContent: false,
+          hiddenBecauseEmptyFailure: false,
+          executionPhase: currentPhase,
+          executionDurationMs
+        })
+
         await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.COMPLETED, {
           finishedAt,
-          assistantMessageId: draft.id
+          assistantMessageId: draft.id,
+          metadata: chatTurnService.mergeTurnMetadata(turn, {
+            timeoutReason:
+              terminalTimeoutReason ||
+              (slowResponseRecorded ? CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE : null),
+            slowResponse: slowResponseRecorded,
+            firstOutputLatencyMs,
+            executionDurationMs,
+            executionPhase: currentPhase,
+            finishedAt: finishedAt.toISOString()
+          })
         })
         await broadcastAssistantMessage(
           {
@@ -466,7 +689,9 @@ export async function executeChatTurn(turnId: string) {
         )
 
         await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_COMPLETED, {
-          assistantMessageId: draft.id
+          assistantMessageId: draft.id,
+          firstOutputLatencyMs,
+          executionDurationMs
         } as any)
 
         await prisma.llmUsage
@@ -479,6 +704,8 @@ export async function executeChatTurn(turnId: string) {
               errorMessage: shouldFallbackForEmptyResponse
                 ? 'LLM response finished with empty text and no tool activity.'
                 : null,
+              durationMs: executionDurationMs,
+              ttft: firstOutputLatencyMs,
               responsePreview: assistantText.substring(0, 500)
             }
           })
@@ -512,7 +739,8 @@ export async function executeChatTurn(turnId: string) {
               reasoningTokens,
               totalTokens: promptTokens + completionTokens,
               estimatedCost,
-              durationMs: 0,
+              durationMs: executionDurationMs,
+              ttft: firstOutputLatencyMs,
               retryCount: 0,
               success: !shouldFallbackForEmptyResponse,
               errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
@@ -538,17 +766,50 @@ export async function executeChatTurn(turnId: string) {
       assistantMessageId: draft.id
     }
   } catch (error: any) {
+    const isExplicitTimeout =
+      terminalTimeoutReason === CHAT_TURN_TIMEOUT_REASON.FIRST_OUTPUT_TIMEOUT ||
+      terminalTimeoutReason === CHAT_TURN_TIMEOUT_REASON.EXECUTION_TIMEOUT
+    const terminalStatus = isExplicitTimeout
+      ? CHAT_TURN_STATUS.FAILED
+      : error?.name === 'AbortError'
+        ? CHAT_TURN_STATUS.INTERRUPTED
+        : CHAT_TURN_STATUS.FAILED
     const reason =
-      error?.name === 'AbortError' ? 'Turn aborted.' : error?.message || 'Chat turn failed.'
+      terminalFailureReason ||
+      (error?.name === 'AbortError' ? 'Turn aborted.' : error?.message || 'Chat turn failed.')
     const finishedAt = new Date()
-    await persistDraft(CHAT_TURN_STATUS.INTERRUPTED, true, {
-      interrupted: true,
-      failureReason: reason
+    const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
+    const hiddenBecauseEmptyFailure = !hasVisibleAssistantArtifacts({
+      assistantText,
+      toolCalls: Array.from(currentTurnToolCalls.values()),
+      toolResults: allToolResults
+    })
+
+    currentPhase = isExplicitTimeout ? currentPhase : 'failed'
+
+    await persistDraft(terminalStatus, true, {
+      interrupted: terminalStatus === CHAT_TURN_STATUS.INTERRUPTED,
+      failureReason: reason,
+      timeoutReason: terminalTimeoutReason,
+      hiddenBecauseEmptyFailure,
+      hideUntilContent: false,
+      executionPhase: currentPhase,
+      executionDurationMs
     }).catch(() => null)
-    await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.INTERRUPTED, {
+    await chatTurnService.updateStatus(turn.id, terminalStatus, {
       finishedAt,
       failureReason: reason,
-      assistantMessageId: draft.id
+      assistantMessageId: draft.id,
+      metadata: chatTurnService.mergeTurnMetadata(turn, {
+        timeoutReason:
+          terminalTimeoutReason ||
+          (slowResponseRecorded ? CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE : null),
+        slowResponse: slowResponseRecorded,
+        firstOutputLatencyMs,
+        executionDurationMs,
+        executionPhase: currentPhase,
+        finishedAt: finishedAt.toISOString()
+      })
     })
     await broadcastAssistantMessage(
       {
@@ -557,27 +818,48 @@ export async function executeChatTurn(turnId: string) {
         createdAt: draft.createdAt,
         metadata: {
           ...((draft.metadata as any) || {}),
-          isDraft: true,
-          interrupted: true,
+          isDraft: terminalStatus !== CHAT_TURN_STATUS.COMPLETED,
+          interrupted: terminalStatus === CHAT_TURN_STATUS.INTERRUPTED,
           failureReason: reason
         }
       },
-      CHAT_TURN_STATUS.INTERRUPTED,
+      terminalStatus,
       { failureReason: reason, finishedAt }
     ).catch(() => null)
+    await chatTurnService.recordEvent(
+      turn.id,
+      terminalStatus === CHAT_TURN_STATUS.INTERRUPTED
+        ? CHAT_TURN_EVENT_TYPE.TURN_INTERRUPTED
+        : CHAT_TURN_EVENT_TYPE.TURN_FAILED,
+      {
+        reason:
+          terminalTimeoutReason ||
+          (terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'interrupted' : 'failed'),
+        failureReason: reason,
+        firstOutputLatencyMs,
+        executionDurationMs,
+        phase: currentPhase
+      } as any
+    )
     await prisma.llmUsage
       .update({
         where: { id: earlyUsage.id },
         data: {
           model: modelName,
           success: false,
-          errorType: error?.name === 'AbortError' ? 'INTERRUPTED' : 'FAILED',
-          errorMessage: reason
+          errorType:
+            terminalTimeoutReason?.toUpperCase() ||
+            (terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'INTERRUPTED' : 'FAILED'),
+          errorMessage: reason,
+          durationMs: executionDurationMs,
+          ttft: firstOutputLatencyMs
         }
       })
       .catch(() => null)
     throw error
   } finally {
     clearInterval(heartbeatTimer)
+    clearTimeout(slowResponseTimer)
+    clearTimeout(executionTimeoutTimer)
   }
 }
