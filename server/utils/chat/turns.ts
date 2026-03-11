@@ -111,6 +111,9 @@ export function buildToolIdempotencyKey(lineageId: string, toolName: string, arg
 
 export function isMutatingChatTool(toolName: string) {
   return (
+    toolName === 'log_nutrition_meal' ||
+    toolName === 'log_hydration_intake' ||
+    toolName === 'lock_meal_to_plan' ||
     toolName.startsWith('create_') ||
     toolName.startsWith('update_') ||
     toolName.startsWith('delete_') ||
