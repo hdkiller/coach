@@ -33,6 +33,14 @@
             >
               Clear Past Planned (Non-Completed) Workouts
             </UButton>
+            <UButton
+              color="warning"
+              variant="soft"
+              :loading="clearingOrphanedSchedule"
+              @click="isClearOrphanedScheduleModalOpen = true"
+            >
+              Clear Orphaned Planned Workouts
+            </UButton>
           </div>
         </div>
       </div>
@@ -237,6 +245,35 @@
       </template>
     </UModal>
 
+    <!-- Clear Orphaned Schedule Confirmation Modal -->
+    <UModal
+      v-model:open="isClearOrphanedScheduleModalOpen"
+      title="Clear Orphaned Workouts"
+      description="Confirm the removal of training sessions from deleted or old plans."
+    >
+      <template #body>
+        <p>
+          Are you sure? This will delete ALL CoachWatts-managed workouts that belong to deleted or
+          inactive training plans. Standalone recommendations for today and your current active plan
+          will be preserved.
+        </p>
+      </template>
+
+      <template #footer>
+        <div class="flex gap-2 justify-end w-full">
+          <UButton color="neutral" variant="ghost" @click="isClearOrphanedScheduleModalOpen = false"
+            >Cancel</UButton
+          >
+          <UButton
+            color="warning"
+            :loading="clearingOrphanedSchedule"
+            @click="executeClearOrphanedSchedule"
+            >Clear Orphaned Workouts</UButton
+          >
+        </div>
+      </template>
+    </UModal>
+
     <!-- Wipe Profiles Confirmation Modal -->
     <UModal
       v-model:open="isWipeProfilesModalOpen"
@@ -410,6 +447,7 @@
   const coachingStore = useCoachingStore()
   const clearingSchedule = ref(false)
   const clearingPastSchedule = ref(false)
+  const clearingOrphanedSchedule = ref(false)
   const wipingProfiles = ref(false)
   const wipingAnalysis = ref(false)
   const wipingSyncedActivities = ref(false)
@@ -418,6 +456,7 @@
   const deletingAccount = ref(false)
   const isClearScheduleModalOpen = ref(false)
   const isClearPastScheduleModalOpen = ref(false)
+  const isClearOrphanedScheduleModalOpen = ref(false)
   const isWipeProfilesModalOpen = ref(false)
   const isWipeAnalysisModalOpen = ref(false)
   const isWipeSyncedActivitiesModalOpen = ref(false)
@@ -506,6 +545,31 @@
       })
     } finally {
       clearingPastSchedule.value = false
+    }
+  }
+
+  async function executeClearOrphanedSchedule() {
+    clearingOrphanedSchedule.value = true
+    try {
+      const result: any = await $fetch('/api/plans/workouts/orphaned', {
+        method: 'DELETE'
+      })
+
+      toast.add({
+        title: 'Orphaned Workouts Cleared',
+        description: `Removed ${result.localCount} local and ${result.remoteCount} remote orphaned planned workouts.`,
+        color: 'success'
+      })
+      isClearOrphanedScheduleModalOpen.value = false
+    } catch (error) {
+      console.error('Failed to clear orphaned workouts', error)
+      toast.add({
+        title: 'Action Failed',
+        description: 'Could not clear orphaned workouts.',
+        color: 'error'
+      })
+    } finally {
+      clearingOrphanedSchedule.value = false
     }
   }
 
