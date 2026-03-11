@@ -439,14 +439,49 @@
 
     return true
   }
-  const transformStoredMessage = (msg: any) => ({
-    id: msg.id,
-    role: msg.role,
-    content: msg.content,
-    parts: msg.parts || [{ type: 'text', text: msg.content }],
-    createdAt: new Date(msg.createdAt || msg.metadata?.createdAt || Date.now()),
-    metadata: msg.metadata
-  })
+  const transformStoredMessage = (msg: any) => {
+    let parts: any[] = msg.parts || [{ type: 'text', text: msg.content }]
+
+    // Synthesize tool-approval-request parts from pending approvals stored in metadata.
+    // These are tool calls blocked server-side by needsApproval() that the client needs
+    // to render as approval UI. Without this, WebSocket-delivered messages never have
+    // the part state that ChatMessageContent.vue requires to show ChatToolApproval.
+    const pendingApprovals: any[] = msg.metadata?.pendingApprovals || []
+    if (pendingApprovals.length > 0) {
+      const existingApprovalIds = new Set(
+        parts
+          .filter(
+            (p: any) =>
+              p.type === 'tool-approval-request' ||
+              (p?.type?.startsWith('tool-') && p?.state === 'approval-requested')
+          )
+          .map((p: any) => p.approvalId || p.approval?.id || p.toolCallId)
+          .filter(Boolean)
+      )
+      const approvalParts = pendingApprovals
+        .filter((a: any) => !existingApprovalIds.has(a.toolCallId))
+        .map((a: any) => ({
+          type: 'tool-approval-request',
+          approvalId: a.toolCallId,
+          toolCall: {
+            toolName: a.toolName,
+            args: a.args
+          }
+        }))
+      if (approvalParts.length > 0) {
+        parts = [...parts, ...approvalParts]
+      }
+    }
+
+    return {
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      parts,
+      createdAt: new Date(msg.createdAt || msg.metadata?.createdAt || Date.now()),
+      metadata: msg.metadata
+    }
+  }
   const applyAssistantTextDelta = (event: {
     roomId: string
     turnId: string
@@ -676,23 +711,31 @@
     approved: boolean
     result?: string
   }) => {
-    if (typeof (chat as any).addToolApprovalResponse === 'function') {
-      await (chat as any).addToolApprovalResponse({
-        id: approval.approvalId,
-        approved: approval.approved,
-        reason: approval.result
-      })
-      // Trigger the follow-up model step so approved tools actually execute.
-      await (chat as any).sendMessage()
-      awaitingTurnStart.value = true
-      restartTurnPolling({ forceForMs: 15000 })
-      return
+    // Append a tool message with a tool-approval-response part directly to chat.messages.
+    // addToolApprovalResponse only works with messages that came through the SDK's own
+    // streaming transport, not with messages synthesized from WebSocket-delivered state.
+    // The server's hasToolApprovalResponse path handles this message correctly.
+    const approvalToolMsg = {
+      id: crypto.randomUUID(),
+      role: 'tool',
+      content: '',
+      parts: [
+        {
+          type: 'tool-approval-response',
+          toolCallId: approval.approvalId,
+          approvalId: approval.approvalId,
+          approved: approval.approved,
+          reason:
+            approval.result ||
+            (approval.approved ? 'User confirmed action.' : 'User cancelled action.')
+        }
+      ],
+      createdAt: new Date()
     }
-
-    console.error(
-      '[Chat] No addToolApprovalResponse method found. Chat object keys:',
-      Object.keys(chat)
-    )
+    chat.messages = [...(chat.messages as any[]), approvalToolMsg] as any
+    await (chat as any).sendMessage()
+    awaitingTurnStart.value = true
+    restartTurnPolling({ forceForMs: 15000 })
   }
 
   const getMessageText = (message: any) => {
@@ -969,7 +1012,9 @@
     if (
       !currentRoomId.value ||
       (activeTurn && hasRecentRealtimeChatEvent) ||
-      (!activeTurn && (hasAssistantMessage || Date.now() >= turnPollingGraceUntil))
+      (!activeTurn &&
+        !awaitingTurnStart.value &&
+        (hasAssistantMessage || Date.now() >= turnPollingGraceUntil))
     ) {
       return
     }
@@ -1004,7 +1049,11 @@
         console.error('Failed to poll room state:', error)
       }
 
-      if (!nextHasActiveTurn && (nextHasAssistantMessage || Date.now() >= turnPollingGraceUntil)) {
+      if (
+        !nextHasActiveTurn &&
+        !awaitingTurnStart.value &&
+        (nextHasAssistantMessage || Date.now() >= turnPollingGraceUntil)
+      ) {
         stopTurnPolling()
       }
     }, 1500)
@@ -1047,13 +1096,8 @@
 
       // Transform DB messages to AI SDK format (UIMessage)
       const transformedMessages = loadedMessages.map((msg) => ({
-        id: msg.id,
-        role: msg.role, // Use role from API response (already mapped)
-        content: msg.content,
-        parts: msg.parts || [{ type: 'text', text: msg.content }],
-        createdAt: new Date(msg.createdAt || msg.metadata?.createdAt || Date.now()),
-        updatedAt: msg.updatedAt || msg.metadata?.updatedAt || null,
-        metadata: msg.metadata
+        ...transformStoredMessage(msg),
+        updatedAt: msg.updatedAt || msg.metadata?.updatedAt || null
       }))
 
       // Avoid replacing the entire message list when nothing material changed,
