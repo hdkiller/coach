@@ -757,9 +757,16 @@ export async function executeChatTurn(turnId: string) {
       }
     })
 
+    let streamError: Error | undefined
     await result.consumeStream({
-      onError: () => undefined
+      onError: (error) => {
+        streamError = error instanceof Error ? error : new Error(String(error))
+        console.error('[ChatTurn] Mid-stream error from LLM:', streamError.message)
+      }
     })
+    if (streamError) {
+      throw streamError
+    }
 
     return {
       success: true,
