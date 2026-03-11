@@ -7,8 +7,12 @@ import {
 import { sendToUserLocal } from '../utils/ws-state'
 
 export default defineNitroPlugin((nitroApp) => {
-  const runner = getChatTurnRunner()
-  runner.start()
+  const runnerEnabled = process.env.CHAT_TURN_RUNNER_ENABLED !== 'false'
+  const runner = runnerEnabled ? getChatTurnRunner() : null
+
+  if (runnerEnabled) {
+    runner?.start()
+  }
   if (isRealtimeBusEnabled()) {
     void startRealtimeSubscription(({ userId, data }) => {
       sendToUserLocal(userId, data)
@@ -16,7 +20,7 @@ export default defineNitroPlugin((nitroApp) => {
   }
 
   nitroApp.hooks.hookOnce('close', () => {
-    runner.stop()
+    runner?.stop()
     if (isRealtimeBusEnabled()) {
       void stopRealtimeSubscription()
     }

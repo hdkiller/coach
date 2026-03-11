@@ -2,8 +2,13 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '../db'
 import { expandStoredChatMessages, truncateMessages } from '../chat/history'
 import {
+  hasVisibleAssistantMetadataArtifacts,
+  shouldExcludeAssistantMessageFromHistory
+} from '../chat/message-state'
+import {
   CHAT_TURN_EVENT_TYPE,
   CHAT_TURN_HEARTBEAT_TIMEOUT_MS,
+  CHAT_TURN_TIMEOUT_REASON,
   CHAT_TURN_STATUS,
   type ChatTurnStatus,
   isActiveChatTurnStatus,
@@ -19,8 +24,22 @@ type PersistedRequestSnapshot = {
 }
 
 class ChatTurnService {
+  getTurnMetadata(turn: { metadata?: Prisma.JsonValue | null }) {
+    return ((turn.metadata as any) || {}) as Record<string, any>
+  }
+
+  mergeTurnMetadata(
+    turn: { metadata?: Prisma.JsonValue | null } | null | undefined,
+    patch: Record<string, any>
+  ) {
+    return {
+      ...this.getTurnMetadata(turn || {}),
+      ...patch
+    } as Prisma.InputJsonValue
+  }
+
   getRequestSnapshot(turn: { metadata?: Prisma.JsonValue | null }): PersistedRequestSnapshot {
-    const metadata = (turn.metadata as any) || {}
+    const metadata = this.getTurnMetadata(turn)
     return {
       messages: Array.isArray(metadata.request?.messages) ? metadata.request.messages : [],
       files: Array.isArray(metadata.request?.files) ? metadata.request.files : [],
@@ -217,13 +236,22 @@ class ChatTurnService {
     existingMessageId?: string | null
   }) {
     if (params.existingMessageId) {
+      const existingMessage = await prisma.chatMessage.findUnique({
+        where: { id: params.existingMessageId },
+        select: { metadata: true }
+      })
+
       return await prisma.chatMessage.update({
         where: { id: params.existingMessageId },
         data: {
           content: ' ',
           metadata: {
+            ...((existingMessage?.metadata as any) || {}),
             isDraft: true,
-            turnStatus: params.status
+            turnId: params.turnId,
+            turnStatus: params.status,
+            hideUntilContent: true,
+            hiddenBecauseEmptyFailure: false
           } as any,
           turnId: params.turnId
         }
@@ -239,7 +267,10 @@ class ChatTurnService {
         turnId: params.turnId,
         metadata: {
           isDraft: true,
-          turnStatus: params.status
+          turnId: params.turnId,
+          turnStatus: params.status,
+          hideUntilContent: true,
+          hiddenBecauseEmptyFailure: false
         } as any
       }
     })
@@ -374,6 +405,10 @@ class ChatTurnService {
         return true
       }
 
+      if (shouldExcludeAssistantMessageFromHistory(message)) {
+        return false
+      }
+
       if (!message.turn) {
         return true
       }
@@ -425,12 +460,18 @@ class ChatTurnService {
 
         const draft = turn.messages[0]
         if (draft) {
+          const draftMetadata = ((draft.metadata as any) || {}) as Record<string, any>
           const metadata = {
-            ...((draft.metadata as any) || {}),
+            ...draftMetadata,
             isDraft: true,
             turnStatus: CHAT_TURN_STATUS.INTERRUPTED,
             interrupted: true,
-            failureReason: 'Turn interrupted after heartbeat timeout.'
+            failureReason: 'Turn interrupted after heartbeat timeout.',
+            timeoutReason: CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT,
+            hiddenBecauseEmptyFailure:
+              typeof draft.content === 'string' &&
+              draft.content.trim().length === 0 &&
+              !hasVisibleAssistantMetadataArtifacts(draftMetadata)
           }
           await tx.chatMessage.update({
             where: { id: draft.id },
@@ -443,8 +484,19 @@ class ChatTurnService {
             turnId: turn.id,
             type: CHAT_TURN_EVENT_TYPE.TURN_INTERRUPTED,
             data: {
-              reason: 'heartbeat_timeout'
+              reason: CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT
             } as any
+          }
+        })
+
+        await tx.chatTurn.update({
+          where: { id: turn.id },
+          data: {
+            metadata: this.mergeTurnMetadata(turn, {
+              timeoutReason: CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT,
+              executionPhase: 'orphaned',
+              finishedAt: now.toISOString()
+            })
           }
         })
 
@@ -457,7 +509,11 @@ class ChatTurnService {
           data: {
             success: false,
             errorType: 'INTERRUPTED',
-            errorMessage: 'Turn interrupted after heartbeat timeout.'
+            errorMessage: 'Turn interrupted after heartbeat timeout.',
+            durationMs:
+              turn.startedAt instanceof Date
+                ? Math.max(0, now.getTime() - turn.startedAt.getTime())
+                : Math.max(0, now.getTime() - turn.createdAt.getTime())
           }
         })
       })
