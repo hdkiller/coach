@@ -31,6 +31,12 @@ export const MODEL_LIST = [
     version: '2.5'
   },
   {
+    group: 'Gemini 3.1',
+    label: 'Gemini 3.1 Flash Lite (Preview)',
+    id: 'gemini-3.1-flash-lite-preview',
+    version: '3.1'
+  },
+  {
     group: 'Gemini 2.5',
     label: 'Gemini 2.5 Pro (Latest)',
     id: 'gemini-pro-latest',
@@ -88,6 +94,12 @@ export const PRICING = {
     threshold: 1_000_000_000,
     base: { input: 0.1, output: 0.4, cacheInput: 0.01 },
     premium: { input: 0.1, output: 0.4, cacheInput: 0.01 },
+    cacheStorage: 1.0
+  },
+  'gemini-3.1-flash-lite-preview': {
+    threshold: 1_000_000_000,
+    base: { input: 0.25, output: 1.5, cacheInput: 0.025 },
+    premium: { input: 0.25, output: 1.5, cacheInput: 0.025 },
     cacheStorage: 1.0
   }
 } as const

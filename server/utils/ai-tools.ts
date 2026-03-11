@@ -16,7 +16,7 @@ import type { AiSettings } from './ai-user-settings'
 import type { ChatToolExecutionContext } from './chat/turns'
 import { wrapChatToolsForExecution } from './chat/tool-execution'
 
-const TEMPORARILY_DISABLED_CHAT_TOOLS = new Set([
+export const TEMPORARILY_DISABLED_CHAT_TOOLS = new Set([
   'report_bug',
   'find_bug_reports',
   'ticket_search',
@@ -27,6 +27,16 @@ const TEMPORARILY_DISABLED_CHAT_TOOLS = new Set([
   'sync_data',
   'generate_report'
 ])
+
+export function isChatToolTemporarilyDisabled(toolName: string) {
+  return TEMPORARILY_DISABLED_CHAT_TOOLS.has(toolName)
+}
+
+export function filterChatToolsForChat<T extends Record<string, any>>(tools: T) {
+  return Object.fromEntries(
+    Object.entries(tools).filter(([name]) => !isChatToolTemporarilyDisabled(name))
+  ) as Partial<T>
+}
 
 export const getToolsWithContext = (
   userId: string,
@@ -56,9 +66,7 @@ export const getToolsWithContext = (
     ...temporalTools(userId, timezone)
   }
 
-  const filteredTools = Object.fromEntries(
-    Object.entries(tools).filter(([name]) => !TEMPORARILY_DISABLED_CHAT_TOOLS.has(name))
-  )
+  const filteredTools = filterChatToolsForChat(tools)
 
   return executionContext
     ? wrapChatToolsForExecution(filteredTools, executionContext)

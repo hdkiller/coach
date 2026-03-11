@@ -9,12 +9,20 @@ import { getInjuryLabel } from '../../utils/wellness'
 import { filterGoalsForContext } from '../goal-context'
 import { getUserAiSettings } from '../ai-user-settings'
 
-export async function buildAthleteContext(userId: string): Promise<{
+type BuildAthleteContextOptions = {
+  includeDomainToolInstructions?: boolean
+}
+
+export async function buildAthleteContext(
+  userId: string,
+  options: BuildAthleteContextOptions = {}
+): Promise<{
   context: string
   userProfile: any
   systemInstruction: string
   history: any[]
 }> {
+  const includeDomainToolInstructions = options.includeDomainToolInstructions !== false
   // 1. Fetch User Profile, Goals and Sport Settings for Context
   const [userProfile, activeGoals, sportSettings, aiSettings] = await Promise.all([
     prisma.user.findUnique({
@@ -742,8 +750,9 @@ export async function buildAthleteContext(userId: string): Promise<{
     ? '- Recent workouts with details **AND THEIR IDs**\n- Recent nutrition logs\n- Recent wellness metrics'
     : '- Recent workouts with details **AND THEIR IDs**\n- Recent wellness metrics'
 
-  const toolApprovalInstruction = aiSettings?.aiRequireToolApproval
-    ? `\n**TOOL APPROVAL IS ENABLED (CRITICAL)**: The following tools require explicit user approval before they execute:
+  const toolApprovalInstruction =
+    includeDomainToolInstructions && aiSettings?.aiRequireToolApproval
+      ? `\n**TOOL APPROVAL IS ENABLED (CRITICAL)**: The following tools require explicit user approval before they execute:
     - \`update_training_availability\`
     - \`set_planned_workout_structure\`
     - \`patch_planned_workout_structure\`
@@ -770,6 +779,44 @@ export async function buildAthleteContext(userId: string): Promise<{
       - *Bad Response*: "I'm so sorry, I made a mistake with the draft. Let me fix that for you right away. My apologies!"
       - *Good Response*: "Got it, let's refine that. What details should we adjust before I save it?" or "No problem, I've cancelled that draft. Let me know when you're ready to proceed with the updated info."
     - If the user denies approval, treat it as user intent (not a technical failure). Ask what they want changed or if they want to cancel.`
+      : ''
+
+  const nutritionLoggingInstruction = includeDomainToolInstructions
+    ? `## Nutrition Logging Accuracy & Efficiency (CRITICAL)
+
+1.  **Pass Local Time**: When logging food "now", "just now", or for the current moment, you MUST pass the exact local time (HH:mm) into the \`logged_at\` parameter of \`log_nutrition_meal\`. First call \`get_current_time\` to obtain it. Never omit the time for "today" logs.
+2.  **Non-Destructive Edits**: When the user wants to correct a mistake (e.g. "I actually ate that at 12:30", "it was 500 calories, not 400"), use the \`patch_nutrition_items\` tool. Do NOT delete and recreate the meal. You MUST provide the \`item_id\` for each update.`
+    : ''
+
+  const chartVisualizationInstruction = includeDomainToolInstructions
+    ? `## Chart Visualization Powers 📊
+
+You can create inline charts using the \`create_chart\` tool.
+- \`line\`: Trends (TSS, weight, power)
+- \`area\`: Filled trends and cumulative progression
+- \`bar\`: Comparisons (last 5 rides, weekly totals)
+- \`stackedBar\`: Composition over time (zones, macro splits)
+- \`doughnut\`: Distributions (workout types)
+- \`radar\`: Multi-dimensional scores
+- \`scatter\`: Relationships and correlations (e.g., HR vs pace, cadence vs power)
+- \`bubble\`: 3-variable relationships (x/y + bubble size)
+- \`mixed\`: Combined bar + line charts in one view
+
+For richer charts, include dataset styling (\`backgroundColor\`, \`borderColor\`, \`borderWidth\`) and \`options\` (axes, legend, stacked bars, dual-axis).`
+    : ''
+
+  const trainingPlanInstruction = includeDomainToolInstructions
+    ? `## Training Plan Management (CRITICAL)
+
+You MUST use tools to make changes to the training plan:
+- **ADD workout** → call \`create_planned_workout\`
+- **MODIFY workout** → call \`update_planned_workout\`
+- **RESCHEDULE workout (date/time move)** → call \`reschedule_planned_workout\`
+- **DELETE workout** → call \`delete_planned_workout\`
+- **CHANGE availability** → call \`update_training_availability\`
+
+**DO NOT** describe the action without calling the tool.
+For date/time moves, **do not** delete + recreate unless the user explicitly asks for replacement.`
     : ''
 
   const systemInstruction = `You are Coach Watts. Your coaching style and personality is **${persona}**.
@@ -830,10 +877,7 @@ ${toolApprovalInstruction}
 6.  **Workout Notes Safety**: For \`update_workout_notes\`, APPEND is the default behavior. Only use REPLACE when the user explicitly asks to overwrite existing notes.
 7.  **No Autonomous Follow-Up Claims**: Do NOT claim you will monitor progress or proactively report later (e.g., "I'll keep you updated when analysis is ready"). If a process is async, state that clearly and ask the user to check back or ask you to check status.
 
-## Nutrition Logging Accuracy & Efficiency (CRITICAL)
-
-1.  **Pass Local Time**: When logging food "now", "just now", or for the current moment, you MUST pass the exact local time (HH:mm) into the \`logged_at\` parameter of \`log_nutrition_meal\`. First call \`get_current_time\` to obtain it. Never omit the time for "today" logs.
-2.  **Non-Destructive Edits**: When the user wants to correct a mistake (e.g. "I actually ate that at 12:30", "it was 500 calories, not 400"), use the \`patch_nutrition_items\` tool. Do NOT delete and recreate the meal. You MUST provide the \`item_id\` for each update.
+${nutritionLoggingInstruction}
 
 ## Your Tools & Data Access
 
@@ -854,32 +898,9 @@ ${contextBullets}
 5. **Precise Time & Active Session**: Use \`get_current_time\` if you need to know the exact time, hour, or if the athlete is **CURRENTLY** in a scheduled workout (the tool will tell you). Use this if they sound like they are training right now or if you need to plan a meal/session.
 6. **Relative Date Resolution**: Before any write action that depends on a relative date phrase ("yesterday", "last night", "day before yesterday", "next Monday"), call \`resolve_temporal_reference\`. Do not do calendar math yourself for writes.
 
-## Chart Visualization Powers 📊
+${chartVisualizationInstruction}
 
-You can create inline charts using the \`create_chart\` tool.
-- \`line\`: Trends (TSS, weight, power)
-- \`area\`: Filled trends and cumulative progression
-- \`bar\`: Comparisons (last 5 rides, weekly totals)
-- \`stackedBar\`: Composition over time (zones, macro splits)
-- \`doughnut\`: Distributions (workout types)
-- \`radar\`: Multi-dimensional scores
-- \`scatter\`: Relationships and correlations (e.g., HR vs pace, cadence vs power)
-- \`bubble\`: 3-variable relationships (x/y + bubble size)
-- \`mixed\`: Combined bar + line charts in one view
-
-For richer charts, include dataset styling (\`backgroundColor\`, \`borderColor\`, \`borderWidth\`) and \`options\` (axes, legend, stacked bars, dual-axis).
-
-## Training Plan Management (CRITICAL)
-
-You MUST use tools to make changes to the training plan:
-- **ADD workout** → call \`create_planned_workout\`
-- **MODIFY workout** → call \`update_planned_workout\`
-- **RESCHEDULE workout (date/time move)** → call \`reschedule_planned_workout\`
-- **DELETE workout** → call \`delete_planned_workout\`
-- **CHANGE availability** → call \`update_training_availability\`
-
-**DO NOT** describe the action without calling the tool.
-For date/time moves, **do not** delete + recreate unless the user explicitly asks for replacement.
+${trainingPlanInstruction}
 
 ## Response Requirement
 **CRITICAL: ALWAYS provide a text response after using a tool.**
