@@ -21,6 +21,12 @@ When a support agent or developer asks you to look into a ticket (e.g., using `/
    Once you've validated the issue, think step-by-step about what caused it.
    Explain your findings to the user and propose a concrete plan to fix the issue. This could involve updating database records, triggering a specific job, or making a code change.
    - **MANDATE:** Prefer using `cw:cli` commands to apply data fixes (e.g., updating a record, triggering a re-sync) rather than raw SQL or one-off scripts.
+   - For chat-freeze investigations, check `ChatTurn.failureReason`, `ChatTurnEvent.type/data`, and assistant message metadata for explicit timeout reasons:
+     - `slow_response`: turn crossed the 15s delayed-response threshold but was still alive
+     - `first_output_timeout`: no visible assistant output started within the 60s chat cap
+     - `execution_timeout`: output started, but the turn exceeded the 60s total execution cap
+     - `heartbeat_timeout`: stale-turn sweeper recovered an orphaned turn after 120s without heartbeat
+   - Prefer `cw:cli debug chat <roomId> --prod` when support needs a quick transcript plus timeout classification.
 
 4. **Add an Internal Comment (Optional):**
    If you made significant discoveries but are waiting for developer approval, you can document your findings on the ticket using:
