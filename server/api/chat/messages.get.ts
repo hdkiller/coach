@@ -87,6 +87,7 @@ export default defineEventHandler(async (event) => {
       senderId: true,
       turnId: true,
       createdAt: true,
+      updatedAt: true,
       files: true,
       metadata: true,
       turn: {

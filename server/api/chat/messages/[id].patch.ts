@@ -1,5 +1,6 @@
 import { getServerSession } from '../../../utils/session'
 import { prisma } from '../../../utils/db'
+import { ACTIVE_CHAT_TURN_STATUSES } from '../../../utils/chat/turns'
 
 export default defineEventHandler(async (event) => {
   const session = await getServerSession(event)
@@ -85,7 +86,38 @@ export default defineEventHandler(async (event) => {
   }
 
   if (regenerateFromEdit) {
+    const activeDownstreamTurn = await prisma.chatTurn.findFirst({
+      where: {
+        roomId: message.roomId,
+        createdAt: {
+          gte: message.createdAt
+        },
+        status: {
+          in: ACTIVE_CHAT_TURN_STATUSES
+        }
+      },
+      select: {
+        id: true
+      }
+    })
+
+    if (activeDownstreamTurn) {
+      throw createError({
+        statusCode: 409,
+        message: 'Cannot regenerate while a downstream response is still running.'
+      })
+    }
+
     await prisma.$transaction(async (tx) => {
+      await tx.chatTurn.deleteMany({
+        where: {
+          roomId: message.roomId,
+          createdAt: {
+            gte: message.createdAt
+          }
+        }
+      })
+
       await tx.chatMessage.deleteMany({
         where: {
           roomId: message.roomId,
@@ -95,9 +127,18 @@ export default defineEventHandler(async (event) => {
         }
       })
 
+      const latestRemainingMessage = await tx.chatMessage.findFirst({
+        where: {
+          roomId: message.roomId
+        },
+        orderBy: [{ createdAt: 'desc' }]
+      })
+
       await tx.chatRoom.update({
         where: { id: message.roomId },
-        data: { lastMessageAt: new Date() }
+        data: {
+          lastMessageAt: latestRemainingMessage?.createdAt || participant.room.createdAt
+        }
       })
     })
 

@@ -108,9 +108,26 @@ export default defineEventHandler(async (event) => {
   const incomingMessageId = lastMessage?.id
   const existingMessage = incomingMessageId
     ? await prisma.chatMessage.findUnique({
-        where: { id: incomingMessageId }
+        where: { id: incomingMessageId },
+        select: {
+          id: true,
+          roomId: true,
+          senderId: true,
+          metadata: true
+        }
       })
     : null
+
+  if (existingMessage) {
+    const expectedSenderId = lastMessage?.role === 'tool' ? 'system_tool' : userId
+
+    if (existingMessage.roomId !== roomId || existingMessage.senderId !== expectedSenderId) {
+      throw createError({
+        statusCode: 409,
+        message: 'Incoming message ID does not match this room context.'
+      })
+    }
+  }
 
   const shouldPersistIncomingMessage = !!lastMessage && ['user', 'tool'].includes(lastMessage.role)
   let persistedMessage = existingMessage
