@@ -29,7 +29,11 @@ function createRedisClient(name: string) {
     lazyConnect: true,
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false,
-    retryStrategy: () => null
+    // Retry up to 5 times with exponential backoff capped at 10s
+    retryStrategy: (times) => {
+      if (times > 5) return null
+      return Math.min(500 * 2 ** (times - 1), 10000)
+    }
   })
 
   client.on('error', (error) => {
@@ -53,6 +57,9 @@ async function ensureConnected(client: IORedis) {
 }
 
 async function getPublisher() {
+  if (publisher?.status === 'end') {
+    publisher = null
+  }
   if (!publisher) {
     publisher = createRedisClient('publisher')
   }
@@ -62,6 +69,12 @@ async function getPublisher() {
 }
 
 async function getSubscriber() {
+  if (subscriber?.status === 'end') {
+    // Clear all subscriber state so the handler gets re-attached to the new client
+    subscriptionPromise = null
+    subscriberHandler = null
+    subscriber = null
+  }
   if (!subscriber) {
     subscriber = createRedisClient('subscriber')
   }
