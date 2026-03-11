@@ -14,6 +14,7 @@
   import ChatSidebar from '~/components/chat/ChatSidebar.vue'
   import ChatMessageList from '~/components/chat/ChatMessageList.vue'
   import ChatInput from '~/components/chat/ChatInput.vue'
+  import { shouldHideAssistantBubble } from '~/utils/chat-message-state'
 
   const { t } = useTranslate('chat')
 
@@ -57,6 +58,7 @@
   let chatWs: WebSocket | null = null
   let chatWsReconnectTimer: ReturnType<typeof setTimeout> | null = null
   let chatWsPingTimer: ReturnType<typeof setInterval> | null = null
+  const slowTurnNoticeIds = new Set<string>()
   const queueReconcileTimersByRoom: Record<string, ReturnType<typeof setTimeout> | undefined> = {}
   const isRealtimeConnected = ref(false)
   const lastChatRealtimeEventAt = ref(0)
@@ -73,8 +75,19 @@
     attachments: QueuedAttachment[]
     createdAt: Date
   }
+  type ChatRoomStateSnapshot = {
+    latestMessageId: string | null
+    latestMessageCreatedAt: string | null
+    latestMessageUpdatedAt: string | null
+    latestMessageSenderId: string | null
+    activeTurnId: string | null
+    activeTurnStatus: string | null
+    activeTurnUpdatedAt: string | null
+    hasAssistantMessage: boolean
+  }
   const queuedOutgoingByRoom = ref<Record<string, QueuedOutgoingMessage[]>>({})
   const queueDispatchInFlightByRoom = ref<Record<string, boolean>>({})
+  const roomStateSignaturesByRoom = ref<Record<string, string>>({})
 
   // Fetch session
   const { data: session } = await useFetch('/api/auth/session')
@@ -186,16 +199,64 @@
   const chatStatus = computed(() => chat.status)
   const activeTurnStatuses = ['RECEIVED', 'QUEUED', 'RUNNING', 'STREAMING', 'WAITING_FOR_TOOLS']
   const terminalTurnStatuses = ['COMPLETED', 'FAILED', 'INTERRUPTED', 'CANCELLED']
-  const getLatestAssistantMessage = (messages: any[]) =>
+  const getLatestAssistantMessage = (
+    messages: any[],
+    options: {
+      includeHidden?: boolean
+    } = {}
+  ) =>
     [...messages]
       .reverse()
-      .find((message) => message?.role === 'assistant' && !message?.metadata?.syntheticTyping)
+      .find(
+        (message) =>
+          message?.role === 'assistant' &&
+          !message?.metadata?.syntheticTyping &&
+          (options.includeHidden !== false || !shouldHideAssistantBubble(message))
+      )
   const hasActiveTurn = (messages: any[]) =>
-    activeTurnStatuses.includes(getLatestAssistantMessage(messages)?.metadata?.turnStatus)
+    activeTurnStatuses.includes(
+      getLatestAssistantMessage(messages, { includeHidden: true })?.metadata?.turnStatus
+    )
   const getQueuedOutgoingMessages = (roomId: string) =>
     roomId ? queuedOutgoingByRoom.value[roomId] || [] : []
   const queuedOutgoingMessages = computed(() => getQueuedOutgoingMessages(currentRoomId.value))
   const queuedMessageCount = computed(() => queuedOutgoingMessages.value.length)
+  const serializeRoomState = (state: ChatRoomStateSnapshot | null | undefined) =>
+    JSON.stringify(state || null)
+  const setRoomStateSignature = (roomId: string, signature: string) => {
+    roomStateSignaturesByRoom.value = {
+      ...roomStateSignaturesByRoom.value,
+      [roomId]: signature
+    }
+  }
+  const getRoomStateSignature = (roomId: string) =>
+    roomId ? roomStateSignaturesByRoom.value[roomId] || '' : ''
+  const buildRoomStateFromMessages = (messages: any[]): ChatRoomStateSnapshot => {
+    const latestUpdatedMessage = [...messages].sort(
+      (left, right) =>
+        new Date(
+          right?.updatedAt || right?.metadata?.updatedAt || right?.createdAt || 0
+        ).getTime() -
+        new Date(left?.updatedAt || left?.metadata?.updatedAt || left?.createdAt || 0).getTime()
+    )[0]
+    const activeAssistantTurn = [...messages]
+      .reverse()
+      .find((message) => activeTurnStatuses.includes(String(message?.metadata?.turnStatus || '')))
+
+    return {
+      latestMessageId: latestUpdatedMessage?.id || null,
+      latestMessageCreatedAt: latestUpdatedMessage?.createdAt
+        ? new Date(latestUpdatedMessage.createdAt).toISOString()
+        : null,
+      latestMessageUpdatedAt:
+        latestUpdatedMessage?.updatedAt || latestUpdatedMessage?.metadata?.updatedAt || null,
+      latestMessageSenderId: latestUpdatedMessage?.metadata?.senderId || null,
+      activeTurnId: activeAssistantTurn?.metadata?.turnId || null,
+      activeTurnStatus: activeAssistantTurn?.metadata?.turnStatus || null,
+      activeTurnUpdatedAt: activeAssistantTurn?.metadata?.updatedAt || null,
+      hasAssistantMessage: messages.some((message) => message?.role === 'assistant')
+    }
+  }
   const buildMessageParts = (text: string, attachments: QueuedAttachment[]) => {
     const parts: Array<Record<string, any>> = []
 
@@ -321,7 +382,7 @@
         new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime()
     )
     const hasVisibleActiveAssistant = activeTurnStatuses.includes(
-      getLatestAssistantMessage(combinedMessages)?.metadata?.turnStatus
+      getLatestAssistantMessage(combinedMessages, { includeHidden: false })?.metadata?.turnStatus
     )
     const needsTypingPlaceholder =
       awaitingTurnStart.value ||
@@ -824,6 +885,24 @@
           upsertChatMessage(data.message)
           return
         }
+        if (
+          data.type === 'chat_turn_status' &&
+          data.roomId === currentRoomId.value &&
+          data.turnId &&
+          data.reason === 'slow_response'
+        ) {
+          lastChatRealtimeEventAt.value = Date.now()
+          if (!slowTurnNoticeIds.has(data.turnId)) {
+            slowTurnNoticeIds.add(data.turnId)
+            toast.add({
+              title: 'Response delayed',
+              description:
+                'This turn is taking longer than usual. You can keep waiting or retry if it fails.',
+              color: 'warning'
+            })
+          }
+          return
+        }
       } catch (error) {
         console.error('[Chat] WebSocket message handling failed:', error)
       }
@@ -862,6 +941,10 @@
     }
   }
 
+  async function fetchRoomState(roomId: string) {
+    return (await ($fetch as any)(`/api/chat/rooms/${roomId}/state`)) as ChatRoomStateSnapshot
+  }
+
   function restartTurnPolling(options?: { forceForMs?: number }) {
     if (options?.forceForMs && options.forceForMs > 0) {
       turnPollingGraceUntil = Date.now() + options.forceForMs
@@ -888,12 +971,29 @@
         return
       }
 
-      await loadMessages(currentRoomId.value, { silent: true })
-
-      const nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
-      const nextHasAssistantMessage = (chat.messages as any[]).some(
+      let nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
+      let nextHasAssistantMessage = (chat.messages as any[]).some(
         (message) => message?.role === 'assistant'
       )
+
+      try {
+        const roomState = await fetchRoomState(currentRoomId.value)
+        const nextSignature = serializeRoomState(roomState)
+
+        nextHasActiveTurn = activeTurnStatuses.includes(String(roomState.activeTurnStatus || ''))
+        nextHasAssistantMessage = roomState.hasAssistantMessage
+
+        if (nextSignature !== getRoomStateSignature(currentRoomId.value)) {
+          setRoomStateSignature(currentRoomId.value, nextSignature)
+          await loadMessages(currentRoomId.value, { silent: true })
+          nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
+          nextHasAssistantMessage = (chat.messages as any[]).some(
+            (message) => message?.role === 'assistant'
+          )
+        }
+      } catch (error) {
+        console.error('Failed to poll room state:', error)
+      }
 
       if (!nextHasActiveTurn && (nextHasAssistantMessage || Date.now() >= turnPollingGraceUntil)) {
         stopTurnPolling()
@@ -934,6 +1034,7 @@
         content: msg.content,
         parts: msg.parts || [{ type: 'text', text: msg.content }],
         createdAt: new Date(msg.createdAt || msg.metadata?.createdAt || Date.now()),
+        updatedAt: msg.updatedAt || msg.metadata?.updatedAt || null,
         metadata: msg.metadata
       }))
 
@@ -942,6 +1043,10 @@
       if (!areMessageListsEquivalent(chat.messages as any[], transformedMessages)) {
         chat.messages = transformedMessages as any
       }
+      setRoomStateSignature(
+        roomId,
+        serializeRoomState(buildRoomStateFromMessages(transformedMessages))
+      )
       if (
         transformedMessages.some(
           (message: any) =>

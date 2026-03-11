@@ -2,6 +2,10 @@
   import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import ChatMessageContent from '~/components/chat/ChatMessageContent.vue'
   import ChatWelcomeTips from '~/components/chat/ChatWelcomeTips.vue'
+  import {
+    shouldHideAssistantBubble,
+    shouldShowAssistantStatusRow
+  } from '~/utils/chat-message-state'
 
   const props = defineProps<{
     messages: any[]
@@ -254,9 +258,7 @@
         return 'neutral'
     }
   }
-  const canShowTurnStatus = (message: any) =>
-    message?.role === 'assistant' &&
-    ['INTERRUPTED', 'FAILED'].includes(message?.metadata?.turnStatus)
+  const canShowTurnStatus = (message: any) => shouldShowAssistantStatusRow(message)
   const isQueuedUserMessage = (message: any) =>
     message?.role === 'user' && message?.metadata?.localQueueState === 'QUEUED'
   const resumeTurn = (turnId?: string) => {
@@ -708,7 +710,7 @@
               </div>
             </div>
             <div
-              v-else
+              v-else-if="!shouldHideAssistantBubble(message)"
               :class="
                 message.role === 'user'
                   ? isQueuedUserMessage(message)
@@ -747,7 +749,7 @@
                 @click="resumeTurn(message.metadata?.turnId)"
               />
               <UButton
-                v-if="message.metadata?.turnStatus === 'INTERRUPTED'"
+                v-if="['INTERRUPTED', 'FAILED'].includes(message.metadata?.turnStatus)"
                 size="xs"
                 color="neutral"
                 variant="ghost"
