@@ -33,4 +33,34 @@ describe('server chat message state helpers', () => {
       })
     ).toBe(false)
   })
+
+  it('excludes blank failed assistant drafts even without the explicit render hint', () => {
+    expect(
+      shouldExcludeAssistantMessageFromHistory({
+        senderId: 'ai_agent',
+        content: '   ',
+        metadata: {
+          turnStatus: 'FAILED'
+        },
+        turn: {
+          status: 'FAILED'
+        }
+      })
+    ).toBe(true)
+  })
+
+  it('keeps non-terminal assistant drafts in history', () => {
+    expect(
+      shouldExcludeAssistantMessageFromHistory({
+        senderId: 'ai_agent',
+        content: ' ',
+        metadata: {
+          turnStatus: 'RUNNING'
+        },
+        turn: {
+          status: 'RUNNING'
+        }
+      })
+    ).toBe(false)
+  })
 })
