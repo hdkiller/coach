@@ -101,7 +101,10 @@ export function expandStoredChatMessage(message: any) {
         turnStatus: message.turn.status,
         turnFailureReason: message.turn.failureReason,
         turnStartedAt: message.turn.startedAt,
-        turnFinishedAt: message.turn.finishedAt
+        turnFinishedAt: message.turn.finishedAt,
+        ...(message.turn.metadata?.skillSelection
+          ? { skillSelection: message.turn.metadata.skillSelection }
+          : {})
       }
     : {}
   const metadata = {

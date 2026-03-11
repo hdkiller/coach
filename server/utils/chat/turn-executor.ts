@@ -21,6 +21,12 @@ import { sendToUser } from '../ws-state'
 import { transformHistoryToCoreMessages } from '../ai-history'
 import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
 import { findToolNameRepair } from './tool-call-repair'
+import {
+  classifyChatSkills,
+  composeSkillInstructions,
+  selectToolsForSkills,
+  type ChatSkillSelection
+} from './skills'
 
 const CHAT_TURN_HEARTBEAT_INTERVAL_MS = Number(
   process.env.CHAT_TURN_HEARTBEAT_INTERVAL_MS || 15_000
@@ -118,6 +124,31 @@ export function normalizeMessagesForSdk(inputMessages: any[]) {
   })
 }
 
+export function buildTurnExecutionSkillConfig(input: {
+  allTools: Record<string, any>
+  baseSystemInstruction: string
+  skillSelection: ChatSkillSelection
+  aiRequireToolApproval?: boolean
+  nutritionTrackingEnabled?: boolean
+}) {
+  const tools = selectToolsForSkills(input.allTools, input.skillSelection.skillIds, {
+    useTools: input.skillSelection.useTools
+  })
+
+  return {
+    tools,
+    selectedToolNames: Object.keys(tools),
+    systemInstruction: composeSkillInstructions(
+      input.baseSystemInstruction,
+      input.skillSelection.skillIds,
+      {
+        aiRequireToolApproval: input.aiRequireToolApproval,
+        nutritionTrackingEnabled: input.nutritionTrackingEnabled
+      }
+    )
+  }
+}
+
 function stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages: any[]) {
   const canonicalToolCallIds = new Set<string>()
 
@@ -155,6 +186,61 @@ function stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages: any[]
       })
     }
   })
+}
+
+export function findApprovedToolContinuation(messages: any[]) {
+  const latestMessage = messages[messages.length - 1]
+  if (latestMessage?.role !== 'tool') {
+    return null
+  }
+
+  const latestParts = Array.isArray(latestMessage?.parts)
+    ? latestMessage.parts
+    : Array.isArray(latestMessage?.content)
+      ? latestMessage.content
+      : []
+
+  const approvalPart = latestParts.find(
+    (part: any) => part?.type === 'tool-approval-response' && part?.approved
+  )
+
+  if (!approvalPart) {
+    return null
+  }
+
+  const approvalId = approvalPart.toolCallId || approvalPart.approvalId
+  if (!approvalId) {
+    return null
+  }
+
+  for (let index = messages.length - 2; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message?.role !== 'assistant') continue
+
+    const parts = Array.isArray(message?.parts)
+      ? message.parts
+      : Array.isArray(message?.content)
+        ? message.content
+        : []
+
+    const matchingPart = parts.find((part: any) => {
+      if (!part?.type?.startsWith('tool-')) return false
+      const partApprovalId = part?.approval?.id || part?.approvalId || part?.toolCallId
+      return partApprovalId === approvalId
+    })
+
+    if (!matchingPart) continue
+
+    return {
+      toolCallId: approvalId,
+      toolName:
+        matchingPart.toolName ||
+        (typeof matchingPart.type === 'string' ? matchingPart.type.replace('tool-', '') : null),
+      args: matchingPart.input || matchingPart.args || {}
+    }
+  }
+
+  return null
 }
 
 export async function executeChatTurn(turnId: string) {
@@ -266,7 +352,9 @@ export async function executeChatTurn(turnId: string) {
     existingMessageId: turn.assistantMessageId
   })
 
-  const { systemInstruction: baseSystemInstruction } = await buildAthleteContext(turn.userId)
+  const { systemInstruction: baseSystemInstruction } = await buildAthleteContext(turn.userId, {
+    includeDomainToolInstructions: false
+  })
   ensureTurnNotAborted()
   const timezone = await getUserTimezone(turn.userId)
   ensureTurnNotAborted()
@@ -284,20 +372,51 @@ export async function executeChatTurn(turnId: string) {
   const opSettings = await getLlmOperationSettings(turn.userId, 'chat')
   ensureTurnNotAborted()
   const modelName = opSettings.modelId
-  const tools = getToolsWithContext(turn.userId, timezone, aiSettings, turn.roomId, {
+  const allTools = getToolsWithContext(turn.userId, timezone, aiSettings, turn.roomId, {
     turnId: turn.id,
     lineageId: turn.lineageId,
     roomId: turn.roomId,
     userId: turn.userId
   })
-  const availableToolNames = Object.keys(tools)
-
-  const historyMessages = stripAssistantToolOutputsWhenCanonicalToolMessagesExist(
-    normalizeMessagesForSdk(submittedMessages)
-  )
-  const coreMessages = await transformHistoryToCoreMessages(historyMessages)
+  const skillSelection = await classifyChatSkills({
+    userId: turn.userId,
+    turnId: turn.id,
+    messages: submittedMessages,
+    roomMetadata,
+    requireToolApproval: !!aiSettings?.aiRequireToolApproval,
+    nutritionTrackingEnabled: aiSettings?.nutritionTrackingEnabled !== false
+  })
   ensureTurnNotAborted()
-  const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
+  const { tools, selectedToolNames, systemInstruction } = buildTurnExecutionSkillConfig({
+    allTools,
+    baseSystemInstruction: finalSystemInstruction,
+    skillSelection,
+    aiRequireToolApproval: !!aiSettings?.aiRequireToolApproval,
+    nutritionTrackingEnabled: aiSettings?.nutritionTrackingEnabled !== false
+  })
+  finalSystemInstruction = systemInstruction
+  const availableToolNames = selectedToolNames
+
+  const skillSelectionMetadata = {
+    skillIds: skillSelection.skillIds,
+    confidence: skillSelection.confidence,
+    useTools: skillSelection.useTools,
+    usedFallback: !!skillSelection.usedFallback,
+    source: skillSelection.source || 'router',
+    reason: skillSelection.reason || null,
+    selectedToolNames
+  }
+
+  await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.RUNNING, {
+    metadata: chatTurnService.mergeTurnMetadata(turn, {
+      timeoutReason: null,
+      slowResponse: false,
+      firstOutputLatencyMs: null,
+      executionDurationMs: null,
+      executionPhase: currentPhase,
+      skillSelection: skillSelectionMetadata
+    })
+  })
 
   const historyToolCalls = new Map<string, any>()
   const currentTurnToolCalls = new Map<string, any>()
@@ -324,12 +443,76 @@ export async function executeChatTurn(turnId: string) {
     })
   }
 
+  let historyMessages = stripAssistantToolOutputsWhenCanonicalToolMessagesExist(
+    normalizeMessagesForSdk(submittedMessages)
+  )
+
+  const approvedContinuation = findApprovedToolContinuation(historyMessages)
+  if (
+    approvedContinuation?.toolName &&
+    typeof tools[approvedContinuation.toolName]?.execute === 'function'
+  ) {
+    historyToolCalls.set(approvedContinuation.toolCallId, {
+      toolCallId: approvedContinuation.toolCallId,
+      toolName: approvedContinuation.toolName,
+      args: approvedContinuation.args
+    })
+    currentTurnToolCalls.set(approvedContinuation.toolCallId, {
+      toolCallId: approvedContinuation.toolCallId,
+      toolName: approvedContinuation.toolName,
+      args: approvedContinuation.args
+    })
+
+    const directResult = await tools[approvedContinuation.toolName].execute(
+      approvedContinuation.args,
+      {
+        toolCallId: approvedContinuation.toolCallId,
+        experimental_context: {
+          turnId: turn.id,
+          lineageId: turn.lineageId,
+          roomId: turn.roomId,
+          userId: turn.userId
+        }
+      }
+    )
+
+    const directDetailedResult = {
+      toolCallId: approvedContinuation.toolCallId,
+      toolName: approvedContinuation.toolName,
+      args: approvedContinuation.args,
+      result: directResult
+    }
+
+    allToolResults.push(directDetailedResult)
+    await persistToolResultMessages(allToolResults)
+
+    historyMessages = [
+      ...historyMessages,
+      {
+        role: 'tool',
+        parts: [
+          {
+            type: 'tool-result',
+            toolCallId: approvedContinuation.toolCallId,
+            toolName: approvedContinuation.toolName,
+            result: directResult
+          }
+        ]
+      }
+    ]
+  }
+
+  const coreMessages = await transformHistoryToCoreMessages(historyMessages)
+  ensureTurnNotAborted()
+  const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
+
   const broadcastAssistantMessage = async (
     message: { id: string; content: string; createdAt: Date; metadata?: any },
     status: string,
     extra: {
       failureReason?: string | null
       finishedAt?: Date | null
+      skillSelection?: Record<string, any> | null
     } = {}
   ) => {
     await sendToUser(turn.userId, {
@@ -343,7 +526,8 @@ export async function executeChatTurn(turnId: string) {
           status,
           failureReason: extra.failureReason ?? null,
           startedAt,
-          finishedAt: extra.finishedAt ?? null
+          finishedAt: extra.finishedAt ?? null,
+          metadata: extra.skillSelection ? { skillSelection: extra.skillSelection } : undefined
         }
       })
     })
@@ -693,7 +877,8 @@ export async function executeChatTurn(turnId: string) {
             firstOutputLatencyMs,
             executionDurationMs,
             executionPhase: currentPhase,
-            finishedAt: finishedAt.toISOString()
+            finishedAt: finishedAt.toISOString(),
+            skillSelection: skillSelectionMetadata
           })
         })
         await broadcastAssistantMessage(
@@ -707,7 +892,7 @@ export async function executeChatTurn(turnId: string) {
             }
           },
           CHAT_TURN_STATUS.COMPLETED,
-          { finishedAt }
+          { finishedAt, skillSelection: skillSelectionMetadata }
         )
 
         await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_COMPLETED, {
@@ -770,7 +955,8 @@ export async function executeChatTurn(turnId: string) {
                 ? 'LLM response finished with empty text and no tool activity.'
                 : null,
               promptPreview: (content || '').substring(0, 500),
-              responsePreview: assistantText.substring(0, 500)
+              responsePreview: assistantText.substring(0, 500),
+              promptFull: JSON.stringify(skillSelectionMetadata).substring(0, 2000)
             }
           })
         } catch (error) {
@@ -853,7 +1039,8 @@ export async function executeChatTurn(turnId: string) {
         firstOutputLatencyMs,
         executionDurationMs,
         executionPhase: currentPhase,
-        finishedAt: finishedAt.toISOString()
+        finishedAt: finishedAt.toISOString(),
+        skillSelection: skillSelectionMetadata
       })
     })
     await broadcastAssistantMessage(
@@ -869,7 +1056,7 @@ export async function executeChatTurn(turnId: string) {
         }
       },
       terminalStatus,
-      { failureReason: reason, finishedAt }
+      { failureReason: reason, finishedAt, skillSelection: skillSelectionMetadata }
     ).catch(() => null)
     await chatTurnService.recordEvent(
       turn.id,

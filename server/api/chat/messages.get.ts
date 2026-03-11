@@ -93,6 +93,7 @@ export default defineEventHandler(async (event) => {
       turn: {
         select: {
           id: true,
+          metadata: true,
           status: true,
           failureReason: true,
           startedAt: true,
