@@ -60,6 +60,8 @@
   let chatWsPingTimer: ReturnType<typeof setInterval> | null = null
   const slowTurnNoticeIds = new Set<string>()
   const queueReconcileTimersByRoom: Record<string, ReturnType<typeof setTimeout> | undefined> = {}
+  const terminalSyncTimersByRoom: Record<string, ReturnType<typeof setTimeout> | undefined> = {}
+  const approvalSyncTimersByRoom: Record<string, ReturnType<typeof setInterval> | undefined> = {}
   const loadMessagesInFlight: Record<string, boolean> = {}
   const loadMessagesPending: Record<string, boolean> = {}
   const isRealtimeConnected = ref(false)
@@ -310,6 +312,69 @@
     if (!timer) return
     clearTimeout(timer)
     queueReconcileTimersByRoom[roomId] = undefined
+  }
+  const clearTerminalSyncTimer = (roomId: string) => {
+    const timer = terminalSyncTimersByRoom[roomId]
+    if (!timer) return
+    clearTimeout(timer)
+    terminalSyncTimersByRoom[roomId] = undefined
+  }
+  const clearApprovalSyncTimer = (roomId: string) => {
+    const timer = approvalSyncTimersByRoom[roomId]
+    if (!timer) return
+    clearInterval(timer)
+    approvalSyncTimersByRoom[roomId] = undefined
+  }
+  const getLatestAssistantTurnTimestamp = () => {
+    const latestAssistant = [...((chat.messages as any[]) || [])]
+      .reverse()
+      .find((message) => message?.role === 'assistant' && !message?.metadata?.syntheticTyping)
+
+    const rawTimestamp =
+      latestAssistant?.updatedAt ||
+      latestAssistant?.metadata?.updatedAt ||
+      latestAssistant?.createdAt ||
+      null
+
+    const timestampMs = rawTimestamp ? new Date(rawTimestamp).getTime() : 0
+    return Number.isFinite(timestampMs) ? timestampMs : 0
+  }
+  const startApprovalSync = (roomId: string, approvalSubmittedAtMs: number) => {
+    if (!roomId || roomId !== currentRoomId.value) return
+
+    clearApprovalSyncTimer(roomId)
+
+    const startedAtMs = Date.now()
+    approvalSyncTimersByRoom[roomId] = setInterval(async () => {
+      if (!currentRoomId.value || roomId !== currentRoomId.value) {
+        clearApprovalSyncTimer(roomId)
+        return
+      }
+
+      await loadMessages(roomId, { silent: true })
+
+      const latestAssistantTimestampMs = getLatestAssistantTurnTimestamp()
+      const hasFreshAssistantMessage = latestAssistantTimestampMs > approvalSubmittedAtMs
+      const turnStillActive =
+        awaitingTurnStart.value || hasActiveTurn((chat.messages as any[]) || [])
+
+      if (hasFreshAssistantMessage && !turnStillActive) {
+        clearApprovalSyncTimer(roomId)
+        return
+      }
+
+      if (Date.now() - startedAtMs >= 15000) {
+        clearApprovalSyncTimer(roomId)
+      }
+    }, 1200)
+  }
+  const scheduleTerminalMessageSync = (roomId?: string, delayMs = 150) => {
+    if (!roomId || roomId !== currentRoomId.value) return
+    clearTerminalSyncTimer(roomId)
+    terminalSyncTimersByRoom[roomId] = setTimeout(() => {
+      terminalSyncTimersByRoom[roomId] = undefined
+      void loadMessages(roomId, { silent: true })
+    }, delayMs)
   }
   const scheduleQueueReconcile = (roomId: string, delayMs = 12000) => {
     if (!roomId) return
@@ -617,6 +682,7 @@
         transformedMessage?.role === 'assistant' &&
         terminalTurnStatuses.includes(transformedMessage?.metadata?.turnStatus)
       ) {
+        scheduleTerminalMessageSync(currentRoomId.value)
         clearQueueReconcileTimer(currentRoomId.value)
         void processQueuedMessagesForRoom(currentRoomId.value)
       }
@@ -633,6 +699,7 @@
       transformedMessage?.role === 'assistant' &&
       terminalTurnStatuses.includes(transformedMessage?.metadata?.turnStatus)
     ) {
+      scheduleTerminalMessageSync(currentRoomId.value)
       clearQueueReconcileTimer(currentRoomId.value)
       void processQueuedMessagesForRoom(currentRoomId.value)
     }
@@ -736,6 +803,9 @@
     await (chat as any).sendMessage()
     awaitingTurnStart.value = true
     restartTurnPolling({ forceForMs: 15000 })
+    if (currentRoomId.value) {
+      startApprovalSync(currentRoomId.value, approvalToolMsg.createdAt.getTime())
+    }
   }
 
   const getMessageText = (message: any) => {
@@ -861,6 +931,7 @@
     stopTurnPolling()
     cleanupChatWebSocket()
     Object.keys(queueReconcileTimersByRoom).forEach((roomId) => clearQueueReconcileTimer(roomId))
+    Object.keys(approvalSyncTimersByRoom).forEach((roomId) => clearApprovalSyncTimer(roomId))
   })
 
   function cleanupChatWebSocket() {
@@ -1007,11 +1078,8 @@
     const hasAssistantMessage = (chat.messages as any[]).some(
       (message) => message?.role === 'assistant'
     )
-    const hasRecentRealtimeChatEvent =
-      isRealtimeConnected.value && Date.now() - lastChatRealtimeEventAt.value < 3000
     if (
       !currentRoomId.value ||
-      (activeTurn && hasRecentRealtimeChatEvent) ||
       (!activeTurn &&
         !awaitingTurnStart.value &&
         (hasAssistantMessage || Date.now() >= turnPollingGraceUntil))
@@ -1025,10 +1093,12 @@
         return
       }
 
-      let nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
+      const hadActiveTurnAtPollStart = hasActiveTurn(chat.messages as any[])
+      let nextHasActiveTurn = hadActiveTurnAtPollStart
       let nextHasAssistantMessage = (chat.messages as any[]).some(
         (message) => message?.role === 'assistant'
       )
+      let didReloadMessages = false
 
       try {
         const roomState = await fetchRoomState(currentRoomId.value)
@@ -1040,6 +1110,16 @@
         if (nextSignature !== getRoomStateSignature(currentRoomId.value)) {
           setRoomStateSignature(currentRoomId.value, nextSignature)
           await loadMessages(currentRoomId.value, { silent: true })
+          didReloadMessages = true
+          nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
+          nextHasAssistantMessage = (chat.messages as any[]).some(
+            (message) => message?.role === 'assistant'
+          )
+        } else if (hadActiveTurnAtPollStart && !nextHasActiveTurn) {
+          // Force one final sync when a streamed turn settles. This catches cases where
+          // the final assistant upsert or approval parts were missed by realtime delivery.
+          await loadMessages(currentRoomId.value, { silent: true })
+          didReloadMessages = true
           nextHasActiveTurn = hasActiveTurn(chat.messages as any[])
           nextHasAssistantMessage = (chat.messages as any[]).some(
             (message) => message?.role === 'assistant'
@@ -1055,6 +1135,9 @@
         (nextHasAssistantMessage || Date.now() >= turnPollingGraceUntil)
       ) {
         stopTurnPolling()
+        if (didReloadMessages) {
+          clearQueueReconcileTimer(currentRoomId.value)
+        }
       }
     }, 1500)
   }
@@ -1205,6 +1288,9 @@
   }
 
   async function selectRoom(roomId: string) {
+    if (currentRoomId.value && currentRoomId.value !== roomId) {
+      clearApprovalSyncTimer(currentRoomId.value)
+    }
     currentRoomId.value = roomId
     awaitingTurnStart.value = false
     await loadMessages(roomId)

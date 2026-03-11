@@ -200,6 +200,12 @@
     typeof props.status === 'string' ? props.status : String(props.status || '')
   )
   const showTypingIndicator = computed(() => normalizedStatus.value === 'streaming')
+  const getToolArtifactSignature = (entries: any[]) =>
+    (Array.isArray(entries) ? entries : []).map((entry: any) => ({
+      id: entry?.id || entry?.toolCallId || null,
+      name: entry?.name || entry?.toolName || null,
+      state: entry?.state || null
+    }))
   const scrollSignature = computed(() =>
     JSON.stringify({
       status: normalizedStatus.value,
@@ -217,8 +223,8 @@
             }))
           : [],
         turnStatus: message?.metadata?.turnStatus,
-        toolCalls: message?.metadata?.toolCalls || [],
-        toolResults: message?.metadata?.toolResults || []
+        toolCalls: getToolArtifactSignature(message?.metadata?.toolCalls),
+        toolResults: getToolArtifactSignature(message?.metadata?.toolResults)
       }))
     })
   )
@@ -256,6 +262,75 @@
         return 'success'
       default:
         return 'neutral'
+    }
+  }
+  const skillIndicators = {
+    support: {
+      label: 'Support',
+      icon: 'i-heroicons-lifebuoy',
+      tooltip: 'This reply used support tools.'
+    },
+    planning_read: {
+      label: 'Planning',
+      icon: 'i-heroicons-calendar-days',
+      tooltip: 'This reply used planning tools.'
+    },
+    planning_write: {
+      label: 'Planning',
+      icon: 'i-heroicons-calendar-days',
+      tooltip: 'This reply prepared or changed training plan data.'
+    },
+    workout_read: {
+      label: 'Workouts',
+      icon: 'i-heroicons-bolt',
+      tooltip: 'This reply used workout tools.'
+    },
+    workout_update: {
+      label: 'Workout Edit',
+      icon: 'i-heroicons-pencil-square',
+      tooltip: 'This reply used workout update tools.'
+    },
+    nutrition: {
+      label: 'Nutrition',
+      icon: 'i-heroicons-beaker',
+      tooltip: 'This reply used nutrition tools.'
+    }
+  } as const
+  const getSkillIndicator = (message: any) => {
+    if (message?.role !== 'assistant') return null
+
+    const selection = message?.metadata?.skillSelection
+    if (!selection?.useTools) return null
+
+    const skillIds = Array.isArray(selection?.skillIds)
+      ? selection.skillIds.filter((skillId: string) => skillId !== 'general_chat')
+      : []
+
+    if (!skillIds.length) return null
+
+    const primarySkillId = skillIds[0]
+    const indicator = skillIndicators[primarySkillId as keyof typeof skillIndicators] || {
+      label: 'Tools',
+      icon: 'i-heroicons-wrench-screwdriver',
+      tooltip: 'This reply used chat tools.'
+    }
+
+    const selectedToolNames = Array.isArray(selection?.selectedToolNames)
+      ? selection.selectedToolNames.filter(Boolean)
+      : []
+    const sourceLabel =
+      selection?.source === 'continuation'
+        ? ' Continued after approval.'
+        : selection?.source === 'router'
+          ? ' Routed automatically.'
+          : ''
+
+    return {
+      ...indicator,
+      tooltip:
+        indicator.tooltip +
+        sourceLabel +
+        (selectedToolNames.length ? ` Tools: ${selectedToolNames.join(', ')}.` : '')
     }
   }
   const canShowTurnStatus = (message: any) => shouldShowAssistantStatusRow(message)
@@ -719,6 +794,25 @@
                   : ''
               "
             >
+              <div
+                v-if="message.role === 'assistant' && getSkillIndicator(message)"
+                class="mb-2 flex items-center"
+              >
+                <UTooltip
+                  :text="getSkillIndicator(message)?.tooltip"
+                  :popper="{ placement: 'top' }"
+                >
+                  <UBadge
+                    color="neutral"
+                    variant="soft"
+                    size="xs"
+                    :icon="getSkillIndicator(message)?.icon"
+                    class="rounded-full"
+                  >
+                    {{ getSkillIndicator(message)?.label }}
+                  </UBadge>
+                </UTooltip>
+              </div>
               <ChatMessageContent
                 :message="message"
                 :all-messages="messages"

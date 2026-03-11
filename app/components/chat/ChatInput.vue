@@ -53,6 +53,8 @@
   const webcamMode = ref<'photo' | 'video'>('photo')
   const isRecordingWebcamVideo = ref(false)
   const webcamRecordingElapsedMs = ref(0)
+  const isLikelyMobileClient = ref(false)
+  const hasHydratedClientCapabilities = ref(false)
   const toast = useToast()
   let attachedTextarea: HTMLTextAreaElement | null = null
   let mediaRecorder: MediaRecorder | null = null
@@ -74,12 +76,15 @@
     () => !hasTextContent.value && attachments.value.length > 0
   )
   const showInlineMic = computed(() => !hasTextContent.value && attachments.value.length === 0)
+  const isMobileUi = computed(() =>
+    hasHydratedClientCapabilities.value ? isLikelyMobileClient.value : false
+  )
   const placeholderText = computed(() =>
-    isLikelyMobile() ? t.value('input_placeholder_mobile') : t.value('input_placeholder_desktop')
+    isMobileUi.value ? t.value('input_placeholder_mobile') : t.value('input_placeholder_desktop')
   )
   const canUseDesktopWebcam = computed(() => {
-    if (!import.meta.client) return false
-    return !isLikelyMobile() && !!navigator.mediaDevices?.getUserMedia
+    if (!hasHydratedClientCapabilities.value) return false
+    return !isLikelyMobileClient.value && !!navigator.mediaDevices?.getUserMedia
   })
   const queueLabel = computed(() => {
     if (!props.queuedCount) return ''
@@ -693,6 +698,8 @@
   }
 
   onMounted(() => {
+    isLikelyMobileClient.value = isLikelyMobile()
+    hasHydratedClientCapabilities.value = true
     nextTick(() => {
       attachTextareaListener()
     })

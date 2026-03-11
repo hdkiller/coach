@@ -7,7 +7,7 @@
       toolName: string
       args: any
     }
-    result?: string | null
+    result?: unknown
   }
 
   const props = defineProps<Props>()
@@ -23,6 +23,25 @@
     'ticket_comment'
   ])
   const isSupportTicketTool = computed(() => supportToolNames.has(props.toolCall.toolName))
+  const resultText = computed(() => {
+    if (typeof props.result === 'string') return props.result
+    if (props.result == null) return ''
+    if (typeof props.result === 'object') {
+      try {
+        return JSON.stringify(props.result)
+      } catch {
+        return String(props.result)
+      }
+    }
+    return String(props.result)
+  })
+  const resultLabel = computed(() => resultText.value.toLowerCase())
+  const isApprovedResult = computed(
+    () =>
+      resultLabel.value.includes('confirmed') ||
+      resultLabel.value.includes('approved') ||
+      resultLabel.value === 'approved'
+  )
 
   // Format tool name for display
   const formatToolName = (name: string) => {
@@ -39,7 +58,7 @@
 
   // Reset submitting if the parent provides a result (approval was processed)
   watch(
-    () => props.result,
+    () => resultText.value,
     (val) => {
       if (val) submitting.value = false
     }
@@ -122,24 +141,14 @@
         </div>
 
         <!-- Result State -->
-        <div v-if="result" class="flex items-center gap-2">
+        <div v-if="resultText" class="flex items-center gap-2">
           <UIcon
-            :name="
-              result.toLowerCase().includes('confirmed') ||
-              result.toLowerCase().includes('approved')
-                ? 'i-heroicons-check-circle'
-                : 'i-heroicons-minus-circle'
-            "
-            :class="
-              result.toLowerCase().includes('confirmed') ||
-              result.toLowerCase().includes('approved')
-                ? 'text-green-500'
-                : 'text-amber-500'
-            "
+            :name="isApprovedResult ? 'i-heroicons-check-circle' : 'i-heroicons-minus-circle'"
+            :class="isApprovedResult ? 'text-green-500' : 'text-amber-500'"
             class="w-5 h-5"
           />
           <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
-            {{ result.toLowerCase().includes('confirmed') ? 'Approved' : result }}
+            {{ isApprovedResult ? 'Approved' : resultText }}
           </span>
         </div>
 
