@@ -69,7 +69,7 @@ describe('transformHistoryToCoreMessages', () => {
           type: 'tool-call',
           toolCallId: 'call_123',
           toolName: 'test_tool',
-          args: { foo: 'bar' }
+          input: { foo: 'bar' }
         })
       ])
     )
@@ -78,11 +78,12 @@ describe('transformHistoryToCoreMessages', () => {
     expect(toolMsg.role).toBe('tool')
     expect(toolMsg.content).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
+        {
           type: 'tool-result',
           toolCallId: 'call_123',
-          result: 'User confirmed action.'
-        })
+          toolName: 'unknown',
+          output: { type: 'text', value: 'User confirmed action.' }
+        }
       ])
     )
   })
@@ -228,8 +229,45 @@ describe('transformHistoryToCoreMessages', () => {
         type: 'tool-result',
         toolCallId: 'call_1',
         toolName: 'lookup',
-        result: { answer: 1 }
+        output: {
+          type: 'json',
+          value: { answer: 1 }
+        }
       }
     ])
+  })
+
+  it('emits normalized tool results for resolved tool invocations', async () => {
+    const history = [
+      {
+        id: '1',
+        role: 'assistant',
+        content: '',
+        parts: [
+          {
+            type: 'tool-invocation',
+            toolCallId: 'call_789',
+            toolName: 'lookup',
+            args: { q: 'foo' },
+            state: 'result',
+            result: { answer: 42 }
+          }
+        ]
+      }
+    ]
+
+    const result = await transformHistoryToCoreMessages(history)
+
+    expect(result[1]).toMatchObject({
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call_789',
+          toolName: 'lookup',
+          output: { type: 'json', value: { answer: 42 } }
+        }
+      ]
+    })
   })
 })

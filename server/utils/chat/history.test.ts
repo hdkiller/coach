@@ -124,4 +124,39 @@ describe('chat history helpers', () => {
 
     expect(expanded.parts).toEqual([])
   })
+
+  it('keeps interrupted assistant drafts visible when they have tool approval artifacts', () => {
+    const [expanded] = expandStoredChatMessages([
+      {
+        id: 'msg-approval',
+        senderId: 'ai_agent',
+        content: ' ',
+        createdAt: new Date('2026-03-10T20:14:54.000Z'),
+        updatedAt: new Date('2026-03-10T20:15:10.000Z'),
+        metadata: {
+          turnStatus: 'INTERRUPTED',
+          hiddenBecauseEmptyFailure: true,
+          toolApprovals: [
+            {
+              approvalId: 'approval-1',
+              toolCallId: 'call-1',
+              name: 'ticket_update',
+              args: { status: 'closed' }
+            }
+          ]
+        }
+      }
+    ])
+
+    expect(expanded.parts).toEqual([
+      expect.objectContaining({
+        type: 'tool-ticket_update',
+        toolCallId: 'call-1',
+        state: 'approval-requested',
+        input: { status: 'closed' },
+        approval: { id: 'approval-1' }
+      })
+    ])
+    expect(expanded.metadata.updatedAt).toEqual(new Date('2026-03-10T20:15:10.000Z'))
+  })
 })
