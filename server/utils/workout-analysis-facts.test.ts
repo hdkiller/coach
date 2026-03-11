@@ -220,10 +220,9 @@ describe('buildWorkoutAnalysisFacts', () => {
       plannedWorkout: {
         structuredWorkout: {
           steps: [
-            { type: 'Warmup', durationSeconds: 600, power: { value: 0.6, units: '%' } },
-            { type: 'Interval', durationSeconds: 600, power: { value: 1.0, units: '%' } },
-            { type: 'Rest', durationSeconds: 300, power: { value: 0.6, units: '%' } },
-            { type: 'Interval', durationSeconds: 600, power: { value: 1.0, units: '%' } }
+            { type: 'Interval', durationSeconds: 600, power: { value: 100, units: '%' } },
+            { type: 'Rest', durationSeconds: 300, power: { value: 60, units: '%' } },
+            { type: 'Interval', durationSeconds: 600, power: { value: 100, units: '%' } }
           ]
         },
         durationSec: 3600

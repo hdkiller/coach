@@ -1666,6 +1666,13 @@ function deriveAdherence(params: {
     let threshold = 10
 
     if (planned.metric === 'power') {
+      if (
+        planned.intensityFactor !== null &&
+        Number.isFinite(planned.intensityFactor) &&
+        refs.ftp > 0
+      ) {
+        target = planned.intensityFactor * refs.ftp
+      }
       actualValue = actual.avgPower
     } else if (planned.metric === 'pace') {
       actualValue = actual.avgSpeed
