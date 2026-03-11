@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildToolIdempotencyKey,
+  CHAT_TURN_TIMEOUT_REASON,
   CHAT_TURN_STATUS,
   hashToolArgs,
   isActiveChatTurnStatus,
@@ -35,5 +36,12 @@ describe('chat turn helpers', () => {
     expect(isMutatingChatTool('create_planned_workout')).toBe(true)
     expect(isMutatingChatTool('ticket_update')).toBe(true)
     expect(isMutatingChatTool('get_workout_details')).toBe(false)
+  })
+
+  it('exposes explicit timeout reasons for chat turn diagnostics', () => {
+    expect(CHAT_TURN_TIMEOUT_REASON.SLOW_RESPONSE).toBe('slow_response')
+    expect(CHAT_TURN_TIMEOUT_REASON.FIRST_OUTPUT_TIMEOUT).toBe('first_output_timeout')
+    expect(CHAT_TURN_TIMEOUT_REASON.EXECUTION_TIMEOUT).toBe('execution_timeout')
+    expect(CHAT_TURN_TIMEOUT_REASON.HEARTBEAT_TIMEOUT).toBe('heartbeat_timeout')
   })
 })

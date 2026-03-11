@@ -15,11 +15,15 @@ export const CHAT_TURN_STATUS = {
 export type ChatTurnStatus = (typeof CHAT_TURN_STATUS)[keyof typeof CHAT_TURN_STATUS]
 
 export const CHAT_TURN_EVENT_TYPE = {
+  TURN_STARTED: 'turn_started',
+  SLOW_RESPONSE: 'slow_response',
+  FIRST_OUTPUT_RECEIVED: 'first_output_received',
   ASSISTANT_TEXT_DELTA: 'assistant_text_delta',
   TOOL_CALL_STARTED: 'tool_call_started',
   TOOL_CALL_COMPLETED: 'tool_call_completed',
   TOOL_CALL_FAILED: 'tool_call_failed',
   TOOL_CALL_REPAIRED: 'tool_call_repaired',
+  TURN_FAILED: 'turn_failed',
   TURN_INTERRUPTED: 'turn_interrupted',
   TURN_COMPLETED: 'turn_completed'
 } as const
@@ -48,7 +52,19 @@ export const TERMINAL_CHAT_TURN_STATUSES: ChatTurnStatus[] = [
   CHAT_TURN_STATUS.CANCELLED
 ]
 
+export const CHAT_TURN_SLOW_RESPONSE_THRESHOLD_MS = 15 * 1000
+export const CHAT_TURN_EXECUTION_TIMEOUT_MS = 60 * 1000
 export const CHAT_TURN_HEARTBEAT_TIMEOUT_MS = 2 * 60 * 1000
+
+export const CHAT_TURN_TIMEOUT_REASON = {
+  SLOW_RESPONSE: 'slow_response',
+  FIRST_OUTPUT_TIMEOUT: 'first_output_timeout',
+  EXECUTION_TIMEOUT: 'execution_timeout',
+  HEARTBEAT_TIMEOUT: 'heartbeat_timeout'
+} as const
+
+export type ChatTurnTimeoutReason =
+  (typeof CHAT_TURN_TIMEOUT_REASON)[keyof typeof CHAT_TURN_TIMEOUT_REASON]
 
 export type ChatToolExecutionContext = {
   turnId: string
