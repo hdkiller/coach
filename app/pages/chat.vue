@@ -684,6 +684,8 @@
       })
       // Trigger the follow-up model step so approved tools actually execute.
       await (chat as any).sendMessage()
+      awaitingTurnStart.value = true
+      restartTurnPolling({ forceForMs: 15000 })
       return
     }
 
