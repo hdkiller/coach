@@ -80,6 +80,21 @@ const chatLogCommand = new Command('chat')
 
         const metadata = msg.metadata as any
         if (metadata) {
+          if (metadata.turnStatus || metadata.timeoutReason || metadata.hiddenBecauseEmptyFailure) {
+            console.log(
+              chalk.gray(
+                `  ↳ turn=${metadata.turnId || 'n/a'} status=${metadata.turnStatus || 'n/a'} timeout=${metadata.timeoutReason || 'n/a'} phase=${metadata.executionPhase || 'n/a'} hiddenEmptyFailure=${metadata.hiddenBecauseEmptyFailure ? 'yes' : 'no'}`
+              )
+            )
+            if (metadata.firstOutputLatencyMs || metadata.executionDurationMs) {
+              console.log(
+                chalk.gray(
+                  `     ttft=${metadata.firstOutputLatencyMs ?? 'n/a'}ms duration=${metadata.executionDurationMs ?? 'n/a'}ms`
+                )
+              )
+            }
+          }
+
           // Tool Calls
           if (metadata.toolCalls && Array.isArray(metadata.toolCalls)) {
             metadata.toolCalls.forEach((tc: any) => {

@@ -15,6 +15,7 @@ import backfillMaxWattsCommand from './max-watts'
 import backfillProfileCommand from './profile'
 import backfillOuraCommand from './wellness-oura'
 import backfillChatRoomsCommand from './chat-rooms'
+import backfillChatEmptyFailuresCommand from './chat-empty-failures'
 import backfillWorkoutSummaryNotesCommand from './workout-summary-notes'
 import backfillPowerSummaryFromStreamsCommand from './power-summary-from-streams'
 import backfillFitExtrasMetaCommand from './fit-extras-meta'
@@ -44,6 +45,7 @@ backfill
   .addCommand(backfillProfileCommand)
   .addCommand(backfillOuraCommand)
   .addCommand(backfillChatRoomsCommand)
+  .addCommand(backfillChatEmptyFailuresCommand)
   .addCommand(backfillWorkoutSummaryNotesCommand)
   .addCommand(backfillPowerSummaryFromStreamsCommand)
   .addCommand(backfillFitExtrasMetaCommand)
