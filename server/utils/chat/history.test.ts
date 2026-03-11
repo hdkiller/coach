@@ -107,4 +107,21 @@ describe('chat history helpers', () => {
 
     expect(result.map((message) => message.id)).toEqual(['u1', 'a1', 'u2'])
   })
+
+  it('does not inject interrupted fallback text for hidden empty failure drafts', () => {
+    const [expanded] = expandStoredChatMessages([
+      {
+        id: 'msg-hidden',
+        senderId: 'ai_agent',
+        content: ' ',
+        createdAt: new Date('2026-03-10T20:14:54.000Z'),
+        metadata: {
+          turnStatus: 'INTERRUPTED',
+          hiddenBecauseEmptyFailure: true
+        }
+      }
+    ])
+
+    expect(expanded.parts).toEqual([])
+  })
 })

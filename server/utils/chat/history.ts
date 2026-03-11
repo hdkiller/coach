@@ -144,15 +144,19 @@ export function expandStoredChatMessage(message: any) {
       parts: parts.length > 0 ? parts : undefined,
       content: message.content || '',
       createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
       metadata: {
         ...metadata,
         createdAt: message.createdAt,
+        updatedAt: message.updatedAt,
         senderId: message.senderId
       }
     }
   }
 
   const parts: any[] = []
+  const shouldHideEmptyFailure = !!metadata.hiddenBecauseEmptyFailure
+  const shouldHideUntilContent = !!metadata.hideUntilContent
 
   if (Array.isArray(metadata.toolApprovals)) {
     metadata.toolApprovals.forEach((approval: any) => {
@@ -180,11 +184,11 @@ export function expandStoredChatMessage(message: any) {
 
   if (message.content && message.content.trim()) {
     parts.push({ type: 'text', text: message.content })
-  } else if (metadata.turnStatus === 'INTERRUPTED') {
+  } else if (metadata.turnStatus === 'INTERRUPTED' && !shouldHideEmptyFailure) {
     parts.push({ type: 'text', text: 'Response interrupted before completion.' })
   }
 
-  if (parts.length === 0) {
+  if (parts.length === 0 && !shouldHideEmptyFailure && !shouldHideUntilContent) {
     parts.push({ type: 'text', text: ' ' })
   }
 
@@ -194,9 +198,11 @@ export function expandStoredChatMessage(message: any) {
     parts,
     content: message.content || ' ',
     createdAt: message.createdAt,
+    updatedAt: message.updatedAt,
     metadata: {
       ...metadata,
       createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
       senderId: message.senderId
     }
   }
