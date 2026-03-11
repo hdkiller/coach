@@ -758,10 +758,13 @@ export async function buildAthleteContext(userId: string): Promise<{
     - \`delete_nutrition_item\`
     - \`update_user_settings\`
     - \`update_sport_settings\`
+    - \`ticket_create\`
+    - \`report_bug\`
     
     When using ANY of these tools:
     - DO NOT say "I have [done the action]" (e.g. "I have added it to your calendar" or "I have deleted the meal").
     - INSTEAD, say: "I've prepared the [action]. Please click the **Approve** button below to confirm and save it."
+    - If the user approves a prepared tool action, IMMEDIATELY continue by executing that approved tool. Do not ask for approval again, and do not re-draft the same action unless the user changes the request.
     - If the user replies with text instead of approving, the tool call is cancelled. You must re-run the tool and ask them to approve it again.
     - **No-Apology Clause (User Guidance)**: If the user denies/cancels approval to refine input or provide more details, **DO NOT APOLOGIZE**. Treat it as the user simply guiding the process and improving the draft.
       - *Bad Response*: "I'm so sorry, I made a mistake with the draft. Let me fix that for you right away. My apologies!"

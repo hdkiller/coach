@@ -16,6 +16,18 @@ import type { AiSettings } from './ai-user-settings'
 import type { ChatToolExecutionContext } from './chat/turns'
 import { wrapChatToolsForExecution } from './chat/tool-execution'
 
+const TEMPORARILY_DISABLED_CHAT_TOOLS = new Set([
+  'report_bug',
+  'find_bug_reports',
+  'ticket_search',
+  'ticket_comment',
+  'update_workout_notes',
+  'update_workout_tags',
+  'analyze_activity',
+  'sync_data',
+  'generate_report'
+])
+
 export const getToolsWithContext = (
   userId: string,
   timezone: string,
@@ -44,5 +56,11 @@ export const getToolsWithContext = (
     ...temporalTools(userId, timezone)
   }
 
-  return executionContext ? wrapChatToolsForExecution(tools, executionContext) : tools
+  const filteredTools = Object.fromEntries(
+    Object.entries(tools).filter(([name]) => !TEMPORARILY_DISABLED_CHAT_TOOLS.has(name))
+  )
+
+  return executionContext
+    ? wrapChatToolsForExecution(filteredTools, executionContext)
+    : filteredTools
 }

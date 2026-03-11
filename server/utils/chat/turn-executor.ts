@@ -68,7 +68,7 @@ function hasVisibleAssistantArtifacts(input: {
   )
 }
 
-function normalizeMessagesForSdk(inputMessages: any[]) {
+export function normalizeMessagesForSdk(inputMessages: any[]) {
   const approvalResponses = new Map<string, { approved: boolean; reason?: string }>()
 
   for (const msg of inputMessages) {
@@ -87,37 +87,35 @@ function normalizeMessagesForSdk(inputMessages: any[]) {
     }
   }
 
-  return inputMessages
-    .filter((msg) => msg.role !== 'tool')
-    .map((msg) => {
-      if (msg.role !== 'assistant' || !Array.isArray(msg.parts)) return msg
+  return inputMessages.map((msg) => {
+    if (msg.role !== 'assistant' || !Array.isArray(msg.parts)) return msg
 
-      const parts = msg.parts.map((part: any) => {
-        if (!part?.type?.startsWith('tool-')) return part
+    const parts = msg.parts.map((part: any) => {
+      if (!part?.type?.startsWith('tool-')) return part
 
-        const approvalId = part.approvalId || part.approval?.id
-        if (!approvalId) return part
+      const approvalId = part.approvalId || part.approval?.id
+      if (!approvalId) return part
 
-        const response = approvalResponses.get(approvalId)
-        if (!response) return part
-
-        return {
-          ...part,
-          state: 'approval-responded',
-          approval: {
-            ...(part.approval || {}),
-            id: approvalId,
-            approved: response.approved,
-            reason: response.reason
-          }
-        }
-      })
+      const response = approvalResponses.get(approvalId)
+      if (!response) return part
 
       return {
-        ...msg,
-        parts
+        ...part,
+        state: 'approval-responded',
+        approval: {
+          ...(part.approval || {}),
+          id: approvalId,
+          approved: response.approved,
+          reason: response.reason
+        }
       }
     })
+
+    return {
+      ...msg,
+      parts
+    }
+  })
 }
 
 function stripAssistantToolOutputsWhenCanonicalToolMessagesExist(messages: any[]) {
@@ -500,14 +498,13 @@ export async function executeChatTurn(turnId: string) {
       providerOptions.google = {
         thinkingConfig: { thinkingLevel: opSettings.thinkingLevel }
       }
-    } else {
-      providerOptions.google = {
-        thinkingConfig: { thinkingBudget: opSettings.thinkingBudget }
-      }
     }
   }
 
-  try {
+  const executeStreamAttempt = async (attemptIndex: number) => {
+    let shouldRetryEmptyResponse = false
+    const attemptProviderOptions = providerOptions
+
     const result = await streamText({
       model: google(modelName),
       system: finalSystemInstruction,
@@ -538,7 +535,7 @@ export async function executeChatTurn(turnId: string) {
         }
       },
       stopWhen: stepCountIs(opSettings.maxSteps),
-      providerOptions,
+      providerOptions: attemptProviderOptions,
       experimental_context: {
         turnId: turn.id,
         lineageId: turn.lineageId,
@@ -612,6 +609,17 @@ export async function executeChatTurn(turnId: string) {
           allToolResults.length > 0
         const shouldFallbackForEmptyResponse = !hasMeaningfulText && !hasToolActivity
 
+        if (shouldFallbackForEmptyResponse && attemptIndex === 0) {
+          shouldRetryEmptyResponse = true
+          currentPhase = 'retrying_empty_response'
+          await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
+            reason: 'empty_response_retry',
+            attempt: attemptIndex + 1,
+            phase: currentPhase
+          } as any)
+          return
+        }
+
         if (shouldFallbackForEmptyResponse) {
           assistantText =
             'I hit a response issue while processing that. Please retry your last message.'
@@ -653,11 +661,25 @@ export async function executeChatTurn(turnId: string) {
         const finishedAt = new Date()
         const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
 
+        // Detect tool calls blocked by needsApproval: present in finalCalls but absent from results
+        const executedToolCallIds = new Set([
+          ...(finalStepResults || []).map((r: any) => r.toolCallId),
+          ...allToolResults.map((r: any) => r.toolCallId)
+        ])
+        const pendingApprovals = (finalCalls || [])
+          .filter((c: any) => !executedToolCallIds.has(c.toolCallId))
+          .map((c: any) => ({
+            toolCallId: c.toolCallId,
+            toolName: c.toolName,
+            args: c.args || c.input
+          }))
+
         await persistDraft(CHAT_TURN_STATUS.COMPLETED, true, {
           hideUntilContent: false,
           hiddenBecauseEmptyFailure: false,
           executionPhase: currentPhase,
-          executionDurationMs
+          executionDurationMs,
+          ...(pendingApprovals.length > 0 ? { pendingApprovals } : {})
         })
 
         await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.COMPLETED, {
@@ -766,6 +788,22 @@ export async function executeChatTurn(turnId: string) {
     })
     if (streamError) {
       throw streamError
+    }
+
+    return shouldRetryEmptyResponse
+  }
+
+  try {
+    const maxEmptyResponseAttempts = 2
+    for (let attemptIndex = 0; attemptIndex < maxEmptyResponseAttempts; attemptIndex += 1) {
+      const shouldRetry = await executeStreamAttempt(attemptIndex)
+      if (!shouldRetry) break
+
+      assistantText = ''
+      persistedText = draft.content || ' '
+      lastPersistAt = 0
+      latestUsage = null
+      currentPhase = 'awaiting_first_output'
     }
 
     return {

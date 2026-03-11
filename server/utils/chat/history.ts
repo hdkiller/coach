@@ -172,14 +172,35 @@ export function expandStoredChatMessage(message: any) {
     })
   }
 
+  // Tool calls stored in pendingApprovals were blocked by needsApproval and never executed.
+  // Reconstruct them as approval-requested parts so normalizeMessagesForSdk can match
+  // the approval response by approvalId (via part.approval?.id) in continuation turns.
+  const pendingApprovalIds = new Set<string>(
+    Array.isArray(metadata.pendingApprovals)
+      ? metadata.pendingApprovals.map((a: any) => a.toolCallId).filter(Boolean)
+      : []
+  )
+
   normalizeStoredToolCalls(metadata, message.id).forEach((toolCall: any) => {
-    parts.push({
-      type: `tool-${toolCall.name}`,
-      toolCallId: toolCall.toolCallId,
-      state: 'output-available',
-      input: toolCall.args || {},
-      output: toolCall.response
-    })
+    if (pendingApprovalIds.has(toolCall.toolCallId)) {
+      parts.push({
+        type: `tool-${toolCall.name}`,
+        toolCallId: toolCall.toolCallId,
+        state: 'approval-requested',
+        input: toolCall.args || {},
+        approval: {
+          id: toolCall.toolCallId
+        }
+      })
+    } else {
+      parts.push({
+        type: `tool-${toolCall.name}`,
+        toolCallId: toolCall.toolCallId,
+        state: 'output-available',
+        input: toolCall.args || {},
+        output: toolCall.response
+      })
+    }
   })
 
   if (message.content && message.content.trim()) {

@@ -233,10 +233,24 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
         const currentMsgIndex = historyMessages.indexOf(msg)
         const subsequentMessages = historyMessages.slice(currentMsgIndex + 1)
 
+        // Collect approval-responded tool call IDs — these represent pending execution
+        // (the tool call was approved but not yet executed, so streamText must run it this turn).
+        // They intentionally have no subsequent result and must NOT be sanitized away.
+        const approvalRespondedIds = new Set<string>(
+          uiParts
+            .filter((p: any) => p.state === 'approval-responded')
+            .map((p: any) => p.toolCallId)
+            .filter(Boolean)
+        )
+
         ;(coreMsg as any).content = ((coreMsg as any).content as any[]).filter((part) => {
           if (part.type !== 'tool-call') return true
 
           const id = part.toolCallId
+
+          // Preserve approval-responded tool calls — streamText needs to execute them
+          if (approvalRespondedIds.has(id)) return true
+
           // 1. Check for result in subsequent source history messages
           const hasSubsequentResult = subsequentMessages.some(
             (m: any) =>
@@ -265,6 +279,13 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
             hasSubsequentResult || hasSameMessageResult || hasSiblingResult || hasExtractedResult
           )
         })
+
+        // Remove UI-only tool approval artifacts that convertToModelMessages can leak into
+        // assistant content for continuation turns. The model prompt must only keep the
+        // canonical tool-call part; otherwise the SDK sees an invalid mixed tool state.
+        ;(coreMsg as any).content = ((coreMsg as any).content as any[]).filter(
+          (part) => part.type !== 'tool-approval-request'
+        )
       }
 
       // 3. Ensure no empty assistant messages
