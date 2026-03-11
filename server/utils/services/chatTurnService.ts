@@ -113,48 +113,50 @@ class ChatTurnService {
   }
 
   async claimNextQueuedTurn(workerId: string) {
+    // Statuses that indicate a room already has an in-progress turn
+    const blockingStatuses = [
+      CHAT_TURN_STATUS.RECEIVED,
+      CHAT_TURN_STATUS.RUNNING,
+      CHAT_TURN_STATUS.STREAMING,
+      CHAT_TURN_STATUS.WAITING_FOR_TOOLS
+    ] as const
+
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const candidates = await prisma.chatTurn.findMany({
+      // Step 1: find all rooms that currently have an active turn
+      const activeTurnRooms = await prisma.chatTurn.findMany({
+        where: { status: { in: [...blockingStatuses] } },
+        select: { roomId: true },
+        distinct: ['roomId']
+      })
+      const blockedRoomIds = activeTurnRooms.map((t) => t.roomId)
+
+      // Step 2: find the oldest queued turn in an unblocked room
+      const candidate = await prisma.chatTurn.findFirst({
         where: {
-          status: CHAT_TURN_STATUS.QUEUED
+          status: CHAT_TURN_STATUS.QUEUED,
+          ...(blockedRoomIds.length > 0 ? { roomId: { notIn: blockedRoomIds } } : {})
         },
-        orderBy: [{ createdAt: 'asc' }],
-        take: 25
+        orderBy: [{ createdAt: 'asc' }]
       })
 
-      if (candidates.length === 0) {
-        return null
-      }
-
-      let candidate: (typeof candidates)[number] | null = null
-
-      for (const queuedTurn of candidates) {
-        const roomHasAnotherActiveTurn = await prisma.chatTurn.findFirst({
-          where: {
-            roomId: queuedTurn.roomId,
-            id: { not: queuedTurn.id },
-            status: {
-              in: [
-                CHAT_TURN_STATUS.RECEIVED,
-                CHAT_TURN_STATUS.RUNNING,
-                CHAT_TURN_STATUS.STREAMING,
-                CHAT_TURN_STATUS.WAITING_FOR_TOOLS
-              ]
-            }
-          },
-          select: { id: true }
-        })
-
-        if (!roomHasAnotherActiveTurn) {
-          candidate = queuedTurn
-          break
-        }
-      }
-
       if (!candidate) {
+        if (blockedRoomIds.length > 0) {
+          // There may still be queued turns, but all their rooms are blocked.
+          // They will become claimable once the active turns complete or are
+          // recovered by the heartbeat sweep.
+          const pendingCount = await prisma.chatTurn.count({
+            where: { status: CHAT_TURN_STATUS.QUEUED }
+          })
+          if (pendingCount > 0) {
+            console.warn(
+              `[ChatTurnService] ${pendingCount} queued turn(s) are blocked by ${blockedRoomIds.length} room(s) with active turns. They will be processed once those turns complete.`
+            )
+          }
+        }
         return null
       }
 
+      // Step 3: CAS-claim the candidate (guards against concurrent workers)
       const claimRunId = `app-worker:${workerId}:${candidate.id}:${Date.now()}`
       const claimed = await prisma.chatTurn.updateMany({
         where: {
@@ -173,6 +175,7 @@ class ChatTurnService {
           where: { id: candidate.id }
         })
       }
+      // Another worker claimed it first — retry with fresh state
     }
 
     return null
