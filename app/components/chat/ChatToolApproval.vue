@@ -37,6 +37,14 @@
     return JSON.stringify(obj, null, 2)
   }
 
+  // Reset submitting if the parent provides a result (approval was processed)
+  watch(
+    () => props.result,
+    (val) => {
+      if (val) submitting.value = false
+    }
+  )
+
   const handleApprove = async () => {
     submitting.value = true
     emit('approve', { approvalId: props.approvalId, result: 'User confirmed action.' })
