@@ -33,6 +33,19 @@ const parseToolDateInput = (field: string, value: string, input: Record<string, 
   return { date: parsed }
 }
 
+const parseOptionalToolDateInput = (
+  field: string,
+  value: string | undefined,
+  input: Record<string, unknown>,
+  timezone: string
+) => {
+  if (!value) {
+    return { date: getUserLocalDate(timezone) }
+  }
+
+  return parseToolDateInput(field, value, input)
+}
+
 const formatMealItems = (items: any, timezone: string) => {
   if (!Array.isArray(items)) return []
   return items.map((item: any) => ({
@@ -303,7 +316,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           carbs: Math.round(updatedNutrition.carbs || 0),
           fat: Math.round(updatedNutrition.fat || 0)
         },
-        current_meal_items: (updatedNutrition as any)[meal_type]
+        current_meal_items: (updatedNutrition as any)[targetMealType]
       }
     }
   }),
@@ -680,7 +693,7 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
 
   patch_nutrition_items: tool({
     description:
-      'Update specific properties (name, calories, macros, or time) of one or more existing food items. Use this for corrections instead of deleting and re-logging. You MUST provide the item_id for each update.',
+      'Update specific properties (name, quantity, amount/unit, calories, macros, hydration, or time) of one or more existing food items. Use this for corrections instead of deleting and re-logging. You MUST provide the item_id for each update.',
     inputSchema: z.object({
       date: z.string().describe('Date in ISO format (YYYY-MM-DD)'),
       meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snacks']).describe('The meal category'),
@@ -688,12 +701,19 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         z.object({
           item_id: z.string().describe('The unique ID of the item to update'),
           name: z.string().optional(),
+          quantity: z
+            .string()
+            .optional()
+            .describe('Updated quantity text such as "150g" or "2 cups"'),
+          amount: z.number().optional().describe('Updated numeric amount such as 150'),
+          unit: z.string().optional().describe('Updated unit such as "g", "ml", or "cup"'),
           calories: z.number().optional(),
           protein: z.number().optional(),
           carbs: z.number().optional(),
           fat: z.number().optional(),
           fiber: z.number().optional(),
           sugar: z.number().optional(),
+          water_ml: z.number().optional().describe('Updated fluid volume in ml for drinks'),
           logged_at: z
             .string()
             .optional()
@@ -738,17 +758,21 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
           }
         }
 
-        updatedItems[index] = {
+        updatedItems[index] = normalizeFluidFields({
           ...item,
           name: update.name || item.name,
+          quantity: update.quantity !== undefined ? update.quantity : item.quantity,
+          amount: update.amount !== undefined ? update.amount : item.amount,
+          unit: update.unit !== undefined ? update.unit : item.unit,
           calories: update.calories !== undefined ? update.calories : item.calories,
           protein: update.protein !== undefined ? update.protein : item.protein,
           carbs: update.carbs !== undefined ? update.carbs : item.carbs,
           fat: update.fat !== undefined ? update.fat : item.fat,
           fiber: update.fiber !== undefined ? update.fiber : item.fiber,
           sugar: update.sugar !== undefined ? update.sugar : item.sugar,
+          water_ml: update.water_ml !== undefined ? update.water_ml : item.water_ml,
           logged_at: normalizedLoggedAt
-        }
+        })
         updatedCount++
       }
 
@@ -811,12 +835,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       date: z.string().optional().describe('Date in ISO format (YYYY-MM-DD). Defaults to today.')
     }),
     execute: async ({ date }) => {
-      let dateUtc: Date
-      if (date) {
-        dateUtc = new Date(`${date}T00:00:00Z`)
-      } else {
-        dateUtc = getUserLocalDate(timezone) // This already returns UTC midnight
-      }
+      const parsedDate = parseOptionalToolDateInput('date', date, { date }, timezone)
+      if ('error' in parsedDate) return parsedDate.error
+
+      const dateUtc = parsedDate.date
 
       const nutrition = await nutritionRepository.getByDate(userId, dateUtc)
 
@@ -925,12 +947,10 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       date: z.string().optional().describe('Date in ISO format (YYYY-MM-DD). Defaults to today.')
     }),
     execute: async ({ date }) => {
-      let dateUtc: Date
-      if (date) {
-        dateUtc = new Date(`${date}T00:00:00Z`)
-      } else {
-        dateUtc = getUserLocalDate(timezone)
-      }
+      const parsedDate = parseOptionalToolDateInput('date', date, { date }, timezone)
+      if ('error' in parsedDate) return parsedDate.error
+
+      const dateUtc = parsedDate.date
 
       // Logic expects a Date object for 'currentTime' to calculate tank level "right now" vs end of day
       const queryDateStr = formatDateUTC(dateUtc, 'yyyy-MM-dd')
@@ -1028,7 +1048,11 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
         .describe('Specific window type to get recommendations for')
     }),
     execute: async ({ date, window_type }) => {
-      const targetDate = new Date(`${date}T12:00:00Z`)
+      const parsedDate = parseToolDateInput('date', date, { date, window_type })
+      if ('error' in parsedDate) return parsedDate.error
+
+      const targetDate = new Date(parsedDate.date)
+      targetDate.setUTCHours(12, 0, 0, 0)
       const result = await mealRecommendationService.getRecommendations(userId, targetDate, {
         scope: 'MEAL',
         windowType: window_type
@@ -1046,12 +1070,13 @@ export const nutritionTools = (userId: string, timezone: string, aiSettings: AiS
       meal: z.any().describe('The meal object to lock (from get_meal_recommendations)')
     }),
     execute: async ({ date, window_type, meal }) => {
-      const result = await nutritionPlanService.lockMeal(
-        userId,
-        new Date(`${date}T12:00:00Z`),
-        window_type,
-        meal
-      )
+      const parsedDate = parseToolDateInput('date', date, { date, window_type, meal })
+      if ('error' in parsedDate) return parsedDate.error
+
+      const targetDate = new Date(parsedDate.date)
+      targetDate.setUTCHours(12, 0, 0, 0)
+
+      const result = await nutritionPlanService.lockMeal(userId, targetDate, window_type, meal)
       return { success: true, planMeal: result }
     }
   })
