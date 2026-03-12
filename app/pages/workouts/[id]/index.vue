@@ -2874,61 +2874,86 @@
                       >
                         {{ t('version_original_ref') }}
                       </p>
-                      <NuxtLink
-                        :to="`/workouts/${workout.canonicalWorkout.id}`"
-                        class="block p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
+                      <div
+                        class="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800"
                       >
                         <div
-                          class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4"
+                          class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
                         >
-                          <div class="min-w-0 flex-1">
-                            <div
-                              class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
-                            >
-                              {{ workout.canonicalWorkout.title }}
-                            </div>
-                            <div
-                              class="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest"
-                            >
-                              {{ formatDate(workout.canonicalWorkout.date) }}
-                            </div>
-                          </div>
-                          <div
-                            class="flex items-center justify-between sm:justify-end gap-4 shrink-0"
+                          <NuxtLink
+                            :to="`/workouts/${workout.canonicalWorkout.id}`"
+                            class="block min-w-0 flex-1 hover:opacity-90 transition-opacity"
                           >
-                            <div class="flex justify-end">
-                              <UiDataAttribution
-                                v-if="
-                                  [
-                                    'strava',
-                                    'garmin',
-                                    'zwift',
-                                    'apple_health',
-                                    'whoop',
-                                    'intervals',
-                                    'withings',
-                                    'hevy'
-                                  ].includes(workout.canonicalWorkout.source)
-                                "
-                                :provider="workout.canonicalWorkout.source"
-                                :device-name="workout.canonicalWorkout.deviceName"
-                                mode="minimal"
-                              />
-                              <span
-                                v-else
-                                :class="getSourceBadgeClass(workout.canonicalWorkout.source)"
-                                class="py-0 px-1.5 text-[10px]"
+                            <div
+                              class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4"
+                            >
+                              <div class="min-w-0 flex-1">
+                                <div
+                                  class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
+                                >
+                                  {{ workout.canonicalWorkout.title }}
+                                </div>
+                                <div
+                                  class="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest"
+                                >
+                                  {{ formatDate(workout.canonicalWorkout.date) }}
+                                </div>
+                              </div>
+                              <div
+                                class="flex items-center justify-between sm:justify-end gap-4 shrink-0"
                               >
-                                {{
-                                  t(`source_${workout.canonicalWorkout.source}`) ||
-                                  workout.canonicalWorkout.source
-                                }}
-                              </span>
+                                <div class="flex justify-end">
+                                  <UiDataAttribution
+                                    v-if="
+                                      [
+                                        'strava',
+                                        'garmin',
+                                        'zwift',
+                                        'apple_health',
+                                        'whoop',
+                                        'intervals',
+                                        'withings',
+                                        'hevy'
+                                      ].includes(workout.canonicalWorkout.source)
+                                    "
+                                    :provider="workout.canonicalWorkout.source"
+                                    :device-name="workout.canonicalWorkout.deviceName"
+                                    mode="minimal"
+                                  />
+                                  <span
+                                    v-else
+                                    :class="getSourceBadgeClass(workout.canonicalWorkout.source)"
+                                    class="py-0 px-1.5 text-[10px]"
+                                  >
+                                    {{
+                                      t(`source_${workout.canonicalWorkout.source}`) ||
+                                      workout.canonicalWorkout.source
+                                    }}
+                                  </span>
+                                </div>
+                                <UIcon
+                                  name="i-heroicons-arrow-right"
+                                  class="w-4 h-4 text-gray-400"
+                                />
+                              </div>
                             </div>
-                            <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
-                          </div>
+                          </NuxtLink>
+
+                          <UButton
+                            size="xs"
+                            color="warning"
+                            variant="soft"
+                            icon="i-heroicons-link-slash"
+                            class="font-bold shrink-0"
+                            :loading="unlinkingDuplicateId === workout.id"
+                            @click="
+                              openDuplicateUnlinkConfirm(workout.id, workout.canonicalWorkout.title)
+                            "
+                          >
+                            Unlink
+                          </UButton>
                         </div>
-                      </NuxtLink>
+                      </div>
                     </div>
 
                     <div class="mt-4 pt-4 border-t border-yellow-200 dark:border-yellow-800/50">
@@ -2966,65 +2991,87 @@
                 </div>
 
                 <div class="space-y-2">
-                  <NuxtLink
+                  <div
                     v-for="dup in workout.duplicates"
                     :key="dup.id"
-                    :to="`/workouts/${dup.id}`"
-                    class="block p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary-500 dark:hover:border-primary-500 transition-all"
+                    class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800"
                   >
                     <div
-                      class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4"
+                      class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
                     >
-                      <div class="min-w-0 flex-1">
+                      <NuxtLink
+                        :to="`/workouts/${dup.id}`"
+                        class="block min-w-0 flex-1 hover:opacity-90 transition-opacity"
+                      >
                         <div
-                          class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
+                          class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4"
                         >
-                          {{ dup.title }}
-                        </div>
-                        <div
-                          class="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest"
-                        >
-                          {{ formatDate(dup.date) }}
-                        </div>
-                      </div>
-                      <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                        <UBadge
-                          color="warning"
-                          variant="subtle"
-                          size="xs"
-                          class="font-bold uppercase tracking-widest"
-                          >{{ t('sections_duplicates') }}</UBadge
-                        >
-                        <div class="flex justify-end">
-                          <UiDataAttribution
-                            v-if="
-                              [
-                                'strava',
-                                'garmin',
-                                'zwift',
-                                'apple_health',
-                                'whoop',
-                                'intervals',
-                                'withings',
-                                'hevy'
-                              ].includes(dup.source)
-                            "
-                            :provider="dup.source"
-                            :device-name="dup.deviceName"
-                            mode="minimal"
-                          />
-                          <span
-                            v-else
-                            :class="getSourceBadgeClass(dup.source)"
-                            class="py-0 px-1.5 text-[10px]"
+                          <div class="min-w-0 flex-1">
+                            <div
+                              class="font-black text-gray-900 dark:text-white truncate uppercase tracking-tight"
+                            >
+                              {{ dup.title }}
+                            </div>
+                            <div
+                              class="text-[10px] text-gray-500 mt-1 font-bold uppercase tracking-widest"
+                            >
+                              {{ formatDate(dup.date) }}
+                            </div>
+                          </div>
+                          <div
+                            class="flex items-center justify-between sm:justify-end gap-4 shrink-0"
                           >
-                            {{ t(`source_${dup.source}`) || dup.source }}
-                          </span>
+                            <UBadge
+                              color="warning"
+                              variant="subtle"
+                              size="xs"
+                              class="font-bold uppercase tracking-widest"
+                              >{{ t('sections_duplicates') }}</UBadge
+                            >
+                            <div class="flex justify-end">
+                              <UiDataAttribution
+                                v-if="
+                                  [
+                                    'strava',
+                                    'garmin',
+                                    'zwift',
+                                    'apple_health',
+                                    'whoop',
+                                    'intervals',
+                                    'withings',
+                                    'hevy'
+                                  ].includes(dup.source)
+                                "
+                                :provider="dup.source"
+                                :device-name="dup.deviceName"
+                                mode="minimal"
+                              />
+                              <span
+                                v-else
+                                :class="getSourceBadgeClass(dup.source)"
+                                class="py-0 px-1.5 text-[10px]"
+                              >
+                                {{ t(`source_${dup.source}`) || dup.source }}
+                              </span>
+                            </div>
+                            <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
+                          </div>
                         </div>
-                        <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
-                      </div>
+                      </NuxtLink>
+
+                      <UButton
+                        size="xs"
+                        color="warning"
+                        variant="soft"
+                        icon="i-heroicons-link-slash"
+                        class="font-bold shrink-0"
+                        :loading="unlinkingDuplicateId === dup.id"
+                        @click="openDuplicateUnlinkConfirm(dup.id, dup.title)"
+                      >
+                        Unlink
+                      </UButton>
                     </div>
-                  </NuxtLink>
+                  </div>
                 </div>
               </div>
 
@@ -3323,6 +3370,31 @@
       </div>
     </template>
   </UModal>
+
+  <UModal
+    v-model:open="isDuplicateUnlinkModalOpen"
+    title="Unlink Duplicate Workout"
+    :description="
+      duplicateUnlinkTargetName
+        ? `Remove the duplicate link for ${duplicateUnlinkTargetName}? Both workouts will remain in your history as separate activities.`
+        : 'Remove this duplicate link? Both workouts will remain in your history as separate activities.'
+    "
+  >
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton color="neutral" variant="ghost" @click="isDuplicateUnlinkModalOpen = false">
+          Cancel
+        </UButton>
+        <UButton
+          color="warning"
+          :loading="Boolean(unlinkingDuplicateId)"
+          @click="unlinkDuplicateWorkout"
+        >
+          Unlink
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -3366,12 +3438,16 @@
   const promoting = ref(false)
   const deleting = ref(false)
   const publishingSummary = ref(false)
+  const unlinkingDuplicateId = ref<string | null>(null)
 
   const isPromoteModalOpen = ref(false)
   const isShareModalOpen = ref(false)
   const isExtrasMetaModalOpen = ref(false)
   const isWorkoutSectionsModalOpen = ref(false)
+  const isDuplicateUnlinkModalOpen = ref(false)
   const shareExpiryValue = ref('never')
+  const duplicateUnlinkTargetId = ref<string | null>(null)
+  const duplicateUnlinkTargetName = ref('')
 
   const stomachFeel = ref<number | null>(null)
 
@@ -4997,6 +5073,45 @@
   async function promoteWorkout() {
     if (!workout.value) return
     isPromoteModalOpen.value = true
+  }
+
+  function openDuplicateUnlinkConfirm(workoutId: string, workoutTitle?: string | null) {
+    duplicateUnlinkTargetId.value = workoutId
+    duplicateUnlinkTargetName.value = workoutTitle || ''
+    isDuplicateUnlinkModalOpen.value = true
+  }
+
+  async function unlinkDuplicateWorkout() {
+    if (!duplicateUnlinkTargetId.value) return
+
+    unlinkingDuplicateId.value = duplicateUnlinkTargetId.value
+    try {
+      await $fetch(`/api/workouts/${duplicateUnlinkTargetId.value}/unlink-duplicate`, {
+        method: 'POST'
+      })
+
+      toast.add({
+        title: 'Workout unlinked',
+        description: 'The workouts are no longer linked as duplicates.',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+
+      isDuplicateUnlinkModalOpen.value = false
+      duplicateUnlinkTargetId.value = null
+      duplicateUnlinkTargetName.value = ''
+      await fetchWorkout()
+    } catch (e: any) {
+      console.error('Failed to unlink duplicate workout:', e)
+      toast.add({
+        title: 'Failed to unlink workout',
+        description: e.data?.message || e.message || 'Could not remove the duplicate link.',
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
+      })
+    } finally {
+      unlinkingDuplicateId.value = null
+    }
   }
 
   async function confirmPromoteWorkout() {
