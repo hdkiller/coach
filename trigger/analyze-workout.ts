@@ -32,6 +32,7 @@ import {
   type WorkoutAnalysisFacts,
   type WorkoutAnalysisFactsV2
 } from '../server/utils/workout-analysis-facts'
+import { summarizePowerFromWatts } from '../server/utils/power-metrics'
 
 // TypeScript interface for the structured analysis
 interface StructuredAnalysis {
@@ -263,6 +264,7 @@ export const analyzeWorkoutTask = task({
       const workout = await prisma.workout.findUnique({
         where: { id: workoutId },
         include: {
+          streams: true,
           exercises: {
             include: {
               exercise: true,
@@ -337,6 +339,8 @@ export const analyzeWorkoutTask = task({
         (workout.distanceMeters || 0) > 0 ||
         (workout.averageWatts || 0) > 0 ||
         (workout.averageHr || 0) > 0 ||
+        (Array.isArray(workout.streams?.watts) && workout.streams.watts.length > 0) ||
+        (Array.isArray(workout.streams?.heartrate) && workout.streams.heartrate.length > 0) ||
         (workout.exercises && workout.exercises.length > 0)
 
       if (!hasData) {
@@ -616,13 +620,27 @@ function buildWorkoutAnalysisData(workout: any) {
     distance_m: workout.distanceMeters,
     elevation_gain: workout.elevationGain
   }
+  const streamPowerSummary = summarizePowerFromWatts(workout.streams?.watts)
+  const powerZoneTimes = Array.isArray(workout.streams?.powerZoneTimes)
+    ? (workout.streams.powerZoneTimes as number[]).filter((value) => typeof value === 'number')
+    : []
 
   // Power metrics
   if (workout.averageWatts) data.avg_power = workout.averageWatts
+  else if (streamPowerSummary?.averageWatts) data.avg_power = streamPowerSummary.averageWatts
   if (workout.maxWatts) data.max_power = workout.maxWatts
+  else if (streamPowerSummary?.maxWatts) data.max_power = streamPowerSummary.maxWatts
   if (workout.normalizedPower) data.normalized_power = workout.normalizedPower
+  else if (streamPowerSummary?.normalizedPower)
+    data.normalized_power = streamPowerSummary.normalizedPower
   if (workout.weightedAvgWatts) data.weighted_avg_power = workout.weightedAvgWatts
   if (workout.ftp) data.ftp = workout.ftp
+  if (Array.isArray(workout.streams?.watts) && workout.streams.watts.length > 0) {
+    data.has_power_stream = true
+  }
+  if (powerZoneTimes.length > 0 && powerZoneTimes.some((value) => value > 0)) {
+    data.power_zone_times = powerZoneTimes
+  }
 
   // Heart rate
   if (workout.averageHr) data.avg_hr = workout.averageHr
@@ -1265,7 +1283,10 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
       workoutData.avg_power ||
       workoutData.max_power ||
       workoutData.normalized_power ||
-      workoutData.weighted_avg_power
+      workoutData.weighted_avg_power ||
+      workoutData.has_power_stream ||
+      (Array.isArray(workoutData.power_zone_times) &&
+        workoutData.power_zone_times.some((value: number) => value > 0))
     ) {
       if (workoutData.avg_power) prompt += `- Average Power: ${workoutData.avg_power}W\n`
       if (workoutData.max_power) prompt += `- Max Power: ${workoutData.max_power}W\n`
@@ -1276,6 +1297,25 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
       if (workoutData.ftp) prompt += `- FTP at time: ${workoutData.ftp}W\n`
       if (workoutData.intensity)
         prompt += `- Intensity Factor: ${formatMetric(workoutData.intensity, 3)}\n`
+      if (workoutData.has_power_stream) prompt += '- Power Stream Samples: Available\n'
+      if (
+        Array.isArray(workoutData.power_zone_times) &&
+        workoutData.power_zone_times.some((value: number) => value > 0)
+      ) {
+        prompt += '- Power Zone Distribution: Available from stream metadata\n'
+      }
+      if (
+        !workoutData.avg_power &&
+        !workoutData.max_power &&
+        !workoutData.normalized_power &&
+        !workoutData.weighted_avg_power &&
+        (workoutData.has_power_stream ||
+          (Array.isArray(workoutData.power_zone_times) &&
+            workoutData.power_zone_times.some((value: number) => value > 0)))
+      ) {
+        prompt +=
+          '- Note: Stored workout summary omitted power rollups, but power telemetry is present and should be treated as available primary evidence.\n'
+      }
     } else {
       prompt += `- Average Power: N/A\n`
       prompt += `- Normalized Power: N/A\n`

@@ -52,7 +52,10 @@ export function detectMetricAvailability(workoutData: any): MetricAvailability {
     workoutData?.avg_power ||
     workoutData?.normalized_power ||
     workoutData?.weighted_avg_power ||
-    workoutData?.max_power
+    workoutData?.max_power ||
+    workoutData?.has_power_stream ||
+    (Array.isArray(workoutData?.power_zone_times) &&
+      workoutData.power_zone_times.some((value: unknown) => Number(value) > 0))
   )
 
   return { hasPace, hasHr, hasPower }

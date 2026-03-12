@@ -110,4 +110,26 @@ describe('buildWorkoutAnalysisPrompt', () => {
     expect(prompt).toContain('- Power Source Type: measured')
     expect(prompt).not.toContain('Computed From')
   })
+
+  it('treats stream-backed power as available when summary watts are missing', () => {
+    const prompt = buildWorkoutAnalysisPrompt(
+      {
+        date: new Date('2026-03-05T10:00:00Z'),
+        title: 'Afternoon Ride test',
+        type: 'Ride',
+        duration_m: 75,
+        duration_s: 4500,
+        has_power_stream: true,
+        power_zone_times: [0, 0, 600, 900, 300]
+      },
+      'UTC',
+      'Supportive'
+    )
+
+    expect(prompt).toContain('- Power Stream Samples: Available')
+    expect(prompt).toContain(
+      'power telemetry is present and should be treated as available primary evidence'
+    )
+    expect(prompt).not.toContain('Power data appears to be missing from the global summary')
+  })
 })

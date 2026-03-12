@@ -44,4 +44,14 @@ describe('workout metric priority', () => {
     const rules = buildAnalysisRequestMetricRules(ctx)
     expect(rules.join(' ')).toContain('Primary metric PACE is unavailable')
   })
+
+  it('treats stream-derived power metadata as available power', () => {
+    const ctx = resolveMetricPriorityContext('POWER_HR_PACE', {
+      power_zone_times: [0, 0, 300, 600, 120]
+    })
+
+    expect(ctx.primaryMetric).toBe('POWER')
+    expect(ctx.primaryMetricAvailable).toBe(true)
+    expect(ctx.availability.hasPower).toBe(true)
+  })
 })
