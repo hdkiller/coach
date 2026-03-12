@@ -57,9 +57,13 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { timezone: true }
+    select: {
+      timezone: true,
+      nutritionTrackingEnabled: true
+    }
   })
   const timezone = user?.timezone ?? 'UTC'
+  const nutritionEnabled = user?.nutritionTrackingEnabled ?? true
 
   // Get date range for the past 5 days
   const endDate = new Date()
@@ -84,12 +88,14 @@ export default defineEventHandler(async (event) => {
     })
 
     // Fetch nutrition from the past 5 days
-    const nutrition = await nutritionRepository.getForUser(userId, {
-      startDate: calendarStart,
-      endDate: endDate,
-      limit: 10,
-      orderBy: { date: 'desc' }
-    })
+    const nutrition = nutritionEnabled
+      ? await nutritionRepository.getForUser(userId, {
+          startDate: calendarStart,
+          endDate: endDate,
+          limit: 10,
+          orderBy: { date: 'desc' }
+        })
+      : []
 
     // Fetch wellness data from the past 5 days
     const wellness = await wellnessRepository.getForUser(userId, {
