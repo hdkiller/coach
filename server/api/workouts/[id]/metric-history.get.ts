@@ -22,6 +22,7 @@ function extractMetricValue(workout: any, metricKey: string): number | null {
   const key = normalizeMetricKey(metricKey)
 
   if (key === 'average power' || key === 'avg power') return workout.averageWatts ?? null
+  if (key === 'average speed' || key === 'avg speed') return workout.averageSpeed ?? null
   if (key === 'max power') return workout.maxWatts ?? null
   if (key === 'normalized power' || key === 'norm power') return workout.normalizedPower ?? null
   if (key === 'weighted avg power') return workout.weightedAvgWatts ?? null

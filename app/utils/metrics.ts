@@ -1,5 +1,7 @@
 export const KG_TO_LBS = 2.20462262185
 export const LBS_TO_KG = 0.45359237
+const MPS_TO_KPH = 3.6
+const MPS_TO_MPH = 2.2369362921
 
 export interface MetricDefinition {
   label: string
@@ -105,6 +107,13 @@ export const metricDefinitions: Record<string, MetricDefinition> = {
       'The average time taken to cover a specific distance unit (e.g., minutes per kilometer).',
     coachingTip:
       'Pace is a "result" metric. Always consider it alongside heart rate to determine if your speed is coming from efficiency or raw effort.'
+  },
+  'Average Speed': {
+    label: 'Average Session Speed',
+    description:
+      'The average speed sustained across the session, shown in your preferred cycling units.',
+    coachingTip:
+      'Compare average speed across similar terrain and conditions. Wind, elevation, and drafting can move this number more than fitness alone.'
   },
   'Consistency Variance': {
     label: 'Pace Variability (Consistency)',
@@ -226,4 +235,40 @@ export function formatTemperature(celsius: number | null | undefined, units: str
     return `${fahrenheit.toFixed(1)}°F`
   }
   return `${celsius.toFixed(1)}°C`
+}
+
+export function usesImperialDistance(units: string | null | undefined): boolean {
+  return units === 'Miles'
+}
+
+export function isRideWorkoutType(type: string | null | undefined): boolean {
+  const normalized = String(type || '').toLowerCase()
+  return ['ride', 'virtualride', 'ebike', 'bike', 'cycling', 'cycle', 'gravel', 'mtb', 'road'].some(
+    (token) => normalized.includes(token)
+  )
+}
+
+export function getVelocityUnitLabel(units: string | null | undefined): string {
+  return usesImperialDistance(units) ? 'mph' : 'km/h'
+}
+
+export function convertVelocity(metersPerSecond: number, units: string | null | undefined): number {
+  return metersPerSecond * (usesImperialDistance(units) ? MPS_TO_MPH : MPS_TO_KPH)
+}
+
+export function formatVelocity(
+  metersPerSecond: number | null | undefined,
+  units: string | null | undefined,
+  decimals = 1
+): string {
+  if (
+    metersPerSecond === null ||
+    metersPerSecond === undefined ||
+    !Number.isFinite(metersPerSecond)
+  ) {
+    return 'N/A'
+  }
+
+  const converted = convertVelocity(metersPerSecond, units)
+  return `${converted.toFixed(decimals)} ${getVelocityUnitLabel(units)}`
 }
