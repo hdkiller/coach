@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { classifyChatSkills, getContinuationSkillSelection, selectToolsForSkills } from './skills'
+import {
+  classifyChatSkills,
+  composeSkillInstructions,
+  getContinuationSkillSelection,
+  resolveApprovalToolNamesForSelection,
+  selectToolsForSkills
+} from './skills'
 
 const generateObjectMock = vi.fn()
 const llmUsageCreateMock = vi.fn().mockResolvedValue(null)
@@ -45,6 +51,28 @@ describe('selectToolsForSkills', () => {
     )
 
     expect(tools).toEqual({})
+  })
+
+  it('returns tools for the new profile and availability skills', () => {
+    const tools = selectToolsForSkills(
+      {
+        get_user_profile: { name: 'get_user_profile' },
+        update_user_profile: { name: 'update_user_profile' },
+        get_training_availability: { name: 'get_training_availability' },
+        update_training_availability: { name: 'update_training_availability' },
+        ticket_create: { name: 'ticket_create' }
+      },
+      ['profile', 'availability'],
+      { useTools: true }
+    )
+
+    expect(Object.keys(tools)).toEqual([
+      'get_user_profile',
+      'update_user_profile',
+      'get_training_availability',
+      'update_training_availability'
+    ])
+    expect(tools).not.toHaveProperty('ticket_create')
   })
 })
 
@@ -210,5 +238,49 @@ describe('getContinuationSkillSelection', () => {
     ])
 
     expect(selection).toBeNull()
+  })
+})
+
+describe('resolveApprovalToolNamesForSelection', () => {
+  it('derives approval rules from the selected tool definitions', async () => {
+    const approvalToolNames = await resolveApprovalToolNamesForSelection(
+      {
+        ticket_create: { needsApproval: async () => true },
+        ticket_get: { needsApproval: false },
+        update_workout: { needsApproval: async () => true }
+      },
+      {
+        aiRequireToolApproval: true,
+        useTools: true
+      }
+    )
+
+    expect(approvalToolNames).toEqual(['ticket_create', 'update_workout'])
+  })
+
+  it('returns no approval rules when tools are disabled for the turn', async () => {
+    const approvalToolNames = await resolveApprovalToolNamesForSelection(
+      {
+        ticket_create: { needsApproval: async () => true }
+      },
+      {
+        aiRequireToolApproval: true,
+        useTools: false
+      }
+    )
+
+    expect(approvalToolNames).toEqual([])
+  })
+})
+
+describe('composeSkillInstructions', () => {
+  it('falls back to general-chat guidance when the selected domain is tool-free for this turn', () => {
+    const instructions = composeSkillInstructions('BASE', ['planning_read'], {
+      useTools: false
+    })
+
+    expect(instructions).toContain('## General Chat Skill')
+    expect(instructions).toContain('Domain context for this turn: planning_read')
+    expect(instructions).not.toContain('Use planning read tools')
   })
 })

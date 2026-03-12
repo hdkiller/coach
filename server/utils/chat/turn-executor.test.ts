@@ -67,12 +67,12 @@ describe('normalizeMessagesForSdk', () => {
 })
 
 describe('buildTurnExecutionSkillConfig', () => {
-  it('scopes tools and prompt fragments to the selected skills', () => {
-    const result = buildTurnExecutionSkillConfig({
+  it('scopes tools and prompt fragments to the selected skills', async () => {
+    const result = await buildTurnExecutionSkillConfig({
       allTools: {
-        ticket_create: {},
-        ticket_get: {},
-        get_planned_workouts: {}
+        ticket_create: { needsApproval: async () => true },
+        ticket_get: { needsApproval: false },
+        get_planned_workouts: { needsApproval: false }
       },
       baseSystemInstruction: 'Base instruction',
       skillSelection: {
@@ -94,8 +94,8 @@ describe('buildTurnExecutionSkillConfig', () => {
     expect(result.systemInstruction).toContain('`ticket_create`')
   })
 
-  it('keeps the fallback skill tool-free', () => {
-    const result = buildTurnExecutionSkillConfig({
+  it('keeps the fallback skill tool-free', async () => {
+    const result = await buildTurnExecutionSkillConfig({
       allTools: {
         ticket_create: {},
         get_planned_workouts: {}
@@ -113,6 +113,7 @@ describe('buildTurnExecutionSkillConfig', () => {
     expect(result.selectedToolNames).toEqual([])
     expect(result.tools).toEqual({})
     expect(result.systemInstruction).toContain('## General Chat Skill')
+    expect(result.systemInstruction).not.toContain('Use planning read tools')
   })
 })
 
