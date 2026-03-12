@@ -1,3 +1,5 @@
+import { normalizeStressScoreForStorage } from './wellness'
+
 export function normalizeSpO2Percentage(value: unknown): unknown {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return value
@@ -14,16 +16,19 @@ export function normalizeSpO2Percentage(value: unknown): unknown {
 export function normalizeWellnessFields<T extends Record<string, any>>(data: T): T {
   if (!data || typeof data !== 'object') return data
 
-  const normalized = { ...data }
+  const normalized: any = { ...data }
 
-  if ('vo2Max' in normalized && !('vo2max' in normalized)) {
+  if ('vo2Max' in normalized) {
     normalized.vo2max = normalized.vo2Max
+    delete normalized.vo2Max
   }
-
-  delete normalized.vo2Max
 
   if ('spO2' in normalized) {
     normalized.spO2 = normalizeSpO2Percentage(normalized.spO2)
+  }
+
+  if ('stress' in normalized) {
+    normalized.stress = normalizeStressScoreForStorage(normalized.stress)
   }
 
   return normalized as T

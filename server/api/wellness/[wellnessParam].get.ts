@@ -1,5 +1,6 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
+import { normalizeStressScore } from '../../utils/wellness'
 
 defineRouteMeta({
   openAPI: {
@@ -125,6 +126,7 @@ export default defineEventHandler(async (event) => {
 
   // Some providers send sleepSecs only. Normalize for UI consumers expecting sleepHours.
   wellnessData.sleepHours = toSleepHours(wellnessData.sleepHours, wellnessData.sleepSecs)
+  wellnessData.stress = normalizeStressScore(wellnessData.stress)
 
   // --- Trend Calculation Logic ---
   const endDate = targetDate

@@ -5,6 +5,8 @@ import {
   normalizeWellnessFields
 } from '../../../../server/utils/wellnessNormalization'
 
+import { getStressLabel, normalizeStressScore } from '../../../../server/utils/wellness'
+
 describe('wellness normalization', () => {
   it('converts Apple Health fractional spO2 values into percentages', () => {
     expect(normalizeSpO2Percentage(1)).toBe(100)
@@ -26,5 +28,20 @@ describe('wellness normalization', () => {
       vo2max: 58.2,
       spO2: 99
     })
+  })
+
+  it('normalizes Garmin stress payloads from 0-100 into the stored 1-10 scale', () => {
+    expect(
+      normalizeWellnessFields({
+        stress: 25
+      })
+    ).toEqual({
+      stress: 3
+    })
+  })
+
+  it('keeps normalized stress reads in the low-stress band for Garmin values like 25', () => {
+    expect(normalizeStressScore(25)).toBe(2.5)
+    expect(getStressLabel(25)).toBe('Low')
   })
 })

@@ -112,6 +112,8 @@
 </template>
 
 <script setup lang="ts">
+  import { normalizeStressScore } from '~/utils/wellness'
+
   import draggable from 'vuedraggable'
   import { useDebounceFn } from '@vueuse/core'
   import { formatHeight } from '~/utils/metrics'
@@ -340,7 +342,7 @@
     if (key === 'recovery') return (userStore.profile.recentRecoveryScore || '?') + '%'
     if (key === 'readiness') return userStore.profile.recentReadiness || '?'
     if (key === 'fatigue') return userStore.profile.recentFatigue || '?'
-    if (key === 'stress') return userStore.profile.recentStress || '?'
+    if (key === 'stress') return normalizeStressScore(userStore.profile.recentStress) || '?'
     if (key === 'mood') return userStore.profile.recentMood || '?'
     if (key === 'spO2') return (userStore.profile.recentSpO2 || '?') + '%'
     if (key === 'bloodPressure')
