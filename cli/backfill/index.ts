@@ -24,6 +24,7 @@ import backfillPBCommand from './pb'
 import backfillThresholdsCommand from './thresholds'
 import backfillBodyMeasurementsCommand from './body-measurements'
 import backfillWorkoutTagsCommand from './workout-tags'
+import backfillWellnessSpO2Command from './wellness-spo2'
 
 const backfill = new Command('backfill')
 
@@ -54,5 +55,6 @@ backfill
   .addCommand(backfillThresholdsCommand)
   .addCommand(backfillBodyMeasurementsCommand)
   .addCommand(backfillWorkoutTagsCommand)
+  .addCommand(backfillWellnessSpO2Command)
 
 export default backfill
