@@ -11,6 +11,11 @@ import {
 } from './intervals'
 import { buildStructurePublishFields } from './planned-workout-structure-sync'
 
+function isIntervalsMissingEventError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('Intervals API error: 404') || message.includes('Event not found')
+}
+
 /**
  * Sync a planned workout to Intervals.icu with retry logic
  * Returns success status and any error messages
@@ -53,11 +58,28 @@ export async function syncPlannedWorkoutToIntervals(
             message: 'Skipped Intervals sync for local-only workout (non-numeric ID).'
           }
         }
-        result = await updateIntervalsPlannedWorkout(
-          integration,
-          workoutData.externalId,
-          workoutData
-        )
+        try {
+          result = await updateIntervalsPlannedWorkout(
+            integration,
+            workoutData.externalId,
+            workoutData
+          )
+        } catch (error) {
+          if (!isIntervalsMissingEventError(error)) {
+            throw error
+          }
+
+          result = await createIntervalsPlannedWorkout(integration, workoutData)
+          if (workoutData.id && result?.id) {
+            await prisma.plannedWorkout.update({
+              where: { id: workoutData.id },
+              data: {
+                externalId: String(result.id),
+                syncError: null
+              }
+            })
+          }
+        }
         break
       case 'DELETE':
         // If externalId is local (non-numeric), it doesn't exist on Intervals.
@@ -321,7 +343,25 @@ export async function processSyncQueueItem(queueItem: any): Promise<boolean> {
           break
         case 'UPDATE':
           if (isIntervalsEventId(payload.externalId)) {
-            await updateIntervalsPlannedWorkout(integration, payload.externalId, payload)
+            try {
+              await updateIntervalsPlannedWorkout(integration, payload.externalId, payload)
+            } catch (error) {
+              if (!isIntervalsMissingEventError(error)) {
+                throw error
+              }
+
+              const recreated = await createIntervalsPlannedWorkout(integration, payload)
+              if (recreated?.id) {
+                payload.externalId = String(recreated.id)
+                await prisma.plannedWorkout.update({
+                  where: { id: queueItem.entityId },
+                  data: {
+                    externalId: String(recreated.id),
+                    syncError: null
+                  }
+                })
+              }
+            }
           }
           break
         case 'DELETE':
