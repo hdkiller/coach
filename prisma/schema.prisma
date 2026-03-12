@@ -235,6 +235,7 @@ model OAuthApp {
   codes         OAuthAuthCode[]
   consents      OAuthConsent[]
   tokens        OAuthToken[]
+  workouts      Workout[]       @relation("WorkoutOAuthApp")
 
   @@index([ownerId])
 }
@@ -564,11 +565,13 @@ model Workout {
   workAboveFtp                    Int?
   feedback                        String?
   feedbackText                    String?
+  oauthAppId                      String?
   fitFile                         FitFile?
   planAdherence                   PlanAdherence?
   reports                         ReportWorkout[]
   canonicalWorkout                Workout?          @relation("WorkoutDuplicates", fields: [duplicateOf], references: [id])
   duplicates                      Workout[]         @relation("WorkoutDuplicates")
+  oauthApp                        OAuthApp?         @relation("WorkoutOAuthApp", fields: [oauthAppId], references: [id], onDelete: SetNull)
   plannedWorkout                  PlannedWorkout?   @relation(fields: [plannedWorkoutId], references: [id])
   user                            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises                       WorkoutExercise[]
@@ -582,6 +585,7 @@ model Workout {
   @@index([userId, date])
   @@index([userId, isDuplicate])
   @@index([date])
+  @@index([oauthAppId])
 }
 
 model Exercise {
