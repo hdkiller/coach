@@ -466,13 +466,11 @@ export default defineEventHandler(async (event) => {
       unit = 'W'
     }
 
-    let title = `${displayType}: ${formattedValue}${unit}`
+    const metricLabel = m.sportProfileName ? `${m.sportProfileName} ${displayType}` : displayType
+
+    let title = `${metricLabel}: ${formattedValue}${unit}`
     if (m.oldValue !== null && formattedOldValue) {
-      const change = m.value - m.oldValue
-      // For pace, lower is better
-      const isImprovement = m.type === 'THRESHOLD_PACE' ? change < 0 : change > 0
-      const changePrefix = change >= 0 ? '+' : ''
-      title = `${displayType}: ${formattedOldValue} → ${formattedValue}${unit}`
+      title = `${metricLabel}: ${formattedOldValue} → ${formattedValue}${unit}`
     }
 
     activitiesByDate.get(dateKey).push({
@@ -485,6 +483,7 @@ export default defineEventHandler(async (event) => {
       metric: m.type,
       value: m.value,
       oldValue: m.oldValue,
+      sportProfileName: m.sportProfileName || undefined,
       description: m.notes,
       nutrition: nutritionByDate.get(dateKey) || null,
       wellness: wellnessByDate.get(dateKey) || null
