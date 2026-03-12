@@ -1,9 +1,10 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
 import { getServerSession } from '../../utils/session'
-import { subDays, format } from 'date-fns'
+import { subDays } from 'date-fns'
 import { getUserTimezone, getStartOfYearUTC } from '../../utils/date'
 import { parseTagQueryParam } from '../../utils/workout-tags'
+import { buildEfficiencyTrendData } from '../../utils/efficiency-trends'
 
 defineRouteMeta({
   openAPI: {
@@ -41,6 +42,8 @@ defineRouteMeta({
                     type: 'object',
                     properties: {
                       date: { type: 'string' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      workoutId: { type: 'string', nullable: true },
                       efficiencyFactor: { type: 'number' },
                       decoupling: { type: 'number', nullable: true },
                       normalizedPower: { type: 'number', nullable: true },
@@ -106,33 +109,7 @@ export default defineEventHandler(async (event) => {
   // If we don't have decoupling pre-calculated, we can't accurately calc it from summary stats alone
   // So we'll check if 'efficiencyFactor' or 'decoupling' is in rawJson, or estimate EF.
 
-  const data = relevantWorkouts.map((w) => {
-    // Try to get advanced metrics from rawJson or dedicated columns if we had them
-    // For now, calculate simple EF
-    const power = w.normalizedPower || w.averageWatts || 0
-    const hr = w.averageHr || 1
-
-    // Simple EF calculation
-    const ef = power / hr
-
-    // Decoupling (Pw:Hr) - Placeholder or extract from rawJson if available
-    // We'll return null if not available, frontend handles it
-    let decoupling = null
-    if (w.rawJson && typeof w.rawJson === 'object') {
-      // @ts-expect-error - dynamic property access
-      if (w.rawJson.decoupling) decoupling = w.rawJson.decoupling
-      // @ts-expect-error - dynamic property access
-      if (w.rawJson.aerobic_decoupling) decoupling = w.rawJson.aerobic_decoupling
-    }
-
-    return {
-      date: format(new Date(w.date), 'yyyy-MM-dd'),
-      efficiencyFactor: parseFloat(ef.toFixed(2)),
-      decoupling: decoupling,
-      normalizedPower: w.normalizedPower,
-      averageHr: w.averageHr
-    }
-  })
+  const data = buildEfficiencyTrendData(relevantWorkouts)
 
   return {
     trends: data

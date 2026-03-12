@@ -94,6 +94,7 @@
   }>()
 
   const theme = useTheme()
+  const { formatDateTime } = useFormat()
   const loading = ref(true)
   const trendData = ref<any>(null)
 
@@ -162,11 +163,15 @@
     const trends = trendData.value.trends
 
     return {
-      labels: trends.map((t: any) => t.date),
       datasets: [
         {
           label: 'Efficiency Factor (NP/HR)',
-          data: trends.map((t: any) => t.efficiencyFactor),
+          data: trends.map((t: any) => ({
+            x: t.timestamp || t.date,
+            y: t.efficiencyFactor,
+            workoutId: t.workoutId,
+            date: t.date
+          })),
           borderColor: theme.colors.value.get('purple', 500),
           backgroundColor: 'transparent',
           borderWidth: 3,
@@ -196,7 +201,7 @@
           if (context.datasetIndex !== 0) return false
 
           // If too many points for the current width, hide labels to avoid overlap
-          const numPoints = context.chart.data.labels.length
+          const numPoints = context.dataset.data.length
           const chartWidth = context.chart.width
           if (chartWidth > 0 && chartWidth < numPoints * 40) return false
 
@@ -207,7 +212,7 @@
         anchor: 'end' as const,
         offset: 4,
         font: { size: 9, weight: 'bold' as const },
-        formatter: (value: any) => value.toFixed(2)
+        formatter: (value: any) => value?.y?.toFixed(2) ?? ''
       },
       tooltip: {
         backgroundColor: theme.isDark.value ? '#111827' : '#ffffff',
@@ -221,6 +226,11 @@
         displayColors: true,
         boxPadding: 4,
         callbacks: {
+          title: function (context: any) {
+            const point = context[0]?.raw
+            const timestamp = point?.x
+            return timestamp ? formatDateTime(timestamp, 'MMM d, yyyy h:mm a') : ''
+          },
           label: function (context: any) {
             return `Efficiency: ${context.parsed.y.toFixed(2)}`
           }
@@ -232,6 +242,7 @@
         type: 'time' as const,
         time: {
           unit: 'day' as const,
+          tooltipFormat: 'MMM d, yyyy h:mm a',
           displayFormats: {
             day: 'MMM d'
           }
