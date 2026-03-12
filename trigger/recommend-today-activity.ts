@@ -686,6 +686,28 @@ FITBIT RECOVERY ALERT CHECK:
 - ${fitbitRecoveryAlert.summary}
 `
 
+    const missingSubjectiveMetrics = enrichedTodayMetric
+      ? [
+          enrichedTodayMetric.stress == null ? 'stress' : null,
+          enrichedTodayMetric.fatigue == null ? 'fatigue' : null,
+          enrichedTodayMetric.soreness == null ? 'soreness' : null,
+          enrichedTodayMetric.mood == null ? 'mood' : null,
+          enrichedTodayMetric.motivation == null ? 'motivation' : null
+        ].filter((metric): metric is string => Boolean(metric))
+      : ['stress', 'fatigue', 'soreness', 'mood', 'motivation']
+
+    const subjectiveDataIntegrityContext = missingSubjectiveMetrics.length
+      ? `
+SUBJECTIVE DATA INTEGRITY:
+- Missing subjective metrics today: ${missingSubjectiveMetrics.join(', ')}.
+- Treat missing subjective metrics as "not reported today".
+- Do NOT infer, estimate, or mention a numeric value for any missing subjective metric.
+`
+      : `
+SUBJECTIVE DATA INTEGRITY:
+- All core subjective metrics are present today.
+`
+
     // Build canonical metabolic meal-target context
     const mealTargetContextText = mealTargetContext
       ? `
@@ -804,6 +826,7 @@ ${enrichedTodayMetric.spO2 ? `- SpO2: ${enrichedTodayMetric.spO2}%` : ''}
 
 ${wellnessAnalysisContext}
 ${fitbitRecoveryAlertContext}
+${subjectiveDataIntegrityContext}
 ${mealTargetContextText}
 
 ${checkinsSummary}
@@ -829,6 +852,7 @@ CRITICAL INSTRUCTIONS:
 4. Refer to the "PROJECTED FITNESS TRENDS" for future state, but base your primary decision on the current TSB and recovery metrics.
 5. RESPECT TRAINING AVAILABILITY: do not recommend sessions outside declared availability windows unless user feedback explicitly asks to override.
 6. If Fitbit recovery alert is triggered, bias strongly toward 'rest' or 'reduce_intensity' unless user feedback explicitly requests otherwise.
+7. Never invent subjective scores. If stress, fatigue, soreness, mood, or motivation are missing, explicitly describe them as "not reported today" instead of assigning a value.
 
 ${zoneDefinitions}
 

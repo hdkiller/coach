@@ -28,7 +28,7 @@ export const ingestFitFile = task({
     fitFileId: string
     activityName?: string
     rawJson?: any
-    source?: string
+    oauthAppId?: string
     externalId?: string
   }) => {
     const {
@@ -36,7 +36,7 @@ export const ingestFitFile = task({
       fitFileId,
       activityName,
       rawJson,
-      source = 'fit_file',
+      oauthAppId,
       externalId: providedExternalId
     } = payload
 
@@ -44,7 +44,7 @@ export const ingestFitFile = task({
       userId,
       fitFileId,
       activityName,
-      source,
+      oauthAppId,
       providedExternalId
     })
 
@@ -80,6 +80,9 @@ export const ingestFitFile = task({
       const workoutData = normalizeFitSession(session, userId, fitFile.filename, activityName)
       if (providedExternalId) {
         workoutData.externalId = providedExternalId
+      }
+      if (oauthAppId) {
+        workoutData.oauthAppId = oauthAppId
       }
 
       // Extract streams
@@ -140,7 +143,7 @@ export const ingestFitFile = task({
       // Upsert workout
       const { record: upsertedWorkout } = await workoutRepository.upsert(
         userId,
-        source,
+        workoutData.source,
         workoutData.externalId,
         { ...workoutData, rawJson: rawJson || null },
         { ...workoutData, rawJson: rawJson || null }
