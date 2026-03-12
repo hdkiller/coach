@@ -73,7 +73,7 @@ export const thresholdDetectionService = {
       prisma
     )
 
-    const sportName = sportSettings?.name || 'Default'
+    const sportName = sportSettings?.name?.trim() || null
     const currentLthr = sportSettings?.lthr || workout.user?.lthr
     const currentFtp = sportSettings?.ftp || workout.user?.ftp
     const currentMaxHr = sportSettings?.maxHr || (workout.user as any)?.maxHr
@@ -98,12 +98,17 @@ export const thresholdDetectionService = {
             workoutMaxHr,
             workoutMaxHr,
             sportName,
+            workout.date,
             prisma,
             noNotify
           )
           await createUserNotification(workout.userId, {
-            title: `New Max Heart Rate Detected (${sportName})`,
-            message: `We detected a new peak heart rate of ${workoutMaxHr} bpm during your last ${workout.type || 'workout'}.`,
+            title: sportName
+              ? `New Max Heart Rate Detected (${sportName})`
+              : 'New Max Heart Rate Detected',
+            message: sportName
+              ? `We detected a new peak heart rate of ${workoutMaxHr} bpm for your ${sportName} profile during "${workout.title || workout.type || 'workout'}".`
+              : `We detected a new peak heart rate of ${workoutMaxHr} bpm during "${workout.title || workout.type || 'workout'}".`,
             icon: 'i-heroicons-heart',
             link: `/workouts/${workout.id}`
           })
@@ -148,14 +153,19 @@ export const thresholdDetectionService = {
               estimatedLthr,
               peak20mHR,
               sportName,
+              workout.date,
               prisma,
               noNotify
             )
 
             if (!noNotify) {
               await createUserNotification(workout.userId, {
-                title: `New Heart Rate Threshold Detected (${sportName})`,
-                message: `Congratulations! Based on your workout "${workout.title}", we've detected a new threshold heart rate of ${estimatedLthr} bpm (previous: ${currentLthr} bpm).`,
+                title: sportName
+                  ? `New Heart Rate Threshold Detected (${sportName})`
+                  : 'New Heart Rate Threshold Detected',
+                message: sportName
+                  ? `Congratulations! Your ${sportName} profile threshold heart rate increased to ${estimatedLthr} bpm (previous: ${currentLthr} bpm) based on "${workout.title}".`
+                  : `Congratulations! Your threshold heart rate increased to ${estimatedLthr} bpm (previous: ${currentLthr} bpm) based on "${workout.title}".`,
                 icon: 'i-heroicons-bolt',
                 link: `/workouts/${workout.id}`
               })
@@ -196,14 +206,17 @@ export const thresholdDetectionService = {
               estimatedFtp,
               peak20mPower,
               sportName,
+              workout.date,
               prisma,
               noNotify
             )
 
             if (!noNotify) {
               await createUserNotification(workout.userId, {
-                title: `New ${sportName} FTP Detected`,
-                message: `Great job! Based on your 20-minute effort, we've detected a potential new FTP of ${estimatedFtp}W (previous: ${currentFtp}W).`,
+                title: sportName ? `New ${sportName} FTP Detected` : 'New FTP Detected',
+                message: sportName
+                  ? `Great job! Your ${sportName} profile FTP increased to ${estimatedFtp}W (previous: ${currentFtp}W) based on "${workout.title || 'your workout'}".`
+                  : `Great job! Your FTP increased to ${estimatedFtp}W (previous: ${currentFtp}W) based on "${workout.title || 'your workout'}".`,
                 icon: 'i-heroicons-fire',
                 link: `/workouts/${workout.id}`
               })
@@ -293,6 +306,7 @@ export const thresholdDetectionService = {
               detectedPacePerKm,
               peak40mPace,
               sportName,
+              workout.date,
               prisma,
               noNotify
             )
@@ -316,7 +330,8 @@ export const thresholdDetectionService = {
     oldValue: number,
     newValue: number,
     peakValue: number,
-    sportName: string,
+    sportName: string | null,
+    workoutDate: Date,
     prismaOverride?: any,
     noNotify: boolean = false
   ) {
@@ -326,17 +341,27 @@ export const thresholdDetectionService = {
     const unit = metric === 'FTP' ? 'W' : metric === 'THRESHOLD_PACE' ? 's/km' : ' bpm'
 
     if (metric === 'LTHR') {
-      title = `New ${sportName} LTHR Detected`
-      description = `Your LTHR has increased from ${oldValue} to ${newValue} bpm.`
+      title = sportName ? `New ${sportName} LTHR Detected` : 'New LTHR Detected'
+      description = sportName
+        ? `Your ${sportName} LTHR has increased from ${oldValue} to ${newValue} bpm.`
+        : `Your LTHR has increased from ${oldValue} to ${newValue} bpm.`
     } else if (metric === 'FTP') {
-      title = `New ${sportName} FTP Detected`
-      description = `Your FTP has increased from ${oldValue}W to ${newValue}W.`
+      title = sportName ? `New ${sportName} FTP Detected` : 'New FTP Detected'
+      description = sportName
+        ? `Your ${sportName} FTP has increased from ${oldValue}W to ${newValue}W.`
+        : `Your FTP has increased from ${oldValue}W to ${newValue}W.`
     } else if (metric === 'MAX_HR') {
-      title = `New Max Heart Rate Detected (${sportName})`
+      title = sportName
+        ? `New Max Heart Rate Detected (${sportName})`
+        : 'New Max Heart Rate Detected'
       description = `We detected a new max heart rate of ${newValue} bpm (previous: ${oldValue} bpm).`
     } else if (metric === 'THRESHOLD_PACE') {
-      title = `New Threshold Pace Detected (${sportName})`
-      description = `Your threshold pace has improved to ${Math.floor(newValue / 60)}:${String(Math.floor(newValue % 60)).padStart(2, '0')}/km.`
+      title = sportName
+        ? `New Threshold Pace Detected (${sportName})`
+        : 'New Threshold Pace Detected'
+      description = sportName
+        ? `Your ${sportName} threshold pace has improved to ${Math.floor(newValue / 60)}:${String(Math.floor(newValue % 60)).padStart(2, '0')}/km.`
+        : `Your threshold pace has improved to ${Math.floor(newValue / 60)}:${String(Math.floor(newValue % 60)).padStart(2, '0')}/km.`
     }
 
     // Check if an active recommendation for this metric already exists to avoid spamming
@@ -361,7 +386,8 @@ export const thresholdDetectionService = {
             oldValue,
             newValue,
             workoutId,
-            sportName
+            sportName,
+            workoutDate
           }
         }
       })
@@ -382,7 +408,8 @@ export const thresholdDetectionService = {
             oldValue,
             newValue,
             workoutId,
-            sportName
+            sportName,
+            workoutDate
           }
         }
       })
@@ -397,8 +424,9 @@ export const thresholdDetectionService = {
         oldValue,
         workoutId,
         source: 'AUTOMATIC',
-        date: new Date(),
-        notes: `Detected for ${sportName} profile.`
+        date: workoutDate,
+        sportProfileName: sportName || undefined,
+        notes: sportName ? `Detected for ${sportName} profile.` : 'Detected from workout analysis.'
       }
     })
 
@@ -412,7 +440,8 @@ export const thresholdDetectionService = {
           oldValue,
           newValue,
           unit,
-          peakValue
+          peakValue,
+          sportProfileName: sportName || undefined
         })
       } catch (err) {
         logger.warn('Failed to queue threshold email', { userId, workoutId, metric, error: err })
