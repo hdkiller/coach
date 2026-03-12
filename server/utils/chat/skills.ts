@@ -11,6 +11,11 @@ export const CHAT_SKILL_IDS = [
   'planning_write',
   'workout_read',
   'workout_update',
+  'profile',
+  'availability',
+  'recommendations',
+  'wellness',
+  'analysis',
   'nutrition',
   'general_chat'
 ] as const
@@ -21,6 +26,11 @@ export type ChatSkillContextFlag =
   | 'support'
   | 'planning'
   | 'workout'
+  | 'profile'
+  | 'availability'
+  | 'recommendations'
+  | 'wellness'
+  | 'analysis'
   | 'nutrition'
   | 'time'
   | 'date_context'
@@ -57,6 +67,8 @@ type ChatSkillRouterParams = {
 type ComposeSkillInstructionsContext = {
   aiRequireToolApproval?: boolean
   nutritionTrackingEnabled?: boolean
+  useTools?: boolean
+  approvalToolNames?: string[]
 }
 
 const ROUTER_MODEL_ID = 'gemini-3.1-flash-lite-preview'
@@ -201,6 +213,103 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
     priority: 85,
     fallbackSkill: 'general_chat'
   },
+  profile: {
+    id: 'profile',
+    description:
+      'Profile and sport-setting workflows: inspect or update athlete profile data, sport zones, preferences, and athlete profile recalculation.',
+    toolNames: [
+      'get_user_profile',
+      'generate_athlete_profile',
+      'update_user_profile',
+      'get_sport_settings',
+      'update_sport_settings'
+    ],
+    instructionFragment: `## Profile Skill
+
+- Use profile tools for athlete settings, zones, units, location, FTP, HR, and persona preferences.
+- For read-only profile questions, fetch the minimum profile or sport-setting data needed before answering.
+- When the user clearly asks to change profile or sport settings, call the relevant profile tool instead of only describing the intended change.
+- Do not claim a profile or sport-setting change succeeded unless the tool actually ran successfully.`,
+    contextFlags: ['profile'],
+    approvalToolNames: [],
+    priority: 82,
+    fallbackSkill: 'general_chat'
+  },
+  availability: {
+    id: 'availability',
+    description:
+      'Availability workflows: inspect or update the athlete training schedule, available slots, and day-specific constraints.',
+    toolNames: ['get_training_availability', 'update_training_availability'],
+    instructionFragment: `## Availability Skill
+
+- Use availability tools when the user asks about their training schedule, available slots, gym access, or day constraints.
+- Treat slot updates as mutations to the athlete schedule; do not describe a schedule change without calling the relevant tool.
+- Ask for clarification only when the target day or slot data is ambiguous.
+- Do not claim the training availability changed unless the tool actually ran successfully.`,
+    contextFlags: ['availability', 'planning', 'time', 'date_context'],
+    approvalToolNames: [],
+    priority: 84,
+    fallbackSkill: 'general_chat'
+  },
+  recommendations: {
+    id: 'recommendations',
+    description:
+      'Recommendation workflows: inspect recommendation details, list pending recommendations, or generate a workout recommendation.',
+    toolNames: ['recommend_workout', 'get_recommendation_details', 'list_pending_recommendations'],
+    instructionFragment: `## Recommendations Skill
+
+- Use recommendation tools when the user asks what workout is recommended, wants recommendation details, or wants to review pending recommendations.
+- Ground recommendation summaries in tool output; do not invent recommendation records.
+- If the user asks for a recommendation now, call the recommendation tool rather than improvising one from scratch.`,
+    contextFlags: ['recommendations', 'planning'],
+    approvalToolNames: [],
+    priority: 78,
+    fallbackSkill: 'general_chat'
+  },
+  wellness: {
+    id: 'wellness',
+    description:
+      'Wellness and recovery workflows: inspect recovery metrics, log symptoms or wellness events, and manage wellness history.',
+    toolNames: [
+      'get_wellness_metrics',
+      'record_wellness_event',
+      'get_wellness_events',
+      'update_wellness_event',
+      'delete_wellness_event'
+    ],
+    instructionFragment: `## Wellness Skill
+
+- Use wellness tools for recovery, sleep, soreness, fatigue, symptoms, and subjective wellness logging.
+- When the user wants to log, update, or delete a wellness event, call the relevant wellness tool instead of only acknowledging the request.
+- For recovery questions, prefer fetching wellness metrics before interpreting how the athlete is doing.
+- Do not claim a wellness event or recovery change was saved unless the tool actually ran successfully.`,
+    contextFlags: ['wellness', 'time', 'date_context'],
+    approvalToolNames: [],
+    priority: 77,
+    fallbackSkill: 'general_chat'
+  },
+  analysis: {
+    id: 'analysis',
+    description:
+      'Analysis and calculation workflows: analyze training load, forecast load, calculate training metrics, or perform explicit math/calculation requests.',
+    toolNames: [
+      'analyze_training_load',
+      'forecast_training_load',
+      'create_chart',
+      'calculate_training_metrics',
+      'perform_calculation'
+    ],
+    instructionFragment: `## Analysis Skill
+
+- Use analysis or calculation tools for training-load analysis, forecasts, zone calculations, conversions, charts, or explicit math.
+- Prefer calculation tools over mental math when the user asks for numbers, zones, pace, conversions, or metric formulas.
+- Create charts only when they materially improve the answer.
+- Ground analytical conclusions in the returned tool data; do not invent metrics.`,
+    contextFlags: ['analysis', 'workout', 'planning'],
+    approvalToolNames: [],
+    priority: 76,
+    fallbackSkill: 'general_chat'
+  },
   nutrition: {
     id: 'nutrition',
     description:
@@ -339,6 +448,11 @@ Rules:
 - Use "planning_write" for creating, moving, adjusting, publishing, or deleting planned workouts or availability.
 - Use "workout_read" for completed or recent workout analysis.
 - Use "workout_update" for edits to a completed workout record.
+- Use "profile" for athlete profile, sport settings, zones, units, or preference changes.
+- Use "availability" for schedule slots, training availability, gym access, or day constraints.
+- Use "recommendations" for workout recommendations or recommendation details.
+- Use "wellness" for recovery metrics, symptom logging, sleep, soreness, fatigue, or wellness history.
+- Use "analysis" for training-load analysis, forecasting, explicit math, pace/zones calculations, or charts.
 - Use "nutrition" for meal, hydration, fueling, or nutrition-log requests.
 - Use "general_chat" when no tools are needed right now.
 - If unsure, return skillIds ["general_chat"] and useTools false.
@@ -627,6 +741,41 @@ export function selectToolsForSkills(
   return filterChatToolsForChat(selectedTools)
 }
 
+async function toolRequiresApproval(tool: any) {
+  if (!tool) return false
+  if (typeof tool.needsApproval === 'boolean') return tool.needsApproval
+  if (typeof tool.needsApproval === 'function') {
+    try {
+      return !!(await tool.needsApproval())
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
+export async function resolveApprovalToolNamesForSelection(
+  tools: Record<string, any>,
+  options: {
+    aiRequireToolApproval?: boolean
+    useTools?: boolean
+  } = {}
+) {
+  if (!options.aiRequireToolApproval || !options.useTools) {
+    return []
+  }
+
+  const approvalToolNames: string[] = []
+
+  for (const [toolName, tool] of Object.entries(tools)) {
+    if (await toolRequiresApproval(tool)) {
+      approvalToolNames.push(toolName)
+    }
+  }
+
+  return approvalToolNames.sort()
+}
+
 export function composeSkillInstructions(
   baseInstruction: string,
   skillIds: ChatSkillId[],
@@ -644,6 +793,22 @@ export function composeSkillInstructions(
     return `${baseInstruction}\n\n${CHAT_SKILL_MANIFESTS.general_chat.instructionFragment}`
   }
 
+  if (!context.useTools) {
+    const contextualDomains = selectedSkills.filter((skillId) => skillId !== 'general_chat')
+    const contextualHint = contextualDomains.length
+      ? `- Domain context for this turn: ${contextualDomains.join(', ')}.\n- Answer without tools and never imply a tool action was executed.`
+      : ''
+
+    return [
+      baseInstruction,
+      '## Active Skill Instructions',
+      CHAT_SKILL_MANIFESTS.general_chat.instructionFragment,
+      contextualHint
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
   const fragments = selectedSkills
     .map((skillId) => {
       if (skillId === 'nutrition' && context.nutritionTrackingEnabled === false) {
@@ -654,9 +819,7 @@ export function composeSkillInstructions(
     })
     .join('\n\n')
 
-  const approvalToolNames = context.aiRequireToolApproval
-    ? uniq(selectedSkills.flatMap((skillId) => CHAT_SKILL_MANIFESTS[skillId].approvalToolNames))
-    : []
+  const approvalToolNames = uniq(context.approvalToolNames || [])
 
   const approvalInstruction = approvalToolNames.length
     ? `## Active Approval Rules

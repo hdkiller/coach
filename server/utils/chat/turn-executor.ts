@@ -24,6 +24,7 @@ import { findToolNameRepair } from './tool-call-repair'
 import {
   classifyChatSkills,
   composeSkillInstructions,
+  resolveApprovalToolNamesForSelection,
   selectToolsForSkills,
   type ChatSkillSelection
 } from './skills'
@@ -124,7 +125,7 @@ export function normalizeMessagesForSdk(inputMessages: any[]) {
   })
 }
 
-export function buildTurnExecutionSkillConfig(input: {
+export async function buildTurnExecutionSkillConfig(input: {
   allTools: Record<string, any>
   baseSystemInstruction: string
   skillSelection: ChatSkillSelection
@@ -134,16 +135,23 @@ export function buildTurnExecutionSkillConfig(input: {
   const tools = selectToolsForSkills(input.allTools, input.skillSelection.skillIds, {
     useTools: input.skillSelection.useTools
   })
+  const selectedToolNames = Object.keys(tools)
+  const approvalToolNames = await resolveApprovalToolNamesForSelection(tools, {
+    aiRequireToolApproval: input.aiRequireToolApproval,
+    useTools: input.skillSelection.useTools
+  })
 
   return {
     tools,
-    selectedToolNames: Object.keys(tools),
+    selectedToolNames,
     systemInstruction: composeSkillInstructions(
       input.baseSystemInstruction,
       input.skillSelection.skillIds,
       {
         aiRequireToolApproval: input.aiRequireToolApproval,
-        nutritionTrackingEnabled: input.nutritionTrackingEnabled
+        nutritionTrackingEnabled: input.nutritionTrackingEnabled,
+        useTools: input.skillSelection.useTools,
+        approvalToolNames
       }
     )
   }
@@ -387,7 +395,7 @@ export async function executeChatTurn(turnId: string) {
     nutritionTrackingEnabled: aiSettings?.nutritionTrackingEnabled !== false
   })
   ensureTurnNotAborted()
-  const { tools, selectedToolNames, systemInstruction } = buildTurnExecutionSkillConfig({
+  const { tools, selectedToolNames, systemInstruction } = await buildTurnExecutionSkillConfig({
     allTools,
     baseSystemInstruction: finalSystemInstruction,
     skillSelection,
