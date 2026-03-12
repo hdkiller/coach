@@ -70,6 +70,11 @@ export default defineEventHandler(async (event) => {
 
   // Prepare the new description (completely replacing the old one)
   const newDescription = `${modifications.description}${modifications.zone_adjustments ? `\n\nZone Adjustments: ${modifications.zone_adjustments}` : ''}`
+  const type =
+    modifications.new_type === 'Gym' ? 'WeightTraining' : modifications.new_type || 'Ride'
+  const title =
+    modifications.new_title?.trim() ||
+    (type === 'Rest' ? 'Rest Day' : recommendation.plannedWorkout?.title || 'Updated Workout')
 
   let targetPlannedWorkoutId = recommendation.plannedWorkoutId
 
@@ -95,7 +100,8 @@ export default defineEventHandler(async (event) => {
     updatedWorkout = await prisma.plannedWorkout.update({
       where: { id: targetPlannedWorkoutId },
       data: {
-        title: modifications.new_title,
+        title,
+        type,
         durationSec: modifications.new_duration_min
           ? Math.round(modifications.new_duration_min * 60)
           : undefined,
@@ -108,14 +114,11 @@ export default defineEventHandler(async (event) => {
     })
   } else {
     // CREATE new workout
-    const type =
-      modifications.new_type === 'Gym' ? 'WeightTraining' : modifications.new_type || 'Ride'
-
     updatedWorkout = await prisma.plannedWorkout.create({
       data: {
         userId,
         date: recommendation.date,
-        title: modifications.new_title,
+        title,
         type,
         durationSec: modifications.new_duration_min
           ? Math.round(modifications.new_duration_min * 60)
