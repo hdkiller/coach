@@ -288,7 +288,7 @@
 
   async function fetchZoneData() {
     if (import.meta.server) return
-    if (!props.weekData || props.weekData.workoutIds.length === 0) {
+    if (!props.weekData || !props.weekData.workoutIds || props.weekData.workoutIds.length === 0) {
       // Even if no completed workouts, we might have planned ones
       // But we need to initialize
       aggregatedZones.value = new Array(8).fill(0)

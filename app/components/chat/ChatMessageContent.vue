@@ -213,11 +213,11 @@
       class="message-part"
     >
       <!-- Text Part -->
-      <div v-if="part.type === 'text'" class="relative group/message max-w-none">
+      <div v-if="part.type === 'text' && part.text" class="relative group/message max-w-none">
         <div
           class="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_p]:leading-7 [&_p]:text-pretty"
         >
-          <MDC :value="toMdcSafeText(part.text)" :cache-key="`${message.id}-${index}`" />
+          <MDC :value="toMdcSafeText(part.text)" />
         </div>
         <div
           v-if="isUserMessage && message.metadata?.editedAt"

@@ -2058,9 +2058,17 @@
     const weekStreams = getWeekStreams(week)
 
     selectedWeekData.value = {
-      summary,
-      completedActivities,
-      allPlannedActivities
+      weekNumber: week[0] ? getWeekNumber(week[0].date) : 0,
+      completedWorkouts: completedActivities.length,
+      totalDuration: summary.duration,
+      totalDistance: summary.distance,
+      totalTSS: summary.tss,
+      plannedDuration: summary.plannedDuration,
+      plannedDistance: summary.plannedDistance,
+      plannedTss: summary.plannedTss,
+      workoutIds: completedActivities.map((a) => a.id),
+      activities: completedActivities,
+      plannedActivities: allPlannedActivities
     }
     selectedWeekStreams.value = weekStreams
     showWeekZoneModal.value = true
