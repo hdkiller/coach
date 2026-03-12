@@ -4,27 +4,6 @@
     title="Workout Overview"
     description="A quick summary of your workout performance and metrics."
   >
-    <template #actions>
-      <div class="flex items-center gap-1">
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-clipboard"
-          size="sm"
-          aria-label="Copy workout ID"
-          @click="copyWorkoutId"
-        />
-        <UButton
-          color="error"
-          variant="ghost"
-          icon="i-heroicons-trash"
-          size="sm"
-          aria-label="Delete workout"
-          @click="showDeleteConfirm = true"
-        />
-      </div>
-    </template>
-
     <!-- Hidden trigger - modal is controlled programmatically -->
     <span class="hidden" />
 
@@ -350,23 +329,43 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-between gap-3 w-full">
-        <UButton
-          color="neutral"
-          variant="soft"
-          class="font-black uppercase tracking-widest text-[10px] px-4"
-          @click="closeModal"
-        >
-          Dismiss
-        </UButton>
-        <UButton
-          color="primary"
-          variant="solid"
-          class="font-black uppercase tracking-widest text-[10px] px-6"
-          @click="viewFullWorkout"
-        >
-          View Full Details
-        </UButton>
+      <div class="flex justify-between items-center gap-3 w-full">
+        <div class="flex gap-2">
+          <UButton
+            color="error"
+            variant="ghost"
+            icon="i-heroicons-trash"
+            size="lg"
+            aria-label="Delete workout"
+            @click="showDeleteConfirm = true"
+          />
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-clipboard"
+            size="lg"
+            aria-label="Copy workout ID"
+            @click="copyWorkoutId"
+          />
+        </div>
+        <div class="flex gap-2">
+          <UButton
+            color="neutral"
+            variant="soft"
+            class="font-black uppercase tracking-widest text-[10px] px-5 py-2.5"
+            @click="closeModal"
+          >
+            Dismiss
+          </UButton>
+          <UButton
+            color="primary"
+            variant="solid"
+            class="font-black uppercase tracking-widest text-[10px] px-8 py-2.5"
+            @click="viewFullWorkout"
+          >
+            View Full Details
+          </UButton>
+        </div>
       </div>
     </template>
   </UModal>

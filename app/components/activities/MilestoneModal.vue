@@ -35,6 +35,14 @@
                 {{ milestone.metric }}
               </div>
             </div>
+            <div v-if="milestone.sportProfileName">
+              <div class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
+                Sport Profile
+              </div>
+              <div class="text-sm font-bold text-gray-900 dark:text-white">
+                {{ milestone.sportProfileName }}
+              </div>
+            </div>
             <div v-if="milestone.value != null">
               <div class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">
                 New Value
