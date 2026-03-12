@@ -12,6 +12,7 @@ export interface CalendarActivity {
   value?: number
   oldValue?: number
   unit?: string
+  sportProfileName?: string
   priority?: string
   description?: string
 
