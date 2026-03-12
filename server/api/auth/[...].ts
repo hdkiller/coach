@@ -16,6 +16,17 @@ adapter.linkAccount = (account: any) => {
   }
   return originalLinkAccount!(sanitizedAccount)
 }
+const originalDeleteSession = adapter.deleteSession
+adapter.deleteSession = async (sessionToken: string) => {
+  try {
+    return await originalDeleteSession!(sessionToken)
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      return null
+    }
+    throw error
+  }
+}
 
 const syncIntervalsIntegration = async (user: any, account: any) => {
   try {
