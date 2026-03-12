@@ -16,6 +16,7 @@ import {
 import type { GeminiModel } from './ai-config'
 import { MODEL_NAMES, calculateLlmCost } from './ai-config'
 import { getLlmOperationSettings } from './ai-operation-settings'
+import { buildWorkoutAnalysisFactsV2 } from './workout-analysis-facts'
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY
@@ -583,6 +584,7 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
   return workouts
     .map((w, idx) => {
       const dateStr = formatDateUTC(w.date, 'MMM d, yyyy')
+      const analysisFacts = buildWorkoutAnalysisFactsV2({ workout: w })
 
       const lines = [
         `### Workout ${idx + 1}: ${w.title}`,
@@ -622,8 +624,21 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
       if (w.powerHrRatio) lines.push(`- **Power/HR Ratio**: ${w.powerHrRatio.toFixed(2)}`)
       if (w.efficiencyFactor)
         lines.push(`- **Efficiency Factor**: ${w.efficiencyFactor.toFixed(2)}`)
-      if (w.decoupling !== null && w.decoupling !== undefined)
-        lines.push(`- **Decoupling**: ${w.decoupling.toFixed(1)}%`)
+      if (analysisFacts.performanceSignals.decoupling.interpretable) {
+        if (
+          w.decoupling !== null &&
+          w.decoupling !== undefined &&
+          analysisFacts.performanceSignals.decoupling.effective !== null
+        ) {
+          lines.push(
+            `- **Decoupling**: ${analysisFacts.performanceSignals.decoupling.effective.toFixed(1)}%`
+          )
+        }
+      } else if (analysisFacts.performanceSignals.decoupling.reason) {
+        lines.push(
+          `- **Decoupling Guardrail**: Ignore classic decoupling for this workout. ${analysisFacts.performanceSignals.decoupling.reason}`
+        )
+      }
 
       // Fitness tracking
       if (w.ctl) lines.push(`- **CTL (Fitness)**: ${Math.round(w.ctl)}`)
@@ -643,12 +658,34 @@ export function buildWorkoutSummary(workouts: any[], timezone?: string): string 
 
       // Balance
       if (w.lrBalance !== null && w.lrBalance !== undefined) {
-        const rightPct = w.lrBalance
-        const leftPct = 100 - rightPct
-        lines.push(`- **L/R Balance (Left%/Right%)**: ${leftPct.toFixed(1)}/${rightPct.toFixed(1)}`)
-        lines.push(
-          `- **L/R Dominance**: ${rightPct > 50 ? 'Right' : rightPct < 50 ? 'Left' : 'Even'}`
-        )
+        const lrGuardrails = analysisFacts.guardrails.lrBalance
+        if (lrGuardrails.sourceSemantics === 'human_vs_motor') {
+          lines.push(
+            `- **Balance Signal Semantics**: Human vs motor contribution signal detected, not true left/right pedaling balance.`
+          )
+          if (
+            lrGuardrails.correctedLeftPct !== null &&
+            lrGuardrails.correctedRightPct !== null &&
+            lrGuardrails.interpretationMode === 'corrected'
+          ) {
+            lines.push(
+              `- **Human/Motor Balance (Corrected)**: ${lrGuardrails.correctedLeftPct.toFixed(1)}/${lrGuardrails.correctedRightPct.toFixed(1)}`
+            )
+          } else if (lrGuardrails.correctionReason) {
+            lines.push(`- **Balance Guardrail**: ${lrGuardrails.correctionReason}`)
+          }
+        } else if (lrGuardrails.interpretationMode === 'normal') {
+          const rightPct = lrGuardrails.correctedRightPct ?? w.lrBalance
+          const leftPct = lrGuardrails.correctedLeftPct ?? 100 - rightPct
+          lines.push(
+            `- **L/R Balance (Left%/Right%)**: ${leftPct.toFixed(1)}/${rightPct.toFixed(1)}`
+          )
+          lines.push(
+            `- **L/R Dominance**: ${rightPct > 50 ? 'Right' : rightPct < 50 ? 'Left' : 'Even'}`
+          )
+        } else if (lrGuardrails.correctionReason) {
+          lines.push(`- **Balance Guardrail**: ${lrGuardrails.correctionReason}`)
+        }
       }
 
       // Zone Data (from Streams)
