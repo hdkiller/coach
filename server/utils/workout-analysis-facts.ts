@@ -272,7 +272,8 @@ function inferPowerSourceType(
   const hasPower =
     Boolean(workout?.averageWatts) ||
     Boolean(workout?.normalizedPower) ||
-    asNumberArray(workout?.streams?.watts).length > 0
+    asNumberArray(workout?.streams?.watts).length > 0 ||
+    asNumberArray(workout?.streams?.powerZoneTimes).some((value) => value > 0)
   if (!hasPower) return 'unknown'
   if (
     family === 'run' ||
@@ -665,7 +666,8 @@ export function buildWorkoutAnalysisFacts({
     powerSourceType !== 'unknown' ||
     Boolean(workout?.averageWatts) ||
     Boolean(workout?.normalizedPower) ||
-    asNumberArray(workout?.streams?.watts).length > 0
+    asNumberArray(workout?.streams?.watts).length > 0 ||
+    asNumberArray(workout?.streams?.powerZoneTimes).some((value) => value > 0)
   if (!powerAbsoluteUsable && powerRelativeUsable) {
     disabledInterpretations.push(
       'Absolute power benchmarking disabled because available power is estimated or uncertain.'
@@ -2045,7 +2047,8 @@ export function buildWorkoutAnalysisFactsV2({
     powerSourceType !== 'unknown' ||
     Boolean(workout?.averageWatts) ||
     Boolean(workout?.normalizedPower) ||
-    asNumberArray(workout?.streams?.watts).length > 0
+    asNumberArray(workout?.streams?.watts).length > 0 ||
+    asNumberArray(workout?.streams?.powerZoneTimes).some((value) => value > 0)
   const hasPace =
     Boolean(workout?.averageSpeed) || asNumberArray(workout?.streams?.velocity).length > 0
   const analysisMode = getAnalysisMode({

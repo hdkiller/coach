@@ -49,6 +49,21 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.telemetry.analysisMode).toBe('pace')
   })
 
+  it('treats power-zone telemetry as valid power evidence for rides', () => {
+    const facts = buildWorkoutAnalysisFacts({
+      workout: makeWorkout({
+        averageWatts: null,
+        normalizedPower: null,
+        streams: {
+          powerZoneTimes: [0, 600, 1200, 900, 300]
+        }
+      })
+    })
+
+    expect(facts.telemetry.powerSourceType).toBe('measured')
+    expect(facts.telemetry.powerRelativeUsable).toBe(true)
+  })
+
   it('detects efficiency gain when later power/hr ratio improves after warm-up exclusion', () => {
     const time = Array.from({ length: 180 }, (_, index) => index * 30)
     const watts = Array.from({ length: 180 }, (_, index) => (index < 90 ? 200 : 205))
