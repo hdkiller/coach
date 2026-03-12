@@ -1,6 +1,11 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 
+const toSleepHours = (
+  sleepHours: number | null | undefined,
+  sleepSecs: number | null | undefined
+) => sleepHours ?? (sleepSecs != null ? Math.round((sleepSecs / 3600) * 10) / 10 : null)
+
 defineRouteMeta({
   openAPI: {
     tags: ['Wellness'],
@@ -114,7 +119,7 @@ export default defineEventHandler(async (event) => {
       date: dateKey,
       hrv: w.hrv ?? existing.hrv,
       restingHr: w.restingHr ?? existing.restingHr,
-      hoursSlept: w.sleepHours ?? existing.hoursSlept,
+      hoursSlept: toSleepHours(w.sleepHours, w.sleepSecs) ?? existing.hoursSlept,
       sleepScore: w.sleepQuality ?? w.sleepScore ?? existing.sleepScore,
       recoveryScore: w.recoveryScore ?? existing.recoveryScore,
       readiness: w.readiness ?? existing.readiness
