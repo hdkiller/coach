@@ -128,5 +128,28 @@ describe('wellnessRepository', () => {
       expect(upsertCall.create).not.toHaveProperty('vo2Max')
       expect(upsertCall.update).not.toHaveProperty('vo2Max')
     })
+
+    it('should normalize fractional spO2 values to percentages before calling Prisma', async () => {
+      vi.mocked(prisma.wellness.findUnique).mockResolvedValue(null)
+
+      await wellnessRepository.upsert(
+        userId,
+        date,
+        { userId, date, spO2: 1 } as any,
+        { spO2: 0.976 } as any,
+        'apple_health'
+      )
+
+      expect(prisma.wellness.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            spO2: 100
+          }),
+          update: expect.objectContaining({
+            spO2: 97.6
+          })
+        })
+      )
+    })
   })
 })

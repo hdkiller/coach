@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { requireAuth } from '../../utils/auth-guard'
 import { prisma } from '../../utils/db'
 import { bodyMeasurementService } from '../../utils/services/bodyMeasurementService'
+import { normalizeWellnessFields } from '../../utils/wellnessNormalization'
 
 const patchSchema = z.object({
   date: z.string().optional(),
@@ -86,7 +87,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readValidatedBody(event, (b) => patchSchema.parse(b))
+  const body = normalizeWellnessFields(await readValidatedBody(event, (b) => patchSchema.parse(b)))
 
   const wellness = await prisma.wellness.findUnique({
     where: { id: wellnessId }

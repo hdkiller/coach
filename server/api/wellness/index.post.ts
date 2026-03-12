@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { requireAuth } from '../../utils/auth-guard'
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { bodyMeasurementService } from '../../utils/services/bodyMeasurementService'
+import { normalizeWellnessFields } from '../../utils/wellnessNormalization'
 
 const wellnessUploadSchema = z.object({
   date: z.string(), // ISO date or YYYY-MM-DD
@@ -162,7 +163,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { date, rawJson, ...data } = result.data
+  const { date, rawJson, ...data } = normalizeWellnessFields(result.data)
 
   // Ensure date is UTC midnight for wellness
   const parsedDate = new Date(date)
