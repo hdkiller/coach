@@ -113,9 +113,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Calculate source attribution
-  const source =
-    event.context.authType === 'oauth' ? `oauth:${event.context.oauthAppId}` : 'manual_upload'
+  const oauthAppId = event.context.authType === 'oauth' ? event.context.oauthAppId : undefined
 
   // Process each file
   for (const [index, filePart] of fileParts.entries()) {
@@ -158,7 +156,7 @@ export default defineEventHandler(async (event) => {
           fitFileId: fitFileId,
           activityName,
           rawJson,
-          source // Pass the source attribution
+          oauthAppId
         },
         {
           concurrencyKey: user.id,

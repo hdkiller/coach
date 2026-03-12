@@ -279,6 +279,8 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
     2. Identify any warning signs (e.g., high fatigue, low HRV trend, sudden drop in readiness).
     3. Provide actionable recommendations for today's training (e.g., push hard, active recovery, rest).
     4. Note any subjective factors (stress, soreness) that might impact performance.
+    5. Treat any metric shown as "N/A" as missing data, not a low or high score.
+    6. Do not infer, estimate, or invent subjective scores when they are missing. If stress is "N/A", say it was not reported today.
 
     Output JSON format matching the schema.
   `

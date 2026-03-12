@@ -55,6 +55,13 @@ export default defineEventHandler(async (event) => {
   const workout = await workoutRepository.getById(id, (session.user as any).id, {
     include: {
       streams: true,
+      oauthApp: {
+        select: {
+          id: true,
+          name: true,
+          clientId: true
+        }
+      },
       duplicates: true,
       canonicalWorkout: true,
       plannedWorkout: true,

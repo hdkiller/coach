@@ -749,7 +749,12 @@ export const IntervalsService = {
           wellnessDate,
           normalizedWellness,
           normalizedWellness,
-          'intervals'
+          'intervals',
+          {
+            // Intervals wellness is a full daily snapshot, so blank subjective fields
+            // should clear stale values instead of preserving yesterday's/manual leftovers.
+            clearFields: ['stress', 'fatigue', 'soreness', 'mood', 'motivation']
+          }
         )
         await bodyMeasurementService.recordWellnessMetrics(
           userId,
