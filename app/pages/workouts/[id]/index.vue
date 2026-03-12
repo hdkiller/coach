@@ -2509,7 +2509,11 @@
             <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-5 sm:px-0">
               {{ t('sections_pacing') }}
             </h2>
-            <PacingAnalysis :workout-id="workout.id" @open-metric="handleOpenMetric" />
+            <PacingAnalysis
+              :workout-id="workout.id"
+              :activity-type="workout.type"
+              @open-metric="handleOpenMetric"
+            />
           </div>
 
           <!-- Timeline -->
@@ -3167,6 +3171,7 @@
     :rating-color="activeMetric.ratingColor"
     :workout-id="workout?.id"
     :streams="workout?.streams"
+    :activity-type="workout?.type"
   />
 
   <WorkoutsWorkoutSectionsSettingsModal
@@ -3260,6 +3265,7 @@
     :title="selectedStream.label"
     :color="selectedStream.color"
     :unit="selectedStream.unit"
+    :activity-type="workout?.type"
   />
 
   <!-- Extras Meta Modal -->
@@ -3403,7 +3409,12 @@
   import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
   import StreamChartModal from '~/components/charts/streams/StreamChartModal.vue'
   import { metricTooltips } from '~/utils/tooltips'
-  import { formatDistance as formatDist, formatTemperature } from '~/utils/metrics'
+  import {
+    formatDistance as formatDist,
+    formatTemperature,
+    getVelocityUnitLabel,
+    isRideWorkoutType
+  } from '~/utils/metrics'
 
   const { t } = useTranslate('workout')
   const { t: tt } = useTranslate('workout-tooltips')
@@ -4725,6 +4736,11 @@
   const availableStreams = computed(() => {
     if (!workout.value || !workout.value.streams) return []
     const streams = []
+    const isRideWorkout = isRideWorkoutType(workout.value.type)
+    const velocityLabel = isRideWorkout ? 'Speed' : 'Velocity'
+    const velocityUnit = isRideWorkout
+      ? getVelocityUnitLabel(userStore.profile?.distanceUnits || 'Kilometers')
+      : 'm/s'
 
     // Define stream metadata
     const streamMetadata: Record<string, { label: string; color: string; unit: string }> = {
@@ -4734,7 +4750,7 @@
         color: '#6b7280',
         unit: userStore.distanceUnitLabel
       },
-      velocity: { label: 'Velocity', color: '#3b82f6', unit: 'm/s' },
+      velocity: { label: velocityLabel, color: '#3b82f6', unit: velocityUnit },
       heartrate: { label: 'Heart Rate', color: '#ef4444', unit: 'bpm' },
       cadence: { label: 'Cadence', color: '#f59e0b', unit: 'rpm' },
       watts: { label: t.value('metrics_avg_power'), color: '#8b5cf6', unit: 'W' },

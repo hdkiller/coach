@@ -16,8 +16,10 @@
             <div
               class="text-4xl font-black text-gray-900 dark:text-white tabular-nums tracking-tighter"
             >
-              {{ value
-              }}<span v-if="unit" class="text-lg ml-1 text-gray-400 uppercase">{{ unit }}</span>
+              {{ displayValue
+              }}<span v-if="displayUnit" class="text-lg ml-1 text-gray-400 uppercase">{{
+                displayUnit
+              }}</span>
             </div>
             <div
               v-if="hasComparisonStats"
@@ -143,7 +145,7 @@
             <ClientOnly>
               <BaseStreamChart
                 :label="metricInfo.label"
-                :data-points="streamData"
+                :data-points="displayStreamData"
                 :labels="sessionTimeData"
                 :color="chartColor"
                 :y-axis-label="chartUnit"
@@ -227,9 +229,15 @@
 </template>
 
 <script setup lang="ts">
-  import { metricDefinitions } from '~/utils/metrics'
+  import {
+    convertVelocity,
+    getVelocityUnitLabel,
+    isRideWorkoutType,
+    metricDefinitions
+  } from '~/utils/metrics'
   import { metricTooltips } from '~/utils/tooltips'
   import BaseStreamChart from '../charts/streams/BaseStreamChart.vue'
+  const userStore = useUserStore()
 
   const props = defineProps<{
     modelValue: boolean
@@ -240,6 +248,7 @@
     ratingColor?: 'success' | 'warning' | 'error' | 'neutral'
     workoutId: string
     streams?: any
+    activityType?: string | null
   }>()
 
   const emit = defineEmits(['update:modelValue'])
@@ -300,7 +309,12 @@
     if (key.includes('cadence')) return 'cadence'
     if (key.includes('power') || key === 'np' || key === 'tss' || key.includes('load'))
       return 'watts'
-    if (key.includes('pace') || key.includes('consistency') || key.includes('velocity'))
+    if (
+      key.includes('pace') ||
+      key.includes('speed') ||
+      key.includes('consistency') ||
+      key.includes('velocity')
+    )
       return 'velocity'
     return null
   })
@@ -352,12 +366,28 @@
     return timeData.value.map((value: number) => Number(value) / 60)
   })
 
+  const distanceUnits = computed(() => userStore.profile?.distanceUnits || 'Kilometers')
+  const showVelocityAsSpeed = computed(
+    () => streamKey.value === 'velocity' && isRideWorkoutType(props.activityType)
+  )
+
+  function normalizeVelocityValue(value: number) {
+    return convertVelocity(value, distanceUnits.value)
+  }
+
+  function formatConvertedValue(value: number) {
+    const normalized = showVelocityAsSpeed.value ? normalizeVelocityValue(value) : value
+    return Number.isInteger(normalized) ? normalized.toString() : normalized.toFixed(1)
+  }
+
   const chartUnit = computed(() => {
     if (props.unit) return props.unit
     if (isPowerHrRatioMetric.value) return 'W/bpm'
     if (streamKey.value === 'heartrate') return 'bpm'
     if (streamKey.value === 'watts') return 'W'
-    if (streamKey.value === 'velocity') return 'm/s'
+    if (streamKey.value === 'velocity') {
+      return showVelocityAsSpeed.value ? getVelocityUnitLabel(distanceUnits.value) : 'm/s'
+    }
     if (streamKey.value === 'cadence') return 'rpm'
     return ''
   })
@@ -388,7 +418,11 @@
   })
 
   const historyChartPoints = computed(() => [...history.value.points].reverse())
-  const historyChartValues = computed(() => historyChartPoints.value.map((p) => p.value))
+  const historyChartValues = computed(() =>
+    historyChartPoints.value.map((p) =>
+      showVelocityAsSpeed.value ? normalizeVelocityValue(p.value) : p.value
+    )
+  )
   const historyChartLabels = computed(() =>
     historyChartPoints.value.map((p) => {
       const d = new Date(p.date)
@@ -402,7 +436,7 @@
   }
 
   function formatHistoryValue(value: number) {
-    const rounded = Number.isInteger(value) ? value.toString() : value.toFixed(1)
+    const rounded = formatConvertedValue(value)
     return chartUnit.value ? `${rounded} ${chartUnit.value}` : rounded
   }
 
@@ -477,7 +511,7 @@
 
   function formatComparisonValue(value: number | null) {
     if (value === null) return '-'
-    const rounded = Number.isInteger(value) ? value.toString() : value.toFixed(1)
+    const rounded = formatConvertedValue(value)
     return chartUnit.value ? `${rounded} ${chartUnit.value}` : rounded
   }
 
@@ -513,4 +547,23 @@
     },
     { immediate: true }
   )
+
+  const displayValue = computed(() => {
+    if (!showVelocityAsSpeed.value) return props.value
+    if (props.unit && props.unit !== 'm/s') return props.value
+    const numeric = parseCurrentValue(props.value)
+    return numeric === null ? props.value : formatConvertedValue(numeric)
+  })
+
+  const displayUnit = computed(() => {
+    if (showVelocityAsSpeed.value && (!props.unit || props.unit === 'm/s')) {
+      return getVelocityUnitLabel(distanceUnits.value)
+    }
+    return props.unit
+  })
+
+  const displayStreamData = computed(() => {
+    if (!showVelocityAsSpeed.value) return streamData.value
+    return streamData.value.map((value: number) => normalizeVelocityValue(value))
+  })
 </script>

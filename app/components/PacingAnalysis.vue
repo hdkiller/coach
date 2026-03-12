@@ -28,13 +28,17 @@
         <div
           class="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/50 group transition-all cursor-pointer hover:border-blue-500/50 active:scale-[0.98]"
           @click="
-            emit('open-metric', { key: 'Average Pace', value: formatPace(streams.avgPacePerKm) })
+            emit('open-metric', {
+              key: primaryMetricKey,
+              value: primaryMetricValue,
+              unit: primaryMetricUnit
+            })
           "
         >
           <div class="flex items-center justify-between mb-4">
             <span
               class="block text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-[0.2em]"
-              >Average Pace</span
+              >{{ primaryMetricLabel }}</span
             >
             <UIcon
               name="i-heroicons-magnifying-glass-circle"
@@ -42,7 +46,7 @@
             />
           </div>
           <span class="text-3xl font-black text-blue-900 dark:text-blue-100 tracking-tight">{{
-            formatPace(streams.avgPacePerKm)
+            formattedPrimaryMetric
           }}</span>
         </div>
 
@@ -51,8 +55,8 @@
           @click="
             emit('open-metric', {
               key: 'Consistency Variance',
-              value: streams.paceVariability ? streams.paceVariability.toFixed(2) : 'N/A',
-              unit: 'm/s'
+              value: formattedVariabilityValue,
+              unit: variabilityUnit
             })
           "
         >
@@ -67,8 +71,13 @@
             />
           </div>
           <span class="text-3xl font-black text-indigo-900 dark:text-indigo-100 tracking-tight">
-            {{ streams.paceVariability ? `${streams.paceVariability.toFixed(2)}` : 'N/A' }}
-            <span class="text-xs font-bold text-indigo-400 uppercase ml-1">m/s</span>
+            {{ formattedVariabilityValue }}
+            <span
+              v-if="formattedVariabilityValue !== 'N/A'"
+              class="text-xs font-bold text-indigo-400 uppercase ml-1"
+            >
+              {{ variabilityUnit }}
+            </span>
           </span>
         </div>
 
@@ -142,7 +151,7 @@
                 <th
                   class="px-5 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest"
                 >
-                  Pace
+                  {{ splitMetricLabel }}
                 </th>
               </tr>
             </thead>
@@ -164,7 +173,7 @@
                   {{ formatTime(split.time) }}
                 </td>
                 <td class="px-5 py-4 text-sm font-black text-gray-900 dark:text-white tabular-nums">
-                  {{ split.pace }}
+                  {{ formatSplitMetric(split) }}
                 </td>
               </tr>
             </tbody>
@@ -183,7 +192,7 @@
               >First Half</span
             >
             <span class="text-xl font-black text-gray-900 dark:text-white tabular-nums">{{
-              formatPaceSeconds(streams.pacingStrategy.firstHalfPace)
+              formatHalfMetric(streams.pacingStrategy.firstHalfPace)
             }}</span>
           </div>
           <div class="p-4 bg-gray-50 dark:bg-gray-950 rounded-xl">
@@ -191,20 +200,19 @@
               >Second Half</span
             >
             <span class="text-xl font-black text-gray-900 dark:text-white tabular-nums">{{
-              formatPaceSeconds(streams.pacingStrategy.secondHalfPace)
+              formatHalfMetric(streams.pacingStrategy.secondHalfPace)
             }}</span>
           </div>
           <div
             class="p-4 rounded-xl tabular-nums"
             :class="getDifferenceBgClass(streams.pacingStrategy.paceDifference)"
           >
-            <span class="text-[9px] font-black uppercase tracking-widest mb-2 block opacity-70"
-              >Pace Delta</span
-            >
-            <span class="text-xl font-black"
-              >{{ streams.pacingStrategy.paceDifference > 0 ? '+' : ''
-              }}{{ streams.pacingStrategy.paceDifference }}s</span
-            >
+            <span class="text-[9px] font-black uppercase tracking-widest mb-2 block opacity-70">{{
+              differenceLabel
+            }}</span>
+            <span class="text-xl font-black">{{
+              formatDifference(streams.pacingStrategy.paceDifference)
+            }}</span>
           </div>
         </div>
         <div class="mt-6">
@@ -257,7 +265,7 @@
             :key="index"
             class="absolute top-0 bottom-0 w-0.5 bg-amber-500/40 hover:bg-amber-500 transition-all cursor-crosshair"
             :style="{ left: getSurgePosition(surge.time) + '%' }"
-            :title="`${formatTime(surge.time)} - +${surge.increase.toFixed(2)} m/s`"
+            :title="`${formatTime(surge.time)} - +${formatSurgeIncrease(surge.increase)}`"
           />
         </div>
 
@@ -276,8 +284,7 @@
               {{ formatTime(surge.time) }}
             </div>
             <div class="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">
-              +{{ surge.increase.toFixed(1) }}
-              <span class="text-[9px] uppercase font-bold text-gray-400">m/s</span>
+              +{{ formatSurgeIncrease(surge.increase) }}
             </div>
           </div>
         </div>
@@ -310,8 +317,7 @@
               {{ formatTime(surge.time) }}
             </div>
             <div class="text-sm font-black text-amber-600 dark:text-amber-400 tabular-nums">
-              +{{ surge.increase.toFixed(1) }}
-              <span class="text-[9px] uppercase font-bold text-gray-400">m/s</span>
+              +{{ formatSurgeIncrease(surge.increase) }}
             </div>
           </div>
         </div>
@@ -321,9 +327,19 @@
 </template>
 
 <script setup lang="ts">
+  import {
+    convertVelocity,
+    getVelocityUnitLabel,
+    isRideWorkoutType,
+    usesImperialDistance
+  } from '~/utils/metrics'
+
+  const userStore = useUserStore()
+
   const props = defineProps<{
     workoutId: string
     publicToken?: string
+    activityType?: string | null
   }>()
 
   const emit = defineEmits(['open-metric'])
@@ -351,6 +367,7 @@
       time: number
       pace: string
       paceSeconds: number
+      averageSpeed?: number
     }>
     surges: Array<{
       time: number
@@ -377,6 +394,17 @@
 
   const showAllSurges = ref(false)
   const showSplits = ref(false)
+  const distanceUnits = computed(() => userStore.profile?.distanceUnits || 'Kilometers')
+  const isRideWorkout = computed(() => isRideWorkoutType(props.activityType))
+  const speedUnit = computed(() => getVelocityUnitLabel(distanceUnits.value))
+  const primaryMetricLabel = computed(() =>
+    isRideWorkout.value ? 'Average Speed' : 'Average Pace'
+  )
+  const primaryMetricKey = computed(() => primaryMetricLabel.value)
+  const primaryMetricUnit = computed(() => (isRideWorkout.value ? speedUnit.value : undefined))
+  const splitMetricLabel = computed(() => (isRideWorkout.value ? 'Speed' : 'Pace'))
+  const differenceLabel = computed(() => (isRideWorkout.value ? 'Speed Delta' : 'Pace Delta'))
+  const variabilityUnit = computed(() => (isRideWorkout.value ? speedUnit.value : 'm/s'))
 
   // Calculate surge position as percentage of total workout time
   function getSurgePosition(surgeTime: number): number {
@@ -400,6 +428,92 @@
     return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
   }
 
+  function paceMinPerKmToMps(paceMinPerKm: number | null | undefined): number | null {
+    if (!paceMinPerKm || paceMinPerKm <= 0) return null
+    return 1000 / (paceMinPerKm * 60)
+  }
+
+  function paceSecondsToMps(paceSeconds: number | null | undefined): number | null {
+    if (!paceSeconds || paceSeconds <= 0) return null
+    return 1000 / paceSeconds
+  }
+
+  function formatSpeedFromMps(metersPerSecond: number | null | undefined): string {
+    if (!metersPerSecond) return 'N/A'
+    const converted = convertVelocity(metersPerSecond, distanceUnits.value)
+    return `${converted.toFixed(1)} ${speedUnit.value}`
+  }
+
+  function formatHalfMetric(paceSeconds: number | null | undefined): string {
+    if (!isRideWorkout.value) return formatPaceSeconds(paceSeconds)
+    return formatSpeedFromMps(paceSecondsToMps(paceSeconds))
+  }
+
+  function formatDifference(paceDifference: number | null | undefined): string {
+    if (!paceDifference) return isRideWorkout.value ? `0.0 ${speedUnit.value}` : '0s'
+    if (!isRideWorkout.value) return `${paceDifference > 0 ? '+' : ''}${paceDifference}s`
+
+    const secondHalfSpeed = paceSecondsToMps(streams.value?.pacingStrategy?.secondHalfPace)
+    const firstHalfSpeed = paceSecondsToMps(streams.value?.pacingStrategy?.firstHalfPace)
+    if (!secondHalfSpeed || !firstHalfSpeed) return 'N/A'
+
+    const delta = convertVelocity(secondHalfSpeed - firstHalfSpeed, distanceUnits.value)
+    return `${delta > 0 ? '+' : ''}${delta.toFixed(1)} ${speedUnit.value}`
+  }
+
+  function formatSurgeIncrease(increase: number | null | undefined): string {
+    if (!increase) return isRideWorkout.value ? `0.0 ${speedUnit.value}` : '0.0 m/s'
+    if (!isRideWorkout.value) return `${increase.toFixed(1)} m/s`
+    return `${convertVelocity(increase, distanceUnits.value).toFixed(1)} ${speedUnit.value}`
+  }
+
+  function resolveSplitSpeedMps(split: {
+    averageSpeed?: number
+    distance: number
+    time: number
+  }): number | null {
+    if (
+      typeof split.averageSpeed === 'number' &&
+      Number.isFinite(split.averageSpeed) &&
+      split.averageSpeed > 0
+    ) {
+      return split.averageSpeed
+    }
+    if (split.distance > 0 && split.time > 0) return split.distance / split.time
+    return null
+  }
+
+  function formatSplitMetric(split: {
+    averageSpeed?: number
+    distance: number
+    time: number
+    pace: string
+  }): string {
+    if (!isRideWorkout.value) return split.pace
+    return formatSpeedFromMps(resolveSplitSpeedMps(split))
+  }
+
+  const primaryMetricValue = computed(() => {
+    if (!streams.value?.avgPacePerKm) return 'N/A'
+    if (!isRideWorkout.value) return formatPace(streams.value.avgPacePerKm)
+
+    const metersPerSecond = paceMinPerKmToMps(streams.value.avgPacePerKm)
+    if (!metersPerSecond) return 'N/A'
+    return convertVelocity(metersPerSecond, distanceUnits.value).toFixed(1)
+  })
+
+  const formattedPrimaryMetric = computed(() => {
+    if (!streams.value?.avgPacePerKm) return 'N/A'
+    if (!isRideWorkout.value) return formatPace(streams.value.avgPacePerKm)
+    return formatSpeedFromMps(paceMinPerKmToMps(streams.value.avgPacePerKm))
+  })
+
+  const formattedVariabilityValue = computed(() => {
+    if (!streams.value?.paceVariability && streams.value?.paceVariability !== 0) return 'N/A'
+    if (!isRideWorkout.value) return streams.value.paceVariability.toFixed(2)
+    return convertVelocity(streams.value.paceVariability, distanceUnits.value).toFixed(2)
+  })
+
   function formatTime(seconds: number): string {
     const hours = Math.floor(seconds / 3600)
     const mins = Math.floor((seconds % 3600) / 60)
@@ -412,10 +526,10 @@
   }
 
   function formatDistance(meters: number): string {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(2)} km`
-    }
-    return `${Math.round(meters)} m`
+    if (meters < 1000 && !usesImperialDistance(distanceUnits.value))
+      return `${Math.round(meters)} m`
+    if (usesImperialDistance(distanceUnits.value)) return `${(meters / 1609.344).toFixed(2)} mi`
+    return `${(meters / 1000).toFixed(2)} km`
   }
 
   function formatStrategy(strategy: string): string {

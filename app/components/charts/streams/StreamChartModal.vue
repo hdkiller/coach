@@ -12,10 +12,10 @@
       <div v-else-if="error" class="text-center text-red-500 py-8">
         {{ error }}
       </div>
-      <div v-else-if="streamData && streamData.length > 0">
+      <div v-else-if="displayStreamData && displayStreamData.length > 0">
         <BaseStreamChart
           :label="title"
-          :data-points="streamData"
+          :data-points="displayStreamData"
           :labels="timeData"
           :color="chartColor"
           :y-axis-label="yAxisLabel"
@@ -46,7 +46,10 @@
 </template>
 
 <script setup lang="ts">
+  import { convertVelocity, isRideWorkoutType } from '~/utils/metrics'
   import BaseStreamChart from './BaseStreamChart.vue'
+
+  const userStore = useUserStore()
 
   const props = defineProps<{
     workoutId: string
@@ -54,6 +57,7 @@
     title: string
     color?: string
     unit?: string
+    activityType?: string | null
   }>()
 
   const isOpen = defineModel<boolean>('open')
@@ -65,21 +69,34 @@
 
   const chartColor = computed(() => props.color || '#3b82f6')
   const yAxisLabel = computed(() => props.unit || '')
+  const distanceUnits = computed(() => userStore.profile?.distanceUnits || 'Kilometers')
+  const showVelocityAsSpeed = computed(
+    () => props.streamKey === 'velocity' && isRideWorkoutType(props.activityType)
+  )
+  const displayStreamData = computed(() =>
+    showVelocityAsSpeed.value
+      ? streamData.value.map((value) => convertVelocity(value, distanceUnits.value))
+      : streamData.value
+  )
+
+  function formatStat(value: number) {
+    return Number.isInteger(value) ? value.toString() : value.toFixed(1)
+  }
 
   const average = computed(() => {
-    if (!streamData.value.length) return '-'
-    const sum = streamData.value.reduce((a, b) => a + b, 0)
-    return (sum / streamData.value.length).toFixed(1)
+    if (!displayStreamData.value.length) return '-'
+    const sum = displayStreamData.value.reduce((a, b) => a + b, 0)
+    return formatStat(sum / displayStreamData.value.length)
   })
 
   const max = computed(() => {
-    if (!streamData.value.length) return '-'
-    return Math.max(...streamData.value).toFixed(1)
+    if (!displayStreamData.value.length) return '-'
+    return formatStat(Math.max(...displayStreamData.value))
   })
 
   const min = computed(() => {
-    if (!streamData.value.length) return '-'
-    return Math.min(...streamData.value).toFixed(1)
+    if (!displayStreamData.value.length) return '-'
+    return formatStat(Math.min(...displayStreamData.value))
   })
 
   // Fetch stream data when modal opens
