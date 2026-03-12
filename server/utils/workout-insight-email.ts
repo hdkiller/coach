@@ -1049,8 +1049,10 @@ export async function queueThresholdUpdateEmail(options: {
   newValue: number
   unit: string
   peakValue: number
+  sportProfileName?: string
 }) {
-  const { userId, workoutId, metric, oldValue, newValue, unit, peakValue } = options
+  const { userId, workoutId, metric, oldValue, newValue, unit, peakValue, sportProfileName } =
+    options
 
   const [workout, user, pref] = await Promise.all([
     prisma.workout.findUnique({
@@ -1094,12 +1096,15 @@ export async function queueThresholdUpdateEmail(options: {
     templateKey: 'ThresholdUpdateDetected',
     eventKey: `THRESHOLD_UPDATE_${metric}_${workoutId}`,
     idempotencyKey: `threshold-update:${metric}:${workoutId}`,
-    subject: `Level Up! New ${metric} Detected`,
+    subject: sportProfileName
+      ? `Level Up! New ${sportProfileName} ${metric} Detected`
+      : `Level Up! New ${metric} Detected`,
     props: {
       name: user.name || 'Athlete',
       workoutId,
       workoutTitle: workout.title || 'Workout',
       metricLabel: metricLabelMap[metric],
+      sportProfileName,
       oldValue,
       newValue,
       unit,

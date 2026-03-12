@@ -20,6 +20,7 @@
     workoutUrl?: string
     workoutTitle: string
     metricLabel: string // e.g. "Functional Threshold Power"
+    sportProfileName?: string
     oldValue: number
     newValue: number
     unit: string // e.g. "W" or "bpm"
@@ -47,7 +48,9 @@
         font-style="normal"
       />
     </EHead>
-    <EPreview>{{ `Level Up! New ${metricLabel} detected in your workout.` }}</EPreview>
+    <EPreview>{{
+      `Level Up! New ${sportProfileName ? `${sportProfileName} ` : ''}${metricLabel} detected in your workout.`
+    }}</EPreview>
     <EBody
       style="
         background-color: #f4f4f5;
@@ -118,7 +121,8 @@
 
           <EText style="font-size: 16px; line-height: 1.6; color: #71717a; margin-bottom: 24px">
             Based on your performance in <strong style="color: #09090b">{{ workoutTitle }}</strong
-            >, Coach Watts has detected an improvement in your <strong>{{ metricLabel }}</strong
+            >, Coach Watts has detected an improvement in your
+            <strong>{{ sportProfileName ? `${sportProfileName} ` : '' }}{{ metricLabel }}</strong
             >.
           </EText>
 
