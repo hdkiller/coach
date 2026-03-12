@@ -1345,7 +1345,7 @@
                         :class="getSourceBadgeClass(workout.source)"
                         class="font-black uppercase tracking-widest text-[9px]"
                       >
-                        {{ t(`source_${workout.source}`) || workout.source }}
+                        {{ getWorkoutSourceLabel(workout) }}
                       </span>
                     </div>
                   </div>
@@ -3333,7 +3333,7 @@
         </div>
 
         <div
-          v-if="workout?.source !== 'manual' && workout?.source !== 'fit_file'"
+          v-if="shouldShowSyncSourceNote(workout)"
           class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800"
         >
           <div class="flex items-start gap-3">
@@ -3350,7 +3350,7 @@
               <p class="text-xs text-orange-800 dark:text-orange-200 mt-1">
                 {{
                   t('modal_delete_sync_note_desc', {
-                    source: t(`source_${workout?.source}`) || workout?.source
+                    source: getWorkoutSourceLabel(workout)
                   })
                 }}
               </p>
@@ -5276,6 +5276,21 @@
     if (source === 'garmin')
       return `${baseClass} bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200`
     return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200`
+  }
+
+  function getWorkoutSourceLabel(workout: any) {
+    if (!workout) return ''
+    if (workout.source === 'fit_file' && workout.oauthApp?.name) {
+      return workout.oauthApp.name
+    }
+    return t(`source_${workout.source}`) || workout.source
+  }
+
+  function shouldShowSyncSourceNote(workout: any) {
+    if (!workout) return false
+    if (workout.source === 'manual') return false
+    if (workout.source === 'fit_file') return Boolean(workout.oauthAppId)
+    return true
   }
 
   function getStatusColor(status: string) {
