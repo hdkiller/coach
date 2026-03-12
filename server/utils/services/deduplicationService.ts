@@ -94,24 +94,22 @@ export const deduplicationService = {
     }
 
     // With corrected UTC timestamps, workouts should be very close in time.
-    // However, we've observed issues where different providers (Withings vs Strava)
-    // might disagree by large timezone offsets (e.g., 5 hours) if one applies a timezone correction differently.
-    // Standard tolerance: 30 minutes
+    // Keep the default window tight and only allow a small timezone-shift fallback
+    // when comparing different providers.
     let maxTimeDiff = 30 * 60 * 1000
+    const sameSource = w1.source === w2.source
 
-    // Check if the time difference is suspiciously close to a full hour multiple (timezone offset issue)
-    // e.g., 5 hours = 18000000ms. If diff is 18000000 +/- 30mins, it's likely a timezone shift.
     const diffInHours = timeDiff / (60 * 60 * 1000)
     const diffHoursRemainder = Math.abs(diffInHours - Math.round(diffInHours))
 
-    // If the difference is a multiple of an hour (within 5 mins tolerance) and matches common timezone offsets (1-12 hours)
-    // and the workouts are otherwise VERY similar, we might consider them duplicates.
-    const isTimezoneShift = diffInHours >= 1 && diffInHours <= 14 && diffHoursRemainder < 5 / 60 // within 5 mins of an hour mark
+    // Timezone fallback:
+    // - only across different providers
+    // - only for small whole-hour offsets
+    // This avoids collapsing separate same-day workouts from the same source.
+    const isTimezoneShiftCandidate =
+      !sameSource && diffInHours >= 1 && diffInHours <= 3 && diffHoursRemainder < 5 / 60
 
-    if (isTimezoneShift) {
-      // Relax the time check if other strong signals exist (same duration, type, etc)
-      // We'll let the rest of the logic run, but we need to pass this check first.
-      // So we temporarily set maxTimeDiff to cover this shift if we are going to rely on other signals.
+    if (isTimezoneShiftCandidate) {
       maxTimeDiff = timeDiff + 1000 // Allow it to pass
 
       if (isDebugPair) {
@@ -177,6 +175,9 @@ export const deduplicationService = {
       (w1.title.toLowerCase().includes(w2.title.toLowerCase()) ||
         w2.title.toLowerCase().includes(w1.title.toLowerCase()))
 
+    const strictDurationMatch =
+      durationDiff <= Math.max(3 * 60, Math.max(w1.durationSec, w2.durationSec) * 0.05)
+
     const typeSimilar =
       w1.type &&
       w2.type &&
@@ -187,14 +188,19 @@ export const deduplicationService = {
         (w1.type.toLowerCase() === 'gym' && w2.type.toLowerCase().includes('weight')) ||
         (w1.type.toLowerCase().includes('weight') && w2.type.toLowerCase() === 'gym'))
 
-    const isDuplicate = titleSimilar || typeSimilar
+    // For timezone-shift candidates, require stronger evidence than type alone.
+    const isDuplicate = isTimezoneShiftCandidate
+      ? Boolean(titleSimilar || strictDurationMatch)
+      : Boolean(titleSimilar || typeSimilar)
 
     if (isDuplicate && isDebugPair) {
       logger.log(`Detected duplicate workouts:`, {
         w1: { title: w1.title, type: w1.type, source: w1.source, date: w1.date },
         w2: { title: w2.title, type: w2.type, source: w2.source, date: w2.date },
         titleSimilar,
-        typeSimilar
+        typeSimilar,
+        strictDurationMatch,
+        isTimezoneShiftCandidate
       })
     }
 
