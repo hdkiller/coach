@@ -17,6 +17,7 @@ import { getUserAiSettings } from '../server/utils/ai-user-settings'
 import { checkQuota } from '../server/utils/quotas/engine'
 import { userReportsQueue } from './queues'
 import { filterGoalsForContext } from '../server/utils/goal-context'
+import { getCalendarNoteDisplayEndDate } from '../server/utils/calendar-notes'
 import {
   getMoodLabel,
   getStressLabel,
@@ -128,7 +129,9 @@ export const generateDailyCheckinTask = task({
         pastCheckins,
         futureWorkouts,
         currentPlan,
-        upcomingEvents
+        upcomingEvents,
+        calendarNotes,
+        journeyEvents
       ] = await Promise.all([
         // Today's planned workout
         prisma.plannedWorkout.findFirst({
@@ -259,6 +262,44 @@ export const generateDailyCheckinTask = task({
             }
           },
           orderBy: { date: 'asc' }
+        }),
+
+        prisma.calendarNote.findMany({
+          where: {
+            userId,
+            startDate: { lte: today },
+            OR: [
+              { endDate: null },
+              { endDate: { gte: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000) } }
+            ]
+          },
+          orderBy: { startDate: 'desc' },
+          select: {
+            startDate: true,
+            endDate: true,
+            title: true,
+            description: true,
+            category: true,
+            source: true,
+            rawJson: true
+          }
+        }),
+
+        prisma.athleteJourneyEvent.findMany({
+          where: {
+            userId,
+            timestamp: {
+              gte: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
+              lte: today
+            }
+          },
+          orderBy: { timestamp: 'desc' },
+          select: {
+            timestamp: true,
+            category: true,
+            description: true,
+            severity: true
+          }
         })
       ])
 
@@ -356,6 +397,40 @@ ${projectedMetrics.map((m) => `- ${formatDateUTC(m.date, 'EEE dd')}: TSB=${Math.
 `
       }
 
+      let contextualEventsContext = ''
+      if (calendarNotes.length > 0 || journeyEvents.length > 0) {
+        const journeyLines = journeyEvents.map((event) => {
+          const noteSuffix = event.description ? ` | Note: ${event.description}` : ''
+          return `- ${formatUserDate(event.timestamp, userTimezone, 'yyyy-MM-dd')}: ${event.category} symptom/recovery note (Severity ${event.severity}/10)${noteSuffix}`
+        })
+
+        const calendarLines = calendarNotes.map((note) => {
+          const displayEndDate = getCalendarNoteDisplayEndDate(note)
+          const dateRange = displayEndDate
+            ? `${formatDateUTC(note.startDate)} to ${formatDateUTC(displayEndDate)}`
+            : formatDateUTC(note.startDate)
+          const detailParts = [note.category]
+
+          if (note.description) detailParts.push(note.description)
+
+          return `- ${dateRange}: ${note.title}${detailParts.length > 0 ? ` (${detailParts.join(' | ')})` : ''}`
+        })
+
+        contextualEventsContext = `
+CONTEXTUAL EVENTS & SYMPTOMS (Use these to explain recovery anomalies):
+${[...journeyLines, ...calendarLines].join('\n')}
+`
+      }
+
+      const wellnessAnnotations = [todayMetric?.tags, todayMetric?.comments].filter(Boolean)
+      const wellnessAnnotationsContext =
+        wellnessAnnotations.length > 0
+          ? `
+TODAY'S WELLNESS TAGS / NOTES:
+${wellnessAnnotations.map((entry) => `- ${entry}`).join('\n')}
+`
+          : ''
+
       // Process past check-ins
       let historyContext = ''
       if (pastCheckins.length > 0) {
@@ -413,6 +488,7 @@ ${
 `
     : 'No recovery data available'
 }
+${wellnessAnnotationsContext}
 
 RECENT TRAINING (Last 14 Days):
 ${recentWorkouts.length > 0 ? buildWorkoutSummary(recentWorkouts.slice(0, 5), userTimezone) : 'None'}
@@ -420,8 +496,17 @@ ${recentWorkouts.length > 0 ? buildWorkoutSummary(recentWorkouts.slice(0, 5), us
 ${upcomingWorkoutsContext}
 ${eventsContext}
 ${projectedMetricsContext}
+${contextualEventsContext}
 
 ${historyContext}
+
+${
+  aiSettings.aiContext
+    ? `USER PROVIDED CONTEXT / ABOUT ME / SPECIAL INSTRUCTIONS:
+${aiSettings.aiContext}
+`
+    : ''
+}
 
 TASK:
 1. Generate a brief opening remark (max 2 sentences).
@@ -440,13 +525,15 @@ STRATEGY:
 6. **Avoid Redundancy:** 
    - Do NOT ask "Did you sleep well?" if the sleep score is 95%. Instead ask "Do you feel energized despite the short sleep?" if sleep was short but high quality, or skip it.
    - **CRITICAL:** Do NOT repeat the same questions from the last 3 days unless there is a specific reason to follow up on a problem.
+7. **Contextual Explanation:** If there is an active illness, symptom, or contextual event above (for example a cold, travel, or injury note), treat it as a primary explanation for abnormal recovery metrics before assuming generic under-recovery or poor compliance.
 
 REQUIREMENTS:
 1. Questions must be answerable with YES or NO.
 2. Provide a brief reasoning for why you are asking this question.
 3. Max 5 questions, Min 3.
 4. Tone: Supportive, curious, professional. Match your **${aiSettings.aiPersona}** persona.
-5. **Freshness:** Ensure at least 1 question is completely different from the last 3 days' check-ins.
+5. Follow the user's custom instructions above when they are present, unless they would conflict with the YES/NO question format or the required JSON output.
+6. **Freshness:** Ensure at least 1 question is completely different from the last 3 days' check-ins.
 
 OUTPUT JSON FORMAT:
 {
