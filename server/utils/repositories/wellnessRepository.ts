@@ -128,7 +128,10 @@ export const wellnessRepository = {
     date: Date,
     createData: Prisma.WellnessUncheckedCreateInput,
     updateData: Prisma.WellnessUncheckedUpdateInput,
-    source: string = 'unknown'
+    source: string = 'unknown',
+    options: {
+      clearFields?: string[]
+    } = {}
   ) {
     // Some provider normalizers include a `source` field for traceability,
     // but Wellness model stores this as `lastSource` (not `source`).
@@ -153,7 +156,9 @@ export const wellnessRepository = {
 
     if (existing) {
       finalUpdateData = {}
+      const clearFields = new Set(options.clearFields || [])
       for (const [key, value] of Object.entries(sanitizedUpdateData)) {
+        const shouldClearField = clearFields.has(key)
         if (value !== null && value !== undefined) {
           // Special handling for rawJson: merge instead of replace if possible
           if (
@@ -175,6 +180,18 @@ export const wellnessRepository = {
             changes[key] = {
               old: (existing as any)[key],
               new: value
+            }
+          }
+        } else if (shouldClearField) {
+          ;(finalUpdateData as any)[key] = null
+
+          if (
+            !['rawJson', 'updatedAt', 'createdAt', 'history'].includes(key) &&
+            (existing as any)[key] !== null
+          ) {
+            changes[key] = {
+              old: (existing as any)[key],
+              new: null
             }
           }
         }

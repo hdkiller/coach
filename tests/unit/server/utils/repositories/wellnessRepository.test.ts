@@ -151,5 +151,43 @@ describe('wellnessRepository', () => {
         })
       )
     })
+
+    it('should clear explicitly configured nullable fields when the source sends them blank', async () => {
+      vi.mocked(prisma.wellness.findUnique).mockResolvedValue({
+        id: '1',
+        userId,
+        date,
+        stress: 10,
+        fatigue: 7,
+        history: []
+      } as any)
+
+      await wellnessRepository.upsert(
+        userId,
+        date,
+        { userId, date, stress: null, fatigue: null } as any,
+        { stress: null, fatigue: null } as any,
+        'intervals',
+        { clearFields: ['stress', 'fatigue'] }
+      )
+
+      expect(prisma.wellness.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            stress: null,
+            fatigue: null,
+            history: expect.arrayContaining([
+              expect.objectContaining({
+                source: 'intervals',
+                changes: {
+                  stress: { old: 10, new: null },
+                  fatigue: { old: 7, new: null }
+                }
+              })
+            ])
+          })
+        })
+      )
+    })
   })
 })
