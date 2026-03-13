@@ -86,6 +86,16 @@ Troubleshooting and debugging commands.
   - `--source <source>`: Filter by source (default: `intervals`).
   - `-v, --verbose`: Show comparison for all fields, even matching ones.
 
+- **Inspect Chat Rooms Quickly:**
+
+  ```bash
+  pnpm cw:cli debug chatroom
+  pnpm cw:cli debug chatroom <roomId>
+  pnpm cw:cli debug chatroom --turn <turnId> --prod
+  ```
+
+  Summarizes the latest or selected chat room with recent turns, messages, tool executions, turn events, and built-in findings for missing tool calls, fallback replies, approval-flow gaps, and heartbeat timeouts.
+
 ### Import (`import`)
 
 Direct long-running imports that bypass Trigger.dev.

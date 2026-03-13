@@ -35,6 +35,7 @@ import quotasCommand from './quotas'
 import chartCommand from './chart'
 import nutritionPlanDebugCommand from './nutrition-plan'
 import chatLogCommand from './chat'
+import chatroomCommand from './chatroom'
 import chatGeminiCommand from './chat-gemini'
 import cadenceJitterCommand from './cadence-jitter'
 import curveFreshnessCommand from './curve-freshness'
@@ -82,6 +83,7 @@ debugCommand.addCommand(pmcCommand)
 debugCommand.addCommand(formCommand)
 debugCommand.addCommand(chatHistoryCommand)
 debugCommand.addCommand(chatLogCommand)
+debugCommand.addCommand(chatroomCommand)
 debugCommand.addCommand(chatGeminiCommand)
 debugCommand.addCommand(quotasCommand)
 debugCommand.addCommand(chartCommand)
