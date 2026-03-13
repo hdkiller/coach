@@ -4,6 +4,7 @@ import {
   composeSkillInstructions,
   getContinuationSkillSelection,
   getPendingApprovalSkillSelection,
+  getRetryContinuationSkillSelection,
   resolveApprovalToolNamesForSelection,
   selectToolsForSkills
 } from './skills'
@@ -288,6 +289,102 @@ describe('getPendingApprovalSkillSelection', () => {
     })
     expect(selection?.skillIds).toEqual(['support', 'planning_write'])
   })
+
+  it('keeps the original write skill available for plain approval replies', () => {
+    const selection = getPendingApprovalSkillSelection([
+      {
+        role: 'assistant',
+        metadata: {
+          pendingApprovals: [
+            {
+              toolName: 'delete_planned_workout',
+              toolCallId: 'call_1'
+            }
+          ]
+        }
+      },
+      {
+        role: 'user',
+        content: 'yes'
+      }
+    ])
+
+    expect(selection).toMatchObject({
+      useTools: true,
+      source: 'pending_approval',
+      skillIds: ['planning_write']
+    })
+  })
+
+  it('does not preserve pending approval for a new unrelated request', () => {
+    const selection = getPendingApprovalSkillSelection([
+      {
+        role: 'assistant',
+        metadata: {
+          pendingApprovals: [
+            {
+              toolName: 'delete_planned_workout',
+              toolCallId: 'call_1'
+            }
+          ]
+        }
+      },
+      {
+        role: 'user',
+        content: 'ettem egy banant rogzitsd le'
+      }
+    ])
+
+    expect(selection).toBeNull()
+  })
+})
+
+describe('getRetryContinuationSkillSelection', () => {
+  it('reuses the latest failed tool-enabled skill for retry-style follow-ups', () => {
+    const selection = getRetryContinuationSkillSelection([
+      {
+        role: 'assistant',
+        content: 'I hit a response issue while processing that. Please retry your last message.',
+        metadata: {
+          skillSelection: {
+            skillIds: ['planning_write'],
+            useTools: true
+          }
+        }
+      },
+      {
+        role: 'user',
+        content: 'probaljuk meg ujra'
+      }
+    ])
+
+    expect(selection).toMatchObject({
+      skillIds: ['planning_write'],
+      useTools: true,
+      source: 'retry_continuation'
+    })
+  })
+
+  it('does not reuse retry context when there is no failed tool-enabled turn to anchor it', () => {
+    const selection = getRetryContinuationSkillSelection([
+      {
+        role: 'assistant',
+        content: 'Happy to help.',
+        metadata: {
+          skillSelection: {
+            skillIds: ['general_chat'],
+            useTools: false
+          }
+        }
+      },
+      {
+        role: 'user',
+        content: 'try again'
+      }
+    ])
+
+    expect(selection).toBeNull()
+  })
 })
 
 describe('resolveApprovalToolNamesForSelection', () => {
@@ -341,9 +438,40 @@ describe('composeSkillInstructions', () => {
 
     expect(instructions).toContain('## Execution Integrity Rules')
     expect(instructions).toContain('Never claim that a write action was completed')
+    expect(instructions).toContain('approval must come from a real tool call in this turn')
     expect(instructions).toContain('If the user reports that approval UI is missing or broken')
     expect(instructions).toContain('use discovery/read tools first to identify the exact target')
     expect(instructions).toContain('Do not finish a tool-enabled turn with zero tool calls')
+  })
+
+  it('requires tool-first approval instead of prose approval instructions', () => {
+    const instructions = composeSkillInstructions('BASE', ['planning_write'], {
+      useTools: true,
+      approvalToolNames: ['create_planned_workout']
+    })
+
+    expect(instructions).toContain('Approval only exists after you emit the actual tool call')
+    expect(instructions).toContain(
+      'emit the tool call immediately and let the system render the approval UI'
+    )
+    expect(instructions).toContain('Do not ask the user to click **Approve**')
+    expect(instructions).not.toContain(
+      'tell the user you prepared the action and ask them to click **Approve**'
+    )
+  })
+
+  it('omits approval wording entirely when tool approvals are disabled', () => {
+    const instructions = composeSkillInstructions('BASE', ['planning_write', 'nutrition'], {
+      useTools: true,
+      aiRequireToolApproval: false
+    })
+
+    expect(instructions).not.toContain('## Active Approval Rules')
+    expect(instructions).not.toContain('click **Approve**')
+    expect(instructions).not.toContain('approval UI')
+    expect(instructions).not.toContain('If approval is required')
+    expect(instructions).toContain('call the planning mutation tool immediately')
+    expect(instructions).toContain('call the relevant nutrition tool immediately')
   })
 
   it('reinforces discovery-before-mutation in planning and nutrition prompts', () => {

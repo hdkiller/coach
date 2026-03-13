@@ -52,7 +52,7 @@ export type ChatSkillSelection = {
   useTools: boolean
   reason?: string
   usedFallback?: boolean
-  source?: 'router' | 'continuation' | 'pending_approval' | 'fallback'
+  source?: 'router' | 'continuation' | 'retry_continuation' | 'pending_approval' | 'fallback'
 }
 
 type ChatSkillRouterParams = {
@@ -103,6 +103,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - If the needed facts are discoverable from support tools, fetch them instead of asking the user to repeat them.
 - When the user asks to create or update a ticket and you already have the required details, call the support tool immediately.
 - If approval is required, the approval UI must come from the support tool call itself.
+- If approval would be needed, emit the support tool call first so the system can create the approval request. Without the tool call, there is nothing for the user to approve.
 - Never ask the user to approve a ticket in plain text without first invoking the relevant support tool.
 - Do not claim a ticket was created or updated unless the support tool actually ran successfully.`,
     contextFlags: ['support'],
@@ -170,6 +171,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - For schedule changes, prefer updating or rescheduling over delete-and-recreate unless the user explicitly wants replacement.
 - When the user has already provided enough details for a plan change, call the planning mutation tool immediately.
 - If approval is required, the approval UI must come from the planning tool call itself.
+- If approval would be needed, emit the planning mutation tool call first so the system can create the approval request. Without the tool call, there is nothing for the user to approve.
 - Never ask for approval in plain text without first invoking the relevant planning mutation tool.
 - If the user approves a prepared planning action, immediately execute that exact approved planning tool call.
 - After approval, do not just acknowledge the action in text. Execute the tool first, then report the result.
@@ -235,6 +237,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - Preserve existing user-entered content unless the user explicitly asks to overwrite it.
 - When the user has given enough detail to perform the edit, call the relevant workout mutation tool instead of only describing the intended change.
 - If approval is required for any future workout-edit flow, the approval UI must come from the tool call, not from plain text.
+- If approval would be needed, emit the workout mutation tool call first so the system can create the approval request. Without the tool call, there is nothing for the user to approve.
 - Do not claim a workout edit succeeded unless the tool actually ran successfully.`,
     contextFlags: ['workout', 'date_context', 'time'],
     approvalToolNames: [
@@ -263,6 +266,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - For read-only profile questions, fetch the minimum profile or sport-setting data needed before answering.
 - When the user clearly asks to change profile or sport settings, call the relevant profile tool instead of only describing the intended change.
 - If both read and write tools are needed to complete the request safely, fetch current profile state first and then perform the change.
+- If approval would be needed, emit the profile mutation tool call first so the system can create the approval request. Without the tool call, there is nothing for the user to approve.
 - Do not claim a profile or sport-setting change succeeded unless the tool actually ran successfully.`,
     contextFlags: ['profile'],
     approvalToolNames: ['update_user_profile', 'update_sport_settings'],
@@ -280,6 +284,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - Treat slot updates as mutations to the athlete schedule; do not describe a schedule change without calling the relevant tool.
 - If the target day is described relatively or informally, resolve or inspect it with tools before mutating.
 - Ask for clarification only when the target day or slot data is ambiguous.
+- If approval would be needed, emit the availability mutation tool call first so the system can create the approval request. Without the tool call, there is nothing for the user to approve.
 - Do not claim the training availability changed unless the tool actually ran successfully.`,
     contextFlags: ['availability', 'planning', 'time', 'date_context'],
     approvalToolNames: ['update_training_availability'],
@@ -318,6 +323,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - When the user wants to log, update, or delete a wellness event, call the relevant wellness tool instead of only acknowledging the request.
 - If the target event is discoverable from recent wellness history, inspect it with tools before asking the user to restate details.
 - For recovery questions, prefer fetching wellness metrics before interpreting how the athlete is doing.
+- If approval would be needed, emit the wellness mutation tool call first so the system can create the approval request. Without the tool call, there is nothing for the user to approve.
 - Do not claim a wellness event or recovery change was saved unless the tool actually ran successfully.`,
     contextFlags: ['wellness', 'time', 'date_context'],
     approvalToolNames: ['record_wellness_event', 'update_wellness_event', 'delete_wellness_event'],
@@ -379,6 +385,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - Explain nutrition results clearly and keep recommendations grounded in the returned data.
 - When the user has provided enough information to log, patch, or delete a nutrition entry, call the relevant nutrition tool immediately.
 - If approval is required, the approval UI must come from the nutrition tool call itself.
+- If approval would be needed, emit the nutrition tool call first so the system can create the approval request. Without the tool call, there is nothing for the user to approve.
 - Never ask for approval in plain text without first invoking the relevant nutrition tool.
 - Do not claim a nutrition change was saved unless the tool actually ran successfully.`,
     contextFlags: ['nutrition', 'time', 'date_context'],
@@ -409,6 +416,13 @@ function sortSkillIds(skillIds: ChatSkillId[]) {
   return [...skillIds].sort(
     (a, b) => CHAT_SKILL_MANIFESTS[b].priority - CHAT_SKILL_MANIFESTS[a].priority
   )
+}
+
+function stripApprovalInstructionLines(fragment: string) {
+  return fragment
+    .split('\n')
+    .filter((line) => !/approval|approve/i.test(line))
+    .join('\n')
 }
 
 function getRecentConversationSummary(messages: any[], limit = 4) {
@@ -619,6 +633,132 @@ function latestUserMentionsApprovalUiIssue(messages: any[]) {
   return patterns.some((pattern) => latestUserText.includes(pattern))
 }
 
+function latestUserLooksLikeApprovalContinuation(messages: any[]) {
+  const latestUserText = getLatestUserText(messages).trim().toLowerCase()
+  if (!latestUserText) return false
+
+  if (latestUserMentionsApprovalUiIssue(messages)) {
+    return true
+  }
+
+  const exactMatches = new Set([
+    'yes',
+    'y',
+    'ok',
+    'okay',
+    'sure',
+    'approve',
+    'approved',
+    'go ahead',
+    'do it',
+    'proceed',
+    'confirm',
+    'confirmed',
+    'delete it',
+    'cancel it',
+    'no',
+    'nope',
+    'stop',
+    'dont',
+    "don't",
+    'igen',
+    'jó',
+    'jo',
+    'mehet',
+    'torold',
+    'töröld',
+    'ne',
+    'nem'
+  ])
+
+  if (exactMatches.has(latestUserText)) {
+    return true
+  }
+
+  const phrasePatterns = [
+    'approve',
+    'approved',
+    'go ahead',
+    'do it',
+    'proceed',
+    'confirm',
+    'confirmed',
+    'delete it',
+    'cancel it',
+    'yes,',
+    'no,',
+    'igen,',
+    'mehet',
+    'töröld',
+    'torold'
+  ]
+
+  return phrasePatterns.some((pattern) => latestUserText.includes(pattern))
+}
+
+function latestUserLooksLikeRetryRequest(messages: any[]) {
+  const latestUserText = getLatestUserText(messages).trim().toLowerCase()
+  if (!latestUserText) return false
+
+  const exactMatches = new Set([
+    'retry',
+    'retry it',
+    'try again',
+    'again',
+    'once more',
+    'please retry',
+    'run it again',
+    'probaljuk meg ujra',
+    'próbáljuk meg újra',
+    'ujra',
+    'újra',
+    'megint'
+  ])
+
+  if (exactMatches.has(latestUserText)) {
+    return true
+  }
+
+  const phrasePatterns = [
+    'retry',
+    'try again',
+    'once more',
+    'again',
+    'run it again',
+    'probaljuk meg ujra',
+    'próbáljuk meg újra',
+    'ujra',
+    'újra',
+    'megint'
+  ]
+
+  return phrasePatterns.some((pattern) => latestUserText.includes(pattern))
+}
+
+function looksLikeRetryableToolFailureAssistantMessage(message: any) {
+  if (message?.role !== 'assistant') {
+    return false
+  }
+
+  const skillSelection = message?.metadata?.skillSelection
+  const skillIds = Array.isArray(skillSelection?.skillIds)
+    ? skillSelection.skillIds.filter((skillId: any): skillId is ChatSkillId =>
+        CHAT_SKILL_IDS.includes(skillId as ChatSkillId)
+      )
+    : []
+
+  if (!skillSelection?.useTools || !skillIds.some((skillId) => skillId !== 'general_chat')) {
+    return false
+  }
+
+  const content = String(message?.content || '').toLowerCase()
+
+  return (
+    /retry your last message|response issue|technical issue|processing issue/.test(content) ||
+    Boolean(message?.metadata?.turnFailureReason)
+  )
+}
+
 export function getSkillIdsForToolNames(toolNames: string[]) {
   const matches = uniq(
     toolNames.flatMap((toolName) =>
@@ -698,6 +838,10 @@ export function getPendingApprovalSkillSelection(messages: any[]): ChatSkillSele
     return null
   }
 
+  if (!latestUserLooksLikeApprovalContinuation(messages)) {
+    return null
+  }
+
   const skillIds = getSkillIdsForToolNames(pendingToolNames)
   if (!skillIds.length) {
     return null
@@ -716,6 +860,43 @@ export function getPendingApprovalSkillSelection(messages: any[]): ChatSkillSele
     usedFallback: false,
     source: 'pending_approval'
   }
+}
+
+export function getRetryContinuationSkillSelection(messages: any[]): ChatSkillSelection | null {
+  if (!latestUserLooksLikeRetryRequest(messages)) {
+    return null
+  }
+
+  for (let index = messages.length - 2; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (!looksLikeRetryableToolFailureAssistantMessage(message)) {
+      continue
+    }
+
+    const skillIds = sortSkillIds(
+      uniq(
+        ((message?.metadata?.skillSelection?.skillIds as ChatSkillId[]) || []).filter(
+          (skillId) => skillId !== 'general_chat'
+        )
+      )
+    )
+
+    if (!skillIds.length) {
+      continue
+    }
+
+    return {
+      skillIds,
+      confidence: 1,
+      useTools: true,
+      reason:
+        'Retry the most recent failed tool-enabled action instead of falling back to general chat.',
+      usedFallback: false,
+      source: 'retry_continuation'
+    }
+  }
+
+  return null
 }
 
 async function logRouterUsage(params: {
@@ -808,6 +989,21 @@ export async function classifyChatSkills(
       durationMs: 0
     })
     return pendingApproval
+  }
+
+  const retryContinuation = getRetryContinuationSkillSelection(params.messages)
+  if (retryContinuation) {
+    await logRouterUsage({
+      userId: params.userId,
+      turnId: params.turnId,
+      provider: 'internal',
+      model: 'retry_continuation',
+      success: true,
+      promptPreview: getLatestUserText(params.messages) || '(retry continuation)',
+      responsePreview: JSON.stringify(retryContinuation),
+      durationMs: 0
+    })
+    return retryContinuation
   }
 
   const prompt = buildRouterPrompt(params)
@@ -966,11 +1162,16 @@ export function composeSkillInstructions(
 
   const fragments = selectedSkills
     .map((skillId) => {
+      const baseFragment =
+        context.aiRequireToolApproval === false
+          ? stripApprovalInstructionLines(CHAT_SKILL_MANIFESTS[skillId].instructionFragment)
+          : CHAT_SKILL_MANIFESTS[skillId].instructionFragment
+
       if (skillId === 'nutrition' && context.nutritionTrackingEnabled === false) {
-        return `${CHAT_SKILL_MANIFESTS[skillId].instructionFragment}\n- Nutrition tracking may be limited; handle missing nutrition data explicitly.`
+        return `${baseFragment}\n- Nutrition tracking may be limited; handle missing nutrition data explicitly.`
       }
 
-      return CHAT_SKILL_MANIFESTS[skillId].instructionFragment
+      return baseFragment
     })
     .join('\n\n')
 
@@ -984,16 +1185,28 @@ ${approvalToolNames.map((toolName) => `- \`${toolName}\``).join('\n')}
 
 When using any of these tools:
 - Do not claim the action is already done before approval.
-- Instead, tell the user you prepared the action and ask them to click **Approve**.
+- Approval only exists after you emit the actual tool call in this turn. Without the tool call, there is nothing for the user to approve.
+- If the request is specific enough, emit the tool call immediately and let the system render the approval UI.
+- Do not ask the user to click **Approve** or to confirm in prose as a substitute for making the tool call.
 - If the user approves a prepared tool action, immediately execute that approved tool.
 - If the user responds with text instead of approving, the draft is cancelled and must be re-created if still needed.
 - If the user denies approval, treat it as user intent and ask what should change.`
     : ''
 
-  const executionIntegrityInstruction = `## Execution Integrity Rules
+  const executionIntegrityInstruction =
+    context.aiRequireToolApproval === false
+      ? `## Execution Integrity Rules
+
+- Never claim that a write action was completed, is currently being applied, or was handled manually unless a matching tool call actually succeeded in this turn.
+- When helper tools are available for the selected domains, use them instead of improvising missing facts like the current time, resolved date, or record IDs.
+- When tools are enabled and the user refers to an existing record by title, date, rough timeframe, or descriptive text, use discovery/read tools first to identify the exact target before mutating.
+- Do not finish a tool-enabled turn with zero tool calls unless you are asking a specific blocking clarification question that names the missing detail.
+- If tools are enabled for this turn and the user has already provided enough information, prefer calling the relevant tool over answering with unsupported free text.`
+      : `## Execution Integrity Rules
 
 - Never claim that a write action was completed, is currently being applied, or was handled manually unless a matching tool call actually succeeded in this turn.
 - If a write action still needs approval, say it is pending approval. Do not imply it already happened.
+- If approval is required for a write action, approval must come from a real tool call in this turn. Never ask the user to approve, confirm, or click **Approve** unless that tool call has already been emitted.
 - If the user reports that approval UI is missing or broken, explain that the action is blocked until approval can be completed or the action is re-issued through the proper tool flow.
 - When helper tools are available for the selected domains, use them instead of improvising missing facts like the current time, resolved date, or record IDs.
 - When tools are enabled and the user refers to an existing record by title, date, rough timeframe, or descriptive text, use discovery/read tools first to identify the exact target before mutating.
