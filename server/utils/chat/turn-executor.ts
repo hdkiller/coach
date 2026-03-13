@@ -12,7 +12,8 @@ import {
   CHAT_TURN_EXECUTION_TIMEOUT_MS,
   CHAT_TURN_SLOW_RESPONSE_THRESHOLD_MS,
   CHAT_TURN_STATUS,
-  CHAT_TURN_TIMEOUT_REASON
+  CHAT_TURN_TIMEOUT_REASON,
+  isMutatingChatTool
 } from './turns'
 import { buildAthleteContext } from '../services/chatContextService'
 import { chatTurnService } from '../services/chatTurnService'
@@ -249,6 +250,30 @@ export function findApprovedToolContinuation(messages: any[]) {
   }
 
   return null
+}
+
+export function buildApprovedContinuationConfirmation(toolName: string, result: any) {
+  const baseMessage =
+    typeof result?.message === 'string' && result.message.trim().length > 0
+      ? result.message.trim()
+      : `Completed ${toolName.replaceAll('_', ' ')}.`
+
+  const totals = result?.totals
+  if (!totals || typeof totals !== 'object') {
+    return baseMessage
+  }
+
+  const summaryParts = [
+    typeof totals.calories === 'number' ? `${Math.round(totals.calories)} kcal` : null,
+    typeof totals.carbs === 'number' ? `${Math.round(totals.carbs)}g carbs` : null,
+    typeof totals.protein === 'number' ? `${Math.round(totals.protein)}g protein` : null,
+    typeof totals.fat === 'number' ? `${Math.round(totals.fat)}g fat` : null,
+    typeof totals.water_ml === 'number' ? `${Math.round(totals.water_ml)}ml water` : null
+  ].filter(Boolean)
+
+  return summaryParts.length > 0
+    ? `${baseMessage}\n\nUpdated totals: ${summaryParts.join(', ')}.`
+    : baseMessage
 }
 
 export async function executeChatTurn(turnId: string) {
@@ -508,13 +533,93 @@ export async function executeChatTurn(turnId: string) {
         ]
       }
     ]
+
+    if (isMutatingChatTool(approvedContinuation.toolName)) {
+      currentPhase = 'completed'
+      await markFirstVisibleOutput('tool_step', {
+        toolCallCount: 1,
+        toolResultCount: 1,
+        approvedContinuation: true
+      })
+
+      assistantText = buildApprovedContinuationConfirmation(
+        approvedContinuation.toolName,
+        directResult
+      )
+
+      const finishedAt = new Date()
+      const executionDurationMs = Math.max(0, finishedAt.getTime() - startedAt.getTime())
+
+      await persistDraft(CHAT_TURN_STATUS.COMPLETED, true, {
+        hideUntilContent: false,
+        hiddenBecauseEmptyFailure: false,
+        executionPhase: currentPhase,
+        executionDurationMs
+      })
+
+      await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.COMPLETED, {
+        finishedAt,
+        assistantMessageId: draft.id,
+        metadata: chatTurnService.mergeTurnMetadata(turn, {
+          timeoutReason: null,
+          slowResponse: slowResponseRecorded,
+          firstOutputLatencyMs,
+          executionDurationMs,
+          executionPhase: currentPhase,
+          finishedAt: finishedAt.toISOString(),
+          skillSelection: skillSelectionMetadata,
+          completedLocallyAfterApprovedTool: true
+        })
+      })
+
+      await broadcastAssistantMessage(
+        {
+          id: draft.id,
+          content: assistantText,
+          createdAt: draft.createdAt,
+          metadata: {
+            ...((draft.metadata as any) || {}),
+            isDraft: false
+          }
+        },
+        CHAT_TURN_STATUS.COMPLETED,
+        { finishedAt, skillSelection: skillSelectionMetadata }
+      )
+
+      await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_COMPLETED, {
+        assistantMessageId: draft.id,
+        firstOutputLatencyMs,
+        executionDurationMs,
+        completionMode: 'local_after_approved_tool'
+      } as any)
+
+      await prisma.llmUsage
+        .update({
+          where: { id: earlyUsage.id },
+          data: {
+            model: 'approval_continuation_local',
+            success: true,
+            errorType: null,
+            errorMessage: null,
+            durationMs: executionDurationMs,
+            ttft: firstOutputLatencyMs,
+            responsePreview: assistantText.substring(0, 500)
+          }
+        })
+        .catch(() => null)
+
+      return {
+        success: true,
+        assistantMessageId: draft.id
+      }
+    }
   }
 
   const coreMessages = await transformHistoryToCoreMessages(historyMessages)
   ensureTurnNotAborted()
   const normalizedMessages = normalizeCoreMessagesForGemini(coreMessages)
 
-  const broadcastAssistantMessage = async (
+  async function broadcastAssistantMessage(
     message: { id: string; content: string; createdAt: Date; metadata?: any },
     status: string,
     extra: {
@@ -522,7 +627,7 @@ export async function executeChatTurn(turnId: string) {
       finishedAt?: Date | null
       skillSelection?: Record<string, any> | null
     } = {}
-  ) => {
+  ) {
     await sendToUser(turn.userId, {
       type: 'chat_message_upsert',
       roomId: turn.roomId,
@@ -541,7 +646,7 @@ export async function executeChatTurn(turnId: string) {
     })
   }
 
-  const broadcastAssistantTextDelta = async (textDelta: string, status: string) => {
+  async function broadcastAssistantTextDelta(textDelta: string, status: string) {
     await sendToUser(turn.userId, {
       type: 'chat_assistant_text_delta',
       roomId: turn.roomId,
@@ -552,7 +657,7 @@ export async function executeChatTurn(turnId: string) {
     })
   }
 
-  const broadcastTurnStatus = async (reason: string, extra: Record<string, any> = {}) => {
+  async function broadcastTurnStatus(reason: string, extra: Record<string, any> = {}) {
     await sendToUser(turn.userId, {
       type: 'chat_turn_status',
       roomId: turn.roomId,
@@ -563,11 +668,11 @@ export async function executeChatTurn(turnId: string) {
     })
   }
 
-  const persistDraft = async (
+  async function persistDraft(
     status: string,
     force = false,
     extraMetadata: Record<string, any> = {}
-  ) => {
+  ) {
     const now = Date.now()
     if (!force && assistantText === persistedText && now - lastPersistAt < 250) return
 
@@ -661,10 +766,10 @@ export async function executeChatTurn(turnId: string) {
     }
   }
 
-  const markFirstVisibleOutput = async (
+  async function markFirstVisibleOutput(
     source: 'text_delta' | 'tool_step',
     extra: Record<string, any> = {}
-  ) => {
+  ) {
     if (firstVisibleOutputAt) {
       return
     }

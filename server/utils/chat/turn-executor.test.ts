@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildApprovedContinuationConfirmation,
   buildTurnExecutionSkillConfig,
   findApprovedToolContinuation,
   normalizeMessagesForSdk
@@ -151,5 +152,33 @@ describe('findApprovedToolContinuation', () => {
       toolName: 'create_planned_workout',
       args: { date: '2026-03-11' }
     })
+  })
+})
+
+describe('buildApprovedContinuationConfirmation', () => {
+  it('uses the tool message and totals for a local confirmation', () => {
+    const result = buildApprovedContinuationConfirmation('patch_nutrition_items', {
+      message: 'Successfully updated 3 item(s) in lunch.',
+      totals: {
+        calories: 2813,
+        carbs: 393,
+        protein: 125,
+        fat: 77,
+        water_ml: 2150
+      }
+    })
+
+    expect(result).toContain('Successfully updated 3 item(s) in lunch.')
+    expect(result).toContain('2813 kcal')
+    expect(result).toContain('393g carbs')
+    expect(result).toContain('125g protein')
+    expect(result).toContain('77g fat')
+    expect(result).toContain('2150ml water')
+  })
+
+  it('falls back to a generic completion message', () => {
+    expect(buildApprovedContinuationConfirmation('patch_nutrition_items', {})).toBe(
+      'Completed patch nutrition items.'
+    )
   })
 })
