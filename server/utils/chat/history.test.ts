@@ -15,7 +15,14 @@ describe('chat history helpers', () => {
               type: 'tool-call',
               input: { start_date: '2026-02-28', end_date: '2026-02-28' },
               toolName: 'get_planned_workouts',
-              toolCallId: 'call-1'
+              toolCallId: 'call-1',
+              rawToolCall: {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get_planned_workouts',
+                input: { start_date: '2026-02-28', end_date: '2026-02-28' },
+                thoughtSignature: 'signed-part'
+              }
             }
           ],
           toolResults: [
@@ -39,7 +46,12 @@ describe('chat history helpers', () => {
           toolCallId: 'call-1',
           state: 'output-available',
           input: { start_date: '2026-02-28', end_date: '2026-02-28' },
-          output: { count: 1 }
+          output: { count: 1 },
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            toolName: 'get_planned_workouts',
+            thoughtSignature: 'signed-part'
+          })
         })
       ])
     )
@@ -49,6 +61,7 @@ describe('chat history helpers', () => {
     const persisted = buildPersistedToolCalls(
       [
         {
+          type: 'tool-call',
           toolCallId: 'call-2',
           toolName: 'get_current_time',
           input: {}
@@ -68,7 +81,11 @@ describe('chat history helpers', () => {
         toolCallId: 'call-2',
         name: 'get_current_time',
         args: {},
-        response: { local_time: '09:29' }
+        response: { local_time: '09:29' },
+        rawToolCall: expect.objectContaining({
+          toolCallId: 'call-2',
+          toolName: 'get_current_time'
+        })
       })
     ])
   })

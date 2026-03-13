@@ -75,7 +75,8 @@ function normalizeStoredToolCalls(metadata: any, messageId?: string) {
       toolCallId,
       name: entry?.name || entry?.toolName || existing.name,
       args: entry?.args ?? entry?.input ?? existing.args ?? {},
-      response
+      response,
+      rawToolCall: entry?.rawToolCall ?? existing.rawToolCall
     })
   }
 
@@ -191,6 +192,15 @@ export function expandStoredChatMessage(message: any) {
         toolCallId: toolCall.toolCallId,
         state: 'approval-requested',
         input: toolCall.args || {},
+        toolCall: toolCall.rawToolCall
+          ? {
+              ...toolCall.rawToolCall,
+              toolCallId: toolCall.rawToolCall.toolCallId || toolCall.toolCallId,
+              toolName: toolCall.rawToolCall.toolName || toolCall.name,
+              input: toolCall.rawToolCall.input ?? toolCall.rawToolCall.args ?? toolCall.args ?? {},
+              args: toolCall.rawToolCall.args ?? toolCall.rawToolCall.input ?? toolCall.args ?? {}
+            }
+          : undefined,
         approval: {
           id: toolCall.toolCallId
         }
@@ -201,6 +211,15 @@ export function expandStoredChatMessage(message: any) {
         toolCallId: toolCall.toolCallId,
         state: 'output-available',
         input: toolCall.args || {},
+        toolCall: toolCall.rawToolCall
+          ? {
+              ...toolCall.rawToolCall,
+              toolCallId: toolCall.rawToolCall.toolCallId || toolCall.toolCallId,
+              toolName: toolCall.rawToolCall.toolName || toolCall.name,
+              input: toolCall.rawToolCall.input ?? toolCall.rawToolCall.args ?? toolCall.args ?? {},
+              args: toolCall.rawToolCall.args ?? toolCall.rawToolCall.input ?? toolCall.args ?? {}
+            }
+          : undefined,
         output: toolCall.response
       })
     }
@@ -253,6 +272,13 @@ export function buildPersistedToolCalls(toolCalls: any[] = [], toolResults: any[
       toolCallId: entry.toolCallId,
       name: entry.name || entry.toolName || existing.name,
       args: entry.args ?? entry.input ?? existing.args ?? {},
+      rawToolCall:
+        entry.type === 'tool-call'
+          ? {
+              ...existing.rawToolCall,
+              ...entry
+            }
+          : existing.rawToolCall,
       response:
         entry.response !== undefined
           ? entry.response

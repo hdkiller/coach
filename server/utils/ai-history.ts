@@ -1,5 +1,43 @@
 import { convertToModelMessages } from 'ai'
 
+function getUiToolName(part: any) {
+  if (part?.toolName || part?.name) {
+    return part.toolName || part.name
+  }
+
+  if (typeof part?.type === 'string' && part.type.startsWith('tool-')) {
+    return part.type.slice('tool-'.length)
+  }
+
+  return undefined
+}
+
+function buildCoreToolCallPart(
+  rawPart: any,
+  fallback: {
+    toolCallId: string
+    toolName: string
+    input: any
+  }
+) {
+  if (!rawPart || typeof rawPart !== 'object') {
+    return {
+      type: 'tool-call',
+      toolCallId: fallback.toolCallId,
+      toolName: fallback.toolName,
+      input: fallback.input
+    }
+  }
+
+  return {
+    ...rawPart,
+    type: 'tool-call',
+    toolCallId: rawPart.toolCallId || fallback.toolCallId,
+    toolName: rawPart.toolName || rawPart.name || fallback.toolName,
+    input: rawPart.input ?? rawPart.args ?? fallback.input
+  }
+}
+
 function normalizeToolResultPart(part: any) {
   const rawOutput =
     part?.result !== undefined
@@ -154,25 +192,27 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
 
         const uiParts = (msg.parts || []) as any[]
 
-        // A. Repair: Fix tool calls that SDK converted but assigned generic names
+        // A. Rehydrate raw tool-call metadata from persisted UI parts when available.
         const coreContent = (coreMsg as any).content as any[]
         coreContent.forEach((part) => {
-          if (
-            part.type === 'tool-call' &&
-            (part.toolName === 'approval-request' || part.toolName === 'invocation')
-          ) {
-            const originalPart = uiParts.find(
-              (p) => p.toolCallId === part.toolCallId || p.approvalId === part.toolCallId
-            )
-            if (originalPart) {
-              part.toolName =
-                originalPart.toolCall?.toolName || originalPart.toolName || originalPart.name
-              // Ensure args are present
-              if (!part.input || Object.keys(part.input || {}).length === 0) {
-                part.input =
-                  originalPart.toolCall?.args || originalPart.args || originalPart.input || {}
-              }
-            }
+          if (part.type !== 'tool-call') return
+
+          const originalPart = uiParts.find(
+            (p) => p.toolCallId === part.toolCallId || p.approvalId === part.toolCallId
+          )
+          if (originalPart) {
+            const rawToolCallPart = buildCoreToolCallPart(originalPart.toolCall, {
+              toolCallId: part.toolCallId,
+              toolName: originalPart.toolCall?.toolName || getUiToolName(originalPart),
+              input:
+                originalPart.toolCall?.input ??
+                originalPart.toolCall?.args ??
+                originalPart.args ??
+                originalPart.input ??
+                {}
+            })
+
+            Object.assign(part, rawToolCallPart)
           }
         })
 
@@ -210,7 +250,7 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
 
             validToolParts.forEach((tp: any) => {
               const toolCallId = tp.toolCallId || tp.approvalId
-              const toolName = tp.toolCall?.toolName || tp.toolName || tp.name
+              const toolName = tp.toolCall?.toolName || getUiToolName(tp)
 
               // Only add if not already present (checked by ID)
               if (
@@ -218,12 +258,13 @@ export async function transformHistoryToCoreMessages(historyMessages: any[]) {
                 toolName &&
                 !existingCalls.find((ec) => ec.toolCallId === toolCallId)
               ) {
-                coreContent.push({
-                  type: 'tool-call',
-                  toolCallId,
-                  toolName,
-                  input: tp.toolCall?.args || tp.args || tp.input || {}
-                })
+                coreContent.push(
+                  buildCoreToolCallPart(tp.toolCall, {
+                    toolCallId,
+                    toolName,
+                    input: tp.toolCall?.input ?? tp.toolCall?.args ?? tp.args ?? tp.input ?? {}
+                  })
+                )
               }
             })
           }

@@ -396,4 +396,41 @@ describe('transformHistoryToCoreMessages', () => {
       ])
     )
   })
+
+  it('reuses raw persisted tool-call parts so Gemini signatures survive continuation turns', async () => {
+    const assistantMessage = expandStoredChatMessage({
+      id: 'assistant-signed',
+      senderId: 'ai_agent',
+      content: '',
+      createdAt: new Date('2026-03-11T12:00:00Z'),
+      updatedAt: new Date('2026-03-11T12:00:00Z'),
+      metadata: {
+        toolCalls: [
+          {
+            toolCallId: 'call_signed',
+            toolName: 'update_sport_settings',
+            args: { ftp: 250 },
+            rawToolCall: {
+              type: 'tool-call',
+              toolCallId: 'call_signed',
+              toolName: 'update_sport_settings',
+              input: { ftp: 250 },
+              thoughtSignature: 'signed-part'
+            }
+          }
+        ]
+      }
+    })
+
+    const result = await transformHistoryToCoreMessages([assistantMessage])
+    const toolCall = (result[0].content as any[]).find((part) => part.type === 'tool-call')
+
+    expect(toolCall).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call_signed',
+      toolName: 'update_sport_settings',
+      input: { ftp: 250 },
+      thoughtSignature: 'signed-part'
+    })
+  })
 })
