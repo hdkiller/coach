@@ -14,6 +14,9 @@ vi.mock('../../../../../server/utils/repositories/workoutRepository', () => ({
 // Mock prisma
 vi.mock('../../../../../server/utils/db', () => ({
   prisma: {
+    workout: {
+      findFirst: vi.fn()
+    },
     plannedWorkout: {
       findFirst: vi.fn()
     }
@@ -143,6 +146,34 @@ describe('workoutTools', () => {
       )
 
       expect(result).toEqual({ error: 'Workout not found' })
+    })
+
+    it('falls back to a degraded prisma fetch when the primary fetch throws', async () => {
+      vi.mocked(workoutRepository.getById).mockRejectedValue(new Error('relation load failed'))
+      vi.mocked(prisma.workout.findFirst).mockResolvedValue({
+        id: 'w1',
+        userId,
+        date: new Date('2023-01-01'),
+        title: 'Hard Intervals',
+        type: 'Ride',
+        streams: null
+      } as any)
+
+      const result = await tools.get_workout_details.execute(
+        { workout_id: 'w1' },
+        { toolCallId: '1', messages: [] }
+      )
+
+      expect(prisma.workout.findFirst).toHaveBeenCalled()
+      expect(result).toEqual({
+        id: 'w1',
+        userId,
+        date: expect.any(String),
+        title: 'Hard Intervals',
+        type: 'Ride',
+        streams: null,
+        degraded: true
+      })
     })
   })
 })

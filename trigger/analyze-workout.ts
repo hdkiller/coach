@@ -33,6 +33,7 @@ import {
   type WorkoutAnalysisFactsV2
 } from '../server/utils/workout-analysis-facts'
 import { summarizePowerFromWatts } from '../server/utils/power-metrics'
+import type { JourneyEventCategory } from '@prisma/client'
 
 // TypeScript interface for the structured analysis
 interface StructuredAnalysis {
@@ -292,7 +293,7 @@ export const analyzeWorkoutTask = task({
       const workoutLocalDate = formatUserDate(workout.date, timezone, 'yyyy-MM-dd')
 
       // Fetch user and email preferences
-      const [user, emailPrefs] = await Promise.all([
+      const [user, emailPrefs, recentJourneyEvents] = await Promise.all([
         prisma.user.findUnique({
           where: { id: workout.userId },
           select: {
@@ -309,6 +310,23 @@ export const analyzeWorkoutTask = task({
         }),
         prisma.emailPreference.findUnique({
           where: { userId_channel: { userId: workout.userId, channel: 'EMAIL' } }
+        }),
+        prisma.athleteJourneyEvent.findMany({
+          where: {
+            userId: workout.userId,
+            timestamp: {
+              gte: new Date(workout.date.getTime() - 14 * 24 * 60 * 60 * 1000),
+              lte: new Date(workout.date.getTime() + 24 * 60 * 60 * 1000)
+            }
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 5,
+          select: {
+            timestamp: true,
+            category: true,
+            severity: true,
+            description: true
+          }
         })
       ])
 
@@ -430,7 +448,15 @@ export const analyzeWorkoutTask = task({
         aiSettings.aiContext,
         workout.plannedWorkout,
         analysisFacts,
-        analysisFactsV2
+        analysisFactsV2,
+        {
+          symptoms: recentJourneyEvents.map((event) => ({
+            timestamp: event.timestamp,
+            category: event.category,
+            severity: event.severity,
+            description: event.description
+          }))
+        }
       )
 
       logger.log(`Generating structured analysis with Gemini (${aiSettings.aiModelPreference})`)
@@ -1079,7 +1105,16 @@ export function buildWorkoutAnalysisPrompt(
 
   analysisFacts?: WorkoutAnalysisFacts,
 
-  analysisFactsV2?: WorkoutAnalysisFactsV2
+  analysisFactsV2?: WorkoutAnalysisFactsV2,
+
+  recentContext?: {
+    symptoms?: Array<{
+      timestamp: Date
+      category: JourneyEventCategory | string
+      severity: number
+      description?: string | null
+    }>
+  }
 ): string {
   const formatMetric = (value: any, decimals = 1) => {
     return value !== undefined && value !== null ? Number(value).toFixed(decimals) : 'N/A'
@@ -1175,6 +1210,23 @@ ATHLETE CONTEXT:
 ${userProfile?.weight ? `- Weight: ${formatPromptWeight(userProfile.weight, userProfile.weightUnits)}` : ''}
 
 ${aiContext ? `\n## Global Athlete Context / About Me / Special Instructions\n${aiContext}\n` : ''}
+
+${
+  recentContext?.symptoms?.length
+    ? `\n## Recent Symptoms & Recovery Context\n${recentContext.symptoms
+        .map((event) => {
+          const details = [
+            `${formatUserDate(event.timestamp, timezone, 'yyyy-MM-dd')}`,
+            `${String(event.category).toLowerCase()}`,
+            `severity ${event.severity}/10`
+          ]
+          if (event.description) details.push(event.description)
+          return `- ${details.join(' | ')}`
+        })
+        .join('\n')}
+\nUse this symptom context when interpreting RPE, heart rate, and perceived difficulty. Do not frame illness-related elevation in RPE as poor execution unless the workout facts clearly support that conclusion.\n`
+    : ''
+}
 
 ${buildAnalysisFactsPromptBlock(analysisFactsV2)}
 

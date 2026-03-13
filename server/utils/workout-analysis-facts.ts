@@ -1,5 +1,6 @@
 import { calculateFatigueSensitivity, calculateStabilityMetrics } from './performance-metrics'
 import { toIntensityFactorFromTarget } from './structured-workout-persistence'
+import { detectIntervals } from './interval-detection'
 
 type FactConfidence = 'low' | 'medium' | 'high'
 type FactSeverity = 'low' | 'moderate' | 'high' | 'unknown'
@@ -1169,10 +1170,161 @@ function flattenPlannedSteps(
   return flattened
 }
 
-function extractActualIntervals(workout: any): ActualInterval[] {
-  const rawIntervals = Array.isArray((workout?.rawJson as any)?.icu_intervals)
-    ? ((workout.rawJson as any).icu_intervals as any[])
-    : []
+function getRawIntervals(workout: any): any[] {
+  const raw = workout?.rawJson as any
+  if (Array.isArray(raw?.icu_intervals)) return raw.icu_intervals
+  if (Array.isArray(raw?.intervals)) return raw.intervals
+  return []
+}
+
+function normalizePlannedStepType(
+  type: unknown
+): 'WORK' | 'RECOVERY' | 'WARMUP' | 'COOLDOWN' | undefined {
+  const normalized = String(type || '').toLowerCase()
+  if (!normalized) return undefined
+  if (normalized.includes('warm')) return 'WARMUP'
+  if (normalized.includes('cool')) return 'COOLDOWN'
+  if (normalized.includes('rest') || normalized.includes('recover')) return 'RECOVERY'
+  return 'WORK'
+}
+
+function toDetectionPlannedSteps(steps: any[]): Array<{
+  name?: string
+  durationSeconds?: number
+  duration?: number
+  type?: string
+  power?: { value?: number; range?: { start: number; end: number } }
+  heartRate?: { value?: number; range?: { start: number; end: number } }
+}> {
+  const planned: Array<{
+    name?: string
+    durationSeconds?: number
+    duration?: number
+    type?: string
+    power?: { value?: number; range?: { start: number; end: number } }
+    heartRate?: { value?: number; range?: { start: number; end: number } }
+  }> = []
+
+  const visit = (nodes: any[]) => {
+    for (const step of nodes || []) {
+      if (!step || typeof step !== 'object') continue
+      if (Array.isArray(step.steps) && step.steps.length > 0) {
+        const reps = Math.max(1, Math.trunc(Number(step.reps || 1)) || 1)
+        for (let index = 0; index < reps; index++) visit(step.steps)
+        continue
+      }
+
+      planned.push({
+        name: step.name,
+        durationSeconds:
+          Number(step.durationSeconds || step.duration || step.duration_s || 0) || undefined,
+        duration:
+          Number(step.duration || step.durationSeconds || step.duration_s || 0) || undefined,
+        type: normalizePlannedStepType(step.type),
+        power: step.power,
+        heartRate: step.heartRate || step.hr
+      })
+    }
+  }
+
+  visit(steps)
+  return planned
+}
+
+function hasTerminalRecoveryPhase(
+  workout: any,
+  plannedWorkout: any,
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+): boolean {
+  const plannedSteps = flattenPlannedSteps(
+    getStructuredSteps(plannedWorkout?.structuredWorkout),
+    refs
+  )
+  const lastPlannedStep = plannedSteps.at(-1)
+  if (lastPlannedStep?.classification === 'recovery' && lastPlannedStep.durationSeconds >= 120) {
+    return true
+  }
+
+  const lastActualInterval = extractActualIntervals(workout, plannedWorkout).at(-1)
+  return Boolean(
+    lastActualInterval?.classification === 'recovery' &&
+    (lastActualInterval.durationSeconds || 0) >= 120
+  )
+}
+
+function extractActualIntervals(workout: any, plannedWorkout?: any): ActualInterval[] {
+  const rawIntervals = getRawIntervals(workout)
+
+  if (rawIntervals.length === 0) {
+    const time = asNumberArray(workout?.streams?.time)
+    const power = asNumberArray(workout?.streams?.watts)
+    const velocity = asNumberArray(workout?.streams?.velocity)
+    const hr = asNumberArray(workout?.streams?.heartrate)
+    const family = getWorkoutFamily(workout?.type)
+    const plannedSteps = toDetectionPlannedSteps(
+      getStructuredSteps(
+        plannedWorkout?.structuredWorkout || workout?.plannedWorkout?.structuredWorkout
+      )
+    )
+
+    let detected: Array<{
+      type: string
+      duration: number
+      avg_power?: number
+      avg_heartrate?: number
+      avg_pace?: number
+    }> = []
+
+    if (time.length > 0 && power.length === time.length && power.length > 0) {
+      detected = detectIntervals(
+        time,
+        power,
+        'power',
+        Number(workout?.ftp || 0) || undefined,
+        plannedSteps
+      )
+    } else if (
+      time.length > 0 &&
+      velocity.length === time.length &&
+      velocity.length > 0 &&
+      family === 'run'
+    ) {
+      detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps)
+    } else if (time.length > 0 && hr.length === time.length && hr.length > 0) {
+      const maxHr = Number(workout?.maxHr || 0) || undefined
+      detected = detectIntervals(
+        time,
+        hr,
+        'heartrate',
+        maxHr ? maxHr * 0.7 : undefined,
+        plannedSteps
+      )
+    }
+
+    return detected
+      .map((interval) => {
+        const lower = String(interval.type || 'INTERVAL').toLowerCase()
+        const classification =
+          lower.includes('rest') ||
+          lower.includes('recovery') ||
+          lower.includes('warm') ||
+          lower.includes('cool')
+            ? ('recovery' as const)
+            : ('work' as const)
+        return {
+          type: interval.type,
+          durationSeconds: Number(interval.duration || 0) || 0,
+          avgPower: Number.isFinite(Number(interval.avg_power)) ? Number(interval.avg_power) : null,
+          avgHr: Number.isFinite(Number(interval.avg_heartrate))
+            ? Number(interval.avg_heartrate)
+            : null,
+          avgSpeed: Number.isFinite(Number(interval.avg_pace)) ? Number(interval.avg_pace) : null,
+          intensity: null,
+          classification
+        }
+      })
+      .filter((interval) => interval.durationSeconds > 0)
+  }
 
   return rawIntervals
     .map((interval) => {
@@ -1232,7 +1384,7 @@ function classifyArchetype(params: {
     thresholdPace: 0
   })
   const workSteps = plannedSteps.filter((step) => step.classification === 'work')
-  const actualIntervals = extractActualIntervals(workout)
+  const actualIntervals = extractActualIntervals(workout, plannedWorkout)
   const intervalCount = actualIntervals.filter(
     (interval) => interval.classification === 'work'
   ).length
@@ -1434,29 +1586,32 @@ function computeAverage(values: number[]): number | null {
 function deriveDurabilitySignals(params: {
   workout: any
   family: ReturnType<typeof getWorkoutFamily>
+  plannedWorkout?: any
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
 }): WorkoutAnalysisFactsV2['performanceSignals']['durability'] {
-  const { workout, family } = params
+  const { workout, family, plannedWorkout, refs } = params
   const time = asNumberArray(workout?.streams?.time)
   const power = asNumberArray(workout?.streams?.watts)
   const hr = asNumberArray(workout?.streams?.heartrate)
   const speed = asNumberArray(workout?.streams?.velocity)
   const cadence = asNumberArray(workout?.streams?.cadence)
-  const actualIntervals = extractActualIntervals(workout).filter(
+  const actualIntervals = extractActualIntervals(workout, plannedWorkout).filter(
     (interval) => interval.classification === 'work'
   )
+  const suppressLateFade = hasTerminalRecoveryPhase(workout, plannedWorkout, refs)
 
   let lateSessionFadePct: number | null = null
-  if (family === 'ride' && power.length >= 120) {
+  if (!suppressLateFade && family === 'ride' && power.length >= 120) {
     const chunk = Math.max(1, Math.floor(power.length * 0.2))
     const first = computeAverage(power.slice(0, chunk).filter((value) => value > 0))
     const last = computeAverage(power.slice(-chunk).filter((value) => value > 0))
     if (first && last && first > 0) lateSessionFadePct = round(((first - last) / first) * 100, 1)
-  } else if (family === 'run' && speed.length >= 120) {
+  } else if (!suppressLateFade && family === 'run' && speed.length >= 120) {
     const chunk = Math.max(1, Math.floor(speed.length * 0.2))
     const first = computeAverage(speed.slice(0, chunk).filter((value) => value > 0))
     const last = computeAverage(speed.slice(-chunk).filter((value) => value > 0))
     if (first && last && first > 0) lateSessionFadePct = round(((first - last) / first) * 100, 1)
-  } else if (power.length >= 120 && hr.length >= 120) {
+  } else if (!suppressLateFade && power.length >= 120 && hr.length >= 120) {
     const fatigue = calculateFatigueSensitivity(
       power,
       hr,
@@ -1611,7 +1766,7 @@ function deriveAdherence(params: {
     getStructuredSteps(plannedWorkout?.structuredWorkout),
     refs
   )
-  const actualIntervals = extractActualIntervals(workout)
+  const actualIntervals = extractActualIntervals(workout, plannedWorkout)
   const plannedWork = plannedSteps.filter((step) => step.classification === 'work')
   const plannedRecovery = plannedSteps.filter((step) => step.classification === 'recovery')
   const actualWork = actualIntervals.filter((step) => step.classification === 'work')
@@ -2108,10 +2263,17 @@ export function buildWorkoutAnalysisFactsV2({
     family,
     refs
   })
+  const plannedRecoveryTail = hasTerminalRecoveryPhase(workout, plannedWorkout, refs)
+
+  if (plannedRecoveryTail) {
+    suppressedMetrics.push(
+      'Late-session fade should not be penalized because the workout ends with a planned recovery/cooldown phase.'
+    )
+  }
 
   const performanceSignals: WorkoutAnalysisFactsV2['performanceSignals'] = {
     decoupling,
-    durability: deriveDurabilitySignals({ workout, family }),
+    durability: deriveDurabilitySignals({ workout, family, plannedWorkout, refs }),
     zones: {
       dominantPowerZone: getZoneDominance(workout?.streams?.powerZoneTimes, 'Z'),
       dominantHrZone: getZoneDominance(workout?.streams?.hrZoneTimes, 'HRZ'),

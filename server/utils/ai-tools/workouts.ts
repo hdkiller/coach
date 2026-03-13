@@ -115,20 +115,105 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
       workout_id: z.string().describe('The ID of the workout to analyze')
     }),
     execute: async ({ workout_id }) => {
-      const workout = (await workoutRepository.getById(workout_id, userId, {
-        include: {
-          plannedWorkout: true,
-          streams: true
-        }
-      })) as any
+      try {
+        const workout = (await workoutRepository.getById(workout_id, userId, {
+          include: {
+            plannedWorkout: true,
+            streams: true
+          }
+        })) as any
 
-      if (!workout) {
-        // Fallback to planned workout
+        if (!workout) {
+          const planned = await prisma.plannedWorkout.findFirst({
+            where: { id: workout_id, userId },
+            include: {
+              trainingWeek: true
+            }
+          })
+
+          if (!planned) return { error: 'Workout not found' }
+
+          return {
+            ...planned,
+            isPlanned: true,
+            date: formatDateUTC(planned.date)
+          }
+        }
+
+        return {
+          ...workout,
+          date: formatUserDate(workout.date, timezone),
+          streams: workout.streams
+            ? {
+                avgPacePerKm: workout.streams.avgPacePerKm,
+                paceVariability: workout.streams.paceVariability,
+                hrZoneTimes: workout.streams.hrZoneTimes,
+                powerZoneTimes: workout.streams.powerZoneTimes,
+                paceZones: workout.streams.paceZones,
+                pacingStrategy: workout.streams.pacingStrategy
+              }
+            : null
+        }
+      } catch (error: any) {
+        console.error('get_workout_details primary fetch failed', {
+          workoutId: workout_id,
+          userId,
+          error: error?.message || error
+        })
+
+        const fallbackWorkout = await prisma.workout.findFirst({
+          where: { id: workout_id, userId },
+          select: {
+            id: true,
+            userId: true,
+            date: true,
+            title: true,
+            type: true,
+            tags: true,
+            durationSec: true,
+            tss: true,
+            intensity: true,
+            calories: true,
+            rpe: true,
+            feel: true,
+            notes: true,
+            description: true,
+            plannedWorkoutId: true,
+            rawJson: true,
+            plannedWorkout: {
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                durationSec: true,
+                tss: true,
+                structuredWorkout: true
+              }
+            },
+            streams: {
+              select: {
+                avgPacePerKm: true,
+                paceVariability: true,
+                hrZoneTimes: true,
+                powerZoneTimes: true,
+                paceZones: true,
+                pacingStrategy: true
+              }
+            }
+          }
+        })
+
+        if (fallbackWorkout) {
+          return {
+            ...fallbackWorkout,
+            date: formatUserDate(fallbackWorkout.date, timezone),
+            degraded: true
+          }
+        }
+
         const planned = await prisma.plannedWorkout.findFirst({
           where: { id: workout_id, userId },
-          include: {
-            trainingWeek: true
-          }
+          include: { trainingWeek: true }
         })
 
         if (!planned) return { error: 'Workout not found' }
@@ -136,24 +221,9 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
         return {
           ...planned,
           isPlanned: true,
-          date: formatDateUTC(planned.date)
+          date: formatDateUTC(planned.date),
+          degraded: true
         }
-      }
-
-      return {
-        ...workout,
-        date: formatUserDate(workout.date, timezone),
-        // Clean up large stream data for context safety while keeping computed metrics
-        streams: workout.streams
-          ? {
-              avgPacePerKm: workout.streams.avgPacePerKm,
-              paceVariability: workout.streams.paceVariability,
-              hrZoneTimes: workout.streams.hrZoneTimes,
-              powerZoneTimes: workout.streams.powerZoneTimes,
-              paceZones: workout.streams.paceZones,
-              pacingStrategy: workout.streams.pacingStrategy
-            }
-          : null
       }
     }
   }),

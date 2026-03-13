@@ -270,6 +270,134 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.adherence.executionClassification).toBe('unstructured_substitution')
   })
 
+  it('uses rawJson.intervals when icu_intervals is absent for adherence', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'ERG Threshold Ride',
+        type: 'Ride',
+        durationSec: 3600,
+        rawJson: {
+          intervals: [
+            { type: 'WORK', moving_time: 600, average_watts: 248, intensity: 0.99 },
+            { type: 'REST', moving_time: 300, average_watts: 150, intensity: 0.6 },
+            { type: 'WORK', moving_time: 600, average_watts: 252, intensity: 1.01 }
+          ]
+        }
+      }),
+      sportSettings: { ftp: 250 },
+      plannedWorkout: {
+        structuredWorkout: {
+          steps: [
+            { type: 'Interval', durationSeconds: 600, power: { value: 100, units: '%' } },
+            { type: 'Rest', durationSeconds: 300, power: { value: 60, units: '%' } },
+            { type: 'Interval', durationSeconds: 600, power: { value: 100, units: '%' } }
+          ]
+        },
+        durationSec: 3600
+      }
+    })
+
+    expect(facts.adherence.adherenceAssessable).toBe(true)
+    expect(facts.adherence.structureMatched).toBe(true)
+    expect(facts.adherence.executionClassification).toBe('as_prescribed')
+  })
+
+  it('falls back to stream-detected intervals when synced intervals are missing', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'Structured ERG Ride',
+        type: 'VirtualRide',
+        durationSec: 3606,
+        ftp: 212,
+        streams: {
+          time: Array.from({ length: 3609 }, (_, index) => index),
+          watts: [
+            ...Array.from({ length: 1200 }, () => 127),
+            ...Array.from({ length: 480 }, () => 153),
+            ...Array.from({ length: 128 }, () => 113),
+            ...Array.from({ length: 472 }, () => 153),
+            ...Array.from({ length: 128 }, () => 113),
+            ...Array.from({ length: 472 }, () => 153),
+            ...Array.from({ length: 729 }, () => 89)
+          ]
+        },
+        rawJson: {}
+      }),
+      plannedWorkout: {
+        durationSec: 3600,
+        structuredWorkout: {
+          steps: [
+            {
+              type: 'Warmup',
+              durationSeconds: 1200,
+              power: { range: { start: 0.5, end: 0.7 }, units: '%' }
+            },
+            {
+              type: 'Active',
+              reps: 3,
+              steps: [
+                { type: 'Active', durationSeconds: 480, power: { value: 0.72, units: '%' } },
+                { type: 'Rest', durationSeconds: 120, power: { value: 0.52, units: '%' } }
+              ]
+            },
+            {
+              type: 'Cooldown',
+              durationSeconds: 600,
+              power: { range: { start: 0.5, end: 0.3 }, units: '%' }
+            }
+          ]
+        }
+      }
+    })
+
+    expect(facts.adherence.adherenceAssessable).toBe(true)
+    expect(facts.adherence.structureMatched).toBe(true)
+    expect(facts.adherence.executionClassification).toBe('as_prescribed')
+    expect(facts.adherence.workIntervalHitRate).toBe(100)
+    expect(facts.adherence.recoveryHitRate).toBe(60)
+  })
+
+  it('suppresses late-session fade when the workout ends with a planned cooldown', () => {
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        title: 'ERG Ride With Cooldown',
+        type: 'Ride',
+        durationSec: 3000,
+        streams: {
+          time: Array.from({ length: 600 }, (_, index) => index * 5),
+          watts: [
+            ...Array.from({ length: 240 }, () => 220),
+            ...Array.from({ length: 240 }, () => 260),
+            ...Array.from({ length: 120 }, () => 120)
+          ]
+        },
+        rawJson: {
+          intervals: [
+            { type: 'WARMUP', moving_time: 600, average_watts: 180, intensity: 0.72 },
+            { type: 'WORK', moving_time: 1200, average_watts: 255, intensity: 1.02 },
+            { type: 'COOLDOWN', moving_time: 600, average_watts: 120, intensity: 0.48 }
+          ]
+        }
+      }),
+      sportSettings: { ftp: 250 },
+      plannedWorkout: {
+        structuredWorkout: {
+          steps: [
+            { type: 'Warmup', durationSeconds: 600, power: { value: 72, units: '%' } },
+            { type: 'Interval', durationSeconds: 1200, power: { value: 102, units: '%' } },
+            { type: 'Cooldown', durationSeconds: 600, power: { value: 48, units: '%' } }
+          ]
+        },
+        durationSec: 2400
+      }
+    })
+
+    expect(facts.performanceSignals.durability.lateSessionFadePct).toBeNull()
+    expect(facts.guardrails.suppressions).toContain(
+      'Late-session fade should not be penalized because the workout ends with a planned recovery/cooldown phase.'
+    )
+  })
+
   it('uses pace-first guardrails for runs with velocity data', () => {
     const facts = buildWorkoutAnalysisFactsV2({
       workout: makeWorkout({

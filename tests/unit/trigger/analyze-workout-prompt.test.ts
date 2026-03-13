@@ -132,4 +132,38 @@ describe('buildWorkoutAnalysisPrompt', () => {
     )
     expect(prompt).not.toContain('Power data appears to be missing from the global summary')
   })
+
+  it('includes recent symptom context for illness-aware RPE interpretation', () => {
+    const prompt = buildWorkoutAnalysisPrompt(
+      {
+        date: new Date('2026-03-05T10:00:00Z'),
+        title: 'Trainer Ride',
+        type: 'Ride',
+        duration_m: 60,
+        duration_s: 3600
+      },
+      'UTC',
+      'Supportive',
+      undefined,
+      undefined,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      {
+        symptoms: [
+          {
+            timestamp: new Date('2026-03-03T09:00:00Z'),
+            category: 'FATIGUE',
+            severity: 6,
+            description: 'Cold symptoms and sore throat'
+          }
+        ]
+      }
+    )
+
+    expect(prompt).toContain('## Recent Symptoms & Recovery Context')
+    expect(prompt).toContain('fatigue | severity 6/10 | Cold symptoms and sore throat')
+    expect(prompt).toContain('Do not frame illness-related elevation in RPE as poor execution')
+  })
 })

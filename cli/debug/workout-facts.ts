@@ -4,7 +4,10 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import chalk from 'chalk'
 import { sportSettingsRepository } from '../../server/utils/repositories/sportSettingsRepository'
-import { buildWorkoutAnalysisFacts } from '../../server/utils/workout-analysis-facts'
+import {
+  buildWorkoutAnalysisFacts,
+  buildWorkoutAnalysisFactsV2
+} from '../../server/utils/workout-analysis-facts'
 
 function extractWorkoutId(input?: string) {
   if (!input) return null
@@ -12,12 +15,30 @@ function extractWorkoutId(input?: string) {
   return uuidMatch ? uuidMatch[0] : null
 }
 
+function formatScalar(value: unknown): string {
+  if (value === null || value === undefined) return String(value)
+  if (Array.isArray(value)) return value.map((entry) => formatScalar(entry)).join(', ')
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+function printEntries(payload: Record<string, unknown>, prefix = '') {
+  for (const [key, value] of Object.entries(payload)) {
+    const label = prefix ? `${prefix}.${key}` : key
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      printEntries(value as Record<string, unknown>, label)
+      continue
+    }
+
+    const formatted = formatScalar(value)
+    console.log(`${chalk.gray(`${label}:`).padEnd(40)} ${formatted}`)
+  }
+}
+
 function printSection(title: string, payload: Record<string, unknown>) {
   console.log(chalk.bold.cyan(`\n${title}`))
-  for (const [key, value] of Object.entries(payload)) {
-    const formatted = Array.isArray(value) ? value.join(', ') : String(value)
-    console.log(`${chalk.gray(`${key}:`).padEnd(28)} ${formatted}`)
-  }
+  printEntries(payload)
 }
 
 const workoutFactsCommand = new Command('workout-facts')
@@ -97,9 +118,24 @@ const workoutFactsCommand = new Command('workout-facts')
         plannedWorkout: workout.plannedWorkout,
         userProfile
       })
+      const factsV2 = buildWorkoutAnalysisFactsV2({
+        workout,
+        sportSettings,
+        plannedWorkout: workout.plannedWorkout,
+        userProfile
+      })
 
       if (options.json) {
-        console.log(JSON.stringify(facts, null, 2))
+        console.log(
+          JSON.stringify(
+            {
+              v1: facts,
+              v2: factsV2
+            },
+            null,
+            2
+          )
+        )
         return
       }
 
@@ -114,6 +150,14 @@ const workoutFactsCommand = new Command('workout-facts')
       printSection('L/R Balance', facts.lrBalance as unknown as Record<string, unknown>)
       printSection('ERG', facts.erg as unknown as Record<string, unknown>)
       printSection('Debug Meta', facts.debugMeta as unknown as Record<string, unknown>)
+
+      printSection('Guardrails v2', factsV2.guardrails as unknown as Record<string, unknown>)
+      printSection('Adherence v2', factsV2.adherence as unknown as Record<string, unknown>)
+      printSection(
+        'Performance Signals v2',
+        factsV2.performanceSignals as unknown as Record<string, unknown>
+      )
+      printSection('Confidence v2', factsV2.confidence as unknown as Record<string, unknown>)
     } catch (error) {
       console.error(chalk.red(error instanceof Error ? error.message : String(error)))
       process.exitCode = 1
