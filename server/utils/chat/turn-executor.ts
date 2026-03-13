@@ -6,6 +6,7 @@ import { getToolsWithContext } from '../ai-tools'
 import { getUserAiSettings } from '../ai-user-settings'
 import { prisma } from '../db'
 import { getUserTimezone } from '../date'
+import { buildGoogleProviderOptions } from '../gemini'
 import { buildPersistedToolCalls, expandStoredChatMessage } from './history'
 import {
   CHAT_TURN_EVENT_TYPE,
@@ -276,7 +277,46 @@ export function buildApprovedContinuationConfirmation(toolName: string, result: 
     : baseMessage
 }
 
-export async function executeChatTurn(turnId: string) {
+const WRITE_REPAIR_SKILL_IDS = new Set([
+  'support',
+  'planning_write',
+  'workout_update',
+  'profile',
+  'availability',
+  'wellness',
+  'nutrition'
+])
+
+export function shouldUseWriteRepairPrompt(skillSelection: ChatSkillSelection) {
+  return (
+    !!skillSelection?.useTools &&
+    Array.isArray(skillSelection?.skillIds) &&
+    skillSelection.skillIds.some((skillId) => WRITE_REPAIR_SKILL_IDS.has(skillId))
+  )
+}
+
+export function buildWriteRepairSystemInstruction(systemInstruction: string) {
+  return `${systemInstruction}
+
+## Empty-Response Repair Rules
+
+- This is a retry after an invalid empty response on a tool-enabled write turn.
+- You must do exactly one of the following:
+- Emit the relevant tool call now if the user has already provided enough information.
+- Ask exactly one blocking clarification question if one concrete missing detail prevents the tool call.
+- Do not answer with general prose, summaries, fake approval text, or unsupported free text.
+- Do not say that something was prepared, created, updated, deleted, or ready for approval unless the matching tool call is emitted in this turn.`
+}
+
+export function getHardcodedChatProviderOptions(modelType: 'flash' | 'pro', modelId: string) {
+  if (modelType === 'pro') {
+    return buildGoogleProviderOptions(modelId, 'high', 0)
+  }
+
+  return buildGoogleProviderOptions(modelId, 'low', 2000)
+}
+
+export async function executeChatTurn(turnId: string, expectedRunId?: string | null) {
   const turn = await prisma.chatTurn.findUnique({
     where: { id: turnId },
     include: {
@@ -342,18 +382,36 @@ export async function executeChatTurn(turnId: string) {
   const executionAbortController = new AbortController()
 
   await checkQuota(turn.userId, 'chat')
-  await chatTurnService.updateStatus(turn.id, CHAT_TURN_STATUS.RUNNING, {
-    startedAt,
-    finishedAt: null,
-    failureReason: null,
-    metadata: chatTurnService.mergeTurnMetadata(turn, {
-      timeoutReason: null,
-      slowResponse: false,
-      firstOutputLatencyMs: null,
-      executionDurationMs: null,
-      executionPhase: currentPhase
-    })
-  })
+  const startedTurn = await chatTurnService.tryStartExecution(
+    turn.id,
+    expectedRunId || turn.runId,
+    {
+      startedAt,
+      finishedAt: null,
+      failureReason: null,
+      metadata: chatTurnService.mergeTurnMetadata(turn, {
+        timeoutReason: null,
+        slowResponse: false,
+        firstOutputLatencyMs: null,
+        executionDurationMs: null,
+        executionPhase: currentPhase
+      })
+    }
+  )
+  if (!startedTurn) {
+    console.warn(
+      '[ChatTurn] Execution start skipped because another runner already owns the turn.',
+      {
+        turnId: turn.id,
+        expectedRunId: expectedRunId || turn.runId || null
+      }
+    )
+    return {
+      success: false,
+      skipped: true,
+      reason: 'execution_already_started'
+    }
+  }
   await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.TURN_STARTED, {
     roomId: turn.roomId,
     userMessageId: turn.userMessageId
@@ -662,10 +720,68 @@ export async function executeChatTurn(turnId: string) {
       type: 'chat_turn_status',
       roomId: turn.roomId,
       turnId: turn.id,
-      status: CHAT_TURN_STATUS.RUNNING,
+      status: extra.status || CHAT_TURN_STATUS.RUNNING,
       reason,
       ...extra
     })
+  }
+
+  async function logAttemptUsage(params: {
+    attemptIndex: number
+    usage: any
+    success: boolean
+    errorType?: string | null
+    errorMessage?: string | null
+    responsePreview: string
+    durationMs: number
+    repairPromptUsed: boolean
+  }) {
+    try {
+      const promptTokens = params.usage?.inputTokens || 0
+      const completionTokens = params.usage?.outputTokens || 0
+      const cachedTokens = params.usage?.inputTokenDetails?.cacheReadTokens || 0
+      const reasoningTokens = params.usage?.outputTokenDetails?.reasoningTokens || 0
+      const estimatedCost = calculateLlmCost(
+        modelName,
+        promptTokens,
+        completionTokens + reasoningTokens,
+        cachedTokens
+      )
+
+      await prisma.llmUsage.create({
+        data: {
+          userId: turn.userId,
+          turnId: turn.id,
+          provider: 'gemini',
+          model: modelName,
+          modelType: aiSettings.aiModelPreference === 'flash' ? 'flash' : 'pro',
+          operation: 'chat_attempt',
+          entityType: 'ChatTurn',
+          entityId: turn.id,
+          promptTokens,
+          completionTokens,
+          cachedTokens,
+          reasoningTokens,
+          totalTokens: promptTokens + completionTokens,
+          estimatedCost,
+          durationMs: params.durationMs,
+          ttft: firstOutputLatencyMs,
+          retryCount: params.attemptIndex,
+          success: params.success,
+          errorType: params.errorType || null,
+          errorMessage: params.errorMessage || null,
+          promptPreview: (content || '').substring(0, 500),
+          responsePreview: params.responsePreview.substring(0, 500),
+          promptFull: JSON.stringify({
+            skillSelection: skillSelectionMetadata,
+            attemptIndex: params.attemptIndex,
+            repairPromptUsed: params.repairPromptUsed
+          }).substring(0, 2000)
+        }
+      })
+    } catch (error) {
+      console.error('[ChatTurn] Attempt usage log failed:', error)
+    }
   }
 
   async function persistDraft(
@@ -789,22 +905,27 @@ export async function executeChatTurn(turnId: string) {
   ensureTurnNotAborted()
   currentPhase = 'awaiting_first_output'
 
-  const providerOptions: any = {}
-  if (opSettings.thinkingBudget > 0) {
-    if (modelName.includes('gemini-3')) {
-      providerOptions.google = {
-        thinkingConfig: { thinkingLevel: opSettings.thinkingLevel }
-      }
-    }
-  }
+  const providerOptions = getHardcodedChatProviderOptions(opSettings.model, modelName)
 
   const executeStreamAttempt = async (attemptIndex: number) => {
     let shouldRetryEmptyResponse = false
     const attemptProviderOptions = providerOptions
+    const repairPromptUsed = attemptIndex > 0 && shouldUseWriteRepairPrompt(skillSelection)
+    const attemptSystemInstruction = repairPromptUsed
+      ? buildWriteRepairSystemInstruction(finalSystemInstruction)
+      : finalSystemInstruction
+
+    if (repairPromptUsed) {
+      await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
+        reason: 'empty_response_repair_prompt',
+        attempt: attemptIndex + 1,
+        phase: currentPhase
+      } as any)
+    }
 
     const result = await streamText({
       model: google(modelName),
-      system: finalSystemInstruction,
+      system: attemptSystemInstruction,
       messages: normalizedMessages,
       tools,
       abortSignal: executionAbortController.signal,
@@ -909,6 +1030,16 @@ export async function executeChatTurn(turnId: string) {
         if (shouldFallbackForEmptyResponse && attemptIndex === 0) {
           shouldRetryEmptyResponse = true
           currentPhase = 'retrying_empty_response'
+          await logAttemptUsage({
+            attemptIndex,
+            usage,
+            success: false,
+            errorType: 'EMPTY_RESPONSE_RETRY',
+            errorMessage: 'LLM response finished empty on initial attempt; retrying.',
+            responsePreview: '',
+            durationMs: Math.max(0, Date.now() - startedAt.getTime()),
+            repairPromptUsed
+          })
           await chatTurnService.recordEvent(turn.id, CHAT_TURN_EVENT_TYPE.SLOW_RESPONSE, {
             reason: 'empty_response_retry',
             attempt: attemptIndex + 1,
@@ -1013,6 +1144,12 @@ export async function executeChatTurn(turnId: string) {
           firstOutputLatencyMs,
           executionDurationMs
         } as any)
+        await broadcastTurnStatus('turn_completed', {
+          status: CHAT_TURN_STATUS.COMPLETED,
+          assistantMessageId: draft.id,
+          executionDurationMs,
+          firstOutputLatencyMs
+        })
 
         await prisma.llmUsage
           .update({
@@ -1026,10 +1163,24 @@ export async function executeChatTurn(turnId: string) {
                 : null,
               durationMs: executionDurationMs,
               ttft: firstOutputLatencyMs,
-              responsePreview: assistantText.substring(0, 500)
+              responsePreview: assistantText.substring(0, 500),
+              retryCount: attemptIndex
             }
           })
           .catch(() => null)
+
+        await logAttemptUsage({
+          attemptIndex,
+          usage,
+          success: !shouldFallbackForEmptyResponse,
+          errorType: shouldFallbackForEmptyResponse ? 'EMPTY_RESPONSE' : null,
+          errorMessage: shouldFallbackForEmptyResponse
+            ? 'LLM response finished with empty text and no tool activity.'
+            : null,
+          responsePreview: assistantText,
+          durationMs: executionDurationMs,
+          repairPromptUsed
+        })
 
         try {
           const promptTokens = usage.inputTokens || 0
@@ -1186,6 +1337,16 @@ export async function executeChatTurn(turnId: string) {
         phase: currentPhase
       } as any
     )
+    await broadcastTurnStatus(
+      terminalStatus === CHAT_TURN_STATUS.INTERRUPTED ? 'turn_interrupted' : 'turn_failed',
+      {
+        status: terminalStatus,
+        assistantMessageId: draft.id,
+        executionDurationMs,
+        firstOutputLatencyMs,
+        failureReason: reason
+      }
+    ).catch(() => null)
     await prisma.llmUsage
       .update({
         where: { id: earlyUsage.id },

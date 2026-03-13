@@ -66,16 +66,16 @@ class ChatTurnRunner {
         if (!turn) break
 
         this.runningCount += 1
-        void this.runTurn(turn.id)
+        void this.runTurn(turn.id, turn.runId)
       }
     } finally {
       this.pumping = false
     }
   }
 
-  private async runTurn(turnId: string) {
+  private async runTurn(turnId: string, runId?: string | null) {
     try {
-      await executeChatTurn(turnId)
+      await executeChatTurn(turnId, runId)
     } catch (error) {
       console.error('[ChatTurnRunner] Turn execution failed:', { turnId, error })
     } finally {

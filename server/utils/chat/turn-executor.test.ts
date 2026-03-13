@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildApprovedContinuationConfirmation,
+  getHardcodedChatProviderOptions,
+  buildWriteRepairSystemInstruction,
   buildTurnExecutionSkillConfig,
   findApprovedToolContinuation,
-  normalizeMessagesForSdk
+  normalizeMessagesForSdk,
+  shouldUseWriteRepairPrompt
 } from './turn-executor'
 
 describe('normalizeMessagesForSdk', () => {
@@ -180,5 +183,54 @@ describe('buildApprovedContinuationConfirmation', () => {
     expect(buildApprovedContinuationConfirmation('patch_nutrition_items', {})).toBe(
       'Completed patch nutrition items.'
     )
+  })
+})
+
+describe('write repair prompt helpers', () => {
+  it('hardcodes chat thinking settings for flash and pro tiers', () => {
+    expect(getHardcodedChatProviderOptions('flash', 'gemini-2.5-flash')).toEqual({
+      google: {
+        thinkingConfig: {
+          thinkingBudget: 2000,
+          includeThoughts: true
+        }
+      }
+    })
+
+    expect(getHardcodedChatProviderOptions('pro', 'gemini-3-pro-preview')).toEqual({
+      google: {
+        thinkingConfig: {
+          thinkingLevel: 'high',
+          includeThoughts: true
+        }
+      }
+    })
+  })
+
+  it('uses the stricter retry prompt for tool-enabled write skills', () => {
+    expect(
+      shouldUseWriteRepairPrompt({
+        skillIds: ['planning_write'],
+        confidence: 1,
+        useTools: true
+      } as any)
+    ).toBe(true)
+
+    expect(
+      shouldUseWriteRepairPrompt({
+        skillIds: ['planning_read'],
+        confidence: 1,
+        useTools: true
+      } as any)
+    ).toBe(false)
+  })
+
+  it('adds strict tool-or-clarify repair instructions', () => {
+    const result = buildWriteRepairSystemInstruction('BASE')
+
+    expect(result).toContain('Empty-Response Repair Rules')
+    expect(result).toContain('Emit the relevant tool call now')
+    expect(result).toContain('Ask exactly one blocking clarification question')
+    expect(result).toContain('Do not answer with general prose')
   })
 })

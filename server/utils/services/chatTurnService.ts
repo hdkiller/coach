@@ -181,6 +181,53 @@ class ChatTurnService {
     return null
   }
 
+  async tryStartExecution(
+    turnId: string,
+    runId: string | null | undefined,
+    data: Partial<{
+      startedAt: Date | null
+      finishedAt: Date | null
+      failureReason: string | null
+      assistantMessageId: string | null
+      providerRequestId: string | null
+      metadata: Prisma.InputJsonValue
+    }> = {}
+  ) {
+    if (!runId) {
+      return null
+    }
+
+    const started = await prisma.chatTurn.updateMany({
+      where: {
+        id: turnId,
+        runId,
+        status: CHAT_TURN_STATUS.RECEIVED
+      },
+      data: {
+        status: CHAT_TURN_STATUS.RUNNING,
+        lastHeartbeatAt: new Date(),
+        ...(data.startedAt !== undefined ? { startedAt: data.startedAt } : {}),
+        ...(data.finishedAt !== undefined ? { finishedAt: data.finishedAt } : {}),
+        ...(data.failureReason !== undefined ? { failureReason: data.failureReason } : {}),
+        ...(data.assistantMessageId !== undefined
+          ? { assistantMessageId: data.assistantMessageId }
+          : {}),
+        ...(data.providerRequestId !== undefined
+          ? { providerRequestId: data.providerRequestId }
+          : {}),
+        ...(data.metadata !== undefined ? { metadata: data.metadata } : {})
+      }
+    })
+
+    if (started.count === 0) {
+      return null
+    }
+
+    return await prisma.chatTurn.findUnique({
+      where: { id: turnId }
+    })
+  }
+
   async updateStatus(
     turnId: string,
     status: ChatTurnStatus,
