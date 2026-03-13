@@ -537,6 +537,7 @@
       opacity: 0.1
     },
     timeline: {
+      sortLatestFirst: true,
       hideEmptyWindows: false,
       hideHydration: false,
       hidePastSuggestions: true,

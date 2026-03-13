@@ -642,7 +642,7 @@
     if (!props.nutrition || !plan.value) return []
     const { timezone } = useFormat()
 
-    return mapNutritionToTimeline(props.nutrition, props.workouts || [], {
+    const timelineWindows = mapNutritionToTimeline(props.nutrition, props.workouts || [], {
       preWorkoutWindow: props.settings?.preWorkoutWindow || 90,
       postWorkoutWindow: props.settings?.postWorkoutWindow || 60,
       baseProteinPerKg: props.settings?.baseProteinPerKg || 1.6,
@@ -650,6 +650,14 @@
       weight: props.weight || 75,
       mealPattern: props.settings?.mealPattern,
       timezone: timezone.value
+    })
+
+    const sortLatestFirst =
+      userStore.user?.dashboardSettings?.nutritionCharts?.timeline?.sortLatestFirst ?? true
+
+    return [...timelineWindows].sort((a, b) => {
+      const direction = sortLatestFirst ? -1 : 1
+      return (a.startTime.getTime() - b.startTime.getTime()) * direction
     })
   })
 

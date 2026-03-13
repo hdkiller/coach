@@ -26,6 +26,16 @@
 
             <div class="flex items-center justify-between">
               <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">Latest First</div>
+                <div class="text-xs text-muted">
+                  Show the newest fueling window at the top of the timeline.
+                </div>
+              </div>
+              <USwitch v-model="settings.sortLatestFirst" />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">
                   Hide Empty Windows
                 </div>
@@ -102,6 +112,7 @@
 
   // Default structure for timeline settings
   const defaultSettings = {
+    sortLatestFirst: true,
     hideEmptyWindows: false,
     hideHydration: false,
     hidePastSuggestions: true,

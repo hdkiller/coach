@@ -74,6 +74,7 @@
   defineEmits(['add', 'addAi', 'edit'])
 
   const chartSettings = computed(() => ({
+    sortLatestFirst: true,
     hideEmptyWindows: false,
     hideHydration: false,
     hidePastSuggestions: true,
@@ -83,11 +84,16 @@
   }))
 
   const filteredWindows = computed(() => {
-    if (!chartSettings.value.hideEmptyWindows) return props.windows
+    const windows = chartSettings.value.hideEmptyWindows
+      ? props.windows.filter((w) => {
+          if (w.type === 'DAILY_BASE' && w.items.length === 0) return false
+          return true
+        })
+      : props.windows
 
-    return props.windows.filter((w) => {
-      if (w.type === 'DAILY_BASE' && w.items.length === 0) return false
-      return true
+    return [...windows].sort((a, b) => {
+      const direction = chartSettings.value.sortLatestFirst ? -1 : 1
+      return (a.startTime.getTime() - b.startTime.getTime()) * direction
     })
   })
 
