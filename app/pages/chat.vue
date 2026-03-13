@@ -1011,20 +1011,26 @@
         if (
           data.type === 'chat_turn_status' &&
           data.roomId === currentRoomId.value &&
-          data.turnId &&
-          data.reason === 'slow_response'
+          data.turnId
         ) {
           lastChatRealtimeEventAt.value = Date.now()
-          if (!slowTurnNoticeIds.has(data.turnId)) {
-            slowTurnNoticeIds.add(data.turnId)
-            toast.add({
-              title: 'Response delayed',
-              description:
-                'This turn is taking longer than usual. You can keep waiting or retry if it fails.',
-              color: 'warning'
-            })
+          if (data.reason === 'slow_response') {
+            if (!slowTurnNoticeIds.has(data.turnId)) {
+              slowTurnNoticeIds.add(data.turnId)
+              toast.add({
+                title: 'Response delayed',
+                description:
+                  'This turn is taking longer than usual. You can keep waiting or retry if it fails.',
+                color: 'warning'
+              })
+            }
+            return
           }
-          return
+
+          if (terminalTurnStatuses.includes(String(data.status || ''))) {
+            awaitingTurnStart.value = false
+            scheduleTerminalMessageSync(currentRoomId.value, 50)
+          }
         }
       } catch (error) {
         console.error('[Chat] WebSocket message handling failed:', error)

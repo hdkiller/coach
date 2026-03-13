@@ -290,34 +290,54 @@
       icon: 'i-heroicons-pencil-square',
       tooltip: 'This reply used workout update tools.'
     },
+    profile: {
+      label: 'Profile',
+      icon: 'i-heroicons-user-circle',
+      tooltip: 'This reply accessed or updated athlete profile settings.'
+    },
+    availability: {
+      label: 'Schedule',
+      icon: 'i-heroicons-clock',
+      tooltip: 'This reply accessed or updated training availability.'
+    },
+    recommendations: {
+      label: 'Coach',
+      icon: 'i-heroicons-sparkles',
+      tooltip: 'This reply accessed AI recommendations.'
+    },
+    wellness: {
+      label: 'Wellness',
+      icon: 'i-heroicons-heart',
+      tooltip: 'This reply used wellness or recovery tools.'
+    },
+    analysis: {
+      label: 'Analysis',
+      icon: 'i-heroicons-chart-bar',
+      tooltip: 'This reply performed training analysis or calculations.'
+    },
     nutrition: {
       label: 'Nutrition',
       icon: 'i-heroicons-beaker',
       tooltip: 'This reply used nutrition tools.'
     }
   } as const
-  const getSkillIndicator = (message: any) => {
-    if (message?.role !== 'assistant') return null
+
+  const getSkillIndicators = (message: any) => {
+    if (message?.role !== 'assistant') return []
 
     const selection = message?.metadata?.skillSelection
-    if (!selection?.useTools) return null
+    if (!selection?.useTools) return []
 
     const skillIds = Array.isArray(selection?.skillIds)
       ? selection.skillIds.filter((skillId: string) => skillId !== 'general_chat')
       : []
 
-    if (!skillIds.length) return null
-
-    const primarySkillId = skillIds[0]
-    const indicator = skillIndicators[primarySkillId as keyof typeof skillIndicators] || {
-      label: 'Tools',
-      icon: 'i-heroicons-wrench-screwdriver',
-      tooltip: 'This reply used chat tools.'
-    }
+    if (!skillIds.length) return []
 
     const selectedToolNames = Array.isArray(selection?.selectedToolNames)
       ? selection.selectedToolNames.filter(Boolean)
       : []
+
     const sourceLabel =
       selection?.source === 'continuation'
         ? ' Continued after approval.'
@@ -325,13 +345,25 @@
           ? ' Routed automatically.'
           : ''
 
-    return {
-      ...indicator,
-      tooltip:
-        indicator.tooltip +
-        sourceLabel +
-        (selectedToolNames.length ? ` Tools: ${selectedToolNames.join(', ')}.` : '')
-    }
+    return skillIds.map((skillId: string, index: number) => {
+      const indicator = skillIndicators[skillId as keyof typeof skillIndicators] || {
+        label: 'Tools',
+        icon: 'i-heroicons-wrench-screwdriver',
+        tooltip: 'This reply used chat tools.'
+      }
+
+      // Append tool names and source info only to the first indicator to avoid repetition
+      const extraInfo =
+        index === 0
+          ? sourceLabel +
+            (selectedToolNames.length ? ` Tools: ${selectedToolNames.join(', ')}.` : '')
+          : ''
+
+      return {
+        ...indicator,
+        tooltip: indicator.tooltip + extraInfo
+      }
+    })
   }
   const canShowTurnStatus = (message: any) => shouldShowAssistantStatusRow(message)
   const isQueuedUserMessage = (message: any) =>
@@ -795,21 +827,23 @@
               "
             >
               <div
-                v-if="message.role === 'assistant' && getSkillIndicator(message)"
-                class="mb-2 flex items-center"
+                v-if="message.role === 'assistant' && getSkillIndicators(message).length"
+                class="mb-2 flex flex-wrap items-center gap-1.5"
               >
                 <UTooltip
-                  :text="getSkillIndicator(message)?.tooltip"
+                  v-for="(indicator, idx) in getSkillIndicators(message)"
+                  :key="idx"
+                  :text="indicator.tooltip"
                   :popper="{ placement: 'top' }"
                 >
                   <UBadge
                     color="neutral"
                     variant="soft"
                     size="xs"
-                    :icon="getSkillIndicator(message)?.icon"
+                    :icon="indicator.icon"
                     class="rounded-full"
                   >
-                    {{ getSkillIndicator(message)?.label }}
+                    {{ indicator.label }}
                   </UBadge>
                 </UTooltip>
               </div>
