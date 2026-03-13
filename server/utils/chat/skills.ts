@@ -52,7 +52,7 @@ export type ChatSkillSelection = {
   useTools: boolean
   reason?: string
   usedFallback?: boolean
-  source?: 'router' | 'continuation' | 'fallback'
+  source?: 'router' | 'continuation' | 'pending_approval' | 'fallback'
 }
 
 type ChatSkillRouterParams = {
@@ -85,19 +85,28 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
   support: {
     id: 'support',
     description:
-      'Ticket and issue workflows: create, inspect, or update support tickets when the user reports a bug, issue, or support problem.',
-    toolNames: ['ticket_create', 'ticket_get', 'ticket_update'],
+      'Ticket and issue workflows: create, inspect, search, or update support tickets when the user reports a bug, issue, or support problem.',
+    toolNames: [
+      'ticket_create',
+      'report_bug',
+      'ticket_get',
+      'ticket_search',
+      'find_bug_reports',
+      'ticket_update',
+      'ticket_comment'
+    ],
     instructionFragment: `## Support Skill
 
 - Use support tools for tickets, product issues, and bug-report workflows.
 - Draft ticket language cleanly before creating or updating records.
 - Ask only for missing facts that materially affect the ticket.
+- If the needed facts are discoverable from support tools, fetch them instead of asking the user to repeat them.
 - When the user asks to create or update a ticket and you already have the required details, call the support tool immediately.
 - If approval is required, the approval UI must come from the support tool call itself.
 - Never ask the user to approve a ticket in plain text without first invoking the relevant support tool.
 - Do not claim a ticket was created or updated unless the support tool actually ran successfully.`,
     contextFlags: ['support'],
-    approvalToolNames: ['ticket_create'],
+    approvalToolNames: ['ticket_create', 'report_bug', 'ticket_update', 'ticket_comment'],
     priority: 100,
     fallbackSkill: 'general_chat'
   },
@@ -110,12 +119,15 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
       'search_planned_workouts',
       'get_current_plan',
       'get_planned_workout_details',
-      'get_planned_workout_structure'
+      'get_planned_workout_structure',
+      'get_training_availability'
     ],
     instructionFragment: `## Planning Read Skill
 
 - Use planning read tools when the athlete asks about upcoming workouts, plan structure, or scheduled sessions.
 - Prefer the smallest read-only planning tool that answers the question.
+- If the user references a workout by title, date, or rough timeframe, identify the matching planned workout via planning read tools instead of guessing.
+- If a natural-language timeframe is not directly supported, either resolve it with tools or fall back to an explicit date-range lookup before asking the user to restate it.
 - Summarize results in plain language; do not dump raw tool payloads.`,
     contextFlags: ['planning', 'date_context'],
     approvalToolNames: [],
@@ -145,12 +157,16 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
       'delete_planned_workout',
       'delete_workout',
       'modify_training_plan_structure',
+      'get_training_availability',
       'update_training_availability'
     ],
     instructionFragment: `## Planning Write Skill
 
 - You must use planning tools for plan mutations. Do not describe the change without calling the tool.
 - For relative date phrases used in writes, call \`resolve_temporal_reference\` before mutating.
+- If the user refers to a workout by title, date, sport, or rough timeframe rather than by ID, first use planning read/search tools to identify the exact target record. Do not ask for an ID that you can discover yourself.
+- For delete or update requests, perform discovery with planning tools first, then call the mutation tool once the target is clear.
+- If multiple plausible target workouts are found, ask a concise clarification question that names the candidates.
 - For schedule changes, prefer updating or rescheduling over delete-and-recreate unless the user explicitly wants replacement.
 - When the user has already provided enough details for a plan change, call the planning mutation tool immediately.
 - If approval is required, the approval UI must come from the planning tool call itself.
@@ -189,8 +205,9 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 
 - Use workout read tools for completed or recent workout questions.
 - If the user wants deeper analysis, fetch the relevant workout details or streams first.
+- If the user points to a workout by description instead of ID, identify it with search tools before answering.
 - Charts are optional and should only be created when they improve the answer.`,
-    contextFlags: ['workout'],
+    contextFlags: ['workout', 'date_context', 'time'],
     approvalToolNames: [],
     priority: 80,
     fallbackSkill: 'general_chat'
@@ -198,18 +215,34 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
   workout_update: {
     id: 'workout_update',
     description:
-      'Completed workout mutation workflows: update an existing workout record or its editable metadata.',
-    toolNames: ['search_workouts', 'get_workout_details', 'update_workout'],
+      'Completed workout mutation workflows: update an existing workout record, its notes, tags, or metadata.',
+    toolNames: [
+      'search_workouts',
+      'get_workout_details',
+      'update_workout',
+      'update_workout_notes',
+      'update_workout_tags',
+      'analyze_activity'
+    ],
     instructionFragment: `## Workout Update Skill
 
 - Use \`update_workout\` for edits to completed workout records.
+- Use \`update_workout_notes\` to append or replace personal notes.
+- Use \`update_workout_tags\` to manage local workout tags.
+- Use \`analyze_activity\` when the user explicitly asks for a deep performance re-analysis.
 - Verify the target workout first when the request is ambiguous.
+- If the user refers to a workout by title, date, or description rather than by ID, search for it first. Do not ask for an ID if the toolset can discover it.
 - Preserve existing user-entered content unless the user explicitly asks to overwrite it.
-- When the user has given enough detail to perform the edit, call \`update_workout\` instead of only describing the intended change.
+- When the user has given enough detail to perform the edit, call the relevant workout mutation tool instead of only describing the intended change.
 - If approval is required for any future workout-edit flow, the approval UI must come from the tool call, not from plain text.
 - Do not claim a workout edit succeeded unless the tool actually ran successfully.`,
-    contextFlags: ['workout'],
-    approvalToolNames: [],
+    contextFlags: ['workout', 'date_context', 'time'],
+    approvalToolNames: [
+      'update_workout',
+      'update_workout_notes',
+      'update_workout_tags',
+      'analyze_activity'
+    ],
     priority: 85,
     fallbackSkill: 'general_chat'
   },
@@ -229,9 +262,10 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 - Use profile tools for athlete settings, zones, units, location, FTP, HR, and persona preferences.
 - For read-only profile questions, fetch the minimum profile or sport-setting data needed before answering.
 - When the user clearly asks to change profile or sport settings, call the relevant profile tool instead of only describing the intended change.
+- If both read and write tools are needed to complete the request safely, fetch current profile state first and then perform the change.
 - Do not claim a profile or sport-setting change succeeded unless the tool actually ran successfully.`,
     contextFlags: ['profile'],
-    approvalToolNames: [],
+    approvalToolNames: ['update_user_profile', 'update_sport_settings'],
     priority: 82,
     fallbackSkill: 'general_chat'
   },
@@ -244,10 +278,11 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 
 - Use availability tools when the user asks about their training schedule, available slots, gym access, or day constraints.
 - Treat slot updates as mutations to the athlete schedule; do not describe a schedule change without calling the relevant tool.
+- If the target day is described relatively or informally, resolve or inspect it with tools before mutating.
 - Ask for clarification only when the target day or slot data is ambiguous.
 - Do not claim the training availability changed unless the tool actually ran successfully.`,
     contextFlags: ['availability', 'planning', 'time', 'date_context'],
-    approvalToolNames: [],
+    approvalToolNames: ['update_training_availability'],
     priority: 84,
     fallbackSkill: 'general_chat'
   },
@@ -258,7 +293,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
     toolNames: ['recommend_workout', 'get_recommendation_details', 'list_pending_recommendations'],
     instructionFragment: `## Recommendations Skill
 
-- Use recommendation tools when the user asks what workout is recommended, wants recommendation details, or wants to review pending recommendations.
+- Use recommendation tools when the athlete asks what workout is recommended, wants recommendation details, or wants to review pending recommendations.
 - Ground recommendation summaries in tool output; do not invent recommendation records.
 - If the user asks for a recommendation now, call the recommendation tool rather than improvising one from scratch.`,
     contextFlags: ['recommendations', 'planning'],
@@ -281,20 +316,23 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 
 - Use wellness tools for recovery, sleep, soreness, fatigue, symptoms, and subjective wellness logging.
 - When the user wants to log, update, or delete a wellness event, call the relevant wellness tool instead of only acknowledging the request.
+- If the target event is discoverable from recent wellness history, inspect it with tools before asking the user to restate details.
 - For recovery questions, prefer fetching wellness metrics before interpreting how the athlete is doing.
 - Do not claim a wellness event or recovery change was saved unless the tool actually ran successfully.`,
     contextFlags: ['wellness', 'time', 'date_context'],
-    approvalToolNames: [],
+    approvalToolNames: ['record_wellness_event', 'update_wellness_event', 'delete_wellness_event'],
     priority: 77,
     fallbackSkill: 'general_chat'
   },
   analysis: {
     id: 'analysis',
     description:
-      'Analysis and calculation workflows: analyze training load, forecast load, calculate training metrics, or perform explicit math/calculation requests.',
+      'Analysis and calculation workflows: analyze training load, forecast load, sync data, generate reports, or perform explicit math/calculation requests.',
     toolNames: [
       'analyze_training_load',
       'forecast_training_load',
+      'sync_data',
+      'generate_report',
       'create_chart',
       'calculate_training_metrics',
       'perform_calculation'
@@ -302,7 +340,10 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
     instructionFragment: `## Analysis Skill
 
 - Use analysis or calculation tools for training-load analysis, forecasts, zone calculations, conversions, charts, or explicit math.
+- Use \`sync_data\` when the user asks to refresh their data or says a recent workout is missing.
+- Use \`generate_report\` when the user wants a structured summary of progress (e.g., Weekly Training report).
 - Prefer calculation tools over mental math when the user asks for numbers, zones, pace, conversions, or metric formulas.
+- When the user asks for analysis of specific workouts or planning records, fetch the relevant records first instead of inferring from memory.
 - Create charts only when they materially improve the answer.
 - Ground analytical conclusions in the returned tool data; do not invent metrics.`,
     contextFlags: ['analysis', 'workout', 'planning'],
@@ -316,6 +357,7 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
       'Nutrition and hydration workflows: log meals, fix nutrition entries, inspect fueling, and review daily nutrition state.',
     toolNames: [
       'get_current_time',
+      'resolve_temporal_reference',
       'get_nutrition_log',
       'log_nutrition_meal',
       'log_hydration_intake',
@@ -331,14 +373,16 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
     instructionFragment: `## Nutrition Skill
 
 - When logging food or hydration "now" or for the current moment, call \`get_current_time\` first and pass the exact local time.
+- For relative day references in nutrition writes like "yesterday", "last night", or "tomorrow", call \`resolve_temporal_reference\` before mutating.
 - For nutrition corrections, prefer \`patch_nutrition_items\` instead of deleting and recreating entries.
+- If the user refers to an existing meal item by name or context rather than item ID, first inspect the relevant nutrition log to discover the exact item ID before patching or deleting.
 - Explain nutrition results clearly and keep recommendations grounded in the returned data.
 - When the user has provided enough information to log, patch, or delete a nutrition entry, call the relevant nutrition tool immediately.
 - If approval is required, the approval UI must come from the nutrition tool call itself.
 - Never ask for approval in plain text without first invoking the relevant nutrition tool.
 - Do not claim a nutrition change was saved unless the tool actually ran successfully.`,
-    contextFlags: ['nutrition', 'time'],
-    approvalToolNames: ['delete_nutrition_item'],
+    contextFlags: ['nutrition', 'time', 'date_context'],
+    approvalToolNames: ['delete_nutrition_item', 'delete_hydration'],
     priority: 75,
     fallbackSkill: 'general_chat'
   },
@@ -443,6 +487,7 @@ ${skillsText.join('\n')}
 
 Rules:
 - Prefer the smallest set of skills that can answer the current turn.
+- Multiple skills are allowed when one skill provides the main workflow and another provides required helper context or supporting tools.
 - Use "support" for tickets, issues, bugs, or support workflows.
 - Use "planning_read" for upcoming/planned workout questions.
 - Use "planning_write" for creating, moving, adjusting, publishing, or deleting planned workouts or availability.
@@ -455,6 +500,9 @@ Rules:
 - Use "analysis" for training-load analysis, forecasting, explicit math, pace/zones calculations, or charts.
 - Use "nutrition" for meal, hydration, fueling, or nutrition-log requests.
 - Use "general_chat" when no tools are needed right now.
+- If a write workflow is already in progress and the user reports a problem with approval UI, missing buttons, or asks what happened, keep the original write skill in the bundle. You may add "support", but do not replace the write skill with support-only routing.
+- Preserve helper tool access when needed. Example: nutrition logging "right now" still needs time-related helper tools; relative-day writes still need temporal resolution tools.
+- Never route a turn to tool-free behavior if the assistant still needs tools to safely complete or explain an in-progress mutation.
 - If unsure, return skillIds ["general_chat"] and useTools false.
 - This router must work across languages. Infer intent semantically, not by English-only wording.
 - No more than 3 skills.
@@ -513,6 +561,62 @@ function inferToolNameFromPart(part: any) {
     return part.type.slice('tool-'.length)
   }
   return null
+}
+
+function getPendingApprovalToolNames(messages: any[]) {
+  const toolNames = new Set<string>()
+
+  for (const message of messages) {
+    const metadata = message?.metadata || {}
+    const pendingApprovals = Array.isArray(metadata?.pendingApprovals)
+      ? metadata.pendingApprovals
+      : []
+
+    for (const pending of pendingApprovals) {
+      if (typeof pending?.toolName === 'string' && pending.toolName) {
+        toolNames.add(pending.toolName)
+      }
+    }
+
+    const parts = Array.isArray(message?.parts)
+      ? message.parts
+      : Array.isArray(message?.content)
+        ? message.content
+        : []
+
+    for (const part of parts) {
+      const state = typeof part?.state === 'string' ? part.state : ''
+      const toolName = inferToolNameFromPart(part)
+      if (state === 'approval-requested' && toolName) {
+        toolNames.add(toolName)
+      }
+    }
+  }
+
+  return [...toolNames]
+}
+
+function latestUserMentionsApprovalUiIssue(messages: any[]) {
+  const latestUserText = getLatestUserText(messages).toLowerCase()
+  if (!latestUserText) return false
+
+  const patterns = [
+    'approve',
+    'approval',
+    'button',
+    'gomb',
+    'cannot see',
+    "can't see",
+    'dont see',
+    "don't see",
+    'nem latom',
+    'nem látom',
+    'missing',
+    'not visible',
+    'where is'
+  ]
+
+  return patterns.some((pattern) => latestUserText.includes(pattern))
 }
 
 export function getSkillIdsForToolNames(toolNames: string[]) {
@@ -586,8 +690,32 @@ export function getContinuationSkillSelection(messages: any[]): ChatSkillSelecti
     usedFallback: false,
     source: 'continuation'
   }
+}
 
-  return null
+export function getPendingApprovalSkillSelection(messages: any[]): ChatSkillSelection | null {
+  const pendingToolNames = getPendingApprovalToolNames(messages)
+  if (!pendingToolNames.length) {
+    return null
+  }
+
+  const skillIds = getSkillIdsForToolNames(pendingToolNames)
+  if (!skillIds.length) {
+    return null
+  }
+
+  const combinedSkillIds = latestUserMentionsApprovalUiIssue(messages)
+    ? sortSkillIds(uniq([...skillIds, 'support']))
+    : skillIds
+
+  return {
+    skillIds: combinedSkillIds,
+    confidence: 1,
+    useTools: true,
+    reason:
+      'A previously prepared approval-required action is still pending, so preserve the original tool domain and any support context.',
+    usedFallback: false,
+    source: 'pending_approval'
+  }
 }
 
 async function logRouterUsage(params: {
@@ -667,6 +795,21 @@ export async function classifyChatSkills(
     return continuation
   }
 
+  const pendingApproval = getPendingApprovalSkillSelection(params.messages)
+  if (pendingApproval) {
+    await logRouterUsage({
+      userId: params.userId,
+      turnId: params.turnId,
+      provider: 'internal',
+      model: 'pending_approval_context',
+      success: true,
+      promptPreview: getLatestUserText(params.messages) || '(pending approval)',
+      responsePreview: JSON.stringify(pendingApproval),
+      durationMs: 0
+    })
+    return pendingApproval
+  }
+
   const prompt = buildRouterPrompt(params)
   const startedAt = Date.now()
   const google = createGoogleGenerativeAI({
@@ -730,9 +873,21 @@ export function selectToolsForSkills(
 ) {
   if (!options.useTools) return {}
 
-  const selectedToolNames = uniq(
-    skillIds.flatMap((skillId) => CHAT_SKILL_MANIFESTS[skillId]?.toolNames || [])
-  ).filter((toolName) => !isChatToolTemporarilyDisabled(toolName))
+  const selectedSkillIds = uniq(
+    skillIds.filter((skillId): skillId is ChatSkillId =>
+      CHAT_SKILL_IDS.includes(skillId as ChatSkillId)
+    )
+  )
+
+  const contextFlags = uniq(
+    selectedSkillIds.flatMap((skillId) => CHAT_SKILL_MANIFESTS[skillId]?.contextFlags || [])
+  )
+
+  const selectedToolNames = uniq([
+    ...selectedSkillIds.flatMap((skillId) => CHAT_SKILL_MANIFESTS[skillId]?.toolNames || []),
+    ...(contextFlags.includes('time') ? ['get_current_time'] : []),
+    ...(contextFlags.includes('date_context') ? ['resolve_temporal_reference'] : [])
+  ]).filter((toolName) => !isChatToolTemporarilyDisabled(toolName))
 
   const selectedTools = Object.fromEntries(
     Object.entries(allTools).filter(([toolName]) => selectedToolNames.includes(toolName))
@@ -835,7 +990,23 @@ When using any of these tools:
 - If the user denies approval, treat it as user intent and ask what should change.`
     : ''
 
-  return [baseInstruction, '## Active Skill Instructions', fragments, approvalInstruction]
+  const executionIntegrityInstruction = `## Execution Integrity Rules
+
+- Never claim that a write action was completed, is currently being applied, or was handled manually unless a matching tool call actually succeeded in this turn.
+- If a write action still needs approval, say it is pending approval. Do not imply it already happened.
+- If the user reports that approval UI is missing or broken, explain that the action is blocked until approval can be completed or the action is re-issued through the proper tool flow.
+- When helper tools are available for the selected domains, use them instead of improvising missing facts like the current time, resolved date, or record IDs.
+- When tools are enabled and the user refers to an existing record by title, date, rough timeframe, or descriptive text, use discovery/read tools first to identify the exact target before mutating.
+- Do not finish a tool-enabled turn with zero tool calls unless you are asking a specific blocking clarification question that names the missing detail.
+- If tools are enabled for this turn and the user has already provided enough information, prefer calling the relevant tool over answering with unsupported free text.`
+
+  return [
+    baseInstruction,
+    '## Active Skill Instructions',
+    fragments,
+    approvalInstruction,
+    executionIntegrityInstruction
+  ]
     .filter(Boolean)
     .join('\n\n')
 }

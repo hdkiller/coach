@@ -3,6 +3,7 @@ import {
   classifyChatSkills,
   composeSkillInstructions,
   getContinuationSkillSelection,
+  getPendingApprovalSkillSelection,
   resolveApprovalToolNamesForSelection,
   selectToolsForSkills
 } from './skills'
@@ -71,6 +72,26 @@ describe('selectToolsForSkills', () => {
       'update_user_profile',
       'get_training_availability',
       'update_training_availability'
+    ])
+    expect(tools).not.toHaveProperty('ticket_create')
+  })
+
+  it('preserves helper tools for time and date-aware domains', () => {
+    const tools = selectToolsForSkills(
+      {
+        log_nutrition_meal: { name: 'log_nutrition_meal' },
+        get_current_time: { name: 'get_current_time' },
+        resolve_temporal_reference: { name: 'resolve_temporal_reference' },
+        ticket_create: { name: 'ticket_create' }
+      },
+      ['nutrition'],
+      { useTools: true }
+    )
+
+    expect(Object.keys(tools)).toEqual([
+      'log_nutrition_meal',
+      'get_current_time',
+      'resolve_temporal_reference'
     ])
     expect(tools).not.toHaveProperty('ticket_create')
   })
@@ -241,6 +262,34 @@ describe('getContinuationSkillSelection', () => {
   })
 })
 
+describe('getPendingApprovalSkillSelection', () => {
+  it('keeps the original write skill available when approval is still pending', () => {
+    const selection = getPendingApprovalSkillSelection([
+      {
+        role: 'assistant',
+        metadata: {
+          pendingApprovals: [
+            {
+              toolName: 'delete_planned_workout',
+              toolCallId: 'call_1'
+            }
+          ]
+        }
+      },
+      {
+        role: 'user',
+        content: "I can't see the approve button"
+      }
+    ])
+
+    expect(selection).toMatchObject({
+      useTools: true,
+      source: 'pending_approval'
+    })
+    expect(selection?.skillIds).toEqual(['support', 'planning_write'])
+  })
+})
+
 describe('resolveApprovalToolNamesForSelection', () => {
   it('derives approval rules from the selected tool definitions', async () => {
     const approvalToolNames = await resolveApprovalToolNamesForSelection(
@@ -282,5 +331,34 @@ describe('composeSkillInstructions', () => {
     expect(instructions).toContain('## General Chat Skill')
     expect(instructions).toContain('Domain context for this turn: planning_read')
     expect(instructions).not.toContain('Use planning read tools')
+  })
+
+  it('adds hard execution-integrity rules for tool-enabled turns', () => {
+    const instructions = composeSkillInstructions('BASE', ['planning_write', 'support'], {
+      useTools: true,
+      approvalToolNames: ['delete_planned_workout']
+    })
+
+    expect(instructions).toContain('## Execution Integrity Rules')
+    expect(instructions).toContain('Never claim that a write action was completed')
+    expect(instructions).toContain('If the user reports that approval UI is missing or broken')
+    expect(instructions).toContain('use discovery/read tools first to identify the exact target')
+    expect(instructions).toContain('Do not finish a tool-enabled turn with zero tool calls')
+  })
+
+  it('reinforces discovery-before-mutation in planning and nutrition prompts', () => {
+    const planningInstructions = composeSkillInstructions('BASE', ['planning_write'], {
+      useTools: true
+    })
+    const nutritionInstructions = composeSkillInstructions('BASE', ['nutrition'], {
+      useTools: true
+    })
+
+    expect(planningInstructions).toContain(
+      'first use planning read/search tools to identify the exact target record'
+    )
+    expect(nutritionInstructions).toContain(
+      'first inspect the relevant nutrition log to discover the exact item ID'
+    )
   })
 })
