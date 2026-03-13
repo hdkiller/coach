@@ -1332,17 +1332,23 @@
         return dateStr === dayStr
       })
 
-      // Sort activities by time within the day
+      // Sort activities by time within the day, newest first.
       dayActivities.sort((a, b) => {
-        const getTime = (activity: CalendarActivity) => {
-          if (activity.source === 'planned' && activity.startTime) return activity.startTime
-          // For completed/notes/wellness/nutrition, use the actual date timestamp
+        const getTimestamp = (activity: CalendarActivity) => {
+          if (activity.source === 'planned' && typeof activity.startTime === 'string') {
+            const baseDate =
+              activity.date instanceof Date
+                ? activity.date.toISOString().split('T')[0]
+                : String(activity.date).split('T')[0]
+            const plannedDate = new Date(`${baseDate}T${activity.startTime}`)
+            if (!isNaN(plannedDate.getTime())) return plannedDate.getTime()
+          }
+
           const date = new Date(activity.date)
-          const h = date.getUTCHours().toString().padStart(2, '0')
-          const m = date.getUTCMinutes().toString().padStart(2, '0')
-          return `${h}:${m}`
+          return isNaN(date.getTime()) ? 0 : date.getTime()
         }
-        return getTime(a).localeCompare(getTime(b))
+
+        return getTimestamp(b) - getTimestamp(a)
       })
 
       // Check if other month based on UTC month index
