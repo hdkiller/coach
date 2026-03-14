@@ -745,8 +745,13 @@ function buildWorkoutAnalysisData(workout: any) {
     const raw = workout.rawJson as any
 
     // Intervals.icu intervals
-    if (raw.icu_intervals && Array.isArray(raw.icu_intervals)) {
-      data.intervals = raw.icu_intervals.slice(0, 10).map((interval: any) => ({
+    const rawIntervals = Array.isArray(raw.icu_intervals)
+      ? raw.icu_intervals
+      : Array.isArray(raw.intervals)
+        ? raw.intervals
+        : null
+    if (rawIntervals) {
+      data.intervals = rawIntervals.map((interval: any) => ({
         type: interval.type,
         label: interval.label,
         // Prefer moving time for pace analysis (elapsed_time can include pauses/stops and distort run interval pace).

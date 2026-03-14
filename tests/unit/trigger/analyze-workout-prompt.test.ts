@@ -166,4 +166,27 @@ describe('buildWorkoutAnalysisPrompt', () => {
     expect(prompt).toContain('fatigue | severity 6/10 | Cold symptoms and sore throat')
     expect(prompt).toContain('Do not frame illness-related elevation in RPE as poor execution')
   })
+
+  it('renders interval breakdown entries beyond the first ten intervals', () => {
+    const prompt = buildWorkoutAnalysisPrompt(
+      {
+        date: new Date('2026-03-05T10:00:00Z'),
+        title: 'Long Interval Session',
+        type: 'Ride',
+        duration_m: 90,
+        duration_s: 5400,
+        intervals: Array.from({ length: 12 }, (_, index) => ({
+          type: 'WORK',
+          label: `Interval ${index + 1}`,
+          duration_s: 60,
+          avg_power: 250 + index
+        }))
+      },
+      'UTC',
+      'Supportive'
+    )
+
+    expect(prompt).toContain('### Interval 12: Interval 12')
+    expect(prompt).toContain('- Avg Power: 261W')
+  })
 })

@@ -1177,6 +1177,44 @@ function getRawIntervals(workout: any): any[] {
   return []
 }
 
+function mapIntervalsToActual(intervals: any[]): ActualInterval[] {
+  return intervals
+    .map((interval) => {
+      const type = String(interval?.type || 'INTERVAL')
+      const lower = type.toLowerCase()
+      const classification =
+        lower.includes('rest') ||
+        lower.includes('recovery') ||
+        lower.includes('warm') ||
+        lower.includes('cool')
+          ? ('recovery' as const)
+          : ('work' as const)
+      return {
+        type,
+        durationSeconds:
+          Number(
+            interval?.moving_time ??
+              interval?.elapsed_time ??
+              interval?.duration ??
+              interval?.durationSeconds ??
+              0
+          ) || 0,
+        avgPower: Number.isFinite(Number(interval?.average_watts ?? interval?.avg_power))
+          ? Number(interval?.average_watts ?? interval?.avg_power)
+          : null,
+        avgHr: Number.isFinite(Number(interval?.average_heartrate ?? interval?.avg_heartrate))
+          ? Number(interval?.average_heartrate ?? interval?.avg_heartrate)
+          : null,
+        avgSpeed: Number.isFinite(Number(interval?.average_speed ?? interval?.avg_pace))
+          ? Number(interval?.average_speed ?? interval?.avg_pace)
+          : null,
+        intensity: Number.isFinite(Number(interval?.intensity)) ? Number(interval.intensity) : null,
+        classification
+      }
+    })
+    .filter((interval) => interval.durationSeconds > 0)
+}
+
 function normalizePlannedStepType(
   type: unknown
 ): 'WORK' | 'RECOVERY' | 'WARMUP' | 'COOLDOWN' | undefined {
@@ -1231,6 +1269,84 @@ function toDetectionPlannedSteps(steps: any[]): Array<{
   return planned
 }
 
+function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInterval[] {
+  const time = asNumberArray(workout?.streams?.time)
+  const power = asNumberArray(workout?.streams?.watts)
+  const velocity = asNumberArray(workout?.streams?.velocity)
+  const hr = asNumberArray(workout?.streams?.heartrate)
+  const family = getWorkoutFamily(workout?.type)
+  const plannedSteps = toDetectionPlannedSteps(
+    getStructuredSteps(
+      plannedWorkout?.structuredWorkout || workout?.plannedWorkout?.structuredWorkout
+    )
+  )
+
+  let detected: Array<{
+    type: string
+    duration: number
+    avg_power?: number
+    avg_heartrate?: number
+    avg_pace?: number
+  }> = []
+
+  if (time.length > 0 && power.length === time.length && power.length > 0) {
+    detected = detectIntervals(
+      time,
+      power,
+      'power',
+      Number(workout?.ftp || 0) || undefined,
+      plannedSteps
+    )
+  } else if (
+    time.length > 0 &&
+    velocity.length === time.length &&
+    velocity.length > 0 &&
+    family === 'run'
+  ) {
+    detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps)
+  } else if (time.length > 0 && hr.length === time.length && hr.length > 0) {
+    const maxHr = Number(workout?.maxHr || 0) || undefined
+    detected = detectIntervals(time, hr, 'heartrate', maxHr ? maxHr * 0.7 : undefined, plannedSteps)
+  }
+
+  return mapIntervalsToActual(detected)
+}
+
+function scoreIntervalStructure(
+  actualIntervals: ActualInterval[],
+  plannedSteps: FlattenedPlannedStep[]
+): number {
+  if (actualIntervals.length === 0) return 0
+
+  const plannedWork = plannedSteps.filter((step) => step.classification === 'work').length
+  const plannedRecovery = plannedSteps.filter((step) => step.classification === 'recovery').length
+  const actualWork = actualIntervals.filter((step) => step.classification === 'work').length
+  const actualRecovery = actualIntervals.filter((step) => step.classification === 'recovery').length
+
+  let score = 0
+  if (plannedWork > 0 && actualWork > 0) {
+    score += Math.max(0, 1 - Math.abs(plannedWork - actualWork) / plannedWork) * 2
+  }
+  if (plannedRecovery > 0 && actualRecovery > 0) {
+    score += Math.max(0, 1 - Math.abs(plannedRecovery - actualRecovery) / plannedRecovery) * 2
+  }
+  if (plannedRecovery > 0 && actualRecovery === 0) {
+    score -= 2
+  }
+  if (
+    actualIntervals.every((interval) => interval.classification === 'work') &&
+    plannedRecovery > 0
+  ) {
+    score -= 2
+  }
+  const alternations = actualIntervals.slice(1).filter((interval, index) => {
+    return interval.classification !== actualIntervals[index]?.classification
+  }).length
+  if (alternations > 0) score += Math.min(alternations, 4) * 0.5
+
+  return score
+}
+
 function hasTerminalRecoveryPhase(
   workout: any,
   plannedWorkout: any,
@@ -1254,107 +1370,30 @@ function hasTerminalRecoveryPhase(
 
 function extractActualIntervals(workout: any, plannedWorkout?: any): ActualInterval[] {
   const rawIntervals = getRawIntervals(workout)
+  const rawActual = mapIntervalsToActual(rawIntervals)
+  const detectedActual = buildDetectedIntervals(workout, plannedWorkout)
 
-  if (rawIntervals.length === 0) {
-    const time = asNumberArray(workout?.streams?.time)
-    const power = asNumberArray(workout?.streams?.watts)
-    const velocity = asNumberArray(workout?.streams?.velocity)
-    const hr = asNumberArray(workout?.streams?.heartrate)
-    const family = getWorkoutFamily(workout?.type)
-    const plannedSteps = toDetectionPlannedSteps(
-      getStructuredSteps(
-        plannedWorkout?.structuredWorkout || workout?.plannedWorkout?.structuredWorkout
-      )
-    )
+  if (rawActual.length === 0) return detectedActual
+  if (detectedActual.length === 0) return rawActual
 
-    let detected: Array<{
-      type: string
-      duration: number
-      avg_power?: number
-      avg_heartrate?: number
-      avg_pace?: number
-    }> = []
-
-    if (time.length > 0 && power.length === time.length && power.length > 0) {
-      detected = detectIntervals(
-        time,
-        power,
-        'power',
-        Number(workout?.ftp || 0) || undefined,
-        plannedSteps
-      )
-    } else if (
-      time.length > 0 &&
-      velocity.length === time.length &&
-      velocity.length > 0 &&
-      family === 'run'
-    ) {
-      detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps)
-    } else if (time.length > 0 && hr.length === time.length && hr.length > 0) {
-      const maxHr = Number(workout?.maxHr || 0) || undefined
-      detected = detectIntervals(
-        time,
-        hr,
-        'heartrate',
-        maxHr ? maxHr * 0.7 : undefined,
-        plannedSteps
-      )
+  const plannedSteps = flattenPlannedSteps(
+    getStructuredSteps(
+      plannedWorkout?.structuredWorkout || workout?.plannedWorkout?.structuredWorkout
+    ),
+    {
+      ftp: Number(workout?.ftp || 0),
+      lthr: 0,
+      maxHr: Number(workout?.maxHr || 0),
+      thresholdPace: 0
     }
+  )
 
-    return detected
-      .map((interval) => {
-        const lower = String(interval.type || 'INTERVAL').toLowerCase()
-        const classification =
-          lower.includes('rest') ||
-          lower.includes('recovery') ||
-          lower.includes('warm') ||
-          lower.includes('cool')
-            ? ('recovery' as const)
-            : ('work' as const)
-        return {
-          type: interval.type,
-          durationSeconds: Number(interval.duration || 0) || 0,
-          avgPower: Number.isFinite(Number(interval.avg_power)) ? Number(interval.avg_power) : null,
-          avgHr: Number.isFinite(Number(interval.avg_heartrate))
-            ? Number(interval.avg_heartrate)
-            : null,
-          avgSpeed: Number.isFinite(Number(interval.avg_pace)) ? Number(interval.avg_pace) : null,
-          intensity: null,
-          classification
-        }
-      })
-      .filter((interval) => interval.durationSeconds > 0)
-  }
+  if (plannedSteps.length === 0) return rawActual
 
-  return rawIntervals
-    .map((interval) => {
-      const type = String(interval?.type || 'INTERVAL')
-      const lower = type.toLowerCase()
-      const classification =
-        lower.includes('rest') ||
-        lower.includes('recovery') ||
-        lower.includes('warm') ||
-        lower.includes('cool')
-          ? ('recovery' as const)
-          : ('work' as const)
-      return {
-        type,
-        durationSeconds:
-          Number(interval?.moving_time ?? interval?.elapsed_time ?? interval?.duration ?? 0) || 0,
-        avgPower: Number.isFinite(Number(interval?.average_watts))
-          ? Number(interval.average_watts)
-          : null,
-        avgHr: Number.isFinite(Number(interval?.average_heartrate))
-          ? Number(interval.average_heartrate)
-          : null,
-        avgSpeed: Number.isFinite(Number(interval?.average_speed))
-          ? Number(interval.average_speed)
-          : null,
-        intensity: Number.isFinite(Number(interval?.intensity)) ? Number(interval.intensity) : null,
-        classification
-      }
-    })
-    .filter((interval) => interval.durationSeconds > 0)
+  const rawScore = scoreIntervalStructure(rawActual, plannedSteps)
+  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps)
+
+  return detectedScore > rawScore + 1 ? detectedActual : rawActual
 }
 
 function rateConfidence(score: number): FactConfidence {
