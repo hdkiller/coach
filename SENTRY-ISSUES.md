@@ -4,12 +4,12 @@ This document tracks active, resolved, and investigated Sentry issues for Coach 
 
 ## Recently Resolved
 
-| Issue ID                                                               | Description                                       | Status      | Resolution / Notes                                                                             |
-| ---------------------------------------------------------------------- | ------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------- |
-| [COACH-WATTS-ZH](https://newpush-y4.sentry.io/issues/COACH-WATTS-ZH)   | `ReferenceError: timezone is not defined`         | ✅ Fixed    | Renamed to `userTimezone` and ensured robust fetching in `trigger/daily-checkin.ts`.           |
-| [COACH-WATTS-10W](https://newpush-y4.sentry.io/issues/COACH-WATTS-10W) | `TypeError: i is not a function` in /workouts/:id | ✅ Fixed    | Added defensive check for translation function `t` in `getWorkoutSourceLabel`.                 |
-| [COACH-WATTS-5X](https://newpush-y4.sentry.io/issues/COACH-WATTS-5X)   | `Component WorkoutAnalysisReady not found`        | ✅ Fixed    | Aligned imports with working templates and added safety guards for `recommendationHighlights`. |
-| [COACH-WATTS-Z7](https://newpush-y4.sentry.io/issues/COACH-WATTS-Z7)   | `ReferenceError: absPower is not defined`         | ✅ Resolved | Code no longer exists; likely a side-effect of previous refactoring.                           |
+| Issue ID                                                               | Description                                       | Status      | Resolution / Notes                                                                                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| [COACH-WATTS-ZH](https://newpush-y4.sentry.io/issues/COACH-WATTS-ZH)   | `ReferenceError: timezone is not defined`         | ✅ Fixed    | Renamed to `userTimezone`, fixed redeclaration, and ensured robust fetching in `trigger/daily-checkin.ts`. |
+| [COACH-WATTS-10W](https://newpush-y4.sentry.io/issues/COACH-WATTS-10W) | `TypeError: i is not a function` in /workouts/:id | ✅ Fixed    | Added defensive check for translation function `t` in `getWorkoutSourceLabel`.                             |
+| [COACH-WATTS-5X](https://newpush-y4.sentry.io/issues/COACH-WATTS-5X)   | `Component WorkoutAnalysisReady not found`        | ✅ Fixed    | Aligned imports with working templates and added safety guards for `recommendationHighlights`.             |
+| [COACH-WATTS-Z7](https://newpush-y4.sentry.io/issues/COACH-WATTS-Z7)   | `ReferenceError: absPower is not defined`         | ✅ Resolved | Code no longer exists; likely a side-effect of previous refactoring.                                       |
 
 ## Outstanding / Under Investigation
 
