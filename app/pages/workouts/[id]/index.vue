@@ -5283,7 +5283,14 @@
     if (workout.source === 'fit_file' && workout.oauthApp?.name) {
       return workout.oauthApp.name
     }
-    return t(`source_${workout.source}`) || workout.source
+    try {
+      if (typeof t === 'function') {
+        return t(`source_${workout.source}`) || workout.source
+      }
+    } catch (e) {
+      console.warn('Translation function not available in getWorkoutSourceLabel', e)
+    }
+    return workout.source
   }
 
   function shouldShowSyncSourceNote(workout: any) {
