@@ -115,7 +115,7 @@ export const generateDailyCheckinTask = task({
         persona: aiSettings.aiPersona
       })
 
-      const timezone = await getUserTimezone(userId)
+      const userTimezone = await getUserTimezone(userId)
 
       // Fetch all required data
       const [
@@ -206,7 +206,7 @@ export const generateDailyCheckinTask = task({
         // Current Fitness State
         getCurrentFitnessSummary(userId, undefined, {
           adjustForTodayUncompletedPlannedTSS: true,
-          timezone
+          timezone: userTimezone
         }),
 
         // Past 7 days check-ins
