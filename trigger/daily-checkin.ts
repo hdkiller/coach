@@ -303,7 +303,7 @@ export const generateDailyCheckinTask = task({
         })
       ])
 
-      const userTimezone = user?.timezone || 'UTC'
+      userTimezone = user?.timezone || 'UTC'
       const userAge = calculateAge(user?.dob)
       const activeGoals = filterGoalsForContext(rawActiveGoals, userTimezone, today)
 
