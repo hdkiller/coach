@@ -5,6 +5,10 @@ import { prisma } from '../server/utils/db'
 import { userReportsQueue } from './queues'
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
+import {
+  formatActualIntervalsForPrompt,
+  getActualIntervalsSourceForAnalysis
+} from '../server/utils/workout-analysis-facts'
 
 const adherenceSchema = {
   type: 'object',
@@ -35,6 +39,60 @@ const adherenceSchema = {
   required: ['overallScore', 'summary', 'deviations']
 }
 
+export function buildPlanAdherencePrompt(workout: any, plan: any): string {
+  const structuredPlan = formatStructuredPlanForPrompt(plan.structuredWorkout, {
+    ftp: workout.ftp || workout.user?.ftp || null
+  })
+  const actualIntervals = formatActualIntervalsForPrompt(workout, plan)
+  const actualIntervalsSource = getActualIntervalsSourceForAnalysis(workout, plan)
+  const actualIntervalsSourceLabel =
+    actualIntervalsSource === 'detected'
+      ? 'stream-detected intervals (fallback because synced interval blocks were missing or weak)'
+      : actualIntervalsSource === 'raw'
+        ? 'synced raw intervals'
+        : 'none'
+
+  return `Analyze the adherence of this completed workout to the planned workout.
+      
+      PLANNED:
+      - Title: ${plan.title}
+      - Type: ${plan.type}
+      - Duration: ${plan.durationSec ? Math.round(plan.durationSec / 60) + 'm' : 'N/A'}
+      - TSS: ${plan.tss || 'N/A'}
+      - Intensity: ${plan.workIntensity ? (plan.workIntensity * 100).toFixed(0) + '%' : 'N/A'}
+      - Description: ${plan.description || 'N/A'}
+      - Structured Plan:
+      ${structuredPlan}
+      
+      COMPLETED:
+      - Duration: ${Math.round(workout.durationSec / 60)}m
+      - TSS: ${workout.tss || 'N/A'}
+      - Avg Power: ${workout.averageWatts || 'N/A'}W
+      - Avg Cadence: ${workout.averageCadence || 'N/A'}rpm
+      - Norm Power: ${workout.normalizedPower || 'N/A'}W
+      - Avg HR: ${workout.averageHr || 'N/A'}bpm
+      - Description: ${workout.description || 'N/A'}
+      
+      ACTUAL INTERVALS:
+      - Source: ${actualIntervalsSourceLabel}
+      ${actualIntervals}
+      
+      USER CONTEXT:
+      - FTP: ${workout.user.ftp || 'N/A'}W
+      - Preferred Language: ${workout.user.language || 'English'} (CRITICAL: ALL analysis, reasoning, summaries, and feedback MUST be written in this language)
+      
+      INSTRUCTIONS:
+      1. Calculate an overall adherence score (0-100) based on how well the execution matched the plan.
+      2. Analyze deviations in Duration, Intensity (Power/HR), and Structure.
+      3. Provide specific feedback on what was missed or exceeded.
+      4. Compare the "Structured Plan" steps against the "ACTUAL INTERVALS". Did they do the intervals?
+      5. For planned intensity, trust numeric structured values (power/hr/pace) as source of truth. Do NOT infer targets from step names/titles.
+      6. If actual intervals come from stream-detected fallback, treat them as the best available execution evidence rather than assuming the workout was unstructured.
+      7. "impact" should describe how the deviation affects the training stimulus (e.g. "Reduced aerobic benefit", "Excessive fatigue risk").
+      
+      OUTPUT JSON matching the schema.`
+}
+
 export const analyzePlanAdherenceTask = task({
   id: 'analyze-plan-adherence',
   queue: userReportsQueue,
@@ -47,6 +105,7 @@ export const analyzePlanAdherenceTask = task({
       prisma.workout.findUnique({
         where: { id: workoutId },
         include: {
+          streams: true,
           user: { select: { ftp: true, aiPersona: true, language: true } }
         }
       }),
@@ -71,60 +130,7 @@ export const analyzePlanAdherenceTask = task({
     })
 
     try {
-      const structuredPlan = formatStructuredPlanForPrompt(plan.structuredWorkout, {
-        ftp: workout.ftp || workout.user?.ftp || null
-      })
-
-      // Format actual intervals including Cadence
-      const formatActualIntervals = (raw: any) => {
-        if (raw?.icu_intervals && Array.isArray(raw.icu_intervals)) {
-          return raw.icu_intervals
-            .map((i: any, idx: number) => {
-              const dur = i.elapsed_time || i.duration || 0
-              return `Int ${idx + 1}: ${Math.round(dur / 60)}m ${dur % 60}s | ${i.average_watts || 'N/A'}W | ${i.average_heartrate || 'N/A'}bpm | ${i.average_cadence || 'N/A'}rpm`
-            })
-            .join('\n      ')
-        }
-        return 'N/A'
-      }
-
-      const prompt = `Analyze the adherence of this completed workout to the planned workout.
-      
-      PLANNED:
-      - Title: ${plan.title}
-      - Type: ${plan.type}
-      - Duration: ${plan.durationSec ? Math.round(plan.durationSec / 60) + 'm' : 'N/A'}
-      - TSS: ${plan.tss || 'N/A'}
-      - Intensity: ${plan.workIntensity ? (plan.workIntensity * 100).toFixed(0) + '%' : 'N/A'}
-      - Description: ${plan.description || 'N/A'}
-      - Structured Plan:
-      ${structuredPlan}
-      
-      COMPLETED:
-      - Duration: ${Math.round(workout.durationSec / 60)}m
-      - TSS: ${workout.tss || 'N/A'}
-      - Avg Power: ${workout.averageWatts || 'N/A'}W
-      - Avg Cadence: ${workout.averageCadence || 'N/A'}rpm
-      - Norm Power: ${workout.normalizedPower || 'N/A'}W
-      - Avg HR: ${workout.averageHr || 'N/A'}bpm
-      - Description: ${workout.description || 'N/A'}
-      
-      ACTUAL INTERVALS (The WORK):
-      ${formatActualIntervals(workout.rawJson)}
-      
-      USER CONTEXT:
-      - FTP: ${workout.user.ftp || 'N/A'}W
-      - Preferred Language: ${workout.user.language || 'English'} (CRITICAL: ALL analysis, reasoning, summaries, and feedback MUST be written in this language)
-      
-      INSTRUCTIONS:
-      1. Calculate an overall adherence score (0-100) based on how well the execution matched the plan.
-      2. Analyze deviations in Duration, Intensity (Power/HR), and Structure.
-      3. Provide specific feedback on what was missed or exceeded.
-      4. Compare the "Structured Plan" steps against the "ACTUAL INTERVALS". Did they do the intervals?
-      5. For planned intensity, trust numeric structured values (power/hr/pace) as source of truth. Do NOT infer targets from step names/titles.
-      6. "impact" should describe how the deviation affects the training stimulus (e.g. "Reduced aerobic benefit", "Excessive fatigue risk").
-      
-      OUTPUT JSON matching the schema.`
+      const prompt = buildPlanAdherencePrompt(workout, plan)
 
       const analysis = await generateStructuredAnalysis(prompt, adherenceSchema, 'flash', {
         userId: workout.userId,
