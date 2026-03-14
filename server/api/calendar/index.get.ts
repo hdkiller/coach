@@ -10,6 +10,7 @@ import { nutritionRepository } from '../../utils/repositories/nutritionRepositor
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { calendarNoteRepository } from '../../utils/repositories/calendarNoteRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
+import { applyCanonicalNutritionTargets } from '../../utils/nutrition/canonical-targets'
 import { getUserNutritionSettings } from '../../utils/nutrition/settings'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
@@ -161,7 +162,7 @@ export default defineEventHandler(async (event) => {
       const state = metabolicStates.get(dateKey) || { startingGlycogen: 85, startingFluid: 0 }
 
       nutritionByDate.set(dateKey, {
-        ...n,
+        ...applyCanonicalNutritionTargets(n),
         startingGlycogen: state.startingGlycogen,
         startingFluid: state.startingFluid
       })

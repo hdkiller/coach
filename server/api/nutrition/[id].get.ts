@@ -1,6 +1,7 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
+import { applyCanonicalNutritionTargets } from '../../utils/nutrition/canonical-targets'
 import { metabolicService } from '../../utils/services/metabolicService'
 
 export default defineEventHandler(async (event) => {
@@ -139,6 +140,10 @@ export default defineEventHandler(async (event) => {
         nutrition.fatGoal = estimate.dailyTotals.fat
       }
     }
+
+    if (nutrition) {
+      nutrition = applyCanonicalNutritionTargets(nutrition)
+    }
   }
 
   if (!nutrition) {
@@ -173,7 +178,7 @@ export default defineEventHandler(async (event) => {
   })
 
   return {
-    ...nutrition,
+    ...applyCanonicalNutritionTargets(nutrition),
     startingGlycogen,
     startingFluid,
     energyPoints,

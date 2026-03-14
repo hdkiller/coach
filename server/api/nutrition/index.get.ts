@@ -1,6 +1,7 @@
 import { requireAuth } from '../../utils/auth-guard'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { prisma } from '../../utils/db'
+import { applyCanonicalNutritionTargets } from '../../utils/nutrition/canonical-targets'
 
 defineRouteMeta({
   openAPI: {
@@ -95,7 +96,7 @@ export default defineEventHandler(async (event) => {
 
     // Format dates to avoid timezone issues
     const formattedNutrition = nutrition.map((n) => ({
-      ...n,
+      ...applyCanonicalNutritionTargets(n),
       date: n.date.toISOString().split('T')[0] // YYYY-MM-DD format
     }))
 

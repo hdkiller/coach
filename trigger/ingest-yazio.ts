@@ -4,6 +4,7 @@ import { userIngestionQueue } from './queues'
 import { prisma } from '../server/utils/db'
 import { shouldIngestNutrition } from '../server/utils/integration-settings'
 import { nutritionRepository } from '../server/utils/repositories/nutritionRepository'
+import { applyCanonicalNutritionTargets } from '../server/utils/nutrition/canonical-targets'
 import { getUserTimezone, getStartOfDayUTC } from '../server/utils/date'
 import {
   fetchYazioDailySummary,
@@ -277,6 +278,11 @@ export const ingestYazioTask = task({
           logger.log(`[${date}]    Carbs: ${nutrition.carbs?.toFixed(1)}g`)
           logger.log(`[${date}]    Fat: ${nutrition.fat?.toFixed(1)}g`)
 
+          const existingNutrition = await nutritionRepository.getByDate(userId, nutrition.date)
+          const canonicalExisting = existingNutrition
+            ? applyCanonicalNutritionTargets(existingNutrition as any)
+            : null
+
           // Upsert to database
           // When updating, clear AI analysis since the underlying data has changed
           const result = await nutritionRepository.upsert(
@@ -285,6 +291,22 @@ export const ingestYazioTask = task({
             nutrition as any,
             {
               ...nutrition,
+              caloriesGoal: canonicalExisting?.fuelingPlan
+                ? canonicalExisting.caloriesGoal
+                : nutrition.caloriesGoal,
+              carbsGoal: canonicalExisting?.fuelingPlan
+                ? canonicalExisting.carbsGoal
+                : nutrition.carbsGoal,
+              proteinGoal: canonicalExisting?.fuelingPlan
+                ? canonicalExisting.proteinGoal
+                : nutrition.proteinGoal,
+              fatGoal: canonicalExisting?.fuelingPlan
+                ? canonicalExisting.fatGoal
+                : nutrition.fatGoal,
+              fuelingPlan: canonicalExisting?.fuelingPlan ?? undefined,
+              sourcePrecedence: canonicalExisting?.fuelingPlan
+                ? canonicalExisting.sourcePrecedence
+                : nutrition.sourcePrecedence,
               // Clear AI analysis fields since nutrition data has changed
               aiAnalysis: null,
               aiAnalysisJson: null,
