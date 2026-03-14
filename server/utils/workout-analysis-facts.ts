@@ -1032,6 +1032,8 @@ type ActualInterval = {
   classification: 'work' | 'recovery'
 }
 
+export type ActualIntervalForAnalysis = ActualInterval
+
 function getPromptFactValueByPath(value: unknown, path: string) {
   return path.split('.').reduce<unknown>((acc, key) => {
     if (!acc || typeof acc !== 'object') return undefined
@@ -1394,6 +1396,60 @@ function extractActualIntervals(workout: any, plannedWorkout?: any): ActualInter
   const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps)
 
   return detectedScore > rawScore + 1 ? detectedActual : rawActual
+}
+
+export function getActualIntervalsForAnalysis(
+  workout: any,
+  plannedWorkout?: any
+): ActualIntervalForAnalysis[] {
+  return extractActualIntervals(workout, plannedWorkout)
+}
+
+export function getActualIntervalsSourceForAnalysis(
+  workout: any,
+  plannedWorkout?: any
+): 'raw' | 'detected' | 'none' {
+  const rawIntervals = getRawIntervals(workout)
+  const rawActual = mapIntervalsToActual(rawIntervals)
+  const detectedActual = buildDetectedIntervals(workout, plannedWorkout)
+
+  if (rawActual.length === 0) return detectedActual.length > 0 ? 'detected' : 'none'
+  if (detectedActual.length === 0) return 'raw'
+
+  const plannedSteps = flattenPlannedSteps(
+    getStructuredSteps(
+      plannedWorkout?.structuredWorkout || workout?.plannedWorkout?.structuredWorkout
+    ),
+    {
+      ftp: Number(workout?.ftp || 0),
+      lthr: 0,
+      maxHr: Number(workout?.maxHr || 0),
+      thresholdPace: 0
+    }
+  )
+
+  if (plannedSteps.length === 0) return 'raw'
+
+  const rawScore = scoreIntervalStructure(rawActual, plannedSteps)
+  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps)
+
+  return detectedScore > rawScore + 1 ? 'detected' : 'raw'
+}
+
+export function formatActualIntervalsForPrompt(workout: any, plannedWorkout?: any): string {
+  const intervals = getActualIntervalsForAnalysis(workout, plannedWorkout)
+  if (intervals.length === 0) return 'N/A'
+
+  return intervals
+    .map((interval, idx) => {
+      const minutes = Math.floor(interval.durationSeconds / 60)
+      const seconds = interval.durationSeconds % 60
+      const duration = `${minutes}m ${seconds}s`
+      const avgPower = interval.avgPower != null ? `${Math.round(interval.avgPower)}W` : 'N/A'
+      const avgHr = interval.avgHr != null ? `${Math.round(interval.avgHr)}bpm` : 'N/A'
+      return `Int ${idx + 1}: ${duration} | ${interval.type} | ${avgPower} | ${avgHr}`
+    })
+    .join('\n      ')
 }
 
 function rateConfidence(score: number): FactConfidence {
