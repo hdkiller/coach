@@ -4,6 +4,8 @@
     EContainer,
     EHeading,
     EButton,
+    ERow,
+    EColumn,
     EHtml,
     EHead,
     EPreview,
@@ -234,7 +236,7 @@
                 padding-left: 18px;
               "
             >
-              <li v-for="(item, idx) in recommendationHighlights.slice(0, 3)" :key="idx">
+              <li v-for="(item, idx) in (recommendationHighlights || []).slice(0, 3)" :key="idx">
                 {{ item }}
               </li>
             </ul>
