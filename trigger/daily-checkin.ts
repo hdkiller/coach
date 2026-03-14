@@ -115,7 +115,7 @@ export const generateDailyCheckinTask = task({
         persona: aiSettings.aiPersona
       })
 
-      const userTimezone = await getUserTimezone(userId)
+      let userTimezone = await getUserTimezone(userId)
 
       // Fetch all required data
       const [
