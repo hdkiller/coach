@@ -42,10 +42,69 @@ export interface YazioSimpleProduct {
   is_ai_generated?: boolean
 }
 
+export interface YazioRecipePortion {
+  id: string
+  date: string
+  type?: string
+  daytime: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  name?: string
+  recipe_name?: string
+  title?: string
+  serving?: string | null
+  amount?: number | null
+  serving_quantity?: number | null
+  nutrients?: Record<string, number> | null
+  recipe?: {
+    name?: string
+    nutrients?: Record<string, number> | null
+  } | null
+}
+
 export interface YazioConsumedItemsResponse {
   products: YazioConsumedItem[]
-  recipe_portions: unknown[]
+  recipe_portions: YazioRecipePortion[]
   simple_products: YazioSimpleProduct[]
+}
+
+function getMealGroupKey(
+  daytime: string | null | undefined
+): 'breakfast' | 'lunch' | 'dinner' | 'snacks' {
+  const normalized = String(daytime || '')
+    .toLowerCase()
+    .trim()
+  if (normalized === 'breakfast' || normalized === 'lunch' || normalized === 'dinner') {
+    return normalized
+  }
+  return 'snacks'
+}
+
+function getNutrientValue(
+  nutrients: Record<string, number> | null | undefined,
+  key: string,
+  fallbacks: string[] = []
+): number {
+  if (!nutrients) return 0
+  const keys = [key, ...fallbacks]
+
+  for (const candidate of keys) {
+    const value = nutrients[candidate]
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+  }
+
+  return 0
+}
+
+function extractMacroFields(nutrients: Record<string, number> | null | undefined) {
+  return {
+    calories: getNutrientValue(nutrients, 'energy.energy'),
+    protein: getNutrientValue(nutrients, 'nutrient.protein'),
+    carbs: getNutrientValue(nutrients, 'nutrient.carb'),
+    fat: getNutrientValue(nutrients, 'nutrient.fat'),
+    fiber: getNutrientValue(nutrients, 'nutrient.fiber', ['nutrient.dietaryfiber']),
+    sugar: getNutrientValue(nutrients, 'nutrient.sugar')
+  }
 }
 
 export async function createYazioClient(integration: Integration): Promise<Yazio> {
@@ -101,7 +160,7 @@ export function normalizeYazioData(
 
   // Process regular products (manual entries with product_nutrients)
   for (const item of items.products) {
-    const mealTime = item.daytime.toLowerCase()
+    const mealTime = getMealGroupKey(item.daytime)
 
     // For regular products, nutrients are in product_nutrients and need to be multiplied by amount
     // product_nutrients contain values per gram/serving, amount is the quantity consumed
@@ -130,25 +189,16 @@ export function normalizeYazioData(
       sugar: sugar
     }
 
-    if (mealGroups[mealTime]) {
-      mealGroups[mealTime]!.push(enrichedItem)
-    } else {
-      mealGroups.snacks!.push(enrichedItem)
-    }
+    mealGroups[mealTime]!.push(enrichedItem)
   }
 
   // Process simple products (AI-generated items with names already included)
   for (const item of items.simple_products || []) {
-    const mealTime = item.daytime.toLowerCase()
+    const mealTime = getMealGroupKey(item.daytime)
 
     // Extract nutrients from the nested structure
     const nutrients = item.nutrients || {}
-    const calories = nutrients['energy.energy'] || 0
-    const protein = nutrients['nutrient.protein'] || 0
-    const carbs = nutrients['nutrient.carb'] || 0
-    const fat = nutrients['nutrient.fat'] || 0
-    const fiber = nutrients['nutrient.fiber'] || nutrients['nutrient.dietaryfiber'] || 0
-    const sugar = nutrients['nutrient.sugar'] || 0
+    const { calories, protein, carbs, fat, fiber, sugar } = extractMacroFields(nutrients)
 
     // Transform simple_product to match the expected structure with top-level nutrient fields
     const transformedItem = {
@@ -170,11 +220,36 @@ export function normalizeYazioData(
       sugar: sugar
     }
 
-    if (mealGroups[mealTime]) {
-      mealGroups[mealTime]!.push(transformedItem)
-    } else {
-      mealGroups.snacks!.push(transformedItem)
+    mealGroups[mealTime]!.push(transformedItem)
+  }
+
+  // Process recipe portions (custom or saved recipes)
+  for (const item of items.recipe_portions || []) {
+    const mealTime = getMealGroupKey(item.daytime)
+    const nutrients = item.nutrients || item.recipe?.nutrients || null
+    const { calories, protein, carbs, fat, fiber, sugar } = extractMacroFields(nutrients)
+
+    const transformedItem = {
+      id: item.id,
+      date: item.date,
+      logged_at: item.date,
+      type: item.type || 'recipe_portion',
+      daytime: item.daytime,
+      product_name: item.name || item.recipe_name || item.recipe?.name || item.title || 'Recipe',
+      product_brand: null,
+      serving: item.serving ?? null,
+      amount: item.amount ?? item.serving_quantity ?? null,
+      serving_quantity: item.serving_quantity ?? null,
+      nutrients,
+      calories,
+      protein,
+      carbs,
+      fat,
+      fiber,
+      sugar
     }
+
+    mealGroups[mealTime]!.push(transformedItem)
   }
 
   // Calculate totals from meals data
