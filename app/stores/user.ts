@@ -191,6 +191,40 @@ export const useUserStore = defineStore('user', () => {
     return defaultSettings?.ftp || profile.value.ftp || 0
   })
 
+  const sportTypeGroups: Record<string, string[]> = {
+    ride: ['Ride', 'GravelRide', 'TrackRide', 'MountainBikeRide', 'VirtualRide'],
+    run: ['Run', 'VirtualRun', 'TrailRun'],
+    swim: ['Swim', 'OpenWaterSwim'],
+    ski: ['NordicSki', 'VirtualSki']
+  }
+
+  const defaultSportSettings = computed(() => {
+    return profile.value?.sportSettings?.find((s: any) => s.isDefault) || null
+  })
+
+  function getSportFtp(groupKey: keyof typeof sportTypeGroups): number {
+    if (!profile.value?.sportSettings) return 0
+
+    const matchedSetting = profile.value.sportSettings.find(
+      (setting: any) =>
+        !setting.isDefault &&
+        Array.isArray(setting.types) &&
+        setting.types.some((type: string) => sportTypeGroups[groupKey].includes(type)) &&
+        setting.ftp
+    )
+
+    return matchedSetting?.ftp || 0
+  }
+
+  const defaultProfileFtp = computed(() => {
+    return defaultSportSettings.value?.ftp || profile.value?.ftp || 0
+  })
+
+  const rideFtp = computed(() => getSportFtp('ride'))
+  const runFtp = computed(() => getSportFtp('run'))
+  const swimFtp = computed(() => getSportFtp('swim'))
+  const skiFtp = computed(() => getSportFtp('ski'))
+
   const currentLthr = computed(() => {
     if (!profile.value) return 0
     const defaultSettings = profile.value.sportSettings?.find((s: any) => s.isDefault)
@@ -231,8 +265,8 @@ export const useUserStore = defineStore('user', () => {
 
   const currentWkg = computed(() => {
     const w = currentWeightKg.value
-    if (!w || !currentFtp.value) return 0
-    return currentFtp.value / w
+    if (!w || !defaultProfileFtp.value) return 0
+    return defaultProfileFtp.value / w
   })
 
   const currentWPrime = computed(() => {
@@ -368,6 +402,11 @@ export const useUserStore = defineStore('user', () => {
     user,
     profile,
     currentFtp,
+    defaultProfileFtp,
+    rideFtp,
+    runFtp,
+    swimFtp,
+    skiFtp,
     currentLthr,
     currentMaxHr,
     currentWeightKg,

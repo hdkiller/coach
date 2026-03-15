@@ -147,9 +147,13 @@
     },
     corePerformance: {
       metrics: [
-        { key: 'ftp', label: 'FTP', visible: true },
+        { key: 'ftp', label: 'Default FTP', visible: true },
+        { key: 'rideFtp', label: 'Ride FTP', visible: false },
+        { key: 'runFtp', label: 'Run FTP', visible: false },
+        { key: 'swimFtp', label: 'Swim FTP', visible: false },
+        { key: 'skiFtp', label: 'Ski FTP', visible: false },
         { key: 'weight', label: 'Weight', visible: true },
-        { key: 'wKg', label: 'W/kg', visible: true },
+        { key: 'wKg', label: 'Default W/kg', visible: true },
         { key: 'wPrime', label: "W' (W-Prime)", visible: false },
         { key: 'thresholdPace', label: 'Threshold Pace', visible: false }
       ]
@@ -223,6 +227,22 @@
     // Core Performance
     ftp: {
       icon: 'i-heroicons-bolt-solid',
+      iconColor: 'text-amber-500'
+    },
+    rideFtp: {
+      icon: 'i-lucide-bike',
+      iconColor: 'text-amber-500'
+    },
+    runFtp: {
+      icon: 'i-lucide-person-standing',
+      iconColor: 'text-amber-500'
+    },
+    swimFtp: {
+      icon: 'i-lucide-waves',
+      iconColor: 'text-amber-500'
+    },
+    skiFtp: {
+      icon: 'i-lucide-trees',
       iconColor: 'text-amber-500'
     },
     weight: {
@@ -318,7 +338,11 @@
     if (key === 'tsb') return (pmcData.value?.summary?.currentTSB ?? 0).toFixed(0)
 
     // Core performance
-    if (key === 'ftp') return (userStore.currentFtp || '?') + 'W'
+    if (key === 'ftp') return (userStore.defaultProfileFtp || '?') + 'W'
+    if (key === 'rideFtp') return (userStore.rideFtp || '?') + 'W'
+    if (key === 'runFtp') return (userStore.runFtp || '?') + 'W'
+    if (key === 'swimFtp') return (userStore.swimFtp || '?') + 'W'
+    if (key === 'skiFtp') return (userStore.skiFtp || '?') + 'W'
     if (key === 'weight')
       return (userStore.displayWeight?.toFixed(1) || '?') + userStore.weightUnitLabel
     if (key === 'wKg') {

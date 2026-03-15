@@ -315,8 +315,8 @@
             <div class="flex items-center gap-2">
               <div class="text-sm font-bold text-gray-900 dark:text-white">
                 <template v-if="metric.key === 'ftp'">
-                  <template v-if="userStore.currentFtp"
-                    >{{ userStore.currentFtp
+                  <template v-if="userStore.defaultProfileFtp"
+                    >{{ userStore.defaultProfileFtp
                     }}<span class="text-[9px] opacity-70">W</span></template
                   >
                   <UButton
@@ -329,6 +329,30 @@
                     class="-my-1"
                     @click.stop
                   />
+                </template>
+                <template v-else-if="metric.key === 'rideFtp'">
+                  <template v-if="userStore.rideFtp"
+                    >{{ userStore.rideFtp }}<span class="text-[9px] opacity-70">W</span></template
+                  >
+                  <template v-else>N/A</template>
+                </template>
+                <template v-else-if="metric.key === 'runFtp'">
+                  <template v-if="userStore.runFtp"
+                    >{{ userStore.runFtp }}<span class="text-[9px] opacity-70">W</span></template
+                  >
+                  <template v-else>N/A</template>
+                </template>
+                <template v-else-if="metric.key === 'swimFtp'">
+                  <template v-if="userStore.swimFtp"
+                    >{{ userStore.swimFtp }}<span class="text-[9px] opacity-70">W</span></template
+                  >
+                  <template v-else>N/A</template>
+                </template>
+                <template v-else-if="metric.key === 'skiFtp'">
+                  <template v-if="userStore.skiFtp"
+                    >{{ userStore.skiFtp }}<span class="text-[9px] opacity-70">W</span></template
+                  >
+                  <template v-else>N/A</template>
                 </template>
                 <template v-else-if="metric.key === 'weight'">
                   <template v-if="userStore.displayWeight">
@@ -373,8 +397,8 @@
                 </template>
               </div>
               <TrendIndicator
-                v-if="metric.key === 'ftp' && userStore.currentFtp && ftpHistory.length > 0"
-                :current="userStore.currentFtp"
+                v-if="metric.key === 'ftp' && userStore.defaultProfileFtp && ftpHistory.length > 0"
+                :current="userStore.defaultProfileFtp"
                 :previous="ftpHistory.map((d: any) => d.ftp)"
                 type="higher-is-better"
                 compact
@@ -399,11 +423,11 @@
               <TrendIndicator
                 v-else-if="
                   metric.key === 'wKg' &&
-                  userStore.currentFtp &&
+                  userStore.defaultProfileFtp &&
                   userStore.profile.weight &&
                   wKgHistory.length > 0
                 "
-                :current="userStore.currentFtp / userStore.profile.weight"
+                :current="userStore.defaultProfileFtp / userStore.profile.weight"
                 :previous="wKgHistory"
                 type="higher-is-better"
                 compact
@@ -775,9 +799,13 @@
     },
     corePerformance: {
       metrics: [
-        { key: 'ftp', label: 'FTP', visible: true },
+        { key: 'ftp', label: 'Default FTP', visible: true },
+        { key: 'rideFtp', label: 'Ride FTP', visible: false },
+        { key: 'runFtp', label: 'Run FTP', visible: false },
+        { key: 'swimFtp', label: 'Swim FTP', visible: false },
+        { key: 'skiFtp', label: 'Ski FTP', visible: false },
         { key: 'weight', label: 'Weight', visible: true },
-        { key: 'wKg', label: 'W/kg', visible: true },
+        { key: 'wKg', label: 'Default W/kg', visible: true },
         { key: 'wPrime', label: "W' (W-Prime)", visible: false },
         { key: 'thresholdPace', label: 'Threshold Pace', visible: false }
       ]
@@ -875,7 +903,27 @@
     ftp: {
       icon: 'i-heroicons-bolt-solid',
       iconColor: 'text-amber-500',
-      label: 'FTP'
+      label: 'Default FTP'
+    },
+    rideFtp: {
+      icon: 'i-lucide-bike',
+      iconColor: 'text-amber-500',
+      label: 'Ride FTP'
+    },
+    runFtp: {
+      icon: 'i-lucide-person-standing',
+      iconColor: 'text-amber-500',
+      label: 'Run FTP'
+    },
+    swimFtp: {
+      icon: 'i-lucide-waves',
+      iconColor: 'text-amber-500',
+      label: 'Swim FTP'
+    },
+    skiFtp: {
+      icon: 'i-lucide-trees',
+      iconColor: 'text-amber-500',
+      label: 'Ski FTP'
     },
     weight: {
       icon: 'i-heroicons-scale',
@@ -885,7 +933,7 @@
     wKg: {
       icon: 'i-heroicons-chart-bar-square',
       iconColor: 'text-amber-500',
-      label: 'W/kg'
+      label: 'Default W/kg'
     },
     wPrime: {
       icon: 'i-heroicons-battery-100',
