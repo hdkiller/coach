@@ -7,6 +7,7 @@ import { userBackgroundQueue } from './queues'
 import { deduplicationService } from '../server/utils/services/deduplicationService'
 import { analyzeWorkoutTask } from './analyze-workout'
 import { auditLogRepository } from '../server/utils/repositories/auditLogRepository'
+import { isWorkoutEligibleForAutomaticInsights } from '../server/utils/automatic-workout-insights'
 
 export const deduplicateWorkoutsTask = task({
   id: 'deduplicate-workouts',
@@ -204,14 +205,18 @@ export const deduplicateWorkoutsTask = task({
               { aiAnalysisStatus: 'FAILED' } // Retry failed ones too? Maybe safer to stick to NOT_STARTED.
             ]
           },
-          select: { id: true, title: true, date: true }
+          select: { id: true, title: true, date: true, type: true }
         })
 
-        if (unanalyzedWorkouts.length > 0) {
+        const eligibleWorkouts = unanalyzedWorkouts.filter((workout) =>
+          isWorkoutEligibleForAutomaticInsights(workout.type)
+        )
+
+        if (eligibleWorkouts.length > 0) {
           logger.log(
-            `🤖 [Auto-Analyze] Found ${unanalyzedWorkouts.length} unanalyzed workouts. Triggering analysis...`
+            `🤖 [Auto-Analyze] Found ${eligibleWorkouts.length} eligible unanalyzed workouts. Triggering analysis...`
           )
-          for (const workout of unanalyzedWorkouts) {
+          for (const workout of eligibleWorkouts) {
             logger.log(
               `🤖 [Auto-Analyze] Triggering analysis for: ${workout.title} (${workout.date.toISOString()})`
             )
@@ -234,7 +239,7 @@ export const deduplicateWorkoutsTask = task({
             })
           }
         } else {
-          logger.log('🤖 [Auto-Analyze] No unanalyzed workouts found in the last 30 days.')
+          logger.log('🤖 [Auto-Analyze] No eligible unanalyzed workouts found in the last 30 days.')
         }
       }
 

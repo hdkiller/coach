@@ -19,6 +19,7 @@ import { createUserNotification } from '../server/utils/notifications'
 import { thresholdDetectionService } from '../server/utils/services/thresholdDetectionService'
 import { pbDetectionService } from '../server/utils/services/pbDetectionService'
 import { KG_TO_LBS } from '../server/utils/number'
+import { isWorkoutEligibleForAutomaticInsights } from '../server/utils/automatic-workout-insights'
 import {
   buildAnalysisRequestMetricRules,
   buildMetricPriorityPromptBlock,
@@ -349,6 +350,15 @@ export const analyzeWorkoutTask = task({
       if (source === 'AUTOMATIC' && !user?.aiAutoAnalyzeWorkouts) {
         logger.log('EXIT: Auto-analyze workouts disabled for user.')
         return { success: true, skipped: true, reason: 'AUTO_ANALYZE_DISABLED' }
+      }
+
+      if (source === 'AUTOMATIC' && !isWorkoutEligibleForAutomaticInsights(workout.type)) {
+        logger.log('Skipping automatic workout analysis for unsupported type', {
+          workoutId,
+          type: workout.type
+        })
+        await workoutRepository.updateStatus(workoutId, 'SKIPPED_UNSUPPORTED_TYPE')
+        return { success: true, skipped: true, reason: 'UNSUPPORTED_TYPE' }
       }
 
       // 2. Check for data presence (duration, distance, watts, HR, or exercises)

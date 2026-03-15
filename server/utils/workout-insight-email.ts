@@ -3,6 +3,7 @@ import { queueEmail } from './email-service'
 import { formatUserDate, getStartOfDaysAgoUTC } from './date'
 import { sportSettingsRepository } from './repositories/sportSettingsRepository'
 import { buildWorkoutStreamInsights } from './workout-email-stream-insights'
+import { isWorkoutEligibleForAutomaticInsights } from './automatic-workout-insights'
 
 const WORKOUT_RECEIVED_LOOKBACK_HOURS = 24
 const WORKOUT_RECEIVED_MIN_DURATION_SEC = 10 * 60
@@ -752,6 +753,16 @@ export async function queueWorkoutInsightEmail(options: QueueWorkoutInsightEmail
       reason: 'email_preference_disabled'
     })
     return { queued: false, reason: 'email_preference_disabled' }
+  }
+
+  if (!isWorkoutEligibleForAutomaticInsights(workout.type)) {
+    logWorkoutInsightSkip({
+      ...logContext,
+      userId: workout.userId,
+      workoutType: workout.type,
+      reason: 'unsupported_workout_type'
+    })
+    return { queued: false, reason: 'unsupported_workout_type' }
   }
 
   const timezone = user.timezone || 'UTC'
