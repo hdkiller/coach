@@ -102,6 +102,26 @@ describe('wellnessRepository', () => {
       expect(upsertCall.update).not.toHaveProperty('history')
     })
 
+    it('should NOT record a history entry when the only repeated field is an unchanged date', async () => {
+      vi.mocked(prisma.wellness.findUnique).mockResolvedValue({
+        id: '1',
+        userId,
+        date,
+        history: []
+      } as any)
+
+      await wellnessRepository.upsert(
+        userId,
+        date,
+        { userId, date } as any,
+        { date: new Date('2024-01-31T00:00:00Z') } as any,
+        'intervals'
+      )
+
+      const upsertCall = vi.mocked(prisma.wellness.upsert).mock.calls[0][0]
+      expect(upsertCall.update).not.toHaveProperty('history')
+    })
+
     it('should normalize vo2Max to vo2max before calling Prisma', async () => {
       vi.mocked(prisma.wellness.findUnique).mockResolvedValue(null)
 

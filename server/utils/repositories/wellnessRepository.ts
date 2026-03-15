@@ -2,6 +2,26 @@ import { prisma } from '../db'
 import type { Prisma } from '@prisma/client'
 import { normalizeWellnessFields } from '../wellnessNormalization'
 
+function areEquivalentValues(left: unknown, right: unknown) {
+  if (left instanceof Date && right instanceof Date) {
+    return left.getTime() === right.getTime()
+  }
+
+  if (left === right) return true
+
+  if (left == null || right == null) return left === right
+
+  if (typeof left === 'object' && typeof right === 'object') {
+    try {
+      return JSON.stringify(left) === JSON.stringify(right)
+    } catch {
+      return false
+    }
+  }
+
+  return false
+}
+
 export const wellnessRepository = {
   /**
    * Get wellness entries for a user
@@ -175,7 +195,7 @@ export const wellnessRepository = {
           // Track changes (skip rawJson, updatedAt, history, createdAt)
           if (
             !['rawJson', 'updatedAt', 'createdAt', 'history'].includes(key) &&
-            (existing as any)[key] !== value
+            !areEquivalentValues((existing as any)[key], value)
           ) {
             changes[key] = {
               old: (existing as any)[key],
@@ -187,7 +207,7 @@ export const wellnessRepository = {
 
           if (
             !['rawJson', 'updatedAt', 'createdAt', 'history'].includes(key) &&
-            (existing as any)[key] !== null
+            !areEquivalentValues((existing as any)[key], null)
           ) {
             changes[key] = {
               old: (existing as any)[key],
