@@ -157,7 +157,7 @@ export const athleteMetricsService = {
     await this.syncGoalProgress(userId, effectiveMetrics)
 
     // NEW: Resolve threshold recommendations if metrics were updated
-    if (metrics.ftp !== undefined || metrics.lthr !== undefined) {
+    if (metrics.ftp !== undefined || metrics.lthr !== undefined || metrics.maxHr !== undefined) {
       await this.resolveThresholdRecommendations(userId, metrics)
     }
 
@@ -186,11 +186,15 @@ export const athleteMetricsService = {
     metrics: {
       ftp?: number | null
       lthr?: number | null
+      maxHr?: number | null
+      thresholdPace?: number | null
     }
   ) {
     const metricsToResolve = []
     if (metrics.ftp !== undefined) metricsToResolve.push('FTP')
     if (metrics.lthr !== undefined) metricsToResolve.push('LTHR')
+    if (metrics.maxHr !== undefined) metricsToResolve.push('MAX_HR')
+    if (metrics.thresholdPace !== undefined) metricsToResolve.push('THRESHOLD_PACE')
 
     if (metricsToResolve.length === 0) return
 

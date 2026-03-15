@@ -143,6 +143,17 @@ export default defineEventHandler(async (event) => {
     let updatedSettings = []
     if (sportSettings) {
       updatedSettings = await sportSettingsRepository.upsertSettings(userId, sportSettings)
+
+      const resolvedMetrics = {
+        ftp: sportSettings.some((setting: any) => setting.ftp !== undefined) ? 0 : undefined,
+        lthr: sportSettings.some((setting: any) => setting.lthr !== undefined) ? 0 : undefined,
+        maxHr: sportSettings.some((setting: any) => setting.maxHr !== undefined) ? 0 : undefined,
+        thresholdPace: sportSettings.some((setting: any) => setting.thresholdPace !== undefined)
+          ? 0
+          : undefined
+      }
+
+      await athleteMetricsService.resolveThresholdRecommendations(userId, resolvedMetrics)
     } else {
       // Fetch latest settings (including those updated by athleteMetricsService)
       updatedSettings = await sportSettingsRepository.getByUserId(userId)
