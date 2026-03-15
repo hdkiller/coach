@@ -4,7 +4,7 @@ import { sportSettingsRepository } from '../../utils/repositories/sportSettingsR
 import { wellnessRepository } from '../../utils/repositories/wellnessRepository'
 import { nutritionRepository } from '../../utils/repositories/nutritionRepository'
 import { workoutRepository } from '../../utils/repositories/workoutRepository'
-import { getEndOfDayUTC, getUserTimezone } from '../../utils/date'
+import { formatDateUTC, getEndOfDayUTC, getUserLocalDate, getUserTimezone } from '../../utils/date'
 import { bodyMetricResolver } from '../../utils/services/bodyMetricResolver'
 import { normalizeStressScore } from '../../utils/wellness'
 
@@ -255,6 +255,10 @@ export default defineEventHandler(async (event) => {
 
     const age = user.dob ? calculateAge(user.dob) : null
     const estimatedMaxHR = age ? 220 - age : null
+    const todayLocal = getUserLocalDate(timezone)
+    const latestWellnessDateKey = wellnessDate ? formatDateUTC(wellnessDate, 'yyyy-MM-dd') : null
+    const todayLocalKey = formatDateUTC(todayLocal, 'yyyy-MM-dd')
+    const hasCurrentDayWellness = latestWellnessDateKey === todayLocalKey
 
     // Use the wellness data we found
     const effectiveWeight = await bodyMetricResolver.resolveEffectiveWeight(user.id, {
@@ -266,12 +270,13 @@ export default defineEventHandler(async (event) => {
     const recentHRV = wellnessData?.hrv ?? null
     const recentWeight = effectiveWeight.value
     const recentBodyFat = latestBodyFatWellness?.bodyFat ?? null
-    const recentSleep =
-      wellnessData?.sleepHours ??
-      (wellnessData?.sleepSecs != null
-        ? Math.round((wellnessData.sleepSecs / 3600) * 10) / 10
-        : null)
-    const recentRecoveryScore = wellnessData?.recoveryScore ?? null
+    const recentSleep = hasCurrentDayWellness
+      ? (wellnessData?.sleepHours ??
+        (wellnessData?.sleepSecs != null
+          ? Math.round((wellnessData.sleepSecs / 3600) * 10) / 10
+          : null))
+      : null
+    const recentRecoveryScore = hasCurrentDayWellness ? (wellnessData?.recoveryScore ?? null) : null
     const wellnessSource = wellnessData?.lastSource || wellnessData?.source || null
     const latestWellnessDate = wellnessDate
 
@@ -286,10 +291,12 @@ export default defineEventHandler(async (event) => {
     const recentSleepAwake = wellnessData?.sleepAwakeSecs ?? null
     const recentSystolic = wellnessData?.systolic ?? null
     const recentDiastolic = wellnessData?.diastolic ?? null
-    const recentReadiness = wellnessData?.readiness ?? null
-    const recentFatigue = wellnessData?.fatigue ?? null
-    const recentStress = normalizeStressScore(wellnessData?.stress ?? null)
-    const recentMood = wellnessData?.mood ?? null
+    const recentReadiness = hasCurrentDayWellness ? (wellnessData?.readiness ?? null) : null
+    const recentFatigue = hasCurrentDayWellness ? (wellnessData?.fatigue ?? null) : null
+    const recentStress = hasCurrentDayWellness
+      ? normalizeStressScore(wellnessData?.stress ?? null)
+      : null
+    const recentMood = hasCurrentDayWellness ? (wellnessData?.mood ?? null) : null
 
     // Calculate 7-day HRV average if we have wellness data
     let avgRecentHRV = null
@@ -440,6 +447,7 @@ export default defineEventHandler(async (event) => {
         recentMood,
         wellnessSource,
         latestWellnessDate: latestWellnessDate?.toISOString() ?? null,
+        hasCurrentDayWellness,
 
         profileLastUpdated: user.profileLastUpdated?.toISOString() ?? null,
         latestWorkoutDate: latestWorkout?.date.toISOString() ?? null,
