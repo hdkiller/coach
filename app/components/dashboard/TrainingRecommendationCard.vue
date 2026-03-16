@@ -184,11 +184,66 @@
         </UButton>
       </div>
 
+      <div v-if="activeRecoveryItems.length" class="space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
+            Active Recovery Context
+          </p>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            icon="i-lucide-plus"
+            @click="openCreateRecoveryEvent()"
+          >
+            Log event
+          </UButton>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="item in activeRecoveryItems"
+            :key="item.id"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-primary-300 hover:text-primary-700 dark:border-gray-800 dark:text-gray-200"
+            @click="openRecoveryItem(item)"
+          >
+            <UIcon :name="item.icon" class="size-3.5" />
+            <span>{{ item.label }}</span>
+          </button>
+        </div>
+        <div class="flex justify-end">
+          <UButton
+            to="/recovery"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            trailing-icon="i-lucide-arrow-right"
+          >
+            View full history
+          </UButton>
+        </div>
+      </div>
+
       <!-- The Insight Section -->
       <div v-if="recommendationStore.todayRecommendation" class="space-y-3">
         <p class="text-sm break-words leading-relaxed">
           {{ recommendationStore.todayRecommendation.reasoning }}
         </p>
+
+        <div
+          v-if="checkinStore.currentCheckin?.questions?.length"
+          class="rounded-lg border border-teal-100 bg-teal-50/70 p-3 dark:border-teal-900/40 dark:bg-teal-950/20"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-semibold text-teal-900 dark:text-teal-100">Today’s submission</p>
+            <UButton color="neutral" variant="ghost" size="xs" @click="$emit('open-checkin')">
+              Edit today’s check-in
+            </UButton>
+          </div>
+          <p class="mt-1 text-xs text-teal-800/80 dark:text-teal-200/80">
+            {{ todayCheckinSummary }}
+          </p>
+        </div>
 
         <div
           v-if="recommendationStore.todayRecommendation.analysisJson?.suggested_modifications"
@@ -308,12 +363,22 @@
     :loading="recommendationStore.generating"
     @submit="handleRefine"
   />
+
+  <RecoveryContextSlideover
+    :open="isRecoveryContextOpen"
+    :item="selectedRecoveryItem"
+    :create-mode="isRecoveryCreateMode"
+    @update:open="isRecoveryContextOpen = $event"
+    @saved="refreshRecoveryContext"
+    @deleted="refreshRecoveryContext"
+  />
 </template>
 
 <script setup lang="ts">
   import { useTranslate } from '@tolgee/vue'
   import DashboardCreateAdHocModal from '~/components/dashboard/DashboardCreateAdHocModal.vue'
   import DashboardRefineRecommendationModal from '~/components/dashboard/DashboardRefineRecommendationModal.vue'
+  import RecoveryContextSlideover from '~/components/recovery/RecoveryContextSlideover.vue'
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import { showDashboardProgressToast } from '~/utils/dashboard-progress-toast'
   import { getDefaultSportSettings, getSportSettingsForActivity } from '~/utils/sportSettings'
@@ -322,6 +387,7 @@
     getWorkoutColorClass,
     getWorkoutBorderColorClass
   } from '~/utils/activity-types'
+  import type { RecoveryContextItem } from '~/types/recovery-context'
 
   const { t } = useTranslate('dashboard')
   const integrationStore = useIntegrationStore()
@@ -356,9 +422,32 @@
   const showRefine = ref(false)
   const accepting = ref(false)
   const isSyncingForAnalysis = ref(false)
+  const selectedRecoveryItem = ref<RecoveryContextItem | null>(null)
+  const isRecoveryContextOpen = ref(false)
+  const isRecoveryCreateMode = ref(false)
+  const { activeToday: activeRecoveryItems, refresh: refreshRecoveryContext } = useRecoveryContext(
+    computed(() => 14)
+  )
 
   onMounted(async () => {
     await recommendationStore.fetchTodayWorkout()
+  })
+
+  const todayCheckinSummary = computed(() => {
+    const questions = checkinStore.currentCheckin?.questions || []
+    const answered = questions.filter((question: any) => question.answer)
+    const summary = answered
+      .slice(0, 2)
+      .map((question: any) => `${question.text}: ${question.answer}`)
+      .join(' • ')
+
+    if (summary && checkinStore.currentCheckin?.userNotes) {
+      return `${summary} • ${checkinStore.currentCheckin.userNotes}`
+    }
+
+    return (
+      summary || checkinStore.currentCheckin?.userNotes || 'Today’s check-in has been submitted.'
+    )
   })
 
   const canAccept = computed(() => {
@@ -443,6 +532,18 @@
 
   function openCreateAdHoc() {
     showCreateAdHoc.value = true
+  }
+
+  function openRecoveryItem(item: RecoveryContextItem) {
+    selectedRecoveryItem.value = item
+    isRecoveryCreateMode.value = false
+    isRecoveryContextOpen.value = true
+  }
+
+  function openCreateRecoveryEvent() {
+    selectedRecoveryItem.value = null
+    isRecoveryCreateMode.value = true
+    isRecoveryContextOpen.value = true
   }
 
   function openRefineModal() {

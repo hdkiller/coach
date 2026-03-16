@@ -26,6 +26,43 @@
           <p class="text-sm text-muted">{{ recommendation.reasoning }}</p>
         </div>
 
+        <div v-if="activeRecoveryItems.length">
+          <h4 class="font-medium mb-2">Recovery Context</h4>
+          <div class="space-y-2">
+            <div
+              v-for="item in activeRecoveryItems"
+              :key="item.id"
+              class="rounded-xl border border-gray-200 px-3 py-3 dark:border-gray-800"
+            >
+              <div class="flex items-center gap-2">
+                <UIcon :name="item.icon" class="w-4 h-4 text-primary-500" />
+                <p class="text-sm font-medium">{{ item.label }}</p>
+                <UBadge
+                  :color="
+                    item.sourceType === 'imported'
+                      ? 'info'
+                      : item.sourceType === 'manual_event'
+                        ? 'warning'
+                        : 'success'
+                  "
+                  variant="subtle"
+                  size="sm"
+                >
+                  {{ item.origin }}
+                </UBadge>
+              </div>
+              <p class="mt-1 text-sm text-muted">
+                {{ item.description || 'Visible in today’s recovery context.' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="todayCheckinSummary.length">
+          <h4 class="font-medium mb-2">Today’s check-in</h4>
+          <p class="text-sm text-muted">{{ todayCheckinSummary.join(' • ') }}</p>
+        </div>
+
         <!-- Key Factors -->
         <div v-if="recommendation.analysisJson?.key_factors">
           <h4 class="font-medium mb-2">Key Factors:</h4>
@@ -98,6 +135,8 @@
 </template>
 
 <script setup lang="ts">
+  import type { RecoveryContextItem } from '~/types/recovery-context'
+
   const props = defineProps<{
     open: boolean
     recommendation: any
@@ -105,7 +144,9 @@
 
   const emit = defineEmits(['update:open', 'accepted'])
   const recommendationStore = useRecommendationStore()
+  const checkinStore = useCheckinStore()
   const accepting = ref(false)
+  const { activeToday } = useRecoveryContext(computed(() => 14))
 
   const isOpen = computed({
     get: () => props.open,
@@ -116,6 +157,15 @@
     const hasMods = !!props.recommendation?.analysisJson?.suggested_modifications
     const isAccepted = props.recommendation?.userAccepted === true
     return hasMods && !isAccepted
+  })
+
+  const activeRecoveryItems = computed<RecoveryContextItem[]>(() => activeToday.value)
+  const todayCheckinSummary = computed(() => {
+    const questions = checkinStore.currentCheckin?.questions || []
+    return questions
+      .filter((question: any) => question.answer)
+      .slice(0, 4)
+      .map((question: any) => `${question.text}: ${question.answer}`)
   })
 
   async function handleAccept() {

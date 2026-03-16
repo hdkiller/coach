@@ -64,6 +64,42 @@
 
         <div v-else-if="localQuestions.length > 0" class="space-y-4">
           <div
+            v-if="completedAnswersSummary.length || userNotes"
+            class="rounded-xl border border-teal-100 bg-teal-50/70 p-4 dark:border-teal-900/40 dark:bg-teal-950/20"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-teal-900 dark:text-teal-100">
+                  Today's submission
+                </p>
+                <p class="mt-1 text-xs text-teal-800/80 dark:text-teal-200/80">
+                  Edit your answers here, or delete this entry if it was submitted by mistake.
+                </p>
+              </div>
+              <UButton
+                v-if="checkin?.id && checkin?.status === 'COMPLETED'"
+                color="error"
+                variant="ghost"
+                size="xs"
+                icon="i-lucide-trash"
+                :loading="deleting"
+                @click="deleteCheckin"
+              >
+                Delete
+              </UButton>
+            </div>
+            <ul
+              v-if="completedAnswersSummary.length"
+              class="mt-3 space-y-1 text-sm text-teal-900 dark:text-teal-100"
+            >
+              <li v-for="entry in completedAnswersSummary" :key="entry">{{ entry }}</li>
+            </ul>
+            <p v-if="userNotes" class="mt-3 text-sm text-teal-900 dark:text-teal-100">
+              Notes: {{ userNotes }}
+            </p>
+          </div>
+
+          <div
             v-if="checkin?.openingRemark"
             class="text-sm text-gray-700 dark:text-gray-200 bg-primary-50/50 dark:bg-primary-900/10 p-4 rounded-lg border border-primary-100 dark:border-primary-800 flex gap-3 items-start shadow-sm"
           >
@@ -158,6 +194,43 @@
           <p class="text-gray-500">No questions available.</p>
           <UButton label="Generate" color="primary" class="mt-4" @click="generate(true)" />
         </div>
+
+        <div
+          v-if="recentCheckins.length"
+          class="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
+                Recent Check-ins
+              </p>
+              <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                Your last submitted check-ins stay visible here so they are not write-only.
+              </p>
+            </div>
+          </div>
+          <div class="mt-4 space-y-3">
+            <button
+              v-for="entry in recentCheckins"
+              :key="entry.id"
+              type="button"
+              class="w-full rounded-xl border border-gray-200 px-4 py-3 text-left transition hover:border-primary-300 dark:border-gray-800"
+              @click="loadCheckinIntoEditor(entry)"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                  {{ formatDateUTC(entry.date, 'EEE, MMM d') }}
+                </p>
+                <span class="text-[10px] uppercase tracking-widest text-gray-400">
+                  {{ summarizeCheckin(entry).length }} answers
+                </span>
+              </div>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ summarizeCheckin(entry).slice(0, 2).join(' • ') || 'No answers captured' }}
+              </p>
+            </button>
+          </div>
+        </div>
       </div>
     </template>
 
@@ -209,7 +282,11 @@
   const userNotes = ref('')
   const localQuestions = ref<any[]>([])
   const expandedQuestions = ref<Set<string>>(new Set())
+  const recentCheckins = ref<any[]>([])
+  const deleting = ref(false)
   const upgradeModal = useUpgradeModal()
+  const toast = useToast()
+  const { formatDateUTC } = useFormat()
   const { trackDailyCheckinStart, trackDailyCheckinComplete } = useAnalytics()
 
   const {
@@ -221,6 +298,12 @@
   const isPending = computed(() => {
     return checkin.value?.status === 'PENDING' || checkin.value?.status === 'PROCESSING'
   })
+  const completedAnswersSummary = computed(() =>
+    summarizeCheckin({
+      questions: localQuestions.value,
+      userNotes: userNotes.value
+    })
+  )
 
   watch(
     () => loading.value || (isPending.value && localQuestions.value.length === 0),
@@ -339,6 +422,17 @@
     }
   }
 
+  async function fetchHistory() {
+    try {
+      recentCheckins.value =
+        ((await $fetch<any[]>('/api/checkin/history', {
+          query: { limit: 14 }
+        })) as any[]) || []
+    } catch (error) {
+      recentCheckins.value = []
+    }
+  }
+
   async function generate(force: boolean = false) {
     try {
       loading.value = true
@@ -404,6 +498,7 @@
         }
       })
       await useCheckinStore().fetchToday()
+      await fetchHistory()
       trackDailyCheckinComplete()
       emit('update:open', false)
       // Maybe toast success?
@@ -420,10 +515,59 @@
       if (isOpen) {
         trackDailyCheckinStart()
         fetchToday()
+        fetchHistory()
       } else {
         pausePoll()
         stopMessages()
       }
     }
   )
+
+  function summarizeCheckin(entry: any) {
+    const questions = entry?.questions || []
+    return questions
+      .filter((question: any) => question.answer)
+      .map((question: any) => `${question.text}: ${question.answer}`)
+  }
+
+  function loadCheckinIntoEditor(entry: any) {
+    checkin.value = entry
+    localQuestions.value = entry.questions || []
+    userNotes.value = entry.userNotes || ''
+    answers.value = {}
+    for (const question of entry.questions || []) {
+      if (question.answer) {
+        answers.value[question.id] = question.answer
+      }
+    }
+  }
+
+  async function deleteCheckin() {
+    if (!checkin.value?.id) return
+    if (!window.confirm('Delete this daily check-in?')) return
+
+    deleting.value = true
+    try {
+      await $fetch(`/api/checkin/${checkin.value.id}`, {
+        method: 'DELETE'
+      })
+      checkin.value = null
+      localQuestions.value = []
+      answers.value = {}
+      userNotes.value = ''
+      await Promise.all([useCheckinStore().fetchToday(), fetchHistory()])
+      toast.add({
+        title: 'Daily check-in deleted',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Unable to delete check-in',
+        description: error?.data?.message || error?.message || 'Please try again.',
+        color: 'error'
+      })
+    } finally {
+      deleting.value = false
+    }
+  }
 </script>
