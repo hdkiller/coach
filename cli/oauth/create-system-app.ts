@@ -7,6 +7,7 @@ const createSystemAppCommand = new Command('create-system-app')
   .description('Create a trusted system OAuth application')
   .requiredOption('--name <name>', 'Application name')
   .requiredOption('--owner-email <email>', 'Owner email address')
+  .option('--source-name <sourceName>', 'Short source attribution label, e.g. RunGap')
   .option('--redirect-uri <uri>', 'Redirect URI', 'http://localhost:3099/callback')
   .action(async (options) => {
     try {
@@ -21,6 +22,7 @@ const createSystemAppCommand = new Command('create-system-app')
 
       const app = await oauthRepository.createApp(user.id, {
         name: options.name,
+        sourceName: options.sourceName,
         redirectUris: [options.redirectUri]
       })
 
@@ -33,6 +35,9 @@ const createSystemAppCommand = new Command('create-system-app')
       console.log(chalk.green('\n✅ System application created successfully!'))
       console.log(chalk.gray('--------------------------------------------------'))
       console.log(`${chalk.bold('Name:')}          ${options.name}`)
+      if (options.sourceName) {
+        console.log(`${chalk.bold('Source Name:')}   ${options.sourceName}`)
+      }
       console.log(`${chalk.bold('Client ID:')}     ${app.clientId}`)
       console.log(`${chalk.bold('Client Secret:')} ${chalk.yellow(app.clientSecret)}`)
       console.log(chalk.gray('--------------------------------------------------'))

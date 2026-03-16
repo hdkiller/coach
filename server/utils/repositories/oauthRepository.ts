@@ -16,6 +16,7 @@ export const oauthRepository = {
       select: {
         id: true,
         name: true,
+        sourceName: true,
         description: true,
         homepageUrl: true,
         logoUrl: true,
@@ -58,7 +59,13 @@ export const oauthRepository = {
    */
   async createApp(
     userId: string,
-    data: { name: string; description?: string; homepageUrl?: string; redirectUris: string[] }
+    data: {
+      name: string
+      sourceName?: string
+      description?: string
+      homepageUrl?: string
+      redirectUris: string[]
+    }
   ) {
     // Generate a high-entropy client secret
     const secret = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '')
@@ -67,6 +74,7 @@ export const oauthRepository = {
     const app = await prisma.oAuthApp.create({
       data: {
         name: data.name,
+        sourceName: data.sourceName,
         description: data.description,
         homepageUrl: data.homepageUrl,
         redirectUris: data.redirectUris,
@@ -90,11 +98,13 @@ export const oauthRepository = {
     userId: string,
     data: {
       name?: string
+      sourceName?: string | null
       description?: string
       homepageUrl?: string
       logoUrl?: string
       redirectUris?: string[]
       webhookSecret?: string | null
+      isPublic?: boolean
     }
   ) {
     // We use updateMany to ensure ownership
