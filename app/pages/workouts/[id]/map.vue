@@ -3,8 +3,14 @@
     <template #header>
       <UDashboardNavbar :title="workout ? `Map Analysis: ${workout.title}` : 'Map Analysis'">
         <template #leading>
-          <UButton icon="i-heroicons-arrow-left" color="neutral" variant="ghost" @click="goBack">
-            Back to Workout
+          <UButton
+            icon="i-heroicons-arrow-left"
+            color="neutral"
+            variant="ghost"
+            aria-label="Back to Workout"
+            @click="goBack"
+          >
+            <span class="hidden sm:inline">Back to Workout</span>
           </UButton>
         </template>
         <template #right>
@@ -45,36 +51,47 @@
         />
       </div>
 
-      <div v-else-if="workout" class="h-full flex flex-col p-4 gap-4 overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-black uppercase tracking-widest text-gray-500">
+      <div
+        v-else-if="workout"
+        class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto overscroll-y-contain pb-3 sm:gap-4 sm:p-4"
+      >
+        <div
+          class="hidden px-3 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-0"
+        >
+          <div class="flex min-w-0 items-center gap-2">
+            <span class="shrink-0 text-[10px] font-black uppercase tracking-widest text-gray-500">
               Layout
             </span>
-            <div
-              class="flex items-center rounded-lg border border-gray-200 bg-white p-1 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            >
-              <UButton
-                size="xs"
-                color="neutral"
-                :variant="layoutMode === 'default' ? 'solid' : 'ghost'"
-                icon="i-heroicons-rectangle-group"
-                @click="layoutMode = 'default'"
+            <div class="min-w-0 flex-1 overflow-x-auto pb-1">
+              <div
+                class="inline-flex min-w-max items-center rounded-xl border border-gray-200/80 bg-gray-100/80 p-1 shadow-sm dark:border-gray-800 dark:bg-gray-950/80"
               >
-                Default
-              </UButton>
-              <UButton
-                size="xs"
-                color="neutral"
-                :variant="layoutMode === 'chart-focus' ? 'solid' : 'ghost'"
-                icon="i-heroicons-chart-bar-square"
-                @click="layoutMode = 'chart-focus'"
-              >
-                Charts Wide
-              </UButton>
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  :variant="layoutMode === 'default' ? 'soft' : 'ghost'"
+                  icon="i-heroicons-rectangle-group"
+                  class="whitespace-nowrap"
+                  @click="layoutMode = 'default'"
+                >
+                  Default
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  :variant="layoutMode === 'chart-focus' ? 'soft' : 'ghost'"
+                  icon="i-heroicons-chart-bar-square"
+                  class="whitespace-nowrap"
+                  @click="layoutMode = 'chart-focus'"
+                >
+                  Charts Wide
+                </UButton>
+              </div>
             </div>
           </div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+          <p
+            class="max-w-full text-[10px] font-bold uppercase tracking-widest text-gray-400 sm:text-right"
+          >
             {{
               layoutMode === 'chart-focus'
                 ? 'Charts left, map stacked under splits'
@@ -107,7 +124,7 @@
                   Segment Analysis
                 </h3>
               </div>
-              <div class="px-2 pb-1">
+              <div class="overflow-x-auto px-2 pb-1">
                 <UTabs
                   v-model="segmentTab"
                   :items="[
@@ -117,7 +134,7 @@
                     { label: 'Zones', value: 'zones', icon: 'i-heroicons-heart' }
                   ]"
                   variant="link"
-                  class="w-full"
+                  class="min-w-max"
                 />
               </div>
             </div>
@@ -341,13 +358,13 @@
 
           <div :class="chartsCardClass">
             <div
-              class="p-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50"
+              class="flex flex-col gap-3 border-b border-gray-100 bg-gray-50/50 p-3 dark:border-gray-800 dark:bg-gray-800/50 lg:flex-row lg:items-center lg:justify-between"
             >
-              <div class="flex items-center gap-4">
+              <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">
                   Stream Analysis
                 </h3>
-                <div class="flex gap-2">
+                <div class="flex min-w-0 flex-wrap items-center gap-2">
                   <UButton
                     v-if="zoomRange"
                     icon="i-heroicons-magnifying-glass-minus"
@@ -367,7 +384,7 @@
                       value-key="value"
                       label-key="label"
                       size="xs"
-                      class="w-48"
+                      class="min-w-0 flex-1 sm:w-48 sm:flex-none"
                     >
                       <template #leading>
                         <UIcon name="i-heroicons-plus-circle" class="w-3.5 h-3.5" />
@@ -378,7 +395,7 @@
               </div>
               <div
                 v-if="hoverIndex !== null && workout?.streams?.time"
-                class="text-[10px] font-black text-primary-500 uppercase"
+                class="max-w-full text-[10px] font-black uppercase text-primary-500"
               >
                 T: {{ formatTime(workout.streams.time[hoverIndex]) }} |
                 <span v-if="workout.streams.heartrate"
@@ -409,7 +426,7 @@
               </div>
 
               <!-- Default Layout: Single Unified Chart -->
-              <div v-else-if="layoutMode === 'default'" class="flex-1 min-h-0">
+              <div v-else-if="layoutMode === 'default'" class="min-h-[280px] flex-1 sm:min-h-0">
                 <client-only>
                   <StreamChart
                     :datasets="
@@ -658,7 +675,7 @@
     })
   })
   const contentGridClass = computed(() => {
-    const base = 'grid flex-1 min-h-0 grid-cols-1 gap-4'
+    const base = 'grid min-h-0 grid-cols-1 gap-3 sm:gap-4 lg:flex-1'
     if (layoutMode.value === 'chart-focus') {
       return `${base} lg:grid-cols-3 lg:grid-rows-[minmax(220px,0.42fr)_minmax(320px,0.58fr)]`
     }
@@ -667,16 +684,16 @@
 
   const mapCardClass = computed(() => {
     const base =
-      'relative min-h-[320px] overflow-hidden rounded-xl border border-gray-100 bg-gray-50 shadow-sm dark:border-gray-800 dark:bg-gray-900'
+      'relative h-[34svh] min-h-[240px] max-h-[320px] overflow-hidden rounded-none border-y border-gray-100 bg-gray-50 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:h-[320px] sm:max-h-none sm:rounded-xl sm:border'
     if (layoutMode.value === 'chart-focus') {
-      return `${base} lg:col-start-3 lg:col-span-1 lg:row-start-2 lg:min-h-0`
+      return `${base} lg:col-start-3 lg:col-span-1 lg:row-start-2 lg:h-auto lg:min-h-0`
     }
-    return `${base} lg:col-span-2 lg:row-start-1 lg:min-h-0`
+    return `${base} lg:col-span-2 lg:row-start-1 lg:h-auto lg:min-h-0`
   })
 
   const splitsCardClass = computed(() => {
     const base =
-      'flex min-h-[220px] flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900'
+      'flex min-h-[240px] flex-col overflow-hidden rounded-none border-y border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:min-h-[220px] sm:rounded-xl sm:border'
     if (layoutMode.value === 'chart-focus') {
       return `${base} lg:col-start-3 lg:col-span-1 lg:row-start-1 lg:min-h-0`
     }
@@ -685,7 +702,7 @@
 
   const chartsCardClass = computed(() => {
     const base =
-      'flex min-h-[380px] flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900'
+      'flex min-h-[320px] flex-col overflow-hidden rounded-none border-y border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:min-h-[380px] sm:rounded-xl sm:border'
     if (layoutMode.value === 'chart-focus') {
       return `${base} lg:col-start-1 lg:col-span-2 lg:row-span-2 lg:min-h-0`
     }
