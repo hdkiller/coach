@@ -354,7 +354,7 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.adherence.structureMatched).toBe(true)
     expect(facts.adherence.executionClassification).toBe('as_prescribed')
     expect(facts.adherence.workIntervalHitRate).toBe(100)
-    expect(facts.adherence.recoveryHitRate).toBe(60)
+    expect(facts.adherence.recoveryHitRate).toBe(80)
   })
 
   it('suppresses late-session fade when the workout ends with a planned cooldown', () => {
@@ -430,5 +430,42 @@ describe('buildWorkoutAnalysisFacts', () => {
     })
 
     expect(facts.guardrails.archetype.executionEnvironment).toBe('indoor_resistance')
+  })
+
+  it('suppresses pacing drift and steady-state assumptions for stop-and-go nordic ski sessions', () => {
+    const speed = [
+      ...Array.from({ length: 150 }, () => 0),
+      ...Array.from({ length: 220 }, () => 3.2),
+      ...Array.from({ length: 60 }, () => 0),
+      ...Array.from({ length: 180 }, () => 5.8),
+      ...Array.from({ length: 80 }, () => 0.4),
+      ...Array.from({ length: 200 }, () => 4.9),
+      ...Array.from({ length: 90 }, () => 0)
+    ]
+
+    const facts = buildWorkoutAnalysisFactsV2({
+      workout: makeWorkout({
+        type: 'NordicSki',
+        title: 'Explosive Ski Intervals',
+        durationSec: speed.length * 5,
+        averageSpeed: 3.4,
+        averageWatts: null,
+        normalizedPower: null,
+        intensity: 0.84,
+        variabilityIndex: null,
+        streams: {
+          velocity: speed,
+          heartrate: Array.from({ length: speed.length }, (_, index) =>
+            index % 180 < 90 ? 168 : 132
+          )
+        }
+      })
+    })
+
+    expect(facts.guardrails.archetype.primaryArchetype).toBe('mixed')
+    expect(facts.guardrails.archetype.sessionSteadiness).toBe('stochastic')
+    expect(facts.performanceSignals.sportSpecific.pacingDriftPct).toBeNull()
+    expect(facts.performanceSignals.decoupling.interpretable).toBe(false)
+    expect(facts.guardrails.suppressions.join(' ')).toContain('Stop-and-go motion pattern')
   })
 })

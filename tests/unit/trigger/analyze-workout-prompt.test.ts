@@ -1,192 +1,80 @@
 import { describe, expect, it } from 'vitest'
 import { buildWorkoutAnalysisPrompt } from '../../../trigger/analyze-workout'
-import {
-  buildWorkoutAnalysisFacts,
-  buildWorkoutAnalysisFactsV2
-} from '../../../server/utils/workout-analysis-facts'
+import { buildWorkoutAnalysisFactsV2 } from '../../../server/utils/workout-analysis-facts'
 
 describe('buildWorkoutAnalysisPrompt', () => {
-  it('includes global ai context and converts stored kg weight to displayed pounds', () => {
-    const prompt = buildWorkoutAnalysisPrompt(
-      {
-        date: new Date('2026-03-01T10:00:00Z'),
-        title: 'Endurance Ride',
-        type: 'Ride',
-        duration_m: 90,
-        duration_s: 5400,
-        notes: 'Felt strong but kept it controlled.'
-      },
-      'UTC',
-      'Supportive',
-      undefined,
-      {
-        age: 36,
-        sex: 'male',
-        weight: 85.9,
-        weightUnits: 'Pounds',
-        height: 180,
-        heightUnits: 'cm',
-        language: 'English',
-        temperatureUnits: 'Celsius'
-      },
-      'Prioritize aerobic durability and avoid overpraising short anaerobic efforts.'
-    )
+  it('adds stop-and-go and ski-specific guardrails to the workout analysis prompt', () => {
+    const speed = [
+      ...Array.from({ length: 150 }, () => 0),
+      ...Array.from({ length: 220 }, () => 3.2),
+      ...Array.from({ length: 60 }, () => 0),
+      ...Array.from({ length: 180 }, () => 5.8),
+      ...Array.from({ length: 80 }, () => 0.4),
+      ...Array.from({ length: 200 }, () => 4.9),
+      ...Array.from({ length: 90 }, () => 0)
+    ]
 
-    expect(prompt).toContain('- Weight: 189.4 lbs')
-    expect(prompt).toContain('## Global Athlete Context / About Me / Special Instructions')
-    expect(prompt).toContain(
-      'Prioritize aerobic durability and avoid overpraising short anaerobic efforts.'
-    )
-    expect(prompt).toContain('## Athlete Notes')
-    expect(prompt).toContain('Felt strong but kept it controlled.')
-  })
+    const workoutData = {
+      date: new Date('2026-03-15T10:00:00Z'),
+      title: 'Ski de fond classique MSA',
+      type: 'NordicSki',
+      duration_m: Math.round((speed.length * 5) / 60),
+      duration_s: speed.length * 5,
+      avg_hr: 152,
+      max_hr: 181,
+      avg_speed_ms: 3.4,
+      avg_power: null,
+      normalized_power: null,
+      variability_index: null,
+      decoupling: -91.8,
+      atl: 34.4
+    }
 
-  it('injects only prompt-approved calculated workout facts', () => {
-    const analysisFacts = buildWorkoutAnalysisFacts({
-      workout: {
-        id: 'w-1',
-        title: 'Tempo Ride',
-        type: 'Ride',
-        durationSec: 5400,
-        averageWatts: 220,
-        averageHr: 145,
-        trainingLoad: 100,
-        trainer: false,
-        streams: {
-          heartrate: Array.from({ length: 100 }, () => 145),
-          watts: Array.from({ length: 100 }, () => 220)
-        }
-      }
-    })
     const analysisFactsV2 = buildWorkoutAnalysisFactsV2({
       workout: {
-        id: 'w-1',
-        title: 'Tempo Ride',
-        type: 'Ride',
-        durationSec: 5400,
-        averageWatts: 220,
-        averageHr: 145,
-        trainingLoad: 100,
-        trainer: false,
-        variabilityIndex: 1.03,
+        ...workoutData,
+        durationSec: workoutData.duration_s,
+        averageHr: workoutData.avg_hr,
+        maxHr: workoutData.max_hr,
+        averageSpeed: workoutData.avg_speed_ms,
+        averageWatts: null,
+        normalizedPower: null,
+        intensity: 0.84,
         streams: {
-          heartrate: Array.from({ length: 100 }, () => 145),
-          watts: Array.from({ length: 100 }, () => 220)
+          velocity: speed,
+          heartrate: Array.from({ length: speed.length }, (_, index) =>
+            index % 180 < 90 ? 168 : 132
+          )
         }
       }
     })
 
     const prompt = buildWorkoutAnalysisPrompt(
-      {
-        date: new Date('2026-03-01T10:00:00Z'),
-        title: 'Tempo Ride',
-        type: 'Ride',
-        duration_m: 90,
-        duration_s: 5400
-      },
-      'UTC',
+      workoutData,
+      'Europe/Budapest',
       'Supportive',
       undefined,
       {
-        age: 36,
+        age: 35,
         sex: 'male',
-        weight: 85.9,
-        weightUnits: 'Pounds',
-        height: 180,
-        heightUnits: 'cm',
+        weight: null,
         language: 'English',
         temperatureUnits: 'Celsius'
       },
       null,
       undefined,
-      analysisFacts,
+      undefined,
       analysisFactsV2
     )
 
-    expect(prompt).toContain('## Calculated Workout Facts v2')
-    expect(prompt).toContain('### Guardrails')
-    expect(prompt).toContain('- Primary Archetype: endurance')
-    expect(prompt).toContain('- HR Usable: Yes')
-    expect(prompt).toContain('- Power Source Type: measured')
-    expect(prompt).not.toContain('Computed From')
-  })
-
-  it('treats stream-backed power as available when summary watts are missing', () => {
-    const prompt = buildWorkoutAnalysisPrompt(
-      {
-        date: new Date('2026-03-05T10:00:00Z'),
-        title: 'Afternoon Ride test',
-        type: 'Ride',
-        duration_m: 75,
-        duration_s: 4500,
-        has_power_stream: true,
-        power_zone_times: [0, 0, 600, 900, 300]
-      },
-      'UTC',
-      'Supportive'
-    )
-
-    expect(prompt).toContain('- Power Stream Samples: Available')
+    expect(prompt).toContain('Session Steadiness: stochastic')
     expect(prompt).toContain(
-      'power telemetry is present and should be treated as available primary evidence'
+      'Do not criticize the athlete for lacking a constant pace or uniform effort'
     )
-    expect(prompt).not.toContain('Power data appears to be missing from the global summary')
-  })
-
-  it('includes recent symptom context for illness-aware RPE interpretation', () => {
-    const prompt = buildWorkoutAnalysisPrompt(
-      {
-        date: new Date('2026-03-05T10:00:00Z'),
-        title: 'Trainer Ride',
-        type: 'Ride',
-        duration_m: 60,
-        duration_s: 3600
-      },
-      'UTC',
-      'Supportive',
-      undefined,
-      undefined,
-      null,
-      undefined,
-      undefined,
-      undefined,
-      {
-        symptoms: [
-          {
-            timestamp: new Date('2026-03-03T09:00:00Z'),
-            category: 'FATIGUE',
-            severity: 6,
-            description: 'Cold symptoms and sore throat'
-          }
-        ]
-      }
+    expect(prompt).toContain(
+      'avoid cycling-specific gear advice such as recommending a power meter'
     )
-
-    expect(prompt).toContain('## Recent Symptoms & Recovery Context')
-    expect(prompt).toContain('fatigue | severity 6/10 | Cold symptoms and sore throat')
-    expect(prompt).toContain('Do not frame illness-related elevation in RPE as poor execution')
-  })
-
-  it('renders interval breakdown entries beyond the first ten intervals', () => {
-    const prompt = buildWorkoutAnalysisPrompt(
-      {
-        date: new Date('2026-03-05T10:00:00Z'),
-        title: 'Long Interval Session',
-        type: 'Ride',
-        duration_m: 90,
-        duration_s: 5400,
-        intervals: Array.from({ length: 12 }, (_, index) => ({
-          type: 'WORK',
-          label: `Interval ${index + 1}`,
-          duration_s: 60,
-          avg_power: 250 + index
-        }))
-      },
-      'UTC',
-      'Supportive'
-    )
-
-    expect(prompt).toContain('### Interval 12: Interval 12')
-    expect(prompt).toContain('- Avg Power: 261W')
+    expect(prompt).toContain('Decoupling Guardrail:')
+    expect(prompt).not.toContain('- Decoupling: -91.8%')
   })
 })

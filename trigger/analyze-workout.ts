@@ -1094,6 +1094,40 @@ Rules for these facts:
 `
 }
 
+function buildAnalysisGuardrailInstructions(
+  workoutType: string,
+  analysisFacts?: WorkoutAnalysisFactsV2
+): string {
+  const rules: string[] = [
+    'Do not recommend purchasing new hardware or equipment from a single-workout analysis unless there is an explicit, repeated measurement limitation clearly stated in the facts.',
+    'Do not use ATL, CTL, or TSB alone as proof of technique breakdown; they are context only.'
+  ]
+
+  const sessionSteadiness = analysisFacts?.guardrails.archetype.sessionSteadiness
+  if (sessionSteadiness === 'intervalled' || sessionSteadiness === 'stochastic') {
+    rules.push(
+      'Do not criticize the athlete for lacking a constant pace or uniform effort when the session is classified as intervalled or stochastic.'
+    )
+    rules.push(
+      'Treat explosive bursts, stop-and-go pacing, and recovery valleys as potentially intentional execution patterns rather than automatic pacing mistakes.'
+    )
+  }
+
+  if (analysisFacts && !analysisFacts.performanceSignals.decoupling.interpretable) {
+    rules.push(
+      'Do not derive fatigue, technical breakdown, or pacing decline narratives from decoupling or drift when the facts mark those interpretations as suppressed.'
+    )
+  }
+
+  if (workoutType.toLowerCase().includes('ski')) {
+    rules.push(
+      'For Nordic/cross-country skiing, avoid cycling-specific gear advice such as recommending a power meter unless the user explicitly asks about equipment.'
+    )
+  }
+
+  return rules.map((rule) => `- ${rule}`).join('\n')
+}
+
 export function buildWorkoutAnalysisPrompt(
   workoutData: any,
 
@@ -1148,9 +1182,16 @@ export function buildWorkoutAnalysisPrompt(
 
   const workoutType = workoutData.type || 'Unknown'
 
-  const isCardio = ['Ride', 'Run', 'Swim', 'VirtualRide', 'VirtualRun'].some((t) =>
-    workoutType.toLowerCase().includes(t.toLowerCase())
-  )
+  const isCardio = [
+    'Ride',
+    'Run',
+    'Swim',
+    'VirtualRide',
+    'VirtualRun',
+    'Ski',
+    'NordicSki',
+    'Row'
+  ].some((t) => workoutType.toLowerCase().includes(t.toLowerCase()))
 
   const isStrength = ['Gym', 'WeightTraining', 'Strength', 'CrossFit'].some((t) =>
     workoutType.toLowerCase().includes(t.toLowerCase())
@@ -1420,7 +1461,8 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
     isCardio &&
     (workoutData.variability_index ||
       workoutData.efficiency_factor ||
-      workoutData.decoupling !== undefined ||
+      analysisFactsV2?.performanceSignals.decoupling.interpretable ||
+      analysisFactsV2?.performanceSignals.decoupling.reason ||
       workoutData.power_hr_ratio ||
       (workoutData.lr_balance !== undefined && workoutData.lr_balance !== null))
   ) {
@@ -1431,8 +1473,12 @@ When analyzing "Execution" and "Effort", specifically reference how well the ath
     if (workoutData.efficiency_factor) {
       prompt += `- Efficiency Factor (EF): ${formatMetric(workoutData.efficiency_factor, 2)} (Watts/HR - higher is better)\n`
     }
-    if (workoutData.decoupling !== undefined && workoutData.decoupling !== null) {
-      prompt += `- Decoupling: ${formatMetric(workoutData.decoupling, 1)}%\n`
+    if (analysisFactsV2?.performanceSignals.decoupling.interpretable) {
+      if (analysisFactsV2.performanceSignals.decoupling.effective !== null) {
+        prompt += `- Decoupling: ${formatMetric(analysisFactsV2.performanceSignals.decoupling.effective, 1)}%\n`
+      }
+    } else if (analysisFactsV2?.performanceSignals.decoupling.reason) {
+      prompt += `- Decoupling Guardrail: ${analysisFactsV2.performanceSignals.decoupling.reason}\n`
     }
     if (workoutData.power_hr_ratio) {
       prompt += `- Power/HR Ratio: ${formatMetric(workoutData.power_hr_ratio, 2)}\n`
@@ -1661,6 +1707,8 @@ IMPORTANT:
 - Focus on actionable advice
 - Tailor your analysis to the workout type (${workoutType}) - ignore metrics that don't apply
 - Scores should be realistic and track progress over time - don't inflate scores
+- Follow these guardrails strictly:
+${buildAnalysisGuardrailInstructions(workoutType, analysisFactsV2)}
 ${buildAnalysisRequestMetricRules(metricPriorityContext)
   .map((rule) => `- ${rule}`)
   .join('\n')}`

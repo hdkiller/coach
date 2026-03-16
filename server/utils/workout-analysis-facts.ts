@@ -46,6 +46,19 @@ type PromptDecision = {
   reason: string
 }
 
+type MotionPattern = {
+  stopGoLikely: boolean
+  zeroSpeedRatio: number | null
+  speedCoV: number | null
+  speedSurgeRatio: number | null
+  rationale: string[]
+}
+
+type SignalApplicability = {
+  applicable: boolean
+  reason: string | null
+}
+
 export interface WorkoutAnalysisFacts {
   subjective: {
     rpe: number | null
@@ -157,6 +170,13 @@ export interface WorkoutAnalysisFactsV2 {
     executionClassification: ExecutionClassification
   }
   performanceSignals: {
+    applicability: {
+      lateSessionFade: SignalApplicability
+      executionStability: SignalApplicability
+      repeatability: SignalApplicability
+      cadenceDrift: SignalApplicability
+      pacingDrift: SignalApplicability
+    }
     decoupling: {
       interpretable: boolean
       reason: string | null
@@ -365,9 +385,40 @@ function deriveMusculoskeletalToll(params: {
   return 'low'
 }
 
-function deriveDecoupling(workout: any, hrUsable: boolean, warmupExcludedMinutes: number) {
+function deriveDecoupling(
+  workout: any,
+  hrUsable: boolean,
+  warmupExcludedMinutes: number,
+  family?: ReturnType<typeof getWorkoutFamily>,
+  motionPattern?: MotionPattern
+) {
   const durationMinutes = Math.round((workout?.durationSec || 0) / 60)
   const fallback = round(workout?.decoupling, 1)
+  if (family && family !== 'ride' && family !== 'run') {
+    return {
+      valid: false,
+      effective: null,
+      direction: 'unknown' as const,
+      confidence: 'low' as FactConfidence,
+      steadyStateSegmentsAvailable: false
+    }
+  }
+  if (motionPattern?.stopGoLikely) {
+    return {
+      valid: false,
+      effective: fallback,
+      direction:
+        fallback === null
+          ? ('unknown' as const)
+          : fallback < 0
+            ? ('efficiency_gain' as const)
+            : fallback > 3
+              ? ('positive_drift' as const)
+              : ('stable' as const),
+      confidence: 'low' as FactConfidence,
+      steadyStateSegmentsAvailable: false
+    }
+  }
   if (!hrUsable || durationMinutes < 40) {
     return {
       valid: false,
@@ -686,9 +737,16 @@ export function buildWorkoutAnalysisFacts({
     hasPace,
     hasRpe: Boolean(rpe)
   })
+  const motionPattern = deriveMotionPattern(workout)
 
   const warmupExcludedMinutes = clamp(Number(sportSettings?.warmupTime || 10), 10, 15)
-  const decoupling = deriveDecoupling(workout, hrStats.usable, warmupExcludedMinutes)
+  const decoupling = deriveDecoupling(
+    workout,
+    hrStats.usable,
+    warmupExcludedMinutes,
+    family,
+    motionPattern
+  )
   if (!decoupling.valid) {
     disabledInterpretations.push(
       'Decoupling interpretation disabled because the workout lacks enough reliable steady-state HR/work data.'
@@ -1572,8 +1630,18 @@ function classifyArchetype(params: {
   plannedWorkout: any
   powerSourceType: PowerSourceType
   hrUsable: boolean
+  motionPattern: MotionPattern
 }): WorkoutAnalysisFactsV2['guardrails']['archetype'] {
-  const { workout, family, analysisMode, erg, plannedWorkout, powerSourceType, hrUsable } = params
+  const {
+    workout,
+    family,
+    analysisMode,
+    erg,
+    plannedWorkout,
+    powerSourceType,
+    hrUsable,
+    motionPattern
+  } = params
   const rationale: string[] = []
   const titleContext = `${workout?.title || ''} ${workout?.description || ''}`.toLowerCase()
   const virtualContext =
@@ -1627,6 +1695,11 @@ function classifyArchetype(params: {
     rationale.push('Workout contains mixed signals without a single dominant intent.')
   }
 
+  if (motionPattern.stopGoLikely && family !== 'ride' && family !== 'run') {
+    primaryArchetype = 'mixed'
+    rationale.push('Stop-and-go motion pattern overrides steady aerobic archetype assumptions.')
+  }
+
   let executionEnvironment: ExecutionEnvironment = 'unknown'
   if (
     String(workout?.type || '')
@@ -1660,6 +1733,7 @@ function classifyArchetype(params: {
 
   let sessionSteadiness: SessionSteadiness = 'unknown'
   if (intervalCount >= 3 || workSteps.length >= 3) sessionSteadiness = 'intervalled'
+  else if (motionPattern.stopGoLikely) sessionSteadiness = 'stochastic'
   else if (vi >= 1.12) sessionSteadiness = 'stochastic'
   else if (vi >= 1.06) sessionSteadiness = 'rolling'
   else if (workout?.durationSec >= 1800) sessionSteadiness = 'steady'
@@ -1668,7 +1742,11 @@ function classifyArchetype(params: {
   if (sessionSteadiness === 'intervalled')
     rationale.push('Multiple work intervals indicate intervalled execution.')
   else if (sessionSteadiness === 'stochastic')
-    rationale.push('High variability suggests stochastic pacing.')
+    rationale.push(
+      motionPattern.stopGoLikely
+        ? 'Stop-and-go motion pattern suggests stochastic pacing.'
+        : 'High variability suggests stochastic pacing.'
+    )
   else if (sessionSteadiness === 'steady')
     rationale.push('Low variability suggests steady-state execution.')
 
@@ -1695,14 +1773,16 @@ function deriveDecouplingV2(params: {
   hrUsable: boolean
   warmupExcludedMinutes: number
   archetype: WorkoutAnalysisFactsV2['guardrails']['archetype']
+  motionPattern: MotionPattern
 }): WorkoutAnalysisFactsV2['performanceSignals']['decoupling'] {
-  const { workout, family, hrUsable, warmupExcludedMinutes, archetype } = params
-  const base = deriveDecoupling(workout, hrUsable, warmupExcludedMinutes)
+  const { workout, family, hrUsable, warmupExcludedMinutes, archetype, motionPattern } = params
+  const base = deriveDecoupling(workout, hrUsable, warmupExcludedMinutes, family, motionPattern)
 
   if (family !== 'ride' && family !== 'run') {
     return {
       interpretable: false,
-      reason: 'Classic decoupling is only interpreted for cardio workouts.',
+      reason:
+        'Classic decoupling is only interpreted for ride/run modalities with stable workload semantics.',
       effective: null,
       direction: 'unknown' as const,
       confidence: 'low' as FactConfidence
@@ -1726,6 +1806,16 @@ function deriveDecouplingV2(params: {
       effective: base.effective,
       direction: 'unknown' as const,
       confidence: 'low' as FactConfidence
+    }
+  }
+
+  if (motionPattern.stopGoLikely) {
+    return {
+      interpretable: false,
+      reason: 'Stop-and-go motion pattern makes classic decoupling misleading for this workout.',
+      effective: base.effective,
+      direction: base.direction as DecouplingDirection | 'unknown',
+      confidence: base.confidence as FactConfidence
     }
   }
 
@@ -1782,6 +1872,63 @@ function getTimeAboveThresholdPct(zoneTimes: unknown): number | null {
 function computeAverage(values: number[]): number | null {
   if (values.length === 0) return null
   return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function deriveMotionPattern(workout: any): MotionPattern {
+  const speed = asNumberArray(workout?.streams?.velocity).filter((value) => Number.isFinite(value))
+  if (speed.length < 120) {
+    return {
+      stopGoLikely: false,
+      zeroSpeedRatio: null,
+      speedCoV: null,
+      speedSurgeRatio: null,
+      rationale: []
+    }
+  }
+
+  const moving = speed.filter((value) => value > 0.3)
+  const zeroSpeedRatio = round(speed.filter((value) => value <= 0.3).length / speed.length, 3)
+  const movingMean = computeAverage(moving)
+  const variance =
+    moving.length > 0 && movingMean
+      ? moving.reduce((sum, value) => sum + Math.pow(value - movingMean, 2), 0) / moving.length
+      : null
+  const speedCoV =
+    variance !== null && movingMean && movingMean > 0
+      ? round(Math.sqrt(variance) / movingMean, 3)
+      : null
+
+  const movingSorted = [...moving].sort((a, b) => a - b)
+  const percentile = (ratio: number) => {
+    if (movingSorted.length === 0) return null
+    const index = Math.min(
+      movingSorted.length - 1,
+      Math.max(0, Math.floor((movingSorted.length - 1) * ratio))
+    )
+    return movingSorted[index] ?? null
+  }
+  const p25 = percentile(0.25)
+  const p90 = percentile(0.9)
+  const speedSurgeRatio = p25 !== null && p90 !== null && p25 > 0 ? round(p90 / p25, 2) : null
+
+  const rationale: string[] = []
+  if ((zeroSpeedRatio ?? 0) >= 0.08) {
+    rationale.push('Frequent near-zero speed samples indicate stop-and-go execution.')
+  }
+  if ((speedCoV ?? 0) >= 0.35) {
+    rationale.push('Speed variability is too high for steady-state pacing interpretation.')
+  }
+  if ((speedSurgeRatio ?? 0) >= 2.4) {
+    rationale.push('Large speed surges indicate intermittent explosive efforts.')
+  }
+
+  return {
+    stopGoLikely: rationale.length > 0,
+    zeroSpeedRatio,
+    speedCoV,
+    speedSurgeRatio,
+    rationale
+  }
 }
 
 function deriveDurabilitySignals(params: {
@@ -1886,8 +2033,10 @@ function deriveDurabilitySignals(params: {
 function deriveSportSpecificSignals(params: {
   workout: any
   family: ReturnType<typeof getWorkoutFamily>
+  archetype: WorkoutAnalysisFactsV2['guardrails']['archetype']
+  motionPattern: MotionPattern
 }): WorkoutAnalysisFactsV2['performanceSignals']['sportSpecific'] {
-  const { workout, family } = params
+  const { workout, family, archetype, motionPattern } = params
   const cadence = asNumberArray(workout?.streams?.cadence)
   const speed = asNumberArray(workout?.streams?.velocity)
   let cadenceDriftPct: number | null = null
@@ -1905,7 +2054,12 @@ function deriveSportSpecificSignals(params: {
     if (stability) cadenceStabilityScore = round(clamp(100 - stability.overallCoV * 5, 0, 100), 1)
   }
 
-  if (speed.length >= 120) {
+  const paceDriftApplicable =
+    family === 'run' &&
+    !motionPattern.stopGoLikely &&
+    !['intervalled', 'stochastic'].includes(archetype.sessionSteadiness)
+
+  if (speed.length >= 120 && paceDriftApplicable) {
     const chunk = Math.max(1, Math.floor(speed.length * 0.2))
     const first = computeAverage(speed.slice(0, chunk).filter((value) => value > 0))
     const last = computeAverage(speed.slice(-chunk).filter((value) => value > 0))
@@ -2448,6 +2602,7 @@ export function buildWorkoutAnalysisFactsV2({
   const warmupExcludedMinutes = clamp(Number(sportSettings?.warmupTime || 10), 10, 15)
   const erg = detectErg(workout, plannedWorkout)
   const lrBalance = deriveLrBalance(workout)
+  const motionPattern = deriveMotionPattern(workout)
   const archetype = classifyArchetype({
     workout,
     family,
@@ -2455,14 +2610,16 @@ export function buildWorkoutAnalysisFactsV2({
     erg,
     plannedWorkout,
     powerSourceType,
-    hrUsable: hrStats.usable
+    hrUsable: hrStats.usable,
+    motionPattern
   })
   const decoupling = deriveDecouplingV2({
     workout,
     family,
     hrUsable: hrStats.usable,
     warmupExcludedMinutes,
-    archetype
+    archetype,
+    motionPattern
   })
 
   if (!hrStats.usable)
@@ -2481,6 +2638,10 @@ export function buildWorkoutAnalysisFactsV2({
     suppressedMetrics.push('L/R balance channels were corrected before interpretation.')
   if (erg.detected)
     suppressedMetrics.push('Pacing discipline should be judged with ERG trainer control in mind.')
+  if (motionPattern.stopGoLikely)
+    suppressedMetrics.push(
+      'Stop-and-go motion pattern detected; do not criticize lack of constant pace or invent steady-state drift narratives.'
+    )
 
   const refs = {
     ftp: Number(sportSettings?.ftp || workout?.ftp || 0),
@@ -2513,7 +2674,7 @@ export function buildWorkoutAnalysisFactsV2({
         getTimeAboveThresholdPct(workout?.streams?.powerZoneTimes) ??
         getTimeAboveThresholdPct(workout?.streams?.hrZoneTimes)
     },
-    sportSpecific: deriveSportSpecificSignals({ workout, family })
+    sportSpecific: deriveSportSpecificSignals({ workout, family, archetype, motionPattern })
   }
 
   const guardrails: WorkoutAnalysisFactsV2['guardrails'] = {
