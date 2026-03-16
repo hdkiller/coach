@@ -25,7 +25,11 @@
               }}</span>
               <span class="text-xs font-bold">{{ formatDatePrimary(workout.date) }}</span>
             </div>
-            <UiDataAttribution :provider="workout.source" :device-name="workout.deviceName" />
+            <UiDataAttribution
+              :provider="workout.source"
+              :device-name="workout.deviceName"
+              :fallback-label="getWorkoutSourceLabel(workout)"
+            />
           </div>
         </template>
       </UDashboardNavbar>
@@ -300,11 +304,7 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                  <tr
-                    v-for="zone in hrZones"
-                    :key="zone.index"
-                    class="transition-colors"
-                  >
+                  <tr v-for="zone in hrZones" :key="zone.index" class="transition-colors">
                     <td class="px-4 py-2.5 text-xs font-black text-gray-900 dark:text-white">
                       {{ zone.name }}
                     </td>
@@ -510,6 +510,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getWorkoutSourceLabel } from '~/utils/workout-source'
+
   import { ref, computed, watch, toRaw, nextTick } from 'vue'
   import draggable from 'vuedraggable'
   import StreamChart from '~/components/charts/streams/BaseStreamChart.vue'

@@ -65,7 +65,7 @@
                   {{ workout.deviceName }}
                 </span>
                 <span :class="getSourceBadgeClass(workout.source)">
-                  {{ workout.source }}
+                  {{ getWorkoutSourceLabel(workout) }}
                 </span>
               </div>
             </div>
@@ -537,6 +537,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getWorkoutSourceLabel } from '~/utils/workout-source'
+
   import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
 
   const { formatDate: baseFormatDate, formatDateTime } = useFormat()

@@ -201,11 +201,13 @@
                             'withings',
                             'hevy',
                             'wahoo',
-                            'rouvy'
+                            'rouvy',
+                            'fit_file'
                           ].includes(workout.source)
                         "
                         :provider="workout.source"
                         :device-name="workout.deviceName"
+                        :fallback-label="getWorkoutSourceLabel(workout, t)"
                         mode="minimal"
                       />
                     </div>
@@ -782,11 +784,13 @@
                         'withings',
                         'hevy',
                         'wahoo',
-                        'rouvy'
+                        'rouvy',
+                        'fit_file'
                       ].includes(workout.source)
                     "
                     :provider="workout.source"
                     :device-name="workout.deviceName"
+                    :fallback-label="getWorkoutSourceLabel(workout, t)"
                     mode="minimal"
                   />
                 </div>
@@ -2497,6 +2501,7 @@
               :workout-id="workout.id"
               :interactive="true"
               :provider="workout.source"
+              :provider-label="getWorkoutSourceLabel(workout, t)"
               :device-name="workout.deviceName"
             />
           </div>
@@ -2931,10 +2936,7 @@
                                     :class="getSourceBadgeClass(workout.canonicalWorkout.source)"
                                     class="py-0 px-1.5 text-[10px]"
                                   >
-                                    {{
-                                      t(`source_${workout.canonicalWorkout.source}`) ||
-                                      workout.canonicalWorkout.source
-                                    }}
+                                    {{ getWorkoutSourceLabel(workout.canonicalWorkout, t) }}
                                   </span>
                                 </div>
                                 <UIcon
@@ -3057,7 +3059,7 @@
                                 :class="getSourceBadgeClass(dup.source)"
                                 class="py-0 px-1.5 text-[10px]"
                               >
-                                {{ t(`source_${dup.source}`) || dup.source }}
+                                {{ getWorkoutSourceLabel(dup, t) }}
                               </span>
                             </div>
                             <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 text-gray-400" />
@@ -3410,6 +3412,7 @@
   import { marked } from 'marked'
   import PlanAdherence from '~/components/workouts/PlanAdherence.vue'
   import StreamChartModal from '~/components/charts/streams/StreamChartModal.vue'
+  import { getWorkoutSourceLabel } from '~/utils/workout-source'
   import { metricTooltips } from '~/utils/tooltips'
   import {
     formatDistance as formatDist,
@@ -5309,24 +5312,6 @@
     if (source === 'garmin')
       return `${baseClass} bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200`
     return `${baseClass} bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200`
-  }
-
-  function getWorkoutSourceLabel(workout: any) {
-    if (!workout) return ''
-    if (workout.source === 'fit_file' && workout.oauthApp?.sourceName) {
-      return workout.oauthApp.sourceName
-    }
-    if (workout.source === 'fit_file' && workout.oauthApp?.name) {
-      return workout.oauthApp.name
-    }
-    try {
-      if (typeof t === 'function') {
-        return t(`source_${workout.source}`) || workout.source
-      }
-    } catch (e) {
-      console.warn('Translation function not available in getWorkoutSourceLabel', e)
-    }
-    return workout.source
   }
 
   function shouldShowSyncSourceNote(workout: any) {
