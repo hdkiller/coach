@@ -1,13 +1,6 @@
-export interface WellnessOverlayEvent {
-  id: string
-  label: string
-  kind: string
-  source: 'wellness_tag' | 'calendar_note'
-  startDate: string
-  endDate: string
-  color: string
-  description?: string | null
-}
+import type { RecoveryContextItem } from '~/types/recovery-context'
+
+export type WellnessOverlayEvent = RecoveryContextItem
 
 function toDateKey(value: string | Date) {
   const date = value instanceof Date ? value : new Date(value)
@@ -16,10 +9,10 @@ function toDateKey(value: string | Date) {
 
 function getVisibleRangeIndices(
   dateKeys: string[],
-  event: WellnessOverlayEvent
+  event: RecoveryContextItem
 ): { start: number; end: number } | null {
-  const eventStart = toDateKey(event.startDate)
-  const eventEnd = toDateKey(event.endDate)
+  const eventStart = toDateKey(event.startAt)
+  const eventEnd = toDateKey(event.endAt)
 
   let start = -1
   let end = -1
@@ -58,11 +51,39 @@ function getBoxBounds(xScale: any, index: number, count: number) {
   }
 }
 
+function drawMarker(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  top: number,
+  bottom: number,
+  event: RecoveryContextItem
+) {
+  const markerTop = top + 10
+  const markerBottom = bottom - 8
+
+  ctx.strokeStyle = event.color || 'rgba(20, 184, 166, 0.45)'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(x, markerTop)
+  ctx.lineTo(x, markerBottom)
+  ctx.stroke()
+
+  ctx.fillStyle = event.color || 'rgba(20, 184, 166, 0.85)'
+  ctx.beginPath()
+  ctx.arc(x, markerTop + 6, 5, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.86)'
+  ctx.font = '600 10px sans-serif'
+  ctx.textBaseline = 'top'
+  ctx.fillText(event.label, x + 6, markerTop)
+}
+
 export const wellnessOverlayPlugin = {
   id: 'wellnessOverlays',
   beforeDatasetsDraw(chart: any, _args: unknown, pluginOptions: any) {
     const { chartArea, ctx, scales } = chart
-    const events = (pluginOptions?.events || []) as WellnessOverlayEvent[]
+    const events = (pluginOptions?.events || []) as RecoveryContextItem[]
     const dateKeys = (pluginOptions?.dateKeys || []) as string[]
 
     if (!chartArea || !ctx || !scales?.x || !events.length || !dateKeys.length) return
@@ -74,6 +95,12 @@ export const wellnessOverlayPlugin = {
     for (const event of events) {
       const visibleRange = getVisibleRangeIndices(dateKeys, event)
       if (!visibleRange) continue
+
+      if (event.overlayStyle === 'marker' || !event.isRange) {
+        const markerX = getCenter(xScale, visibleRange.start)
+        drawMarker(ctx, markerX, chartArea.top, chartArea.bottom, event)
+        continue
+      }
 
       const startBounds = getBoxBounds(xScale, visibleRange.start, dateKeys.length)
       const endBounds = getBoxBounds(xScale, visibleRange.end, dateKeys.length)
@@ -100,15 +127,15 @@ export const wellnessOverlayPlugin = {
 }
 
 export function getWellnessEventsForDate(
-  events: WellnessOverlayEvent[],
+  events: RecoveryContextItem[],
   value: string | Date | null | undefined
 ) {
   if (!value) return []
 
   const dateKey = toDateKey(value)
   return events.filter((event) => {
-    const start = toDateKey(event.startDate)
-    const end = toDateKey(event.endDate)
+    const start = toDateKey(event.startAt)
+    const end = toDateKey(event.endAt)
     return start <= dateKey && end >= dateKey
   })
 }

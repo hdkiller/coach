@@ -38,6 +38,20 @@ export const dailyCheckinRepository = {
     })
   },
 
+  async getHistoryDetailed(userId: string, startDate: Date, endDate: Date) {
+    return prisma.dailyCheckin.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDate,
+          lte: endDate
+        },
+        status: 'COMPLETED'
+      },
+      orderBy: { date: 'desc' }
+    })
+  },
+
   async getRecent(userId: string, limit: number = 7) {
     return prisma.dailyCheckin.findMany({
       where: {
@@ -64,6 +78,12 @@ export const dailyCheckinRepository = {
     return prisma.dailyCheckin.update({
       where: { id },
       data
+    })
+  },
+
+  async delete(id: string) {
+    return prisma.dailyCheckin.delete({
+      where: { id }
     })
   },
 
