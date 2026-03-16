@@ -14,7 +14,7 @@
         <UIcon name="i-heroicons-shield-check" class="w-6 h-6 text-primary-500" />
         Prescribed Plan Adherence
       </h2>
-      <div v-if="!readOnly" class="flex gap-2">
+      <div v-if="!readOnly" class="flex flex-wrap gap-2">
         <UButton
           v-if="plannedWorkout?.id"
           icon="i-heroicons-calendar"
@@ -36,6 +36,18 @@
           @click="$emit('regenerate')"
         >
           {{ adherence ? 'Regenerate' : 'Analyze' }}
+        </UButton>
+        <UButton
+          v-if="plannedWorkout?.id"
+          icon="i-heroicons-link-slash"
+          color="error"
+          variant="subtle"
+          size="sm"
+          class="font-black uppercase tracking-widest text-[10px] border border-red-200 dark:border-red-900/40"
+          :loading="unlinking"
+          @click="$emit('unlink')"
+        >
+          Unlink
         </UButton>
       </div>
     </div>
@@ -302,6 +314,7 @@
   const props = defineProps<{
     adherence: any | null
     regenerating: boolean
+    unlinking?: boolean
     plannedWorkout?: {
       id: string
       title: string
@@ -311,7 +324,7 @@
     readOnly?: boolean
   }>()
 
-  defineEmits(['regenerate'])
+  defineEmits(['regenerate', 'unlink'])
 
   const { formatDuration } = useFormatters()
   const { formatShortDate } = useFormat()

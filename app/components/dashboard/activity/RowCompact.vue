@@ -77,6 +77,7 @@
 
   const sourceLabel = computed(() => {
     if (props.item.type !== 'workout') return ''
+    if (props.item.sourceName) return props.item.sourceName
     if (!props.item.source) return ''
 
     const source = String(props.item.source)

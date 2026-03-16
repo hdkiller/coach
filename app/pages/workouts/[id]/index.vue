@@ -2052,8 +2052,10 @@
               <PlanAdherence
                 :adherence="workout.planAdherence"
                 :regenerating="analyzingAdherence"
+                :unlinking="unlinkingPlannedWorkout"
                 :planned-workout="workout.plannedWorkout"
                 @regenerate="analyzeAdherence"
+                @unlink="unlinkPlannedWorkout"
               />
             </div>
 
@@ -3446,6 +3448,7 @@
   const analysisFactsOpen = ref(false)
   const analyzingWorkout = ref(false)
   const analyzingAdherence = ref(false)
+  const unlinkingPlannedWorkout = ref(false)
   const promoting = ref(false)
   const deleting = ref(false)
   const publishingSummary = ref(false)
@@ -5034,6 +5037,36 @@
     }
   }
 
+  async function unlinkPlannedWorkout() {
+    if (!workout.value?.id || unlinkingPlannedWorkout.value) return
+
+    unlinkingPlannedWorkout.value = true
+    try {
+      await $fetch(`/api/workouts/${workout.value.id}/unlink`, {
+        method: 'POST'
+      })
+
+      toast.add({
+        title: 'Unlinked',
+        description: 'Workout unlinked from plan',
+        color: 'success',
+        icon: 'i-heroicons-check-circle'
+      })
+
+      await fetchWorkout()
+    } catch (e: any) {
+      console.error('Error unlinking workout from plan:', e)
+      toast.add({
+        title: 'Failed to unlink',
+        description: e.data?.message || e.message || 'Failed to unlink workout from plan',
+        color: 'error',
+        icon: 'i-heroicons-exclamation-circle'
+      })
+    } finally {
+      unlinkingPlannedWorkout.value = false
+    }
+  }
+
   async function publishSummaryToIntervals() {
     if (!workout.value || !canPublishSummaryToIntervals.value || publishingSummary.value) return
 
@@ -5280,6 +5313,9 @@
 
   function getWorkoutSourceLabel(workout: any) {
     if (!workout) return ''
+    if (workout.source === 'fit_file' && workout.oauthApp?.sourceName) {
+      return workout.oauthApp.sourceName
+    }
     if (workout.source === 'fit_file' && workout.oauthApp?.name) {
       return workout.oauthApp.name
     }
