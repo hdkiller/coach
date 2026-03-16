@@ -191,6 +191,17 @@
             >
               Contextual Overlays
             </h4>
+            <div class="flex items-center justify-between">
+              <div class="space-y-0.5">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                  Show Wellness Events
+                </div>
+                <div class="text-xs text-muted">
+                  Draw synced wellness periods as shaded vertical bands.
+                </div>
+              </div>
+              <USwitch v-model="settings.showWellnessEvents" />
+            </div>
             <div class="grid grid-cols-2 gap-3">
               <UCheckbox v-model="settings.showAlcohol" label="Alcohol" />
               <UCheckbox v-model="settings.showStrain" label="High Strain" />
@@ -230,6 +241,7 @@
     showAxisTitles: true,
     showBand: true,
     opacity: 0.15,
+    showWellnessEvents: true,
     showAlcohol: true,
     showStrain: true,
     showIllness: true,

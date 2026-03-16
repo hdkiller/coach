@@ -87,9 +87,11 @@
 
 <script setup lang="ts">
   import { Line } from 'vue-chartjs'
+  import { getWellnessEventsForDate, type WellnessOverlayEvent } from '~/utils/wellness-events'
 
   const props = defineProps<{
     wellnessData: any[]
+    wellnessEvents?: WellnessOverlayEvent[]
     loading: boolean
     plugins?: any[]
   }>()
@@ -113,6 +115,7 @@
     showLabels: false,
     showAxisTitles: true,
     showBand: true,
+    showWellnessEvents: true,
     opacity: 0.15
   }
 
@@ -120,11 +123,19 @@
     return userStore.user?.dashboardSettings?.fitnessCharts?.hrvRhrDual || defaultSettings
   })
 
-  // Process data for the dual-axis chart
-  const chartData = computed(() => {
-    const data = [...props.wellnessData]
+  const chartWellnessData = computed(() =>
+    [...props.wellnessData]
       .filter((w) => w.hrv && w.restingHr)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  )
+
+  const chartDateKeys = computed(() =>
+    chartWellnessData.value.map((w) => new Date(w.date).toISOString().slice(0, 10))
+  )
+
+  // Process data for the dual-axis chart
+  const chartData = computed(() => {
+    const data = chartWellnessData.value
 
     const labels = data.map((w) =>
       new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -313,6 +324,13 @@
       intersect: false
     },
     plugins: {
+      wellnessOverlays:
+        settings.value.showWellnessEvents !== false
+          ? {
+              events: props.wellnessEvents || [],
+              dateKeys: chartDateKeys.value
+            }
+          : undefined,
       legend: {
         display: true,
         position: 'bottom' as const,
@@ -373,6 +391,12 @@
             const events = hrvDataset.metadata?.[dataIndex] || []
             if (events.length > 0) {
               lines.push(`Context: ${events.join(', ')}`)
+            }
+
+            const pointDate = chartWellnessData.value[dataIndex]?.date
+            const overlayEvents = getWellnessEventsForDate(props.wellnessEvents || [], pointDate)
+            if (overlayEvents.length > 0) {
+              lines.push(`Wellness: ${overlayEvents.map((event) => event.label).join(', ')}`)
             }
 
             // 2. Recovery Insight

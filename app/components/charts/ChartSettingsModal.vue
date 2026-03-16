@@ -55,6 +55,16 @@
             <USwitch v-model="settings.showEstimatedFtp" />
           </div>
 
+          <div v-if="showWellnessEventsOption" class="flex items-center justify-between">
+            <div class="space-y-0.5">
+              <div class="text-sm font-medium text-gray-900 dark:text-white">
+                Show Wellness Events
+              </div>
+              <div class="text-xs text-muted">Overlay synced wellness periods as shaded bands.</div>
+            </div>
+            <USwitch v-model="settings.showWellnessEvents" />
+          </div>
+
           <div class="space-y-2">
             <div class="flex items-center justify-between">
               <div class="text-sm font-medium text-gray-900 dark:text-white">Fill Opacity</div>
@@ -199,6 +209,7 @@
       showTargetOption?: boolean
       showFreshnessBandsOption?: boolean
       showEstimatedFtpOption?: boolean
+      showWellnessEventsOption?: boolean
       defaultType?: 'line' | 'bar'
     }>(),
     {
@@ -209,6 +220,7 @@
       showTargetOption: true,
       showFreshnessBandsOption: false,
       showEstimatedFtpOption: false,
+      showWellnessEventsOption: false,
       defaultType: 'line'
     }
   )
@@ -224,6 +236,7 @@
     showLabels: false,
     showFreshnessBands: true,
     showEstimatedFtp: true,
+    showWellnessEvents: true,
     opacity: 0.5,
     yScale: 'dynamic',
     yMin: 0,

@@ -234,7 +234,8 @@
               openChartSettings('pmc', t('pmc_title'), {
                 max: 150,
                 step: 5,
-                showOverlays: false
+                showOverlays: false,
+                showWellnessEventsOption: true
               })
             "
           />
@@ -667,6 +668,7 @@
           :show-overlays="activeMetricSettings.showOverlays"
           :show-freshness-bands-option="activeMetricSettings.showFreshnessBandsOption"
           :show-estimated-ftp-option="activeMetricSettings.showEstimatedFtpOption"
+          :show-wellness-events-option="activeMetricSettings.showWellnessEventsOption"
           :default-type="activeMetricSettings.defaultType"
           :open="!!activeMetricSettings"
           @update:open="activeMetricSettings = null"
@@ -716,11 +718,12 @@
     showOverlays?: boolean
     showFreshnessBandsOption?: boolean
     showEstimatedFtpOption?: boolean
+    showWellnessEventsOption?: boolean
     defaultType?: 'line' | 'bar'
   } | null>(null)
 
   const defaultChartSettings: any = {
-    pmc: { smooth: true, yScale: 'dynamic', yMin: 0 },
+    pmc: { smooth: true, yScale: 'dynamic', yMin: 0, showWellnessEvents: true },
     powerCurve: { smooth: true, showFreshnessBands: true, yScale: 'dynamic', yMin: 0 },
     efficiency: { smooth: true, showPoints: true, yScale: 'dynamic', yMin: 0 },
     ftp: {

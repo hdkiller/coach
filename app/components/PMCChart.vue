@@ -234,6 +234,11 @@
   import { Line } from 'vue-chartjs'
   import ChartDataLabels from 'chartjs-plugin-datalabels'
   import {
+    getWellnessEventsForDate,
+    wellnessOverlayPlugin,
+    type WellnessOverlayEvent
+  } from '~/utils/wellness-events'
+  import {
     Chart as ChartJS,
     CategoryScale,
     LinearScale,
@@ -253,7 +258,8 @@
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
+    wellnessOverlayPlugin
   )
 
   const props = defineProps<{
@@ -265,10 +271,12 @@
   const loading = ref(true)
   const error = ref<string | null>(null)
   const pmcData = ref<any>(null)
+  const wellnessEvents = ref<WellnessOverlayEvent[]>([])
 
   const chartSettings = computed(() => ({
     smooth: true,
     showLabels: false,
+    showWellnessEvents: true,
     yScale: 'dynamic',
     yMin: 0,
     ...props.settings
@@ -346,10 +354,17 @@
     error.value = null
 
     try {
-      const data = await $fetch('/api/performance/pmc', {
-        query: { days: props.days || 90 }
-      })
+      const days = props.days || 90
+      const [data, eventData] = await Promise.all([
+        $fetch('/api/performance/pmc', {
+          query: { days: String(days) }
+        }),
+        $fetch('/api/wellness/events', {
+          query: { days: String(days) }
+        })
+      ])
       pmcData.value = data
+      wellnessEvents.value = (eventData as WellnessOverlayEvent[]) || []
     } catch (e: any) {
       console.error('Error fetching PMC data:', e)
       error.value = e.data?.message || e.message || 'Failed to load performance metrics'
@@ -385,6 +400,7 @@
 
     return {
       labels,
+      dates: data.map((d: any) => d.date),
       datasets: [
         {
           label: 'CTL (Fitness)',
@@ -471,9 +487,24 @@
         callbacks: {
           label: function (context: any) {
             return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}`
+          },
+          afterBody: (items: any[]) => {
+            const pointDate = chartData.value?.dates?.[items[0]?.dataIndex]
+            const events = getWellnessEventsForDate(wellnessEvents.value, pointDate)
+            if (!events.length) return ''
+            return `Wellness: ${events.map((event) => event.label).join(', ')}`
           }
         }
-      }
+      },
+      wellnessOverlays:
+        chartSettings.value.showWellnessEvents !== false
+          ? {
+              events: wellnessEvents.value,
+              dateKeys: (chartData.value?.dates || []).map((value: string) =>
+                new Date(value).toISOString().slice(0, 10)
+              )
+            }
+          : undefined
     },
     scales: {
       x: {

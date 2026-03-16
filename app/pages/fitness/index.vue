@@ -106,6 +106,7 @@
           >
             <FitnessHrvRhrDualChart
               :wellness-data="filteredWellness"
+              :wellness-events="wellnessEvents"
               :loading="loading"
               :plugins="[ChartDataLabels]"
               @settings="isHrvRhrSettingsModalOpen = true"
@@ -272,6 +273,11 @@
   import FitnessHrvRhrDualChart from '~/components/fitness/HrvRhrDualChart.vue'
   import { LBS_TO_KG } from '~/utils/metrics'
   import {
+    getWellnessEventsForDate,
+    wellnessOverlayPlugin,
+    type WellnessOverlayEvent
+  } from '~/utils/wellness-events'
+  import {
     Chart as ChartJS,
     CategoryScale,
     LinearScale,
@@ -293,7 +299,8 @@
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
+    wellnessOverlayPlugin
   )
 
   definePageMeta({
@@ -337,6 +344,7 @@
       visible: true,
       smooth: true,
       showPoints: false,
+      showWellnessEvents: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -346,6 +354,7 @@
       visible: true,
       smooth: true,
       showPoints: false,
+      showWellnessEvents: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -355,6 +364,7 @@
       visible: true,
       smooth: true,
       showPoints: false,
+      showWellnessEvents: true,
       opacity: 0.8,
       yScale: 'dynamic',
       yMin: 0
@@ -364,6 +374,7 @@
       visible: true,
       smooth: true,
       showPoints: false,
+      showWellnessEvents: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -373,6 +384,7 @@
       visible: true,
       smooth: true,
       showPoints: false,
+      showWellnessEvents: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -447,6 +459,12 @@
   )
 
   const { data: goalsData } = await useFetch<any>('/api/goals')
+  const { data: wellnessEventsData } = await useFetch<WellnessOverlayEvent[]>(
+    '/api/wellness/events',
+    {
+      query: computed(() => ({ days: selectedPeriod.value }))
+    }
+  )
 
   const { data: pmcData, pending: loadingPMC } = await useFetch<any>('/api/performance/pmc', {
     query: computed(() => ({ days: selectedPeriod.value }))
@@ -637,6 +655,8 @@
     return filteredWellness.value.slice(start, end)
   })
 
+  const wellnessEvents = computed(() => wellnessEventsData.value || [])
+
   // Chart data computations
   const recoveryTrendData = computed(() => {
     const recentWellness = [...filteredWellness.value]
@@ -771,6 +791,7 @@
 
     return {
       labels,
+      dates: recentWellness.map((w) => w.date),
       datasets
     }
   })
@@ -806,6 +827,7 @@
 
     return {
       labels,
+      dates: recentWellness.map((w) => w.date),
       datasets: getChartDataset(
         'readinessEstimate',
         estimates,
@@ -960,6 +982,7 @@
 
     return {
       labels,
+      dates: recentWellness.map((w) => w.date),
       datasets: getChartDataset(
         'sleep',
         recentWellness.map((w) => w.sleepHours),
@@ -980,6 +1003,7 @@
 
     return {
       labels,
+      dates: recentWellness.map((w) => w.date),
       datasets: getChartDataset(
         'hrv',
         recentWellness.map((w) => w.hrv),
@@ -1000,6 +1024,7 @@
 
     return {
       labels,
+      dates: recentWellness.map((w) => w.date),
       datasets: getChartDataset(
         'restingHr',
         recentWellness.map((w) => w.restingHr),
@@ -1027,6 +1052,7 @@
 
     return {
       labels,
+      dates: recentWellness.map((w) => w.date),
       datasets: getChartDataset(
         'weight',
         weights,
@@ -1092,9 +1118,20 @@
 
     return {
       labels,
+      dates: recentWellness.map((w) => w.date),
       datasets
     }
   })
+
+  const chartDataByKey = computed(() => ({
+    recovery: recoveryTrendData.value,
+    readinessEstimate: readinessEstimateTrendData.value,
+    sleep: sleepTrendData.value,
+    hrv: hrvTrendData.value,
+    restingHr: restingHrTrendData.value,
+    weight: weightTrendData.value,
+    bp: bpTrendData.value
+  }))
 
   const hasRecoveryChartData = computed(() => (recoveryTrendData.value?.labels?.length || 0) > 0)
   const hasReadinessEstimateChartData = computed(
@@ -1273,7 +1310,24 @@
     }
 
     opts.plugins.tooltip.callbacks = {
-      label: labelFormatter
+      label: labelFormatter,
+      afterBody: (items: any[]) => {
+        const chartEntry = (chartDataByKey.value as Record<string, any>)[key]
+        const pointDate = chartEntry?.dates?.[items[0]?.dataIndex]
+        const events = getWellnessEventsForDate(wellnessEvents.value, pointDate)
+        if (!events.length) return ''
+        return `Wellness: ${events.map((event) => event.label).join(', ')}`
+      }
+    }
+
+    if (settings.showWellnessEvents !== false) {
+      const chartEntry = (chartDataByKey.value as Record<string, any>)[key]
+      opts.plugins.wellnessOverlays = {
+        events: wellnessEvents.value,
+        dateKeys: (chartEntry?.dates || []).map((value: string) =>
+          new Date(value).toISOString().slice(0, 10)
+        )
+      }
     }
 
     // Determine target value for scaling: prioritize manual setting, fallback to goal

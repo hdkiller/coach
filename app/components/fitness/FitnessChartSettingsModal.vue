@@ -133,6 +133,21 @@
         <div class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4">
           <h4 class="font-medium text-gray-900 dark:text-white text-sm">Analysis Overlays</h4>
 
+          <div
+            v-if="
+              ['recovery', 'readinessEstimate', 'sleep', 'hrv', 'restingHr'].includes(metricKey)
+            "
+            class="flex items-center justify-between"
+          >
+            <div class="space-y-0.5">
+              <div class="text-sm font-medium text-gray-900 dark:text-white">
+                Show Wellness Events
+              </div>
+              <div class="text-xs text-muted">Overlay synced wellness periods as shaded bands.</div>
+            </div>
+            <USwitch v-model="settings.showWellnessEvents" />
+          </div>
+
           <div class="flex items-center justify-between">
             <div class="space-y-0.5">
               <div class="text-sm font-medium text-gray-900 dark:text-white">
@@ -210,6 +225,7 @@
     opacity: 0.5,
     yScale: 'dynamic',
     yMin: 0,
+    showWellnessEvents: true,
     show7dAvg: false,
     show30dAvg: false,
     showStdDev: false,
