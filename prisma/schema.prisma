@@ -219,6 +219,7 @@ model UserSystemMessageDismissal {
 model OAuthApp {
   id            String          @id @default(uuid())
   name          String
+  sourceName    String?
   description   String?
   homepageUrl   String?
   logoUrl       String?

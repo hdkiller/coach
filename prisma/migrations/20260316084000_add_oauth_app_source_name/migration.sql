@@ -1,0 +1,2 @@
+ALTER TABLE "OAuthApp"
+ADD COLUMN "sourceName" TEXT;
