@@ -343,7 +343,7 @@
                             workout.title
                           }}</span>
                           <span class="text-sm text-gray-600 dark:text-gray-400">{{
-                            formatDate(workout.date)
+                            formatWorkoutDateTime(workout.date)
                           }}</span>
                         </div>
                         <p class="text-sm text-gray-700 dark:text-gray-300">
@@ -659,7 +659,7 @@
                       {{ rw.workout.type }}
                     </span>
                     <span class="text-sm text-gray-600 dark:text-gray-400">
-                      {{ formatDate(rw.workout.date) }}
+                      {{ formatWorkoutDateTime(rw.workout.date) }}
                     </span>
                   </div>
                   <h4 class="font-medium text-gray-900 dark:text-white">{{ rw.workout.title }}</h4>
@@ -758,12 +758,16 @@
   import { formatDistance as formatDist } from '~/utils/metrics'
 
   const route = useRoute()
-  const { formatDate: baseFormatDate, formatShortDate } = useFormat()
+  const { formatDate: baseFormatDate, formatDateTime, formatShortDate } = useFormat()
   const userStore = useUserStore()
   const reportId = route.params.id as string
 
   function formatDistance(meters: number): string {
     return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
+  }
+
+  function formatWorkoutDateTime(date: string | Date) {
+    return formatDateTime(date, 'MMM d, yyyy h:mm a')
   }
 
   interface Report {

@@ -159,16 +159,16 @@
                   activity.tss ||
                   activity.trimp ||
                   activity.plannedTss ||
-                  activity.startTime
+                  getActivityStartTime(activity)
                 "
                 class="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 flex-wrap"
               >
                 <span
-                  v-if="activity.startTime"
+                  v-if="getActivityStartTime(activity)"
                   class="inline-flex items-center gap-0.5 text-primary-600 dark:text-primary-400 font-medium mr-1"
                 >
                   <UIcon name="i-heroicons-clock" class="w-2.5 h-2.5" />
-                  <span>{{ activity.startTime }}</span>
+                  <span>{{ getActivityStartTime(activity) }}</span>
                 </span>
 
                 <template
@@ -429,7 +429,7 @@
   import { getWorkoutChartPreference } from '~/utils/workoutChartContext'
   import { formatDistance as formatDist } from '~/utils/metrics'
 
-  const { formatDateUTC, getUserLocalDate, formatWeight } = useFormat()
+  const { formatDate, formatDateUTC, formatTime, getUserLocalDate, formatWeight } = useFormat()
   const userStore = useUserStore()
 
   const props = defineProps<{
@@ -609,15 +609,7 @@
     return props.activities
       .filter((a) => a.type !== 'wellness' && !['goal', 'threshold', 'pb'].includes(a.source))
       .sort((a, b) => {
-        const getTime = (activity: CalendarActivity) => {
-          if (activity.source === 'planned' && activity.startTime) return activity.startTime
-          // For completed/notes/wellness/nutrition, use the actual date timestamp
-          const date = new Date(activity.date)
-          const h = date.getUTCHours().toString().padStart(2, '0')
-          const m = date.getUTCMinutes().toString().padStart(2, '0')
-          return `${h}:${m}`
-        }
-        return getTime(a).localeCompare(getTime(b))
+        return getActivityStartTimeSortKey(a).localeCompare(getActivityStartTimeSortKey(b))
       })
   })
 
@@ -655,17 +647,9 @@
       // Parse time
       let hour = 12 // Default to midday if unknown
 
-      if (
-        activity.source === 'planned' &&
-        typeof activity.startTime === 'string' &&
-        activity.startTime.includes(':')
-      ) {
-        hour = parseInt(activity.startTime.split(':')[0] || '12')
-      } else if (activity.date) {
-        const d = new Date(activity.date)
-        if (!isNaN(d.getTime())) {
-          hour = d.getUTCHours()
-        }
+      const sortKey = getActivityStartTimeSortKey(activity)
+      if (sortKey.includes(':')) {
+        hour = parseInt(sortKey.split(':')[0] || '12')
       }
 
       if (hour < 11) {
@@ -749,6 +733,26 @@
 
   function formatDistance(meters: number): string {
     return formatDist(meters, userStore.profile?.distanceUnits || 'Kilometers')
+  }
+
+  function getActivityStartTime(activity: CalendarActivity): string {
+    if (activity.source === 'planned' && activity.startTime) {
+      return formatTime(activity.startTime)
+    }
+
+    if (activity.source === 'completed' && activity.date) {
+      return formatTime(activity.date)
+    }
+
+    return ''
+  }
+
+  function getActivityStartTimeSortKey(activity: CalendarActivity): string {
+    if (activity.startTime && activity.startTime.includes(':')) {
+      return activity.startTime.length >= 5 ? activity.startTime.slice(0, 5) : activity.startTime
+    }
+
+    return formatDate(activity.date, 'HH:mm') || '12:00'
   }
 
   function getTSBColor(tsb: number | null): string {

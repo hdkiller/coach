@@ -345,7 +345,7 @@
               </div>
 
               <p
-                class="text-base text-blue-800 dark:text-blue-200 italic break-words leading-relaxed font-medium"
+                class="text-base text-blue-800 dark:text-blue-200 italic break-words leading-relaxed font-medium whitespace-pre-wrap"
               >
                 "{{ coachAdviceText }}"
               </p>

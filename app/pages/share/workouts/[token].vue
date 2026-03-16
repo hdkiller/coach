@@ -570,7 +570,7 @@
   // Formatters
   function formatDate(date: string | Date) {
     if (!date) return ''
-    return formatDateTime(date, 'EEEE, MMMM d, yyyy')
+    return formatDateTime(date, 'EEEE, MMMM d, yyyy h:mm a')
   }
 
   const pageTitle = computed(() =>

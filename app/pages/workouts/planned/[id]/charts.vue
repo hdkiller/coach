@@ -101,7 +101,10 @@
               </div>
 
               <h1 class="text-2xl font-black tracking-tight">{{ workout.title }}</h1>
-              <p v-if="workout.description" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              <p
+                v-if="workout.description"
+                class="mt-2 text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap"
+              >
                 {{ workout.description }}
               </p>
             </div>

@@ -165,6 +165,9 @@
                     >
                       {{ formatDatePrimary(workout.date) }}
                     </span>
+                    <span class="font-mono text-[11px] text-zinc-400 dark:text-zinc-500 font-bold">
+                      {{ formatTimeOnly(workout.date) }}
+                    </span>
                   </div>
                   <div class="h-8 w-px bg-gray-200 dark:bg-white/10" />
                   <div class="flex items-center gap-2">
@@ -413,7 +416,7 @@
             <!-- Description (Desktop) -->
             <div
               v-if="workout.description"
-              class="relative z-10 p-6 bg-white/[0.01] border-l-2 border-primary-500/20 rounded-r-2xl italic text-zinc-400 font-medium leading-relaxed"
+              class="relative z-10 p-6 bg-white/[0.01] border-l-2 border-primary-500/20 rounded-r-2xl italic text-zinc-400 font-medium leading-relaxed whitespace-pre-wrap"
             >
               {{ workout.description }}
             </div>
@@ -1024,7 +1027,7 @@
             <!-- Description (Mobile) -->
             <div
               v-if="workout.description"
-              class="p-4 bg-white/[0.01] border-l-2 border-primary-500/20 rounded-r-xl italic text-zinc-400 text-xs leading-relaxed"
+              class="p-4 bg-white/[0.01] border-l-2 border-primary-500/20 rounded-r-xl italic text-zinc-400 text-xs leading-relaxed whitespace-pre-wrap"
             >
               {{ workout.description }}
             </div>
@@ -2142,7 +2145,7 @@
                     Key Strategic Takeaway
                   </h3>
                   <p
-                    class="text-lg text-zinc-800 dark:text-zinc-100 leading-relaxed font-medium drop-shadow-sm"
+                    class="text-lg text-zinc-800 dark:text-zinc-100 leading-relaxed font-medium drop-shadow-sm whitespace-pre-wrap"
                   >
                     {{ workout.aiAnalysisJson.executive_summary }}
                   </p>
@@ -2238,7 +2241,7 @@
                         </span>
                       </div>
                       <p
-                        class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium"
+                        class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium whitespace-pre-wrap"
                       >
                         {{ rec.description }}
                       </p>
@@ -3424,7 +3427,7 @@
   const { t } = useTranslate('workout')
   const { t: tt } = useTranslate('workout-tooltips')
 
-  const { formatDate: baseFormatDate, formatDateTime, formatDateUTC } = useFormat()
+  const { formatDate: baseFormatDate, formatDateTime, formatDateUTC, formatTime } = useFormat()
   const { trackWorkoutViewDetail } = useAnalytics()
 
   definePageMeta({
@@ -5229,6 +5232,10 @@
   // Utility functions
   function formatDate(date: string | Date) {
     return formatDateTime(date, 'EEEE, MMMM d, yyyy h:mm a')
+  }
+
+  function formatTimeOnly(date: string | Date) {
+    return formatTime(date)
   }
 
   function formatDatePrimary(date: string | Date) {

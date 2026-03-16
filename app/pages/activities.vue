@@ -618,11 +618,7 @@
 
                 <template #date-cell="{ row }">
                   <div class="whitespace-nowrap">
-                    {{
-                      row.original.source === 'planned'
-                        ? formatDateUTC(row.original.date, 'MMM dd, yyyy')
-                        : formatDateForList(row.original.date)
-                    }}
+                    {{ formatActivityDateForList(row.original) }}
                   </div>
                 </template>
 
@@ -1002,7 +998,8 @@
   })
 
   const showCalendarSettingsModal = ref(false)
-  const { formatDate, formatDateUTC, formatDateTime, getUserLocalDate, timezone } = useFormat()
+  const { formatDate, formatDateUTC, formatDateTime, formatTime, getUserLocalDate, timezone } =
+    useFormat()
   const { onTaskCompleted } = useUserRunsState()
 
   // Auto-refresh when relevant background tasks complete
@@ -1991,7 +1988,17 @@
   })
 
   function formatDateForList(dateStr: string) {
-    return formatDateTime(dateStr, 'MMM dd, yyyy HH:mm')
+    return formatDateTime(dateStr, 'MMM dd, yyyy h:mm a')
+  }
+
+  function formatActivityDateForList(activity: CalendarActivity) {
+    if (activity.source === 'planned') {
+      const dateLabel = formatDateUTC(activity.date, 'MMM dd, yyyy')
+      const timeLabel = activity.startTime ? formatTime(activity.startTime) : ''
+      return timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel
+    }
+
+    return formatDateForList(activity.date)
   }
 
   function formatDateSafe(dateStr: string) {

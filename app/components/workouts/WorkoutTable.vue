@@ -89,8 +89,13 @@
             @click="$emit('navigate', workout.id)"
           >
             <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-              <span class="sm:hidden">{{ formatShortDate(workout.date) }}</span>
-              <span class="hidden sm:inline">{{ formatDate(workout.date) }}</span>
+              <div class="flex flex-col">
+                <span class="sm:hidden">{{ formatDateTime(workout.date, 'MMM d') }}</span>
+                <span class="hidden sm:inline">{{ formatDate(workout.date) }}</span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ formatTime(workout.date) }}
+                </span>
+              </div>
             </td>
             <td
               class="px-3 sm:px-6 py-4 text-sm text-gray-900 dark:text-white max-w-[150px] sm:max-w-none truncate"
@@ -170,7 +175,7 @@
 
   defineEmits(['update:currentPage', 'navigate'])
 
-  const { formatDate, formatShortDate } = useFormat()
+  const { formatDate, formatDateTime, formatTime } = useFormat()
 
   // Constant for items per page (used in pagination display)
   const itemsPerPage = 20
