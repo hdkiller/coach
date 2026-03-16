@@ -1,3 +1,5 @@
+import { extractSwimDistanceFromText } from './swim-structure'
+
 export interface ParsedWorkoutStep {
   type: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'
   name?: string
@@ -24,7 +26,7 @@ export interface ParsedWorkoutStep {
 }
 
 export const WorkoutParser = {
-  parseIntervalsICU(text: string): ParsedWorkoutStep[] {
+  parseIntervalsICU(text: string, options?: { workoutType?: string | null }): ParsedWorkoutStep[] {
     const lines = text.split('\n')
     const rootSteps: ParsedWorkoutStep[] = []
     const stack: { steps: ParsedWorkoutStep[]; indent: number }[] = [
@@ -84,7 +86,7 @@ export const WorkoutParser = {
       // Detect Step: starts with "-"
       if (trimmedLine.startsWith('-')) {
         const stepText = trimmedLine.substring(1).trim()
-        const step = this.parseStepLine(stepText, currentType)
+        const step = this.parseStepLine(stepText, currentType, options)
         currentContainer.push(step)
       }
     }
@@ -94,9 +96,13 @@ export const WorkoutParser = {
 
   parseStepLine(
     text: string,
-    defaultType: 'Warmup' | 'Active' | 'Rest' | 'Cooldown'
+    defaultType: 'Warmup' | 'Active' | 'Rest' | 'Cooldown',
+    options?: { workoutType?: string | null }
   ): ParsedWorkoutStep {
     const originalText = text
+    const isSwim = String(options?.workoutType || '')
+      .toLowerCase()
+      .includes('swim')
     const step: ParsedWorkoutStep = {
       type: defaultType,
       name: ''
@@ -109,7 +115,17 @@ export const WorkoutParser = {
       text = text.replace(rpmMatch[0], '').trim()
     }
 
-    // 2. Extract Duration: "10m", "30s", "1h", "1:30:00"
+    // 2. Swim-specific distance extraction must happen before duration parsing,
+    // otherwise bare "200m" is interpreted as 200 minutes.
+    if (isSwim) {
+      const extractedDistance = extractSwimDistanceFromText(text)
+      if (extractedDistance) {
+        step.distance = extractedDistance.distance
+        text = extractedDistance.strippedText
+      }
+    }
+
+    // 3. Extract Duration: "10m", "30s", "1h"
     const intervalsDurationMatch = text.match(/\b(\d+)([hms])\b/gi)
     if (intervalsDurationMatch) {
       let totalSeconds = 0
@@ -124,16 +140,18 @@ export const WorkoutParser = {
       step.durationSeconds = totalSeconds
     }
 
-    // 3. Extract Distance: "1000m", "1.5km"
-    const distanceMatch = text.match(/\b(\d+(\.\d+)?)\s*(km|m)\b/i)
-    if (distanceMatch) {
-      const val = parseFloat(distanceMatch[1] || '0')
-      const unit = (distanceMatch[3] || 'm').toLowerCase()
-      step.distance = unit === 'km' ? val * 1000 : val
-      text = text.replace(distanceMatch[0] || '', '').trim()
+    // 4. Extract Distance: "1000m", "1.5km", "400mtrs"
+    if (!step.distance) {
+      const distanceMatch = text.match(/\b(\d+(\.\d+)?)\s*(km|mtrs|m)\b/i)
+      if (distanceMatch) {
+        const val = parseFloat(distanceMatch[1] || '0')
+        const unit = (distanceMatch[3] || 'm').toLowerCase()
+        step.distance = unit === 'km' ? val * 1000 : val
+        text = text.replace(distanceMatch[0] || '', '').trim()
+      }
     }
 
-    // 4. Extract Intensity (Power/HR/Pace)
+    // 5. Extract Intensity (Power/HR/Pace)
     // Percentage: "50%", "ramp 50-70%", "50-70%"
     const rampMatch = text.match(/ramp\s+(\d+)-(\d+)%/i) || text.match(/(\d+)-(\d+)%/i)
     if (rampMatch) {
@@ -184,7 +202,7 @@ export const WorkoutParser = {
       .replace(/\s{2,}/g, ' ')
       .trim()
 
-    // 5. Cleanup Name
+    // 6. Cleanup Name
     // Remove redundant type names
     if (text.toLowerCase().startsWith('rest')) {
       step.type = 'Rest'
@@ -206,20 +224,12 @@ export const WorkoutParser = {
         step.power?.value ??
         (step.power?.range
           ? (step.power.range.start + step.power.range.end) / 2
-          : step.heartRate?.value ??
+          : (step.heartRate?.value ??
             (step.heartRate?.range
               ? (step.heartRate.range.start + step.heartRate.range.end) / 2
-              : step.pace?.value ??
-                (step.pace?.range ? (step.pace.range.start + step.pace.range.end) / 2 : null)))
-      const recoveryLabels = [
-        'off',
-        'recover',
-        'recovery',
-        'easy',
-        'jog',
-        'float',
-        'rest'
-      ]
+              : (step.pace?.value ??
+                (step.pace?.range ? (step.pace.range.start + step.pace.range.end) / 2 : null)))))
+      const recoveryLabels = ['off', 'recover', 'recovery', 'easy', 'jog', 'float', 'rest']
       const hasRecoveryLabel = recoveryLabels.some(
         (label) =>
           normalizedName === label ||

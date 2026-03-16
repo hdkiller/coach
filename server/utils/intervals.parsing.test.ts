@@ -4,13 +4,14 @@ import { WorkoutParser } from './workout-parser'
 import { describe, it, expect } from 'vitest'
 
 // Mock minimal event structure
-const createEvent = (steps: any[], type = 'Ride') => ({
+const createEvent = (steps: any[], type = 'Ride', overrides: Record<string, any> = {}) => ({
   id: 'test-id',
   start_date_local: '2025-01-01T00:00:00',
   name: 'Test Workout',
   type,
   category: 'WORKOUT',
-  workout_doc: { steps }
+  workout_doc: { steps },
+  ...overrides
 })
 
 describe('Intervals.icu Parsing Logic', () => {
@@ -183,6 +184,78 @@ describe('Intervals.icu Parsing Logic', () => {
       expect(steps[0].type).toBe('Active')
       expect(steps[1].name).toBe('Jog')
       expect(steps[1].type).toBe('Rest')
+    })
+  })
+
+  describe('Swim Distance Handling', () => {
+    it('parses bare swim meter tokens as distance instead of minutes', () => {
+      const steps = WorkoutParser.parseIntervalsICU(
+        '4x\n  - 200m 73-77% LTHR\n  - Recupero Facile 40s 58-62% LTHR',
+        { workoutType: 'Swim' }
+      )
+      const workStep = steps[0]?.steps?.[0]
+
+      expect(workStep?.distance).toBe(200)
+      expect(workStep?.durationSeconds).toBeUndefined()
+    })
+
+    it('keeps non-swim bare m tokens as minutes', () => {
+      const steps = WorkoutParser.parseIntervalsICU('- Steady 10m 70%', { workoutType: 'Ride' })
+      expect(steps[0]?.durationSeconds).toBe(600)
+      expect(steps[0]?.distance).toBeUndefined()
+    })
+
+    it('repairs swim distances embedded in step names during generation/import round-trip', () => {
+      const event = createEvent(
+        [
+          {
+            reps: 4,
+            steps: [
+              { type: 'Active', name: '400m Crawl Tempo', durationSeconds: 480 },
+              { type: 'Active', name: '100m Pull Buoy', durationSeconds: 120 }
+            ]
+          }
+        ],
+        'Swim'
+      )
+
+      const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
+      const reps = result.structuredWorkout.steps[0]
+
+      expect(reps.steps[0].distance).toBe(400)
+      expect(reps.steps[0].name).toBe('Crawl Tempo')
+      expect(reps.steps[1].distance).toBe(100)
+      expect(reps.steps[1].name).toBe('Pull Buoy')
+      expect(reps.distance).toBe(2000)
+    })
+
+    it('reparses suspicious remote swim descriptions when workout_doc lost distances', () => {
+      const event = createEvent(
+        [
+          {
+            reps: 4,
+            type: 'Active',
+            steps: [
+              { type: 'Rest', durationSeconds: 24000 },
+              { type: 'Rest', durationSeconds: 6000 }
+            ],
+            durationSeconds: 120000
+          }
+        ],
+        'Swim',
+        {
+          description:
+            'Warmup\n- Échauffement progressif 5m\n\nMain Set\n4x\n  - 400m Crawl Tempo 8m RPE 6\n  - 100m Pull Buoy & Pads 2m RPE 7\n\nCooldown\n- Retour au calme 5m'
+        }
+      )
+
+      const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
+      const reps = result.structuredWorkout.steps[1]
+
+      expect(reps.steps[0].distance).toBe(400)
+      expect(reps.steps[0].durationSeconds).toBe(480)
+      expect(reps.steps[1].distance).toBe(100)
+      expect(reps.steps[1].durationSeconds).toBe(120)
     })
   })
 

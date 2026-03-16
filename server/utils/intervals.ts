@@ -4,6 +4,12 @@ import { roundToTwoDecimals } from './number'
 import { mergeWorkoutTags } from './workout-tags'
 
 import { WorkoutConverter } from './workout-converter'
+import { WorkoutParser } from './workout-parser'
+import {
+  getSwimStructureStats,
+  normalizeSwimStructure,
+  shouldReparseSwimDescription
+} from './swim-structure'
 
 function getIntervalsHeaders(integration: Integration): Record<string, string> {
   // If we have a scope or refresh token, it's an OAuth integration
@@ -1274,11 +1280,35 @@ export function normalizeIntervalsPlannedWorkout(event: IntervalsPlannedWorkout,
   const distance = event.distance ?? event.icu_distance ?? null
 
   // Structured workout data
-  const structuredWorkout = event.workout_doc ?? (event.steps ? { steps: event.steps } : null)
+  let structuredWorkout = event.workout_doc ?? (event.steps ? { steps: event.steps } : null)
 
   // Normalize steps recursively
   if (structuredWorkout && Array.isArray(structuredWorkout.steps)) {
     structuredWorkout.steps = normalizeWorkoutSteps(structuredWorkout.steps)
+  }
+  if (event.type === 'Swim' && structuredWorkout) {
+    normalizeSwimStructure(structuredWorkout)
+  }
+
+  if (
+    event.type === 'Swim' &&
+    event.description &&
+    shouldReparseSwimDescription(structuredWorkout, event.description)
+  ) {
+    const reparsedStructure = {
+      ...(structuredWorkout || {}),
+      steps: WorkoutParser.parseIntervalsICU(event.description, { workoutType: 'Swim' })
+    } as any
+    normalizeSwimStructure(reparsedStructure)
+
+    const reparsedStats = getSwimStructureStats(reparsedStructure)
+    const currentStats = getSwimStructureStats(structuredWorkout)
+    if (
+      reparsedStats.leafDistanceSteps > currentStats.leafDistanceSteps ||
+      (reparsedStats.totalLeafDistance > 0 && currentStats.totalLeafDistance === 0)
+    ) {
+      structuredWorkout = reparsedStructure
+    }
   }
   // Detect CoachWatts management
   const isCoachWatts = event.description?.includes('[CoachWatts]')
