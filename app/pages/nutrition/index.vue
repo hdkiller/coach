@@ -249,6 +249,58 @@
                   </p>
                 </UCard>
 
+                <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }">
+                  <template #header>
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-center gap-2">
+                        <UIcon name="i-lucide-heart-handshake" class="size-5 text-rose-500" />
+                        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                          Recovery Context
+                        </h3>
+                      </div>
+                      <UButton
+                        color="neutral"
+                        variant="ghost"
+                        size="xs"
+                        icon="i-lucide-plus"
+                        @click="openCreateRecoveryEvent()"
+                      >
+                        Log event
+                      </UButton>
+                    </div>
+                  </template>
+
+                  <div v-if="nutritionRecoveryItems.length" class="space-y-3">
+                    <button
+                      v-for="item in nutritionRecoveryItems"
+                      :key="item.id"
+                      type="button"
+                      class="w-full rounded-xl border border-gray-200 px-4 py-3 text-left transition hover:border-primary-300 dark:border-gray-800"
+                      @click="openRecoveryItem(item)"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div>
+                          <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ item.label }}
+                          </p>
+                          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {{ item.description || item.origin }}
+                          </p>
+                        </div>
+                        <span class="text-[10px] uppercase tracking-widest text-gray-400">
+                          {{ item.startAt.slice(11, 16) }}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                  <div
+                    v-else
+                    class="rounded-xl border border-dashed border-gray-200 px-4 py-5 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400"
+                  >
+                    No manually logged recovery events in this metabolic horizon yet.
+                  </div>
+                </UCard>
+
                 <!-- Hydration Debt Card -->
                 <UCard :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }">
                   <template #header>
@@ -441,14 +493,24 @@
   </UDashboardPanel>
 
   <NutritionHorizonSettingsModal v-model:open="isHorizonSettingsModalOpen" />
+  <RecoveryContextSlideover
+    :open="isRecoveryContextOpen"
+    :item="selectedRecoveryItem"
+    :create-mode="isRecoveryCreateMode"
+    @update:open="isRecoveryContextOpen = $event"
+    @saved="refreshData"
+    @deleted="refreshData"
+  />
 </template>
 
 <script setup lang="ts">
   import { format, parseISO, addDays, startOfWeek, subDays, isSameWeek } from 'date-fns'
   import { useTranslate } from '@tolgee/vue'
+  import RecoveryContextSlideover from '~/components/recovery/RecoveryContextSlideover.vue'
   import { getPlannedWorkoutsWithMissingStartTime } from '~/utils/nutrition-timeline'
   import ChartSettingsModal from '~/components/charts/ChartSettingsModal.vue'
   import NutritionHorizonSettingsModal from '~/components/nutrition/NutritionHorizonSettingsModal.vue'
+  import type { RecoveryContextItem } from '~/types/recovery-context'
 
   const { t } = useTranslate('nutrition')
 
@@ -495,6 +557,9 @@
   const showGroceryList = ref(false)
   const highlightedDate = ref<string | null>(null)
   const missingPlannedStartActivities = ref<any[]>([])
+  const selectedRecoveryItem = ref<RecoveryContextItem | null>(null)
+  const isRecoveryContextOpen = ref(false)
+  const isRecoveryCreateMode = ref(false)
 
   const isHorizonSettingsModalOpen = ref(false)
 
@@ -565,6 +630,44 @@
   const loading = computed(
     () => loadingWave.value || loadingStrategy.value || loadingActiveFeed.value
   )
+
+  const nutritionRecoveryItems = computed<RecoveryContextItem[]>(() =>
+    journeyEvents.value.map((event: any) => ({
+      id: `recovery:journey:${event.id}`,
+      sourceRecordId: event.id,
+      kind: 'journey_event',
+      sourceType: 'manual_event',
+      label: `${String(event.category || 'Event').replace(/_/g, ' ')} ${event.severity}/10`,
+      description: event.description || 'Logged manually',
+      severity: event.severity || null,
+      startAt: new Date(event.timestamp).toISOString(),
+      endAt: new Date(event.timestamp).toISOString(),
+      isRange: false,
+      editable: true,
+      deletable: true,
+      color: 'rgba(249, 115, 22, 0.18)',
+      icon: 'i-lucide-heart-pulse',
+      overlayStyle: 'marker',
+      origin: 'Logged manually',
+      category: event.category || null,
+      metadata: {
+        eventType: event.eventType,
+        metabolicSnapshot: event.metabolicSnapshot
+      }
+    }))
+  )
+
+  function openRecoveryItem(item: RecoveryContextItem) {
+    selectedRecoveryItem.value = item
+    isRecoveryCreateMode.value = false
+    isRecoveryContextOpen.value = true
+  }
+
+  function openCreateRecoveryEvent() {
+    selectedRecoveryItem.value = null
+    isRecoveryCreateMode.value = true
+    isRecoveryContextOpen.value = true
+  }
 
   function getWaveDateRange() {
     const dateKeys = wavePoints.value

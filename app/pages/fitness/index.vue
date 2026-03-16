@@ -12,6 +12,16 @@
             </ClientOnly>
 
             <UButton
+              to="/recovery"
+              icon="i-lucide-heart-handshake"
+              color="neutral"
+              variant="outline"
+              size="sm"
+            >
+              Recovery History
+            </UButton>
+
+            <UButton
               icon="i-heroicons-adjustments-horizontal"
               color="neutral"
               variant="outline"
@@ -46,6 +56,15 @@
             :open="!!activeMetricSettings"
             :weight-goal="weightGoal"
             @update:open="activeMetricSettings = null"
+          />
+          <RecoveryContextSlideover
+            :open="isRecoveryContextOpen"
+            :item="selectedRecoveryItem"
+            :create-mode="isRecoveryCreateMode"
+            :create-date="selectedRecoveryDate"
+            @update:open="isRecoveryContextOpen = $event"
+            @saved="handleRecoveryContextChanged"
+            @deleted="handleRecoveryContextChanged"
           />
           <div
             v-if="isGarminConnected"
@@ -96,6 +115,20 @@
             :avg-h-r-v="avgHRV"
             :hrv-trend="hrvTrend"
           />
+
+          <RecoveryContextStrip :items="activeRecoveryItems" @select="openRecoveryItem">
+            <template #actions>
+              <UButton
+                color="neutral"
+                variant="outline"
+                size="sm"
+                icon="i-lucide-plus"
+                @click="openCreateRecoveryEvent()"
+              >
+                Log event
+              </UButton>
+            </template>
+          </RecoveryContextStrip>
 
           <!-- Featured Correlation Chart -->
 
@@ -204,6 +237,8 @@
             />
           </div>
 
+          <RecoveryContextTimeline :items="recoveryContextItems" @select="openRecoveryItem" />
+
           <!-- Filter Area -->
           <UCard
             :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-3' }"
@@ -271,12 +306,16 @@
   import FitnessTrendChart from '~/components/fitness/FitnessTrendChart.vue'
   import FitnessWellnessTable from '~/components/fitness/FitnessWellnessTable.vue'
   import FitnessHrvRhrDualChart from '~/components/fitness/HrvRhrDualChart.vue'
+  import RecoveryContextStrip from '~/components/recovery/RecoveryContextStrip.vue'
+  import RecoveryContextTimeline from '~/components/recovery/RecoveryContextTimeline.vue'
+  import RecoveryContextSlideover from '~/components/recovery/RecoveryContextSlideover.vue'
   import { LBS_TO_KG } from '~/utils/metrics'
   import {
     getWellnessEventsForDate,
     wellnessOverlayPlugin,
     type WellnessOverlayEvent
   } from '~/utils/wellness-events'
+  import type { RecoveryContextItem } from '~/types/recovery-context'
   import {
     Chart as ChartJS,
     CategoryScale,
@@ -459,12 +498,11 @@
   )
 
   const { data: goalsData } = await useFetch<any>('/api/goals')
-  const { data: wellnessEventsData } = await useFetch<WellnessOverlayEvent[]>(
-    '/api/wellness/events',
-    {
-      query: computed(() => ({ days: selectedPeriod.value }))
-    }
-  )
+  const {
+    items: recoveryContextItems,
+    activeToday: activeRecoveryItems,
+    refresh: refreshRecoveryContext
+  } = useRecoveryContext(selectedPeriod)
 
   const { data: pmcData, pending: loadingPMC } = await useFetch<any>('/api/performance/pmc', {
     query: computed(() => ({ days: selectedPeriod.value }))
@@ -655,7 +693,29 @@
     return filteredWellness.value.slice(start, end)
   })
 
-  const wellnessEvents = computed(() => wellnessEventsData.value || [])
+  const wellnessEvents = computed<WellnessOverlayEvent[]>(() => recoveryContextItems.value || [])
+  const selectedRecoveryItem = ref<RecoveryContextItem | null>(null)
+  const isRecoveryContextOpen = ref(false)
+  const isRecoveryCreateMode = ref(false)
+  const selectedRecoveryDate = ref<string | null>(null)
+
+  function openRecoveryItem(item: RecoveryContextItem) {
+    selectedRecoveryItem.value = item
+    selectedRecoveryDate.value = item.startAt
+    isRecoveryCreateMode.value = false
+    isRecoveryContextOpen.value = true
+  }
+
+  function openCreateRecoveryEvent(date?: string) {
+    selectedRecoveryItem.value = null
+    selectedRecoveryDate.value = date || new Date().toISOString()
+    isRecoveryCreateMode.value = true
+    isRecoveryContextOpen.value = true
+  }
+
+  async function handleRecoveryContextChanged() {
+    await refreshRecoveryContext()
+  }
 
   // Chart data computations
   const recoveryTrendData = computed(() => {
@@ -1316,7 +1376,7 @@
         const pointDate = chartEntry?.dates?.[items[0]?.dataIndex]
         const events = getWellnessEventsForDate(wellnessEvents.value, pointDate)
         if (!events.length) return ''
-        return `Wellness: ${events.map((event) => event.label).join(', ')}`
+        return `Recovery Context: ${events.map((event) => event.label).join(', ')}`
       }
     }
 
