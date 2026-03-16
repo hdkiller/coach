@@ -48,46 +48,156 @@
           </div>
 
           <template v-else-if="isJourneyEvent || createMode">
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="sm:col-span-2">
-                <label
-                  class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500"
-                >
-                  Category
-                </label>
-                <USelect v-model="journeyForm.category" :items="journeyCategories" class="w-full" />
+            <div class="space-y-6">
+              <div
+                class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-4 dark:border-gray-800 dark:bg-gray-900/40"
+              >
+                <p class="text-sm text-gray-600 dark:text-gray-300">
+                  Log something that helps explain unusual recovery, sleep, HRV, RHR, or training
+                  response.
+                </p>
               </div>
+
               <div>
                 <label
-                  class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
                 >
-                  Type
+                  What happened?
                 </label>
-                <USelect v-model="journeyForm.eventType" :items="journeyTypes" class="w-full" />
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <button
+                    v-for="option in journeyEventOptions"
+                    :key="option.id"
+                    type="button"
+                    :class="[
+                      'rounded-2xl border px-4 py-4 text-left transition',
+                      isJourneyOptionActive(option)
+                        ? 'border-primary-500 bg-primary-50 shadow-sm dark:bg-primary-950/30'
+                        : 'border-gray-200 bg-white hover:border-primary-300 dark:border-gray-800 dark:bg-gray-950'
+                    ]"
+                    @click="selectJourneyOption(option)"
+                  >
+                    <div class="flex items-start gap-3">
+                      <div
+                        :class="[
+                          'mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl',
+                          isJourneyOptionActive(option)
+                            ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                        ]"
+                      >
+                        <UIcon :name="option.icon" class="size-4.5" />
+                      </div>
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                          {{ option.title }}
+                        </p>
+                        <p class="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                          {{ option.subtitle }}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
               </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <UBadge color="neutral" variant="subtle">
+                  {{ eventTypeBadgeLabel }}
+                </UBadge>
+                <UBadge v-if="selectedJourneyOption" color="primary" variant="subtle">
+                  {{ selectedJourneyOption.title }}
+                </UBadge>
+              </div>
+
               <div>
                 <label
-                  class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
                 >
-                  Severity
+                  How much did it affect you?
                 </label>
-                <UInput v-model="journeyForm.severity" type="number" min="1" max="10" />
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <button
+                    v-for="level in severityOptions"
+                    :key="level.label"
+                    type="button"
+                    :class="[
+                      'rounded-2xl border px-4 py-4 text-left transition',
+                      selectedSeverityLabel === level.label
+                        ? 'border-primary-500 bg-primary-50 shadow-sm dark:bg-primary-950/30'
+                        : 'border-gray-200 bg-white hover:border-primary-300 dark:border-gray-800 dark:bg-gray-950'
+                    ]"
+                    @click="journeyForm.severity = level.value"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-2">
+                        <div
+                          :class="[
+                            'flex size-8 items-center justify-center rounded-lg',
+                            selectedSeverityLabel === level.label
+                              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'
+                              : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300'
+                          ]"
+                        >
+                          <UIcon :name="level.icon" class="size-4" />
+                        </div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                          {{ level.label }}
+                        </p>
+                      </div>
+                      <span class="text-xs font-semibold text-gray-400">{{ level.value }}/10</span>
+                    </div>
+                    <p class="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                      {{ level.description }}
+                    </p>
+                  </button>
+                </div>
               </div>
-              <div class="sm:col-span-2">
+
+              <div>
                 <label
-                  class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
                 >
-                  Timestamp
+                  When did this happen?
                 </label>
-                <UInput v-model="journeyForm.timestamp" type="datetime-local" />
+                <div class="mb-3 flex flex-wrap gap-2">
+                  <UButton
+                    v-for="preset in timePresets"
+                    :key="preset.id"
+                    color="neutral"
+                    :variant="selectedTimePreset === preset.id ? 'solid' : 'outline'"
+                    size="xs"
+                    @click="applyTimePreset(preset.id)"
+                  >
+                    {{ preset.label }}
+                  </UButton>
+                </div>
+                <UInput v-model="journeyForm.timestamp" type="datetime-local" class="w-full" />
               </div>
-              <div class="sm:col-span-2">
+
+              <div>
+                <p class="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                  Mild: noticeable but manageable. Moderate: clearly affecting recovery or training.
+                  Severe: strong impact, likely explains major disruption.
+                </p>
+              </div>
+
+              <div>
                 <label
-                  class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
                 >
-                  Notes
+                  Tell Coach Watts more
                 </label>
-                <UTextarea v-model="journeyForm.description" :rows="5" class="w-full" />
+                <UTextarea
+                  v-model="journeyForm.description"
+                  :rows="6"
+                  class="w-full"
+                  placeholder="Describe symptoms, possible trigger, what changed, or anything unusual you noticed."
+                />
+                <p class="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                  Examples: fever starting last night, restless sleep, heavy legs after travel,
+                  stomach discomfort during training.
+                </p>
               </div>
             </div>
           </template>
@@ -117,7 +227,7 @@
                 >
                   Notes
                 </label>
-                <UTextarea v-model="checkinForm.userNotes" :rows="5" />
+                <UTextarea v-model="checkinForm.userNotes" :rows="5" class="w-full" />
               </div>
             </div>
           </template>
@@ -154,6 +264,7 @@
 
 <script setup lang="ts">
   import type { RecoveryContextItem } from '~/types/recovery-context'
+  import type { JourneyEventCategory, JourneyEventType } from '~/types/nutrition'
 
   const props = defineProps<{
     open: boolean
@@ -169,9 +280,10 @@
   }>()
 
   const toast = useToast()
-  const { formatDateTime } = useFormat()
+  const { formatDateTime, getUserLocalDate } = useFormat()
   const saving = ref(false)
   const deleting = ref(false)
+  const selectedTimePreset = ref<'now' | 'earlier-today' | 'yesterday' | 'custom'>('now')
 
   const isOpen = computed({
     get: () => props.open,
@@ -193,7 +305,7 @@
 
   const subtitle = computed(() => {
     if (createMode.value)
-      return 'Add a manual recovery event that can explain changes in readiness, sleep, or biometrics.'
+      return 'Capture the context behind unusual recovery, sleep, biometrics, or training response.'
     if (!selectedItem.value) return 'Review how this item affects your recovery context.'
     return `${selectedItem.value.origin} • ${formatDateTime(selectedItem.value.startAt, 'MMM d, yyyy h:mm a')}`
   })
@@ -204,26 +316,129 @@
     return 'success'
   })
 
-  const journeyCategories = [
-    { label: 'GI Distress', value: 'GI_DISTRESS' },
-    { label: 'Muscle Pain', value: 'MUSCLE_PAIN' },
-    { label: 'Fatigue', value: 'FATIGUE' },
-    { label: 'Sleep', value: 'SLEEP' },
-    { label: 'Mood', value: 'MOOD' },
-    { label: 'Cramping', value: 'CRAMPING' },
-    { label: 'Dizziness', value: 'DIZZINESS' },
-    { label: 'Hunger', value: 'HUNGER' }
+  type JourneyEventOption = {
+    id: string
+    title: string
+    subtitle: string
+    icon: string
+    category: JourneyEventCategory
+    eventType: JourneyEventType
+  }
+
+  const journeyEventOptions: JourneyEventOption[] = [
+    {
+      id: 'illness',
+      title: 'Illness / sick',
+      subtitle: 'Cold, fever, flu, feeling run down, or unexplained crash.',
+      icon: 'i-lucide-thermometer',
+      category: 'FATIGUE',
+      eventType: 'WELLNESS_CHECK'
+    },
+    {
+      id: 'injury',
+      title: 'Injury / pain',
+      subtitle: 'Pain, soreness, or something that may limit normal training.',
+      icon: 'i-lucide-bandage',
+      category: 'MUSCLE_PAIN',
+      eventType: 'SYMPTOM'
+    },
+    {
+      id: 'fatigue',
+      title: 'Fatigue / heavy legs',
+      subtitle: 'Low energy, unusually hard effort, flat legs, or poor readiness.',
+      icon: 'i-lucide-battery-warning',
+      category: 'FATIGUE',
+      eventType: 'SYMPTOM'
+    },
+    {
+      id: 'sleep',
+      title: 'Poor sleep',
+      subtitle: 'Short sleep, frequent wakeups, restless night, or poor sleep quality.',
+      icon: 'i-lucide-moon-star',
+      category: 'SLEEP',
+      eventType: 'WELLNESS_CHECK'
+    },
+    {
+      id: 'mood',
+      title: 'Mood / stress',
+      subtitle: 'Stress, anxiety, emotional strain, or feeling mentally off.',
+      icon: 'i-lucide-cloud-lightning',
+      category: 'MOOD',
+      eventType: 'WELLNESS_CHECK'
+    },
+    {
+      id: 'gi',
+      title: 'GI issues',
+      subtitle: 'Nausea, bloating, stomach discomfort, or gut problems during training.',
+      icon: 'i-lucide-shell',
+      category: 'GI_DISTRESS',
+      eventType: 'SYMPTOM'
+    },
+    {
+      id: 'cramping',
+      title: 'Cramping',
+      subtitle: 'Muscle cramping, tightness, or spasms affecting performance.',
+      icon: 'i-lucide-zap',
+      category: 'CRAMPING',
+      eventType: 'SYMPTOM'
+    },
+    {
+      id: 'dizziness',
+      title: 'Dizziness',
+      subtitle: 'Lightheadedness, dizziness, or feeling unstable.',
+      icon: 'i-lucide-orbit',
+      category: 'DIZZINESS',
+      eventType: 'SYMPTOM'
+    },
+    {
+      id: 'hunger',
+      title: 'Hunger / underfueled',
+      subtitle: 'Low energy from underfueling, hunger, or poor intake.',
+      icon: 'i-lucide-utensils-crossed',
+      category: 'HUNGER',
+      eventType: 'SYMPTOM'
+    },
+    {
+      id: 'note',
+      title: 'General recovery note',
+      subtitle: 'Anything unusual you want Coach Watts to remember or correlate.',
+      icon: 'i-lucide-notebook-pen',
+      category: 'FATIGUE',
+      eventType: 'RECOVERY_NOTE'
+    }
   ]
 
-  const journeyTypes = [
-    { label: 'Symptom', value: 'SYMPTOM' },
-    { label: 'Wellness Check', value: 'WELLNESS_CHECK' },
-    { label: 'Recovery Note', value: 'RECOVERY_NOTE' }
-  ]
+  const severityOptions = [
+    {
+      label: 'Mild',
+      value: 3,
+      icon: 'i-lucide-leaf',
+      description: 'Noticeable but manageable.'
+    },
+    {
+      label: 'Moderate',
+      value: 6,
+      icon: 'i-lucide-gauge',
+      description: 'Clearly affecting recovery or training.'
+    },
+    {
+      label: 'Severe',
+      value: 9,
+      icon: 'i-lucide-triangle-alert',
+      description: 'Strong impact, likely explains major disruption.'
+    }
+  ] as const
+
+  const timePresets = [
+    { id: 'now', label: 'Now' },
+    { id: 'earlier-today', label: 'Earlier today' },
+    { id: 'yesterday', label: 'Yesterday' },
+    { id: 'custom', label: 'Custom' }
+  ] as const
 
   const journeyForm = reactive({
-    category: 'FATIGUE',
-    eventType: 'SYMPTOM',
+    category: 'FATIGUE' as JourneyEventCategory,
+    eventType: 'SYMPTOM' as JourneyEventType,
     severity: 5,
     timestamp: '',
     description: ''
@@ -239,10 +454,12 @@
     (item) => {
       if (item?.kind === 'journey_event') {
         journeyForm.category = item.category || 'FATIGUE'
-        journeyForm.eventType = String(item.metadata?.eventType || 'SYMPTOM')
+        journeyForm.eventType = (String(item.metadata?.eventType || 'SYMPTOM') ||
+          'SYMPTOM') as JourneyEventType
         journeyForm.severity = item.severity || 5
         journeyForm.timestamp = toLocalDateTimeValue(item.startAt)
         journeyForm.description = item.description || ''
+        selectedTimePreset.value = 'custom'
       } else if (item?.kind === 'daily_checkin') {
         checkinForm.questions = (item.rawAnswerSummary || []).map((question) => ({
           ...question,
@@ -260,16 +477,77 @@
       if (createMode.value) {
         journeyForm.category = 'FATIGUE'
         journeyForm.eventType = 'SYMPTOM'
-        journeyForm.severity = 5
+        journeyForm.severity = 6
         journeyForm.timestamp = toLocalDateTimeValue(createDate || new Date().toISOString())
         journeyForm.description = ''
+        selectedTimePreset.value = createDate ? 'custom' : 'now'
       }
     },
     { immediate: true }
   )
 
+  const selectedJourneyOption = computed(() => findJourneyOption())
+
+  const selectedSeverityLabel = computed(() => {
+    if (journeyForm.severity <= 4) return 'Mild'
+    if (journeyForm.severity <= 7) return 'Moderate'
+    return 'Severe'
+  })
+
+  const eventTypeBadgeLabel = computed(() => {
+    if (journeyForm.eventType === 'RECOVERY_NOTE') return 'Logged as recovery note'
+    if (journeyForm.eventType === 'WELLNESS_CHECK') return 'Logged as wellness check'
+    return 'Logged as symptom'
+  })
+
   function toLocalDateTimeValue(value: string) {
     return new Date(value).toISOString().slice(0, 16)
+  }
+
+  function setLocalDateTime(baseDate: Date, hour: number, minute: number) {
+    const date = new Date(baseDate)
+    date.setHours(hour, minute, 0, 0)
+    return date
+  }
+
+  function findJourneyOption() {
+    const exactMatch = journeyEventOptions.find(
+      (option) =>
+        option.category === journeyForm.category && option.eventType === journeyForm.eventType
+    )
+
+    if (exactMatch) return exactMatch
+
+    return journeyEventOptions.find((option) => option.category === journeyForm.category) || null
+  }
+
+  function isJourneyOptionActive(option: JourneyEventOption) {
+    return selectedJourneyOption.value?.id === option.id
+  }
+
+  function selectJourneyOption(option: JourneyEventOption) {
+    journeyForm.category = option.category
+    journeyForm.eventType = option.eventType
+  }
+
+  function applyTimePreset(presetId: 'now' | 'earlier-today' | 'yesterday' | 'custom') {
+    selectedTimePreset.value = presetId
+
+    if (presetId === 'custom') return
+
+    const localToday = getUserLocalDate()
+    const now = new Date()
+    let nextDate = now
+
+    if (presetId === 'earlier-today') {
+      nextDate = setLocalDateTime(localToday, 8, 0)
+    } else if (presetId === 'yesterday') {
+      const yesterday = new Date(localToday)
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+      nextDate = setLocalDateTime(yesterday, 9, 0)
+    }
+
+    journeyForm.timestamp = toLocalDateTimeValue(nextDate.toISOString())
   }
 
   async function handleSave() {
