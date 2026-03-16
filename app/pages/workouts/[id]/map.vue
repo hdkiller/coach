@@ -25,11 +25,7 @@
               }}</span>
               <span class="text-xs font-bold">{{ formatDatePrimary(workout.date) }}</span>
             </div>
-            <UiDataAttribution
-              :provider="workout.source"
-              :device-name="workout.deviceName"
-              :fallback-label="getWorkoutSourceLabel(workout)"
-            />
+            <UiDataAttribution :provider="workout.source" :device-name="workout.deviceName" />
           </div>
         </template>
       </UDashboardNavbar>
