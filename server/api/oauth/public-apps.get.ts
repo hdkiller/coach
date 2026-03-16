@@ -17,6 +17,7 @@ defineRouteMeta({
                 properties: {
                   id: { type: 'string' },
                   name: { type: 'string' },
+                  sourceName: { type: 'string', nullable: true },
                   description: { type: 'string', nullable: true },
                   logoUrl: { type: 'string', nullable: true },
                   homepageUrl: { type: 'string', nullable: true }
@@ -36,6 +37,7 @@ export default defineEventHandler(async () => {
     select: {
       id: true,
       name: true,
+      sourceName: true,
       description: true,
       logoUrl: true,
       homepageUrl: true,

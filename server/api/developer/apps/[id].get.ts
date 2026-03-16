@@ -16,6 +16,7 @@ defineRouteMeta({
               properties: {
                 id: { type: 'string' },
                 name: { type: 'string' },
+                sourceName: { type: 'string', nullable: true },
                 description: { type: 'string', nullable: true },
                 homepageUrl: { type: 'string', nullable: true },
                 logoUrl: { type: 'string', nullable: true },

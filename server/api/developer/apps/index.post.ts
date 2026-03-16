@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 const createAppSchema = z.object({
   name: z.string().min(3).max(50),
+  sourceName: z.string().min(1).max(30).optional().or(z.literal('')),
   description: z.string().max(500).optional(),
   homepageUrl: z.string().url().optional().or(z.literal('')),
   redirectUris: z.array(z.string().url()).min(1).max(10)
@@ -24,6 +25,7 @@ defineRouteMeta({
             required: ['name', 'redirectUris'],
             properties: {
               name: { type: 'string', minLength: 3, maxLength: 50 },
+              sourceName: { type: 'string', minLength: 1, maxLength: 30 },
               description: { type: 'string', maxLength: 500 },
               homepageUrl: { type: 'string', format: 'uri' },
               redirectUris: { type: 'array', items: { type: 'string', format: 'uri' }, minItems: 1 }
@@ -63,6 +65,7 @@ export default defineEventHandler(async (event) => {
 
   const app = await oauthRepository.createApp(userId, {
     name: validatedData.name,
+    sourceName: validatedData.sourceName || undefined,
     description: validatedData.description,
     homepageUrl: validatedData.homepageUrl || undefined,
     redirectUris: validatedData.redirectUris
