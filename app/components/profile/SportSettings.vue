@@ -260,6 +260,7 @@
                           :items="LOAD_PREFERENCES"
                           size="xs"
                           class="w-full"
+                          @update:model-value="syncTargetingPolicy(editForm, 'loadPreference')"
                         />
                       </UFormField>
                     </template>
@@ -289,6 +290,7 @@
                             :items="TARGET_METRICS"
                             size="xs"
                             class="w-full"
+                            @update:model-value="syncTargetingPolicy(editForm, 'primaryMetric')"
                           />
                         </UFormField>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1348,6 +1350,7 @@
                       v-model="addForm.targetPolicy.primaryMetric"
                       :items="TARGET_METRICS"
                       class="w-full"
+                      @update:model-value="syncTargetingPolicy(addForm, 'primaryMetric')"
                     />
                   </UFormField>
                   <UFormField
@@ -1441,6 +1444,7 @@
                       v-model="addForm.loadPreference"
                       :items="LOAD_PREFERENCES"
                       class="w-full"
+                      @update:model-value="syncTargetingPolicy(addForm, 'loadPreference')"
                     />
                   </UFormField>
                   <UFormField
@@ -2113,6 +2117,51 @@
     if (first === 'PACE') return 'pace'
     if (first === 'RPE') return 'rpe'
     return 'power'
+  }
+
+  function metricToLoadPreferenceToken(metric?: string): string {
+    if (metric === 'heartRate') return 'HR'
+    if (metric === 'pace') return 'PACE'
+    if (metric === 'rpe') return 'RPE'
+    return 'POWER'
+  }
+
+  function movePrimaryMetricToFront(
+    loadPreference: string | undefined,
+    primaryMetric?: string
+  ): string {
+    const preferred = metricToLoadPreferenceToken(primaryMetric)
+    const tokens = String(loadPreference || 'POWER_HR_PACE')
+      .split('_')
+      .map((token) => token.trim().toUpperCase())
+      .filter((token) => ['POWER', 'HR', 'PACE', 'RPE'].includes(token))
+
+    const ordered: string[] = [preferred]
+    for (const token of tokens) {
+      if (!ordered.includes(token)) ordered.push(token)
+    }
+    for (const token of ['POWER', 'HR', 'PACE']) {
+      if (!ordered.includes(token)) ordered.push(token)
+    }
+
+    return ordered.join('_')
+  }
+
+  function syncTargetingPolicy(form: any, changed: 'loadPreference' | 'primaryMetric') {
+    if (!form) return
+    if (!form.targetPolicy || typeof form.targetPolicy !== 'object') {
+      form.targetPolicy = {}
+    }
+
+    if (changed === 'loadPreference') {
+      form.targetPolicy.primaryMetric = derivePrimaryMetric(form.loadPreference)
+      return
+    }
+
+    form.loadPreference = movePrimaryMetricToFront(
+      form.loadPreference,
+      form.targetPolicy.primaryMetric
+    )
   }
 
   function formatMetricTarget(metric?: string): string {
