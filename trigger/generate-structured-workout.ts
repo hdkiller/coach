@@ -27,6 +27,7 @@ import {
   buildStructurePublishFields
 } from '../server/utils/planned-workout-structure-sync'
 import { publishActivityEvent } from '../server/utils/activity-realtime'
+import { normalizeSwimStructure } from '../server/utils/swim-structure'
 
 const workoutStructureSchema = {
   type: 'object',
@@ -954,6 +955,10 @@ export const generateStructuredWorkoutTask = task({
           attempt
         })
         throw aiError
+      }
+
+      if (workout.type === 'Swim') {
+        normalizeSwimStructure(structure)
       }
 
       totals = normalizeAndCalculate(structure.steps || [])
