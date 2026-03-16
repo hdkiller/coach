@@ -195,6 +195,35 @@
       </div>
     </UCard>
 
+    <!-- Data Portability -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-heroicons-arrow-down-tray" class="w-5 h-5 text-primary" />
+          <h2 class="text-xl font-semibold">Data Portability</h2>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-medium mb-1">Export My Data</h3>
+          <p class="text-sm text-muted mb-3">
+            Download your entire data universe, including workouts, health metrics, and chat
+            history, in a standardized JSON format.
+          </p>
+          <UButton
+            color="primary"
+            variant="soft"
+            icon="i-heroicons-arrow-down-tray"
+            :loading="exportingData"
+            @click="executeExportData"
+          >
+            Export My Data (.json)
+          </UButton>
+        </div>
+      </div>
+    </UCard>
+
     <!-- Clear Schedule Confirmation Modal -->
     <UModal
       v-model:open="isClearScheduleModalOpen"
@@ -454,6 +483,7 @@
   const wipingWellness = ref(false)
   const wipingNutrition = ref(false)
   const deletingAccount = ref(false)
+  const exportingData = ref(false)
   const isClearScheduleModalOpen = ref(false)
   const isClearPastScheduleModalOpen = ref(false)
   const isClearOrphanedScheduleModalOpen = ref(false)
@@ -463,6 +493,7 @@
   const isWipeWellnessModalOpen = ref(false)
   const isWipeNutritionModalOpen = ref(false)
   const isDeleteAccountModalOpen = ref(false)
+
   const impersonationMeta = useCookie<{
     adminId: string
     adminEmail: string
@@ -496,6 +527,33 @@
     }
 
     isDeleteAccountModalOpen.value = true
+  }
+
+  async function executeExportData() {
+    exportingData.value = true
+    try {
+      // Direct window.open for downloading file with headers set by server
+      window.location.href = '/api/profile/export'
+
+      toast.add({
+        title: 'Export Started',
+        description: 'Your data universe is being bundled for download.',
+        color: 'success'
+      })
+    } catch (error) {
+      console.error('Failed to export data', error)
+      toast.add({
+        title: 'Action Failed',
+        description: 'Could not export your data universe.',
+        color: 'error'
+      })
+    } finally {
+      // Since it's a direct download, we can't easily know when it finished,
+      // but the UI stays responsive anyway.
+      setTimeout(() => {
+        exportingData.value = false
+      }, 1000)
+    }
   }
 
   async function executeClearSchedule() {
