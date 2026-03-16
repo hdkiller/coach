@@ -1,3 +1,59 @@
+Hey Coach Watts athletes and coaches! 👋
+
+We're thrilled to announce the latest update, **v0.5.23**, packed with powerful new features and significant improvements designed to make your training even smarter, more personalized, and easier to manage! We've been working hard behind the scenes, and you'll notice big changes, especially around understanding your recovery and fine-tuning your workouts.
+
+Here's what's new and improved:
+
+### 🧘‍♀️ **Deeper Recovery & Wellness Insights**
+
+This release brings a whole new level of understanding to your recovery!
+
+- **Personalized Recovery Context:** Your dashboards now show integrated recovery insights, helping you understand how ready you are for your next session. We've added a dedicated **Recovery History page** so you can track your trends over time.
+- **Smarter AI Analysis:** Our AI now considers your wellness events (like stress, sleep, and mood) in its analysis and recommendations, leading to advice that's even more tailored to _you_.
+- **Enhanced Wellness Tracking:** We've improved how we track and display key metrics like stress score, sleep hours, and SpO2 (blood oxygen saturation) from connected devices.
+- **Ultrahuman & Fitbit Integration:** Connect your Ultrahuman and Fitbit devices to seamlessly bring sleep, HRV, HR, and other wellness data into Coach Watts, fueling more accurate recovery and readiness assessments!
+
+### 💪 **Smarter Training & Workout Control**
+
+Get more precise feedback and more power to customize your training.
+
+- **Detailed Workout Analysis (v2):** Dive deeper into your performance with enhanced analysis facts, including **cadence adherence tracking**, to help you hit your targets more accurately.
+- **Flexible Workout Editing:** Our new **workout steps editor** allows you to manually adjust your planned workouts with ease, making it simpler to adapt to your needs.
+- **Improved Swim Workouts:** Better parsing and generation for swim workouts mean more accurate planning and analysis for swimmers.
+- **Sport-Specific Metrics:** Configure and display sport-specific metrics like FTP and pace thresholds, along with enhanced **pace zone visualization** for clearer guidance.
+- **Planned Workout Snapshots:** Review previews and raw data of your planned workouts for complete transparency.
+
+### 🧠 **Your AI Coach, Supercharged!**
+
+Your AI coaching experience is now more reliable, intuitive, and helpful.
+
+- **Real-time & Reliable Chat:** We've significantly improved the chat experience with **real-time updates**, better error recovery, and smarter handling of complex conversations.
+- **Smarter Recommendations:** The AI can now provide more precise recommendations, especially for training week updates and fueling plans.
+- **Better Meal Management:** Easily adjust your nutrition items and portions directly through the chat, with improved integration for services like Yazio.
+
+### ✨ **A More Beautiful & Intuitive Experience**
+
+We've given many parts of the app a fresh look and feel!
+
+- **Redesigned Dashboards & Details:** Enjoy a visually stunning **"high-impact HUD" aesthetic** on your workout detail pages and activity cards, making your data more engaging and easier to digest, on both desktop and mobile.
+- **New Activity Feed:** See your latest activities and updates in a dynamic, real-time feed.
+- **Awesome Workout Sharing:** Show off your achievements with new, multi-style workout image generation and easy sharing options, including QR codes! 📸
+- **Improved Mobile Responsiveness:** A smoother, more fluid experience across all your devices.
+- **Data Export:** You now have a dedicated button in settings to export all your user data, giving you full control.
+- **Unified Source Labels:** See clear attribution for where your activities and workouts originate (e.g., Strava, Intervals.icu, Garmin).
+- **New Integrations Settings:** Easily manage your connections, including new Strava OAuth for easier login and data syncing preferences.
+
+### 🌐 **More Languages, More Access!**
+
+- **New Interface Languages:** We've added **Spanish, Russian, Japanese, and Chinese** to our growing list of supported languages, along with extensive updates to our existing translations (French, German, Dutch, Italian, Hungarian). You can now choose your preferred interface language in settings!
+
+And as always, many **under-the-hood performance enhancements and bug fixes** ensure Coach Watts runs smoothly and reliably for all your training needs.
+
+We hope you love these updates! We're always striving to provide you with the best possible coaching experience. If you have any questions or feedback, don't hesitate to reach out!
+
+Happy cycling! 🚴‍♀️
+The Coach Watts Team
+
 Hey Coach Watts Athletes and Coaches! 👋
 
 Get ready to supercharge your training! We're thrilled to announce the release of **v0.5.22**, packed with exciting new features and significant improvements to make your coaching experience even more powerful and personal.
