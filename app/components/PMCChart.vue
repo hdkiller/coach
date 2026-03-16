@@ -359,7 +359,7 @@
         $fetch('/api/performance/pmc', {
           query: { days: String(days) }
         }),
-        $fetch('/api/wellness/events', {
+        $fetch('/api/recovery-context', {
           query: { days: String(days) }
         })
       ])
@@ -492,7 +492,7 @@
             const pointDate = chartData.value?.dates?.[items[0]?.dataIndex]
             const events = getWellnessEventsForDate(wellnessEvents.value, pointDate)
             if (!events.length) return ''
-            return `Wellness: ${events.map((event) => event.label).join(', ')}`
+            return `Recovery Context: ${events.map((event) => event.label).join(', ')}`
           }
         }
       },

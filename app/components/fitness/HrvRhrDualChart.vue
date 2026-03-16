@@ -396,7 +396,9 @@
             const pointDate = chartWellnessData.value[dataIndex]?.date
             const overlayEvents = getWellnessEventsForDate(props.wellnessEvents || [], pointDate)
             if (overlayEvents.length > 0) {
-              lines.push(`Wellness: ${overlayEvents.map((event) => event.label).join(', ')}`)
+              lines.push(
+                `Recovery Context: ${overlayEvents.map((event) => event.label).join(', ')}`
+              )
             }
 
             // 2. Recovery Insight
