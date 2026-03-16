@@ -6,6 +6,7 @@ import { userReportsQueue } from './queues'
 import { queueWorkoutInsightEmail } from '../server/utils/workout-insight-email'
 import { formatStructuredPlanForPrompt } from './utils/planned-workout-targets'
 import {
+  buildWorkoutAnalysisFactsV2,
   formatActualIntervalsForPrompt,
   getActualIntervalsSourceForAnalysis
 } from '../server/utils/workout-analysis-facts'
@@ -17,6 +18,7 @@ const adherenceSchema = {
     intensityScore: { type: 'integer', description: '0-100 score for intensity adherence' },
     durationScore: { type: 'integer', description: '0-100 score for duration adherence' },
     executionScore: { type: 'integer', description: '0-100 score for structured execution' },
+    cadenceScore: { type: 'integer', description: '0-100 score for cadence adherence' },
     summary: { type: 'string', description: 'Executive summary of adherence' },
     deviations: {
       type: 'array',
@@ -45,6 +47,13 @@ export function buildPlanAdherencePrompt(workout: any, plan: any): string {
   })
   const actualIntervals = formatActualIntervalsForPrompt(workout, plan)
   const actualIntervalsSource = getActualIntervalsSourceForAnalysis(workout, plan)
+  const adherenceFacts = buildWorkoutAnalysisFactsV2({
+    workout,
+    plannedWorkout: plan,
+    userProfile: {
+      language: workout.user?.language || null
+    }
+  }).adherence
   const actualIntervalsSourceLabel =
     actualIntervalsSource === 'detected'
       ? 'stream-detected intervals (fallback because synced interval blocks were missing or weak)'
@@ -76,6 +85,16 @@ export function buildPlanAdherencePrompt(workout: any, plan: any): string {
       ACTUAL INTERVALS:
       - Source: ${actualIntervalsSourceLabel}
       ${actualIntervals}
+
+      DETECTED ADHERENCE FACTS:
+      - Completion vs Plan: ${adherenceFacts.completionPct ?? 'N/A'}%
+      - Duration vs Plan: ${adherenceFacts.durationVsPlanPct ?? 'N/A'}%
+      - Work Interval Hit Rate: ${adherenceFacts.workIntervalHitRate ?? 'N/A'}%
+      - Recovery Hit Rate: ${adherenceFacts.recoveryHitRate ?? 'N/A'}%
+      - Cadence Hit Rate: ${adherenceFacts.cadenceHitRate ?? 'N/A'}%
+      - Cadence Assessable: ${adherenceFacts.cadenceAssessable ? 'Yes' : 'No'}
+      - Structure Matched: ${adherenceFacts.structureMatched ? 'Yes' : 'No'}
+      - Execution Classification: ${adherenceFacts.executionClassification}
       
       USER CONTEXT:
       - FTP: ${workout.user.ftp || 'N/A'}W
@@ -88,7 +107,10 @@ export function buildPlanAdherencePrompt(workout: any, plan: any): string {
       4. Compare the "Structured Plan" steps against the "ACTUAL INTERVALS". Did they do the intervals?
       5. For planned intensity, trust numeric structured values (power/hr/pace) as source of truth. Do NOT infer targets from step names/titles.
       6. If actual intervals come from stream-detected fallback, treat them as the best available execution evidence rather than assuming the workout was unstructured.
-      7. "impact" should describe how the deviation affects the training stimulus (e.g. "Reduced aerobic benefit", "Excessive fatigue risk").
+      7. Cadence adherence is a first-class scoring dimension when cadence is prescribed. Score cadence directly using the detected cadence facts and actual interval cadence values, not the whole-workout average cadence alone.
+      8. For steady cadence targets, treat +/- 5 rpm as on-target. For warmup/cooldown ramps, use a looser judgement based on average cadence and trend consistency.
+      9. Weight the final adherence score approximately as: duration 25%, intensity 30%, execution 25%, cadence 20% when cadence is prescribed.
+      10. "impact" should describe how the deviation affects the training stimulus (e.g. "Reduced aerobic benefit", "Excessive fatigue risk").
       
       OUTPUT JSON matching the schema.`
 }
@@ -147,6 +169,7 @@ export const analyzePlanAdherenceTask = task({
           intensityScore: analysis.intensityScore,
           durationScore: analysis.durationScore,
           executionScore: analysis.executionScore,
+          cadenceScore: analysis.cadenceScore,
           summary: analysis.summary,
           deviations: analysis.deviations,
           recommendations: analysis.recommendations,

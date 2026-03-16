@@ -705,6 +705,10 @@ export const adjustStructuredWorkoutTask = task({
     })
     const targetPolicyPrompt = formatTargetPolicyPrompt(targetPolicy, loadPreference)
     const targetFormatPolicyPrompt = formatTargetFormatPolicyPrompt(targetFormatPolicy)
+    const steadyTargetStyleRule =
+      targetPolicy.defaultTargetStyle === 'value'
+        ? 'Prefer single-value targets for steady aerobic/endurance/tempo blocks. Use ranges only when the workout explicitly asks for a range or ramp.'
+        : 'Prefer metric ranges for steady aerobic/endurance/tempo blocks.'
     const workoutType = String(workout.type || '').toLowerCase()
     const isCycling = workoutType.includes('ride')
     const isRun = workoutType.includes('run')
@@ -724,7 +728,7 @@ export const adjustStructuredWorkoutTask = task({
     - Target selection MUST follow TARGET POLICY priority order: ${priorityText}.
     - Use \`heartRate.units\` = "LTHR" for percentage HR targets and \`pace.units\` = "Pace" for percentage pace targets.
     - ${targetPolicy.allowMixedTargetsPerStep ? 'Mixed metrics in one step are allowed, but primaryTarget still must follow policy.' : 'Use one intensity metric per step unless user feedback explicitly asks for mixed cues.'}
-    - ${targetPolicy.defaultTargetStyle === 'range' || targetPolicy.preferRangesForSteady ? 'Prefer metric ranges for steady aerobic/endurance/tempo blocks.' : 'Single-value targets are acceptable for steady blocks unless range is explicitly requested.'}
+    - ${steadyTargetStyleRule}
     - If user specifies "Zone 2", refer to the provided zones before using generic percentages.
     - Do not stack maximal efforts without sufficient recovery.`
         : isSwim

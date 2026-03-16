@@ -124,6 +124,22 @@ function extractTarget(step: AnyRecord, ftp?: number | null): string {
   )
 }
 
+function extractCadence(step: AnyRecord): string | null {
+  const explicit = toNumber(step.cadence)
+  if (explicit !== null && explicit > 0) return `${Math.round(explicit)}rpm`
+
+  const cadenceValue = toNumber(step.cadence?.value)
+  if (cadenceValue !== null && cadenceValue > 0) return `${Math.round(cadenceValue)}rpm`
+
+  const start = toNumber(step.cadenceRange?.start ?? step.cadence?.start)
+  const end = toNumber(step.cadenceRange?.end ?? step.cadence?.end)
+  if (start !== null && end !== null && start > 0 && end > 0) {
+    return `${Math.round(start)}-${Math.round(end)}rpm`
+  }
+
+  return null
+}
+
 function stepDurationSeconds(step: AnyRecord): number | null {
   return (
     toNumber(step.durationSeconds) ??
@@ -186,7 +202,8 @@ export function formatStructuredPlanForPrompt(
       const duration = formatDuration(stepDurationSeconds(step))
       const type = step.type || 'Interval'
       const target = extractTarget(step, options.ftp)
-      return `${indent}Step ${index + 1} [${type}]: ${duration} @ ${target}`
+      const cadence = extractCadence(step)
+      return `${indent}Step ${index + 1} [${type}]: ${duration} @ ${target}${cadence ? ` | cadence ${cadence}` : ''}`
     })
     .join('\n')
 }

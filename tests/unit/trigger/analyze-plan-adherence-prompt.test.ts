@@ -27,7 +27,16 @@ describe('buildPlanAdherencePrompt', () => {
             ...Array.from({ length: 480 }, () => 153),
             ...Array.from({ length: 729 }, () => 89)
           ],
-          heartrate: Array.from({ length: 3609 }, () => 126)
+          heartrate: Array.from({ length: 3609 }, () => 126),
+          cadence: [
+            ...Array.from({ length: 1200 }, () => 90),
+            ...Array.from({ length: 480 }, () => 92),
+            ...Array.from({ length: 120 }, () => 80),
+            ...Array.from({ length: 480 }, () => 92),
+            ...Array.from({ length: 120 }, () => 80),
+            ...Array.from({ length: 480 }, () => 92),
+            ...Array.from({ length: 729 }, () => 75)
+          ]
         },
         rawJson: {}
       },
@@ -40,7 +49,8 @@ describe('buildPlanAdherencePrompt', () => {
             {
               type: 'Warmup',
               duration: 1200,
-              power: { range: { start: 0.5, end: 0.7 }, unit: 'percentFtp' }
+              power: { range: { start: 0.5, end: 0.7 }, unit: 'percentFtp' },
+              cadence: 90
             },
             {
               reps: 3,
@@ -48,19 +58,23 @@ describe('buildPlanAdherencePrompt', () => {
                 {
                   type: 'Active',
                   duration: 480,
-                  power: { value: 0.72, unit: 'percentFtp' }
+                  power: { value: 0.72, unit: 'percentFtp' },
+                  cadence: 92
                 },
                 {
                   type: 'Rest',
                   duration: 120,
-                  power: { value: 0.52, unit: 'percentFtp' }
+                  power: { value: 0.52, unit: 'percentFtp' },
+                  cadence: 80
                 }
               ]
             },
             {
               type: 'Cooldown',
               duration: 600,
-              power: { range: { start: 0.5, end: 0.3 }, unit: 'percentFtp' }
+              power: { range: { start: 0.5, end: 0.3 }, unit: 'percentFtp' },
+              cadence: 75,
+              ramp: true
             }
           ]
         }
@@ -72,6 +86,9 @@ describe('buildPlanAdherencePrompt', () => {
     )
     expect(prompt).toContain('Int 2:')
     expect(prompt).toContain('| WORK | 153W |')
+    expect(prompt).toContain('cadence 92rpm')
+    expect(prompt).toContain('| 92rpm |')
+    expect(prompt).toContain('Cadence Hit Rate:')
     expect(prompt).not.toContain('ACTUAL INTERVALS:\n      - Source: none\n      N/A')
     expect(prompt).toContain(
       'If actual intervals come from stream-detected fallback, treat them as the best available execution evidence'

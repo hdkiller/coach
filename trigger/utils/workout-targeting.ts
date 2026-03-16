@@ -1,4 +1,5 @@
 import {
+  formatSteadyTargetStyleInstruction,
   normalizeTargetPolicy,
   toLegacyLoadPreference,
   type MetricTarget,
@@ -377,10 +378,7 @@ export function resolveWorkoutTargeting(
 export function formatTargetPolicyPrompt(targetPolicy: TargetPolicy, loadPreference: string) {
   const fallbackOrder = targetPolicy.fallbackOrder.map(metricLabel).join(' > ')
   const primaryMetric = metricLabel(targetPolicy.primaryMetric)
-  const steadyRangeRule =
-    targetPolicy.defaultTargetStyle === 'range' || targetPolicy.preferRangesForSteady
-      ? 'For steady aerobic/tempo blocks, prefer ranges over single values.'
-      : 'Single-value targets are allowed for steady blocks unless the workout explicitly asks for ranges.'
+  const steadyRangeRule = formatSteadyTargetStyleInstruction(targetPolicy)
 
   return `- **TARGET POLICY (source: sport settings)**:
   - Legacy order: ${loadPreference}
