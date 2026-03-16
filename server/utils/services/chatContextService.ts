@@ -201,7 +201,9 @@ export async function buildAthleteContext(
       soreness: true,
       stress: true,
       mood: true,
-      injury: true
+      injury: true,
+      tags: true,
+      comments: true
     }
   })
 
@@ -569,6 +571,8 @@ export async function buildAthleteContext(
       }
       if (wellness.injury)
         metrics.push(`Injury: ${wellness.injury} (${getInjuryLabel(wellness.injury)})`)
+      if (wellness.tags) metrics.push(`Tags: ${wellness.tags}`)
+      if (wellness.comments) metrics.push(`Notes: ${wellness.comments}`)
 
       // Only include dates that have actual data
       if (metrics.length > 0) {

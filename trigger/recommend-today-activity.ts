@@ -31,6 +31,11 @@ import {
   getInjuryLabel,
   evaluateFitbitRecoveryAlert
 } from '../server/utils/wellness'
+import {
+  formatWellnessEventsForPrompt,
+  getActiveWellnessEventsForDate,
+  getWellnessEventOverlaysForUser
+} from '../server/utils/services/wellnessEventService'
 
 interface RecommendationAnalysis {
   recommendation: 'proceed' | 'modify' | 'reduce_intensity' | 'rest'
@@ -244,7 +249,8 @@ export const recommendTodayActivityTask = task({
       todayAvailability,
       weeklyAvailability,
       recentWellness,
-      mealTargetContext
+      mealTargetContext,
+      wellnessEvents
     ] = await Promise.all([
       // Today's planned workouts (Fetch ALL to handle multi-session days)
       prisma.plannedWorkout.findMany({
@@ -397,7 +403,12 @@ export const recommendTodayActivityTask = task({
       // Canonical metabolic meal target context (same engine as nutrition charts)
       nutritionEnabled
         ? metabolicService.getMealTargetContext(userId, today, new Date())
-        : Promise.resolve(null)
+        : Promise.resolve(null),
+
+      getWellnessEventOverlaysForUser(userId, {
+        startDate: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000),
+        endDate: today
+      })
     ])
     const activeGoals = filterGoalsForContext(rawActiveGoals, userTimezone, today)
 
@@ -686,6 +697,19 @@ FITBIT RECOVERY ALERT CHECK:
 - ${fitbitRecoveryAlert.summary}
 `
 
+    const activeWellnessEvents = getActiveWellnessEventsForDate(wellnessEvents, today)
+    const activeWellnessEventsContext =
+      activeWellnessEvents.length > 0
+        ? activeWellnessEvents
+            .map((event) => `${event.label}${event.description ? ` (${event.description})` : ''}`)
+            .join(', ')
+        : 'None'
+    const wellnessEventsContext = formatWellnessEventsForPrompt(
+      wellnessEvents,
+      userTimezone,
+      'WELLNESS EVENT CONTEXT (Last 14 Days)'
+    )
+
     const missingSubjectiveMetrics = enrichedTodayMetric
       ? [
           enrichedTodayMetric.stress == null ? 'stress' : null,
@@ -820,11 +844,13 @@ ${enrichedTodayMetric.spO2 ? `- SpO2: ${enrichedTodayMetric.spO2}%` : ''}
   * Motivation: ${enrichedTodayMetric.motivation ? enrichedTodayMetric.motivation + '/10' : 'N/A'} (${getMotivationLabel(enrichedTodayMetric.motivation)})
   * Hydration: ${enrichedTodayMetric.hydration ?? 'N/A'} (${getHydrationLabel(enrichedTodayMetric.hydration)})
   * Injury: ${enrichedTodayMetric.injury ?? 'None'} (${getInjuryLabel(enrichedTodayMetric.injury)})
+- Active Wellness Events Today: ${activeWellnessEventsContext}
 `
     : 'No recovery data available'
 }
 
 ${wellnessAnalysisContext}
+${wellnessEventsContext}
 ${fitbitRecoveryAlertContext}
 ${subjectiveDataIntegrityContext}
 ${mealTargetContextText}
@@ -853,6 +879,7 @@ CRITICAL INSTRUCTIONS:
 5. RESPECT TRAINING AVAILABILITY: do not recommend sessions outside declared availability windows unless user feedback explicitly asks to override.
 6. If Fitbit recovery alert is triggered, bias strongly toward 'rest' or 'reduce_intensity' unless user feedback explicitly requests otherwise.
 7. Never invent subjective scores. If stress, fatigue, soreness, mood, or motivation are missing, explicitly describe them as "not reported today" instead of assigning a value.
+8. If a synced wellness event overlaps today or the recent biometrics downturn, explicitly call out that correlation in your reasoning and adjust the recommendation accordingly.
 
 ${zoneDefinitions}
 

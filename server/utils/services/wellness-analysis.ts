@@ -15,6 +15,11 @@ import {
   getInjuryLabel,
   normalizeStressScore
 } from '../wellness'
+import {
+  formatWellnessEventsForPrompt,
+  getActiveWellnessEventsForDate,
+  getWellnessEventOverlaysForUser
+} from './wellnessEventService'
 
 // Define the schema for the AI analysis
 const wellnessAnalysisSchema = {
@@ -121,18 +126,38 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
       return { success: true, skipped: true, reason: 'EMPTY_RECORD' }
     }
 
-    const [user, aiSettings] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { language: true }
-      }),
-      getUserAiSettings(userId)
-    ])
-
     // Fetch 30-day history for context
     const endDate = wellness.date
     const startDate = new Date(wellness.date)
     startDate.setDate(startDate.getDate() - 30)
+
+    const eventContextStartDate = new Date(wellness.date)
+    eventContextStartDate.setUTCDate(eventContextStartDate.getUTCDate() - 14)
+
+    const [user, aiSettings, wellnessEvents] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { language: true }
+      }),
+      getUserAiSettings(userId),
+      getWellnessEventOverlaysForUser(userId, {
+        startDate: eventContextStartDate,
+        endDate
+      })
+    ])
+
+    const activeWellnessEvents = getActiveWellnessEventsForDate(wellnessEvents, wellness.date)
+    const activeWellnessEventsContext =
+      activeWellnessEvents.length > 0
+        ? activeWellnessEvents
+            .map((event) => `${event.label}${event.description ? ` (${event.description})` : ''}`)
+            .join(', ')
+        : 'None'
+    const wellnessEventsContext = formatWellnessEventsForPrompt(
+      wellnessEvents,
+      timezone,
+      'WELLNESS EVENT CONTEXT (Last 14 Days)'
+    )
 
     const history = await wellnessRepository.getForUser(userId, {
       startDate,
@@ -261,9 +286,14 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
               - Vitals: SpO2 ${wellness.spO2}%, Weight ${wellness.weight}kg
 
         ${sleepDetails}
+
+        ACTIVE WELLNESS EVENTS TODAY:
+        - ${activeWellnessEventsContext}
     
     ADVANCED CONTEXT:
     ${advancedContext}
+
+    ${wellnessEventsContext}
     
     RECENT DAILY HISTORY (Last 5 Days):
     ${recentHistory}
@@ -281,6 +311,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
     4. Note any subjective factors (stress, soreness) that might impact performance.
     5. Treat any metric shown as "N/A" as missing data, not a low or high score.
     6. Do not infer, estimate, or invent subjective scores when they are missing. If stress is "N/A", say it was not reported today.
+    7. If a wellness event such as sickness, injury, travel, alcohol, or another synced context marker overlaps this date, explicitly connect it to any abnormal HRV, RHR, sleep, or readiness changes instead of treating those changes as random.
 
     Output JSON format matching the schema.
   `
