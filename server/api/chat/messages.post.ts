@@ -88,6 +88,9 @@ export default defineEventHandler(async (event) => {
         : []
     return parts.some((part: any) => part?.type === 'tool-approval-response')
   })
+  const isLastToolApprovalResponse =
+    lastMessage?.role === 'tool' &&
+    messageParts.some((part: any) => part?.type === 'tool-approval-response')
 
   const isAssistantApprovalContinuation =
     lastMessage?.role === 'assistant' &&
@@ -96,8 +99,20 @@ export default defineEventHandler(async (event) => {
       (part: any) => part?.type?.startsWith('tool-') && part?.state === 'approval-responded'
     )
 
+  const isReplayToolMessage = lastMessage?.role === 'tool' && !isLastToolApprovalResponse
   const isToolContinuationTurn =
-    lastMessage?.role === 'tool' || hasToolApprovalResponse || isAssistantApprovalContinuation
+    isLastToolApprovalResponse || hasToolApprovalResponse || isAssistantApprovalContinuation
+
+  // The backend already executes tool steps within the active chat turn.
+  // If the SDK replays a persisted tool-result message back to this endpoint,
+  // creating a new turn here causes self-triggered continuation loops.
+  if (isReplayToolMessage) {
+    const stream = createUIMessageStream({
+      execute: () => {}
+    })
+
+    return createUIMessageStreamResponse({ stream })
+  }
 
   if (!roomId || (!content && attachedFiles.length === 0 && !isToolContinuationTurn)) {
     throw createError({ statusCode: 400, message: 'Room ID and content required' })
@@ -129,7 +144,9 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const shouldPersistIncomingMessage = !!lastMessage && ['user', 'tool'].includes(lastMessage.role)
+  const shouldPersistIncomingMessage =
+    !!lastMessage &&
+    (lastMessage.role === 'user' || (lastMessage.role === 'tool' && isLastToolApprovalResponse))
   let persistedMessage = existingMessage
 
   if (shouldPersistIncomingMessage && !existingMessage) {
