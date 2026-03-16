@@ -33,7 +33,12 @@ describe('sportSettingsRepository', () => {
 
       const result = await sportSettingsRepository.getByUserId(userId)
 
-      expect(result).toEqual(mockSettings)
+      expect(result[0]).toMatchObject({
+        isDefault: true,
+        id: 's-1',
+        ftp: 250,
+        loadPreference: 'POWER_HR_PACE'
+      })
       expect(prisma.user.findUnique).not.toHaveBeenCalled()
     })
 
@@ -133,6 +138,46 @@ describe('sportSettingsRepository', () => {
 
       expect(prisma.sportSettings.update).toHaveBeenCalled()
       expect(prisma.user.update).not.toHaveBeenCalled()
+    })
+
+    it('preserves explicit value target style in normalized responses', async () => {
+      const settingsPayload = [
+        {
+          id: 's-ride',
+          isDefault: false,
+          types: ['Ride'],
+          targetPolicy: {
+            primaryMetric: 'power',
+            defaultTargetStyle: 'value',
+            preferRangesForSteady: true
+          }
+        }
+      ]
+
+      vi.mocked(prisma.sportSettings.findUnique).mockResolvedValue({
+        id: 's-ride',
+        isDefault: false
+      } as any)
+      vi.mocked(prisma.sportSettings.update).mockResolvedValue({
+        id: 's-ride',
+        isDefault: false,
+        types: ['Ride'],
+        loadPreference: 'POWER_HR_PACE',
+        targetPolicy: {
+          primaryMetric: 'power',
+          defaultTargetStyle: 'value',
+          preferRangesForSteady: true
+        }
+      } as any)
+
+      const result = await sportSettingsRepository.upsertSettings(userId, settingsPayload)
+
+      expect(result[0]?.targetPolicy).toMatchObject({
+        primaryMetric: 'power',
+        defaultTargetStyle: 'value',
+        preferRangesForSteady: true
+      })
+      expect(result[0]?.loadPreference).toBe('POWER_HR_PACE')
     })
   })
 })

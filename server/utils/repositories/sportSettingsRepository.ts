@@ -9,6 +9,18 @@ function resolveTargetPolicyAndLoadPreference(setting: any) {
   return { targetPolicy, loadPreference, targetFormatPolicy }
 }
 
+function normalizePersistedSetting(setting: any) {
+  if (!setting) return setting
+  const { targetPolicy, loadPreference, targetFormatPolicy } =
+    resolveTargetPolicyAndLoadPreference(setting)
+  return {
+    ...setting,
+    targetPolicy,
+    loadPreference,
+    targetFormatPolicy
+  }
+}
+
 export const sportSettingsRepository = {
   /**
    * Get all sport settings for a user, ensuring a Default profile exists.
@@ -19,9 +31,10 @@ export const sportSettingsRepository = {
       where: { userId },
       orderBy: { isDefault: 'desc' } // Default first
     })
+    const normalizedSettings = settings.map(normalizePersistedSetting)
 
     // Lazy create Default if missing
-    if (!settings.some((s: any) => s.isDefault)) {
+    if (!normalizedSettings.some((s: any) => s.isDefault)) {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -34,11 +47,11 @@ export const sportSettingsRepository = {
 
       if (user) {
         const defaultProfile = await this.createDefault(userId, user, prisma)
-        settings.unshift(defaultProfile)
+        normalizedSettings.unshift(defaultProfile)
       }
     }
 
-    return settings
+    return normalizedSettings
   },
 
   /**
@@ -58,28 +71,30 @@ export const sportSettingsRepository = {
       resolveTargetPolicyAndLoadPreference({
         loadPreference: 'POWER_HR_PACE'
       })
-    return await prisma.sportSettings.create({
-      data: {
-        userId,
-        name: 'Default',
-        isDefault: true,
-        types: [],
-        source: 'system',
-        externalId: `default_${userId}`,
-        ftp: legacyProfile.ftp,
-        lthr: legacyProfile.lthr,
-        maxHr: legacyProfile.maxHr,
-        restingHr: legacyProfile.restingHr,
-        hrZones: [], // Clean slate
-        powerZones: [], // Clean slate
-        paceZones: [],
-        warmupTime: 10,
-        cooldownTime: 10,
-        loadPreference,
-        targetPolicy,
-        targetFormatPolicy
-      }
-    })
+    return await prisma.sportSettings
+      .create({
+        data: {
+          userId,
+          name: 'Default',
+          isDefault: true,
+          types: [],
+          source: 'system',
+          externalId: `default_${userId}`,
+          ftp: legacyProfile.ftp,
+          lthr: legacyProfile.lthr,
+          maxHr: legacyProfile.maxHr,
+          restingHr: legacyProfile.restingHr,
+          hrZones: [], // Clean slate
+          powerZones: [], // Clean slate
+          paceZones: [],
+          warmupTime: 10,
+          cooldownTime: 10,
+          loadPreference,
+          targetPolicy,
+          targetFormatPolicy
+        }
+      })
+      .then(normalizePersistedSetting)
   },
 
   /**
@@ -179,7 +194,7 @@ export const sportSettingsRepository = {
             })
           }
 
-          results.push(updated)
+          results.push(normalizePersistedSetting(updated))
           continue
         }
       }
@@ -247,7 +262,7 @@ export const sportSettingsRepository = {
           })
         }
 
-        results.push(upserted)
+        results.push(normalizePersistedSetting(upserted))
         continue
       }
 
@@ -265,7 +280,7 @@ export const sportSettingsRepository = {
           externalId: setting.externalId || `manual_${Date.now()}`
         }
       })
-      results.push(created)
+      results.push(normalizePersistedSetting(created))
     }
 
     // Optional: Delete removed profiles?

@@ -71,6 +71,18 @@ export function normalizeTargetPolicy(
   }
 }
 
+export function formatSteadyTargetStyleInstruction(targetPolicy: TargetPolicy): string {
+  if (targetPolicy.defaultTargetStyle === 'value') {
+    return 'Prefer single-value targets for steady aerobic/endurance/tempo blocks. Use ranges only when the workout explicitly asks for a range or ramp.'
+  }
+
+  if (targetPolicy.preferRangesForSteady) {
+    return 'Prefer ranges for steady aerobic/endurance/tempo blocks.'
+  }
+
+  return 'Range targets are optional for steady blocks; single-value targets are acceptable unless a range is explicitly requested.'
+}
+
 export function toLegacyLoadPreference(fallbackOrder: MetricTarget[]): string {
   const exportOrder = fallbackOrder.filter((metric) => metric !== 'rpe')
   const tokens = (exportOrder.length > 0 ? exportOrder : ['heartRate']).map((metric) => {
