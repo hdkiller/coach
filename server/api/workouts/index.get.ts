@@ -14,6 +14,14 @@ defineRouteMeta({
               userId: { type: 'string' },
               externalId: { type: 'string' },
               source: { type: 'string' },
+              oauthApp: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  name: { type: 'string', nullable: true },
+                  sourceName: { type: 'string', nullable: true }
+                }
+              },
               date: { type: 'string', format: 'date-time' },
               title: { type: 'string' },
               description: { type: 'string', nullable: true },
@@ -160,6 +168,12 @@ export default defineEventHandler(async (event) => {
       intensity: true,
       overallScore: true,
       deviceName: true,
+      oauthApp: {
+        select: {
+          name: true,
+          sourceName: true
+        }
+      },
       aiAnalysisStatus: true,
       isDuplicate: true,
       summaryPolyline: true,

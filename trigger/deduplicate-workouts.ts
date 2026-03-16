@@ -63,6 +63,12 @@ export const deduplicateWorkoutsTask = task({
           },
           exercises: {
             select: { id: true }
+          },
+          oauthApp: {
+            select: {
+              name: true,
+              sourceName: true
+            }
           }
         }
       })

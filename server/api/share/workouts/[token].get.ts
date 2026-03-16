@@ -76,6 +76,12 @@ export default defineEventHandler(async (event) => {
     },
     include: {
       streams: true,
+      oauthApp: {
+        select: {
+          name: true,
+          sourceName: true
+        }
+      },
       user: {
         select: {
           name: true,

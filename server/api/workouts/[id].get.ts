@@ -63,8 +63,30 @@ export default defineEventHandler(async (event) => {
           clientId: true
         }
       },
-      duplicates: true,
-      canonicalWorkout: true,
+      duplicates: {
+        include: {
+          oauthApp: {
+            select: {
+              id: true,
+              name: true,
+              sourceName: true,
+              clientId: true
+            }
+          }
+        }
+      },
+      canonicalWorkout: {
+        include: {
+          oauthApp: {
+            select: {
+              id: true,
+              name: true,
+              sourceName: true,
+              clientId: true
+            }
+          }
+        }
+      },
       plannedWorkout: true,
       planAdherence: true,
       metricHistory: {
