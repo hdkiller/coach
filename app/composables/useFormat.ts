@@ -103,6 +103,23 @@ export const useFormat = () => {
     return formatDate(date, formatStr)
   }
 
+  const formatTime = (value: string | Date, formatStr: string = 'h:mm a') => {
+    if (!value) return ''
+    try {
+      if (typeof value === 'string') {
+        const trimmed = value.trim()
+        if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+          const normalized = trimmed.length === 5 ? `${trimmed}:00` : trimmed
+          return format(new Date(`2000-01-01T${normalized}`), formatStr)
+        }
+      }
+
+      return formatDate(value, formatStr)
+    } catch (e) {
+      return ''
+    }
+  }
+
   const formatRelativeTime = (date: string | Date) => {
     if (!date) return ''
     try {
@@ -178,6 +195,7 @@ export const useFormat = () => {
     formatDateUTC,
     formatShortDate,
     formatDateTime,
+    formatTime,
     formatRelativeTime,
     formatUserDate,
     getUserLocalDate,
