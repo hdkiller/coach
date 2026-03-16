@@ -2087,6 +2087,74 @@ function deriveSportSpecificSignals(params: {
   }
 }
 
+function deriveSignalApplicability(params: {
+  workout: any
+  family: ReturnType<typeof getWorkoutFamily>
+  archetype: WorkoutAnalysisFactsV2['guardrails']['archetype']
+  motionPattern: MotionPattern
+  durability: WorkoutAnalysisFactsV2['performanceSignals']['durability']
+  sportSpecific: WorkoutAnalysisFactsV2['performanceSignals']['sportSpecific']
+}): WorkoutAnalysisFactsV2['performanceSignals']['applicability'] {
+  const { workout, family, archetype, motionPattern, durability, sportSpecific } = params
+  const durationSec = Number(workout?.durationSec || 0)
+  const hasReliableSteadyState =
+    durationSec >= 1800 &&
+    !motionPattern.stopGoLikely &&
+    !['intervalled', 'stochastic'].includes(archetype.sessionSteadiness)
+
+  return {
+    lateSessionFade:
+      durability.lateSessionFadePct !== null
+        ? { applicable: true, reason: null }
+        : {
+            applicable: false,
+            reason: hasReliableSteadyState
+              ? 'Late-session fade could not be estimated from the available signals.'
+              : 'Late-session fade is not meaningful for stochastic, intervalled, or cooldown-biased sessions.'
+          },
+    executionStability:
+      durability.executionStabilityScore !== null
+        ? { applicable: true, reason: null }
+        : {
+            applicable: false,
+            reason:
+              family === 'ride' || family === 'run'
+                ? 'Execution stability is unavailable because the primary pacing signal is missing or too sparse.'
+                : 'Execution stability is not a primary signal for this modality.'
+          },
+    repeatability:
+      durability.repeatabilityScore !== null
+        ? { applicable: true, reason: null }
+        : {
+            applicable: false,
+            reason:
+              archetype.sessionSteadiness === 'intervalled'
+                ? 'Repeatability needs enough comparable work intervals and those were not available.'
+                : 'Repeatability is only meaningful when the session contains comparable repeated efforts.'
+          },
+    cadenceDrift:
+      sportSpecific.cadenceDriftPct !== null
+        ? { applicable: true, reason: null }
+        : {
+            applicable: false,
+            reason:
+              'Cadence drift is unavailable because cadence telemetry is missing or too sparse.'
+          },
+    pacingDrift:
+      sportSpecific.pacingDriftPct !== null
+        ? { applicable: true, reason: null }
+        : {
+            applicable: false,
+            reason:
+              family === 'run' &&
+              !motionPattern.stopGoLikely &&
+              !['intervalled', 'stochastic'].includes(archetype.sessionSteadiness)
+                ? 'Pacing drift could not be estimated from the available pace signal.'
+                : 'Pacing drift is only interpreted for steady run-like sessions with stable pace semantics.'
+          }
+  }
+}
+
 function deriveAdherence(params: {
   workout: any
   plannedWorkout: any
