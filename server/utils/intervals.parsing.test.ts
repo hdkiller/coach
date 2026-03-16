@@ -199,6 +199,18 @@ describe('Intervals.icu Parsing Logic', () => {
       expect(workStep?.durationSeconds).toBeUndefined()
     })
 
+    it('keeps short swim m tokens as minutes for warmup/rest timing', () => {
+      const steps = WorkoutParser.parseIntervalsICU(
+        'Warmup\n- Échauffement progressif 5m\n- Repos fixe 1m 50%',
+        { workoutType: 'Swim' }
+      )
+
+      expect(steps[0]?.durationSeconds).toBe(300)
+      expect(steps[0]?.distance).toBeUndefined()
+      expect(steps[1]?.durationSeconds).toBe(60)
+      expect(steps[1]?.distance).toBeUndefined()
+    })
+
     it('keeps non-swim bare m tokens as minutes', () => {
       const steps = WorkoutParser.parseIntervalsICU('- Steady 10m 70%', { workoutType: 'Ride' })
       expect(steps[0]?.durationSeconds).toBe(600)
@@ -252,6 +264,7 @@ describe('Intervals.icu Parsing Logic', () => {
       const result = normalizeIntervalsPlannedWorkout(event as any, 'user-1')
       const reps = result.structuredWorkout.steps[1]
 
+      expect(result.structuredWorkout.steps[0].durationSeconds).toBe(300)
       expect(reps.steps[0].distance).toBe(400)
       expect(reps.steps[0].durationSeconds).toBe(480)
       expect(reps.steps[1].distance).toBe(100)

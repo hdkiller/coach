@@ -210,10 +210,37 @@ describe('WorkoutConverter', () => {
 
       const result = WorkoutConverter.toIntervalsICU(workout as any)
 
-      expect(result).toContain('- Mixed 400mtrs 60% LTHR')
+      expect(result).toContain('- 400mtrs Mixed 60% LTHR')
       expect(result).toContain('4x')
-      expect(result).toContain(' - Hard 100mtrs 90% Pace')
+      expect(result).toContain(' - 100mtrs Hard 90% Pace')
       expect(result).toContain(' - Rest 30s')
+    })
+
+    it('includes duration for active swim reps when available', () => {
+      const workout = {
+        title: 'Swim Durations',
+        type: 'Swim',
+        steps: [
+          {
+            reps: 2,
+            steps: [
+              {
+                type: 'Active',
+                distance: 100,
+                durationSeconds: 140,
+                heartRate: { value: 0.82, units: 'LTHR' },
+                name: 'Aerobic Swim'
+              },
+              { type: 'Rest', durationSeconds: 30, name: 'Recover' }
+            ]
+          }
+        ]
+      }
+
+      const result = WorkoutConverter.toIntervalsICU(workout as any)
+
+      expect(result).toContain(' - 100mtrs Aerobic Swim 140s 82% LTHR')
+      expect(result).toContain(' - Recover 30s')
     })
 
     it('formats running pace zones as zone labels instead of percentages', () => {

@@ -752,7 +752,11 @@ export const WorkoutConverter = {
         const pace = normalizeTarget(step.pace) || normalizeTarget(parentStep?.pace)
         const distanceStr = toDistanceToken(step.distance)
         const duration = step.durationSeconds || step.duration || 0
-        const shouldIncludeDuration = !isSwim || !step.distance || step.type === 'Rest'
+        const shouldIncludeDuration =
+          !isSwim ||
+          !step.distance ||
+          step.type === 'Rest' ||
+          (step.type === 'Active' && duration > 0)
         const durationStr = duration > 0 && shouldIncludeDuration ? toDurationToken(duration) : ''
 
         const intensities: string[] = []
@@ -827,9 +831,19 @@ export const WorkoutConverter = {
           }
         }
 
-        if (name) line += ` ${name}`
-        if (distanceStr && !name.toLowerCase().includes(`${step.distance}m`))
+        const nameIncludesDistance =
+          distanceStr &&
+          (name.toLowerCase().includes(`${step.distance}m`) ||
+            name.toLowerCase().includes(`${step.distance}mtrs`) ||
+            name.toLowerCase().includes(`${Number(step.distance) / 1000}km`))
+
+        if (isSwim && distanceStr && !nameIncludesDistance) {
           line += ` ${distanceStr}`
+        }
+        if (name) line += ` ${name}`
+        if (!isSwim && distanceStr && !nameIncludesDistance) {
+          line += ` ${distanceStr}`
+        }
 
         if (durationStr) {
           const durationMinutes = duration > 0 && duration % 60 === 0 ? duration / 60 : null
