@@ -76,12 +76,50 @@
                 <UInput v-model="updateForm.name" class="w-full" />
               </UFormField>
 
+              <UFormField
+                label="Source Attribution Name"
+                name="sourceName"
+                help="Short label used in workout source attribution, e.g. RunGap."
+              >
+                <UInput v-model="updateForm.sourceName" class="w-full" placeholder="RunGap" />
+              </UFormField>
+
               <UFormField label="Description" name="description">
                 <UTextarea v-model="updateForm.description" class="w-full" />
               </UFormField>
 
               <UFormField label="Homepage URL" name="homepageUrl">
                 <UInput v-model="updateForm.homepageUrl" class="w-full" />
+              </UFormField>
+
+              <UFormField
+                label="Visibility"
+                name="isPublic"
+                :help="
+                  isAdmin
+                    ? 'Public apps appear in the public OAuth applications directory.'
+                    : 'Only admins can change whether an app is publicly visible.'
+                "
+              >
+                <div
+                  class="flex items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3"
+                >
+                  <div>
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">
+                      Show this app publicly
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <template v-if="isAdmin">
+                        Turn this on to make the app visible to others, similar to HealthSync.
+                      </template>
+                      <template v-else>
+                        Visibility is managed by admins. You can still edit the rest of the app
+                        settings here.
+                      </template>
+                    </p>
+                  </div>
+                  <USwitch v-model="updateForm.isPublic" :disabled="!isAdmin" />
+                </div>
               </UFormField>
 
               <div class="flex justify-end">
@@ -495,6 +533,8 @@
   const route = useRoute()
   const toast = useToast()
   const appId = route.params.id as string
+  const { data: authData } = useAuth()
+  const isAdmin = computed(() => Boolean((authData.value?.user as any)?.isAdmin))
 
   const { data: app, pending, refresh } = await useFetch<any>(`/api/developer/apps/${appId}`)
 
@@ -529,16 +569,20 @@
 
   const updateAppSchema = z.object({
     name: z.string().min(3).max(50),
+    sourceName: z.string().min(1).max(30).optional().or(z.literal('')),
     description: z.string().max(500).optional(),
     homepageUrl: z.string().url().optional().or(z.literal('')),
-    redirectUris: z.array(z.string().url()).min(1).max(10)
+    redirectUris: z.array(z.string().url()).min(1).max(10),
+    isPublic: z.boolean()
   })
 
   const updateForm = reactive({
     name: '',
+    sourceName: '',
     description: '',
     homepageUrl: '',
-    redirectUris: [] as string[]
+    redirectUris: [] as string[],
+    isPublic: false
   })
 
   const redirectUrisString = ref('')
@@ -548,9 +592,11 @@
     (val) => {
       if (val) {
         updateForm.name = val.name
+        updateForm.sourceName = val.sourceName || ''
         updateForm.description = val.description || ''
         updateForm.homepageUrl = val.homepageUrl || ''
         updateForm.redirectUris = val.redirectUris || []
+        updateForm.isPublic = Boolean(val.isPublic)
         redirectUrisString.value = (val.redirectUris || []).join('\n')
       }
     },
@@ -588,9 +634,14 @@
   async function onUpdateSubmit() {
     updating.value = true
     try {
+      const body = {
+        ...updateForm,
+        ...(isAdmin.value ? {} : { isPublic: undefined })
+      }
+
       await $fetch(`/api/developer/apps/${appId}`, {
         method: 'PATCH',
-        body: updateForm
+        body
       })
       toast.add({ title: 'Success', description: 'Application updated', color: 'success' })
       refresh()

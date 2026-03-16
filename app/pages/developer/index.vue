@@ -106,6 +106,14 @@
           <UInput v-model="createForm.name" placeholder="My Awesome App" />
         </UFormField>
 
+        <UFormField
+          label="Source Attribution Name"
+          name="sourceName"
+          help="Short label shown in workout source attribution, e.g. RunGap."
+        >
+          <UInput v-model="createForm.sourceName" placeholder="RunGap" />
+        </UFormField>
+
         <UFormField label="Description" name="description">
           <UTextarea
             v-model="createForm.description"
@@ -236,6 +244,7 @@
 
   const createAppSchema = z.object({
     name: z.string().min(3).max(50),
+    sourceName: z.string().min(1).max(30).optional().or(z.literal('')),
     description: z.string().max(500).optional(),
     homepageUrl: z.string().url().optional().or(z.literal('')),
     redirectUris: z.array(z.string().url()).min(1).max(10)
@@ -243,6 +252,7 @@
 
   const createForm = reactive({
     name: '',
+    sourceName: '',
     description: '',
     homepageUrl: '',
     redirectUris: [] as string[]
@@ -272,6 +282,7 @@
 
       // Reset form
       createForm.name = ''
+      createForm.sourceName = ''
       createForm.description = ''
       createForm.homepageUrl = ''
       createForm.redirectUris = []

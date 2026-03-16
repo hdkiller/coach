@@ -80,6 +80,12 @@
                   </div>
                 </div>
                 <div>
+                  <div class="text-xs font-semibold text-gray-500 uppercase">Source Name</div>
+                  <div class="text-sm text-gray-900 dark:text-white mt-1">
+                    {{ data.app.sourceName || 'Not set' }}
+                  </div>
+                </div>
+                <div>
                   <div class="text-xs font-semibold text-gray-500 uppercase">Description</div>
                   <div class="text-sm text-gray-900 dark:text-white mt-1 italic">
                     {{ data.app.description || 'No description provided' }}
