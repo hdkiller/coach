@@ -13,6 +13,9 @@ export interface Interval {
   avg_power?: number
   avg_heartrate?: number
   avg_pace?: number
+  avg_cadence?: number
+  cadence_start?: number
+  cadence_end?: number
   max_power?: number
   max_heartrate?: number
   type: 'WORK' | 'RECOVERY' | 'WARMUP' | 'COOLDOWN' | 'STEADY'
@@ -20,6 +23,9 @@ export interface Interval {
   label?: string
   match_score?: number // 0-1 score indicating how well it matches a planned step
   planned_step_id?: string
+  classification_confidence?: number
+  detection_confidence?: number
+  ambiguity_note?: string
 }
 
 export interface PlannedStep {
@@ -29,6 +35,9 @@ export interface PlannedStep {
   type?: string
   power?: { value?: number; range?: { start: number; end: number } }
   heartRate?: { value?: number; range?: { start: number; end: number } }
+  pace?: { value?: number; range?: { start: number; end: number } }
+  cadence?: number
+  ramp?: boolean
 }
 
 export interface PeakEffort {
@@ -50,7 +59,8 @@ export function detectIntervals(
   metricType: 'power' | 'heartrate' | 'pace',
   threshold?: number, // FTP or Threshold Pace/HR
   plannedSteps?: PlannedStep[],
-  smoothedValues?: number[]
+  smoothedValues?: number[],
+  cadenceValues?: number[]
 ): Interval[] {
   if (!times || !values || times.length !== values.length || times.length === 0) {
     return []
@@ -59,6 +69,19 @@ export function detectIntervals(
   // 1. Smooth the data
   // Use provided smoothedValues (e.g. rolling NP) or calculate centered SMA
   const smoothed = smoothedValues || smoothData(values, 10)
+
+  const plannedGuided = detectIntervalsFromPlannedSteps(
+    times,
+    values,
+    metricType,
+    threshold,
+    plannedSteps,
+    smoothed,
+    cadenceValues
+  )
+  if (plannedGuided.length > 0) {
+    return plannedGuided
+  }
 
   // 2. Determine threshold for "Work" vs "Recovery"
   // If no manual threshold provided, estimate baseline
@@ -182,7 +205,8 @@ export function detectIntervals(
               candidate.start,
               type,
               threshold,
-              metricType
+              metricType,
+              cadenceValues
             )
           )
         }
@@ -198,7 +222,8 @@ export function detectIntervals(
             candidate.end,
             'WORK',
             threshold,
-            metricType
+            metricType,
+            cadenceValues
           )
         )
       }
@@ -220,7 +245,8 @@ export function detectIntervals(
           times.length - 1,
           'COOLDOWN',
           threshold,
-          metricType
+          metricType,
+          cadenceValues
         )
       )
     }
@@ -250,6 +276,343 @@ export function detectIntervals(
   }
 
   return intervals
+}
+
+type NormalizedPlannedDetectionStep = {
+  id: string
+  name?: string
+  durationSeconds: number
+  type: Interval['type']
+  metricTarget: number | null
+  cadence: number | null
+  ramp: boolean
+}
+
+function normalizePlannedStepType(type: unknown): Interval['type'] {
+  const normalized = String(type || '').toLowerCase()
+  if (normalized.includes('warm')) return 'WARMUP'
+  if (normalized.includes('cool')) return 'COOLDOWN'
+  if (normalized.includes('rest') || normalized.includes('recover')) return 'RECOVERY'
+  return 'WORK'
+}
+
+function getTargetMidpoint(
+  target: PlannedStep['power'] | PlannedStep['heartRate'] | PlannedStep['pace']
+) {
+  if (!target || typeof target !== 'object') return null
+  const value = typeof target.value === 'number' ? target.value : null
+  if (value !== null && Number.isFinite(value)) return value
+  if (
+    target.range &&
+    typeof target.range.start === 'number' &&
+    typeof target.range.end === 'number' &&
+    Number.isFinite(target.range.start) &&
+    Number.isFinite(target.range.end)
+  ) {
+    return (target.range.start + target.range.end) / 2
+  }
+  return null
+}
+
+function getPlannedTargetForMetric(
+  step: PlannedStep,
+  metricType: 'power' | 'heartrate' | 'pace'
+): number | null {
+  if (metricType === 'power') return getTargetMidpoint(step.power)
+  if (metricType === 'heartrate') return getTargetMidpoint(step.heartRate)
+  return getTargetMidpoint(step.pace)
+}
+
+function flattenPlannedStepsForDetection(
+  steps: PlannedStep[] | undefined,
+  metricType: 'power' | 'heartrate' | 'pace',
+  path = 'step'
+): NormalizedPlannedDetectionStep[] {
+  const flattened: NormalizedPlannedDetectionStep[] = []
+  for (let index = 0; index < (steps || []).length; index++) {
+    const step = steps?.[index]
+    if (!step || typeof step !== 'object') continue
+    const durationSeconds = Number(step.durationSeconds || step.duration || 0)
+    if (Array.isArray((step as any).steps) && (step as any).steps.length > 0) {
+      const reps = Math.max(1, Math.trunc(Number((step as any).reps || 1)) || 1)
+      for (let rep = 0; rep < reps; rep++) {
+        flattened.push(
+          ...flattenPlannedStepsForDetection(
+            (step as any).steps,
+            metricType,
+            `${path}-${index}-${rep}`
+          )
+        )
+      }
+      continue
+    }
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) continue
+    flattened.push({
+      id: `${path}-${index}`,
+      name: step.name,
+      durationSeconds,
+      type: normalizePlannedStepType(step.type),
+      metricTarget: getPlannedTargetForMetric(step, metricType),
+      cadence:
+        typeof step.cadence === 'number' && Number.isFinite(step.cadence) ? step.cadence : null,
+      ramp: Boolean((step as any).ramp || normalizePlannedStepType(step.type) === 'COOLDOWN')
+    })
+  }
+  return flattened
+}
+
+function findIndexAtOrAfterTime(times: number[], targetTime: number, fallbackIndex: number) {
+  for (let index = fallbackIndex; index < times.length; index++) {
+    const time = times[index]
+    if (time !== undefined && time >= targetTime) return index
+  }
+  return times.length - 1
+}
+
+function computeSegmentAverage(
+  data: number[] | undefined,
+  start: number,
+  end: number
+): number | null {
+  if (!data || data.length === 0 || start > end) return null
+  const values = data.slice(start, end + 1).filter((value) => Number.isFinite(value))
+  if (values.length === 0) return null
+  return values.reduce((sum, value) => sum + value, 0) / values.length
+}
+
+function normalizeMetricDelta(
+  actualValue: number | null,
+  targetValue: number | null,
+  metricType: 'power' | 'heartrate' | 'pace',
+  threshold?: number
+) {
+  if (
+    actualValue === null ||
+    targetValue === null ||
+    !Number.isFinite(actualValue) ||
+    !Number.isFinite(targetValue) ||
+    targetValue <= 0
+  ) {
+    return null
+  }
+
+  if (metricType === 'power' || metricType === 'heartrate') {
+    const denominator = threshold && threshold > 0 ? threshold : targetValue
+    return Math.abs(actualValue - targetValue) / Math.max(1, denominator)
+  }
+
+  return Math.abs(actualValue - targetValue) / targetValue
+}
+
+function scoreBoundaryCandidate(params: {
+  candidateIndex: number
+  currentStartIdx: number
+  endLimitIdx: number
+  expectedBoundaryIdx: number
+  values: number[]
+  smoothed: number[]
+  cadenceValues?: number[]
+  metricType: 'power' | 'heartrate' | 'pace'
+  threshold?: number
+  currentStep: NormalizedPlannedDetectionStep
+  nextStep: NormalizedPlannedDetectionStep
+}): { score: number; ambiguityNote?: string } {
+  const {
+    candidateIndex,
+    currentStartIdx,
+    endLimitIdx,
+    expectedBoundaryIdx,
+    values,
+    smoothed,
+    cadenceValues,
+    metricType,
+    threshold,
+    currentStep,
+    nextStep
+  } = params
+
+  const beforeWindow = Math.max(8, Math.min(45, Math.round(currentStep.durationSeconds * 0.2)))
+  const afterWindow = Math.max(8, Math.min(45, Math.round(nextStep.durationSeconds * 0.2)))
+  const beforeStart = Math.max(currentStartIdx, candidateIndex - beforeWindow)
+  const afterEnd = Math.min(endLimitIdx, candidateIndex + afterWindow)
+
+  const beforeAvg = computeSegmentAverage(smoothed, beforeStart, candidateIndex)
+  const afterAvg = computeSegmentAverage(smoothed, candidateIndex + 1, afterEnd)
+  const beforeCadence = computeSegmentAverage(cadenceValues, beforeStart, candidateIndex)
+  const afterCadence = computeSegmentAverage(cadenceValues, candidateIndex + 1, afterEnd)
+
+  let score = 1
+  const distancePenalty =
+    Math.abs(candidateIndex - expectedBoundaryIdx) / Math.max(10, beforeWindow)
+  score -= Math.min(distancePenalty, 1.5) * 0.4
+
+  const currentDelta = normalizeMetricDelta(
+    beforeAvg,
+    currentStep.metricTarget,
+    metricType,
+    threshold
+  )
+  if (currentDelta !== null) score += Math.max(0, 1 - currentDelta * 4) * 0.7
+
+  const nextDelta = normalizeMetricDelta(afterAvg, nextStep.metricTarget, metricType, threshold)
+  if (nextDelta !== null) score += Math.max(0, 1 - nextDelta * 4) * 0.7
+
+  if (currentStep.cadence !== null && beforeCadence !== null) {
+    score += Math.max(0, 1 - Math.abs(beforeCadence - currentStep.cadence) / 12) * 0.35
+  }
+  if (nextStep.cadence !== null && afterCadence !== null) {
+    score += Math.max(0, 1 - Math.abs(afterCadence - nextStep.cadence) / 12) * 0.35
+  }
+
+  if (beforeAvg !== null && afterAvg !== null) {
+    const transitionDelta = afterAvg - beforeAvg
+    if (currentStep.type === 'WORK' && nextStep.type === 'RECOVERY') {
+      score += transitionDelta < -Math.max(2, beforeAvg * 0.05) ? 0.9 : -0.5
+    } else if (currentStep.type === 'RECOVERY' && nextStep.type === 'WORK') {
+      score += transitionDelta > Math.max(2, beforeAvg * 0.05) ? 0.9 : -0.5
+    } else if (currentStep.type === 'WORK' && nextStep.type === 'COOLDOWN') {
+      score += transitionDelta < -Math.max(2, beforeAvg * 0.05) ? 0.8 : -0.3
+    } else if (currentStep.type === 'RECOVERY' && nextStep.type === 'COOLDOWN') {
+      score += transitionDelta < -Math.max(1.5, beforeAvg * 0.03) ? 1.1 : -0.2
+      const tailTrend =
+        afterEnd > candidateIndex + 6
+          ? (smoothed[afterEnd] || 0) - (smoothed[candidateIndex + 1] || 0)
+          : 0
+      if (nextStep.ramp || nextStep.type === 'COOLDOWN') {
+        score += tailTrend < 0 ? 0.7 : -0.2
+      }
+    }
+  }
+
+  const durationRatio =
+    (candidateIndex - currentStartIdx + 1) / Math.max(1, Math.round(currentStep.durationSeconds))
+  let ambiguityNote: string | undefined
+  if (currentStep.type === 'RECOVERY' && nextStep.type === 'COOLDOWN' && durationRatio > 1.35) {
+    ambiguityNote =
+      'Late recovery/cooldown split is ambiguous; boundary inferred from planned structure.'
+    score -= 0.2
+  }
+
+  return { score, ambiguityNote }
+}
+
+function detectIntervalsFromPlannedSteps(
+  times: number[],
+  values: number[],
+  metricType: 'power' | 'heartrate' | 'pace',
+  threshold?: number,
+  plannedSteps?: PlannedStep[],
+  smoothedValues?: number[],
+  cadenceValues?: number[]
+): Interval[] {
+  const flattened = flattenPlannedStepsForDetection(plannedSteps, metricType)
+  if (flattened.length < 2) return []
+
+  const firstTime = times[0]
+  const lastTime = times[times.length - 1]
+  if (firstTime === undefined || lastTime === undefined || lastTime <= firstTime) return []
+
+  const plannedDuration = flattened.reduce((sum, step) => sum + step.durationSeconds, 0)
+  if (plannedDuration <= 0) return []
+
+  const actualDuration = lastTime - firstTime
+  const scale = actualDuration / plannedDuration
+  const smoothed = smoothedValues || smoothData(values, 10)
+  const intervals: Interval[] = []
+  let currentStartIdx = 0
+  let plannedElapsed = 0
+
+  for (let index = 0; index < flattened.length; index++) {
+    const step = flattened[index]!
+    const plannedEndTime = firstTime + (plannedElapsed + step.durationSeconds) * scale
+    const isLast = index === flattened.length - 1
+    let endIdx = isLast
+      ? times.length - 1
+      : findIndexAtOrAfterTime(times, plannedEndTime, currentStartIdx)
+    let confidence = 0.7
+    let ambiguityNote: string | undefined
+
+    if (!isLast) {
+      const nextStep = flattened[index + 1]!
+      const searchSeconds = Math.max(
+        15,
+        Math.min(75, Math.round(Math.min(step.durationSeconds, nextStep.durationSeconds) * 0.25))
+      )
+      const expectedBoundaryTime = times[endIdx] || plannedEndTime
+      const startSearchTime = expectedBoundaryTime - searchSeconds
+      const endSearchTime = expectedBoundaryTime + searchSeconds
+      const minCurrentSeconds = Math.max(20, Math.round(step.durationSeconds * 0.45))
+      const minNextSeconds = Math.max(20, Math.round(nextStep.durationSeconds * 0.45))
+
+      let searchStartIdx = currentStartIdx
+      while (searchStartIdx < endIdx && (times[searchStartIdx] || 0) < startSearchTime)
+        searchStartIdx++
+      let searchEndIdx = endIdx
+      while (searchEndIdx < times.length - 1 && (times[searchEndIdx] || 0) < endSearchTime)
+        searchEndIdx++
+
+      let best = { index: endIdx, score: -Infinity, ambiguityNote: undefined as string | undefined }
+      for (let candidateIndex = searchStartIdx; candidateIndex <= searchEndIdx; candidateIndex++) {
+        const currentDuration = (times[candidateIndex] || 0) - (times[currentStartIdx] || 0)
+        const nextDuration = (lastTime || 0) - (times[candidateIndex] || 0)
+        if (currentDuration < minCurrentSeconds || nextDuration < minNextSeconds) continue
+        const candidate = scoreBoundaryCandidate({
+          candidateIndex,
+          currentStartIdx,
+          endLimitIdx: times.length - 1,
+          expectedBoundaryIdx: endIdx,
+          values,
+          smoothed,
+          cadenceValues,
+          metricType,
+          threshold,
+          currentStep: step,
+          nextStep
+        })
+        if (candidate.score > best.score) {
+          best = {
+            index: candidateIndex,
+            score: candidate.score,
+            ambiguityNote: candidate.ambiguityNote
+          }
+        }
+      }
+
+      endIdx = best.index
+      ambiguityNote = best.ambiguityNote
+      confidence = Math.max(0.35, Math.min(0.99, 0.45 + Math.max(0, best.score) / 4))
+    }
+
+    const interval = createIntervalObj(
+      times,
+      values,
+      currentStartIdx,
+      endIdx,
+      step.type,
+      threshold,
+      metricType,
+      cadenceValues
+    )
+    interval.label = step.name
+    interval.planned_step_id = step.id
+    interval.match_score = Math.max(
+      0,
+      Math.min(
+        1,
+        Math.min(interval.duration, step.durationSeconds) /
+          Math.max(interval.duration, step.durationSeconds)
+      )
+    )
+    interval.classification_confidence = confidence
+    interval.detection_confidence = confidence
+    if (ambiguityNote) interval.ambiguity_note = ambiguityNote
+    intervals.push(interval)
+
+    currentStartIdx = Math.min(endIdx + 1, times.length - 1)
+    plannedElapsed += step.durationSeconds
+  }
+
+  return intervals.filter((interval) => interval.duration > 0)
 }
 
 /**
@@ -377,12 +740,20 @@ function createIntervalObj(
   endIdx: number,
   type: Interval['type'],
   threshold?: number,
-  metricType?: 'power' | 'heartrate' | 'pace'
+  metricType?: 'power' | 'heartrate' | 'pace',
+  cadenceValues?: number[]
 ): Interval {
   const segmentValues = values.slice(startIdx, endIdx + 1)
   const sum = segmentValues.reduce((a, b) => a + (b || 0), 0)
   const avg = sum / segmentValues.length
   const max = Math.max(...segmentValues.map((v) => v || 0))
+  const cadenceSegment = cadenceValues
+    ?.slice(startIdx, endIdx + 1)
+    .filter((value) => Number.isFinite(value))
+  const avgCadence =
+    cadenceSegment && cadenceSegment.length > 0
+      ? cadenceSegment.reduce((sum, value) => sum + value, 0) / cadenceSegment.length
+      : undefined
 
   let intensity_zone: number | undefined
 
@@ -415,8 +786,16 @@ function createIntervalObj(
     start_time: startTimeValue,
     end_time: endTimeValue,
     duration: endTimeValue - startTimeValue,
-    avg_power: avg, // Assumes 'values' is power/metric
-    max_power: max,
+    ...(metricType === 'power' ? { avg_power: avg, max_power: max } : {}),
+    ...(metricType === 'heartrate' ? { avg_heartrate: avg, max_heartrate: max } : {}),
+    ...(metricType === 'pace' ? { avg_pace: avg } : {}),
+    ...(avgCadence !== undefined
+      ? {
+          avg_cadence: avgCadence,
+          cadence_start: cadenceValues?.[startIdx],
+          cadence_end: cadenceValues?.[endIdx]
+        }
+      : {}),
     type,
     intensity_zone
     // Add generic average based on what 'values' represents?
