@@ -82,7 +82,15 @@ export default defineEventHandler(async (event) => {
       startDate: rangeStart,
       endDate: endDate,
       limit: 10,
-      orderBy: { date: 'desc' }
+      orderBy: { date: 'desc' },
+      include: {
+        oauthApp: {
+          select: {
+            sourceName: true,
+            name: true
+          }
+        }
+      }
       // Note: Repository handles duplicate exclusion by default
       // TODO: Filter durationSec > 0 if strictly needed, or trust data quality
     })
@@ -157,11 +165,15 @@ export default defineEventHandler(async (event) => {
         activityType: workout.type,
         source: workout.source,
         sourceName:
-          workout.source === 'intervals'
-            ? 'Intervals.icu'
-            : workout.source === 'strava'
-              ? 'Strava'
-              : workout.source,
+          workout.source === 'fit_file' && workout.oauthApp?.sourceName
+            ? workout.oauthApp.sourceName
+            : workout.source === 'fit_file' && workout.oauthApp?.name
+              ? workout.oauthApp.name
+              : workout.source === 'intervals'
+                ? 'Intervals.icu'
+                : workout.source === 'strava'
+                  ? 'Strava'
+                  : workout.source,
         deviceName: workout.deviceName,
         date: workout.date,
         icon: getWorkoutIcon(workout.type || ''),
