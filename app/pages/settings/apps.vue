@@ -116,17 +116,14 @@
               <h3 class="font-semibold break-words whitespace-normal leading-snug">
                 {{ app.name }}
               </h3>
+              <p class="text-sm text-muted mt-1 break-words whitespace-normal leading-relaxed">
+                {{ app.description || 'No description provided.' }}
+              </p>
               <p
                 v-if="app.isConnected && app.consent"
                 class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium"
               >
                 Authorized on {{ formatDate(app.consent.createdAt) }}
-              </p>
-              <p
-                v-else
-                class="text-sm text-muted mt-1 break-words whitespace-normal leading-relaxed"
-              >
-                {{ app.description || 'No description provided.' }}
               </p>
             </div>
           </div>
