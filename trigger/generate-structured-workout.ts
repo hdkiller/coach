@@ -536,24 +536,26 @@ function validateStructuredCoverage(params: {
   actualDurationSec: number
   steps: any[]
   workout: any
+  preserveStructure?: boolean
 }) {
-  const { plannedDurationSec, actualDurationSec, steps, workout } = params
+  const { plannedDurationSec, actualDurationSec, steps, workout, preserveStructure } = params
   if (plannedDurationSec <= 0) {
     return { valid: actualDurationSec > 0, reason: actualDurationSec > 0 ? null : 'zero_duration' }
   }
 
   const coverage = actualDurationSec / plannedDurationSec
-  const minCoverage = getCoverageThreshold(plannedDurationSec)
+  const minCoverage = preserveStructure ? 0.95 : getCoverageThreshold(plannedDurationSec)
+  const maxCoverage = preserveStructure ? 1.05 : 1.1
   if (coverage < minCoverage) {
     return {
       valid: false,
       reason: `duration coverage too low (${Math.round(coverage * 100)}% < ${Math.round(minCoverage * 100)}%)`
     }
   }
-  if (coverage > 1.1) {
+  if (coverage > maxCoverage) {
     return {
       valid: false,
-      reason: `duration overshoot too high (${Math.round(coverage * 100)}% > 110%)`
+      reason: `duration overshoot too high (${Math.round(coverage * 100)}% > ${Math.round(maxCoverage * 100)}%)`
     }
   }
 
@@ -569,6 +571,57 @@ function validateStructuredCoverage(params: {
   }
 
   return { valid: true, reason: null }
+}
+
+function summarizeStructuredWorkoutForPrompt(structuredWorkout: any): string {
+  if (!structuredWorkout || typeof structuredWorkout !== 'object') return 'None.'
+
+  const lines: string[] = []
+  if (typeof structuredWorkout.description === 'string' && structuredWorkout.description.trim()) {
+    lines.push(`Overall description: ${structuredWorkout.description.trim()}`)
+  }
+
+  const summarizeStep = (step: any, depth = 0): string[] => {
+    if (!step || typeof step !== 'object') return []
+
+    const indent = '  '.repeat(depth)
+    const bits: string[] = []
+    const reps = Number(step.reps) || 0
+    const type = step.type || 'Step'
+    const name = step.name ? ` - ${step.name}` : ''
+    bits.push(`${indent}- ${type}${name}`)
+
+    const attrs: string[] = []
+    if (Number(step.durationSeconds) > 0) attrs.push(`${Math.round(Number(step.durationSeconds))}s`)
+    if (Number(step.distance) > 0) attrs.push(`${Math.round(Number(step.distance))}m`)
+    if (reps > 1) attrs.push(`reps x${reps}`)
+    if (step.intent) attrs.push(`intent=${step.intent}`)
+    if (attrs.length > 0) bits[0] += ` (${attrs.join(', ')})`
+
+    if (Array.isArray(step.steps) && step.steps.length > 0) {
+      for (const child of step.steps) bits.push(...summarizeStep(child, depth + 1))
+    }
+
+    return bits
+  }
+
+  if (Array.isArray(structuredWorkout.steps) && structuredWorkout.steps.length > 0) {
+    lines.push('Current step outline:')
+    for (const step of structuredWorkout.steps) lines.push(...summarizeStep(step))
+  }
+
+  if (Array.isArray(structuredWorkout.exercises) && structuredWorkout.exercises.length > 0) {
+    lines.push('Current exercises:')
+    for (const exercise of structuredWorkout.exercises.slice(0, 12)) {
+      const attrs: string[] = []
+      if (Number(exercise.sets) > 0) attrs.push(`${exercise.sets} sets`)
+      if (exercise.reps) attrs.push(`${exercise.reps} reps`)
+      if (exercise.rest) attrs.push(`rest ${exercise.rest}`)
+      lines.push(`- ${exercise.name || 'Exercise'}${attrs.length ? ` (${attrs.join(', ')})` : ''}`)
+    }
+  }
+
+  return lines.join('\n') || 'None.'
 }
 
 function buildCompactZoneDefinitions(params: {
@@ -797,6 +850,10 @@ export const generateStructuredWorkoutTask = task({
 
     const warmupTime = sportSettings?.warmupTime || 10
     const cooldownTime = sportSettings?.cooldownTime || 5
+    const preserveExistingStructure = Boolean(workout.structuredWorkout)
+    const existingStructureSummary = preserveExistingStructure
+      ? summarizeStructuredWorkoutForPrompt(workout.structuredWorkout)
+      : ''
     const zoneDefinitions = buildCompactZoneDefinitions({
       workoutType: workout.type || '',
       sportSettings,
@@ -878,6 +935,8 @@ export const generateStructuredWorkoutTask = task({
     RECENT WORKOUTS (brief):
     ${buildConciseWorkoutSummary(recentWorkouts, timezone)}
 
+    ${preserveExistingStructure ? `EXISTING STRUCTURE TO PRESERVE:\n${existingStructureSummary}` : ''}
+
     Use the user's specific zones and references below for this activity type.
 
     ${zoneDefinitions}
@@ -898,6 +957,8 @@ export const generateStructuredWorkoutTask = task({
     INSTRUCTIONS:
     - Create a JSON structure defining the exact steps (Warmup, Intervals, Rest, Cooldown).
     - Ensure total duration matches the target duration exactly.
+    - ${preserveExistingStructure ? 'This is a REGENERATION of an existing workout structure. Preserve the same session identity: keep the overall objective, block order, repeat/set pattern, and approximate work/recovery distribution unless the workout title or description clearly requires a different design.' : 'If no prior structure exists, build the session from scratch.'}
+    - ${preserveExistingStructure ? 'Improve clarity, targeting, and coach cues without inventing a materially different workout.' : 'Build a complete structure that fits the planned session.'}
     - Use repeat blocks with "reps" for repetitive interval sets.
     - Every workout must have a clear physiological objective (e.g. aerobic endurance, threshold, VO2, neuromuscular, recovery) and each block should support that objective.
     - Sequence intensity logically (warm-up -> quality work -> recovery -> cooldown). Avoid random intensity jumps.
@@ -966,7 +1027,8 @@ export const generateStructuredWorkoutTask = task({
         plannedDurationSec: Number(workout.durationSec || 0),
         actualDurationSec: totals.duration,
         steps: structure.steps || [],
-        workout
+        workout,
+        preserveStructure: preserveExistingStructure
       })
       if (coverageValidation.valid) break
       if (attempt >= 2) {
@@ -1234,7 +1296,8 @@ export const generateStructuredWorkoutTask = task({
       ...buildStructureEditFields(structure, 'AI')
     }
     if (totalDistance > 0) updateData.distanceMeters = totalDistance
-    if (totalDuration > 0) updateData.durationSec = totalDuration
+    if (Number(workout.durationSec) > 0) updateData.durationSec = workout.durationSec
+    else if (totalDuration > 0) updateData.durationSec = totalDuration
     if (totalTSS > 0) updateData.tss = Math.round(totalTSS)
     updateData.lastGenerationSettingsSnapshot = settingsSnapshot
     updateData.lastGenerationContext = generationContext
