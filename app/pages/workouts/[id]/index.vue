@@ -5726,6 +5726,10 @@
       isShareModalOpen.value = true
     }
   })
+
+  useHead(() => ({
+    title: workout.value?.title || 'Workout Details'
+  }))
 </script>
 
 <style scoped>

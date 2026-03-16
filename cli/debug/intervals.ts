@@ -10,6 +10,7 @@ import {
   calculateHeartRateRecovery,
   calculateAerobicDecoupling
 } from '../../server/utils/interval-detection'
+import { buildWorkoutAnalysisFactsV2 } from '../../server/utils/workout-analysis-facts'
 import Table from 'cli-table3'
 
 function toNumber(value: unknown): number | null {
@@ -123,6 +124,13 @@ function getStepTarget(step: Record<string, any>, ftp?: number | null): string {
   )
 }
 
+function getStepCadence(step: Record<string, any>): string {
+  if (typeof step.cadence === 'number' && Number.isFinite(step.cadence)) {
+    return `${Math.round(step.cadence)}rpm`
+  }
+  return '-'
+}
+
 const intervalsDebugCommand = new Command('intervals')
   .description('Debug workout intervals and detection logic')
   .argument('<id>', 'Workout ID (UUID)')
@@ -211,6 +219,7 @@ const intervalsDebugCommand = new Command('intervals')
       const watts = workout.streams.watts as number[]
       const hr = workout.streams.heartrate as number[]
       const velocity = workout.streams.velocity as number[]
+      const cadence = workout.streams.cadence as number[]
 
       console.log(`- Time stream: ${time?.length || 0} samples`)
       console.log(`- Watts stream: ${watts?.length || 0} samples`)
@@ -231,7 +240,7 @@ const intervalsDebugCommand = new Command('intervals')
       if (plannedSteps.length > 0) {
         const flattenedPlanned = flattenPlannedSteps(plannedSteps)
         const plannedTable = new Table({
-          head: ['#', 'Depth', 'Type', 'Dur', 'Target', 'Name'].map((h) => chalk.cyan(h))
+          head: ['#', 'Depth', 'Type', 'Dur', 'Target', 'Cadence', 'Name'].map((h) => chalk.cyan(h))
         })
 
         flattenedPlanned.forEach(({ step, depth }, index) => {
@@ -241,6 +250,7 @@ const intervalsDebugCommand = new Command('intervals')
             step.type || 'Interval',
             formatDuration(stepDurationSeconds(step)),
             getStepTarget(step, calculationFtp),
+            getStepCadence(step),
             step.name || '-'
           ])
         })
@@ -257,19 +267,43 @@ const intervalsDebugCommand = new Command('intervals')
 
       if (watts && watts.length > 0) {
         metric = 'power'
-        detected = detectIntervals(time, watts, 'power', calculationFtp, plannedSteps)
+        detected = detectIntervals(
+          time,
+          watts,
+          'power',
+          calculationFtp,
+          plannedSteps,
+          undefined,
+          cadence
+        )
       } else if (
         velocity &&
         velocity.length > 0 &&
         (workout.type === 'Run' || workout.type === 'Swim')
       ) {
         metric = 'pace'
-        detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps)
+        detected = detectIntervals(
+          time,
+          velocity,
+          'pace',
+          undefined,
+          plannedSteps,
+          undefined,
+          cadence
+        )
       } else if (hr && hr.length > 0) {
         metric = 'heartrate'
         const maxHr = workout.maxHr || workout.user?.maxHr
         const threshold = maxHr ? maxHr * 0.7 : undefined
-        detected = detectIntervals(time, hr, 'heartrate', threshold, plannedSteps)
+        detected = detectIntervals(
+          time,
+          hr,
+          'heartrate',
+          threshold,
+          plannedSteps,
+          undefined,
+          cadence
+        )
       }
 
       console.log(`Detection Metric: ${chalk.cyan(metric || 'None')}`)
@@ -277,9 +311,19 @@ const intervalsDebugCommand = new Command('intervals')
 
       if (detected.length > 0) {
         const p = new Table({
-          head: ['#', 'Start', 'End', 'Dur', 'Type', 'Avg Val', 'Zone', 'Name', 'Match'].map((h) =>
-            chalk.cyan(h)
-          )
+          head: [
+            '#',
+            'Start',
+            'End',
+            'Dur',
+            'Type',
+            'Avg Val',
+            'Cad',
+            'Zone',
+            'Name',
+            'Match',
+            'Conf'
+          ].map((h) => chalk.cyan(h))
         })
 
         detected.forEach((interval: any, index: number) => {
@@ -296,12 +340,44 @@ const intervalsDebugCommand = new Command('intervals')
             interval.duration,
             interval.type,
             Math.round(avgVal || 0),
+            interval.avg_cadence ? Math.round(interval.avg_cadence) : '-',
             interval.intensity_zone || '-',
             interval.label || chalk.gray('-'),
-            interval.match_score ? (interval.match_score * 100).toFixed(0) + '%' : chalk.gray('-')
+            interval.match_score ? (interval.match_score * 100).toFixed(0) + '%' : chalk.gray('-'),
+            interval.detection_confidence
+              ? (interval.detection_confidence * 100).toFixed(0) + '%'
+              : chalk.gray('-')
           ])
         })
         console.log(p.toString())
+        const ambiguous = detected.filter((interval: any) => interval.ambiguity_note)
+        if (ambiguous.length > 0) {
+          console.log(chalk.yellow('\nAmbiguity Notes:'))
+          ambiguous.forEach((interval: any, index: number) => {
+            console.log(
+              `  ${index + 1}. ${interval.type} @ ${interval.start_time}s - ${interval.ambiguity_note}`
+            )
+          })
+        }
+      }
+
+      if (workout.plannedWorkout) {
+        const facts = buildWorkoutAnalysisFactsV2({
+          workout,
+          plannedWorkout: workout.plannedWorkout,
+          userProfile: {
+            language: workout.user?.language || null
+          }
+        })
+        console.log(chalk.bold('\n--- Cadence Adherence Summary ---'))
+        console.log(
+          `Cadence assessable: ${facts.adherence.cadenceAssessable ? chalk.green('yes') : chalk.gray('no')}`
+        )
+        console.log(`Cadence hit rate: ${facts.adherence.cadenceHitRate ?? 'N/A'}%`)
+        console.log(
+          `Structure matched: ${facts.adherence.structureMatched ? chalk.green('yes') : chalk.yellow('no')}`
+        )
+        console.log(`Execution classification: ${facts.adherence.executionClassification}`)
       }
 
       // Peak Efforts
