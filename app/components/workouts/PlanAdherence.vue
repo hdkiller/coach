@@ -62,7 +62,7 @@
       />
 
       <div class="flex flex-wrap items-center justify-between gap-6 relative z-10">
-        <div class="flex-1 min-w-[200px]">
+        <div class="min-w-0 w-full sm:flex-1 sm:min-w-[200px]">
           <div class="flex items-center gap-2 mb-2">
             <UIcon
               name="i-heroicons-viewfinder-circle"
@@ -74,7 +74,7 @@
             >
           </div>
           <h3
-            class="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter truncate"
+            class="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter whitespace-normal break-words sm:truncate"
           >
             {{ plannedWorkout?.title || 'No Prescribed Plan' }}
           </h3>
