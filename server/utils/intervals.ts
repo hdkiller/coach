@@ -352,11 +352,20 @@ export async function upsertIntervalsEvent(
     type: sport
   }
 
-  // Use explicit duration/tss if provided (and no structured doc)
-  if (!data.workout_doc) {
-    if (data.durationSec) eventData.duration = data.durationSec
-    if (data.tss) eventData.tss = data.tss
-  } else if (data.tss) {
+  // Intervals uses the top-level duration to place the event correctly on the calendar,
+  // even when a structured workout_doc is present.
+  const durationSec =
+    typeof data.durationSec === 'number'
+      ? data.durationSec
+      : typeof data.workout_doc?.duration === 'number'
+        ? data.workout_doc.duration
+        : null
+
+  if (durationSec && durationSec > 0) {
+    eventData.duration = durationSec
+  }
+
+  if (data.tss) {
     eventData.tss = data.tss
   }
 

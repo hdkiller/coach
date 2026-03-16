@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  createIntervalsPlannedWorkout,
   normalizeIntervalsPlannedWorkout,
   normalizeIntervalsWorkout,
   cleanIntervalsDescription,
@@ -8,6 +9,10 @@ import {
 
 describe('Intervals.icu Data Normalization', () => {
   const USER_ID = 'test-user-id'
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   describe('cleanIntervalsDescription', () => {
     it('strips Gym exercises list', () => {
@@ -114,6 +119,43 @@ It has multiple lines.
 
       // Actually, let's just check it's NOT forced to midnight.
       expect(result.date.toISOString()).not.toBe('2026-01-15T00:00:00.000Z')
+    })
+  })
+
+  describe('planned workout publishing', () => {
+    it('includes top-level duration when publishing a structured workout', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'event-200' })
+      })
+      vi.stubGlobal('fetch', fetchMock)
+
+      const integration = {
+        accessToken: 'token',
+        scope: 'CALENDAR:WRITE',
+        refreshToken: null
+      } as any
+
+      await createIntervalsPlannedWorkout(integration, {
+        date: new Date('2026-03-16T00:00:00Z'),
+        title: 'Structured Ride',
+        type: 'Ride',
+        durationSec: 4200,
+        tss: 52,
+        workout_doc: {
+          duration: 4200,
+          steps: [{ duration: 600, text: 'Warmup' }]
+        }
+      })
+
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const [, requestInit] = fetchMock.mock.calls[0]!
+      const body = JSON.parse(String(requestInit?.body || '{}'))
+
+      expect(body.start_date_local).toBe('2026-03-16T06:00:00')
+      expect(body.duration).toBe(4200)
+      expect(body.tss).toBe(52)
+      expect(body.category).toBe('WORKOUT')
     })
   })
 
