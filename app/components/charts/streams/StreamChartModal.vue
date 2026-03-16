@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-  import { convertVelocity, isRideWorkoutType } from '~/utils/metrics'
+  import { convertVelocity, isRideWorkoutType, usesImperialDistance } from '~/utils/metrics'
   import BaseStreamChart from './BaseStreamChart.vue'
   import UiWorkoutMap from '~/components/ui/WorkoutMap.vue'
 
@@ -129,15 +129,22 @@
   const showVelocityAsSpeed = computed(
     () => props.streamKey === 'velocity' && isRideWorkoutType(props.activityType)
   )
+  const isDistanceStream = computed(() => props.streamKey === 'distance')
   const numericStreamData = computed(() =>
     streamData.value.filter(
       (value): value is number => typeof value === 'number' && Number.isFinite(value)
     )
   )
+  function convertDistance(value: number) {
+    return usesImperialDistance(distanceUnits.value) ? value / 1609.344 : value / 1000
+  }
+
   const displayStreamData = computed(() =>
     showVelocityAsSpeed.value
       ? numericStreamData.value.map((value) => convertVelocity(value, distanceUnits.value))
-      : numericStreamData.value
+      : isDistanceStream.value
+        ? numericStreamData.value.map((value) => convertDistance(value))
+        : numericStreamData.value
   )
   const gpsCoordinates = computed<[number, number][]>(() =>
     streamData.value.flatMap((point) => {
@@ -180,6 +187,8 @@
   )
 
   function formatStat(value: number) {
+    if (isDistanceStream.value) return value.toFixed(2)
+    if (showVelocityAsSpeed.value) return value.toFixed(1)
     return Number.isInteger(value) ? value.toString() : value.toFixed(1)
   }
 

@@ -110,6 +110,7 @@
     Legend,
     Filler
   } from 'chart.js'
+  import { usesImperialDistance } from '~/utils/metrics'
 
   // Register Chart.js components
   ChartJS.register(
@@ -129,6 +130,7 @@
   }
 
   const props = defineProps<Props>()
+  const userStore = useUserStore()
 
   const loading = ref(true)
   const error = ref<string | null>(null)
@@ -178,7 +180,12 @@
       metrics.push({ key: 'grade', label: 'Grade', color: 'rgb(107, 114, 128)', unit: '%' })
     }
     if (streamData.value.distance && streamData.value.distance.length > 0) {
-      metrics.push({ key: 'distance', label: 'Distance', color: 'rgb(75, 85, 99)', unit: 'm' })
+      metrics.push({
+        key: 'distance',
+        label: 'Distance',
+        color: 'rgb(75, 85, 99)',
+        unit: userStore.distanceUnitLabel
+      })
     }
     if (streamData.value.moving && streamData.value.moving.length > 0) {
       metrics.push({ key: 'moving', label: 'Moving', color: 'rgb(148, 163, 184)', unit: '' })
@@ -297,11 +304,19 @@
 
     const numeric = Number(value)
     if (Number.isNaN(numeric)) return '-'
+    if (metricKey === 'distance') return numeric.toFixed(2)
     return Math.round(numeric).toString()
   }
 
   function getMetricStreamValues(metricKey: string): any[] {
     if (!streamData.value) return []
+    if (metricKey === 'distance') {
+      const rawDistance = streamData.value.distance || []
+      const divisor = usesImperialDistance(userStore.profile?.distanceUnits) ? 1609.344 : 1000
+      return rawDistance.map((value: unknown) =>
+        typeof value === 'number' && Number.isFinite(value) ? value / divisor : value
+      )
+    }
     if (metricKey === 'targetPower') {
       return streamData.value.target_power || streamData.value.targetPower || []
     }
@@ -439,6 +454,9 @@
               size: 11
             },
             callback: function (value: any) {
+              if (metricKey === 'distance') {
+                return Number(value).toFixed(1)
+              }
               return value.toFixed(0)
             }
           },
