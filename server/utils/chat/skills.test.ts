@@ -489,4 +489,28 @@ describe('composeSkillInstructions', () => {
       'first inspect the relevant nutrition log to discover the exact item ID'
     )
   })
+
+  it('requires historical nutrition lookup for same-as meal references', () => {
+    const nutritionInstructions = composeSkillInstructions('BASE', ['nutrition'], {
+      useTools: true
+    })
+
+    expect(nutritionInstructions).toContain(
+      'same as yesterday", "same as last Friday", or "same as 2026-03-01"'
+    )
+    expect(nutritionInstructions).toContain(
+      'first call `get_nutrition_log` for that historical date instead of estimating from memory'
+    )
+  })
+
+  it('requires proportional reuse of historical meal macros when portions change', () => {
+    const nutritionInstructions = composeSkillInstructions('BASE', ['nutrition'], {
+      useTools: true
+    })
+
+    expect(nutritionInstructions).toContain(
+      'If the user changes the portion size, scale the retrieved calories and macros proportionally'
+    )
+    expect(nutritionInstructions).toContain('rather than falling back to a generic estimate')
+  })
 })

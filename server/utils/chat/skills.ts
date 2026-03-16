@@ -380,6 +380,8 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
 
 - When logging food or hydration "now" or for the current moment, call \`get_current_time\` first and pass the exact local time.
 - For relative day references in nutrition writes like "yesterday", "last night", or "tomorrow", call \`resolve_temporal_reference\` before mutating.
+- When a meal log references a past meal as the source context, such as "same as yesterday", "same as last Friday", or "same as 2026-03-01", first call \`get_nutrition_log\` for that historical date instead of estimating from memory.
+- Reuse the historical meal's actual macro profile when the referenced meal is found. If the user changes the portion size, scale the retrieved calories and macros proportionally rather than falling back to a generic estimate.
 - For nutrition corrections, prefer \`patch_nutrition_items\` instead of deleting and recreating entries.
 - If the user refers to an existing meal item by name or context rather than item ID, first inspect the relevant nutrition log to discover the exact item ID before patching or deleting.
 - Explain nutrition results clearly and keep recommendations grounded in the returned data.
