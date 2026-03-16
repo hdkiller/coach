@@ -149,6 +149,8 @@ export interface WorkoutAnalysisFactsV2 {
     durationVsPlanPct: number | null
     workIntervalHitRate: number | null
     recoveryHitRate: number | null
+    cadenceHitRate: number | null
+    cadenceAssessable: boolean
     targetOvershootPct: number | null
     targetUndershootPct: number | null
     structureMatched: boolean
@@ -1019,6 +1021,8 @@ type FlattenedPlannedStep = {
   metric: 'power' | 'pace' | 'heartRate' | 'rpe' | null
   targetValue: number | null
   intensityFactor: number | null
+  cadence: number | null
+  ramp: boolean
   classification: 'work' | 'recovery'
 }
 
@@ -1028,8 +1032,19 @@ type ActualInterval = {
   avgPower: number | null
   avgHr: number | null
   avgSpeed: number | null
+  avgCadence: number | null
   intensity: number | null
+  matchScore: number | null
+  confidence: number | null
+  ambiguityNote: string | null
   classification: 'work' | 'recovery'
+}
+
+type AnalysisRefs = {
+  ftp: number
+  lthr: number
+  maxHr: number
+  thresholdPace: number
 }
 
 export type ActualIntervalForAnalysis = ActualInterval
@@ -1163,6 +1178,11 @@ function flattenPlannedSteps(
         metric,
         targetValue,
         intensityFactor,
+        cadence:
+          typeof step.cadence === 'number' && Number.isFinite(step.cadence) ? step.cadence : null,
+        ramp: Boolean(
+          step.ramp || normalizedType.includes('warm') || normalizedType.includes('cool')
+        ),
         classification: isRecovery ? 'recovery' : 'work'
       })
     }
@@ -1210,7 +1230,20 @@ function mapIntervalsToActual(intervals: any[]): ActualInterval[] {
         avgSpeed: Number.isFinite(Number(interval?.average_speed ?? interval?.avg_pace))
           ? Number(interval?.average_speed ?? interval?.avg_pace)
           : null,
+        avgCadence: Number.isFinite(Number(interval?.average_cadence ?? interval?.avg_cadence))
+          ? Number(interval?.average_cadence ?? interval?.avg_cadence)
+          : null,
         intensity: Number.isFinite(Number(interval?.intensity)) ? Number(interval.intensity) : null,
+        matchScore: Number.isFinite(Number(interval?.match_score))
+          ? Number(interval.match_score)
+          : null,
+        confidence: Number.isFinite(
+          Number(interval?.detection_confidence ?? interval?.classification_confidence)
+        )
+          ? Number(interval?.detection_confidence ?? interval?.classification_confidence)
+          : null,
+        ambiguityNote:
+          typeof interval?.ambiguity_note === 'string' ? String(interval.ambiguity_note) : null,
         classification
       }
     })
@@ -1235,6 +1268,9 @@ function toDetectionPlannedSteps(steps: any[]): Array<{
   type?: string
   power?: { value?: number; range?: { start: number; end: number } }
   heartRate?: { value?: number; range?: { start: number; end: number } }
+  pace?: { value?: number; range?: { start: number; end: number } }
+  cadence?: number
+  ramp?: boolean
 }> {
   const planned: Array<{
     name?: string
@@ -1243,6 +1279,9 @@ function toDetectionPlannedSteps(steps: any[]): Array<{
     type?: string
     power?: { value?: number; range?: { start: number; end: number } }
     heartRate?: { value?: number; range?: { start: number; end: number } }
+    pace?: { value?: number; range?: { start: number; end: number } }
+    cadence?: number
+    ramp?: boolean
   }> = []
 
   const visit = (nodes: any[]) => {
@@ -1262,7 +1301,13 @@ function toDetectionPlannedSteps(steps: any[]): Array<{
           Number(step.duration || step.durationSeconds || step.duration_s || 0) || undefined,
         type: normalizePlannedStepType(step.type),
         power: step.power,
-        heartRate: step.heartRate || step.hr
+        heartRate: step.heartRate || step.hr,
+        pace: step.pace,
+        cadence:
+          typeof step.cadence === 'number' && Number.isFinite(step.cadence)
+            ? step.cadence
+            : undefined,
+        ramp: Boolean(step.ramp)
       })
     }
   }
@@ -1276,6 +1321,7 @@ function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInter
   const power = asNumberArray(workout?.streams?.watts)
   const velocity = asNumberArray(workout?.streams?.velocity)
   const hr = asNumberArray(workout?.streams?.heartrate)
+  const cadence = asNumberArray(workout?.streams?.cadence)
   const family = getWorkoutFamily(workout?.type)
   const plannedSteps = toDetectionPlannedSteps(
     getStructuredSteps(
@@ -1297,7 +1343,9 @@ function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInter
       power,
       'power',
       Number(workout?.ftp || 0) || undefined,
-      plannedSteps
+      plannedSteps,
+      undefined,
+      cadence
     )
   } else if (
     time.length > 0 &&
@@ -1305,10 +1353,18 @@ function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInter
     velocity.length > 0 &&
     family === 'run'
   ) {
-    detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps)
+    detected = detectIntervals(time, velocity, 'pace', undefined, plannedSteps, undefined, cadence)
   } else if (time.length > 0 && hr.length === time.length && hr.length > 0) {
     const maxHr = Number(workout?.maxHr || 0) || undefined
-    detected = detectIntervals(time, hr, 'heartrate', maxHr ? maxHr * 0.7 : undefined, plannedSteps)
+    detected = detectIntervals(
+      time,
+      hr,
+      'heartrate',
+      maxHr ? maxHr * 0.7 : undefined,
+      plannedSteps,
+      undefined,
+      cadence
+    )
   }
 
   return mapIntervalsToActual(detected)
@@ -1316,37 +1372,70 @@ function buildDetectedIntervals(workout: any, plannedWorkout?: any): ActualInter
 
 function scoreIntervalStructure(
   actualIntervals: ActualInterval[],
-  plannedSteps: FlattenedPlannedStep[]
+  plannedSteps: FlattenedPlannedStep[],
+  refs: AnalysisRefs
 ): number {
   if (actualIntervals.length === 0) return 0
 
-  const plannedWork = plannedSteps.filter((step) => step.classification === 'work').length
-  const plannedRecovery = plannedSteps.filter((step) => step.classification === 'recovery').length
-  const actualWork = actualIntervals.filter((step) => step.classification === 'work').length
-  const actualRecovery = actualIntervals.filter((step) => step.classification === 'recovery').length
-
+  const sequencePairs = Math.min(actualIntervals.length, plannedSteps.length)
   let score = 0
-  if (plannedWork > 0 && actualWork > 0) {
-    score += Math.max(0, 1 - Math.abs(plannedWork - actualWork) / plannedWork) * 2
-  }
-  if (plannedRecovery > 0 && actualRecovery > 0) {
-    score += Math.max(0, 1 - Math.abs(plannedRecovery - actualRecovery) / plannedRecovery) * 2
-  }
-  if (plannedRecovery > 0 && actualRecovery === 0) {
-    score -= 2
-  }
-  if (
-    actualIntervals.every((interval) => interval.classification === 'work') &&
-    plannedRecovery > 0
-  ) {
-    score -= 2
-  }
-  const alternations = actualIntervals.slice(1).filter((interval, index) => {
-    return interval.classification !== actualIntervals[index]?.classification
-  }).length
-  if (alternations > 0) score += Math.min(alternations, 4) * 0.5
 
-  return score
+  for (let index = 0; index < sequencePairs; index++) {
+    const planned = plannedSteps[index]!
+    const actual = actualIntervals[index]!
+    score += planned.classification === actual.classification ? 1.5 : -1
+
+    const durationRatio =
+      Math.min(planned.durationSeconds, actual.durationSeconds) /
+      Math.max(planned.durationSeconds, actual.durationSeconds)
+    score += durationRatio
+
+    if (
+      planned.metric === 'power' &&
+      planned.targetValue !== null &&
+      actual.avgPower !== null &&
+      actual.avgPower > 0
+    ) {
+      const targetPower =
+        planned.targetValue <= 2 && refs.ftp > 0
+          ? planned.targetValue * refs.ftp
+          : planned.targetValue
+      const delta = Math.abs(actual.avgPower - targetPower) / Math.max(1, targetPower)
+      score += Math.max(0, 1 - delta) * 0.8
+    }
+
+    if (planned.metric === 'heartRate' && planned.targetValue !== null && actual.avgHr !== null) {
+      const delta = Math.abs(actual.avgHr - planned.targetValue) / Math.max(1, planned.targetValue)
+      score += Math.max(0, 1 - delta * 3) * 0.6
+    }
+
+    if (planned.metric === 'pace' && planned.targetValue !== null && actual.avgSpeed !== null) {
+      const delta =
+        Math.abs(actual.avgSpeed - planned.targetValue) / Math.max(0.1, planned.targetValue)
+      score += Math.max(0, 1 - delta * 4) * 0.6
+    }
+
+    if (planned.cadence !== null && actual.avgCadence !== null) {
+      const cadenceTolerance = planned.ramp ? 8 : 5
+      score +=
+        Math.max(0, 1 - Math.abs(actual.avgCadence - planned.cadence) / (cadenceTolerance * 2)) *
+        0.8
+    }
+
+    if (actual.matchScore !== null) score += actual.matchScore * 0.6
+    if (actual.confidence !== null) score += actual.confidence * 0.5
+  }
+
+  score -= Math.abs(plannedSteps.length - actualIntervals.length) * 0.8
+
+  const plannedTerminalRecovery = plannedSteps.at(-2)?.classification === 'recovery'
+  const actualTerminalRecovery = actualIntervals.at(-2)?.classification === 'recovery'
+  const actualEndsWithCooldown = actualIntervals.at(-1)?.type === 'COOLDOWN'
+  if (plannedTerminalRecovery && actualEndsWithCooldown && !actualTerminalRecovery) {
+    score -= 2.25
+  }
+
+  return round(score, 2) || 0
 }
 
 function hasTerminalRecoveryPhase(
@@ -1392,10 +1481,16 @@ function extractActualIntervals(workout: any, plannedWorkout?: any): ActualInter
 
   if (plannedSteps.length === 0) return rawActual
 
-  const rawScore = scoreIntervalStructure(rawActual, plannedSteps)
-  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps)
+  const refs = {
+    ftp: Number(workout?.ftp || 0),
+    lthr: 0,
+    maxHr: Number(workout?.maxHr || 0),
+    thresholdPace: 0
+  }
+  const rawScore = scoreIntervalStructure(rawActual, plannedSteps, refs)
+  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps, refs)
 
-  return detectedScore > rawScore + 1 ? detectedActual : rawActual
+  return detectedScore >= rawScore ? detectedActual : rawActual
 }
 
 export function getActualIntervalsForAnalysis(
@@ -1430,10 +1525,16 @@ export function getActualIntervalsSourceForAnalysis(
 
   if (plannedSteps.length === 0) return 'raw'
 
-  const rawScore = scoreIntervalStructure(rawActual, plannedSteps)
-  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps)
+  const refs = {
+    ftp: Number(workout?.ftp || 0),
+    lthr: 0,
+    maxHr: Number(workout?.maxHr || 0),
+    thresholdPace: 0
+  }
+  const rawScore = scoreIntervalStructure(rawActual, plannedSteps, refs)
+  const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps, refs)
 
-  return detectedScore > rawScore + 1 ? 'detected' : 'raw'
+  return detectedScore >= rawScore ? 'detected' : 'raw'
 }
 
 export function formatActualIntervalsForPrompt(workout: any, plannedWorkout?: any): string {
@@ -1447,7 +1548,12 @@ export function formatActualIntervalsForPrompt(workout: any, plannedWorkout?: an
       const duration = `${minutes}m ${seconds}s`
       const avgPower = interval.avgPower != null ? `${Math.round(interval.avgPower)}W` : 'N/A'
       const avgHr = interval.avgHr != null ? `${Math.round(interval.avgHr)}bpm` : 'N/A'
-      return `Int ${idx + 1}: ${duration} | ${interval.type} | ${avgPower} | ${avgHr}`
+      const avgCadence =
+        interval.avgCadence != null ? `${Math.round(interval.avgCadence)}rpm` : 'N/A'
+      const confidence =
+        interval.confidence != null ? ` | conf ${(interval.confidence * 100).toFixed(0)}%` : ''
+      const note = interval.ambiguityNote ? ` | note ${interval.ambiguityNote}` : ''
+      return `Int ${idx + 1}: ${duration} | ${interval.type} | ${avgPower} | ${avgHr} | ${avgCadence}${confidence}${note}`
     })
     .join('\n      ')
 }
@@ -1843,6 +1949,8 @@ function deriveAdherence(params: {
       durationVsPlanPct: null,
       workIntervalHitRate: null,
       recoveryHitRate: null,
+      cadenceHitRate: null,
+      cadenceAssessable: false,
       targetOvershootPct: null,
       targetUndershootPct: null,
       structureMatched: false,
@@ -1876,6 +1984,8 @@ function deriveAdherence(params: {
       durationVsPlanPct,
       workIntervalHitRate: null,
       recoveryHitRate: null,
+      cadenceHitRate: null,
+      cadenceAssessable: false,
       targetOvershootPct: null,
       targetUndershootPct: null,
       structureMatched: false,
@@ -1895,6 +2005,8 @@ function deriveAdherence(params: {
       durationVsPlanPct,
       workIntervalHitRate: null,
       recoveryHitRate: null,
+      cadenceHitRate: null,
+      cadenceAssessable: false,
       targetOvershootPct: null,
       targetUndershootPct: null,
       structureMatched: false,
@@ -1909,6 +2021,7 @@ function deriveAdherence(params: {
 
   const workPairs = Math.min(plannedWork.length, actualWork.length)
   const recoveryPairs = Math.min(plannedRecovery.length, actualRecovery.length)
+  const cadencePlanned = plannedSteps.filter((step) => step.cadence !== null)
   const pairMetric = (
     planned: FlattenedPlannedStep,
     actual: ActualInterval
@@ -1957,6 +2070,7 @@ function deriveAdherence(params: {
 
   let workHits = 0
   let recoveryHits = 0
+  let cadenceHits = 0
   const overshoots: number[] = []
   const undershoots: number[] = []
 
@@ -1972,10 +2086,21 @@ function deriveAdherence(params: {
     if (result.hit) recoveryHits++
   }
 
+  for (let index = 0; index < Math.min(plannedSteps.length, actualIntervals.length); index++) {
+    const planned = plannedSteps[index]!
+    const actual = actualIntervals[index]!
+    if (planned.cadence === null) continue
+    if (actual.avgCadence === null || actual.avgCadence <= 0) continue
+    const tolerance = planned.ramp ? 8 : 5
+    if (Math.abs(actual.avgCadence - planned.cadence) <= tolerance) cadenceHits++
+  }
+
   const workIntervalHitRate =
     plannedWork.length > 0 ? round((workHits / plannedWork.length) * 100, 1) : null
   const recoveryHitRate =
     plannedRecovery.length > 0 ? round((recoveryHits / plannedRecovery.length) * 100, 1) : null
+  const cadenceHitRate =
+    cadencePlanned.length > 0 ? round((cadenceHits / cadencePlanned.length) * 100, 1) : null
   const structureMatched =
     plannedWork.length > 0 &&
     actualWork.length > 0 &&
@@ -2005,6 +2130,8 @@ function deriveAdherence(params: {
     durationVsPlanPct,
     workIntervalHitRate,
     recoveryHitRate,
+    cadenceHitRate,
+    cadenceAssessable: cadencePlanned.length > 0,
     targetOvershootPct,
     targetUndershootPct,
     structureMatched,
@@ -2134,6 +2261,16 @@ function buildPromptDecisionsV2(facts: WorkoutAnalysisFactsV2): Record<string, P
     'adherence.recoveryHitRate',
     facts.adherence.recoveryHitRate !== null,
     'Recovery hit rate helps judge complete execution, not just hard efforts.'
+  )
+  set(
+    'adherence.cadenceHitRate',
+    facts.adherence.cadenceHitRate !== null,
+    'Cadence hit rate summarizes how often prescribed cadence was respected.'
+  )
+  set(
+    'adherence.cadenceAssessable',
+    facts.adherence.cadenceAssessable,
+    'The model should know whether cadence prescriptions were present and assessable.'
   )
   set(
     'adherence.targetOvershootPct',
