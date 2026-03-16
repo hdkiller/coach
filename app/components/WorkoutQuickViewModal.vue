@@ -65,7 +65,7 @@
               size="xs"
               class="font-black uppercase tracking-widest text-[9px]"
             >
-              {{ workout.source }}
+              {{ getWorkoutSourceLabel(workout) }}
             </UBadge>
           </div>
         </div>
@@ -404,6 +404,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getWorkoutSourceLabel } from '~/utils/workout-source'
+
   const { formatDateTime, formatDateUTC } = useFormat()
 
   const props = defineProps<{

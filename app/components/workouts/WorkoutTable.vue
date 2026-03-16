@@ -125,7 +125,7 @@
             </td>
             <td class="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm">
               <span :class="getSourceBadgeClass(workout.source)">
-                {{ workout.source }}
+                {{ getWorkoutSourceLabel(workout) }}
               </span>
             </td>
           </tr>
@@ -159,6 +159,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getWorkoutSourceLabel } from '~/utils/workout-source'
+
   const props = defineProps<{
     workouts: any[]
     loading: boolean

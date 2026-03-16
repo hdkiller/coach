@@ -257,7 +257,7 @@
           <span
             v-else
             class="font-mono text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]"
-            >{{ workout.source }}</span
+            >{{ getWorkoutSourceLabel(workout) }}</span
           >
         </div>
       </div>
@@ -266,6 +266,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getWorkoutSourceLabel } from '~/utils/workout-source'
+
   const { formatDateTime } = useFormat()
 
   const props = defineProps<{

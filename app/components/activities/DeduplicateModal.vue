@@ -134,7 +134,7 @@
                       <div class="text-xs text-gray-500 flex items-center justify-between w-full">
                         <div class="flex items-center gap-2 overflow-hidden">
                           <span class="truncate"
-                            >{{ formatSource(group.bestWorkout.source) }} •
+                            >{{ formatSource(group.bestWorkout) }} •
                             {{ formatDurationCompact(group.bestWorkout.durationSec) }}</span
                           >
                           <span
@@ -231,7 +231,7 @@
                         </div>
                         <div class="text-xs text-gray-500 flex items-center justify-between w-full">
                           <span
-                            >{{ formatSource(dup.source) }} •
+                            >{{ formatSource(dup) }} •
                             {{ formatDurationCompact(dup.durationSec) }}</span
                           >
                           <div class="flex items-center gap-1">
@@ -312,6 +312,8 @@
 </template>
 
 <script setup lang="ts">
+  import { getWorkoutSourceLabel } from '~/utils/workout-source'
+
   import { useUserRuns } from '~/composables/useUserRuns'
   import { getWorkoutIcon, getWorkoutColorClass } from '~/utils/activity-types'
 
@@ -386,8 +388,8 @@
     { deep: true }
   )
 
-  function formatSource(source: string) {
-    return source ? source.charAt(0).toUpperCase() + source.slice(1) : 'Unknown'
+  function formatSource(workout: any) {
+    return getWorkoutSourceLabel(workout) || 'Unknown'
   }
 
   function formatDurationCompact(seconds: number): string {
