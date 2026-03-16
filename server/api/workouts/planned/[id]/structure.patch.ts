@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
   // 2. Parse text to JSON or use provided steps
   const steps = Array.isArray(providedSteps)
     ? providedSteps
-    : WorkoutParser.parseIntervalsICU(text!)
+    : WorkoutParser.parseIntervalsICU(text!, { workoutType: workout.type || '' })
   const structuredWorkout = {
     ...((workout.structuredWorkout as any) || {}),
     steps

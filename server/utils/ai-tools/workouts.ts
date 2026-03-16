@@ -2,6 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { prisma } from '../db'
 import { workoutRepository } from '../repositories/workoutRepository'
+import { plannedWorkoutRepository } from '../repositories/plannedWorkoutRepository'
 import {
   getStartOfDaysAgoUTC,
   formatUserDate,
@@ -12,6 +13,7 @@ import {
 import { analyzeWorkoutTask } from '../../../trigger/analyze-workout'
 import type { AiSettings } from '../ai-user-settings'
 import { hasProtectedIntervalsTags, mergeWorkoutTags } from '../workout-tags'
+import { getPendingSyncStatus } from '../structured-workout-persistence'
 
 export const workoutTools = (userId: string, timezone: string, aiSettings: AiSettings) => ({
   get_recent_workouts: tool({
@@ -368,7 +370,21 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
       tss
     }) => {
       const workout = await workoutRepository.getById(workout_id, userId)
-      if (!workout) return { error: 'Workout not found' }
+      const plannedWorkout = workout
+        ? null
+        : await plannedWorkoutRepository.getById(workout_id, userId, {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              date: true,
+              durationSec: true,
+              tss: true,
+              syncStatus: true
+            }
+          })
+
+      if (!workout && !plannedWorkout) return { error: 'Workout not found' }
 
       try {
         const updateData: Record<string, any> = {}
@@ -390,6 +406,46 @@ export const workoutTools = (userId: string, timezone: string, aiSettings: AiSet
 
         if (Object.keys(updateData).length === 0) {
           return { error: 'No fields provided to update.' }
+        }
+
+        if (plannedWorkout) {
+          const plannedUpdateData: Record<string, any> = {
+            modifiedLocally: true,
+            syncStatus: getPendingSyncStatus((plannedWorkout as any).syncStatus),
+            syncError: null
+          }
+          if (title !== undefined) plannedUpdateData.title = title
+          if (type !== undefined) plannedUpdateData.type = type
+          if (description !== undefined) plannedUpdateData.description = description
+          if (duration_seconds !== undefined) plannedUpdateData.durationSec = duration_seconds
+          if (distance_meters !== undefined) plannedUpdateData.distanceMeters = distance_meters
+          if (tss !== undefined) plannedUpdateData.tss = tss
+
+          if (date !== undefined) {
+            const parsedDate = new Date(date)
+            if (Number.isNaN(parsedDate.getTime())) {
+              return { error: 'Invalid date format. Use ISO date/time or YYYY-MM-DD.' }
+            }
+            plannedUpdateData.date = parsedDate
+          }
+
+          const updatedPlannedWorkout = await plannedWorkoutRepository.update(
+            workout_id,
+            userId,
+            plannedUpdateData
+          )
+          return {
+            success: true,
+            message: 'Planned workout update prepared successfully.',
+            workout: {
+              id: updatedPlannedWorkout.id,
+              title: updatedPlannedWorkout.title,
+              type: updatedPlannedWorkout.type,
+              date: formatUserDate(updatedPlannedWorkout.date, timezone),
+              duration: updatedPlannedWorkout.durationSec,
+              tss: updatedPlannedWorkout.tss
+            }
+          }
         }
 
         const updatedWorkout = await workoutRepository.update(workout_id, updateData)
