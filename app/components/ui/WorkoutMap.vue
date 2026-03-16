@@ -164,8 +164,16 @@
         </LMap>
 
         <!-- Attribution Overlay -->
-        <div v-if="provider" class="absolute bottom-1 left-1 z-[1000] pointer-events-none">
-          <UiDataAttribution :provider="provider" :device-name="deviceName" mode="overlay" />
+        <div
+          v-if="provider || providerLabel"
+          class="absolute bottom-1 left-1 z-[1000] pointer-events-none"
+        >
+          <UiDataAttribution
+            :provider="provider || ''"
+            :device-name="deviceName"
+            :fallback-label="providerLabel"
+            mode="overlay"
+          />
         </div>
       </div>
       <div v-else class="flex flex-col items-center gap-2 text-gray-500">
@@ -185,6 +193,7 @@
       interactive?: boolean
       scrollWheelZoom?: boolean
       provider?: string
+      providerLabel?: string
       deviceName?: string
       streams?: Record<string, any>
       workoutId?: string
@@ -196,6 +205,14 @@
     {
       interactive: true,
       scrollWheelZoom: false,
+      provider: undefined,
+      providerLabel: undefined,
+      deviceName: undefined,
+      streams: undefined,
+      workoutId: undefined,
+      highlightIndex: null,
+      highlightRange: null,
+      highlightRanges: null,
       mapHeight: 'h-96'
     }
   )

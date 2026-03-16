@@ -1,7 +1,7 @@
 <template>
-  <div v-if="rule" :class="containerClasses">
+  <div v-if="rule || fallbackLabel" :class="containerClasses">
     <!-- Logo -->
-    <div class="relative flex items-end">
+    <div v-if="rule" class="relative flex items-end">
       <img
         :src="rule.logoLight"
         :alt="`Data from ${provider}`"
@@ -31,6 +31,13 @@
     >
       {{ rule.textFormat(deviceName) }}
     </span>
+    <span
+      v-else-if="fallbackLabel"
+      class="font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+      :class="fallbackTextClasses"
+    >
+      {{ fallbackLabel }}
+    </span>
   </div>
 </template>
 
@@ -42,10 +49,12 @@
       provider: string
       deviceName?: string
       mode?: 'standard' | 'minimal' | 'overlay'
+      fallbackLabel?: string
     }>(),
     {
       mode: 'standard',
-      deviceName: undefined
+      deviceName: undefined,
+      fallbackLabel: ''
     }
   )
 
@@ -81,6 +90,18 @@
   const textClasses = computed(() => {
     if (props.mode === 'overlay') return 'text-xs font-semibold'
     return ''
+  })
+
+  const fallbackTextClasses = computed(() => {
+    const classes = []
+    if (!rule.value) {
+      classes.push('uppercase', 'tracking-widest')
+    }
+    if (props.mode === 'overlay') classes.push('text-[10px]', 'font-black')
+    else if (props.mode === 'minimal') classes.push('text-[9px]', 'font-black')
+    else classes.push('text-xs', 'font-semibold')
+    if (rule.value) classes.push('ml-2')
+    return classes
   })
 </script>
 
