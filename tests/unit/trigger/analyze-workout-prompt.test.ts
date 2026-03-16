@@ -68,12 +68,15 @@ describe('buildWorkoutAnalysisPrompt', () => {
     )
 
     expect(prompt).toContain('Session Steadiness: stochastic')
+    expect(prompt).toContain('Pacing Drift Applicable: No')
+    expect(prompt).toContain('Pacing Drift Applicability Reason:')
     expect(prompt).toContain(
       'Do not criticize the athlete for lacking a constant pace or uniform effort'
     )
     expect(prompt).toContain(
       'avoid cycling-specific gear advice such as recommending a power meter'
     )
+    expect(prompt).toContain('Keep recommendations conservative and avoid strong causal claims')
     expect(prompt).toContain('Decoupling Guardrail:')
     expect(prompt).not.toContain('- Decoupling: -91.8%')
   })

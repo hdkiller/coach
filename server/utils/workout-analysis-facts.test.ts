@@ -465,6 +465,10 @@ describe('buildWorkoutAnalysisFacts', () => {
     expect(facts.guardrails.archetype.primaryArchetype).toBe('mixed')
     expect(facts.guardrails.archetype.sessionSteadiness).toBe('stochastic')
     expect(facts.performanceSignals.sportSpecific.pacingDriftPct).toBeNull()
+    expect(facts.performanceSignals.applicability.pacingDrift.applicable).toBe(false)
+    expect(facts.performanceSignals.applicability.pacingDrift.reason).toContain(
+      'steady run-like sessions'
+    )
     expect(facts.performanceSignals.decoupling.interpretable).toBe(false)
     expect(facts.guardrails.suppressions.join(' ')).toContain('Stop-and-go motion pattern')
   })

@@ -2521,6 +2521,61 @@ function buildPromptDecisionsV2(facts: WorkoutAnalysisFactsV2): Record<string, P
     'The prompt must know whether classic decoupling can be discussed.'
   )
   set(
+    'performanceSignals.applicability.lateSessionFade.applicable',
+    !facts.performanceSignals.applicability.lateSessionFade.applicable,
+    'Show non-applicability when fade should not be interpreted.'
+  )
+  set(
+    'performanceSignals.applicability.lateSessionFade.reason',
+    !facts.performanceSignals.applicability.lateSessionFade.applicable &&
+      Boolean(facts.performanceSignals.applicability.lateSessionFade.reason),
+    'A reason is useful when late-session fade is not applicable.'
+  )
+  set(
+    'performanceSignals.applicability.executionStability.applicable',
+    !facts.performanceSignals.applicability.executionStability.applicable,
+    'Show non-applicability when execution stability should not drive feedback.'
+  )
+  set(
+    'performanceSignals.applicability.executionStability.reason',
+    !facts.performanceSignals.applicability.executionStability.applicable &&
+      Boolean(facts.performanceSignals.applicability.executionStability.reason),
+    'A reason is useful when execution stability is unavailable or inapplicable.'
+  )
+  set(
+    'performanceSignals.applicability.repeatability.applicable',
+    !facts.performanceSignals.applicability.repeatability.applicable,
+    'Show non-applicability when repeatability should not be inferred.'
+  )
+  set(
+    'performanceSignals.applicability.repeatability.reason',
+    !facts.performanceSignals.applicability.repeatability.applicable &&
+      Boolean(facts.performanceSignals.applicability.repeatability.reason),
+    'A reason is useful when repeatability is unavailable or inapplicable.'
+  )
+  set(
+    'performanceSignals.applicability.cadenceDrift.applicable',
+    !facts.performanceSignals.applicability.cadenceDrift.applicable,
+    'Show non-applicability when cadence drift cannot be trusted.'
+  )
+  set(
+    'performanceSignals.applicability.cadenceDrift.reason',
+    !facts.performanceSignals.applicability.cadenceDrift.applicable &&
+      Boolean(facts.performanceSignals.applicability.cadenceDrift.reason),
+    'A reason is useful when cadence drift is unavailable or inapplicable.'
+  )
+  set(
+    'performanceSignals.applicability.pacingDrift.applicable',
+    !facts.performanceSignals.applicability.pacingDrift.applicable,
+    'Show non-applicability when pacing drift should not be interpreted.'
+  )
+  set(
+    'performanceSignals.applicability.pacingDrift.reason',
+    !facts.performanceSignals.applicability.pacingDrift.applicable &&
+      Boolean(facts.performanceSignals.applicability.pacingDrift.reason),
+    'A reason is useful when pacing drift is unavailable or inapplicable.'
+  )
+  set(
     'performanceSignals.decoupling.reason',
     Boolean(facts.performanceSignals.decoupling.reason),
     'A reason is useful when decoupling is suppressed.'
@@ -2732,9 +2787,21 @@ export function buildWorkoutAnalysisFactsV2({
     )
   }
 
+  const durability = deriveDurabilitySignals({ workout, family, plannedWorkout, refs })
+  const sportSpecific = deriveSportSpecificSignals({ workout, family, archetype, motionPattern })
+  const applicability = deriveSignalApplicability({
+    workout,
+    family,
+    archetype,
+    motionPattern,
+    durability,
+    sportSpecific
+  })
+
   const performanceSignals: WorkoutAnalysisFactsV2['performanceSignals'] = {
+    applicability,
     decoupling,
-    durability: deriveDurabilitySignals({ workout, family, plannedWorkout, refs }),
+    durability,
     zones: {
       dominantPowerZone: getZoneDominance(workout?.streams?.powerZoneTimes, 'Z'),
       dominantHrZone: getZoneDominance(workout?.streams?.hrZoneTimes, 'HRZ'),
@@ -2742,7 +2809,7 @@ export function buildWorkoutAnalysisFactsV2({
         getTimeAboveThresholdPct(workout?.streams?.powerZoneTimes) ??
         getTimeAboveThresholdPct(workout?.streams?.hrZoneTimes)
     },
-    sportSpecific: deriveSportSpecificSignals({ workout, family, archetype, motionPattern })
+    sportSpecific
   }
 
   const guardrails: WorkoutAnalysisFactsV2['guardrails'] = {

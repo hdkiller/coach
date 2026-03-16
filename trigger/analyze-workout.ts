@@ -1010,6 +1010,46 @@ function buildAnalysisFactsPromptBlock(analysisFacts?: WorkoutAnalysisFactsV2): 
     {
       title: 'Performance Signals',
       items: [
+        {
+          path: 'performanceSignals.applicability.lateSessionFade.applicable',
+          label: 'Late Session Fade Applicable'
+        },
+        {
+          path: 'performanceSignals.applicability.lateSessionFade.reason',
+          label: 'Late Session Fade Applicability Reason'
+        },
+        {
+          path: 'performanceSignals.applicability.executionStability.applicable',
+          label: 'Execution Stability Applicable'
+        },
+        {
+          path: 'performanceSignals.applicability.executionStability.reason',
+          label: 'Execution Stability Applicability Reason'
+        },
+        {
+          path: 'performanceSignals.applicability.repeatability.applicable',
+          label: 'Repeatability Applicable'
+        },
+        {
+          path: 'performanceSignals.applicability.repeatability.reason',
+          label: 'Repeatability Applicability Reason'
+        },
+        {
+          path: 'performanceSignals.applicability.cadenceDrift.applicable',
+          label: 'Cadence Drift Applicable'
+        },
+        {
+          path: 'performanceSignals.applicability.cadenceDrift.reason',
+          label: 'Cadence Drift Applicability Reason'
+        },
+        {
+          path: 'performanceSignals.applicability.pacingDrift.applicable',
+          label: 'Pacing Drift Applicable'
+        },
+        {
+          path: 'performanceSignals.applicability.pacingDrift.reason',
+          label: 'Pacing Drift Applicability Reason'
+        },
         { path: 'performanceSignals.decoupling.interpretable', label: 'Decoupling Interpretable' },
         { path: 'performanceSignals.decoupling.reason', label: 'Decoupling Reason' },
         { path: 'performanceSignals.decoupling.effective', label: 'Decoupling Effective' },
@@ -1122,6 +1162,28 @@ function buildAnalysisGuardrailInstructions(
   if (workoutType.toLowerCase().includes('ski')) {
     rules.push(
       'For Nordic/cross-country skiing, avoid cycling-specific gear advice such as recommending a power meter unless the user explicitly asks about equipment.'
+    )
+  }
+
+  if (analysisFacts?.confidence.overall === 'medium') {
+    rules.push(
+      'Keep recommendations conservative and avoid strong causal claims; prefer tentative wording such as "may", "might", or "suggests".'
+    )
+  }
+
+  if (analysisFacts?.confidence.overall === 'low') {
+    rules.push(
+      'Do not make high-priority recommendations or strong diagnosis-style claims when overall confidence is low.'
+    )
+  }
+
+  const inapplicableSignals = Object.entries(analysisFacts?.performanceSignals.applicability || {})
+    .filter(([, value]: any) => value && value.applicable === false)
+    .map(([key]) => key)
+
+  if (inapplicableSignals.length > 0) {
+    rules.push(
+      `Do not base recommendations on inapplicable signals for this workout: ${inapplicableSignals.join(', ')}.`
     )
   }
 
