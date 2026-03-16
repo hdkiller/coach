@@ -1510,6 +1510,7 @@ model PlanAdherence {
   intensityScore   Int?
   durationScore    Int?
   executionScore   Int?
+  cadenceScore     Int?
   summary          String?
   deviations       Json?
   recommendations  Json?
