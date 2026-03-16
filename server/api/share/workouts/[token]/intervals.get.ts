@@ -163,20 +163,44 @@ export default defineEventHandler(async (event) => {
     // Detect based on Power
     detectionMetric = 'power'
     // Use FTP as threshold if available, otherwise auto-baseline
-    detectedIntervals = detectIntervals(time, wattsStream!, 'power', effectiveFtp || undefined)
+    detectedIntervals = detectIntervals(
+      time,
+      wattsStream!,
+      'power',
+      effectiveFtp || undefined,
+      undefined,
+      undefined,
+      cadenceStream || undefined
+    )
   } else if (velocityStream && velocityStream.length > 0) {
     // Detect based on Pace (Velocity)
     // Only for runs/swims typically
     if (workout.type === 'Run' || workout.type === 'Swim' || workout.type === 'Walk') {
       detectionMetric = 'pace'
-      detectedIntervals = detectIntervals(time, velocityStream!, 'pace')
+      detectedIntervals = detectIntervals(
+        time,
+        velocityStream!,
+        'pace',
+        undefined,
+        undefined,
+        undefined,
+        cadenceStream || undefined
+      )
     }
   } else if (hasHr) {
     // Detect based on HR (least reliable for short intervals due to lag, but good for steady state)
     detectionMetric = 'heartrate'
     const maxHr = workout.maxHr || (workout as any).user?.maxHr
     const threshold = maxHr ? maxHr * 0.7 : undefined // approx Z2 border
-    detectedIntervals = detectIntervals(time, hrStream!, 'heartrate', threshold)
+    detectedIntervals = detectIntervals(
+      time,
+      hrStream!,
+      'heartrate',
+      threshold,
+      undefined,
+      undefined,
+      cadenceStream || undefined
+    )
   }
 
   // 2. Find Peak Efforts

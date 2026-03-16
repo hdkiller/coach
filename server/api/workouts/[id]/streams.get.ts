@@ -320,6 +320,7 @@ export default defineEventHandler(async (event) => {
         const watts = (workoutStream.watts as number[]) || []
         const heartrate = (workoutStream.heartrate as number[]) || []
         const velocity = (workoutStream.velocity as number[]) || []
+        const cadence = (workoutStream.cadence as number[]) || []
         const altitude = (workoutStream.altitude as number[]) || []
         const distance = (workoutStream.distance as number[]) || []
 
@@ -330,20 +331,34 @@ export default defineEventHandler(async (event) => {
               time,
               watts,
               'power',
-              user.ftp || undefined
+              user.ftp || undefined,
+              undefined,
+              undefined,
+              cadence
             )
           } else if (
             velocity.length === time.length &&
             (workout.type === 'Run' || workout.type === 'Swim')
           ) {
-            ;(processedStream as any).detectedIntervals = detectIntervals(time, velocity, 'pace')
+            ;(processedStream as any).detectedIntervals = detectIntervals(
+              time,
+              velocity,
+              'pace',
+              undefined,
+              undefined,
+              undefined,
+              cadence
+            )
           } else if (heartrate.length === time.length) {
             const threshold = user.maxHr ? user.maxHr * 0.7 : undefined
             ;(processedStream as any).detectedIntervals = detectIntervals(
               time,
               heartrate,
               'heartrate',
-              threshold
+              threshold,
+              undefined,
+              undefined,
+              cadence
             )
           }
 
@@ -404,6 +419,7 @@ export default defineEventHandler(async (event) => {
         const watts = (workoutStream.watts as number[]) || []
         const heartrate = (workoutStream.heartrate as number[]) || []
         const velocity = (workoutStream.velocity as number[]) || []
+        const cadence = (workoutStream.cadence as number[]) || []
         const altitude = (workoutStream.altitude as number[]) || []
         const distance = (workoutStream.distance as number[]) || []
 
@@ -413,7 +429,10 @@ export default defineEventHandler(async (event) => {
               time,
               watts,
               'power',
-              user.ftp || undefined
+              user.ftp || undefined,
+              undefined,
+              undefined,
+              cadence
             )
           } else if (heartrate.length === time.length) {
             const threshold = user.maxHr ? user.maxHr * 0.7 : undefined
@@ -421,7 +440,10 @@ export default defineEventHandler(async (event) => {
               time,
               heartrate,
               'heartrate',
-              threshold
+              threshold,
+              undefined,
+              undefined,
+              cadence
             )
           }
 

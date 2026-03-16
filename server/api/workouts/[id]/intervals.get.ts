@@ -214,7 +214,8 @@ export default defineEventHandler(async (event) => {
       'power',
       calculationFtp,
       plannedSteps,
-      smoothedPowerStream
+      smoothedPowerStream,
+      cadenceStream || undefined
     )
   } else if (
     velocityStream &&
@@ -227,13 +228,23 @@ export default defineEventHandler(async (event) => {
       velocityStream!,
       'pace',
       undefined,
-      plannedSteps
+      plannedSteps,
+      undefined,
+      cadenceStream || undefined
     )
   } else if (hasHr) {
     autoDetectionMetric = 'heartrate'
     const maxHr = workout.maxHr || user.maxHr
     const threshold = maxHr ? maxHr * 0.7 : undefined
-    detectedEngineIntervals = detectIntervals(time, hrStream!, 'heartrate', threshold, plannedSteps)
+    detectedEngineIntervals = detectIntervals(
+      time,
+      hrStream!,
+      'heartrate',
+      threshold,
+      plannedSteps,
+      undefined,
+      cadenceStream || undefined
+    )
   }
 
   // C. Selection Logic
