@@ -1008,6 +1008,17 @@
           upsertChatMessage(data.message)
           return
         }
+        if (data.type === 'chat_memory_event' && data.roomId === currentRoomId.value) {
+          toast.add({
+            title: 'Memory updated',
+            description: data.notice || 'Chat memory changed.',
+            color: 'success'
+          })
+          if (isMemoryPanelOpen.value) {
+            void loadMemoryState()
+          }
+          return
+        }
         if (
           data.type === 'chat_turn_status' &&
           data.roomId === currentRoomId.value &&
@@ -1410,10 +1421,68 @@
   // Share current chat room
   const isShareModalOpen = ref(false)
   const shareExpiryValue = ref('2592000')
+  const isMemoryPanelOpen = ref(false)
+  const loadingMemoryPanel = ref(false)
+  const savingMemorySettings = ref(false)
+  const showSensitiveMemories = ref(false)
+  const memoryTab = ref<'global' | 'room'>('global')
+  const memorySearch = ref('')
+  const globalMemories = ref<any[]>([])
+  const roomMemories = ref<any[]>([])
+  const roomHistorySummary = ref('')
+  const roomLastSummarizedAt = ref<string | null>(null)
+  const editingMemory = ref<any | null>(null)
+  const selectedMemoryId = ref<string | null>(null)
+  const memoryDraft = ref({
+    content: '',
+    scope: 'GLOBAL',
+    category: 'PREFERENCE',
+    sensitive: false,
+    pinned: false
+  })
+  const aiMemorySettings = ref({
+    aiMemoryEnabled: true
+  })
+
+  const memoryCategories = [
+    { label: 'Preference', value: 'PREFERENCE' },
+    { label: 'Goal', value: 'GOAL' },
+    { label: 'Constraint', value: 'CONSTRAINT' },
+    { label: 'Profile', value: 'PROFILE' },
+    { label: 'Communication', value: 'COMMUNICATION' },
+    { label: 'Temporary', value: 'TEMPORARY' }
+  ]
+  const memoryScopeItems = [
+    { label: 'Across chats', value: 'GLOBAL' },
+    { label: 'This chat', value: 'ROOM' }
+  ]
 
   const { shareLink, generatingShareLink, generateShareLink } = useResourceShare(
     'CHAT_ROOM',
     computed(() => currentRoomId.value)
+  )
+
+  const visibleGlobalMemories = computed(() =>
+    globalMemories.value.filter((memory) => showSensitiveMemories.value || !memory.sensitive)
+  )
+  const visibleRoomMemories = computed(() =>
+    roomMemories.value.filter((memory) => showSensitiveMemories.value || !memory.sensitive)
+  )
+  const currentVisibleMemories = computed(() =>
+    (memoryTab.value === 'global' ? visibleGlobalMemories.value : visibleRoomMemories.value).filter(
+      (memory) =>
+        !memorySearch.value.trim() ||
+        [memory.content, memory.category, memory.source]
+          .filter(Boolean)
+          .some((value) =>
+            String(value).toLowerCase().includes(memorySearch.value.trim().toLowerCase())
+          )
+    )
+  )
+  const isCurrentMemoryTabEmpty = computed(() => currentVisibleMemories.value.length === 0)
+  const selectedMemory = computed(
+    () =>
+      currentVisibleMemories.value.find((memory) => memory.id === selectedMemoryId.value) || null
   )
 
   const copyToClipboard = () => {
@@ -1427,6 +1496,372 @@
     })
   }
 
+  const resetMemoryDraft = () => {
+    memoryDraft.value = {
+      content: '',
+      scope: memoryTab.value === 'room' ? 'ROOM' : 'GLOBAL',
+      category: 'PREFERENCE',
+      sensitive: false,
+      pinned: false
+    }
+  }
+
+  const selectMemoryTab = (tab: 'global' | 'room') => {
+    memoryTab.value = tab
+    memorySearch.value = ''
+    editingMemory.value = null
+    selectedMemoryId.value = null
+    memoryDraft.value.scope = tab === 'room' ? 'ROOM' : 'GLOBAL'
+  }
+
+  const formatDateTime = (value?: string | Date | null) => {
+    if (!value) return ''
+    return new Date(value).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    })
+  }
+
+  const toggleMemoryEnabled = (value: boolean) => {
+    void saveMemoryEnabledSetting(value)
+  }
+
+  const getOppositeMemoryScope = (scope: 'GLOBAL' | 'ROOM') =>
+    scope === 'GLOBAL' ? 'ROOM' : 'GLOBAL'
+
+  const formatMemoryCategory = (category?: string | null) => {
+    switch (category) {
+      case 'PREFERENCE':
+        return 'Preference'
+      case 'GOAL':
+        return 'Goal'
+      case 'CONSTRAINT':
+        return 'Constraint'
+      case 'PROFILE':
+        return 'Profile'
+      case 'COMMUNICATION':
+        return 'Communication'
+      case 'TEMPORARY':
+        return 'Temporary'
+      default:
+        return category || 'Memory'
+    }
+  }
+
+  const formatMemorySource = (source?: string | null) => {
+    switch (source) {
+      case 'MANUAL_UI':
+        return 'Added manually'
+      case 'USER_EXPLICIT':
+        return 'Saved from chat'
+      case 'AUTO':
+        return 'Auto-saved'
+      default:
+        return source || 'Unknown source'
+    }
+  }
+
+  const formatMemoryScope = (scope?: string | null) => {
+    return scope === 'ROOM' ? 'This chat' : 'Across chats'
+  }
+
+  const loadMemoryState = async () => {
+    if (!currentRoomId.value) return
+
+    loadingMemoryPanel.value = true
+
+    try {
+      const [memoryResponse, roomMemoryResponse, settingsResponse] = await Promise.all([
+        $fetch<any>('/api/chat/memory'),
+        $fetch<any>(`/api/chat/rooms/${currentRoomId.value}/memory`),
+        $fetch<any>('/api/settings/ai')
+      ])
+
+      globalMemories.value = memoryResponse?.grouped?.global || []
+      roomMemories.value = roomMemoryResponse?.memories || []
+      roomHistorySummary.value = roomMemoryResponse?.historySummary || ''
+      roomLastSummarizedAt.value = roomMemoryResponse?.lastSummarizedAt || null
+      aiMemorySettings.value.aiMemoryEnabled = settingsResponse?.aiMemoryEnabled !== false
+      if (!selectedMemoryId.value) {
+        selectedMemoryId.value = currentVisibleMemories.value[0]?.id || null
+      }
+      if (!memoryDraft.value.content) {
+        resetMemoryDraft()
+      }
+    } catch (error) {
+      console.error('[Chat] Failed to load memory state:', error)
+      toast.add({
+        title: 'Memory unavailable',
+        description: 'Could not load memory right now.',
+        color: 'error'
+      })
+    } finally {
+      loadingMemoryPanel.value = false
+    }
+  }
+
+  const openMemoryPanel = async () => {
+    isMemoryPanelOpen.value = true
+    resetMemoryDraft()
+    await loadMemoryState()
+  }
+
+  const saveMemoryEnabledSetting = async (value: boolean) => {
+    savingMemorySettings.value = true
+    try {
+      await $fetch('/api/settings/ai', {
+        method: 'POST',
+        body: {
+          aiMemoryEnabled: value
+        }
+      })
+      aiMemorySettings.value.aiMemoryEnabled = value
+      toast.add({
+        title: value ? 'Memory enabled' : 'Memory disabled',
+        color: 'success'
+      })
+    } catch (error: any) {
+      aiMemorySettings.value.aiMemoryEnabled = !value
+      toast.add({
+        title: 'Memory setting failed',
+        description: error?.data?.message || 'Could not update memory settings.',
+        color: 'error'
+      })
+    } finally {
+      savingMemorySettings.value = false
+    }
+  }
+
+  const createMemory = async () => {
+    const content = memoryDraft.value.content.trim()
+    if (!content) return
+
+    try {
+      await $fetch('/api/chat/memory', {
+        method: 'POST',
+        body: {
+          content,
+          scope: memoryDraft.value.scope,
+          roomId: memoryDraft.value.scope === 'ROOM' ? currentRoomId.value : null,
+          category: memoryDraft.value.category,
+          sensitive: memoryDraft.value.sensitive,
+          pinned: memoryDraft.value.pinned
+        }
+      })
+
+      resetMemoryDraft()
+      await loadMemoryState()
+      selectedMemoryId.value = null
+      toast.add({
+        title: 'Memory saved',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Save failed',
+        description: error?.data?.message || 'Could not save this memory.',
+        color: 'error'
+      })
+    }
+  }
+
+  const startEditingMemory = (memory: any) => {
+    selectedMemoryId.value = memory.id
+    editingMemory.value = {
+      ...memory
+    }
+  }
+
+  const cancelEditingMemory = () => {
+    editingMemory.value = null
+  }
+
+  const saveEditedMemory = async () => {
+    if (!editingMemory.value?.id) return
+    const editingMemoryId = editingMemory.value.id
+
+    try {
+      await $fetch(`/api/chat/memory/${editingMemory.value.id}`, {
+        method: 'PATCH',
+        body: {
+          content: editingMemory.value.content,
+          category: editingMemory.value.category,
+          scope: editingMemory.value.scope,
+          roomId: editingMemory.value.scope === 'ROOM' ? currentRoomId.value : null,
+          pinned: editingMemory.value.pinned,
+          sensitive: editingMemory.value.sensitive
+        }
+      })
+      cancelEditingMemory()
+      await loadMemoryState()
+      selectedMemoryId.value = editingMemoryId
+      toast.add({
+        title: 'Memory updated',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Update failed',
+        description: error?.data?.message || 'Could not update this memory.',
+        color: 'error'
+      })
+    }
+  }
+
+  const deleteMemory = async (memoryId: string) => {
+    try {
+      await $fetch(`/api/chat/memory/${memoryId}`, {
+        method: 'DELETE'
+      })
+      await loadMemoryState()
+      if (selectedMemoryId.value === memoryId) {
+        selectedMemoryId.value = currentVisibleMemories.value[0]?.id || null
+      }
+      toast.add({
+        title: 'Memory deleted',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Delete failed',
+        description: error?.data?.message || 'Could not delete this memory.',
+        color: 'error'
+      })
+    }
+  }
+
+  const toggleMemoryPinned = async (memory: any) => {
+    try {
+      await $fetch(`/api/chat/memory/${memory.id}`, {
+        method: 'PATCH',
+        body: {
+          pinned: !memory.pinned
+        }
+      })
+      await loadMemoryState()
+    } catch (error: any) {
+      toast.add({
+        title: 'Pin failed',
+        description: error?.data?.message || 'Could not update pinned state.',
+        color: 'error'
+      })
+    }
+  }
+
+  const moveMemoryScope = async (memory: any, scope: 'GLOBAL' | 'ROOM') => {
+    try {
+      await $fetch(`/api/chat/memory/${memory.id}`, {
+        method: 'PATCH',
+        body: {
+          scope,
+          roomId: scope === 'ROOM' ? currentRoomId.value : null
+        }
+      })
+      await loadMemoryState()
+    } catch (error: any) {
+      toast.add({
+        title: 'Move failed',
+        description: error?.data?.message || 'Could not move this memory.',
+        color: 'error'
+      })
+    }
+  }
+
+  const rememberFromText = async (text: string, scope: 'GLOBAL' | 'ROOM' = 'GLOBAL') => {
+    const content = text.trim()
+    if (!content) return
+
+    try {
+      await $fetch('/api/chat/memory/remember', {
+        method: 'POST',
+        body: {
+          content,
+          scope,
+          roomId: scope === 'ROOM' ? currentRoomId.value : null,
+          createdFrom: 'chat_action'
+        }
+      })
+      if (isMemoryPanelOpen.value) {
+        await loadMemoryState()
+      }
+      toast.add({
+        title: scope === 'ROOM' ? 'Saved to this chat memory' : 'Saved across chats',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Memory save failed',
+        description: error?.data?.message || 'Could not save this memory.',
+        color: 'error'
+      })
+    }
+  }
+
+  const forgetFromText = async (text: string) => {
+    const content = text.trim()
+    if (!content) return
+
+    try {
+      const response = await $fetch<any>('/api/chat/memory/forget', {
+        method: 'POST',
+        body: {
+          content,
+          roomId: currentRoomId.value
+        }
+      })
+      if (isMemoryPanelOpen.value) {
+        await loadMemoryState()
+      }
+      if (response?.status === 'ambiguous') {
+        toast.add({
+          title: 'Multiple memories matched',
+          description: 'Open Memory to choose the exact item to remove.',
+          color: 'warning'
+        })
+        return
+      }
+      if (response?.status === 'not_found') {
+        toast.add({
+          title: 'No saved memory matched',
+          color: 'neutral'
+        })
+        return
+      }
+      toast.add({
+        title: 'Memory removed',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Forget failed',
+        description: error?.data?.message || 'Could not remove that memory.',
+        color: 'error'
+      })
+    }
+  }
+
+  const onRememberMessage = async (payload: { text: string }) => {
+    await rememberFromText(payload.text, 'GLOBAL')
+  }
+
+  const onForgetMessage = async (payload: { text: string }) => {
+    await forgetFromText(payload.text)
+  }
+
+  const selectMemory = (memory: any) => {
+    selectedMemoryId.value = memory.id
+    editingMemory.value = null
+  }
+
+  const beginCreateMemory = () => {
+    editingMemory.value = null
+    selectedMemoryId.value = null
+    resetMemoryDraft()
+  }
+
   watch(isShareModalOpen, (newValue) => {
     if (newValue && !shareLink.value) {
       generateShareLink()
@@ -1435,6 +1870,18 @@
 
   watch(currentRoomId, () => {
     shareLink.value = ''
+  })
+
+  watch(isMemoryPanelOpen, (open) => {
+    if (open && currentRoomId.value) {
+      void loadMemoryState()
+    }
+  })
+
+  watch(currentRoomId, () => {
+    if (isMemoryPanelOpen.value && currentRoomId.value) {
+      void loadMemoryState()
+    }
   })
 
   watch(
@@ -1522,6 +1969,18 @@
             <UButton
               color="neutral"
               variant="outline"
+              icon="i-heroicons-bookmark"
+              aria-label="Manage Memory"
+              size="sm"
+              class="font-bold"
+              :disabled="!currentRoomId"
+              @click="openMemoryPanel"
+            >
+              <span class="hidden sm:inline">Memory</span>
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="outline"
               icon="i-heroicons-share"
               aria-label="Share Chat"
               size="sm"
@@ -1600,7 +2059,7 @@
 
           <!-- Messages -->
           <ChatMessageList
-            :messages="chatMessages as any"
+            :messages="chatMessages"
             :status="uiChatStatus"
             :loading="loadingMessages"
             :can-edit-messages="
@@ -1616,6 +2075,8 @@
             @cancel-edit="cancelEditedMessage"
             @resume-turn="resumeTurn"
             @retry-turn="retryTurn"
+            @remember-message="onRememberMessage"
+            @forget-message="onForgetMessage"
           />
 
           <!-- Input -->
@@ -1634,6 +2095,377 @@
       </div>
     </template>
   </UDashboardPanel>
+
+  <USlideover
+    v-model:open="isMemoryPanelOpen"
+    title="Manage Memory"
+    description="Control what the coach remembers across chats and in this conversation."
+    side="right"
+    :ui="{ content: 'w-full sm:max-w-6xl' }"
+  >
+    <template #content>
+      <div class="flex h-full min-h-0 flex-col">
+        <div class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2">
+              <UButton
+                :variant="memoryTab === 'global' ? 'solid' : 'outline'"
+                color="neutral"
+                size="sm"
+                @click="selectMemoryTab('global')"
+              >
+                Across chats
+              </UButton>
+              <UButton
+                :variant="memoryTab === 'room' ? 'solid' : 'outline'"
+                color="neutral"
+                size="sm"
+                @click="selectMemoryTab('room')"
+              >
+                This chat
+              </UButton>
+            </div>
+            <div class="ml-auto flex flex-wrap items-center gap-3">
+              <USwitch
+                :model-value="showSensitiveMemories"
+                label="Show sensitive"
+                @update:model-value="showSensitiveMemories = !!$event"
+              />
+              <USwitch
+                :model-value="aiMemorySettings.aiMemoryEnabled"
+                :disabled="savingMemorySettings"
+                label="Use memory"
+                @update:model-value="toggleMemoryEnabled(!!$event)"
+              />
+            </div>
+          </div>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <UInput
+              v-model="memorySearch"
+              icon="i-heroicons-magnifying-glass"
+              placeholder="Search memories"
+              class="min-w-0 flex-1 [&_input]:text-[15px] [&_input]:tracking-[0.01em]"
+            />
+            <UButton
+              color="primary"
+              variant="soft"
+              icon="i-heroicons-plus"
+              @click="beginCreateMemory"
+            >
+              Add memory
+            </UButton>
+          </div>
+        </div>
+
+        <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <div
+            class="flex min-h-0 w-full flex-col border-b border-gray-200 lg:w-[24rem] lg:border-b-0 lg:border-r dark:border-gray-800"
+          >
+            <div v-if="loadingMemoryPanel" class="space-y-3">
+              <div class="p-4">
+                <USkeleton class="h-24 w-full rounded-2xl" />
+              </div>
+              <div class="px-4 pb-4">
+                <USkeleton class="h-24 w-full rounded-2xl" />
+              </div>
+            </div>
+
+            <div
+              v-else-if="isCurrentMemoryTabEmpty"
+              class="m-4 rounded-2xl border border-dashed border-gray-300 p-6 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400"
+            >
+              No saved memories yet.
+            </div>
+
+            <div v-else class="min-h-0 flex-1 overflow-y-auto p-4">
+              <div
+                v-if="memoryTab === 'room' && roomHistorySummary"
+                class="mb-4 rounded-2xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-800 dark:bg-gray-900/70"
+              >
+                <div class="mb-2 flex items-center justify-between gap-3">
+                  <div class="text-sm font-semibold">Room summary</div>
+                  <div v-if="roomLastSummarizedAt" class="text-xs text-gray-500">
+                    {{ formatDateTime(roomLastSummarizedAt) }}
+                  </div>
+                </div>
+                <p class="text-sm leading-6 text-gray-700 dark:text-gray-200">
+                  {{ roomHistorySummary }}
+                </p>
+              </div>
+
+              <div class="space-y-3">
+                <div
+                  v-for="memory in currentVisibleMemories"
+                  :key="memory.id"
+                  class="cursor-pointer rounded-2xl border p-4 shadow-sm transition-colors"
+                  :class="
+                    selectedMemoryId === memory.id
+                      ? 'border-primary bg-primary/5 dark:border-primary'
+                      : 'border-gray-200 bg-white/90 dark:border-gray-800 dark:bg-gray-900/80'
+                  "
+                  @click="selectMemory(memory)"
+                >
+                  <div class="mb-3 flex flex-wrap items-center gap-2">
+                    <UBadge color="neutral" variant="soft" size="xs">
+                      {{ formatMemoryCategory(memory.category) }}
+                    </UBadge>
+                    <UBadge color="neutral" variant="outline" size="xs">
+                      {{ formatMemorySource(memory.source) }}
+                    </UBadge>
+                    <UBadge v-if="memory.scope === 'ROOM'" color="warning" variant="soft" size="xs">
+                      {{ formatMemoryScope(memory.scope) }}
+                    </UBadge>
+                    <UBadge v-else color="primary" variant="soft" size="xs">
+                      {{ formatMemoryScope(memory.scope) }}
+                    </UBadge>
+                    <UBadge v-if="memory.sensitive" color="error" variant="soft" size="xs">
+                      Sensitive
+                    </UBadge>
+                    <UBadge v-if="memory.pinned" color="success" variant="soft" size="xs">
+                      Pinned
+                    </UBadge>
+                  </div>
+                  <p class="line-clamp-3 text-sm leading-6 text-gray-900 dark:text-white">
+                    {{ memory.content }}
+                  </p>
+                  <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    Updated {{ formatDateTime(memory.updatedAt) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <div class="p-4 sm:p-6">
+              <div
+                class="rounded-3xl border border-gray-200 bg-white/90 p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900/80"
+              >
+                <template v-if="editingMemory">
+                  <div class="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                        Edit Memory
+                      </h3>
+                      <p class="mt-1 max-w-2xl text-sm text-gray-600 dark:text-gray-400">
+                        Adjust the content, scope, and sensitivity for this memory.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="space-y-4">
+                    <UTextarea
+                      v-model="editingMemory.content"
+                      :rows="4"
+                      autoresize
+                      class="w-full [&_textarea]:text-sm [&_textarea]:leading-6"
+                    />
+                    <div class="grid gap-3 sm:grid-cols-2">
+                      <USelect
+                        v-model="editingMemory.category"
+                        :items="memoryCategories"
+                        option-attribute="label"
+                        value-attribute="value"
+                      />
+                      <USelect
+                        v-model="editingMemory.scope"
+                        :items="memoryScopeItems"
+                        option-attribute="label"
+                        value-attribute="value"
+                      />
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                      <USwitch
+                        v-model="editingMemory.sensitive"
+                        label="Sensitive"
+                        description="Health or personal details that should stay easy to review and control."
+                      />
+                      <USwitch
+                        v-model="editingMemory.pinned"
+                        label="Pin"
+                        description="Keep this memory prioritized when selecting what the coach should remember."
+                      />
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <UButton @click="saveEditedMemory">Save changes</UButton>
+                      <UButton color="neutral" variant="ghost" @click="cancelEditingMemory"
+                        >Cancel</UButton
+                      >
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else-if="selectedMemory">
+                  <div class="mb-4">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                          Memory Details
+                        </h3>
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                          <UBadge color="neutral" variant="soft" size="xs">
+                            {{ formatMemoryCategory(selectedMemory.category) }}
+                          </UBadge>
+                          <UBadge color="neutral" variant="outline" size="xs">
+                            {{ formatMemorySource(selectedMemory.source) }}
+                          </UBadge>
+                          <UBadge
+                            :color="selectedMemory.scope === 'ROOM' ? 'warning' : 'primary'"
+                            variant="soft"
+                            size="xs"
+                          >
+                            {{ formatMemoryScope(selectedMemory.scope) }}
+                          </UBadge>
+                          <UBadge
+                            v-if="selectedMemory.sensitive"
+                            color="error"
+                            variant="soft"
+                            size="xs"
+                          >
+                            Sensitive
+                          </UBadge>
+                          <UBadge
+                            v-if="selectedMemory.pinned"
+                            color="success"
+                            variant="soft"
+                            size="xs"
+                          >
+                            Pinned
+                          </UBadge>
+                        </div>
+                      </div>
+                      <div
+                        class="flex items-center gap-1.5 rounded-full border border-gray-200/80 bg-white/60 px-2 py-1 dark:border-gray-700 dark:bg-gray-900/50"
+                      >
+                        <UButton
+                          size="sm"
+                          color="neutral"
+                          variant="ghost"
+                          :icon="
+                            selectedMemory.pinned ? 'i-heroicons-star-solid' : 'i-heroicons-star'
+                          "
+                          class="rounded-full"
+                          @click="toggleMemoryPinned(selectedMemory)"
+                        />
+                        <UButton
+                          size="sm"
+                          color="neutral"
+                          variant="ghost"
+                          icon="i-heroicons-arrow-right-circle"
+                          class="rounded-full"
+                          @click="
+                            moveMemoryScope(
+                              selectedMemory,
+                              getOppositeMemoryScope(selectedMemory.scope)
+                            )
+                          "
+                        />
+                        <UButton
+                          size="sm"
+                          color="neutral"
+                          variant="ghost"
+                          icon="i-heroicons-pencil-square"
+                          class="rounded-full"
+                          @click="startEditingMemory(selectedMemory)"
+                        />
+                        <UButton
+                          size="sm"
+                          color="error"
+                          variant="ghost"
+                          icon="i-heroicons-trash"
+                          class="rounded-full"
+                          @click="deleteMemory(selectedMemory.id)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <p class="max-w-4xl text-sm leading-7 text-gray-900 dark:text-white">
+                    {{ selectedMemory.content }}
+                  </p>
+                  <div
+                    class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-gray-200/70 pt-4 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
+                      >
+                        Updated
+                      </span>
+                      <span>{{ formatDateTime(selectedMemory.updatedAt) }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"
+                      >
+                        Confirmed
+                      </span>
+                      <span>{{
+                        formatDateTime(selectedMemory.lastConfirmedAt) || 'Not confirmed yet'
+                      }}</span>
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else>
+                  <div class="mb-4">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                      Add Memory
+                    </h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-600 dark:text-gray-400">
+                      Save something the coach should remember across chats or only in this room.
+                    </p>
+                  </div>
+                  <div class="space-y-4">
+                    <UTextarea
+                      v-model="memoryDraft.content"
+                      :rows="5"
+                      autoresize
+                      class="w-full [&_textarea]:text-sm [&_textarea]:leading-6"
+                      placeholder="Example: I prefer morning workouts and concise answers."
+                    />
+                    <div class="grid gap-3 sm:grid-cols-2">
+                      <USelect
+                        v-model="memoryDraft.scope"
+                        :items="memoryScopeItems"
+                        option-attribute="label"
+                        value-attribute="value"
+                      />
+                      <USelect
+                        v-model="memoryDraft.category"
+                        :items="memoryCategories"
+                        option-attribute="label"
+                        value-attribute="value"
+                      />
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                      <USwitch
+                        v-model="memoryDraft.sensitive"
+                        label="Sensitive"
+                        description="Health or personal details that should stay easy to review and control."
+                      />
+                      <USwitch
+                        v-model="memoryDraft.pinned"
+                        label="Pin"
+                        description="Keep this memory prioritized when selecting what the coach should remember."
+                      />
+                    </div>
+                    <UButton block @click="createMemory">Save memory</UButton>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
+            <div class="flex w-full items-center justify-between">
+              <UButton color="neutral" variant="ghost" @click="loadMemoryState">Refresh</UButton>
+              <UButton color="neutral" variant="ghost" @click="isMemoryPanelOpen = false"
+                >Close</UButton
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </USlideover>
 
   <UModal
     v-model:open="isShareModalOpen"

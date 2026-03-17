@@ -24,7 +24,9 @@
     'save-edit',
     'cancel-edit',
     'resume-turn',
-    'retry-turn'
+    'retry-turn',
+    'remember-message',
+    'forget-message'
   ])
   const toast = useToast()
   const messageListRef = ref<HTMLElement | null>(null)
@@ -743,6 +745,30 @@
       color: 'success'
     })
   }
+
+  const getMessageActionText = (message: any) => {
+    if (message?.role === 'assistant') {
+      return getSpeakableText(message)
+    }
+
+    if (typeof message?.content === 'string') {
+      return message.content.trim()
+    }
+
+    return ''
+  }
+
+  const rememberMessage = (message: any) => {
+    const text = getMessageActionText(message)
+    if (!text) return
+    emit('remember-message', { message, text })
+  }
+
+  const forgetMessage = (message: any) => {
+    const text = getMessageActionText(message)
+    if (!text) return
+    emit('forget-message', { message, text })
+  }
 </script>
 
 <template>
@@ -891,6 +917,24 @@
               <div class="flex items-center gap-1 transition-opacity">
                 <UButton
                   color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  aria-label="Remember this message"
+                  icon="i-heroicons-bookmark"
+                  @click="rememberMessage(message)"
+                />
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  aria-label="Forget this message"
+                  icon="i-heroicons-bookmark-slash"
+                  @click="forgetMessage(message)"
+                />
+                <UButton
+                  color="neutral"
                   :variant="isTtsPlaying(message) ? 'solid' : 'ghost'"
                   size="xs"
                   square
@@ -940,6 +984,24 @@
                   aria-label="Copy message"
                   icon="i-heroicons-clipboard-document"
                   @click="copyMessage(message)"
+                />
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  aria-label="Remember this message"
+                  icon="i-heroicons-bookmark"
+                  @click="rememberMessage(message)"
+                />
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  square
+                  aria-label="Forget this message"
+                  icon="i-heroicons-bookmark-slash"
+                  @click="forgetMessage(message)"
                 />
                 <UButton
                   color="neutral"
