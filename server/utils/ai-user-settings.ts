@@ -10,6 +10,7 @@ export interface AiSettings {
   aiRequireToolApproval: boolean
   aiProactivityEnabled: boolean
   aiConversationalEngagement: boolean
+  aiMemoryEnabled: boolean
   aiContext?: string | null
   nutritionTrackingEnabled: boolean
   updateWorkoutNotesEnabled: boolean
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS: AiSettings = {
   aiRequireToolApproval: false,
   aiProactivityEnabled: false,
   aiConversationalEngagement: true,
+  aiMemoryEnabled: true,
   aiContext: null,
   nutritionTrackingEnabled: true,
   updateWorkoutNotesEnabled: true,
@@ -51,6 +53,7 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
       aiRequireToolApproval: true,
       aiProactivityEnabled: true,
       aiConversationalEngagement: true,
+      aiMemoryEnabled: true,
       aiContext: true,
       nutritionTrackingEnabled: true,
       updateWorkoutNotesEnabled: true,
@@ -77,6 +80,7 @@ export async function getUserAiSettings(userId: string): Promise<AiSettings> {
     aiProactivityEnabled: user.aiProactivityEnabled ?? DEFAULT_SETTINGS.aiProactivityEnabled,
     aiConversationalEngagement:
       user.aiConversationalEngagement ?? DEFAULT_SETTINGS.aiConversationalEngagement,
+    aiMemoryEnabled: user.aiMemoryEnabled ?? DEFAULT_SETTINGS.aiMemoryEnabled,
     aiContext: user.aiContext,
     nutritionTrackingEnabled:
       user.nutritionTrackingEnabled ?? DEFAULT_SETTINGS.nutritionTrackingEnabled,
