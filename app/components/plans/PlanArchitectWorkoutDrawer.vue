@@ -32,17 +32,57 @@
         </div>
       </button>
 
-      <div v-if="open" class="max-h-[420px] overflow-hidden">
-        <div class="border-b border-default/70 px-4 py-3">
+      <div v-if="open" class="max-h-[420px] overflow-hidden flex flex-col">
+        <div
+          class="border-b border-default/70 px-4 py-3 flex flex-wrap items-center gap-3 bg-default/50 sticky top-0 z-10 backdrop-blur-sm"
+        >
           <UInput
             v-model="localSearch"
             placeholder="Search workouts..."
             size="sm"
             icon="i-heroicons-magnifying-glass"
+            class="flex-1 min-w-[180px]"
           />
+
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <UTooltip text="All Types">
+              <UButton
+                size="xs"
+                :color="selectedType === 'all' ? 'primary' : 'neutral'"
+                :variant="selectedType === 'all' ? 'solid' : 'ghost'"
+                icon="i-heroicons-squares-2x2"
+                @click="selectedType = 'all'"
+              />
+            </UTooltip>
+            <UTooltip v-for="type in workoutTypes" :key="type.value" :text="type.label">
+              <UButton
+                size="xs"
+                :color="selectedType === type.value ? 'primary' : 'neutral'"
+                :variant="selectedType === type.value ? 'solid' : 'ghost'"
+                :icon="type.icon"
+                @click="selectedType = type.value"
+              />
+            </UTooltip>
+          </div>
+
+          <div class="h-4 w-px bg-default/70 hidden sm:block" />
+
+          <div class="flex items-center gap-1.5">
+            <UButton
+              v-for="range in durationRanges"
+              :key="range.label"
+              size="xs"
+              :color="selectedDuration === range.value ? 'primary' : 'neutral'"
+              :variant="selectedDuration === range.value ? 'solid' : 'ghost'"
+              class="text-[10px] font-bold uppercase tracking-wider px-2"
+              @click="selectedDuration = range.value"
+            >
+              {{ range.label }}
+            </UButton>
+          </div>
         </div>
 
-        <div class="max-h-[340px] overflow-y-auto px-4 py-4">
+        <div class="flex-1 max-h-[340px] overflow-y-auto px-4 py-4">
           <div v-if="loading" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <USkeleton v-for="i in 6" :key="i" class="h-24 w-full rounded-2xl" />
           </div>
@@ -150,20 +190,54 @@
   const toast = useToast()
   const localSearch = ref('')
   const generatingId = ref<string | null>(null)
+  const selectedType = ref('all')
+  const selectedDuration = ref('all')
+
+  const workoutTypes = [
+    { label: 'Ride', value: 'Ride', icon: 'i-tabler-bike' },
+    { label: 'Run', value: 'Run', icon: 'i-tabler-run' },
+    { label: 'Swim', value: 'Swim', icon: 'i-tabler-swimming' },
+    { label: 'Gym', value: 'WeightTraining', icon: 'i-tabler-barbell' }
+  ]
+
+  const durationRanges = [
+    { label: 'All', value: 'all' },
+    { label: '<30m', value: 'short' },
+    { label: '30-60m', value: 'medium' },
+    { label: '60m+', value: 'long' }
+  ]
 
   const filteredTemplates = computed(() => {
-    const query = localSearch.value.trim().toLowerCase()
+    let result = props.templates
 
-    if (!query) {
-      return props.templates
+    // Type filter
+    if (selectedType.value !== 'all') {
+      result = result.filter((t) => t.type === selectedType.value)
     }
 
-    return props.templates.filter(
-      (template) =>
-        template.title?.toLowerCase().includes(query) ||
-        template.type?.toLowerCase().includes(query) ||
-        template.category?.toLowerCase().includes(query)
-    )
+    // Duration filter
+    if (selectedDuration.value !== 'all') {
+      result = result.filter((t) => {
+        const mins = (t.durationSec || 0) / 60
+        if (selectedDuration.value === 'short') return mins < 30
+        if (selectedDuration.value === 'medium') return mins >= 30 && mins <= 60
+        if (selectedDuration.value === 'long') return mins > 60
+        return true
+      })
+    }
+
+    // Search filter
+    const query = localSearch.value.trim().toLowerCase()
+    if (query) {
+      result = result.filter(
+        (template) =>
+          template.title?.toLowerCase().includes(query) ||
+          template.type?.toLowerCase().includes(query) ||
+          template.category?.toLowerCase().includes(query)
+      )
+    }
+
+    return result
   })
 
   function formatMinutes(minutes: number) {
