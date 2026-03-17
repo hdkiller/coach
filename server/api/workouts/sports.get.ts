@@ -1,45 +1,29 @@
 import { defineEventHandler, createError } from 'h3'
 import { prisma } from '../../utils/db'
-import { getServerSession } from '../../utils/session'
-
-defineRouteMeta({
-  openAPI: {
-    tags: ['Workouts'],
-    summary: 'Get unique sport types',
-    description: 'Returns a list of unique sport types for the authenticated user.',
-    responses: {
-      200: {
-        description: 'Success',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'array',
-              items: { type: 'string' }
-            }
-          }
-        }
-      },
-      401: { description: 'Unauthorized' }
-    }
-  }
-})
+import { getEffectiveUserId } from '../../utils/coaching'
+import { requireAuth } from '../../utils/auth-guard'
+import { subDays } from 'date-fns'
 
 export default defineEventHandler(async (event) => {
-  const session = await getServerSession(event)
-  const user = session?.user as any
+  await requireAuth(event, ['workout:read'])
+  const userId = await getEffectiveUserId(event)
 
-  if (!user?.id) {
+  if (!userId) {
     throw createError({
       statusCode: 401,
       statusMessage: 'Unauthorized'
     })
   }
 
+  // Only show sports from the last 90 days to keep it relevant
+  const ninetyDaysAgo = subDays(new Date(), 90)
+
   const sports = await prisma.workout.findMany({
     where: {
-      userId: user.id,
+      userId,
       isDuplicate: false,
-      type: { not: null }
+      type: { not: null },
+      date: { gte: ninetyDaysAgo }
     },
     distinct: ['type'],
     select: {
