@@ -184,14 +184,28 @@
         </UButton>
       </div>
 
-      <div v-if="activeRecoveryItems.length" class="space-y-2">
+      <div
+        class="rounded-2xl border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-900/40"
+      >
         <div class="flex items-center justify-between gap-2">
-          <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
-            Active Recovery Context
-          </p>
+          <div class="flex items-center gap-2">
+            <div
+              class="flex size-8 items-center justify-center rounded-xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            >
+              <UIcon name="i-lucide-heart-handshake" class="size-4" />
+            </div>
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
+                Active Recovery Context
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                Coach Watts will use this when generating today’s guidance.
+              </p>
+            </div>
+          </div>
           <UButton
             color="neutral"
-            variant="ghost"
+            variant="outline"
             size="xs"
             icon="i-lucide-plus"
             @click="openCreateRecoveryEvent()"
@@ -199,19 +213,35 @@
             Log event
           </UButton>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div v-if="activeRecoveryItems.length" class="mt-3 flex flex-wrap gap-2">
           <button
             v-for="item in activeRecoveryItems"
             :key="item.id"
             type="button"
-            class="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-primary-300 hover:text-primary-700 dark:border-gray-800 dark:text-gray-200"
+            class="inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-xs font-semibold shadow-sm transition hover:-translate-y-0.5 dark:bg-gray-900"
+            :class="contextChipClass(item.sourceType)"
             @click="openRecoveryItem(item)"
           >
-            <UIcon :name="item.icon" class="size-3.5" />
+            <div
+              class="flex size-6 items-center justify-center rounded-full"
+              :style="{ backgroundColor: item.color }"
+            >
+              <UIcon :name="item.icon" class="size-3.5 text-gray-900/80 dark:text-white/90" />
+            </div>
             <span>{{ item.label }}</span>
+            <span class="text-[11px] font-medium text-gray-400">{{
+              contextSourceLabel(item.sourceType)
+            }}</span>
           </button>
         </div>
-        <div class="flex justify-end">
+        <div
+          v-else
+          class="mt-3 rounded-xl border border-dashed border-gray-200 bg-white/70 px-3 py-4 text-sm text-gray-600 shadow-sm dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-300"
+        >
+          No recovery context is active for today yet. Add a manual event or review your check-in
+          before generating insights.
+        </div>
+        <div class="mt-3 flex justify-end">
           <UButton
             to="/recovery"
             color="neutral"
@@ -387,7 +417,7 @@
     getWorkoutColorClass,
     getWorkoutBorderColorClass
   } from '~/utils/activity-types'
-  import type { RecoveryContextItem } from '~/types/recovery-context'
+  import type { RecoveryContextItem, RecoveryContextSourceType } from '~/types/recovery-context'
 
   const { t } = useTranslate('dashboard')
   const integrationStore = useIntegrationStore()
@@ -544,6 +574,22 @@
     selectedRecoveryItem.value = null
     isRecoveryCreateMode.value = true
     isRecoveryContextOpen.value = true
+  }
+
+  function contextSourceLabel(sourceType: RecoveryContextSourceType) {
+    if (sourceType === 'imported') return 'Imported'
+    if (sourceType === 'manual_event') return 'Manual'
+    return 'Check-in'
+  }
+
+  function contextChipClass(sourceType: RecoveryContextSourceType) {
+    if (sourceType === 'imported') {
+      return 'border-sky-200 text-sky-900 hover:border-sky-300 hover:text-sky-700 dark:border-sky-950/60 dark:text-sky-100'
+    }
+    if (sourceType === 'manual_event') {
+      return 'border-amber-200 text-amber-900 hover:border-amber-300 hover:text-amber-700 dark:border-amber-950/60 dark:text-amber-100'
+    }
+    return 'border-teal-200 text-teal-900 hover:border-teal-300 hover:text-teal-700 dark:border-teal-950/60 dark:text-teal-100'
   }
 
   function openRefineModal() {

@@ -1,16 +1,27 @@
 <template>
   <UCard
     :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow', body: 'p-4 sm:p-5' }"
-    class="overflow-hidden"
+    class="overflow-hidden border border-rose-100/80 bg-white dark:border-gray-800"
   >
     <div class="flex items-center justify-between gap-4">
-      <div>
-        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
-          Recovery Context Timeline
-        </p>
-        <h3 class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
+      <div class="max-w-2xl">
+        <div class="flex items-center gap-2">
+          <div
+            class="flex size-9 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-300"
+          >
+            <UIcon name="i-lucide-waypoints" class="size-4.5" />
+          </div>
+          <p class="text-[10px] font-black uppercase tracking-[0.24em] text-amber-500/80">
+            Recovery Context Timeline
+          </p>
+        </div>
+        <h3 class="mt-3 text-lg font-semibold text-gray-900 dark:text-white">
           Events, check-ins, and imported context in one view
         </h3>
+        <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+          Review the narrative behind recovery changes and open any item to inspect, edit, or
+          correlate it with your charts.
+        </p>
       </div>
       <UButton
         v-if="showViewAll"
@@ -26,21 +37,44 @@
 
     <div
       v-if="groupedItems.length === 0"
-      class="mt-4 rounded-xl border border-dashed border-gray-200 px-4 py-5 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400"
+      class="mt-4 rounded-2xl border border-dashed border-amber-200/80 bg-amber-50/70 px-4 py-5 text-sm text-gray-600 dark:border-amber-950/40 dark:bg-amber-950/10 dark:text-gray-300"
     >
-      No recovery context items in the selected range.
+      <div class="flex items-start gap-3">
+        <div
+          class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-white text-amber-500 dark:bg-gray-900 dark:text-amber-300"
+        >
+          <UIcon name="i-lucide-archive" class="size-4" />
+        </div>
+        <div>
+          <p class="font-medium text-gray-900 dark:text-white">Nothing logged in this range yet</p>
+          <p class="mt-1 leading-relaxed">
+            When a sick day, poor sleep, fatigue report, or daily check-in lands here, this timeline
+            becomes the quickest way to explain chart anomalies.
+          </p>
+        </div>
+      </div>
     </div>
 
-    <div v-else class="mt-5 space-y-5">
+    <div v-else class="mt-6 space-y-6">
       <div v-for="group in groupedItems" :key="group.dateKey">
-        <div class="mb-2 flex items-center justify-between gap-2">
-          <div>
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">
-              {{ formatDateUTC(group.dateKey, 'EEEE, MMM d') }}
-            </p>
-            <p class="text-[10px] uppercase tracking-widest text-gray-400">
-              {{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}
-            </p>
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <div
+              class="flex size-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-900"
+            >
+              <UIcon
+                name="i-lucide-calendar-days"
+                class="size-4 text-gray-500 dark:text-gray-300"
+              />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                {{ formatDateUTC(group.dateKey, 'EEEE, MMM d') }}
+              </p>
+              <p class="text-[10px] uppercase tracking-widest text-gray-400">
+                {{ group.items.length }} item{{ group.items.length === 1 ? '' : 's' }}
+              </p>
+            </div>
           </div>
           <UButton
             v-if="group.items.length > 3"
@@ -53,17 +87,25 @@
           </UButton>
         </div>
 
-        <div class="space-y-2">
+        <div class="relative space-y-2 pl-4">
+          <div
+            class="absolute bottom-0 left-3 top-0 w-px bg-gradient-to-b from-rose-200 via-amber-200 to-transparent dark:from-rose-950/60 dark:via-amber-950/60"
+          />
           <button
             v-for="item in visibleItems(group)"
             :key="item.id"
             type="button"
-            class="flex w-full items-start justify-between gap-3 rounded-2xl border border-gray-200 px-4 py-3 text-left transition hover:border-primary-300 hover:bg-primary-50/40 dark:border-gray-800 dark:hover:bg-gray-900"
+            class="relative flex w-full items-start justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left transition shadow-sm"
+            :class="rowClass(item.sourceType)"
             @click="$emit('select', item)"
           >
+            <div
+              class="absolute left-0 top-5 h-2.5 w-2.5 -translate-x-[21px] rounded-full border-2 border-white dark:border-gray-950"
+              :style="{ backgroundColor: item.color }"
+            />
             <div class="flex min-w-0 items-start gap-3">
               <div
-                class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl"
+                class="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-2xl ring-1 ring-inset ring-white/60 dark:ring-gray-900/70"
                 :style="{ backgroundColor: item.color }"
               >
                 <UIcon :name="item.icon" class="size-4 text-gray-900/80 dark:text-white/90" />
@@ -78,7 +120,7 @@
                     {{ sourceLabel(item.sourceType) }}
                   </UBadge>
                 </div>
-                <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
                   {{ item.description || item.origin }}
                 </p>
               </div>
@@ -86,7 +128,7 @@
 
             <div class="shrink-0 text-right">
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {{ formatTime(item.startAt) }}
+                {{ item.isRange ? formatDateUTC(item.endAt, 'MMM d') : formatTime(item.startAt) }}
               </p>
               <p
                 v-if="item.severity"
@@ -162,5 +204,15 @@
     if (sourceType === 'imported') return 'info'
     if (sourceType === 'manual_event') return 'warning'
     return 'success'
+  }
+
+  function rowClass(sourceType: RecoveryContextSourceType) {
+    if (sourceType === 'imported') {
+      return 'border-sky-100 bg-sky-50/40 hover:border-sky-300 hover:bg-sky-50/80 dark:border-sky-950/40 dark:bg-sky-950/10 dark:hover:bg-sky-950/20'
+    }
+    if (sourceType === 'manual_event') {
+      return 'border-amber-100 bg-amber-50/40 hover:border-amber-300 hover:bg-amber-50/80 dark:border-amber-950/40 dark:bg-amber-950/10 dark:hover:bg-amber-950/20'
+    }
+    return 'border-teal-100 bg-teal-50/40 hover:border-teal-300 hover:bg-teal-50/80 dark:border-teal-950/40 dark:bg-teal-950/10 dark:hover:bg-teal-950/20'
   }
 </script>

@@ -2,16 +2,25 @@
   <USlideover v-model:open="isOpen" side="right" :ui="{ content: 'sm:max-w-2xl' }">
     <template #content>
       <div class="flex h-full flex-col bg-white dark:bg-gray-950">
-        <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div
+          class="border-b border-gray-200 bg-gray-50/80 px-5 py-5 dark:border-gray-800 dark:bg-gray-900/40"
+        >
           <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
-                Recovery Context
-              </p>
-              <h2 class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">
+            <div class="max-w-xl">
+              <div class="flex items-center gap-2">
+                <div
+                  class="flex size-10 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                >
+                  <UIcon name="i-lucide-heart-handshake" class="size-5" />
+                </div>
+                <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-400">
+                  Recovery Context
+                </p>
+              </div>
+              <h2 class="mt-3 text-xl font-semibold text-gray-900 dark:text-white">
                 {{ title }}
               </h2>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
                 {{ subtitle }}
               </p>
             </div>
@@ -28,7 +37,7 @@
         <div class="flex-1 space-y-5 overflow-y-auto px-5 py-5">
           <div
             v-if="selectedItem"
-            class="rounded-2xl border border-gray-200 px-4 py-4 dark:border-gray-800"
+            class="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm dark:border-gray-800 dark:bg-gray-900/60"
           >
             <div class="flex flex-wrap items-center gap-2">
               <UBadge :color="badgeColor" variant="subtle">{{ selectedItem.origin }}</UBadge>
@@ -42,17 +51,32 @@
           </div>
 
           <div v-if="isImported">
-            <p class="text-sm text-gray-600 dark:text-gray-300">
-              Imported items are read-only here so the app stays aligned with the connected source.
-            </p>
+            <div
+              class="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-4 text-sm text-sky-900 dark:border-sky-950/40 dark:bg-sky-950/10 dark:text-sky-100"
+            >
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-white text-sky-500 dark:bg-gray-900 dark:text-sky-300"
+                >
+                  <UIcon name="i-lucide-cloud-download" class="size-4" />
+                </div>
+                <div>
+                  <p class="font-medium">Imported context is read-only here</p>
+                  <p class="mt-1 leading-relaxed text-sky-800/80 dark:text-sky-200/80">
+                    This entry stays aligned with the connected source, so it can be viewed here but
+                    not edited locally.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <template v-else-if="isJourneyEvent || createMode">
             <div class="space-y-6">
               <div
-                class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-4 dark:border-gray-800 dark:bg-gray-900/40"
+                class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/70 px-4 py-4 dark:border-gray-800 dark:bg-gray-900/40"
               >
-                <p class="text-sm text-gray-600 dark:text-gray-300">
+                <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">
                   Log something that helps explain unusual recovery, sleep, HRV, RHR, or training
                   response.
                 </p>
@@ -60,7 +84,7 @@
 
               <div>
                 <label
-                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-400"
                 >
                   What happened?
                 </label>
@@ -73,7 +97,7 @@
                       'rounded-2xl border px-4 py-4 text-left transition',
                       isJourneyOptionActive(option)
                         ? 'border-primary-500 bg-primary-50 shadow-sm dark:bg-primary-950/30'
-                        : 'border-gray-200 bg-white hover:border-primary-300 dark:border-gray-800 dark:bg-gray-950'
+                        : 'border-gray-200 bg-white shadow-sm hover:border-primary-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-900'
                     ]"
                     @click="selectJourneyOption(option)"
                   >
@@ -102,17 +126,22 @@
               </div>
 
               <div class="flex flex-wrap items-center gap-2">
-                <UBadge color="neutral" variant="subtle">
+                <UBadge color="neutral" variant="subtle" class="font-medium">
                   {{ eventTypeBadgeLabel }}
                 </UBadge>
-                <UBadge v-if="selectedJourneyOption" color="primary" variant="subtle">
+                <UBadge
+                  v-if="selectedJourneyOption"
+                  color="primary"
+                  variant="subtle"
+                  class="font-medium"
+                >
                   {{ selectedJourneyOption.title }}
                 </UBadge>
               </div>
 
               <div>
                 <label
-                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-400"
                 >
                   How much did it affect you?
                 </label>
@@ -125,7 +154,7 @@
                       'rounded-2xl border px-4 py-4 text-left transition',
                       selectedSeverityLabel === level.label
                         ? 'border-primary-500 bg-primary-50 shadow-sm dark:bg-primary-950/30'
-                        : 'border-gray-200 bg-white hover:border-primary-300 dark:border-gray-800 dark:bg-gray-950'
+                        : 'border-gray-200 bg-white shadow-sm hover:border-primary-300 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-900'
                     ]"
                     @click="journeyForm.severity = level.value"
                   >
@@ -156,7 +185,7 @@
 
               <div>
                 <label
-                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-400"
                 >
                   When did this happen?
                 </label>
@@ -176,7 +205,9 @@
               </div>
 
               <div>
-                <p class="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                <p
+                  class="rounded-xl bg-gray-50 px-3 py-3 text-xs leading-relaxed text-gray-500 dark:bg-gray-900 dark:text-gray-400"
+                >
                   Mild: noticeable but manageable. Moderate: clearly affecting recovery or training.
                   Severe: strong impact, likely explains major disruption.
                 </p>
@@ -184,7 +215,7 @@
 
               <div>
                 <label
-                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-600 dark:text-gray-300"
                 >
                   Tell Coach Watts more
                 </label>
@@ -223,17 +254,24 @@
               </div>
               <div>
                 <label
-                  class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-500"
+                  class="mb-1 block text-xs font-semibold uppercase tracking-widest text-gray-600 dark:text-gray-300"
                 >
                   Notes
                 </label>
-                <UTextarea v-model="checkinForm.userNotes" :rows="5" class="w-full" />
+                <UTextarea
+                  v-model="checkinForm.userNotes"
+                  :rows="5"
+                  class="w-full"
+                  placeholder="Add anything that will help explain your answers or how you felt today."
+                />
               </div>
             </div>
           </template>
         </div>
 
-        <div class="border-t border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div
+          class="border-t border-gray-200 bg-white/90 px-5 py-4 backdrop-blur dark:border-gray-800 dark:bg-gray-950/90"
+        >
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex gap-2">
               <UButton color="neutral" variant="outline" to="/fitness"> Open on Fitness </UButton>
