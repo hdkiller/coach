@@ -1,13 +1,31 @@
-import { describe, expect, it } from 'vitest'
-import {
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { summarizeChatTaskTrigger } = vi.hoisted(() => ({
+  summarizeChatTaskTrigger: vi.fn()
+}))
+
+vi.mock('../../../trigger/summarize-chat', () => ({
+  summarizeChatTask: {
+    trigger: summarizeChatTaskTrigger
+  }
+}))
+
+const {
   buildApprovedContinuationConfirmation,
   getHardcodedChatProviderOptions,
   buildWriteRepairSystemInstruction,
   buildTurnExecutionSkillConfig,
   findApprovedToolContinuation,
   normalizeMessagesForSdk,
+  scheduleChatRoomSummaryIfNeeded,
+  shouldScheduleChatRoomSummary,
   shouldUseWriteRepairPrompt
-} from './turn-executor'
+} = await import('./turn-executor')
+
+beforeEach(() => {
+  summarizeChatTaskTrigger.mockReset()
+  summarizeChatTaskTrigger.mockResolvedValue({ id: 'run_123' })
+})
 
 describe('normalizeMessagesForSdk', () => {
   it('preserves tool approval response messages while marking the assistant call approved', () => {
@@ -232,5 +250,51 @@ describe('write repair prompt helpers', () => {
     expect(result).toContain('Emit the relevant tool call now')
     expect(result).toContain('Ask exactly one blocking clarification question')
     expect(result).toContain('Do not answer with general prose')
+  })
+})
+
+describe('chat room summary scheduling', () => {
+  it('schedules summarization for untitled rooms', async () => {
+    await expect(
+      scheduleChatRoomSummaryIfNeeded({
+        roomId: 'room_1',
+        userId: 'user_1',
+        roomName: 'New Chat',
+        roomMetadata: {}
+      })
+    ).resolves.toBe(true)
+
+    expect(summarizeChatTaskTrigger).toHaveBeenCalledWith({
+      roomId: 'room_1',
+      userId: 'user_1'
+    })
+  })
+
+  it('schedules summarization when metadata is still missing', async () => {
+    expect(
+      shouldScheduleChatRoomSummary({
+        roomName: 'Half Ironman Build',
+        roomMetadata: {
+          titleGeneratedAt: '2026-03-17T10:00:00.000Z'
+        }
+      })
+    ).toBe(true)
+  })
+
+  it('skips scheduling once title and summary metadata already exist', async () => {
+    await expect(
+      scheduleChatRoomSummaryIfNeeded({
+        roomId: 'room_2',
+        userId: 'user_2',
+        roomName: 'Half Ironman Build',
+        roomMetadata: {
+          titleGeneratedAt: '2026-03-17T10:00:00.000Z',
+          historySummary: 'User is preparing for a half ironman.',
+          lastSummarizedMessageId: 'msg_99'
+        }
+      })
+    ).resolves.toBe(false)
+
+    expect(summarizeChatTaskTrigger).not.toHaveBeenCalled()
   })
 })

@@ -20,6 +20,7 @@ import { buildAthleteContext } from '../services/chatContextService'
 import { chatTurnService } from '../services/chatTurnService'
 import { checkQuota } from '../quotas/engine'
 import { sendToUser } from '../ws-state'
+import { summarizeChatTask } from '../../../trigger/summarize-chat'
 import { transformHistoryToCoreMessages } from '../ai-history'
 import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
 import { findToolNameRepair } from './tool-call-repair'
@@ -314,6 +315,39 @@ export function getHardcodedChatProviderOptions(modelType: 'flash' | 'pro', mode
   }
 
   return buildGoogleProviderOptions(modelId, 'low', 2000)
+}
+
+export function shouldScheduleChatRoomSummary(input: {
+  roomName?: string | null
+  roomMetadata?: Record<string, any> | null
+}) {
+  const roomName = input.roomName?.trim()
+  const roomMetadata = input.roomMetadata || {}
+
+  const needsTitleGeneration =
+    !roomName || roomName === 'New Chat' || !roomMetadata.titleGeneratedAt
+  const needsSummaryGeneration =
+    !roomMetadata.historySummary || !roomMetadata.lastSummarizedMessageId
+
+  return needsTitleGeneration || needsSummaryGeneration
+}
+
+export async function scheduleChatRoomSummaryIfNeeded(input: {
+  roomId: string
+  userId: string
+  roomName?: string | null
+  roomMetadata?: Record<string, any> | null
+}) {
+  if (!shouldScheduleChatRoomSummary(input)) {
+    return false
+  }
+
+  await summarizeChatTask.trigger({
+    roomId: input.roomId,
+    userId: input.userId
+  })
+
+  return true
 }
 
 export async function executeChatTurn(turnId: string, expectedRunId?: string | null) {
@@ -665,6 +699,19 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
           }
         })
         .catch(() => null)
+
+      await scheduleChatRoomSummaryIfNeeded({
+        roomId: turn.roomId,
+        userId: turn.userId,
+        roomName: turn.room.name,
+        roomMetadata
+      }).catch((error) => {
+        console.error('[ChatTurn] Failed to schedule chat summary after local completion:', {
+          turnId: turn.id,
+          roomId: turn.roomId,
+          error
+        })
+      })
 
       return {
         success: true,
@@ -1226,6 +1273,19 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
         } catch (error) {
           console.error('[ChatTurn] LLM usage log failed:', error)
         }
+
+        await scheduleChatRoomSummaryIfNeeded({
+          roomId: turn.roomId,
+          userId: turn.userId,
+          roomName: turn.room.name,
+          roomMetadata
+        }).catch((error) => {
+          console.error('[ChatTurn] Failed to schedule chat summary after completion:', {
+            turnId: turn.id,
+            roomId: turn.roomId,
+            error
+          })
+        })
       }
     })
 
