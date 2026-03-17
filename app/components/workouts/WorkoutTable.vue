@@ -44,6 +44,11 @@
             >
               Source
             </th>
+            <th
+              class="px-3 sm:px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest"
+            >
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody
@@ -133,6 +138,17 @@
                 {{ getWorkoutSourceLabel(workout) }}
               </span>
             </td>
+            <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm">
+              <UButton
+                v-if="workout.source !== 'coach_watts'"
+                icon="i-heroicons-bookmark"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :loading="savingId === workout.id"
+                @click.stop="saveToLibrary(workout)"
+              />
+            </td>
           </tr>
         </tbody>
       </table>
@@ -176,9 +192,37 @@
   defineEmits(['update:currentPage', 'navigate'])
 
   const { formatDate, formatDateTime, formatTime } = useFormat()
+  const toast = useToast()
+  const savingId = ref<string | null>(null)
 
   // Constant for items per page (used in pagination display)
   const itemsPerPage = 20
+
+  async function saveToLibrary(workout: any) {
+    savingId.value = workout.id
+    try {
+      await $fetch('/api/library/workouts/save', {
+        method: 'POST',
+        body: {
+          workoutId: workout.id,
+          title: workout.title
+        }
+      })
+      toast.add({
+        title: 'Saved to Library',
+        description: 'Workout structure captured for future use.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Save Failed',
+        description: error.data?.message || 'Could not save workout.',
+        color: 'error'
+      })
+    } finally {
+      savingId.value = null
+    }
+  }
 
   function formatDuration(seconds: number) {
     const hours = Math.floor(seconds / 3600)

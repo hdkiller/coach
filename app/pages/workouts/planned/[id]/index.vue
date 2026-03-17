@@ -48,6 +48,19 @@
 
           <UButton
             v-if="workout"
+            icon="i-heroicons-bookmark"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            class="font-bold"
+            :loading="savingToLibrary"
+            @click="saveToLibrary"
+          >
+            <span class="hidden sm:inline">Save to Library</span>
+          </UButton>
+
+          <UButton
+            v-if="workout"
             icon="i-heroicons-chat-bubble-left-right"
             color="primary"
             variant="solid"
@@ -920,6 +933,7 @@
   const workoutFuelingPlan = ref<any>(null)
   const sportSettings = ref<any>(null)
   const updatingFuelingStrategy = ref(false)
+  const savingToLibrary = ref(false)
 
   const fuelingPlan = computed(() => {
     if (workoutFuelingPlan.value?.windows?.length) return workoutFuelingPlan.value
@@ -1795,6 +1809,41 @@
         color: 'error',
         duration: 6000
       })
+    }
+  }
+
+  async function saveToLibrary() {
+    if (!workout.value) return
+
+    savingToLibrary.value = true
+    try {
+      await $fetch('/api/library/workouts/save', {
+        method: 'POST',
+        body: {
+          plannedWorkoutId: workout.value.id,
+          title: workout.value.title
+        }
+      })
+
+      toast.add({
+        title: 'Saved to Library',
+        description: 'You can now reuse this session from your library.',
+        color: 'success',
+        actions: [
+          {
+            label: 'View Library',
+            click: () => navigateTo('/library/workouts')
+          }
+        ]
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Save Failed',
+        description: error.data?.message || 'Failed to save to library',
+        color: 'error'
+      })
+    } finally {
+      savingToLibrary.value = false
     }
   }
 

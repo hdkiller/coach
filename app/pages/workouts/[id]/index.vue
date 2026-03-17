@@ -48,9 +48,27 @@
             >
               <span>{{ t('controls_share') }}</span>
             </UButton>
+            <UButton
+              v-if="workout"
+              icon="i-heroicons-bookmark"
+              color="neutral"
+              variant="outline"
+              size="sm"
+              class="hidden sm:inline-flex font-bold"
+              :loading="savingToLibrary"
+              @click="saveToLibrary"
+            >
+              <span>Save to Library</span>
+            </UButton>
             <UDropdownMenu
               :items="[
                 [
+                  {
+                    label: 'Save to Library',
+                    icon: 'i-heroicons-bookmark',
+                    class: 'sm:hidden',
+                    onSelect: () => saveToLibrary()
+                  },
                   {
                     label: t('controls_customize'),
                     icon: 'i-heroicons-adjustments-horizontal',
@@ -3457,6 +3475,7 @@
   const promoting = ref(false)
   const deleting = ref(false)
   const publishingSummary = ref(false)
+  const savingToLibrary = ref(false)
   const unlinkingDuplicateId = ref<string | null>(null)
 
   const isPromoteModalOpen = ref(false)
@@ -5488,6 +5507,41 @@
     const element = document.getElementById(sectionId)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  async function saveToLibrary() {
+    if (!workout.value) return
+
+    savingToLibrary.value = true
+    try {
+      await $fetch('/api/library/workouts/save', {
+        method: 'POST',
+        body: {
+          workoutId: workout.value.id,
+          title: workout.value.title
+        }
+      })
+
+      toast.add({
+        title: 'Saved to Library',
+        description: 'You can now reuse this session structure from your library.',
+        color: 'success',
+        actions: [
+          {
+            label: 'View Library',
+            click: () => navigateTo('/library/workouts')
+          }
+        ]
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Save Failed',
+        description: error.data?.message || 'Failed to save to library',
+        color: 'error'
+      })
+    } finally {
+      savingToLibrary.value = false
     }
   }
 
