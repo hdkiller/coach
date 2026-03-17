@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateFitbitRecoveryAlert } from '../../../../server/utils/wellness'
+import {
+  evaluateFitbitRecoveryAlert,
+  getCanonicalWellnessStress
+} from '../../../../server/utils/wellness'
 
 describe('evaluateFitbitRecoveryAlert', () => {
   it('triggers alert when fitbit has low HRV, poor sleep, and high ATL', () => {
@@ -33,5 +36,29 @@ describe('evaluateFitbitRecoveryAlert', () => {
     expect(result.isFitbit).toBe(false)
     expect(result.triggered).toBe(false)
     expect(result.summary).toContain('not evaluated')
+  })
+
+  it('prefers Garmin average stress from raw payload over a stale stored stress score', () => {
+    expect(
+      getCanonicalWellnessStress({
+        stress: 10,
+        lastSource: 'garmin',
+        rawJson: {
+          averageStressLevel: 29
+        }
+      })
+    ).toBe(3)
+  })
+
+  it('maps Intervals categorical stress from raw payload into the 1-10 prompt scale', () => {
+    expect(
+      getCanonicalWellnessStress({
+        stress: 10,
+        lastSource: 'intervals',
+        rawJson: {
+          stress: 2
+        }
+      })
+    ).toBe(4)
   })
 })

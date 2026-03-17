@@ -75,6 +75,79 @@ export function getInjuryLabel(val: string | number | null | undefined): string 
   return map[score] || ''
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
+}
+
+function mapIntervalsStressValue(value: unknown): number | null {
+  const numericValue = toFiniteNumber(value)
+  if (numericValue !== null) {
+    if (numericValue >= 1 && numericValue <= 4) {
+      const map: Record<number, number> = { 1: 1, 2: 4, 3: 7, 4: 10 }
+      return map[Math.round(numericValue)] || null
+    }
+
+    return normalizeStressScoreForStorage(numericValue)
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    const map: Record<string, number> = {
+      low: 1,
+      average: 4,
+      avg: 4,
+      medium: 4,
+      moderate: 4,
+      high: 7,
+      extreme: 10,
+      very_high: 10,
+      veryhigh: 10
+    }
+
+    return map[normalized] ?? null
+  }
+
+  return null
+}
+
+export function getCanonicalWellnessStress(
+  wellness:
+    | {
+        stress?: number | null
+        lastSource?: string | null
+        rawJson?: Record<string, any> | null
+      }
+    | null
+    | undefined
+): number | null {
+  if (!wellness) return null
+
+  const source = `${wellness.lastSource || ''}`.toLowerCase()
+  const raw = wellness.rawJson
+
+  if (raw && typeof raw === 'object') {
+    if (source === 'garmin') {
+      const garminStress = normalizeStressScoreForStorage(
+        toFiniteNumber(raw.averageStressLevel ?? raw.AverageDailyStress)
+      )
+      if (garminStress !== null) return garminStress
+    }
+
+    if (source === 'intervals') {
+      const intervalsStress = mapIntervalsStressValue(raw.stress)
+      if (intervalsStress !== null) return intervalsStress
+      if (raw.stress == null) return null
+    }
+  }
+
+  return normalizeStressScoreForStorage(wellness.stress)
+}
+
 export interface FitbitRecoveryAlertInput {
   lastSource?: string | null
   hrv?: number | null
@@ -93,10 +166,6 @@ export interface FitbitRecoveryAlertResult {
   triggered: boolean
   baselineHrv: number | null
   summary: string
-}
-
-function toFiniteNumber(value: number | null | undefined): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 export function evaluateFitbitRecoveryAlert(

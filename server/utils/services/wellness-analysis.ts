@@ -13,7 +13,8 @@ import {
   getMotivationLabel,
   getHydrationLabel,
   getInjuryLabel,
-  normalizeStressScore
+  normalizeStressScore,
+  getCanonicalWellnessStress
 } from '../wellness'
 import {
   formatWellnessEventsForPrompt,
@@ -94,6 +95,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
   try {
     const timezone = await getUserTimezone(userId)
     const today = getUserLocalDate(timezone)
+    const canonicalStress = getCanonicalWellnessStress(wellness)
 
     // 1. Skip if future date
     if (wellness.date > today) {
@@ -269,7 +271,7 @@ export async function analyzeWellness(wellnessId: string, userId: string) {
 
         - Subjective:
 
-          * Stress: ${wellness.stress ? normalizeStressScore(wellness.stress) + '/10' : 'N/A'} (${getStressLabel(wellness.stress)})
+          * Stress: ${canonicalStress ? normalizeStressScore(canonicalStress) + '/10' : 'N/A'} (${getStressLabel(canonicalStress)})
 
           * Fatigue: ${wellness.fatigue ? wellness.fatigue + '/10' : 'N/A'} (${getFatigueLabel(wellness.fatigue)})
 
