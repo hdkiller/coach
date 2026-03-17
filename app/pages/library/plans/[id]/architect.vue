@@ -563,14 +563,6 @@
                           </div>
 
                           <div class="space-y-3">
-                            <div class="flex flex-wrap gap-1.5">
-                              <UBadge color="neutral" variant="soft" size="sm">
-                                {{ weekSummary(week).workoutCount }} session{{
-                                  weekSummary(week).workoutCount === 1 ? '' : 's'
-                                }}
-                              </UBadge>
-                            </div>
-
                             <div
                               class="flex flex-wrap gap-2 opacity-100 transition-opacity lg:opacity-0 lg:group-hover/rail:opacity-100"
                             >
@@ -600,7 +592,15 @@
                           v-for="day in weekDays(week)"
                           :key="`${week.id}-${day.dayIndex}`"
                           class="flex min-h-[188px] flex-col border-r border-default p-2.5 last:border-r-0"
-                          :class="weekRowSurface(week.weekNumber, week.id)"
+                          :class="[
+                            weekRowSurface(week.weekNumber, week.id),
+                            dragOverDayKey === architectDayKey(week.id, day.dayIndex)
+                              ? 'ring-2 ring-primary ring-inset'
+                              : ''
+                          ]"
+                          @dragover.prevent="onArchitectDayDragOver(week.id, day.dayIndex)"
+                          @dragleave="onArchitectDayDragLeave(week.id, day.dayIndex, $event)"
+                          @drop.prevent="onArchitectDayDrop(week.id, day.dayIndex, $event)"
                         >
                           <div class="flex items-center justify-between gap-2">
                             <span
@@ -658,23 +658,44 @@
                                   </div>
                                 </button>
 
-                                <div
-                                  class="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover/workout:opacity-100"
-                                >
-                                  <UButton
-                                    color="neutral"
-                                    variant="ghost"
-                                    size="xs"
-                                    icon="i-heroicons-pencil-square"
-                                    @click="openWorkoutEditor(week.id, day.dayIndex, workout)"
-                                  />
-                                  <UButton
-                                    color="neutral"
-                                    variant="ghost"
-                                    size="xs"
-                                    icon="i-heroicons-trash"
-                                    @click="removeWorkout(week.id, workout.id)"
-                                  />
+                                <div class="flex shrink-0 flex-col items-end gap-1">
+                                  <div
+                                    class="flex h-7 w-7 items-center justify-center rounded-lg bg-muted/40 text-primary"
+                                  >
+                                    <UIcon :name="getWorkoutIcon(workout.type)" class="h-4 w-4" />
+                                  </div>
+
+                                  <div
+                                    class="flex items-center gap-0.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover/workout:opacity-100"
+                                  >
+                                    <UButton
+                                      color="neutral"
+                                      variant="ghost"
+                                      size="xs"
+                                      icon="i-heroicons-document-plus"
+                                      :disabled="isWorkoutInLibrary(workout)"
+                                      :title="
+                                        isWorkoutInLibrary(workout)
+                                          ? 'Already in library'
+                                          : 'Copy to library'
+                                      "
+                                      @click="copyWorkoutToLibrary(workout)"
+                                    />
+                                    <UButton
+                                      color="neutral"
+                                      variant="ghost"
+                                      size="xs"
+                                      icon="i-heroicons-pencil-square"
+                                      @click="openWorkoutEditor(week.id, day.dayIndex, workout)"
+                                    />
+                                    <UButton
+                                      color="neutral"
+                                      variant="ghost"
+                                      size="xs"
+                                      icon="i-heroicons-trash"
+                                      @click="removeWorkout(week.id, workout.id)"
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1187,11 +1208,23 @@
       </div>
     </template>
   </USlideover>
+
+  <ClientOnly>
+    <PlanArchitectWorkoutDrawer
+      :open="isWorkoutDrawerOpen"
+      :templates="workoutTemplates || []"
+      :loading="workoutTemplateStatus === 'pending'"
+      :error="workoutTemplateStatus === 'error'"
+      @toggle="isWorkoutDrawerOpen = !isWorkoutDrawerOpen"
+    />
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
+  import { getWorkoutIcon } from '~/utils/activity-types'
   import PlanArchitectLibrarySidebar from '~/components/plans/PlanArchitectLibrarySidebar.vue'
   import PlanArchitectTimelineChart from '~/components/plans/PlanArchitectTimelineChart.vue'
+  import PlanArchitectWorkoutDrawer from '~/components/plans/PlanArchitectWorkoutDrawer.vue'
 
   type ViewMode = 'board' | 'table'
   type ChartMetric = 'tss' | 'minutes'
@@ -1212,6 +1245,8 @@
 
   const loading = computed(() => status.value === 'pending')
   const saving = ref(false)
+  const isWorkoutDrawerOpen = ref(true)
+  const dragOverDayKey = ref<string | null>(null)
 
   const draftPlan = ref<any | null>(null)
   const lastSavedSnapshot = ref('')
@@ -1232,6 +1267,15 @@
   const editingWeekTarget = ref<{ blockId: string; weekId: string } | null>(null)
   const editingWorkout = ref<any | null>(null)
   const editingWorkoutTarget = ref<{ weekId: string; workoutId: string } | null>(null)
+
+  const {
+    data: workoutTemplates,
+    status: workoutTemplateStatus,
+    refresh: refreshWorkoutTemplates
+  } = useLazyFetch<any[]>('/api/library/workouts', {
+    server: false,
+    default: () => []
+  })
 
   if (import.meta.client) {
     const storedViewMode = sessionStorage.getItem(viewModeKey)
@@ -1738,6 +1782,56 @@
     return 'Other'
   }
 
+  function inferWorkoutSport(workout: any) {
+    const fingerprint = `${workout.type || ''} ${workout.category || ''}`.toUpperCase()
+
+    if (fingerprint.includes('RUN')) {
+      return 'Running'
+    }
+
+    if (
+      fingerprint.includes('RIDE') ||
+      fingerprint.includes('BIKE') ||
+      fingerprint.includes('CYCLE')
+    ) {
+      return 'Cycling'
+    }
+
+    if (fingerprint.includes('SWIM')) {
+      return 'Swimming'
+    }
+
+    if (
+      fingerprint.includes('GYM') ||
+      fingerprint.includes('STRENGTH') ||
+      fingerprint.includes('WEIGHT')
+    ) {
+      return 'Strength'
+    }
+
+    return 'Cycling'
+  }
+
+  function workoutLibraryFingerprint(workout: any) {
+    return [
+      String(workout.title || '')
+        .trim()
+        .toLowerCase(),
+      String(workout.type || '')
+        .trim()
+        .toLowerCase(),
+      Math.round((Number(workout.durationSec) || 0) / 60),
+      Math.round(Number(workout.tss) || 0)
+    ].join('::')
+  }
+
+  function isWorkoutInLibrary(workout: any) {
+    const fingerprint = workoutLibraryFingerprint(workout)
+    return (workoutTemplates.value || []).some(
+      (template: any) => workoutLibraryFingerprint(template) === fingerprint
+    )
+  }
+
   function labelIsAlwaysVisible(label: string) {
     return ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other'].includes(label)
   }
@@ -1877,6 +1971,10 @@
 
   function weekRowId(weekId: string) {
     return `architect-week-${weekId}`
+  }
+
+  function architectDayKey(weekId: string, dayIndex: number) {
+    return `${weekId}:${dayIndex}`
   }
 
   function setViewMode(mode: ViewMode) {
@@ -2034,6 +2132,97 @@
     })
 
     toast.add({ title: 'Workout added', color: 'success' })
+  }
+
+  function addWorkoutFromTemplate(weekId: string, dayIndex: number, template: any) {
+    const week = findWeek(weekId)
+    if (!week) {
+      return
+    }
+
+    week.workouts.push({
+      id: `temp-workout-${Date.now()}`,
+      dayIndex,
+      weekIndex: week.weekNumber,
+      title: template.title || 'New workout',
+      type: template.type || 'Workout',
+      durationSec: Number(template.durationSec) || 0,
+      tss: Number(template.tss) || 0,
+      category: template.category || 'Workout',
+      structuredWorkout: template.structuredWorkout || null
+    })
+
+    toast.add({ title: 'Workout added from library', color: 'success' })
+  }
+
+  async function copyWorkoutToLibrary(workout: any) {
+    if (isWorkoutInLibrary(workout)) {
+      toast.add({ title: 'Already in library', color: 'info' })
+      return
+    }
+
+    try {
+      await $fetch('/api/library/workouts', {
+        method: 'POST',
+        body: {
+          title: workout.title || 'Untitled workout',
+          type: workout.type || 'Ride',
+          sport: inferWorkoutSport(workout),
+          category: workout.category || undefined,
+          structuredWorkout: workout.structuredWorkout || undefined,
+          durationSec: Number(workout.durationSec) || 0,
+          tss: Number(workout.tss) || 0
+        }
+      })
+
+      await refreshWorkoutTemplates()
+      toast.add({ title: 'Copied to library', color: 'success' })
+    } catch (error: any) {
+      toast.add({
+        title: 'Library copy failed',
+        description: error.data?.message || 'Could not create workout template.',
+        color: 'error'
+      })
+    }
+  }
+
+  function onArchitectDayDragOver(weekId: string, dayIndex: number) {
+    dragOverDayKey.value = architectDayKey(weekId, dayIndex)
+  }
+
+  function onArchitectDayDragLeave(weekId: string, dayIndex: number, event: DragEvent) {
+    if (
+      event.relatedTarget &&
+      (event.currentTarget as HTMLElement)?.contains(event.relatedTarget as Node)
+    ) {
+      return
+    }
+
+    if (dragOverDayKey.value === architectDayKey(weekId, dayIndex)) {
+      dragOverDayKey.value = null
+    }
+  }
+
+  function onArchitectDayDrop(weekId: string, dayIndex: number, event: DragEvent) {
+    dragOverDayKey.value = null
+
+    if (!event.dataTransfer) {
+      return
+    }
+
+    const payload = event.dataTransfer.getData('application/json')
+    if (!payload) {
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(payload)
+      if (parsed?.source === 'library-template' && parsed.template) {
+        addWorkoutFromTemplate(weekId, dayIndex, parsed.template)
+      }
+    } catch (error) {
+      console.error('Failed to parse architect drop payload', error)
+    }
   }
 
   function removeWorkout(weekId: string, workoutId: string) {
