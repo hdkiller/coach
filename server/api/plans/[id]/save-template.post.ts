@@ -62,6 +62,8 @@ export default defineEventHandler(async (event) => {
   })
 
   // Clone Blocks
+  let globalWeekCounter = 1
+
   for (const block of plan.blocks) {
     const newBlock = await (prisma as any).trainingBlock.create({
       data: {
@@ -70,21 +72,24 @@ export default defineEventHandler(async (event) => {
         name: block.name,
         type: block.type,
         primaryFocus: block.primaryFocus,
-        startDate: new Date(0),
+        startDate: new Date(0), // Placeholder for templates
         durationWeeks: block.durationWeeks,
         recoveryWeekIndex: block.recoveryWeekIndex,
         progressionLogic: block.progressionLogic
       }
     })
 
+    // Sort weeks by number to ensure correct global index
+    const sortedWeeks = [...block.weeks].sort((a, b) => a.weekNumber - b.weekNumber)
+
     // Clone Weeks
-    for (const week of block.weeks) {
+    for (const week of sortedWeeks) {
       const newWeek = await (prisma as any).trainingWeek.create({
         data: {
           blockId: newBlock.id,
           weekNumber: week.weekNumber,
-          startDate: new Date(0),
-          endDate: new Date(0),
+          startDate: new Date(0), // Placeholder for templates
+          endDate: new Date(0), // Placeholder for templates
           volumeTargetMinutes: week.volumeTargetMinutes,
           tssTarget: week.tssTarget,
           isRecovery: week.isRecovery,
@@ -92,17 +97,21 @@ export default defineEventHandler(async (event) => {
         }
       })
 
-      // Clone Workouts with relative day of week
+      // Clone Workouts with relative indices
       for (const workout of week.workouts) {
         const workoutDate = new Date(workout.date)
-        const dayOfWeek = workoutDate.getDay() // 0 = Sunday, 1 = Monday...
+        const jsDay = workoutDate.getDay() // 0 = Sunday, 1 = Monday...
+        // Convert to our 0-6 (Monday-Sunday) format
+        const dayIndex = jsDay === 0 ? 6 : jsDay - 1
 
         await (prisma as any).plannedWorkout.create({
           data: {
             userId,
             trainingWeekId: newWeek.id,
             externalId: `tmpl_${template.id}_${Math.random().toString(36).substr(2, 9)}`,
-            date: new Date(dayOfWeek * 24 * 60 * 60 * 1000), // Store relative day as timestamp from epoch
+            date: new Date(dayIndex * 24 * 60 * 60 * 1000), // Keep for legacy compatibility
+            dayIndex,
+            weekIndex: globalWeekCounter,
             title: workout.title,
             description: workout.description,
             type: workout.type,
@@ -117,6 +126,7 @@ export default defineEventHandler(async (event) => {
           }
         })
       }
+      globalWeekCounter++
     }
   }
 

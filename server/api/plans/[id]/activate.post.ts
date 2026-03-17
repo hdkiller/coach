@@ -110,15 +110,25 @@ export default defineEventHandler(async (event) => {
                   focus: week.focus,
                   workouts: {
                     create: week.workouts.map((workout: any) => {
-                      // date in template stores relative day of week as epoch offset
-                      const dayOfWeek = new Date(workout.date).getTime() / (24 * 60 * 60 * 1000)
+                      // Template stores relative dayIndex (0-6, Mon-Sun)
+                      let dayOffset = 0
+                      if (workout.dayIndex !== null && workout.dayIndex !== undefined) {
+                        dayOffset = workout.dayIndex
+                      } else {
+                        // Fallback for older templates using epoch-date hack
+                        const jsDay = new Date(workout.date).getDay() // 0=Sun, 1=Mon
+                        dayOffset = jsDay === 0 ? 6 : jsDay - 1
+                      }
+
                       const workoutDate = new Date(weekStartDate)
-                      workoutDate.setUTCDate(workoutDate.getUTCDate() + Math.round(dayOfWeek))
+                      workoutDate.setUTCDate(workoutDate.getUTCDate() + dayOffset)
 
                       return {
                         userId,
                         externalId: `plan_${Math.random().toString(36).substr(2, 9)}`,
                         date: workoutDate,
+                        dayIndex: dayOffset,
+                        weekIndex: workout.weekIndex,
                         title: workout.title,
                         description: workout.description,
                         type: workout.type,
