@@ -1,5 +1,22 @@
 Hey Coach Watts athletes and coaches! 👋
 
+We're thrilled to announce the latest update, **v0.5.24**, introducing the **Training Architect & Blueprint Library**! This is a major leap forward in how you plan your season and manage your workouts.
+
+### 📐 **Training Architect & Blueprint Library (New!)**
+
+Take control of your training with a dedicated space for drafting professional-grade plans and reusable sessions.
+
+- **Workout Library:** A central repository for your best structured sessions. Create workouts from scratch, capture them from your history, or use AI to generate new ones.
+- **Plan Architect:** A date-less, relative-indexed editor for building multi-week progressions. Drag and drop library workouts onto "Day 1, Week 2" to build the perfect blueprint.
+- **Structural Blueprinting:** Easily duplicate weeks, delete blocks, and refine your training strategy without affecting your active calendar.
+- **Save from Anywhere:** Found a workout you love in your history or plan? Click the "Save to Library" button to keep it forever.
+
+> **💡 Note for existing users:** After this update, we recommend running the `pnpm cw:cli backfill plan-indices` command (for admins) to ensure all your existing templates are correctly migrated to the new relative indexing system.
+
+---
+
+Hey Coach Watts athletes and coaches! 👋
+
 We're thrilled to announce the latest update, **v0.5.23**, packed with powerful new features and significant improvements designed to make your training even smarter, more personalized, and easier to manage! We've been working hard behind the scenes, and you'll notice big changes, especially around understanding your recovery and fine-tuning your workouts.
 
 Here's what's new and improved:

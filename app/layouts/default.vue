@@ -213,6 +213,29 @@
         }
       },
       {
+        label: 'Library',
+        icon: 'i-lucide-library',
+        defaultOpen: route.path.includes('library'),
+        children: [
+          {
+            label: 'Workout Library',
+            icon: 'i-lucide-activity',
+            to: '/library/workouts',
+            onSelect: () => {
+              open.value = false
+            }
+          },
+          {
+            label: 'Plan Library',
+            icon: 'i-lucide-scroll-text',
+            to: '/library/plans',
+            onSelect: () => {
+              open.value = false
+            }
+          }
+        ]
+      },
+      {
         label: ready ? t.value('navigation_help_center') : 'Help Center',
         icon: 'i-heroicons-question-mark-circle',
         to: '/help-center',
