@@ -46,6 +46,12 @@
       targetTss: number
       scheduledTss: number
       workoutCount: number
+      typeBreakdown?: Array<{
+        label: string
+        count: number
+        minutes: number
+        tss: number
+      }>
     }>
     blockRanges: Array<{
       blockId: string
@@ -96,14 +102,20 @@
     return 'rgba(148, 163, 184, 0.16)'
   }
 
-  function selectedBarColor(weekId: string) {
-    return props.selectedWeekId === weekId ? 'rgba(99, 102, 241, 0.4)' : 'rgba(148, 163, 184, 0.28)'
+  function activityColor(label: string) {
+    if (label === 'Run') return 'rgba(16, 185, 129, 0.22)'
+    if (label === 'Ride') return 'rgba(14, 165, 233, 0.22)'
+    if (label === 'Gym') return 'rgba(217, 70, 239, 0.22)'
+    if (label === 'Rest/Recovery') return 'rgba(245, 158, 11, 0.22)'
+    return 'rgba(148, 163, 184, 0.22)'
   }
 
-  function selectedBorderColor(weekId: string) {
-    return props.selectedWeekId === weekId
-      ? 'rgba(99, 102, 241, 0.95)'
-      : 'rgba(148, 163, 184, 0.55)'
+  function activityBorder(label: string) {
+    if (label === 'Run') return 'rgba(16, 185, 129, 0.5)'
+    if (label === 'Ride') return 'rgba(14, 165, 233, 0.5)'
+    if (label === 'Gym') return 'rgba(217, 70, 239, 0.5)'
+    if (label === 'Rest/Recovery') return 'rgba(245, 158, 11, 0.5)'
+    return 'rgba(148, 163, 184, 0.45)'
   }
 
   const chartData = computed(() => {
@@ -111,32 +123,40 @@
     const targetData = props.weeks.map((week) =>
       props.metric === 'tss' ? week.targetTss : week.targetMinutes
     )
-    const scheduledData = props.weeks.map((week) =>
-      props.metric === 'tss' ? week.scheduledTss : week.scheduledMinutes
-    )
+    const activityLabels = ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other']
+    const stackedDatasets = activityLabels.map((label) => ({
+      type: 'bar',
+      label,
+      stack: 'scheduled',
+      data: props.weeks.map((week) => {
+        const bucket = week.typeBreakdown?.find((entry) => entry.label === label)
+        if (!bucket) return 0
+
+        return props.metric === 'tss' ? bucket.tss : bucket.minutes
+      }),
+      backgroundColor: activityColor(label),
+      borderColor: props.weeks.map((week) =>
+        props.selectedWeekId === week.weekId ? '#6366f1' : activityBorder(label)
+      ),
+      borderWidth: props.weeks.map((week) => (props.selectedWeekId === week.weekId ? 1 : 0)),
+      borderSkipped: false,
+      borderRadius: 0,
+      barPercentage: 0.78,
+      categoryPercentage: 0.88
+    }))
 
     return {
       labels,
       datasets: [
-        {
-          type: 'bar',
-          label: props.metric === 'tss' ? 'Target TSS' : 'Target minutes',
-          data: targetData,
-          backgroundColor: props.weeks.map((week) => selectedBarColor(week.weekId)),
-          borderColor: props.weeks.map((week) => selectedBorderColor(week.weekId)),
-          borderWidth: props.weeks.map((week) => (props.selectedWeekId === week.weekId ? 1.5 : 1)),
-          borderRadius: 8,
-          barPercentage: 0.78,
-          categoryPercentage: 0.88
-        },
+        ...stackedDatasets,
         {
           type: 'line',
-          label: props.metric === 'tss' ? 'Scheduled TSS' : 'Scheduled minutes',
-          data: scheduledData,
-          borderColor: '#22c55e',
-          backgroundColor: 'rgba(34, 197, 94, 0.18)',
+          label: props.metric === 'tss' ? 'Target TSS' : 'Target minutes',
+          data: targetData,
+          borderColor: '#cbd5e1',
+          backgroundColor: 'rgba(203, 213, 225, 0.18)',
           pointBackgroundColor: props.weeks.map((week) =>
-            props.selectedWeekId === week.weekId ? '#6366f1' : '#22c55e'
+            props.selectedWeekId === week.weekId ? '#6366f1' : '#cbd5e1'
           ),
           pointBorderColor: '#0f172a',
           pointBorderWidth: 1.5,
@@ -213,12 +233,23 @@
               const week = props.weeks[items[0]?.dataIndex]
               if (!week) return []
 
+              const breakdownLines = ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other']
+                .map((label) => {
+                  const bucket = week.typeBreakdown?.find((entry) => entry.label === label)
+                  const value = props.metric === 'tss' ? bucket?.tss || 0 : bucket?.minutes || 0
+                  if (!value) return null
+
+                  return `${label}: ${value}${props.metric === 'tss' ? ' TSS' : ' min'}`
+                })
+                .filter(Boolean)
+
               return [
                 `Target minutes: ${week.targetMinutes}`,
                 `Scheduled minutes: ${week.scheduledMinutes}`,
                 `Target TSS: ${week.targetTss}`,
                 `Scheduled TSS: ${week.scheduledTss}`,
-                `Workouts: ${week.workoutCount}`
+                `Workouts: ${week.workoutCount}`,
+                ...breakdownLines
               ]
             }
           }
@@ -256,12 +287,31 @@
               textAlign: 'center',
               drawTime: 'beforeDatasetsDraw'
             }
+            if (props.selectedWeekId) {
+              const selectedIndex = props.weeks.findIndex(
+                (week) => week.weekId === props.selectedWeekId
+              )
+              if (selectedIndex >= 0) {
+                acc.selectedWeek = {
+                  type: 'box',
+                  xMin: selectedIndex - 0.5,
+                  xMax: selectedIndex + 0.5,
+                  yMin: 0,
+                  yScaleID: 'y',
+                  backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                  borderColor: 'rgba(99, 102, 241, 0.35)',
+                  borderWidth: 1,
+                  drawTime: 'beforeDatasetsDraw'
+                }
+              }
+            }
             return acc
           }, {})
         }
       },
       scales: {
         x: {
+          stacked: true,
           grid: {
             display: false
           },
@@ -277,6 +327,7 @@
           }
         },
         y: {
+          stacked: true,
           beginAtZero: true,
           grid: {
             color: gridColor,

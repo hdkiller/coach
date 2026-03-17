@@ -537,36 +537,32 @@
                                 weekSummary(week).workoutCount === 1 ? '' : 's'
                               }}
                             </div>
-                          </div>
-
-                          <div class="space-y-3">
-                            <div class="grid gap-2">
+                            <div class="grid grid-cols-4 gap-2 pt-1">
                               <div
-                                class="rounded-xl border border-default/70 bg-default/80 px-3 py-2"
+                                v-for="bucket in weekBreakdownBars(week)"
+                                :key="`${week.id}-${bucket.label}`"
+                                class="flex flex-col items-center gap-1"
                               >
+                                <div class="flex h-14 items-end">
+                                  <div
+                                    class="w-5 rounded-t-md"
+                                    :class="bucket.tone"
+                                    :style="{ height: `${bucket.height}%` }"
+                                  />
+                                </div>
                                 <div
-                                  class="text-[10px] font-black uppercase tracking-[0.18em] text-muted"
+                                  class="text-[9px] font-black uppercase tracking-[0.14em] text-muted"
                                 >
-                                  Target minutes
+                                  {{ bucket.shortLabel }}
                                 </div>
-                                <div class="mt-1 text-xs font-semibold text-highlighted">
-                                  {{ formatMinutes(week.volumeTargetMinutes || 0) }}
-                                </div>
-                              </div>
-                              <div
-                                class="rounded-xl border border-default/70 bg-default/80 px-3 py-2"
-                              >
-                                <div
-                                  class="text-[10px] font-black uppercase tracking-[0.18em] text-muted"
-                                >
-                                  Target TSS
-                                </div>
-                                <div class="mt-1 text-xs font-semibold text-highlighted">
-                                  {{ week.tssTarget || 0 }} TSS
+                                <div class="text-[10px] font-semibold text-highlighted">
+                                  {{ bucket.count }}
                                 </div>
                               </div>
                             </div>
+                          </div>
 
+                          <div class="space-y-3">
                             <div class="flex flex-wrap gap-1.5">
                               <UBadge color="neutral" variant="soft" size="sm">
                                 {{ weekSummary(week).workoutCount }} session{{
@@ -648,8 +644,17 @@
                                   >
                                     {{ workout.type || 'Workout' }}
                                   </div>
-                                  <div class="mt-1.5 text-[10px] font-medium leading-4 text-muted">
-                                    {{ workoutMetaLine(workout) }}
+                                  <div
+                                    class="mt-2 flex items-center justify-between gap-3 text-[10px] font-medium text-muted"
+                                  >
+                                    <span class="whitespace-nowrap">
+                                      {{
+                                        formatMinutes(Math.round((workout.durationSec || 0) / 60))
+                                      }}
+                                    </span>
+                                    <span class="whitespace-nowrap text-right">
+                                      {{ Math.round(workout.tss || 0) }} TSS
+                                    </span>
                                   </div>
                                 </button>
 
@@ -1782,18 +1787,50 @@
     return Math.min(100, Math.round((safeActual / safeTarget) * 100))
   }
 
-  function workoutMetaLine(workout: any) {
-    const parts = [
-      workout.type || 'Workout',
-      formatMinutes(Math.round((workout.durationSec || 0) / 60)),
-      `${Math.round(workout.tss || 0)} TSS`
-    ]
-
-    if (workout.category) {
-      parts.push(workout.category)
+  function bucketTone(label: string) {
+    if (label === 'Run') {
+      return 'bg-emerald-500/12 text-emerald-400'
     }
 
-    return parts.join(' • ')
+    if (label === 'Ride') {
+      return 'bg-sky-500/12 text-sky-400'
+    }
+
+    if (label === 'Gym') {
+      return 'bg-fuchsia-500/12 text-fuchsia-400'
+    }
+
+    if (label === 'Rest/Recovery') {
+      return 'bg-amber-500/12 text-amber-400'
+    }
+
+    return 'bg-muted text-muted'
+  }
+
+  function bucketShortLabel(label: string) {
+    if (label === 'Rest/Recovery') {
+      return 'Rest'
+    }
+
+    return label
+  }
+
+  function weekBreakdownBars(week: any) {
+    const buckets = orderedWorkouts(week).reduce((acc: Record<string, number>, workout: any) => {
+      const label = classifyWorkoutBucket(workout)
+      acc[label] = (acc[label] || 0) + 1
+      return acc
+    }, {})
+
+    const maxCount = Math.max(...Object.values(buckets), 1)
+
+    return ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other'].map((label) => ({
+      label,
+      shortLabel: bucketShortLabel(label),
+      count: buckets[label] || 0,
+      tone: bucketTone(label),
+      height: buckets[label] ? Math.max(18, Math.round((buckets[label] / maxCount) * 100)) : 6
+    }))
   }
 
   function weekMinuteDelta(week: any) {
