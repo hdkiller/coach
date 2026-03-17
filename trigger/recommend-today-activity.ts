@@ -29,7 +29,8 @@ import {
   getMotivationLabel,
   getHydrationLabel,
   getInjuryLabel,
-  evaluateFitbitRecoveryAlert
+  evaluateFitbitRecoveryAlert,
+  getCanonicalWellnessStress
 } from '../server/utils/wellness'
 import {
   formatWellnessEventsForPrompt,
@@ -450,6 +451,13 @@ export const recommendTodayActivityTask = task({
       } catch (err) {
         logger.error('Failed to run inline wellness analysis', { err })
         // We continue without the analysis rather than failing the whole recommendation
+      }
+    }
+
+    if (enrichedTodayMetric) {
+      enrichedTodayMetric = {
+        ...enrichedTodayMetric,
+        stress: getCanonicalWellnessStress(enrichedTodayMetric)
       }
     }
 

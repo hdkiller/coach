@@ -25,7 +25,8 @@ import {
   getSorenessLabel,
   getMotivationLabel,
   getHydrationLabel,
-  getInjuryLabel
+  getInjuryLabel,
+  getCanonicalWellnessStress
 } from '../server/utils/wellness'
 
 const checkinSchema = {
@@ -422,7 +423,17 @@ ${[...journeyLines, ...calendarLines].join('\n')}
 `
       }
 
-      const wellnessAnnotations = [todayMetric?.tags, todayMetric?.comments].filter(Boolean)
+      const normalizedTodayMetric = todayMetric
+        ? {
+            ...todayMetric,
+            stress: getCanonicalWellnessStress(todayMetric)
+          }
+        : null
+
+      const wellnessAnnotations = [
+        normalizedTodayMetric?.tags,
+        normalizedTodayMetric?.comments
+      ].filter(Boolean)
       const wellnessAnnotationsContext =
         wellnessAnnotations.length > 0
           ? `
@@ -472,19 +483,19 @@ ${plannedWorkout ? `${plannedWorkout.title} (TSS: ${plannedWorkout.tss || 'N/A'}
 
 TODAY'S RECOVERY:
 ${
-  todayMetric
+  normalizedTodayMetric
     ? `
-- Recovery Score: ${todayMetric.recoveryScore ?? 'N/A'}%
-- HRV: ${todayMetric.hrv ?? 'N/A'}ms
-- Sleep: ${todayMetric.sleepHours?.toFixed(1) ?? 'N/A'}h (Score: ${todayMetric.sleepScore ?? 'N/A'}%)
+- Recovery Score: ${normalizedTodayMetric.recoveryScore ?? 'N/A'}%
+- HRV: ${normalizedTodayMetric.hrv ?? 'N/A'}ms
+- Sleep: ${normalizedTodayMetric.sleepHours?.toFixed(1) ?? 'N/A'}h (Score: ${normalizedTodayMetric.sleepScore ?? 'N/A'}%)
 - Subjective:
-  * Stress: ${todayMetric.stress ? todayMetric.stress + '/10' : 'N/A'} (${getStressLabel(todayMetric.stress)})
-  * Fatigue: ${todayMetric.fatigue ? todayMetric.fatigue + '/10' : 'N/A'} (${getFatigueLabel(todayMetric.fatigue)})
-  * Soreness: ${todayMetric.soreness ? todayMetric.soreness + '/10' : 'N/A'} (${getSorenessLabel(todayMetric.soreness)})
-  * Mood: ${todayMetric.mood ? todayMetric.mood + '/10' : 'N/A'} (${getMoodLabel(todayMetric.mood)})
-  * Motivation: ${todayMetric.motivation ? todayMetric.motivation + '/10' : 'N/A'} (${getMotivationLabel(todayMetric.motivation)})
-  * Hydration: ${todayMetric.hydration ?? 'N/A'} (${getHydrationLabel(todayMetric.hydration)})
-  * Injury: ${todayMetric.injury ?? 'None'} (${getInjuryLabel(todayMetric.injury)})
+  * Stress: ${normalizedTodayMetric.stress ? normalizedTodayMetric.stress + '/10' : 'N/A'} (${getStressLabel(normalizedTodayMetric.stress)})
+  * Fatigue: ${normalizedTodayMetric.fatigue ? normalizedTodayMetric.fatigue + '/10' : 'N/A'} (${getFatigueLabel(normalizedTodayMetric.fatigue)})
+  * Soreness: ${normalizedTodayMetric.soreness ? normalizedTodayMetric.soreness + '/10' : 'N/A'} (${getSorenessLabel(normalizedTodayMetric.soreness)})
+  * Mood: ${normalizedTodayMetric.mood ? normalizedTodayMetric.mood + '/10' : 'N/A'} (${getMoodLabel(normalizedTodayMetric.mood)})
+  * Motivation: ${normalizedTodayMetric.motivation ? normalizedTodayMetric.motivation + '/10' : 'N/A'} (${getMotivationLabel(normalizedTodayMetric.motivation)})
+  * Hydration: ${normalizedTodayMetric.hydration ?? 'N/A'} (${getHydrationLabel(normalizedTodayMetric.hydration)})
+  * Injury: ${normalizedTodayMetric.injury ?? 'None'} (${getInjuryLabel(normalizedTodayMetric.injury)})
 `
     : 'No recovery data available'
 }
