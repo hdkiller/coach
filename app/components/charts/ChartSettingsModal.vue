@@ -65,6 +65,19 @@
             <USwitch v-model="settings.showWellnessEvents" />
           </div>
 
+          <!-- Wellness Event Filters -->
+          <div
+            v-if="showWellnessEventsOption && settings.showWellnessEvents"
+            class="pl-4 space-y-3"
+          >
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Include Daily Check-ins
+              </div>
+              <USwitch v-model="settings.showDailyCheckins" size="xs" />
+            </div>
+          </div>
+
           <div class="space-y-2">
             <div class="flex items-center justify-between">
               <div class="text-sm font-medium text-gray-900 dark:text-white">Fill Opacity</div>
@@ -237,6 +250,7 @@
     showFreshnessBands: true,
     showEstimatedFtp: true,
     showWellnessEvents: true,
+    showDailyCheckins: true,
     opacity: 0.5,
     yScale: 'dynamic',
     yMin: 0,

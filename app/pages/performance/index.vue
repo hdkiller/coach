@@ -723,7 +723,13 @@
   } | null>(null)
 
   const defaultChartSettings: any = {
-    pmc: { smooth: true, yScale: 'dynamic', yMin: 0, showWellnessEvents: true },
+    pmc: {
+      smooth: true,
+      yScale: 'dynamic',
+      yMin: 0,
+      showWellnessEvents: true,
+      showDailyCheckins: true
+    },
     powerCurve: { smooth: true, showFreshnessBands: true, yScale: 'dynamic', yMin: 0 },
     efficiency: { smooth: true, showPoints: true, yScale: 'dynamic', yMin: 0 },
     ftp: {

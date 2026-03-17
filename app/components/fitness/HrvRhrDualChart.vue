@@ -116,11 +116,22 @@
     showAxisTitles: true,
     showBand: true,
     showWellnessEvents: true,
+    showDailyCheckins: true,
     opacity: 0.15
   }
 
   const settings = computed(() => {
     return userStore.user?.dashboardSettings?.fitnessCharts?.hrvRhrDual || defaultSettings
+  })
+
+  const filteredWellnessEvents = computed(() => {
+    if (!props.wellnessEvents) return []
+    return props.wellnessEvents.filter((event) => {
+      if (!settings.value.showDailyCheckins && event.kind === 'daily_checkin') {
+        return false
+      }
+      return true
+    })
   })
 
   const chartWellnessData = computed(() =>
@@ -327,7 +338,7 @@
       wellnessOverlays:
         settings.value.showWellnessEvents !== false
           ? {
-              events: props.wellnessEvents || [],
+              events: filteredWellnessEvents.value || [],
               dateKeys: chartDateKeys.value
             }
           : undefined,
@@ -394,7 +405,10 @@
             }
 
             const pointDate = chartWellnessData.value[dataIndex]?.date
-            const overlayEvents = getWellnessEventsForDate(props.wellnessEvents || [], pointDate)
+            const overlayEvents = getWellnessEventsForDate(
+              filteredWellnessEvents.value || [],
+              pointDate
+            )
             if (overlayEvents.length > 0) {
               lines.push(
                 `Recovery Context: ${overlayEvents.map((event) => event.label).join(', ')}`

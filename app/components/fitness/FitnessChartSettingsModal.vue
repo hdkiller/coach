@@ -148,6 +148,16 @@
             <USwitch v-model="settings.showWellnessEvents" />
           </div>
 
+          <!-- Wellness Event Filters -->
+          <div v-if="settings.showWellnessEvents" class="pl-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Include Daily Check-ins
+              </div>
+              <USwitch v-model="settings.showDailyCheckins" size="xs" />
+            </div>
+          </div>
+
           <div class="flex items-center justify-between">
             <div class="space-y-0.5">
               <div class="text-sm font-medium text-gray-900 dark:text-white">
@@ -226,6 +236,7 @@
     yScale: 'dynamic',
     yMin: 0,
     showWellnessEvents: true,
+    showDailyCheckins: true,
     show7dAvg: false,
     show30dAvg: false,
     showStdDev: false,

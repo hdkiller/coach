@@ -277,10 +277,21 @@
     smooth: true,
     showLabels: false,
     showWellnessEvents: true,
+    showDailyCheckins: true,
     yScale: 'dynamic',
     yMin: 0,
     ...props.settings
   }))
+
+  const filteredWellnessEvents = computed(() => {
+    if (!wellnessEvents.value) return []
+    return wellnessEvents.value.filter((event) => {
+      if (!chartSettings.value.showDailyCheckins && event.kind === 'daily_checkin') {
+        return false
+      }
+      return true
+    })
+  })
 
   const ctlChange = computed(() => {
     if (!pmcData.value?.data?.length) return 0
@@ -490,7 +501,7 @@
           },
           afterBody: (items: any[]) => {
             const pointDate = chartData.value?.dates?.[items[0]?.dataIndex]
-            const events = getWellnessEventsForDate(wellnessEvents.value, pointDate)
+            const events = getWellnessEventsForDate(filteredWellnessEvents.value, pointDate)
             if (!events.length) return ''
             return `Recovery Context: ${events.map((event) => event.label).join(', ')}`
           }
@@ -499,7 +510,7 @@
       wellnessOverlays:
         chartSettings.value.showWellnessEvents !== false
           ? {
-              events: wellnessEvents.value,
+              events: filteredWellnessEvents.value,
               dateKeys: (chartData.value?.dates || []).map((value: string) =>
                 new Date(value).toISOString().slice(0, 10)
               )

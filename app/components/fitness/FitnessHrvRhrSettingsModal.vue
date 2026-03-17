@@ -202,6 +202,14 @@
               </div>
               <USwitch v-model="settings.showWellnessEvents" />
             </div>
+            <div v-if="settings.showWellnessEvents" class="pl-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Include Daily Check-ins
+                </div>
+                <USwitch v-model="settings.showDailyCheckins" size="xs" />
+              </div>
+            </div>
             <div class="grid grid-cols-2 gap-3">
               <UCheckbox v-model="settings.showAlcohol" label="Alcohol" />
               <UCheckbox v-model="settings.showStrain" label="High Strain" />
@@ -242,6 +250,7 @@
     showBand: true,
     opacity: 0.15,
     showWellnessEvents: true,
+    showDailyCheckins: true,
     showAlcohol: true,
     showStrain: true,
     showIllness: true,

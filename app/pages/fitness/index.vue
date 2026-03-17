@@ -384,6 +384,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
+      showDailyCheckins: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -394,6 +395,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
+      showDailyCheckins: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -404,6 +406,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
+      showDailyCheckins: true,
       opacity: 0.8,
       yScale: 'dynamic',
       yMin: 0
@@ -414,6 +417,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
+      showDailyCheckins: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -424,6 +428,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
+      showDailyCheckins: true,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -1307,6 +1312,11 @@
       settings.showTarget ||
       key === 'bp'
 
+    const filteredEvents = wellnessEvents.value.filter((event) => {
+      if (!settings.showDailyCheckins && event.kind === 'daily_checkin') return false
+      return true
+    })
+
     opts.plugins.legend = {
       display: !!hasOverlays,
       position: 'bottom',
@@ -1374,7 +1384,7 @@
       afterBody: (items: any[]) => {
         const chartEntry = (chartDataByKey.value as Record<string, any>)[key]
         const pointDate = chartEntry?.dates?.[items[0]?.dataIndex]
-        const events = getWellnessEventsForDate(wellnessEvents.value, pointDate)
+        const events = getWellnessEventsForDate(filteredEvents, pointDate)
         if (!events.length) return ''
         return `Recovery Context: ${events.map((event) => event.label).join(', ')}`
       }
@@ -1383,7 +1393,7 @@
     if (settings.showWellnessEvents !== false) {
       const chartEntry = (chartDataByKey.value as Record<string, any>)[key]
       opts.plugins.wellnessOverlays = {
-        events: wellnessEvents.value,
+        events: filteredEvents,
         dateKeys: (chartEntry?.dates || []).map((value: string) =>
           new Date(value).toISOString().slice(0, 10)
         )
