@@ -218,7 +218,7 @@
         defaultOpen: route.path.includes('library'),
         children: [
           {
-            label: 'Workout Library',
+            label: 'Workouts',
             icon: 'i-lucide-activity',
             to: '/library/workouts',
             onSelect: () => {
@@ -226,7 +226,7 @@
             }
           },
           {
-            label: 'Plan Library',
+            label: 'Plans',
             icon: 'i-lucide-scroll-text',
             to: '/library/plans',
             onSelect: () => {

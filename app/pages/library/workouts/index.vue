@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="workout-library">
     <template #header>
-      <UDashboardNavbar title="Workout Library">
+      <UDashboardNavbar title="Workouts">
         <template #right>
           <UButton
             color="primary"
@@ -17,7 +17,7 @@
       <div class="p-4 sm:p-6 space-y-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 class="text-3xl font-black uppercase tracking-tight">Workout Library</h1>
+            <h1 class="text-3xl font-black uppercase tracking-tight">Workouts</h1>
             <p class="text-xs font-bold text-muted uppercase tracking-[0.2em] mt-1 italic">
               Your Repository of Reusable Structured Sessions
             </p>

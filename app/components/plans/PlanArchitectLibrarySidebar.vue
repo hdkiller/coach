@@ -8,7 +8,7 @@
           <div class="text-[10px] font-black uppercase tracking-[0.24em] text-primary/80">
             Utility Panel
           </div>
-          <h3 class="mt-2 text-lg font-black tracking-tight text-highlighted">Workout Library</h3>
+          <h3 class="mt-2 text-lg font-black tracking-tight text-highlighted">Workouts</h3>
           <p class="mt-1 text-xs leading-5 text-muted">
             Reference workouts, check blueprint health, and keep planning heuristics nearby.
           </p>

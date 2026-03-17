@@ -1,7 +1,7 @@
 <template>
   <UDashboardPanel id="plan-library">
     <template #header>
-      <UDashboardNavbar title="Plan Library">
+      <UDashboardNavbar title="Plans">
         <template #right>
           <UButton
             color="primary"
@@ -17,7 +17,7 @@
     <template #body>
       <div class="p-4 sm:p-6 space-y-6">
         <div>
-          <h1 class="text-3xl font-black uppercase tracking-tight">Plan Library</h1>
+          <h1 class="text-3xl font-black uppercase tracking-tight">Plans</h1>
           <p class="text-xs font-bold text-muted uppercase tracking-[0.2em] mt-1 italic">
             Architectural Blueprint for Your Season
           </p>
