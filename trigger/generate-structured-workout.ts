@@ -699,16 +699,20 @@ export const generateStructuredWorkoutTask = task({
   queue: userReportsQueue,
   maxDuration: 90,
   run: async (payload: {
-    plannedWorkoutId: string
+    plannedWorkoutId?: string
+    workoutTemplateId?: string
     targetingOverride?: WorkoutTargetingOverride | null
   }) => {
-    const { plannedWorkoutId } = payload
+    const { plannedWorkoutId, workoutTemplateId } = payload
+    const entityId = plannedWorkoutId || workoutTemplateId
+    const entityType = plannedWorkoutId ? 'PlannedWorkout' : 'WorkoutTemplate'
     const startedAtMs = Date.now()
     const MAX_DURATION_MS = 90_000
     const logStage = (stage: string, meta: Record<string, any> = {}) => {
       const elapsedMs = Date.now() - startedAtMs
       logger.log(`[GenerateStructuredWorkout] ${stage}`, {
-        plannedWorkoutId,
+        entityId,
+        entityType,
         elapsedMs,
         remainingMs: Math.max(0, MAX_DURATION_MS - elapsedMs),
         ...meta
@@ -717,47 +721,70 @@ export const generateStructuredWorkoutTask = task({
 
     logStage('start')
 
-    const workout = await (prisma as any).plannedWorkout.findUnique({
-      where: { id: plannedWorkoutId },
-      include: {
-        user: {
-          select: {
-            ftp: true,
-            lthr: true,
-            aiPersona: true,
-            name: true,
-            maxHr: true,
-            subscriptionTier: true,
-            isAdmin: true,
-            aiContext: true,
-            language: true
-          }
-        },
-        trainingWeek: {
-          include: {
-            block: {
-              include: {
-                plan: {
-                  include: {
-                    goal: true
+    let workout: any = null
+    if (plannedWorkoutId) {
+      workout = await (prisma as any).plannedWorkout.findUnique({
+        where: { id: plannedWorkoutId },
+        include: {
+          user: {
+            select: {
+              ftp: true,
+              lthr: true,
+              aiPersona: true,
+              name: true,
+              maxHr: true,
+              subscriptionTier: true,
+              isAdmin: true,
+              aiContext: true,
+              language: true
+            }
+          },
+          trainingWeek: {
+            include: {
+              block: {
+                include: {
+                  plan: {
+                    include: {
+                      goal: true
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
-    })
+      })
+    } else if (workoutTemplateId) {
+      workout = await (prisma as any).workoutTemplate.findUnique({
+        where: { id: workoutTemplateId },
+        include: {
+          user: {
+            select: {
+              ftp: true,
+              lthr: true,
+              aiPersona: true,
+              name: true,
+              maxHr: true,
+              subscriptionTier: true,
+              isAdmin: true,
+              aiContext: true,
+              language: true
+            }
+          }
+        }
+      })
+    }
 
     if (!workout) {
-      logger.warn('Workout not found, skipping structured generation', { plannedWorkoutId })
+      logger.warn('Workout not found, skipping structured generation', { entityId, entityType })
       return { success: false, error: 'Workout not found' }
     }
     logStage('loaded-workout', {
       userId: workout.userId,
       type: workout.type,
       hasExistingStructure: Boolean(workout.structuredWorkout),
-      durationSec: workout.durationSec
+      durationSec: workout.durationSec,
+      isTemplate: entityType === 'WorkoutTemplate'
     })
 
     // Check Quota
@@ -767,7 +794,7 @@ export const generateStructuredWorkoutTask = task({
       if (quotaError.statusCode === 429) {
         logger.warn('Structured workout generation quota exceeded', {
           userId: workout.userId,
-          plannedWorkoutId
+          entityId
         })
         return { success: false, reason: 'QUOTA_EXCEEDED' }
       }
@@ -827,7 +854,7 @@ export const generateStructuredWorkoutTask = task({
 
     // Subscription Limit Check
     // Free users cannot generate structured workouts more than 4 weeks (28 days) in the future
-    if (workout.user.subscriptionTier === 'FREE') {
+    if (entityType === 'PlannedWorkout' && workout.user.subscriptionTier === 'FREE') {
       const today = getUserLocalDate(timezone)
       const fourWeeksFromNow = new Date(today)
       fourWeeksFromNow.setUTCDate(today.getUTCDate() + 28)
@@ -997,8 +1024,8 @@ export const generateStructuredWorkoutTask = task({
         structure = await generateStructuredAnalysis(promptToUse, workoutStructureSchema, 'flash', {
           userId: workout.userId,
           operation: 'generate_structured_workout',
-          entityType: 'PlannedWorkout',
-          entityId: plannedWorkoutId,
+          entityType,
+          entityId: entityId!,
           maxRetries: 1
         })
         const aiDurationMs = Date.now() - aiStartedAt
@@ -1312,95 +1339,115 @@ export const generateStructuredWorkoutTask = task({
       }
     }
 
-    const updatedWorkout = await (prisma as any).plannedWorkout.update({
-      where: { id: plannedWorkoutId },
-      data: updateData
-    })
-    await publishActivityEvent(updatedWorkout.userId, {
-      scope: 'calendar',
-      entityType: 'planned_workout',
-      entityId: updatedWorkout.id,
-      reason: 'updated'
-    })
-    logStage('workout-updated', {
-      updatedDurationSec: updatedWorkout.durationSec,
-      updatedTss: updatedWorkout.tss,
-      updatedIntensity: updatedWorkout.workIntensity
-    })
-
-    const isLocal =
-      updatedWorkout.syncStatus === 'LOCAL_ONLY' ||
-      updatedWorkout.externalId.startsWith('ai_gen_') ||
-      updatedWorkout.externalId.startsWith('ai-gen-') ||
-      updatedWorkout.externalId.startsWith('adhoc-')
-
-    if (!isLocal) {
-      logger.log('Syncing updated structure to Intervals.icu', { plannedWorkoutId })
-      const workoutData = {
-        title: updatedWorkout.title,
-        description: updatedWorkout.description || '',
-        type: updatedWorkout.type || '',
-        steps: structure.steps || [],
-        exercises: structure.exercises,
-        messages: [],
-        ftp: workout.user.ftp || 250,
-        sportSettings: sportSettings || undefined,
-        generationSettingsSnapshot: settingsSnapshot
-      }
-      const workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
-      const syncResult = await syncPlannedWorkoutToIntervals(
-        'UPDATE',
-        {
-          id: updatedWorkout.id,
-          externalId: updatedWorkout.externalId,
-          date: updatedWorkout.date,
-          startTime: updatedWorkout.startTime,
-          title: updatedWorkout.title,
-          description: updatedWorkout.description,
-          type: updatedWorkout.type,
-          durationSec: updatedWorkout.durationSec,
-          tss: updatedWorkout.tss,
-          workout_doc: workoutDoc,
-          managedBy: updatedWorkout.managedBy
-        },
-        workout.userId
-      )
-      logStage('intervals-sync-finished', {
-        synced: syncResult.synced,
-        syncError: syncResult.error || null
+    if (entityType === 'PlannedWorkout') {
+      const updatedWorkout = await (prisma as any).plannedWorkout.update({
+        where: { id: entityId },
+        data: updateData
+      })
+      await publishActivityEvent(updatedWorkout.userId, {
+        scope: 'calendar',
+        entityType: 'planned_workout',
+        entityId: updatedWorkout.id,
+        reason: 'updated'
+      })
+      logStage('workout-updated', {
+        updatedDurationSec: updatedWorkout.durationSec,
+        updatedTss: updatedWorkout.tss,
+        updatedIntensity: updatedWorkout.workIntensity
       })
 
-      if (syncResult.synced) {
-        const syncedWorkout = await (prisma as any).plannedWorkout.update({
-          where: { id: plannedWorkoutId },
-          data: {
-            ...buildStructurePublishFields(structure),
-            syncStatus: 'SYNCED',
-            lastSyncedAt: new Date(),
-            syncError: null
-          }
+      const isLocal =
+        updatedWorkout.syncStatus === 'LOCAL_ONLY' ||
+        updatedWorkout.externalId.startsWith('ai_gen_') ||
+        updatedWorkout.externalId.startsWith('ai-gen-') ||
+        updatedWorkout.externalId.startsWith('adhoc-')
+
+      if (!isLocal) {
+        logger.log('Syncing updated structure to Intervals.icu', { plannedWorkoutId: entityId })
+        const workoutData = {
+          title: updatedWorkout.title,
+          description: updatedWorkout.description || '',
+          type: updatedWorkout.type || '',
+          steps: structure.steps || [],
+          exercises: structure.exercises,
+          messages: [],
+          ftp: workout.user.ftp || 250,
+          sportSettings: sportSettings || undefined,
+          generationSettingsSnapshot: settingsSnapshot
+        }
+        const workoutDoc = WorkoutConverter.toIntervalsICU(workoutData)
+        const syncResult = await syncPlannedWorkoutToIntervals(
+          'UPDATE',
+          {
+            id: updatedWorkout.id,
+            externalId: updatedWorkout.externalId,
+            date: updatedWorkout.date,
+            startTime: updatedWorkout.startTime,
+            title: updatedWorkout.title,
+            description: updatedWorkout.description,
+            type: updatedWorkout.type,
+            durationSec: updatedWorkout.durationSec,
+            tss: updatedWorkout.tss,
+            workout_doc: workoutDoc,
+            managedBy: updatedWorkout.managedBy
+          },
+          workout.userId
+        )
+        logStage('intervals-sync-finished', {
+          synced: syncResult.synced,
+          syncError: syncResult.error || null
         })
-        await publishActivityEvent(syncedWorkout.userId, {
-          scope: 'calendar',
-          entityType: 'planned_workout',
-          entityId: syncedWorkout.id,
-          reason: 'updated'
-        })
-      } else {
-        const failedWorkout = await (prisma as any).plannedWorkout.update({
-          where: { id: plannedWorkoutId },
-          data: { syncError: syncResult.error || 'Failed to sync structured intervals' }
-        })
-        await publishActivityEvent(failedWorkout.userId, {
-          scope: 'calendar',
-          entityType: 'planned_workout',
-          entityId: failedWorkout.id,
-          reason: 'updated'
-        })
+
+        if (syncResult.synced) {
+          const syncedWorkout = await (prisma as any).plannedWorkout.update({
+            where: { id: entityId },
+            data: {
+              ...buildStructurePublishFields(structure),
+              syncStatus: 'SYNCED',
+              lastSyncedAt: new Date(),
+              syncError: null
+            }
+          })
+          await publishActivityEvent(syncedWorkout.userId, {
+            scope: 'calendar',
+            entityType: 'planned_workout',
+            entityId: syncedWorkout.id,
+            reason: 'updated'
+          })
+        } else {
+          const failedWorkout = await (prisma as any).plannedWorkout.update({
+            where: { id: entityId },
+            data: { syncError: syncResult.error || 'Failed to sync structured intervals' }
+          })
+          await publishActivityEvent(failedWorkout.userId, {
+            scope: 'calendar',
+            entityType: 'planned_workout',
+            entityId: failedWorkout.id,
+            reason: 'updated'
+          })
+        }
       }
+    } else {
+      // WorkoutTemplate - Strictly filter fields
+      const templateData = {
+        structuredWorkout: structure as any,
+        durationSec: updateData.durationSec,
+        tss: updateData.tss,
+        workIntensity: updateData.workIntensity
+      }
+
+      const updatedTemplate = await (prisma as any).workoutTemplate.update({
+        where: { id: entityId },
+        data: templateData
+      })
+      logStage('template-updated', {
+        updatedDurationSec: updatedTemplate.durationSec,
+        updatedTss: updatedTemplate.tss,
+        updatedIntensity: updatedTemplate.workIntensity
+      })
     }
 
     logStage('completed')
-    return { success: true, plannedWorkoutId }
+    return { success: true, entityId, entityType }
   }
 })

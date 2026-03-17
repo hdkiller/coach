@@ -71,9 +71,14 @@ export default defineEventHandler(async (event) => {
 
   return await prisma.$transaction(async (tx) => {
     // 1. Update Plan Level Meta
-    await (tx as any).trainingPlan.update({
+    await tx.trainingPlan.update({
       where: { id },
-      data: { name, description, difficulty, isPublic }
+      data: {
+        name: name !== undefined ? name : undefined,
+        description: description !== undefined ? description : undefined,
+        difficulty: difficulty !== undefined ? difficulty : undefined,
+        isPublic: isPublic !== undefined ? isPublic : undefined
+      }
     })
 
     // 2. Handle Block Deletions
@@ -82,7 +87,7 @@ export default defineEventHandler(async (event) => {
     const blocksToDelete = existingBlockIds.filter((id) => !incomingBlockIds.includes(id))
 
     if (blocksToDelete.length > 0) {
-      await (tx as any).trainingBlock.deleteMany({
+      await tx.trainingBlock.deleteMany({
         where: { id: { in: blocksToDelete } }
       })
     }
@@ -93,7 +98,7 @@ export default defineEventHandler(async (event) => {
 
       if (blockId && !blockId.startsWith('temp-')) {
         // Update existing block
-        await (tx as any).trainingBlock.update({
+        await tx.trainingBlock.update({
           where: { id: blockId },
           data: {
             name: bData.name,
@@ -105,7 +110,7 @@ export default defineEventHandler(async (event) => {
         })
       } else {
         // Create new block
-        const newBlock = await (tx as any).trainingBlock.create({
+        const newBlock = await tx.trainingBlock.create({
           data: {
             trainingPlanId: id,
             name: bData.name,
@@ -126,7 +131,7 @@ export default defineEventHandler(async (event) => {
       const weeksToDelete = existingWeekIds.filter((wid) => !incomingWeekIds.includes(wid))
 
       if (weeksToDelete.length > 0) {
-        await (tx as any).trainingWeek.deleteMany({
+        await tx.trainingWeek.deleteMany({
           where: { id: { in: weeksToDelete } }
         })
       }
@@ -136,7 +141,7 @@ export default defineEventHandler(async (event) => {
         let weekId = wData.id
 
         if (weekId && !weekId.startsWith('temp-')) {
-          await (tx as any).trainingWeek.update({
+          await tx.trainingWeek.update({
             where: { id: weekId },
             data: {
               weekNumber: wData.weekNumber,
@@ -146,7 +151,7 @@ export default defineEventHandler(async (event) => {
             }
           })
         } else {
-          const newWeek = await (tx as any).trainingWeek.create({
+          const newWeek = await tx.trainingWeek.create({
             data: {
               blockId: blockId!,
               weekNumber: wData.weekNumber,
@@ -169,7 +174,7 @@ export default defineEventHandler(async (event) => {
         )
 
         if (workoutsToDelete.length > 0) {
-          await (tx as any).plannedWorkout.deleteMany({
+          await tx.plannedWorkout.deleteMany({
             where: { id: { in: workoutsToDelete } }
           })
         }
@@ -187,7 +192,8 @@ export default defineEventHandler(async (event) => {
                 durationSec: woData.durationSec,
                 tss: woData.tss,
                 category: woData.category,
-                structuredWorkout: woData.structuredWorkout
+                structuredWorkout: woData.structuredWorkout,
+                modifiedLocally: true // Explicitly set if updating
               }
             })
           } else {
@@ -205,7 +211,8 @@ export default defineEventHandler(async (event) => {
                 tss: woData.tss,
                 category: woData.category,
                 structuredWorkout: woData.structuredWorkout,
-                managedBy: 'COACH_WATTS'
+                managedBy: 'COACH_WATTS',
+                modifiedLocally: true
               }
             })
           }

@@ -77,23 +77,25 @@ export default defineEventHandler(async (event) => {
     // For now we allow it but it's less useful.
   }
 
-  const template = await (prisma as any).workoutTemplate.create({
-    data: {
-      userId,
-      title: sourceData.title,
-      description: sourceData.description,
-      type: sourceData.type || 'Ride',
-      category: sourceData.category,
-      durationSec: sourceData.durationSec || 0,
-      tss: sourceData.tss,
-      workIntensity: sourceData.workIntensity,
-      structuredWorkout: sourceData.structuredWorkout,
-      tags: tags || []
+  return await prisma.$transaction(async (tx) => {
+    const template = await (tx as any).workoutTemplate.create({
+      data: {
+        userId,
+        title: sourceData.title,
+        description: sourceData.description,
+        type: sourceData.type || 'Ride',
+        category: sourceData.category,
+        durationSec: sourceData.durationSec || 0,
+        tss: sourceData.tss,
+        workIntensity: sourceData.workIntensity,
+        structuredWorkout: sourceData.structuredWorkout,
+        tags: tags || []
+      }
+    })
+
+    return {
+      success: true,
+      templateId: template.id
     }
   })
-
-  return {
-    success: true,
-    templateId: template.id
-  }
 })
