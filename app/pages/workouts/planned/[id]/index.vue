@@ -333,15 +333,6 @@
                     Coach's Strategic Advice
                   </h3>
                 </div>
-
-                <!-- AI Feedback -->
-                <AiFeedback
-                  v-if="llmUsageId"
-                  :llm-usage-id="llmUsageId"
-                  :initial-feedback="initialFeedback"
-                  :initial-feedback-text="initialFeedbackText"
-                  class="flex-shrink-0"
-                />
               </div>
 
               <p
@@ -436,6 +427,17 @@
               :updating-strategy="updatingFuelingStrategy"
               class="rounded-none sm:rounded-xl shadow-none sm:shadow border-y sm:border border-gray-100 dark:border-gray-800"
               @change-fueling-strategy="updateFuelingStrategy"
+            />
+          </div>
+
+          <div
+            v-if="llmUsageId"
+            class="flex justify-end px-4 pt-6 sm:px-0 border-t border-gray-100 dark:border-gray-800"
+          >
+            <AiFeedback
+              :llm-usage-id="llmUsageId"
+              :initial-feedback="initialFeedback"
+              :initial-feedback-text="initialFeedbackText"
             />
           </div>
         </div>

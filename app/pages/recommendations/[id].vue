@@ -74,12 +74,12 @@
                 </div>
 
                 <template #footer>
-                  <div class="flex flex-wrap items-center justify-between w-full gap-y-3">
+                  <div class="flex flex-wrap items-center justify-between w-full gap-3">
                     <div
-                      v-if="!rec.implementationGuide"
-                      class="w-full sm:w-auto flex justify-center sm:justify-start"
+                      class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-center sm:justify-start"
                     >
                       <UButton
+                        v-if="!rec.implementationGuide"
                         icon="i-heroicons-sparkles"
                         color="primary"
                         variant="soft"
@@ -88,8 +88,8 @@
                       >
                         Generate Action Plan
                       </UButton>
+                      <AiFeedback v-if="rec.llmUsageId" :llm-usage-id="rec.llmUsageId" />
                     </div>
-                    <div v-else class="hidden sm:block flex-1"></div>
 
                     <div class="flex items-center justify-end gap-3 w-full sm:w-auto">
                       <UButton
@@ -117,11 +117,6 @@
                   </div>
                 </template>
               </UCard>
-
-              <!-- AI Feedback -->
-              <div v-if="rec.llmUsageId" class="flex justify-end px-1">
-                <AiFeedback :llm-usage-id="rec.llmUsageId" />
-              </div>
 
               <!-- Action Plan / Implementation Guide -->
               <div v-if="rec.implementationGuide" class="space-y-4">
@@ -250,7 +245,10 @@
                   </div>
 
                   <!-- AI Feedback -->
-                  <div v-if="rec.implementationGuide.llmUsageId" class="flex justify-end px-1">
+                  <div
+                    v-if="rec.implementationGuide.llmUsageId"
+                    class="flex justify-end px-1 pt-2 border-t border-gray-100 dark:border-gray-800"
+                  >
                     <AiFeedback :llm-usage-id="rec.implementationGuide.llmUsageId" />
                   </div>
                 </div>

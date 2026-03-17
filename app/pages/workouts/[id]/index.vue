@@ -2326,12 +2326,6 @@
                   >
                     Intelligence Sync Completed • {{ formatDate(workout.aiAnalyzedAt) }}
                   </div>
-                  <AiFeedback
-                    v-if="workout.llmUsageId"
-                    :llm-usage-id="workout.llmUsageId"
-                    :initial-feedback="workout.feedback"
-                    :initial-feedback-text="workout.feedbackText"
-                  />
                 </div>
               </div>
 
@@ -2352,12 +2346,6 @@
                   >
                     Legacy Audit Sync • {{ formatDate(workout.aiAnalyzedAt) }}
                   </div>
-                  <AiFeedback
-                    v-if="workout.llmUsageId"
-                    :llm-usage-id="workout.llmUsageId"
-                    :initial-feedback="workout.feedback"
-                    :initial-feedback-text="workout.feedbackText"
-                  />
                 </div>
               </div>
 
@@ -3160,6 +3148,17 @@
               title="Raw Data (JSON)"
               :data="workout.rawJson"
               filename="workout-raw.json"
+            />
+          </div>
+
+          <div
+            v-if="workout.llmUsageId"
+            class="flex justify-end px-5 pt-8 pb-2 sm:px-0 border-t border-gray-100 dark:border-gray-800"
+          >
+            <AiFeedback
+              :llm-usage-id="workout.llmUsageId"
+              :initial-feedback="workout.feedback"
+              :initial-feedback-text="workout.feedbackText"
             />
           </div>
         </div>
