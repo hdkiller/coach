@@ -61,7 +61,7 @@ A large collection of specialized scripts for fixing data issues, migrating sche
 - `metrics`, `tss`, `kilojoules`: Recalculate training metrics.
 - `planned-workouts`, `workouts`: Fix or update workout records.
 - `intervals-parsing`, `max-watts`: Fix specific data parsing errors.
-- `profile`, `wellness-oura`: Sync or fix user profile/wellness data.
+- `profile`, `wellness-oura`, `plan-indices`: Sync or fix user profile/wellness/plan data.
 - `chat-rooms`: Maintain or migrate chat room data.
 
 #### 5. Nutrition & Metabolism (`nutrition`)

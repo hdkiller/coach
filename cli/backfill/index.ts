@@ -13,6 +13,7 @@ import backfillReportTemplatesCommand from './report-templates'
 import backfillIntervalsParsingCommand from './intervals-parsing'
 import backfillMaxWattsCommand from './max-watts'
 import backfillProfileCommand from './profile'
+import backfillPlanIndicesCommand from './plan-indices'
 import backfillOuraCommand from './wellness-oura'
 import backfillChatRoomsCommand from './chat-rooms'
 import backfillChatEmptyFailuresCommand from './chat-empty-failures'
@@ -44,6 +45,7 @@ backfill
   .addCommand(backfillIntervalsParsingCommand)
   .addCommand(backfillMaxWattsCommand)
   .addCommand(backfillProfileCommand)
+  .addCommand(backfillPlanIndicesCommand)
   .addCommand(backfillOuraCommand)
   .addCommand(backfillChatRoomsCommand)
   .addCommand(backfillChatEmptyFailuresCommand)
