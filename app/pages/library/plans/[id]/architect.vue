@@ -644,6 +644,11 @@
                                   >
                                     {{ workout.type || 'Workout' }}
                                   </div>
+                                  <MiniWorkoutChart
+                                    v-if="workout.structuredWorkout"
+                                    :workout="workout"
+                                    class="mt-2 h-8 w-16 opacity-80"
+                                  />
                                   <div
                                     class="mt-2 flex items-center justify-between gap-3 text-[10px] font-medium text-muted"
                                   >
@@ -1221,6 +1226,7 @@
 </template>
 
 <script setup lang="ts">
+  import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import { getWorkoutIcon } from '~/utils/activity-types'
   import PlanArchitectLibrarySidebar from '~/components/plans/PlanArchitectLibrarySidebar.vue'
   import PlanArchitectTimelineChart from '~/components/plans/PlanArchitectTimelineChart.vue'

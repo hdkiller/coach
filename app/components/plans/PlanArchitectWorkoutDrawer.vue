@@ -80,10 +80,17 @@
                   </div>
                 </div>
 
-                <UIcon
-                  :name="getWorkoutIcon(template.type)"
-                  class="mt-0.5 h-4 w-4 shrink-0 text-primary"
-                />
+                <div class="flex items-center gap-2 shrink-0">
+                  <MiniWorkoutChart
+                    v-if="template.structuredWorkout"
+                    :workout="template"
+                    class="h-8 w-12 opacity-75"
+                  />
+                  <UIcon
+                    :name="getWorkoutIcon(template.type)"
+                    class="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                  />
+                </div>
               </div>
 
               <div class="mt-4 flex items-center justify-between gap-3 text-[11px] text-muted">
@@ -99,6 +106,7 @@
 </template>
 
 <script setup lang="ts">
+  import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
   import { getWorkoutIcon } from '~/utils/activity-types'
 
   const props = defineProps<{
