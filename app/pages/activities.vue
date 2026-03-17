@@ -1404,6 +1404,7 @@
   const currentMonthLabel = computed(() => formatDateUTC(currentDate.value, 'MMMM yyyy'))
 
   const isCurrentMonth = computed(() => isSameMonth(currentDate.value, getUserLocalDate()))
+  const lastAutoScrolledMonthKey = ref<string | null>(null)
 
   // Navigation
   function nextMonth() {
@@ -1424,6 +1425,32 @@
     currentDate.value = getUserLocalDate()
   }
 
+  async function scrollMobileTodayIntoView() {
+    if (import.meta.server || typeof window === 'undefined') return
+    if (!window.matchMedia('(max-width: 1023px)').matches) return
+    if (!isCurrentMonth.value || status.value !== 'success') return
+
+    const monthKey = formatDateUTC(currentDate.value, 'yyyy-MM')
+    if (lastAutoScrolledMonthKey.value === monthKey) return
+
+    await nextTick()
+
+    let anchor = document.getElementById('mobile-today-anchor')
+    if (!anchor) {
+      await new Promise((resolve) => window.setTimeout(resolve, 80))
+      await nextTick()
+      anchor = document.getElementById('mobile-today-anchor')
+    }
+
+    if (!anchor) return
+
+    anchor.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    })
+    lastAutoScrolledMonthKey.value = monthKey
+  }
+
   watch(
     () => route.query.date,
     (dateParam) => {
@@ -1441,6 +1468,7 @@
   watch(
     currentDate,
     (date) => {
+      lastAutoScrolledMonthKey.value = null
       const dateKey = formatDateUTC(date, 'yyyy-MM-dd')
       if (route.query.date === dateKey) return
 
@@ -1450,6 +1478,14 @@
           date: dateKey
         }
       })
+    },
+    { immediate: true }
+  )
+
+  watch(
+    [status, orderedCalendarWeeks, isCurrentMonth],
+    () => {
+      void scrollMobileTodayIntoView()
     },
     { immediate: true }
   )

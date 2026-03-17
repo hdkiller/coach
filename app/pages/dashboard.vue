@@ -166,31 +166,7 @@
               :missing-fields="missingFields"
             />
 
-            <UCard
-              v-if="showWelcome"
-              :ui="{ root: 'rounded-none sm:rounded-lg shadow-none sm:shadow' }"
-              class="mb-4"
-            >
-              <div class="flex justify-between items-start">
-                <div>
-                  <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                    {{ t('onboarding_title') }}
-                  </h1>
-                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    {{ t('onboarding_description') }}
-                  </p>
-                </div>
-                <UButton
-                  icon="i-heroicons-x-mark"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  @click="showWelcome = false"
-                />
-              </div>
-            </UCard>
-
-            <!-- Row 1: Athlete Profile / Today's Training / Performance Overview -->
+            <!-- Row 1: Athlete Profile / Today's Training / Performance Overview & Comparison -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 items-stretch">
               <!-- Athlete Profile Card - shown when connected -->
               <DashboardAthleteProfileCard
@@ -204,11 +180,16 @@
                 @open-checkin="openCheckinModal"
               />
 
-              <!-- Performance Overview Card -->
-              <DashboardPerformanceScoresCard
-                @open-score-modal="openScoreModal"
-                @open-training-load="openTrainingLoadModal"
-              />
+              <div class="space-y-4 sm:space-y-8 flex flex-col">
+                <!-- Monthly Progress Comparison -->
+                <DashboardMonthlyComparisonCard v-if="isOnboarded" />
+
+                <!-- Performance Overview Card -->
+                <DashboardPerformanceScoresCard
+                  @open-score-modal="openScoreModal"
+                  @open-training-load="openTrainingLoadModal"
+                />
+              </div>
             </div>
 
             <!-- Row 2: Daily Fueling (Full width if enabled) -->

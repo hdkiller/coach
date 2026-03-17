@@ -208,8 +208,17 @@
                 Your last submitted check-ins stay visible here so they are not write-only.
               </p>
             </div>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :icon="showRecentCheckins ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+              @click="showRecentCheckins = !showRecentCheckins"
+            >
+              {{ showRecentCheckins ? 'Hide' : 'Show' }}
+            </UButton>
           </div>
-          <div class="mt-4 space-y-3">
+          <div v-if="showRecentCheckins" class="mt-4 space-y-3">
             <button
               v-for="entry in recentCheckins"
               :key="entry.id"
@@ -283,6 +292,7 @@
   const localQuestions = ref<any[]>([])
   const expandedQuestions = ref<Set<string>>(new Set())
   const recentCheckins = ref<any[]>([])
+  const showRecentCheckins = ref(false)
   const deleting = ref(false)
   const upgradeModal = useUpgradeModal()
   const toast = useToast()
