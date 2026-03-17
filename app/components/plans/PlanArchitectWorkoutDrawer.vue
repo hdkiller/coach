@@ -67,8 +67,9 @@
               v-for="template in filteredTemplates"
               :key="template.id"
               draggable="true"
-              class="cursor-grab rounded-2xl border border-default/80 bg-muted/10 p-4 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing"
+              class="group/card relative cursor-grab rounded-2xl border border-default/80 bg-muted/10 p-4 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing"
               @dragstart="onTemplateDragStart($event, template)"
+              @click="navigateTo(`/library/workouts/${template.id}`)"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
@@ -94,8 +95,34 @@
               </div>
 
               <div class="mt-4 flex items-center justify-between gap-3 text-[11px] text-muted">
-                <span>{{ formatMinutes(Math.round((template.durationSec || 0) / 60)) }}</span>
-                <span>{{ Math.round(template.tss || 0) }} TSS</span>
+                <div class="flex items-center gap-3">
+                  <span>{{ formatMinutes(Math.round((template.durationSec || 0) / 60)) }}</span>
+                  <span>{{ Math.round(template.tss || 0) }} TSS</span>
+                </div>
+
+                <div
+                  class="flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity"
+                >
+                  <UButton
+                    v-if="!template.structuredWorkout"
+                    size="xs"
+                    color="primary"
+                    variant="ghost"
+                    icon="i-heroicons-sparkles"
+                    class="h-6 w-6 p-0"
+                    title="Generate Structure"
+                    :loading="generatingId === template.id"
+                    @click.stop="generateTemplateStructure(template.id)"
+                  />
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-heroicons-arrow-top-right-on-square"
+                    class="h-6 w-6 p-0"
+                    title="View Details"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -120,7 +147,9 @@
     toggle: []
   }>()
 
+  const toast = useToast()
   const localSearch = ref('')
+  const generatingId = ref<string | null>(null)
 
   const filteredTemplates = computed(() => {
     const query = localSearch.value.trim().toLowerCase()
@@ -166,5 +195,27 @@
         template
       })
     )
+  }
+
+  async function generateTemplateStructure(id: string) {
+    generatingId.value = id
+    try {
+      await $fetch(`/api/library/workouts/${id}/generate-structure`, {
+        method: 'POST'
+      })
+      toast.add({
+        title: 'Generation Started',
+        description: 'AI is building the workout structure.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Generation Failed',
+        description: error.data?.message || 'Failed to trigger generation',
+        color: 'error'
+      })
+    } finally {
+      generatingId.value = null
+    }
   }
 </script>

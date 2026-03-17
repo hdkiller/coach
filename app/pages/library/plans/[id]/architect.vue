@@ -271,49 +271,137 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr
+                          <template
                             v-for="block in blockAnalytics"
                             :key="`analytics-${block.blockId}`"
-                            class="border-t border-default/70"
                           >
-                            <td class="px-3 py-2.5">
-                              <div class="flex items-center gap-3 min-w-0">
-                                <UBadge
-                                  size="sm"
-                                  variant="soft"
-                                  :color="blockChrome({ type: block.blockType }).badgeColor"
-                                >
-                                  {{ block.blockType || 'Block' }}
-                                </UBadge>
-                                <div class="min-w-0">
-                                  <div class="truncate text-[12px] font-semibold text-highlighted">
-                                    {{ block.blockName }}
+                            <tr
+                              class="cursor-pointer border-t border-default/70 transition-colors hover:bg-muted/5"
+                              :class="{
+                                'bg-primary/5': expandedAnalyticsBlockIds.includes(block.blockId)
+                              }"
+                              @click="toggleAnalyticsBlockExpanded(block.blockId)"
+                            >
+                              <td class="px-3 py-2.5">
+                                <div class="flex items-center gap-3 min-w-0">
+                                  <UIcon
+                                    :name="
+                                      expandedAnalyticsBlockIds.includes(block.blockId)
+                                        ? 'i-heroicons-chevron-down'
+                                        : 'i-heroicons-chevron-right'
+                                    "
+                                    class="h-3.5 w-3.5 shrink-0 text-muted"
+                                  />
+                                  <UBadge
+                                    size="sm"
+                                    variant="soft"
+                                    :color="blockChrome({ type: block.blockType }).badgeColor"
+                                  >
+                                    {{ block.blockType || 'Block' }}
+                                  </UBadge>
+                                  <div class="min-w-0">
+                                    <div
+                                      class="truncate text-[12px] font-semibold text-highlighted"
+                                    >
+                                      {{ block.blockName }}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td class="px-3 py-2.5 text-[11px] text-muted whitespace-nowrap">
-                              W{{ block.startWeekNumber }}-W{{ block.endWeekNumber }}
-                            </td>
-                            <td class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap">
-                              {{ block.weekCount }}
-                            </td>
-                            <td class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap">
-                              {{ formatMinutes(block.targetMinutes) }}
-                            </td>
-                            <td class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap">
-                              {{ formatMinutes(block.scheduledMinutes) }}
-                            </td>
-                            <td class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap">
-                              {{ block.targetTss }}
-                            </td>
-                            <td class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap">
-                              {{ block.scheduledTss }}
-                            </td>
-                            <td class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap">
-                              {{ block.workoutCount }}
-                            </td>
-                          </tr>
+                              </td>
+                              <td class="px-3 py-2.5 text-[11px] text-muted whitespace-nowrap">
+                                W{{ block.startWeekNumber }}-W{{ block.endWeekNumber }}
+                              </td>
+                              <td
+                                class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap"
+                              >
+                                {{ block.weekCount }}
+                              </td>
+                              <td
+                                class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap"
+                              >
+                                {{ formatMinutes(block.targetMinutes) }}
+                              </td>
+                              <td
+                                class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap"
+                              >
+                                {{ formatMinutes(block.scheduledMinutes) }}
+                              </td>
+                              <td
+                                class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap"
+                              >
+                                {{ block.targetTss }}
+                              </td>
+                              <td
+                                class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap"
+                              >
+                                {{ block.scheduledTss }}
+                              </td>
+                              <td
+                                class="px-3 py-2.5 text-[12px] text-highlighted whitespace-nowrap"
+                              >
+                                {{ block.workoutCount }}
+                              </td>
+                            </tr>
+                            <tr
+                              v-if="expandedAnalyticsBlockIds.includes(block.blockId)"
+                              class="bg-muted/5"
+                            >
+                              <td colspan="8" class="p-0 border-t border-default/40">
+                                <div class="overflow-x-auto">
+                                  <table class="w-full text-[11px]">
+                                    <thead class="bg-muted/10">
+                                      <tr
+                                        class="text-left text-[8px] font-bold uppercase tracking-wider text-muted"
+                                      >
+                                        <th class="px-8 py-1.5">Week</th>
+                                        <th class="px-3 py-1.5">Focus</th>
+                                        <th class="px-3 py-1.5">Tgt Min</th>
+                                        <th class="px-3 py-1.5">Sch Min</th>
+                                        <th class="px-3 py-1.5">Tgt TSS</th>
+                                        <th class="px-3 py-1.5">Sch TSS</th>
+                                        <th class="px-3 py-1.5 text-right">Sessions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr
+                                        v-for="week in weekAnalytics.filter(
+                                          (w) => w.blockId === block.blockId
+                                        )"
+                                        :key="`nested-week-${week.weekId}`"
+                                        class="border-t border-default/30 last:border-b-0 hover:bg-primary/5 cursor-pointer"
+                                        :class="{
+                                          'bg-primary/5': selectedChartWeekId === week.weekId
+                                        }"
+                                        @click.stop="handleChartWeekSelect(week.weekId)"
+                                      >
+                                        <td class="px-8 py-2 font-medium text-highlighted">
+                                          Week {{ week.weekNumber }}
+                                        </td>
+                                        <td class="px-3 py-2 text-muted truncate max-w-[12rem]">
+                                          {{ week.weekFocus }}
+                                        </td>
+                                        <td class="px-3 py-2 text-highlighted">
+                                          {{ formatMinutes(week.targetMinutes) }}
+                                        </td>
+                                        <td class="px-3 py-2 text-highlighted">
+                                          {{ formatMinutes(week.scheduledMinutes) }}
+                                        </td>
+                                        <td class="px-3 py-2 text-highlighted">
+                                          {{ week.targetTss }}
+                                        </td>
+                                        <td class="px-3 py-2 text-highlighted">
+                                          {{ week.scheduledTss }}
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-semibold text-primary">
+                                          {{ week.workoutCount }}
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          </template>
                         </tbody>
                       </table>
                     </div>
@@ -557,6 +645,56 @@
                                 </div>
                                 <div class="text-[10px] font-semibold text-highlighted">
                                   {{ bucket.count }}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="mt-4 space-y-4">
+                              <div v-if="weekZoneBars(week, 'power').some((b) => b.duration > 0)">
+                                <div
+                                  class="text-[9px] font-black uppercase tracking-[0.12em] text-muted/80"
+                                >
+                                  Power Distribution
+                                </div>
+                                <div class="mt-1.5 flex h-8 items-end gap-1">
+                                  <UTooltip
+                                    v-for="bar in weekZoneBars(week, 'power')"
+                                    :key="`pwr-${week.id}-${bar.zoneIndex}`"
+                                    :text="`Z${bar.zoneIndex}: ${formatMinutes(Math.round(bar.duration / 60))}`"
+                                    class="h-full flex-1 flex items-end"
+                                  >
+                                    <div
+                                      class="w-full rounded-t-[2px]"
+                                      :style="{
+                                        height: `${bar.height}%`,
+                                        backgroundColor: bar.color
+                                      }"
+                                    />
+                                  </UTooltip>
+                                </div>
+                              </div>
+
+                              <div v-if="weekZoneBars(week, 'hr').some((b) => b.duration > 0)">
+                                <div
+                                  class="text-[9px] font-black uppercase tracking-[0.12em] text-muted/80"
+                                >
+                                  HR Distribution
+                                </div>
+                                <div class="mt-1.5 flex h-8 items-end gap-1">
+                                  <UTooltip
+                                    v-for="bar in weekZoneBars(week, 'hr')"
+                                    :key="`hr-${week.id}-${bar.zoneIndex}`"
+                                    :text="`Z${bar.zoneIndex}: ${formatMinutes(Math.round(bar.duration / 60))}`"
+                                    class="h-full flex-1 flex items-end"
+                                  >
+                                    <div
+                                      class="w-full rounded-t-[2px]"
+                                      :style="{
+                                        height: `${bar.height}%`,
+                                        backgroundColor: bar.color
+                                      }"
+                                    />
+                                  </UTooltip>
                                 </div>
                               </div>
                             </div>
@@ -1231,6 +1369,8 @@
   import PlanArchitectLibrarySidebar from '~/components/plans/PlanArchitectLibrarySidebar.vue'
   import PlanArchitectTimelineChart from '~/components/plans/PlanArchitectTimelineChart.vue'
   import PlanArchitectWorkoutDrawer from '~/components/plans/PlanArchitectWorkoutDrawer.vue'
+  import { calculateWeekZoneDistribution } from '~/utils/workout-analytics'
+  import { ZONE_COLORS } from '~/utils/zone-colors'
 
   type ViewMode = 'board' | 'table'
   type ChartMetric = 'tss' | 'minutes'
@@ -1261,6 +1401,7 @@
   const chartMetric = ref<ChartMetric>('tss')
   const selectedChartWeekId = ref<string | null>(null)
   const collapsedBlockIds = ref<string[]>([])
+  const expandedAnalyticsBlockIds = ref<string[]>([])
 
   const isPlanEditorOpen = ref(false)
   const isUtilityPanelOpen = ref(false)
@@ -1730,6 +1871,16 @@
       : [...collapsedBlockIds.value, blockId]
   }
 
+  function toggleAnalyticsBlockExpanded(blockId: string) {
+    if (expandedAnalyticsBlockIds.value.includes(blockId)) {
+      expandedAnalyticsBlockIds.value = expandedAnalyticsBlockIds.value.filter(
+        (id) => id !== blockId
+      )
+    } else {
+      expandedAnalyticsBlockIds.value.push(blockId)
+    }
+  }
+
   function weekRowSurface(weekNumber: number, weekId?: string) {
     const tone = weekNumber % 2 === 0 ? 'bg-muted/10' : 'bg-default'
 
@@ -1930,6 +2081,18 @@
       count: buckets[label] || 0,
       tone: bucketTone(label),
       height: buckets[label] ? Math.max(18, Math.round((buckets[label] / maxCount) * 100)) : 6
+    }))
+  }
+
+  function weekZoneBars(week: any, type: 'power' | 'hr') {
+    const distribution = calculateWeekZoneDistribution(week.workouts, type)
+    const maxDuration = Math.max(...distribution, 1)
+
+    return distribution.map((duration, index) => ({
+      zoneIndex: index + 1,
+      duration,
+      color: ZONE_COLORS[index],
+      height: duration ? Math.max(10, Math.round((duration / maxDuration) * 100)) : 4
     }))
   }
 
