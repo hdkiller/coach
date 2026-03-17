@@ -3,6 +3,8 @@ import { prisma } from '../server/utils/db'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { generateText } from 'ai'
 import { calculateLlmCost } from '../server/utils/ai-config'
+import { extractMemoryCandidatesFromConversation } from '../server/utils/chat/memory-extraction'
+import { userMemoryService } from '../server/utils/services/userMemoryService'
 
 export const summarizeChatTask = task({
   id: 'summarize-chat',
@@ -83,6 +85,13 @@ export const summarizeChatTask = task({
         return `${role}: ${m.content}`
       })
       .join('\n\n')
+
+    const extractionMessages = messages
+      .map((message) => ({
+        role: message.senderId === 'ai_agent' ? ('assistant' as const) : ('user' as const),
+        content: String(message.content || '').trim()
+      }))
+      .filter((message) => message.content.length > 0)
 
     // 3. Call AI to summarize and potentially rename
     const google = createGoogleGenerativeAI({
@@ -192,6 +201,27 @@ export const summarizeChatTask = task({
       if (lastMsg) {
         metadata.titleGeneratedMessageId = lastMsg.id
       }
+    }
+
+    const existingMemories = await userMemoryService.listMemories({ userId })
+    const memoryExtraction = await extractMemoryCandidatesFromConversation({
+      userId,
+      roomId,
+      messages: extractionMessages,
+      existingMemories: existingMemories.map((memory) => ({
+        scope: memory.scope,
+        content: memory.content
+      })),
+      operation: 'summarize-chat-memory',
+      entityType: 'ChatRoom',
+      entityId: roomId
+    })
+
+    if (memoryExtraction.candidates.length > 0) {
+      await userMemoryService.saveMemoryCandidates({
+        userId,
+        candidates: memoryExtraction.candidates
+      })
     }
 
     await prisma.chatRoom.update({

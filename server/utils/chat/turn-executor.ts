@@ -18,11 +18,13 @@ import {
 } from './turns'
 import { buildAthleteContext } from '../services/chatContextService'
 import { chatTurnService } from '../services/chatTurnService'
+import { userMemoryService } from '../services/userMemoryService'
 import { checkQuota } from '../quotas/engine'
 import { sendToUser } from '../ws-state'
 import { summarizeChatTask } from '../../../trigger/summarize-chat'
 import { transformHistoryToCoreMessages } from '../ai-history'
 import { normalizeCoreMessagesForGemini } from './core-message-normalizer'
+import { extractMemoryCandidatesFromConversation } from './memory-extraction'
 import { findToolNameRepair } from './tool-call-repair'
 import {
   classifyChatSkills,
@@ -76,6 +78,47 @@ function hasVisibleAssistantArtifacts(input: {
     toolApprovals.length > 0 ||
     toolResults.length > 0
   )
+}
+
+function buildMemoryEventFromToolResults(toolResults: any[]) {
+  for (const toolResult of toolResults) {
+    const toolName = toolResult?.toolName
+    const result = toolResult?.result
+
+    if (!result?.success) continue
+
+    if (toolName === 'remember_memory') {
+      return {
+        action: result.action === 'updated' ? ('updated' as const) : ('saved' as const),
+        memories: result.memory ? [result.memory] : [],
+        notice: result.action === 'updated' ? 'Updated memory.' : 'Saved to memory.'
+      }
+    }
+
+    if (toolName === 'update_memory') {
+      return {
+        action: 'updated' as const,
+        memories: result.memory ? [result.memory] : [],
+        notice: 'Updated memory.'
+      }
+    }
+
+    if (toolName === 'forget_memory') {
+      const memories = Array.isArray(result.matches)
+        ? result.matches
+        : result.memory
+          ? [result.memory]
+          : []
+
+      return {
+        action: 'forgotten' as const,
+        memories,
+        notice: 'Memory removed.'
+      }
+    }
+  }
+
+  return null
 }
 
 export function normalizeMessagesForSdk(inputMessages: any[]) {
@@ -486,10 +529,23 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
   const aiSettings = await getUserAiSettings(turn.userId)
   ensureTurnNotAborted()
   const roomMetadata = (turn.room.metadata as any) || {}
-  let finalSystemInstruction = baseSystemInstruction
-  if (roomMetadata?.historySummary) {
-    finalSystemInstruction = `## Previous Conversation Summary\n${roomMetadata.historySummary}\n\n${baseSystemInstruction}`
-  }
+  const { globalBlock: globalMemoryBlock, roomBlock: roomMemoryBlock } =
+    await userMemoryService.composePromptMemoryBlock({
+      userId: turn.userId,
+      roomId: turn.roomId,
+      memoryEnabled: aiSettings.aiMemoryEnabled
+    })
+  const roomSummaryBlock = roomMetadata?.historySummary
+    ? `## Previous Conversation Summary\n${roomMetadata.historySummary}`
+    : ''
+  let finalSystemInstruction = [
+    globalMemoryBlock,
+    roomSummaryBlock,
+    roomMemoryBlock,
+    baseSystemInstruction
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 
   const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -526,6 +582,8 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
     skillIds: skillSelection.skillIds,
     confidence: skillSelection.confidence,
     useTools: skillSelection.useTools,
+    extractMemories: !!skillSelection.extractMemories,
+    memoryReason: skillSelection.memoryReason || null,
     usedFallback: !!skillSelection.usedFallback,
     source: skillSelection.source || 'router',
     reason: skillSelection.reason || null,
@@ -770,6 +828,20 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
       status: extra.status || CHAT_TURN_STATUS.RUNNING,
       reason,
       ...extra
+    })
+  }
+
+  async function broadcastMemoryEvent(payload: {
+    action: 'saved' | 'updated' | 'forgotten'
+    memories: any[]
+    notice: string
+  }) {
+    await sendToUser(turn.userId, {
+      type: 'chat_memory_event',
+      roomId: turn.roomId,
+      action: payload.action,
+      memories: payload.memories,
+      notice: payload.notice
     })
   }
 
@@ -1286,6 +1358,61 @@ export async function executeChatTurn(turnId: string, expectedRunId?: string | n
             error
           })
         })
+
+        if (aiSettings.aiMemoryEnabled && skillSelection.extractMemories && content?.trim()) {
+          const existingMemories = await userMemoryService.listMemories({ userId: turn.userId })
+          const extraction = await extractMemoryCandidatesFromConversation({
+            userId: turn.userId,
+            roomId: turn.roomId,
+            turnId: turn.id,
+            messages: [
+              { role: 'user', content },
+              ...(assistantText.trim()
+                ? [{ role: 'assistant' as const, content: assistantText.trim() }]
+                : [])
+            ],
+            existingMemories: existingMemories.map((memory) => ({
+              scope: memory.scope,
+              content: memory.content
+            })),
+            operation: 'chat-memory-extract',
+            entityType: 'ChatTurn',
+            entityId: turn.id
+          })
+
+          const savedMemories = await userMemoryService.saveMemoryCandidates({
+            userId: turn.userId,
+            candidates: extraction.candidates
+          })
+
+          if (savedMemories.length > 0) {
+            await broadcastMemoryEvent({
+              action: 'saved',
+              memories: savedMemories,
+              notice:
+                savedMemories.length === 1
+                  ? 'Saved 1 memory from this conversation.'
+                  : `Saved ${savedMemories.length} memories from this conversation.`
+            }).catch((error) => {
+              console.error('[ChatTurn] Failed to broadcast auto-saved memory event:', {
+                turnId: turn.id,
+                roomId: turn.roomId,
+                error
+              })
+            })
+          }
+        }
+
+        const memoryToolEvent = buildMemoryEventFromToolResults(allToolResults)
+        if (memoryToolEvent && memoryToolEvent.memories.length > 0) {
+          await broadcastMemoryEvent(memoryToolEvent).catch((error) => {
+            console.error('[ChatTurn] Failed to broadcast tool-driven memory event:', {
+              turnId: turn.id,
+              roomId: turn.roomId,
+              error
+            })
+          })
+        }
       }
     })
 

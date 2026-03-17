@@ -1,5 +1,6 @@
 import { workoutTools } from './ai-tools/workouts'
 import { planningTools } from './ai-tools/planning'
+import { libraryTools } from './ai-tools/library'
 import { recommendationTools } from './ai-tools/recommendations'
 import { analysisTools } from './ai-tools/analysis'
 import { profileTools } from './ai-tools/profile'
@@ -10,6 +11,7 @@ import { nutritionTools } from './ai-tools/nutrition'
 import { wellnessTools } from './ai-tools/wellness'
 import { journeyTools } from './ai-tools/journey'
 import { availabilityTools } from './ai-tools/availability'
+import { memoryTools } from './ai-tools/memory'
 import { timeTools } from './ai-tools/time'
 import { temporalTools } from './ai-tools/temporal'
 import type { AiSettings } from './ai-user-settings'
@@ -52,6 +54,7 @@ export const getToolsWithContext = (
   const tools = {
     ...workoutTools(userId, timezone, settings),
     ...planningTools(userId, timezone, settings),
+    ...libraryTools(userId),
     ...recommendationTools(userId, timezone),
     ...analysisTools(userId, timezone, settings),
     ...profileTools(userId, timezone, settings),
@@ -62,6 +65,7 @@ export const getToolsWithContext = (
     ...wellnessTools(userId, timezone),
     ...journeyTools(userId, timezone),
     ...availabilityTools(userId, settings),
+    ...memoryTools(userId, chatRoomId),
     ...timeTools(userId, timezone),
     ...temporalTools(userId, timezone)
   }

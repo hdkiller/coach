@@ -17,6 +17,7 @@ export const CHAT_SKILL_IDS = [
   'wellness',
   'analysis',
   'nutrition',
+  'memory',
   'general_chat'
 ] as const
 
@@ -50,6 +51,8 @@ export type ChatSkillSelection = {
   skillIds: ChatSkillId[]
   confidence: number
   useTools: boolean
+  extractMemories?: boolean
+  memoryReason?: string
   reason?: string
   usedFallback?: boolean
   source?: 'router' | 'continuation' | 'retry_continuation' | 'pending_approval' | 'fallback'
@@ -78,6 +81,8 @@ const skillSelectionSchema = z.object({
   skillIds: z.array(z.enum(CHAT_SKILL_IDS)).max(3).default(['general_chat']),
   confidence: z.number().min(0).max(1).default(0.5),
   useTools: z.boolean().default(false),
+  extractMemories: z.boolean().default(false),
+  memoryReason: z.string().max(240).optional(),
   reason: z.string().max(240).optional()
 })
 
@@ -395,6 +400,23 @@ const CHAT_SKILL_MANIFESTS: Record<ChatSkillId, ChatSkillManifest> = {
     priority: 75,
     fallbackSkill: 'general_chat'
   },
+  memory: {
+    id: 'memory',
+    description:
+      'Memory workflows: remember, forget, inspect, or update saved memory across chats or for this chat.',
+    toolNames: ['list_memories', 'remember_memory', 'forget_memory', 'update_memory'],
+    instructionFragment: `## Memory Skill
+
+- Use memory tools when the user explicitly asks you to remember, forget, review, or update saved memory.
+- Prefer \`remember_memory\` and \`forget_memory\` for explicit memory commands instead of only acknowledging them in text.
+- Use \`list_memories\` when you need to verify what is already saved before answering or forgetting.
+- Use \`update_memory\` when the user wants to correct, refine, move, or pin an existing memory.
+- Do not claim something was remembered or forgotten unless the memory tool actually succeeded.`,
+    contextFlags: [],
+    approvalToolNames: [],
+    priority: 74,
+    fallbackSkill: 'general_chat'
+  },
   general_chat: {
     id: 'general_chat',
     description:
@@ -515,6 +537,7 @@ Rules:
 - Use "wellness" for recovery metrics, symptom logging, sleep, soreness, fatigue, or wellness history.
 - Use "analysis" for training-load analysis, forecasting, explicit math, pace/zones calculations, or charts.
 - Use "nutrition" for meal, hydration, fueling, or nutrition-log requests.
+- Use "memory" when the user explicitly asks to remember, forget, review, or update saved memory.
 - Use "general_chat" when no tools are needed right now.
 - If a write workflow is already in progress and the user reports a problem with approval UI, missing buttons, or asks what happened, keep the original write skill in the bundle. You may add "support", but do not replace the write skill with support-only routing.
 - Preserve helper tool access when needed. Example: nutrition logging "right now" still needs time-related helper tools; relative-day writes still need temporal resolution tools.
@@ -523,6 +546,8 @@ Rules:
 - This router must work across languages. Infer intent semantically, not by English-only wording.
 - No more than 3 skills.
 - useTools should be true only when the current turn needs tool access now.
+- Set extractMemories true when the latest user turn likely contains durable memory worth capturing after the reply, even if no memory tool is needed in this turn.
+- Keep extractMemories false for explicit remember/forget commands, since those should use memory tools directly.
 
 Context:
 - Tool approval enabled: ${params.requireToolApproval ? 'yes' : 'no'}
@@ -547,14 +572,32 @@ function normalizeChatSkillSelection(raw: Partial<ChatSkillSelection> | null | u
 
   const confidence = Number.isFinite(raw?.confidence) ? Number(raw?.confidence) : 0
   const useTools = !!raw?.useTools
+  const extractMemories = !!raw?.extractMemories
   const normalizedSkillIds =
     validSkillIds.length > 0 ? validSkillIds.filter((skillId) => skillId !== 'general_chat') : []
+  const hasOnlyGeneralChat =
+    validSkillIds.length > 0 && validSkillIds.every((skillId) => skillId === 'general_chat')
+
+  if (confidence >= ROUTER_CONFIDENCE_THRESHOLD && hasOnlyGeneralChat) {
+    return {
+      skillIds: ['general_chat'] as ChatSkillId[],
+      confidence,
+      useTools: false,
+      extractMemories,
+      memoryReason: raw?.memoryReason,
+      reason: raw?.reason,
+      usedFallback: false,
+      source: 'router' as const
+    }
+  }
 
   if (confidence < ROUTER_CONFIDENCE_THRESHOLD || normalizedSkillIds.length === 0) {
     return {
       skillIds: ['general_chat'] as ChatSkillId[],
       confidence,
       useTools: false,
+      extractMemories: confidence >= ROUTER_CONFIDENCE_THRESHOLD ? extractMemories : false,
+      memoryReason: raw?.memoryReason,
       reason: raw?.reason || 'Low-confidence or empty router result.',
       usedFallback: true,
       source: 'fallback' as const
@@ -565,6 +608,8 @@ function normalizeChatSkillSelection(raw: Partial<ChatSkillSelection> | null | u
     skillIds: sortSkillIds(normalizedSkillIds),
     confidence,
     useTools,
+    extractMemories,
+    memoryReason: raw?.memoryReason,
     reason: raw?.reason,
     usedFallback: false,
     source: 'router' as const
@@ -828,6 +873,7 @@ export function getContinuationSkillSelection(messages: any[]): ChatSkillSelecti
     skillIds,
     confidence: 1,
     useTools: true,
+    extractMemories: false,
     reason: 'Continuation of an approved tool action.',
     usedFallback: false,
     source: 'continuation'
@@ -857,6 +903,7 @@ export function getPendingApprovalSkillSelection(messages: any[]): ChatSkillSele
     skillIds: combinedSkillIds,
     confidence: 1,
     useTools: true,
+    extractMemories: false,
     reason:
       'A previously prepared approval-required action is still pending, so preserve the original tool domain and any support context.',
     usedFallback: false,
@@ -891,6 +938,7 @@ export function getRetryContinuationSkillSelection(messages: any[]): ChatSkillSe
       skillIds,
       confidence: 1,
       useTools: true,
+      extractMemories: false,
       reason:
         'Retry the most recent failed tool-enabled action instead of falling back to general chat.',
       usedFallback: false,
@@ -1042,6 +1090,7 @@ export async function classifyChatSkills(
       skillIds: ['general_chat'],
       confidence: 0,
       useTools: false,
+      extractMemories: false,
       reason: 'Router error fallback.',
       usedFallback: true,
       source: 'fallback'

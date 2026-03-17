@@ -110,6 +110,7 @@ describe('classifyChatSkills', () => {
         skillIds: ['support'],
         confidence: 0.94,
         useTools: true,
+        extractMemories: false,
         reason: 'The user wants to create a ticket.'
       },
       usage: {
@@ -141,6 +142,7 @@ describe('classifyChatSkills', () => {
         skillIds: ['planning_read'],
         confidence: 0.88,
         useTools: true,
+        extractMemories: false,
         reason: 'The user is asking about upcoming planned workouts.'
       },
       usage: {
@@ -170,6 +172,7 @@ describe('classifyChatSkills', () => {
         skillIds: ['planning_read'],
         confidence: 0.3,
         useTools: true,
+        extractMemories: true,
         reason: 'Uncertain.'
       },
       usage: {
@@ -191,6 +194,39 @@ describe('classifyChatSkills', () => {
       useTools: false,
       usedFallback: true,
       source: 'fallback'
+    })
+  })
+
+  it('keeps a general-chat route but flags memory extraction when appropriate', async () => {
+    generateObjectMock.mockResolvedValueOnce({
+      object: {
+        skillIds: ['general_chat'],
+        confidence: 0.9,
+        useTools: false,
+        extractMemories: true,
+        memoryReason: 'The user shared a durable preference.',
+        reason: 'No tools needed for the reply.'
+      },
+      usage: {
+        inputTokens: 18,
+        outputTokens: 6,
+        inputTokenDetails: { cacheReadTokens: 0 },
+        outputTokenDetails: { reasoningTokens: 0 }
+      }
+    })
+
+    const selection = await classifyChatSkills({
+      userId: 'user-1',
+      turnId: 'turn-4',
+      messages: [{ role: 'user', content: 'I prefer morning workouts because evenings are busy.' }]
+    })
+
+    expect(selection).toMatchObject({
+      skillIds: ['general_chat'],
+      useTools: false,
+      extractMemories: true,
+      memoryReason: 'The user shared a durable preference.',
+      usedFallback: false
     })
   })
 })
