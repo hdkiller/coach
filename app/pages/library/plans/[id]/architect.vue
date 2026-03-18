@@ -194,6 +194,7 @@
                     @add-week="addWeekToBlock"
                     @add-block="addBlock"
                     @update-week-target="updateWeekTarget"
+                    @table-workout-drop="handleTableWorkoutDrop"
                   />
 
                   <!-- Selected Week Summary Card -->
@@ -514,6 +515,7 @@
     duplicateWeek,
     addWorkout,
     addWorkoutFromTemplate,
+    moveWorkout,
     removeWorkout,
     openWorkoutEditor,
     applyWorkoutEditor,
@@ -533,18 +535,46 @@
   }
 
   // Page Specific Analytics & Helpers
+  const classifyWorkout = (w: any) => {
+    const f = `${w.type || ''} ${w.category || ''}`.toUpperCase()
+    if (f.includes('RUN')) return 'Run'
+    if (f.includes('RIDE') || f.includes('BIKE') || f.includes('CYCLE')) return 'Ride'
+    if (f.includes('GYM') || f.includes('STRENGTH')) return 'Gym'
+    if (f.includes('REST') || f.includes('RECOVERY')) return 'Rest/Recovery'
+    return 'Other'
+  }
+
   const weekAnalytics = computed(() => {
     let globalWeek = 1
     return sortedBlocks.value.flatMap((block: any) => {
       return orderedWeeks(block).map((week: any) => {
-        const scheduledMinutes = (week.workouts || []).reduce(
+        const workouts = week.workouts || []
+        const scheduledMinutes = workouts.reduce(
           (sum: number, w: any) => sum + Math.round((w.durationSec || 0) / 60),
           0
         )
-        const scheduledTss = (week.workouts || []).reduce(
+        const scheduledTss = workouts.reduce(
           (sum: number, w: any) => sum + Math.round(w.tss || 0),
           0
         )
+
+        // Calculate type breakdown for stacked chart
+        const activityLabels = ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other']
+        const breakdown = activityLabels.map((label) => ({
+          label,
+          count: 0,
+          minutes: 0,
+          tss: 0
+        }))
+
+        workouts.forEach((w: any) => {
+          const label = classifyWorkout(w)
+          const entry = breakdown.find((b) => b.label === label) || breakdown[breakdown.length - 1]
+          entry.count++
+          entry.minutes += Math.round((w.durationSec || 0) / 60)
+          entry.tss += Math.round(w.tss || 0)
+        })
+
         return {
           weekId: week.id,
           weekNumber: globalWeek++,
@@ -556,7 +586,8 @@
           scheduledMinutes,
           targetTss: Number(week.tssTarget) || 0,
           scheduledTss,
-          workoutCount: (week.workouts || []).length
+          workoutCount: workouts.length,
+          typeBreakdown: breakdown
         }
       })
     })
@@ -592,19 +623,10 @@
     const selected = selectedWeekAnalytics.value
     if (!selected || !draftPlan.value) return []
 
-    const classify = (w: any) => {
-      const f = `${w.type || ''} ${w.category || ''}`.toUpperCase()
-      if (f.includes('RUN')) return 'Run'
-      if (f.includes('RIDE') || f.includes('BIKE') || f.includes('CYCLE')) return 'Ride'
-      if (f.includes('GYM') || f.includes('STRENGTH')) return 'Gym'
-      if (f.includes('REST') || f.includes('RECOVERY')) return 'Rest/Recovery'
-      return 'Other'
-    }
-
     const week = findWeek(selected.weekId)
     const workouts = week?.workouts || []
     const buckets = workouts.reduce((acc: any, w: any) => {
-      const label = classify(w)
+      const label = classifyWorkout(w)
       if (!acc[label]) acc[label] = { count: 0, minutes: 0 }
       acc[label].count++
       acc[label].minutes += Math.round((w.durationSec || 0) / 60)
@@ -735,6 +757,17 @@
     if (data) {
       const { template } = JSON.parse(data)
       addWorkoutFromTemplate(weekId, dayIndex, template)
+    }
+  }
+
+  function handleTableWorkoutDrop(payload: { toWeekId: string; toDayIndex: number; data: string }) {
+    const parsed = JSON.parse(payload.data)
+    if (parsed.moveWorkout) {
+      // Reorder: existing workout dragged to new day
+      moveWorkout(parsed.fromWeekId, parsed.workoutId, payload.toWeekId, payload.toDayIndex)
+    } else if (parsed.template) {
+      // From drawer: add from library template
+      addWorkoutFromTemplate(payload.toWeekId, payload.toDayIndex, parsed.template)
     }
   }
 </script>

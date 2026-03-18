@@ -1,17 +1,19 @@
 <template>
   <div class="h-[320px] w-full">
-    <Bar :data="chartData" :options="chartOptions" />
+    <Chart type="bar" :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
 <script setup lang="ts">
   import annotationPlugin from 'chartjs-plugin-annotation'
-  import { Bar } from 'vue-chartjs'
+  import { Chart } from 'vue-chartjs'
   import {
+    BarController,
     BarElement,
     CategoryScale,
     Chart as ChartJS,
     Legend,
+    LineController,
     LineElement,
     LinearScale,
     PointElement,
@@ -24,6 +26,8 @@
     BarElement,
     PointElement,
     LineElement,
+    BarController,
+    LineController,
     Tooltip,
     Legend,
     annotationPlugin
@@ -125,7 +129,7 @@
     )
     const activityLabels = ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other']
     const stackedDatasets = activityLabels.map((label) => ({
-      type: 'bar',
+      type: 'bar' as const,
       label,
       stack: 'scheduled',
       data: props.weeks.map((week) => {
@@ -150,7 +154,7 @@
       datasets: [
         ...stackedDatasets,
         {
-          type: 'line',
+          type: 'line' as const,
           label: props.metric === 'tss' ? 'Target TSS' : 'Target minutes',
           data: targetData,
           borderColor: '#cbd5e1',
