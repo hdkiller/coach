@@ -156,6 +156,10 @@ export function usePlanArchitect(planId: string) {
   function normalizePlan(plan: any) {
     return {
       ...structuredClone(plan),
+      coachNotes: plan.coachNotes || '',
+      athleteNotes: plan.athleteNotes || '',
+      strategy: plan.strategy || 'LINEAR',
+      recoveryRhythm: plan.recoveryRhythm || 4,
       blocks: (plan.blocks || []).map((block: any, blockIndex: number) => ({
         ...block,
         name: block.name || `Block ${blockIndex + 1}`,
@@ -190,7 +194,11 @@ export function usePlanArchitect(planId: string) {
     return {
       name: plan.name,
       description: plan.description,
+      coachNotes: plan.coachNotes,
+      athleteNotes: plan.athleteNotes,
       difficulty: Number(plan.difficulty) || 1,
+      strategy: plan.strategy,
+      recoveryRhythm: Number(plan.recoveryRhythm) || 4,
       isPublic: Boolean(plan.isPublic),
       blocks: sortedPayloadBlocks(plan.blocks || [])
     }
@@ -403,6 +411,22 @@ export function usePlanArchitect(planId: string) {
     toast.add({ title: 'Workout removed', color: 'info' })
   }
 
+  function moveWorkout(
+    fromWeekId: string,
+    workoutId: string,
+    toWeekId: string,
+    toDayIndex: number
+  ) {
+    const fromWeek = findWeek(fromWeekId)
+    const toWeek = findWeek(toWeekId)
+    if (!fromWeek || !toWeek) return
+    const workoutIndex = fromWeek.workouts.findIndex((w: any) => w.id === workoutId)
+    if (workoutIndex === -1) return
+    const [workout] = fromWeek.workouts.splice(workoutIndex, 1)
+    workout.dayIndex = toDayIndex
+    toWeek.workouts.push(workout)
+  }
+
   function openWorkoutEditor(weekId: string, _dayIndex: number, workout: any) {
     editingWorkoutTarget.value = { weekId, workoutId: workout.id }
     editingWorkout.value = {
@@ -508,6 +532,7 @@ export function usePlanArchitect(planId: string) {
     duplicateWeek,
     addWorkout,
     addWorkoutFromTemplate,
+    moveWorkout,
     removeWorkout,
     openWorkoutEditor,
     applyWorkoutEditor,
