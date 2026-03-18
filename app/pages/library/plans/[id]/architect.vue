@@ -26,9 +26,6 @@
         <template #right>
           <ClientOnly>
             <div class="flex items-center gap-2">
-              <UBadge v-if="draftPlan?.isTemplate" color="primary" variant="soft" size="sm"
-                >Template</UBadge
-              >
               <UButton
                 color="neutral"
                 variant="outline"
@@ -82,95 +79,90 @@
               />
             </div>
 
-            <div v-else class="space-y-12 pb-32">
-              <!-- Header Section -->
-              <div
-                class="flex flex-col gap-3 rounded-3xl border border-default/80 bg-default/90 px-5 py-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div class="min-w-0 space-y-1.5">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <UBadge color="neutral" variant="soft" size="sm"
-                      >{{ sortedBlocks.length }} blocks</UBadge
-                    >
-                    <UBadge color="neutral" variant="soft" size="sm">{{ totalWeeks }} weeks</UBadge>
-                    <UBadge color="neutral" variant="soft" size="sm"
-                      >{{ totalWorkouts }} workouts</UBadge
-                    >
-                  </div>
-                  <h2 class="truncate text-xl font-black tracking-tight text-highlighted">
-                    {{ draftPlan.name }}
-                  </h2>
-                </div>
-
-                <div class="flex shrink-0 flex-wrap items-center gap-4">
-                  <!-- Inline stat strip -->
-                  <div class="flex items-center gap-4">
-                    <div
-                      v-for="(metric, i) in headlineMetrics"
-                      :key="metric.label"
-                      class="flex items-center gap-4"
-                    >
-                      <div v-if="i > 0" class="h-4 w-px bg-default" />
-                      <div>
-                        <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
-                          {{ metric.label }}
-                        </div>
-                        <div class="text-sm font-bold text-highlighted">{{ metric.value }}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- View switcher -->
-                  <div
-                    class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
-                  >
-                    <UButton
-                      :color="viewMode === 'board' ? 'primary' : 'neutral'"
-                      :variant="viewMode === 'board' ? 'soft' : 'ghost'"
-                      size="sm"
-                      icon="i-heroicons-calendar-days"
-                      @click="viewMode = 'board'"
-                      >Weekly board</UButton
-                    >
-                    <UButton
-                      :color="viewMode === 'table' ? 'primary' : 'neutral'"
-                      :variant="viewMode === 'table' ? 'soft' : 'ghost'"
-                      size="sm"
-                      icon="i-heroicons-table-cells"
-                      @click="viewMode = 'table'"
-                      >Plan table</UButton
-                    >
-                  </div>
-                </div>
-              </div>
-
-              <!-- Analytics Section -->
+            <div v-else class="space-y-6 pb-32">
+              <!-- Unified Header & Analytics Section -->
               <section
                 class="rounded-3xl border border-default/80 bg-default/95 p-5 shadow-sm sm:p-6"
               >
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <h3 class="text-2xl font-black tracking-tight text-highlighted">
-                    Seasonal load timeline
-                  </h3>
-                  <div
-                    class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
-                  >
-                    <UButton
-                      :color="chartMetric === 'tss' ? 'primary' : 'neutral'"
-                      :variant="chartMetric === 'tss' ? 'soft' : 'ghost'"
-                      size="sm"
-                      @click="chartMetric = 'tss'"
-                      >TSS</UButton
-                    >
-                    <UButton
-                      :color="chartMetric === 'minutes' ? 'primary' : 'neutral'"
-                      :variant="chartMetric === 'minutes' ? 'soft' : 'ghost'"
-                      size="sm"
-                      @click="chartMetric = 'minutes'"
-                      >Minutes</UButton
-                    >
+                <!-- Top Row: Title & Stats -->
+                <div
+                  class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between pb-6 border-b border-default/60"
+                >
+                  <div class="min-w-0 space-y-1.5">
+                    <h2 class="truncate text-2xl font-black tracking-tight text-highlighted">
+                      {{ draftPlan.name }}
+                    </h2>
+                  </div>
+
+                  <div class="flex shrink-0 flex-wrap items-center gap-6">
+                    <!-- Headline metrics -->
+                    <div class="flex items-center gap-5">
+                      <div
+                        v-for="(metric, i) in headlineMetrics"
+                        :key="metric.label"
+                        class="flex items-center gap-5"
+                      >
+                        <div v-if="i > 0" class="h-6 w-px bg-default/60" />
+                        <div>
+                          <div class="text-[9px] font-black uppercase tracking-[0.18em] text-muted">
+                            {{ metric.label }}
+                          </div>
+                          <div class="text-sm font-bold text-highlighted leading-none mt-1">
+                            {{ metric.value }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                      <!-- Chart metric toggle -->
+                      <div
+                        class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
+                      >
+                        <UButton
+                          :color="chartMetric === 'tss' ? 'primary' : 'neutral'"
+                          :variant="chartMetric === 'tss' ? 'soft' : 'ghost'"
+                          size="sm"
+                          @click="chartMetric = 'tss'"
+                          >TSS</UButton
+                        >
+                        <UButton
+                          :color="chartMetric === 'minutes' ? 'primary' : 'neutral'"
+                          :variant="chartMetric === 'minutes' ? 'soft' : 'ghost'"
+                          size="sm"
+                          @click="chartMetric = 'minutes'"
+                          >Minutes</UButton
+                        >
+                      </div>
+
+                      <div class="h-6 w-px bg-default/60 mx-1" />
+
+                      <!-- View switcher -->
+                      <div
+                        class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
+                      >
+                        <UButton
+                          :color="viewMode === 'board' ? 'primary' : 'neutral'"
+                          :variant="viewMode === 'board' ? 'soft' : 'ghost'"
+                          size="sm"
+                          icon="i-heroicons-calendar-days"
+                          @click="viewMode = 'board'"
+                          >Weekly board</UButton
+                        >
+                        <UButton
+                          :color="viewMode === 'table' ? 'primary' : 'neutral'"
+                          :variant="viewMode === 'table' ? 'soft' : 'ghost'"
+                          size="sm"
+                          icon="i-heroicons-table-cells"
+                          @click="viewMode = 'table'"
+                          >Plan table</UButton
+                        >
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                <!-- Chart Area -->
                 <div class="mt-6">
                   <PlanArchitectTimelineChart
                     :metric="chartMetric"
@@ -180,8 +172,11 @@
                     @select-week="handleChartWeekSelect"
                   />
                 </div>
+              </section>
 
-                <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(320px,1fr)]">
+              <!-- Table / Board View Switcher Area -->
+              <section v-if="viewMode === 'table'" class="space-y-6">
+                <div class="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(320px,1fr)]">
                   <PlanArchitectBlockTable
                     :block-analytics="blockAnalytics"
                     :week-analytics="weekAnalytics"
@@ -210,7 +205,7 @@
                           <div
                             class="mt-2 text-xl font-black tracking-tight text-highlighted line-clamp-2"
                           >
-                            {{ selectedWeekAnalytics.weekFocus }}
+                            {{ selectedWeekAnalytics.focus || selectedWeekAnalytics.weekFocus }}
                           </div>
                           <div class="mt-1 text-sm text-muted">
                             {{ selectedWeekAnalytics.blockName }} • Week
@@ -302,7 +297,7 @@
 
               <!-- Board View -->
               <PlanArchitectBoard
-                v-if="viewMode === 'board'"
+                v-else-if="viewMode === 'board'"
                 :sorted-blocks="sortedBlocks"
                 :days="DAYS"
                 :active-week-id="activeWeekId"
@@ -323,11 +318,6 @@
                 @dragleave="onArchitectDayDragLeave"
                 @drop="onArchitectDayDrop"
               />
-
-              <!-- Table View (Placeholder) -->
-              <section v-else class="rounded-3xl border border-default p-12 text-center text-muted">
-                Table view is under maintenance. Please use the board view.
-              </section>
             </div>
           </div>
           <template #fallback>
@@ -350,25 +340,75 @@
   <!-- Modals -->
   <USlideover v-model:open="isPlanEditorOpen" title="Plan details">
     <template #content>
-      <div v-if="draftPlan" class="space-y-6 p-6">
-        <UFormField label="Plan name"><UInput v-model="draftPlan.name" /></UFormField>
-        <UFormField label="Description"><UInput v-model="draftPlan.description" /></UFormField>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <UFormField label="Difficulty"
-            ><UInput v-model.number="draftPlan.difficulty" type="number" min="1" max="10"
-          /></UFormField>
-          <UFormField label="Strategy"
-            ><UInput :model-value="draftPlan.strategy || 'Unset'" disabled
-          /></UFormField>
+      <div v-if="draftPlan" class="flex flex-col h-full">
+        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+          <!-- General Info Section -->
+          <section class="space-y-4">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+              General Identity
+            </div>
+            <UFormField label="Blueprint name" help="Give your plan a clear, searchable name.">
+              <UInput v-model="draftPlan.name" placeholder="e.g. 12-Week Polarized Base" />
+            </UFormField>
+            <UFormField label="Description" help="Briefly explain the goal and methodology.">
+              <UTextarea
+                v-model="draftPlan.description"
+                :rows="3"
+                placeholder="Describe the progression..."
+              />
+            </UFormField>
+          </section>
+
+          <!-- Strategy & Methodology Section -->
+          <section class="space-y-4 pt-4 border-t border-default/60">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+              Methodology
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <UFormField label="Training Strategy" help="Method used for progression.">
+                <USelect
+                  v-model="draftPlan.strategy"
+                  :items="['LINEAR', 'POLARIZED', 'PYRAMIDAL', 'BASE_BUILD_PEAK', 'REVERSE_LINEAR']"
+                />
+              </UFormField>
+              <UFormField label="Recovery Rhythm" help="Weeks between recovery phases.">
+                <UInput v-model.number="draftPlan.recoveryRhythm" type="number" min="1" max="6" />
+              </UFormField>
+            </div>
+            <UFormField label="Difficulty (1-10)" help="Perceived exertion over the entire plan.">
+              <div class="flex items-center gap-4">
+                <URange v-model.number="draftPlan.difficulty" :min="1" :max="10" class="flex-1" />
+                <span class="text-sm font-bold text-highlighted w-4 text-center">{{
+                  draftPlan.difficulty
+                }}</span>
+              </div>
+            </UFormField>
+          </section>
+
+          <!-- Access & Visibility Section -->
+          <section class="space-y-4 pt-4 border-t border-default/60">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+              Access & Visibility
+            </div>
+            <div
+              class="flex items-center justify-between rounded-2xl border border-default/80 bg-muted/20 p-4"
+            >
+              <div>
+                <div class="text-sm font-bold text-highlighted">Public Blueprint</div>
+                <div class="text-[11px] text-muted mt-0.5">
+                  Allow other coaches to see and clone this plan.
+                </div>
+              </div>
+              <USwitch v-model="draftPlan.isPublic" />
+            </div>
+          </section>
         </div>
-        <div
-          class="flex items-center justify-between rounded-2xl border border-default/80 bg-muted/20 p-4"
-        >
-          <div><div class="text-sm font-bold text-highlighted">Public blueprint</div></div>
-          <USwitch v-model="draftPlan.isPublic" />
-        </div>
-        <div class="flex justify-end gap-2">
-          <UButton color="primary" @click="isPlanEditorOpen = false">Apply</UButton>
+
+        <div class="p-6 border-t border-default/60 bg-muted/5 flex justify-end gap-3">
+          <UButton color="neutral" variant="ghost" @click="isPlanEditorOpen = false"
+            >Cancel</UButton
+          >
+          <UButton color="primary" @click="isPlanEditorOpen = false">Apply changes</UButton>
         </div>
       </div>
     </template>
@@ -445,7 +485,13 @@
   <USlideover v-model:open="isUtilityPanelOpen" title="Utility panel" side="right">
     <template #content>
       <div class="h-full overflow-y-auto p-4">
-        <PlanArchitectLibrarySidebar :quick-stats="sidebarStats" :planning-tips="planningTips" />
+        <PlanArchitectUtilityPanel
+          v-if="draftPlan"
+          v-model:coach-notes="draftPlan.coachNotes"
+          v-model:athlete-notes="draftPlan.athleteNotes"
+          :stats="utilityPanelStats"
+          :planning-tips="planningTips"
+        />
       </div>
     </template>
   </USlideover>
@@ -466,7 +512,7 @@
   import PlanArchitectWorkoutDrawer from '~/components/plans/PlanArchitectWorkoutDrawer.vue'
   import PlanArchitectBlockTable from '~/components/plans/PlanArchitectBlockTable.vue'
   import PlanArchitectBoard from '~/components/plans/PlanArchitectBoard.vue'
-  import PlanArchitectLibrarySidebar from '~/components/plans/PlanArchitectLibrarySidebar.vue'
+  import PlanArchitectUtilityPanel from '~/components/plans/PlanArchitectUtilityPanel.vue'
   import { usePlanArchitect } from '~/composables/usePlanArchitect'
 
   const route = useRoute()
@@ -578,6 +624,7 @@
         return {
           weekId: week.id,
           weekNumber: globalWeek++,
+          focus: week.focus,
           weekFocus: week.focus || 'Untitled',
           blockId: block.id,
           blockName: block.name,
@@ -652,26 +699,44 @@
   })
 
   const headlineMetrics = computed(() => [
+    { label: 'Blocks', value: sortedBlocks.value.length },
+    { label: 'Weeks', value: totalWeeks.value },
+    { label: 'Workouts', value: totalWorkouts.value },
     { label: 'Difficulty', value: draftPlan.value?.difficulty || 1 },
     { label: 'Strategy', value: draftPlan.value?.strategy || 'Unset' },
     { label: 'Minutes', value: totalTargetMinutes.value },
     { label: 'TSS', value: totalTargetTss.value }
   ])
 
-  const sidebarStats = computed(() => [
-    { label: 'Blueprint status', value: draftPlan.value?.isPublic ? 'Public' : 'Private' },
-    {
-      label: 'Average weekly volume',
-      value: totalWeeks.value
-        ? `${Math.round(totalTargetMinutes.value / totalWeeks.value)} min`
-        : '0 min'
-    }
-  ])
-
   const planningTips = [
     'Use each block to communicate the why of the phase.',
     'Check scheduled totals against weekly targets.'
   ]
+
+  const utilityPanelStats = computed(() => {
+    const disciplineBreakdown: Record<string, number> = {
+      Run: 0,
+      Ride: 0,
+      Gym: 0,
+      'Rest/Recovery': 0,
+      Other: 0
+    }
+
+    weekAnalytics.value.forEach((w: any) => {
+      w.typeBreakdown.forEach((b: any) => {
+        disciplineBreakdown[b.label] += b.count
+      })
+    })
+
+    return {
+      totalWeeks: totalWeeks.value,
+      totalWorkouts: totalWorkouts.value,
+      avgWeeklyMinutes: totalWeeks.value ? totalTargetMinutes.value / totalWeeks.value : 0,
+      avgWeeklyTss: totalWeeks.value ? totalTargetTss.value / totalWeeks.value : 0,
+      workoutDensity: totalWeeks.value ? totalWorkouts.value / totalWeeks.value : 0,
+      disciplineBreakdown
+    }
+  })
 
   const chartBlockRanges = computed(() => {
     return blockAnalytics.value
