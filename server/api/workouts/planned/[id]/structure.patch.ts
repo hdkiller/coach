@@ -55,6 +55,17 @@ export default defineEventHandler(async (event) => {
   const steps = Array.isArray(providedSteps)
     ? providedSteps
     : WorkoutParser.parseIntervalsICU(text!, { workoutType: workout.type || '' })
+
+  console.log('[StructurePatch] Received steps count:', steps.length)
+  if (steps.length > 0) {
+    console.log('[StructurePatch] Sample step metrics:', {
+      power: steps[0].power,
+      heartRate: steps[0].heartRate,
+      pace: steps[0].pace,
+      primaryTarget: steps[0].primaryTarget
+    })
+  }
+
   const structuredWorkout = {
     ...((workout.structuredWorkout as any) || {}),
     steps
@@ -77,6 +88,14 @@ export default defineEventHandler(async (event) => {
     targetFormatPolicy,
     workoutType: workout.type || ''
   })
+
+  console.log('[StructurePatch] Normalized sample step metrics:', {
+    power: normalized.steps[0].power,
+    heartRate: normalized.steps[0].heartRate,
+    pace: normalized.steps[0].pace,
+    primaryTarget: normalized.steps[0].primaryTarget
+  })
+
   const metrics = computeStructuredWorkoutMetrics(normalized, {
     refs,
     fallbackOrder: targetPolicy.fallbackOrder as Array<'power' | 'heartRate' | 'pace' | 'rpe'>

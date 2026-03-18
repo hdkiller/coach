@@ -6,7 +6,9 @@ import chalk from 'chalk'
 import { sportSettingsRepository } from '../../server/utils/repositories/sportSettingsRepository'
 import {
   buildWorkoutAnalysisFacts,
-  buildWorkoutAnalysisFactsV2
+  buildWorkoutAnalysisFactsV2,
+  getActualIntervalsForAnalysis,
+  getPlannedWorkIntervalsForAnalysis
 } from '../../server/utils/workout-analysis-facts'
 
 function extractWorkoutId(input?: string) {
@@ -158,6 +160,35 @@ const workoutFactsCommand = new Command('workout-facts')
         factsV2.performanceSignals as unknown as Record<string, unknown>
       )
       printSection('Confidence v2', factsV2.confidence as unknown as Record<string, unknown>)
+
+      const refs = {
+        ftp: Number(sportSettings?.ftp || workout?.ftp || 0),
+        lthr: Number(sportSettings?.lthr || 0),
+        maxHr: Number(sportSettings?.maxHr || 0),
+        thresholdPace: Number(sportSettings?.thresholdPace || 0)
+      }
+
+      const plannedWork = getPlannedWorkIntervalsForAnalysis(workout.plannedWorkout, refs)
+      const actualIntervals = getActualIntervalsForAnalysis(workout, workout.plannedWorkout)
+      const actualWork = actualIntervals.filter((i) => i.classification === 'work')
+
+      console.log(chalk.bold.cyan('\nPlanned Work Intervals'))
+      plannedWork.forEach((step, idx) => {
+        console.log(
+          `${chalk.gray(`${idx + 1}:`).padEnd(4)} ${step.type.padEnd(20)} | ${String(
+            step.durationSeconds
+          ).padStart(5)}s | ${String(step.targetValue).padEnd(10)} | IF: ${step.intensityFactor}`
+        )
+      })
+
+      console.log(chalk.bold.cyan('\nActual Work Intervals'))
+      actualWork.forEach((interval, idx) => {
+        console.log(
+          `${chalk.gray(`${idx + 1}:`).padEnd(4)} ${interval.type.padEnd(20)} | ${String(
+            interval.durationSeconds
+          ).padStart(5)}s | ${String(interval.avgPower).padStart(4)}W | ${interval.classification}`
+        )
+      })
     } catch (error) {
       console.error(chalk.red(error instanceof Error ? error.message : String(error)))
       process.exitCode = 1
