@@ -184,12 +184,17 @@
                               <tr
                                 v-for="dayIdx in 7"
                                 :key="dayIdx"
-                                class="border-t border-default/20"
-                                :class="
-                                  getWorkoutsByDay(week.weekId, dayIdx - 1).length
-                                    ? ''
-                                    : 'opacity-40'
-                                "
+                                class="border-t border-default/20 transition-colors"
+                                :class="[
+                                  dragOverKey === `${week.weekId}:${dayIdx - 1}`
+                                    ? 'bg-primary/20 ring-1 ring-primary/40 ring-inset'
+                                    : getWorkoutsByDay(week.weekId, dayIdx - 1).length
+                                      ? ''
+                                      : 'opacity-40'
+                                ]"
+                                @dragover.prevent="dragOverKey = `${week.weekId}:${dayIdx - 1}`"
+                                @dragleave="dragOverKey = null"
+                                @drop.prevent="onDayDrop(week.weekId, dayIdx - 1, $event)"
                               >
                                 <td
                                   class="px-12 py-1.5 font-bold text-highlighted whitespace-nowrap"
@@ -204,7 +209,9 @@
                                     <span
                                       v-for="workout in getWorkoutsByDay(week.weekId, dayIdx - 1)"
                                       :key="workout.id"
-                                      class="inline-flex items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-semibold text-highlighted"
+                                      draggable="true"
+                                      class="inline-flex cursor-grab active:cursor-grabbing items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-semibold text-highlighted select-none"
+                                      @dragstart="onWorkoutDragStart($event, week.weekId, workout)"
                                     >
                                       <UIcon
                                         :name="getWorkoutIcon(workout)"
@@ -296,22 +303,41 @@
     sortedBlocks: any[]
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     'toggle-expanded': [id: string]
     'edit-block': [id: string]
     'select-week': [id: string]
     'add-week': [id: string]
     'add-block': []
     'update-week-target': [weekId: string, field: string, value: number]
+    'table-workout-drop': [payload: { toWeekId: string; toDayIndex: number; data: string }]
   }>()
 
   // Local state for week-level expansion
   const expandedWeekIds = ref<string[]>([])
+  const dragOverKey = ref<string | null>(null)
 
   function toggleWeekExpanded(weekId: string) {
     expandedWeekIds.value = expandedWeekIds.value.includes(weekId)
       ? expandedWeekIds.value.filter((id) => id !== weekId)
       : [...expandedWeekIds.value, weekId]
+
+    emit('select-week', weekId)
+  }
+
+  function onWorkoutDragStart(event: DragEvent, weekId: string, workout: any) {
+    event.dataTransfer!.effectAllowed = 'move'
+    event.dataTransfer!.setData(
+      'application/json',
+      JSON.stringify({ moveWorkout: true, fromWeekId: weekId, workoutId: workout.id })
+    )
+  }
+
+  function onDayDrop(toWeekId: string, toDayIndex: number, event: DragEvent) {
+    dragOverKey.value = null
+    const data = event.dataTransfer?.getData('application/json')
+    if (!data) return
+    emit('table-workout-drop', { toWeekId, toDayIndex, data })
   }
 
   function getWeeksInBlock(blockId: string) {

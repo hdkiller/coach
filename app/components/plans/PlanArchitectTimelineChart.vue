@@ -217,11 +217,14 @@
         tooltip: {
           backgroundColor: tooltipBg,
           titleColor: tooltipText,
+          titleFont: { size: 13, weight: 'bold' },
           bodyColor: tooltipMuted,
+          bodyFont: { size: 11 },
           borderColor: isDark ? '#334155' : '#e2e8f0',
           borderWidth: 1,
           padding: 12,
           displayColors: true,
+          boxPadding: 4,
           callbacks: {
             title: (items: any[]) => {
               const week = props.weeks[items[0]?.dataIndex]
@@ -231,29 +234,33 @@
             },
             beforeBody: (items: any[]) => {
               const week = props.weeks[items[0]?.dataIndex]
-              return week ? [week.weekFocus] : []
+              return week ? [`"${week.weekFocus}"`, ''] : []
             },
-            afterBody: (items: any[]) => {
+            label: (item: any) => {
+              const label = item.dataset.label
+              const value = item.raw
+              if (
+                value === 0 &&
+                label !== (props.metric === 'tss' ? 'Target TSS' : 'Target minutes')
+              )
+                return null
+              const unit = props.metric === 'tss' ? ' TSS' : 'm'
+              return `${label}: ${value}${unit}`
+            },
+            footer: (items: any[]) => {
               const week = props.weeks[items[0]?.dataIndex]
-              if (!week) return []
+              if (!week) return ''
 
-              const breakdownLines = ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other']
-                .map((label) => {
-                  const bucket = week.typeBreakdown?.find((entry) => entry.label === label)
-                  const value = props.metric === 'tss' ? bucket?.tss || 0 : bucket?.minutes || 0
-                  if (!value) return null
-
-                  return `${label}: ${value}${props.metric === 'tss' ? ' TSS' : ' min'}`
-                })
-                .filter(Boolean)
+              const metricLabel = props.metric === 'tss' ? 'TSS' : 'Min'
+              const scheduled = props.metric === 'tss' ? week.scheduledTss : week.scheduledMinutes
+              const target = props.metric === 'tss' ? week.targetTss : week.targetMinutes
+              const diff = scheduled - target
+              const diffText = diff > 0 ? ` (+${diff})` : diff < 0 ? ` (${diff})` : ' (On target)'
 
               return [
-                `Target minutes: ${week.targetMinutes}`,
-                `Scheduled minutes: ${week.scheduledMinutes}`,
-                `Target TSS: ${week.targetTss}`,
-                `Scheduled TSS: ${week.scheduledTss}`,
-                `Workouts: ${week.workoutCount}`,
-                ...breakdownLines
+                '',
+                `Total ${metricLabel}: ${scheduled} / ${target}${diffText}`,
+                `Total Sessions: ${week.workoutCount}`
               ]
             }
           }
