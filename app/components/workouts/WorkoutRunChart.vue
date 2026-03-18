@@ -12,7 +12,10 @@
       <div class="flex items-center gap-4 text-xs">
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-xs bg-blue-500" />
-          <span class="text-muted">Intensity (% {{ preference === 'hr' ? 'LTHR' : 'FTP' }})</span>
+          <span class="text-muted"
+            >Intensity (%
+            {{ preference === 'hr' ? 'LTHR' : preference === 'pace' ? 'Pace' : 'FTP' }})</span
+          >
         </div>
       </div>
 
@@ -329,13 +332,14 @@
   const props = withDefaults(
     defineProps<{
       workout: any // structuredWorkout JSON
+      userFtp?: number
       preference?: 'hr' | 'power' | 'pace'
       sportSettings?: any
       allowEdit?: boolean
       stepsTab?: 'view' | 'edit'
     }>(),
     {
-      preference: 'hr',
+      preference: 'power',
       sportSettings: undefined
     }
   )

@@ -9,7 +9,12 @@
       <div class="flex items-center gap-4 text-xs">
         <div class="flex items-center gap-2">
           <div class="w-3 h-3 rounded-xs bg-amber-500" />
-          <span class="text-xs text-muted">Planned Intensity</span>
+          <span class="text-xs text-muted"
+            >Planned Intensity (%
+            {{
+              chartPreference === 'hr' ? 'LTHR' : chartPreference === 'pace' ? 'Pace' : 'FTP'
+            }})</span
+          >
         </div>
         <div class="flex items-center gap-1.5">
           <div class="w-3 h-1 bg-blue-300 border border-blue-300 border-dashed" />
@@ -55,13 +60,8 @@
                     {{ formatDuration(step.durationSeconds || step.duration || 0) }} @
                     <span>{{ formatPowerTarget(step) }}</span>
                   </div>
-                  <div v-if="userFtp" class="text-[10px] opacity-80">
-                    <span v-if="step.power?.range">
-                      {{ Math.round(step.power.range.start * userFtp) }}-{{
-                        Math.round(step.power.range.end * userFtp)
-                      }}W
-                    </span>
-                    <span v-else> {{ Math.round((step.power?.value || 0) * userFtp) }}W </span>
+                  <div v-if="hasRefValue" class="text-[10px] opacity-80">
+                    <span>{{ getAvgValue(step) }} {{ absUnit }}</span>
                   </div>
                   <div class="text-[10px] opacity-80 border-t border-white/20 mt-1 pt-1">
                     Target Cadence:
@@ -204,8 +204,8 @@
                   </div>
 
                   <!-- Avg Watts -->
-                  <div v-if="userFtp" class="w-12 text-primary font-medium flex-shrink-0">
-                    {{ getAvgWatts(step, userFtp) }}w
+                  <div v-if="hasRefValue" class="w-12 text-primary font-medium flex-shrink-0">
+                    {{ getAvgValue(step) }} {{ absUnit }}
                   </div>
 
                   <!-- Power % -->
@@ -258,10 +258,10 @@
                 </div>
               </div>
 
-              <!-- Average Watts -->
-              <div v-if="userFtp" class="text-right">
+              <!-- Average Value -->
+              <div v-if="hasRefValue" class="text-right">
                 <div class="text-sm font-bold text-primary">
-                  {{ getAvgWatts(step, userFtp) }}<span class="text-[10px] ml-0.5">W</span>
+                  {{ getAvgValue(step) }}<span class="text-[10px] ml-0.5">{{ absUnit }}</span>
                 </div>
                 <div class="text-[9px] text-muted uppercase">Avg</div>
               </div>
@@ -344,9 +344,21 @@
           <div class="text-xs text-muted">Max Power</div>
           <div class="text-lg font-bold">{{ Math.round(maxPower * 100) }}%</div>
         </div>
-        <div v-if="userFtp" class="text-center">
-          <div class="text-xs text-muted">Avg Watts</div>
-          <div class="text-lg font-bold">{{ Math.round(avgPower * userFtp) }}W</div>
+        <div v-if="hasRefValue" class="text-center">
+          <div class="text-xs text-muted">
+            Avg
+            {{ chartPreference === 'hr' ? 'HR' : chartPreference === 'pace' ? 'Pace' : 'Watts' }}
+          </div>
+          <div class="text-lg font-bold">
+            {{
+              getAvgValue({
+                power: { value: avgPower },
+                heartRate: { value: avgPower },
+                pace: { value: avgPower }
+              })
+            }}
+            {{ absUnit }}
+          </div>
         </div>
       </div>
     </div>
@@ -398,11 +410,19 @@
     let hasPower = false
     let hasPace = false
 
+    const hasValue = (obj: any) => {
+      if (!obj) return false
+      if (typeof obj.value === 'number') return true
+      if (obj.range && typeof obj.range.start === 'number' && typeof obj.range.end === 'number')
+        return true
+      return false
+    }
+
     const visit = (nodes: any[]) => {
       nodes.forEach((s: any) => {
-        if (s.heartRate) hasHr = true
-        if (s.power) hasPower = true
-        if (s.pace) hasPace = true
+        if (hasValue(s.heartRate)) hasHr = true
+        if (hasValue(s.power)) hasPower = true
+        if (hasValue(s.pace)) hasPace = true
         if (s.steps) visit(s.steps)
       })
     }
@@ -438,13 +458,13 @@
   })
 
   const chartMaxPower = computed(() => {
-    if (!normalizedSteps.value.length) return 1.5 // Fallback to 150% FTP
+    if (!normalizedSteps.value.length) return 1.5
     let max = 0
     normalizedSteps.value.forEach((step: any) => {
-      const val = step.power?.range ? step.power.range.end : step.power?.value || 0
+      const target = step.power || step.heartRate || step.pace
+      const val = target?.range ? target.range.end : target?.value || 0
       if (val > max) max = val
     })
-    // Ensure we always have at least 100% FTP scale, and some padding above max
     return Math.max(1.0, max * 1.1)
   })
 
@@ -457,9 +477,8 @@
   const avgPower = computed(() => {
     if (!normalizedSteps.value.length || totalDuration.value === 0) return 0
     const totalWork = normalizedSteps.value.reduce((acc: number, step: any) => {
-      const val = step.power?.range
-        ? (step.power.range.start + step.power.range.end) / 2
-        : step.power?.value || 0
+      const target = step.power || step.heartRate || step.pace
+      const val = target?.range ? (target.range.start + target.range.end) / 2 : target?.value || 0
       const duration = step.durationSeconds || step.duration || 0
       return acc + val * duration
     }, 0)
@@ -469,7 +488,8 @@
   const maxPower = computed(() => {
     if (!normalizedSteps.value.length) return 0
     return normalizedSteps.value.reduce((acc: number, step: any) => {
-      const val = step.power?.range ? step.power.range.end : step.power?.value || 0
+      const target = step.power || step.heartRate || step.pace
+      const val = target?.range ? target.range.end : target?.value || 0
       return Math.max(acc, val)
     }, 0)
   })
@@ -841,20 +861,21 @@
   }
 
   function getStepRange(step: any) {
-    return step.power?.range
+    const target = step.power || step.heartRate || step.pace
+    return target?.range
   }
 
   function getStepRangeShadeStyle(step: any) {
     const range = getStepRange(step)
     if (!range) return {}
 
+    const target = step.power || step.heartRate || step.pace
     const maxScale = chartMaxPower.value
     const startH = Math.min(range.start / maxScale, 1) * 100
     const endH = Math.min(range.end / maxScale, 1) * 100
 
     // Ramp logic: Trapezoid from Start to End
-    // Backward compatibility: if ramp is missing but range exists, assume ramp
-    if (step.power?.ramp === true || (step.power?.range && step.power?.ramp === undefined)) {
+    if (target?.ramp === true || (target?.range && target?.ramp === undefined)) {
       const startY = 100 - startH
       const endY = 100 - endH
       // Polygon: Top-Left (0% startY), Top-Right (100% endY), Bottom-Right (100% 100%), Bottom-Left (0% 100%)
@@ -882,15 +903,16 @@
   function getStepBarStyle(step: any) {
     const color = getStepColor(step)
     const maxScale = chartMaxPower.value
+    const target = step.power || step.heartRate || step.pace
 
-    if (step.power?.ramp === true || (step.power?.range && step.power?.ramp === undefined)) {
+    if (target?.ramp === true || (target?.range && target?.ramp === undefined)) {
       // Hide standard bar for ramps, as the "Range" element handles the full shape
       return { height: '0%' }
     }
 
-    if (step.power?.range) {
+    if (target?.range) {
       // Solid bar to min (base requirement)
-      const val = step.power.range.start
+      const val = target.range.start
       const height = Math.min(val / maxScale, 1) * 100
 
       return {
@@ -899,7 +921,7 @@
       }
     } else {
       // Flat logic
-      const height = Math.min((step.power?.value || 0) / maxScale, 1) * 100
+      const height = Math.min((target?.value || 0) / maxScale, 1) * 100
 
       return {
         height: `${height}%`,
@@ -923,23 +945,47 @@
     return zone ? zone.name : '??'
   }
 
-  function getAvgWatts(step: any, ftp: number): number {
-    if (step.power?.originalRange) {
-      return Math.round((step.power.originalRange.start + step.power.originalRange.end) / 2)
+  const absUnit = computed(() => {
+    if (chartPreference.value === 'hr') return 'BPM'
+    if (chartPreference.value === 'pace') return ''
+    return 'W'
+  })
+
+  const hasRefValue = computed(() => {
+    if (chartPreference.value === 'hr') return !!effectiveSportSettings.value?.lthr
+    if (chartPreference.value === 'pace') return !!effectiveSportSettings.value?.thresholdPace
+    return !!(effectiveSportSettings.value?.ftp || props.userFtp)
+  })
+
+  function getAvgValue(step: any): string | number {
+    const target = step.power || step.heartRate || step.pace
+    if (!target) return '-'
+
+    let refValue = 0
+    if (chartPreference.value === 'hr') refValue = effectiveSportSettings.value?.lthr || 0
+    else if (chartPreference.value === 'pace')
+      refValue = effectiveSportSettings.value?.thresholdPace || 0
+    else refValue = effectiveSportSettings.value?.ftp || props.userFtp || 0
+
+    if (!refValue) return '-'
+
+    const intensity = target.range ? (target.range.start + target.range.end) / 2 : target.value || 0
+
+    if (chartPreference.value === 'pace') {
+      const speedMps = intensity * refValue
+      if (!speedMps) return '-'
+      const secondsPerKm = 1000 / speedMps
+      const mins = Math.floor(secondsPerKm / 60)
+      const secs = Math.round(secondsPerKm % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
     }
-    if (typeof step.power?.originalValue === 'number') {
-      return Math.round(step.power.originalValue)
-    }
-    if (step.power?.range) {
-      return Math.round(((step.power.range.start + step.power.range.end) / 2) * ftp)
-    }
-    return Math.round((step.power?.value || 0) * ftp)
+
+    return Math.round(intensity * refValue)
   }
 
   function getStepColor(step: any): string {
-    const val = step.power?.range
-      ? (step.power.range.start + step.power.range.end) / 2
-      : step.power?.value || 0
+    const target = step.power || step.heartRate || step.pace
+    const val = target?.range ? (target.range.start + target.range.end) / 2 : target?.value || 0
 
     const zone =
       zoneDistribution.value.find((z) => val <= z.max) ||
@@ -948,19 +994,28 @@
   }
 
   function formatPowerTarget(step: any): string {
-    const power = step?.power
-    if (!power) return 'N/A'
-    if (typeof power.zone === 'number') return `Z${power.zone}`
-    if (power.originalRange && power.originalUnits) {
-      return `${Math.round(power.originalRange.start)}-${Math.round(power.originalRange.end)}W`
+    const target = step?.power || step?.heartRate || step?.pace
+    if (!target) return 'N/A'
+
+    const unit = target.units || (step.power ? '% FTP' : step.heartRate ? '% LTHR' : '% Pace')
+    // Ensure there's a space if the unit doesn't start with %
+    const displayUnit = unit.startsWith('%') ? unit : ` ${unit}`
+
+    if (typeof target.zone === 'number') return `Z${target.zone}`
+    if (target.originalRange && target.originalUnits) {
+      return `${Math.round(target.originalRange.start)}-${Math.round(
+        target.originalRange.end
+      )} ${target.originalUnits}`
     }
-    if (typeof power.originalValue === 'number' && power.originalUnits) {
-      return `${Math.round(power.originalValue)}W`
+    if (typeof target.originalValue === 'number' && target.originalUnits) {
+      return `${Math.round(target.originalValue)} ${target.originalUnits}`
     }
-    if (power.range) {
-      return `${Math.round(power.range.start * 100)}-${Math.round(power.range.end * 100)}% FTP`
+    if (target.range) {
+      return `${Math.round(target.range.start * 100)}-${Math.round(
+        target.range.end * 100
+      )}${displayUnit}`
     }
-    return `${Math.round((power.value || 0) * 100)}% FTP`
+    return `${Math.round((target.value || 0) * 100)}${displayUnit}`
   }
 
   function formatDuration(seconds: number): string {
