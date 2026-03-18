@@ -467,10 +467,7 @@
         <UButton
           color="error"
           variant="ghost"
-          @click="
-            removeWorkout(editingWorkoutTarget!.weekId, editingWorkout.id)
-            isWorkoutEditorOpen = false
-          "
+          @click="handleRemoveWorkout"
           >Remove</UButton
         >
         <UButton color="primary" @click="applyWorkoutEditor">Apply</UButton>
@@ -733,6 +730,13 @@
   function updateWeekTarget(weekId: string, field: string, value: number) {
     const week = findWeek(weekId)
     if (week) week[field] = value
+  }
+
+  function handleRemoveWorkout() {
+    if (editingWorkout.value && editingWorkoutTarget.value) {
+      removeWorkout(editingWorkoutTarget.value.weekId, editingWorkout.value.id)
+      isWorkoutEditorOpen.value = false
+    }
   }
 
   function isWorkoutInLibrary(workout: any) {
