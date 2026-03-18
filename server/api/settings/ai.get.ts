@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
     aiRequireToolApproval: user.aiRequireToolApproval ?? false,
     aiProactivityEnabled: user.aiProactivityEnabled ?? false,
     aiConversationalEngagement: user.aiConversationalEngagement ?? true,
-    aiMemoryEnabled: user.aiMemoryEnabled ?? true,
+    aiMemoryEnabled: user.aiMemoryEnabled ?? false,
     aiDeepAnalysisEnabled: user.aiDeepAnalysisEnabled ?? false,
     aiContext: user.aiContext,
     nutritionTrackingEnabled: user.nutritionTrackingEnabled ?? true,

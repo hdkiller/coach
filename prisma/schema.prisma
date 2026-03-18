@@ -88,7 +88,7 @@ model User {
   aiAutoAnalyzeReadiness             Boolean                      @default(false)
   aiRequireToolApproval              Boolean                      @default(false)
   aiConversationalEngagement         Boolean                      @default(true)
-  aiMemoryEnabled                    Boolean                      @default(true)
+  aiMemoryEnabled                    Boolean                      @default(false)
   updateWorkoutNotesEnabled          Boolean                      @default(true)
   aiTtsStyle                         String?                      @default("coach")
   aiTtsVoiceName                     String?                      @default("Kore")

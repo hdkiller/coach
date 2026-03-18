@@ -1441,7 +1441,7 @@
     pinned: false
   })
   const aiMemorySettings = ref({
-    aiMemoryEnabled: true
+    aiMemoryEnabled: false
   })
 
   const memoryCategories = [
@@ -1584,7 +1584,7 @@
       roomMemories.value = roomMemoryResponse?.memories || []
       roomHistorySummary.value = roomMemoryResponse?.historySummary || ''
       roomLastSummarizedAt.value = roomMemoryResponse?.lastSummarizedAt || null
-      aiMemorySettings.value.aiMemoryEnabled = settingsResponse?.aiMemoryEnabled !== false
+      aiMemorySettings.value.aiMemoryEnabled = settingsResponse?.aiMemoryEnabled === true
       if (!selectedMemoryId.value) {
         selectedMemoryId.value = currentVisibleMemories.value[0]?.id || null
       }

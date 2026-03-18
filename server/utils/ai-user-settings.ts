@@ -30,7 +30,7 @@ const DEFAULT_SETTINGS: AiSettings = {
   aiRequireToolApproval: false,
   aiProactivityEnabled: false,
   aiConversationalEngagement: true,
-  aiMemoryEnabled: true,
+  aiMemoryEnabled: false,
   aiContext: null,
   nutritionTrackingEnabled: true,
   updateWorkoutNotesEnabled: true,
