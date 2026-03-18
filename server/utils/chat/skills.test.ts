@@ -96,6 +96,30 @@ describe('selectToolsForSkills', () => {
     ])
     expect(tools).not.toHaveProperty('ticket_create')
   })
+
+  it('keeps workout edit tools available for workout_update flows', () => {
+    const tools = selectToolsForSkills(
+      {
+        search_workouts: { name: 'search_workouts' },
+        get_workout_details: { name: 'get_workout_details' },
+        update_workout: { name: 'update_workout' },
+        update_workout_notes: { name: 'update_workout_notes' },
+        update_workout_tags: { name: 'update_workout_tags' },
+        analyze_activity: { name: 'analyze_activity' }
+      },
+      ['workout_update'],
+      { useTools: true }
+    )
+
+    expect(Object.keys(tools)).toEqual([
+      'search_workouts',
+      'get_workout_details',
+      'update_workout',
+      'update_workout_notes',
+      'update_workout_tags'
+    ])
+    expect(tools).not.toHaveProperty('analyze_activity')
+  })
 })
 
 describe('classifyChatSkills', () => {

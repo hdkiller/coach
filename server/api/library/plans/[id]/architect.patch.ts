@@ -5,7 +5,11 @@ import { z } from 'zod'
 const architectPatchSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
+  coachNotes: z.string().optional(),
+  athleteNotes: z.string().optional(),
   difficulty: z.number().int().min(1).max(10).optional(),
+  strategy: z.string().optional(),
+  recoveryRhythm: z.number().int().min(1).optional(),
   isPublic: z.boolean().optional(),
   blocks: z.array(
     z.object({
@@ -67,7 +71,17 @@ export default defineEventHandler(async (event) => {
 
   if (!plan) throw createError({ statusCode: 404, message: 'Plan not found' })
 
-  const { name, description, difficulty, isPublic, blocks: incomingBlocks } = validation.data
+  const {
+    name,
+    description,
+    coachNotes,
+    athleteNotes,
+    difficulty,
+    strategy,
+    recoveryRhythm,
+    isPublic,
+    blocks: incomingBlocks
+  } = validation.data
 
   return await prisma.$transaction(async (tx) => {
     // 1. Update Plan Level Meta
@@ -76,7 +90,11 @@ export default defineEventHandler(async (event) => {
       data: {
         name: name !== undefined ? name : undefined,
         description: description !== undefined ? description : undefined,
+        coachNotes: coachNotes !== undefined ? coachNotes : undefined,
+        athleteNotes: athleteNotes !== undefined ? athleteNotes : undefined,
         difficulty: difficulty !== undefined ? difficulty : undefined,
+        strategy: strategy !== undefined ? strategy : undefined,
+        recoveryRhythm: recoveryRhythm !== undefined ? recoveryRhythm : undefined,
         isPublic: isPublic !== undefined ? isPublic : undefined
       }
     })

@@ -23,8 +23,6 @@ export const TEMPORARILY_DISABLED_CHAT_TOOLS = new Set([
   'find_bug_reports',
   'ticket_search',
   'ticket_comment',
-  'update_workout_notes',
-  'update_workout_tags',
   'analyze_activity',
   'sync_data',
   'generate_report'
