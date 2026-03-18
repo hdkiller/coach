@@ -724,23 +724,61 @@ function normalizeCadenceTarget(step: any, targetFormatPolicy: TargetFormatPolic
 }
 
 export function applyRunTargetPolicyToStep(step: any, targetPolicy: TargetPolicy) {
+  console.log('[Targeting] Policy:', {
+    primary: targetPolicy.primaryMetric,
+    strict: targetPolicy.strictPrimary,
+    fallback: targetPolicy.fallbackOrder
+  })
+
   const candidateMetrics: TargetStepMetric[] = targetPolicy.fallbackOrder
     .filter((metric) => ['power', 'heartRate', 'pace', 'rpe'].includes(metric))
     .map((metric) => metric as TargetStepMetric)
 
-  const orderedMetrics = targetPolicy.strictPrimary
-    ? [targetPolicy.primaryMetric as TargetStepMetric]
-    : candidateMetrics
+  // 1. Determine search order
+  const orderedMetrics: TargetStepMetric[] = []
 
+  // If step already has a valid primaryTarget with data, prioritize it
+  const currentPrimary = step.primaryTarget as TargetStepMetric
+  if (currentPrimary && hasMetricTarget(step, currentPrimary)) {
+    orderedMetrics.push(currentPrimary)
+  }
+
+  // Then add policy primary if not already added
+  const policyPrimary = targetPolicy.primaryMetric as TargetStepMetric
+  if (!orderedMetrics.includes(policyPrimary)) {
+    orderedMetrics.push(policyPrimary)
+  }
+
+  // Then add the rest of the candidates
+  candidateMetrics.forEach((m) => {
+    if (!orderedMetrics.includes(m)) orderedMetrics.push(m)
+  })
+
+  // 2. Find the first metric that actually has data
   let selectedMetric = orderedMetrics.find((metric) => hasMetricTarget(step, metric))
+
+  console.log(
+    '[Targeting] Step:',
+    step.name,
+    'Ordered:',
+    orderedMetrics,
+    'Selected:',
+    selectedMetric,
+    'HasPace:',
+    hasMetricTarget(step, 'pace')
+  )
+
   if (!selectedMetric) {
-    selectedMetric = orderedMetrics[0] || 'heartRate'
+    // Fallback if nothing found: use policy primary or first candidate
+    selectedMetric = policyPrimary || candidateMetrics[0] || 'heartRate'
     ensureMetricTarget(step, selectedMetric, defaultMetricValue(step?.type))
   } else {
+    // Ensure the selected metric is fully formed
     ensureMetricTarget(step, selectedMetric, defaultMetricValue(step?.type))
   }
 
-  if (!targetPolicy.allowMixedTargetsPerStep || targetPolicy.strictPrimary) {
+  // 3. Enforce single-target if required
+  if (targetPolicy.strictPrimary || !targetPolicy.allowMixedTargetsPerStep) {
     removeOtherMetricTargets(step, selectedMetric)
   }
 

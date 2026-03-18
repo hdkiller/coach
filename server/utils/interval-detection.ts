@@ -288,11 +288,19 @@ type NormalizedPlannedDetectionStep = {
   ramp: boolean
 }
 
-function normalizePlannedStepType(type: unknown): Interval['type'] {
+function normalizePlannedStepType(type: unknown, name?: string): Interval['type'] {
   const normalized = String(type || '').toLowerCase()
-  if (normalized.includes('warm')) return 'WARMUP'
-  if (normalized.includes('cool')) return 'COOLDOWN'
-  if (normalized.includes('rest') || normalized.includes('recover')) return 'RECOVERY'
+  const normalizedName = String(name || '').toLowerCase()
+  const recoveryTokens = ['rest', 'recovery', 'cooldown', 'warmup', 'recuperación', 'enfriamiento']
+
+  if (normalized.includes('warm') || normalizedName.includes('calentamiento')) return 'WARMUP'
+  if (normalized.includes('cool') || normalizedName.includes('enfriamiento')) return 'COOLDOWN'
+  if (
+    recoveryTokens.some((t) => normalized.includes(t) || normalizedName.includes(t)) ||
+    normalizedName.includes('descanso')
+  ) {
+    return 'RECOVERY'
+  }
   return 'WORK'
 }
 
@@ -351,7 +359,7 @@ function flattenPlannedStepsForDetection(
       id: `${path}-${index}`,
       name: step.name,
       durationSeconds,
-      type: normalizePlannedStepType(step.type),
+      type: normalizePlannedStepType(step.type, step.name),
       metricTarget: getPlannedTargetForMetric(step, metricType),
       cadence:
         typeof step.cadence === 'number' && Number.isFinite(step.cadence) ? step.cadence : null,

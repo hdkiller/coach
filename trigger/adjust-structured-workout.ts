@@ -568,7 +568,7 @@ function buildCompactZoneDefinitions(params: {
 export const adjustStructuredWorkoutTask = task({
   id: 'adjust-structured-workout',
   queue: userReportsQueue,
-  maxDuration: 90,
+  maxDuration: 180,
   run: async (payload: {
     plannedWorkoutId: string
     adjustments: any
@@ -576,7 +576,7 @@ export const adjustStructuredWorkoutTask = task({
   }) => {
     const { plannedWorkoutId, adjustments } = payload
     const startedAtMs = Date.now()
-    const MAX_DURATION_MS = 90_000
+    const MAX_DURATION_MS = 180_000
     const logStage = (stage: string, meta: Record<string, any> = {}) => {
       const elapsedMs = Date.now() - startedAtMs
       logger.log(`[AdjustStructuredWorkout] ${stage}`, {
@@ -813,20 +813,46 @@ export const adjustStructuredWorkoutTask = task({
     let structure: any
     let promptToUse = prompt
     let totals: { distance: number; duration: number; tss: number } | null = null
+    let actualModelUsed = 'flash'
     for (let attempt = 1; attempt <= 2; attempt++) {
-      structure = (await generateStructuredAnalysis(promptToUse, workoutStructureSchema, 'flash', {
-        userId: workout.userId,
-        operation: 'adjust_structured_workout',
-        entityType: 'PlannedWorkout',
-        entityId: plannedWorkoutId,
-        maxRetries: 1
-      })) as any
-      logStage('ai-structure-generated', {
-        attempt,
-        hasSteps: Array.isArray(structure?.steps),
-        stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
-        exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
-      })
+      try {
+        const aiStartedAt = Date.now()
+        const isRetry = attempt > 1
+        if (isRetry) actualModelUsed = 'pro'
+        structure = (await generateStructuredAnalysis(
+          promptToUse,
+          workoutStructureSchema,
+          'flash',
+          {
+            userId: workout.userId,
+            operation: 'adjust_structured_workout',
+            entityType: 'PlannedWorkout',
+            entityId: plannedWorkoutId,
+            maxRetries: 0, // We handle retries manually here to change models
+            modelOverride: isRetry ? 'gemini-3-pro-preview' : undefined,
+            thinkingLevelOverride: isRetry ? 'high' : undefined
+          }
+        )) as any
+        const aiDurationMs = Date.now() - aiStartedAt
+        logStage('ai-structure-generated', {
+          aiDurationMs,
+          attempt,
+          model: isRetry ? 'gemini-3-pro-preview' : 'default',
+          hasSteps: Array.isArray(structure?.steps),
+          stepsCount: Array.isArray(structure?.steps) ? structure.steps.length : 0,
+          exercisesCount: Array.isArray(structure?.exercises) ? structure.exercises.length : 0
+        })
+      } catch (aiError: any) {
+        logStage('ai-generation-failed', {
+          error: aiError.message,
+          attempt
+        })
+        if (attempt === 1) {
+          promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous generation attempt failed (possibly due to complexity or timeout).\n- I am retrying with a more capable model and more thinking budget.\n- Please ensure a complete and valid structure now.`
+          continue
+        }
+        throw aiError
+      }
 
       if (workout.type === 'Swim') {
         normalizeSwimStructure(structure)
@@ -846,7 +872,7 @@ export const adjustStructuredWorkoutTask = task({
         )
       }
 
-      promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous structure was rejected because ${coverageValidation.reason}.\n- You MUST keep the workout within the allowed duration tolerance and include a complete main set matching the workout objective.\n- Retry with a complete structure now.`
+      promptToUse = `${prompt}\n\nCORRECTIVE FEEDBACK FROM PREVIOUS ATTEMPT:\n- The previous structure was rejected because ${coverageValidation.reason}.\n- You MUST keep the workout within the allowed duration tolerance and include a complete main set matching the workout objective.\n- I am retrying with a more capable model and more thinking budget.\n- Retry with a complete structure now.`
       logStage('ai-structure-retry-requested', {
         attempt,
         reason: coverageValidation.reason
@@ -1049,7 +1075,7 @@ export const adjustStructuredWorkoutTask = task({
       targetFormatPolicy,
       loadPreference,
       timezone,
-      model: 'flash',
+      model: actualModelUsed as any,
       recentWorkoutsCount: recentWorkouts.length,
       goal:
         workout.trainingWeek?.block.plan.goal?.title ||

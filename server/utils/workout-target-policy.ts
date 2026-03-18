@@ -61,14 +61,16 @@ export function normalizeTargetPolicy(
   }
   const primaryMetric = explicitPrimary || fallbackOrder[0]
 
-  return {
+  const result = {
     primaryMetric,
     fallbackOrder,
-    strictPrimary: targetPolicy?.strictPrimary !== false,
+    strictPrimary: Boolean(targetPolicy?.strictPrimary),
     allowMixedTargetsPerStep: Boolean(targetPolicy?.allowMixedTargetsPerStep),
     defaultTargetStyle: targetPolicy?.defaultTargetStyle === 'value' ? 'value' : 'range',
-    preferRangesForSteady: targetPolicy?.preferRangesForSteady !== false
+    preferRangesForSteady: Boolean(targetPolicy?.preferRangesForSteady)
   }
+
+  return result
 }
 
 export function formatSteadyTargetStyleInstruction(targetPolicy: TargetPolicy): string {

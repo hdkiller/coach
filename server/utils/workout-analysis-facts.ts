@@ -695,9 +695,14 @@ export function buildWorkoutAnalysisFacts({
 
   const family = getWorkoutFamily(workout?.type)
   const impactProfile = inferImpactProfile(family)
-  const rpe = workout?.sessionRpe ?? workout?.rpe ?? null
   const durationMinutes = Math.round((workout?.durationSec || 0) / 60)
-  const sessionRpeLoad = rpe ? rpe * durationMinutes : null
+  const rpe =
+    workout?.rpe ??
+    (workout?.sessionRpe && durationMinutes > 0
+      ? Math.round(workout.sessionRpe / durationMinutes)
+      : null) ??
+    null
+  const sessionRpeLoad = workout?.sessionRpe ?? (rpe ? rpe * durationMinutes : null)
   const objectiveLoad =
     workout?.trainingLoad ?? workout?.tss ?? (workout?.kilojoules ? workout.kilojoules / 4 : null)
   const subjectiveObjectiveGap = deriveSubjectiveObjectiveGap(sessionRpeLoad, objectiveLoad)
@@ -1197,9 +1202,18 @@ function flattenPlannedSteps(
       if (durationSeconds <= 0) continue
 
       const stepType = String(step.type || 'Interval')
+      const stepName = String(step.name || '').toLowerCase()
       const normalizedType = stepType.toLowerCase()
-      const isRecovery = ['rest', 'recovery', 'cooldown', 'warmup'].some((token) =>
-        normalizedType.includes(token)
+      const recoveryTokens = [
+        'rest',
+        'recovery',
+        'cooldown',
+        'warmup',
+        'recuperación',
+        'enfriamiento'
+      ]
+      const isRecovery = recoveryTokens.some(
+        (token) => normalizedType.includes(token) || stepName.includes(token)
       )
       const metric = step.power
         ? 'power'
@@ -1266,7 +1280,9 @@ function mapIntervalsToActual(intervals: any[]): ActualInterval[] {
         lower.includes('rest') ||
         lower.includes('recovery') ||
         lower.includes('warm') ||
-        lower.includes('cool')
+        lower.includes('cool') ||
+        lower.includes('recuperación') ||
+        lower.includes('enfriamiento')
           ? ('recovery' as const)
           : ('work' as const)
       return {
@@ -1549,6 +1565,14 @@ function extractActualIntervals(workout: any, plannedWorkout?: any): ActualInter
   const detectedScore = scoreIntervalStructure(detectedActual, plannedSteps, refs)
 
   return detectedScore >= rawScore ? detectedActual : rawActual
+}
+
+export function getPlannedWorkIntervalsForAnalysis(
+  plannedWorkout: any,
+  refs: { ftp: number; lthr: number; maxHr: number; thresholdPace: number }
+): FlattenedPlannedStep[] {
+  const steps = getStructuredSteps(plannedWorkout?.structuredWorkout)
+  return flattenPlannedSteps(steps, refs).filter((s) => s.classification === 'work')
 }
 
 export function getActualIntervalsForAnalysis(
@@ -2703,7 +2727,13 @@ export function buildWorkoutAnalysisFactsV2({
   else unavailableInputs.push('userProfile')
 
   const family = getWorkoutFamily(workout?.type)
-  const rpe = workout?.sessionRpe ?? workout?.rpe ?? null
+  const durationMinutes = Math.round((workout?.durationSec || 0) / 60)
+  const rpe =
+    workout?.rpe ??
+    (workout?.sessionRpe && durationMinutes > 0
+      ? Math.round(workout.sessionRpe / durationMinutes)
+      : null) ??
+    null
   const hrStats = getHrStats(workout)
   const powerSourceType = inferPowerSourceType(workout, family)
   const powerAbsoluteUsable = powerSourceType === 'measured'

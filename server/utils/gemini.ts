@@ -396,6 +396,9 @@ export interface LlmTrackingContext {
   onUsageLogged?: (usageId: string) => void | Promise<void>
   disableThinking?: boolean
   maxRetries?: number
+  modelOverride?: string
+  thinkingLevelOverride?: 'minimal' | 'low' | 'medium' | 'high'
+  thinkingBudgetOverride?: number
 }
 
 /**
@@ -447,19 +450,21 @@ export async function generateCoachAnalysis(
     trackingContext?.userId,
     trackingContext?.operation
   )
-  const modelName = opSettings.modelId
+  const modelName = trackingContext?.modelOverride || opSettings.modelId
+  const thinkingLevel = trackingContext?.thinkingLevelOverride || opSettings.thinkingLevel
+  const thinkingBudget = trackingContext?.thinkingBudgetOverride || opSettings.thinkingBudget
   const startTime = Date.now()
 
   // Configure thinking based on model version and tier settings
   const providerOptions = trackingContext?.disableThinking
     ? {}
-    : buildGoogleProviderOptions(modelName, opSettings.thinkingLevel, opSettings.thinkingBudget)
+    : buildGoogleProviderOptions(modelName, thinkingLevel, thinkingBudget)
 
   try {
     const { text, usage } = await generateText({
       model: google(modelName),
       prompt: prompt,
-      maxRetries: 3,
+      maxRetries: trackingContext?.maxRetries ?? 3,
       providerOptions
     })
     if (trackingContext) {
@@ -518,13 +523,15 @@ export async function generateStructuredAnalysis<T>(
     trackingContext?.userId,
     trackingContext?.operation
   )
-  const modelName = opSettings.modelId
+  const modelName = trackingContext?.modelOverride || opSettings.modelId
+  const thinkingLevel = trackingContext?.thinkingLevelOverride || opSettings.thinkingLevel
+  const thinkingBudget = trackingContext?.thinkingBudgetOverride || opSettings.thinkingBudget
   const startTime = Date.now()
 
   // Configure thinking based on model version and tier settings
   const providerOptions = trackingContext?.disableThinking
     ? {}
-    : buildGoogleProviderOptions(modelName, opSettings.thinkingLevel, opSettings.thinkingBudget)
+    : buildGoogleProviderOptions(modelName, thinkingLevel, thinkingBudget)
 
   try {
     const { object, usage } = await generateObject({
