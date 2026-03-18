@@ -109,7 +109,7 @@
               draggable="true"
               class="group/card relative cursor-grab rounded-2xl border border-default/80 bg-muted/10 p-4 transition hover:border-primary/40 hover:bg-muted/20 active:cursor-grabbing"
               @dragstart="onTemplateDragStart($event, template)"
-              @click="navigateTo(`/library/workouts/${template.id}`)"
+              @click="previewTemplateId = template.id"
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
@@ -170,10 +170,24 @@
       </div>
     </div>
   </div>
+
+  <WorkoutTemplatePreviewModal
+    v-model:template-id="previewTemplateId"
+    @view="onPreviewViewDetails"
+  />
+
+  <!-- Technical View Modal -->
+  <WorkoutTechnicalViewModal
+    v-if="showTechnicalModal"
+    :workout="technicalWorkout"
+    @update:open="showTechnicalModal = $event"
+  />
 </template>
 
 <script setup lang="ts">
   import MiniWorkoutChart from '~/components/workouts/MiniWorkoutChart.vue'
+  import WorkoutTemplatePreviewModal from '~/components/workouts/WorkoutTemplatePreviewModal.vue'
+  import WorkoutTechnicalViewModal from '~/components/workouts/WorkoutTechnicalViewModal.vue'
   import { getWorkoutIcon } from '~/utils/activity-types'
 
   const props = defineProps<{
@@ -192,6 +206,19 @@
   const generatingId = ref<string | null>(null)
   const selectedType = ref('all')
   const selectedDuration = ref('all')
+  const previewTemplateId = ref<string | null>(null)
+
+  // Technical Modal state
+  const showTechnicalModal = ref(false)
+  const technicalWorkout = ref<any>(null)
+
+  function onPreviewViewDetails() {
+    const template = props.templates.find((t) => t.id === previewTemplateId.value)
+    if (template) {
+      technicalWorkout.value = template
+      showTechnicalModal.value = true
+    }
+  }
 
   const workoutTypes = [
     { label: 'Ride', value: 'Ride', icon: 'i-tabler-bike' },

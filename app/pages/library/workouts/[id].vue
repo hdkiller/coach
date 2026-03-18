@@ -49,8 +49,8 @@
     <template #body>
       <div class="max-w-5xl mx-auto w-full p-0 sm:p-6 space-y-4 sm:space-y-8 pb-24">
         <!-- Loading State -->
-        <div v-if="loading" class="p-4 sm:p-0 space-y-6">
-          <UCard :ui="{ root: 'rounded-none sm:rounded-xl shadow-none sm:shadow' }">
+        <div v-if="loading" class="space-y-6">
+          <UCard :ui="{ root: 'rounded-3xl shadow-none' }">
             <div class="flex items-center justify-between mb-4">
               <div class="space-y-2">
                 <USkeleton class="h-8 w-64" />
@@ -61,164 +61,37 @@
               <USkeleton v-for="i in 4" :key="i" class="h-16 w-full rounded-lg" />
             </div>
           </UCard>
-          <USkeleton class="h-64 w-full rounded-xl" />
+          <USkeleton class="h-64 w-full rounded-3xl" />
         </div>
 
         <!-- Template Content -->
-        <div v-else-if="template" class="space-y-4 sm:space-y-8">
-          <!-- Header Card -->
-          <div
-            class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-4 sm:p-6 border-x-0 sm:border-x border-y border-gray-100 dark:border-gray-800"
-          >
-            <div class="mb-6">
-              <h1 class="text-2xl sm:text-3xl font-black tracking-tight uppercase">
-                {{ template.title }}
-              </h1>
-              <div class="flex flex-wrap items-center gap-2 mt-2">
-                <UBadge
-                  color="neutral"
-                  variant="soft"
-                  size="sm"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                >
-                  {{ template.type }}
-                </UBadge>
-                <UBadge
-                  v-if="template.category"
-                  color="neutral"
-                  variant="soft"
-                  size="sm"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                >
-                  {{ template.category }}
-                </UBadge>
-                <UBadge
-                  v-if="structureJobStatusLabel"
-                  color="primary"
-                  variant="soft"
-                  size="sm"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                >
-                  {{ structureJobStatusLabel }}
-                </UBadge>
-              </div>
-            </div>
+        <template v-else-if="template">
+          <WorkoutTemplatePreview
+            :template="template"
+            :user-ftp="userFtp"
+            :loading="loading"
+            :generating="generating"
+            :allow-edit="true"
+            @save="handleSaveStructure"
+            @regenerate="generateStructure"
+            @view="openViewModal"
+          />
 
-            <div
-              v-if="template.description"
-              class="mb-6 p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-100 dark:border-gray-800"
+          <!-- Execution Plan Extension (if structure is missing, the preview component shows a placeholder, but we still want the button on full page) -->
+          <div v-if="!template.structuredWorkout" class="flex justify-center">
+            <UButton
+              size="sm"
+              color="primary"
+              variant="solid"
+              class="font-black uppercase tracking-widest text-[10px]"
+              :loading="generating"
+              :disabled="generating"
+              @click="generateStructure"
             >
-              <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
-                {{ template.description }}
-              </p>
-            </div>
+              {{ generating ? 'Generating...' : 'Build Structure with AI' }}
+            </UButton>
           </div>
-
-          <!-- KPI Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 sm:gap-4">
-            <div
-              class="bg-white dark:bg-gray-900 p-5 rounded-none sm:rounded-xl border-x-0 sm:border-x border-y sm:border-y border-gray-100 dark:border-gray-800 shadow-none sm:shadow-sm overflow-hidden relative"
-            >
-              <div class="flex items-center gap-2 mb-4">
-                <UIcon name="i-heroicons-clock" class="w-5 h-5 text-primary-500" />
-                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest"
-                  >Duration</span
-                >
-              </div>
-              <div class="flex items-baseline gap-1 mb-2">
-                <span class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                  {{ formatDuration(template.durationSec) }}
-                </span>
-              </div>
-            </div>
-
-            <div
-              v-if="template.tss"
-              class="bg-white dark:bg-gray-900 p-5 rounded-none sm:rounded-xl border-x-0 sm:border-x border-y sm:border-y border-gray-100 dark:border-gray-800 shadow-none sm:shadow-sm overflow-hidden relative"
-            >
-              <div class="flex items-center gap-2 mb-4">
-                <UIcon name="i-heroicons-bolt" class="w-5 h-5 text-amber-500" />
-                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest"
-                  >Stress</span
-                >
-              </div>
-              <div class="flex items-baseline gap-1 mb-2">
-                <span class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                  {{ Math.round(template.tss) }}
-                </span>
-                <span class="text-xs font-bold text-gray-400 uppercase">TSS</span>
-              </div>
-            </div>
-
-            <div
-              class="bg-white dark:bg-gray-900 p-5 rounded-none sm:rounded-xl border-x-0 sm:border-x border-y sm:border-y border-gray-100 dark:border-gray-800 shadow-none sm:shadow-sm overflow-hidden relative"
-            >
-              <div class="flex items-center gap-2 mb-4">
-                <UIcon name="i-heroicons-calendar" class="w-5 h-5 text-green-500" />
-                <span class="text-[10px] font-black uppercase text-gray-500 tracking-widest"
-                  >Usage</span
-                >
-              </div>
-              <div class="flex items-baseline gap-1 mb-2">
-                <span class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                  {{ template.usageCount || 0 }}
-                </span>
-                <span class="text-xs font-bold text-gray-400 uppercase">Times used</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Execution Plan -->
-          <div class="space-y-4">
-            <h2 class="text-base font-black uppercase tracking-widest text-gray-400 px-4 sm:px-0">
-              Execution Plan
-            </h2>
-
-            <component
-              :is="getWorkoutComponent(template.type)"
-              v-if="template.structuredWorkout"
-              v-model:steps-tab="activeStepsTab"
-              :workout="template"
-              :user-ftp="userFtp"
-              :generating="generating"
-              :allow-edit="true"
-              class="rounded-none sm:rounded-xl"
-              @save="handleSaveStructure"
-              @regenerate="generateStructure"
-            />
-
-            <!-- No Structured Data -->
-            <div
-              v-else
-              class="bg-white dark:bg-gray-900 rounded-none sm:rounded-xl shadow-none sm:shadow p-12 border-y sm:border border-gray-100 dark:border-gray-800"
-            >
-              <div class="text-center">
-                <div
-                  class="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4"
-                >
-                  <UIcon name="i-heroicons-chart-bar" class="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 class="text-base font-black uppercase tracking-widest mb-2">
-                  Structure Pending
-                </h3>
-                <p class="text-sm text-gray-500 mb-8 max-w-xs mx-auto">
-                  This template doesn't have a structured execution plan yet.
-                </p>
-                <UButton
-                  size="sm"
-                  color="primary"
-                  variant="solid"
-                  class="font-black uppercase tracking-widest text-[10px]"
-                  :loading="generating"
-                  :disabled="generating"
-                  @click="generateStructure"
-                >
-                  {{ generating ? 'Generating...' : 'Build Structure with AI' }}
-                </UButton>
-              </div>
-            </div>
-          </div>
-        </div>
+        </template>
 
         <!-- Error State -->
         <div v-else class="text-center py-20">
@@ -245,10 +118,22 @@
       </div>
     </template>
   </UModal>
+
+  <!-- Technical View Modal -->
+  <WorkoutTechnicalViewModal
+    v-if="showViewModal"
+    :workout="template"
+    @update:open="showViewModal = $event"
+  />
+
+  <WorkoutTemplatePreviewModal v-if="template" v-model:template-id="previewTemplateId" />
 </template>
 
 <script setup lang="ts">
   import WorkoutTemplateEditor from '~/components/workouts/WorkoutTemplateEditor.vue'
+  import WorkoutTemplatePreview from '~/components/workouts/WorkoutTemplatePreview.vue'
+  import WorkoutTemplatePreviewModal from '~/components/workouts/WorkoutTemplatePreviewModal.vue'
+  import WorkoutTechnicalViewModal from '~/components/workouts/WorkoutTechnicalViewModal.vue'
   import RideView from '~/components/workouts/planned/RideView.vue'
   import RunView from '~/components/workouts/planned/RunView.vue'
   import SwimView from '~/components/workouts/planned/SwimView.vue'
@@ -270,6 +155,17 @@
   const generating = ref(false)
   const isEditorOpen = ref(false)
   const activeStepsTab = ref<'view' | 'edit'>('view')
+  const isPreviewModalOpen = ref(false)
+
+  // Technical View state
+  const showViewModal = ref(false)
+
+  const previewTemplateId = computed({
+    get: () => (isPreviewModalOpen.value ? template.value?.id : null),
+    set: (val) => {
+      isPreviewModalOpen.value = !!val
+    }
+  })
 
   const { onTaskCompleted } = useUserRunsState()
   const { runs } = useUserRuns()
@@ -386,6 +282,10 @@
       })
     }
   })
+
+  function openViewModal() {
+    showViewModal.value = true
+  }
 
   function chatAboutWorkout() {
     navigateTo({

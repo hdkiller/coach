@@ -348,13 +348,18 @@
               General Identity
             </div>
             <UFormField label="Blueprint name" help="Give your plan a clear, searchable name.">
-              <UInput v-model="draftPlan.name" placeholder="e.g. 12-Week Polarized Base" />
+              <UInput
+                v-model="draftPlan.name"
+                placeholder="e.g. 12-Week Polarized Base"
+                class="w-full"
+              />
             </UFormField>
             <UFormField label="Description" help="Briefly explain the goal and methodology.">
               <UTextarea
                 v-model="draftPlan.description"
                 :rows="3"
                 placeholder="Describe the progression..."
+                class="w-full"
               />
             </UFormField>
           </section>
@@ -377,7 +382,7 @@
             </div>
             <UFormField label="Difficulty (1-10)" help="Perceived exertion over the entire plan.">
               <div class="flex items-center gap-4">
-                <URange v-model.number="draftPlan.difficulty" :min="1" :max="10" class="flex-1" />
+                <USlider v-model.number="draftPlan.difficulty" :min="1" :max="10" class="flex-1" />
                 <span class="text-sm font-bold text-highlighted w-4 text-center">{{
                   draftPlan.difficulty
                 }}</span>
