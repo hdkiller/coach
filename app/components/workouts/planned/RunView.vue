@@ -1,6 +1,11 @@
 <template>
   <div
-    class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6"
+    :class="[
+      'p-4 sm:p-6 transition-colors',
+      isBlueprint
+        ? 'bg-default/95 border border-default/80 rounded-3xl shadow-sm'
+        : 'bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800'
+    ]"
   >
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Run Details</h3>
@@ -64,6 +69,7 @@
       <WorkoutRunChart
         v-model:steps-tab="activeTab"
         :workout="workout"
+        :user-ftp="userFtp"
         :sport-settings="sportSettings"
         :preference="chartPreference"
         :allow-edit="allowEdit"
@@ -82,10 +88,12 @@
 
   const props = defineProps<{
     workout: any
+    userFtp?: number
     sportSettings?: any
     generating?: boolean
     allowEdit?: boolean
     stepsTab?: 'view' | 'edit'
+    isBlueprint?: boolean
   }>()
 
   const emit = defineEmits(['view', 'adjust', 'regenerate', 'save', 'update:stepsTab'])
@@ -96,6 +104,14 @@
   })
 
   const hasStructure = computed(() => !!props.workout.structuredWorkout?.steps?.length)
+
+  function hasValue(obj: any) {
+    if (!obj) return false
+    if (typeof obj.value === 'number') return true
+    if (obj.range && typeof obj.range.start === 'number' && typeof obj.range.end === 'number')
+      return true
+    return false
+  }
 
   function collectMetricAvailability(steps: any[]): {
     hasHr: boolean
@@ -108,9 +124,9 @@
 
     const visit = (nodes: any[]) => {
       nodes.forEach((step: any) => {
-        if (step?.heartRate) hasHr = true
-        if (step?.power) hasPower = true
-        if (step?.pace) hasPace = true
+        if (hasValue(step?.heartRate)) hasHr = true
+        if (hasValue(step?.power)) hasPower = true
+        if (hasValue(step?.pace)) hasPace = true
 
         if (Array.isArray(step?.steps) && step.steps.length > 0) {
           visit(step.steps)

@@ -273,13 +273,59 @@
   )
 
   // Re-initialize steps when metric changes to update internal start/end percentages
-  watch(activeMetric, () => {
-    editedSteps.value = initializeSteps(originalSteps.value)
+  watch(activeMetric, (newMetric) => {
+    // Migrate currently edited steps to the new metric, carrying over the percentage values
+    editedSteps.value = migrateStepsToMetric(editedSteps.value, newMetric)
+
+    // Also update originalSteps to match the new metric, ensuring Reset and Scaling work as expected
+    originalSteps.value = migrateStepsToMetric(originalSteps.value, newMetric)
+
     // Also re-apply scaling if active
     if (durationFactor.value !== 1) {
       applyScaling()
     }
   })
+
+  function migrateStepsToMetric(steps: any[], metric: 'power' | 'hr' | 'pace'): any[] {
+    return steps.map((s) => {
+      const news = JSON.parse(JSON.stringify(s))
+
+      // news already has _intensityStartPct and _intensityEndPct from previous edits or initialization
+      // We use these numbers to build the new target object
+      const start = (news._intensityStartPct || 0) / 100
+      const end = (news._intensityEndPct || 0) / 100
+      const isRamp = !!news._isRamp
+
+      const target: any = {}
+      if (isRamp || start !== end) {
+        target.range = { start, end }
+        target.ramp = isRamp
+      } else {
+        target.value = start
+      }
+
+      // Update the correct metric object and CLEAR others to match StepRow logic
+      if (metric === 'power') {
+        news.power = { ...target, units: '%' }
+        delete news.heartRate
+        delete news.pace
+        news.primaryTarget = 'power'
+      } else if (metric === 'hr') {
+        news.heartRate = { ...target, units: 'LTHR' }
+        delete news.power
+        delete news.pace
+        news.primaryTarget = 'heartRate'
+      } else {
+        news.pace = { ...target, units: 'Pace' }
+        delete news.power
+        delete news.heartRate
+        news.primaryTarget = 'pace'
+      }
+
+      if (news.steps) news.steps = migrateStepsToMetric(news.steps, metric)
+      return news
+    })
+  }
 
   const totalDuration = computed(() => {
     const calc = (steps: any[]): number => {
@@ -347,21 +393,31 @@
     }
   }
 
-  function addStep() {
-    const newStep = {
+  function createNewStep(name = 'New Step'): any {
+    const baseStep = {
       uid: generateUid(),
       type: 'Active',
-      name: 'New Step',
+      name,
       durationSeconds: 300,
       duration: 300,
       _durationMin: 5,
-      power: { value: 0.7, units: '%' },
-      heartRate: { value: 0.7, units: 'LTHR' },
-      pace: { value: 0.7, units: 'Pace' },
       _intensityStartPct: 70,
       _intensityEndPct: 70,
       _isRamp: false
     }
+
+    const target: any = { value: 0.7 }
+    if (activeMetric.value === 'power') {
+      return { ...baseStep, power: { ...target, units: '%' } }
+    } else if (activeMetric.value === 'hr') {
+      return { ...baseStep, heartRate: { ...target, units: 'LTHR' } }
+    } else {
+      return { ...baseStep, pace: { ...target, units: 'Pace' } }
+    }
+  }
+
+  function addStep() {
+    const newStep = createNewStep()
     editedSteps.value.push(newStep)
     if (durationFactor.value === 1) {
       originalSteps.value.push(JSON.parse(JSON.stringify(newStep)))
@@ -369,20 +425,7 @@
   }
 
   function addStepAfter(idx: number) {
-    const newStep = {
-      uid: generateUid(),
-      type: 'Active',
-      name: 'New Step',
-      durationSeconds: 300,
-      duration: 300,
-      _durationMin: 5,
-      power: { value: 0.7, units: '%' },
-      heartRate: { value: 0.7, units: 'LTHR' },
-      pace: { value: 0.7, units: 'Pace' },
-      _intensityStartPct: 70,
-      _intensityEndPct: 70,
-      _isRamp: false
-    }
+    const newStep = createNewStep()
     editedSteps.value.splice(idx + 1, 0, newStep)
     if (durationFactor.value === 1) {
       originalSteps.value.splice(idx + 1, 0, JSON.parse(JSON.stringify(newStep)))
@@ -392,20 +435,19 @@
   function addNestedStep(parent: any) {
     if (!parent.steps) parent.steps = []
     if (!parent.reps) parent.reps = 2
-    parent.steps.push({
-      uid: generateUid(),
-      type: 'Active',
-      name: 'Interval',
-      durationSeconds: 60,
-      duration: 60,
-      _durationMin: 1,
-      power: { value: 1.0, units: '%' },
-      heartRate: { value: 1.0, units: 'LTHR' },
-      pace: { value: 1.0, units: 'Pace' },
-      _intensityStartPct: 100,
-      _intensityEndPct: 100,
-      _isRamp: false
-    })
+    const newStep = createNewStep('Interval')
+    newStep.durationSeconds = 60
+    newStep.duration = 60
+    newStep._durationMin = 1
+    newStep._intensityStartPct = 100
+    newStep._intensityEndPct = 100
+
+    // Update metric specific target to 100%
+    if (activeMetric.value === 'power') newStep.power.value = 1.0
+    else if (activeMetric.value === 'hr') newStep.heartRate.value = 1.0
+    else newStep.pace.value = 1.0
+
+    parent.steps.push(newStep)
   }
 
   function removeStep(index: number) {
@@ -431,7 +473,9 @@
   }
 
   function saveChanges() {
-    emit('save', cleanForOutput(editedSteps.value))
+    const cleaned = cleanForOutput(editedSteps.value)
+    console.log('[StepsEditor] Saving steps. Sample:', cleaned[0])
+    emit('save', cleaned)
   }
 
   function formatDuration(seconds: number) {

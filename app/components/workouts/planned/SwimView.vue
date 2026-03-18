@@ -1,6 +1,11 @@
 <template>
   <div
-    class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-6"
+    :class="[
+      'p-4 sm:p-6 transition-colors',
+      isBlueprint
+        ? 'bg-default/95 border border-default/80 rounded-3xl shadow-sm'
+        : 'bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800'
+    ]"
   >
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Swim Session</h3>
@@ -111,6 +116,7 @@
     generating?: boolean
     allowEdit?: boolean
     stepsTab?: 'view' | 'edit'
+    isBlueprint?: boolean
   }>()
 
   const emit = defineEmits(['view', 'adjust', 'regenerate', 'save', 'update:stepsTab'])
