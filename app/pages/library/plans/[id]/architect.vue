@@ -31,7 +31,7 @@
               >
               <UButton
                 color="neutral"
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 icon="i-heroicons-squares-2x2"
                 @click="isUtilityPanelOpen = true"
@@ -84,91 +84,61 @@
 
             <div v-else class="space-y-12 pb-32">
               <!-- Header Section -->
-              <div class="space-y-4">
-                <div>
-                  <div class="text-[10px] font-black uppercase tracking-[0.28em] text-primary/80">
-                    Coach Workspace
+              <div
+                class="flex flex-col gap-3 rounded-3xl border border-default/80 bg-default/90 px-5 py-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div class="min-w-0 space-y-1.5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <UBadge color="neutral" variant="soft" size="sm"
+                      >{{ sortedBlocks.length }} blocks</UBadge
+                    >
+                    <UBadge color="neutral" variant="soft" size="sm">{{ totalWeeks }} weeks</UBadge>
+                    <UBadge color="neutral" variant="soft" size="sm"
+                      >{{ totalWorkouts }} workouts</UBadge
+                    >
                   </div>
-                  <h1
-                    class="mt-2 text-3xl font-black uppercase tracking-tight text-highlighted sm:text-4xl"
-                  >
-                    Plan Architect
-                  </h1>
+                  <h2 class="truncate text-xl font-black tracking-tight text-highlighted">
+                    {{ draftPlan.name }}
+                  </h2>
                 </div>
 
-                <div
-                  class="flex flex-col gap-4 rounded-3xl border border-default/80 bg-default/90 p-5 shadow-sm lg:flex-row lg:items-end lg:justify-between"
-                >
-                  <div class="space-y-3">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <UBadge color="neutral" variant="soft" size="sm"
-                        >{{ sortedBlocks.length }} blocks</UBadge
-                      >
-                      <UBadge color="neutral" variant="soft" size="sm"
-                        >{{ totalWeeks }} weeks</UBadge
-                      >
-                      <UBadge color="neutral" variant="soft" size="sm"
-                        >{{ totalWorkouts }} workouts</UBadge
-                      >
-                    </div>
-                    <h2 class="text-2xl font-black tracking-tight text-highlighted">
-                      {{ draftPlan.name }}
-                    </h2>
-                    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <div
-                        v-for="metric in headlineMetrics"
-                        :key="metric.label"
-                        class="rounded-2xl border border-default/70 bg-muted/25 px-4 py-3"
-                      >
+                <div class="flex shrink-0 flex-wrap items-center gap-4">
+                  <!-- Inline stat strip -->
+                  <div class="flex items-center gap-4">
+                    <div
+                      v-for="(metric, i) in headlineMetrics"
+                      :key="metric.label"
+                      class="flex items-center gap-4"
+                    >
+                      <div v-if="i > 0" class="h-4 w-px bg-default" />
+                      <div>
                         <div class="text-[10px] font-black uppercase tracking-[0.18em] text-muted">
                           {{ metric.label }}
                         </div>
-                        <div class="mt-2 text-lg font-bold text-highlighted">
-                          {{ metric.value }}
-                        </div>
+                        <div class="text-sm font-bold text-highlighted">{{ metric.value }}</div>
                       </div>
                     </div>
                   </div>
-
-                  <div class="flex flex-col gap-3 lg:items-end">
-                    <div
-                      class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
+                  <!-- View switcher -->
+                  <div
+                    class="inline-flex items-center rounded-xl border border-default bg-muted/30 p-1"
+                  >
+                    <UButton
+                      :color="viewMode === 'board' ? 'primary' : 'neutral'"
+                      :variant="viewMode === 'board' ? 'soft' : 'ghost'"
+                      size="sm"
+                      icon="i-heroicons-calendar-days"
+                      @click="viewMode = 'board'"
+                      >Weekly board</UButton
                     >
-                      <UButton
-                        :color="viewMode === 'board' ? 'primary' : 'neutral'"
-                        :variant="viewMode === 'board' ? 'soft' : 'ghost'"
-                        size="sm"
-                        icon="i-heroicons-calendar-days"
-                        @click="viewMode = 'board'"
-                        >Weekly board</UButton
-                      >
-                      <UButton
-                        :color="viewMode === 'table' ? 'primary' : 'neutral'"
-                        :variant="viewMode === 'table' ? 'soft' : 'ghost'"
-                        size="sm"
-                        icon="i-heroicons-table-cells"
-                        @click="viewMode = 'table'"
-                        >Plan table</UButton
-                      >
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                      <UButton
-                        color="neutral"
-                        variant="outline"
-                        size="sm"
-                        icon="i-heroicons-squares-2x2"
-                        @click="isUtilityPanelOpen = true"
-                        >Open utility panel</UButton
-                      >
-                      <UButton
-                        color="neutral"
-                        variant="ghost"
-                        size="sm"
-                        icon="i-heroicons-plus-circle"
-                        @click="addBlock"
-                        >Add block</UButton
-                      >
-                    </div>
+                    <UButton
+                      :color="viewMode === 'table' ? 'primary' : 'neutral'"
+                      :variant="viewMode === 'table' ? 'soft' : 'ghost'"
+                      size="sm"
+                      icon="i-heroicons-table-cells"
+                      @click="viewMode = 'table'"
+                      >Plan table</UButton
+                    >
                   </div>
                 </div>
               </div>
@@ -217,6 +187,7 @@
                     :week-analytics="weekAnalytics"
                     :expanded-ids="expandedAnalyticsBlockIds"
                     :selected-week-id="selectedChartWeekId"
+                    :sorted-blocks="sortedBlocks"
                     @toggle-expanded="toggleAnalyticsBlockExpanded"
                     @edit-block="(id) => openBlockEditor(findBlock(id))"
                     @select-week="handleChartWeekSelect"
@@ -464,12 +435,7 @@
     </template>
     <template #footer>
       <div class="flex justify-between gap-2">
-        <UButton
-          color="error"
-          variant="ghost"
-          @click="handleRemoveWorkout"
-          >Remove</UButton
-        >
+        <UButton color="error" variant="ghost" @click="handleRemoveWorkout">Remove</UButton>
         <UButton color="primary" @click="applyWorkoutEditor">Apply</UButton>
       </div>
     </template>

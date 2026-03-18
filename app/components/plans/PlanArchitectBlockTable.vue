@@ -15,6 +15,7 @@
       </thead>
       <tbody>
         <template v-for="block in blockAnalytics" :key="`analytics-${block.blockId}`">
+          <!-- Block row -->
           <tr
             class="group/row cursor-pointer border-t border-default/70 transition-colors hover:bg-muted/5"
             :class="{ 'bg-primary/5': expandedIds.includes(block.blockId) }"
@@ -76,6 +77,8 @@
               {{ block.workoutCount }}
             </td>
           </tr>
+
+          <!-- Weeks sub-table -->
           <tr v-if="expandedIds.includes(block.blockId)" class="bg-muted/5">
             <td colspan="8" class="p-0 border-t border-default/40">
               <div class="overflow-x-auto">
@@ -92,54 +95,158 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr
+                    <template
                       v-for="week in getWeeksInBlock(block.blockId)"
                       :key="`nested-week-${week.weekId}`"
-                      class="border-t border-default/30 last:border-b-0 hover:bg-primary/5 cursor-pointer"
-                      :class="{ 'bg-primary/5': selectedWeekId === week.weekId }"
-                      @click.stop="$emit('select-week', week.weekId)"
                     >
-                      <td class="px-8 py-2 font-medium text-highlighted">
-                        Week {{ week.weekNumber }}
-                      </td>
-                      <td class="px-3 py-2 text-muted truncate max-w-[12rem]">
-                        {{ week.weekFocus }}
-                      </td>
-                      <td class="px-3 py-2 text-highlighted">
-                        <UInput
-                          v-model.number="week.targetMinutes"
-                          type="number"
-                          size="xs"
-                          variant="none"
-                          class="w-16 font-bold -ml-2"
-                          @update:model-value="
-                            (val) =>
-                              $emit('update-week-target', week.weekId, 'volumeTargetMinutes', val)
-                          "
-                          @click.stop
-                        />
-                      </td>
-                      <td class="px-3 py-2 text-highlighted">
-                        {{ formatMinutes(week.scheduledMinutes) }}
-                      </td>
-                      <td class="px-3 py-2 text-highlighted">
-                        <UInput
-                          v-model.number="week.targetTss"
-                          type="number"
-                          size="xs"
-                          variant="none"
-                          class="w-16 font-bold -ml-2"
-                          @update:model-value="
-                            (val) => $emit('update-week-target', week.weekId, 'tssTarget', val)
-                          "
-                          @click.stop
-                        />
-                      </td>
-                      <td class="px-3 py-2 text-highlighted">{{ week.scheduledTss }}</td>
-                      <td class="px-3 py-2 text-right font-semibold text-primary pr-4">
-                        {{ week.workoutCount }}
-                      </td>
-                    </tr>
+                      <!-- Week row -->
+                      <tr
+                        class="border-t border-default/30 last:border-b-0 cursor-pointer transition-colors"
+                        :class="
+                          expandedWeekIds.includes(week.weekId)
+                            ? 'bg-primary/10'
+                            : selectedWeekId === week.weekId
+                              ? 'bg-primary/5'
+                              : 'hover:bg-primary/5'
+                        "
+                        @click.stop="toggleWeekExpanded(week.weekId)"
+                      >
+                        <td class="px-8 py-2 font-medium text-highlighted">
+                          <div class="flex items-center gap-2">
+                            <UIcon
+                              :name="
+                                expandedWeekIds.includes(week.weekId)
+                                  ? 'i-heroicons-chevron-down'
+                                  : 'i-heroicons-chevron-right'
+                              "
+                              class="h-3 w-3 shrink-0 text-muted"
+                            />
+                            <span>Week {{ week.weekNumber }}</span>
+                          </div>
+                        </td>
+                        <td class="px-3 py-2 text-muted truncate max-w-[12rem]">
+                          {{ week.weekFocus }}
+                        </td>
+                        <td class="px-3 py-2 text-highlighted">
+                          <UInput
+                            v-model.number="week.targetMinutes"
+                            type="number"
+                            size="xs"
+                            variant="none"
+                            class="w-16 font-bold -ml-2"
+                            @update:model-value="
+                              (val) =>
+                                $emit('update-week-target', week.weekId, 'volumeTargetMinutes', val)
+                            "
+                            @click.stop
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-highlighted">
+                          {{ formatMinutes(week.scheduledMinutes) }}
+                        </td>
+                        <td class="px-3 py-2 text-highlighted">
+                          <UInput
+                            v-model.number="week.targetTss"
+                            type="number"
+                            size="xs"
+                            variant="none"
+                            class="w-16 font-bold -ml-2"
+                            @update:model-value="
+                              (val) => $emit('update-week-target', week.weekId, 'tssTarget', val)
+                            "
+                            @click.stop
+                          />
+                        </td>
+                        <td class="px-3 py-2 text-highlighted">{{ week.scheduledTss }}</td>
+                        <td class="px-3 py-2 text-right font-semibold text-primary pr-4">
+                          {{ week.workoutCount }}
+                        </td>
+                      </tr>
+
+                      <!-- Day sub-rows -->
+                      <tr
+                        v-if="expandedWeekIds.includes(week.weekId)"
+                        class="border-t border-default/20"
+                      >
+                        <td colspan="7" class="p-0">
+                          <table class="w-full text-[10px] bg-muted/10">
+                            <thead>
+                              <tr
+                                class="text-left text-[8px] font-black uppercase tracking-widest text-muted"
+                              >
+                                <th class="px-12 py-1.5 w-[15%]">Day</th>
+                                <th class="px-3 py-1.5">Workouts</th>
+                                <th class="px-3 py-1.5 w-[12%]">Duration</th>
+                                <th class="px-3 py-1.5 w-[10%]">TSS</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr
+                                v-for="dayIdx in 7"
+                                :key="dayIdx"
+                                class="border-t border-default/20"
+                                :class="
+                                  getWorkoutsByDay(week.weekId, dayIdx - 1).length
+                                    ? ''
+                                    : 'opacity-40'
+                                "
+                              >
+                                <td
+                                  class="px-12 py-1.5 font-bold text-highlighted whitespace-nowrap"
+                                >
+                                  {{ DAY_LABELS[dayIdx - 1] }}
+                                </td>
+                                <td class="px-3 py-1.5">
+                                  <div
+                                    v-if="getWorkoutsByDay(week.weekId, dayIdx - 1).length"
+                                    class="flex flex-wrap gap-1"
+                                  >
+                                    <span
+                                      v-for="workout in getWorkoutsByDay(week.weekId, dayIdx - 1)"
+                                      :key="workout.id"
+                                      class="inline-flex items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-semibold text-highlighted"
+                                    >
+                                      <UIcon
+                                        :name="getWorkoutIcon(workout)"
+                                        class="h-2.5 w-2.5 shrink-0 text-primary/70"
+                                      />
+                                      {{ workout.title || 'Workout' }}
+                                    </span>
+                                  </div>
+                                  <span v-else class="italic text-muted/60">Rest</span>
+                                </td>
+                                <td class="px-3 py-1.5 text-muted whitespace-nowrap">
+                                  <template v-if="getWorkoutsByDay(week.weekId, dayIdx - 1).length">
+                                    {{
+                                      formatMinutes(
+                                        getWorkoutsByDay(week.weekId, dayIdx - 1).reduce(
+                                          (s: number, w: any) =>
+                                            s + Math.round((w.durationSec || 0) / 60),
+                                          0
+                                        )
+                                      )
+                                    }}
+                                  </template>
+                                  <span v-else>—</span>
+                                </td>
+                                <td class="px-3 py-1.5 text-muted whitespace-nowrap">
+                                  <template v-if="getWorkoutsByDay(week.weekId, dayIdx - 1).length">
+                                    {{
+                                      getWorkoutsByDay(week.weekId, dayIdx - 1).reduce(
+                                        (s: number, w: any) => s + Math.round(w.tss || 0),
+                                        0
+                                      ) || '—'
+                                    }}
+                                  </template>
+                                  <span v-else>—</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    </template>
+
                     <!-- Quick Add Week Row -->
                     <tr class="border-t border-default/30 bg-muted/5">
                       <td colspan="7" class="px-8 py-2">
@@ -159,6 +266,7 @@
             </td>
           </tr>
         </template>
+
         <!-- Quick Add Block Row -->
         <tr class="border-t border-default/70">
           <td colspan="8" class="px-3 py-3">
@@ -178,11 +286,14 @@
 </template>
 
 <script setup lang="ts">
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
   const props = defineProps<{
     blockAnalytics: any[]
     weekAnalytics: any[]
     expandedIds: string[]
     selectedWeekId: string | null
+    sortedBlocks: any[]
   }>()
 
   defineEmits<{
@@ -194,8 +305,45 @@
     'update-week-target': [weekId: string, field: string, value: number]
   }>()
 
+  // Local state for week-level expansion
+  const expandedWeekIds = ref<string[]>([])
+
+  function toggleWeekExpanded(weekId: string) {
+    expandedWeekIds.value = expandedWeekIds.value.includes(weekId)
+      ? expandedWeekIds.value.filter((id) => id !== weekId)
+      : [...expandedWeekIds.value, weekId]
+  }
+
   function getWeeksInBlock(blockId: string) {
     return props.weekAnalytics.filter((w) => w.blockId === blockId)
+  }
+
+  function getWorkoutsByDay(weekId: string, dayIndex: number): any[] {
+    for (const block of props.sortedBlocks) {
+      const week = (block.weeks || []).find((w: any) => w.id === weekId)
+      if (week) {
+        return (week.workouts || []).filter((wo: any) => wo.dayIndex === dayIndex)
+      }
+    }
+    return []
+  }
+
+  function getWorkoutIcon(workout: any): string {
+    const f = `${workout.type || ''} ${workout.category || ''}`.toUpperCase()
+    if (f.includes('SWIM')) return 'i-tabler-swimming'
+    if (f.includes('RUN') || f.includes('MARATHON') || f.includes('TRAIL')) return 'i-tabler-run'
+    if (f.includes('RIDE') || f.includes('BIKE') || f.includes('CYCLE') || f.includes('CYCLING'))
+      return 'i-tabler-bike'
+    if (f.includes('GYM') || f.includes('STRENGTH') || f.includes('WEIGHT'))
+      return 'i-tabler-barbell'
+    if (f.includes('YOGA') || f.includes('FLEX') || f.includes('MOBILITY')) return 'i-tabler-yoga'
+    if (f.includes('WALK') || f.includes('HIKE')) return 'i-tabler-walk'
+    if (f.includes('ROW') || f.includes('KAYAK') || f.includes('PADDLE')) return 'i-tabler-rowing'
+    if (f.includes('SKI') || f.includes('CROSS_COUNTRY')) return 'i-tabler-ski-jumping'
+    if (f.includes('REST') || f.includes('RECOVERY')) return 'i-tabler-moon'
+    if (f.includes('BRICK') || f.includes('TRIATHLON')) return 'i-tabler-trophy'
+    if (f.includes('CLIMB') || f.includes('BOULDERING')) return 'i-tabler-mountain'
+    return 'i-tabler-activity'
   }
 
   function blockChrome(type: string) {
