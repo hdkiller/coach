@@ -1201,6 +1201,8 @@ model TrainingPlan {
   slug                   String?         @unique
   difficulty             Int?            @default(5)
   name                   String?
+  coachNotes             String?
+  athleteNotes           String?
   activityTypes          Json?
   customInstructions     String?
   recoveryRhythm         Int             @default(4)
