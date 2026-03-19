@@ -801,7 +801,7 @@
               container:
                 'relative w-fit flex items-center ltr:justify-end ms-auto max-w-[75%] gap-2 !pb-0',
               actions:
-                'static mt-2 flex items-center justify-end gap-1 opacity-100 sm:absolute sm:right-full sm:mr-1 sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 sm:bottom-auto sm:z-20 sm:opacity-0 sm:group-hover/message:opacity-100 transition-opacity'
+                'absolute right-0 top-0 z-20 flex items-center justify-end gap-1 opacity-100 transition-opacity sm:right-full sm:mr-1 sm:top-1/2 sm:-translate-y-1/2 sm:opacity-0 sm:group-hover/message:opacity-100'
             }
           }"
           :assistant="{
@@ -811,7 +811,7 @@
               content: 'rounded-[1.2rem] px-4 py-3',
               container: 'relative flex items-start rtl:justify-end !pb-0',
               actions:
-                'static mt-2 flex items-center gap-1 opacity-100 sm:absolute sm:left-full sm:ml-1 sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 sm:bottom-auto sm:z-20 sm:opacity-0 sm:group-hover/message:opacity-100 transition-opacity'
+                'absolute right-0 top-0 z-20 flex items-center gap-1 opacity-100 transition-opacity sm:left-full sm:right-auto sm:ml-1 sm:top-1/2 sm:-translate-y-1/2 sm:opacity-0 sm:group-hover/message:opacity-100'
             }
           }"
         >
@@ -853,25 +853,81 @@
               "
             >
               <div
-                v-if="message.role === 'assistant' && getSkillIndicators(message).length"
-                class="mb-2 flex flex-wrap items-center gap-1.5"
+                v-if="
+                  message.role === 'assistant' &&
+                  (getSkillIndicators(message).length || canSpeakMessage(message))
+                "
+                class="mb-2 flex flex-wrap items-start justify-between gap-2"
               >
-                <UTooltip
-                  v-for="(indicator, idx) in getSkillIndicators(message)"
-                  :key="idx"
-                  :text="indicator.tooltip"
-                  :popper="{ placement: 'top' }"
+                <div
+                  v-if="getSkillIndicators(message).length"
+                  class="flex flex-wrap items-center gap-1.5"
                 >
-                  <UBadge
-                    color="neutral"
-                    variant="soft"
-                    size="xs"
-                    :icon="indicator.icon"
-                    class="rounded-full"
+                  <UTooltip
+                    v-for="(indicator, idx) in getSkillIndicators(message)"
+                    :key="idx"
+                    :text="indicator.tooltip"
+                    :popper="{ placement: 'top' }"
                   >
-                    {{ indicator.label }}
-                  </UBadge>
-                </UTooltip>
+                    <UBadge
+                      color="neutral"
+                      variant="soft"
+                      size="xs"
+                      :icon="indicator.icon"
+                      class="rounded-full"
+                    >
+                      {{ indicator.label }}
+                    </UBadge>
+                  </UTooltip>
+                </div>
+                <div v-if="canSpeakMessage(message)" class="flex items-center gap-1 self-start">
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    square
+                    aria-label="Remember this message"
+                    icon="i-heroicons-bookmark"
+                    @click="rememberMessage(message)"
+                  />
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    square
+                    aria-label="Forget this message"
+                    icon="i-heroicons-bookmark-slash"
+                    @click="forgetMessage(message)"
+                  />
+                  <UButton
+                    color="neutral"
+                    :variant="isTtsPlaying(message) ? 'solid' : 'ghost'"
+                    size="xs"
+                    square
+                    :loading="isTtsLoading(message)"
+                    :aria-label="
+                      isTtsPlaying(message)
+                        ? 'Stop reading aloud'
+                        : `Read aloud with ${selectedGeminiVoice.name}, ${selectedVoicePreset.label}, at ${voiceSpeed} speed`
+                    "
+                    :icon="isTtsPlaying(message) ? 'i-heroicons-stop' : 'i-heroicons-speaker-wave'"
+                    @click="playAssistantMessage(message, defaultVoicePreset)"
+                  />
+                  <UDropdownMenu
+                    :items="getTtsMenuItems(message)"
+                    :content="{ side: 'bottom', align: 'start' }"
+                  >
+                    <UButton
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      square
+                      aria-label="Choose voice style"
+                      icon="i-heroicons-chevron-down"
+                      :disabled="isTtsLoading(message)"
+                    />
+                  </UDropdownMenu>
+                </div>
               </div>
               <ChatMessageContent
                 :message="message"
@@ -913,58 +969,8 @@
             </div>
           </template>
           <template #actions="{ message }">
-            <template v-if="canSpeakMessage(message)">
-              <div class="flex items-center gap-1 transition-opacity">
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  square
-                  aria-label="Remember this message"
-                  icon="i-heroicons-bookmark"
-                  @click="rememberMessage(message)"
-                />
-                <UButton
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  square
-                  aria-label="Forget this message"
-                  icon="i-heroicons-bookmark-slash"
-                  @click="forgetMessage(message)"
-                />
-                <UButton
-                  color="neutral"
-                  :variant="isTtsPlaying(message) ? 'solid' : 'ghost'"
-                  size="xs"
-                  square
-                  :loading="isTtsLoading(message)"
-                  :aria-label="
-                    isTtsPlaying(message)
-                      ? 'Stop reading aloud'
-                      : `Read aloud with ${selectedGeminiVoice.name}, ${selectedVoicePreset.label}, at ${voiceSpeed} speed`
-                  "
-                  :icon="isTtsPlaying(message) ? 'i-heroicons-stop' : 'i-heroicons-speaker-wave'"
-                  @click="playAssistantMessage(message, defaultVoicePreset)"
-                />
-                <UDropdownMenu
-                  :items="getTtsMenuItems(message)"
-                  :content="{ side: 'bottom', align: 'start' }"
-                >
-                  <UButton
-                    color="neutral"
-                    variant="ghost"
-                    size="xs"
-                    square
-                    aria-label="Choose voice style"
-                    icon="i-heroicons-chevron-down"
-                    :disabled="isTtsLoading(message)"
-                  />
-                </UDropdownMenu>
-              </div>
-            </template>
             <template
-              v-else-if="message.role === 'user' && canEditMessages && !isEditingMessage(message)"
+              v-if="message.role === 'user' && canEditMessages && !isEditingMessage(message)"
             >
               <div
                 :class="
