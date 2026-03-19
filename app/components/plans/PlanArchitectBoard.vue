@@ -152,7 +152,7 @@
             <div
               v-for="dayIndex in 7"
               :key="`${week.id}-${dayIndex - 1}`"
-              class="flex min-h-[188px] flex-col border-r border-default p-2.5 last:border-r-0"
+              class="group/day flex min-h-[188px] flex-col border-r border-default p-2.5 last:border-r-0"
               :class="[
                 getWeekRowSurface(week),
                 dragOverKey === `${week.id}:${dayIndex - 1}` ? 'ring-2 ring-primary ring-inset' : ''
@@ -192,16 +192,20 @@
                   Empty
                 </div>
               </div>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                icon="i-heroicons-plus-circle"
-                class="mt-3 opacity-0 lg:group-hover/rail:opacity-100 transition-opacity"
-                @click="$emit('add-workout', week.id, dayIndex - 1)"
+              <UDropdownMenu
+                :items="getAddMenuItems(week.id, dayIndex - 1)"
+                :content="{ align: 'start', side: 'top' }"
               >
-                Add
-              </UButton>
+                <UButton
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-heroicons-plus-circle"
+                  class="mt-3 opacity-0 transition-opacity lg:group-hover/day:opacity-100"
+                >
+                  Add
+                </UButton>
+              </UDropdownMenu>
             </div>
 
             <!-- Week Summary -->
@@ -258,7 +262,7 @@
     isWorkoutInLibrary: (w: any) => boolean
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     'toggle-collapsed': [id: string]
     'edit-block': [block: any]
     'remove-block': [id: string]
@@ -266,6 +270,7 @@
     'duplicate-week': [blockId: string, weekId: string]
     'edit-week': [blockId: string, week: any]
     'add-workout': [weekId: string, dayIndex: number]
+    'add-note': [weekId: string, dayIndex: number]
     'edit-workout': [weekId: string, dayIndex: number, workout: any]
     'remove-workout': [weekId: string, workoutId: string]
     'copy-to-library': [workout: any]
@@ -294,7 +299,7 @@
       (sum: number, w: any) => sum + (w.workouts?.length || 0),
       0
     )
-    return `${weeks} week${weeks === 1 ? '' : 's'} • ${workouts} workout${workouts === 1 ? '' : 's'}`
+    return `${weeks} week${weeks === 1 ? '' : 's'} • ${workouts} item${workouts === 1 ? '' : 's'}`
   }
 
   function getWeekRowSurface(week: any) {
@@ -339,6 +344,23 @@
     if (!hours) return `${remainder}m`
     if (!remainder) return `${hours}h`
     return `${hours}h ${remainder}m`
+  }
+
+  function getAddMenuItems(weekId: string, dayIndex: number) {
+    return [
+      [
+        {
+          label: 'New workout',
+          icon: 'i-tabler-bike',
+          onSelect: () => emit('add-workout', weekId, dayIndex)
+        },
+        {
+          label: 'New note',
+          icon: 'i-heroicons-document-text',
+          onSelect: () => emit('add-note', weekId, dayIndex)
+        }
+      ]
+    ]
   }
 
   function blockChrome(block: any) {

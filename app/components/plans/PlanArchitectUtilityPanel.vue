@@ -96,23 +96,6 @@
             @blur="$emit('update:athleteNotes', athleteNotesModel)"
           />
         </section>
-
-        <!-- Planning Heuristics -->
-        <section class="space-y-3">
-          <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
-            Planning heuristics
-          </div>
-
-          <div class="space-y-2">
-            <div
-              v-for="tip in planningTips"
-              :key="tip"
-              class="rounded-2xl border border-default/70 bg-muted/25 px-4 py-3 text-sm leading-6 text-muted"
-            >
-              {{ tip }}
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   </aside>
@@ -130,7 +113,6 @@
       workoutDensity: number
       disciplineBreakdown: Record<string, number>
     }
-    planningTips: string[]
   }>()
 
   const emit = defineEmits<{

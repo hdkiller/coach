@@ -184,7 +184,7 @@
                               <tr
                                 v-for="dayIdx in 7"
                                 :key="dayIdx"
-                                class="border-t border-default/20 transition-colors"
+                                class="group/day border-t border-default/20 transition-colors"
                                 :class="[
                                   dragOverKey === `${week.weekId}:${dayIdx - 1}`
                                     ? 'bg-primary/20 ring-1 ring-primary/40 ring-inset'
@@ -202,25 +202,42 @@
                                   {{ DAY_LABELS[dayIdx - 1] }}
                                 </td>
                                 <td class="px-3 py-1.5">
-                                  <div
-                                    v-if="getWorkoutsByDay(week.weekId, dayIdx - 1).length"
-                                    class="flex flex-wrap gap-1"
-                                  >
-                                    <span
-                                      v-for="workout in getWorkoutsByDay(week.weekId, dayIdx - 1)"
-                                      :key="workout.id"
-                                      draggable="true"
-                                      class="inline-flex cursor-grab active:cursor-grabbing items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-semibold text-highlighted select-none"
-                                      @dragstart="onWorkoutDragStart($event, week.weekId, workout)"
+                                  <div class="flex items-center justify-between gap-2">
+                                    <div
+                                      v-if="getWorkoutsByDay(week.weekId, dayIdx - 1).length"
+                                      class="flex flex-wrap gap-1"
                                     >
-                                      <UIcon
-                                        :name="getWorkoutIcon(workout)"
-                                        class="h-2.5 w-2.5 shrink-0 text-primary/70"
+                                      <span
+                                        v-for="workout in getWorkoutsByDay(week.weekId, dayIdx - 1)"
+                                        :key="workout.id"
+                                        draggable="true"
+                                        class="inline-flex cursor-grab active:cursor-grabbing items-center gap-1 rounded-md bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[9px] font-semibold text-highlighted select-none"
+                                        @dragstart="
+                                          onWorkoutDragStart($event, week.weekId, workout)
+                                        "
+                                      >
+                                        <UIcon
+                                          :name="getWorkoutIcon(workout)"
+                                          class="h-2.5 w-2.5 shrink-0 text-primary/70"
+                                        />
+                                        {{ workout.title || 'Workout' }}
+                                      </span>
+                                    </div>
+                                    <span v-else class="italic text-muted/60">Rest</span>
+
+                                    <UDropdownMenu
+                                      :items="getAddMenuItems(week.weekId, dayIdx - 1)"
+                                      :content="{ align: 'end', side: 'right' }"
+                                    >
+                                      <UButton
+                                        size="xs"
+                                        color="neutral"
+                                        variant="ghost"
+                                        icon="i-heroicons-plus-circle"
+                                        class="h-5 w-5 p-0 opacity-0 transition-opacity group-hover/day:opacity-100"
                                       />
-                                      {{ workout.title || 'Workout' }}
-                                    </span>
+                                    </UDropdownMenu>
                                   </div>
-                                  <span v-else class="italic text-muted/60">Rest</span>
                                 </td>
                                 <td class="px-3 py-1.5 text-muted whitespace-nowrap">
                                   <template v-if="getWorkoutsByDay(week.weekId, dayIdx - 1).length">
@@ -309,6 +326,7 @@
     'select-week': [id: string]
     'add-week': [id: string]
     'add-block': []
+    'add-day-item': [weekId: string, dayIndex: number, kind: 'workout' | 'note']
     'update-week-target': [weekId: string, field: string, value: number]
     'table-workout-drop': [payload: { toWeekId: string; toDayIndex: number; data: string }]
   }>()
@@ -344,6 +362,23 @@
     return props.weekAnalytics.filter((w) => w.blockId === blockId)
   }
 
+  function getAddMenuItems(weekId: string, dayIndex: number) {
+    return [
+      [
+        {
+          label: 'New workout',
+          icon: 'i-tabler-bike',
+          onSelect: () => emit('add-day-item', weekId, dayIndex, 'workout')
+        },
+        {
+          label: 'New note',
+          icon: 'i-heroicons-document-text',
+          onSelect: () => emit('add-day-item', weekId, dayIndex, 'note')
+        }
+      ]
+    ]
+  }
+
   function getWorkoutsByDay(weekId: string, dayIndex: number): any[] {
     for (const block of props.sortedBlocks) {
       const week = (block.weeks || []).find((w: any) => w.id === weekId)
@@ -356,6 +391,7 @@
 
   function getWorkoutIcon(workout: any): string {
     const f = `${workout.type || ''} ${workout.category || ''}`.toUpperCase()
+    if (f.includes('NOTE')) return 'i-heroicons-document-text'
     if (f.includes('SWIM')) return 'i-tabler-swimming'
     if (f.includes('RUN') || f.includes('MARATHON') || f.includes('TRAIL')) return 'i-tabler-run'
     if (f.includes('RIDE') || f.includes('BIKE') || f.includes('CYCLE') || f.includes('CYCLING'))
