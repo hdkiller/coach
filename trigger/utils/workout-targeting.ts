@@ -368,6 +368,11 @@ export function resolveWorkoutTargeting(
     mergedTargetPolicy,
     override?.loadPreference || sportSettings?.loadPreference
   )
+  console.log('[Targeting] Resolved TargetPolicy:', {
+    strict: targetPolicy.strictPrimary,
+    primary: targetPolicy.primaryMetric,
+    fallback: targetPolicy.fallbackOrder
+  })
   const targetFormatPolicy = normalizeTargetFormatPolicy(mergedTargetFormatPolicy)
   const loadPreference = toLegacyLoadPreference(targetPolicy.fallbackOrder)
   const loadOrderTokens = targetPolicy.fallbackOrder.map(toMetricToken)

@@ -465,7 +465,8 @@
   function cleanForOutput(steps: any[]): any[] {
     return steps.map((s) => {
       // Destructure internal properties to exclude them from output
-      const { _durationMin, _intensityStartPct, _intensityEndPct, _isRamp, uid, ...rest } = s
+      // Note: We KEEP 'uid' now as it's used by the chart for interaction
+      const { _durationMin, _intensityStartPct, _intensityEndPct, _isRamp, ...rest } = s
       const cleaned: any = { ...rest }
       if (cleaned.steps) cleaned.steps = cleanForOutput(cleaned.steps)
       return cleaned

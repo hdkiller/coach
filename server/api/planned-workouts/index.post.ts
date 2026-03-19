@@ -1,9 +1,11 @@
 import { getServerSession } from '../../utils/session'
 import { prisma } from '../../utils/db'
-import { createIntervalsPlannedWorkout } from '../../utils/intervals'
+import { createIntervalsPlannedWorkout, normalizeIntervalsSportType } from '../../utils/intervals'
 import { plannedWorkoutRepository } from '../../utils/repositories/plannedWorkoutRepository'
 import { metabolicService } from '../../utils/services/metabolicService'
 import { isNutritionTrackingEnabled } from '../../utils/nutrition/feature'
+import { WorkoutConverter } from '../../utils/workout-converter'
+import { sportSettingsRepository } from '../../utils/repositories/sportSettingsRepository'
 
 defineRouteMeta({
   openAPI: {
@@ -21,8 +23,11 @@ defineRouteMeta({
               title: { type: 'string' },
               description: { type: 'string' },
               type: { type: 'string', default: 'Ride' },
+              category: { type: 'string' },
               durationSec: { type: 'integer' },
               tss: { type: 'number' },
+              workIntensity: { type: 'number' },
+              structuredWorkout: { type: 'object' },
               fuelingStrategy: { type: 'string', enum: ['STANDARD', 'TRAIN_LOW', 'HIGH_CARB'] }
             }
           }
@@ -72,6 +77,28 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    let workoutDoc = ''
+    if (body.structuredWorkout) {
+      const intervalsType = normalizeIntervalsSportType(body.type || 'Ride')
+      const sportSettings = await sportSettingsRepository.getForActivityType(userId, intervalsType)
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { ftp: true }
+      })
+
+      workoutDoc = WorkoutConverter.toIntervalsICU({
+        title: body.title,
+        description: body.description || '',
+        type: intervalsType,
+        steps: body.structuredWorkout?.steps || [],
+        exercises: body.structuredWorkout?.exercises,
+        messages: body.structuredWorkout?.messages || [],
+        ftp: user?.ftp || 250,
+        sportSettings: sportSettings || undefined,
+        generationSettingsSnapshot: null
+      })
+    }
+
     // Get Intervals.icu integration
     const integration = await prisma.integration.findFirst({
       where: {
@@ -102,8 +129,10 @@ export default defineEventHandler(async (event) => {
           title: body.title,
           description: body.description,
           type: body.type || 'Ride',
+          category: body.category,
           durationSec: body.durationSec,
-          tss: body.tss
+          tss: body.tss,
+          workout_doc: workoutDoc || undefined
         })
         externalId = String(intervalsWorkout.id)
         syncStatus = 'SYNCED'
@@ -123,11 +152,14 @@ export default defineEventHandler(async (event) => {
       title: body.title,
       description: body.description || '',
       type: body.type || 'Ride',
+      category: body.category,
       durationSec: body.durationSec || 3600,
       tss: body.tss,
+      workIntensity: body.workIntensity,
       fuelingStrategy: body.fuelingStrategy || 'STANDARD',
       completed: false,
       syncStatus,
+      structuredWorkout: body.structuredWorkout || undefined,
       rawJson: intervalsWorkout || {}
     })
 

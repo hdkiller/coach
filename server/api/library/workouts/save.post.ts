@@ -95,7 +95,8 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      templateId: template.id
+      templateId: template.id,
+      template
     }
   })
 })

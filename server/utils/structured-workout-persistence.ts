@@ -198,6 +198,7 @@ export function normalizeStructuredWorkoutForPersistence(
     if (primaryTarget) step.primaryTarget = primaryTarget
 
     if (isRun) {
+      console.log('[Persistence] Calling applyRunTargetPolicyToStep for run step:', step.name)
       applyRunTargetPolicyToStep(step, context.targetPolicy)
     }
 
