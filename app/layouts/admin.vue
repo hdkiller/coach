@@ -386,9 +386,13 @@
             <USeparator class="my-2" />
           </div>
 
-          <div class="p-4 flex items-center gap-3" :class="{ 'justify-center': collapsed }">
+          <div
+            v-if="!collapsed"
+            class="p-4 flex items-center gap-3"
+            :class="{ 'justify-center': collapsed }"
+          >
             <UAvatar v-if="user" :alt="user.email || ''" size="md" />
-            <div v-if="!collapsed" class="flex-1 min-w-0 flex flex-col items-start gap-0.5">
+            <div class="flex-1 min-w-0 flex flex-col items-start gap-0.5">
               <p class="text-sm font-medium truncate text-gray-900 dark:text-white">
                 {{ user?.name || user?.email }}
               </p>

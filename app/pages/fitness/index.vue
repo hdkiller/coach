@@ -384,7 +384,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
-      showDailyCheckins: true,
+      showDailyCheckins: false,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -395,7 +395,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
-      showDailyCheckins: true,
+      showDailyCheckins: false,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -406,7 +406,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
-      showDailyCheckins: true,
+      showDailyCheckins: false,
       opacity: 0.8,
       yScale: 'dynamic',
       yMin: 0
@@ -417,7 +417,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
-      showDailyCheckins: true,
+      showDailyCheckins: false,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0
@@ -428,7 +428,7 @@
       smooth: true,
       showPoints: false,
       showWellnessEvents: true,
-      showDailyCheckins: true,
+      showDailyCheckins: false,
       opacity: 0.5,
       yScale: 'dynamic',
       yMin: 0

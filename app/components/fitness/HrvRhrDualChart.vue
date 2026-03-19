@@ -116,7 +116,7 @@
     showAxisTitles: true,
     showBand: true,
     showWellnessEvents: true,
-    showDailyCheckins: true,
+    showDailyCheckins: false,
     opacity: 0.15
   }
 

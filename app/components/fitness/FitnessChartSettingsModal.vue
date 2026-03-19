@@ -236,7 +236,7 @@
     yScale: 'dynamic',
     yMin: 0,
     showWellnessEvents: true,
-    showDailyCheckins: true,
+    showDailyCheckins: false,
     show7dAvg: false,
     show30dAvg: false,
     showStdDev: false,
