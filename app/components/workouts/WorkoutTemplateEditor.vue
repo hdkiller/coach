@@ -19,6 +19,10 @@
           :items="['Cycling', 'Running', 'Swimming', 'Strength']"
         />
       </UFormField>
+
+      <UFormField label="Folder">
+        <USelect v-model="localTemplate.folderId" :items="folderOptions" placeholder="Unfiled" />
+      </UFormField>
     </div>
 
     <UFormField label="Description">
@@ -103,6 +107,7 @@
   const emit = defineEmits(['save', 'cancel'])
   const toast = useToast()
   const saving = ref(false)
+  const { flat, ensureFoldersLoaded } = useWorkoutTemplateFolders('editor')
 
   const WORKOUT_TYPES = ['Ride', 'VirtualRide', 'Run', 'Swim', 'WeightTraining', 'Hike', 'Walk']
 
@@ -114,12 +119,25 @@
           description: '',
           type: 'Ride',
           sport: 'Cycling',
+          folderId: null,
           category: '',
           structuredWorkout: {
             steps: []
           }
         }
   )
+
+  const folderOptions = computed(() => [
+    { label: 'Unfiled', value: null },
+    ...flat.value.map((folder) => ({
+      label: folder.name,
+      value: folder.id
+    }))
+  ])
+
+  onMounted(() => {
+    void ensureFoldersLoaded()
+  })
 
   function addStep() {
     if (!localTemplate.value.structuredWorkout) {
