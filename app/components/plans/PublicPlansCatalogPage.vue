@@ -230,6 +230,7 @@
   } from '../../../shared/public-plans'
 
   const props = defineProps<{
+    overrideSport?: string
     overrideSubtype?: string
   }>()
 
@@ -238,7 +239,9 @@
   const requestUrl = useRequestURL()
   const runtimeConfig = useRuntimeConfig()
 
-  const sportSegment = computed(() => (route.params.sport as string | undefined) || '')
+  const sportSegment = computed(
+    () => props.overrideSport || (route.params.sport as string | undefined) || ''
+  )
   const subtypeSegment = computed(
     () => props.overrideSubtype || (route.params.subtype as string | undefined) || ''
   )
