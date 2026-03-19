@@ -188,6 +188,7 @@
                     @select-week="handleChartWeekSelect"
                     @add-week="addWeekToBlock"
                     @add-block="addBlock"
+                    @add-day-item="createAndEditDayItem"
                     @update-week-target="updateWeekTarget"
                     @table-workout-drop="handleTableWorkoutDrop"
                   />
@@ -264,7 +265,8 @@
                             <div class="flex items-center justify-between gap-3 text-[12px]">
                               <div class="font-bold text-highlighted">{{ bucket.label }}</div>
                               <div class="text-muted font-medium">
-                                {{ bucket.count }} sesh • {{ formatMinutes(bucket.minutes) }}
+                                {{ bucket.count }} item{{ bucket.count === 1 ? '' : 's' }} •
+                                {{ formatMinutes(bucket.minutes) }}
                               </div>
                             </div>
                             <UProgress
@@ -310,7 +312,10 @@
                 @select-week="(id) => (activeWeekId = id)"
                 @duplicate-week="duplicateWeek"
                 @edit-week="openWeekEditor"
-                @add-workout="addWorkout"
+                @add-workout="
+                  (weekId, dayIndex) => createAndEditDayItem(weekId, dayIndex, 'workout')
+                "
+                @add-note="(weekId, dayIndex) => createAndEditDayItem(weekId, dayIndex, 'note')"
                 @edit-workout="openWorkoutEditor"
                 @remove-workout="removeWorkout"
                 @copy-to-library="copyWorkoutToLibrary"
@@ -390,23 +395,10 @@
             </UFormField>
           </section>
 
-          <!-- Access & Visibility Section -->
-          <section class="space-y-4 pt-4 border-t border-default/60">
-            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
-              Access & Visibility
-            </div>
-            <div
-              class="flex items-center justify-between rounded-2xl border border-default/80 bg-muted/20 p-4"
-            >
-              <div>
-                <div class="text-sm font-bold text-highlighted">Public Blueprint</div>
-                <div class="text-[11px] text-muted mt-0.5">
-                  Allow other coaches to see and clone this plan.
-                </div>
-              </div>
-              <USwitch v-model="draftPlan.isPublic" />
-            </div>
-          </section>
+          <PlanPublicationSettings
+            v-model:plan="draftPlan"
+            :week-options="publicationWeekOptions"
+          />
         </div>
 
         <div class="p-6 border-t border-default/60 bg-muted/5 flex justify-end gap-3">
@@ -461,28 +453,123 @@
     </template>
   </UModal>
 
-  <UModal v-model:open="isWorkoutEditorOpen" title="Edit workout">
+  <UModal
+    v-model:open="isWorkoutEditorOpen"
+    :title="editingWorkout?.category === 'Note' ? 'Edit note' : 'Edit workout'"
+  >
     <template #body>
-      <div v-if="editingWorkout" class="space-y-4">
-        <UFormField label="Workout title"><UInput v-model="editingWorkout.title" /></UFormField>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <UFormField label="Type"><UInput v-model="editingWorkout.type" /></UFormField>
-          <UFormField label="Category"><UInput v-model="editingWorkout.category" /></UFormField>
+      <div v-if="editingWorkout" class="space-y-6">
+        <div
+          class="flex items-start gap-3 rounded-2xl border border-default/70 bg-muted/15 p-4"
+          :class="isEditingNote ? 'border-amber-500/20 bg-amber-500/5' : ''"
+        >
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+            :class="isEditingNote ? 'bg-amber-500/10 text-amber-300' : 'bg-primary/10 text-primary'"
+          >
+            <UIcon
+              :name="isEditingNote ? 'i-heroicons-document-text' : 'i-tabler-bike'"
+              class="h-5 w-5"
+            />
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-bold text-highlighted">
+              {{ isEditingNote ? 'Plan note' : 'Planned workout' }}
+            </div>
+            <div class="mt-1 text-[12px] leading-5 text-muted">
+              {{
+                isEditingNote
+                  ? 'Use notes for reminders, logistics, race cues, or coach instructions that should sit beside workouts in the week.'
+                  : 'Edit the scheduled workout details, training load, and activity metadata for this day.'
+              }}
+            </div>
+          </div>
         </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <UFormField label="Minutes"
-            ><UInput v-model.number="editingWorkout.durationMinutes" type="number"
-          /></UFormField>
-          <UFormField label="TSS"
-            ><UInput v-model.number="editingWorkout.tss" type="number"
-          /></UFormField>
+
+        <div v-if="isEditingNote" class="space-y-4">
+          <UFormField label="Title" help="Keep it short so it scans well in the week view.">
+            <UInput v-model="editingWorkout.title" placeholder="Race week reminder" />
+          </UFormField>
+          <UFormField label="Body" help="This text is shown directly on the note card.">
+            <UTextarea
+              v-model="editingWorkout.description"
+              :rows="8"
+              autoresize
+              placeholder="Add context, reminders, travel details, cues, or coaching notes..."
+            />
+          </UFormField>
+        </div>
+
+        <div v-else class="space-y-5">
+          <section class="space-y-4">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Identity</div>
+            <UFormField label="Workout title" help="This is what appears on the weekly board.">
+              <UInput v-model="editingWorkout.title" placeholder="Tempo builder" />
+            </UFormField>
+            <UFormField label="Description" help="Optional context or execution notes.">
+              <UTextarea
+                v-model="editingWorkout.description"
+                :rows="4"
+                autoresize
+                placeholder="Add focus, interval goals, or execution notes..."
+              />
+            </UFormField>
+          </section>
+
+          <section class="space-y-4 border-t border-default/60 pt-5">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Metadata</div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <UFormField label="Type">
+                <USelect v-model="editingWorkout.type" :items="workoutTypeItems" />
+              </UFormField>
+              <UFormField label="Category">
+                <UInput v-model="editingWorkout.category" placeholder="Workout" />
+              </UFormField>
+            </div>
+          </section>
+
+          <section class="space-y-4 border-t border-default/60 pt-5">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Load</div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <UFormField label="Minutes">
+                <UInput
+                  v-model.number="editingWorkout.durationMinutes"
+                  type="number"
+                  min="0"
+                  placeholder="60"
+                />
+              </UFormField>
+              <UFormField label="TSS">
+                <UInput
+                  v-model.number="editingWorkout.tss"
+                  type="number"
+                  min="0"
+                  placeholder="50"
+                />
+              </UFormField>
+            </div>
+          </section>
         </div>
       </div>
     </template>
     <template #footer>
-      <div class="flex justify-between gap-2">
-        <UButton color="error" variant="ghost" @click="handleRemoveWorkout">Remove</UButton>
-        <UButton color="primary" @click="applyWorkoutEditor">Apply</UButton>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <UButton
+          color="error"
+          variant="ghost"
+          icon="i-heroicons-trash"
+          @click="handleRemoveWorkout"
+        >
+          {{ isEditingNote ? 'Delete note' : 'Remove workout' }}
+        </UButton>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <UButton color="neutral" variant="ghost" @click="saveEditingWorkoutToLibrary">
+            {{ isEditingNote ? 'Save note to library' : 'Save workout to library' }}
+          </UButton>
+          <UButton color="primary" icon="i-heroicons-check" @click="applyWorkoutEditor">
+            {{ isEditingNote ? 'Save note' : 'Save workout' }}
+          </UButton>
+        </div>
       </div>
     </template>
   </UModal>
@@ -495,7 +582,6 @@
           v-model:coach-notes="draftPlan.coachNotes"
           v-model:athlete-notes="draftPlan.athleteNotes"
           :stats="utilityPanelStats"
-          :planning-tips="planningTips"
         />
       </div>
     </template>
@@ -508,6 +594,7 @@
       :loading="workoutTemplateStatus === 'pending'"
       :error="workoutTemplateStatus === 'error'"
       @toggle="isWorkoutDrawerOpen = !isWorkoutDrawerOpen"
+      @created="refreshWorkoutTemplates"
     />
   </ClientOnly>
 </template>
@@ -517,6 +604,7 @@
   import PlanArchitectWorkoutDrawer from '~/components/plans/PlanArchitectWorkoutDrawer.vue'
   import PlanArchitectBlockTable from '~/components/plans/PlanArchitectBlockTable.vue'
   import PlanArchitectBoard from '~/components/plans/PlanArchitectBoard.vue'
+  import PlanPublicationSettings from '~/components/plans/PlanPublicationSettings.vue'
   import PlanArchitectUtilityPanel from '~/components/plans/PlanArchitectUtilityPanel.vue'
   import { usePlanArchitect } from '~/composables/usePlanArchitect'
 
@@ -565,6 +653,7 @@
     addWeekToBlock,
     duplicateWeek,
     addWorkout,
+    addNote,
     addWorkoutFromTemplate,
     moveWorkout,
     removeWorkout,
@@ -585,9 +674,16 @@
     return `${hours}h ${remainder}m`
   }
 
+  const isEditingNote = computed(
+    () => editingWorkout.value?.category === 'Note' || editingWorkout.value?.type === 'Note'
+  )
+
+  const workoutTypeItems = ['Ride', 'Run', 'Swim', 'WeightTraining', 'Workout', 'Recovery']
+
   // Page Specific Analytics & Helpers
   const classifyWorkout = (w: any) => {
     const f = `${w.type || ''} ${w.category || ''}`.toUpperCase()
+    if (f.includes('NOTE')) return 'Notes'
     if (f.includes('RUN')) return 'Run'
     if (f.includes('RIDE') || f.includes('BIKE') || f.includes('CYCLE')) return 'Ride'
     if (f.includes('GYM') || f.includes('STRENGTH')) return 'Gym'
@@ -610,7 +706,7 @@
         )
 
         // Calculate type breakdown for stacked chart
-        const activityLabels = ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other']
+        const activityLabels = ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Notes', 'Other']
         const breakdown = activityLabels.map((label) => ({
           label,
           count: 0,
@@ -620,7 +716,7 @@
 
         workouts.forEach((w: any) => {
           const label = classifyWorkout(w)
-          const entry = breakdown.find((b) => b.label === label) || breakdown[breakdown.length - 1]
+          const entry = breakdown.find((b) => b.label === label) ?? breakdown[breakdown.length - 1]!
           entry.count++
           entry.minutes += Math.round((w.durationSec || 0) / 60)
           entry.tss += Math.round(w.tss || 0)
@@ -690,10 +786,11 @@
       Ride: 'info',
       Gym: 'secondary',
       'Rest/Recovery': 'warning',
+      Notes: 'warning',
       Other: 'neutral'
     }
 
-    return ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Other']
+    return ['Run', 'Ride', 'Gym', 'Rest/Recovery', 'Notes', 'Other']
       .map((label) => ({
         label,
         count: buckets[label]?.count || 0,
@@ -706,17 +803,12 @@
   const headlineMetrics = computed(() => [
     { label: 'Blocks', value: sortedBlocks.value.length },
     { label: 'Weeks', value: totalWeeks.value },
-    { label: 'Workouts', value: totalWorkouts.value },
+    { label: 'Items', value: totalWorkouts.value },
     { label: 'Difficulty', value: draftPlan.value?.difficulty || 1 },
     { label: 'Strategy', value: draftPlan.value?.strategy || 'Unset' },
     { label: 'Minutes', value: totalTargetMinutes.value },
     { label: 'TSS', value: totalTargetTss.value }
   ])
-
-  const planningTips = [
-    'Use each block to communicate the why of the phase.',
-    'Check scheduled totals against weekly targets.'
-  ]
 
   const utilityPanelStats = computed(() => {
     const disciplineBreakdown: Record<string, number> = {
@@ -724,6 +816,7 @@
       Ride: 0,
       Gym: 0,
       'Rest/Recovery': 0,
+      Notes: 0,
       Other: 0
     }
 
@@ -758,6 +851,16 @@
       .filter((b) => b.startIndex >= 0)
   })
 
+  const publicationWeekOptions = computed(() =>
+    sortedBlocks.value.flatMap((block: any) =>
+      orderedWeeks(block).map((week: any) => ({
+        id: week.id,
+        label: `Week ${week.weekNumber}${week.focus ? ` - ${week.focus}` : ''}`,
+        blockName: block.name
+      }))
+    )
+  )
+
   // Local View Logic
   function toggleBlockCollapsed(blockId: string) {
     collapsedBlockIds.value = collapsedBlockIds.value.includes(blockId)
@@ -790,6 +893,17 @@
     if (week) week[field] = value
   }
 
+  function createAndEditDayItem(
+    weekId: string,
+    dayIndex: number,
+    kind: 'workout' | 'note' = 'workout'
+  ) {
+    const item = kind === 'note' ? addNote(weekId, dayIndex) : addWorkout(weekId, dayIndex)
+    if (item) {
+      openWorkoutEditor(weekId, dayIndex, item)
+    }
+  }
+
   function handleRemoveWorkout() {
     if (editingWorkout.value && editingWorkoutTarget.value) {
       removeWorkout(editingWorkoutTarget.value.weekId, editingWorkout.value.id)
@@ -798,19 +912,59 @@
   }
 
   function isWorkoutInLibrary(workout: any) {
-    return (workoutTemplates.value || []).some((t: any) => t.title === workout.title)
+    return (workoutTemplates.value || []).some(
+      (t: any) =>
+        t.title === workout.title && String(t.category || '') === String(workout.category || '')
+    )
   }
 
   async function copyWorkoutToLibrary(workout: any) {
     try {
       await $fetch('/api/library/workouts', {
         method: 'POST',
-        body: { ...workout, id: undefined }
+        body: {
+          title: workout.title,
+          description: workout.description || undefined,
+          type: workout.type,
+          category: workout.category,
+          durationSec: workout.durationSec,
+          tss: workout.tss,
+          structuredWorkout: workout.structuredWorkout || null
+        }
       })
       await refreshWorkoutTemplates()
       toast.add({ title: 'Copied to library', color: 'success' })
     } catch (e) {
       toast.add({ title: 'Copy failed', color: 'error' })
+    }
+  }
+
+  async function saveEditingWorkoutToLibrary() {
+    if (!editingWorkout.value) return
+
+    try {
+      await $fetch('/api/library/workouts', {
+        method: 'POST',
+        body: {
+          title: editingWorkout.value.title,
+          description: editingWorkout.value.description || undefined,
+          type: editingWorkout.value.type,
+          category: editingWorkout.value.category,
+          durationSec:
+            editingWorkout.value.category === 'Note'
+              ? 0
+              : (Number(editingWorkout.value.durationMinutes) || 0) * 60,
+          tss: editingWorkout.value.category === 'Note' ? 0 : Number(editingWorkout.value.tss) || 0,
+          structuredWorkout:
+            editingWorkout.value.category === 'Note'
+              ? null
+              : editingWorkout.value.structuredWorkout || null
+        }
+      })
+      await refreshWorkoutTemplates()
+      toast.add({ title: 'Saved to library', color: 'success' })
+    } catch (error) {
+      toast.add({ title: 'Save to library failed', color: 'error' })
     }
   }
 

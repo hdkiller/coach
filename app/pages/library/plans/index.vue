@@ -131,16 +131,42 @@
   }
 
   function editPlan(id: string) {
-    // navigateTo(`/library/plans/${id}/edit`)
-    toast.add({ title: 'Plan Metadata Editor coming soon', color: 'info' })
+    navigateTo(`/library/plans/${id}/overview`)
   }
 
   function editStructure(id: string) {
     navigateTo(`/library/plans/${id}/architect`)
   }
 
-  function sharePlan(plan: any) {
-    toast.add({ title: 'Public sharing coming soon', color: 'info' })
+  async function sharePlan(plan: any) {
+    try {
+      const res = await $fetch<{ url: string }>('/api/share/generate', {
+        method: 'POST',
+        body: {
+          resourceType: 'TRAINING_PLAN',
+          resourceId: plan.id
+        }
+      })
+
+      if (import.meta.client && navigator?.clipboard) {
+        await navigator.clipboard.writeText(res.url)
+      }
+
+      toast.add({
+        title: 'Private link copied',
+        description:
+          plan.visibility === 'PUBLIC' && plan.slug
+            ? `Public page: /training-plans/${plan.slug}`
+            : 'A full-access private plan link has been copied to your clipboard.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Share failed',
+        description: error.data?.message || 'Could not create a private plan link.',
+        color: 'error'
+      })
+    }
   }
 
   function getTotalWeeks(plan: any) {

@@ -3,7 +3,7 @@
 
   await navigateTo(
     {
-      path: `/library/plans/${route.params.id}/architect`,
+      path: `/library/plans/${route.params.id}/overview`,
       query: route.query
     },
     { replace: true }
