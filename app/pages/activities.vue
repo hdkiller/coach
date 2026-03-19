@@ -153,6 +153,17 @@
 
             <UButton
               v-if="viewMode === 'calendar'"
+              icon="i-heroicons-rectangle-stack"
+              :color="isWorkoutDrawerVisible ? 'primary' : 'neutral'"
+              variant="ghost"
+              size="sm"
+              @click="toggleWorkoutDrawerFromHeader"
+            >
+              <span class="hidden sm:inline">Library</span>
+            </UButton>
+
+            <UButton
+              v-if="viewMode === 'calendar'"
               icon="i-heroicons-cog-6-tooth"
               color="neutral"
               variant="ghost"
@@ -219,7 +230,10 @@
         </div>
 
         <!-- Content Area -->
-        <div class="flex-1 overflow-hidden p-4">
+        <div
+          class="flex-1 overflow-hidden p-4"
+          :class="viewMode === 'calendar' && isWorkoutDrawerVisible ? 'pb-28 lg:pb-36' : ''"
+        >
           <div v-if="status === 'error'" class="p-4 text-red-500 bg-red-50 rounded-lg">
             {{ t('errors_load_failed') }}
           </div>
@@ -349,12 +363,15 @@
                     :user-zones="userZones"
                     :all-sport-settings="allSportSettings"
                     :settings="calendarSettings"
+                    :saving-activity-id="savingToLibraryId"
                     @activity-click="openActivity"
                     @wellness-click="openWellnessModal"
                     @nutrition-click="openNutrition"
                     @merge-activity="onMergeActivity"
                     @link-activity="onLinkActivity"
                     @reschedule-activity="onRescheduleActivity"
+                    @schedule-template="onScheduleTemplate"
+                    @save-to-library="saveActivityToLibrary"
                   />
 
                   <!-- Metabolic Horizon Wave -->
@@ -940,6 +957,18 @@
   <CalendarSettingsModal v-model:open="showCalendarSettingsModal" />
 
   <MilestoneModal v-model:open="showMilestoneModal" :milestone="selectedMilestone" />
+
+  <ClientOnly>
+    <PlanArchitectWorkoutDrawer
+      v-if="viewMode === 'calendar' && isWorkoutDrawerVisible"
+      :open="isWorkoutDrawerOpen"
+      :templates="workoutTemplates || []"
+      :loading="workoutTemplateStatus === 'pending'"
+      :error="workoutTemplateStatus === 'error'"
+      class="z-[70]"
+      @toggle="toggleWorkoutDrawerCollapsed"
+    />
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
@@ -956,6 +985,7 @@
   import CalendarMetabolicWave from '~/components/activities/CalendarMetabolicWave.vue'
   import CalendarSettingsModal from '~/components/activities/CalendarSettingsModal.vue'
   import MilestoneModal from '~/components/activities/MilestoneModal.vue'
+  import PlanArchitectWorkoutDrawer from '~/components/plans/PlanArchitectWorkoutDrawer.vue'
   import { getDefaultSportSettings, getSportSettingsForActivity } from '~/utils/sportSettings'
   import { getWorkoutChartPreference } from '~/utils/workoutChartContext'
   import { getCalendarActivityDateKey } from '~/utils/calendar'
@@ -1040,6 +1070,18 @@
   const linkPlanned = ref<CalendarActivity | null>(null)
   const linkCompleted = ref<CalendarActivity | null>(null)
   const isLinking = ref(false)
+  const isWorkoutDrawerVisible = ref(false)
+  const isWorkoutDrawerOpen = ref(true)
+  const savingToLibraryId = ref<string | null>(null)
+
+  const {
+    data: workoutTemplates,
+    status: workoutTemplateStatus,
+    refresh: refreshWorkoutTemplates
+  } = useLazyFetch<any[]>('/api/library/workouts', {
+    server: false,
+    default: () => []
+  })
 
   const activityMenuItems = computed(() => {
     const isTReady = typeof t.value === 'function'
@@ -1822,6 +1864,125 @@
         color: 'error'
       })
     }
+  }
+
+  async function saveActivityToLibrary(activity: CalendarActivity) {
+    const toast = useToast()
+    savingToLibraryId.value = activity.id
+
+    try {
+      const response = await $fetch<any>('/api/library/workouts/save', {
+        method: 'POST',
+        body:
+          activity.source === 'planned'
+            ? {
+                plannedWorkoutId: activity.id,
+                title: activity.title
+              }
+            : {
+                workoutId: activity.id,
+                title: activity.title
+              }
+      })
+
+      if (response?.template) {
+        const existingTemplates = workoutTemplates.value || []
+        const alreadyExists = existingTemplates.some(
+          (template: any) => template.id === response.template.id
+        )
+
+        if (!alreadyExists) {
+          workoutTemplates.value = [response.template, ...existingTemplates]
+        }
+      }
+
+      if (!isWorkoutDrawerVisible.value) {
+        isWorkoutDrawerVisible.value = true
+      }
+      if (!isWorkoutDrawerOpen.value) {
+        isWorkoutDrawerOpen.value = true
+      }
+
+      toast.add({
+        title: 'Saved to Library',
+        description:
+          activity.source === 'planned'
+            ? 'Planned workout captured as a reusable blueprint.'
+            : 'Workout captured in your library.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      console.error('Save to library failed:', error)
+      toast.add({
+        title: 'Save Failed',
+        description: error.data?.message || 'Failed to save to library',
+        color: 'error'
+      })
+    } finally {
+      savingToLibraryId.value = null
+    }
+  }
+
+  async function onScheduleTemplate({ template, date }: { template: any; date: Date }) {
+    const toast = useToast()
+
+    try {
+      await $fetch('/api/planned-workouts', {
+        method: 'POST',
+        body: {
+          date: formatDateUTC(date, 'yyyy-MM-dd'),
+          title: template.title,
+          description: template.description,
+          type: template.type,
+          category: template.category,
+          durationSec: template.durationSec,
+          tss: template.tss,
+          workIntensity: template.workIntensity,
+          structuredWorkout: template.structuredWorkout
+        }
+      })
+
+      await refresh()
+
+      if (workoutTemplates.value?.length) {
+        workoutTemplates.value = workoutTemplates.value.map((item: any) =>
+          item.id === template.id
+            ? {
+                ...item,
+                usageCount: (item.usageCount || 0) + 1,
+                lastUsedAt: new Date().toISOString()
+              }
+            : item
+        )
+      }
+
+      toast.add({
+        title: 'Workout Scheduled',
+        description: `"${template.title}" added to ${formatDateUTC(date, 'MMM do')}.`,
+        color: 'success'
+      })
+    } catch (error: any) {
+      console.error('Schedule template failed:', error)
+      toast.add({
+        title: 'Scheduling Failed',
+        description: error.data?.message || 'Could not schedule workout from library.',
+        color: 'error'
+      })
+    }
+  }
+
+  function toggleWorkoutDrawerFromHeader() {
+    if (isWorkoutDrawerVisible.value) {
+      isWorkoutDrawerVisible.value = false
+      return
+    }
+
+    isWorkoutDrawerVisible.value = true
+    isWorkoutDrawerOpen.value = true
+  }
+
+  function toggleWorkoutDrawerCollapsed() {
+    isWorkoutDrawerOpen.value = !isWorkoutDrawerOpen.value
   }
 
   // List View Helpers

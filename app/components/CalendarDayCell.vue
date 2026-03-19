@@ -99,18 +99,37 @@
           @dragleave="onDragLeave"
           @drop.stop="(e) => onDrop(e, activity)"
         >
-          <!-- Drag Handle -->
           <div
-            v-if="
-              activity.source === 'completed' ||
-              (activity.source === 'planned' && activity.status !== 'completed')
-            "
-            class="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing z-10 hover:bg-black/5 rounded-bl"
-            :draggable="true"
-            @dragstart.stop="(e) => onDragStart(e, activity)"
-            @click.stop
+            class="absolute top-0 right-0 z-10 flex items-center gap-0.5 p-1 opacity-0 transition-opacity group-hover:opacity-100"
           >
-            <UIcon name="i-heroicons-bars-2" class="w-3 h-3 text-gray-400" />
+            <UButton
+              v-if="activity.source === 'planned' || activity.source === 'completed'"
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-document-plus"
+              :loading="savingActivityId === activity.id"
+              :disabled="savingActivityId === activity.id"
+              :title="
+                activity.source === 'planned'
+                  ? 'Save planned workout as blueprint'
+                  : 'Save workout to library'
+              "
+              class="h-6 w-6 p-0"
+              @click.stop="$emit('save-to-library', activity)"
+            />
+            <div
+              v-if="
+                activity.source === 'completed' ||
+                (activity.source === 'planned' && activity.status !== 'completed')
+              "
+              class="cursor-grab rounded-lg p-1 hover:bg-black/5 active:cursor-grabbing"
+              :draggable="true"
+              @dragstart.stop="(e) => onDragStart(e, activity)"
+              @click.stop
+            >
+              <UIcon name="i-heroicons-bars-2" class="w-3 h-3 text-gray-400" />
+            </div>
           </div>
 
           <!-- Status Dot -->
@@ -440,6 +459,7 @@
     userZones?: any
     allSportSettings?: any[]
     settings?: any
+    savingActivityId?: string | null
   }>()
 
   const emit = defineEmits<{
@@ -449,6 +469,8 @@
     'merge-activity': [data: { source: CalendarActivity; target: CalendarActivity }]
     'link-activity': [data: { planned: CalendarActivity; completed: CalendarActivity }]
     'reschedule-activity': [data: { activity: { id: string; source: string }; date: Date }]
+    'schedule-template': [data: { template: any; date: Date }]
+    'save-to-library': [activity: CalendarActivity]
   }>()
 
   function getActivityZones(activity: CalendarActivity) {
@@ -520,6 +542,14 @@
         try {
           const sourceActivity = JSON.parse(data)
 
+          if (sourceActivity.source === 'library-template' && sourceActivity.template) {
+            emit('schedule-template', {
+              template: sourceActivity.template,
+              date: props.date
+            })
+            return
+          }
+
           if (sourceActivity.id === targetActivity.id) return
 
           // Case 1: Linking a planned workout to a completed workout
@@ -575,6 +605,14 @@
       if (data) {
         try {
           const sourceActivity = JSON.parse(data)
+
+          if (sourceActivity.source === 'library-template' && sourceActivity.template) {
+            emit('schedule-template', {
+              template: sourceActivity.template,
+              date: props.date
+            })
+            return
+          }
 
           // Only allow rescheduling planned workouts
           if (sourceActivity.source === 'planned') {
