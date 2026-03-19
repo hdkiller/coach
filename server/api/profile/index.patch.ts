@@ -4,6 +4,7 @@ import { profileUpdateSchema } from '../../utils/schemas/profile'
 import { athleteMetricsService } from '../../utils/athleteMetricsService'
 import { LBS_TO_KG } from '../../utils/number'
 import { bodyMeasurementService } from '../../utils/services/bodyMeasurementService'
+import { slugifyPublicName } from '../../../shared/public-plans'
 
 defineRouteMeta({
   openAPI: {
@@ -118,6 +119,13 @@ export default defineEventHandler(async (event) => {
         updatePayload.uiLanguage = data.uiLanguage
       }
 
+      if (updatePayload.publicAuthorSlug !== undefined) {
+        updatePayload.publicAuthorSlug =
+          updatePayload.publicAuthorSlug && updatePayload.publicAuthorSlug.trim()
+            ? slugifyPublicName(updatePayload.publicAuthorSlug)
+            : null
+      }
+
       await prisma.user.update({
         where: { id: userId },
         data: updatePayload
@@ -187,6 +195,13 @@ export default defineEventHandler(async (event) => {
         state: true,
         country: true,
         timezone: true,
+        publicAuthorSlug: true,
+        publicDisplayName: true,
+        publicBio: true,
+        publicLocation: true,
+        publicWebsiteUrl: true,
+        publicSocialLinks: true,
+        publicCoachingBrand: true,
         nutritionTrackingEnabled: true
       }
     })

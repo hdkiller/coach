@@ -136,6 +136,7 @@ export default defineEventHandler(async (event) => {
         userId,
         resourceType,
         resourceId,
+        ...(resourceType === 'TRAINING_PLAN' ? { accessMode: 'FULL' } : {}),
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
       },
       orderBy: { createdAt: 'desc' }
@@ -148,6 +149,7 @@ export default defineEventHandler(async (event) => {
         userId,
         resourceType,
         resourceId,
+        accessMode: resourceType === 'TRAINING_PLAN' ? 'FULL' : 'PREVIEW',
         expiresAt:
           normalizedExpiresIn === null ? null : new Date(now.getTime() + normalizedExpiresIn * 1000)
       }
@@ -172,7 +174,7 @@ export default defineEventHandler(async (event) => {
       sharePath = '/share/planned-workout'
       break
     case 'TRAINING_PLAN':
-      sharePath = '/share/plan'
+      sharePath = '/training-plans/access'
       break
     case 'WELLNESS':
       sharePath = '/share/wellness'
