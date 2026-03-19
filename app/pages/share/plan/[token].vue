@@ -32,9 +32,14 @@
         <div class="flex items-start justify-between mb-4">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
-              <UAvatar v-if="user?.image" :src="user.image" :alt="user.name || 'User'" size="xs" />
+              <UAvatar
+                v-if="user?.image"
+                :src="user.image"
+                :alt="user.displayName || user.name || 'User'"
+                size="xs"
+              />
               <span class="text-sm text-gray-500 dark:text-gray-400">
-                {{ user?.name || 'Coach Wattz User' }} shared a training plan
+                {{ user?.displayName || user?.name || 'Coach Wattz User' }} shared a training plan
               </span>
             </div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -184,10 +189,10 @@
   const route = useRoute()
   const token = route.params.token as string
 
-  const { data, pending, error } = await useFetch<any>(`/api/share/${token}`)
+  const { data, pending, error } = await useFetch<any>(`/api/public/plans/access/${token}`)
 
-  const plan = computed(() => data.value?.data)
-  const user = computed(() => data.value?.user)
+  const plan = computed(() => data.value?.plan)
+  const user = computed(() => data.value?.plan?.author)
 
   // Meta tags
   const pageTitle = computed(() => {
@@ -210,6 +215,7 @@
     title: pageTitle,
     meta: [
       { name: 'description', content: pageDescription },
+      { name: 'robots', content: 'noindex, nofollow' },
       { property: 'og:title', content: pageTitle },
       { property: 'og:description', content: pageDescription },
       { property: 'og:type', content: 'article' }
