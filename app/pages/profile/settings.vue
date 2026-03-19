@@ -85,6 +85,13 @@
             @saved="refreshProfile"
           />
 
+          <ProfilePublicAuthorSettings
+            v-if="activeTab === 'public-author'"
+            :model-value="profile"
+            :loading="savingPublicAuthor"
+            @update:model-value="handlePublicAuthorUpdate"
+          />
+
           <ProfileCommunicationSettings v-if="activeTab === 'communication'" />
         </div>
       </div>
@@ -99,6 +106,7 @@
   import ProfileNutritionSettings from '~/components/profile/NutritionSettings.vue'
   import ProfileCommunicationSettings from '~/components/profile/CommunicationSettings.vue'
   import ProfileMeasurementsSettings from '~/components/profile/MeasurementsSettings.vue'
+  import ProfilePublicAuthorSettings from '~/components/profile/PublicAuthorProfileSettings.vue'
 
   const { t } = useTranslate('profile')
   const { data } = useAuth()
@@ -110,36 +118,46 @@
     middleware: 'auth'
   })
 
+  function tr(key: string, fallback: string) {
+    if (typeof t.value !== 'function') return fallback
+    const translated = t.value(key)
+    return translated === key ? fallback : translated
+  }
+
   const tabs = computed(() => [
     {
       id: 'basic',
-      label: typeof t.value === 'function' ? t.value('settings_tabs_basic') : 'Basic Settings',
+      label: tr('settings_tabs_basic', 'Basic Settings'),
       icon: 'i-heroicons-user-circle'
     },
     {
       id: 'sports',
-      label: typeof t.value === 'function' ? t.value('settings_tabs_sports') : 'Sport Settings',
+      label: tr('settings_tabs_sports', 'Sport Settings'),
       icon: 'i-heroicons-bolt'
     },
     {
       id: 'measurements',
-      label: typeof t.value === 'function' ? t.value('settings_tabs_measurements') : 'Measurements',
+      label: tr('settings_tabs_measurements', 'Measurements'),
       icon: 'i-heroicons-scale'
     },
     {
       id: 'availability',
-      label: typeof t.value === 'function' ? t.value('settings_tabs_availability') : 'Availability',
+      label: tr('settings_tabs_availability', 'Availability'),
       icon: 'i-lucide-calendar-clock'
     },
     {
       id: 'nutrition',
-      label: typeof t.value === 'function' ? t.value('settings_tabs_nutrition') : 'Nutrition',
+      label: tr('settings_tabs_nutrition', 'Nutrition'),
       icon: 'i-heroicons-fire'
     },
     {
+      id: 'public-author',
+      label: tr('settings_tabs_public_author', 'Public Profile'),
+      icon: 'i-heroicons-megaphone'
+    },
+    {
       id: 'communication',
-      label:
-        typeof t.value === 'function' ? t.value('settings_tabs_communication') : 'Communication',
+      label: tr('settings_tabs_communication', 'Communication'),
       icon: 'i-heroicons-envelope'
     }
   ])
@@ -181,6 +199,7 @@
   const sportSettings = ref<any[]>([])
   const nutritionSettings = ref<any>(null)
   const savingProfile = ref(false)
+  const savingPublicAuthor = ref(false)
 
   // Availability Logic
   const { data: availability, refresh: refreshAvailability } = await useFetch('/api/availability')
@@ -302,6 +321,33 @@
 
       // Refresh full profile to ensure all derived state is correct
       await refreshProfile()
+    }
+  }
+
+  async function handlePublicAuthorUpdate(newProfile: any) {
+    savingPublicAuthor.value = true
+    try {
+      await $fetch('/api/profile/public', {
+        method: 'PATCH',
+        body: newProfile
+      })
+
+      Object.assign(profile.value, newProfile)
+      await refreshProfile()
+
+      toast.add({
+        title: 'Public Profile Updated',
+        description: 'Your public profile settings have been saved.',
+        color: 'success'
+      })
+    } catch (error: any) {
+      toast.add({
+        title: 'Update Failed',
+        description: error.data?.message || 'Failed to save public profile.',
+        color: 'error'
+      })
+    } finally {
+      savingPublicAuthor.value = false
     }
   }
 
