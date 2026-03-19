@@ -4,9 +4,10 @@
 </template>
 
 <script setup lang="ts">
+  import { computed } from 'vue'
   import PublicPlansCatalogPage from '~/components/plans/PublicPlansCatalogPage.vue'
   import PublicPlanDetailPage from '~/components/plans/PublicPlanDetailPage.vue'
-  import { getPublicSportBySegment } from '~/shared/public-plans'
+  import { getPublicSportBySegment } from '../../../shared/public-plans'
 
   const route = useRoute()
   const slug = route.params.slug as string
