@@ -32,6 +32,7 @@ const architectPatchSchema = z.object({
               dayIndex: z.number(),
               weekIndex: z.number(),
               title: z.string(),
+              description: z.string().nullable().optional(),
               type: z.string().nullable(),
               durationSec: z.number().nullable(),
               tss: z.number().nullable(),
@@ -100,9 +101,9 @@ export default defineEventHandler(async (event) => {
     })
 
     // 2. Handle Block Deletions
-    const incomingBlockIds = incomingBlocks.map((b) => b.id).filter(Boolean)
-    const existingBlockIds = plan.blocks.map((b) => b.id)
-    const blocksToDelete = existingBlockIds.filter((id) => !incomingBlockIds.includes(id))
+    const incomingBlockIds = incomingBlocks.map((b) => b.id).filter(Boolean) as string[]
+    const existingBlockIds = plan.blocks.map((b: any) => b.id)
+    const blocksToDelete = existingBlockIds.filter((id: string) => !incomingBlockIds.includes(id))
 
     if (blocksToDelete.length > 0) {
       await tx.trainingBlock.deleteMany({
@@ -130,7 +131,7 @@ export default defineEventHandler(async (event) => {
         // Create new block
         const newBlock = await tx.trainingBlock.create({
           data: {
-            trainingPlanId: id,
+            trainingPlan: { connect: { id } },
             name: bData.name,
             type: bData.type,
             primaryFocus: bData.primaryFocus,
@@ -143,10 +144,10 @@ export default defineEventHandler(async (event) => {
       }
 
       // 4. Handle Week Deletions for this block
-      const existingBlock = plan.blocks.find((b) => b.id === blockId)
-      const existingWeekIds = existingBlock?.weeks.map((w) => w.id) || []
-      const incomingWeekIds = bData.weeks.map((w) => w.id).filter(Boolean)
-      const weeksToDelete = existingWeekIds.filter((wid) => !incomingWeekIds.includes(wid))
+      const existingBlock = plan.blocks.find((b: any) => b.id === blockId)
+      const existingWeekIds = existingBlock?.weeks.map((w: any) => w.id) || []
+      const incomingWeekIds = bData.weeks.map((w) => w.id).filter(Boolean) as string[]
+      const weeksToDelete = existingWeekIds.filter((wid: string) => !incomingWeekIds.includes(wid))
 
       if (weeksToDelete.length > 0) {
         await tx.trainingWeek.deleteMany({
@@ -184,11 +185,11 @@ export default defineEventHandler(async (event) => {
         }
 
         // 6. Handle Workout Deletions for this week
-        const existingWeek = existingBlock?.weeks.find((w) => w.id === weekId)
-        const existingWorkoutIds = existingWeek?.workouts.map((wo) => wo.id) || []
-        const incomingWorkoutIds = wData.workouts.map((wo) => wo.id).filter(Boolean)
+        const existingWeek = existingBlock?.weeks.find((w: any) => w.id === weekId)
+        const existingWorkoutIds = existingWeek?.workouts.map((wo: any) => wo.id) || []
+        const incomingWorkoutIds = wData.workouts.map((wo) => wo.id).filter(Boolean) as string[]
         const workoutsToDelete = existingWorkoutIds.filter(
-          (woid) => !incomingWorkoutIds.includes(woid)
+          (woid: string) => !incomingWorkoutIds.includes(woid)
         )
 
         if (workoutsToDelete.length > 0) {
@@ -206,6 +207,7 @@ export default defineEventHandler(async (event) => {
                 dayIndex: woData.dayIndex,
                 weekIndex: woData.weekIndex,
                 title: woData.title,
+                description: woData.description,
                 type: woData.type,
                 durationSec: woData.durationSec,
                 tss: woData.tss,
@@ -224,6 +226,7 @@ export default defineEventHandler(async (event) => {
                 dayIndex: woData.dayIndex,
                 weekIndex: woData.weekIndex,
                 title: woData.title,
+                description: woData.description,
                 type: woData.type,
                 durationSec: woData.durationSec,
                 tss: woData.tss,

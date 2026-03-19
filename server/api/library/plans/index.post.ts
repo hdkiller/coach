@@ -32,6 +32,8 @@ export default defineEventHandler(async (event) => {
       description,
       strategy,
       isTemplate: true,
+      visibility: 'PRIVATE',
+      accessState: 'PRIVATE',
       status: 'ACTIVE', // Blueprints are always "Active" in the library
       blocks: {
         create: {

@@ -13,6 +13,11 @@ export default defineEventHandler(async (event) => {
   const plan = await (prisma as any).trainingPlan.findUnique({
     where: { id, userId },
     include: {
+      sampleWeeks: {
+        select: {
+          weekId: true
+        }
+      },
       blocks: {
         orderBy: { order: 'asc' },
         include: {
